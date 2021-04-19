@@ -1,5 +1,5 @@
 <template>
-  <mdb-navbar dark color="elegant">
+  <mdb-navbar dark position="top" color="elegant">
     <mdb-navbar-brand tag="a" href="/">
       <img src="../../public/android-chrome-192x192.png" height="40" alt=""> SysNDD
     </mdb-navbar-brand>
@@ -7,7 +7,7 @@
       <mdb-navbar-nav>
         <mdb-nav-item href="Entities">Entities</mdb-nav-item>
         <mdb-nav-item href="Genes">Genes</mdb-nav-item>
-        <mdb-nav-item href="Comparisions">Comparisions</mdb-nav-item>
+        <mdb-nav-item href="Comparisons">Comparisons</mdb-nav-item>
         <mdb-nav-item href="About">About</mdb-nav-item>
         <mdb-nav-item href="Login">Login</mdb-nav-item>
       </mdb-navbar-nav>
