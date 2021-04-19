@@ -1,24 +1,14 @@
 <template>
   <div class="container-fluid" style="padding-top: 80px;">
-      <mdb-datatable color="black" textWhite
-        :data="'http://127.0.0.1:7777/api/entities'"
-        hover
-        :display="5"
-        :tfoot="false"
-        small
-      />
+
   </div>
 </template>
 
 <script>
 import axios from 'axios';
-import { mdbDatatable } from 'mdbvue';
 
 export default {
   name: 'Entities',
-    components: {
-      mdbDatatable
-    },
   methods: {
     async loadEntitiesData() {
       let apiUrl = 'http://127.0.0.1:7777/api/entities';

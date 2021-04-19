@@ -6,6 +6,7 @@ import Genes from '../views/Genes.vue'
 import Comparisons from '../views/Comparisons.vue'
 import About from '../views/About.vue'
 import Login from '../views/Login.vue'
+import Review from '../views/Review.vue'
 
 import Entity from '../views/Entity.vue'
 
@@ -41,6 +42,11 @@ const routes = [
     path: '/Login',
     name: 'Login',
     component: Login
+  },
+  {
+    path: '/Review',
+    name: 'Review',
+    component: Review
   },
   {
     path: '/Entities/:sysndd_id',
