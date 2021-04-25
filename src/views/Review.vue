@@ -1,9 +1,9 @@
 <template>
   <div class="container-fluid" style="padding-top: 80px;">
-    <b-container fluid>
+  <b-spinner label="Loading..." v-if="loading" class="float-center m-5"></b-spinner>
+    <b-container fluid v-else>
       <!-- User Interface controls -->
       <b-row>
-
         <b-col lg="6" class="my-1">
           <b-form-group
             label="Filter"
@@ -74,6 +74,9 @@
         stacked="md"
         show-empty
         small
+        fixed
+        striped
+        hover
         @filtered="onFiltered"
       >
         <template #cell(name)="row">
@@ -112,40 +115,23 @@ export default {
   name: 'Review',
   data() {
         return {
-          items: [
-            { isActive: true, age: 40, name: { first: 'Dickerson', last: 'Macdonald' } },
-            { isActive: false, age: 21, name: { first: 'Larsen', last: 'Shaw' } },
-            {
-              isActive: false,
-              age: 9,
-              name: { first: 'Mini', last: 'Navarro' },
-              _rowVariant: 'success'
-            },
-            { isActive: false, age: 89, name: { first: 'Geneva', last: 'Wilson' } },
-            { isActive: true, age: 38, name: { first: 'Jami', last: 'Carney' } },
-            { isActive: false, age: 27, name: { first: 'Essie', last: 'Dunlap' } },
-            { isActive: true, age: 40, name: { first: 'Thor', last: 'Macdonald' } },
-            {
-              isActive: true,
-              age: 87,
-              name: { first: 'Larsen', last: 'Shaw' },
-              _cellVariants: { age: 'danger', isActive: 'warning' }
-            },
-            { isActive: false, age: 26, name: { first: 'Mitzi', last: 'Navarro' } },
-            { isActive: false, age: 22, name: { first: 'Genevieve', last: 'Wilson' } },
-            { isActive: true, age: 38, name: { first: 'John', last: 'Carney' } },
-            { isActive: false, age: 29, name: { first: 'Dick', last: 'Dunlap' } }
-          ],
+          items: [],
           fields: [
-            { key: 'name', label: 'Person full name', sortable: true, sortDirection: 'desc' },
-            { key: 'age', label: 'Person age', sortable: true, class: 'text-center' },
+            { key: 'entity_id', label: 'Entity', sortable: true, sortDirection: 'desc' },
+            { key: 'symbol', label: 'Gene Symbol', sortable: true, class: 'text-left font-italic' },
             {
-              key: 'isActive',
-              label: 'Is Active',
-              formatter: (value, key, item) => {
-                return value ? 'Yes' : 'No'
-              },
+              key: 'disease_ontology_name',
+              label: 'Disease',
               sortable: true,
+              class: 'text-left',
+              sortByFormatted: true,
+              filterByFormatted: true
+            },
+            {
+              key: 'hpo_mode_of_inheritance_term_name',
+              label: 'Inheritance',
+              sortable: true,
+              class: 'text-left',
               sortByFormatted: true,
               filterByFormatted: true
             },
@@ -153,8 +139,8 @@ export default {
           ],
           totalRows: 1,
           currentPage: 1,
-          perPage: 5,
-          pageOptions: [5, 10, 15, { value: 100, text: "Show a lot" }],
+          perPage: 10,
+          pageOptions: [10, 25, 50, { value: 100, text: "Show a lot" }],
           sortBy: '',
           sortDesc: false,
           sortDirection: 'asc',
@@ -164,7 +150,8 @@ export default {
             id: 'info-modal',
             title: '',
             content: ''
-          }
+          },
+          loading: true
         }
       },
       computed: {
@@ -179,7 +166,6 @@ export default {
       },
       mounted() {
         // Set the initial number of items
-        this.totalRows = this.items.length;
         this.loadEntitiesData();
       },
       methods: {
@@ -198,9 +184,17 @@ export default {
           this.currentPage = 1
         },
         async loadEntitiesData() {
+          this.loading = true;
           let apiUrl = 'http://127.0.0.1:7777/api/entities';
-          let response = await this.axios.get(apiUrl);
-          console.log(response);
+          try {
+            let response = await this.axios.get(apiUrl);
+            this.items = response.data;
+            this.totalRows = response.data.length;
+            console.log(response);
+          } catch (e) {
+            console.error(e);
+          }
+          this.loading = false;
         }
       }
   }
