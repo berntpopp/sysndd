@@ -9,8 +9,10 @@
         <b-navbar-nav>
           <b-nav-item href="/Entities">Entities</b-nav-item>
           <b-nav-item href="/Genes">Genes</b-nav-item>
-      <b-nav-item href="/Comparisons">Comparisons</b-nav-item>
-      <b-nav-item href="/About">About</b-nav-item>
+          <b-nav-item href="/Phenotypes">Phenotypes</b-nav-item>
+          <b-nav-item href="/Panels">Panels</b-nav-item>
+          <b-nav-item href="/Comparisons">Comparisons</b-nav-item>
+          <b-nav-item href="/About">About</b-nav-item>
         </b-navbar-nav>
 
         <!-- Right aligned nav items -->

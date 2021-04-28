@@ -1,35 +1,30 @@
 <template>
-  <div class="container-fluid" style="padding-top: 80px;">
-  <b-spinner label="Loading..." v-if="loading" class="float-center m-5"></b-spinner>
-    <b-container fluid v-else>
-  
-        <h2>NDD Entities</h2>
-
+    <div class="container-fluid" style="padding-top: 80px;">
+          <h2>Phenotype Search</h2>
+<b-row>
+  <b-col sm="5" md="2" class="my-1">
+  </b-col>
+  <b-col sm="5" md="8" class="my-1">
+      <multiselect 
+      id="phenotype_select"
+      v-model="value"
+      tag-placeholder="Add this as new tag" 
+      placeholder="Search or add a tag" 
+      label="HPO_term" 
+      track-by="phenotype_id" 
+      :options="phenotypes" 
+      :multiple="true"
+      :taggable="true" 
+      @tag="addTag"
+      >
+      </multiselect> 
+  </b-col>
+  <b-col>
+    <b-button v-on:click="requestSelected">Submit</b-button>
+  </b-col>
+</b-row>
       <!-- User Interface controls -->
       <b-row>
-        <b-col lg="6" class="my-1">
-          <b-form-group
-            label="Filter"
-            label-for="filter-input"
-            label-cols-sm="3"
-            label-align-sm="right"
-            label-size="sm"
-            class="mb-0"
-          >
-            <b-input-group size="sm">
-              <b-form-input
-                id="filter-input"
-                v-model="filter"
-                type="search"
-                placeholder="Type to Search"
-              ></b-form-input>
-
-              <b-input-group-append>
-                <b-button :disabled="!filter" @click="filter = ''">Clear</b-button>
-              </b-input-group-append>
-            </b-input-group>
-          </b-form-group>
-        </b-col>
 
         <b-col sm="5" md="6" class="my-1">
           <b-form-group
@@ -65,8 +60,8 @@
 
       <!-- Main table element -->
       <b-table
-        :items="items"
-        :fields="fields"
+        :items="entities_data"
+        :fields="entities_data_fields"
         :current-page="currentPage"
         :per-page="perPage"
         :filter="filter"
@@ -82,7 +77,6 @@
         striped
         hover
         sort-icon-left
-        @filtered="onFiltered"
       >
 
         <template #cell(actions)="row">
@@ -124,18 +118,21 @@
         
       </b-table>
 
-    </b-container>
+
   </div>
 </template>
 
 
 <script>
 export default {
-  name: 'Entities',
+  name: 'Phenotypes',
   data() {
-        return {
-          items: [],
-          fields: [
+        return {value: null,
+          phenotypes: [],
+          selected_input: [],
+          entities: [],
+          entities_data: [],
+          entities_data_fields: [
             { key: 'entity_id', label: 'Entity', sortable: true, sortDirection: 'desc', class: 'text-left' },
             { key: 'symbol', label: 'Gene Symbol', sortable: true, class: 'text-left' },
             {
@@ -174,38 +171,63 @@ export default {
           loading: true
         }
       },
-      computed: {
-        sortOptions() {
-          // Create an options list from our fields
-          return this.fields
-            .filter(f => f.sortable)
-            .map(f => {
-              return { text: f.label, value: f.key }
-            })
-        }
-      },
       mounted() {
         // Set the initial number of items
-        this.loadEntitiesData();
+        this.loadPhenotypesData();
       },
       methods: {
-        onFiltered(filteredItems) {
-          // Trigger pagination to update the number of buttons/pages due to filtering
-          this.totalRows = filteredItems.length
-          this.currentPage = 1
-        },
-        async loadEntitiesData() {
-          this.loading = true;
-          let apiUrl = 'http://127.0.0.1:7777/api/entities';
+        async loadPhenotypesData() {
+          let apiUrl = 'http://127.0.0.1:7777/api/phenotypes';
           try {
             let response = await this.axios.get(apiUrl);
-            this.items = response.data;
-            this.totalRows = response.data.length;
+            this.phenotypes = response.data;
           } catch (e) {
             console.error(e);
           }
-          this.loading = false;
         },
+        async loadEntitiesFromPhenotypes() {
+          this.entities = [];
+          let apiUrl = 'http://127.0.0.1:7777/api/phenotypes/' + this.selected_input.join() + '/entities';
+          try {
+            let response = await this.axios.get(apiUrl);
+            
+            for (var i in response.data) {
+              this.entities.push(response.data[i]['entity_id']);
+            }
+
+          } catch (e) {
+            console.error(e);
+          }
+            this.loadEntities();
+        },
+        async loadEntities() {
+          this.entities_data = [];
+          let apiUrl = 'http://127.0.0.1:7777/api/entities/' + this.entities.join();
+          try {
+            let response = await this.axios.get(apiUrl);
+            this.entities_data = response.data;
+            this.totalRows = response.data.length;
+            this.currentPage =1;
+            console.log(this.entities_data)
+          } catch (e) {
+            console.error(e);
+          }
+        },
+        addTag(newTag) {
+            const tag = {
+              phenotype_id: newTag
+            }
+            this.options.push(tag);
+            this.value.push(tag);
+            console.log(tag);
+          },
+        requestSelected() {
+            this.selected_input = [];
+            for (var i in this.value) {
+              this.selected_input.push(this.value[i]['phenotype_id']);
+            }
+            this.loadEntitiesFromPhenotypes();
+          },
         truncate(str, n){
           return (str.length > n) ? str.substr(0, n-1) + '...' : str;
         }

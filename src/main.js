@@ -4,6 +4,8 @@ import App from './App.vue'
 import { BootstrapVue, IconsPlugin } from 'bootstrap-vue'
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
+import Multiselect from 'vue-multiselect'
+import 'vue-multiselect/dist/vue-multiselect.min.css'
 
 import VueAxios from 'vue-axios'
 import axios from 'axios'
@@ -20,6 +22,10 @@ Vue.use(VueAxios, axios)
 Vue.use(BootstrapVue)
 // Optionally install the BootstrapVue icon components plugin
 Vue.use(IconsPlugin)
+
+// register vue-multiselect globally
+Vue.component('multiselect', Multiselect)
+Vue.use(Multiselect)
 
 new Vue({
   router,

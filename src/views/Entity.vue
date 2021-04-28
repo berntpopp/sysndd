@@ -2,8 +2,7 @@
   <div class="container-fluid" style="padding-top: 80px;">
   <b-spinner label="Loading..." v-if="loading" class="float-center m-5"></b-spinner>
     <b-container fluid v-else>
-        <h1>sysndd:{{ $route.params.sysndd_id }}</h1>
-    </b-container>
+        <h2>Entity: sysndd:{{ $route.params.sysndd_id }}</h2>
 
     <b-table
         :items="entity"
@@ -11,7 +10,24 @@
         stacked
         small
     >
+        <template #cell(symbol)="data">
+          <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
+            <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</div> 
+          </b-link>
+        </template>
+
+        <template #cell(disease_ontology_name)="data">
+          <b-link v-bind:href="'/Disease/' + data.item.disease_ontology_id_version"> 
+            <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version">{{ data.item.disease_ontology_name }}</div> 
+          </b-link>
+        </template>
+        
+        <template #cell(hpo_mode_of_inheritance_term_name)="data">
+            <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.hpo_mode_of_inheritance_term">{{ data.item.hpo_mode_of_inheritance_term_name.replace(" inheritance", "") }}</div> 
+        </template>
+
     </b-table>
+
 
     <b-table
         :items="status"
@@ -21,6 +37,7 @@
     >
     </b-table>
 
+
     <b-table
         :items="review"
         :fields="review_fields"
@@ -29,24 +46,58 @@
     >
     </b-table>
 
+
     <b-table
         :items="publications_table"
         stacked
         small
     >
-    <template #cell(publications)="data">
-      <b-row>
-        <b-row v-for="publication in publications" :key="publication.publication_id"> 
-          <b-col>
-            <b-button class="btn-xs" v-bind:title="data.item.publications" v-bind:href="'https://pubmed.ncbi.nlm.nih.gov/' + publication.publication_id.replace('PMID:', '')" target="_blank" variant="outline-primary"> {{ publication.publication_id }}</b-button>
-          </b-col>
+      <template #cell(publications)="data">
+        <b-row>
+          <b-row v-for="publication in publications" :key="publication.publication_id"> 
+            <b-col>
+              <b-button 
+              class="btn-xs mx-2" 
+              variant="outline-primary"
+              v-bind:src="data.item.publications" 
+              v-bind:href="'https://pubmed.ncbi.nlm.nih.gov/' + publication.publication_id.replace('PMID:', '')" 
+              target="_blank" 
+              v-b-tooltip.hover.bottom v-bind:title="publication.publication_status"
+              >
+              {{ publication.publication_id }}
+              </b-button>
+            </b-col>
+          </b-row>
         </b-row>
-      </b-row>
-    </template>
-  </b-table>
+      </template>
+    </b-table>
 
+    <b-table
+        :items="phenotypes_table"
+        stacked
+        small
+    >
+      <template #cell(phenotypes)="data">
+        <b-row>
+          <b-row v-for="phenotype in phenotypes" :key="phenotype.phenotype_id"> 
+            <b-col>
+              <b-button 
+              class="btn-xs mx-2" 
+              v-bind:src="data.item.phenotypes" 
+              v-bind:href="'https://hpo.jax.org/app/browse/term/' + phenotype.phenotype_id" 
+              target="_blank" 
+              v-b-tooltip.hover.bottom v-bind:title="phenotype.phenotype_id"
+              >
+              {{ phenotype.HPO_term }}
+              </b-button>
+            </b-col>
+          </b-row>
+        </b-row>
+      </template>
+    </b-table>
+
+    </b-container>
   </div>
-  
 </template>
 
 <script>
@@ -72,7 +123,8 @@ export default {
               class: 'text-left',
               sortByFormatted: true,
               filterByFormatted: true
-            }
+            },
+            { key: 'ndd_phenotype', label: 'NDD Association', sortable: true, class: 'text-left' }
           ],
           status: [],
           status_fields: [
@@ -83,10 +135,9 @@ export default {
             { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-left' },
           ],
           publications: [],
-          publications_fields: [
-            { key: 'publication_id', label: 'PMID', class: 'text-left' },
-          ],
           publications_table: [{ publications: ""}],
+          phenotypes: [],
+          phenotypes_table: [{ phenotypes: ""}],
           loading: true
       }
   }, 
@@ -100,15 +151,18 @@ export default {
     let apiStatusURL = 'http://127.0.0.1:7777/api/entities/' + this.$route.params.sysndd_id + '/status';
     let apiReviewURL = 'http://127.0.0.1:7777/api/entities/' + this.$route.params.sysndd_id + '/review';
     let apiPublicationsURL = 'http://127.0.0.1:7777/api/entities/' + this.$route.params.sysndd_id + '/publications';
+    let apiPhenotypesURL = 'http://127.0.0.1:7777/api/entities/' + this.$route.params.sysndd_id + '/phenotypes';
     try {
       let response_entity = await this.axios.get(apiEntityURL);
       let response_status = await this.axios.get(apiStatusURL);
       let response_review = await this.axios.get(apiReviewURL);
       let response_publications = await this.axios.get(apiPublicationsURL);
+      let response_phenotypes = await this.axios.get(apiPhenotypesURL);
       this.entity = response_entity.data;
       this.status = response_status.data;
       this.review = response_review.data;
       this.publications = response_publications.data;
+      this.phenotypes = response_phenotypes.data;
       } catch (e) {
        console.error(e);
       }
