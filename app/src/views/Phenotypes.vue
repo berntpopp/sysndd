@@ -177,7 +177,7 @@ export default {
       },
       methods: {
         async loadPhenotypesData() {
-          let apiUrl = 'http://127.0.0.1:7777/api/phenotypes';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotypes';
           try {
             let response = await this.axios.get(apiUrl);
             this.phenotypes = response.data;
@@ -187,7 +187,7 @@ export default {
         },
         async loadEntitiesFromPhenotypes() {
           this.entities = [];
-          let apiUrl = 'http://127.0.0.1:7777/api/phenotypes/' + this.selected_input.join() + '/entities';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotypes/' + this.selected_input.join() + '/entities';
           try {
             let response = await this.axios.get(apiUrl);
             
@@ -202,7 +202,7 @@ export default {
         },
         async loadEntities() {
           this.entities_data = [];
-          let apiUrl = 'http://127.0.0.1:7777/api/entities/' + this.entities.join();
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/entities/' + this.entities.join();
           try {
             let response = await this.axios.get(apiUrl);
             this.entities_data = response.data;

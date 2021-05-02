@@ -206,7 +206,7 @@ export default {
         },
         async loadEntitiesData() {
           this.loading = true;
-          let apiUrl = 'http://127.0.0.1:7777/api/genes';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/genes';
           try {
             let response = await this.axios.get(apiUrl);
             this.items = response.data;
