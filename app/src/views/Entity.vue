@@ -147,11 +147,11 @@ export default {
   methods: {
   async loadEntityInfo() {
     this.loading = true;
-    let apiEntityURL = 'http://127.0.0.1:7777/api/entities/' + this.$route.params.sysndd_id;
-    let apiStatusURL = 'http://127.0.0.1:7777/api/entities/' + this.$route.params.sysndd_id + '/status';
-    let apiReviewURL = 'http://127.0.0.1:7777/api/entities/' + this.$route.params.sysndd_id + '/review';
-    let apiPublicationsURL = 'http://127.0.0.1:7777/api/entities/' + this.$route.params.sysndd_id + '/publications';
-    let apiPhenotypesURL = 'http://127.0.0.1:7777/api/entities/' + this.$route.params.sysndd_id + '/phenotypes';
+    let apiEntityURL = process.env.VUE_APP_API_URL + '/api/entities/' + this.$route.params.sysndd_id;
+    let apiStatusURL = process.env.VUE_APP_API_URL + '/api/entities/' + this.$route.params.sysndd_id + '/status';
+    let apiReviewURL = process.env.VUE_APP_API_URL + '/api/entities/' + this.$route.params.sysndd_id + '/review';
+    let apiPublicationsURL = process.env.VUE_APP_API_URL + '/api/entities/' + this.$route.params.sysndd_id + '/publications';
+    let apiPhenotypesURL = process.env.VUE_APP_API_URL + '/api/entities/' + this.$route.params.sysndd_id + '/phenotypes';
     try {
       let response_entity = await this.axios.get(apiEntityURL);
       let response_status = await this.axios.get(apiStatusURL);

@@ -47,7 +47,7 @@ export default {
   methods: {
   async loadEntityInfo() {
     this.loading = true;
-    let apiGeneURL = 'http://127.0.0.1:7777/api/genes/' + this.$route.params.hgnc_id;
+    let apiGeneURL = process.env.VUE_APP_API_URL + '/api/genes/' + this.$route.params.hgnc_id;
     try {
       let response_gene = await this.axios.get(apiGeneURL);
       this.gene = response_gene.data;
