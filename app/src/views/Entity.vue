@@ -2,100 +2,113 @@
   <div class="container-fluid" style="padding-top: 80px;">
   <b-spinner label="Loading..." v-if="loading" class="float-center m-5"></b-spinner>
     <b-container fluid v-else>
-        <h2>Entity: sysndd:{{ $route.params.sysndd_id }}</h2>
+      <b-row class="justify-content-md-center mt-8">
+        <b-col col md="10">
+          <h3>Entity: sysndd:{{ $route.params.sysndd_id }}</h3>
 
-    <b-table
-        :items="entity"
-        :fields="entity_fields"
-        stacked
-        small
-    >
-        <template #cell(symbol)="data">
-          <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
-            <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</div> 
-          </b-link>
-        </template>
+            <b-table
+                :items="entity"
+                :fields="entity_fields"
+                stacked
+                small
+            >
+                <template #cell(symbol)="data">
+                  <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
+                    <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</div> 
+                  </b-link>
+                </template>
 
-        <template #cell(disease_ontology_name)="data">
-          <b-link v-bind:href="'/Disease/' + data.item.disease_ontology_id_version"> 
-            <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version">{{ data.item.disease_ontology_name }}</div> 
-          </b-link>
-        </template>
-        
-        <template #cell(hpo_mode_of_inheritance_term_name)="data">
-            <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.hpo_mode_of_inheritance_term">{{ data.item.hpo_mode_of_inheritance_term_name.replace(" inheritance", "") }}</div> 
-        </template>
+                <template #cell(disease_ontology_name)="data">
+                  <b-link v-bind:href="'/Disease/' + data.item.disease_ontology_id_version"> 
+                    <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version">{{ data.item.disease_ontology_name }}</div> 
+                  </b-link>
+                  <b-link v-if="data.item.disease_ontology_id_version.includes('OMIM')" v-bind:href="'https://www.omim.org/entry/' + data.item.disease_ontology_id_version.replace('OMIM:', '')" target="_blank"> 
+                    <div>{{ data.item.disease_ontology_id_version }}</div> 
+                  </b-link>
+                  <b-link v-if="data.item.disease_ontology_id_version.includes('MONDO')" v-bind:href="'http://purl.obolibrary.org/obo/' + data.item.disease_ontology_id_version.replace(':', '_')" target="_blank"> 
+                    <div>{{ data.item.disease_ontology_id_version }}</div> 
+                  </b-link>
+                </template>
+                
+                <template #cell(hpo_mode_of_inheritance_term_name)="data">
+                    <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.hpo_mode_of_inheritance_term">{{ data.item.hpo_mode_of_inheritance_term_name.replace(" inheritance", "") }}</div> 
+                </template>
 
-    </b-table>
-
-
-    <b-table
-        :items="status"
-        :fields="status_fields"
-        stacked
-        small
-    >
-    </b-table>
-
-
-    <b-table
-        :items="review"
-        :fields="review_fields"
-        stacked
-        small
-    >
-    </b-table>
+            </b-table>
 
 
-    <b-table
-        :items="publications_table"
-        stacked
-        small
-    >
-      <template #cell(publications)="data">
-        <b-row>
-          <b-row v-for="publication in publications" :key="publication.publication_id"> 
-            <b-col>
-              <b-button 
-              class="btn-xs mx-2" 
-              variant="outline-primary"
-              v-bind:src="data.item.publications" 
-              v-bind:href="'https://pubmed.ncbi.nlm.nih.gov/' + publication.publication_id.replace('PMID:', '')" 
-              target="_blank" 
-              v-b-tooltip.hover.bottom v-bind:title="publication.publication_status"
-              >
-              {{ publication.publication_id }}
-              </b-button>
-            </b-col>
-          </b-row>
+            <b-table
+                :items="status"
+                :fields="status_fields"
+                stacked
+                small
+            >
+            </b-table>
+
+
+            <b-table
+                :items="review"
+                :fields="review_fields"
+                stacked
+                small
+            >
+            </b-table>
+
+
+            <b-table
+                :items="publications_table"
+                stacked
+                small
+            >
+              <template #cell(publications)="data">
+                <b-row>
+                  <b-row v-for="publication in publications" :key="publication.publication_id"> 
+                    <b-col>
+                      <b-button 
+                      class="btn-xs mx-2" 
+                      variant="outline-primary"
+                      v-bind:src="data.item.publications" 
+                      v-bind:href="'https://pubmed.ncbi.nlm.nih.gov/' + publication.publication_id.replace('PMID:', '')" 
+                      target="_blank" 
+                      v-b-tooltip.hover.bottom v-bind:title="publication.publication_status"
+                      >
+                      {{ publication.publication_id }}
+                      </b-button>
+                    </b-col>
+                  </b-row>
+                </b-row>
+              </template>
+            </b-table>
+
+            <b-table
+                :items="phenotypes_table"
+                stacked
+                small
+            >
+              <template #cell(phenotypes)="data">
+                <b-row>
+                  <b-row v-for="phenotype in phenotypes" :key="phenotype.phenotype_id"> 
+                    <b-col>
+                      <b-button 
+                      class="btn-xs mx-2"
+                      variant="outline-dark"
+                      v-bind:src="data.item.phenotypes" 
+                      v-bind:href="'https://hpo.jax.org/app/browse/term/' + phenotype.phenotype_id" 
+                      target="_blank" 
+                      v-b-tooltip.hover.bottom
+                      v-bind:title="phenotype.phenotype_id"
+                      >
+                      {{ phenotype.HPO_term }}
+                      </b-button>
+                    </b-col>
+                  </b-row>
+                </b-row>
+              </template>
+            </b-table>
+
+
+          </b-col>
         </b-row>
-      </template>
-    </b-table>
-
-    <b-table
-        :items="phenotypes_table"
-        stacked
-        small
-    >
-      <template #cell(phenotypes)="data">
-        <b-row>
-          <b-row v-for="phenotype in phenotypes" :key="phenotype.phenotype_id"> 
-            <b-col>
-              <b-button 
-              class="btn-xs mx-2" 
-              v-bind:src="data.item.phenotypes" 
-              v-bind:href="'https://hpo.jax.org/app/browse/term/' + phenotype.phenotype_id" 
-              target="_blank" 
-              v-b-tooltip.hover.bottom v-bind:title="phenotype.phenotype_id"
-              >
-              {{ phenotype.HPO_term }}
-              </b-button>
-            </b-col>
-          </b-row>
-        </b-row>
-      </template>
-    </b-table>
-
     </b-container>
   </div>
 </template>

@@ -3,7 +3,7 @@
   <b-spinner label="Loading..." v-if="loading" class="float-center m-5"></b-spinner>
     <b-container fluid v-else>
   
-        <h2>NDD Entities</h2>
+        <h3>NDD Entities</h3>
 
       <!-- User Interface controls -->
       <b-row>

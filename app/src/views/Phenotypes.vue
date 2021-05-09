@@ -1,6 +1,6 @@
 <template>
     <div class="container-fluid" style="padding-top: 80px;">
-          <h2>Phenotype Search</h2>
+          <h3>Phenotype Search</h3>
 <b-row>
   <b-col sm="5" md="2" class="my-1">
   </b-col>

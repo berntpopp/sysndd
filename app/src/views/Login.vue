@@ -1,12 +1,103 @@
 <template>
   <div style="padding-top: 80px;">
-    <h1>Login</h1>
+
+  <!-- basesd on https://www.youtube.com/watch?v=d9qfI0ESlzY&ab_channel=JakeHarrisCodes -->
+
+    <b-container>
+      <b-row class="justify-content-md-center mt-4">
+        <b-col col md="6">
+          <b-card
+          header="Sign in"
+          header-bg-variant="dark"
+          header-text-variant="white"
+          >
+          <b-card-text>
+
+            <b-form @submit="onSubmit">
+              <b-form-group
+                description="Enter your user name"
+              >
+                <b-form-input
+                  v-model="user_name"
+                  placeholder="User"
+                  required
+                ></b-form-input>
+              </b-form-group>
+
+              <b-form-group
+                description="Enter your user password"
+              >
+                <b-form-input
+                  v-model="password"
+                  placeholder="Password"
+                  required
+                  type="password"
+                ></b-form-input>
+
+              </b-form-group>
+
+              <b-form-group>
+                <b-button type="submit" variant="outline-dark">Login</b-button>
+              </b-form-group>
+              </b-form>
+            
+            </b-card-text>  
+            </b-card>
+          </b-col>
+        </b-row>
+      </b-container>
+
   </div>
 </template>
 
 <script>
 export default {
   name: 'Login',
+  data() {
+      return {
+        user_name: '',
+        password: '',
+        ywt: '',
+        user: []
+      }
+    },
+  methods: {
+    async loadJWT() {
+      let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/api/auth/authenticate?user_name=' + this.user_name + '&password=' + this.password;
+      try {
+        let response_authenticate = await this.axios.get(apiAuthenticateURL);
+        localStorage.setItem('token', response_authenticate.data[0]);
+        this.signinWithJWT();
+        } catch (e) {
+        console.error(e);
+        }
+      }, 
+    async signinWithJWT() {
+      let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/api/auth/signin';
+
+      try {
+        let response_signin = await this.axios.get(apiAuthenticateURL, {
+        headers: {
+          'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
+        });
+
+        this.user = response_signin.data;
+
+        console.log(this.user.user_name);
+        alert(this.user.user_name + ' ' + this.user.user_role );
+
+        localStorage.setItem('user', JSON.stringify(response_signin.data));
+
+        } catch (e) {
+        console.error(e);
+        }
+      }, 
+    onSubmit(event) {
+      event.preventDefault();
+      this.loadJWT();
+    },
+  }
 }
 </script>
 

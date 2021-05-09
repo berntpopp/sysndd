@@ -2,24 +2,51 @@
   <div class="container-fluid" style="padding-top: 80px;">
   <b-spinner label="Loading..." v-if="loading" class="float-center m-5"></b-spinner>
     <b-container fluid v-else>
-        <h2>Gene: {{ $route.params.hgnc_id }}</h2>
+      <b-row class="justify-content-md-center mt-8">
+        <b-col col md="10">
+          <h3>Gene: {{ $route.params.hgnc_id }}</h3>
+
+          <b-table
+              :items="gene"
+              :fields="gene_fields"
+              stacked
+              small
+          >
+              <template #cell(symbol)="data">
+                <b-link v-bind:href="'https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/' + data.item.hgnc_id" target="_blank"> 
+                  <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</div> 
+                </b-link>
+              </template>
+
+              <template #cell(entrez_id)="data">
+                <b-link v-bind:href="'https://www.ncbi.nlm.nih.gov/gene/' + data.item.entrez_id" target="_blank"> 
+                  <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.entrez_id">{{ data.item.entrez_id }}</div> 
+                </b-link>
+              </template>
+
+              <template #cell(ensembl_gene_id)="data">
+                <b-link v-bind:href="'https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=' + data.item.ensembl_gene_id" target="_blank"> 
+                  <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.ensembl_gene_id">{{ data.item.ensembl_gene_id }}</div> 
+                </b-link>
+              </template>
+
+              <template #cell(ucsc_id)="data">
+                <b-link v-bind:href="'https://genome-euro.ucsc.edu/cgi-bin/hgGene?hgg_gene=' + data.item.ucsc_id" target="_blank"> 
+                  <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.ucsc_id">{{ data.item.ucsc_id }}</div> 
+                </b-link>
+              </template>
+
+              <template #cell(uniprot_ids)="data">
+                <b-link v-bind:href="'https://www.uniprot.org/uniprot/' + data.item.uniprot_ids" target="_blank"> 
+                  <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.uniprot_ids">{{ data.item.uniprot_ids }}</div> 
+                </b-link>
+              </template>
+
+          </b-table>
+
+          </b-col>
+        </b-row>
     </b-container>
-
-    <b-table
-        :items="gene"
-        :fields="gene_fields"
-        stacked
-        small
-    >
-        <template #cell(symbol)="data">
-          <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
-            <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</div> 
-          </b-link>
-        </template>
-
-    </b-table>
-
-
   </div>
 </template>
 

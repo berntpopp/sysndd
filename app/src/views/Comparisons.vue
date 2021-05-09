@@ -1,6 +1,6 @@
 <template>
   <div style="padding-top: 80px;">
-    <h1>Comparisons</h1>
+    <h3>Comparisons</h3>
   </div>
 </template>
 

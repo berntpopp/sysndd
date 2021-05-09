@@ -8,23 +8,54 @@ library(DBI)
 library(RMariaDB)
 library(jsonlite)
 library(config)
+library(jose)
 ##-------------------------------------------------------------------##
 
 
 
 ##-------------------------------------------------------------------##
-dw <- config::get("sysndd_db")
+dw <- config::get("sysndd_db_local")
 ##-------------------------------------------------------------------##
 
 
 
 ##-------------------------------------------------------------------##
 ## enable cross origin requests
+## based on https://github.com/rstudio/plumber/issues/66
 #* @filter cors
-cors <- function(res) {
-    res$setHeader("Access-Control-Allow-Origin", "*")
+cors <- function(req, res) {
+  
+  res$setHeader("Access-Control-Allow-Origin", "*")
+  
+  if (req$REQUEST_METHOD == "OPTIONS") {
+    res$setHeader("Access-Control-Allow-Methods","*")
+    res$setHeader("Access-Control-Allow-Headers", req$HTTP_ACCESS_CONTROL_REQUEST_HEADERS)
+    res$status <- 200 
+    return(list())
+  } else {
     plumber::forward()
+  }
+  
 }
+##-------------------------------------------------------------------##
+
+
+
+##-------------------------------------------------------------------##
+#* @apiTitle SysNDD API
+#* @apiDescription This is the API powering the SysNDD website and allowing programmatic access to the database contents.
+#* @apiVersion 0.1.0
+#* @apiTOS http://www.sysndd.org/terms/
+#* @apiContact list(name = "API Support", url = "http://www.sysndd.org/support", email = "support@sysndd.org")
+#* @apiLicense list(name = "CC BY 4.0", url = "https://creativecommons.org/licenses/by/4.0/")
+
+#* @apiTag entities Entities related endpoints
+#* @apiTag publications Publication related endpoints
+#* @apiTag genes Gene related endpoints
+#* @apiTag ontology Ontology related endpoints
+#* @apiTag inheritance Inheritance related endpoints
+#* @apiTag phenotypes Phenoptype related endpoints
+#* @apiTag authentication
 ##-------------------------------------------------------------------##
 
 
@@ -32,6 +63,7 @@ cors <- function(res) {
 ##-------------------------------------------------------------------##
 ## Entity endpoints
 
+#* @tag entities
 ## get all entities
 #* @serializer json list(na="string")
 #' @get /api/entities
@@ -57,6 +89,7 @@ function() {
 }
 
 
+#* @tag entities
 ## create a new entity
 ## example data: {"hgnc_id":"HGNC:21396", "hpo_mode_of_inheritance_term":"HP:0000007", "disease_ontology_id_version":"OMIM:210600", "ndd_phenotype":"1"}
 #* @serializer json list(na="string")
@@ -75,13 +108,14 @@ function(entity_data) {
 }
 
 
-
+#* @tag entities
 ## delete an entity
 #* @serializer json list(na="string")
 #' @delete /api/entities/delete
-function(sysndd_id) {
+function(sysndd_id, req, res) {
 
-	sysndd_id <- as.integer(sysndd_id)
+  if (req$user_role == "Admin"){
+    sysndd_id <- as.integer(sysndd_id)
 	# connect to database
 	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
@@ -93,10 +127,14 @@ function(sysndd_id) {
 
 	dbDisconnect(sysndd_db)
 	res <- "Entry deleted."
+  } else {
+    res$status <- 401 # Unauthorized
+  }
+
 }
 
 
-
+#* @tag entities
 ## update an entity
 #* @serializer json list(na="string")
 #' @put /api/entities/update
@@ -121,7 +159,7 @@ function(sysndd_id, entity_data) {
 }
 
 
-
+#* @tag entities
 ## get a single entity
 #* @serializer json list(na="string")
 #' @get /api/entities/<sysndd_id>
@@ -153,7 +191,7 @@ function(sysndd_id) {
 }
 
 
-
+#* @tag entities
 ## get all phenotypes for a entity_id
 #* @serializer json list(na="string")
 #' @get /api/entities/<sysndd_id>/phenotypes
@@ -177,7 +215,7 @@ function(sysndd_id) {
 }
 
 
-
+#* @tag entities
 ## get all clinical synopsis for a entity_id
 #* @serializer json list(na="string")
 #' @get /api/entities/<sysndd_id>/review
@@ -198,8 +236,8 @@ function(sysndd_id) {
 }
 
 
-
-## post a new all clinical synopsis for a entity_id
+#* @tag entities
+## post a new clinical synopsis for a entity_id
 ## example data: {"synopsis":"Hello you cool database"}
 #* @serializer json list(na="string")
 #' @post /api/entities/<sysndd_id>/review
@@ -215,7 +253,7 @@ function(sysndd_id, synopsis_in) {
 }
 
 
-
+#* @tag entities
 ## get status for a entity_id
 #* @serializer json list(na="string")
 #' @get /api/entities/<sysndd_id>/status
@@ -239,7 +277,7 @@ function(sysndd_id) {
 }
 
 
-
+#* @tag entities
 ## post a new status for a entity_id
 ## example data: {"category_id":"1", "status_user_id":"1"}
 #* @serializer json list(na="string")
@@ -256,7 +294,7 @@ function(sysndd_id, category_in) {
 }
 
 
-
+#* @tag entities
 ## get all publications for a entity_id
 #* @serializer json list(na="string")
 #' @get /api/entities/<sysndd_id>/publications
@@ -285,6 +323,7 @@ function(sysndd_id) {
 ##-------------------------------------------------------------------##
 ## Publication endpoints
 
+#* @tag publications
 ## get a publication by pmid
 #* @serializer json list(na="string")
 #' @get /api/publications/<pmid>
@@ -318,6 +357,7 @@ function(pmid) {
 ##-------------------------------------------------------------------##
 ## Gene endpoints
 
+#* @tag genes
 ## get all genes and associated entities
 #* @serializer json list(na="string")
 #' @get /api/genes
@@ -343,6 +383,7 @@ function() {
 }
 
 
+#* @tag genes
 ## get infos for a single gene by hgnc_id
 #* @serializer json list(na="string")
 #' @get /api/genes/<hgnc>
@@ -376,6 +417,7 @@ function(hgnc) {
 ##-------------------------------------------------------------------##
 ## Ontology endpoints
 
+#* @tag ontology
 ## get an ontology entry by disease_ontology_id_version
 #* @serializer json list(na="string")
 #' @get /api/ontology/<o_id_v>
@@ -406,6 +448,7 @@ function(o_id_v) {
 ##-------------------------------------------------------------------##
 ## Inheritance endpoints
 
+#* @tag inheritance
 ## get a inheritance by hpo_id
 #* @serializer json list(na="string")
 #' @get /api/inheritance/<hpo>
@@ -439,6 +482,7 @@ function(hpo) {
 ##-------------------------------------------------------------------##
 ## Phenotype endpoints
 
+#* @tag phenotypes
 ## get list of all phenotypes
 #* @serializer json list(na="string")
 #' @get /api/phenotypes
@@ -457,6 +501,7 @@ function() {
 }
 
 
+#* @tag phenotypes
 ## get a phenotype by hpo_id
 #* @serializer json list(na="string")
 #' @get /api/phenotypes/<hpo>
@@ -482,6 +527,8 @@ function(hpo) {
 	phenotype_list_collected
 }
 
+
+#* @tag phenotypes
 ## get a list of entities associated with a list of phenotypes
 #* @serializer json list(na="string")
 #' @get /api/phenotypes/<hpo_list>/entities
@@ -525,10 +572,12 @@ function(hpo_list) {
 ##-------------------------------------------------------------------##
 
 
+
 ##-------------------------------------------------------------------##
 ##Authentication section
 
-## athentication create user
+#* @tag authentication
+## authentication create user
 ## example data: {"user_name":"nextuser", "password":"pass", "email":"me@aol.com"}
 #* @serializer json list(na="string")
 #' @post /api/auth/signup
@@ -545,17 +594,19 @@ function(signup_data) {
 }
 
 
-
-## athentication login user
+#* @tag authentication
+## authentication login user
 ## example data: {"user_name":"Bernt", "password":"password"}
 ## based on https://github.com/jandix/sealr/blob/master/examples/jwt_simple_example.R
 #* @serializer json list(na="string")
-#' @post /api/auth/signin
-function(req, res, signin_data) {
-	signin_data <- as_tibble(fromJSON(signin_data)) %>%
-		select(user_name, password)
-	check_user <- signin_data$user_name
-	check_pass <- signin_data$password
+#' @get /api/auth/authenticate
+function(req, res, user_name, password) {
+	
+	check_user <- user_name
+	check_pass <- password
+	
+	# load secret and convert to raw
+	key <- charToRaw(dw$secret)
 	
 	# check if user provided credentials
 		  if (is.null(check_user) || is.null(check_pass)) {
@@ -570,21 +621,53 @@ function(req, res, signin_data) {
 	# find user in database and password is correct
 	user_filtered <- tbl(sysndd_db, "user") %>%
 		filter(user_name == check_user & password == check_pass) %>%
-		collect()
+		select(-password, -created_at) %>%
+		collect() %>%
+		mutate(iat = as.numeric(Sys.time())) %>%
+		mutate(exp = as.numeric(Sys.time()) + 120)
 		
+	dbDisconnect(sysndd_db)
+	
 		  if (nrow(user_filtered) != 1){
 			res$status <- 401
 			res$body <- "User or password wrong."
-			dbDisconnect(sysndd_db)
 			res
 			}
 	
 	
 		  if (nrow(user_filtered) == 1){
-			return(user_filtered)
-			dbDisconnect(sysndd_db)
+			claim <- jwt_claim(user_id = user_filtered$user_id, user_name = user_filtered$user_name, email = user_filtered$email, user_role = user_filtered$user_role, iat = user_filtered$iat, exp = user_filtered$exp)
+			
+			jwt <- jwt_encode_hmac(claim, secret = key)
+			jwt
 			}
+}
+
+
+#* @tag authentication
+#* @get /api/auth/signin
+#* @serializer json list(na="string")
+function(req, res) {
+
+	# load secret and convert to raw
+	key <- charToRaw(dw$secret)
+	
+	# load jwt from cookie
+	print(req$HTTP_AUTHORIZATION)
+	jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
+	
+	user <- jwt_decode_hmac(jwt, secret = key)
+	user$token_expired = (user$exp < as.numeric(Sys.time()))
+	
+	if (is.null(jwt) || user$token_expired){
+		res$status <- 401 # Unauthorized
+		return(list(error="Authentication not successful."))
+	} else {
+		return(list(user_name = user$user_name, user_role = user$user_role, user_id = user$user_id, exp = user$exp))
+	}
+	
 }
 
 ##Authentication section
 ##-------------------------------------------------------------------##
+
