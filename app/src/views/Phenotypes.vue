@@ -1,124 +1,134 @@
 <template>
-    <div class="container-fluid" style="padding-top: 80px;">
+  <div class="container-fluid" style="padding-top: 80px;">
+    <b-container fluid>
+
+      <b-row class="justify-content-md-center mt-8">
+        <b-col col md="10">
+
           <h3>Phenotype Search</h3>
-<b-row>
-  <b-col sm="5" md="2" class="my-1">
-  </b-col>
-  <b-col sm="5" md="8" class="my-1">
-      <multiselect 
-      id="phenotype_select"
-      v-model="value"
-      tag-placeholder="Add this as new tag" 
-      placeholder="Search or add a tag" 
-      label="HPO_term" 
-      track-by="phenotype_id" 
-      :options="phenotypes" 
-      :multiple="true"
-      :taggable="true" 
-      @tag="addTag"
-      >
-      </multiselect> 
-  </b-col>
-  <b-col>
-    <b-button v-on:click="requestSelected">Submit</b-button>
-  </b-col>
-</b-row>
-      <!-- User Interface controls -->
-      <b-row>
+        
+          <b-row>
+            <b-col sm="5" md="2" class="my-1">
+            </b-col>
+            <b-col sm="5" md="8" class="my-1">
+                <multiselect 
+                id="phenotype_select"
+                v-model="value"
+                tag-placeholder="Add this as new tag" 
+                placeholder="Search or add a tag" 
+                label="HPO_term" 
+                track-by="phenotype_id" 
+                :options="phenotypes" 
+                :multiple="true"
+                :taggable="true" 
+                @tag="addTag"
+                >
+                </multiselect> 
+            </b-col>
+            <b-col>
+              <b-button v-on:click="requestSelected">Submit</b-button>
+            </b-col>
+          </b-row>
 
-        <b-col sm="5" md="6" class="my-1">
-          <b-form-group
-            label="Per page"
-            label-for="per-page-select"
-            label-cols-sm="6"
-            label-cols-md="4"
-            label-cols-lg="3"
-            label-align-sm="right"
-            label-size="sm"
-            class="mb-0"
-          >
-            <b-form-select
-              id="per-page-select"
-              v-model="perPage"
-              :options="pageOptions"
-              size="sm"
-            ></b-form-select>
-          </b-form-group>
-        </b-col>
+          <!-- User Interface controls -->
+          <b-row>
 
-        <b-col sm="7" md="6" class="my-1">
-          <b-pagination
-            v-model="currentPage"
-            :total-rows="totalRows"
+            <b-col sm="5" md="6" class="my-1">
+              <b-form-group
+                label="Per page"
+                label-for="per-page-select"
+                label-cols-sm="6"
+                label-cols-md="4"
+                label-cols-lg="3"
+                label-align-sm="right"
+                label-size="sm"
+                class="mb-0"
+              >
+                <b-form-select
+                  id="per-page-select"
+                  v-model="perPage"
+                  :options="pageOptions"
+                  size="sm"
+                ></b-form-select>
+              </b-form-group>
+            </b-col>
+
+            <b-col sm="7" md="6" class="my-1">
+              <b-pagination
+                v-model="currentPage"
+                :total-rows="totalRows"
+                :per-page="perPage"
+                align="fill"
+                size="sm"
+                class="my-0"
+              ></b-pagination>
+            </b-col>
+          </b-row>
+
+          <!-- Main table element -->
+          <b-table
+            :items="entities_data"
+            :fields="entities_data_fields"
+            :current-page="currentPage"
             :per-page="perPage"
-            align="fill"
-            size="sm"
-            class="my-0"
-          ></b-pagination>
+            :filter="filter"
+            :filter-included-fields="filterOn"
+            :sort-by.sync="sortBy"
+            :sort-desc.sync="sortDesc"
+            :sort-direction="sortDirection"
+            stacked="md"
+            head-variant="light"
+            show-empty
+            small
+            fixed
+            striped
+            hover
+            sort-icon-left
+          >
+
+            <template #cell(actions)="row">
+              <b-button class="btn-xs" @click="row.toggleDetails" variant="outline-primary">
+                {{ row.detailsShowing ? 'Hide' : 'Show' }} Details
+              </b-button>
+            </template>
+
+            <template #row-details="row">
+              <b-card>
+                <ul>
+                  <li v-for="(value, key) in row.item" :key="key">{{ key }}: {{ value }}</li>
+                </ul>
+              </b-card>
+            </template>
+
+
+            <template #cell(entity_id)="data">
+              <b-link v-bind:href="'/Entities/' + data.item.entity_id">
+                <div style="cursor:pointer">sysndd:{{ data.item.entity_id }}</div>
+              </b-link>
+            </template>
+
+            <template #cell(symbol)="data">
+              <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
+                <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</div> 
+              </b-link>
+            </template>
+
+            <template #cell(disease_ontology_name)="data">
+              <b-link v-bind:href="'/Disease/' + data.item.disease_ontology_id_version"> 
+                <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version">{{ truncate(data.item.disease_ontology_name, 20) }}</div> 
+              </b-link>
+            </template>
+
+            <template #cell(hpo_mode_of_inheritance_term_name)="data">
+                <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.hpo_mode_of_inheritance_term">{{ data.item.hpo_mode_of_inheritance_term_name.replace(" inheritance", "") }}</div> 
+            </template>
+            
+          </b-table>
+
         </b-col>
       </b-row>
-
-      <!-- Main table element -->
-      <b-table
-        :items="entities_data"
-        :fields="entities_data_fields"
-        :current-page="currentPage"
-        :per-page="perPage"
-        :filter="filter"
-        :filter-included-fields="filterOn"
-        :sort-by.sync="sortBy"
-        :sort-desc.sync="sortDesc"
-        :sort-direction="sortDirection"
-        stacked="md"
-        head-variant="light"
-        show-empty
-        small
-        fixed
-        striped
-        hover
-        sort-icon-left
-      >
-
-        <template #cell(actions)="row">
-          <b-button class="btn-xs" @click="row.toggleDetails" variant="outline-primary">
-            {{ row.detailsShowing ? 'Hide' : 'Show' }} Details
-          </b-button>
-        </template>
-
-        <template #row-details="row">
-          <b-card>
-            <ul>
-              <li v-for="(value, key) in row.item" :key="key">{{ key }}: {{ value }}</li>
-            </ul>
-          </b-card>
-        </template>
-
-
-        <template #cell(entity_id)="data">
-          <b-link v-bind:href="'/Entities/' + data.item.entity_id">
-            <div style="cursor:pointer">sysndd:{{ data.item.entity_id }}</div>
-          </b-link>
-        </template>
-
-        <template #cell(symbol)="data">
-          <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
-            <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</div> 
-          </b-link>
-        </template>
-
-        <template #cell(disease_ontology_name)="data">
-          <b-link v-bind:href="'/Disease/' + data.item.disease_ontology_id_version"> 
-            <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version">{{ truncate(data.item.disease_ontology_name, 20) }}</div> 
-          </b-link>
-        </template>
-
-        <template #cell(hpo_mode_of_inheritance_term_name)="data">
-            <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.hpo_mode_of_inheritance_term">{{ data.item.hpo_mode_of_inheritance_term_name.replace(" inheritance", "") }}</div> 
-        </template>
-        
-      </b-table>
-
-
+      
+    </b-container>
   </div>
 </template>
 

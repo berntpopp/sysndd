@@ -1,8 +1,20 @@
 <template>
-  <div style="padding-top: 80px;">
-    <h3>Comparisons</h3>
+  <div class="container-fluid" style="padding-top: 80px;">
+    <b-container fluid>
+
+      <b-row class="justify-content-md-center mt-8">
+        <b-col col md="10">
+
+          <h3>Panels</h3>
+  
+
+        </b-col>
+      </b-row>
+      
+    </b-container>
   </div>
 </template>
+
 
 <script>
 export default {
@@ -10,20 +22,12 @@ export default {
 }
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
+
 <style scoped>
-h3 {
-  margin: 40px 0 0;
-}
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-li {
-  display: inline-block;
-  margin: 0 10px;
-}
-a {
-  color: #42b983;
-}
+  .btn-group-xs > .btn, .btn-xs {
+    padding: .25rem .4rem;
+    font-size: .875rem;
+    line-height: .5;
+    border-radius: .2rem;
+  }
 </style>

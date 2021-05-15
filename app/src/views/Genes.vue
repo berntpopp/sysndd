@@ -2,136 +2,143 @@
   <div class="container-fluid" style="padding-top: 80px;">
   <b-spinner label="Loading..." v-if="loading" class="float-center m-5"></b-spinner>
     <b-container fluid v-else>
-        <h3>NDD Genes</h3>
 
-      <!-- User Interface controls -->
-      <b-row>
-        <b-col lg="6" class="my-1">
-          <b-form-group
-            label="Filter"
-            label-for="filter-input"
-            label-cols-sm="3"
-            label-align-sm="right"
-            label-size="sm"
-            class="mb-0"
-          >
-            <b-input-group size="sm">
-              <b-form-input
-                id="filter-input"
-                v-model="filter"
-                type="search"
-                placeholder="Type to Search"
-              ></b-form-input>
+      <b-row class="justify-content-md-center mt-8">
+        <b-col col md="10">
 
-              <b-input-group-append>
-                <b-button :disabled="!filter" @click="filter = ''">Clear</b-button>
-              </b-input-group-append>
-            </b-input-group>
-          </b-form-group>
-        </b-col>
+          <h3>NDD Genes</h3>
 
-        <b-col sm="5" md="6" class="my-1">
-          <b-form-group
-            label="Per page"
-            label-for="per-page-select"
-            label-cols-sm="6"
-            label-cols-md="4"
-            label-cols-lg="3"
-            label-align-sm="right"
-            label-size="sm"
-            class="mb-0"
-          >
-            <b-form-select
-              id="per-page-select"
-              v-model="perPage"
-              :options="pageOptions"
-              size="sm"
-            ></b-form-select>
-          </b-form-group>
-        </b-col>
+          <!-- User Interface controls -->
+          <b-row>
+            <b-col lg="6" class="my-1">
+              <b-form-group
+                label="Filter"
+                label-for="filter-input"
+                label-cols-sm="3"
+                label-align-sm="right"
+                label-size="sm"
+                class="mb-0"
+              >
+                <b-input-group size="sm">
+                  <b-form-input
+                    id="filter-input"
+                    v-model="filter"
+                    type="search"
+                    placeholder="Type to Search"
+                  ></b-form-input>
 
-        <b-col sm="7" md="6" class="my-1">
-          <b-pagination
-            v-model="currentPage"
-            :total-rows="totalRows"
+                  <b-input-group-append>
+                    <b-button :disabled="!filter" @click="filter = ''">Clear</b-button>
+                  </b-input-group-append>
+                </b-input-group>
+              </b-form-group>
+            </b-col>
+
+            <b-col sm="5" md="6" class="my-1">
+              <b-form-group
+                label="Per page"
+                label-for="per-page-select"
+                label-cols-sm="6"
+                label-cols-md="4"
+                label-cols-lg="3"
+                label-align-sm="right"
+                label-size="sm"
+                class="mb-0"
+              >
+                <b-form-select
+                  id="per-page-select"
+                  v-model="perPage"
+                  :options="pageOptions"
+                  size="sm"
+                ></b-form-select>
+              </b-form-group>
+            </b-col>
+
+            <b-col sm="7" md="6" class="my-1">
+              <b-pagination
+                v-model="currentPage"
+                :total-rows="totalRows"
+                :per-page="perPage"
+                align="fill"
+                size="sm"
+                class="my-0"
+              ></b-pagination>
+            </b-col>
+          </b-row>
+
+          <!-- Main table element -->
+          <b-table
+            :items="items"
+            :fields="fields"
+            :current-page="currentPage"
             :per-page="perPage"
-            align="fill"
-            size="sm"
-            class="my-0"
-          ></b-pagination>
+            :filter="filter"
+            :filter-included-fields="filterOn"
+            :sort-by.sync="sortBy"
+            :sort-desc.sync="sortDesc"
+            :sort-direction="sortDirection"
+            stacked="md"
+            head-variant="light"
+            show-empty
+            small
+            fixed
+            striped
+            hover
+            sort-icon-left
+            @filtered="onFiltered"
+          >
+
+            <template #cell(actions)="row">
+              <b-button class="btn-xs" @click="row.toggleDetails" variant="outline-primary">
+                {{ row.detailsShowing ? 'Hide' : 'Show' }} Details
+              </b-button>
+            </template>
+
+            <template #row-details="row">
+              <b-card>
+                <b-table
+                  :items="row.item.entities"
+                  :fields="entities_fields"
+                  head-variant="light"
+                  show-empty
+                  small
+                  fixed
+                  striped
+                  sort-icon-left
+                >
+
+                  <template #cell(entity_id)="data">
+                    <b-link v-bind:href="'/Entities/' + data.item.entity_id">
+                      <div style="cursor:pointer">sysndd:{{ data.item.entity_id }}</div>
+                    </b-link>
+                  </template>
+
+                  <template #cell(disease_ontology_name)="data">
+                    <b-link v-bind:href="'/Disease/' + data.item.disease_ontology_id_version"> 
+                      <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version">{{ data.item.disease_ontology_name }}</div> 
+                    </b-link>
+                  </template>
+
+                </b-table>
+              </b-card>
+            </template>
+
+            <template #cell(symbol)="data">
+              <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
+                <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</div> 
+              </b-link>
+            </template>
+
+
+            <template #cell(hpo_mode_of_inheritance_term_name)="data">
+                <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.hpo_mode_of_inheritance_term">{{ data.item.hpo_mode_of_inheritance_term_name.replace(" inheritance", "") }}</div> 
+            </template>
+            
+          </b-table>
+
         </b-col>
       </b-row>
-
-      <!-- Main table element -->
-      <b-table
-        :items="items"
-        :fields="fields"
-        :current-page="currentPage"
-        :per-page="perPage"
-        :filter="filter"
-        :filter-included-fields="filterOn"
-        :sort-by.sync="sortBy"
-        :sort-desc.sync="sortDesc"
-        :sort-direction="sortDirection"
-        stacked="md"
-        head-variant="light"
-        show-empty
-        small
-        fixed
-        striped
-        hover
-        sort-icon-left
-        @filtered="onFiltered"
-      >
-
-        <template #cell(actions)="row">
-          <b-button class="btn-xs" @click="row.toggleDetails" variant="outline-primary">
-            {{ row.detailsShowing ? 'Hide' : 'Show' }} Details
-          </b-button>
-        </template>
-
-        <template #row-details="row">
-          <b-card>
-            <b-table
-              :items="row.item.entities"
-              :fields="entities_fields"
-              head-variant="light"
-              show-empty
-              small
-              fixed
-              striped
-              sort-icon-left
-            >
-
-              <template #cell(entity_id)="data">
-                <b-link v-bind:href="'/Entities/' + data.item.entity_id">
-                  <div style="cursor:pointer">sysndd:{{ data.item.entity_id }}</div>
-                </b-link>
-              </template>
-
-              <template #cell(disease_ontology_name)="data">
-                <b-link v-bind:href="'/Disease/' + data.item.disease_ontology_id_version"> 
-                  <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version">{{ data.item.disease_ontology_name }}</div> 
-                </b-link>
-              </template>
-
-            </b-table>
-          </b-card>
-        </template>
-
-        <template #cell(symbol)="data">
-          <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
-            <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</div> 
-          </b-link>
-        </template>
-
-
-        <template #cell(hpo_mode_of_inheritance_term_name)="data">
-            <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.hpo_mode_of_inheritance_term">{{ data.item.hpo_mode_of_inheritance_term_name.replace(" inheritance", "") }}</div> 
-        </template>
-        
-      </b-table>
-
+      
     </b-container>
   </div>
 </template>

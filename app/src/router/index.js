@@ -9,6 +9,7 @@ import About from '../views/About.vue'
 import Login from '../views/Login.vue'
 import User from '../views/User.vue'
 import Review from '../views/Review.vue'
+import Panels from '../views/Panels.vue'
 
 import Entity from '../views/Entity.vue'
 import Gene from '../views/Gene.vue'
@@ -40,6 +41,11 @@ const routes = [
     path: '/Comparisons',
     name: 'Comparisons',
     component: Comparisons
+  },
+  {
+    path: '/Panels',
+    name: 'Panels',
+    component: Panels
   },
   {
     path: '/About',

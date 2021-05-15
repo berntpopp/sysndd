@@ -409,6 +409,34 @@ function(hgnc) {
 	non_alt_loci_set_collected
 }
 
+
+#* @tag genes
+## get all entities for a single gene by hgnc_id
+#* @serializer json list(na="string")
+#' @get /api/genes/<hgnc>/entities
+function(hgnc) {
+
+	hgnc <- URLdecode(hgnc) %>%
+		str_replace_all("[^0-9]+", "")
+	hgnc <- paste0("HGNC:",hgnc)
+
+	# get data from database and filter
+	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+	entity_by_gene_list <- tbl(sysndd_db, "ndd_entity_view") %>%
+		filter(hgnc_id == hgnc) %>%
+		collect() %>%
+		mutate(ndd_phenotype = case_when(
+		  ndd_phenotype == 1 ~ "Yes",
+		  ndd_phenotype == 0 ~ "No"
+		))
+
+	# disconnect from database
+	dbDisconnect(sysndd_db)
+
+	entity_by_gene_list
+}
+
 ## Gene endpoints
 ##-------------------------------------------------------------------##
 
@@ -569,6 +597,131 @@ function(hpo_list) {
 }
 
 ## Phenotype endpoints
+##-------------------------------------------------------------------##
+
+
+
+##-------------------------------------------------------------------##
+## Panels endpoints
+
+
+#* @tag panels
+## get last n entries in definitive category as news
+#* @serializer json list(na="string")
+#' @get /api/panels
+function(cat = "Definitive", inh = "Dominant") {
+
+	# get data from database and filter
+	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+	
+	sysndd_db_ndd_entity_view <- tbl(sysndd_db, "ndd_entity_view") %>%
+		filter(ndd_phenotype == 1) %>%
+		select(hgnc_id, symbol, inheritance = hpo_mode_of_inheritance_term_name, category)
+	sysndd_db_non_alt_loci_set <- tbl(sysndd_db, "non_alt_loci_set") %>%
+		select(hgnc_id, entrez_id, ensembl_gene_id, ucsc_id)
+	
+	sysndd_db_disease_genes <- sysndd_db_ndd_entity_view %>%
+		left_join(sysndd_db_non_alt_loci_set, by =c("hgnc_id")) %>%
+		collect() %>%
+		unique() %>% 
+		mutate(inheritance = case_when(
+		  str_detect(inheritance, "X-linked") ~ "X-linked",
+		  str_detect(inheritance, "Autosomal dominant inheritance") ~ "Dominant",
+		  str_detect(inheritance, "Autosomal recessive inheritance") ~ "Recessive",
+		  TRUE ~ "Other"
+		)) %>% 
+		select(category, inheritance, symbol, hgnc_id, entrez_id, ensembl_gene_id, ucsc_id) %>%
+		arrange(desc(category), inheritance)
+
+	# disconnect from database
+	dbDisconnect(sysndd_db)
+	
+	sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
+		filter(category == cat, inheritance == inh) %>%
+		arrange(symbol)
+
+	sysndd_db_disease_genes_panel
+}
+
+## Panels endpoints
+##-------------------------------------------------------------------##
+
+
+
+##-------------------------------------------------------------------##
+## Statistics endpoints
+
+#* @tag statistics
+## get statistics for all genes assoicated with a NDD phenotype by inheritance and assocation category
+#* @serializer json list(na="string")
+#' @get /api/statistics/genes
+function() {
+
+	# get data from database and filter
+	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+	
+	sysndd_db_disease_genes <- tbl(sysndd_db, "ndd_entity_view") %>%
+		arrange(entity_id) %>%
+		filter(ndd_phenotype == 1) %>%
+		select(symbol, inheritance = hpo_mode_of_inheritance_term_name, category) %>%
+		collect()
+
+	# disconnect from database
+	dbDisconnect(sysndd_db)
+	
+	sysndd_db_disease_genes_grouped_by_category_and_inheritance <- sysndd_db_disease_genes %>%
+		unique() %>% 
+		mutate(inheritance = case_when(
+		  str_detect(inheritance, "X-linked") ~ "X-linked",
+		  str_detect(inheritance, "Autosomal dominant inheritance") ~ "Dominant",
+		  str_detect(inheritance, "Autosomal recessive inheritance") ~ "Recessive",
+		  TRUE ~ "Other"
+		)) %>% 
+		group_by(category, inheritance) %>%
+		tally() %>%
+		ungroup() %>%
+		arrange(desc(category), desc(n))
+
+	sysndd_db_disease_genes_grouped_by_category <- sysndd_db_disease_genes %>% 
+		select(-inheritance) %>%
+		unique() %>%
+		group_by(category) %>%
+		tally() %>%
+		ungroup() %>%
+		arrange(desc(category), desc(n)) %>%
+		group_by(category) %>%
+		mutate(inheritance = "All")
+		
+	sysndd_db_disease_genes_statistics <- bind_rows(list(sysndd_db_disease_genes_grouped_by_category_and_inheritance, sysndd_db_disease_genes_grouped_by_category)) %>%
+		arrange(desc(category), desc(n))
+
+	sysndd_db_disease_genes_statistics
+}
+
+
+#* @tag statistics
+## get last n entries in definitive category as news
+#* @serializer json list(na="string")
+#' @get /api/statistics/news
+function(n = 5) {
+
+	# get data from database and filter
+	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+	
+	sysndd_db_disease_genes_news <- tbl(sysndd_db, "ndd_entity_view") %>%
+		arrange(entity_id) %>%
+		filter(ndd_phenotype == 1 & category == "Definitive") %>%
+		collect() %>%
+		arrange(desc(entry_date)) %>%
+		slice(1:n)
+		
+	# disconnect from database
+	dbDisconnect(sysndd_db)
+
+	sysndd_db_disease_genes_news
+}
+
+## Statistics endpoints
 ##-------------------------------------------------------------------##
 
 
