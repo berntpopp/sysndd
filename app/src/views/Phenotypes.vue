@@ -182,7 +182,7 @@ export default {
       },
       methods: {
         async loadPhenotypesData() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotypes';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotypes_list';
           try {
             let response = await this.axios.get(apiUrl);
             this.phenotypes_options = response.data;

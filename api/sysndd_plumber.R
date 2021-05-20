@@ -55,7 +55,10 @@ cors <- function(req, res) {
 #* @apiTag ontology Ontology related endpoints
 #* @apiTag inheritance Inheritance related endpoints
 #* @apiTag phenotypes Phenoptype related endpoints
-#* @apiTag authentication
+#* @apiTag authentication Authentication related endpoints
+#* @apiTag panels Gene panel related endpoints
+#* @apiTag statistics Database statistics
+#* @apiTag status Status related endpoints
 ##-------------------------------------------------------------------##
 
 
@@ -513,7 +516,7 @@ function(hpo) {
 #* @tag phenotypes
 ## get list of all phenotypes
 #* @serializer json list(na="string")
-#' @get /api/phenotypes
+#' @get /api/phenotypes_list
 function() {
 	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
@@ -597,6 +600,31 @@ function(hpo_list) {
 }
 
 ## Phenotype endpoints
+##-------------------------------------------------------------------##
+
+
+
+##-------------------------------------------------------------------##
+## status endpoints
+
+#* @tag status
+## get list of all status
+#* @serializer json list(na="string")
+#' @get /api/status_list
+function() {
+	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+	status_list_collected <- tbl(sysndd_db, "ndd_entity_status_categories_list") %>%
+		select(category_id, category) %>%
+		arrange(category_id) %>%
+		collect()
+
+	# disconnect from database
+	dbDisconnect(sysndd_db)
+
+	status_list_collected
+}
+## status endpoints
 ##-------------------------------------------------------------------##
 
 

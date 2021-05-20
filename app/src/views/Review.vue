@@ -157,13 +157,14 @@
             >
             </b-table>
 
-            
+              <label class="mr-sm-2" for="textarea-synopsis">Synopsis</label>
               <b-form-textarea
-                id="textarea-synopis"
+                id="textarea-synopsis"
                 rows="3"
                 size="sm" 
-                v-model="review"
-              >  </b-form-textarea>
+                v-model="synopsis"
+              >
+              </b-form-textarea>
 
         </form>
       </b-modal>
@@ -244,12 +245,12 @@ export default {
           review_fields: [
             { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-left' },
           ],
-          synopsis: 0,
+          synopsis_number: 0,
+          synopsis: '',
           publications: [],
-          publications_table: [{ publications: ""}],
+          publications_table: [{ publications: ''}],
           phenotypes: [],
-          phenotypes_table: [{ phenotypes: ""}],
-          submittedReview: [{ synopsis: ""}],
+          phenotypes_table: [{ phenotypes: ''}],
           loading: true
         }
       },
@@ -281,6 +282,7 @@ export default {
         },
         info(item, index, button) {
           this.infoModal.title = `Entity: sysndd:${item.entity_id}`;
+          this.entity.push(item);
           this.loadEntityInfo(item.entity_id);
           this.$root.$emit('bv::show::modal', this.infoModal.id, button);
         },
@@ -297,30 +299,29 @@ export default {
           this.loading = false;
         },
         async loadEntityInfo(sysndd_id) {
-          let apiEntityURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id;
           let apiStatusURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/status';
           let apiReviewURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/review';
           let apiPublicationsURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/publications';
           let apiPhenotypesURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/phenotypes';
           try {
-            let response_entity = await this.axios.get(apiEntityURL);
             let response_status = await this.axios.get(apiStatusURL);
             let response_review = await this.axios.get(apiReviewURL);
             let response_publications = await this.axios.get(apiPublicationsURL);
             let response_phenotypes = await this.axios.get(apiPhenotypesURL);
 
-            this.entity = response_entity.data;
             this.status = response_status.data;
             this.review = response_review.data;
             this.publications = response_publications.data;
             this.phenotypes = response_phenotypes.data;
+
+            this.synopsis = this.review[this.synopsis_number].synopsis;
 
             } catch (e) {
             console.error(e);
             }
         },
         async loadPhenotypesData() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotypes';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotypes_list';
           try {
             let response = await this.axios.get(apiUrl);
             this.phenotypes_options = response.data;
@@ -329,8 +330,7 @@ export default {
           }
         },
         handleOk(bvModalEvt) {
-          this.submittedReview.synopsis = this.review;
-          console.log(this.submittedReview);
+          console.log(this.synopsis);
         },
         truncate(str, n) {
           return (str.length > n) ? str.substr(0, n-1) + '...' : str;
