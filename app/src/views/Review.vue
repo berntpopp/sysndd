@@ -149,22 +149,41 @@
             >
             </b-table>
 
-            <b-table
-                :items="status"
-                :fields="status_fields"
-                stacked
-                small
-            >
-            </b-table>
+              <label class="mr-sm-2 font-weight-bold" for="select-status">Association Category</label>
+              <b-form-select
+                id="select-status"
+                v-model="status_review"
+                :options="status_options"
+                class="mb-3"
+                value-field="category_id"
+                text-field="category"
+                disabled-field="notEnabled"
+                size="sm" 
+              ></b-form-select>
 
-              <label class="mr-sm-2" for="textarea-synopsis">Synopsis</label>
+              <label class="mr-sm-2 font-weight-bold" for="textarea-synopsis">Synopsis</label>
               <b-form-textarea
                 id="textarea-synopsis"
                 rows="3"
                 size="sm" 
-                v-model="synopsis"
+                v-model="synopsis_review"
               >
               </b-form-textarea>
+
+              <label class="mr-sm-2 font-weight-bold" for="phenotype-select">Phenotypes</label>
+              <multiselect 
+                id="phenotype-select"
+                v-model="phenotypes_review"
+                tag-placeholder="Add this as new tag" 
+                placeholder="Search or add a tag" 
+                label="HPO_term" 
+                track-by="phenotype_id" 
+                :options="phenotypes_options" 
+                :multiple="true"
+                :taggable="true" 
+                @tag="addTag"
+                >
+              </multiselect> 
 
         </form>
       </b-modal>
@@ -245,12 +264,13 @@ export default {
           review_fields: [
             { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-left' },
           ],
-          synopsis_number: 0,
-          synopsis: '',
+          review_number: 0,
+          synopsis_review: '',
+          status_review: '',
           publications: [],
-          publications_table: [{ publications: ''}],
-          phenotypes: [],
-          phenotypes_table: [{ phenotypes: ''}],
+          phenotypes_review: [],
+          phenotypes_options: [],
+          status_options: [],
           loading: true
         }
       },
@@ -267,7 +287,8 @@ export default {
       mounted() {
         // Set the initial number of items
         this.loadEntitiesData();
-        this.loadPhenotypesData();
+        this.loadPhenotypesList();
+        this.loadStatusList();
       },
       methods: {
         onFiltered(filteredItems) {
@@ -279,6 +300,7 @@ export default {
           this.infoModal.title = '';
           this.infoModal.content = [];
           this.entity = [];
+          this.phenotypes_options = [];
         },
         info(item, index, button) {
           this.infoModal.title = `Entity: sysndd:${item.entity_id}`;
@@ -314,13 +336,15 @@ export default {
             this.publications = response_publications.data;
             this.phenotypes = response_phenotypes.data;
 
-            this.synopsis = this.review[this.synopsis_number].synopsis;
+            this.synopsis_review = this.review[this.review_number].synopsis;
+            this.status_review = this.status[this.review_number].category_id;
+            this.phenotypes_review = this.phenotypes;
 
             } catch (e) {
             console.error(e);
             }
         },
-        async loadPhenotypesData() {
+        async loadPhenotypesList() {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotypes_list';
           try {
             let response = await this.axios.get(apiUrl);
@@ -329,9 +353,26 @@ export default {
             console.error(e);
           }
         },
-        handleOk(bvModalEvt) {
-          console.log(this.synopsis);
+        async loadStatusList() {
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/status_list';
+          try {
+            let response = await this.axios.get(apiUrl);
+            this.status_options = response.data;
+          } catch (e) {
+            console.error(e);
+          }
         },
+        handleOk(bvModalEvt) {
+          console.log(this.synopsis_review);
+        },
+        addTag(newTag) {
+            const tag = {
+              phenotype_id: newTag
+            }
+            this.options.push(tag);
+            this.value.push(tag);
+            console.log(tag);
+          },
         truncate(str, n) {
           return (str.length > n) ? str.substr(0, n-1) + '...' : str;
         }

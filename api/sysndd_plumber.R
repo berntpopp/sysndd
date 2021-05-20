@@ -275,7 +275,7 @@ function(sysndd_id) {
 	ndd_entity_status_list <- ndd_entity_status_collected %>%
 		filter(entity_id == sysndd_id & is_active) %>%
 		inner_join(ndd_entity_status_categories_collected, by=c("category_id")) %>%
-		select(entity_id, category, status_date) %>%
+		select(entity_id, category, category_id, status_date) %>%
 		arrange(status_date)
 }
 
@@ -747,6 +747,29 @@ function(n = 5) {
 	dbDisconnect(sysndd_db)
 
 	sysndd_db_disease_genes_news
+}
+
+
+#* @tag statistics
+## get date of last update
+#* @serializer json list(na="string")
+#' @get /api/statistics/last_update
+function() {
+
+	# get data from database and filter
+	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+	
+	sysndd_db_disease_entry_date_last <- tbl(sysndd_db, "ndd_entity_view") %>%
+		select(entry_date) %>%
+		arrange(desc(entry_date)) %>%
+		head(1) %>%
+		collect() %>%
+		select(last_update = entry_date)
+		
+	# disconnect from database
+	dbDisconnect(sysndd_db)
+
+	sysndd_db_disease_entry_date_last
 }
 
 ## Statistics endpoints

@@ -224,7 +224,6 @@ export default {
             }
             this.options.push(tag);
             this.value.push(tag);
-            console.log(tag);
           },
         requestSelected() {
             this.selected_input = [];
