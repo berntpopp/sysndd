@@ -5,7 +5,7 @@
       <b-row class="justify-content-md-center mt-8">
         <b-col col md="10">
 
-          <h3>Panels</h3>
+          <h3>Comparisons</h3>
   
 
         </b-col>
