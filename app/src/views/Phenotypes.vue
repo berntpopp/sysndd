@@ -18,7 +18,7 @@
                 placeholder="Search or add a tag" 
                 label="HPO_term" 
                 track-by="phenotype_id" 
-                :options="phenotypes" 
+                :options="phenotypes_options" 
                 :multiple="true"
                 :taggable="true" 
                 @tag="addTag"
@@ -138,7 +138,7 @@ export default {
   name: 'Phenotypes',
   data() {
         return {value: null,
-          phenotypes: [],
+          phenotypes_options: [],
           selected_input: [],
           entities: [],
           entities_data: [],
@@ -173,11 +173,6 @@ export default {
           sortDirection: 'asc',
           filter: null,
           filterOn: [],
-          infoModal: {
-            id: 'info-modal',
-            title: '',
-            content: ''
-          },
           loading: true
         }
       },
@@ -190,7 +185,7 @@ export default {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotypes';
           try {
             let response = await this.axios.get(apiUrl);
-            this.phenotypes = response.data;
+            this.phenotypes_options = response.data;
           } catch (e) {
             console.error(e);
           }

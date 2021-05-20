@@ -2,109 +2,172 @@
   <div class="container-fluid" style="padding-top: 80px;">
   <b-spinner label="Loading..." v-if="loading" class="float-center m-5"></b-spinner>
     <b-container fluid v-else>
-      <!-- User Interface controls -->
-      <b-row>
-        <b-col lg="6" class="my-1">
-          <b-form-group
-            label="Filter"
-            label-for="filter-input"
-            label-cols-sm="3"
-            label-align-sm="right"
-            label-size="sm"
-            class="mb-0"
-          >
-            <b-input-group size="sm">
-              <b-form-input
-                id="filter-input"
-                v-model="filter"
-                type="search"
-                placeholder="Type to Search"
-              ></b-form-input>
 
-              <b-input-group-append>
-                <b-button :disabled="!filter" @click="filter = ''">Clear</b-button>
-              </b-input-group-append>
-            </b-input-group>
-          </b-form-group>
-        </b-col>
+      <b-row class="justify-content-md-center mt-8">
+        <b-col col md="10">
 
-        <b-col sm="5" md="6" class="my-1">
-          <b-form-group
-            label="Per page"
-            label-for="per-page-select"
-            label-cols-sm="6"
-            label-cols-md="4"
-            label-cols-lg="3"
-            label-align-sm="right"
-            label-size="sm"
-            class="mb-0"
-          >
-            <b-form-select
-              id="per-page-select"
-              v-model="perPage"
-              :options="pageOptions"
-              size="sm"
-            ></b-form-select>
-          </b-form-group>
-        </b-col>
+          <h3>Review</h3>
 
-        <b-col sm="7" md="6" class="my-1">
-          <b-pagination
-            v-model="currentPage"
-            :total-rows="totalRows"
+          <!-- User Interface controls -->
+          <b-row>
+            <b-col lg="6" class="my-1">
+              <b-form-group
+                label="Filter"
+                label-for="filter-input"
+                label-cols-sm="3"
+                label-align-sm="right"
+                label-size="sm"
+                class="mb-0"
+              >
+                <b-input-group size="sm">
+                  <b-form-input
+                    id="filter-input"
+                    v-model="filter"
+                    type="search"
+                    placeholder="Type to Search"
+                  ></b-form-input>
+
+                  <b-input-group-append>
+                    <b-button :disabled="!filter" @click="filter = ''">Clear</b-button>
+                  </b-input-group-append>
+                </b-input-group>
+              </b-form-group>
+            </b-col>
+
+            <b-col sm="5" md="6" class="my-1">
+              <b-form-group
+                label="Per page"
+                label-for="per-page-select"
+                label-cols-sm="6"
+                label-cols-md="4"
+                label-cols-lg="3"
+                label-align-sm="right"
+                label-size="sm"
+                class="mb-0"
+              >
+                <b-form-select
+                  id="per-page-select"
+                  v-model="perPage"
+                  :options="pageOptions"
+                  size="sm"
+                ></b-form-select>
+              </b-form-group>
+            </b-col>
+
+            <b-col sm="7" md="6" class="my-1">
+              <b-pagination
+                v-model="currentPage"
+                :total-rows="totalRows"
+                :per-page="perPage"
+                align="fill"
+                size="sm"
+                class="my-0"
+              ></b-pagination>
+            </b-col>
+          </b-row>
+
+          <!-- Main table element -->
+          <b-table
+            :items="items"
+            :fields="fields"
+            :current-page="currentPage"
             :per-page="perPage"
-            align="fill"
-            size="sm"
-            class="my-0"
-          ></b-pagination>
+            :filter="filter"
+            :filter-included-fields="filterOn"
+            :sort-by.sync="sortBy"
+            :sort-desc.sync="sortDesc"
+            :sort-direction="sortDirection"
+            stacked="md"
+            head-variant="light"
+            show-empty
+            small
+            fixed
+            striped
+            hover
+            sort-icon-left
+            @filtered="onFiltered"
+          >
+
+            <template #cell(actions)="row">
+              <b-button size="sm" @click="info(row.item, row.index, $event.target)" class="mr-1">
+                <b-icon icon="pen"></b-icon>
+              </b-button>
+              <b-button size="sm" @click="info(row.item, row.index, $event.target)" class="mr-1">
+                <b-icon icon="x-circle"></b-icon>
+              </b-button>
+            </template>
+
+            <template #cell(entity_id)="data">
+              <b-link v-bind:href="'/Entities/' + data.item.entity_id">
+                <div style="cursor:pointer">sysndd:{{ data.item.entity_id }}</div>
+              </b-link>
+            </template>
+
+            <template #cell(symbol)="data">
+              <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
+                <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</div> 
+              </b-link>
+            </template>
+
+            <template #cell(disease_ontology_name)="data">
+              <b-link v-bind:href="'/Disease/' + data.item.disease_ontology_id_version"> 
+                <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version">{{ truncate(data.item.disease_ontology_name, 20) }}</div> 
+              </b-link>
+            </template>
+
+            <template #cell(hpo_mode_of_inheritance_term_name)="data">
+                <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.hpo_mode_of_inheritance_term">{{ data.item.hpo_mode_of_inheritance_term_name.replace(" inheritance", "") }}</div> 
+            </template>
+            
+          </b-table>
+
         </b-col>
       </b-row>
-
-      <!-- Main table element -->
-      <b-table
-        :items="items"
-        :fields="fields"
-        :current-page="currentPage"
-        :per-page="perPage"
-        :filter="filter"
-        :filter-included-fields="filterOn"
-        :sort-by.sync="sortBy"
-        :sort-desc.sync="sortDesc"
-        :sort-direction="sortDirection"
-        stacked="md"
-        show-empty
-        small
-        fixed
-        striped
-        hover
-        @filtered="onFiltered"
-      >
-        <template #cell(name)="row">
-          {{ row.value.first }} {{ row.value.last }}
-        </template>
-
-        <template #cell(actions)="row">
-          <b-button size="sm" @click="info(row.item, row.index, $event.target)" class="mr-1">
-            Info modal
-          </b-button>
-          <b-button size="sm" @click="row.toggleDetails">
-            {{ row.detailsShowing ? 'Hide' : 'Show' }} Details
-          </b-button>
-        </template>
-
-        <template #row-details="row">
-          <b-card>
-            <ul>
-              <li v-for="(value, key) in row.item" :key="key">{{ key }}: {{ value }}</li>
-            </ul>
-          </b-card>
-        </template>
-      </b-table>
+      
 
       <!-- Info modal -->
-      <b-modal :id="infoModal.id" :title="infoModal.title" ok-only @hide="resetInfoModal">
-        <pre>{{ infoModal.content }}</pre>
+      <b-modal 
+      :id="infoModal.id" 
+      :title="infoModal.title" 
+      size="xl" 
+      centered 
+      ok-title="Submit review" 
+      no-close-on-esc 
+      no-close-on-backdrop 
+      header-bg-variant="dark" 
+      header-text-variant="light" 
+      @hide="resetInfoModal" 
+      @ok="handleOk"
+      >
+        <form ref="form" @submit.stop.prevent="handleSubmit">
+
+            <b-table
+                :items="entity"
+                :fields="entity_fields"
+                stacked
+                small
+            >
+            </b-table>
+
+            <b-table
+                :items="status"
+                :fields="status_fields"
+                stacked
+                small
+            >
+            </b-table>
+
+            
+              <b-form-textarea
+                id="textarea-synopis"
+                rows="3"
+                size="sm" 
+                v-model="review"
+              >  </b-form-textarea>
+
+        </form>
       </b-modal>
+
     </b-container>
   </div>
 </template>
@@ -117,8 +180,8 @@ export default {
         return {
           items: [],
           fields: [
-            { key: 'entity_id', label: 'Entity', sortable: true, sortDirection: 'desc' },
-            { key: 'symbol', label: 'Gene Symbol', sortable: true, class: 'text-left font-italic' },
+            { key: 'entity_id', label: 'Entity', sortable: true, sortDirection: 'desc', class: 'text-left' },
+            { key: 'symbol', label: 'Gene Symbol', sortable: true, class: 'text-left' },
             {
               key: 'disease_ontology_name',
               label: 'Disease',
@@ -135,6 +198,7 @@ export default {
               sortByFormatted: true,
               filterByFormatted: true
             },
+            { key: 'ndd_phenotype', label: 'NDD Association', sortable: true, class: 'text-left' },
             { key: 'actions', label: 'Actions' }
           ],
           totalRows: 1,
@@ -149,8 +213,43 @@ export default {
           infoModal: {
             id: 'info-modal',
             title: '',
-            content: ''
+            content: []
           },
+          entity: [],
+          entity_fields: [
+            { key: 'symbol', label: 'Gene Symbol', sortable: true, class: 'text-left' },
+            {
+              key: 'disease_ontology_name',
+              label: 'Disease',
+              sortable: true,
+              class: 'text-left',
+              sortByFormatted: true,
+              filterByFormatted: true
+            },
+            {
+              key: 'hpo_mode_of_inheritance_term_name',
+              label: 'Inheritance',
+              sortable: true,
+              class: 'text-left',
+              sortByFormatted: true,
+              filterByFormatted: true
+            },
+            { key: 'ndd_phenotype', label: 'NDD Association', sortable: true, class: 'text-left' }
+          ],
+          status: [],
+          status_fields: [
+            { key: 'category', label: 'Association Category', class: 'text-left' },
+          ],
+          review: [{synopsis: ''}],
+          review_fields: [
+            { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-left' },
+          ],
+          synopsis: 0,
+          publications: [],
+          publications_table: [{ publications: ""}],
+          phenotypes: [],
+          phenotypes_table: [{ phenotypes: ""}],
+          submittedReview: [{ synopsis: ""}],
           loading: true
         }
       },
@@ -167,21 +266,23 @@ export default {
       mounted() {
         // Set the initial number of items
         this.loadEntitiesData();
+        this.loadPhenotypesData();
       },
       methods: {
-        info(item, index, button) {
-          this.infoModal.title = `Row index: ${index}`
-          this.infoModal.content = JSON.stringify(item, null, 2)
-          this.$root.$emit('bv::show::modal', this.infoModal.id, button)
-        },
-        resetInfoModal() {
-          this.infoModal.title = ''
-          this.infoModal.content = ''
-        },
         onFiltered(filteredItems) {
           // Trigger pagination to update the number of buttons/pages due to filtering
           this.totalRows = filteredItems.length
           this.currentPage = 1
+        },
+        resetInfoModal() {
+          this.infoModal.title = '';
+          this.infoModal.content = [];
+          this.entity = [];
+        },
+        info(item, index, button) {
+          this.infoModal.title = `Entity: sysndd:${item.entity_id}`;
+          this.loadEntityInfo(item.entity_id);
+          this.$root.$emit('bv::show::modal', this.infoModal.id, button);
         },
         async loadEntitiesData() {
           this.loading = true;
@@ -190,12 +291,60 @@ export default {
             let response = await this.axios.get(apiUrl);
             this.items = response.data;
             this.totalRows = response.data.length;
-            console.log(response);
           } catch (e) {
             console.error(e);
           }
           this.loading = false;
+        },
+        async loadEntityInfo(sysndd_id) {
+          let apiEntityURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id;
+          let apiStatusURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/status';
+          let apiReviewURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/review';
+          let apiPublicationsURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/publications';
+          let apiPhenotypesURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/phenotypes';
+          try {
+            let response_entity = await this.axios.get(apiEntityURL);
+            let response_status = await this.axios.get(apiStatusURL);
+            let response_review = await this.axios.get(apiReviewURL);
+            let response_publications = await this.axios.get(apiPublicationsURL);
+            let response_phenotypes = await this.axios.get(apiPhenotypesURL);
+
+            this.entity = response_entity.data;
+            this.status = response_status.data;
+            this.review = response_review.data;
+            this.publications = response_publications.data;
+            this.phenotypes = response_phenotypes.data;
+
+            } catch (e) {
+            console.error(e);
+            }
+        },
+        async loadPhenotypesData() {
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotypes';
+          try {
+            let response = await this.axios.get(apiUrl);
+            this.phenotypes_options = response.data;
+          } catch (e) {
+            console.error(e);
+          }
+        },
+        handleOk(bvModalEvt) {
+          this.submittedReview.synopsis = this.review;
+          console.log(this.submittedReview);
+        },
+        truncate(str, n) {
+          return (str.length > n) ? str.substr(0, n-1) + '...' : str;
         }
       }
   }
 </script>
+
+
+<style scoped>
+  .btn-group-xs > .btn, .btn-xs {
+    padding: .25rem .4rem;
+    font-size: .875rem;
+    line-height: .5;
+    border-radius: .2rem;
+  }
+</style>

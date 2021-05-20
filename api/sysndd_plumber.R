@@ -238,7 +238,7 @@ function(sysndd_id) {
 
 #* @tag entities
 ## post a new clinical synopsis for a entity_id
-## example data: {"synopsis":"Hello you cool database"}
+## example data: {"synopsis":"Hello you cool database", "review_user_id":"1"}
 #* @serializer json list(na="string")
 #' @post /api/entities/<sysndd_id>/review
 function(sysndd_id, synopsis_in) {
@@ -248,7 +248,7 @@ function(sysndd_id, synopsis_in) {
 
 	new_review <- as_tibble(fromJSON(synopsis_in)) %>% 
 		add_column(sysndd_id) %>% 
-		select(entity_id = sysndd_id, synopsis)
+		select(entity_id = sysndd_id, synopsis, review_user_id)
 	dbAppendTable(sysndd_db, "ndd_entity_review", new_review)
 }
 
@@ -289,7 +289,7 @@ function(sysndd_id, category_in) {
 
 	new_status <- as_tibble(fromJSON(category_in)) %>% 
 		add_column(sysndd_id) %>% 
-		select(entity_id = sysndd_id, category_id, status_user_id, approving_user_id)
+		select(entity_id = sysndd_id, category_id, status_user_id)
 	dbAppendTable(sysndd_db, "ndd_entity_status", new_status)
 }
 
@@ -519,7 +519,7 @@ function() {
 
 	phenotype_list_collected <- tbl(sysndd_db, "phenotype_list") %>%
 		select(phenotype_id, HPO_term, HPO_term_definition, HPO_term_synonyms) %>%
-		arrange(phenotype_id) %>%
+		arrange(HPO_term) %>%
 		collect()
 
 	# disconnect from database
