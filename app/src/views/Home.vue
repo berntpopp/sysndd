@@ -15,28 +15,29 @@
 
               <hr class="my-4">
 
-                  <b-input-group class="mb-2">
-                    <b-form-input type="search" placeholder="Search the database" size="md"></b-form-input>
-                      <b-input-group-append>
-                        <b-button variant="outline-primary" size="md">
-                          <b-icon icon="search"></b-icon>
-                        </b-button>
-                      </b-input-group-append>
-                  </b-input-group>
+              <b-input-group class="mb-2">
+                <b-form-input type="search" placeholder="Search the database" size="md"></b-form-input>
+                  <b-input-group-append>
+                    <b-button variant="outline-primary" size="md">
+                      <b-icon icon="search"></b-icon>
+                    </b-button>
+                  </b-input-group-append>
+              </b-input-group>
 
             </b-jumbotron>
 
-  
             <b-card-group deck>
               <b-card header-tag="header">
                 <template #header>
                   <h6 class="mb-0 font-weight-bold">Curated entities</h6>
                 </template>
+                <b-img :src="image" fluid alt="Fluid image"></b-img>
                 <b-card-text class="text-left">
-                  The SysNDD database contains gene disease relationships manually curated from the literature based on the previous curation effort in SysID.
-                  Our long-term goal is incorporation of the SysNDD/SysID data into other gene disease relationship databases like the Orphanet ontology.
-                  To allow interoperability and mapping between gene-, phenotype- or disease-oriented databases we center our approach around curated gene-inheritance-disease units, so called entities, 
-                  which are annotated with a predefined list of NDD associated phenotypes.
+                  NDD associated genes curated over the years after the initial SysID
+                  (<b-link href="https://pubmed.ncbi.nlm.nih.gov/26748517/" target="_blank"> 
+                  Kochinke & Zweier et al. 2016
+                  </b-link>)
+                  import.
                 </b-card-text>
               </b-card>
 
@@ -109,7 +110,8 @@ export default {
               class: 'text-left'
             }
           ],
-          loading: true
+          loading: true,
+          image: ''
       }
   }, 
   mounted() {
@@ -121,14 +123,18 @@ export default {
     let apiStatisticsGenesURL = process.env.VUE_APP_API_URL + '/api/statistics/genes';
     let apiNewsURL = process.env.VUE_APP_API_URL + '/api/statistics/news';
     let apiNewsLastUpdate = process.env.VUE_APP_API_URL + '/api/statistics/last_update';
+    let apiNewsEntitiesPlot = process.env.VUE_APP_API_URL + '/api/statistics/entities_plot';
+
     try {
       let response_statistics_genes = await this.axios.get(apiStatisticsGenesURL);
       let response_news = await this.axios.get(apiNewsURL);
       let response_last_update = await this.axios.get(apiNewsLastUpdate);
+      let response_entities_plot = await this.axios.get(apiNewsEntitiesPlot);
 
       this.genes_statistics = response_statistics_genes.data;
       this.news = response_news.data;
       this.last_update = response_last_update.data[0].last_update;
+      this.image = 'data:image/png;base64,'.concat(this.image.concat(response_entities_plot.data)) ;
 
       } catch (e) {
        console.error(e);

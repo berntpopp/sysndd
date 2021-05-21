@@ -9,6 +9,8 @@ library(RMariaDB)
 library(jsonlite)
 library(config)
 library(jose)
+library(plotly)
+library(RCurl)
 ##-------------------------------------------------------------------##
 
 
@@ -770,6 +772,40 @@ function() {
 	dbDisconnect(sysndd_db)
 
 	sysndd_db_disease_entry_date_last
+}
+
+
+#* @tag statistics
+## Return interactive plot showing the database entry development over time using plotly
+#* @serializer text
+#' @get /api/statistics/entities_plot
+function() {
+
+	# get data from database and filter
+	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+	
+	sysndd_db_disease_collected <- tbl(sysndd_db, "ndd_entity_view") %>%
+		arrange(entity_id) %>%
+		collect() %>%
+		mutate(ndd_phenotype = case_when(
+		  ndd_phenotype == 1 ~ "Yes",
+		  ndd_phenotype == 0 ~ "No"
+		)) %>%
+		filter(ndd_phenotype == "Yes")
+  
+	# disconnect from database
+	dbDisconnect(sysndd_db)
+
+	plot <- ggplot(data = sysndd_db_disease_collected , aes(x = entry_date, color = category)) +
+		stat_bin(data=subset(sysndd_db_disease_collected, category=="Definitive"), aes(y=cumsum(..count..)), geom="step", bins = 30) +
+		stat_bin(data=subset(sysndd_db_disease_collected, category=="Candidate"), aes(y=cumsum(..count..)), geom="step", bins = 30) +
+		theme_classic() +
+		theme(axis.text.x = element_text(angle = -45, hjust = 0), axis.title.x = element_blank(), axis.title.y = element_blank(), legend.position="top", legend.title = element_blank())
+
+	file <- "results/plot.png"
+	ggsave(file, plot, width = 4, height = 3, dpi = 150, units = "in")
+	base64Encode(readBin(file, "raw", n = file.info(file)$size), "txt")
+
 }
 
 ## Statistics endpoints
