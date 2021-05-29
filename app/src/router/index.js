@@ -13,6 +13,7 @@ import Panels from '../views/Panels.vue'
 
 import Entity from '../views/Entity.vue'
 import Gene from '../views/Gene.vue'
+import Search from '../views/Search.vue'
 
 Vue.use(VueRouter)
 
@@ -74,6 +75,10 @@ const routes = [
   {
     path: '/Genes/:hgnc_id',
     component: Gene
+  },
+  {
+    path: '/Search/:search_term',
+    component: Search
   }
 ]
 

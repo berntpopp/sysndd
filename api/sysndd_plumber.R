@@ -11,6 +11,7 @@ library(config)
 library(jose)
 library(plotly)
 library(RCurl)
+library(stringdist)
 ##-------------------------------------------------------------------##
 
 
@@ -59,6 +60,7 @@ cors <- function(req, res) {
 #* @apiTag phenotypes Phenoptype related endpoints
 #* @apiTag authentication Authentication related endpoints
 #* @apiTag panels Gene panel related endpoints
+#* @apiTag search Database search related endpoints
 #* @apiTag statistics Database statistics
 #* @apiTag status Status related endpoints
 ##-------------------------------------------------------------------##
@@ -710,7 +712,11 @@ function() {
 		group_by(category, inheritance) %>%
 		tally() %>%
 		ungroup() %>%
-		arrange(desc(category), desc(n))
+		arrange(desc(category), desc(n)) %>% 
+		group_by(category) %>% 
+		nest() %>% 
+		ungroup() %>%
+		select(category, groups = data)
 
 	sysndd_db_disease_genes_grouped_by_category <- sysndd_db_disease_genes %>% 
 		select(-inheritance) %>%
@@ -722,8 +728,8 @@ function() {
 		group_by(category) %>%
 		mutate(inheritance = "All")
 		
-	sysndd_db_disease_genes_statistics <- bind_rows(list(sysndd_db_disease_genes_grouped_by_category_and_inheritance, sysndd_db_disease_genes_grouped_by_category)) %>%
-		arrange(desc(category), desc(n))
+	sysndd_db_disease_genes_statistics <- sysndd_db_disease_genes_grouped_by_category %>%
+		left_join(sysndd_db_disease_genes_grouped_by_category_and_inheritance, by = c("category"))
 
 	sysndd_db_disease_genes_statistics
 }
@@ -803,12 +809,89 @@ function() {
 		theme(axis.text.x = element_text(angle = -45, hjust = 0), axis.title.x = element_blank(), axis.title.y = element_blank(), legend.position="top", legend.title = element_blank())
 
 	file <- "results/plot.png"
-	ggsave(file, plot, width = 4, height = 3, dpi = 150, units = "in")
+	ggsave(file, plot, width = 4.5, height = 2.5, dpi = 150, units = "in")
 	base64Encode(readBin(file, "raw", n = file.info(file)$size), "txt")
 
 }
 
 ## Statistics endpoints
+##-------------------------------------------------------------------##
+
+
+
+##-------------------------------------------------------------------##
+## Search endpoints
+
+#* @tag search
+## searchthe entity view by by columns entity_id, hgnc_id, symbol, disease_ontology_id_version, disease_ontology_name
+#* @serializer json list(na="string")
+#' @get /api/search/<searchterm>
+function(searchterm, helper = TRUE) {
+
+	searchterm <- URLdecode(searchterm) %>%
+		str_squish()
+	
+	# get data from database and filter
+	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+	sysndd_db_entity_search <- tbl(sysndd_db, "ndd_entity_view") %>%
+		arrange(entity_id) %>%
+		collect() %>%
+		mutate(ndd_phenotype = case_when(
+		  ndd_phenotype == 1 ~ "Yes",
+		  ndd_phenotype == 0 ~ "No"
+		)) %>%
+		select(entity_id, hgnc_id, symbol, disease_ontology_id_version, disease_ontology_name) %>%
+		mutate(entity = as.character(entity_id)) %>%
+		pivot_longer(!entity_id, names_to = "search", values_to = "results") %>%
+		mutate(search = str_replace(search, "entity", "entity_id")) %>%
+		mutate(searchdist = stringdist(str_to_lower(results), str_to_lower(searchterm), method='jw', p=0.1)) %>%
+		arrange(searchdist, results)
+		
+	# disconnect from database
+	dbDisconnect(sysndd_db)
+
+	# change output by helper input to unique values (helper = TRUE) or entities (helper = FALSE)
+	if (helper) {
+		sysndd_db_entity_search_helper <- sysndd_db_entity_search %>% 
+			select(-entity_id) %>%
+			unique()
+	} else {
+		sysndd_db_entity_search_helper <- sysndd_db_entity_search
+	}
+
+	# compute filtered length with match < 0.1
+	sysndd_db_entity_search_length <- sysndd_db_entity_search_helper %>%
+		filter(searchdist < 0.1) %>%
+		tally()
+	
+	if (sysndd_db_entity_search_length$n > 10) {
+		return_count <- sysndd_db_entity_search_length$n
+	} else {
+		return_count <- 10
+	}
+	
+	# check if perfect match exists
+	if (sysndd_db_entity_search$searchdist[1] == 0) {
+		sysndd_db_entity_search_return <- sysndd_db_entity_search_helper %>%
+			slice_head(n=1)
+	} else {
+		sysndd_db_entity_search_return <- sysndd_db_entity_search_helper %>% 
+			slice_head(n=return_count)
+	}
+
+	# change output by helper input to unique values (helper = TRUE) or entities (helper = FALSE)
+	if (helper) {
+		(sysndd_db_entity_search_return %>% 
+				select(results) %>% 
+				as.list())$results
+	} else {
+		sysndd_db_entity_search_return
+	}
+
+}
+
+## Search endpoints
 ##-------------------------------------------------------------------##
 
 

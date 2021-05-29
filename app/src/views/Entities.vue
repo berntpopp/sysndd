@@ -4,7 +4,7 @@
     <b-container fluid v-else>
 
       <b-row class="justify-content-md-center mt-8">
-        <b-col col md="10">
+        <b-col col md="12">
 
           <h3>NDD Entities</h3>
 
@@ -25,6 +25,7 @@
                     v-model="filter"
                     type="search"
                     placeholder="Type to Search"
+                    debounce="500"
                   ></b-form-input>
 
                   <b-input-group-append>

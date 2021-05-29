@@ -3,7 +3,7 @@
     <b-container fluid>
 
       <b-row class="justify-content-md-center mt-8">
-        <b-col col md="10">
+        <b-col col md="12">
 
           <h3>Phenotype Search</h3>
         

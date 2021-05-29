@@ -4,21 +4,36 @@
     <b-container fluid v-else>
 
         <b-row class="justify-content-md-center mt-8">
-          <b-col md="10">
+          <b-col md="12">
 
             <b-jumbotron class="text-left" style="padding-top: 5px; padding-bottom: 5px">
-              <template #header>Welcome to SysNDD,</template>
 
               <template #lead>
-                a manually curated database of gene disease relationships in neurodevelopmental disorders
+                The expert curated database of gene disease relationships in neurodevelopmental disorders.
               </template>
 
-              <hr class="my-4">
-
               <b-input-group class="mb-2">
-                <b-form-input type="search" placeholder="Search the database" size="md"></b-form-input>
+                <b-form-input 
+                list="search-list" 
+                type="search" 
+                placeholder="Search SysNDD-db" 
+                size="md"
+                autocomplete="off" 
+                v-model="search_input"
+                @input="loadSearchInfo"
+                @keydown.native="test_keydown_handler"
+                >
+                </b-form-input>
+                
+                  <datalist id="search-list">
+                    <option v-for="result in search" :key="result">{{ result }}</option>
+                  </datalist>
+
                   <b-input-group-append>
-                    <b-button variant="outline-primary" size="md">
+                    <b-button
+                    variant="outline-primary"
+                    size="md"
+                    v-bind:href="'/Search/' + search_input" >
                       <b-icon icon="search"></b-icon>
                     </b-button>
                   </b-input-group-append>
@@ -33,50 +48,91 @@
                 </template>
                 <b-img :src="image" fluid alt="Fluid image"></b-img>
                 <b-card-text class="text-left">
-                  NDD associated genes curated over the years after the initial SysID
-                  (<b-link href="https://pubmed.ncbi.nlm.nih.gov/26748517/" target="_blank"> 
-                  Kochinke & Zweier et al. 2016
-                  </b-link>)
-                  import.
+                  Curated NDD genes curated since the SysID publication
+                  <b-link href="https://pubmed.ncbi.nlm.nih.gov/26748517/" target="_blank"> 
+                  (Kochinke & Zweier et al. 2016)
+                  </b-link>.
                 </b-card-text>
               </b-card>
 
+
               <b-card header-tag="header">
                 <template #header>
-                  <h6 class="mb-0 font-weight-bold">Current statistics ({{ last_update }})</h6>
+                  <h6 class="mb-0 font-weight-bold">Current gene statistics ({{ last_update }})</h6>
                 </template>
                 <b-card-text class="text-left">
                   <b-table
                       :items="genes_statistics"
                       :fields="genes_statistics_fields"
+                      stacked="md"
+                      head-variant="light"
+                      show-empty
                       small
                   >
+
+                  <template #cell(actions)="row">
+                    <b-button class="btn-xs" @click="row.toggleDetails" variant="outline-primary">
+                      {{ row.detailsShowing ? 'hide' : 'show' }}
+                    </b-button>
+                  </template>
+
+                  <template #row-details="row">
+                    <b-card>
+                      <b-table
+                        :items="row.item.groups"
+                        head-variant="light"
+                        show-empty
+                        small
+                        fixed
+                        striped
+                        sort-icon-left
+                      >
+
+                      </b-table>
+                    </b-card>
+                  </template>
+
                   </b-table>
                 </b-card-text>
               </b-card>
-              
+
+
               <b-card header-tag="header">
                 <template #header>
                   <h6 class="mb-0 font-weight-bold">Gene news</h6>
                 </template>
                 <b-card-text class="text-left">
                   
-          <b-table
-            :items="news"
-            :fields="news_fields"
-            stacked="md"
-            head-variant="light"
-            show-empty
-            small
-          >
-            
-            <template #cell(symbol)="data">
-              <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
-                <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</div> 
-              </b-link>
-            </template>
+                  <b-table
+                    :items="news"
+                    :fields="news_fields"
+                    stacked="md"
+                    head-variant="light"
+                    show-empty
+                    small
+                    fixed
+                    style="width: 100%; white-space: nowrap;"
+                  >
+                    
+                    <template #table-colgroup="scope">
+                      <col
+                        v-for="field in scope.fields"
+                        :key="field.key"
+                        :style="{ width: field.key === 'symbol' ? '30%' : '70%' }"
+                      >
+                    </template>
 
-          </b-table>
+                    <template #cell(symbol)="data">
+                      <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
+                        <div class="font-italic text-truncate" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</div> 
+                      </b-link>
+                    </template>
+
+                    <template #cell(disease_ontology_name)="data">
+                        <div class="truncated" v-b-tooltip.hover.leftbottom v-bind:title="data.item.disease_ontology_name">{{ data.item.disease_ontology_name }}</div> 
+                    </template>
+
+                  </b-table>
 
                 </b-card-text>
               </b-card>
@@ -94,12 +150,14 @@ export default {
   name: 'Home',
   data() {
         return {
+          search_input: '',
+          search: [],
           last_update: '',
           genes_statistics: [],
           genes_statistics_fields: [
             { key: 'category', label: 'Category', class: 'text-left' },
-            { key: 'inheritance', label: 'Inheritance', class: 'text-left' },
             { key: 'n', label: 'Count', class: 'text-left' },
+            { key: 'actions', label: 'Details' }
           ],
           news: [],
           news_fields: [
@@ -136,11 +194,27 @@ export default {
       this.last_update = response_last_update.data[0].last_update;
       this.image = 'data:image/png;base64,'.concat(this.image.concat(response_entities_plot.data)) ;
 
+      console.log(this.genes_statistics);
+
       } catch (e) {
        console.error(e);
       }
     this.loading = false;
-    } 
+    },
+  async loadSearchInfo() {
+    let apiSearchURL = process.env.VUE_APP_API_URL + '/api/search/' + this.search_input;
+    try {
+      let response_search = await this.axios.get(apiSearchURL);
+      this.search = response_search.data;
+      } catch (e) {
+       console.error(e);
+      }
+    },
+  test_keydown_handler(event) {
+     if (event.which === 13) {
+        this.$router.push('/Search/' + this.search_input);
+     }
+    }
   }
 }
 </script>
@@ -160,5 +234,17 @@ li {
 }
 a {
   color: #42b983;
+}  
+.btn-group-xs > .btn, .btn-xs {
+    padding: .25rem .4rem;
+    font-size: .875rem;
+    line-height: .5;
+    border-radius: .2rem;
+  }
+.truncated {
+    display: block;
+    white-space: nowrap; /* forces text to single line */
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 </style>
