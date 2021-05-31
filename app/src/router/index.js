@@ -10,10 +10,12 @@ import Login from '../views/Login.vue'
 import User from '../views/User.vue'
 import Review from '../views/Review.vue'
 import Panels from '../views/Panels.vue'
+import Ontology from '../views/Ontology.vue'
 
 import Entity from '../views/Entity.vue'
 import Gene from '../views/Gene.vue'
 import Search from '../views/Search.vue'
+import API from '../views/API.vue'
 
 Vue.use(VueRouter)
 
@@ -79,6 +81,14 @@ const routes = [
   {
     path: '/Search/:search_term',
     component: Search
+  },
+  {
+    path: '/API',
+    component: API
+  },
+  {
+    path: '/Ontology/:disease_ontology_id',
+    component: Ontology
   }
 ]
 

@@ -455,19 +455,23 @@ function(hgnc) {
 #* @tag ontology
 ## get an ontology entry by disease_ontology_id_version
 #* @serializer json list(na="string")
-#' @get /api/ontology/<o_id_v>
-function(o_id_v) {
+#' @get /api/ontology/<ontology_id>
+function(ontology_id) {
 
-	o_id_v <- URLdecode(o_id_v)
+	ontology_id <- URLdecode(ontology_id)
 
 	# get data from database and filter
 	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
 	ontology_set_collected <- tbl(sysndd_db, "ontology_set") %>%
-		filter(disease_ontology_id_version == o_id_v) %>%
-		select(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, disease_ontology_source, disease_ontology_is_specific, hgnc_id, hpo_mode_of_inheritance_term) %>%
+		filter(disease_ontology_id == ontology_id) %>%
+		select(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, disease_ontology_source, disease_ontology_is_specific, hgnc_id, hpo_mode_of_inheritance_term, DOID, MONDO, Orphanet, UMLS, EFO) %>%
 		arrange(disease_ontology_id_version) %>%
-		collect()
+		collect() %>%
+		group_by(disease_ontology_id) %>%
+		summarise_all(~paste(unique(.), collapse = ';')) %>%
+		ungroup() %>%
+		mutate(across(everything(), ~replace(., . ==  "NULL" , "")))
 
 	# disconnect from database
 	dbDisconnect(sysndd_db)

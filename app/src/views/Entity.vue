@@ -19,11 +19,11 @@
                 </template>
 
                 <template #cell(disease_ontology_name)="data">
-                  <b-link v-bind:href="'/Disease/' + data.item.disease_ontology_id_version"> 
+                  <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"> 
                     <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version">{{ data.item.disease_ontology_name }}</div> 
                   </b-link>
-                  <b-link v-if="data.item.disease_ontology_id_version.includes('OMIM')" v-bind:href="'https://www.omim.org/entry/' + data.item.disease_ontology_id_version.replace('OMIM:', '')" target="_blank"> 
-                    <div>{{ data.item.disease_ontology_id_version }}</div> 
+                  <b-link v-if="data.item.disease_ontology_id_version.includes('OMIM')" v-bind:href="'https://www.omim.org/entry/' + data.item.disease_ontology_id_version.replace('OMIM:', '').replace(/_.+/g, '')" target="_blank"> 
+                    <div>{{ data.item.disease_ontology_id_version.replace(/_.+/g, '') }}</div> 
                   </b-link>
                   <b-link v-if="data.item.disease_ontology_id_version.includes('MONDO')" v-bind:href="'http://purl.obolibrary.org/obo/' + data.item.disease_ontology_id_version.replace(':', '_')" target="_blank"> 
                     <div>{{ data.item.disease_ontology_id_version }}</div> 
@@ -72,7 +72,8 @@
                       target="_blank" 
                       v-b-tooltip.hover.bottom v-bind:title="publication.publication_status"
                       >
-                      {{ publication.publication_id }}
+                        <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                        {{ publication.publication_id }}
                       </b-button>
                     </b-col>
                   </b-row>
@@ -98,6 +99,7 @@
                       v-b-tooltip.hover.bottom
                       v-bind:title="phenotype.phenotype_id"
                       >
+                      <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
                       {{ phenotype.HPO_term }}
                       </b-button>
                     </b-col>

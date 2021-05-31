@@ -37,6 +37,25 @@
                 </b-link>
               </template>
 
+              <template #cell(ccds_id)="data">
+                <b-row>
+                  <b-row v-for="id in data.item.ccds_id.split('|')" :key="id"> 
+                      <b-col>
+                        <b-button 
+                        class="btn-xs mx-2" 
+                        variant="outline-primary"
+                        v-bind:src="data.item.ccds_id.split('|')" 
+                        v-bind:href="'https://www.ncbi.nlm.nih.gov/CCDS/CcdsBrowse.cgi?REQUEST=CCDS&DATA='+ id" 
+                        target="_blank" 
+                        >
+                          <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                          {{ id }}
+                        </b-button>
+                      </b-col>
+                    </b-row>
+                  </b-row>
+              </template>
+
               <template #cell(uniprot_ids)="data">
                 <b-link v-bind:href="'https://www.uniprot.org/uniprot/' + data.item.uniprot_ids" target="_blank"> 
                   <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.uniprot_ids">{{ data.item.uniprot_ids }}</div> 
@@ -96,7 +115,7 @@
             </template>
 
             <template #cell(disease_ontology_name)="data">
-              <b-link v-bind:href="'/Disease/' + data.item.disease_ontology_id_version"> 
+              <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version"> 
                 <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version">{{ truncate(data.item.disease_ontology_name, 20) }}</div> 
               </b-link>
             </template>

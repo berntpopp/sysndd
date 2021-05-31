@@ -25,6 +25,7 @@
                     v-model="filter"
                     type="search"
                     placeholder="Type to Search"
+                    debounce="500"
                   ></b-form-input>
 
                   <b-input-group-append>
@@ -114,7 +115,7 @@
                   </template>
 
                   <template #cell(disease_ontology_name)="data">
-                    <b-link v-bind:href="'/Disease/' + data.item.disease_ontology_id_version"> 
+                    <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version"> 
                       <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version">{{ data.item.disease_ontology_name }}</div> 
                     </b-link>
                   </template>
