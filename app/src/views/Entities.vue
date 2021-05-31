@@ -119,7 +119,7 @@
             </template>
 
             <template #cell(disease_ontology_name)="data">
-              <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version"> 
+              <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"> 
                 <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version">{{ truncate(data.item.disease_ontology_name, 20) }}</div> 
               </b-link>
             </template>

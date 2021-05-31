@@ -980,7 +980,6 @@ function(req, res) {
 	key <- charToRaw(dw$secret)
 	
 	# load jwt from cookie
-	print(req$HTTP_AUTHORIZATION)
 	jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
 	
 	user <- jwt_decode_hmac(jwt, secret = key)

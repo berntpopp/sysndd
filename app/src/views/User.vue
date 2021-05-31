@@ -6,10 +6,6 @@
         <h2>Role: {{ this.user.user_role }}</h2>
         <h2>Expires: {{ this.user.exp }}</h2>
     </b-container>
-
-
-
-
   </div>
 </template>
 
@@ -24,7 +20,6 @@ export default {
   mounted() {
     if (localStorage.user) {
       this.user = JSON.parse(localStorage.user);
-      console.log(this.user);
     }
   },
 }

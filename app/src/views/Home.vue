@@ -48,7 +48,7 @@
                 </template>
                 <b-img :src="image" fluid alt="Fluid image"></b-img>
                 <b-card-text class="text-left">
-                  Curated NDD genes curated since the SysID publication
+                  NDD genes since the SysID publication
                   <b-link href="https://pubmed.ncbi.nlm.nih.gov/26748517/" target="_blank"> 
                   (Kochinke & Zweier et al. 2016)
                   </b-link>.

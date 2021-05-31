@@ -83,11 +83,8 @@ export default {
         });
 
         this.user = response_signin.data;
-
-        console.log(this.user.user_name);
-        alert(this.user.user_name + ' ' + this.user.user_role );
-
         localStorage.setItem('user', JSON.stringify(response_signin.data));
+        this.$router.push('/');
 
         } catch (e) {
         console.error(e);

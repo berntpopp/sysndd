@@ -18,16 +18,18 @@
         <!-- Right aligned nav items -->
         <b-navbar-nav class="ml-auto">
       
-          <b-nav-item href="/Review">Review</b-nav-item>
+          <b-nav-item v-if="user" href="/Review">Review</b-nav-item>
           
-          <b-nav-item-dropdown right>
+          <b-nav-item-dropdown right v-if="user">
             <!-- Using 'button-content' slot -->
             <template #button-content>
-              <em href="/About">Login</em>
+              <em>{{ user }}</em>
             </template>
             <b-dropdown-item href="/User">Profile</b-dropdown-item>
-            <b-dropdown-item href="#">Sign Out</b-dropdown-item>
+            <b-dropdown-item @click="duUserLogOut">Sign Out</b-dropdown-item>
           </b-nav-item-dropdown>
+          <b-nav-item href="/Login" v-else>Login</b-nav-item>
+
         </b-navbar-nav>
       </b-collapse>
     </b-navbar>
@@ -36,7 +38,36 @@
 
 <script>
 export default {
-  name: 'Home',
+  name: 'Navbar',
+  data() {
+        return {
+          user: null
+        }
+  },
+  watch: { // used to refreh navar on login push
+  $route(to, from) { 
+    if(to !== from){ 
+      location.reload(); 
+      }
+  } 
+  },
+  mounted() {
+    this.isUserLoggedIn();
+    },
+  methods: {
+    isUserLoggedIn() {
+      if (localStorage.user) {
+        this.user = JSON.parse(localStorage.user).user_name[0];
+      }
+    },
+    duUserLogOut() {
+      if (localStorage.user) {
+        localStorage.removeItem('user');
+        this.user = null;
+        this.$router.push('/');
+      }
+    }
+  }
 }
 </script>
 
