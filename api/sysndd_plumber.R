@@ -1052,6 +1052,7 @@ function() {
 	
 	sysndd_db_disease_collected <- tbl(sysndd_db, "ndd_entity_view") %>%
 		arrange(entity_id) %>%
+		select(entity_id, ndd_phenotype, category, entry_date) %>%
 		collect() %>%
 		mutate(ndd_phenotype = case_when(
 		  ndd_phenotype == 1 ~ "Yes",
