@@ -12,6 +12,7 @@ library(jose)
 library(plotly)
 library(RCurl)
 library(stringdist)
+library(xlsx)
 ##-------------------------------------------------------------------##
 
 
@@ -40,6 +41,14 @@ cors <- function(req, res) {
   }
   
 }
+##-------------------------------------------------------------------##
+
+
+
+##-------------------------------------------------------------------##
+## global variables
+inheritance_input_allowed <- c("X-linked", "Dominant", "Recessive", "Other", "All")
+output_columns_allowed <- c("category", "inheritance", "symbol", "hgnc_id", "entrez_id", "ensembl_gene_id", "ucsc_id", "bed_hg19", "bed_hg38")
 ##-------------------------------------------------------------------##
 
 
@@ -613,7 +622,7 @@ function(hpo_list) {
 
 
 ##-------------------------------------------------------------------##
-## status endpoints
+## Status endpoints
 
 #* @tag status
 ## get list of all status
@@ -640,45 +649,292 @@ function() {
 ##-------------------------------------------------------------------##
 ## Panels endpoints
 
+#* @tag panels
+## get list of all panel api options
+#* @serializer json list(na="string")
+#' @get /api/panels/options
+function() {
+	# connect to database
+	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+	# get category list
+	categories_list <- tbl(sysndd_db, "ndd_entity_status_categories_list") %>%
+		select(category) %>%
+		collect() %>%
+		add_row(category = "All") %>%
+		arrange(category)
+
+	# disconnect from database
+	dbDisconnect(sysndd_db)
+	
+	inheritance_list <- as_tibble(inheritance_input_allowed) %>%
+		select(inheritance = value) %>%
+		arrange(inheritance)
+
+	columns_list <- as_tibble(output_columns_allowed) %>%
+		select(column = value)
+
+	options <- tibble(
+	  lists = c("categories_list", "inheritance_list", "columns_list"),
+	  options = list(
+		tibble(value = categories_list$category),
+		tibble(value = inheritance_list$inheritance),
+		tibble(value = columns_list$column)
+	  )
+	)
+	
+	options
+}
+
 
 #* @tag panels
 ## get last n entries in definitive category as news
 #* @serializer json list(na="string")
+#* @param category_input The entity association category to filter.
+#* @param inheritance_input The entity inheritance type to filter.
+#* @param output_columns Comma separated list of output columns (choose from: category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38).
+#* @param output_sort Output column to arrange output on (choose from: category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38).
 #' @get /api/panels
-function(cat = "Definitive", inh = "Dominant") {
-
-	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+function(category_input = "Definitive", inheritance_input = "All", output_columns = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38", output_sort = "symbol", res) {
 	
+	output_columns_list <- URLdecode(output_columns) %>%
+		str_split(pattern=",", simplify=TRUE) %>%
+		str_replace_all(" ", "") %>%
+		unique()
+
+	# connect to database
+	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+	# validate inputs
+	ndd_entity_status_categories_list <- tbl(sysndd_db, "ndd_entity_status_categories_list") %>%
+		select(category) %>%
+		collect() %>%
+		add_row(category = "All")
+
+	if ( !(Reduce("&", output_columns_list %in% output_columns_allowed)) | !(Reduce("&", output_sort %in% output_columns_allowed)) ) {
+		res$status <- 400
+		res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
+		status = 400,
+		message = paste0("Input for 'output_columns' or 'output_sort' parameter not in list of allowed columns (allowed values=", paste0(output_columns_allowed, collapse=","), ").")
+		))
+		return(res)
+	}
+
+	if ( !(category_input %in% ndd_entity_status_categories_list$category) ) {
+		res$status <- 400
+		res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
+		status = 400,
+		message = paste0("Required 'category_input' parameter not in categories list (allowed values=", paste0(ndd_entity_status_categories_list$category, collapse=","), ").")
+		))
+		return(res)
+	}
+	
+	if ( !(inheritance_input %in% inheritance_input_allowed) ) {
+		res$status <- 400
+		res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
+		status = 400,
+		message = paste0("Required 'inheritance_input' parameter not in categories list (allowed values=", paste0(inheritance_input_allowed, collapse=","), ").")
+		))
+		return(res)
+	}
+	
+	# join entity_view and non_alt_loci_set tables
 	sysndd_db_ndd_entity_view <- tbl(sysndd_db, "ndd_entity_view") %>%
 		filter(ndd_phenotype == 1) %>%
 		select(hgnc_id, symbol, inheritance = hpo_mode_of_inheritance_term_name, category)
 	sysndd_db_non_alt_loci_set <- tbl(sysndd_db, "non_alt_loci_set") %>%
-		select(hgnc_id, entrez_id, ensembl_gene_id, ucsc_id)
+		select(hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38)
 	
 	sysndd_db_disease_genes <- sysndd_db_ndd_entity_view %>%
 		left_join(sysndd_db_non_alt_loci_set, by =c("hgnc_id")) %>%
 		collect() %>%
-		unique() %>% 
+		unique() %>%
 		mutate(inheritance = case_when(
 		  str_detect(inheritance, "X-linked") ~ "X-linked",
 		  str_detect(inheritance, "Autosomal dominant inheritance") ~ "Dominant",
 		  str_detect(inheritance, "Autosomal recessive inheritance") ~ "Recessive",
 		  TRUE ~ "Other"
-		)) %>% 
-		select(category, inheritance, symbol, hgnc_id, entrez_id, ensembl_gene_id, ucsc_id) %>%
+		)) %>%
+		select(category, inheritance, symbol, hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38) %>%
 		arrange(desc(category), inheritance)
 
 	# disconnect from database
 	dbDisconnect(sysndd_db)
 	
-	sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
-		filter(category == cat, inheritance == inh) %>%
-		arrange(symbol)
+	# compute output based on input parameters
+	
+	if ( (category_input == "All") & (inheritance_input == "All") ) {
+		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
+			mutate(category = "All") %>%
+			mutate(inheritance = "All") %>%
+			unique() %>%
+			filter(category == category_input, inheritance == inheritance_input) %>%
+			arrange(!!sym(output_sort)) %>%
+			select(all_of(output_columns_list))
+	} else if ( (category_input == "All") & (inheritance_input != "All") ) {
+		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
+			mutate(category = "All") %>%
+			unique() %>%
+			filter(category == category_input, inheritance == inheritance_input) %>%
+			arrange(!!sym(output_sort)) %>%
+			select(all_of(output_columns_list))
+	} else if ( (category_input != "All") & (inheritance_input == "All") ) {
+		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
+			mutate(inheritance = "All") %>%
+			unique() %>%
+			filter(category == category_input, inheritance == inheritance_input) %>%
+			arrange(!!sym(output_sort)) %>%
+			select(all_of(output_columns_list))
+	} else {
+		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
+			unique() %>%
+			filter(category == category_input, inheritance == inheritance_input) %>%
+			arrange(!!sym(output_sort)) %>%
+			select(all_of(output_columns_list))
+	}
 
 	sysndd_db_disease_genes_panel
 }
 
+
+
+#* @tag panels
+## get last n entries in definitive category as news
+#* @serializer contentType list(type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+#* @param category_input The entity association category to filter.
+#* @param inheritance_input The entity inheritance type to filter.
+#* @param output_columns Comma separated list of output columns (choose from: category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38).
+#* @param output_sort Output column to arrange output on (choose from: category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38).
+#' @get /api/panels/excel
+function(category_input = "Definitive", inheritance_input = "All", output_columns = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38", output_sort = "symbol", res) {
+	
+	output_columns_list <- URLdecode(output_columns) %>%
+		str_split(pattern=",", simplify=TRUE) %>%
+		str_replace_all(" ", "") %>%
+		unique()
+
+	# connect to database
+	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+	# validate inputs
+	ndd_entity_status_categories_list <- tbl(sysndd_db, "ndd_entity_status_categories_list") %>%
+		select(category) %>%
+		collect() %>%
+		add_row(category = "All")
+
+	if ( !(Reduce("&", output_columns_list %in% output_columns_allowed)) | !(Reduce("&", output_sort %in% output_columns_allowed)) ) {
+		res$status <- 400
+		res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
+		status = 400,
+		message = paste0("Input for 'output_columns' or 'output_sort' parameter not in list of allowed columns (allowed values=", paste0(output_columns_allowed, collapse=","), ").")
+		))
+		return(res)
+	}
+
+	if ( !(category_input %in% ndd_entity_status_categories_list$category) ) {
+		res$status <- 400
+		res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
+		status = 400,
+		message = paste0("Required 'category_input' parameter not in categories list (allowed values=", paste0(ndd_entity_status_categories_list$category, collapse=","), ").")
+		))
+		return(res)
+	}
+	
+	if ( !(inheritance_input %in% inheritance_input_allowed) ) {
+		res$status <- 400
+		res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
+		status = 400,
+		message = paste0("Required 'inheritance_input' parameter not in categories list (allowed values=", paste0(inheritance_input_allowed, collapse=","), ").")
+		))
+		return(res)
+	}
+	
+	# join entity_view and non_alt_loci_set tables
+	sysndd_db_ndd_entity_view <- tbl(sysndd_db, "ndd_entity_view") %>%
+		filter(ndd_phenotype == 1) %>%
+		select(hgnc_id, symbol, inheritance = hpo_mode_of_inheritance_term_name, category)
+	sysndd_db_non_alt_loci_set <- tbl(sysndd_db, "non_alt_loci_set") %>%
+		select(hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38)
+	
+	sysndd_db_disease_genes <- sysndd_db_ndd_entity_view %>%
+		left_join(sysndd_db_non_alt_loci_set, by =c("hgnc_id")) %>%
+		collect() %>%
+		unique() %>%
+		mutate(inheritance = case_when(
+		  str_detect(inheritance, "X-linked") ~ "X-linked",
+		  str_detect(inheritance, "Autosomal dominant inheritance") ~ "Dominant",
+		  str_detect(inheritance, "Autosomal recessive inheritance") ~ "Recessive",
+		  TRUE ~ "Other"
+		)) %>%
+		select(category, inheritance, symbol, hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38) %>%
+		arrange(desc(category), inheritance)
+
+	# disconnect from database
+	dbDisconnect(sysndd_db)
+	
+	# compute output based on input parameters
+	
+	if ( (category_input == "All") & (inheritance_input == "All") ) {
+		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
+			mutate(category = "All") %>%
+			mutate(inheritance = "All") %>%
+			unique() %>%
+			filter(category == category_input, inheritance == inheritance_input) %>%
+			arrange(!!sym(output_sort)) %>%
+			select(all_of(output_columns_list))
+	} else if ( (category_input == "All") & (inheritance_input != "All") ) {
+		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
+			mutate(category = "All") %>%
+			unique() %>%
+			filter(category == category_input, inheritance == inheritance_input) %>%
+			arrange(!!sym(output_sort)) %>%
+			select(all_of(output_columns_list))
+	} else if ( (category_input != "All") & (inheritance_input == "All") ) {
+		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
+			mutate(inheritance = "All") %>%
+			unique() %>%
+			filter(category == category_input, inheritance == inheritance_input) %>%
+			arrange(!!sym(output_sort)) %>%
+			select(all_of(output_columns_list))
+	} else {
+		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
+			unique() %>%
+			filter(category == category_input, inheritance == inheritance_input) %>%
+			arrange(!!sym(output_sort)) %>%
+			select(all_of(output_columns_list))
+	}
+
+	# generate request statistic for output
+	creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"), "%Y-%m-%dT %H:%M:%S")
+	
+	request_stats <- tibble(
+	  creation_date = creation_date, 
+	  category_input = category_input, 
+	  inheritance_input = inheritance_input,
+	  output_columns = output_columns,
+	  output_sort = output_sort,
+	) %>%
+    pivot_longer(everything(), names_to = "request", values_to = "value")
+
+	# generate excel file output
+	filename <- file.path(tempdir(), "panel.xlsx")
+	write.xlsx(sysndd_db_disease_genes_panel, filename, sheetName="sysndd", append=FALSE)
+	write.xlsx(request_stats, filename, sheetName="request", append=TRUE)
+	attachmentString = paste0("attachment; filename=panel.xlsx", filename)
+		  
+	res$setHeader("Content-Disposition", attachmentString)
+		  
+	# Read in the raw contents of the binary file
+	bin <- readBin(filename, "raw", n=file.info(filename)$size)
+
+	#Check file existence and delete
+	if (file.exists(filename)) {
+	  file.remove(filename)
+	}
+
+	#Return the binary contents
+	bin
+}
 ## Panels endpoints
 ##-------------------------------------------------------------------##
 

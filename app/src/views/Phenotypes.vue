@@ -212,8 +212,7 @@ export default {
             let response = await this.axios.get(apiUrl);
             this.entities_data = response.data;
             this.totalRows = response.data.length;
-            this.currentPage =1;
-            console.log(this.entities_data)
+            this.currentPage = 1;
           } catch (e) {
             console.error(e);
           }
