@@ -185,19 +185,15 @@
               </multiselect> 
 
               <label class="mr-sm-2 font-weight-bold" for="publications-select">Publications</label>
-              <multiselect 
-                id="publications-select"
-                v-model="publications_review"
-                tag-placeholder="Add this as new tag" 
-                placeholder="Search or add a tag" 
-                label="publication_id" 
-                track-by="entity_publication_id" 
-                :options="publication_options" 
-                :multiple="true"
-                :taggable="true" 
-                @tag="addTag"
-                >
-              </multiselect> 
+
+                <b-form-tags
+                  input-id="publications-select"
+                  v-model="publications_review"
+                  separator=" ,;"
+                  placeholder="Enter PMIDs separated by space, comma or semicolon"
+                  :tag-validator="tagValidatorPMID"
+                  remove-on-delete
+                ></b-form-tags>
 
         </form>
       </b-modal>
@@ -352,15 +348,13 @@ export default {
 
             this.status = response_status.data;
             this.review = response_review.data;
-            this.publications = response_publications.data;
             this.phenotypes = response_phenotypes.data;
-
-console.log(this.review[this.review_number]);
 
             this.status_review = this.status[this.review_number].category_id;
             this.synopsis_review = this.review[this.review_number].synopsis;
             this.phenotypes_review = this.phenotypes;
-            this.publications_review = this.publications;
+
+            Object.entries(response_publications.data).forEach(([key, value]) => this.publications_review.push(value.publication_id));
 
             } catch (e) {
             console.error(e);
@@ -396,6 +390,10 @@ console.log(this.review[this.review_number]);
             this.value.push(tag);
             console.log(tag);
           },
+        tagValidatorPMID(tag) {
+          // Individual PMID tag validator function
+          return !isNaN(Number(tag.replace('PMID:', ''))) && tag.includes('PMID:') && tag.replace('PMID:', '').length > 4 && tag.replace('PMID:', '').length < 10;
+        },
         truncate(str, n) {
           return (str.length > n) ? str.substr(0, n-1) + '...' : str;
         }
