@@ -1,4 +1,7 @@
 # sysndd_plumber.R
+## to do: adapt "serializer json list(na="null")"
+## to do: add pool library for connection managment
+
 
 ##-------------------------------------------------------------------##
 # load libraries
@@ -233,7 +236,7 @@ function(sysndd_id) {
 
 #* @tag entities
 ## get all clinical synopsis for a entity_id
-#* @serializer json list(na="string")
+#* @serializer json list(na="null")
 #' @get /api/entities/<sysndd_id>/review
 function(sysndd_id) {
 
@@ -249,6 +252,11 @@ function(sysndd_id) {
 		filter(entity_id == sysndd_id & is_primary) %>%
 		select(entity_id, synopsis, review_date) %>%
 		arrange(review_date)
+		
+	ndd_entity_review_list_joined <- as_tibble(sysndd_id) %>% 
+		select(entity_id = value) %>%
+		mutate(entity_id = as.integer(entity_id)) %>%
+		left_join(ndd_entity_review_list, by = c("entity_id"))
 }
 
 

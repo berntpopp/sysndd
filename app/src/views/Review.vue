@@ -144,7 +144,6 @@
             <b-table
                 :items="entity"
                 :fields="entity_fields"
-                stacked
                 small
             >
             </b-table>
@@ -179,6 +178,21 @@
                 label="HPO_term" 
                 track-by="phenotype_id" 
                 :options="phenotypes_options" 
+                :multiple="true"
+                :taggable="true" 
+                @tag="addTag"
+                >
+              </multiselect> 
+
+              <label class="mr-sm-2 font-weight-bold" for="publications-select">Publications</label>
+              <multiselect 
+                id="publications-select"
+                v-model="publications_review"
+                tag-placeholder="Add this as new tag" 
+                placeholder="Search or add a tag" 
+                label="publication_id" 
+                track-by="entity_publication_id" 
+                :options="publication_options" 
                 :multiple="true"
                 :taggable="true" 
                 @tag="addTag"
@@ -268,6 +282,8 @@ export default {
           synopsis_review: '',
           status_review: '',
           publications: [],
+          publications_review: [],
+          publication_options: [],
           phenotypes_review: [],
           phenotypes_options: [],
           status_options: [],
@@ -300,7 +316,10 @@ export default {
           this.infoModal.title = '';
           this.infoModal.content = [];
           this.entity = [];
-          this.phenotypes_options = [];
+          this.entity_review = [];
+          this.status_review = '';
+          this.synopsis_review = '';
+          this.synopsis_review = '';
         },
         info(item, index, button) {
           this.infoModal.title = `Entity: sysndd:${item.entity_id}`;
@@ -336,9 +355,12 @@ export default {
             this.publications = response_publications.data;
             this.phenotypes = response_phenotypes.data;
 
-            this.synopsis_review = this.review[this.review_number].synopsis;
+console.log(this.review[this.review_number]);
+
             this.status_review = this.status[this.review_number].category_id;
+            this.synopsis_review = this.review[this.review_number].synopsis;
             this.phenotypes_review = this.phenotypes;
+            this.publications_review = this.publications;
 
             } catch (e) {
             console.error(e);
@@ -364,6 +386,7 @@ export default {
         },
         handleOk(bvModalEvt) {
           console.log(this.synopsis_review);
+          this.resetInfoModal();
         },
         addTag(newTag) {
             const tag = {
