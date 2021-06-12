@@ -194,8 +194,6 @@ export default {
       this.last_update = response_last_update.data[0].last_update;
       this.image = 'data:image/png;base64,'.concat(this.image.concat(response_entities_plot.data)) ;
 
-      console.log(this.genes_statistics);
-
       } catch (e) {
        console.error(e);
       }

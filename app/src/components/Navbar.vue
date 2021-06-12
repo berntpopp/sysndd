@@ -1,6 +1,6 @@
 <template>
   <div>
-    <b-navbar fixed="top" toggleable="lg" type="dark" variant="dark">
+    <b-navbar fixed="top" toggleable="md" type="dark" variant="dark">
       <b-navbar-brand href="/"><img src="../../public/android-chrome-192x192.png" height="40" alt=""> SysNDD</b-navbar-brand>
 
       <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
@@ -17,8 +17,10 @@
 
         <!-- Right aligned nav items -->
         <b-navbar-nav class="ml-auto">
-      
-          <b-nav-item v-if="user" href="/Review">Review</b-nav-item>
+
+          <b-nav-item v-if="user && admin" href="/Admin">Admin</b-nav-item>
+          <b-nav-item v-if="user && curate" href="/Curate">Curate</b-nav-item>
+          <b-nav-item v-if="user && review" href="/Review">Review</b-nav-item>
           
           <b-nav-item-dropdown right v-if="user">
             <!-- Using 'button-content' slot -->
@@ -26,7 +28,7 @@
               <em>{{ user }}</em>
             </template>
             <b-dropdown-item href="/User">Profile</b-dropdown-item>
-            <b-dropdown-item @click="duUserLogOut">Sign Out</b-dropdown-item>
+            <b-dropdown-item @click="doUserLogOut">Sign Out</b-dropdown-item>
           </b-nav-item-dropdown>
           <b-nav-item href="/Login" v-else>Login</b-nav-item>
 
@@ -41,7 +43,10 @@ export default {
   name: 'Navbar',
   data() {
         return {
-          user: null
+          user: null,
+          review: false,
+          curate: false,
+          admin: false
         }
   },
   watch: { // used to refreh navar on login push
@@ -57,14 +62,24 @@ export default {
   methods: {
     isUserLoggedIn() {
       if (localStorage.user) {
+        const allowed_roles = ["Administrator", "Curator", "Reviewer"];
+        const allowence_navigation = [["Admin", "Curate", "Review"], ["Curate", "Review"], ["Review"]];
+
         this.user = JSON.parse(localStorage.user).user_name[0];
+        let user_role = JSON.parse(localStorage.user).user_role[0];
+        let allowence = allowence_navigation[allowed_roles.indexOf(user_role)];
+
+        this.review = allowence.includes('Review');
+        this.curate = allowence.includes('Curate');
+        this.admin = allowence.includes('Admin');
       }
     },
-    duUserLogOut() {
-      if (localStorage.user) {
+    doUserLogOut() {
+      if (localStorage.user || localStorage.token) {
         localStorage.removeItem('user');
+        localStorage.removeItem('token');
         this.user = null;
-        this.$router.push('/');
+        this.$router.push('/Login');
       }
     }
   }

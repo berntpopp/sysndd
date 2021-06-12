@@ -131,7 +131,7 @@
       :title="infoModal.title" 
       size="xl" 
       centered 
-      ok-title="Submit review" 
+      ok-title="Save review" 
       no-close-on-esc 
       no-close-on-backdrop 
       header-bg-variant="dark" 
@@ -315,7 +315,7 @@ export default {
           this.entity_review = [];
           this.status_review = '';
           this.synopsis_review = '';
-          this.synopsis_review = '';
+          this.publications_review = [];
         },
         info(item, index, button) {
           this.infoModal.title = `Entity: sysndd:${item.entity_id}`;

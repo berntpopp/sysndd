@@ -9,6 +9,8 @@ import About from '../views/About.vue'
 import Login from '../views/Login.vue'
 import User from '../views/User.vue'
 import Review from '../views/Review.vue'
+import Curate from '../views/Curate.vue'
+import Admin from '../views/Admin.vue'
 import Panels from '../views/Panels.vue'
 import Ontology from '../views/Ontology.vue'
 
@@ -68,7 +70,62 @@ const routes = [
   {
     path: '/Review',
     name: 'Review',
-    component: Review
+    component: Review,
+    beforeEnter: (to, from, next) => {
+      const allowed_roles = ["Administrator", "Curator", "Reviewer"];
+      let expires = 0;
+      let timestamp = 0;
+      let user_role = "Viewer";
+      
+      if (localStorage.token) {
+        expires = JSON.parse(localStorage.user).exp;
+        user_role = JSON.parse(localStorage.user).user_role;
+        timestamp = Math.floor(new Date().getTime() / 1000);
+      }
+
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) next({ name: 'Login' })
+      else next()
+    }
+  },
+  {
+    path: '/Curate',
+    name: 'Curate',
+    component: Curate,
+    beforeEnter: (to, from, next) => {
+      const allowed_roles = ["Administrator", "Curator"];
+      let expires = 0;
+      let timestamp = 0;
+      let user_role = "Viewer";
+      
+      if (localStorage.token) {
+        expires = JSON.parse(localStorage.user).exp;
+        user_role = JSON.parse(localStorage.user).user_role;
+        timestamp = Math.floor(new Date().getTime() / 1000);
+      }
+
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) next({ name: 'Login' })
+      else next()
+    }
+  },
+  {
+    path: '/Admin',
+    name: 'Admin',
+    component: Admin,
+    beforeEnter: (to, from, next) => {
+      const allowed_roles = ["Administrator"];
+      let expires = 0;
+      let timestamp = 0;
+      let user_role = "Viewer";
+      
+      if (localStorage.token) {
+        expires = JSON.parse(localStorage.user).exp;
+        user_role = JSON.parse(localStorage.user).user_role;
+        timestamp = Math.floor(new Date().getTime() / 1000);
+      }
+
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) next({ name: 'Login' })
+      else next()
+    }
   },
   {
     path: '/Entities/:sysndd_id',

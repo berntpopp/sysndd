@@ -61,6 +61,11 @@ export default {
         user: []
       }
     },
+  mounted() {
+    if (localStorage.user) {
+      this.doUserLogOut();
+    }
+  },
   methods: {
     async loadJWT() {
       let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/api/auth/authenticate?user_name=' + this.user_name + '&password=' + this.password;
@@ -89,11 +94,19 @@ export default {
         } catch (e) {
         console.error(e);
         }
-      }, 
+    }, 
     onSubmit(event) {
       event.preventDefault();
       this.loadJWT();
     },
+    doUserLogOut() {
+      if (localStorage.user || localStorage.token) {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        this.user = null;
+        this.$router.push('/');
+      }
+    }
   }
 }
 </script>

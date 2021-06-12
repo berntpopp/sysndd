@@ -138,8 +138,8 @@ function(sysndd_id, req, res) {
 	# connect to database
 	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
-	dbExecute(sysndd_db, paste0("DELETE FROM ndd_entity_phenotype_connect WHERE entity_id = ", sysndd_id, ";"))
-	dbExecute(sysndd_db, paste0("DELETE FROM ndd_entity_publication_join WHERE entity_id = ", sysndd_id, ";"))
+	dbExecute(sysndd_db, paste0("DELETE FROM ndd_review_phenotype_connect WHERE entity_id = ", sysndd_id, ";"))
+	dbExecute(sysndd_db, paste0("DELETE FROM ndd_review_publication_join WHERE entity_id = ", sysndd_id, ";"))
 	dbExecute(sysndd_db, paste0("DELETE FROM ndd_entity_status WHERE entity_id = ", sysndd_id, ";"))
 	dbExecute(sysndd_db, paste0("DELETE FROM ndd_entity_review WHERE entity_id = ", sysndd_id, ";"))
 	dbExecute(sysndd_db, paste0("DELETE FROM ndd_entity WHERE entity_id = ", sysndd_id, ";"))
@@ -218,7 +218,7 @@ function(sysndd_id) {
 
 	# get data from database and filter
 	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-	ndd_entity_phenotype_connect_collected <- tbl(sysndd_db, "ndd_entity_phenotype_connect") %>%
+	ndd_review_phenotype_connect_collected <- tbl(sysndd_db, "ndd_review_phenotype_connect") %>%
 		collect()
 	phenotype_list_collected <- tbl(sysndd_db, "phenotype_list") %>%
 		collect()
@@ -226,10 +226,10 @@ function(sysndd_id) {
 	# disconnect from database
 	dbDisconnect(sysndd_db)
 
-	phenotype_list <- ndd_entity_phenotype_connect_collected %>%
+	phenotype_list <- ndd_review_phenotype_connect_collected %>%
 		filter(entity_id == sysndd_id) %>%
 		inner_join(phenotype_list_collected, by=c("phenotype_id")) %>%
-		select(entity_id, phenotype_id, HPO_term, modifier) %>%
+		select(entity_id, phenotype_id, HPO_term, modifier_id) %>%
 		arrange(phenotype_id)
 }
 
@@ -326,7 +326,7 @@ function(sysndd_id) {
 
 	# get data from database and filter
 	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-	ndd_entity_publication_join_collected <- tbl(sysndd_db, "ndd_entity_publication_join") %>%
+	ndd_review_publication_join_collected <- tbl(sysndd_db, "ndd_review_publication_join") %>%
 		collect()
 	publication_collected <- tbl(sysndd_db, "publication") %>%
 		collect()
@@ -334,7 +334,7 @@ function(sysndd_id) {
 	# disconnect from database
 	dbDisconnect(sysndd_db)
 
-	ndd_entity_publication_list <- ndd_entity_publication_join_collected %>%
+	ndd_entity_publication_list <- ndd_review_publication_join_collected %>%
 		filter(entity_id == sysndd_id) %>%
 		arrange(publication_id)
 }
@@ -600,7 +600,7 @@ function(hpo_list) {
 	# get data from database and filter
 	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
-	entity_list_from_phenotype_list_collected <- tbl(sysndd_db, "ndd_entity_phenotype_connect") %>%
+	entity_list_from_phenotype_list_collected <- tbl(sysndd_db, "ndd_review_phenotype_connect") %>%
 		filter(phenotype_id %in% hpo_list) %>%
 		arrange(phenotype_id) %>%
 		select(entity_id, phenotype_id) %>%
