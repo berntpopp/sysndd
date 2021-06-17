@@ -6,4 +6,4 @@ default-jdk \
 libbz2-dev \
 libicu-dev \
 liblzma-dev
-RUN install2.r plumber DBI RMariaDB jsonlite config jose plotly RCurl stringdist xlsx
+RUN install2.r plumber DBI RMariaDB jsonlite config jose plotly RCurl stringdist xlsx easyPubMed rvest lubridate

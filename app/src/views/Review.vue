@@ -93,6 +93,9 @@
                 <b-icon icon="pen"></b-icon>
               </b-button>
               <b-button size="sm" @click="info(row.item, row.index, $event.target)" class="mr-1">
+                <b-icon icon="stoplights"></b-icon>
+              </b-button>
+              <b-button size="sm" @click="info(row.item, row.index, $event.target)" class="mr-1">
                 <b-icon icon="x-circle"></b-icon>
               </b-button>
             </template>
@@ -185,16 +188,24 @@
               </multiselect> 
 
               <label class="mr-sm-2 font-weight-bold" for="publications-select">Publications</label>
-
                 <b-form-tags
                   input-id="publications-select"
-                  v-model="publications_review"
+                  v-model="literature_review"
                   separator=" ,;"
                   placeholder="Enter PMIDs separated by space, comma or semicolon"
                   :tag-validator="tagValidatorPMID"
                   remove-on-delete
                 ></b-form-tags>
 
+              <label class="mr-sm-2 font-weight-bold" for="genereviews-select">GeneReviews</label>
+                <b-form-tags
+                  input-id="genereviews-select"
+                  v-model="genereviews_review"
+                  separator=" ,;"
+                  placeholder="Enter PMIDs separated by space, comma or semicolon"
+                  :tag-validator="tagValidatorPMID"
+                  remove-on-delete
+                ></b-form-tags>
         </form>
       </b-modal>
 
@@ -278,7 +289,8 @@ export default {
           synopsis_review: '',
           status_review: '',
           publications: [],
-          publications_review: [],
+          literature_review: [],
+          genereviews_review: [],
           publication_options: [],
           phenotypes_review: [],
           phenotypes_options: [],
@@ -315,7 +327,8 @@ export default {
           this.entity_review = [];
           this.status_review = '';
           this.synopsis_review = '';
-          this.publications_review = [];
+          this.literature_review = [];
+          this.genereviews_review = [];
         },
         info(item, index, button) {
           this.infoModal.title = `Entity: sysndd:${item.entity_id}`;
@@ -336,16 +349,20 @@ export default {
           this.loading = false;
         },
         async loadEntityInfo(sysndd_id) {
+          // define API query URLs
           let apiStatusURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/status';
           let apiReviewURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/review';
           let apiPublicationsURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/publications';
           let apiPhenotypesURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/phenotypes';
+
           try {
+            // get API responses
             let response_status = await this.axios.get(apiStatusURL);
             let response_review = await this.axios.get(apiReviewURL);
             let response_publications = await this.axios.get(apiPublicationsURL);
             let response_phenotypes = await this.axios.get(apiPhenotypesURL);
 
+            // assign response data to global variables
             this.status = response_status.data;
             this.review = response_review.data;
             this.phenotypes = response_phenotypes.data;
@@ -354,7 +371,12 @@ export default {
             this.synopsis_review = this.review[this.review_number].synopsis;
             this.phenotypes_review = this.phenotypes;
 
-            Object.entries(response_publications.data).forEach(([key, value]) => this.publications_review.push(value.publication_id));
+            // filter the publications data into groups and assign to global variables
+            let literature_filter = response_publications.data.filter(li => li.publication_status === "additional_references");
+            let genereviews_filter = response_publications.data.filter(gr => gr.publication_status === "gene_review");
+
+            Object.entries(literature_filter).forEach(([key, value]) => this.literature_review.push(value.publication_id));
+            Object.entries(genereviews_filter).forEach(([key, value]) => this.genereviews_review.push(value.publication_id));
 
             } catch (e) {
             console.error(e);
@@ -378,8 +400,41 @@ export default {
             console.error(e);
           }
         },
+        async submitReview(submission) {
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/entities/review?review_json=';
+          try {
+            let submission_json = JSON.stringify(submission);
+            let response = await this.axios.post(apiUrl + submission_json);
+
+            localStorage.setItem('submissions', submission);
+
+          } catch (e) {
+            console.error(e);
+          }
+        },
         handleOk(bvModalEvt) {
-          console.log(this.synopsis_review);
+
+          let review_submission = {};
+          let phenotypes_submission = [];
+          let modifiers_submission = [];
+
+          Object.entries(this.phenotypes_review).forEach(([key, value]) => {
+            phenotypes_submission.push(value.phenotype_id);
+            modifiers_submission.push(value.modifier_id);
+            }
+          );
+
+          review_submission.entity = this.entity[0].entity_id;
+          review_submission.synopsis = this.synopsis_review;
+          review_submission.literature = {};
+          review_submission.literature.additional_references = this.literature_review;
+          review_submission.literature.gene_review = this.genereviews_review;
+          review_submission.phenotypes = {};
+          review_submission.phenotypes.phenotype_id = phenotypes_submission;
+          review_submission.phenotypes.modifier_id = modifiers_submission;
+
+          console.log(review_submission);
+          this.submitReview(review_submission);
           this.resetInfoModal();
         },
         addTag(newTag) {

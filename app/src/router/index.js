@@ -84,7 +84,7 @@ const routes = [
       }
 
       if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) next({ name: 'Login' })
-      else next()
+      else next();
     }
   },
   {
@@ -104,7 +104,7 @@ const routes = [
       }
 
       if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) next({ name: 'Login' })
-      else next()
+      else next();
     }
   },
   {
@@ -124,7 +124,7 @@ const routes = [
       }
 
       if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) next({ name: 'Login' })
-      else next()
+      else next();
     }
   },
   {

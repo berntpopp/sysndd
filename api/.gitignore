@@ -1,2 +1,4 @@
 # database config file
 config.yml
+# R files
+.Rhistory
