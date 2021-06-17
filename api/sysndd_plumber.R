@@ -400,11 +400,15 @@ function(review_json, res) {
 
 	# convert phenotypes and publications to tibble
 	phenotypes_received <- as_tibble(review_data$phenotypes)
-	publications_received <- as_tibble(review_data$literature) %>% 
-		pivot_longer(everything(), names_to = "publication_type", values_to = "publication_id") %>%
-		unique() %>%
-		select(publication_id, publication_type) %>%
-		arrange(publication_id)
+	if ( length(compact(review_data$literature)) > 0 ) {
+		publications_received <- as_tibble(compact(review_data$literature)) %>% 
+			pivot_longer(everything(), names_to = "publication_type", values_to = "publication_id") %>%
+			unique() %>%
+			select(publication_id, publication_type) %>%
+			arrange(publication_id)
+	} else {
+		publications_received <- as_tibble_row(c(publication_id = NA, publication_type = NA))
+	}
 	sysnopsis_received <- as_tibble(review_data$synopsis) %>% 
 		add_column(review_data$entity) %>% 
 		add_column(review_user_id) %>% 
@@ -527,6 +531,7 @@ function(sysndd_id) {
 	# get data from database and filter
 	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 	ndd_review_publication_join_collected <- tbl(sysndd_db, "ndd_review_publication_join") %>%
+		filter(is_reviewed == 1) %>%
 		collect()
 	publication_collected <- tbl(sysndd_db, "publication") %>%
 		collect()

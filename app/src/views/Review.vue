@@ -98,7 +98,8 @@
                 >
                   <b-icon icon="pen"></b-icon>
               </b-button>
-              <b-button size="sm" 
+              <b-button 
+                size="sm" 
                 @click="info(row.item, row.index, $event.target)" 
                 class="mr-1" 
                 :variant="stoplights_style[row.item.category]"
@@ -107,7 +108,13 @@
                 >
                   <b-icon icon="stoplights"></b-icon>
               </b-button>
-              <b-button size="sm" @click="info(row.item, row.index, $event.target)" class="mr-1">
+              <b-button 
+                size="sm" 
+                @click="info(row.item, row.index, $event.target)" 
+                class="mr-1"
+                v-b-tooltip.hover.right 
+                title="mark for removal"
+              >
                 <b-icon icon="x-circle"></b-icon>
               </b-button>
             </template>
@@ -140,7 +147,7 @@
       </b-row>
       
 
-      <!-- Info modal -->
+      <!-- New review modal -->
       <b-modal 
       :id="infoModal.id" 
       :title="infoModal.title" 
@@ -207,7 +214,8 @@
                   placeholder="Enter PMIDs separated by space, comma or semicolon"
                   :tag-validator="tagValidatorPMID"
                   remove-on-delete
-                ></b-form-tags>
+                >
+                </b-form-tags>
 
               <label class="mr-sm-2 font-weight-bold" for="genereviews-select">GeneReviews</label>
                 <b-form-tags
@@ -220,7 +228,9 @@
                 ></b-form-tags>
         </form>
       </b-modal>
+      <!-- New review modal -->
 
+      
     </b-container>
   </div>
 </template>
@@ -385,8 +395,8 @@ export default {
             this.phenotypes_review = this.phenotypes;
 
             // filter the publications data into groups and assign to global variables
-            let literature_filter = response_publications.data.filter(li => li.publication_status === "additional_references");
-            let genereviews_filter = response_publications.data.filter(gr => gr.publication_status === "gene_review");
+            let literature_filter = response_publications.data.filter(li => li.publication_type === "additional_references");
+            let genereviews_filter = response_publications.data.filter(gr => gr.publication_type === "gene_review");
 
             Object.entries(literature_filter).forEach(([key, value]) => this.literature_review.push(value.publication_id));
             Object.entries(genereviews_filter).forEach(([key, value]) => this.genereviews_review.push(value.publication_id));
@@ -456,7 +466,6 @@ export default {
             }
             this.options.push(tag);
             this.value.push(tag);
-            console.log(tag);
           },
         tagValidatorPMID(tag) {
           // Individual PMID tag validator function
