@@ -397,7 +397,6 @@ export default {
             // filter the publications data into groups and assign to global variables
             let literature_filter = response_publications.data.filter(li => li.publication_type === "additional_references");
             let genereviews_filter = response_publications.data.filter(gr => gr.publication_type === "gene_review");
-
             Object.entries(literature_filter).forEach(([key, value]) => this.literature_review.push(value.publication_id));
             Object.entries(genereviews_filter).forEach(([key, value]) => this.genereviews_review.push(value.publication_id));
 
