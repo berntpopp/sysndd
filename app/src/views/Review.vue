@@ -89,11 +89,23 @@
           >
 
             <template #cell(actions)="row">
-              <b-button size="sm" @click="info(row.item, row.index, $event.target)" class="mr-1">
-                <b-icon icon="pen"></b-icon>
+              <b-button 
+                size="sm" 
+                @click="info(row.item, row.index, $event.target)" 
+                class="mr-1"
+                v-b-tooltip.hover.left 
+                title="new review"
+                >
+                  <b-icon icon="pen"></b-icon>
               </b-button>
-              <b-button size="sm" @click="info(row.item, row.index, $event.target)" class="mr-1">
-                <b-icon icon="stoplights"></b-icon>
+              <b-button size="sm" 
+                @click="info(row.item, row.index, $event.target)" 
+                class="mr-1" 
+                :variant="stoplights_style[row.item.category]"
+                v-b-tooltip.hover.top 
+                title="edit status"
+                >
+                  <b-icon icon="stoplights"></b-icon>
               </b-button>
               <b-button size="sm" @click="info(row.item, row.index, $event.target)" class="mr-1">
                 <b-icon icon="x-circle"></b-icon>
@@ -219,6 +231,7 @@ export default {
   name: 'Review',
   data() {
         return {
+          stoplights_style: {Definitive: "success", Moderate: "warning", Candidate: "primary", Refuted: "danger"},
           items: [],
           fields: [
             { key: 'entity_id', label: 'Entity', sortable: true, sortDirection: 'desc', class: 'text-left' },
