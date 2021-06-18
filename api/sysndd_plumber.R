@@ -1186,10 +1186,11 @@ function() {
 		tally() %>%
 		ungroup() %>%
 		arrange(desc(category), desc(n)) %>% 
-		group_by(category) %>% 
+		mutate(category_group = category) %>%
+		group_by(category_group) %>% 
 		nest() %>% 
 		ungroup() %>%
-		select(category, groups = data)
+		select(category = category_group, groups = data)
 
 	sysndd_db_disease_genes_grouped_by_category <- sysndd_db_disease_genes %>% 
 		select(-inheritance) %>%

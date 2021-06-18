@@ -48,9 +48,16 @@ const routes = [
     component: Comparisons
   },
   {
-    path: '/Panels',
+    path: '/Panels/:category_input?/:inheritance_input?',
     name: 'Panels',
-    component: Panels
+    component: Panels,
+    beforeEnter: (to, from, next) => {
+      if (["All", "Candidate", "Definitive", "Moderate", "Refuted"].includes(to.params.category_input) && ["All", "Dominant", "Other", "Recessive", "X-linked"].includes(to.params.inheritance_input) ) {
+        next(); // <-- everything good, proceed
+      } else {
+        next({ path: '/Panels/All/All' }); // <-- redirect to setup
+      }
+    }
   },
   {
     path: '/About',

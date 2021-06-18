@@ -70,6 +70,12 @@
                       small
                   >
 
+                  <template #cell(n)="data">
+                    <b-link v-bind:href="'/Panels/' + data.item.category + '/' + data.item.inheritance ">
+                      <div style="cursor:pointer">{{ data.item.n }}</div>
+                    </b-link>
+                  </template>
+
                   <template #cell(actions)="row">
                     <b-button class="btn-xs" @click="row.toggleDetails" variant="outline-primary">
                       {{ row.detailsShowing ? 'hide' : 'show' }}
@@ -80,6 +86,7 @@
                     <b-card>
                       <b-table
                         :items="row.item.groups"
+                        :fields="genes_statistics_details_fields"
                         head-variant="light"
                         show-empty
                         small
@@ -87,6 +94,12 @@
                         striped
                         sort-icon-left
                       >
+
+                        <template #cell(n)="data">
+                          <b-link v-bind:href="'/Panels/' + data.item.category + '/' + data.item.inheritance ">
+                            <div style="cursor:pointer">{{ data.item.n }}</div>
+                          </b-link>
+                        </template>
 
                       </b-table>
                     </b-card>
@@ -158,6 +171,10 @@ export default {
             { key: 'category', label: 'Category', class: 'text-left' },
             { key: 'n', label: 'Count', class: 'text-left' },
             { key: 'actions', label: 'Details' }
+          ],
+          genes_statistics_details_fields: [
+            { key: 'inheritance', label: 'Inheritance' },
+            { key: 'n', label: 'Count', class: 'text-left' }
           ],
           news: [],
           news_fields: [

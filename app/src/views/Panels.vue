@@ -172,14 +172,16 @@ export default {
             this.inheritance_list = response.data[1].options;
             this.columns_list = response.data[2].options;
             
-            this.selected_category = response.data[0].options[0].value;
-            this.selected_inheritance = response.data[1].options[0].value;
+            this.selected_category = this.$route.params.category_input;
+            this.selected_inheritance = this.$route.params.inheritance_input;
             this.selected_columns = response.data[2].options;
             this.sort_list = response.data[2].options;
 
             var c = [];
             for (var key in response.data[2].options) c.push(response.data[2].options[key].value);
             this.selected_columns = c;
+
+            this.requestSelected();
 
           } catch (e) {
             console.error(e);
@@ -188,8 +190,6 @@ export default {
           this.loading = false;
         },
         async requestSelected() {
-          this.loading = true;
-
           let apiUrl = process.env.VUE_APP_API_URL + '/api/panels?category_input=' + this.selected_category + '&inheritance_input=' + this.selected_inheritance + '&output_columns=' + this.selected_columns.join() + '&output_sort=' + this.selected_sort;
           try {
             let response = await this.axios.get(apiUrl);
@@ -202,7 +202,6 @@ export default {
           } catch (e) {
             console.error(e);
           }
-          this.loading = false;
         },
         async requestExcel() {
           //based on https://morioh.com/p/f4d331b62cda
@@ -222,11 +221,6 @@ export default {
 
                      fileLink.click();
                 });
-            
-            this.panel_data = response.data;
-            
-            this.totalRows = response.data.length;
-            this.currentPage = 1;
 
           } catch (e) {
             console.error(e);
