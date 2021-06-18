@@ -166,7 +166,17 @@
             <b-badge variant="info">
               {{ infoModal.title }}
             </b-badge>
+            <b-badge pill id="popover-badge-help" href="#" variant="info">
+              <b-icon icon="question-circle-fill"></b-icon>
+            </b-badge>
           </h4>
+<b-popover target="popover-badge-help" variant="info" triggers="focus">
+    <template #title>Review instructions</template>
+    <strong>Synopsis</strong>: Please write a detailed summary for this entity.<br>
+    <strong>Phenotypes</strong>: Add or remove associated phenotypes.<br>
+    <strong>Publications</strong>: Add relevenat literature used for the synopsis.<br>
+    <strong>GeneReviews</strong>: Add GeneReview articles important for this entity.
+</b-popover>
         </template>
 
         <form ref="form" @submit.stop.prevent="handleSubmit">
