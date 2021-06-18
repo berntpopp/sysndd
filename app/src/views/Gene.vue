@@ -18,27 +18,79 @@
               small
           >
               <template #cell(symbol)="data">
-                <b-link v-bind:href="'https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/' + data.item.hgnc_id" target="_blank"> 
-                  <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</div> 
-                </b-link>
+                <b-row>
+                  <b-row v-for="id in data.item.symbol.split(';')" :key="id"> 
+                      <b-col>
+                        <b-button 
+                        class="btn-xs mx-2" 
+                        variant="outline-primary"
+                        v-bind:src="data.item.symbol.split(';')" 
+                        v-bind:href="'https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/'+ id" 
+                        target="_blank" 
+                        >
+                          <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                          <span class="font-italic"> {{ id }} </span>
+                        </b-button>
+                      </b-col>
+                    </b-row>
+                  </b-row>
               </template>
 
               <template #cell(entrez_id)="data">
-                <b-link v-bind:href="'https://www.ncbi.nlm.nih.gov/gene/' + data.item.entrez_id" target="_blank"> 
-                  <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.entrez_id">{{ data.item.entrez_id }}</div> 
-                </b-link>
+               <b-row>
+                  <b-row v-for="id in data.item.entrez_id.split(';')" :key="id"> 
+                      <b-col>
+                        <b-button 
+                        class="btn-xs mx-2" 
+                        variant="outline-primary"
+                        v-bind:src="data.item.entrez_id.split(';')" 
+                        v-bind:href="'https://www.ncbi.nlm.nih.gov/gene/'+ id" 
+                        target="_blank" 
+                        >
+                          <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                          {{ id }}
+                        </b-button>
+                      </b-col>
+                    </b-row>
+                  </b-row>
               </template>
 
               <template #cell(ensembl_gene_id)="data">
-                <b-link v-bind:href="'https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=' + data.item.ensembl_gene_id" target="_blank"> 
-                  <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.ensembl_gene_id">{{ data.item.ensembl_gene_id }}</div> 
-                </b-link>
+               <b-row>
+                  <b-row v-for="id in data.item.ensembl_gene_id.split(';')" :key="id"> 
+                      <b-col>
+                        <b-button 
+                        class="btn-xs mx-2" 
+                        variant="outline-primary"
+                        v-bind:src="data.item.ensembl_gene_id.split(';')" 
+                        v-bind:href="'https://www.ensembl.org/Homo_sapiens/Gene/Summary?g='+ id" 
+                        target="_blank" 
+                        >
+                          <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                          {{ id }}
+                        </b-button>
+                      </b-col>
+                    </b-row>
+                  </b-row>
               </template>
 
               <template #cell(ucsc_id)="data">
-                <b-link v-bind:href="'https://genome-euro.ucsc.edu/cgi-bin/hgGene?hgg_gene=' + data.item.ucsc_id" target="_blank"> 
-                  <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.ucsc_id">{{ data.item.ucsc_id }}</div> 
-                </b-link>
+               <b-row>
+                  <b-row v-for="id in data.item.ucsc_id.split(';')" :key="id"> 
+                      <b-col>
+                        <b-button 
+                        class="btn-xs mx-2" 
+                        variant="outline-primary"
+                        v-bind:src="data.item.ucsc_id.split(';')" 
+                        v-bind:href="'https://genome-euro.ucsc.edu/cgi-bin/hgGene?hgg_gene='+ id" 
+                        target="_blank" 
+                        >
+                          <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                          {{ id }}
+                        </b-button>
+                      </b-col>
+                    </b-row>
+                  </b-row>
               </template>
 
               <template #cell(ccds_id)="data">
@@ -61,9 +113,22 @@
               </template>
 
               <template #cell(uniprot_ids)="data">
-                <b-link v-bind:href="'https://www.uniprot.org/uniprot/' + data.item.uniprot_ids" target="_blank"> 
-                  <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.uniprot_ids">{{ data.item.uniprot_ids }}</div> 
-                </b-link>
+                <b-row>
+                  <b-row v-for="id in data.item.uniprot_ids.split(';')" :key="id"> 
+                      <b-col>
+                        <b-button 
+                        class="btn-xs mx-2" 
+                        variant="outline-primary"
+                        v-bind:src="data.item.uniprot_ids.split(';')" 
+                        v-bind:href="'https://www.uniprot.org/uniprot/'+ id" 
+                        target="_blank" 
+                        >
+                          <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                          {{ id }}
+                        </b-button>
+                      </b-col>
+                    </b-row>
+                  </b-row>
               </template>
 
           </b-table>
@@ -130,7 +195,6 @@
             
           </b-table>
 
-
           </b-col>
         </b-row>
     </b-container>
@@ -144,7 +208,7 @@ export default {
         return {
           gene: [],
           gene_fields: [
-            { key: 'symbol', label: 'Gene Symbol', sortable: true, class: 'text-left' },
+            { key: 'symbol', label: 'HGNC Symbol', sortable: true, class: 'text-left' },
             { key: 'name', label: 'Gene Name', sortable: true, class: 'text-left' },
             { key: 'entrez_id', label: 'Entrez ID', sortable: true, class: 'text-left' },
             { key: 'ensembl_gene_id', label: 'Ensembl ID', sortable: true, class: 'text-left' },

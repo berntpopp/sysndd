@@ -26,12 +26,31 @@
                   <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"> 
                     <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version">{{ data.item.disease_ontology_name }}</div> 
                   </b-link>
-                  <b-link v-if="data.item.disease_ontology_id_version.includes('OMIM')" v-bind:href="'https://www.omim.org/entry/' + data.item.disease_ontology_id_version.replace('OMIM:', '').replace(/_.+/g, '')" target="_blank"> 
-                    <div>{{ data.item.disease_ontology_id_version.replace(/_.+/g, '') }}</div> 
-                  </b-link>
-                  <b-link v-if="data.item.disease_ontology_id_version.includes('MONDO')" v-bind:href="'http://purl.obolibrary.org/obo/' + data.item.disease_ontology_id_version.replace(':', '_')" target="_blank"> 
-                    <div>{{ data.item.disease_ontology_id_version }}</div> 
-                  </b-link>
+
+                      <b-button 
+                      v-if="data.item.disease_ontology_id_version.includes('OMIM')"
+                      class="btn-xs mx-2" 
+                      variant="outline-primary"
+                      v-bind:src="data.item.publications" 
+                      v-bind:href="'https://www.omim.org/entry/' + data.item.disease_ontology_id_version.replace('OMIM:', '').replace(/_.+/g, '')"
+                      target="_blank"
+                      >
+                        <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                        {{ data.item.disease_ontology_id_version.replace(/_.+/g, '') }}
+                      </b-button>
+
+                      <b-button 
+                      v-if="data.item.disease_ontology_id_version.includes('MONDO')"
+                      class="btn-xs mx-2" 
+                      variant="outline-primary"
+                      v-bind:src="data.item.publications" 
+                      v-bind:href="'http://purl.obolibrary.org/obo/' + data.item.disease_ontology_id_version.replace(':', '_')"
+                      target="_blank"
+                      >
+                        <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                        {{ data.item.disease_ontology_id_version }}
+                      </b-button>
+
                 </template>
                 
                 <template #cell(hpo_mode_of_inheritance_term_name)="data">
