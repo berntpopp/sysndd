@@ -149,7 +149,7 @@
 
       <!-- New review modal -->
       <b-modal 
-      :id="infoModal.id" 
+      :id="reviewModal.id" 
       size="xl" 
       centered 
       ok-title="Save review" 
@@ -157,26 +157,27 @@
       no-close-on-backdrop 
       header-bg-variant="dark" 
       header-text-variant="light" 
-      @hide="resetInfoModal" 
+      @hide="resetreviewModal" 
       @ok="handleOk"
       >
 
         <template #modal-title>
           <h4>Entity: 
             <b-badge variant="info">
-              {{ infoModal.title }}
+              {{ reviewModal.title }}
             </b-badge>
             <b-badge pill id="popover-badge-help" href="#" variant="info">
               <b-icon icon="question-circle-fill"></b-icon>
             </b-badge>
           </h4>
-<b-popover target="popover-badge-help" variant="info" triggers="focus">
-    <template #title>Review instructions</template>
-    <strong>Synopsis</strong>: Please write a detailed summary for this entity.<br>
-    <strong>Phenotypes</strong>: Add or remove associated phenotypes.<br>
-    <strong>Publications</strong>: Add relevenat literature used for the synopsis.<br>
-    <strong>GeneReviews</strong>: Add GeneReview articles important for this entity.
-</b-popover>
+          
+          <b-popover target="popover-badge-help" variant="info" triggers="focus">
+              <template #title>Review instructions</template>
+              <strong>Synopsis</strong>: Please write a detailed summary for this entity.<br>
+              <strong>Phenotypes</strong>: Add or remove associated phenotypes.<br>
+              <strong>Publications</strong>: Add relevenat literature used for the synopsis.<br>
+              <strong>GeneReviews</strong>: Add GeneReview articles important for this entity.
+          </b-popover>
         </template>
 
         <form ref="form" @submit.stop.prevent="handleSubmit">
@@ -280,40 +281,36 @@ export default {
           sortDirection: 'asc',
           filter: null,
           filterOn: [],
-          infoModal: {
+          reviewModal: {
             id: 'info-modal',
             title: '',
             content: []
           },
           entity: [],
           entity_fields: [
-            { key: 'symbol', label: 'Gene Symbol', sortable: true, class: 'text-left' },
+            { key: 'symbol', label: 'Gene Symbol', sortable: false, class: 'text-left' },
             {
               key: 'disease_ontology_name',
               label: 'Disease',
-              sortable: true,
-              class: 'text-left',
-              sortByFormatted: true,
-              filterByFormatted: true
+              sortable: false,
+              class: 'text-left'
             },
             {
               key: 'hpo_mode_of_inheritance_term_name',
               label: 'Inheritance',
-              sortable: true,
-              class: 'text-left',
-              sortByFormatted: true,
-              filterByFormatted: true
+              sortable: false,
+              class: 'text-left'
             },
             { 
               key: 'ndd_phenotype', 
               label: 'NDD Association', 
-              sortable: true, 
+              sortable: false, 
               class: 'text-left' 
             },
             { 
               key: 'category', 
               label: 'Association Category', 
-              sortable: true, 
+              sortable: false, 
               class: 'text-left' 
             }
           ],
@@ -360,9 +357,9 @@ export default {
           this.totalRows = filteredItems.length
           this.currentPage = 1
         },
-        resetInfoModal() {
-          this.infoModal.title = '';
-          this.infoModal.content = [];
+        resetreviewModal() {
+          this.reviewModal.title = '';
+          this.reviewModal.content = [];
           this.entity = [];
           this.entity_review = [];
           this.synopsis_review = '';
@@ -370,11 +367,11 @@ export default {
           this.genereviews_review = [];
         },
         info(item, index, button) {
-          this.infoModal.title = `sysndd:${item.entity_id}`;
+          this.reviewModal.title = `sysndd:${item.entity_id}`;
           this.entity.push(item);
           console.log(item);
           this.loadEntityInfo(item.entity_id);
-          this.$root.$emit('bv::show::modal', this.infoModal.id, button);
+          this.$root.$emit('bv::show::modal', this.reviewModal.id, button);
         },
         async loadEntitiesData() {
           this.loading = true;
@@ -470,7 +467,7 @@ export default {
 
           console.log(review_submission);
           this.submitReview(review_submission);
-          this.resetInfoModal();
+          this.resetreviewModal();
         },
         addTag(newTag) {
             const tag = {

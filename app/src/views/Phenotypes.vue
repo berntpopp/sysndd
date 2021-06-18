@@ -94,9 +94,13 @@
 
             <template #row-details="row">
               <b-card>
-                <ul>
-                  <li v-for="(value, key) in row.item" :key="key">{{ key }}: {{ value }}</li>
-                </ul>
+                <b-table
+                  :items="[row.item]"
+                  :fields="fields_details"
+                  stacked 
+                  small
+                >
+                </b-table>
               </b-card>
             </template>
 
@@ -163,6 +167,12 @@ export default {
             },
             { key: 'ndd_phenotype', label: 'NDD Association', sortable: true, class: 'text-left' },
             { key: 'actions', label: 'Actions' }
+          ],
+          fields_details: [
+            { key: 'hgnc_id', label: 'HGNC ID', class: 'text-left' },
+            { key: 'disease_ontology_id_version', label: 'Intology ID version', class: 'text-left' },
+            { key: 'disease_ontology_name', label: 'Disease ontology name', class: 'text-left' },
+            { key: 'entry_date', label: 'Entry date', class: 'text-left' },
           ],
           totalRows: 1,
           currentPage: 1,
