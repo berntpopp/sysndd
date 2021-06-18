@@ -164,6 +164,7 @@ export default {
               filterByFormatted: true
             },
             { key: 'ndd_phenotype', label: 'NDD Association', sortable: true, class: 'text-left' },
+            { key: 'category', label: 'Category', sortable: true, class: 'text-left' },
             { key: 'actions', label: 'Actions' }
           ],
           totalRows: 1,
