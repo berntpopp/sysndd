@@ -4,7 +4,11 @@
     <b-container fluid v-else>
       <b-row class="justify-content-md-center mt-8">
         <b-col col md="10">
-          <h3>Entity: sysndd:{{ $route.params.sysndd_id }}</h3>
+          <h3>Entity: 
+            <b-badge variant="info">
+              sysndd:{{ $route.params.sysndd_id }}
+            </b-badge>
+          </h3>
 
             <b-table
                 :items="entity"

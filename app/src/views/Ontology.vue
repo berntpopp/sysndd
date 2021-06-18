@@ -4,7 +4,11 @@
     <b-container fluid v-else>
       <b-row class="justify-content-md-center mt-8">
         <b-col col md="10">
-          <h3>Disease ontology ID: {{ $route.params.disease_ontology_id }}</h3>
+          <h3>Disease ontology ID: 
+            <b-badge variant="info">
+              {{ $route.params.disease_ontology_id }}
+            </b-badge>
+          </h3>
 
             <b-table
                 :items="ontology"
@@ -12,6 +16,26 @@
                 stacked
                 small
             >
+
+              <template #cell(disease_ontology_id_version)="data">
+                <b-row>
+                  <b-row v-for="id in data.item.disease_ontology_id_version.split(';')" :key="id"> 
+                      <b-col>
+                        <b-button 
+                        class="btn-xs mx-2" 
+                        variant="outline-primary"
+                        v-bind:src="data.item.disease_ontology_id_version.split(';')" 
+                        v-bind:href="'https://www.omim.org/entry/'+ id.replace(/OMIM:/g,'')" 
+                        target="_blank" 
+                        >
+                          <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                          {{ id }}
+                        </b-button>
+                      </b-col>
+                    </b-row>
+                  </b-row>
+              </template>
+
 
               <template #cell(DOID)="data">
                 <b-row>
@@ -123,7 +147,12 @@ export default {
         return {
           ontology: [],
           ontology_fields: [
-            { key: 'disease_ontology_id_version', label: 'Versions', sortable: true, class: 'text-left' },
+            { 
+              key: 'disease_ontology_id_version', 
+              label: 'Versions', 
+              sortable: true, 
+              class: 'text-left' 
+            },
             {
               key: 'disease_ontology_name',
               label: 'Disease',

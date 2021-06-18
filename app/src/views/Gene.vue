@@ -5,7 +5,11 @@
       <b-row class="justify-content-md-center mt-8">
         <b-col col md="10">
 
-          <h3>Gene: {{ $route.params.hgnc_id }}</h3>
+          <h3>Gene: 
+            <b-badge variant="info">
+              {{ $route.params.hgnc_id }}
+            </b-badge>
+          </h3>
 
           <b-table
               :items="gene"
