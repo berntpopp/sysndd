@@ -74,7 +74,8 @@ export default {
         localStorage.setItem('token', response_authenticate.data[0]);
         this.signinWithJWT();
         } catch (e) {
-        console.error(e);
+        console.error(e.response);
+         this.makeToast(e, 'Error', 'danger');
         }
       }, 
     async signinWithJWT() {
@@ -106,6 +107,14 @@ export default {
         this.user = null;
         this.$router.push('/');
       }
+    },
+    makeToast(event, title = null, variant = null) {
+        this.$bvToast.toast('' + event, {
+          title: title,
+          toaster: 'b-toaster-top-right',
+          variant: variant,
+          solid: true
+        })
     }
   }
 }

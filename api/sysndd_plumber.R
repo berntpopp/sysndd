@@ -1393,7 +1393,6 @@ function(signup_data) {
 
 #* @tag authentication
 ## authentication login user
-## example data: {"user_name":"Bernt", "password":"password"}
 ## based on https://github.com/jandix/sealr/blob/master/examples/jwt_simple_example.R
 #* @serializer json list(na="string")
 #' @get /api/auth/authenticate
@@ -1408,7 +1407,7 @@ function(req, res, user_name, password) {
 	# check if user provided credentials
 		  if (is.null(check_user) || is.null(check_pass)) {
 			res$status <- 404
-			res$body <- "Please return username and password."
+			res$body <- "Please provide username and password."
 			res
 		  }
 

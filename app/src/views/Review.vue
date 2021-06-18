@@ -170,18 +170,6 @@
             >
             </b-table>
 
-              <label class="mr-sm-2 font-weight-bold" for="select-status">Association Category</label>
-              <b-form-select
-                id="select-status"
-                v-model="status_review"
-                :options="status_options"
-                class="mb-3"
-                value-field="category_id"
-                text-field="category"
-                disabled-field="notEnabled"
-                size="sm" 
-              ></b-form-select>
-
               <label class="mr-sm-2 font-weight-bold" for="textarea-synopsis">Synopsis</label>
               <b-form-textarea
                 id="textarea-synopsis"
@@ -298,7 +286,18 @@ export default {
               sortByFormatted: true,
               filterByFormatted: true
             },
-            { key: 'ndd_phenotype', label: 'NDD Association', sortable: true, class: 'text-left' }
+            { 
+              key: 'ndd_phenotype', 
+              label: 'NDD Association', 
+              sortable: true, 
+              class: 'text-left' 
+            },
+            { 
+              key: 'category', 
+              label: 'Association Category', 
+              sortable: true, 
+              class: 'text-left' 
+            }
           ],
           status: [],
           status_fields: [
@@ -348,7 +347,6 @@ export default {
           this.infoModal.content = [];
           this.entity = [];
           this.entity_review = [];
-          this.status_review = '';
           this.synopsis_review = '';
           this.literature_review = [];
           this.genereviews_review = [];
@@ -356,6 +354,7 @@ export default {
         info(item, index, button) {
           this.infoModal.title = `Entity: sysndd:${item.entity_id}`;
           this.entity.push(item);
+          console.log(item);
           this.loadEntityInfo(item.entity_id);
           this.$root.$emit('bv::show::modal', this.infoModal.id, button);
         },
@@ -373,24 +372,20 @@ export default {
         },
         async loadEntityInfo(sysndd_id) {
           // define API query URLs
-          let apiStatusURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/status';
           let apiReviewURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/review';
           let apiPublicationsURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/publications';
           let apiPhenotypesURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/phenotypes';
 
           try {
             // get API responses
-            let response_status = await this.axios.get(apiStatusURL);
             let response_review = await this.axios.get(apiReviewURL);
             let response_publications = await this.axios.get(apiPublicationsURL);
             let response_phenotypes = await this.axios.get(apiPhenotypesURL);
 
             // assign response data to global variables
-            this.status = response_status.data;
             this.review = response_review.data;
             this.phenotypes = response_phenotypes.data;
 
-            this.status_review = this.status[this.review_number].category_id;
             this.synopsis_review = this.review[this.review_number].synopsis;
             this.phenotypes_review = this.phenotypes;
 
