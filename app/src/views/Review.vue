@@ -150,7 +150,6 @@
       <!-- New review modal -->
       <b-modal 
       :id="infoModal.id" 
-      :title="infoModal.title" 
       size="xl" 
       centered 
       ok-title="Save review" 
@@ -161,6 +160,15 @@
       @hide="resetInfoModal" 
       @ok="handleOk"
       >
+
+        <template #modal-title>
+          <h4>Entity: 
+            <b-badge variant="info">
+              {{ infoModal.title }}
+            </b-badge>
+          </h4>
+        </template>
+
         <form ref="form" @submit.stop.prevent="handleSubmit">
 
             <b-table
@@ -352,7 +360,7 @@ export default {
           this.genereviews_review = [];
         },
         info(item, index, button) {
-          this.infoModal.title = `Entity: sysndd:${item.entity_id}`;
+          this.infoModal.title = `sysndd:${item.entity_id}`;
           this.entity.push(item);
           console.log(item);
           this.loadEntityInfo(item.entity_id);
