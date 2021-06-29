@@ -173,10 +173,20 @@
           
           <b-popover target="popover-badge-help" variant="info" triggers="focus">
               <template #title>Review instructions</template>
-              <strong>Synopsis</strong>: Please write a detailed summary for this entity.<br>
-              <strong>Phenotypes</strong>: Add or remove associated phenotypes.<br>
-              <strong>Publications</strong>: Add relevenat literature used for the synopsis.<br>
-              <strong>GeneReviews</strong>: Add GeneReview articles important for this entity.
+              <strong>Synopsis</strong>: Short summary for this disease entity. 
+                Please include information on: <br>
+                <strong>a)</strong> approximate number of patients described in literature, <br> 
+                <strong>b)</strong> nature of reported variants, <br>
+                <strong>c)</strong> severity of intellectual disability, <br>
+                <strong>d)</strong> further phenotypic aspects (if possible with frequencies), <br> 
+                <strong>e)</strong> any valuable further information (e.g. genotype-phenotype correlations).<br>
+              <strong>Phenotypes</strong>: Add or remove associated phenotypes. 
+                Only phenotypes that occur in 20% or more of affected individuals should be included. 
+                Please also include information on severity of ID.<br>
+              <strong>Publications</strong>: No complete catalogue of entity-related literature required.
+                If information in the clinical synopsis is not only based on OMIM entries, 
+                please include PMID of the article(s) used as a source for the clinical synopsis.<br>
+              <strong>GeneReviews</strong>: Please add PMID for GeneReview article if available for this entity.
           </b-popover>
         </template>
 

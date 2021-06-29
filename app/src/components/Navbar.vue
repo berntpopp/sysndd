@@ -46,7 +46,8 @@ export default {
           user: null,
           review: false,
           curate: false,
-          admin: false
+          admin: false,
+          user_from_jwt: []
         }
   },
   watch: { // used to refreh navar on login push
@@ -61,18 +62,42 @@ export default {
     },
   methods: {
     isUserLoggedIn() {
-      if (localStorage.user) {
-        const allowed_roles = ["Administrator", "Curator", "Reviewer"];
-        const allowence_navigation = [["Admin", "Curate", "Review"], ["Curate", "Review"], ["Review"]];
-
-        this.user = JSON.parse(localStorage.user).user_name[0];
-        let user_role = JSON.parse(localStorage.user).user_role[0];
-        let allowence = allowence_navigation[allowed_roles.indexOf(user_role)];
-
-        this.review = allowence.includes('Review');
-        this.curate = allowence.includes('Curate');
-        this.admin = allowence.includes('Admin');
+      if (localStorage.user && localStorage.token) {
+        this.signinWithJWT();
+      } else {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
       }
+    },
+    async signinWithJWT() {
+      let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/api/auth/signin';
+
+      try {
+        let response_signin = await this.axios.get(apiAuthenticateURL, {
+        headers: {
+          'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
+        });
+
+        this.user_from_jwt = response_signin.data;
+
+        if (this.user_from_jwt.user_name[0] == JSON.parse(localStorage.user).user_name[0]) {
+          const allowed_roles = ["Administrator", "Curator", "Reviewer"];
+          const allowence_navigation = [["Admin", "Curate", "Review"], ["Curate", "Review"], ["Review"]];
+
+          this.user = JSON.parse(localStorage.user).user_name[0];
+
+          let user_role = JSON.parse(localStorage.user).user_role[0];
+          let allowence = allowence_navigation[allowed_roles.indexOf(user_role)];
+
+          this.review = allowence.includes('Review');
+          this.curate = allowence.includes('Curate');
+          this.admin = allowence.includes('Admin');
+        }
+
+        } catch (e) {
+        console.error(e);
+        }
     },
     doUserLogOut() {
       if (localStorage.user || localStorage.token) {
