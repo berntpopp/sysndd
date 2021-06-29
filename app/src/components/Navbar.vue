@@ -93,6 +93,9 @@ export default {
           this.review = allowence.includes('Review');
           this.curate = allowence.includes('Curate');
           this.admin = allowence.includes('Admin');
+        } else {
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
         }
 
         } catch (e) {
