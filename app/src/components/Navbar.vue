@@ -28,7 +28,8 @@
               <em>{{ user }}</em>
             </template>
             <b-dropdown-item href="/User">Profile</b-dropdown-item>
-            <b-dropdown-item @click="doUserLogOut">Sign Out</b-dropdown-item>
+            <b-dropdown-item href="/User">Token refresh</b-dropdown-item>
+            <b-dropdown-item @click="doUserLogOut">Sign out ({{this.time_to_logout}} min)</b-dropdown-item>
           </b-nav-item-dropdown>
           <b-nav-item href="/Login" v-else>Login</b-nav-item>
 
@@ -47,7 +48,8 @@ export default {
           review: false,
           curate: false,
           admin: false,
-          user_from_jwt: []
+          user_from_jwt: [],
+          time_to_logout: 0
         }
   },
   watch: { // used to refreh navar on login push
@@ -59,6 +61,12 @@ export default {
   },
   mounted() {
     this.isUserLoggedIn();
+
+    this.interval = setInterval(() => {
+      this.updateDiffs();
+    },1000);
+    this.updateDiffs();
+
     },
   methods: {
     isUserLoggedIn() {
@@ -108,6 +116,14 @@ export default {
         localStorage.removeItem('token');
         this.user = null;
         this.$router.push('/Login');
+      }
+    },
+    updateDiffs() {
+
+      if (localStorage.token) {
+        let expires = JSON.parse(localStorage.user).exp;
+        let timestamp = Math.floor(new Date().getTime() / 1000);
+        this.time_to_logout = ((expires - timestamp) / 60).toFixed(2);
       }
     }
   }
