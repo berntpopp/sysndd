@@ -4,9 +4,9 @@
     <b-container fluid v-else>
       <b-row class="justify-content-md-center mt-8">
         <b-col col md="10">
-          <h3>Disease ontology ID: 
+          <h3>Disease: 
             <b-badge variant="info">
-              {{ $route.params.disease_ontology_id }}
+              {{ $route.params.disease_term }}
             </b-badge>
           </h3>
 
@@ -184,10 +184,19 @@ export default {
   methods: {
   async loadEntityInfo() {
     this.loading = true;
-    let apiOntologyURL = process.env.VUE_APP_API_URL + '/api/ontology/' + this.$route.params.disease_ontology_id;
+    let apiDiseaseOntologyURL = process.env.VUE_APP_API_URL + '/api/ontology/' + this.$route.params.disease_term;
+    let apiDiseaseNameURL = process.env.VUE_APP_API_URL + '/api/ontology/name/' + this.$route.params.disease_term;
+
     try {
-      let response_ontology = await this.axios.get(apiOntologyURL);
-      this.ontology = response_ontology.data;
+      let response_ontology = await this.axios.get(apiDiseaseOntologyURL);
+      let response_name = await this.axios.get(apiDiseaseNameURL);
+
+      if (response_ontology.data == 0) {
+        this.ontology = response_name.data;
+      } else {
+        this.ontology = response_ontology.data;
+      }
+
       } catch (e) {
        console.error(e);
       }

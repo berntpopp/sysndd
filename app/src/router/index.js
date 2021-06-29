@@ -151,7 +151,7 @@ const routes = [
     component: API
   },
   {
-    path: '/Ontology/:disease_ontology_id',
+    path: '/Ontology/:disease_term',
     component: Ontology
   }
 ]
