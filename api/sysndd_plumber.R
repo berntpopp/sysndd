@@ -1399,7 +1399,14 @@ function(searchterm, helper = TRUE) {
 		pivot_longer(!entity_id, names_to = "search", values_to = "results") %>%
 		mutate(search = str_replace(search, "entity", "entity_id")) %>%
 		mutate(searchdist = stringdist(str_to_lower(results), str_to_lower(searchterm), method='jw', p=0.1)) %>%
-		arrange(searchdist, results)
+		arrange(searchdist, results) %>%
+		mutate(link = case_when(
+			search == "hgnc_id" ~ paste0("/Genes/", results),
+			search == "symbol" ~ paste0("/Genes/", results),
+			search == "disease_ontology_id_version" ~ paste0("/Ontology/", results),
+			search == "disease_ontology_name" ~ paste0("/Ontology/", results),
+			search == "entity_id" ~ paste0("/Entities/", results)
+		))
 		
 	# disconnect from database
 	dbDisconnect(sysndd_db)
@@ -1407,7 +1414,7 @@ function(searchterm, helper = TRUE) {
 	# change output by helper input to unique values (helper = TRUE) or entities (helper = FALSE)
 	if (helper) {
 		sysndd_db_entity_search_helper <- sysndd_db_entity_search %>% 
-			select(-entity_id) %>%
+			select(-entity_id, -link) %>%
 			unique()
 	} else {
 		sysndd_db_entity_search_helper <- sysndd_db_entity_search
