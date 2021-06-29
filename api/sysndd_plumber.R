@@ -640,6 +640,31 @@ function(hgnc) {
 
 
 #* @tag genes
+## get infos for a single gene by symbol
+#* @serializer json list(na="string")
+#' @get /api/genes/symbol/<symbol>
+function(symbol) {
+
+	symbol_input <- URLdecode(symbol) %>%
+		str_to_lower()
+		
+	# get data from database and filter
+	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+	non_alt_loci_set_collected <- tbl(sysndd_db, "non_alt_loci_set") %>%
+		filter(str_to_lower(symbol) == symbol_input) %>%
+		select(hgnc_id, symbol, name, entrez_id, ensembl_gene_id, ucsc_id, ccds_id, uniprot_ids) %>%
+		arrange(hgnc_id) %>%
+		collect()
+
+	# disconnect from database
+	dbDisconnect(sysndd_db)
+
+	non_alt_loci_set_collected
+}
+
+
+#* @tag genes
 ## get all entities for a single gene by hgnc_id
 #* @serializer json list(na="string")
 #' @get /api/genes/<hgnc>/entities
@@ -701,6 +726,33 @@ function(ontology_id) {
 	ontology_set_collected
 }
 
+
+#* @tag ontology
+## get an ontology entry by disease_ontology_name
+#* @serializer json list(na="string")
+#' @get /api/ontology/name/<ontology_name>
+function(ontology_name) {
+
+	ontology_name <- URLdecode(ontology_name)
+
+	# get data from database and filter
+	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+	ontology_set_collected <- tbl(sysndd_db, "ontology_set") %>%
+		filter(disease_ontology_name == ontology_name) %>%
+		select(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, disease_ontology_source, disease_ontology_is_specific, hgnc_id, hpo_mode_of_inheritance_term, DOID, MONDO, Orphanet, UMLS, EFO) %>%
+		arrange(disease_ontology_id_version) %>%
+		collect() %>%
+		group_by(disease_ontology_id) %>%
+		summarise_all(~paste(unique(.), collapse = ';')) %>%
+		ungroup() %>%
+		mutate(across(everything(), ~replace(., . ==  "NULL" , "")))
+
+	# disconnect from database
+	dbDisconnect(sysndd_db)
+
+	ontology_set_collected
+}
 ## Ontology endpoints
 ##-------------------------------------------------------------------##
 
