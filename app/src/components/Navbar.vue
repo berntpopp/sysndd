@@ -28,7 +28,7 @@
               <em>{{ user }}</em>
             </template>
             <b-dropdown-item href="/User">Profile</b-dropdown-item>
-            <b-dropdown-item href="/User">Token refresh</b-dropdown-item>
+            <b-dropdown-item @click="refreshWithJWT">Token refresh</b-dropdown-item>
             <b-dropdown-item @click="doUserLogOut">Sign out ({{this.time_to_logout}} min)</b-dropdown-item>
           </b-nav-item-dropdown>
           <b-nav-item href="/Login" v-else>Login</b-nav-item>
@@ -71,13 +71,13 @@ export default {
   methods: {
     isUserLoggedIn() {
       if (localStorage.user && localStorage.token) {
-        this.signinWithJWT();
+        this.checkSigninWithJWT();
       } else {
         localStorage.removeItem('user');
         localStorage.removeItem('token');
       }
     },
-    async signinWithJWT() {
+    async checkSigninWithJWT() {
       let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/api/auth/signin';
 
       try {
@@ -109,7 +109,40 @@ export default {
         } catch (e) {
         console.error(e);
         }
-    },
+    }, 
+    async refreshWithJWT() {
+      let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/api/auth/refresh';
+
+      try {
+        let response_refresh = await this.axios.get(apiAuthenticateURL, {
+        headers: {
+          'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
+        });
+  
+        localStorage.setItem('token', response_refresh.data[0]);
+        this.signinWithJWT();
+        
+        } catch (e) {
+        console.error(e);
+        }
+    }, 
+    async signinWithJWT() {
+      let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/api/auth/signin';
+
+      try {
+        let response_signin = await this.axios.get(apiAuthenticateURL, {
+        headers: {
+          'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
+        });
+
+        localStorage.setItem('user', JSON.stringify(response_signin.data));
+
+        } catch (e) {
+        console.error(e);
+        }
+    }, 
     doUserLogOut() {
       if (localStorage.user || localStorage.token) {
         localStorage.removeItem('user');
@@ -119,11 +152,15 @@ export default {
       }
     },
     updateDiffs() {
-
       if (localStorage.token) {
         let expires = JSON.parse(localStorage.user).exp;
         let timestamp = Math.floor(new Date().getTime() / 1000);
-        this.time_to_logout = ((expires - timestamp) / 60).toFixed(2);
+
+        if (expires > timestamp) {
+          this.time_to_logout = ((expires - timestamp) / 60).toFixed(2);
+        } else {
+          this.doUserLogOut();
+        }
       }
     }
   }

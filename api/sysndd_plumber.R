@@ -1421,7 +1421,7 @@ function(req, res, user_name, password) {
 		select(-password, -created_at) %>%
 		collect() %>%
 		mutate(iat = as.numeric(Sys.time())) %>%
-		mutate(exp = as.numeric(Sys.time()) + 3600)
+		mutate(exp = as.numeric(Sys.time()) + dw$refresh)
 		
 	dbDisconnect(sysndd_db)
 	
@@ -1449,7 +1449,7 @@ function(req, res) {
 	# load secret and convert to raw
 	key <- charToRaw(dw$secret)
 	
-	# load jwt from cookie
+	# load jwt from header
 	jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
 	
 	user <- jwt_decode_hmac(jwt, secret = key)
@@ -1464,6 +1464,32 @@ function(req, res) {
 	
 }
 
+
+#* @tag authentication
+#* @get /api/auth/refresh
+#* @serializer json list(na="string")
+function(req, res) {
+
+	# load secret and convert to raw
+	key <- charToRaw(dw$secret)
+	
+	# load jwt from header
+	jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
+	
+	user <- jwt_decode_hmac(jwt, secret = key)
+	user$token_expired = (user$exp < as.numeric(Sys.time()))
+	
+	if (is.null(jwt) || user$token_expired){
+		res$status <- 401 # Unauthorized
+		return(list(error="Authentication not successful."))
+	} else {
+		claim <- jwt_claim(user_id = user$user_id, user_name = user$user_name, email = user$email, user_role = user$user_role, iat = as.numeric(Sys.time()), exp = as.numeric(Sys.time()) + dw$refresh)
+
+		jwt <- jwt_encode_hmac(claim, secret = key)
+		jwt
+	}
+	
+}
 ##Authentication section
 ##-------------------------------------------------------------------##
 
