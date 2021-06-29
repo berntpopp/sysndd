@@ -691,6 +691,32 @@ function(hgnc) {
 	entity_by_gene_list
 }
 
+
+#* @tag genes
+## get all entities for a single gene by symbol
+#* @serializer json list(na="string")
+#' @get /api/genes/symbol/<symbol>/entities
+function(symbol) {
+
+	symbol_input <- URLdecode(symbol) %>%
+		str_to_lower()
+
+	# get data from database and filter
+	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+	entity_by_gene_list <- tbl(sysndd_db, "ndd_entity_view") %>%
+		filter(str_to_lower(symbol) == symbol_input) %>%
+		collect() %>%
+		mutate(ndd_phenotype = case_when(
+		  ndd_phenotype == 1 ~ "Yes",
+		  ndd_phenotype == 0 ~ "No"
+		))
+
+	# disconnect from database
+	dbDisconnect(sysndd_db)
+
+	entity_by_gene_list
+}
 ## Gene endpoints
 ##-------------------------------------------------------------------##
 

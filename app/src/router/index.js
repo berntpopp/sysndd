@@ -139,7 +139,7 @@ const routes = [
     component: Entity
   },
   {
-    path: '/Genes/:hgnc_id',
+    path: '/Genes/:gene_id',
     component: Gene
   },
   {

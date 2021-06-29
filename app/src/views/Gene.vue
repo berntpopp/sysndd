@@ -7,7 +7,7 @@
 
           <h3>Gene: 
             <b-badge variant="info">
-              {{ $route.params.hgnc_id }}
+              {{ $route.params.gene_id }}
             </b-badge>
           </h3>
 
@@ -25,7 +25,7 @@
                         class="btn-xs mx-2" 
                         variant="outline-primary"
                         v-bind:src="data.item.symbol.split(';')" 
-                        v-bind:href="'https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/'+ id" 
+                        v-bind:href="'https://www.genenames.org/data/gene-symbol-report/#!/gene_id/'+ id" 
                         target="_blank" 
                         >
                           <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
@@ -139,13 +139,6 @@
           <b-table
             :items="entities_data"
             :fields="entities_data_fields"
-            :current-page="currentPage"
-            :per-page="perPage"
-            :filter="filter"
-            :filter-included-fields="filterOn"
-            :sort-by.sync="sortBy"
-            :sort-desc.sync="sortDesc"
-            :sort-direction="sortDirection"
             stacked="md"
             head-variant="light"
             show-empty
@@ -178,8 +171,8 @@
             </template>
 
             <template #cell(symbol)="data">
-              <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
-                <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</div> 
+              <b-link v-bind:href="'/Genes/' + data.item.gene_id"> 
+                <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.gene_id">{{ data.item.symbol }}</div> 
               </b-link>
             </template>
 
@@ -209,6 +202,7 @@ export default {
           gene: [],
           gene_fields: [
             { key: 'symbol', label: 'HGNC Symbol', sortable: true, class: 'text-left' },
+            { key: 'hgnc_id', label: 'HGNC ID', sortable: true, class: 'text-left' },
             { key: 'name', label: 'Gene Name', sortable: true, class: 'text-left' },
             { key: 'entrez_id', label: 'Entrez ID', sortable: true, class: 'text-left' },
             { key: 'ensembl_gene_id', label: 'Ensembl ID', sortable: true, class: 'text-left' },
@@ -248,13 +242,24 @@ export default {
   methods: {
   async loadEntityInfo() {
     this.loading = true;
-    let apiGeneURL = process.env.VUE_APP_API_URL + '/api/genes/' + this.$route.params.hgnc_id;
-    let apiEntitiesByGeneURL = process.env.VUE_APP_API_URL + '/api/genes/' + this.$route.params.hgnc_id + '/entities';
+    let apiGeneURL = process.env.VUE_APP_API_URL + '/api/genes/' + this.$route.params.gene_id;
+    let apiGeneSymbolURL = process.env.VUE_APP_API_URL + '/api/genes/symbol/' + this.$route.params.gene_id;
+    let apiEntitiesByGeneURL = process.env.VUE_APP_API_URL + '/api/genes/' + this.$route.params.gene_id + '/entities';
+    let apiEntitiesByGeneSymbolURL = process.env.VUE_APP_API_URL + '/api/genes/symbol/' + this.$route.params.gene_id + '/entities';
+
     try {
       let response_gene = await this.axios.get(apiGeneURL);
+      let response_symbol = await this.axios.get(apiGeneSymbolURL);
       let response_entities_by_gene = await this.axios.get(apiEntitiesByGeneURL);
-      this.gene = response_gene.data;
-      this.entities_data = response_entities_by_gene.data;
+      let response_entities_by_symbol = await this.axios.get(apiEntitiesByGeneSymbolURL);
+
+      if (response_gene.data.length == 0) {
+        this.gene = response_symbol.data;
+        this.entities_data = response_entities_by_symbol.data;
+      } else {
+        this.gene = response_gene.data;
+        this.entities_data = response_entities_by_gene.data;
+      }
 
       } catch (e) {
        console.error(e);
