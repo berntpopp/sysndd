@@ -13,6 +13,12 @@
               small
           >
 
+            <template #cell(results)="data">
+              <b-link v-bind:href="data.item.link">
+                <div style="cursor:pointer">{{ data.item.results }}</div>
+              </b-link>
+            </template>
+
             <template #cell(entity_id)="data">
               <b-link v-bind:href="'/Entities/' + data.item.entity_id">
                 <div style="cursor:pointer">sysndd:{{ data.item.entity_id }}</div>
@@ -63,13 +69,16 @@ export default {
 
       this.search = response_search.data;
 
-      console.log(this.search);
-
       } catch (e) {
        console.error(e);
       }
-    this.loading = false;
-    this.formartedItems();
+    
+      if (this.search.length == 1) {
+        this.$router.push(this.search[0].link);
+      } else {
+      this.loading = false;
+      this.formartedItems();
+      }
     },
   getVariant(searchdist) {
 		if (searchdist <= 0.05) {

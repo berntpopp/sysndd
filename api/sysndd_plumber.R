@@ -619,7 +619,7 @@ function() {
 function(hgnc) {
 
 	hgnc <- URLdecode(hgnc) %>%
-		str_replace_all("[^0-9]+", "")
+		str_replace_all("HGNC:", "")
 	hgnc <- paste0("HGNC:",hgnc)
 		
 

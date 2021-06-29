@@ -254,9 +254,11 @@ export default {
       let response_entities_by_symbol = await this.axios.get(apiEntitiesByGeneSymbolURL);
 
       if (response_gene.data.length == 0) {
+        console.log(this.$route.params.gene_id);
         this.gene = response_symbol.data;
         this.entities_data = response_entities_by_symbol.data;
       } else {
+        console.log(apiGeneURL);
         this.gene = response_gene.data;
         this.entities_data = response_entities_by_gene.data;
       }
