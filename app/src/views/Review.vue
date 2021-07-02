@@ -91,7 +91,7 @@
             <template #cell(actions)="row">
               <b-button 
                 size="sm" 
-                @click="info(row.item, row.index, $event.target)" 
+                @click="infoReview(row.item, row.index, $event.target)" 
                 class="mr-1"
                 v-b-tooltip.hover.left 
                 title="new review"
@@ -100,7 +100,7 @@
               </b-button>
               <b-button 
                 size="sm" 
-                @click="info(row.item, row.index, $event.target)" 
+                @click="infoStatus(row.item, row.index, $event.target)" 
                 class="mr-1" 
                 :variant="stoplights_style[row.item.category]"
                 v-b-tooltip.hover.top 
@@ -110,7 +110,7 @@
               </b-button>
               <b-button 
                 size="sm" 
-                @click="info(row.item, row.index, $event.target)" 
+                @click="infoRemove(row.item, row.index, $event.target)" 
                 class="mr-1"
                 v-b-tooltip.hover.right 
                 title="mark for removal"
@@ -147,7 +147,7 @@
       </b-row>
       
 
-      <!-- New review modal -->
+      <!-- 1) Review modal -->
       <b-modal 
       :id="reviewModal.id" 
       size="xl" 
@@ -157,8 +157,8 @@
       no-close-on-backdrop 
       header-bg-variant="dark" 
       header-text-variant="light" 
-      @hide="resetreviewModal" 
-      @ok="handleOk"
+      @hide="resetReviewModal" 
+      @ok="handleReviewOk"
       >
 
         <template #modal-title>
@@ -245,10 +245,92 @@
                 ></b-form-tags>
         </form>
       </b-modal>
-      <!-- New review modal -->
+      <!-- 1) Review modal -->
 
-      
+
+      <!-- 2) Status modal -->
+      <b-modal 
+      :id="statusModal.id" 
+      size="lg" 
+      centered 
+      ok-title="Save status" 
+      no-close-on-esc 
+      no-close-on-backdrop 
+      header-bg-variant="dark" 
+      header-text-variant="light" 
+      @hide="resetReviewModal" 
+      @ok="handleReviewOk"
+      >
+        <template #modal-title>
+          <h4>Entity: 
+            <b-badge variant="info">
+              {{ statusModal.title }}
+            </b-badge>
+          </h4>
+        </template>
+
+        <form ref="form" @submit.stop.prevent="handleSubmit">
+          <label class="mr-sm-2 font-weight-bold" for="status-select">Status</label>
+          <select id="status-select" class="form-control">
+            <option selected>Choose...</option>
+            <option>...</option>
+          </select>
+
+          <label class="mr-sm-2 font-weight-bold" for="textarea-synopsis">Comment</label>
+          <b-form-textarea
+            id="status-textarea-comment"
+            rows="2"
+            size="sm" 
+            v-model="status_comment"
+          >
+          </b-form-textarea>
+        </form>
+      </b-modal>
+      <!-- 2) Status modal -->
+
+
+      <!-- 3) Removal modal -->
+      <b-modal 
+      :id="removeModal.id" 
+      size="sm" 
+      centered 
+      ok-title="Suggest removal" 
+      no-close-on-esc 
+      no-close-on-backdrop 
+      header-bg-variant="dark" 
+      header-text-variant="light" 
+      @hide="resetReviewModal" 
+      @ok="handleReviewOk"
+      >
+        <template #modal-title>
+          <h4>Entity: 
+            <b-badge variant="info">
+              {{ removeModal.title }}
+            </b-badge>
+          </h4>
+        </template>
+
+        <form ref="form" @submit.stop.prevent="handleSubmit">
+          <div class="custom-control custom-switch">
+          <input type="checkbox" class="custom-control-input" id="removeSwitch">
+          <label class="custom-control-label" for="removeSwitch">Confirm removal suggestion</label>
+          </div>
+
+          <label class="mr-sm-2 font-weight-bold" for="textarea-remove">Comment</label>
+          <b-form-textarea
+            id="remove-textarea-comment"
+            rows="2"
+            size="sm" 
+            v-model="remove_comment"
+          >
+          </b-form-textarea>
+       </form>
+
+      </b-modal>
+      <!-- 3) Removal modal -->
+
     </b-container>
+
   </div>
 </template>
 
@@ -292,7 +374,17 @@ export default {
           filter: null,
           filterOn: [],
           reviewModal: {
-            id: 'info-modal',
+            id: 'review-modal',
+            title: '',
+            content: []
+          },
+          statusModal: {
+            id: 'status-modal',
+            title: '',
+            content: []
+          },
+          removeModal: {
+            id: 'removal-modal',
             title: '',
             content: []
           },
@@ -334,6 +426,7 @@ export default {
           ],
           review_number: 0,
           synopsis_review: '',
+          status_comment: '',
           status_review: '',
           publications: [],
           literature_review: [],
@@ -367,7 +460,7 @@ export default {
           this.totalRows = filteredItems.length
           this.currentPage = 1
         },
-        resetreviewModal() {
+        resetReviewModal() {
           this.reviewModal.title = '';
           this.reviewModal.content = [];
           this.entity = [];
@@ -376,11 +469,24 @@ export default {
           this.literature_review = [];
           this.genereviews_review = [];
         },
-        info(item, index, button) {
+        infoReview(item, index, button) {
           this.reviewModal.title = `sysndd:${item.entity_id}`;
           this.entity.push(item);
           this.loadEntityInfo(item.entity_id);
           this.$root.$emit('bv::show::modal', this.reviewModal.id, button);
+        },
+        infoStatus(item, index, button) {
+          this.statusModal.title = `sysndd:${item.entity_id}`;
+          this.entity.push(item);
+          this.loadEntityInfo(item.entity_id);
+          this.$root.$emit('bv::show::modal', this.statusModal.id, button);
+        },
+        infoRemove(item, index, button) {
+          this.removeModal.title = `sysndd:${item.entity_id}`;
+          console.log(this.removeModal.title);
+          this.entity.push(item);
+          this.loadEntityInfo(item.entity_id);
+          this.$root.$emit('bv::show::modal', this.removeModal.id, button);
         },
         async loadEntitiesData() {
           this.loading = true;
@@ -453,7 +559,7 @@ export default {
             console.error(e);
           }
         },
-        handleOk(bvModalEvt) {
+        handleReviewOk(bvModalEvt) {
 
           let review_submission = {};
           let phenotypes_submission = [];
@@ -476,7 +582,7 @@ export default {
 
           console.log(review_submission);
           this.submitReview(review_submission);
-          this.resetreviewModal();
+          this.resetReviewModal();
         },
         addTag(newTag) {
             const tag = {

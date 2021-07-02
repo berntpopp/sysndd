@@ -23,7 +23,13 @@
 <script>
 export default {
   name: 'About',
-}
+  data() {
+      return {
+        name: 'About',
+        loading: false
+      }
+    }
+  }
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
