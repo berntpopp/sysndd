@@ -72,10 +72,12 @@ export default {
       try {
         let response_authenticate = await this.axios.get(apiAuthenticateURL);
         localStorage.setItem('token', response_authenticate.data[0]);
+        console.log(response_authenticate);
+        this.makeToast('You have logged in  ' + '(status ' + response_authenticate.status + ' (' + response_authenticate.statusText + ').', 'Success', 'success');
         this.signinWithJWT();
         } catch (e) {
-        console.error(e.response);
-         this.makeToast(e, 'Error', 'danger');
+        console.error(e.response.status);
+         this.makeToast(e, 'Error', 'success');
         }
       }, 
     async signinWithJWT() {
