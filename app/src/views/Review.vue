@@ -379,7 +379,6 @@ export default {
         info(item, index, button) {
           this.reviewModal.title = `sysndd:${item.entity_id}`;
           this.entity.push(item);
-          console.log(item);
           this.loadEntityInfo(item.entity_id);
           this.$root.$emit('bv::show::modal', this.reviewModal.id, button);
         },
