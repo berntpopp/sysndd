@@ -112,10 +112,19 @@
                 size="sm" 
                 @click="infoRemove(row.item, row.index, $event.target)" 
                 class="mr-1"
-                v-b-tooltip.hover.right 
+                v-b-tooltip.hover.top 
                 title="mark for removal"
               >
                 <b-icon icon="x-circle"></b-icon>
+              </b-button>
+              <b-button 
+                size="sm" 
+                @click="infoRemove(row.item, row.index, $event.target)" 
+                class="mr-1"
+                v-b-tooltip.hover.right 
+                title="submit entity review"
+              >
+                <b-icon icon="check2-circle"></b-icon>
               </b-button>
             </template>
 
