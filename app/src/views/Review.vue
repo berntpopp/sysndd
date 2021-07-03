@@ -175,28 +175,7 @@
             <b-badge variant="info">
               {{ reviewModal.title }}
             </b-badge>
-            <b-badge pill id="popover-badge-help" href="#" variant="info">
-              <b-icon icon="question-circle-fill"></b-icon>
-            </b-badge>
           </h4>
-          
-          <b-popover target="popover-badge-help" variant="info" triggers="focus">
-              <template #title>Review instructions</template>
-              <strong>Synopsis</strong>: Short summary for this disease entity. 
-                Please include information on: <br>
-                <strong>a)</strong> approximate number of patients described in literature, <br> 
-                <strong>b)</strong> nature of reported variants, <br>
-                <strong>c)</strong> severity of intellectual disability, <br>
-                <strong>d)</strong> further phenotypic aspects (if possible with frequencies), <br> 
-                <strong>e)</strong> any valuable further information (e.g. genotype-phenotype correlations).<br>
-              <strong>Phenotypes</strong>: Add or remove associated phenotypes. 
-                Only phenotypes that occur in 20% or more of affected individuals should be included. 
-                Please also include information on severity of ID.<br>
-              <strong>Publications</strong>: No complete catalogue of entity-related literature required.
-                If information in the clinical synopsis is not only based on OMIM entries, 
-                please include PMID of the article(s) used as a source for the clinical synopsis.<br>
-              <strong>GeneReviews</strong>: Please add PMID for GeneReview article if available for this entity.
-          </b-popover>
         </template>
 
         <form ref="form" @submit.stop.prevent="handleSubmit">
@@ -209,30 +188,68 @@
             </b-table>
 
               <label class="mr-sm-2 font-weight-bold" for="textarea-synopsis">Synopsis</label>
-              <b-form-textarea
-                id="textarea-synopsis"
-                rows="3"
-                size="sm" 
-                v-model="synopsis_review"
-              >
-              </b-form-textarea>
+                <b-badge pill id="popover-badge-help-synopsis" href="#" variant="info">
+                  <b-icon icon="question-circle-fill"></b-icon>
+                </b-badge>
+
+                <b-popover target="popover-badge-help-synopsis" variant="info" triggers="focus">
+                <template #title>Synopsis instructions</template>
+                    Short summary for this disease entity. 
+                    Please include information on: <br>
+                    <strong>a)</strong> approximate number of patients described in literature, <br> 
+                    <strong>b)</strong> nature of reported variants, <br>
+                    <strong>c)</strong> severity of intellectual disability, <br>
+                    <strong>d)</strong> further phenotypic aspects (if possible with frequencies), <br> 
+                    <strong>e)</strong> any valuable further information (e.g. genotype-phenotype correlations).<br>
+                </b-popover>
+
+                <b-form-textarea
+                  id="textarea-synopsis"
+                  rows="3"
+                  size="sm" 
+                  v-model="synopsis_review"
+                  :state="synopsis_review.length >= 100"
+                >
+                </b-form-textarea>
 
               <label class="mr-sm-2 font-weight-bold" for="phenotype-select">Phenotypes</label>
-              <multiselect 
-                id="phenotype-select"
-                v-model="phenotypes_review"
-                tag-placeholder="Add this as new tag" 
-                placeholder="Search or add a tag" 
-                label="HPO_term" 
-                track-by="phenotype_id" 
-                :options="phenotypes_options" 
-                :multiple="true"
-                :taggable="true" 
-                @tag="addTag"
-                >
-              </multiselect> 
+                <b-badge pill id="popover-badge-help-phenotypes" href="#" variant="info">
+                  <b-icon icon="question-circle-fill"></b-icon>
+                </b-badge>
+
+                <b-popover target="popover-badge-help-phenotypes" variant="info" triggers="focus">
+                <template #title>Phenotypes instructions</template>
+                  Add or remove associated phenotypes. 
+                  Only phenotypes that occur in 20% or more of affected individuals should be included. 
+                  Please also include information on severity of ID.
+                </b-popover>
+
+                <multiselect 
+                  id="phenotype-select"
+                  v-model="phenotypes_review"
+                  tag-placeholder="Add this as new tag" 
+                  placeholder="Search or add a tag" 
+                  label="HPO_term" 
+                  track-by="phenotype_id" 
+                  :options="phenotypes_options" 
+                  :multiple="true"
+                  :taggable="true" 
+                  @tag="addTag"
+                  >
+                </multiselect> 
 
               <label class="mr-sm-2 font-weight-bold" for="publications-select">Publications</label>
+                <b-badge pill id="popover-badge-help-publications" href="#" variant="info">
+                  <b-icon icon="question-circle-fill"></b-icon>
+                </b-badge>
+
+                <b-popover target="popover-badge-help-publications" variant="info" triggers="focus">
+                <template #title>Publications instructions</template>
+                  No complete catalogue of entity-related literature required.
+                  If information in the clinical synopsis is not only based on OMIM entries, 
+                  please include PMID of the article(s) used as a source for the clinical synopsis.
+                </b-popover>
+
                 <b-form-tags
                   input-id="publications-select"
                   v-model="literature_review"
@@ -244,6 +261,15 @@
                 </b-form-tags>
 
               <label class="mr-sm-2 font-weight-bold" for="genereviews-select">GeneReviews</label>
+                <b-badge pill id="popover-badge-help-genereviews" href="#" variant="info">
+                  <b-icon icon="question-circle-fill"></b-icon>
+                </b-badge>
+
+                <b-popover target="popover-badge-help-genereviews" variant="info" triggers="focus">
+                <template #title>GeneReviews instructions</template>
+                  Please add PMID for GeneReview article if available for this entity.
+                </b-popover>
+
                 <b-form-tags
                   input-id="genereviews-select"
                   v-model="genereviews_review"
