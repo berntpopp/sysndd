@@ -188,6 +188,19 @@
                 :fields="entity_fields"
                 small
             >
+
+              <template #cell(symbol)="data">
+                <b-link v-bind:href="'/Genes/' + data.item.hgnc_id" target="_blank"> 
+                  <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</div> 
+                </b-link>
+              </template>
+
+              <template #cell(disease_ontology_name)="data">
+                <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version" target="_blank"> 
+                  <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.disease_ontology_id">{{ data.item.disease_ontology_name }}</div> 
+                </b-link>
+              </template>
+              
             </b-table>
 
               <label class="mr-sm-2 font-weight-bold" for="textarea-synopsis">Synopsis</label>
@@ -211,7 +224,6 @@
                   rows="3"
                   size="sm" 
                   v-model="synopsis_review"
-                  :state="synopsis_review.length >= 100"
                 >
                 </b-form-textarea>
 
@@ -515,8 +527,8 @@ export default {
       methods: {
         onFiltered(filteredItems) {
           // Trigger pagination to update the number of buttons/pages due to filtering
-          this.totalRows = filteredItems.length
-          this.currentPage = 1
+          this.totalRows = filteredItems.length;
+          this.currentPage = 1;
         },
         resetReviewModal() {
           this.reviewModal.title = '';
