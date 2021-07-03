@@ -102,7 +102,7 @@
                 size="sm" 
                 @click="infoStatus(row.item, row.index, $event.target)" 
                 class="mr-1" 
-                :variant="stoplights_style[row.item.category]"
+                :variant="stoplights_style[row.item.category_id]"
                 v-b-tooltip.hover.top 
                 title="edit status"
                 >
@@ -271,10 +271,18 @@
 
         <form ref="form" @submit.stop.prevent="handleSubmit">
           <label class="mr-sm-2 font-weight-bold" for="status-select">Status</label>
-          <select id="status-select" class="form-control">
-            <option selected>Choose...</option>
-            <option>...</option>
-          </select>
+          <b-icon 
+            icon="stoplights-fill"
+                :variant="stoplights_style[status_selected]"
+          >
+          </b-icon>
+          <b-form-select 
+            id="status-select" 
+            class="form-control"
+            :options="status_options"
+            v-model="status_selected"
+          >
+          </b-form-select>
 
           <label class="mr-sm-2 font-weight-bold" for="textarea-synopsis">Comment</label>
           <b-form-textarea
@@ -282,6 +290,7 @@
             rows="2"
             size="sm" 
             v-model="status_comment"
+            placeholder="Why should this entities status be changed."
           >
           </b-form-textarea>
         </form>
@@ -322,6 +331,7 @@
             rows="2"
             size="sm" 
             v-model="remove_comment"
+            placeholder="Why should this entitiy be invalidated."
           >
           </b-form-textarea>
        </form>
@@ -340,7 +350,7 @@ export default {
   name: 'Review',
   data() {
         return {
-          stoplights_style: {Definitive: "success", Moderate: "warning", Candidate: "primary", Refuted: "danger"},
+          stoplights_style: {"1": "success", 2: "warning", 3: "primary", 4: "danger"},
           items: [],
           fields: [
             { key: 'entity_id', label: 'Entity', sortable: true, sortDirection: 'desc', class: 'text-left' },
@@ -416,10 +426,6 @@ export default {
               class: 'text-left' 
             }
           ],
-          status: [],
-          status_fields: [
-            { key: 'category', label: 'Association Category', class: 'text-left' },
-          ],
           review: [{synopsis: ''}],
           review_fields: [
             { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-left' },
@@ -427,7 +433,7 @@ export default {
           review_number: 0,
           synopsis_review: '',
           status_comment: '',
-          status_review: '',
+          remove_comment: '',
           publications: [],
           literature_review: [],
           genereviews_review: [],
@@ -435,7 +441,9 @@ export default {
           phenotypes_review: [],
           phenotypes_options: [],
           status_options: [],
-          loading: true
+          status_selected: 0,
+          loading: true,
+          loading_review_modal: true
         }
       },
       computed: {
@@ -478,12 +486,11 @@ export default {
         infoStatus(item, index, button) {
           this.statusModal.title = `sysndd:${item.entity_id}`;
           this.entity.push(item);
-          this.loadEntityInfo(item.entity_id);
+          this.loadStatusInfo(item.entity_id);
           this.$root.$emit('bv::show::modal', this.statusModal.id, button);
         },
         infoRemove(item, index, button) {
           this.removeModal.title = `sysndd:${item.entity_id}`;
-          console.log(this.removeModal.title);
           this.entity.push(item);
           this.loadEntityInfo(item.entity_id);
           this.$root.$emit('bv::show::modal', this.removeModal.id, button);
@@ -529,6 +536,21 @@ export default {
             console.error(e);
             }
         },
+        async loadStatusInfo(sysndd_id) {
+          // define API query URLs
+          let apiStatusURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/status';
+
+          try {
+            // get API responses
+            let response_status = await this.axios.get(apiStatusURL);
+
+            // assign response data to global variables
+            this.status_selected = response_status.data[0].category_id;
+
+            } catch (e) {
+            console.error(e);
+            }
+        },
         async loadPhenotypesList() {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotypes_list';
           try {
@@ -542,7 +564,11 @@ export default {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/status_list';
           try {
             let response = await this.axios.get(apiUrl);
-            this.status_options = response.data;
+            //Object.entries(response.data).forEach(([key, value]) => this.status_options.push(value.category));
+            this.status_options = response.data.map(item => {
+              return { value: item.category_id, text: item.category };
+            });
+
           } catch (e) {
             console.error(e);
           }
