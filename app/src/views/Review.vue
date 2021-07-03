@@ -178,6 +178,9 @@
           </h4>
         </template>
 
+      <b-spinner label="Loading..." v-if="loading_review_modal" class="float-center m-5"></b-spinner>
+      <b-container fluid v-else>
+
         <form ref="form" @submit.stop.prevent="handleSubmit">
 
             <b-table
@@ -278,7 +281,18 @@
                   :tag-validator="tagValidatorPMID"
                   remove-on-delete
                 ></b-form-tags>
+
+          <label class="mr-sm-2 font-weight-bold" for="textarea-review">Comment</label>
+          <b-form-textarea
+            id="textarea-review"
+            rows="2"
+            size="sm" 
+            v-model="review_comment"
+            placeholder="Additional comments to this entity relevant for the curator."
+          >
+          </b-form-textarea>
         </form>
+      </b-container>
       </b-modal>
       <!-- 1) Review modal -->
 
@@ -319,7 +333,7 @@
           >
           </b-form-select>
 
-          <label class="mr-sm-2 font-weight-bold" for="textarea-synopsis">Comment</label>
+          <label class="mr-sm-2 font-weight-bold" for="status-textarea-comment">Comment</label>
           <b-form-textarea
             id="status-textarea-comment"
             rows="2"
@@ -360,7 +374,7 @@
           <label class="custom-control-label" for="removeSwitch">Confirm removal suggestion</label>
           </div>
 
-          <label class="mr-sm-2 font-weight-bold" for="textarea-remove">Comment</label>
+          <label class="mr-sm-2 font-weight-bold" for="remove-textarea-comment">Comment</label>
           <b-form-textarea
             id="remove-textarea-comment"
             rows="2"
@@ -467,6 +481,7 @@ export default {
           ],
           review_number: 0,
           synopsis_review: '',
+          review_comment: '',
           status_comment: '',
           remove_comment: '',
           publications: [],
@@ -543,6 +558,8 @@ export default {
           this.loading = false;
         },
         async loadEntityInfo(sysndd_id) {
+          this.loading_review_modal = true;
+
           // define API query URLs
           let apiReviewURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/review';
           let apiPublicationsURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/publications';
@@ -566,6 +583,8 @@ export default {
             let genereviews_filter = response_publications.data.filter(gr => gr.publication_type === "gene_review");
             Object.entries(literature_filter).forEach(([key, value]) => this.literature_review.push(value.publication_id));
             Object.entries(genereviews_filter).forEach(([key, value]) => this.genereviews_review.push(value.publication_id));
+
+          this.loading_review_modal = false;
 
             } catch (e) {
             console.error(e);
