@@ -175,7 +175,7 @@
             </template>
 
             <template #cell(symbol)="data">
-              <b-link v-bind:href="'/Genes/' + data.item.gene_id"> 
+              <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
                 <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.gene_id">{{ data.item.symbol }}</div> 
               </b-link>
             </template>
