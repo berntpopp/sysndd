@@ -19,6 +19,7 @@ library(xlsx)
 library(easyPubMed)
 library(rvest)
 library(lubridate)
+library(pool)
 ##-------------------------------------------------------------------##
 
 
@@ -27,6 +28,19 @@ library(lubridate)
 dw <- config::get("sysndd_db_local")
 ##-------------------------------------------------------------------##
 
+
+##-------------------------------------------------------------------##
+pool <- dbPool(
+  drv = RMariaDB::MariaDB(),
+  dbname = dw$dbname,
+  host = dw$host,
+  user = dw$user,
+  password = dw$password,
+  server = dw$server,
+  port = dw$port
+  
+)
+##-------------------------------------------------------------------##
 
 
 ##-------------------------------------------------------------------##
@@ -216,8 +230,8 @@ info_from_genereviews <- function(Bookshelf_ID)  {
 function() {
 
 	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-	sysndd_db_disease_table <- tbl(sysndd_db, "ndd_entity_view")
+	sysndd_db_disease_table <- pool %>% 
+		tbl("ndd_entity_view")
 
 
 	sysndd_db_disease_collected <- sysndd_db_disease_table %>%
@@ -227,9 +241,6 @@ function() {
 		  ndd_phenotype == 1 ~ "Yes",
 		  ndd_phenotype == 0 ~ "No"
 		))
-		
-	# disconnect from database
-	dbDisconnect(sysndd_db)
 	
 	sysndd_db_disease_collected
 }
@@ -316,11 +327,9 @@ function(sysndd_id) {
 		str_replace_all(" ", "") %>%
 		unique()
 
-
 	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-	sysndd_db_disease_table <- tbl(sysndd_db, "ndd_entity_view")
-
+	sysndd_db_disease_table <- pool %>% 
+		tbl("ndd_entity_view")
 
 	sysndd_db_disease_collected <- sysndd_db_disease_table %>%
 		filter(entity_id %in% sysndd_id) %>%
@@ -330,9 +339,6 @@ function(sysndd_id) {
 		  ndd_phenotype == 0 ~ "No"
 		))
 
-	# disconnect from database
-	dbDisconnect(sysndd_db)
-	
 	sysndd_db_disease_collected
 }
 
@@ -344,15 +350,13 @@ function(sysndd_id) {
 function(sysndd_id) {
 
 	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-	ndd_review_phenotype_connect_collected <- tbl(sysndd_db, "ndd_review_phenotype_connect") %>%
+	ndd_review_phenotype_connect_collected <- pool %>% 
+		tbl("ndd_review_phenotype_connect") %>%
 		filter(is_active == 1) %>%
 		collect()
-	phenotype_list_collected <- tbl(sysndd_db, "phenotype_list") %>%
+	phenotype_list_collected <- pool %>% 
+		tbl("phenotype_list") %>%
 		collect()
-
-	# disconnect from database
-	dbDisconnect(sysndd_db)
 
 	phenotype_list <- ndd_review_phenotype_connect_collected %>%
 		filter(entity_id == sysndd_id) %>%
@@ -369,12 +373,9 @@ function(sysndd_id) {
 function(sysndd_id) {
 
 	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-	ndd_entity_review_collected <- tbl(sysndd_db, "ndd_entity_review") %>%
+	ndd_entity_review_collected <- pool %>% 
+		tbl("ndd_entity_review") %>%
 		collect()
-
-	# disconnect from database
-	dbDisconnect(sysndd_db)
 
 	ndd_entity_review_list <- ndd_entity_review_collected %>%
 		filter(entity_id == sysndd_id & is_primary) %>%
@@ -488,14 +489,12 @@ function(review_json, res) {
 function(sysndd_id) {
 
 	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-	ndd_entity_status_collected <- tbl(sysndd_db, "ndd_entity_status") %>%
+	ndd_entity_status_collected <- pool %>% 
+		tbl("ndd_entity_status") %>%
 		collect()
-	ndd_entity_status_categories_collected <- tbl(sysndd_db, "ndd_entity_status_categories_list") %>%
+	ndd_entity_status_categories_collected <- pool %>% 
+		tbl("ndd_entity_status_categories_list") %>%
 		collect()
-		
-	# disconnect from database
-	dbDisconnect(sysndd_db)
 
 	ndd_entity_status_list <- ndd_entity_status_collected %>%
 		filter(entity_id == sysndd_id & is_active) %>%
@@ -529,15 +528,13 @@ function(sysndd_id, category_in) {
 function(sysndd_id) {
 
 	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-	ndd_review_publication_join_collected <- tbl(sysndd_db, "ndd_review_publication_join") %>%
+	ndd_review_publication_join_collected <- pool %>% 
+		tbl("ndd_review_publication_join") %>%
 		filter(is_reviewed == 1) %>%
 		collect()
-	publication_collected <- tbl(sysndd_db, "publication") %>%
+	publication_collected <- pool %>% 
+		tbl("publication") %>%
 		collect()
-
-	# disconnect from database
-	dbDisconnect(sysndd_db)
 
 	ndd_entity_publication_list <- ndd_review_publication_join_collected %>%
 		filter(entity_id == sysndd_id) %>%
@@ -561,21 +558,14 @@ function(pmid) {
 	pmid <- URLdecode(pmid) %>%
 		str_replace_all("[^0-9]+", "")
 	pmid <- paste0("PMID:",pmid)
-		
 
 	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-
-	publication_collected <- tbl(sysndd_db, "publication") %>%
+	publication_collected <- pool %>% 
+		tbl("publication") %>%
 		filter(publication_id == pmid) %>%
 		select(publication_id, other_publication_id, Title, Abstract, Lastname, Firstname, Publication_date, Journal, Keywords) %>%
 		arrange(publication_id) %>%
 		collect()
-
-	# disconnect from database
-	dbDisconnect(sysndd_db)
-
-	publication_collected
 }
 
 ## Publication endpoints
@@ -593,8 +583,8 @@ function(pmid) {
 function() {
 
 	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-	sysndd_db_genes_table <- tbl(sysndd_db, "ndd_entity_view")
+	sysndd_db_genes_table <- pool %>% 
+		tbl("ndd_entity_view")
 
 	sysndd_db_genes_collected <- sysndd_db_genes_table %>%
 		arrange(entity_id) %>%
@@ -604,10 +594,7 @@ function() {
 		  ndd_phenotype == 0 ~ "No"
 		)) %>%
 		nest_by(symbol, hgnc_id, category, hpo_mode_of_inheritance_term_name, hpo_mode_of_inheritance_term, .key = "entities")
-		
-	# disconnect from database
-	dbDisconnect(sysndd_db)
-	
+
 	sysndd_db_genes_collected
 }
 
@@ -621,21 +608,14 @@ function(hgnc) {
 	hgnc <- URLdecode(hgnc) %>%
 		str_replace_all("HGNC:", "")
 	hgnc <- paste0("HGNC:",hgnc)
-		
 
 	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-
-	non_alt_loci_set_collected <- tbl(sysndd_db, "non_alt_loci_set") %>%
+	non_alt_loci_set_collected <- pool %>% 
+		tbl("non_alt_loci_set") %>%
 		filter(hgnc_id == hgnc) %>%
 		select(hgnc_id, symbol, name, entrez_id, ensembl_gene_id, ucsc_id, ccds_id, uniprot_ids) %>%
 		arrange(hgnc_id) %>%
 		collect()
-
-	# disconnect from database
-	dbDisconnect(sysndd_db)
-
-	non_alt_loci_set_collected
 }
 
 
@@ -649,18 +629,12 @@ function(symbol) {
 		str_to_lower()
 		
 	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-
-	non_alt_loci_set_collected <- tbl(sysndd_db, "non_alt_loci_set") %>%
+	non_alt_loci_set_collected <- pool %>% 
+		tbl("non_alt_loci_set") %>%
 		filter(str_to_lower(symbol) == symbol_input) %>%
 		select(hgnc_id, symbol, name, entrez_id, ensembl_gene_id, ucsc_id, ccds_id, uniprot_ids) %>%
 		arrange(hgnc_id) %>%
 		collect()
-
-	# disconnect from database
-	dbDisconnect(sysndd_db)
-
-	non_alt_loci_set_collected
 }
 
 
@@ -675,18 +649,14 @@ function(hgnc) {
 	hgnc <- paste0("HGNC:",hgnc)
 
 	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-
-	entity_by_gene_list <- tbl(sysndd_db, "ndd_entity_view") %>%
+	entity_by_gene_list <- pool %>% 
+		tbl("ndd_entity_view") %>%
 		filter(hgnc_id == hgnc) %>%
 		collect() %>%
 		mutate(ndd_phenotype = case_when(
 		  ndd_phenotype == 1 ~ "Yes",
 		  ndd_phenotype == 0 ~ "No"
 		))
-
-	# disconnect from database
-	dbDisconnect(sysndd_db)
 
 	entity_by_gene_list
 }
@@ -702,18 +672,14 @@ function(symbol) {
 		str_to_lower()
 
 	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-
-	entity_by_gene_list <- tbl(sysndd_db, "ndd_entity_view") %>%
+	entity_by_gene_list <- pool %>% 
+		tbl("ndd_entity_view") %>%
 		filter(str_to_lower(symbol) == symbol_input) %>%
 		collect() %>%
 		mutate(ndd_phenotype = case_when(
 		  ndd_phenotype == 1 ~ "Yes",
 		  ndd_phenotype == 0 ~ "No"
 		))
-
-	# disconnect from database
-	dbDisconnect(sysndd_db)
 
 	entity_by_gene_list
 }
@@ -730,13 +696,11 @@ function(symbol) {
 #* @serializer json list(na="string")
 #' @get /api/ontology/<ontology_id>
 function(ontology_id) {
-
 	ontology_id <- URLdecode(ontology_id)
 
 	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-
-	ontology_set_collected <- tbl(sysndd_db, "ontology_set") %>%
+	ontology_set_collected <- pool %>% 
+		tbl("ontology_set") %>%
 		filter(disease_ontology_id == ontology_id) %>%
 		select(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, disease_ontology_source, disease_ontology_is_specific, hgnc_id, hpo_mode_of_inheritance_term, DOID, MONDO, Orphanet, UMLS, EFO) %>%
 		arrange(disease_ontology_id_version) %>%
@@ -745,11 +709,6 @@ function(ontology_id) {
 		summarise_all(~paste(unique(.), collapse = ';')) %>%
 		ungroup() %>%
 		mutate(across(everything(), ~replace(., . ==  "NULL" , "")))
-
-	# disconnect from database
-	dbDisconnect(sysndd_db)
-
-	ontology_set_collected
 }
 
 
@@ -758,13 +717,11 @@ function(ontology_id) {
 #* @serializer json list(na="string")
 #' @get /api/ontology/name/<ontology_name>
 function(ontology_name) {
-
 	ontology_name <- URLdecode(ontology_name)
 
 	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-
-	ontology_set_collected <- tbl(sysndd_db, "ontology_set") %>%
+	ontology_set_collected <- pool %>% 
+		tbl("ontology_set") %>%
 		filter(disease_ontology_name == ontology_name) %>%
 		select(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, disease_ontology_source, disease_ontology_is_specific, hgnc_id, hpo_mode_of_inheritance_term, DOID, MONDO, Orphanet, UMLS, EFO) %>%
 		arrange(disease_ontology_id_version) %>%
@@ -773,11 +730,6 @@ function(ontology_name) {
 		summarise_all(~paste(unique(.), collapse = ';')) %>%
 		ungroup() %>%
 		mutate(across(everything(), ~replace(., . ==  "NULL" , "")))
-
-	# disconnect from database
-	dbDisconnect(sysndd_db)
-
-	ontology_set_collected
 }
 ## Ontology endpoints
 ##-------------------------------------------------------------------##
@@ -792,25 +744,17 @@ function(ontology_name) {
 #* @serializer json list(na="string")
 #' @get /api/inheritance/<hpo>
 function(hpo) {
-
 	hpo <- URLdecode(hpo) %>%
 		str_replace_all("[^0-9]+", "")
 	hpo <- paste0("HP:",hpo)
-		
 
 	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-
-	mode_of_inheritance_list_collected <- tbl(sysndd_db, "mode_of_inheritance_list") %>%
+	mode_of_inheritance_list_collected <- pool %>% 
+		tbl("mode_of_inheritance_list") %>%
 		filter(hpo_mode_of_inheritance_term == hpo) %>%
 		select(hpo_mode_of_inheritance_term, hpo_mode_of_inheritance_term_name) %>%
 		arrange(hpo_mode_of_inheritance_term) %>%
 		collect()
-
-	# disconnect from database
-	dbDisconnect(sysndd_db)
-
-	mode_of_inheritance_list_collected
 }
 
 ## Inheritance endpoints
@@ -826,17 +770,11 @@ function(hpo) {
 #* @serializer json list(na="string")
 #' @get /api/phenotypes_list
 function() {
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-
-	phenotype_list_collected <- tbl(sysndd_db, "phenotype_list") %>%
+	phenotype_list_collected <- pool %>% 
+		tbl("phenotype_list") %>%
 		select(phenotype_id, HPO_term, HPO_term_definition, HPO_term_synonyms) %>%
 		arrange(HPO_term) %>%
 		collect()
-
-	# disconnect from database
-	dbDisconnect(sysndd_db)
-
-	phenotype_list_collected
 }
 
 
@@ -849,21 +787,14 @@ function(hpo) {
 	hpo <- URLdecode(hpo) %>%
 		str_replace_all("[^0-9]+", "")
 	hpo <- paste0("HP:",hpo)
-		
 
 	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-
-	phenotype_list_collected <- tbl(sysndd_db, "phenotype_list") %>%
+	phenotype_list_collected <- pool %>% 
+		tbl("phenotype_list") %>%
 		filter(phenotype_id == hpo) %>%
 		select(phenotype_id, HPO_term, HPO_term_definition, HPO_term_synonyms) %>%
 		arrange(phenotype_id) %>%
 		collect()
-
-	# disconnect from database
-	dbDisconnect(sysndd_db)
-
-	phenotype_list_collected
 }
 
 
@@ -878,12 +809,10 @@ function(hpo_list) {
 		str_replace_all("[^0-9]+", "") %>%
 		str_replace("^", "HP:") %>%
 		unique()
-		
 
 	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-
-	entity_list_from_phenotype_list_collected <- tbl(sysndd_db, "ndd_review_phenotype_connect") %>%
+	entity_list_from_phenotype_list_collected <- pool %>% 
+		tbl("ndd_review_phenotype_connect") %>%
 		filter(phenotype_id %in% hpo_list) %>%
 		arrange(phenotype_id) %>%
 		select(entity_id, phenotype_id) %>%
@@ -900,11 +829,6 @@ function(hpo_list) {
 		filter(value) %>%
 		select(entity_id) %>%
 		ungroup()
-
-	# disconnect from database
-	dbDisconnect(sysndd_db)
-
-	entity_list_from_phenotype_list_collected
 }
 
 ## Phenotype endpoints
@@ -920,17 +844,10 @@ function(hpo_list) {
 #* @serializer json list(na="string")
 #' @get /api/status_list
 function() {
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-
-	status_list_collected <- tbl(sysndd_db, "ndd_entity_status_categories_list") %>%
-		select(category_id, category) %>%
+	status_list_collected <- pool %>% 
+		tbl("ndd_entity_status_categories_list") %>%
 		arrange(category_id) %>%
 		collect()
-
-	# disconnect from database
-	dbDisconnect(sysndd_db)
-
-	status_list_collected
 }
 ## status endpoints
 ##-------------------------------------------------------------------##
@@ -945,18 +862,13 @@ function() {
 #* @serializer json list(na="string")
 #' @get /api/panels/options
 function() {
-	# connect to database
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-
-	# get category list
-	categories_list <- tbl(sysndd_db, "ndd_entity_status_categories_list") %>%
+	# connect to database and get category list
+	categories_list <- pool %>% 
+		tbl("ndd_entity_status_categories_list") %>%
 		select(category) %>%
 		collect() %>%
 		add_row(category = "All") %>%
 		arrange(category)
-
-	# disconnect from database
-	dbDisconnect(sysndd_db)
 	
 	inheritance_list <- as_tibble(inheritance_input_allowed) %>%
 		select(inheritance = value) %>%
@@ -993,11 +905,9 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 		str_replace_all(" ", "") %>%
 		unique()
 
-	# connect to database
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-
 	# validate inputs
-	ndd_entity_status_categories_list <- tbl(sysndd_db, "ndd_entity_status_categories_list") %>%
+	ndd_entity_status_categories_list <- pool %>% 
+		tbl("ndd_entity_status_categories_list") %>%
 		select(category) %>%
 		collect() %>%
 		add_row(category = "All")
@@ -1030,10 +940,12 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 	}
 	
 	# join entity_view and non_alt_loci_set tables
-	sysndd_db_ndd_entity_view <- tbl(sysndd_db, "ndd_entity_view") %>%
+	sysndd_db_ndd_entity_view  <- pool %>% 
+		tbl("ndd_entity_view") %>%
 		filter(ndd_phenotype == 1) %>%
 		select(hgnc_id, symbol, inheritance = hpo_mode_of_inheritance_term_name, category)
-	sysndd_db_non_alt_loci_set <- tbl(sysndd_db, "non_alt_loci_set") %>%
+	sysndd_db_non_alt_loci_set <- pool %>% 
+		tbl("non_alt_loci_set") %>%
 		select(hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38)
 	
 	sysndd_db_disease_genes <- sysndd_db_ndd_entity_view %>%
@@ -1048,12 +960,8 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 		)) %>%
 		select(category, inheritance, symbol, hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38) %>%
 		arrange(desc(category), inheritance)
-
-	# disconnect from database
-	dbDisconnect(sysndd_db)
 	
 	# compute output based on input parameters
-	
 	if ( (category_input == "All") & (inheritance_input == "All") ) {
 		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
 			mutate(category = "All") %>%
@@ -1104,11 +1012,9 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 		str_replace_all(" ", "") %>%
 		unique()
 
-	# connect to database
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-
-	# validate inputs
-	ndd_entity_status_categories_list <- tbl(sysndd_db, "ndd_entity_status_categories_list") %>%
+	# connect to database and validate inputs
+	ndd_entity_status_categories_list <- pool %>% 
+		tbl("ndd_entity_status_categories_list") %>%
 		select(category) %>%
 		collect() %>%
 		add_row(category = "All")
@@ -1141,10 +1047,12 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 	}
 	
 	# join entity_view and non_alt_loci_set tables
-	sysndd_db_ndd_entity_view <- tbl(sysndd_db, "ndd_entity_view") %>%
+	sysndd_db_ndd_entity_view <- pool %>% 
+		tbl("ndd_entity_view") %>%
 		filter(ndd_phenotype == 1) %>%
 		select(hgnc_id, symbol, inheritance = hpo_mode_of_inheritance_term_name, category)
-	sysndd_db_non_alt_loci_set <- tbl(sysndd_db, "non_alt_loci_set") %>%
+	sysndd_db_non_alt_loci_set <- pool %>% 
+		tbl("non_alt_loci_set") %>%
 		select(hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38)
 	
 	sysndd_db_disease_genes <- sysndd_db_ndd_entity_view %>%
@@ -1159,9 +1067,6 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 		)) %>%
 		select(category, inheritance, symbol, hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38) %>%
 		arrange(desc(category), inheritance)
-
-	# disconnect from database
-	dbDisconnect(sysndd_db)
 	
 	# compute output based on input parameters
 	
@@ -1240,17 +1145,12 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 #' @get /api/statistics/genes
 function() {
 
-	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-	
-	sysndd_db_disease_genes <- tbl(sysndd_db, "ndd_entity_view") %>%
+	sysndd_db_disease_genes <- pool %>% 
+		tbl("ndd_entity_view") %>%
 		arrange(entity_id) %>%
 		filter(ndd_phenotype == 1) %>%
 		select(symbol, inheritance = hpo_mode_of_inheritance_term_name, category) %>%
 		collect()
-
-	# disconnect from database
-	dbDisconnect(sysndd_db)
 	
 	sysndd_db_disease_genes_grouped_by_category_and_inheritance <- sysndd_db_disease_genes %>%
 		unique() %>% 
@@ -1292,19 +1192,14 @@ function() {
 #* @serializer json list(na="string")
 #' @get /api/statistics/news
 function(n = 5) {
-
 	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-	
-	sysndd_db_disease_genes_news <- tbl(sysndd_db, "ndd_entity_view") %>%
+	sysndd_db_disease_genes_news <- pool %>% 
+		tbl("ndd_entity_view") %>%
 		arrange(entity_id) %>%
 		filter(ndd_phenotype == 1 & category == "Definitive") %>%
 		collect() %>%
 		arrange(desc(entry_date)) %>%
 		slice(1:n)
-		
-	# disconnect from database
-	dbDisconnect(sysndd_db)
 
 	sysndd_db_disease_genes_news
 }
@@ -1315,19 +1210,14 @@ function(n = 5) {
 #* @serializer json list(na="string")
 #' @get /api/statistics/last_update
 function() {
-
 	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-	
-	sysndd_db_disease_entry_date_last <- tbl(sysndd_db, "ndd_entity_view") %>%
+	sysndd_db_disease_entry_date_last <- pool %>% 
+		tbl("ndd_entity_view") %>%
 		select(entry_date) %>%
 		arrange(desc(entry_date)) %>%
 		head(1) %>%
 		collect() %>%
 		select(last_update = entry_date)
-		
-	# disconnect from database
-	dbDisconnect(sysndd_db)
 
 	sysndd_db_disease_entry_date_last
 }
@@ -1338,11 +1228,9 @@ function() {
 #* @serializer text
 #' @get /api/statistics/entities_plot
 function() {
-
 	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-	
-	sysndd_db_disease_collected <- tbl(sysndd_db, "ndd_entity_view") %>%
+	sysndd_db_disease_collected  <- pool %>% 
+		tbl("ndd_entity_view") %>%
 		arrange(entity_id) %>%
 		select(entity_id, ndd_phenotype, category, entry_date) %>%
 		collect() %>%
@@ -1351,9 +1239,6 @@ function() {
 		  ndd_phenotype == 0 ~ "No"
 		)) %>%
 		filter(ndd_phenotype == "Yes")
-  
-	# disconnect from database
-	dbDisconnect(sysndd_db)
 
 	plot <- ggplot(data = sysndd_db_disease_collected , aes(x = entry_date, color = category)) +
 		stat_bin(data=subset(sysndd_db_disease_collected, category=="Definitive"), aes(y=cumsum(..count..)), geom="step", bins = 30) +
@@ -1364,7 +1249,6 @@ function() {
 	file <- "results/plot.png"
 	ggsave(file, plot, width = 4.5, height = 2.5, dpi = 150, units = "in")
 	base64Encode(readBin(file, "raw", n = file.info(file)$size), "txt")
-
 }
 
 ## Statistics endpoints
@@ -1380,14 +1264,11 @@ function() {
 #* @serializer json list(na="string")
 #' @get /api/search/<searchterm>
 function(searchterm, helper = TRUE) {
-
 	searchterm <- URLdecode(searchterm) %>%
 		str_squish()
-	
-	# get data from database and filter
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
-	sysndd_db_entity_search <- tbl(sysndd_db, "ndd_entity_view") %>%
+	sysndd_db_entity_search <- pool %>% 
+		tbl("ndd_entity_view") %>%
 		arrange(entity_id) %>%
 		collect() %>%
 		mutate(ndd_phenotype = case_when(
@@ -1407,9 +1288,6 @@ function(searchterm, helper = TRUE) {
 			search == "disease_ontology_name" ~ paste0("/Ontology/", results),
 			search == "entity_id" ~ paste0("/Entities/", results)
 		))
-		
-	# disconnect from database
-	dbDisconnect(sysndd_db)
 
 	# change output by helper input to unique values (helper = TRUE) or entities (helper = FALSE)
 	if (helper) {
@@ -1497,32 +1375,28 @@ function(req, res, user_name, password) {
 			res
 		  }
 
-	# connect to database
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-	
-	# find user in database and password is correct
-	user_filtered <- tbl(sysndd_db, "user") %>%
+	# connect to database, find user in database and password is correct
+	user_filtered <- pool %>% 
+		tbl("user") %>%
 		filter(user_name == check_user & password == check_pass) %>%
 		select(-password, -created_at) %>%
 		collect() %>%
 		mutate(iat = as.numeric(Sys.time())) %>%
 		mutate(exp = as.numeric(Sys.time()) + dw$refresh)
+	
+	# return answer depending on user credentials status
+	if (nrow(user_filtered) != 1){
+		res$status <- 401
+		res$body <- "User or password wrong."
+		res
+	}
+
+	if (nrow(user_filtered) == 1){
+		claim <- jwt_claim(user_id = user_filtered$user_id, user_name = user_filtered$user_name, email = user_filtered$email, user_role = user_filtered$user_role, iat = user_filtered$iat, exp = user_filtered$exp)
 		
-	dbDisconnect(sysndd_db)
-	
-		  if (nrow(user_filtered) != 1){
-			res$status <- 401
-			res$body <- "User or password wrong."
-			res
-			}
-	
-	
-		  if (nrow(user_filtered) == 1){
-			claim <- jwt_claim(user_id = user_filtered$user_id, user_name = user_filtered$user_name, email = user_filtered$email, user_role = user_filtered$user_role, iat = user_filtered$iat, exp = user_filtered$exp)
-			
-			jwt <- jwt_encode_hmac(claim, secret = key)
-			jwt
-			}
+		jwt <- jwt_encode_hmac(claim, secret = key)
+		jwt
+	}
 }
 
 
@@ -1577,4 +1451,3 @@ function(req, res) {
 }
 ##Authentication section
 ##-------------------------------------------------------------------##
-
