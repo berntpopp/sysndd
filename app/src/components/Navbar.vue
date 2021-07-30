@@ -1,6 +1,6 @@
 <template>
   <div>
-    <b-navbar fixed="top" toggleable="md" type="dark" variant="dark">
+    <b-navbar toggleable="md" type="dark" variant="dark" class="py-0">
       <b-navbar-brand href="/"><img src="../../public/android-chrome-192x192.png" height="40" alt=""> SysNDD</b-navbar-brand>
 
       <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>

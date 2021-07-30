@@ -1,6 +1,6 @@
 <template>
-  <div class="container-fluid" style="padding-top: 80px;">
-    <b-spinner label="Loading..." v-if="loading" class="float-center m-5"></b-spinner>
+  <div class="container-fluid">
+    <b-spinner label="Loading..." v-if="loading" class="spinner float-center m-5"></b-spinner>
     <b-container fluid v-else>
 
         <b-row class="justify-content-md-center mt-8">

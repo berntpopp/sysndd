@@ -1,5 +1,5 @@
 <template>
-  <div style="padding-top: 80px;">
+  <div class="container-fluid">
 
   <!-- basesd on https://www.youtube.com/watch?v=d9qfI0ESlzY&ab_channel=JakeHarrisCodes -->
 

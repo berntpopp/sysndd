@@ -1,6 +1,7 @@
 <template>
   <div>
-    <b-navbar fixed="bottom" toggleable="sm" type="light" variant="light">
+    <footer class="footer">
+    <b-navbar toggleable="sm" type="light" variant="light" class="py-0">
       <b-navbar-toggle target="footer-collapse"></b-navbar-toggle>
         <b-collapse id="footer-collapse" is-nav>
           <b-navbar-nav justified class="flex-grow-1">
@@ -25,6 +26,7 @@
           </b-navbar-nav>
         </b-collapse>
     </b-navbar>
+    </footer>
 
   </div>
 </template>

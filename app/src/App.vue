@@ -20,7 +20,6 @@ export default {
 </script>
 
 <style lang="scss">
-
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -28,5 +27,20 @@ export default {
   text-align: center;
   color: #2c3e50;
   margin-top: 0px;
+}
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+.footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+}
+
+.spinner {
+  min-height: 100%;
 }
 </style>

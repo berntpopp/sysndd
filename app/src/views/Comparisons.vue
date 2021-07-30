@@ -1,5 +1,5 @@
 <template>
-  <div class="container-fluid" style="padding-top: 80px;">
+  <div class="container-fluid">
     <b-container fluid>
 
       <b-row class="justify-content-md-center mt-8">

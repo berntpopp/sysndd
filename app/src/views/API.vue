@@ -1,5 +1,5 @@
 <template>
-  <div class="container-fluid" style="padding-top: 80px;">
+  <div class="container-fluid">
     <div class="swagger" id="swagger">
     </div>
   </div>

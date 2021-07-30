@@ -1,5 +1,5 @@
 <template>
-  <div class="container-fluid" style="padding-top: 80px;">
+  <div class="container-fluid">
     <b-container>
         <h2>User: {{ this.user.user_name }}</h2>
         <h2>ID: {{ this.user.user_id }}</h2>
