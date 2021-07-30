@@ -82,7 +82,7 @@
                         class="btn-xs mx-2" 
                         variant="outline-primary"
                         v-bind:src="data.item.ucsc_id.split(';')" 
-                        v-bind:href="'https://genome-euro.ucsc.edu/cgi-bin/hgGene?hgg_gene='+ id" 
+                        v-bind:href="'https://genome-euro.ucsc.edu/cgi-bin/hgGene?hgg_gene='+ id + '&db=hg38'" 
                         target="_blank" 
                         >
                           <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
