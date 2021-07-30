@@ -2,12 +2,11 @@
   <div class="container-fluid">
     <b-container fluid>
 
-      <b-row class="justify-content-md-center mt-8">
+      <b-row class="justify-content-md-center my-2">
         <b-col col md="10">
 
           <h3>Comparisons</h3>
   
-
         </b-col>
       </b-row>
       

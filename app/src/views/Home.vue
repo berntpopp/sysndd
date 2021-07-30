@@ -3,7 +3,7 @@
     <b-spinner label="Loading..." v-if="loading" class="spinner float-center m-5"></b-spinner>
     <b-container fluid v-else>
 
-        <b-row class="justify-content-md-center mt-8">
+        <b-row class="justify-content-md-center my-2">
           <b-col md="12">
 
             <b-jumbotron class="text-left" style="padding-top: 5px; padding-bottom: 5px">

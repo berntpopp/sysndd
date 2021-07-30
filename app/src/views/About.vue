@@ -3,8 +3,8 @@
   <b-spinner label="Loading..." v-if="loading" class="float-center m-5"></b-spinner>
     <b-container fluid v-else>
 
-      <b-row class="justify-content-md-center mt-8">
-        <b-col col md="10">
+      <b-row class="justify-content-md-center my-2">
+        <b-col col md="12">
 
           <h3>About</h3>
           <b-card-text class="text-left">
