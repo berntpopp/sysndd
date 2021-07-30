@@ -1,9 +1,9 @@
 <template>
-  <div class="container-fluid">
-    <b-spinner label="Loading..." v-if="loading" class="spinner float-center m-5"></b-spinner>
+  <div class="container-fluid" style="min-height:90vh">
+    <b-container fluid v-if="loading"> <b-spinner label="Loading..." class="spinner float-center m-5"></b-spinner> </b-container>
     <b-container fluid v-else>
 
-        <b-row class="justify-content-md-center my-2">
+        <b-row class="justify-content-md-center py-2">
           <b-col md="12">
 
             <b-jumbotron class="text-left" style="padding-top: 5px; padding-bottom: 5px">
@@ -236,21 +236,7 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-h3 {
-  margin: 40px 0 0;
-}
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-li {
-  display: inline-block;
-  margin: 0 10px;
-}
-a {
-  color: #42b983;
-}  
-.btn-group-xs > .btn, .btn-xs {
+  .btn-group-xs > .btn, .btn-xs {
     padding: .25rem .4rem;
     font-size: .875rem;
     line-height: .5;

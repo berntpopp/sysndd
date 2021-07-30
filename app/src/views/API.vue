@@ -1,5 +1,5 @@
 <template>
-  <div class="container-fluid">
+  <div class="container-fluid" style="min-height:90vh">
     <div class="swagger" id="swagger">
     </div>
   </div>

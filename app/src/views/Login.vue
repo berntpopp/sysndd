@@ -1,11 +1,10 @@
 <template>
-  <div class="container-fluid">
+  <div class="container-fluid" style="min-height:90vh">
+  <b-spinner label="Loading..." v-if="loading" class="float-center m-5"></b-spinner>
 
-  <!-- basesd on https://www.youtube.com/watch?v=d9qfI0ESlzY&ab_channel=JakeHarrisCodes -->
-
-    <b-container>
-      <b-row class="justify-content-md-center mt-4">
-        <b-col col md="6">
+    <b-container fluid v-else>
+      <b-row class="justify-content-md-center py-4">
+        <b-col col md="4">
           <b-card
           header="Sign in"
           header-bg-variant="dark"
@@ -58,13 +57,15 @@ export default {
         user_name: '',
         password: '',
         ywt: '',
-        user: []
+        user: [],
+        loading: true
       }
     },
   mounted() {
     if (localStorage.user) {
       this.doUserLogOut();
     }
+    this.loading = false;
   },
   methods: {
     async loadJWT() {
@@ -138,3 +139,5 @@ a {
   color: #42b983;
 }
 </style>
+
+  <!-- basesd on https://www.youtube.com/watch?v=d9qfI0ESlzY&ab_channel=JakeHarrisCodes -->

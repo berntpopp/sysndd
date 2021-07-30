@@ -1,8 +1,8 @@
 <template>
-  <div class="container-fluid">
+  <div class="container-fluid" style="min-height:90vh">
     <b-container fluid>
 
-      <b-row class="justify-content-md-center my-2">
+      <b-row class="justify-content-md-center py-2">
         <b-col col md="12">
 
           <h3>Phenotype Search</h3>
