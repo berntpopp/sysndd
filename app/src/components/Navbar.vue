@@ -158,10 +158,21 @@ export default {
 
         if (expires > timestamp) {
           this.time_to_logout = ((expires - timestamp) / 60).toFixed(2);
+          if (expires - timestamp == 60) {
+          this.makeToast('Refresh login token or you will be logged out in 60 seconds.', 'Danger', 'danger');
+          }
         } else {
           this.doUserLogOut();
         }
       }
+    },
+    makeToast(event, title = null, variant = null) {
+        this.$bvToast.toast('' + event, {
+          title: title,
+          toaster: 'b-toaster-top-right',
+          variant: variant,
+          solid: true
+        })
     }
   }
 }
