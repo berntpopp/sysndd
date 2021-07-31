@@ -21,7 +21,7 @@
                 autocomplete="off" 
                 v-model="search_input"
                 @input="loadSearchInfo"
-                @keydown.native="test_keydown_handler"
+                @keydown.native="keydown_handler"
                 >
                 </b-form-input>
                 
@@ -33,6 +33,7 @@
                     <b-button
                     variant="outline-primary"
                     size="md"
+                    :disabled="search_input.length < 2"
                     v-bind:href="'/Search/' + search_input" >
                       <b-icon icon="search"></b-icon>
                     </b-button>
@@ -225,8 +226,8 @@ export default {
        console.error(e);
       }
     },
-  test_keydown_handler(event) {
-     if (event.which === 13) {
+  keydown_handler(event) {
+     if (event.which === 13 & this.search_input.length > 1) {
         this.$router.push('/Search/' + this.search_input);
      }
     }
