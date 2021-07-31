@@ -6,9 +6,15 @@
       <b-row class="justify-content-md-center py-2">
         <b-col col md="12">
 
-        <b-card bg-variant="light">
+          <!-- User Interface controls -->
+          <b-card 
+          header-tag="header"
+          bg-variant="light"
+          >
+          <template #header>
+            <h6 class="mb-0 text-left font-weight-bold">Panel compilation and download</h6>
+          </template>
           <b-row>
-          
             <b-col sm="5" md="2" class="my-1">
               <b-form-group description="Category" label-for="category-select">
                 <b-form-select 

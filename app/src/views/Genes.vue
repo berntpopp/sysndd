@@ -6,45 +6,38 @@
       <b-row class="justify-content-md-center py-2">
         <b-col col md="12">
 
-          <h3>NDD Genes</h3>
+          <b-card 
+          header-tag="header"
+          bg-variant="light"
+          >
+          <template #header>
+            <h6 class="mb-0 text-left font-weight-bold">Genes table</h6>
+          </template>
 
-          <!-- User Interface controls -->
           <b-row>
-            <b-col lg="6" class="my-1">
+            <b-col class="my-1">
               <b-form-group
-                label="Filter"
-                label-for="filter-input"
-                label-cols-sm="3"
-                label-align-sm="right"
-                label-size="sm"
                 class="mb-0"
               >
-                <b-input-group size="sm">
+                <b-input-group
+                prepend="Search" 
+                size="sm">
                   <b-form-input
                     id="filter-input"
                     v-model="filter"
                     type="search"
-                    placeholder="Type to Search"
+                    placeholder="any field by typing here"
                     debounce="500"
                   ></b-form-input>
-
-                  <b-input-group-append>
-                    <b-button :disabled="!filter" @click="filter = ''">Clear</b-button>
-                  </b-input-group-append>
                 </b-input-group>
               </b-form-group>
             </b-col>
 
-            <b-col sm="5" md="6" class="my-1">
-              <b-form-group
-                label="Per page"
-                label-for="per-page-select"
-                label-cols-sm="6"
-                label-cols-md="4"
-                label-cols-lg="3"
-                label-align-sm="right"
-                label-size="sm"
+            <b-col class="my-1">
+              <b-input-group
+                prepend="Per page"
                 class="mb-0"
+                size="sm"
               >
                 <b-form-select
                   id="per-page-select"
@@ -52,10 +45,10 @@
                   :options="pageOptions"
                   size="sm"
                 ></b-form-select>
-              </b-form-group>
+              </b-input-group>
             </b-col>
 
-            <b-col sm="7" md="6" class="my-1">
+            <b-col class="my-1">
               <b-pagination
                 v-model="currentPage"
                 :total-rows="totalRows"
@@ -66,6 +59,7 @@
               ></b-pagination>
             </b-col>
           </b-row>
+          </b-card>
 
           <!-- Main table element -->
           <b-table

@@ -4,13 +4,16 @@
 
       <b-row class="justify-content-md-center py-2">
         <b-col col md="12">
-
-          <h3>Phenotype Search</h3>
-        
+          <!-- User Interface controls -->
+          <b-card 
+          header-tag="header"
+          bg-variant="light"
+          >
+          <template #header>
+            <h6 class="mb-0 text-left font-weight-bold">Phenotypes search</h6>
+          </template>
           <b-row>
-            <b-col sm="5" md="2" class="my-1">
-            </b-col>
-            <b-col sm="5" md="8" class="my-1">
+            <b-col class="my-1">
                 <multiselect 
                 id="phenotype_select"
                 v-model="value"
@@ -28,12 +31,8 @@
             <b-col>
               <b-button v-on:click="requestSelected">Submit</b-button>
             </b-col>
-          </b-row>
 
-          <!-- User Interface controls -->
-          <b-row>
-
-            <b-col sm="5" md="6" class="my-1">
+            <b-col class="my-1">
               <b-form-group
                 label="Per page"
                 label-for="per-page-select"
@@ -53,7 +52,7 @@
               </b-form-group>
             </b-col>
 
-            <b-col sm="7" md="6" class="my-1">
+            <b-col class="my-1">
               <b-pagination
                 v-model="currentPage"
                 :total-rows="totalRows"
@@ -64,6 +63,7 @@
               ></b-pagination>
             </b-col>
           </b-row>
+          </b-card>
 
           <!-- Main table element -->
           <b-table
