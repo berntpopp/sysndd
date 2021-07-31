@@ -187,7 +187,6 @@ export default {
             console.error(e);
           }
 
-          this.loading = false;
         },
         async requestSelected() {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/panels?category_input=' + this.selected_category + '&inheritance_input=' + this.selected_inheritance + '&output_columns=' + this.selected_columns.join() + '&output_sort=' + this.selected_sort;
@@ -202,6 +201,8 @@ export default {
           } catch (e) {
             console.error(e);
           }
+
+          this.loading = false;
         },
         async requestExcel() {
           //based on https://morioh.com/p/f4d331b62cda
