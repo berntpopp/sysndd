@@ -14,6 +14,7 @@
 
               <b-input-group class="mb-2">
                 <b-form-input 
+                autofocus
                 list="search-list" 
                 type="search" 
                 placeholder="Search SysNDD-db" 
@@ -25,19 +26,17 @@
                 >
                 </b-form-input>
                 
-                  <datalist id="search-list">
-                    <option v-for="result in search" :key="result">{{ result }}</option>
-                  </datalist>
+                <b-datalist id="search-list" :options="search"></b-datalist>
 
-                  <b-input-group-append>
-                    <b-button
-                    variant="outline-primary"
-                    size="md"
-                    :disabled="search_input.length < 2"
-                    v-bind:href="'/Search/' + search_input" >
-                      <b-icon icon="search"></b-icon>
-                    </b-button>
-                  </b-input-group-append>
+                <b-input-group-append>
+                  <b-button
+                  variant="outline-primary"
+                  size="md"
+                  :disabled="search_input.length < 2"
+                  v-bind:href="'/Search/' + search_input" >
+                    <b-icon icon="search"></b-icon>
+                  </b-button>
+                </b-input-group-append>
               </b-input-group>
 
             </b-jumbotron>
