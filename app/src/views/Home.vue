@@ -26,7 +26,10 @@
                 >
                 </b-form-input>
                 
-                <b-datalist id="search-list" :options="search"></b-datalist>
+                <b-datalist id="search-list" 
+                :options="search"
+                >
+                </b-datalist>
 
                 <b-input-group-append>
                   <b-button
@@ -224,6 +227,9 @@ export default {
       } catch (e) {
        console.error(e);
       }
+    if (this.search[0] === this.search_input) {
+      this.$router.push('/Search/' + this.search_input);
+    }
     },
   keydown_handler(event) {
      if (event.which === 13 & this.search_input.length > 1) {
