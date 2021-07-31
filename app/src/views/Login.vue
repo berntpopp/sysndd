@@ -2,9 +2,9 @@
   <div class="container-fluid" style="min-height:90vh">
   <b-spinner label="Loading..." v-if="loading" class="float-center m-5"></b-spinner>
 
-    <b-container fluid v-else>
+    <b-container v-else>
       <b-row class="justify-content-md-center py-4">
-        <b-col col md="4">
+        <b-col md="6">
           <b-card
           header="Sign in"
           header-bg-variant="dark"
