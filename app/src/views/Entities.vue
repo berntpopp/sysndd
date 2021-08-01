@@ -24,10 +24,13 @@
                 size="sm">
                   <b-form-input
                     id="filter-input"
-                    v-model="filter"
+                    v-model="filter.search"
                     type="search"
                     placeholder="any field by typing here"
                     debounce="500"
+                    @click="changeFilter(null)"
+                    @update="applyFilter('search')"
+                    @blur="removeFilter('search')"
                   >
                   </b-form-input>
                 </b-input-group>
@@ -68,7 +71,7 @@
             :fields="fields"
             :current-page="currentPage"
             :per-page="perPage"
-            :filter="filter"
+            :filter="filterTable"
             :filter-included-fields="filterOn"
             :sort-by.sync="sortBy"
             :sort-desc.sync="sortDesc"
@@ -83,6 +86,26 @@
             sort-icon-left
             @filtered="onFiltered"
           >
+
+          <template #head()="data">
+                <b-input-group
+                size="sm">
+                <b-input-group-prepend is-text><b>{{ data.label }}</b></b-input-group-prepend>
+                  <b-form-input
+                    v-bind:id="'filter-input-' + data.label"
+                    v-model="filter[data.label]"
+                    type="search"
+                    placeholder="..."
+                    debounce="500"
+                    size="sm"
+                    @click="changeFilter(data.label)"
+                    @update="applyFilter(data.label)"
+                    @blur="removeFilter(data.label)"
+                  >
+                  </b-form-input>
+                </b-input-group>
+
+          </template>
 
             <template #cell(actions)="row">
               <b-button class="btn-xs" @click="row.toggleDetails" variant="outline-primary">
@@ -142,12 +165,13 @@ export default {
         return {
           items: [],
           fields: [
-            { key: 'entity_id', label: 'Entity', sortable: true, sortDirection: 'desc', class: 'text-left' },
-            { key: 'symbol', label: 'Gene Symbol', sortable: true, class: 'text-left' },
+            { key: 'entity_id', label: 'Entity', sortable: true, filterable: true, sortDirection: 'desc', class: 'text-left' },
+            { key: 'symbol', label: 'Symbol', sortable: true, filterable: true, class: 'text-left' },
             {
               key: 'disease_ontology_name',
               label: 'Disease',
               sortable: true,
+              filterable: true, 
               class: 'text-left',
               sortByFormatted: true,
               filterByFormatted: true
@@ -156,12 +180,13 @@ export default {
               key: 'hpo_mode_of_inheritance_term_name',
               label: 'Inheritance',
               sortable: true,
+              filterable: true, 
               class: 'text-left',
               sortByFormatted: true,
               filterByFormatted: true
             },
-            { key: 'ndd_phenotype', label: 'NDD Association', sortable: true, class: 'text-left' },
-            { key: 'category', label: 'Category', sortable: true, class: 'text-left' },
+            { key: 'ndd_phenotype', label: 'NDD', sortable: true, filterable: true, class: 'text-left' },
+            { key: 'category', label: 'Category', sortable: true, filterable: true, class: 'text-left' },
             { key: 'actions', label: 'Actions' }
           ],
           fields_details: [
@@ -177,7 +202,8 @@ export default {
           sortBy: '',
           sortDesc: false,
           sortDirection: 'asc',
-          filter: null,
+          filterTable: null,
+          filter: {search: null, Entity: null, Symbol: null, Inheritance: null, NDD: null, Category: null, Actions: null},
           filterOn: [],
           infoModal: {
             id: 'info-modal',
@@ -188,14 +214,6 @@ export default {
         }
       },
       computed: {
-        sortOptions() {
-          // Create an options list from our fields
-          return this.fields
-            .filter(f => f.sortable)
-            .map(f => {
-              return { text: f.label, value: f.key }
-            })
-        }
       },
       mounted() {
         // Set the initial number of items
@@ -221,6 +239,21 @@ export default {
         },
         truncate(str, n){
           return (str.length > n) ? str.substr(0, n-1) + '...' : str;
+        },
+        changeFilter(value){
+          this.filterOn = this.fields
+                      .filter(f => f.filterable)
+                      .filter(f => f.label == value)
+                      .map(f => {
+                        return [ f.key ]
+                      })[0];
+        },
+        applyFilter(value){
+          this.filterTable = this.filter[value];
+        },
+        removeFilter(value){
+          this.filter[value] = null;
+          this.filterTable = null;
         }
       }
   }
