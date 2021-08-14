@@ -20,6 +20,7 @@ library(easyPubMed)
 library(rvest)
 library(lubridate)
 library(pool)
+library(memoise)
 ##-------------------------------------------------------------------##
 
 
@@ -42,6 +43,19 @@ pool <- dbPool(
 )
 ##-------------------------------------------------------------------##
 
+
+##-------------------------------------------------------------------##
+# Define functions
+nest_gene_tibble <- function(tibble) {
+	nested_tibble <- tibble %>%
+		nest_by(symbol, hgnc_id, category, hpo_mode_of_inheritance_term_name, hpo_mode_of_inheritance_term, .key = "entities")
+
+	return(nested_tibble)
+}
+
+# Memoisize function ------------------------------------------------------
+nest_gene_tibble_mem <- memoise(nest_gene_tibble)
+##-------------------------------------------------------------------##
 
 ##-------------------------------------------------------------------##
 ## enable cross origin requests
@@ -584,16 +598,15 @@ function() {
 
 	# get data from database and filter
 	sysndd_db_genes_table <- pool %>% 
-		tbl("ndd_entity_view")
-
-	sysndd_db_genes_collected <- sysndd_db_genes_table %>%
+		tbl("ndd_entity_view") %>%
 		arrange(entity_id) %>%
 		collect() %>%
 		mutate(ndd_phenotype = case_when(
 		  ndd_phenotype == 1 ~ "Yes",
 		  ndd_phenotype == 0 ~ "No"
-		)) %>%
-		nest_by(symbol, hgnc_id, category, hpo_mode_of_inheritance_term_name, hpo_mode_of_inheritance_term, .key = "entities")
+		))
+
+	sysndd_db_genes_collected <- nest_gene_tibble(sysndd_db_genes_table)
 
 	sysndd_db_genes_collected
 }
