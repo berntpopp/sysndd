@@ -46,6 +46,7 @@ pool <- dbPool(
 
 ##-------------------------------------------------------------------##
 # Define functions
+# based on https://xiaolianglin.com/2018/12/05/Use-memoise-to-speed-up-your-R-plumber-API/
 nest_gene_tibble <- function(tibble) {
 	nested_tibble <- tibble %>%
 		nest_by(symbol, hgnc_id, category, hpo_mode_of_inheritance_term_name, hpo_mode_of_inheritance_term, .key = "entities")
@@ -57,23 +58,24 @@ nest_gene_tibble <- function(tibble) {
 nest_gene_tibble_mem <- memoise(nest_gene_tibble)
 ##-------------------------------------------------------------------##
 
+
+
 ##-------------------------------------------------------------------##
 ## enable cross origin requests
 ## based on https://github.com/rstudio/plumber/issues/66
 #* @filter cors
 cors <- function(req, res) {
   
-  res$setHeader("Access-Control-Allow-Origin", "*")
+	res$setHeader("Access-Control-Allow-Origin", "*")
   
-  if (req$REQUEST_METHOD == "OPTIONS") {
-    res$setHeader("Access-Control-Allow-Methods","*")
-    res$setHeader("Access-Control-Allow-Headers", req$HTTP_ACCESS_CONTROL_REQUEST_HEADERS)
-    res$status <- 200 
-    return(list())
-  } else {
-    plumber::forward()
-  }
-  
+	if (req$REQUEST_METHOD == "OPTIONS") {
+		res$setHeader("Access-Control-Allow-Methods","*")
+		res$setHeader("Access-Control-Allow-Headers", req$HTTP_ACCESS_CONTROL_REQUEST_HEADERS)
+		res$status <- 200 
+		return(list())
+	} else {
+		plumber::forward()
+	}
 }
 ##-------------------------------------------------------------------##
 
