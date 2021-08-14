@@ -9,7 +9,7 @@
             <b-jumbotron class="text-left" style="padding-top: 5px; padding-bottom: 5px">
 
               <template #lead>
-                The expert curated database of gene disease relationships in neurodevelopmental disorders.
+                The expert curated database of gene disease relationships in neurodevelopmental disorders (NDDs).
               </template>
 
               <b-input-group class="mb-2">
@@ -17,7 +17,7 @@
                 autofocus
                 list="search-list" 
                 type="search" 
-                placeholder="Search SysNDD-db" 
+                placeholder="Search the SysNDD-db by genes, entities and diseases using names or identifiers" 
                 size="md"
                 autocomplete="off" 
                 v-model="search_input"
