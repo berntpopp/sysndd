@@ -1485,7 +1485,7 @@ function(req, res, user_name, password) {
 	user_filtered <- pool %>% 
 		tbl("user") %>%
 		filter(user_name == check_user & password == check_pass) %>%
-		select(-password, -created_at) %>%
+		select(-password) %>%
 		collect() %>%
 		mutate(iat = as.numeric(Sys.time())) %>%
 		mutate(exp = as.numeric(Sys.time()) + dw$refresh)
@@ -1498,7 +1498,7 @@ function(req, res, user_name, password) {
 	}
 
 	if (nrow(user_filtered) == 1){
-		claim <- jwt_claim(user_id = user_filtered$user_id, user_name = user_filtered$user_name, email = user_filtered$email, user_role = user_filtered$user_role, iat = user_filtered$iat, exp = user_filtered$exp)
+		claim <- jwt_claim(user_id = user_filtered$user_id, user_name = user_filtered$user_name, email = user_filtered$email, user_role = user_filtered$user_role, user_created = user_filtered$created_at, iat = user_filtered$iat, exp = user_filtered$exp)
 		
 		jwt <- jwt_encode_hmac(claim, secret = key)
 		jwt
@@ -1524,7 +1524,7 @@ function(req, res) {
 		res$status <- 401 # Unauthorized
 		return(list(error="Authentication not successful."))
 	} else {
-		return(list(user_name = user$user_name, user_role = user$user_role, user_id = user$user_id, exp = user$exp))
+		return(list(user_name = user$user_name, user_role = user$user_role, user_id = user$user_id, email = user$email, user_created = user$created_at, exp = user$exp))
 	}
 	
 }
