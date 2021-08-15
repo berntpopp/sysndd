@@ -286,13 +286,20 @@ function(res, sort = "entity_id", `page[after]` = 0, `page[size]` = "all") {
 		filter(entity_id == page_after)
 		)$row
 
+	if ( length(page_after_row) == 0 ){
+		page_after_row <- 0
+		page_after_row_next <- ( sysndd_db_disease_table %>%
+			filter(row_number() == page_after_row + page_size + 1) )$entity_id
+	} else {
+		page_after_row_next <- ( sysndd_db_disease_table %>%
+			filter(row_number() == page_after_row + page_size) )$entity_id
+	}
+
 	# find next and prev item row
 	page_after_row_prev <- ( sysndd_db_disease_table %>%
 		filter(row_number() == page_after_row - page_size) )$entity_id
-	page_after_row_next <- ( sysndd_db_disease_table %>%
-		filter(row_number() == page_after_row + page_size) )$entity_id
 	page_after_row_last <- ( sysndd_db_disease_table %>%
-		filter(row_number() == page_after_row + page_size * (page_count - 1) ) )$entity_id
+		filter(row_number() ==  page_size * (page_count - 1) ) )$entity_id
 		
 	# filter by row
 	sysndd_db_disease_table <- sysndd_db_disease_table %>%
@@ -305,26 +312,26 @@ function(res, sort = "entity_id", `page[after]` = 0, `page[size]` = "all") {
 		))
 
 	# generate links for self, next and prev pages
-	self <- paste0("/api/entities/?sort=", sort, "&page[after]=", `page[after]`, "&page[size]=", `page[size]`)
+	self <- paste0("http://", dw$host, ":", dw$port_self, "/api/entities/?sort=", sort, "&page[after]=", `page[after]`, "&page[size]=", `page[size]`)
 	if ( length(page_after_row_prev) == 0 ){
 		prev <- "null"
 	} else
 	{
-		prev <- paste0("/api/entities?sort=", sort, "&page[after]=", page_after_row_prev, "&page[size]=", `page[size]`)
+		prev <- paste0("http://", dw$host, ":", dw$port_self, "/api/entities?sort=", sort, "&page[after]=", page_after_row_prev, "&page[size]=", `page[size]`)
 	}
 	
 	if ( length(page_after_row_next) == 0 ){
 		`next` <- "null"
 	} else
 	{
-		`next` <- paste0("/api/entities?sort=", sort, "&page[after]=", page_after_row_next, "&page[size]=", `page[size]`)
+		`next` <- paste0("http://", dw$host, ":", dw$port_self, "/api/entities?sort=", sort, "&page[after]=", page_after_row_next, "&page[size]=", `page[size]`)
 	}
 	
 	if ( length(page_after_row_last) == 0 ){
 		last <- "null"
 	} else
 	{
-		last <- paste0("/api/entities?sort=", sort, "&page[after]=", page_after_row_last, "&page[size]=", `page[size]`)
+		last <- paste0("http://", dw$host, ":", dw$port_self, "/api/entities?sort=", sort, "&page[after]=", page_after_row_last, "&page[size]=", `page[size]`)
 	}
 
 	links <- as_tibble(list("prev" = prev, "self" = self, "next" = `next`, "last" = last))

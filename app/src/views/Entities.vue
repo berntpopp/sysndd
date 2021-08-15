@@ -104,7 +104,6 @@
                   >
                   </b-form-input>
                 </b-input-group>
-
           </template>
 
             <template #cell(actions)="row">
@@ -230,8 +229,9 @@ export default {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/entities';
           try {
             let response = await this.axios.get(apiUrl);
-            this.items = response.data;
-            this.totalRows = response.data.length;
+            console.log(response);
+            this.items = response.data.data;
+            this.totalRows = response.data.data.length;
           } catch (e) {
             console.error(e);
           }
