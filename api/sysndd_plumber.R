@@ -39,7 +39,6 @@ pool <- dbPool(
   password = dw$password,
   server = dw$server,
   port = dw$port
-  
 )
 ##-------------------------------------------------------------------##
 
@@ -243,22 +242,95 @@ info_from_genereviews <- function(Bookshelf_ID)  {
 ## get all entities
 #* @serializer json list(na="string")
 #' @get /api/entities
-function() {
+function(res, sort = "entity_id", `page[after]` = 0, `page[size]` = "all") {
 
-	# get data from database and filter
+	# get number of rows in ndd_entity_view
+	sysndd_db_disease_rows <- (pool %>% 
+		tbl("ndd_entity_view") %>%
+		summarise(n = n()) %>%
+		collect()
+		)$n
+
+	# split the sort input by comma and check if entity_idis in the resulting list, if not append to the list for unique sorting
+	sort_list <- str_split(str_squish(sort), ",")[[1]]
+	
+	if ( !("entity_id" %in% sort) ){
+		sort_list <- append(sort, "entity_id")
+	}
+
+	# check if `page[size]` is either "all" or a valid integer and convert or assign values accordingly
+	if ( `page[size]` == "all" ){
+		page_after <- 0
+		page_size <- sysndd_db_disease_rows
+		page_count <- ceiling(sysndd_db_disease_rows/page_size)
+	} else if ( is.numeric(as.integer(`page[size]`)) )
+	{
+		page_after <- as.integer(`page[after]`)
+		page_size <- as.integer(`page[size]`)
+		page_count <- ceiling(sysndd_db_disease_rows/page_size)
+	} else
+	{
+		res$status <- 400 #Bad Request
+		return(list(error="Invalid Parameter Value Error."))
+	}
+
+	# get data from database
 	sysndd_db_disease_table <- pool %>% 
-		tbl("ndd_entity_view")
+		tbl("ndd_entity_view") %>%
+		arrange(!!!syms(sort_list)) %>%
+		collect()
 
+	# find the current row of the requested page_after entry
+	page_after_row <- (sysndd_db_disease_table %>%
+		mutate(row = row_number()) %>%
+		filter(entity_id == page_after)
+		)$row
 
-	sysndd_db_disease_collected <- sysndd_db_disease_table %>%
-		arrange(entity_id) %>%
-		collect() %>%
+	# find next and prev item row
+	page_after_row_prev <- ( sysndd_db_disease_table %>%
+		filter(row_number() == page_after_row - page_size) )$entity_id
+	page_after_row_next <- ( sysndd_db_disease_table %>%
+		filter(row_number() == page_after_row + page_size) )$entity_id
+	page_after_row_last <- ( sysndd_db_disease_table %>%
+		filter(row_number() == page_after_row + page_size * (page_count - 1) ) )$entity_id
+		
+	# filter by row
+	sysndd_db_disease_table <- sysndd_db_disease_table %>%
+		filter(row_number() > page_after_row & row_number() <= page_after_row + page_size)
+
+	sysndd_db_disease_collected <- sysndd_db_disease_table  %>%
 		mutate(ndd_phenotype = case_when(
 		  ndd_phenotype == 1 ~ "Yes",
 		  ndd_phenotype == 0 ~ "No"
 		))
+
+	# generate links for self, next and prev pages
+	self <- paste0("/api/entities/?sort=", sort, "&page[after]=", `page[after]`, "&page[size]=", `page[size]`)
+	if ( length(page_after_row_prev) == 0 ){
+		prev <- "null"
+	} else
+	{
+		prev <- paste0("/api/entities?sort=", sort, "&page[after]=", page_after_row_prev, "&page[size]=", `page[size]`)
+	}
 	
-	sysndd_db_disease_collected
+	if ( length(page_after_row_next) == 0 ){
+		`next` <- "null"
+	} else
+	{
+		`next` <- paste0("/api/entities?sort=", sort, "&page[after]=", page_after_row_next, "&page[size]=", `page[size]`)
+	}
+	
+	if ( length(page_after_row_last) == 0 ){
+		last <- "null"
+	} else
+	{
+		last <- paste0("/api/entities?sort=", sort, "&page[after]=", page_after_row_last, "&page[size]=", `page[size]`)
+	}
+
+	links <- as_tibble(list("prev" = prev, "self" = self, "next" = `next`, "last" = last))
+
+	# 
+	list(links = links, data = sysndd_db_disease_collected)
 }
 
 
