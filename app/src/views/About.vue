@@ -29,12 +29,23 @@
                 </b-card-header>
                 <b-collapse id="accordion-2" accordion="my-accordion" role="tabpanel">
                   <b-card-body>
-                    <b-card-text class="text-left">
-                      In addition to this website, the data powering SysNDD has been described in these publications:
-                      <b-link href="https://pubmed.ncbi.nlm.nih.gov/26748517/" target="_blank"> 
-                      1. Kochinke & Zweier et al. 2016
-                      </b-link> 
-                    </b-card-text>
+
+                  <b-container fluid="sm" class="text-left py-2">
+                    <b-row>
+                      <b-col md="12">In addition to this website, the data powering SysNDD has been described in these publications:</b-col>
+                    </b-row>
+                    <b-row>
+                      <b-col md="12">
+                        <span class="font-weight-bold">1.</span> <b-link href="https://pubmed.ncbi.nlm.nih.gov/26748517/" target="_blank"> Kochinke K, Zweier C, Nijhof B, Fenckova M, Cizek P, Honti F, Keerthikumar S, Oortveld MA, Kleefstra T, Kramer JM, Webber C, Huynen MA, Schenck A. Systematic Phenomics Analysis Deconvolutes Genes Mutated in Intellectual Disability into Biologically Coherent Modules. Am J Hum Genet. 2016 Jan 7;98(1):149-64. doi: 10.1016/j.ajhg.2015.11.024. PMID: 26748517; PMCID: PMC4716705. </b-link>
+                      </b-col>
+                    </b-row>
+                    <b-row>
+                      <b-col md="12">
+                        We are currently working on manuscripts describing (1) the development of SysID through the last years and (2) the new SysNDD database. Until then please cite above publication if you use SysID in your work.
+                      </b-col>
+                    </b-row>
+                  </b-container>
+
                   </b-card-body>
                 </b-collapse>
               </b-card>
@@ -44,16 +55,43 @@
                   <b-button block v-b-toggle.accordion-3 variant="info" class="text-left">Support and Funding</b-button>
                 </b-card-header>
                 <b-collapse id="accordion-3" accordion="my-accordion" role="tabpanel">
-                  <b-card-body>
-                    <b-card-text class="text-left">
-                      The previous SysID database and data curation was supported by:
-                      - The European Union’s FP7 large scale integrated network GenCoDys (HEALTH-241995) to C Webber, MA Huynen and A Schenck
-                      - VIDI and TOP grants (917-96-346, 912-12-109) from The Netherlands Organisation for Scientific Research (NWO) to A Schenck
-                      - the IZKF (Interdisziplinäres Zentrum für Klinische Forschung) Erlangen to C Zweier
-                      - DFG (Deutsche Forschungsgemeinschaft) grant ZW184/1-1 and -2 to C Zweier
-                      - ZonMw grant (NWO, 907-00-365) to T Kleefstra
-                    </b-card-text>
-                  </b-card-body>
+
+                  <b-container fluid="sm" class="text-left py-2">
+                    <b-row>
+                      <b-col md="12">The current SysNDD database development is supported by:</b-col>
+                    </b-row>
+                    <b-row>
+                      <b-col md="12">-  DFG (Deutsche Forschungsgemeinschaft) grants PO2366/2-1 to <b-link href="https://orcid.org/0000-0002-3679-1081" target="_blank">Bernt Popp</b-link>.</b-col>
+                    </b-row>
+                    <b-row>
+                      <b-col md="12">-  DFG (Deutsche Forschungsgemeinschaft) grants ZW184/6-1 to <b-link href="https://orcid.org/0000-0001-8002-2020" target="_blank">Christiane Zweier</b-link>.</b-col>
+                    </b-row>
+                    <b-row>
+                      <b-col md="12">-  ITHACA ERN through <b-link href="https://orcid.org/0000-0003-4819-0264" target="_blank">Alain Verloes</b-link>.</b-col>
+                    </b-row>
+                  </b-container>
+
+                  <b-container fluid="sm" class="text-left py-2">
+                    <b-row>
+                      <b-col md="12">The previous SysID database and data curation was supported by:</b-col>
+                    </b-row>
+                    <b-row>
+                      <b-col md="12">- The European Union’s FP7 large scale integrated network GenCoDys (HEALTH-241995) to C Webber, MA Huynen and <b-link href="https://orcid.org/0000-0002-6918-3314" target="_blank">Annette Schenck</b-link>.</b-col>
+                    </b-row>
+                    <b-row>
+                      <b-col md="12">- VIDI and TOP grants (917-96-346, 912-12-109) from The Netherlands Organisation for Scientific Research (NWO) to <b-link href="https://orcid.org/0000-0002-6918-3314" target="_blank">Annette Schenck</b-link>.</b-col>
+                    </b-row>
+                    <b-row>
+                      <b-col md="12">- DFG (Deutsche Forschungsgemeinschaft) grants ZW184/1-1 and -2 to <b-link href="https://orcid.org/0000-0001-8002-2020" target="_blank">Christiane Zweier</b-link>.</b-col>
+                    </b-row>
+                    <b-row>
+                      <b-col md="12">- the IZKF (Interdisziplinäres Zentrum für Klinische Forschung) Erlangen to <b-link href="https://orcid.org/0000-0001-8002-2020" target="_blank">Christiane Zweier</b-link>.</b-col>
+                    </b-row>
+                    <b-row>
+                      <b-col md="12">- ZonMw grant (NWO, 907-00-365) to <b-link href="https://orcid.org/0000-0002-0956-0237" target="_blank">Tjitske Kleefstra</b-link>.</b-col>
+                    </b-row>
+                  </b-container>
+
                 </b-collapse>
               </b-card>
 
@@ -63,14 +101,14 @@
                 </b-card-header>
                 <b-collapse id="accordion-4" accordion="my-accordion" role="tabpanel">
                   <b-card-body>
-                    <b-card-text>{{ text }}</b-card-text>
+                    <b-card-text class="text-left"><span class="font-weight-bold">2021-08-16:</span>  SysNDD is currently in alpha development status and changes. We currently recommend using the stable <b-link href="https://www.sysid.dbmr.unibe.ch/" target="_blank">SysID database</b-link> for your work until a more stable beta status is reached. </b-card-text>
                   </b-card-body>
                 </b-collapse>
               </b-card>
 
               <b-card no-body class="mb-1">
                 <b-card-header header-tag="header" class="p-1" role="tab">
-                  <b-button block v-b-toggle.accordion-5 variant="info" class="text-left">Help and FAQ</b-button>
+                  <b-button block v-b-toggle.accordion-5 variant="info" class="text-left">Credits</b-button>
                 </b-card-header>
                 <b-collapse id="accordion-5" accordion="my-accordion" role="tabpanel">
                   <b-card-body>
@@ -81,7 +119,7 @@
 
               <b-card no-body class="mb-1">
                 <b-card-header header-tag="header" class="p-1" role="tab">
-                  <b-button block v-b-toggle.accordion-6 variant="info" class="text-left">Disclaimer</b-button>
+                  <b-button block v-b-toggle.accordion-6 variant="info" class="text-left">Help and FAQ</b-button>
                 </b-card-header>
                 <b-collapse id="accordion-6" accordion="my-accordion" role="tabpanel">
                   <b-card-body>
@@ -92,9 +130,20 @@
 
               <b-card no-body class="mb-1">
                 <b-card-header header-tag="header" class="p-1" role="tab">
-                  <b-button block v-b-toggle.accordion-7 variant="info" class="text-left">Contact</b-button>
+                  <b-button block v-b-toggle.accordion-7 variant="info" class="text-left">Disclaimer</b-button>
                 </b-card-header>
                 <b-collapse id="accordion-7" accordion="my-accordion" role="tabpanel">
+                  <b-card-body>
+                    <b-card-text>{{ text }}</b-card-text>
+                  </b-card-body>
+                </b-collapse>
+              </b-card>
+
+              <b-card no-body class="mb-1">
+                <b-card-header header-tag="header" class="p-1" role="tab">
+                  <b-button block v-b-toggle.accordion-8 variant="info" class="text-left">Contact</b-button>
+                </b-card-header>
+                <b-collapse id="accordion-8" accordion="my-accordion" role="tabpanel">
                   <b-card-body>
                     <b-card-text>{{ text }}</b-card-text>
                   </b-card-body>
