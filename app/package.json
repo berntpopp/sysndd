@@ -9,14 +9,16 @@
     "start": "vue-cli-service serve --open"
   },
   "dependencies": {
+    "@upsetjs/vue": "^1.9.1",
     "bootstrap": "^4.6.0",
     "bootstrap-vue": "^2.21.2",
     "core-js": "^3.6.5",
     "swagger-ui": "^3.49.0",
-    "vue": "^2.6.12",
+    "vue": "^2.6.14",
     "vue-axios": "^3.2.4",
     "vue-multiselect": "^2.1.6",
     "vue-router": "^3.2.0",
+    "vue-server-renderer": "^2.6.14",
     "vuex": "^3.6.2"
   },
   "devDependencies": {
@@ -32,7 +34,7 @@
     "sass-loader": "^8.0.0",
     "vue-cli-plugin-axios": "0.0.4",
     "vue-cli-plugin-mdb": "~2.1.0",
-    "vue-template-compiler": "^2.6.11"
+    "vue-template-compiler": "^2.6.14"
   },
   "eslintConfig": {
     "root": true,

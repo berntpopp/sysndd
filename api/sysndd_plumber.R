@@ -21,6 +21,7 @@ library(rvest)
 library(lubridate)
 library(pool)
 library(memoise)
+library(upsetjs)
 ##-------------------------------------------------------------------##
 
 
@@ -1258,7 +1259,6 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 #* @serializer json list(na="string")
 #' @get /api/statistics/genes
 function() {
-
 	sysndd_db_disease_genes <- pool %>% 
 		tbl("ndd_entity_view") %>%
 		arrange(entity_id) %>%
@@ -1354,10 +1354,29 @@ function() {
 		)) %>%
 		filter(ndd_phenotype == "Yes")
 
-
 	make_entities_plot(sysndd_db_disease_collected)
 }
 
+
+#* @tag statistics
+## Return interactive plot showing intersection between different databases
+#* @serializer json list(na="string")
+#' @get /api/statistics/comparisons_upset
+function() {
+	# get data from database and filter
+	ndd_database_comparison_gene_list  <- pool %>% 
+		tbl("ndd_database_comparison") %>%
+		collect() %>%
+		select(name = symbol, sets = list) %>%
+		unique() %>%
+		group_by(name) %>%
+		arrange(name) %>%
+		mutate(sets = str_c(sets, collapse = ",")) %>%
+		unique() %>%
+		ungroup() %>%
+		mutate(sets = strsplit(sets,","))
+
+}
 ## Statistics endpoints
 ##-------------------------------------------------------------------##
 
