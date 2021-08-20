@@ -5,9 +5,17 @@
       <b-row class="justify-content-md-center py-2">
         <b-col col md="8">
 
-  <div>
-    <UpSetJS :sets="sets" :width="width" :height="height" @hover="hover" :selection="selection"></UpSetJS>
-  </div>
+          <div>
+          <b-tabs content-class="mt-3">
+            <b-tab title="Upset" active>
+              <UpSetJS :sets="sets" :width="width" :height="height" @hover="hover" :selection="selection"></UpSetJS>
+            </b-tab>
+            <b-tab title="Table">
+              
+            </b-tab>
+          </b-tabs>
+          </div>
+          
         </b-col>
       </b-row>
       
@@ -26,7 +34,16 @@
     },
     data() {
       return {
-        elems: [],
+        elems: [ {
+          "name": "AAAS",
+          "sets": [
+            "SysNDD",
+            "radboudumc_ID",
+            "gene2phenotype",
+            "panelapp",
+            "geisinger_DBD"
+          ]
+        }],
         width: 100,
         height: 100,
         selection: null,
@@ -46,11 +63,10 @@
     methods: {
         async loadComparisonsUpsetData() {
           this.loading = true;
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/statistics/comparisons_upset';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/comparisons/upset';
           try {
             let response = await this.axios.get(apiUrl);
             this.elems = response.data;
-            console.log(this.elems);
           } catch (e) {
             console.error(e);
           }

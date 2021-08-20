@@ -21,7 +21,7 @@ library(rvest)
 library(lubridate)
 library(pool)
 library(memoise)
-library(upsetjs)
+library(coop)
 ##-------------------------------------------------------------------##
 
 
@@ -249,6 +249,7 @@ info_from_genereviews <- function(Bookshelf_ID)  {
 #* @apiTag phenotypes Phenoptype related endpoints
 #* @apiTag authentication Authentication related endpoints
 #* @apiTag panels Gene panel related endpoints
+#* @apiTag comparisons NDD gene list comparisons related endpoints
 #* @apiTag search Database search related endpoints
 #* @apiTag statistics Database statistics
 #* @apiTag status Status related endpoints
@@ -1357,11 +1358,18 @@ function() {
 	make_entities_plot(sysndd_db_disease_collected)
 }
 
+## Statistics endpoints
+##-------------------------------------------------------------------##
 
-#* @tag statistics
+
+
+##-------------------------------------------------------------------##
+## Comparisons endpoints
+
+#* @tag comparisons
 ## Return interactive plot showing intersection between different databases
 #* @serializer json list(na="string")
-#' @get /api/statistics/comparisons_upset
+#' @get /api/comparisons/upset
 function() {
 	# get data from database and filter
 	ndd_database_comparison_gene_list  <- pool %>% 
@@ -1375,9 +1383,33 @@ function() {
 		unique() %>%
 		ungroup() %>%
 		mutate(sets = strsplit(sets,","))
+}
+
+#* @tag comparisons
+## Return interactive plot showing intersection between different databases
+#* @serializer json list(na="string")
+#' @get /api/comparisons/correlation
+function() {
+	# get data from database, filter and restructure
+	ndd_database_comparison_matrix  <- pool %>% 
+		tbl("ndd_database_comparison") %>%
+		collect() %>%
+		select(symbol, list) %>%
+		unique() %>%
+		mutate(in_list = list) %>%
+		pivot_wider(names_from = list, values_from = in_list) %>%
+		select(-symbol) %>%
+		mutate_all(~ case_when(
+			  is.na(.) ~ 0,
+			  !is.na(.) ~ 1,
+			)
+		)
+
+	# compute correlation matrix
+	ndd_database_comparison_correlation <- cosine(ndd_database_comparison_matrix)
 
 }
-## Statistics endpoints
+
 ##-------------------------------------------------------------------##
 
 
