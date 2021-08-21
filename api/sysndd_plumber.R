@@ -60,7 +60,7 @@ nest_gene_tibble <- function(tibble) {
 make_entities_plot <- function(data_tibble) {
 	plot <- ggplot(data = data_tibble , aes(x = entry_date, color = category)) +
 		stat_bin(data=subset(data_tibble, category=="Definitive"), aes(y=cumsum(..count..)), geom="step", bins = 30) +
-		stat_bin(data=subset(data_tibble, category=="Candidate"), aes(y=cumsum(..count..)), geom="step", bins = 30) +
+		stat_bin(data=subset(data_tibble, category=="Limited"), aes(y=cumsum(..count..)), geom="step", bins = 30) +
 		theme_classic() +
 		theme(axis.text.x = element_text(angle = -45, hjust = 0), axis.title.x = element_blank(), axis.title.y = element_blank(), legend.position="top", legend.title = element_blank())
 
@@ -1296,7 +1296,8 @@ function() {
 		mutate(inheritance = "All")
 		
 	sysndd_db_disease_genes_statistics <- sysndd_db_disease_genes_grouped_by_category %>%
-		left_join(sysndd_db_disease_genes_grouped_by_category_and_inheritance, by = c("category"))
+		left_join(sysndd_db_disease_genes_grouped_by_category_and_inheritance, by = c("category")) %>%
+		arrange(category)
 
 	sysndd_db_disease_genes_statistics
 }

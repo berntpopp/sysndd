@@ -52,7 +52,7 @@ const routes = [
     name: 'Panels',
     component: Panels,
     beforeEnter: (to, from, next) => {
-      if (["All", "Candidate", "Definitive", "Moderate", "Refuted"].includes(to.params.category_input) && ["All", "Dominant", "Other", "Recessive", "X-linked"].includes(to.params.inheritance_input) ) {
+      if (["All", "Limited", "Definitive", "Moderate", "Refuted"].includes(to.params.category_input) && ["All", "Dominant", "Other", "Recessive", "X-linked"].includes(to.params.inheritance_input) ) {
         next(); // <-- everything good, proceed
       } else {
         next({ path: '/Panels/All/All' }); // <-- redirect to setup
