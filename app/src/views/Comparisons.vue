@@ -7,12 +7,19 @@
 
           <div>
           <b-tabs content-class="mt-3">
+
             <b-tab title="Upset" active>
               <UpSetJS :sets="sets" :width="width" :height="height" @hover="hover" :selection="selection"></UpSetJS>
             </b-tab>
+
+            <b-tab title="Correlation matrix">
+              
+            </b-tab>
+
             <b-tab title="Table">
               
             </b-tab>
+            
           </b-tabs>
           </div>
           
