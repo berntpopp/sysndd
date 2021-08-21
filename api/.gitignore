@@ -2,3 +2,6 @@
 config.yml
 # R files
 .Rhistory
+
+# Ignore the results directory in api folde
+results/**
