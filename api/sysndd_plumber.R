@@ -1373,9 +1373,9 @@ function() {
 function() {
 	# get data from database and filter
 	ndd_database_comparison_gene_list  <- pool %>% 
-		tbl("ndd_database_comparison") %>%
+		tbl("ndd_database_comparison_view") %>%
 		collect() %>%
-		select(name = symbol, sets = list) %>%
+		select(name = hgnc_id, sets = list) %>%
 		unique() %>%
 		group_by(name) %>%
 		arrange(name) %>%
@@ -1392,13 +1392,13 @@ function() {
 function() {
 	# get data from database, filter and restructure
 	ndd_database_comparison_matrix  <- pool %>% 
-		tbl("ndd_database_comparison") %>%
+		tbl("ndd_database_comparison_view") %>%
 		collect() %>%
-		select(symbol, list) %>%
+		select(hgnc_id, list) %>%
 		unique() %>%
 		mutate(in_list = list) %>%
 		pivot_wider(names_from = list, values_from = in_list) %>%
-		select(-symbol) %>%
+		select(-hgnc_id) %>%
 		mutate_all(~ case_when(
 			  is.na(.) ~ 0,
 			  !is.na(.) ~ 1,
