@@ -1,7 +1,9 @@
 .DS_Store
 node_modules
 /dist
-/api/results/*
+
+# Ignore the results directory in api folde
+api/results/
 
 
 # local env files
