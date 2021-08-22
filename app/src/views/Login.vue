@@ -89,7 +89,6 @@ export default {
           'Authorization': 'Bearer ' + localStorage.getItem('token')
         }
         });
-
         this.user = response_signin.data;
         localStorage.setItem('user', JSON.stringify(response_signin.data));
         this.$router.push('/');

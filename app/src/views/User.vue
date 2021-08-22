@@ -3,6 +3,7 @@
     <b-container>
         <h2>User: {{ this.user.user_name }}</h2>
         <h2>ID: {{ this.user.user_id }}</h2>
+        <h2>Abbreviation: {{ this.user.abbreviation }}</h2>
         <h2>Role: {{ this.user.user_role }}</h2>
         <h2>E-Mail: {{ this.user.email }}</h2>
         <h2>Token expires: {{ this.user.exp }}</h2>

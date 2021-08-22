@@ -1550,7 +1550,7 @@ function(req, res, user_name, password) {
 	}
 
 	if (nrow(user_filtered) == 1){
-		claim <- jwt_claim(user_id = user_filtered$user_id, user_name = user_filtered$user_name, email = user_filtered$email, user_role = user_filtered$user_role, user_created = user_filtered$created_at, iat = user_filtered$iat, exp = user_filtered$exp)
+		claim <- jwt_claim(user_id = user_filtered$user_id, user_name = user_filtered$user_name, email = user_filtered$email, user_role = user_filtered$user_role, user_created = user_filtered$created_at, abbreviation = user_filtered$abbreviation, orcid = user_filtered$orcid, iat = user_filtered$iat, exp = user_filtered$exp)
 		
 		jwt <- jwt_encode_hmac(claim, secret = key)
 		jwt
@@ -1576,7 +1576,7 @@ function(req, res) {
 		res$status <- 401 # Unauthorized
 		return(list(error="Authentication not successful."))
 	} else {
-		return(list(user_name = user$user_name, user_role = user$user_role, user_id = user$user_id, email = user$email, user_created = user$created_at, exp = user$exp))
+		return(list(user_id = user$user_id, user_name = user$user_name, email = user$email, user_role = user$user_role, user_created = user$user_created, abbreviation = user$abbreviation, orcid = user$orcid, exp = user$exp))
 	}
 	
 }
@@ -1600,7 +1600,7 @@ function(req, res) {
 		res$status <- 401 # Unauthorized
 		return(list(error="Authentication not successful."))
 	} else {
-		claim <- jwt_claim(user_id = user$user_id, user_name = user$user_name, email = user$email, user_role = user$user_role, iat = as.numeric(Sys.time()), exp = as.numeric(Sys.time()) + dw$refresh)
+		claim <- jwt_claim(user_id = user$user_id, user_name = user$user_name, email = user$email, user_role = user$user_role, user_created = user$user_created, abbreviation = user$abbreviation, orcid = user$orcid, iat = as.numeric(Sys.time()), exp = as.numeric(Sys.time()) + dw$refresh)
 
 		jwt <- jwt_encode_hmac(claim, secret = key)
 		jwt
