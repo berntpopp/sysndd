@@ -29,7 +29,7 @@
                   <b-list-group-item>
                     Token expires: 
                     <b-badge variant="info">{{this.time_to_logout}} min</b-badge>
-                    <b-badge @click="refreshWithJWT" href="#" variant="success" pill><b-icon icon="pill " font-scale="1.0"></b-icon></b-badge>
+                    <b-badge @click="refreshWithJWT" href="#" variant="success" pill><b-icon icon="arrow-repeat" font-scale="1.0"></b-icon></b-badge>
                   </b-list-group-item>
                 </b-list-group>
 
