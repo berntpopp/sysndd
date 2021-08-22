@@ -520,7 +520,7 @@ export default {
       },
       mounted() {
         // Set the initial number of items
-        this.loadEntitiesData();
+        this.loadReReviewData();
         this.loadPhenotypesList();
         this.loadStatusList();
       },
@@ -557,13 +557,17 @@ export default {
           this.loadEntityInfo(item.entity_id);
           this.$root.$emit('bv::show::modal', this.removeModal.id, button);
         },
-        async loadEntitiesData() {
+        async loadReReviewData() {
           this.loading = true;
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/entities';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review_table';
           try {
-            let response = await this.axios.get(apiUrl);
-            this.items = response.data.data;
-            this.totalRows = response.data.data.length;
+            let response = await this.axios.get(apiUrl, {
+              headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+              }
+            });
+            this.items = response.data;
+            this.totalRows = response.data.length;
           } catch (e) {
             console.error(e);
           }
@@ -640,7 +644,7 @@ export default {
           }
         },
         async submitReview(submission) {
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/entities/review?review_json=';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/review?review_json=';
           try {
             let submission_json = JSON.stringify(submission);
             let response = await this.axios.post(apiUrl + submission_json);

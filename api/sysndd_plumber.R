@@ -47,61 +47,6 @@ pool <- dbPool(
 
 
 ##-------------------------------------------------------------------##
-# Define functions
-# based on https://xiaolianglin.com/2018/12/05/Use-memoise-to-speed-up-your-R-plumber-API/
-
-nest_gene_tibble <- function(tibble) {
-	nested_tibble <- tibble %>%
-		nest_by(symbol, hgnc_id, category, hpo_mode_of_inheritance_term_name, hpo_mode_of_inheritance_term, .key = "entities")
-
-	return(nested_tibble)
-}
-
-make_entities_plot <- function(data_tibble) {
-	plot <- ggplot(data = data_tibble , aes(x = entry_date, color = category)) +
-		stat_bin(data=subset(data_tibble, category=="Definitive"), aes(y=cumsum(..count..)), geom="step", bins = 30) +
-		stat_bin(data=subset(data_tibble, category=="Limited"), aes(y=cumsum(..count..)), geom="step", bins = 30) +
-		theme_classic() +
-		theme(axis.text.x = element_text(angle = -45, hjust = 0), axis.title.x = element_blank(), axis.title.y = element_blank(), legend.position="top", legend.title = element_blank())
-
-	file <- "results/plot.png"
-	ggsave(file, plot, width = 4.5, height = 2.5, dpi = 150, units = "in")
-	return(base64Encode(readBin(file, "raw", n = file.info(file)$size), "txt"))
-}
-##-------------------------------------------------------------------##
-
-
-
-##-------------------------------------------------------------------##
-# Memoisize functions
-nest_gene_tibble_mem <- memoise(nest_gene_tibble)
-make_entities_plot_mem <- memoise(make_entities_plot)
-##-------------------------------------------------------------------##
-
-
-
-##-------------------------------------------------------------------##
-## enable cross origin requests
-## based on https://github.com/rstudio/plumber/issues/66
-#* @filter cors
-cors <- function(req, res) {
-  
-	res$setHeader("Access-Control-Allow-Origin", "*")
-  
-	if (req$REQUEST_METHOD == "OPTIONS") {
-		res$setHeader("Access-Control-Allow-Methods","*")
-		res$setHeader("Access-Control-Allow-Headers", req$HTTP_ACCESS_CONTROL_REQUEST_HEADERS)
-		res$status <- 200 
-		return(list())
-	} else {
-		plumber::forward()
-	}
-}
-##-------------------------------------------------------------------##
-
-
-
-##-------------------------------------------------------------------##
 ## global variables
 inheritance_input_allowed <- c("X-linked", "Dominant", "Recessive", "Other", "All")
 output_columns_allowed <- c("category", "inheritance", "symbol", "hgnc_id", "entrez_id", "ensembl_gene_id", "ucsc_id", "bed_hg19", "bed_hg38")
@@ -110,7 +55,8 @@ output_columns_allowed <- c("category", "inheritance", "symbol", "hgnc_id", "ent
 
 
 ##-------------------------------------------------------------------##
-## define global functions
+##-------------------------------------------------------------------##
+# Define global functions
 
 ## pubmed and genereviews functions
 pubmed_info_from_pmid <- function(pmid_tibble, request_max = 200) {
@@ -229,12 +175,42 @@ info_from_genereviews <- function(Bookshelf_ID)  {
 	close(genereviews_url)
 	return(return_tibble)
 }	
+
+
+# based on https://xiaolianglin.com/2018/12/05/Use-memoise-to-speed-up-your-R-plumber-API/
+
+nest_gene_tibble <- function(tibble) {
+	nested_tibble <- tibble %>%
+		nest_by(symbol, hgnc_id, category, hpo_mode_of_inheritance_term_name, hpo_mode_of_inheritance_term, .key = "entities")
+
+	return(nested_tibble)
+}
+
+make_entities_plot <- function(data_tibble) {
+	plot <- ggplot(data = data_tibble , aes(x = entry_date, color = category)) +
+		stat_bin(data=subset(data_tibble, category=="Definitive"), aes(y=cumsum(..count..)), geom="step", bins = 30) +
+		stat_bin(data=subset(data_tibble, category=="Limited"), aes(y=cumsum(..count..)), geom="step", bins = 30) +
+		theme_classic() +
+		theme(axis.text.x = element_text(angle = -45, hjust = 0), axis.title.x = element_blank(), axis.title.y = element_blank(), legend.position="top", legend.title = element_blank())
+
+	file <- "results/plot.png"
+	ggsave(file, plot, width = 4.5, height = 2.5, dpi = 150, units = "in")
+	return(base64Encode(readBin(file, "raw", n = file.info(file)$size), "txt"))
+}
+
+# Memoise functions
+nest_gene_tibble_mem <- memoise(nest_gene_tibble)
+make_entities_plot_mem <- memoise(make_entities_plot)
+
+##-------------------------------------------------------------------##
 ##-------------------------------------------------------------------##
 
 
 
+##-------------------------------------------------------------------##
 ##-------------------------------------------------------------------##
 #* @apiTitle SysNDD API
+
 #* @apiDescription This is the API powering the SysNDD website and allowing programmatic access to the database contents.
 #* @apiVersion 0.1.0
 #* @apiTOS http://www.sysndd.org/terms/
@@ -242,17 +218,80 @@ info_from_genereviews <- function(Bookshelf_ID)  {
 #* @apiLicense list(name = "CC BY 4.0", url = "https://creativecommons.org/licenses/by/4.0/")
 
 #* @apiTag entities Entities related endpoints
+#* @apiTag reviews Reviews related endpoints
+#* @apiTag status Status related endpoints
 #* @apiTag publications Publication related endpoints
 #* @apiTag genes Gene related endpoints
 #* @apiTag ontology Ontology related endpoints
 #* @apiTag inheritance Inheritance related endpoints
 #* @apiTag phenotypes Phenoptype related endpoints
-#* @apiTag authentication Authentication related endpoints
 #* @apiTag panels Gene panel related endpoints
 #* @apiTag comparisons NDD gene list comparisons related endpoints
 #* @apiTag search Database search related endpoints
 #* @apiTag statistics Database statistics
-#* @apiTag status Status related endpoints
+#* @apiTag authentication Authentication related endpoints
+##-------------------------------------------------------------------##
+##-------------------------------------------------------------------##
+
+
+
+##-------------------------------------------------------------------##
+## filters
+
+#* @filter cors
+## enable cross origin requests
+## based on https://github.com/rstudio/plumber/issues/66
+function(req, res) {
+  
+	res$setHeader("Access-Control-Allow-Origin", "*")
+  
+	if (req$REQUEST_METHOD == "OPTIONS") {
+		res$setHeader("Access-Control-Allow-Methods","*")
+		res$setHeader("Access-Control-Allow-Headers", req$HTTP_ACCESS_CONTROL_REQUEST_HEADERS)
+		res$status <- 200 
+		return(list())
+	} else {
+		plumber::forward()
+	}
+}
+
+
+#* @filter check_signin
+## check signin from header token and set user variable to request
+function(req, res) {
+	# load secret and convert to raw
+	key <- charToRaw(dw$secret)
+
+	if (req$REQUEST_METHOD == "GET" & is.null(req$HTTP_AUTHORIZATION)) {
+		plumber::forward()
+	} else if (req$REQUEST_METHOD == "GET" & !is.null(req$HTTP_AUTHORIZATION)) {
+		# load jwt from header
+		jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
+		# decode jwt
+		user <- jwt_decode_hmac(str_remove(req$HTTP_AUTHORIZATION, "Bearer "), secret = key)
+		# add user_id as value to request
+		req$user_id <- as.integer(user$user_id)
+		# and forward request
+		plumber::forward()
+	} else {
+		if (is.null(req$HTTP_AUTHORIZATION)) {
+			res$status <- 401 # Unauthorized
+			return(list(error="Authorization http header missing."))
+		} else if (jwt_decode_hmac(str_remove(req$HTTP_AUTHORIZATION, "Bearer "), secret = key)$exp  < as.numeric(Sys.time())) {
+			res$status <- 401 # Unauthorized
+			return(list(error="Token expired."))
+		} else {
+			# load jwt from header
+			jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
+			# decode jwt
+			user <- jwt_decode_hmac(str_remove(req$HTTP_AUTHORIZATION, "Bearer "), secret = key)
+			# add user_id as value to request
+			req$user_id <- as.integer(user$user_id)
+			# and forward request
+			plumber::forward()
+		}
+	}
+}
 ##-------------------------------------------------------------------##
 
 
@@ -507,12 +546,81 @@ function(sysndd_id) {
 
 
 #* @tag entities
+## get status for a entity_id
+#* @serializer json list(na="string")
+#' @get /api/entities/<sysndd_id>/status
+function(sysndd_id) {
+
+	# get data from database and filter
+	ndd_entity_status_collected <- pool %>% 
+		tbl("ndd_entity_status") %>%
+		collect()
+	ndd_entity_status_categories_collected <- pool %>% 
+		tbl("ndd_entity_status_categories_list") %>%
+		collect()
+
+	ndd_entity_status_list <- ndd_entity_status_collected %>%
+		filter(entity_id == sysndd_id & is_active) %>%
+		inner_join(ndd_entity_status_categories_collected, by=c("category_id")) %>%
+		select(entity_id, category, category_id, status_date) %>%
+		arrange(status_date)
+}
+
+
+#* @tag entities
+## post a new status for a entity_id
+## example data: {"category_id":"1", "status_user_id":"1"}
+#* @serializer json list(na="string")
+#' @post /api/entities/<sysndd_id>/status
+function(sysndd_id, category_in) {
+
+	# connect to database
+	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+	new_status <- as_tibble(fromJSON(category_in)) %>% 
+		add_column(sysndd_id) %>% 
+		select(entity_id = sysndd_id, category_id, status_user_id)
+	dbAppendTable(sysndd_db, "ndd_entity_status", new_status)
+}
+
+
+#* @tag entities
+## get all publications for a entity_id
+#* @serializer json list(na="string")
+#' @get /api/entities/<sysndd_id>/publications
+function(sysndd_id) {
+
+	# get data from database and filter
+	ndd_review_publication_join_collected <- pool %>% 
+		tbl("ndd_review_publication_join") %>%
+		filter(is_reviewed == 1) %>%
+		collect()
+	publication_collected <- pool %>% 
+		tbl("publication") %>%
+		collect()
+
+	ndd_entity_publication_list <- ndd_review_publication_join_collected %>%
+		filter(entity_id == sysndd_id) %>%
+		arrange(publication_id)
+}
+
+## Entity endpoints
+##-------------------------------------------------------------------##
+
+
+
+##-------------------------------------------------------------------##
+## Review endpoints
+
+#* @tag reviews
 ## post a new clinical synopsis for a entity_id
 ## example data: {"synopsis":"Hello you cool database", "review_user_id":"1"}
 #* @serializer json list(na="string")
-#' @post /api/entities/review
+#' @post /api/review
 function(review_json, res) {
 
+	## !MUST be CHANGED!
+	
 	review_data <- fromJSON(review_json)
 	review_user_id <- 1
 
@@ -599,66 +707,32 @@ function(review_json, res) {
 }
 
 
-#* @tag entities
-## get status for a entity_id
+#* @tag reviews
+## get the re-review overview table for the user logged in
 #* @serializer json list(na="string")
-#' @get /api/entities/<sysndd_id>/status
-function(sysndd_id) {
+#' @get /api/re_review_table
+function(req, res) {
+	user <- req$user_id
 
-	# get data from database and filter
-	ndd_entity_status_collected <- pool %>% 
-		tbl("ndd_entity_status") %>%
-		collect()
-	ndd_entity_status_categories_collected <- pool %>% 
-		tbl("ndd_entity_status_categories_list") %>%
-		collect()
+	# get table data from database and filter
+	re_review_entity_connect <- pool %>% 
+		tbl("re_review_entity_connect")
+	re_review_assignment <- pool %>% 
+		tbl("re_review_assignment") %>%
+		filter(user_id == user)
+	ndd_entity_view <- pool %>% 
+		tbl("ndd_entity_view")
 
-	ndd_entity_status_list <- ndd_entity_status_collected %>%
-		filter(entity_id == sysndd_id & is_active) %>%
-		inner_join(ndd_entity_status_categories_collected, by=c("category_id")) %>%
-		select(entity_id, category, category_id, status_date) %>%
-		arrange(status_date)
+	# join and collect
+	re_review_user_list <- re_review_entity_connect %>%
+		inner_join(re_review_assignment, by = c("re_review_batch")) %>%
+		select(entity_id) %>%
+		inner_join(ndd_entity_view, by = c("entity_id")) %>%
+		collect()
+	
+	re_review_user_list
 }
-
-
-#* @tag entities
-## post a new status for a entity_id
-## example data: {"category_id":"1", "status_user_id":"1"}
-#* @serializer json list(na="string")
-#' @post /api/entities/<sysndd_id>/status
-function(sysndd_id, category_in) {
-
-	# connect to database
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-
-	new_status <- as_tibble(fromJSON(category_in)) %>% 
-		add_column(sysndd_id) %>% 
-		select(entity_id = sysndd_id, category_id, status_user_id)
-	dbAppendTable(sysndd_db, "ndd_entity_status", new_status)
-}
-
-
-#* @tag entities
-## get all publications for a entity_id
-#* @serializer json list(na="string")
-#' @get /api/entities/<sysndd_id>/publications
-function(sysndd_id) {
-
-	# get data from database and filter
-	ndd_review_publication_join_collected <- pool %>% 
-		tbl("ndd_review_publication_join") %>%
-		filter(is_reviewed == 1) %>%
-		collect()
-	publication_collected <- pool %>% 
-		tbl("publication") %>%
-		collect()
-
-	ndd_entity_publication_list <- ndd_review_publication_join_collected %>%
-		filter(entity_id == sysndd_id) %>%
-		arrange(publication_id)
-}
-
-## Entity endpoints
+## Review endpoints
 ##-------------------------------------------------------------------##
 
 
@@ -1562,7 +1636,6 @@ function(req, res, user_name, password) {
 #* @get /api/auth/signin
 #* @serializer json list(na="string")
 function(req, res) {
-
 	# load secret and convert to raw
 	key <- charToRaw(dw$secret)
 	
@@ -1578,7 +1651,6 @@ function(req, res) {
 	} else {
 		return(list(user_id = user$user_id, user_name = user$user_name, email = user$email, user_role = user$user_role, user_created = user$user_created, abbreviation = user$abbreviation, orcid = user$orcid, exp = user$exp))
 	}
-	
 }
 
 
@@ -1586,7 +1658,6 @@ function(req, res) {
 #* @get /api/auth/refresh
 #* @serializer json list(na="string")
 function(req, res) {
-
 	# load secret and convert to raw
 	key <- charToRaw(dw$secret)
 	
@@ -1605,7 +1676,7 @@ function(req, res) {
 		jwt <- jwt_encode_hmac(claim, secret = key)
 		jwt
 	}
-	
 }
+
 ##Authentication section
 ##-------------------------------------------------------------------##
