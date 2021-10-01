@@ -269,8 +269,9 @@ function(req, res) {
 		jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
 		# decode jwt
 		user <- jwt_decode_hmac(str_remove(req$HTTP_AUTHORIZATION, "Bearer "), secret = key)
-		# add user_id as value to request
+		# add user_id and user_role as value to request
 		req$user_id <- as.integer(user$user_id)
+		req$user_role <- user$user_role
 		# and forward request
 		plumber::forward()
 	} else {
@@ -285,8 +286,9 @@ function(req, res) {
 			jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
 			# decode jwt
 			user <- jwt_decode_hmac(str_remove(req$HTTP_AUTHORIZATION, "Bearer "), secret = key)
-			# add user_id as value to request
+			# add user_id and user_role as value to request
 			req$user_id <- as.integer(user$user_id)
+			req$user_role <- user$user_role
 			# and forward request
 			plumber::forward()
 		}
@@ -614,96 +616,108 @@ function(sysndd_id) {
 
 #* @tag reviews
 ## post a new clinical synopsis for a entity_id
-## example data: {"synopsis":"Hello you cool database", "review_user_id":"1"}
 #* @serializer json list(na="string")
 #' @post /api/review
-function(review_json, res) {
+function(req, res, review_json) {
+	# first check rights
+	if ( req$user_role %in% c("Admin", "Curator", "Reviewer") ) {
+				
+		review_user_id <- req$user_id
+		review_data <- fromJSON(review_json)
 
-	## !MUST be CHANGED!
-	
-	review_data <- fromJSON(review_json)
-	review_user_id <- 1
+		if ( !is.null(review_data$synopsis) & !is.null(review_data$entity) ) {
 
-	# convert phenotypes and publications to tibble
-	phenotypes_received <- as_tibble(review_data$phenotypes)
-	if ( length(compact(review_data$literature)) > 0 ) {
-		publications_received <- as_tibble(compact(review_data$literature)) %>% 
-			pivot_longer(everything(), names_to = "publication_type", values_to = "publication_id") %>%
-			unique() %>%
-			select(publication_id, publication_type) %>%
-			arrange(publication_id)
+			# convert phenotypes and publications to tibble
+			phenotypes_received <- as_tibble(review_data$phenotypes)
+			if ( length(compact(review_data$literature)) > 0 ) {
+				publications_received <- as_tibble(compact(review_data$literature)) %>% 
+					pivot_longer(everything(), names_to = "publication_type", values_to = "publication_id") %>%
+					unique() %>%
+					select(publication_id, publication_type) %>%
+					arrange(publication_id)
+			} else {
+				publications_received <- as_tibble_row(c(publication_id = NA, publication_type = NA))
+			}
+			sysnopsis_received <- as_tibble(review_data$synopsis) %>% 
+				add_column(review_data$entity) %>% 
+				add_column(review_data$comment) %>% 
+				add_column(review_user_id) %>% 
+				select(entity_id = `review_data$entity`, synopsis = value, review_user_id, comment = `review_data$comment`)
+
+			# connect to database
+			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+			# get allowed HPO terms
+			phenotype_list_collected <- tbl(sysndd_db, "phenotype_list") %>%
+				select(phenotype_id) %>%
+				arrange(HPO_term) %>%
+				collect()
+
+			# check if received phenoytpes are in allowed phenotypes
+			phenoytpes_allowed <- all(phenotypes_received$phenotype_id %in% phenotype_list_collected$phenotype_id)
+			
+			if ( !phenoytpes_allowed ) {
+				res$status <- 400
+				res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
+				status = 400,
+				message = paste0("Some of the submitted phenotypes are not in the allowed phenotype_id list.")
+				))
+				return(res)
+			}
+
+			# get existing PMIDs
+			publications_list_collected <- tbl(sysndd_db, "publication") %>%
+				select(publication_id) %>%
+				arrange(publication_id) %>%
+				collect()
+
+			# check if publication_ids are already present in the database
+			publications_new <- publications_received %>%
+				mutate(present = publication_id %in% publications_list_collected$publication_id) %>%
+				filter(!present) %>%
+				select(-present)
+
+			# add new publications to database table "publication"
+			if (nrow(publications_new) > 0) {
+				dbAppendTable(sysndd_db, "publication", publications_new)
+			}
+
+			# submit the new synopsis and get the id of the last insert for association with other tables
+			dbAppendTable(sysndd_db, "ndd_entity_review", sysnopsis_received)
+			submitted_review_id <- dbGetQuery(sysndd_db, "SELECT LAST_INSERT_ID();") %>% 
+				as_tibble() %>% 
+				select(review_id = `LAST_INSERT_ID()`)
+
+			# prepare phenotype tibble for submission
+			phenotypes_submission <- phenotypes_received %>% 
+				add_column(submitted_review_id$review_id) %>% 
+				add_column(review_data$entity) %>% 
+				select(review_id = `submitted_review_id$review_id`, phenotype_id, entity_id = `review_data$entity`, modifier_id)
+
+			# submit phenotypes from new review to database
+			dbAppendTable(sysndd_db, "ndd_review_phenotype_connect", phenotypes_submission)
+
+			# prepare publications tibble for submission
+			publications_submission <- publications_received %>% 
+				add_column(submitted_review_id$review_id) %>% 
+				add_column(review_data$entity) %>% 
+				select(review_id = `submitted_review_id$review_id`, entity_id = `review_data$entity`, publication_id, publication_type)
+
+			# submit publications from new review to database	
+			dbAppendTable(sysndd_db, "ndd_review_publication_join", publications_submission)
+
+			# disconnect from database
+			dbDisconnect(sysndd_db)
+			
+		} else {
+			res$status <- 400 # Bad Request
+			return(list(error="Submitted data can not be null."))
+		}
+
 	} else {
-		publications_received <- as_tibble_row(c(publication_id = NA, publication_type = NA))
+		res$status <- 403 # Forbidden
+		return(list(error="Write access forbidden."))
 	}
-	sysnopsis_received <- as_tibble(review_data$synopsis) %>% 
-		add_column(review_data$entity) %>% 
-		add_column(review_user_id) %>% 
-		select(entity_id = `review_data$entity`, synopsis = value, review_user_id)
-
-	# connect to database
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-
-	# get allowed HPO terms
-	phenotype_list_collected <- tbl(sysndd_db, "phenotype_list") %>%
-		select(phenotype_id) %>%
-		arrange(HPO_term) %>%
-		collect()
-
-	# check if received phenoytpes are in allowed phenotypes
-	phenoytpes_allowed <- all(phenotypes_received$phenotype_id %in% phenotype_list_collected$phenotype_id)
-	
-	if ( !phenoytpes_allowed ) {
-		res$status <- 400
-		res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
-		status = 400,
-		message = paste0("Some of the submitted phenotypes are not in the allowed phenotype_id list.")
-		))
-		return(res)
-	}
-
-	# get existing PMIDs
-	publications_list_collected <- tbl(sysndd_db, "publication") %>%
-		select(publication_id) %>%
-		arrange(publication_id) %>%
-		collect()
-
-	# check if publication_ids are already present in the database
-	publications_new <- publications_received %>%
-		mutate(present = publication_id %in% publications_list_collected$publication_id) %>%
-		filter(!present) %>%
-		select(-present)
-
-	# add new publications to database table "publication"
-	if (nrow(publications_new) > 0) {
-		dbAppendTable(sysndd_db, "publication", publications_new)
-	}
-
-	# submit the new synopsis and get the id of the last insert for association with other tables
-	dbAppendTable(sysndd_db, "ndd_entity_review", sysnopsis_received)
-	submitted_review_id <- dbGetQuery(sysndd_db, "SELECT LAST_INSERT_ID();") %>% 
-		as_tibble() %>% 
-		select(review_id = `LAST_INSERT_ID()`)
-
-	# prepare phenotype tibble for submission
-	phenotypes_submission <- phenotypes_received %>% 
-		add_column(submitted_review_id$review_id) %>% 
-		add_column(review_data$entity) %>% 
-		select(review_id = `submitted_review_id$review_id`, phenotype_id, entity_id = `review_data$entity`, modifier_id)
-
-	# submit phenotypes from new review to database
-	dbAppendTable(sysndd_db, "ndd_review_phenotype_connect", phenotypes_submission)
-
-	# prepare publications tibble for submission
-	publications_submission <- publications_received %>% 
-		add_column(submitted_review_id$review_id) %>% 
-		add_column(review_data$entity) %>% 
-		select(review_id = `submitted_review_id$review_id`, entity_id = `review_data$entity`, publication_id, publication_type)
-
-	# submit publications from new review to database	
-	dbAppendTable(sysndd_db, "ndd_review_publication_join", publications_submission)
-
-	# disconnect from database
-	dbDisconnect(sysndd_db)
 }
 
 
@@ -1039,6 +1053,43 @@ function() {
 		arrange(category_id) %>%
 		collect()
 }
+
+
+#* @tag status
+## post a new status for a entity_id
+#* @serializer json list(na="string")
+#' @post /api/status
+function(req, res, status_json) {
+	# first check rights
+	if ( req$user_role %in% c("Admin", "Curator", "Reviewer") ) {
+				
+		status_user_id <- req$user_id
+		status_data <- fromJSON(status_json)
+
+		if ( !is.null(status_data$category) ) {
+
+			status_received <- as_tibble(status_data) %>% 
+				add_column(status_user_id) %>% 
+				select(entity_id = entity, category_id = category, status_user_id)
+
+			# connect to database
+			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+			# submit the new status and disconnect from database
+			dbAppendTable(sysndd_db, "ndd_entity_status", status_received)
+			dbDisconnect(sysndd_db)
+				
+		} else {
+			res$status <- 400 # Bad Request
+			return(list(error="Submitted data can not be null."))
+		}
+
+	} else {
+		res$status <- 403 # Forbidden
+		return(list(error="Write access forbidden."))
+	}
+}
+
 ## status endpoints
 ##-------------------------------------------------------------------##
 

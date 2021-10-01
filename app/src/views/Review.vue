@@ -320,7 +320,7 @@
       header-bg-variant="dark" 
       header-text-variant="light" 
       @hide="resetReviewModal" 
-      @ok="handleReviewOk"
+      @ok="handleStatusOk"
       >
         <template #modal-title>
           <h4>Entity: 
@@ -370,7 +370,7 @@
       header-bg-variant="dark" 
       header-text-variant="light" 
       @hide="resetReviewModal" 
-      @ok="handleReviewOk"
+      @ok="handleRemovalOk"
       >
         <template #modal-title>
           <h4>Entity: 
@@ -382,7 +382,12 @@
 
         <form ref="form" @submit.stop.prevent="handleSubmit">
           <div class="custom-control custom-switch">
-          <input type="checkbox" class="custom-control-input" id="removeSwitch">
+          <input 
+            type="checkbox" 
+            class="custom-control-input" 
+            id="removeSwitch"
+            v-model="removal_selected"
+          >
           <label class="custom-control-label" for="removeSwitch">Confirm removal suggestion</label>
           </div>
 
@@ -504,6 +509,7 @@ export default {
           phenotypes_options: [],
           status_options: [],
           status_selected: 0,
+          removal_selected: false,
           loading: true,
           loading_review_modal: true
         }
@@ -538,6 +544,15 @@ export default {
           this.synopsis_review = '';
           this.literature_review = [];
           this.genereviews_review = [];
+          this.review_comment = '';
+        },
+        resetStatusModal() {
+          this.status_selected = 0;
+          this.status_comment = '';
+        },
+        resetRemoveModal() {
+          this.removal_selected = false;
+          this.removal_comment = '';
         },
         infoReview(item, index, button) {
           this.reviewModal.title = `sysndd:${item.entity_id}`;
@@ -647,10 +662,11 @@ export default {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/review?review_json=';
           try {
             let submission_json = JSON.stringify(submission);
-            let response = await this.axios.post(apiUrl + submission_json);
-
-            localStorage.setItem('submissions', submission);
-
+            let response = await this.axios.post(apiUrl + submission_json, {}, {
+              headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+              }
+            });
           } catch (e) {
             console.error(e);
           }
@@ -675,10 +691,43 @@ export default {
           review_submission.phenotypes = {};
           review_submission.phenotypes.phenotype_id = phenotypes_submission;
           review_submission.phenotypes.modifier_id = modifiers_submission;
+          review_submission.comment = this.review_comment;
 
           console.log(review_submission);
           this.submitReview(review_submission);
           this.resetReviewModal();
+        },
+        async submitStatus(status) {
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/status?status_json=';
+          try {
+            let status_json = JSON.stringify(status);
+            let response = await this.axios.post(apiUrl + status_json, {}, {
+              headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+              }
+            });
+          } catch (e) {
+            console.error(e);
+          }
+        },
+        handleStatusOk(bvModalEvt) {
+          let status_submission = {};
+
+          status_submission.entity = this.entity[0].entity_id;
+          status_submission.category = this.status_selected;
+          status_submission.comment = this.status_comment;
+
+          console.log(status_submission);
+
+          this.submitStatus(status_submission);
+          this.resetStatusModal();
+
+        },
+        handleRemovalOk(bvModalEvt) {
+
+          console.log(this.removal_selected);
+          console.log(this.remove_comment);
+
         },
         addTag(newTag) {
             const tag = {
