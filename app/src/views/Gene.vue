@@ -133,7 +133,7 @@
 
           </b-table>
         
-          <h3>Associated phenotypes</h3>
+          <h3>Associated entities</h3>
 
           <!-- associated entities table element -->
           <b-table
