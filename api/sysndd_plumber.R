@@ -935,6 +935,29 @@ function(ontology_name) {
 		ungroup() %>%
 		mutate(across(everything(), ~replace(., . ==  "NULL" , "")))
 }
+
+
+#* @tag ontology
+## get all entities for a single disease by ontology_id
+#* @serializer json list(na="string")
+#' @get /api/ontology/<ontology_id>/entities
+function(ontology_id) {
+
+	ontology_id <- URLdecode(ontology_id)
+
+	# get data from database and filter
+	entity_by_ontology_id_list <- pool %>% 
+		tbl("ndd_entity_view") %>%
+		filter(disease_ontology_id_version == ontology_id) %>%
+		collect() %>%
+		mutate(ndd_phenotype = case_when(
+		  ndd_phenotype == 1 ~ "Yes",
+		  ndd_phenotype == 0 ~ "No"
+		))
+
+	entity_by_ontology_id_list
+}
+
 ## Ontology endpoints
 ##-------------------------------------------------------------------##
 
