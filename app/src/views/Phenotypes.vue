@@ -10,7 +10,7 @@
           bg-variant="light"
           >
           <template #header>
-            <h6 class="mb-0 text-left font-weight-bold">Phenotypes search</h6>
+            <h6 class="mb-1 text-left font-weight-bold">Phenotypes search</h6>
           </template>
           <b-row>
             <b-col class="my-1">
@@ -33,15 +33,13 @@
             </b-col>
 
             <b-col class="my-1">
-              <b-form-group
-                label="Per page"
-                label-for="per-page-select"
-                label-cols-sm="6"
-                label-cols-md="4"
-                label-cols-lg="3"
-                label-align-sm="right"
-                label-size="sm"
-                class="mb-0"
+            </b-col>
+
+            <b-col class="my-1">
+              <b-input-group
+                prepend="Per page"
+                class="mb-1"
+                size="sm"
               >
                 <b-form-select
                   id="per-page-select"
@@ -49,10 +47,8 @@
                   :options="pageOptions"
                   size="sm"
                 ></b-form-select>
-              </b-form-group>
-            </b-col>
+              </b-input-group>
 
-            <b-col class="my-1">
               <b-pagination
                 v-model="currentPage"
                 :total-rows="totalRows"
@@ -255,5 +251,11 @@ export default {
     font-size: .875rem;
     line-height: .5;
     border-radius: .2rem;
+  }
+  .input-group>.input-group-prepend {
+    flex: 0 0 35%;
+  }
+  .input-group .input-group-text {
+      width: 100%;
   }
 </style>

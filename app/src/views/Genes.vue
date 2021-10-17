@@ -6,18 +6,19 @@
       <b-row class="justify-content-md-center py-2">
         <b-col col md="12">
 
+          <!-- User Interface controls -->
           <b-card 
           header-tag="header"
           bg-variant="light"
           >
           <template #header>
-            <h6 class="mb-0 text-left font-weight-bold">Genes table</h6>
+            <h6 class="mb-1 text-left font-weight-bold">Genes table</h6>
           </template>
 
           <b-row>
             <b-col class="my-1">
               <b-form-group
-                class="mb-0"
+                class="mb-1"
               >
                 <b-input-group
                 prepend="Search" 
@@ -34,9 +35,15 @@
             </b-col>
 
             <b-col class="my-1">
+            </b-col>
+
+            <b-col class="my-1">
+            </b-col>
+
+            <b-col class="my-1">
               <b-input-group
                 prepend="Per page"
-                class="mb-0"
+                class="mb-1"
                 size="sm"
               >
                 <b-form-select
@@ -46,9 +53,7 @@
                   size="sm"
                 ></b-form-select>
               </b-input-group>
-            </b-col>
 
-            <b-col class="my-1">
               <b-pagination
                 v-model="currentPage"
                 :total-rows="totalRows"
@@ -232,5 +237,11 @@ export default {
     font-size: .875rem;
     line-height: .5;
     border-radius: .2rem;
+  }
+  .input-group>.input-group-prepend {
+    flex: 0 0 35%;
+  }
+  .input-group .input-group-text {
+      width: 100%;
   }
 </style>

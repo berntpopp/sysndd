@@ -12,11 +12,18 @@
           bg-variant="light"
           >
           <template #header>
-            <h6 class="mb-0 text-left font-weight-bold">Panel compilation and download</h6>
+            <h6 class="mb-1 text-left font-weight-bold">Panel compilation and download <b-badge variant="info">Genes: {{totalRows}} </b-badge></h6>
           </template>
+
           <b-row>
-            <b-col sm="5" md="2" class="my-1">
-              <b-form-group description="Category" label-for="category-select">
+
+            <!-- column 1 -->
+            <b-col class="my-1">
+              <b-input-group
+                prepend="Category"
+                class="mb-1"
+                size="sm"
+              >
                 <b-form-select 
                 input-id="category-select"
                 v-model="selected_category" 
@@ -25,9 +32,13 @@
                 size="sm"
                 >
                 </b-form-select>
-              </b-form-group>
+              </b-input-group>
 
-              <b-form-group description="Inheritance" label-for="category-select">
+              <b-input-group
+                prepend="Inheritance"
+                class="mb-1"
+                size="sm"
+              >
                 <b-form-select 
                 input-id="inheritance-select"
                 v-model="selected_inheritance" 
@@ -36,27 +47,36 @@
                 size="sm"
                 >
                 </b-form-select>
-              </b-form-group>
+              </b-input-group>
             </b-col>
 
-            <b-col sm="5" md="2" class="my-1">
-              <b-form-group description="Request columns" label-for="columns-select">
+            <!-- column 2 -->
+            <b-col class="my-1">
+              <b-input-group
+                prepend="Request columns"
+                class="mb-1"
+                size="sm"
+              >
                 <b-form-select 
                 input-id="columns-select"
                 v-model="selected_columns" 
                 :options="columns_list" 
                 text-field="value"
                 multiple
-                :select-size="5"
+                :select-size="3"
                 size="sm"
                 >
                 </b-form-select>
-              </b-form-group>
+              </b-input-group>
             </b-col>
 
-            <b-col sm="5" md="2" class="my-1">
-
-              <b-form-group description="Sort" label-for="sort-select">
+            <!-- column 3 -->
+            <b-col class="my-1">
+              <b-input-group
+                prepend="Sort"
+                class="mb-1"
+                size="sm"
+              >
                 <b-form-select 
                 input-id="sort-select"
                 v-model="selected_sort" 
@@ -65,32 +85,32 @@
                 size="sm"
                 >
                 </b-form-select>
-              </b-form-group>
-              
-              <div class="w-50">
-              <b-button block v-on:click="requestSelected">Browse</b-button>
-              </div>
+              </b-input-group>
+              <b-row>
+                <b-col class="my-1">
+                  <b-button block v-on:click="requestSelected" size="sm">
+                    <b-icon icon="search" class="mx-1"></b-icon>
+                    Browse
+                  </b-button>
+                </b-col>
 
-              <div class="w-50">
-              <b-button block v-on:click="requestExcel">
-                <b-icon icon="table" small v-if="!downloading"></b-icon>
-                <b-spinner small v-if="downloading"></b-spinner>
-                .xlsx
-              </b-button>
-              </div>
-
-              <b-badge>Genes: {{totalRows}} </b-badge>
-
+                <b-col class="my-1">
+                  <b-button block v-on:click="requestExcel" size="sm">
+                    <b-icon icon="table" class="mx-1"></b-icon>
+                    <b-icon icon="download" v-if="!downloading"></b-icon>
+                    <b-spinner small v-if="downloading"></b-spinner>
+                    .xlsx
+                  </b-button>
+                </b-col>
+              </b-row>
             </b-col>
-        
-          <!-- User Interface controls -->
-          <b-row>
 
-            <b-col sm="5" md="6" class="my-1">
-              <b-form-group
-                description="Per page"
-                label-for="per-page-select"
-                class="mb-0"
+            <!-- column 4 -->
+            <b-col class="my-1">
+              <b-input-group
+                prepend="Per page"
+                class="mb-1"
+                size="sm"
               >
                 <b-form-select
                   id="per-page-select"
@@ -98,10 +118,8 @@
                   :options="pageOptions"
                   size="sm"
                 ></b-form-select>
-              </b-form-group>
-            </b-col>
+              </b-input-group>
 
-            <b-col sm="7" md="6" class="my-1">
               <b-pagination
                 v-model="currentPage"
                 :total-rows="totalRows"
@@ -111,8 +129,6 @@
                 class="my-0"
               ></b-pagination>
             </b-col>
-
-          </b-row>
 
           </b-row>
         </b-card>
@@ -260,5 +276,11 @@ export default {
     font-size: .875rem;
     line-height: .5;
     border-radius: .2rem;
+  }
+  .input-group>.input-group-prepend {
+    flex: 0 0 35%;
+  }
+  .input-group .input-group-text {
+      width: 100%;
   }
 </style>
