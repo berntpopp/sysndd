@@ -223,7 +223,7 @@ export default {
 
         },
         async requestSelected() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/panels?category_input=' + this.selected_category + '&inheritance_input=' + this.selected_inheritance + '&output_columns=' + this.selected_columns.join() + '&output_sort=' + this.selected_sort;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/panels/browse?category_input=' + this.selected_category + '&inheritance_input=' + this.selected_inheritance + '&output_columns=' + this.selected_columns.join() + '&output_sort=' + this.selected_sort;
           try {
             let response = await this.axios.get(apiUrl);
             

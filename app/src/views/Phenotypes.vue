@@ -29,7 +29,13 @@
                 </multiselect> 
             </b-col>
             <b-col>
-              <b-button v-on:click="requestSelected">Submit</b-button>
+              <b-button v-on:click="requestSelected" size="sm">
+                <b-icon icon="search" class="mx-1"></b-icon>
+                  Browse
+              </b-button>
+              <b-form-checkbox v-model="checked" name="check-button" switch>
+                <b>OR</b>
+              </b-form-checkbox>
             </b-col>
 
             <b-col class="my-1">
@@ -179,6 +185,7 @@ export default {
           sortDirection: 'asc',
           filter: null,
           filterOn: [],
+          checked: false,
           loading: true
         }
       },
@@ -198,7 +205,21 @@ export default {
         },
         async loadEntitiesFromPhenotypes() {
           this.entities = [];
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotypes/' + this.selected_input.join() + '/entities';
+
+          let logical_operator = "";
+
+          switch (this.checked)
+          {
+          case true:
+          logical_operator = "or";
+          break;
+          case false:
+          logical_operator = "and";
+          break;
+          }
+
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotypes/entities/browse?hpo_list=' + this.selected_input.join() + '&logical_operator=' + logical_operator;
+
           try {
             let response = await this.axios.get(apiUrl);
             
