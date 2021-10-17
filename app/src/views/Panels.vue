@@ -66,10 +66,21 @@
                 >
                 </b-form-select>
               </b-form-group>
+              
+              <div>
+              <b-button block v-on:click="requestSelected">Browse</b-button>
+              </div>
 
-              <b-button v-on:click="requestSelected">Browse</b-button>
-              <b-button v-on:click="requestExcel"><b-icon icon="table"></b-icon>.xlsx</b-button>
+              <div>
+              <b-button block v-on:click="requestExcel">
+                <b-icon icon="table" small v-if="!downloading"></b-icon>
+                <b-spinner small v-if="downloading"></b-spinner>
+                .xlsx
+              </b-button>
+              </div>
+
               <b-badge>Genes: {{totalRows}} </b-badge>
+              
             </b-col>
         
           <!-- User Interface controls -->
@@ -160,6 +171,7 @@ export default {
           filter: null,
           filterOn: [],
           loading: true,
+          downloading: false,
           show_table: false
         }
       },
@@ -211,6 +223,7 @@ export default {
           this.loading = false;
         },
         async requestExcel() {
+          this.downloading = true;
           //based on https://morioh.com/p/f4d331b62cda
           let apiUrl = process.env.VUE_APP_API_URL + '/api/panels/excel?category_input=' + this.selected_category + '&inheritance_input=' + this.selected_inheritance + '&output_columns=' + this.selected_columns.join() + '&output_sort=' + this.selected_sort;
           try {
@@ -232,6 +245,9 @@ export default {
           } catch (e) {
             console.error(e);
           }
+          
+          this.downloading = false;
+          
         },
       }
   }
