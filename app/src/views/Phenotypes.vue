@@ -29,13 +29,27 @@
                 </multiselect> 
             </b-col>
             <b-col>
-              <b-button v-on:click="requestSelected" size="sm">
-                <b-icon icon="search" class="mx-1"></b-icon>
-                  Browse
-              </b-button>
-              <b-form-checkbox v-model="checked" name="check-button" switch>
-                <b>OR</b>
-              </b-form-checkbox>
+
+              <b-row>
+                <b-col class="my-1">
+                  <b-button block v-on:click="requestSelected" size="sm">
+                    <b-icon icon="search" class="mx-1"></b-icon>
+                      Browse
+                  </b-button>
+                  <b-form-checkbox v-model="checked" name="check-button" switch>
+                    <b>OR</b>
+                  </b-form-checkbox>
+                </b-col>
+
+                <b-col class="my-1">
+                  <b-button block v-on:click="requestSelectedExcel" size="sm">
+                    <b-icon icon="table" class="mx-1"></b-icon>
+                    <b-icon icon="download" v-if="!downloading"></b-icon>
+                    <b-spinner small v-if="downloading"></b-spinner>
+                    .xlsx
+                  </b-button>
+                </b-col>
+              </b-row>
             </b-col>
 
             <b-col class="my-1">
@@ -186,6 +200,7 @@ export default {
           filter: null,
           filterOn: [],
           checked: false,
+          downloading: false,
           loading: true
         }
       },
@@ -258,6 +273,53 @@ export default {
             }
             this.loadEntitiesFromPhenotypes();
           },
+        requestSelectedExcel() {
+            this.selected_input = [];
+            for (var i in this.value) {
+              this.selected_input.push(this.value[i]['phenotype_id']);
+            }
+            this.requestExcel();
+          },
+        async requestExcel() {
+          this.downloading = true;
+
+          let logical_operator = "";
+
+          switch (this.checked)
+          {
+          case true:
+          logical_operator = "or";
+          break;
+          case false:
+          logical_operator = "and";
+          break;
+          }
+
+          //based on https://morioh.com/p/f4d331b62cda
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotypes/entities/excel?hpo_list=' + this.selected_input.join() + '&logical_operator=' + logical_operator;
+          try {
+            let response = await this.axios({
+                    url: apiUrl,
+                    method: 'GET',
+                    responseType: 'blob',
+                }).then((response) => {
+                     var fileURL = window.URL.createObjectURL(new Blob([response.data]));
+                     var fileLink = document.createElement('a');
+
+                     fileLink.href = fileURL;
+                     fileLink.setAttribute('download', 'phenotype_panel.xlsx');
+                     document.body.appendChild(fileLink);
+
+                     fileLink.click();
+                });
+
+          } catch (e) {
+            console.error(e);
+          }
+
+          this.downloading = false;
+
+        },
         truncate(str, n){
           return (str.length > n) ? str.substr(0, n-1) + '...' : str;
         }
