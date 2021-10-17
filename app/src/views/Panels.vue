@@ -67,11 +67,11 @@
                 </b-form-select>
               </b-form-group>
               
-              <div>
+              <div class="w-50">
               <b-button block v-on:click="requestSelected">Browse</b-button>
               </div>
 
-              <div>
+              <div class="w-50">
               <b-button block v-on:click="requestExcel">
                 <b-icon icon="table" small v-if="!downloading"></b-icon>
                 <b-spinner small v-if="downloading"></b-spinner>
@@ -80,7 +80,7 @@
               </div>
 
               <b-badge>Genes: {{totalRows}} </b-badge>
-              
+
             </b-col>
         
           <!-- User Interface controls -->
