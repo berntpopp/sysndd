@@ -1275,7 +1275,7 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 	} else {
 		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
 			unique() %>%
-			filter(category_filter_filter == category_input, inheritance_filter_filter == inheritance_input) %>%
+			filter(category_filter == category_input, inheritance_filter == inheritance_input) %>%
 			arrange(!!sym(output_sort)) %>%
 			select(all_of(output_columns_list))
 	}
