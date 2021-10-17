@@ -1048,10 +1048,10 @@ function(hpo) {
 
 
 #* @tag phenotypes
-## get a list of entities associated with a list of phenotypes
+## get a list of entities associated with a list of phenotypes for browsing
 #* @serializer json list(na="string")
-#' @get /api/phenotypes/<hpo_list>/entities
-function(hpo_list) {
+#' @get /api/phenotypes/entities/browse
+function(hpo_list = "", logical_operator = "and") {
 
 	hpo_list <- URLdecode(hpo_list) %>%
 		str_split(pattern=",", simplify=TRUE) %>%
@@ -1060,24 +1060,109 @@ function(hpo_list) {
 		unique()
 
 	# get data from database and filter
-	entity_list_from_phenotype_list_collected <- pool %>% 
-		tbl("ndd_review_phenotype_connect") %>%
-		filter(phenotype_id %in% hpo_list) %>%
-		arrange(phenotype_id) %>%
-		select(entity_id, phenotype_id) %>%
-		collect() %>%
-		unique() %>%
-		arrange(entity_id) %>%
-		mutate(found=TRUE) %>%
-		pivot_wider(names_from = phenotype_id, values_from = found) %>%
-		replace(., is.na(.), FALSE) %>%
-		pivot_longer(-entity_id, names_to =c("phenotype_id")) %>%
-		select(-phenotype_id) %>%
-		group_by(entity_id) %>%
-		summarise(value = all(value)) %>%
-		filter(value) %>%
-		select(entity_id) %>%
-		ungroup()
+	if ( logical_operator == "and" ) {
+		entity_list_from_phenotype_list_collected <- pool %>% 
+			tbl("ndd_review_phenotype_connect") %>%
+			filter(phenotype_id %in% hpo_list) %>%
+			arrange(phenotype_id) %>%
+			select(entity_id, phenotype_id) %>%
+			collect() %>%
+			unique() %>%
+			arrange(entity_id) %>%
+			mutate(found=TRUE) %>%
+			pivot_wider(names_from = phenotype_id, values_from = found) %>%
+			replace(., is.na(.), FALSE) %>%
+			pivot_longer(-entity_id, names_to = c("phenotype_id")) %>%
+			select(-phenotype_id) %>%
+			group_by(entity_id) %>%
+			summarise(value = all(value)) %>%
+			filter(value) %>%
+			select(entity_id) %>%
+			ungroup()
+	} else if ( logical_operator == "or" ) {
+		entity_list_from_phenotype_list_collected <- pool %>% 
+			tbl("ndd_review_phenotype_connect") %>%
+			filter(phenotype_id %in% hpo_list) %>%
+			arrange(entity_id) %>%
+			select(entity_id,) %>%
+			collect() %>%
+			unique()
+	}
+	
+	entity_list_from_phenotype_list_collected
+}
+
+
+#* @tag phenotypes
+## get a list of entities associated with a list of phenotypes for download as Excel file
+#* @serializer contentType list(type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+#' @get /api/phenotypes/entities/excel
+function(hpo_list = "", logical_operator = "and", res) {
+
+	hpo_list <- URLdecode(hpo_list) %>%
+		str_split(pattern=",", simplify=TRUE) %>%
+		str_replace_all("[^0-9]+", "") %>%
+		str_replace("^", "HP:") %>%
+		unique()
+
+	# get data from database and filter
+	if ( logical_operator == "and" ) {
+		entity_list_from_phenotype_list_collected <- pool %>% 
+			tbl("ndd_review_phenotype_connect") %>%
+			filter(phenotype_id %in% hpo_list) %>%
+			arrange(phenotype_id) %>%
+			select(entity_id, phenotype_id) %>%
+			collect() %>%
+			unique() %>%
+			arrange(entity_id) %>%
+			mutate(found=TRUE) %>%
+			pivot_wider(names_from = phenotype_id, values_from = found) %>%
+			replace(., is.na(.), FALSE) %>%
+			pivot_longer(-entity_id, names_to = c("phenotype_id")) %>%
+			select(-phenotype_id) %>%
+			group_by(entity_id) %>%
+			summarise(value = all(value)) %>%
+			filter(value) %>%
+			select(entity_id) %>%
+			ungroup()
+	} else if ( logical_operator == "or" ) {
+		entity_list_from_phenotype_list_collected <- pool %>% 
+			tbl("ndd_review_phenotype_connect") %>%
+			filter(phenotype_id %in% hpo_list) %>%
+			arrange(entity_id) %>%
+			select(entity_id,) %>%
+			collect() %>%
+			unique()
+	}
+
+	# generate request statistic for output
+	creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"), "%Y-%m-%dT %H:%M:%S")
+	
+	request_stats <- tibble(
+	  creation_date = creation_date, 
+	  hpo_input = hpo_list, 
+	  operator_input = logical_operator
+	) %>%
+    pivot_longer(everything(), names_to = "request", values_to = "value")
+
+	# generate excel file output
+	filename <- file.path(tempdir(), "phenotype_panel.xlsx")
+	write.xlsx(entity_list_from_phenotype_list_collected, filename, sheetName="sysndd_phenotype", append=FALSE)
+	write.xlsx(request_stats, filename, sheetName="request", append=TRUE)
+	attachmentString = paste0("attachment; filename=phenotype_panel.", creation_date, ".xlsx")
+		  
+	res$setHeader("Content-Disposition", attachmentString)
+		  
+	# Read in the raw contents of the binary file
+	bin <- readBin(filename, "raw", n=file.info(filename)$size)
+
+	#Check file existence and delete
+	if (file.exists(filename)) {
+	  file.remove(filename)
+	}
+
+	#Return the binary contents
+	bin
 }
 
 ## Phenotype endpoints
@@ -1177,13 +1262,13 @@ function() {
 
 
 #* @tag panels
-## get last n entries in definitive category as news
+## get panel data by cetgory and inheritance terms for browsing
 #* @serializer json list(na="string")
 #* @param category_input The entity association category to filter.
 #* @param inheritance_input The entity inheritance type to filter.
 #* @param output_columns Comma separated list of output columns (choose from: category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38).
 #* @param output_sort Output column to arrange output on (choose from: category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38).
-#' @get /api/panels
+#' @get /api/panels/browse
 function(category_input = "Definitive", inheritance_input = "All", output_columns = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38", output_sort = "symbol", res) {
 	
 	output_columns_list <- URLdecode(output_columns) %>%
@@ -1286,7 +1371,7 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 
 
 #* @tag panels
-## get last n entries in definitive category as news
+## get panel data by cetgory and inheritance terms for download as Excel file
 #* @serializer contentType list(type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 #* @param category_input The entity association category to filter.
 #* @param inheritance_input The entity inheritance type to filter.
@@ -1404,7 +1489,7 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 	filename <- file.path(tempdir(), "panel.xlsx")
 	write.xlsx(sysndd_db_disease_genes_panel, filename, sheetName="sysndd", append=FALSE)
 	write.xlsx(request_stats, filename, sheetName="request", append=TRUE)
-	attachmentString = paste0("attachment; filename=panel.xlsx", filename)
+	attachmentString = paste0("attachment; filename=panel.", category_input, "_", inheritance_input, ".", creation_date, ".xlsx")
 		  
 	res$setHeader("Content-Disposition", attachmentString)
 		  
