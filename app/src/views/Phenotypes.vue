@@ -10,7 +10,7 @@
           bg-variant="light"
           >
           <template #header>
-            <h6 class="mb-1 text-left font-weight-bold">Phenotypes search</h6>
+            <h6 class="mb-1 text-left font-weight-bold">Phenotypes search <b-badge variant="info">Associated entities: {{totalRows}} </b-badge></h6>
           </template>
           <b-row>
             <b-col class="my-1">
@@ -170,7 +170,7 @@ export default {
             { key: 'disease_ontology_name', label: 'Disease ontology name', class: 'text-left' },
             { key: 'entry_date', label: 'Entry date', class: 'text-left' },
           ],
-          totalRows: 1,
+          totalRows: 0,
           currentPage: 1,
           perPage: 10,
           pageOptions: [10, 25, 50, { value: 100, text: "Show a lot" }],

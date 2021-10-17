@@ -12,7 +12,7 @@
           bg-variant="light"
           >
           <template #header>
-            <h6 class="mb-1 text-left font-weight-bold">Genes table</h6>
+            <h6 class="mb-1 text-left font-weight-bold">Genes table <b-badge variant="info">Genes: {{totalRows}} </b-badge></h6>
           </template>
 
           <b-row>
@@ -174,7 +174,7 @@ export default {
             },
             { key: 'ndd_phenotype', label: 'NDD Association', sortable: true, class: 'text-left' }
           ],
-          totalRows: 1,
+          totalRows: 0,
           currentPage: 1,
           perPage: 10,
           pageOptions: [10, 25, 50, { value: 100, text: "Show a lot" }],
