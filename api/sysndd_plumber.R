@@ -1244,36 +1244,38 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 		  str_detect(inheritance, "Autosomal recessive inheritance") ~ "Recessive",
 		  TRUE ~ "Other"
 		)) %>%
-		select(category, inheritance, symbol, hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38) %>%
+		mutate(category_filter = category) %>%
+		mutate(inheritance_filter = inheritance) %>%
+		select(category, inheritance, symbol, hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38, category_filter, inheritance_filter) %>%
 		arrange(desc(category), inheritance)
 	
 	# compute output based on input parameters
 	if ( (category_input == "All") & (inheritance_input == "All") ) {
 		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
-			mutate(category = "All") %>%
-			mutate(inheritance = "All") %>%
+			mutate(category_filter = "All") %>%
+			mutate(inheritance_filter = "All") %>%
 			unique() %>%
-			filter(category == category_input, inheritance == inheritance_input) %>%
+			filter(category_filter == category_input, inheritance_filter == inheritance_input) %>%
 			arrange(!!sym(output_sort)) %>%
 			select(all_of(output_columns_list))
 	} else if ( (category_input == "All") & (inheritance_input != "All") ) {
 		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
-			mutate(category = "All") %>%
+			mutate(category_filter = "All") %>%
 			unique() %>%
-			filter(category == category_input, inheritance == inheritance_input) %>%
+			filter(category_filter == category_input, inheritance_filter == inheritance_input) %>%
 			arrange(!!sym(output_sort)) %>%
 			select(all_of(output_columns_list))
 	} else if ( (category_input != "All") & (inheritance_input == "All") ) {
 		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
-			mutate(inheritance = "All") %>%
+			mutate(inheritance_filter = "All") %>%
 			unique() %>%
-			filter(category == category_input, inheritance == inheritance_input) %>%
+			filter(category_filter == category_input, inheritance_filter == inheritance_input) %>%
 			arrange(!!sym(output_sort)) %>%
 			select(all_of(output_columns_list))
 	} else {
 		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
 			unique() %>%
-			filter(category == category_input, inheritance == inheritance_input) %>%
+			filter(category_filter_filter == category_input, inheritance_filter_filter == inheritance_input) %>%
 			arrange(!!sym(output_sort)) %>%
 			select(all_of(output_columns_list))
 	}
