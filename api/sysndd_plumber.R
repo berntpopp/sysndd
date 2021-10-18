@@ -22,8 +22,8 @@ library(lubridate)
 library(pool)
 library(memoise)
 library(coop)
+library(reshape2)
 ##-------------------------------------------------------------------##
-
 
 
 ##-------------------------------------------------------------------##
@@ -198,9 +198,23 @@ make_entities_plot <- function(data_tibble) {
 	return(base64Encode(readBin(file, "raw", n = file.info(file)$size), "txt"))
 }
 
+make_matrix_plot <- function(data_melt) {
+	matrix_plot <- ggplot(data = data_melt, aes(x=Var1, y=Var2, fill=value)) +
+		geom_tile(color = "white") +
+		scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1,1), space = "Lab", name="Pearson\nCorrelation") +
+		theme_classic() +
+		theme(axis.text.x = element_text(angle = -90, hjust = 0), axis.title.x = element_blank(), axis.title.y = element_blank(), legend.position="top", legend.title = element_blank()) +
+		coord_fixed()
+
+	file <- "results/matrix_plot.png"
+	ggsave(file, matrix_plot, width = 3.0, height = 3.5, dpi = 150, units = "in")
+	return(base64Encode(readBin(file, "raw", n = file.info(file)$size), "txt"))
+}
+
 # Memoise functions
 nest_gene_tibble_mem <- memoise(nest_gene_tibble)
 make_entities_plot_mem <- memoise(make_entities_plot)
+make_matrix_plot_mem <- memoise(make_matrix_plot)
 
 ##-------------------------------------------------------------------##
 ##-------------------------------------------------------------------##
@@ -1645,8 +1659,8 @@ function() {
 
 #* @tag comparisons
 ## Return interactive plot data showing intersection between different databases
-#* @serializer json list(na="string")
-#' @get /api/comparisons/correlation
+#* @serializer text
+#' @get /api/comparisons/correlation_plot
 function() {
 	# get data from database, filter and restructure
 	ndd_database_comparison_matrix  <- pool %>% 
@@ -1665,6 +1679,10 @@ function() {
 
 	# compute correlation matrix
 	ndd_database_comparison_correlation <- cosine(ndd_database_comparison_matrix)
+	ndd_database_comparison_correlation_melted <- melt(ndd_database_comparison_correlation)
+
+	# generate plot
+	make_matrix_plot(ndd_database_comparison_correlation_melted)
 
 }
 
