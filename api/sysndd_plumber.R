@@ -1150,7 +1150,7 @@ function(hpo_list = "", logical_operator = "and", res) {
 	write.xlsx(entity_list_from_phenotype_list_collected, filename, sheetName="sysndd_phenotype", append=FALSE)
 	write.xlsx(request_stats, filename, sheetName="request", append=TRUE)
 	attachmentString = paste0("attachment; filename=phenotype_panel.", creation_date, ".xlsx")
-		  
+
 	res$setHeader("Content-Disposition", attachmentString)
 		  
 	# Read in the raw contents of the binary file
@@ -1644,7 +1644,7 @@ function() {
 }
 
 #* @tag comparisons
-## Return interactive plot showing intersection between different databases
+## Return interactive plot data showing intersection between different databases
 #* @serializer json list(na="string")
 #' @get /api/comparisons/correlation
 function() {
@@ -1668,6 +1668,38 @@ function() {
 
 }
 
+
+#* @tag comparisons
+## Return table swhoing the presence of NDD assoicated genes in different databases
+#* @serializer json list(na="string")
+#' @get /api/comparisons/table
+function() {
+	# get data from database, filter and restructure
+	
+	ndd_database_comparison_view <- pool %>% 
+		tbl("ndd_database_comparison_view")
+	
+	sysndd_db_non_alt_loci_set <- pool %>% 
+		tbl("non_alt_loci_set") %>%
+		select(hgnc_id, symbol)
+	
+	ndd_database_comparison_table  <- ndd_database_comparison_view %>% 
+		left_join(sysndd_db_non_alt_loci_set, by =c("hgnc_id")) %>%
+		collect() %>%
+		select(symbol, hgnc_id, list) %>%
+		unique() %>%
+		mutate(in_list = "yes") %>%
+		pivot_wider(names_from = list, values_from = in_list) %>%
+		mutate_at(vars(-hgnc_id, -symbol), ~ case_when(
+			  is.na(.) ~ "no",
+			  !is.na(.) ~ "yes"
+			)
+		)
+
+	# return table
+	ndd_database_comparison_table
+
+}
 ##-------------------------------------------------------------------##
 
 
