@@ -370,7 +370,7 @@
       no-close-on-backdrop 
       header-bg-variant="dark" 
       header-text-variant="light" 
-      @hide="resetReviewModal" 
+      @hide="resetRemoveModal" 
       @ok="handleRemovalOk"
       >
         <template #modal-title>
