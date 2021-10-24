@@ -571,6 +571,7 @@ function(sysndd_id) {
 	ndd_entity_status_collected <- pool %>% 
 		tbl("ndd_entity_status") %>%
 		collect()
+
 	ndd_entity_status_categories_collected <- pool %>% 
 		tbl("ndd_entity_status_categories_list") %>%
 		collect()
@@ -627,11 +628,90 @@ function(sysndd_id) {
 
 ##-------------------------------------------------------------------##
 ## Review endpoints
+#* @tag reviews
+## get a single review by review_id
+#* @serializer json list(na="string")
+#' @get /api/reviews/<review_requested>
+function(review_requested) {
+	# remove spaces from list
+	review_requested <- URLdecode(review_requested) %>%
+		str_split(pattern=",", simplify=TRUE) %>%
+		str_replace_all(" ", "") %>%
+		unique()
+
+	# get data from database and filter
+	sysndd_db_review_table <- pool %>% 
+		tbl("ndd_entity_review")
+
+	sysndd_db_review_table_collected <- sysndd_db_review_table %>%
+		filter(review_id == review_requested) %>%
+		collect() %>%
+		select(review_id, entity_id, synopsis, review_date)
+
+	sysndd_db_review_table_collected
+}
+
 
 #* @tag reviews
-## post a new clinical synopsis for a entity_id
+## get all phenotypes for a review
 #* @serializer json list(na="string")
-#' @post /api/review
+#' @get /api/reviews/<review_requested>/phenotypes
+function(review_requested) {
+	# remove spaces from list
+	review_requested <- URLdecode(review_requested) %>%
+		str_split(pattern=",", simplify=TRUE) %>%
+		str_replace_all(" ", "") %>%
+		unique()
+
+	# get data from database and filter
+	ndd_review_phenotype_connect_collected <- pool %>% 
+		tbl("ndd_review_phenotype_connect") %>%
+		collect()
+
+	phenotype_list_collected <- pool %>% 
+		tbl("phenotype_list") %>%
+		collect()
+
+	phenotype_list <- ndd_review_phenotype_connect_collected %>%
+		filter(review_id == review_requested) %>%
+		inner_join(phenotype_list_collected, by=c("phenotype_id")) %>%
+		select(review_id, entity_id, phenotype_id, HPO_term, modifier_id) %>%
+		arrange(phenotype_id)
+}
+
+
+#* @tag reviews
+## get all publications for a reviews_id
+#* @serializer json list(na="string")
+#' @get /api/reviews/<review_requested>/publications
+function(review_requested) {
+	# remove spaces from list
+	review_requested <- URLdecode(review_requested) %>%
+		str_split(pattern=",", simplify=TRUE) %>%
+		str_replace_all(" ", "") %>%
+		unique()
+		
+	# get data from database and filter
+	ndd_review_publication_join_collected <- pool %>% 
+		tbl("ndd_review_publication_join") %>%
+		filter(is_reviewed == 1) %>%
+		collect()
+
+	publication_collected <- pool %>% 
+		tbl("publication") %>%
+		collect()
+
+	ndd_entity_publication_list <- ndd_review_publication_join_collected %>%
+		filter(review_id == review_requested) %>%
+		arrange(publication_id)
+}
+
+
+#* @tag reviews
+## post a new clinical synopsis for a entity_id in re-review mode
+## example data: {"re_review_entity_id":1, "entity": 1, "synopsis": "activating, gain-of-function mutations: congenital hypertrichosis, neonatal macrosomia, distinct osteochondrodysplasia, cardiomegaly; activating mutations", "literature": {"additional_references": ["PMID:22608503", "PMID:22610116"], "gene_review": ["PMID:25275207"]}, "phenotypes": {"phenotype_id": ["HP:0000256", "HP:0000924", "HP:0001256", "HP:0001574", "HP:0001627", "HP:0002342"], "modifier_id": [1,1,1,1,1,1]}, "comment": ""}
+#* @serializer json list(na="string")
+#' @post /api/re_review/review
 function(req, res, review_json) {
 	# first check rights
 	if ( req$user_role %in% c("Admin", "Curator", "Reviewer") ) {
@@ -720,6 +800,9 @@ function(req, res, review_json) {
 			# submit publications from new review to database	
 			dbAppendTable(sysndd_db, "ndd_review_publication_join", publications_submission)
 
+			# execute update query for re_review_entity_connect saving status and review_id
+			dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET ", "re_review_saved=1, ", "review_id=", submitted_review_id$review_id, " WHERE re_review_entity_id = ", review_data$re_review_entity_id, ";"))
+
 			# disconnect from database
 			dbDisconnect(sysndd_db)
 			
@@ -736,30 +819,134 @@ function(req, res, review_json) {
 
 
 #* @tag reviews
+## post a new status for a entity_id in re-review mode
+## example data: '{"re_review_entity_id":3,"entity_id":3,"problematic":1,"comment":"fsa"}'
+#* @serializer json list(na="string")
+#' @post /api/re_review/status
+function(req, res, status_json) {
+	# first check rights
+	if ( req$user_role %in% c("Admin", "Curator", "Reviewer") ) {
+				
+		status_user_id <- req$user_id
+		status_data <- fromJSON(status_json)
+
+		if ( !is.null(status_data$category) | !is.null(status_data$problematic)) {
+
+			status_received <- as_tibble(status_data) %>% 
+				add_column(status_user_id) %>% 
+				select(-re_review_entity_id)
+
+			# connect to database
+			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+			# submit the new status and disconnect from database and get the id of the last insert for association with other tables
+			dbAppendTable(sysndd_db, "ndd_entity_status", status_received)
+			submitted_status_id <- dbGetQuery(sysndd_db, "SELECT LAST_INSERT_ID();") %>% 
+				as_tibble() %>% 
+				select(status_id = `LAST_INSERT_ID()`)		
+
+			# execute update query for re_review_entity_connect saving status and status_id
+			dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET ", "re_review_saved=1, ", "status_id=", submitted_status_id$status_id, " WHERE re_review_entity_id = ", status_data$re_review_entity_id, ";"))
+	
+			# disconnect from database
+			dbDisconnect(sysndd_db)
+				
+		} else {
+			res$status <- 400 # Bad Request
+			return(list(error="Submitted data can not be null."))
+		}
+
+	} else {
+		res$status <- 403 # Forbidden
+		return(list(error="Write access forbidden."))
+	}
+}
+
+
+#* @tag reviews
+## put the re-review submission
+## example data: {"re_review_entity_id":1, "re_review_submitted":1, "status_id":1, "review_id":1}
+#* @serializer json list(na="string")
+#' @put /api/re_review/submit
+function(req, res, submit_json) {
+	# first check rights
+	if ( req$user_role %in% c("Admin", "Curator", "Reviewer") ) {
+				
+		submit_user_id <- req$user_id
+		submit_data <- fromJSON(submit_json)
+
+		update_query <- as_tibble(submit_data) %>%
+			select(-re_review_entity_id) %>%
+			mutate(row = row_number()) %>% 
+			pivot_longer(-row) %>% 
+			mutate(query = paste0(name, "='", value, "'")) %>% 
+			select(query) %>% 
+			summarise(query = str_c(query, collapse = ", "))
+		
+		# connect to database
+		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+		# execute update query
+		dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET ", update_query, " WHERE re_review_entity_id = ", submit_data$re_review_entity_id, ";"))
+
+		# disconnect from database
+		dbDisconnect(sysndd_db)
+		
+	} else {
+		res$status <- 403 # Forbidden
+		return(list(error="Write access forbidden."))
+	}
+}
+
+
+#* @tag reviews
 ## get the re-review overview table for the user logged in
 #* @serializer json list(na="string")
 #' @get /api/re_review_table
 function(req, res) {
-	user <- req$user_id
-
-	# get table data from database and filter
-	re_review_entity_connect <- pool %>% 
-		tbl("re_review_entity_connect")
-	re_review_assignment <- pool %>% 
-		tbl("re_review_assignment") %>%
-		filter(user_id == user)
-	ndd_entity_view <- pool %>% 
-		tbl("ndd_entity_view")
-
-	# join and collect
-	re_review_user_list <- re_review_entity_connect %>%
-		inner_join(re_review_assignment, by = c("re_review_batch")) %>%
-		select(entity_id) %>%
-		inner_join(ndd_entity_view, by = c("entity_id")) %>%
-		collect()
+	# first check rights
+	if ( length(req$user_id) == 0) {
 	
-	re_review_user_list
+		res$status <- 401 # Unauthorized
+		return(list(error="Please authenticate."))
+
+	} else if ( req$user_role %in% c("Admin", "Curator", "Reviewer") ) {
+						
+		user <- req$user_id
+
+		# get table data from database and filter
+		re_review_entity_connect <- pool %>% 
+			tbl("re_review_entity_connect")
+		re_review_assignment <- pool %>% 
+			tbl("re_review_assignment") %>%
+			filter(user_id == user)
+		ndd_entity_view <- pool %>% 
+			tbl("ndd_entity_view")
+		ndd_entity_status_category <- pool %>% 
+			tbl("ndd_entity_status") %>%
+			select(status_id, category_id)
+		ndd_entity_status_categories_list <- pool %>% 
+			tbl("ndd_entity_status_categories_list")
+			
+		# join and collect
+		re_review_user_list <- re_review_entity_connect %>%
+			inner_join(re_review_assignment, by = c("re_review_batch")) %>%
+			filter(re_review_submitted == 0) %>%
+			select(re_review_entity_id, entity_id, re_review_saved, re_review_submitted, status_id, review_id) %>%
+			inner_join(ndd_entity_view, by = c("entity_id")) %>%
+			select(-category_id, -category) %>%
+			inner_join(ndd_entity_status_category, by = c("status_id")) %>%
+			inner_join(ndd_entity_status_categories_list, by = c("category_id")) %>%
+			collect()
+		
+		re_review_user_list
+
+	} else {
+		res$status <- 403 # Forbidden
+		return(list(error="Write access forbidden."))
+	}
 }
+
 ## Review endpoints
 ##-------------------------------------------------------------------##
 
@@ -1188,6 +1375,34 @@ function(hpo_list = "", logical_operator = "and", res) {
 ## Status endpoints
 
 #* @tag status
+## get a single status by status_id
+#* @serializer json list(na="string")
+#' @get /api/status/<status_requested>
+function(status_requested) {
+	# remove spaces from list
+	status_requested <- URLdecode(status_requested) %>%
+		str_split(pattern=",", simplify=TRUE) %>%
+		str_replace_all(" ", "") %>%
+		unique()
+
+	# get data from database and filter
+	sysndd_db_status_table <- pool %>% 
+		tbl("ndd_entity_status")
+
+	ndd_entity_status_categories_collected <- pool %>% 
+		tbl("ndd_entity_status_categories_list")
+
+	sysndd_db_status_table_collected <- sysndd_db_status_table %>%
+		filter(status_id == status_requested) %>%
+		inner_join(ndd_entity_status_categories_collected, by=c("category_id")) %>%
+		collect() %>%
+		select(status_id, entity_id, category, category_id, status_date) %>%
+		arrange(status_date)
+
+	sysndd_db_status_table_collected
+}
+
+#* @tag status
 ## get list of all status
 #* @serializer json list(na="string")
 #' @get /api/status_list
@@ -1214,7 +1429,7 @@ function(req, res, status_json) {
 
 			status_received <- as_tibble(status_data) %>% 
 				add_column(status_user_id) %>% 
-				select(entity_id = entity, category_id = category, status_user_id)
+				select(entity_id = entity, category_id = category, status_user_id, comment)
 
 			# connect to database
 			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)

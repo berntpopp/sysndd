@@ -119,8 +119,9 @@
               </b-button>
               <b-button 
                 size="sm" 
-                @click="infoRemove(row.item, row.index, $event.target)" 
+                @click="infoSubmit(row.item, row.index, $event.target)" 
                 class="mr-1"
+                :variant="pencil_style[row.item.re_review_saved]"
                 v-b-tooltip.hover.right 
                 title="submit entity review"
               >
@@ -405,6 +406,32 @@
       </b-modal>
       <!-- 3) Removal modal -->
 
+
+      <!-- 4) Submit modal -->
+      <b-modal 
+      :id="submitModal.id" 
+      size="sm" 
+      centered 
+      ok-title="Submit review" 
+      no-close-on-esc 
+      no-close-on-backdrop 
+      header-bg-variant="dark" 
+      header-text-variant="light" 
+      @ok="handleSubmitOk"
+      >
+        <template #modal-title>
+          <h4>Entity: 
+            <b-badge variant="info">
+              {{ submitModal.title }}
+            </b-badge>
+          </h4>
+        </template>
+
+        You have finished the re-review of this entity and want to submit it?
+
+      </b-modal>
+      <!-- 4) Submit modal -->
+
     </b-container>
 
   </div>
@@ -416,7 +443,8 @@ export default {
   name: 'Review',
   data() {
         return {
-          stoplights_style: {"1": "success", 2: "warning", 3: "primary", 4: "danger"},
+          stoplights_style: {"1": "success", 2: "primary", 3: "warning", 4: "danger"},
+          pencil_style: {0: "secondary", "1": "info"},
           items: [],
           fields: [
             { key: 'entity_id', label: 'Entity', sortable: true, sortDirection: 'desc', class: 'text-left' },
@@ -461,6 +489,11 @@ export default {
           },
           removeModal: {
             id: 'removal-modal',
+            title: '',
+            content: []
+          },
+          submitModal: {
+            id: 'submit-modal',
             title: '',
             content: []
           },
@@ -552,25 +585,35 @@ export default {
         },
         resetRemoveModal() {
           this.removal_selected = false;
-          this.removal_comment = '';
+          this.remove_comment = '';
         },
         infoReview(item, index, button) {
           this.reviewModal.title = `sysndd:${item.entity_id}`;
+          this.entity = [];
           this.entity.push(item);
-          this.loadEntityInfo(item.entity_id);
+          console.log(item.review_id);
+          console.log(item.status_id);
+          this.loadReviewInfo(item.review_id);
           this.$root.$emit('bv::show::modal', this.reviewModal.id, button);
         },
         infoStatus(item, index, button) {
           this.statusModal.title = `sysndd:${item.entity_id}`;
+          this.entity = [];
           this.entity.push(item);
-          this.loadStatusInfo(item.entity_id);
+          this.loadStatusInfo(item.status_id);
           this.$root.$emit('bv::show::modal', this.statusModal.id, button);
         },
         infoRemove(item, index, button) {
           this.removeModal.title = `sysndd:${item.entity_id}`;
+          this.entity = [];
           this.entity.push(item);
-          this.loadEntityInfo(item.entity_id);
           this.$root.$emit('bv::show::modal', this.removeModal.id, button);
+        },
+        infoSubmit(item, index, button) {
+          this.submitModal.title = `sysndd:${item.entity_id}`;
+          this.entity = [];
+          this.entity.push(item);
+          this.$root.$emit('bv::show::modal', this.submitModal.id, button);
         },
         async loadReReviewData() {
           this.loading = true;
@@ -581,6 +624,7 @@ export default {
                 'Authorization': 'Bearer ' + localStorage.getItem('token')
               }
             });
+            console.log(response.data);
             this.items = response.data;
             this.totalRows = response.data.length;
           } catch (e) {
@@ -588,13 +632,29 @@ export default {
           }
           this.loading = false;
         },
-        async loadEntityInfo(sysndd_id) {
+        async reloadReReviewData() {
+          this.items = [];
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review_table';
+          try {
+            let response = await this.axios.get(apiUrl, {
+              headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+              }
+            });
+            console.log(response.data);
+            this.items = response.data;
+            this.totalRows = response.data.length;
+          } catch (e) {
+            console.error(e);
+          }
+        },
+        async loadReviewInfo(review_id) {
           this.loading_review_modal = true;
 
           // define API query URLs
-          let apiReviewURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/review';
-          let apiPublicationsURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/publications';
-          let apiPhenotypesURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/phenotypes';
+          let apiReviewURL = process.env.VUE_APP_API_URL + '/api/reviews/' + review_id;
+          let apiPublicationsURL = process.env.VUE_APP_API_URL + '/api/reviews/' + review_id + '/publications';
+          let apiPhenotypesURL = process.env.VUE_APP_API_URL + '/api/reviews/' + review_id + '/phenotypes';
 
           try {
             // get API responses
@@ -621,9 +681,9 @@ export default {
             console.error(e);
             }
         },
-        async loadStatusInfo(sysndd_id) {
+        async loadStatusInfo(status_id) {
           // define API query URLs
-          let apiStatusURL = process.env.VUE_APP_API_URL + '/api/entities/' + sysndd_id + '/status';
+          let apiStatusURL = process.env.VUE_APP_API_URL + '/api/status/' + status_id;
 
           try {
             // get API responses
@@ -659,7 +719,7 @@ export default {
           }
         },
         async submitReview(submission) {
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/review?review_json=';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/review?review_json=';
           try {
             let submission_json = JSON.stringify(submission);
             let response = await this.axios.post(apiUrl + submission_json, {}, {
@@ -683,7 +743,8 @@ export default {
             }
           );
 
-          review_submission.entity = this.entity[0].entity_id;
+          review_submission.re_review_entity_id = this.entity[0].re_review_entity_id;
+          review_submission.entity_id = this.entity[0].entity_id;
           review_submission.synopsis = this.synopsis_review;
           review_submission.literature = {};
           review_submission.literature.additional_references = this.literature_review;
@@ -696,9 +757,10 @@ export default {
           console.log(review_submission);
           this.submitReview(review_submission);
           this.resetReviewModal();
+          this.reloadReReviewData();
         },
         async submitStatus(status) {
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/status?status_json=';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/status?status_json=';
           try {
             let status_json = JSON.stringify(status);
             let response = await this.axios.post(apiUrl + status_json, {}, {
@@ -713,21 +775,59 @@ export default {
         handleStatusOk(bvModalEvt) {
           let status_submission = {};
 
-          status_submission.entity = this.entity[0].entity_id;
-          status_submission.category = this.status_selected;
+          status_submission.re_review_entity_id = this.entity[0].re_review_entity_id;
+          status_submission.entity_id = this.entity[0].entity_id;
+          status_submission.category_id = this.status_selected;
           status_submission.comment = this.status_comment;
 
           console.log(status_submission);
 
           this.submitStatus(status_submission);
           this.resetStatusModal();
+          this.reloadReReviewData();
 
         },
         handleRemovalOk(bvModalEvt) {
 
-          console.log(this.removal_selected);
-          console.log(this.remove_comment);
+          let status_submission = {};
 
+          status_submission.re_review_entity_id = this.entity[0].re_review_entity_id;
+          status_submission.entity_id = this.entity[0].entity_id;
+          status_submission.problematic = (this.removal_selected | 0);
+          status_submission.comment = this.remove_comment;
+
+          console.log(status_submission);
+
+          this.submitStatus(status_submission);
+          this.resetRemoveModal();
+          this.reloadReReviewData();
+
+        },
+        async handleSubmitOk(bvModalEvt) {
+
+          let re_review_submission = {};
+
+
+          console.log(this.entity);
+          re_review_submission.re_review_entity_id = this.entity[0].re_review_entity_id;
+          re_review_submission.re_review_submitted = 1;
+
+          console.log(JSON.stringify(re_review_submission));
+
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/submit?submit_json=';
+          try {
+            let submit_json = JSON.stringify(re_review_submission);
+            let response = await this.axios.put(apiUrl + submit_json, {}, {
+              headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+              }
+            });
+          } catch (e) {
+            console.error(e);
+          }
+
+        this.reloadReReviewData();
+        
         },
         addTag(newTag) {
             const tag = {
