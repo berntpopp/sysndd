@@ -646,7 +646,7 @@ function(review_requested) {
 	sysndd_db_review_table_collected <- sysndd_db_review_table %>%
 		filter(review_id == review_requested) %>%
 		collect() %>%
-		select(review_id, entity_id, synopsis, review_date)
+		select(review_id, entity_id, synopsis, review_date, comment)
 
 	sysndd_db_review_table_collected
 }
@@ -721,8 +721,10 @@ function(req, res, review_json) {
 
 		if ( !is.null(review_data$synopsis) & !is.null(review_data$entity) ) {
 
-			# convert phenotypes and publications to tibble
+			# convert phenotypes to tibble
 			phenotypes_received <- as_tibble(review_data$phenotypes)
+
+			# convert publications to tibble
 			if ( length(compact(review_data$literature)) > 0 ) {
 				publications_received <- as_tibble(compact(review_data$literature)) %>% 
 					pivot_longer(everything(), names_to = "publication_type", values_to = "publication_id") %>%
@@ -732,6 +734,7 @@ function(req, res, review_json) {
 			} else {
 				publications_received <- as_tibble_row(c(publication_id = NA, publication_type = NA))
 			}
+
 			sysnopsis_received <- as_tibble(review_data$synopsis) %>% 
 				add_column(review_data$entity) %>% 
 				add_column(review_data$comment) %>% 
@@ -768,10 +771,10 @@ function(req, res, review_json) {
 			# check if publication_ids are already present in the database
 			publications_new <- publications_received %>%
 				mutate(present = publication_id %in% publications_list_collected$publication_id) %>%
-				filter(!present) %>%
+				filter(!present & !is.na(publication_id)) %>%
 				select(-present)
 
-			# add new publications to database table "publication"
+			# add new publications to database table "publication" if present and not NA
 			if (nrow(publications_new) > 0) {
 				dbAppendTable(sysndd_db, "publication", publications_new)
 			}
@@ -1396,7 +1399,7 @@ function(status_requested) {
 		filter(status_id == status_requested) %>%
 		inner_join(ndd_entity_status_categories_collected, by=c("category_id")) %>%
 		collect() %>%
-		select(status_id, entity_id, category, category_id, status_date) %>%
+		select(status_id, entity_id, category, category_id, status_date, comment, problematic) %>%
 		arrange(status_date)
 
 	sysndd_db_status_table_collected

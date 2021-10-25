@@ -591,8 +591,7 @@ export default {
           this.reviewModal.title = `sysndd:${item.entity_id}`;
           this.entity = [];
           this.entity.push(item);
-          console.log(item.review_id);
-          console.log(item.status_id);
+          
           this.loadReviewInfo(item.review_id);
           this.$root.$emit('bv::show::modal', this.reviewModal.id, button);
         },
@@ -607,6 +606,7 @@ export default {
           this.removeModal.title = `sysndd:${item.entity_id}`;
           this.entity = [];
           this.entity.push(item);
+          this.loadStatusInfo(item.status_id);
           this.$root.$emit('bv::show::modal', this.removeModal.id, button);
         },
         infoSubmit(item, index, button) {
@@ -624,7 +624,9 @@ export default {
                 'Authorization': 'Bearer ' + localStorage.getItem('token')
               }
             });
+
             console.log(response.data);
+
             this.items = response.data;
             this.totalRows = response.data.length;
           } catch (e) {
@@ -641,7 +643,9 @@ export default {
                 'Authorization': 'Bearer ' + localStorage.getItem('token')
               }
             });
+
             console.log(response.data);
+
             this.items = response.data;
             this.totalRows = response.data.length;
           } catch (e) {
@@ -667,6 +671,7 @@ export default {
             this.phenotypes = response_phenotypes.data;
 
             this.synopsis_review = this.review[this.review_number].synopsis;
+            this.review_comment = this.review[this.review_number].comment;
             this.phenotypes_review = this.phenotypes;
 
             // filter the publications data into groups and assign to global variables
@@ -754,7 +759,6 @@ export default {
           review_submission.phenotypes.modifier_id = modifiers_submission;
           review_submission.comment = this.review_comment;
 
-          console.log(review_submission);
           this.submitReview(review_submission);
           this.resetReviewModal();
           this.reloadReReviewData();
@@ -780,8 +784,6 @@ export default {
           status_submission.category_id = this.status_selected;
           status_submission.comment = this.status_comment;
 
-          console.log(status_submission);
-
           this.submitStatus(status_submission);
           this.resetStatusModal();
           this.reloadReReviewData();
@@ -796,8 +798,6 @@ export default {
           status_submission.problematic = (this.removal_selected | 0);
           status_submission.comment = this.remove_comment;
 
-          console.log(status_submission);
-
           this.submitStatus(status_submission);
           this.resetRemoveModal();
           this.reloadReReviewData();
@@ -807,8 +807,6 @@ export default {
 
           let re_review_submission = {};
 
-
-          console.log(this.entity);
           re_review_submission.re_review_entity_id = this.entity[0].re_review_entity_id;
           re_review_submission.re_review_submitted = 1;
 
