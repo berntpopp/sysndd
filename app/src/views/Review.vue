@@ -4,46 +4,47 @@
     <b-container fluid v-else>
 
       <b-row class="justify-content-md-center py-2">
-        <b-col col md="10">
+        <b-col col md="12">
 
-          <h3>Review</h3>
 
           <!-- User Interface controls -->
+          <b-card 
+          header-tag="header"
+          bg-variant="light"
+          >
+          <template #header>
+            <h6 class="mb-1 text-left font-weight-bold">Re-review table <b-badge variant="info">Entities: {{totalRows}} </b-badge></h6>
+          </template>
           <b-row>
-            <b-col lg="6" class="my-1">
+            <b-col class="my-1">
               <b-form-group
-                label="Filter"
-                label-for="filter-input"
-                label-cols-sm="3"
-                label-align-sm="right"
-                label-size="sm"
-                class="mb-0"
+                class="mb-1"
               >
-                <b-input-group size="sm">
+                <b-input-group
+                prepend="Search" 
+                size="sm">
                   <b-form-input
                     id="filter-input"
                     v-model="filter"
                     type="search"
-                    placeholder="Type to Search"
+                    placeholder="any field by typing here"
+                    debounce="500"
                   ></b-form-input>
-
-                  <b-input-group-append>
-                    <b-button :disabled="!filter" @click="filter = ''">Clear</b-button>
-                  </b-input-group-append>
                 </b-input-group>
               </b-form-group>
             </b-col>
 
-            <b-col sm="5" md="6" class="my-1">
-              <b-form-group
-                label="Per page"
-                label-for="per-page-select"
-                label-cols-sm="6"
-                label-cols-md="4"
-                label-cols-lg="3"
-                label-align-sm="right"
-                label-size="sm"
-                class="mb-0"
+            <b-col class="my-1">
+            </b-col>
+
+            <b-col class="my-1">
+            </b-col>
+
+            <b-col class="my-1">
+              <b-input-group
+                prepend="Per page"
+                class="mb-1"
+                size="sm"
               >
                 <b-form-select
                   id="per-page-select"
@@ -51,10 +52,8 @@
                   :options="pageOptions"
                   size="sm"
                 ></b-form-select>
-              </b-form-group>
-            </b-col>
+              </b-input-group>
 
-            <b-col sm="7" md="6" class="my-1">
               <b-pagination
                 v-model="currentPage"
                 :total-rows="totalRows"
@@ -65,6 +64,11 @@
               ></b-pagination>
             </b-col>
           </b-row>
+          </b-card>
+          <!-- User Interface controls -->
+
+
+
 
           <!-- Main table element -->
           <b-table
@@ -107,15 +111,6 @@
                 title="edit status"
                 >
                   <b-icon icon="stoplights"></b-icon>
-              </b-button>
-              <b-button 
-                size="sm" 
-                @click="infoRemove(row.item, row.index, $event.target)" 
-                class="mr-1"
-                v-b-tooltip.hover.top 
-                title="mark for removal"
-              >
-                <b-icon icon="x-circle"></b-icon>
               </b-button>
               <b-button 
                 size="sm" 
@@ -261,9 +256,10 @@
 
                 <b-popover target="popover-badge-help-publications" variant="info" triggers="focus">
                 <template #title>Publications instructions</template>
-                  No complete catalogue of entity-related literature required.
-                  If information in the clinical synopsis is not only based on OMIM entries, 
-                  please include PMID of the article(s) used as a source for the clinical synopsis.
+                  No complete catalogue of entity-related literature required. <br>
+                  If information in the clinical synopsis is not only based on OMIM entries,
+                  please include PMID of the article(s) used as a source for the clinical synopsis. <br>
+                  - Input is only valid when starting with <strong>"PMID:"</strong> followed by a number
                 </b-popover>
 
                 <b-form-tags
@@ -283,7 +279,8 @@
 
                 <b-popover target="popover-badge-help-genereviews" variant="info" triggers="focus">
                 <template #title>GeneReviews instructions</template>
-                  Please add PMID for GeneReview article if available for this entity.
+                  Please add PMID for GeneReview article if available for this entity. <br>
+                  - Input is only valid when starting with <strong>"PMID:"</strong> followed by a number
                 </b-popover>
 
                 <b-form-tags
@@ -346,6 +343,17 @@
           >
           </b-form-select>
 
+          <div class="custom-control custom-switch">
+          <input 
+            type="checkbox" 
+            button-variant="info"
+            class="custom-control-input" 
+            id="removeSwitch"
+            v-model="removal_selected"
+          >
+          <label class="custom-control-label" for="removeSwitch">Suggest removal</label>
+          </div>
+
           <label class="mr-sm-2 font-weight-bold" for="status-textarea-comment">Comment</label>
           <b-form-textarea
             id="status-textarea-comment"
@@ -360,54 +368,7 @@
       <!-- 2) Status modal -->
 
 
-      <!-- 3) Removal modal -->
-      <b-modal 
-      :id="removeModal.id" 
-      size="sm" 
-      centered 
-      ok-title="Suggest removal" 
-      no-close-on-esc 
-      no-close-on-backdrop 
-      header-bg-variant="dark" 
-      header-text-variant="light" 
-      @hide="resetRemoveModal" 
-      @ok="handleRemovalOk"
-      >
-        <template #modal-title>
-          <h4>Entity: 
-            <b-badge variant="info">
-              {{ removeModal.title }}
-            </b-badge>
-          </h4>
-        </template>
-
-        <form ref="form" @submit.stop.prevent="handleSubmit">
-          <div class="custom-control custom-switch">
-          <input 
-            type="checkbox" 
-            class="custom-control-input" 
-            id="removeSwitch"
-            v-model="removal_selected"
-          >
-          <label class="custom-control-label" for="removeSwitch">Confirm removal suggestion</label>
-          </div>
-
-          <label class="mr-sm-2 font-weight-bold" for="remove-textarea-comment">Comment</label>
-          <b-form-textarea
-            id="remove-textarea-comment"
-            rows="2"
-            size="sm" 
-            v-model="remove_comment"
-            placeholder="Why should this entitiy be invalidated."
-          >
-          </b-form-textarea>
-       </form>
-
-      </b-modal>
-      <!-- 3) Removal modal -->
-
-
-      <!-- 4) Submit modal -->
+      <!-- 3) Submit modal -->
       <b-modal 
       :id="submitModal.id" 
       size="sm" 
@@ -427,10 +388,10 @@
           </h4>
         </template>
 
-        You have finished the re-review of this entity and want to submit it?
+        You have finished the re-review of this entity and <span class="font-weight-bold">want to submit it</span>?
 
       </b-modal>
-      <!-- 4) Submit modal -->
+      <!-- 3) Submit modal -->
 
     </b-container>
 
@@ -448,7 +409,7 @@ export default {
           items: [],
           fields: [
             { key: 'entity_id', label: 'Entity', sortable: true, sortDirection: 'desc', class: 'text-left' },
-            { key: 'symbol', label: 'Gene Symbol', sortable: true, class: 'text-left' },
+            { key: 'symbol', label: 'Gene', sortable: true, class: 'text-left' },
             {
               key: 'disease_ontology_name',
               label: 'Disease',
@@ -465,7 +426,7 @@ export default {
               sortByFormatted: true,
               filterByFormatted: true
             },
-            { key: 'ndd_phenotype', label: 'NDD Association', sortable: true, class: 'text-left' },
+            { key: 'ndd_phenotype', label: 'NDD', sortable: true, class: 'text-left' },
             { key: 'actions', label: 'Actions' }
           ],
           totalRows: 1,
@@ -487,11 +448,6 @@ export default {
             title: '',
             content: []
           },
-          removeModal: {
-            id: 'removal-modal',
-            title: '',
-            content: []
-          },
           submitModal: {
             id: 'submit-modal',
             title: '',
@@ -499,7 +455,7 @@ export default {
           },
           entity: [],
           entity_fields: [
-            { key: 'symbol', label: 'Gene Symbol', sortable: false, class: 'text-left' },
+            { key: 'symbol', label: 'Gene', sortable: false, class: 'text-left' },
             {
               key: 'disease_ontology_name',
               label: 'Disease',
@@ -514,7 +470,7 @@ export default {
             },
             { 
               key: 'ndd_phenotype', 
-              label: 'NDD Association', 
+              label: 'NDD', 
               sortable: false, 
               class: 'text-left' 
             },
@@ -530,10 +486,9 @@ export default {
             { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-left' },
           ],
           review_number: 0,
-          synopsis_review: '',
-          review_comment: '',
-          status_comment: '',
-          remove_comment: '',
+          synopsis_review: null,
+          review_comment: null,
+          status_comment: null,
           publications: [],
           literature_review: [],
           genereviews_review: [],
@@ -542,7 +497,7 @@ export default {
           phenotypes_options: [],
           status_options: [],
           status_selected: 0,
-          removal_selected: false,
+          removal_selected: 0,
           loading: true,
           loading_review_modal: true
         }
@@ -577,15 +532,12 @@ export default {
           this.synopsis_review = '';
           this.literature_review = [];
           this.genereviews_review = [];
-          this.review_comment = '';
+          this.review_comment = null;
         },
         resetStatusModal() {
           this.status_selected = 0;
-          this.status_comment = '';
-        },
-        resetRemoveModal() {
-          this.removal_selected = false;
-          this.remove_comment = '';
+          this.removal_selected = 0;
+          this.status_comment = null;
         },
         infoReview(item, index, button) {
           this.reviewModal.title = `sysndd:${item.entity_id}`;
@@ -601,13 +553,6 @@ export default {
           this.entity.push(item);
           this.loadStatusInfo(item.status_id);
           this.$root.$emit('bv::show::modal', this.statusModal.id, button);
-        },
-        infoRemove(item, index, button) {
-          this.removeModal.title = `sysndd:${item.entity_id}`;
-          this.entity = [];
-          this.entity.push(item);
-          this.loadStatusInfo(item.status_id);
-          this.$root.$emit('bv::show::modal', this.removeModal.id, button);
         },
         infoSubmit(item, index, button) {
           this.submitModal.title = `sysndd:${item.entity_id}`;
@@ -625,8 +570,6 @@ export default {
               }
             });
 
-            console.log(response.data);
-
             this.items = response.data;
             this.totalRows = response.data.length;
           } catch (e) {
@@ -635,6 +578,8 @@ export default {
           this.loading = false;
         },
         async reloadReReviewData() {
+          this.loading = true;
+
           this.items = [];
           let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review_table';
           try {
@@ -644,13 +589,12 @@ export default {
               }
             });
 
-            console.log(response.data);
-
             this.items = response.data;
             this.totalRows = response.data.length;
           } catch (e) {
             console.error(e);
           }
+          this.loading = false;
         },
         async loadReviewInfo(review_id) {
           this.loading_review_modal = true;
@@ -696,6 +640,8 @@ export default {
 
             // assign response data to global variables
             this.status_selected = response_status.data[0].category_id;
+            this.status_comment = response_status.data[0].comment;
+            this.removal_selected = response_status.data[0].problematic;
 
             } catch (e) {
             console.error(e);
@@ -783,23 +729,10 @@ export default {
           status_submission.entity_id = this.entity[0].entity_id;
           status_submission.category_id = this.status_selected;
           status_submission.comment = this.status_comment;
+          status_submission.problematic = this.removal_selected;
 
           this.submitStatus(status_submission);
           this.resetStatusModal();
-          this.reloadReReviewData();
-
-        },
-        handleRemovalOk(bvModalEvt) {
-
-          let status_submission = {};
-
-          status_submission.re_review_entity_id = this.entity[0].re_review_entity_id;
-          status_submission.entity_id = this.entity[0].entity_id;
-          status_submission.problematic = (this.removal_selected | 0);
-          status_submission.comment = this.remove_comment;
-
-          this.submitStatus(status_submission);
-          this.resetRemoveModal();
           this.reloadReReviewData();
 
         },

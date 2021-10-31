@@ -68,6 +68,8 @@
             </b-col>
           </b-row>
           </b-card>
+          <!-- User Interface controls -->
+
 
           <!-- Main table element -->
           <b-table

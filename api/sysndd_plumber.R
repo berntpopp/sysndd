@@ -630,7 +630,7 @@ function(sysndd_id) {
 ## Review endpoints
 #* @tag reviews
 ## get a single review by review_id
-#* @serializer json list(na="string")
+#* @serializer json list(na="null")
 #' @get /api/reviews/<review_requested>
 function(review_requested) {
 	# remove spaces from list
@@ -1379,7 +1379,7 @@ function(hpo_list = "", logical_operator = "and", res) {
 
 #* @tag status
 ## get a single status by status_id
-#* @serializer json list(na="string")
+#* @serializer json list(na="null")
 #' @get /api/status/<status_requested>
 function(status_requested) {
 	# remove spaces from list
