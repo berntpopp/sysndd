@@ -719,27 +719,40 @@ function(req, res, review_json) {
 		review_user_id <- req$user_id
 		review_data <- fromJSON(review_json)
 
-		if ( !is.null(review_data$synopsis) & !is.null(review_data$entity) ) {
+		if ( !is.null(review_data$synopsis) & !is.null(review_data$entity_id) & nchar(review_data$synopsis) > 0 ) {
 
 			# convert phenotypes to tibble
 			phenotypes_received <- as_tibble(review_data$phenotypes)
 
 			# convert publications to tibble
 			if ( length(compact(review_data$literature)) > 0 ) {
-				publications_received <- as_tibble(compact(review_data$literature)) %>% 
-					pivot_longer(everything(), names_to = "publication_type", values_to = "publication_id") %>%
+				publications_received <- bind_rows(as_tibble(compact(review_data$literature$additional_references)), as_tibble(compact(review_data$literature$gene_review)), .id = "publication_type") %>% 
+					select(publication_id = value, publication_type) %>%
+					mutate(publication_type = case_when(
+					  publication_type == 1 ~ "additional_references",
+					  publication_type == 2 ~ "gene_review"
+					)) %>%
 					unique() %>%
 					select(publication_id, publication_type) %>%
 					arrange(publication_id)
+
 			} else {
 				publications_received <- as_tibble_row(c(publication_id = NA, publication_type = NA))
 			}
 
-			sysnopsis_received <- as_tibble(review_data$synopsis) %>% 
-				add_column(review_data$entity) %>% 
-				add_column(review_data$comment) %>% 
-				add_column(review_user_id) %>% 
-				select(entity_id = `review_data$entity`, synopsis = value, review_user_id, comment = `review_data$comment`)
+			# convert sysnopsis to tibble, check if comment is null and handle
+			if ( !is.null(review_data$comment) ) {
+				sysnopsis_received <- as_tibble(review_data$synopsis) %>% 
+					add_column(review_data$entity_id) %>% 
+					add_column(review_data$comment) %>% 
+					add_column(review_user_id) %>% 
+					select(entity_id = `review_data$entity_id`, synopsis = value, review_user_id, comment = `review_data$comment`)
+			} else {
+				sysnopsis_received <- as_tibble(review_data$synopsis) %>% 
+					add_column(review_data$entity_id) %>%
+					add_column(review_user_id) %>% 
+					select(entity_id = `review_data$entity_id`, synopsis = value, review_user_id, comment = NULL)
+			}
 
 			# connect to database
 			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
@@ -788,8 +801,8 @@ function(req, res, review_json) {
 			# prepare phenotype tibble for submission
 			phenotypes_submission <- phenotypes_received %>% 
 				add_column(submitted_review_id$review_id) %>% 
-				add_column(review_data$entity) %>% 
-				select(review_id = `submitted_review_id$review_id`, phenotype_id, entity_id = `review_data$entity`, modifier_id)
+				add_column(review_data$entity_id) %>% 
+				select(review_id = `submitted_review_id$review_id`, phenotype_id, entity_id = `review_data$entity_id`, modifier_id)
 
 			# submit phenotypes from new review to database
 			dbAppendTable(sysndd_db, "ndd_review_phenotype_connect", phenotypes_submission)
@@ -797,8 +810,8 @@ function(req, res, review_json) {
 			# prepare publications tibble for submission
 			publications_submission <- publications_received %>% 
 				add_column(submitted_review_id$review_id) %>% 
-				add_column(review_data$entity) %>% 
-				select(review_id = `submitted_review_id$review_id`, entity_id = `review_data$entity`, publication_id, publication_type)
+				add_column(review_data$entity_id) %>% 
+				select(review_id = `submitted_review_id$review_id`, entity_id = `review_data$entity_id`, publication_id, publication_type)
 
 			# submit publications from new review to database	
 			dbAppendTable(sysndd_db, "ndd_review_publication_join", publications_submission)
@@ -811,7 +824,7 @@ function(req, res, review_json) {
 			
 		} else {
 			res$status <- 400 # Bad Request
-			return(list(error="Submitted data can not be null."))
+			return(list(error="Submitted synopsis data can not be empty."))
 		}
 
 	} else {
@@ -835,9 +848,17 @@ function(req, res, status_json) {
 
 		if ( !is.null(status_data$category) | !is.null(status_data$problematic)) {
 
-			status_received <- as_tibble(status_data) %>% 
-				add_column(status_user_id) %>% 
-				select(-re_review_entity_id)
+			# convert status data to tibble, check if comment is null and handle
+			if ( !is.null(status_data$comment) ) {
+				status_received <- as_tibble(status_data) %>% 
+					add_column(status_user_id) %>% 
+					select(-re_review_entity_id)
+			} else {
+				status_data$comment <- ""
+				status_received <- as_tibble(status_data) %>% 
+					add_column(status_user_id) %>% 
+					select(-re_review_entity_id, -comment)
+			}
 
 			# connect to database
 			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)

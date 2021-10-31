@@ -673,6 +673,7 @@ export default {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/review?review_json=';
           try {
             let submission_json = JSON.stringify(submission);
+            console.log(submission_json);
             let response = await this.axios.post(apiUrl + submission_json, {}, {
               headers: {
                 'Authorization': 'Bearer ' + localStorage.getItem('token')
