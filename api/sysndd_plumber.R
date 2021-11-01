@@ -836,9 +836,10 @@ function(req, res, review_json) {
 
 #* @tag reviews
 ## post a new status for a entity_id in re-review mode
-## example data: '{"re_review_entity_id":3,"entity_id":3,"problematic":1,"comment":"fsa"}'
+## example data: '{"re_review_entity_id":3,"entity_id":3,"comment":"fsa","problematic": true}'
 #* @serializer json list(na="string")
 #' @post /api/re_review/status
+#' @put /api/re_review/status
 function(req, res, status_json) {
 	# first check rights
 	if ( req$user_role %in% c("Admin", "Curator", "Reviewer") ) {
@@ -860,21 +861,49 @@ function(req, res, status_json) {
 					select(-re_review_entity_id, -comment)
 			}
 
-			# connect to database
-			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+			# check which request type was requested and perform database update accoringly
+			if ( req$REQUEST_METHOD == "POST") {
+				# connect to database
+				sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
-			# submit the new status and disconnect from database and get the id of the last insert for association with other tables
-			dbAppendTable(sysndd_db, "ndd_entity_status", status_received)
-			submitted_status_id <- dbGetQuery(sysndd_db, "SELECT LAST_INSERT_ID();") %>% 
-				as_tibble() %>% 
-				select(status_id = `LAST_INSERT_ID()`)		
+				# submit the new status and disconnect from database and get the id of the last insert for association with other tables
+				dbAppendTable(sysndd_db, "ndd_entity_status", status_received)
+				submitted_status_id <- dbGetQuery(sysndd_db, "SELECT LAST_INSERT_ID();") %>% 
+					as_tibble() %>% 
+					select(status_id = `LAST_INSERT_ID()`)		
 
-			# execute update query for re_review_entity_connect saving status and status_id
-			dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET ", "re_review_saved=1, ", "status_id=", submitted_status_id$status_id, " WHERE re_review_entity_id = ", status_data$re_review_entity_id, ";"))
-	
-			# disconnect from database
-			dbDisconnect(sysndd_db)
-				
+				# execute update query for re_review_entity_connect saving status and status_id
+				dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET ", "re_review_saved=1, ", "status_id=", submitted_status_id$status_id, " WHERE re_review_entity_id = ", status_data$re_review_entity_id, ";"))
+		
+				# disconnect from database
+				dbDisconnect(sysndd_db)
+			} else if ( req$REQUEST_METHOD == "PUT") {
+				# connect to database
+				sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+				# get the status_id using the re_review_entity_id
+				status_id <- (pool %>% 
+					tbl("re_review_entity_connect") %>%
+					collect() %>%
+					filter(re_review_entity_id %in% status_data$re_review_entity_id))$status_id
+
+				# generate update query
+				update_query <- as_tibble(status_received) %>%
+					mutate(row = row_number()) %>%  
+					mutate(across(where(is.logical), as.integer)) %>%
+					mutate(across(where(is.numeric), as.character)) %>%
+					pivot_longer(-row) %>% 
+					mutate(query = paste0(name, "='", value, "'")) %>% 
+					select(query) %>% 
+					summarise(query = str_c(query, collapse = ", "))
+					
+				# submit the new status and disconnect from database and get the id of the last insert for association with other tables					
+				dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET ", update_query, " WHERE status_id = ", status_id, ";"))
+		
+				# disconnect from database
+				dbDisconnect(sysndd_db)
+			}
+
 		} else {
 			res$status <- 400 # Bad Request
 			return(list(error="Submitted data can not be null."))

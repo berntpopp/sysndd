@@ -712,15 +712,31 @@ export default {
         },
         async submitStatus(status) {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/status?status_json=';
-          try {
-            let status_json = JSON.stringify(status);
-            let response = await this.axios.post(apiUrl + status_json, {}, {
-              headers: {
-                'Authorization': 'Bearer ' + localStorage.getItem('token')
-              }
-            });
-          } catch (e) {
-            console.error(e);
+
+          console.log(status);
+          
+          if (this.entity[0].re_review_saved === 1) {
+            try {
+              let status_json = JSON.stringify(status);
+              let response = await this.axios.put(apiUrl + status_json, {}, {
+                headers: {
+                  'Authorization': 'Bearer ' + localStorage.getItem('token')
+                }
+              });
+            } catch (e) {
+              console.error(e);
+            }
+          } else {
+            try {
+              let status_json = JSON.stringify(status);
+              let response = await this.axios.post(apiUrl + status_json, {}, {
+                headers: {
+                  'Authorization': 'Bearer ' + localStorage.getItem('token')
+                }
+              });
+            } catch (e) {
+              console.error(e);
+            }
           }
         },
         handleStatusOk(bvModalEvt) {
