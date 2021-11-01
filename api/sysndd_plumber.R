@@ -709,9 +709,10 @@ function(review_requested) {
 
 #* @tag reviews
 ## post a new clinical synopsis for a entity_id in re-review mode
-## example data: {"re_review_entity_id":1, "entity": 1, "synopsis": "activating, gain-of-function mutations: congenital hypertrichosis, neonatal macrosomia, distinct osteochondrodysplasia, cardiomegaly; activating mutations", "literature": {"additional_references": ["PMID:22608503", "PMID:22610116"], "gene_review": ["PMID:25275207"]}, "phenotypes": {"phenotype_id": ["HP:0000256", "HP:0000924", "HP:0001256", "HP:0001574", "HP:0001627", "HP:0002342"], "modifier_id": [1,1,1,1,1,1]}, "comment": ""}
+## example data: {"re_review_entity_id":1, "entity_id": 1, "synopsis": "activating, gain-of-function mutations: congenital hypertrichosis, neonatal macrosomia, distinct osteochondrodysplasia, cardiomegaly; activating mutations", "literature": {"additional_references": ["PMID:22608503", "PMID:22610116"], "gene_review": ["PMID:25275207"]}, "phenotypes": {"phenotype_id": ["HP:0000256", "HP:0000924", "HP:0001256", "HP:0001574", "HP:0001627", "HP:0002342"], "modifier_id": [1,1,1,1,1,1]}, "comment": ""}
 #* @serializer json list(na="string")
 #' @post /api/re_review/review
+#' @put /api/re_review/review
 function(req, res, review_json) {
 	# first check rights
 	if ( req$user_role %in% c("Admin", "Curator", "Reviewer") ) {
@@ -754,11 +755,10 @@ function(req, res, review_json) {
 					select(entity_id = `review_data$entity_id`, synopsis = value, review_user_id, comment = NULL)
 			}
 
-			# connect to database
-			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-
+			##-------------------------------------------------------------------##
 			# get allowed HPO terms
-			phenotype_list_collected <- tbl(sysndd_db, "phenotype_list") %>%
+			phenotype_list_collected <- pool %>%
+				tbl("phenotype_list") %>%
 				select(phenotype_id) %>%
 				arrange(HPO_term) %>%
 				collect()
@@ -776,7 +776,8 @@ function(req, res, review_json) {
 			}
 
 			# get existing PMIDs
-			publications_list_collected <- tbl(sysndd_db, "publication") %>%
+			publications_list_collected <- pool %>%
+				tbl("publication") %>%
 				select(publication_id) %>%
 				arrange(publication_id) %>%
 				collect()
@@ -786,42 +787,133 @@ function(req, res, review_json) {
 				mutate(present = publication_id %in% publications_list_collected$publication_id) %>%
 				filter(!present & !is.na(publication_id)) %>%
 				select(-present)
+			##-------------------------------------------------------------------##
 
-			# add new publications to database table "publication" if present and not NA
-			if (nrow(publications_new) > 0) {
-				dbAppendTable(sysndd_db, "publication", publications_new)
+			##-------------------------------------------------------------------##
+			# check which request type was requested and perform database update accoringly
+			if ( req$REQUEST_METHOD == "POST") {
+				##-------------------------------------------------------------------##
+				## for the post request we connect to the database and then add new publications, the new synopis and the associate the synopis with phenotypesa nd publications
+				# connect to database
+				sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+				# add new publications to database table "publication" if present and not NA
+				if (nrow(publications_new) > 0) {
+					dbAppendTable(sysndd_db, "publication", publications_new)
+				}
+
+				# submit the new synopsis and get the id of the last insert for association with other tables
+				dbAppendTable(sysndd_db, "ndd_entity_review", sysnopsis_received)
+				submitted_review_id <- dbGetQuery(sysndd_db, "SELECT LAST_INSERT_ID();") %>% 
+					as_tibble() %>% 
+					select(review_id = `LAST_INSERT_ID()`)
+
+				# prepare phenotype tibble for submission
+				phenotypes_submission <- phenotypes_received %>% 
+					add_column(submitted_review_id$review_id) %>% 
+					add_column(review_data$entity_id) %>% 
+					select(review_id = `submitted_review_id$review_id`, phenotype_id, entity_id = `review_data$entity_id`, modifier_id)
+
+				# submit phenotypes from new review to database
+				dbAppendTable(sysndd_db, "ndd_review_phenotype_connect", phenotypes_submission)
+
+				# prepare publications tibble for submission
+				publications_submission <- publications_received %>% 
+					add_column(submitted_review_id$review_id) %>% 
+					add_column(review_data$entity_id) %>% 
+					select(review_id = `submitted_review_id$review_id`, entity_id = `review_data$entity_id`, publication_id, publication_type)
+
+				# submit publications from new review to database	
+				dbAppendTable(sysndd_db, "ndd_review_publication_join", publications_submission)
+
+				# execute update query for re_review_entity_connect saving status and review_id
+				dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET ", "re_review_saved=1, ", "review_id=", submitted_review_id$review_id, " WHERE re_review_entity_id = ", review_data$re_review_entity_id, ";"))
+
+				# disconnect from database
+				dbDisconnect(sysndd_db)
+				##-------------------------------------------------------------------##
+				
+			} else if ( req$REQUEST_METHOD == "PUT") {
+				##-------------------------------------------------------------------##
+				## for the put request we first find the review_id saved in the re_review, delte assocaited phenoytpe and publication connections and publications associated only in that review then proceed to update the review and make new connections
+				
+				# get the review_id using the re_review_entity_id
+				review_id_from_re_review_entity_id <- (pool %>% 
+					tbl("re_review_entity_connect") %>%
+					collect() %>%
+					filter(re_review_entity_id %in% review_data$re_review_entity_id))$review_id
+
+				# compute publications only present in the former review which are to be deleted before adding the new publications to the review
+				ndd_review_publication_join <- pool %>% 
+					tbl("ndd_review_publication_join") %>%
+					collect() 
+				ndd_review_publication_join_count <-ndd_review_publication_join %>%
+					select(publication_id) %>%
+					group_by(publication_id) %>%
+					mutate(count = n()) %>%
+					ungroup() %>%
+					unique()
+				publication_id_to_purge <- (ndd_review_publication_join %>%
+					left_join(ndd_review_publication_join_count, by = c("publication_id")) %>%
+					filter(review_id %in% review_id_from_re_review_entity_id) %>%
+					filter(count == 1) %>%
+					mutate(publication_id = paste0("'", publication_id, "'")))$publication_id
+
+				# connect to database
+				sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+				
+				# delete old phenotype connections for review_id first
+				dbExecute(sysndd_db, paste0("DELETE FROM ndd_review_phenotype_connect WHERE review_id = ", review_id_from_re_review_entity_id, ";"))
+				
+				# delete old publication connections for review_id second
+				dbExecute(sysndd_db, paste0("DELETE FROM ndd_review_publication_join WHERE review_id = ", review_id_from_re_review_entity_id, ";"))
+				
+				# delete old publications if only present in previous version of this review
+				if (length(publication_id_to_purge) > 0) {
+				dbExecute(sysndd_db, paste0("DELETE FROM ndd_review_publication_join WHERE publication_id IN (", str_c(publication_id_to_purge, collapse=", "), ");"))
+				
+				# add new publications to database table "publication" if present and not NA
+				if (nrow(publications_new) > 0) {
+					dbAppendTable(sysndd_db, "publication", publications_new)
+				}
+
+				# prepare phenotype tibble for submission
+				phenotypes_submission <- phenotypes_received %>% 
+					add_column(review_id_from_re_review_entity_id) %>% 
+					add_column(review_data$entity_id) %>% 
+					select(review_id = review_id_from_re_review_entity_id, phenotype_id, entity_id = `review_data$entity_id`, modifier_id)
+
+				# submit phenotypes from new review to database
+				dbAppendTable(sysndd_db, "ndd_review_phenotype_connect", phenotypes_submission)
+
+				# prepare publications tibble for submission
+				publications_submission <- publications_received %>% 
+					add_column(review_id_from_re_review_entity_id) %>% 
+					add_column(review_data$entity_id) %>% 
+					select(review_id = review_id_from_re_review_entity_id, entity_id = `review_data$entity_id`, publication_id, publication_type)
+
+				# submit publications from new review to database	
+				dbAppendTable(sysndd_db, "ndd_review_publication_join", publications_submission)
+
+				# generate update query
+				update_query <- as_tibble(sysnopsis_received) %>%
+					mutate(row = row_number()) %>%  
+					mutate(across(where(is.logical), as.integer)) %>%
+					mutate(across(where(is.numeric), as.character)) %>%
+					pivot_longer(-row) %>% 
+					mutate(query = paste0(name, "='", value, "'")) %>% 
+					select(query) %>% 
+					summarise(query = str_c(query, collapse = ", "))
+
+				# submit the new review
+				dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET ", update_query, " WHERE review_id = ", review_id_from_re_review_entity_id, ";"))
+				
+				# disconnect from database
+				dbDisconnect(sysndd_db)
+				##-------------------------------------------------------------------##
+				}
 			}
-
-			# submit the new synopsis and get the id of the last insert for association with other tables
-			dbAppendTable(sysndd_db, "ndd_entity_review", sysnopsis_received)
-			submitted_review_id <- dbGetQuery(sysndd_db, "SELECT LAST_INSERT_ID();") %>% 
-				as_tibble() %>% 
-				select(review_id = `LAST_INSERT_ID()`)
-
-			# prepare phenotype tibble for submission
-			phenotypes_submission <- phenotypes_received %>% 
-				add_column(submitted_review_id$review_id) %>% 
-				add_column(review_data$entity_id) %>% 
-				select(review_id = `submitted_review_id$review_id`, phenotype_id, entity_id = `review_data$entity_id`, modifier_id)
-
-			# submit phenotypes from new review to database
-			dbAppendTable(sysndd_db, "ndd_review_phenotype_connect", phenotypes_submission)
-
-			# prepare publications tibble for submission
-			publications_submission <- publications_received %>% 
-				add_column(submitted_review_id$review_id) %>% 
-				add_column(review_data$entity_id) %>% 
-				select(review_id = `submitted_review_id$review_id`, entity_id = `review_data$entity_id`, publication_id, publication_type)
-
-			# submit publications from new review to database	
-			dbAppendTable(sysndd_db, "ndd_review_publication_join", publications_submission)
-
-			# execute update query for re_review_entity_connect saving status and review_id
-			dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET ", "re_review_saved=1, ", "review_id=", submitted_review_id$review_id, " WHERE re_review_entity_id = ", review_data$re_review_entity_id, ";"))
-
-			# disconnect from database
-			dbDisconnect(sysndd_db)
-			
+			##-------------------------------------------------------------------##
 		} else {
 			res$status <- 400 # Bad Request
 			return(list(error="Submitted synopsis data can not be empty."))
@@ -878,9 +970,6 @@ function(req, res, status_json) {
 				# disconnect from database
 				dbDisconnect(sysndd_db)
 			} else if ( req$REQUEST_METHOD == "PUT") {
-				# connect to database
-				sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-
 				# get the status_id using the re_review_entity_id
 				status_id <- (pool %>% 
 					tbl("re_review_entity_connect") %>%
@@ -895,9 +984,12 @@ function(req, res, status_json) {
 					pivot_longer(-row) %>% 
 					mutate(query = paste0(name, "='", value, "'")) %>% 
 					select(query) %>% 
-					summarise(query = str_c(query, collapse = ", "))
+					summarise(query = str_c(query, collapse = ", "))	
 					
-				# submit the new status and disconnect from database and get the id of the last insert for association with other tables					
+				# connect to database
+				sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+				# submit the new status
 				dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET ", update_query, " WHERE status_id = ", status_id, ";"))
 		
 				# disconnect from database

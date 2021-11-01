@@ -671,16 +671,33 @@ export default {
         },
         async submitReview(submission) {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/review?review_json=';
-          try {
-            let submission_json = JSON.stringify(submission);
-            console.log(submission_json);
-            let response = await this.axios.post(apiUrl + submission_json, {}, {
-              headers: {
-                'Authorization': 'Bearer ' + localStorage.getItem('token')
-              }
-            });
-          } catch (e) {
-            console.error(e);
+
+          console.log(submission);
+          
+          if (this.entity[0].re_review_saved === 1) {
+            try {
+              let submission_json = JSON.stringify(submission);
+              console.log(submission_json);
+              let response = await this.axios.put(apiUrl + submission_json, {}, {
+                headers: {
+                  'Authorization': 'Bearer ' + localStorage.getItem('token')
+                }
+              });
+            } catch (e) {
+              console.error(e);
+            }
+          } else {
+            try {
+              let submission_json = JSON.stringify(submission);
+              console.log(submission_json);
+              let response = await this.axios.post(apiUrl + submission_json, {}, {
+                headers: {
+                  'Authorization': 'Bearer ' + localStorage.getItem('token')
+                }
+              });
+            } catch (e) {
+              console.error(e);
+            }
           }
         },
         handleReviewOk(bvModalEvt) {
