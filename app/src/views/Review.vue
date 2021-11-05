@@ -97,11 +97,17 @@
                 size="sm" 
                 @click="infoReview(row.item, row.index, $event.target)" 
                 class="mr-1"
+                variant="secondary"
                 v-b-tooltip.hover.left 
                 title="new review"
                 >
-                  <b-icon icon="pen"></b-icon>
+                  <b-icon 
+                  icon="pen"
+                  :variant="review_style[saved(row.item.review_id)]"
+                  >
+                  </b-icon>
               </b-button>
+
               <b-button 
                 size="sm" 
                 @click="infoStatus(row.item, row.index, $event.target)" 
@@ -110,13 +116,18 @@
                 v-b-tooltip.hover.top 
                 title="edit status"
                 >
-                  <b-icon icon="stoplights"></b-icon>
+                  <b-icon 
+                  icon="stoplights"
+                  :variant="status_style[saved(row.item.status_id)]"
+                  >
+                  </b-icon>
               </b-button>
+              
               <b-button 
                 size="sm" 
                 @click="infoSubmit(row.item, row.index, $event.target)" 
                 class="mr-1"
-                :variant="pencil_style[row.item.re_review_saved]"
+                :variant="saved_style[row.item.re_review_saved]"
                 v-b-tooltip.hover.right 
                 title="submit entity review"
               >
@@ -173,8 +184,9 @@
             </b-badge>
           </h4>
         </template>
-
-      <b-spinner label="Loading..." v-if="loading_review_modal" class="float-center m-5"></b-spinner>
+      <b-container fluid v-if="loading_review_modal">
+        <b-spinner label="Loading..." class="float-center"></b-spinner>
+      </b-container>
       <b-container fluid v-else>
 
         <form ref="form" @submit.stop.prevent="handleSubmit">
@@ -404,8 +416,10 @@ export default {
   name: 'Review',
   data() {
         return {
-          stoplights_style: {"1": "success", 2: "primary", 3: "warning", 4: "danger"},
-          pencil_style: {0: "secondary", "1": "info"},
+          stoplights_style: {1: "success", 2: "primary", 3: "warning", 4: "danger"},
+          saved_style: {0: "secondary", 1: "info"},
+          review_style: {0: "light", 1: "dark"},
+          status_style: {0: "light", 1: "dark"},
           items: [],
           fields: [
             { key: 'entity_id', label: 'Entity', sortable: true, sortDirection: 'desc', class: 'text-left' },
@@ -804,6 +818,17 @@ export default {
         tagValidatorPMID(tag) {
           // Individual PMID tag validator function
           return !isNaN(Number(tag.replace('PMID:', ''))) && tag.includes('PMID:') && tag.replace('PMID:', '').length > 4 && tag.replace('PMID:', '').length < 10;
+        },
+        saved(any_id) {
+          // check if id is new
+          let number_return = 0;
+          if (any_id <= 3490) {
+            number_return = 0;
+          } else 
+          {
+            number_return = 1;
+          }
+          return number_return;
         },
         truncate(str, n) {
           return (str.length > n) ? str.substr(0, n-1) + '...' : str;
