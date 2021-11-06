@@ -2252,7 +2252,7 @@ function(searchterm, helper = TRUE) {
 #' @get /api/auth/signup
 function(signup_data) {
 	user <- as_tibble(fromJSON(signup_data)) %>%
-		select(user_name, first_name, family_name, email, orcid)
+		select(user_name, first_name, family_name, email, orcid, comment)
 
 	# connect to database
 	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)

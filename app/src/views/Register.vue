@@ -112,9 +112,20 @@ export default {
   methods: {
     async sendRegistration() {
 
-        console.log(this.registration_form);
+    console.log(JSON.stringify(this.registration_form));
 
-      }, 
+    let apiUrl = process.env.VUE_APP_API_URL + '/api/auth/signup?signup_data=' ;
+
+      try {
+        let submission_json = JSON.stringify(this.registration_form);
+        console.log(submission_json);
+        let response = await this.axios.get(apiUrl + submission_json, {} );
+        console.log(response);
+      } catch (e) {
+        console.error(e);
+      }
+
+    }, 
     onSubmit(event) {
       event.preventDefault();
       this.sendRegistration();

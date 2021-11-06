@@ -812,8 +812,6 @@ export default {
         },
         async submitReview(submission) {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/review?review_json=';
-
-          console.log(submission);
           
           if (this.entity[0].re_review_saved === 1) {
             try {
