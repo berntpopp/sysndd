@@ -285,8 +285,6 @@ function(req, res) {
 	# load secret and convert to raw
 	key <- charToRaw(dw$secret)
 
-print(req$HTTP_AUTHORIZATION)
-
 	if (req$REQUEST_METHOD == "GET" & is.null(req$HTTP_AUTHORIZATION)) {
 		plumber::forward()
 	} else if (req$REQUEST_METHOD == "GET" & !is.null(req$HTTP_AUTHORIZATION)) {

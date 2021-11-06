@@ -8,9 +8,14 @@
           <div>
           <b-tabs content-class="mt-3" v-model="tabIndex">
 
-            
-            <b-tab title="Entity new" active>
+            <b-tab title="New entity" active>
               <b-spinner label="Loading..." v-if="loadingEntityNew" class="float-center m-5"></b-spinner>
+              <b-container fluid v-else>
+              </b-container>
+            </b-tab>
+
+            <b-tab title="Modify entity">
+              <b-spinner label="Loading..." v-if="loadingEntityModify" class="float-center m-5"></b-spinner>
               <b-container fluid v-else>
               </b-container>
             </b-tab>
@@ -50,9 +55,11 @@ export default {
     data() {
       return {
         loadingEntityNew: true,
+        loadingEntityModify: true,
         loadingReviewApprove: true,
         loadingStatusApprove: true,
-        loadingUsersApprove: true
+        loadingUsersApprove: true,
+        tabIndex: 0
       };
     }
   }
