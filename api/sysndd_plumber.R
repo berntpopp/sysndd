@@ -1045,26 +1045,101 @@ function(req, res, submit_json) {
 
 
 #* @tag reviews
-## get the re-review overview table for the user logged in
+## put the re-review status and review approvement (only Admin and Curator status users)
 #* @serializer json list(na="string")
-#' @get /api/re_review_table
-function(req, res) {
+#' @put /api/re_review/approve/<re_review_id>
+function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
+	status_ok <- as.logical(status_ok)
+	review_ok <- as.logical(review_ok)
+	
 	# first check rights
 	if ( length(req$user_id) == 0) {
 	
 		res$status <- 401 # Unauthorized
 		return(list(error="Please authenticate."))
 
-	} else if ( req$user_role %in% c("Admin", "Curator", "Reviewer") ) {
+	} else if ( req$user_role %in% c("Admin", "Curator") ) {
+				
+		submit_user_id <- req$user_id
+		re_review_id <- as.integer(re_review_id)
+		
+		# get table data from database
+		re_review_entity_connect_data <- pool %>% 
+			tbl("re_review_entity_connect") %>%
+			filter(re_review_entity_id == re_review_id) %>%
+			collect()
+		
+		# connect to database
+		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+		# set status if confirmed
+		if ( status_ok ) {
+			# reset all stati in ndd_entity_status to inactive
+			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET is_active = 0 WHERE entity_id = ", re_review_entity_connect_data$entity_id, ";"))
+
+			# set status of the new status from re_review_entity_connect to active, add approving_user_id and set approved status to approved
+			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET is_active = 1 WHERE status_id = ", re_review_entity_connect_data$status_id, ";"))
+			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET approving_user_id = ", submit_user_id, " WHERE status_id = ", re_review_entity_connect_data$status_id, ";"))
+			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET status_approved = 1 WHERE status_id = ", re_review_entity_connect_data$status_id, ";"))
+		} else {
+			# add approving_user_id and set approved status to unapproved
+			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET approving_user_id = ", submit_user_id, " WHERE status_id = ", re_review_entity_connect_data$status_id, ";"))
+			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET status_approved = 0 WHERE status_id = ", re_review_entity_connect_data$status_id, ";"))
+		}
+
+		# set review if confirmed
+		if ( review_ok ) {
+			# reset all reviews in ndd_entity_review to not primary
+			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET is_primary = 0 WHERE entity_id = ", re_review_entity_connect_data$entity_id, ";"))
+
+			# set the new review from re_review_entity_connect to primary, add approving_user_id and set approved status to approved
+			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET is_primary = 1 WHERE review_id = ", re_review_entity_connect_data$review_id, ";"))
+			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET approving_user_id = ", submit_user_id, " WHERE review_id = ", re_review_entity_connect_data$review_id, ";"))
+			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET review_approved = 1 WHERE review_id = ", re_review_entity_connect_data$review_id, ";"))
+		} else {
+			# add approving_user_id and set approved status to unapproved
+			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET approving_user_id = ", submit_user_id, " WHERE review_id = ", re_review_entity_connect_data$review_id, ";"))
+			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET review_approved = 0 WHERE review_id = ", re_review_entity_connect_data$review_id, ";"))
+		}
+
+		# set re_review_approved status to yes and add approving_user_id
+		dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET re_review_approved = 1 WHERE re_review_entity_id = ", re_review_id, ";"))
+		dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET approving_user_id = ", submit_user_id, " WHERE re_review_entity_id = ", re_review_id, ";"))	
+
+		# disconnect from database
+		dbDisconnect(sysndd_db)
+		
+	} else {
+		res$status <- 403 # Forbidden
+		return(list(error="Write access forbidden."))
+	}
+}
+
+#* @tag reviews
+## get the re-review overview table for the user logged in
+#* @serializer json list(na="string")
+#' @get /api/re_review_table
+function(req, res, curate=FALSE) {
+	curate <- as.logical(curate)
+
+	# first check rights
+	if ( length(req$user_id) == 0) {
+	
+		res$status <- 401 # Unauthorized
+		return(list(error="Please authenticate."))
+
+	} else if ( (req$user_role %in% c("Admin", "Curator", "Reviewer") & !curate ) | (req$user_role %in% c("Admin", "Curator") & curate ) ) {
 						
 		user <- req$user_id
 
 		# get table data from database and filter
 		re_review_entity_connect <- pool %>% 
-			tbl("re_review_entity_connect")
+			tbl("re_review_entity_connect") %>%
+			filter(re_review_approved == 0) %>%
+			{if(curate) filter(., re_review_submitted == 1) else filter(., re_review_submitted == 0)}
 		re_review_assignment <- pool %>% 
-			tbl("re_review_assignment") %>%
-			filter(user_id == user)
+			tbl("re_review_assignment") %>% 
+			{if(!curate) filter(., user_id == user) else .}
 		ndd_entity_view <- pool %>% 
 			tbl("ndd_entity_view")
 		ndd_entity_status_category <- pool %>% 
@@ -1076,7 +1151,6 @@ function(req, res) {
 		# join and collect
 		re_review_user_list <- re_review_entity_connect %>%
 			inner_join(re_review_assignment, by = c("re_review_batch")) %>%
-			filter(re_review_submitted == 0) %>%
 			select(re_review_entity_id, entity_id, re_review_saved, re_review_submitted, status_id, review_id) %>%
 			inner_join(ndd_entity_view, by = c("entity_id")) %>%
 			select(-category_id, -category) %>%
@@ -1088,7 +1162,7 @@ function(req, res) {
 
 	} else {
 		res$status <- 403 # Forbidden
-		return(list(error="Write access forbidden."))
+		return(list(error="Read access forbidden."))
 	}
 }
 

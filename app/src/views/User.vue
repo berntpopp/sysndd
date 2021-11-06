@@ -11,24 +11,24 @@
               <b-card-body>
                 <b-card-title>
                   <b-avatar variant="primary" class="justify-content-md-center" size="4rem">
-                    {{ this.user.abbreviation[0] }}
+                    {{ user.abbreviation[0] }}
                   </b-avatar>
                 </b-card-title>
 
                 <b-list-group flush>
-                  <b-list-group-item>Username: <b-badge variant="info">  {{ this.user.user_name[0] }} </b-badge> </b-list-group-item>
-                  <b-list-group-item>Role: <b-badge variant="info">  {{ this.user.user_role[0] }} </b-badge> </b-list-group-item>
-                  <b-list-group-item>Account created: {{ this.user.user_created[0] }}</b-list-group-item>
-                  <b-list-group-item>E-Mail: {{ this.user.email[0] }}</b-list-group-item>
+                  <b-list-group-item>Username: <b-badge variant="info">  {{ user.user_name[0] }} </b-badge> </b-list-group-item>
+                  <b-list-group-item>Role: <b-badge variant="info">  {{ user.user_role[0] }} </b-badge> </b-list-group-item>
+                  <b-list-group-item>Account created: {{ user.user_created[0] }}</b-list-group-item>
+                  <b-list-group-item>E-Mail: {{ user.email[0] }}</b-list-group-item>
                   <b-list-group-item> 
                     ORCID:
-                    <b-link v-bind:href="'https://orcid.org/' + this.user.orcid[0]" target="_blank"> 
-                      {{ this.user.orcid[0] }}
+                    <b-link v-bind:href="'https://orcid.org/' + user.orcid[0]" target="_blank"> 
+                      {{ user.orcid[0] }}
                     </b-link>
                     </b-list-group-item>
                   <b-list-group-item>
                     Token expires: 
-                    <b-badge variant="info">{{this.time_to_logout}} min</b-badge>
+                    <b-badge variant="info">{{time_to_logout}} min</b-badge>
                     <b-badge @click="refreshWithJWT" href="#" variant="success" pill><b-icon icon="arrow-repeat" font-scale="1.0"></b-icon></b-badge>
                   </b-list-group-item>
                 </b-list-group>

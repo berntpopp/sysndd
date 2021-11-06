@@ -6,14 +6,35 @@
       <b-row class="justify-content-md-center py-2">
         <b-col col md="12">
 
-
           <!-- User Interface controls -->
           <b-card 
           header-tag="header"
           bg-variant="light"
+          :header-bg-variant="header_style[curation_selected]"
           >
           <template #header>
-            <h6 class="mb-1 text-left font-weight-bold">Re-review table <b-badge variant="info">Entities: {{totalRows}} </b-badge></h6>
+            <b-row>
+              <b-col>
+                <h6 class="mb-1 text-left font-weight-bold">
+                  Re-review table <b-badge variant="info">Entities: {{totalRows}} </b-badge>
+                </h6>
+              </b-col>
+              <b-col>
+                <h6 class="mb-1 text-righ font-weight-bold">
+                  <b-icon icon="person-circle" font-scale="1.0"></b-icon> <b-badge variant="info">  {{ user.user_name[0] }} </b-badge> <b-badge variant="info">  {{ user.user_role[0] }} </b-badge>
+                  <div class="custom-control custom-switch" v-if="curator_mode">
+                    <input 
+                      type="checkbox" 
+                      button-variant="info"
+                      class="custom-control-input" 
+                      id="curationSwitch"
+                      v-model="curation_selected"
+                    >
+                    <label class="custom-control-label" for="curationSwitch">Switch to curation</label>
+                  </div>
+                </h6>
+              </b-col>
+            </b-row>
           </template>
           <b-row>
             <b-col class="my-1">
@@ -123,6 +144,7 @@
                   </b-icon>
               </b-button>
               
+              <!-- Button for review mode -->
               <b-button 
                 size="sm" 
                 @click="infoSubmit(row.item, row.index, $event.target)" 
@@ -130,6 +152,20 @@
                 :variant="saved_style[row.item.re_review_saved]"
                 v-b-tooltip.hover.right 
                 title="submit entity review"
+                v-if="!curation_selected"
+              >
+                <b-icon icon="check2-circle"></b-icon>
+              </b-button>
+
+              <!-- Button for curation mode -->
+              <b-button 
+                size="sm" 
+                @click="infoApprove(row.item, row.index, $event.target)" 
+                class="mr-1"
+                variant="danger"
+                v-b-tooltip.hover.right 
+                title="approve entity review/status"
+                v-if="curation_selected"
               >
                 <b-icon icon="check2-circle"></b-icon>
               </b-button>
@@ -405,6 +441,53 @@
       </b-modal>
       <!-- 3) Submit modal -->
 
+
+      <!-- 4) Approve modal -->
+      <b-modal 
+      :id="approveModal.id" 
+      size="sm" 
+      centered 
+      ok-title="Approve selected" 
+      no-close-on-esc 
+      no-close-on-backdrop 
+      header-bg-variant="dark" 
+      header-text-variant="light" 
+      @ok="handleApproveOk"
+      >
+        <template #modal-title>
+          <h4>Entity: 
+            <b-badge variant="info">
+              {{ approveModal.title }}
+            </b-badge>
+          </h4>
+        </template>
+        What should be approved ?
+
+          <div class="custom-control custom-switch">
+          <input 
+            type="checkbox" 
+            button-variant="info"
+            class="custom-control-input" 
+            id="approveStatusSwitch"
+            v-model="status_approved"
+          >
+          <label class="custom-control-label" for="approveStatusSwitch">Status</label>
+          </div>
+
+          <div class="custom-control custom-switch">
+          <input 
+            type="checkbox" 
+            button-variant="info"
+            class="custom-control-input" 
+            id="approveReviewSwitch"
+            v-model="review_approved"
+          >
+          <label class="custom-control-label" for="approveReviewSwitch">Review</label>
+          </div>
+
+      </b-modal>
+      <!-- 4) Approve modal -->
+
     </b-container>
 
   </div>
@@ -420,6 +503,7 @@ export default {
           saved_style: {0: "secondary", 1: "info"},
           review_style: {0: "light", 1: "dark"},
           status_style: {0: "light", 1: "dark"},
+          header_style: {false: "light", true: "danger"},
           items: [],
           fields: [
             { key: 'entity_id', label: 'Entity', sortable: true, sortDirection: 'desc', class: 'text-left' },
@@ -464,6 +548,11 @@ export default {
           },
           submitModal: {
             id: 'submit-modal',
+            title: '',
+            content: []
+          },
+          approveModal: {
+            id: 'approve-modal',
             title: '',
             content: []
           },
@@ -512,8 +601,22 @@ export default {
           status_options: [],
           status_selected: 0,
           removal_selected: 0,
+          curation_selected: false,
+          review_approved: false,
+          status_approved: false,
+          curator_mode: 0,
           loading: true,
-          loading_review_modal: true
+          loading_review_modal: true,
+          user: {
+            "user_id": [],
+            "user_name": [],
+            "email": [],
+            "user_role": [],
+            "user_created": [],
+            "abbreviation": [],
+            "orcid": [],
+            "exp": []
+          }
         }
       },
       computed: {
@@ -526,8 +629,17 @@ export default {
             })
         }
       },
+      watch: { // used to reload table when switching curator mode
+      curation_selected: function(newVal, oldVal) { // watch it
+          console.log('Prop changed: ', newVal, ' | was: ', oldVal);
+          this.reloadReReviewData();
+        }
+      },
       mounted() {
-        // Set the initial number of items
+        if (localStorage.user) {
+        this.user = JSON.parse(localStorage.user);
+        this.curator_mode = (this.user.user_role[0] === 'Curator');
+        }
         this.loadReReviewData();
         this.loadPhenotypesList();
         this.loadStatusList();
@@ -553,6 +665,11 @@ export default {
           this.removal_selected = 0;
           this.status_comment = null;
         },
+        resetApproveModal() {
+          this.status_approved = false;
+          this.review_approved = false;
+          this.status_comment = null;
+        },
         infoReview(item, index, button) {
           this.reviewModal.title = `sysndd:${item.entity_id}`;
           this.entity = [];
@@ -573,6 +690,12 @@ export default {
           this.entity = [];
           this.entity.push(item);
           this.$root.$emit('bv::show::modal', this.submitModal.id, button);
+        },
+        infoApprove(item, index, button) {
+          this.approveModal.title = `sysndd:${item.entity_id}`;
+          this.entity = [];
+          this.entity.push(item);
+          this.$root.$emit('bv::show::modal', this.approveModal.id, button);
         },
         async loadReReviewData() {
           this.loading = true;
@@ -595,13 +718,16 @@ export default {
           this.loading = true;
 
           this.items = [];
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review_table';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review_table?curate=' + this.curation_selected;
           try {
             let response = await this.axios.get(apiUrl, {
               headers: {
                 'Authorization': 'Bearer ' + localStorage.getItem('token')
               }
             });
+
+            console.log(response.data);
+            console.log(this.curation_selected);
 
             this.items = response.data;
             this.totalRows = response.data.length;
@@ -791,8 +917,6 @@ export default {
           re_review_submission.re_review_entity_id = this.entity[0].re_review_entity_id;
           re_review_submission.re_review_submitted = 1;
 
-          console.log(JSON.stringify(re_review_submission));
-
           let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/submit?submit_json=';
           try {
             let submit_json = JSON.stringify(re_review_submission);
@@ -807,6 +931,24 @@ export default {
 
         this.reloadReReviewData();
         
+        },
+        async handleApproveOk(bvModalEvt) {
+
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/approve/' + this.entity[0].re_review_entity_id + '?status_ok=' + this.status_approved + '&review_ok=' + this.review_approved;
+          console.log(apiUrl);
+          try {
+            let response = await this.axios.put(apiUrl, {}, {
+              headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+              }
+            });
+          } catch (e) {
+            console.error(e);
+          }
+
+        this.resetApproveModal();
+        this.reloadReReviewData();
+
         },
         addTag(newTag) {
             const tag = {

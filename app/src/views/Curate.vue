@@ -3,7 +3,7 @@
     <b-container fluid>
 
       <b-row class="justify-content-md-center py-2">
-        <b-col col md="10">
+        <b-col col md="12">
 
           <div>
           <b-tabs content-class="mt-3" v-model="tabIndex">
@@ -33,12 +33,6 @@
               </b-container>
             </b-tab>
 
-            <b-tab title="Re-Review curation">
-              <b-spinner label="Loading..." v-if="loadingReReviewCuration" class="float-center m-5"></b-spinner>
-              <b-container fluid v-else>
-              </b-container>
-            </b-tab>
-
           </b-tabs>
           </div>
           
@@ -58,8 +52,7 @@ export default {
         loadingEntityNew: true,
         loadingReviewApprove: true,
         loadingStatusApprove: true,
-        loadingUsersApprove: true,
-        loadingReReviewCuration: true
+        loadingUsersApprove: true
       };
     }
   }
