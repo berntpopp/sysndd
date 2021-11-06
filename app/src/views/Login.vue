@@ -40,6 +40,8 @@
               </b-form-group>
               </b-form>
             
+              Don't have an account yet and want to help? <b-link v-bind:href="'/Register'">Register now.</b-link>
+
             </b-card-text>  
             </b-card>
           </b-col>
