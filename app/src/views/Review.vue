@@ -109,7 +109,7 @@
             striped
             hover
             sort-icon-left
-            empty-text="Apply for a new batch of entities."
+            :empty-text="empty_table_text[curation_selected]"
             @filtered="onFiltered"
           >
 
@@ -504,6 +504,7 @@ export default {
           review_style: {0: "light", 1: "dark"},
           status_style: {0: "light", 1: "dark"},
           header_style: {false: "light", true: "danger"},
+          empty_table_text: {false: "Apply for a new batch of entities.", true: "Nothing to review."},
           items: [],
           fields: [
             { key: 'entity_id', label: 'Entity', sortable: true, sortDirection: 'desc', class: 'text-left' },
@@ -638,7 +639,7 @@ export default {
       mounted() {
         if (localStorage.user) {
         this.user = JSON.parse(localStorage.user);
-        this.curator_mode = (this.user.user_role[0] === 'Curator');
+        this.curator_mode = (this.user.user_role[0] === 'Admin' | this.user.user_role[0] === 'Curator');
         }
         this.loadReReviewData();
         this.loadPhenotypesList();
