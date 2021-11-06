@@ -20,7 +20,7 @@
 
           <b-nav-item v-if="user && admin" href="/Admin">Admin</b-nav-item>
           <b-nav-item v-if="user && curate" href="/Curate">Curate</b-nav-item>
-          <b-nav-item v-if="user && review" href="/Review">Review</b-nav-item>
+          <b-nav-item v-if="user && review" href="/Review">Re-Review</b-nav-item>
           
           <b-nav-item-dropdown right v-if="user">
             <!-- Using 'button-content' slot -->

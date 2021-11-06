@@ -21,7 +21,7 @@
               </b-col>
               <b-col>
                 <h6 class="mb-1 text-righ font-weight-bold">
-                  <b-icon icon="person-circle" font-scale="1.0"></b-icon> <b-badge variant="info">  {{ user.user_name[0] }} </b-badge> <b-badge variant="info">  {{ user.user_role[0] }} </b-badge>
+                  <b-icon icon="person-circle" font-scale="1.0"></b-icon> <b-badge variant="info">  {{ user.user_name[0] }} </b-badge> <b-badge variant="info">  {{ user.user_role[0] }} </b-badge> <b-badge @click="newBatchApplication()" href="#" v-if="totalRows === 0 & (filter === null | filter === '') & !curation_selected" variant="warning" pill> New batch </b-badge>
                   <div class="custom-control custom-switch" v-if="curator_mode">
                     <input 
                       type="checkbox" 
@@ -90,7 +90,6 @@
 
 
 
-
           <!-- Main table element -->
           <b-table
             :items="items"
@@ -110,6 +109,7 @@
             striped
             hover
             sort-icon-left
+            empty-text="Apply for a new batch of entities."
             @filtered="onFiltered"
           >
 
@@ -950,13 +950,18 @@ export default {
         this.reloadReReviewData();
 
         },
+        newBatchApplication() {
+ 
+          console.log("Application send.");
+ 
+        },
         addTag(newTag) {
             const tag = {
               phenotype_id: newTag
             }
             this.options.push(tag);
             this.value.push(tag);
-          },
+        },
         tagValidatorPMID(tag) {
           // Individual PMID tag validator function
           return !isNaN(Number(tag.replace('PMID:', ''))) && tag.includes('PMID:') && tag.replace('PMID:', '').length > 4 && tag.replace('PMID:', '').length < 10;
