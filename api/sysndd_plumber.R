@@ -25,6 +25,7 @@ library(coop)
 library(reshape2)
 library(blastula)
 library(keyring)
+library(future)
 ##-------------------------------------------------------------------##
 
 
@@ -283,6 +284,8 @@ function(req, res) {
 function(req, res) {
 	# load secret and convert to raw
 	key <- charToRaw(dw$secret)
+
+print(req$HTTP_AUTHORIZATION)
 
 	if (req$REQUEST_METHOD == "GET" & is.null(req$HTTP_AUTHORIZATION)) {
 		plumber::forward()
