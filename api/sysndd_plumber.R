@@ -23,6 +23,8 @@ library(pool)
 library(memoise)
 library(coop)
 library(reshape2)
+library(blastula)
+library(keyring)
 ##-------------------------------------------------------------------##
 
 
@@ -42,6 +44,12 @@ pool <- dbPool(
   server = dw$server,
   port = dw$port
 )
+##-------------------------------------------------------------------##
+
+
+
+##-------------------------------------------------------------------##
+Sys.setenv(SMTP_PASSWORD = dw$mail_noreply_password)
 ##-------------------------------------------------------------------##
 
 
@@ -2238,18 +2246,40 @@ function(searchterm, helper = TRUE) {
 
 #* @tag authentication
 ## authentication create user
-## example data: {"user_name":"nextuser", "password":"pass", "email":"me@aol.com"}
+## example data: {"user_name":"nextuser4", "first_name":"Mark", "family_name":"Sugar", "email":"bernt.popp.md@gmail.com", "orcid":"0000-0002-3679-1081", "comment":"I love research"}
 #* @serializer json list(na="string")
-#' @post /api/auth/signup
+#' @get /api/auth/signup
 function(signup_data) {
 	user <- as_tibble(fromJSON(signup_data)) %>%
-		select(user_name, password, email)
+		select(user_name, first_name, family_name, email, orcid)
 
 	# connect to database
 	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
 	dbAppendTable(sysndd_db, "user", user)
 	dbDisconnect(sysndd_db)
+	
+	email <- compose_email(
+	  body = md(c(
+		 "Your registration request for sysndd.org has been send to the curators who will review it soon. Information provided:",
+		 user
+	  ))
+	)
+
+	email %>%
+	  smtp_send(
+		from = "noreply@sysndd.org",
+		to = user$email,
+		subject = "Your registration request to SysNDD.org",
+		credentials = creds_envvar(
+			pass_envvar = "SMTP_PASSWORD",
+			user = dw$mail_noreply_user,
+			host = dw$mail_noreply_host,
+			port = dw$mail_noreply_port,
+		use_ssl = dw$mail_noreply_use_ssl
+		)
+	  )
+	
 	res <- "Registered successfully!"
 }
 
@@ -2277,7 +2307,7 @@ function(req, res, user_name, password) {
 	# connect to database, find user in database and password is correct
 	user_filtered <- pool %>% 
 		tbl("user") %>%
-		filter(user_name == check_user & password == check_pass) %>%
+		filter(user_name == check_user & password == check_pass & approved == 1) %>%
 		select(-password) %>%
 		collect() %>%
 		mutate(iat = as.numeric(Sys.time())) %>%
