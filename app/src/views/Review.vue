@@ -149,7 +149,7 @@
                 size="sm" 
                 @click="infoSubmit(row.item, row.index, $event.target)" 
                 class="mr-1"
-                :variant="saved_style[row.item.re_review_saved]"
+                :variant="saved_style[row.item.re_review_review_saved]"
                 v-b-tooltip.hover.right 
                 title="submit entity review"
                 v-if="!curation_selected"
@@ -632,7 +632,7 @@ export default {
       },
       watch: { // used to reload table when switching curator mode
       curation_selected: function(newVal, oldVal) { // watch it
-          console.log('Prop changed: ', newVal, ' | was: ', oldVal);
+
           this.reloadReReviewData();
         }
       },
@@ -727,9 +727,6 @@ export default {
               }
             });
 
-            console.log(response.data);
-            console.log(this.curation_selected);
-
             this.items = response.data;
             this.totalRows = response.data.length;
           } catch (e) {
@@ -813,10 +810,10 @@ export default {
         async submitReview(submission) {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/review?review_json=';
           
-          if (this.entity[0].re_review_saved === 1) {
+          if (this.entity[0].re_review_review_saved === 1) {
             try {
               let submission_json = JSON.stringify(submission);
-              console.log(submission_json);
+
               let response = await this.axios.put(apiUrl + submission_json, {}, {
                 headers: {
                   'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -828,7 +825,7 @@ export default {
           } else {
             try {
               let submission_json = JSON.stringify(submission);
-              console.log(submission_json);
+
               let response = await this.axios.post(apiUrl + submission_json, {}, {
                 headers: {
                   'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -868,10 +865,8 @@ export default {
         },
         async submitStatus(status) {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/status?status_json=';
-
-          console.log(status);
           
-          if (this.entity[0].re_review_saved === 1) {
+          if (this.entity[0].re_review_status_saved === 1) {
             try {
               let status_json = JSON.stringify(status);
               let response = await this.axios.put(apiUrl + status_json, {}, {
@@ -934,7 +929,7 @@ export default {
         async handleApproveOk(bvModalEvt) {
 
           let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/approve/' + this.entity[0].re_review_entity_id + '?status_ok=' + this.status_approved + '&review_ok=' + this.review_approved;
-          console.log(apiUrl);
+
           try {
             let response = await this.axios.put(apiUrl, {}, {
               headers: {

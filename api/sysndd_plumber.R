@@ -836,7 +836,7 @@ function(req, res, review_json) {
 				dbAppendTable(sysndd_db, "ndd_review_publication_join", publications_submission)
 
 				# execute update query for re_review_entity_connect saving status and review_id
-				dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET ", "re_review_saved=1, ", "review_id=", submitted_review_id$review_id, " WHERE re_review_entity_id = ", review_data$re_review_entity_id, ";"))
+				dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET ", "re_review_review_saved = 1, ", "review_id=", submitted_review_id$review_id, " WHERE re_review_entity_id = ", review_data$re_review_entity_id, ";"))
 
 				# disconnect from database
 				dbDisconnect(sysndd_db)
@@ -974,7 +974,7 @@ function(req, res, status_json) {
 					select(status_id = `LAST_INSERT_ID()`)		
 
 				# execute update query for re_review_entity_connect saving status and status_id
-				dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET ", "re_review_saved=1, ", "status_id=", submitted_status_id$status_id, " WHERE re_review_entity_id = ", status_data$re_review_entity_id, ";"))
+				dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET ", "re_review_status_saved = 1, ", "status_id=", submitted_status_id$status_id, " WHERE re_review_entity_id = ", status_data$re_review_entity_id, ";"))
 		
 				# disconnect from database
 				dbDisconnect(sysndd_db)
@@ -1160,7 +1160,7 @@ function(req, res, curate=FALSE) {
 		# join and collect
 		re_review_user_list <- re_review_entity_connect %>%
 			inner_join(re_review_assignment, by = c("re_review_batch")) %>%
-			select(re_review_entity_id, entity_id, re_review_saved, re_review_submitted, status_id, review_id) %>%
+			select(re_review_entity_id, entity_id, re_review_review_saved, re_review_status_saved, re_review_submitted, status_id, review_id) %>%
 			inner_join(ndd_entity_view, by = c("entity_id")) %>%
 			select(-category_id, -category) %>%
 			inner_join(ndd_entity_status_category, by = c("status_id")) %>%

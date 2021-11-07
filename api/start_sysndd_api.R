@@ -11,5 +11,5 @@ root <- pr("sysndd_plumber.R") %>%
 			spec$security[[1]]$bearerAuth <- ""
 			spec
 		}) %>%
-        pr_run(host = "0.0.0.0", port = 7778) %>%
+        pr_run(host = "0.0.0.0", port = 7777) %>%
 		pr_hook("exit", function(){ poolClose(pool) })
