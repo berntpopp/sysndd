@@ -192,7 +192,18 @@
             <template #cell(hpo_mode_of_inheritance_term_name)="data">
                 <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.hpo_mode_of_inheritance_term">{{ data.item.hpo_mode_of_inheritance_term_name.replace(" inheritance", "") }}</div> 
             </template>
-            
+
+            <template #cell(ndd_phenotype)="data">
+              <div v-b-tooltip.hover.left v-bind:title="ndd_icon_text[data.item.ndd_phenotype]">
+                <b-icon 
+                :icon="ndd_icon[data.item.ndd_phenotype]"
+                :variant="ndd_icon_style[data.item.ndd_phenotype]"
+                font-scale="1.0"
+                >
+                </b-icon>
+              </div> 
+            </template>
+
           </b-table>
 
         </b-col>
@@ -380,7 +391,7 @@
           <label class="mr-sm-2 font-weight-bold" for="status-select">Status</label>
           <b-icon 
             icon="stoplights-fill"
-                :variant="stoplights_style[status_selected]"
+            :variant="stoplights_style[status_selected]"
           >
           </b-icon>
           <b-form-select 
@@ -504,6 +515,9 @@ export default {
           review_style: {0: "light", 1: "dark"},
           status_style: {0: "light", 1: "dark"},
           header_style: {false: "light", true: "danger"},
+          ndd_icon: {"0": "x-circle-fill", "1": "check-circle-fill"},
+          ndd_icon_style: {"0": "warning", "1": "success"},
+          ndd_icon_text: {"0": "no", "1": "yes"},
           empty_table_text: {false: "Apply for a new batch of entities.", true: "Nothing to review."},
           items: [],
           fields: [
