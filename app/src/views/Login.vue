@@ -52,7 +52,7 @@
 
                 <b-form-group>
                   <b-button class="ml-2" @click="resetForm()" variant="outline-dark">Reset</b-button>
-                  <b-button class="ml-2" type="submit" variant="dark">Login</b-button>
+                  <b-button class="ml-2" :class="{'shake' : animated}" @click="clickHandler()" type="submit" variant="dark">Login</b-button>
                 </b-form-group>
                 </b-form>
 
@@ -78,7 +78,8 @@ export default {
         password: '',
         ywt: '',
         user: [],
-        loading: true
+        loading: true,
+        animated: false
       }
     },
   mounted() {
@@ -139,6 +140,13 @@ export default {
         this.$router.push('/');
       }
     },
+    clickHandler() {
+      const self = this
+      self.animated = true
+      setTimeout(() => {
+        self.animated = false
+      }, 1000)
+    },
     makeToast(event, title = null, variant = null) {
         this.$bvToast.toast('' + event, {
           title: title,
@@ -152,6 +160,7 @@ export default {
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
+<!-- Shake based on https://codepen.io/aut0maat10/pen/ExaNZNo -->
 <style scoped>
 h3 {
   margin: 40px 0 0;
@@ -166,6 +175,25 @@ li {
 }
 a {
   color: #42b983;
+}
+
+.shake {
+  animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both;
+  transform: translate3d(0, 0, 0);
+}
+@keyframes shake {
+  10%, 90% {
+    transform: translate3d(-1px, 0, 0);
+  }
+  20%, 80% {
+    transform: translate3d(2px, 0, 0);
+  }
+  30%, 50%, 70% {
+    transform: translate3d(-4px, 0, 0);
+  }
+  40%, 60% {
+    transform: translate3d(4px, 0, 0);
+  }
 }
 </style>
 
