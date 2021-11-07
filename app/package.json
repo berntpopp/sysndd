@@ -14,6 +14,7 @@
     "bootstrap-vue": "^2.21.2",
     "core-js": "^3.6.5",
     "swagger-ui": "^3.49.0",
+    "vee-validate": "^3.4.13",
     "vue": "^2.6.14",
     "vue-axios": "^3.2.4",
     "vue-multiselect": "^2.1.6",

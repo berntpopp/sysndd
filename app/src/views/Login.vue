@@ -12,34 +12,52 @@
           >
           <b-card-text>
 
-            <b-form @submit="onSubmit">
-              <b-form-group
-                description="Enter your user name"
-              >
-                <b-form-input
-                  v-model="user_name"
-                  placeholder="User"
-                  required
-                ></b-form-input>
-              </b-form-group>
+            <validation-observer ref="observer" v-slot="{ handleSubmit }">
 
-              <b-form-group
-                description="Enter your user password"
-              >
-                <b-form-input
-                  v-model="password"
-                  placeholder="Password"
-                  required
-                  type="password"
-                ></b-form-input>
+              <b-form @submit.stop.prevent="handleSubmit(onSubmit)">
 
-              </b-form-group>
+                <validation-provider
+                  name="username"
+                  :rules="{ required: true, min: 5, max: 20 }"
+                  v-slot="validationContext"
+                >
+                  <b-form-group
+                    description="Enter your user name"
+                  >
+                    <b-form-input
+                      v-model="user_name"
+                      placeholder="User"
+                      :state="getValidationState(validationContext)"
+                    ></b-form-input>
+                  </b-form-group>
+                </validation-provider>
 
-              <b-form-group>
-                <b-button type="submit" variant="outline-dark">Login</b-button>
-              </b-form-group>
-              </b-form>
-            
+                <validation-provider 
+                  name="password" 
+                  :rules="{ required: true, min: 5, max: 50 }" 
+                  v-slot="validationContext"
+                >
+                  <b-form-group
+                    description="Enter your user password"
+                  >
+                    <b-form-input
+                      v-model="password"
+                      placeholder="Password"
+                      type="password"
+                      :state="getValidationState(validationContext)"
+                    ></b-form-input>
+
+                  </b-form-group>
+                </validation-provider>
+
+                <b-form-group>
+                  <b-button class="ml-2" @click="resetForm()" variant="outline-dark">Reset</b-button>
+                  <b-button class="ml-2" type="submit" variant="dark">Login</b-button>
+                </b-form-group>
+                </b-form>
+
+              </validation-observer>
+
               Don't have an account yet and want to help? <b-link v-bind:href="'/Register'">Register now.</b-link>
 
             </b-card-text>  
@@ -70,6 +88,9 @@ export default {
     this.loading = false;
   },
   methods: {
+    getValidationState({ dirty, validated, valid = null }) {
+      return dirty || validated ? valid : null;
+    },
     async loadJWT() {
       let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/api/auth/authenticate?user_name=' + this.user_name + '&password=' + this.password;
       try {
@@ -99,8 +120,15 @@ export default {
         console.error(e);
         }
     }, 
+    resetForm() {
+      this.user_name = '';
+      this.password = '';
+
+      this.$nextTick(() => {
+        this.$refs.observer.reset();
+      });
+    },
     onSubmit(event) {
-      event.preventDefault();
       this.loadJWT();
     },
     doUserLogOut() {

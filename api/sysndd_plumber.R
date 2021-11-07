@@ -2299,9 +2299,9 @@ function(req, res, user_name, password) {
 	key <- charToRaw(dw$secret)
 	
 	# check if user provided credentials
-		  if (is.null(check_user) || is.null(check_pass)) {
+		  if (is.null(check_user) || nchar(check_user) < 5 || nchar(check_user) > 20 || is.null(check_pass) || nchar(check_pass) < 5 || nchar(check_pass) > 50) {
 			res$status <- 404
-			res$body <- "Please provide username and password."
+			res$body <- "Please provide valid username and password."
 			res
 		  }
 
