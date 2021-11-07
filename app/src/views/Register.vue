@@ -6,87 +6,148 @@
       <b-row class="justify-content-md-center py-4">
         <b-col md="6">
           <b-card
-          header="Register new account"
+          header="Register new SysNDD account"
           header-bg-variant="dark"
           header-text-variant="white"
           >
+          <b-overlay :show="show_overlay" rounded="sm">
           <b-card-text>
 
-            <b-form @submit="onSubmit">
-              <b-form-group
-                description="Enter your prefered user name"
-              >
-                <b-form-input
-                  v-model="registration_form.user_name"
-                  placeholder="User"
-                  required
-                ></b-form-input>
-              </b-form-group>
+            <validation-observer ref="observer" v-slot="{ handleSubmit }">
 
-              <b-form-group
-                description="Enter your institutional mail account"
-              >
-                <b-form-input
-                  v-model="registration_form.email"
-                  placeholder="mail@your-institution.com"
-                  required
-                ></b-form-input>
-              </b-form-group>
+              <b-form @submit.stop.prevent="handleSubmit(onSubmit)">
 
-              <b-form-group
-                description="Enter your ORCID"
-              >
-                <b-form-input
-                  v-model="registration_form.orcid"
-                  placeholder="XXXX-XXXX-XXXX-XXXX"
-                  required
-                ></b-form-input>
-              </b-form-group>
+                <validation-provider
+                  name="username"
+                  :rules="{ required: true, min: 5, max: 20 }"
+                  v-slot="validationContext"
+                >
+                  <b-form-group
+                    description="Enter your prefered user name (min 5 chars)"
+                  >
+                    <b-form-input
+                      v-model="registration_form.user_name"
+                      placeholder="Username"
+                      :state="getValidationState(validationContext)"
+                    ></b-form-input>
+                  </b-form-group>
+                </validation-provider>
 
-              <b-form-group
-                description="Enter your first name"
-              >
-                <b-form-input
-                  v-model="registration_form.first_name"
-                  placeholder="First name"
-                  required
-                ></b-form-input>
-              </b-form-group>
+                <validation-provider
+                  name="email"
+                  :rules="{ required: true, email: true }"
+                  v-slot="validationContext"
+                >
+                  <b-form-group
+                    description="Enter your institutional mail account"
+                  >
+                    <b-form-input
+                      v-model="registration_form.email"
+                      placeholder="mail@your-institution.com"
+                      :state="getValidationState(validationContext)"
+                    ></b-form-input>
+                  </b-form-group>
+                </validation-provider>
 
-              <b-form-group
-                description="Enter your family name"
-              >
-                <b-form-input
-                  v-model="registration_form.family_name"
-                  placeholder="Family name"
-                  required
-                ></b-form-input>
-              </b-form-group>
+                <validation-provider
+                  name="orcid"
+                  :rules="{ required: true, regex: /^(([0-9]{4})-){3}[0-9]{3}[0-9X]$/}"
+                  v-slot="validationContext"
+                >
+                  <b-form-group
+                    description="Enter your ORCID"
+                  >
+                    <b-form-input
+                      v-model="registration_form.orcid"
+                      placeholder="NNNN-NNNN-NNNN-NNNX"
+                      :state="getValidationState(validationContext)"
+                    ></b-form-input>
+                  </b-form-group>
+                </validation-provider>
 
-              <b-form-group
-                description="Please describe why you want to help with SysNDD"
-              >
-                <b-form-input
-                  v-model="registration_form.comment"
-                  placeholder="Your interest in SysNDD"
-                  required
-                ></b-form-input>
-              </b-form-group>
+                <validation-provider
+                  name="firstname"
+                  :rules="{ required: true, min: 2, max: 50 }"
+                  v-slot="validationContext"
+                >
+                  <b-form-group
+                    description="Enter your first name"
+                  >
+                    <b-form-input
+                      v-model="registration_form.first_name"
+                      placeholder="First name"
+                      :state="getValidationState(validationContext)"
+                    ></b-form-input>
+                  </b-form-group>
+                </validation-provider>
 
-              <b-form-checkbox
-                v-model="registration_form.agree"
-                value="accepted"
-                unchecked-value="not_accepted"
-              >
-                I accept the terms and use
-              </b-form-checkbox>
+                <validation-provider
+                  name="familyname"
+                  :rules="{ required: true, min: 2, max: 50 }"
+                  v-slot="validationContext"
+                >
+                  <b-form-group
+                    description="Enter your family name"
+                  >
+                    <b-form-input
+                      v-model="registration_form.family_name"
+                      placeholder="Family name"
+                      :state="getValidationState(validationContext)"
+                    ></b-form-input>
+                  </b-form-group>
+                </validation-provider>
 
-              <b-form-group>
-                <b-button type="submit" variant="outline-dark">Register</b-button>
-              </b-form-group>
+                <validation-provider
+                  name="sysnddcomment"
+                  :rules="{ required: true, min: 10, max: 250 }"
+                  v-slot="validationContext"
+                >
+                  <b-form-group
+                    description="Please describe why you want to help with SysNDD"
+                  >
+                    <b-form-input
+                      v-model="registration_form.comment"
+                      placeholder="Your interest in SysNDD"
+                      :state="getValidationState(validationContext)"
+                    ></b-form-input>
+                  </b-form-group>
+                </validation-provider>
+
+                <validation-provider
+                  name="termsagreed"
+                  :rules="{ required: true, is: 'accepted'}"
+                  v-slot="validationContext"
+                >
+                  <b-form-group>
+                    <b-form-checkbox
+                      v-model="registration_form.agree"
+                      value="accepted"
+                      unchecked-value="not_accepted"
+                      :state="getValidationState(validationContext)"
+                    >
+                      I accept the terms and use
+                    </b-form-checkbox>
+                  </b-form-group>
+                </validation-provider>
+
+                <b-form-group>
+                  <b-button class="ml-2" @click="resetForm()" variant="outline-dark">Reset</b-button>
+                  <b-button class="ml-2" :class="{'shake' : animated}" @click="clickHandler()" type="submit" variant="dark">Register</b-button>
+                </b-form-group>
               </b-form>
 
-            </b-card-text>  
+              </validation-observer>
+
+            </b-card-text>
+
+            <template #overlay>
+              <div class="text-center">
+                <b-icon icon="clipboard-check" font-scale="3" animation="cylon"></b-icon>
+                <p>Request send. Redirecting now...</p>
+              </div>
+            </template>
+
+            </b-overlay>
             </b-card>
           </b-col>
         </b-row>
@@ -109,6 +170,8 @@ export default {
           comment: '',
           agree: 'not_accepted'
         },
+        animated: false,
+        show_overlay: false,
         loading: true
       }
     },
@@ -119,25 +182,39 @@ export default {
     this.loading = false;
   },
   methods: {
+    getValidationState({ dirty, validated, valid = null }) {
+      return dirty || validated ? valid : null;
+    },
     async sendRegistration() {
-
-    console.log(JSON.stringify(this.registration_form));
 
     let apiUrl = process.env.VUE_APP_API_URL + '/api/auth/signup?signup_data=' ;
 
       try {
         let submission_json = JSON.stringify(this.registration_form);
-        console.log(submission_json);
         let response = await this.axios.get(apiUrl + submission_json, {} );
-        console.log(response);
+        this.makeToast('Your registration request has been send ' + '(status ' + response.status + ' (' + response.statusText + ').', 'Success', 'success');
+        this.successfulRegistration();
       } catch (e) {
-        console.error(e);
+        console.error(e.response.status);
+        this.makeToast(e, 'Error', 'success');
       }
 
     }, 
+    successfulRegistration() {
+      this.show_overlay = true;
+      setTimeout(() => {
+        this.$router.push('/')
+      }, 2000)
+    },
     onSubmit(event) {
-      event.preventDefault();
       this.sendRegistration();
+    },
+    clickHandler() {
+      const self = this
+      self.animated = true
+      setTimeout(() => {
+        self.animated = false
+      }, 1000)
     },
     doUserLogOut() {
       if (localStorage.user || localStorage.token) {
@@ -146,12 +223,21 @@ export default {
         this.user = null;
         this.$router.push('/');
       }
+    },
+    makeToast(event, title = null, variant = null) {
+        this.$bvToast.toast('' + event, {
+          title: title,
+          toaster: 'b-toaster-top-right',
+          variant: variant,
+          solid: true
+        })
     }
   }
 }
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
+<!-- Shake based on https://codepen.io/aut0maat10/pen/ExaNZNo -->
 <style scoped>
 h3 {
   margin: 40px 0 0;
@@ -166,5 +252,24 @@ li {
 }
 a {
   color: #42b983;
+}
+
+.shake {
+  animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both;
+  transform: translate3d(0, 0, 0);
+}
+@keyframes shake {
+  10%, 90% {
+    transform: translate3d(-1px, 0, 0);
+  }
+  20%, 80% {
+    transform: translate3d(2px, 0, 0);
+  }
+  30%, 50%, 70% {
+    transform: translate3d(-4px, 0, 0);
+  }
+  40%, 60% {
+    transform: translate3d(4px, 0, 0);
+  }
 }
 </style>

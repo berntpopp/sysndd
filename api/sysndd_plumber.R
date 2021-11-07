@@ -2254,34 +2254,57 @@ function(signup_data) {
 	user <- as_tibble(fromJSON(signup_data)) %>%
 		select(user_name, first_name, family_name, email, orcid, comment)
 
-	# connect to database
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+	input_validation <- pivot_longer(user, cols = everything()) %>%
+			mutate(valid = case_when(
+			  name == "user_name" ~ (nchar(value) >= 5 & nchar(value) <= 20),
+			  name == "first_name" ~ (nchar(value) >= 2 & nchar(value) <= 50),
+			  name == "family_name" ~ (nchar(value) >= 2 & nchar(value) <= 50),
+			  name == "email" ~ str_detect(value, regex(".+@.+\\..+", dotall = TRUE)),
+			  name == "orcid" ~ str_detect(value, regex("^(([0-9]{4})-){3}[0-9]{3}[0-9X]$", dotall = TRUE)),
+			  name == "comment" ~ (nchar(value) >= 10 & nchar(value) <= 250)
+			)) %>%
+			mutate(all = "1") %>%
+			select(all, valid) %>%
+			group_by(all) %>%
+			summarise(valid = as.logical(prod(valid))) %>%
+			ungroup() %>%
+			select(valid)
 
-	dbAppendTable(sysndd_db, "user", user)
-	dbDisconnect(sysndd_db)
-	
-	email <- compose_email(
-	  body = md(c(
-		 "Your registration request for sysndd.org has been send to the curators who will review it soon. Information provided:",
-		 user
-	  ))
-	)
+	if (input_validation$valid){
 
-	email %>%
-	  smtp_send(
-		from = "noreply@sysndd.org",
-		to = user$email,
-		subject = "Your registration request to SysNDD.org",
-		credentials = creds_envvar(
-			pass_envvar = "SMTP_PASSWORD",
-			user = dw$mail_noreply_user,
-			host = dw$mail_noreply_host,
-			port = dw$mail_noreply_port,
-		use_ssl = dw$mail_noreply_use_ssl
+		# connect to database
+		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+		dbAppendTable(sysndd_db, "user", user)
+		dbDisconnect(sysndd_db)
+		
+		email <- compose_email(
+		  body = md(c(
+			 "Your registration request for sysndd.org has been send to the curators who will review it soon. Information provided:",
+			 user
+		  ))
 		)
-	  )
+
+		email %>%
+		  smtp_send(
+			from = "noreply@sysndd.org",
+			to = user$email,
+			subject = "Your registration request to SysNDD.org",
+			credentials = creds_envvar(
+				pass_envvar = "SMTP_PASSWORD",
+				user = dw$mail_noreply_user,
+				host = dw$mail_noreply_host,
+				port = dw$mail_noreply_port,
+			use_ssl = dw$mail_noreply_use_ssl
+			)
+		  )
+		res <- "Registered successfully!"
 	
-	res <- "Registered successfully!"
+  } else {
+		res$status <- 404
+		res$body <- "Please provide valid registration data."
+		res
+  }
 }
 
 

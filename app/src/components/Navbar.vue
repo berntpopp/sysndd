@@ -28,7 +28,7 @@
               <em>{{ user }}</em>
             </template>
             <b-dropdown-item href="/User"><b-icon icon="person-circle" font-scale="1.0"></b-icon> View profile</b-dropdown-item>
-            <b-dropdown-item @click="refreshWithJWT"><b-icon icon="arrow-repeat" font-scale="1.0"></b-icon> Refresh token <b-badge variant="info">{{ Math.floor(this.time_to_logout) }} m {{ ((this.time_to_logout - Math.floor(this.time_to_logout)) * 60).toFixed(0) }} s </b-badge></b-dropdown-item>
+            <b-dropdown-item @click="refreshWithJWT"><b-icon icon="arrow-repeat" font-scale="1.0"></b-icon> Refresh token <b-badge variant="info">{{ Math.floor(this.time_to_logout) }} m {{ ((this.time_to_logout - Math.floor(this.time_to_logout)) * 60).toFixed(0) }} s</b-badge></b-dropdown-item>
             <b-dropdown-item @click="doUserLogOut"><b-icon icon="x-circle" font-scale="1.0"></b-icon> Sign out </b-dropdown-item>
           </b-nav-item-dropdown>
           <b-nav-item href="/Login" v-else>Login</b-nav-item>

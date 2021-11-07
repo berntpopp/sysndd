@@ -28,8 +28,8 @@
                     </b-list-group-item>
                   <b-list-group-item>
                     Token expires: 
-                    <b-badge variant="info">{{time_to_logout}} min</b-badge>
-                    <b-badge @click="refreshWithJWT" href="#" variant="success" pill><b-icon icon="arrow-repeat" font-scale="1.0"></b-icon></b-badge>
+                    <b-badge class="ml-1" variant="info">{{ Math.floor(this.time_to_logout) }} m {{ ((this.time_to_logout - Math.floor(this.time_to_logout)) * 60).toFixed(0) }} s</b-badge>
+                    <b-badge class="ml-1" @click="refreshWithJWT" href="#" variant="success" pill><b-icon icon="arrow-repeat" font-scale="1.0"></b-icon></b-badge>
                   </b-list-group-item>
                 </b-list-group>
 

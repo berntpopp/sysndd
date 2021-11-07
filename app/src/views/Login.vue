@@ -100,8 +100,8 @@ export default {
         this.makeToast('You have logged in  ' + '(status ' + response_authenticate.status + ' (' + response_authenticate.statusText + ').', 'Success', 'success');
         this.signinWithJWT();
         } catch (e) {
-        console.error(e.response.status);
-         this.makeToast(e, 'Error', 'success');
+          console.error(e.response.status);
+          this.makeToast(e, 'Error', 'success');
         }
       }, 
     async signinWithJWT() {
