@@ -73,11 +73,19 @@
                 ></b-form-input>
               </b-form-group>
 
+              <b-form-checkbox
+                v-model="registration_form.agree"
+                value="accepted"
+                unchecked-value="not_accepted"
+              >
+                I accept the terms and use
+              </b-form-checkbox>
+
               <b-form-group>
                 <b-button type="submit" variant="outline-dark">Register</b-button>
               </b-form-group>
               </b-form>
-            
+
             </b-card-text>  
             </b-card>
           </b-col>
@@ -99,6 +107,7 @@ export default {
           first_name: '',
           family_name: '',
           comment: '',
+          agree: 'not_accepted'
         },
         loading: true
       }
