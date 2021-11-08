@@ -5,57 +5,96 @@
       <b-row class="justify-content-md-center py-2">
         <b-col col md="10">
           <h3>Entity: 
-            <b-badge variant="info">
+            <b-badge variant="primary">
               sysndd:{{ $route.params.sysndd_id }}
             </b-badge>
           </h3>
 
-            <b-table
-                :items="entity"
-                :fields="entity_fields"
-                stacked
-                small
-            >
-                <template #cell(symbol)="data">
+          <b-table
+              :items="entity"
+              :fields="entity_fields"
+              stacked
+              small
+          >
+              <template #cell(symbol)="data">
+                <div class="font-italic">
                   <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
-                    <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</div> 
+                    <b-badge pill variant="success"
+                    v-b-tooltip.hover.leftbottom 
+                    v-bind:title="data.item.hgnc_id"
+                    >
+                    {{ data.item.symbol }}
+                    </b-badge>
                   </b-link>
-                </template>
+                </div> 
+              </template>
 
-                <template #cell(disease_ontology_name)="data">
+              <template #cell(disease_ontology_name)="data">
+                <div>
                   <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"> 
-                    <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version">{{ data.item.disease_ontology_name }}</div> 
+                    <b-badge 
+                    pill 
+                    variant="secondary"
+                    v-b-tooltip.hover.leftbottom
+                    v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version"
+                    >
+                    {{ data.item.disease_ontology_name }}
+                    </b-badge>
                   </b-link>
+                </div> 
 
-                      <b-button 
-                      v-if="data.item.disease_ontology_id_version.includes('OMIM')"
-                      class="btn-xs mx-2" 
-                      variant="outline-primary"
-                      v-bind:src="data.item.publications" 
-                      v-bind:href="'https://www.omim.org/entry/' + data.item.disease_ontology_id_version.replace('OMIM:', '').replace(/_.+/g, '')"
-                      target="_blank"
-                      >
-                        <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                        {{ data.item.disease_ontology_id_version.replace(/_.+/g, '') }}
-                      </b-button>
+                <b-button 
+                v-if="data.item.disease_ontology_id_version.includes('OMIM')"
+                class="btn-xs mx-2" 
+                variant="outline-primary"
+                v-bind:src="data.item.publications" 
+                v-bind:href="'https://www.omim.org/entry/' + data.item.disease_ontology_id_version.replace('OMIM:', '').replace(/_.+/g, '')"
+                target="_blank"
+                >
+                  <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                  {{ data.item.disease_ontology_id_version.replace(/_.+/g, '') }}
+                </b-button>
 
-                      <b-button 
-                      v-if="data.item.disease_ontology_id_version.includes('MONDO')"
-                      class="btn-xs mx-2" 
-                      variant="outline-primary"
-                      v-bind:src="data.item.publications" 
-                      v-bind:href="'http://purl.obolibrary.org/obo/' + data.item.disease_ontology_id_version.replace(':', '_')"
-                      target="_blank"
-                      >
-                        <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                        {{ data.item.disease_ontology_id_version }}
-                      </b-button>
-
-                </template>
+                <b-button 
+                v-if="data.item.disease_ontology_id_version.includes('MONDO')"
+                class="btn-xs mx-2" 
+                variant="outline-primary"
+                v-bind:src="data.item.publications" 
+                v-bind:href="'http://purl.obolibrary.org/obo/' + data.item.disease_ontology_id_version.replace(':', '_')"
+                target="_blank"
+                >
+                  <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                  {{ data.item.disease_ontology_id_version }}
+                </b-button>
+              </template>
                 
-                <template #cell(hpo_mode_of_inheritance_term_name)="data">
-                    <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.hpo_mode_of_inheritance_term">{{ data.item.hpo_mode_of_inheritance_term_name.replace(" inheritance", "") }}</div> 
-                </template>
+              <template #cell(hpo_mode_of_inheritance_term_name)="data">
+                <div>
+                  <b-badge 
+                  pill 
+                  variant="info" 
+                  class="justify-content-md-center" 
+                  size="1.3em"
+                  v-b-tooltip.hover.leftbottom 
+                  v-bind:title="data.item.hpo_mode_of_inheritance_term_name + ' (' + data.item.hpo_mode_of_inheritance_term + ')'"
+                  >
+                  {{ inheritance_short_text[data.item.hpo_mode_of_inheritance_term_name] }}
+                  </b-badge>
+                </div>
+              </template>
+
+              <template #cell(ndd_phenotype)="data">
+                <div>
+                  <b-avatar 
+                  size="1.4em" 
+                  :icon="ndd_icon[data.item.ndd_phenotype]"
+                  :variant="ndd_icon_style[data.item.ndd_phenotype]"
+                  v-b-tooltip.hover.left 
+                  v-bind:title="ndd_icon_text[data.item.ndd_phenotype]"
+                  >
+                  </b-avatar>
+                </div> 
+              </template>
 
             </b-table>
 
@@ -66,6 +105,18 @@
                 stacked
                 small
             >
+              <template #cell(category)="data">
+                <div>
+                  <b-avatar
+                  size="1.4em"
+                  icon="stoplights"
+                  :variant="stoplights_style[data.item.category]"
+                  v-b-tooltip.hover.left 
+                  v-bind:title="data.item.category"
+                  >
+                  </b-avatar>
+                </div> 
+              </template>
             </b-table>
 
 
@@ -75,6 +126,14 @@
                 stacked
                 small
             >
+            <template #cell(synopsis)="data">
+              <b-card border-variant="dark" align="left">
+                <b-card-text>
+                  {{ data.item.synopsis }}
+                </b-card-text>
+              </b-card>
+
+            </template>
             </b-table>
 
 
@@ -143,6 +202,11 @@ export default {
   name: 'Entity',
   data() {
         return {
+          stoplights_style: {"Definitive": "success", "Moderate": "primary", "Limited": "warning", "Refuted": "danger"},
+          ndd_icon: {"No": "x", "Yes": "check"},
+          ndd_icon_style: {"No": "warning", "Yes": "success"},
+          ndd_icon_text: {"No": "not associated with NDDs", "Yes": "associated with NDDs"},
+          inheritance_short_text: {"Autosomal dominant inheritance": "AD", "Autosomal recessive inheritance": "AR", "X-linked inheritance": "X", "X-linked recessive inheritance": "XR", "X-linked dominant inheritance": "XD", "Mitochondrial inheritance": "M", "Somatic mutation": "S"},
           entity: [],
           entity_fields: [
             { key: 'symbol', label: 'Gene Symbol', sortable: true, class: 'text-left' },
@@ -162,7 +226,7 @@ export default {
               sortByFormatted: true,
               filterByFormatted: true
             },
-            { key: 'ndd_phenotype', label: 'NDD Association', sortable: true, class: 'text-left' }
+            { key: 'ndd_phenotype', label: 'NDD', sortable: true, class: 'text-left' }
           ],
           status: [],
           status_fields: [

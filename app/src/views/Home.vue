@@ -73,6 +73,17 @@
                       small
                   >
 
+                  <template #cell(category)="data">
+                    <div>
+                      <b-avatar
+                      size="1.4em"
+                      icon="stoplights"
+                      :variant="stoplights_style[data.item.category]"
+                      >
+                      </b-avatar> {{ data.item.category }}
+                    </div> 
+                  </template>
+
                   <template #cell(n)="data">
                     <b-link v-bind:href="'/Panels/' + data.item.category + '/' + data.item.inheritance ">
                       <div style="cursor:pointer">{{ data.item.n }}</div>
@@ -97,6 +108,19 @@
                         striped
                         sort-icon-left
                       >
+
+                        <template #cell(inheritance)="data">
+                          <div>
+                            <b-badge 
+                            pill 
+                            variant="info" 
+                            class="justify-content-md-center" 
+                            size="1.3em"
+                            >
+                            {{ inheritance_short_text[data.item.inheritance] }}
+                            </b-badge> {{ data.item.inheritance }}
+                          </div>
+                        </template>
 
                         <template #cell(n)="data">
                           <b-link v-bind:href="'/Panels/' + data.item.category + '/' + data.item.inheritance ">
@@ -177,6 +201,8 @@ export default {
   name: 'Home',
   data() {
         return {
+          stoplights_style: {"Definitive": "success", "Moderate": "primary", "Limited": "warning", "Refuted": "danger"},
+          inheritance_short_text: {"Dominant": "AD", "Recessive": "AR", "X-linked": "X", "Other": "M/S"},
           search_input: '',
           search: [],
           last_update: '',

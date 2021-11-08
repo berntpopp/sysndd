@@ -5,7 +5,7 @@
       <b-row class="justify-content-md-center py-2">
         <b-col col md="10">
           <h3>Disease: 
-            <b-badge variant="info">
+            <b-badge pill variant="secondary">
               {{ $route.params.disease_term }}
             </b-badge>
           </h3>
@@ -21,6 +21,18 @@
                 <b-row>
                   <b-row v-for="id in data.item.disease_ontology_id_version.split(';')" :key="id"> 
                       <b-col>
+                      <div>
+                          <b-link v-bind:href="'/Ontology/' + id.replace(/_.+/g, '')"> 
+                            <b-badge 
+                            pill 
+                            variant="secondary"
+                            v-b-tooltip.hover.leftbottom
+                            >
+                            {{ id }}
+                            </b-badge>
+                          </b-link>
+                        </div>
+
                         <b-button 
                         class="btn-xs mx-2" 
                         variant="outline-primary"
@@ -34,6 +46,21 @@
                       </b-col>
                     </b-row>
                   </b-row>
+              </template>
+
+              <template #cell(disease_ontology_name)="data">
+                <div>
+                  <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"> 
+                    <b-badge 
+                    pill 
+                    variant="secondary"
+                    v-b-tooltip.hover.leftbottom
+                    v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version"
+                    >
+                    {{ truncate(data.item.disease_ontology_name, 40) }}
+                    </b-badge>
+                  </b-link>
+                </div> 
               </template>
 
 
@@ -135,7 +162,7 @@
             </b-table>
 
         
-          <h3>Associated entities</h3>
+          <h3><b-badge variant="primary">Associated entities</b-badge></h3>
 
           <!-- associated entities table element -->
           <b-table
@@ -171,25 +198,85 @@
 
 
             <template #cell(entity_id)="data">
-              <b-link v-bind:href="'/Entities/' + data.item.entity_id">
-                <div style="cursor:pointer">sysndd:{{ data.item.entity_id }}</div>
-              </b-link>
+              <div>
+                <b-link v-bind:href="'/Entities/' + data.item.entity_id">
+                  <b-badge 
+                  variant="primary"
+                  style="cursor:pointer"
+                  >
+                  sysndd:{{ data.item.entity_id }}
+                  </b-badge>
+                </b-link>
+              </div>
             </template>
 
             <template #cell(symbol)="data">
-              <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
-                <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.gene_id">{{ data.item.symbol }}</div> 
-              </b-link>
+              <div class="font-italic">
+                <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
+                  <b-badge pill variant="success"
+                  v-b-tooltip.hover.leftbottom 
+                  v-bind:title="data.item.hgnc_id"
+                  >
+                  {{ data.item.symbol }}
+                  </b-badge>
+                </b-link>
+              </div> 
             </template>
 
             <template #cell(disease_ontology_name)="data">
-              <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version"> 
-                <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version">{{ truncate(data.item.disease_ontology_name, 20) }}</div> 
-              </b-link>
+              <div>
+                <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"> 
+                  <b-badge 
+                  pill 
+                  variant="secondary"
+                  v-b-tooltip.hover.leftbottom
+                  v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version"
+                  >
+                  {{ truncate(data.item.disease_ontology_name, 30) }}
+                  </b-badge>
+                </b-link>
+              </div> 
             </template>
 
             <template #cell(hpo_mode_of_inheritance_term_name)="data">
-                <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.hpo_mode_of_inheritance_term">{{ data.item.hpo_mode_of_inheritance_term_name.replace(" inheritance", "") }}</div> 
+              <div>
+                <b-badge 
+                pill 
+                variant="info" 
+                class="justify-content-md-center" 
+                size="1.3em"
+                v-b-tooltip.hover.leftbottom 
+                v-bind:title="data.item.hpo_mode_of_inheritance_term_name + ' (' + data.item.hpo_mode_of_inheritance_term + ')'"
+                >
+                {{ inheritance_short_text[data.item.hpo_mode_of_inheritance_term_name] }}
+                </b-badge>
+              </div>
+            </template>
+
+            <template #cell(ndd_phenotype)="data">
+              <div>
+                <b-avatar 
+                size="1.4em" 
+                :icon="ndd_icon[data.item.ndd_phenotype]"
+                :variant="ndd_icon_style[data.item.ndd_phenotype]"
+                v-b-tooltip.hover.left 
+                v-bind:title="ndd_icon_text[data.item.ndd_phenotype]"
+                >
+                </b-avatar>
+              </div> 
+            </template>
+
+            <template #cell(category)="data">
+              <div>
+                <b-avatar
+                size="1.4em"
+                icon="stoplights"
+                :variant="stoplights_style[data.item.category]"
+                v-b-tooltip.hover.left 
+                v-bind:title="data.item.category"
+                >
+                </b-avatar>
+              </div> 
             </template>
             
           </b-table>
@@ -206,6 +293,11 @@ export default {
   name: 'Ontology',
   data() {
         return {
+          stoplights_style: {"Definitive": "success", "Moderate": "primary", "Limited": "warning", "Refuted": "danger"},
+          ndd_icon: {"No": "x", "Yes": "check"},
+          ndd_icon_style: {"No": "warning", "Yes": "success"},
+          ndd_icon_text: {"No": "not associated with NDDs", "Yes": "associated with NDDs"},
+          inheritance_short_text: {"Autosomal dominant inheritance": "AD", "Autosomal recessive inheritance": "AR", "X-linked inheritance": "X", "X-linked recessive inheritance": "XR", "X-linked dominant inheritance": "XD", "Mitochondrial inheritance": "M", "Somatic mutation": "S"},
           ontology: [],
           ontology_fields: [
             { 
@@ -256,7 +348,7 @@ export default {
               sortByFormatted: true,
               filterByFormatted: true
             },
-            { key: 'ndd_phenotype', label: 'NDD Association', sortable: true, class: 'text-left' },
+            { key: 'ndd_phenotype', label: 'NDD', sortable: true, class: 'text-left' },
             { key: 'actions', label: 'Actions' }
           ],
           loading: true
