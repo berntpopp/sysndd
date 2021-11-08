@@ -134,18 +134,24 @@
                       <col
                         v-for="field in scope.fields"
                         :key="field.key"
-                        :style="{ width: field.key === 'symbol' ? '30%' : '70%' }"
+                        :style="{ width: field.key === 'symbol' ? '35%' : '65%' }"
                       >
                     </template>
 
                     <template #cell(symbol)="data">
                       <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
-                        <div class="font-italic text-truncate" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</div> 
+                        <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">
+                          <b-badge pill variant="success">{{ data.item.symbol }}</b-badge>
+                        </div>
                       </b-link>
                     </template>
 
                     <template #cell(disease_ontology_name)="data">
-                        <div class="truncated" v-b-tooltip.hover.leftbottom v-bind:title="data.item.disease_ontology_name">{{ data.item.disease_ontology_name }}</div> 
+                      <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version"> 
+                        <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version">
+                          <b-badge pill variant="secondary">{{ truncate(data.item.disease_ontology_name, 30) }}</b-badge>
+                        </div>
+                      </b-link>
                     </template>
 
                   </b-table>
@@ -235,7 +241,10 @@ export default {
      if (event.which === 13 & this.search_input.length > 1) {
         this.$router.push('/Search/' + this.search_input);
      }
-    }
+    },
+  truncate(str, n) {
+    return (str.length > n) ? str.substr(0, n-1) + '...' : str;
+  }
   }
 }
 </script>

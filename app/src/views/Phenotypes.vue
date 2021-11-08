@@ -186,7 +186,7 @@ export default {
           ],
           fields_details: [
             { key: 'hgnc_id', label: 'HGNC ID', class: 'text-left' },
-            { key: 'disease_ontology_id_version', label: 'Intology ID version', class: 'text-left' },
+            { key: 'disease_ontology_id_version', label: 'Ontology ID version', class: 'text-left' },
             { key: 'disease_ontology_name', label: 'Disease ontology name', class: 'text-left' },
             { key: 'entry_date', label: 'Entry date', class: 'text-left' },
           ],

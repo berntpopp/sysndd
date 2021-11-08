@@ -16,12 +16,12 @@
             <b-row>
               <b-col>
                 <h6 class="mb-1 text-left font-weight-bold">
-                  Re-review table <b-badge variant="info">Entities: {{totalRows}} </b-badge>
+                  Re-review table <b-badge variant="primary">Entities: {{totalRows}} </b-badge>
                 </h6>
               </b-col>
               <b-col>
                 <h6 class="mb-1 text-righ font-weight-bold">
-                  <b-icon icon="person-circle" font-scale="1.0"></b-icon> <b-badge variant="info">  {{ user.user_name[0] }} </b-badge> <b-badge variant="info">  {{ user.user_role[0] }} </b-badge> <b-badge @click="newBatchApplication()" href="#" v-if="totalRows === 0 & (filter === null | filter === '') & !curation_selected" variant="warning" pill> New batch </b-badge>
+                  <b-icon icon="person-circle" font-scale="1.0"></b-icon> <b-badge variant="dark">  {{ user.user_name[0] }} </b-badge> <b-badge variant="dark">  {{ user.user_role[0] }} </b-badge> <b-badge @click="newBatchApplication()" href="#" v-if="totalRows === 0 & (filter === null | filter === '') & !curation_selected" variant="warning" pill> New batch </b-badge>
                   <div class="custom-control custom-switch" v-if="curator_mode">
                     <input 
                       type="checkbox" 
@@ -176,7 +176,6 @@
                 <div style="cursor:pointer">
                   <b-badge variant="primary">sysndd:{{ data.item.entity_id }}</b-badge>
                 </div>
-                
               </b-link>
             </template>
 
@@ -199,8 +198,7 @@
             <template #cell(hpo_mode_of_inheritance_term_name)="data">
                 <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.hpo_mode_of_inheritance_term_name + ' (' + data.item.hpo_mode_of_inheritance_term + ')'">
                   <b-badge pill variant="info" class="justify-content-md-center" size="1.3em">{{ inheritance_short_text[data.item.hpo_mode_of_inheritance_term_name] }}</b-badge>
-                  </div> 
-                
+                </div>
             </template>
 
             <template #cell(ndd_phenotype)="data">

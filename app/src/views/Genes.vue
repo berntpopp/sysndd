@@ -12,7 +12,7 @@
           bg-variant="light"
           >
           <template #header>
-            <h6 class="mb-1 text-left font-weight-bold">Genes table <b-badge variant="info">Genes: {{totalRows}} </b-badge></h6>
+            <h6 class="mb-1 text-left font-weight-bold">Genes table <b-badge variant="success">Genes: {{totalRows}} </b-badge></h6>
           </template>
 
           <b-row>
