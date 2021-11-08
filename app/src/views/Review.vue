@@ -263,7 +263,7 @@
 
         <template #modal-title>
           <h4>Entity: 
-            <b-badge variant="info">
+            <b-badge variant="primary">
               {{ reviewModal.title }}
             </b-badge>
           </h4>
@@ -475,7 +475,7 @@
       >
         <template #modal-title>
           <h4>Entity: 
-            <b-badge variant="info">
+            <b-badge variant="primary">
               {{ statusModal.title }}
             </b-badge>
           </h4>
@@ -535,7 +535,7 @@
       >
         <template #modal-title>
           <h4>Entity: 
-            <b-badge variant="info">
+            <b-badge variant="primary">
               {{ submitModal.title }}
             </b-badge>
           </h4>
@@ -561,7 +561,7 @@
       >
         <template #modal-title>
           <h4>Entity: 
-            <b-badge variant="info">
+            <b-badge variant="primary">
               {{ approveModal.title }}
             </b-badge>
           </h4>
@@ -573,10 +573,10 @@
             type="checkbox" 
             button-variant="info"
             class="custom-control-input" 
-            id="approveStatusSwitch"
-            v-model="status_approved"
+            id="approveReviewSwitch"
+            v-model="review_approved"
           >
-          <label class="custom-control-label" for="approveStatusSwitch">Status</label>
+          <label class="custom-control-label" for="approveReviewSwitch">Review</label>
           </div>
 
           <div class="custom-control custom-switch">
@@ -584,10 +584,10 @@
             type="checkbox" 
             button-variant="info"
             class="custom-control-input" 
-            id="approveReviewSwitch"
-            v-model="review_approved"
+            id="approveStatusSwitch"
+            v-model="status_approved"
           >
-          <label class="custom-control-label" for="approveReviewSwitch">Review</label>
+          <label class="custom-control-label" for="approveStatusSwitch">Status</label>
           </div>
 
       </b-modal>
