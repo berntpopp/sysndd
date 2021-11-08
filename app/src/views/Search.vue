@@ -15,14 +15,28 @@
 
             <template #cell(results)="data">
               <b-link v-bind:href="data.item.link">
-                <div style="cursor:pointer">{{ data.item.results }}</div>
+                <div>
+                   <b-badge 
+                  :variant="result_variant[data.item.search]"
+                  style="cursor:pointer"
+                  >
+                  {{ data.item.results }}
+                  </b-badge>
+                </div>
               </b-link>
             </template>
 
             <template #cell(entity_id)="data">
-              <b-link v-bind:href="'/Entities/' + data.item.entity_id">
-                <div style="cursor:pointer">sysndd:{{ data.item.entity_id }}</div>
-              </b-link>
+              <div>
+                <b-link v-bind:href="'/Entities/' + data.item.entity_id">
+                  <b-badge 
+                  variant="primary"
+                  style="cursor:pointer"
+                  >
+                  sysndd:{{ data.item.entity_id }}
+                  </b-badge>
+                </b-link>
+              </div>
             </template>
 
           </b-table>
@@ -38,6 +52,7 @@ export default {
   name: 'Gene',
   data() {
         return {
+          result_variant: {"entity_id": "primary", "symbol": "success", "disease_ontology_id_version": "secondary", "disease_ontology_name": "secondary"},
           search: [],
           search_fields: [
             { key: 'results', label: 'Results', class: 'text-left' },
@@ -47,15 +62,6 @@ export default {
           ],
           loading: true
       }
-  },
-  computed: {
-    formartedItems() {
-      if (!this.search) return []
-      return this.search.map(item => {
-        item._rowVariant  = this.getVariant(item.searchdist)
-        return item
-      })
-    }
   },
   mounted() {
     this.loadSearchInfo();
@@ -77,8 +83,15 @@ export default {
         this.$router.push(this.search[0].link);
       } else {
       this.loading = false;
-      this.formartedItems();
+      this.formatedItems();
       }
+    },
+    formatedItems() {
+      if (!this.search) return []
+      return this.search.map(item => {
+        item._rowVariant  = this.getVariant(item.searchdist)
+        return item
+      })
     },
   getVariant(searchdist) {
 		if (searchdist <= 0.05) {
