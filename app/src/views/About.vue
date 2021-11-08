@@ -156,7 +156,7 @@
                     </b-row>
                     <b-row>
                       <b-col md="12">
-                        SysNDD can be used for various purposes and questions. A) Gene lists can be downloaded, either all genes implicated with NDDs or lists distinguished by their level of evidence. Furthermore, gene lists can be filtered based on associated phenotypes. B) Single entries can be searched and looked up either starting from a gene or from a disease. Also lists and summaries on genes associated with a disease or diseases associated with a particular gene can be retrieved.
+                        SysNDD can be used for various purposes and questions. A) Gene lists can be downloaded, either all genes implicated with NDDs or lists distinguished by their level of evidence. Furthermore, gene lists can be filtered based on associated phenotypes. B) Single entries can be searched and looked up either starting from a gene or from a disease. Also lists and summaries on genes associated with a disease or diseases associated with a particular gene can be retrieved.<br><br>
                       </b-col>
                     </b-row>
 
@@ -169,7 +169,7 @@
                     </b-row>
                     <b-row>
                       <b-col md="12">
-                        We only use information that is published and no un-published data from meetings/conferences, personal communication or in-house databases. This means that for all information contained in SysNDD the primary source can be retrieved. 
+                        We only use information that is published and no un-published data from meetings/conferences, personal communication or in-house databases. This means that for all information contained in SysNDD the primary source can be retrieved.<br><br>
                       </b-col>
                     </b-row>
 
@@ -182,6 +182,16 @@
                     </b-row>
                     <b-row>
                       <b-col md="12">
+                        The core principle of SysNDD are immutable “gene-inheritance-disease-[consequence]” units, so called “entities”.
+                        <br>
+                        <h2><b-badge variant="primary">Entity:
+                          <b-badge pill variant="success">Gene</b-badge> 
+                          <b-badge pill variant="info">Inheritance</b-badge> 
+                          <b-badge pill variant="secondary">Disease</b-badge> 
+                          <b-badge pill variant="dark">Consequence</b-badge>
+                        </b-badge></h2>
+                        To allow interoperability and linking to other data sources, these entities are defined through ontology terms (HGNC identifier for genes, OMIM or MONDO for disease and inheritance from HPO). 
+                        The mutational consequence is currently not active but will be implemented with the next updates.<br><br>
                       </b-col>
                     </b-row>
 
@@ -194,7 +204,7 @@
                     </b-row>
                     <b-row>
                       <b-col md="12">
-                        Genes and phenotypes contained in SysID/SysNDD have been updated and curated by CZ since 2009. In future, experts from ERN ITHACA will be involved the curation and updating process.
+                        Genes and phenotypes contained in SysID/SysNDD have been updated and curated by CZ since 2009. In future, experts from ERN ITHACA will be involved the curation and updating process.<br><br>
                       </b-col>
                     </b-row>
 
@@ -207,7 +217,7 @@
                     </b-row>
                     <b-row>
                       <b-col md="12">
-                        No, this information is not (yet) provided in SysNDD.
+                        No, this information is not (yet) provided in SysNDD.<br><br>
                       </b-col>
                     </b-row>
 
@@ -266,7 +276,7 @@
                 <b-collapse id="accordion-8" accordion="my-accordion" role="tabpanel">
                   <b-card-body>
                     <b-container fluid="sm" class="text-left py-2">
-                    If you have technical problems using SysNDD or request regading the data or functionallity, please contact us at support [at] sysndd.org.
+                    If you have technical problems using SysNDD or requests regading the data or functionallity, please contact us at support [at] sysndd.org.
                     </b-container>
                   </b-card-body>
                 </b-collapse>

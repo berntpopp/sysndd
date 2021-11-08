@@ -21,7 +21,7 @@
               </b-col>
               <b-col>
                 <h6 class="mb-1 text-righ font-weight-bold">
-                  <b-icon icon="person-circle" font-scale="1.0"></b-icon> <b-badge variant="dark">  {{ user.user_name[0] }} </b-badge> <b-badge variant="dark">  {{ user.user_role[0] }} </b-badge> <b-badge @click="newBatchApplication()" href="#" v-if="totalRows === 0 & (filter === null | filter === '') & !curation_selected" variant="warning" pill> New batch </b-badge>
+                  <b-icon icon="person-circle" font-scale="1.0"></b-icon> <b-badge variant="dark">  {{ user.user_name[0] }} </b-badge> <b-badge variant="dark"> {{ user.user_role[0] }} </b-badge> <b-badge @click="newBatchApplication()" href="#" v-if="totalRows === 0 & (filter === null | filter === '') & !curation_selected" variant="warning" pill> New batch </b-badge>
                   <div class="custom-control custom-switch" v-if="curator_mode">
                     <input 
                       type="checkbox" 
