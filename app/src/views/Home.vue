@@ -139,19 +139,24 @@
                     </template>
 
                     <template #cell(symbol)="data">
-                      <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
-                        <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">
-                          <b-badge pill variant="success">{{ data.item.symbol }}</b-badge>
-                        </div>
-                      </b-link>
+                      <div class="font-italic">
+                        <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
+                          <b-badge pill variant="success" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</b-badge>
+                        </b-link>
+                      </div>
                     </template>
 
                     <template #cell(disease_ontology_name)="data">
-                      <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version"> 
-                        <div v-b-tooltip.hover.leftbottom v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version">
-                          <b-badge pill variant="secondary">{{ truncate(data.item.disease_ontology_name, 30) }}</b-badge>
-                        </div>
-                      </b-link>
+                      <div>
+                        <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version"> 
+                          <b-badge pill variant="secondary" 
+                          v-b-tooltip.hover.leftbottom 
+                          v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version"
+                          >
+                          {{ truncate(data.item.disease_ontology_name, 30) }}
+                          </b-badge>
+                        </b-link>
+                      </div>
                     </template>
 
                   </b-table>

@@ -10,7 +10,7 @@
           bg-variant="light"
           >
           <template #header>
-            <h6 class="mb-1 text-left font-weight-bold">Phenotypes search <b-badge variant="info">Associated entities: {{totalRows}} </b-badge></h6>
+            <h6 class="mb-1 text-left font-weight-bold">Phenotypes search <b-badge variant="primary">Associated entities: {{totalRows}} </b-badge></h6>
           </template>
           <b-row>
             <b-col class="my-1">
