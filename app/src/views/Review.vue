@@ -281,18 +281,75 @@
                 small
             >
 
-              <template #cell(symbol)="data">
-                <b-link v-bind:href="'/Genes/' + data.item.hgnc_id" target="_blank"> 
-                  <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</div> 
+            <template #cell(symbol)="data">
+              <div class="font-italic">
+                <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
+                  <b-badge pill variant="success"
+                  v-b-tooltip.hover.leftbottom 
+                  v-bind:title="data.item.hgnc_id"
+                  >
+                  {{ data.item.symbol }}
+                  </b-badge>
                 </b-link>
-              </template>
+              </div> 
+            </template>
 
-              <template #cell(disease_ontology_name)="data">
-                <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version" target="_blank"> 
-                  <div class="font-italic" v-b-tooltip.hover.leftbottom v-bind:title="data.item.disease_ontology_id">{{ data.item.disease_ontology_name }}</div> 
+            <template #cell(disease_ontology_name)="data">
+              <div>
+                <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"> 
+                  <b-badge 
+                  pill 
+                  variant="secondary"
+                  v-b-tooltip.hover.leftbottom
+                  v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version"
+                  >
+                  {{ truncate(data.item.disease_ontology_name, 30) }}
+                  </b-badge>
                 </b-link>
-              </template>
-              
+              </div> 
+            </template>
+
+            <template #cell(hpo_mode_of_inheritance_term_name)="data">
+              <div>
+                <b-badge 
+                pill 
+                variant="info" 
+                class="justify-content-md-center" 
+                size="1.3em"
+                v-b-tooltip.hover.leftbottom 
+                v-bind:title="data.item.hpo_mode_of_inheritance_term_name + ' (' + data.item.hpo_mode_of_inheritance_term + ')'"
+                >
+                {{ inheritance_short_text[data.item.hpo_mode_of_inheritance_term_name] }}
+                </b-badge>
+              </div>
+            </template>
+
+            <template #cell(ndd_phenotype)="data">
+              <div>
+                <b-avatar 
+                size="1.4em" 
+                :icon="ndd_icon[data.item.ndd_phenotype]"
+                :variant="ndd_icon_style[data.item.ndd_phenotype]"
+                v-b-tooltip.hover.left 
+                v-bind:title="ndd_icon_text[data.item.ndd_phenotype]"
+                >
+                </b-avatar>
+              </div> 
+            </template>
+
+            <template #cell(category)="data">
+              <div>
+                <b-avatar
+                size="1.4em"
+                icon="stoplights"
+                :variant="stoplights_style[data.item.category]"
+                v-b-tooltip.hover.left 
+                v-bind:title="data.item.category"
+                >
+                </b-avatar>
+              </div> 
+            </template>
+            
             </b-table>
 
               <label class="mr-sm-2 font-weight-bold" for="textarea-synopsis">Synopsis</label>
@@ -547,7 +604,7 @@ export default {
   name: 'Review',
   data() {
         return {
-          stoplights_style: {1: "success", 2: "primary", 3: "warning", 4: "danger"},
+          stoplights_style: {1: "success", 2: "primary", 3: "warning", 4: "danger", "Definitive": "success", "Moderate": "primary", "Limited": "warning", "Refuted": "danger"},
           saved_style: {0: "secondary", 1: "info"},
           review_style: {0: "light", 1: "dark"},
           status_style: {0: "light", 1: "dark"},
@@ -632,7 +689,7 @@ export default {
             },
             { 
               key: 'category', 
-              label: 'Association Category', 
+              label: 'Category', 
               sortable: false, 
               class: 'text-left' 
             }
