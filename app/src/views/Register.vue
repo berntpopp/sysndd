@@ -120,7 +120,7 @@
                 >
                   <b-form-group>
                     <b-form-checkbox
-                      v-model="registration_form.agree"
+                      v-model="registration_form.terms_agreed"
                       value="accepted"
                       unchecked-value="not_accepted"
                       :state="getValidationState(validationContext)"
@@ -168,7 +168,7 @@ export default {
           first_name: '',
           family_name: '',
           comment: '',
-          agree: 'not_accepted'
+          terms_agreed: 'not_accepted'
         },
         animated: false,
         show_overlay: false,

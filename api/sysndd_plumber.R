@@ -2247,12 +2247,16 @@ function(searchterm, helper = TRUE) {
 
 #* @tag authentication
 ## authentication create user
-## example data: {"user_name":"nextuser4", "first_name":"Mark", "family_name":"Sugar", "email":"bernt.popp.md@gmail.com", "orcid":"0000-0002-3679-1081", "comment":"I love research"}
+## example data: {"user_name":"nextuser21", "first_name":"Mark", "family_name":"Sugar", "email":"bernt.popp.md2@gmail.com", "orcid":"0001-0002-3679-1081", "comment":"I love research", "terms_agreed":"accepteds"}
 #* @serializer json list(na="string")
 #' @get /api/auth/signup
 function(signup_data) {
 	user <- as_tibble(fromJSON(signup_data)) %>%
-		select(user_name, first_name, family_name, email, orcid, comment)
+			mutate(terms_agreed = case_when(
+			  terms_agreed == "accepted" ~ "1",
+			  terms_agreed != "accepted" ~ "0"
+			)) %>%
+		select(user_name, first_name, family_name, email, orcid, comment, terms_agreed)
 
 	input_validation <- pivot_longer(user, cols = everything()) %>%
 			mutate(valid = case_when(
@@ -2261,7 +2265,8 @@ function(signup_data) {
 			  name == "family_name" ~ (nchar(value) >= 2 & nchar(value) <= 50),
 			  name == "email" ~ str_detect(value, regex(".+@.+\\..+", dotall = TRUE)),
 			  name == "orcid" ~ str_detect(value, regex("^(([0-9]{4})-){3}[0-9]{3}[0-9X]$", dotall = TRUE)),
-			  name == "comment" ~ (nchar(value) >= 10 & nchar(value) <= 250)
+			  name == "comment" ~ (nchar(value) >= 10 & nchar(value) <= 250),
+			  name == "terms_agreed" ~ (value == "1")
 			)) %>%
 			mutate(all = "1") %>%
 			select(all, valid) %>%
@@ -2276,6 +2281,7 @@ function(signup_data) {
 		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
 		dbAppendTable(sysndd_db, "user", user)
+		
 		dbDisconnect(sysndd_db)
 		
 		email <- compose_email(
