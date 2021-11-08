@@ -61,6 +61,7 @@
                 align="fill"
                 size="sm"
                 class="my-0"
+                last-number
               ></b-pagination>
             </b-col>
           </b-row>
