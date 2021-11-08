@@ -173,7 +173,7 @@
             </template>
 
             <template #cell(category)="data">
-              <div v-b-tooltip.hover.left v-bind:title="ndd_icon_text[data.item.ndd_phenotype]">
+              <div v-b-tooltip.hover.left v-bind:title="data.item.category">
                   <b-avatar
                   icon="stoplights"
                    size="1.4em"
@@ -182,7 +182,6 @@
                   </b-avatar>
               </div> 
             </template>
-
 
           </b-table>
 
