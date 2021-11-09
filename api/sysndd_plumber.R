@@ -1780,14 +1780,13 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 		left_join(sysndd_db_non_alt_loci_set, by =c("hgnc_id")) %>%
 		collect() %>%
 		unique() %>%
-		mutate(inheritance = case_when(
+		mutate(inheritance_filter = case_when(
 		  str_detect(inheritance, "X-linked") ~ "X-linked",
 		  str_detect(inheritance, "Autosomal dominant inheritance") ~ "Dominant",
 		  str_detect(inheritance, "Autosomal recessive inheritance") ~ "Recessive",
 		  TRUE ~ "Other"
 		)) %>%
 		mutate(category_filter = category) %>%
-		mutate(inheritance_filter = inheritance) %>%
 		select(category, inheritance, symbol, hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38, category_filter, inheritance_filter) %>%
 		arrange(desc(category), inheritance)
 	
