@@ -9,7 +9,7 @@
           <b-tabs content-class="mt-3" v-model="tabIndex">
 
             
-            <b-tab title="Upset" active>
+            <b-tab title="Overlap plot" active>
               <b-spinner label="Loading..." v-if="loadingUpset" class="float-center m-5"></b-spinner>
               <b-container fluid v-else>
                 <UpSetJS :sets="sets" :width="width" :height="height" @hover="hover" :selection="selection"></UpSetJS>
