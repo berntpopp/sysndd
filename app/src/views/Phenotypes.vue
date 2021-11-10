@@ -37,7 +37,7 @@
                       Browse
                   </b-button>
                   <b-form-checkbox v-model="checked" name="check-button" switch>
-                    <b>OR</b>
+                    <b>{{ switch_text[checked] }}</b>
                   </b-form-checkbox>
                 </b-col>
 
@@ -210,6 +210,7 @@ export default {
           ndd_icon_style: {"No": "warning", "Yes": "success"},
           ndd_icon_text: {"No": "not associated with NDDs", "Yes": "associated with NDDs"},
           inheritance_short_text: {"Autosomal dominant inheritance": "AD", "Autosomal recessive inheritance": "AR", "X-linked inheritance": "X", "X-linked recessive inheritance": "XR", "X-linked dominant inheritance": "XD", "Mitochondrial inheritance": "M", "Somatic mutation": "S"},
+          switch_text: {true: "OR", false: "AND"},
           value: null,
           phenotypes_options: [],
           selected_input: [],
