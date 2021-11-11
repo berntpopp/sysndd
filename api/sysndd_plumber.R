@@ -1554,6 +1554,12 @@ function(hpo_list = "", logical_operator = "and", res) {
 			filter(value) %>%
 			select(entity_id) %>%
 			ungroup()
+			
+		sysndd_db_entity_table <- pool %>% 
+			tbl("ndd_entity_view") %>%
+			collect() %>%
+			filter(entity_id %in% entity_list_from_phenotype_list_collected$entity_id) %>%
+			arrange(entity_id)
 	} else if ( logical_operator == "or" ) {
 		entity_list_from_phenotype_list_collected <- pool %>% 
 			tbl("ndd_review_phenotype_connect") %>%
@@ -1562,6 +1568,12 @@ function(hpo_list = "", logical_operator = "and", res) {
 			select(entity_id,) %>%
 			collect() %>%
 			unique()
+			
+		sysndd_db_entity_table <- pool %>% 
+			tbl("ndd_entity_view") %>%
+			collect() %>%
+			filter(entity_id %in% entity_list_from_phenotype_list_collected$entity_id) %>%
+			arrange(entity_id)
 	}
 
 	# generate request statistic for output
@@ -1576,7 +1588,7 @@ function(hpo_list = "", logical_operator = "and", res) {
 
 	# generate excel file output
 	filename <- file.path(tempdir(), "phenotype_panel.xlsx")
-	write.xlsx(entity_list_from_phenotype_list_collected, filename, sheetName="sysndd_phenotype", append=FALSE)
+	write.xlsx(sysndd_db_entity_table, filename, sheetName="sysndd_phenotype_panel", append=FALSE)
 	write.xlsx(request_stats, filename, sheetName="request", append=TRUE)
 	attachmentString = paste0("attachment; filename=phenotype_panel.", creation_date, ".xlsx")
 
