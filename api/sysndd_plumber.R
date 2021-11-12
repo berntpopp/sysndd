@@ -1747,6 +1747,15 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 		str_replace_all(" ", "") %>%
 		unique()
 
+	# generate table with field information for display
+	fields_tibble <- as_tibble(output_columns_list) %>%
+		select(key = value) %>%
+		mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
+		mutate(sortable = "true") %>%
+		mutate(class = "text-left") %>%
+		mutate(sortByFormatted = "true") %>%
+		mutate(filterByFormatted = "true")        
+
 	# validate inputs
 	ndd_entity_status_categories_list <- pool %>% 
 		tbl("ndd_entity_status_categories_list") %>%
@@ -1850,7 +1859,9 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 			select(all_of(output_columns_list))
 	}
 
-	sysndd_db_disease_genes_panel
+	# return list of format and data
+	list(fields = fields_tibble, data = sysndd_db_disease_genes_panel)
+
 }
 
 

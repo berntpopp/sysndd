@@ -271,8 +271,7 @@ export default {
               sortByFormatted: true,
               filterByFormatted: true
             },
-                        {
-              key: 'hpo_mode_of_inheritance_term_name',
+            { key: 'hpo_mode_of_inheritance_term_name',
               label: 'Inheritance',
               sortable: true,
               filterable: true, 

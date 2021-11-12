@@ -138,6 +138,7 @@
           
           <b-table
             :items="panel_data"
+            :fields="panel_fields"
             :current-page="currentPage"
             :per-page="perPage"
             :filter="filter"
@@ -178,6 +179,7 @@ export default {
           selected_columns: [],
           selected_sort: "symbol",
           panel_data: [],
+          panel_fields: [],
           totalRows: 0,
           currentPage: 1,
           perPage: 10,
@@ -228,9 +230,10 @@ export default {
           try {
             let response = await this.axios.get(apiUrl);
             
-            this.panel_data = response.data;
+            this.panel_data = response.data.data;
+            this.panel_fields = response.data.fields;
             
-            this.totalRows = response.data.length;
+            this.totalRows = response.data.data.length;
             this.currentPage = 1;
 
           } catch (e) {
