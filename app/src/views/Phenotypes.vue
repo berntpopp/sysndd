@@ -16,6 +16,7 @@
             <b-col class="my-1">
                 <multiselect 
                 id="phenotype_select"
+                @input="requestSelected"
                 v-model="value"
                 tag-placeholder="Add this as new tag" 
                 placeholder="Search or add a tag" 
@@ -32,11 +33,12 @@
 
               <b-row>
                 <b-col class="my-1">
-                  <b-button block v-on:click="requestSelected" size="sm">
-                    <b-icon icon="search" class="mx-1"></b-icon>
-                      Browse
-                  </b-button>
-                  <b-form-checkbox v-model="checked" name="check-button" switch>
+                  <b-form-checkbox 
+                  switch 
+                  v-model="checked" 
+                  name="check-button"
+                  @input="requestSelected"
+                  >
                     <b>{{ switch_text[checked] }}</b>
                   </b-form-checkbox>
                 </b-col>
@@ -211,7 +213,7 @@ export default {
           ndd_icon_text: {"No": "not associated with NDDs", "Yes": "associated with NDDs"},
           inheritance_short_text: {"Autosomal dominant inheritance": "AD", "Autosomal recessive inheritance": "AR", "X-linked inheritance": "X", "X-linked recessive inheritance": "XR", "X-linked dominant inheritance": "XD", "Mitochondrial inheritance": "M", "Somatic mutation": "S"},
           switch_text: {true: "OR", false: "AND"},
-          value: null,
+          value: [],
           phenotypes_options: [],
           selected_input: [],
           entities: [],
@@ -321,18 +323,24 @@ export default {
             this.value.push(tag);
           },
         requestSelected() {
-            this.selected_input = [];
-            for (var i in this.value) {
-              this.selected_input.push(this.value[i]['phenotype_id']);
+            if (this.value.length > 0) {
+              this.selected_input = [];
+              for (var i in this.value) {
+                this.selected_input.push(this.value[i]['phenotype_id']);
+              }
+              this.loadEntitiesFromPhenotypes();
+            } else {
+              this.entities_data = [];
             }
-            this.loadEntitiesFromPhenotypes();
           },
         requestSelectedExcel() {
-            this.selected_input = [];
-            for (var i in this.value) {
-              this.selected_input.push(this.value[i]['phenotype_id']);
+            if (this.value.length > 0) {
+              this.selected_input = [];
+              for (var i in this.value) {
+                this.selected_input.push(this.value[i]['phenotype_id']);
+              }
+              this.requestExcel();
             }
-            this.requestExcel();
           },
         async requestExcel() {
           this.downloading = true;
