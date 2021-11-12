@@ -255,8 +255,8 @@ export default {
               sortByFormatted: true,
               filterByFormatted: true
             },
-            { key: 'ndd_phenotype', label: 'NDD', sortable: true, filterable: true, class: 'text-left' },
             { key: 'category', label: 'Category', sortable: true, filterable: true, class: 'text-left' },
+            { key: 'ndd_phenotype', label: 'NDD', sortable: true, filterable: true, class: 'text-left' },
             { key: 'actions', label: 'Actions' }
           ],
           fields_details: [

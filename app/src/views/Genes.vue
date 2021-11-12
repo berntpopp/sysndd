@@ -148,7 +148,36 @@
                       </b-avatar>
                     </div> 
                   </template>
-            
+
+                  <template #cell(category)="data">
+                    <div>
+                      <b-avatar
+                      icon="stoplights"
+                      size="1.4em"
+                      class="mx-0"
+                      :variant="stoplights_style[data.item.category]"
+                      v-b-tooltip.hover.left 
+                      v-bind:title="data.item.category"
+                      >
+                      </b-avatar>
+                    </div> 
+                  </template>
+
+                  <template #cell(hpo_mode_of_inheritance_term_name)="data">
+                    <div>
+                      <b-badge 
+                      pill 
+                      variant="info" 
+                      class="justify-content-md-center" 
+                      size="1.3em"
+                      v-b-tooltip.hover.leftbottom 
+                      v-bind:title="data.item.hpo_mode_of_inheritance_term_name + ' (' + data.item.hpo_mode_of_inheritance_term + ')'"
+                      >
+                      {{ inheritance_short_text[data.item.hpo_mode_of_inheritance_term_name] }}
+                      </b-badge>
+                    </div>
+                  </template>
+
                 </b-table>
               </b-card>
             </template>
@@ -218,7 +247,7 @@ export default {
           ndd_icon: {"No": "x", "Yes": "check"},
           ndd_icon_style: {"No": "warning", "Yes": "success"},
           ndd_icon_text: {"No": "not associated with NDDs", "Yes": "associated with NDDs"},
-          inheritance_short_text: {"Autosomal dominant inheritance": "AD", "Autosomal recessive inheritance": "AR", "X-linked inheritance": "X", "X-linked recessive inheritance": "XR", "X-linked dominant inheritance": "XD", "Mitochondrial inheritance": "M", "Somatic mutation": "S"},
+          inheritance_short_text: {"Autosomal dominant inheritance": "AD", "Autosomal recessive inheritance": "AR", "X-linked inheritance": "X", "X-linked recessive inheritance": "XR", "X-linked dominant inheritance": "XD", "Mitochondrial inheritance": "M", "Somatic mutation": "S", "Semidominant mode of inheritance": "sD"},
           items: [],
           fields: [
             { key: 'symbol', label: 'Gene Symbol', sortable: true, class: 'text-left' },
@@ -242,6 +271,16 @@ export default {
               sortByFormatted: true,
               filterByFormatted: true
             },
+                        {
+              key: 'hpo_mode_of_inheritance_term_name',
+              label: 'Inheritance',
+              sortable: true,
+              filterable: true, 
+              class: 'text-left',
+              sortByFormatted: true,
+              filterByFormatted: true
+            },
+            { key: 'category', label: 'Category', sortable: true, filterable: true, class: 'text-left' },            
             { key: 'ndd_phenotype', label: 'NDD', sortable: true, class: 'text-left' }
           ],
           totalRows: 0,
