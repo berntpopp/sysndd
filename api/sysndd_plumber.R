@@ -189,10 +189,10 @@ info_from_genereviews <- function(Bookshelf_ID)  {
 # based on https://xiaolianglin.com/2018/12/05/Use-memoise-to-speed-up-your-R-plumber-API/
 
 nest_gene_tibble <- function(tibble) {
-	nested_tibble <- tibble %>%
-		nest_by(symbol, hgnc_id, category, hpo_mode_of_inheritance_term_name, hpo_mode_of_inheritance_term, .key = "entities")
-
-	return(nested_tibble)
+    nested_tibble <- tibble %>%
+        nest_by(symbol, hgnc_id, .key = "entities")
+    
+    return(nested_tibble)
 }
 
 make_entities_plot <- function(data_tibble) {
@@ -1554,7 +1554,8 @@ function(hpo_list = "", logical_operator = "and", res) {
 			filter(value) %>%
 			select(entity_id) %>%
 			ungroup()
-			
+
+	# get entity data for the excel sheet
 		sysndd_db_entity_table <- pool %>% 
 			tbl("ndd_entity_view") %>%
 			collect() %>%
@@ -1568,7 +1569,8 @@ function(hpo_list = "", logical_operator = "and", res) {
 			select(entity_id,) %>%
 			collect() %>%
 			unique()
-			
+
+	# get entity data for the excel sheet
 		sysndd_db_entity_table <- pool %>% 
 			tbl("ndd_entity_view") %>%
 			collect() %>%

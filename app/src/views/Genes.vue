@@ -170,13 +170,15 @@
               <div>
                 <b-badge 
                 pill 
+                size="1.3em" 
                 variant="info" 
-                class="justify-content-md-center" 
-                size="1.3em"
+                class="justify-content-md-center mx-0"
+                v-for="item in data.item.entities" 
+                :key="item.hpo_mode_of_inheritance_term_name + item.entity_id" 
                 v-b-tooltip.hover.leftbottom 
-                v-bind:title="data.item.hpo_mode_of_inheritance_term_name + ' (' + data.item.hpo_mode_of_inheritance_term + ')'"
+                v-bind:title="item.hpo_mode_of_inheritance_term_name + ' (' + item.hpo_mode_of_inheritance_term + ')'"
                 >
-                {{ inheritance_short_text[data.item.hpo_mode_of_inheritance_term_name] }}
+                {{ inheritance_short_text[item.hpo_mode_of_inheritance_term_name] }}
                 </b-badge>
               </div>
             </template>
@@ -184,11 +186,14 @@
             <template #cell(category)="data">
               <div>
                 <b-avatar
-                size="1.4em"
                 icon="stoplights"
-                :variant="stoplights_style[data.item.category]"
+                size="1.4em"
+                class="mx-0"
+                v-for="item in data.item.entities" 
+                :key="item.category + item.entity_id"
+                :variant="stoplights_style[item.category]"
                 v-b-tooltip.hover.left 
-                v-bind:title="data.item.category"
+                v-bind:title="item.category"
                 >
                 </b-avatar>
               </div> 
