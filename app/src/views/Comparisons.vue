@@ -107,6 +107,97 @@
                 @filtered="onFiltered"
               >
 
+              <template #cell(symbol)="data">
+                <div class="font-italic">
+                  <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
+                    <b-badge pill variant="success"
+                    v-b-tooltip.hover.leftbottom 
+                    v-bind:title="data.item.hgnc_id"
+                    >
+                    {{ data.item.symbol }}
+                    </b-badge>
+                  </b-link>
+                </div> 
+              </template>
+
+              <template #cell(SysNDD)="data">
+                <div>
+                  <b-avatar 
+                  size="1.4em" 
+                  :icon="yn_icon[data.item.SysNDD]"
+                  :variant="yn_icon_style[data.item.SysNDD]"
+                  v-b-tooltip.hover.left 
+                  v-bind:title="data.item.SysNDD"
+                  >
+                  </b-avatar>
+                </div> 
+              </template>
+
+              <template #cell(radboudumc_ID)="data">
+                <div>
+                  <b-avatar 
+                  size="1.4em" 
+                  :icon="yn_icon[data.item.radboudumc_ID]"
+                  :variant="yn_icon_style[data.item.radboudumc_ID]"
+                  v-b-tooltip.hover.left 
+                  v-bind:title="data.item.radboudumc_ID"
+                  >
+                  </b-avatar>
+                </div> 
+              </template>
+
+              <template #cell(gene2phenotype)="data">
+                <div>
+                  <b-avatar 
+                  size="1.4em" 
+                  :icon="yn_icon[data.item.gene2phenotype]"
+                  :variant="yn_icon_style[data.item.gene2phenotype]"
+                  v-b-tooltip.hover.left 
+                  v-bind:title="data.item.gene2phenotype"
+                  >
+                  </b-avatar>
+                </div> 
+              </template>
+
+              <template #cell(panelapp)="data">
+                <div>
+                  <b-avatar 
+                  size="1.4em" 
+                  :icon="yn_icon[data.item.panelapp]"
+                  :variant="yn_icon_style[data.item.panelapp]"
+                  v-b-tooltip.hover.left 
+                  v-bind:title="data.item.panelapp"
+                  >
+                  </b-avatar>
+                </div> 
+              </template>
+
+              <template #cell(sfari)="data">
+                <div>
+                  <b-avatar 
+                  size="1.4em" 
+                  :icon="yn_icon[data.item.sfari]"
+                  :variant="yn_icon_style[data.item.sfari]"
+                  v-b-tooltip.hover.left 
+                  v-bind:title="data.item.sfari"
+                  >
+                  </b-avatar>
+                </div> 
+              </template>
+
+              <template #cell(geisinger_DBD)="data">
+                <div>
+                  <b-avatar 
+                  size="1.4em" 
+                  :icon="yn_icon[data.item.geisinger_DBD]"
+                  :variant="yn_icon_style[data.item.geisinger_DBD]"
+                  v-b-tooltip.hover.left 
+                  v-bind:title="data.item.geisinger_DBD"
+                  >
+                  </b-avatar>
+                </div> 
+              </template>
+
               </b-table>
 
             </b-tab>
@@ -132,11 +223,14 @@
     },
     data() {
       return {
+        yn_icon: {"no": "x", "yes": "check"},
+        yn_icon_style: {"no": "warning", "yes": "success"},
         elems: [ {
           "name": "AAAS",
           "sets": [
             "SysNDD",
             "radboudumc_ID",
+            "sfari",
             "gene2phenotype",
             "panelapp",
             "geisinger_DBD"
