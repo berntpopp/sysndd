@@ -331,6 +331,7 @@ export default {
               this.loadEntitiesFromPhenotypes();
             } else {
               this.entities_data = [];
+              this.totalRows = 0;
             }
           },
         requestSelectedExcel() {
