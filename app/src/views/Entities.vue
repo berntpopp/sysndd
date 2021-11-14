@@ -94,24 +94,24 @@
             @filtered="onFiltered"
           >
 
-          <template #head()="data">
-                <b-input-group
-                size="sm">
-                <b-input-group-prepend is-text><b>{{ data.label }}</b></b-input-group-prepend>
-                  <b-form-input
-                    v-bind:id="'filter-input-' + data.label"
-                    v-model="filter[data.label]"
-                    type="search"
-                    placeholder="..."
-                    debounce="500"
-                    size="sm"
-                    @click="changeFilter(data.label)"
-                    @update="applyFilter(data.label)"
-                    @blur="removeFilter(data.label)"
-                  >
-                  </b-form-input>
-                </b-input-group>
-          </template>
+            <template #head()="data">
+                  <b-input-group
+                  size="sm">
+                  <b-input-group-prepend is-text><b>{{ data.label }}</b></b-input-group-prepend>
+                    <b-form-input
+                      v-bind:id="'filter-input-' + data.label"
+                      v-model="filter[data.label]"
+                      type="search"
+                      placeholder="..."
+                      debounce="500"
+                      size="sm"
+                      @click="changeFilter(data.label)"
+                      @update="applyFilter(data.label)"
+                      @blur="removeFilter(data.label)"
+                    >
+                    </b-form-input>
+                  </b-input-group>
+            </template>
 
             <template #cell(actions)="row">
               <b-button class="btn-xs" @click="row.toggleDetails" variant="outline-primary">
