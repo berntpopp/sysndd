@@ -148,6 +148,7 @@
             :sort-direction="sortDirection"
             stacked="md"
             head-variant="light"
+            fixed
             show-empty
             small
             striped
@@ -155,6 +156,17 @@
             sort-icon-left
             style="width: 100%; white-space: nowrap;"
           >
+
+            <template #cell(inheritance)="data">
+              <div 
+              v-b-tooltip.hover.leftbottom
+              v-bind:title="data.item.inheritance"
+              class="w-100 text-truncate"
+              >
+                {{ data.item.inheritance }}
+              </div> 
+            </template>
+
           </b-table>
 
         </b-col>
