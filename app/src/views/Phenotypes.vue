@@ -213,7 +213,10 @@ export default {
           ndd_icon_text: {"No": "not associated with NDDs", "Yes": "associated with NDDs"},
           inheritance_short_text: {"Autosomal dominant inheritance": "AD", "Autosomal recessive inheritance": "AR", "X-linked inheritance": "X", "X-linked recessive inheritance": "XR", "X-linked dominant inheritance": "XD", "Mitochondrial inheritance": "M", "Somatic mutation": "S", "Semidominant mode of inheritance": "sD"},
           switch_text: {true: "OR", false: "AND"},
-          value: [],
+          value: [{
+            "phenotype_id": "HP:0001249",
+            "HPO_term": "Intellectual disability"}
+          ],
           phenotypes_options: [],
           selected_input: [],
           entities: [],
@@ -263,6 +266,7 @@ export default {
       mounted() {
         // Set the initial number of items
         this.loadPhenotypesData();
+        this.requestSelected();
       },
       methods: {
         async loadPhenotypesData() {
