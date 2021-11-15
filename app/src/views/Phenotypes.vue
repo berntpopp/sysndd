@@ -29,8 +29,8 @@
                 >
                 </multiselect> 
             </b-col>
-            <b-col>
 
+            <b-col>
               <b-row>
                 <b-col class="my-1">
                   <b-form-checkbox 

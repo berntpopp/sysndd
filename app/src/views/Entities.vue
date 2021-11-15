@@ -24,20 +24,30 @@
                 size="sm">
                   <b-form-input
                     id="filter-input"
-                    v-model="filter.search"
+                    v-model="filter['search']"
                     type="search"
                     placeholder="any field by typing here"
                     debounce="500"
-                    @click="changeFilter(null)"
-                    @update="applyFilter('search')"
-                    @blur="removeFilter('search')"
+                    @click="removeFilters()"
+                    @update="filtered()"
                   >
                   </b-form-input>
                 </b-input-group>
               </b-form-group>
             </b-col>
 
-            <b-col class="my-1">
+            <b-col>
+              <b-row>
+                <b-col class="my-1">
+                  <b-button block v-on:click="removeFilters(); removeSearch();" size="sm">
+                    <b-icon icon="filter" class="mx-1"></b-icon>
+                    Reset filters
+                  </b-button>
+                </b-col>
+
+                <b-col class="my-1">
+                </b-col>
+              </b-row>
             </b-col>
 
             <b-col class="my-1">
@@ -74,7 +84,7 @@
 
           <!-- Main table element -->
           <b-table
-            :items="items"
+            :items="filtered_items"
             :fields="fields"
             :current-page="currentPage"
             :per-page="perPage"
@@ -91,26 +101,22 @@
             striped
             hover
             sort-icon-left
-            @filtered="onFiltered"
           >
 
-            <template #head()="data">
-                  <b-input-group
-                  size="sm">
-                  <b-input-group-prepend is-text><b>{{ data.label }}</b></b-input-group-prepend>
-                    <b-form-input
-                      v-bind:id="'filter-input-' + data.label"
-                      v-model="filter[data.label]"
-                      type="search"
-                      placeholder="..."
-                      debounce="500"
-                      size="sm"
-                      @click="changeFilter(data.label)"
-                      @update="applyFilter(data.label)"
-                      @blur="removeFilter(data.label)"
-                    >
-                    </b-form-input>
-                  </b-input-group>
+            <!-- based on:  https://stackoverflow.com/questions/52959195/bootstrap-vue-b-table-with-filter-in-header -->
+            <template slot="top-row" slot-scope="{ fields }">
+              <td v-for="field in fields" :key="field.key">
+                <b-form-input 
+                v-model="filter[field.key]" 
+                placeholder="..."
+                debounce="500"
+                size="sm"
+                type="search"
+                @click="removeSearch()"
+                @update="filtered()"
+                >
+                </b-form-input>
+              </td>
             </template>
 
             <template #cell(actions)="row">
@@ -234,6 +240,7 @@ export default {
           ndd_icon_text: {"No": "not associated with NDDs", "Yes": "associated with NDDs"},
           inheritance_short_text: {"Autosomal dominant inheritance": "AD", "Autosomal recessive inheritance": "AR", "X-linked inheritance": "X", "X-linked recessive inheritance": "XR", "X-linked dominant inheritance": "XD", "Mitochondrial inheritance": "M", "Somatic mutation": "S"},
           items: [],
+          filtered_items: [],
           fields: [
             { key: 'entity_id', label: 'Entity', sortable: true, filterable: true, sortDirection: 'desc', class: 'text-left' },
             { key: 'symbol', label: 'Symbol', sortable: true, filterable: true, class: 'text-left' },
@@ -273,7 +280,7 @@ export default {
           sortDesc: false,
           sortDirection: 'asc',
           filterTable: null,
-          filter: {search: null, Entity: null, Symbol: null, Inheritance: null, NDD: null, Category: null, Actions: null},
+          filter: {search: '', entity_id: '', symbol: '', disease_ontology_name: '', disease_ontology_id_version: '', hpo_mode_of_inheritance_term_name: '', hpo_mode_of_inheritance_term: '', ndd_phenotype: '', category: ''},
           filterOn: [],
           infoModal: {
             id: 'info-modal',
@@ -282,8 +289,6 @@ export default {
           },
           loading: true
         }
-      },
-      computed: {
       },
       mounted() {
         // Set the initial number of items
@@ -295,12 +300,35 @@ export default {
           this.totalRows = filteredItems.length
           this.currentPage = 1
         },
+        filtered() {
+          if (this.filter['search'] !== '') {
+              this.filtered_items = this.items.filter(item => {
+                return Object.keys(this.filter).some(key =>
+                    String(item[key]).toLowerCase().includes(this.filter['search'].toLowerCase()));
+              });
+          } else {
+              this.filtered_items = this.items.filter(item => {
+                return Object.keys(this.filter).every(key =>
+                    String(item[key]).toLowerCase().includes(this.filter[key].toLowerCase()));
+              });
+          }
+          this.onFiltered(this.filtered_items);
+        },
+        removeFilters(){
+          this.filter = {search: '', entity_id: '', symbol: '', disease_ontology_name: '', disease_ontology_id_version: '', hpo_mode_of_inheritance_term_name: '', hpo_mode_of_inheritance_term: '', ndd_phenotype: '', category: ''};
+          this.filtered();
+        },
+        removeSearch(){
+          this.filter['search'] = '';
+          this.filtered();
+        },
         async loadEntitiesData() {
           this.loading = true;
           let apiUrl = process.env.VUE_APP_API_URL + '/api/entities';
           try {
             let response = await this.axios.get(apiUrl);
             this.items = response.data.data;
+            this.filtered_items = response.data.data;
             this.totalRows = response.data.data.length;
           } catch (e) {
             console.error(e);
@@ -309,21 +337,6 @@ export default {
         },
         truncate(str, n){
           return (str.length > n) ? str.substr(0, n-1) + '...' : str;
-        },
-        changeFilter(value){
-          this.filterOn = this.fields
-                      .filter(f => f.filterable)
-                      .filter(f => f.label == value)
-                      .map(f => {
-                        return [ f.key ]
-                      })[0];
-        },
-        applyFilter(value){
-          this.filterTable = this.filter[value];
-        },
-        removeFilter(value){
-          this.filter[value] = null;
-          this.filterTable = null;
         }
       }
   }
