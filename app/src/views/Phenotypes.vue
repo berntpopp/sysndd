@@ -150,7 +150,7 @@
             </template>
 
             <template #cell(disease_ontology_name)="data">
-              <div>
+              <div class="overflow-hidden text-truncate">
                 <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"> 
                   <b-badge 
                   pill 
@@ -158,7 +158,7 @@
                   v-b-tooltip.hover.leftbottom
                   v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version"
                   >
-                  {{ truncate(data.item.disease_ontology_name, 30) }}
+                  {{ truncate(data.item.disease_ontology_name, 40) }}
                   </b-badge>
                 </b-link>
               </div> 
