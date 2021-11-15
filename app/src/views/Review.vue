@@ -612,7 +612,7 @@ export default {
           ndd_icon: {"0": "x", "1": "check"},
           ndd_icon_style: {"0": "warning", "1": "success"},
           ndd_icon_text: {"0": "not associated with NDDs", "1": "associated with NDDs"},
-          inheritance_short_text: {"Autosomal dominant inheritance": "AD", "Autosomal recessive inheritance": "AR", "X-linked inheritance": "X", "X-linked recessive inheritance": "XR", "X-linked dominant inheritance": "XD", "Mitochondrial inheritance": "M", "Somatic mutation": "S"},
+          inheritance_short_text: {"Autosomal dominant inheritance": "AD", "Autosomal recessive inheritance": "AR", "X-linked inheritance": "X", "X-linked recessive inheritance": "XR", "X-linked dominant inheritance": "XD", "Mitochondrial inheritance": "M", "Somatic mutation": "S", "Semidominant mode of inheritance": "sD"},
           empty_table_text: {false: "Apply for a new batch of entities.", true: "Nothing to review."},
           items: [],
           fields: [

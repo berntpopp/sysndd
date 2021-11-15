@@ -265,7 +265,7 @@ export default {
           ndd_icon: {"No": "x", "Yes": "check"},
           ndd_icon_style: {"No": "warning", "Yes": "success"},
           ndd_icon_text: {"No": "not associated with NDDs", "Yes": "associated with NDDs"},
-          inheritance_short_text: {"Autosomal dominant inheritance": "AD", "Autosomal recessive inheritance": "AR", "X-linked inheritance": "X", "X-linked recessive inheritance": "XR", "X-linked dominant inheritance": "XD", "Mitochondrial inheritance": "M", "Somatic mutation": "S"},
+          inheritance_short_text: {"Autosomal dominant inheritance": "AD", "Autosomal recessive inheritance": "AR", "X-linked inheritance": "X", "X-linked recessive inheritance": "XR", "X-linked dominant inheritance": "XD", "Mitochondrial inheritance": "M", "Somatic mutation": "S", "Semidominant mode of inheritance": "sD"},
           gene: [],
           gene_fields: [
             { key: 'symbol', label: 'HGNC Symbol', sortable: true, class: 'text-left' },
