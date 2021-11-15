@@ -157,6 +157,16 @@
             style="width: 100%; white-space: nowrap;"
           >
 
+            <template #cell(category)="data">
+              <div 
+              v-b-tooltip.hover.leftbottom
+              v-bind:title="data.item.category"
+              class="w-100 text-truncate"
+              >
+                {{ data.item.category }}
+              </div> 
+            </template>
+
             <template #cell(inheritance)="data">
               <div 
               v-b-tooltip.hover.leftbottom
@@ -164,6 +174,76 @@
               class="w-100 text-truncate"
               >
                 {{ data.item.inheritance }}
+              </div> 
+            </template>
+
+            <template #cell(symbol)="data">
+              <div 
+              v-b-tooltip.hover.leftbottom
+              v-bind:title="data.item.symbol"
+              class="w-100 text-truncate"
+              >
+                {{ data.item.symbol }}
+              </div> 
+            </template>
+
+            <template #cell(hgnc_id)="data">
+              <div 
+              v-b-tooltip.hover.leftbottom
+              v-bind:title="data.item.hgnc_id"
+              class="w-100 text-truncate"
+              >
+                {{ data.item.hgnc_id }}
+              </div> 
+            </template>
+
+            <template #cell(entrez_id)="data">
+              <div 
+              v-b-tooltip.hover.leftbottom
+              v-bind:title="data.item.entrez_id"
+              class="w-100 text-truncate"
+              >
+                {{ data.item.entrez_id }}
+              </div> 
+            </template>
+
+            <template #cell(ensembl_gene_id)="data">
+              <div 
+              v-b-tooltip.hover.leftbottom
+              v-bind:title="data.item.ensembl_gene_id"
+              class="w-100 text-truncate"
+              >
+                {{ data.item.ensembl_gene_id }}
+              </div> 
+            </template>
+
+            <template #cell(ucsc_id)="data">
+              <div 
+              v-b-tooltip.hover.leftbottom
+              v-bind:title="data.item.ucsc_id"
+              class="w-100 text-truncate"
+              >
+                {{ data.item.ucsc_id }}
+              </div> 
+            </template>
+
+            <template #cell(bed_hg19)="data">
+              <div 
+              v-b-tooltip.hover.leftbottom
+              v-bind:title="data.item.bed_hg19"
+              class="w-100 text-truncate"
+              >
+                {{ data.item.bed_hg19 }}
+              </div> 
+            </template>
+
+            <template #cell(bed_hg38)="data">
+              <div 
+              v-b-tooltip.hover.leftbottom
+              v-bind:title="data.item.bed_hg38"
+              class="w-100 text-truncate"
+              >
+                {{ data.item.bed_hg38 }}
               </div> 
             </template>
 
