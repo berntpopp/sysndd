@@ -699,9 +699,9 @@ export default {
             { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-left' },
           ],
           review_number: 0,
-          synopsis_review: null,
-          review_comment: null,
-          status_comment: null,
+          synopsis_review: '',
+          review_comment: '',
+          status_comment: '',
           publications: [],
           literature_review: [],
           genereviews_review: [],
@@ -768,17 +768,17 @@ export default {
           this.synopsis_review = '';
           this.literature_review = [];
           this.genereviews_review = [];
-          this.review_comment = null;
+          this.review_comment = '';
         },
         resetStatusModal() {
           this.status_selected = 0;
           this.removal_selected = 0;
-          this.status_comment = null;
+          this.status_comment = '';
         },
         resetApproveModal() {
           this.status_approved = false;
           this.review_approved = false;
-          this.status_comment = null;
+          this.status_comment = '';
         },
         infoReview(item, index, button) {
           this.reviewModal.title = `sysndd:${item.entity_id}`;
@@ -862,7 +862,11 @@ export default {
             this.phenotypes = response_phenotypes.data;
 
             this.synopsis_review = this.review[this.review_number].synopsis;
-            this.review_comment = this.review[this.review_number].comment;
+            if (this.review[this.review_number].comment !== null) {
+              this.review_comment = this.review[this.review_number].comment;
+            } else {
+              this.review_comment = '';
+            }
             this.phenotypes_review = this.phenotypes;
 
             // filter the publications data into groups and assign to global variables
@@ -887,7 +891,11 @@ export default {
 
             // assign response data to global variables
             this.status_selected = response_status.data[0].category_id;
-            this.status_comment = response_status.data[0].comment;
+            if (response_status.data[0].comment !== null) {
+              this.status_comment = response_status.data[0].comment;
+            } else {
+              this.status_comment = '';
+            }
             this.removal_selected = response_status.data[0].problematic;
 
             } catch (e) {
@@ -923,8 +931,6 @@ export default {
           if (this.entity[0].re_review_review_saved === 1) {
             try {
               let submission_json = JSON.stringify(submission);
-
-console.log(submission_json);
 
               let response = await this.axios.put(apiUrl + submission_json, {}, {
                 headers: {
