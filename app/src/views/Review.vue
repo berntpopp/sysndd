@@ -932,6 +932,8 @@ export default {
             try {
               let submission_json = JSON.stringify(submission);
 
+console.log(submission_json);
+
               let response = await this.axios.put(apiUrl + submission_json, {}, {
                 headers: {
                   'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -998,6 +1000,7 @@ export default {
           } else {
             try {
               let status_json = JSON.stringify(status);
+
               let response = await this.axios.post(apiUrl + status_json, {}, {
                 headers: {
                   'Authorization': 'Bearer ' + localStorage.getItem('token')

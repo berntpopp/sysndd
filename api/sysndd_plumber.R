@@ -786,13 +786,6 @@ function(req, res, review_json) {
 				return(res)
 			}
 
-			# get existing PMIDs
-			publications_list_collected <- pool %>%
-				tbl("publication") %>%
-				select(publication_id) %>%
-				arrange(publication_id) %>%
-				collect()
-
 			##-------------------------------------------------------------------##
 
 			##-------------------------------------------------------------------##
@@ -803,6 +796,13 @@ function(req, res, review_json) {
 				# connect to database
 				sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
+				# get existing PMIDs
+				publications_list_collected <- pool %>%
+					tbl("publication") %>%
+					select(publication_id) %>%
+					arrange(publication_id) %>%
+					collect()
+				
 				# check if publication_ids are already present in the database
 				publications_new <- publications_received %>%
 					mutate(present = publication_id %in% publications_list_collected$publication_id) %>%
@@ -885,6 +885,13 @@ function(req, res, review_json) {
 					dbExecute(sysndd_db, paste0("DELETE FROM publication WHERE publication_id IN (", str_c(publication_id_to_purge, collapse=", "), ");"))
 				}
 
+				# get existing PMIDs
+				publications_list_collected <- pool %>%
+					tbl("publication") %>%
+					select(publication_id) %>%
+					arrange(publication_id) %>%
+					collect()
+				
 				# check if publication_ids are already present in the database
 				publications_new <- publications_received %>%
 					mutate(present = publication_id %in% publications_list_collected$publication_id) %>%
