@@ -1076,7 +1076,7 @@ export default {
         },
         tagValidatorPMID(tag) {
           // Individual PMID tag validator function
-          return !isNaN(Number(tag.replace('PMID:', ''))) && tag.includes('PMID:') && tag.replace('PMID:', '').length > 4 && tag.replace('PMID:', '').length < 10;
+          return !isNaN(Number(tag.replace('PMID:', ''))) && tag.includes('PMID:') && tag.replace('PMID:', '').length > 4 && tag.replace('PMID:', '').length < 9;
         },
         saved(any_id) {
           // check if id is new
