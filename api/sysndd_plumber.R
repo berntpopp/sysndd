@@ -543,7 +543,8 @@ function(sysndd_id) {
 		filter(entity_id == sysndd_id) %>%
 		inner_join(phenotype_list_collected, by=c("phenotype_id")) %>%
 		select(entity_id, phenotype_id, HPO_term, modifier_id) %>%
-		arrange(phenotype_id)
+		arrange(phenotype_id) %>%
+		unique()
 }
 
 
@@ -627,7 +628,9 @@ function(sysndd_id) {
 
 	ndd_entity_publication_list <- ndd_review_publication_join_collected %>%
 		filter(entity_id == sysndd_id) %>%
-		arrange(publication_id)
+		select(entity_id, publication_id, publication_type, is_reviewed) %>%
+		arrange(publication_id) %>%
+		unique()
 }
 
 ## Entity endpoints
@@ -703,7 +706,6 @@ function(review_requested) {
 	# get data from database and filter
 	ndd_review_publication_join_collected <- pool %>% 
 		tbl("ndd_review_publication_join") %>%
-		filter(is_reviewed == 1) %>%
 		collect()
 
 	publication_collected <- pool %>% 
@@ -791,11 +793,6 @@ function(req, res, review_json) {
 				arrange(publication_id) %>%
 				collect()
 
-			# check if publication_ids are already present in the database
-			publications_new <- publications_received %>%
-				mutate(present = publication_id %in% publications_list_collected$publication_id) %>%
-				filter(!present & !is.na(publication_id)) %>%
-				select(-present)
 			##-------------------------------------------------------------------##
 
 			##-------------------------------------------------------------------##
@@ -806,6 +803,12 @@ function(req, res, review_json) {
 				# connect to database
 				sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
+				# check if publication_ids are already present in the database
+				publications_new <- publications_received %>%
+					mutate(present = publication_id %in% publications_list_collected$publication_id) %>%
+					filter(!present & !is.na(publication_id)) %>%
+					select(-present)
+				
 				# add new publications to database table "publication" if present and not NA
 				if (nrow(publications_new) > 0) {
 					dbAppendTable(sysndd_db, "publication", publications_new)
@@ -877,10 +880,16 @@ function(req, res, review_json) {
 				# delete old publication connections for review_id second
 				dbExecute(sysndd_db, paste0("DELETE FROM ndd_review_publication_join WHERE review_id = ", review_id_from_re_review_entity_id, ";"))
 				
-				# delete old publications if only present in previous version of this review
+				# delete old publication connections if only present in previous version of this review
 				if (length(publication_id_to_purge) > 0) {
-					dbExecute(sysndd_db, paste0("DELETE FROM ndd_review_publication_join WHERE publication_id IN (", str_c(publication_id_to_purge, collapse=", "), ");"))
+					dbExecute(sysndd_db, paste0("DELETE FROM publication WHERE publication_id IN (", str_c(publication_id_to_purge, collapse=", "), ");"))
 				}
+
+				# check if publication_ids are already present in the database
+				publications_new <- publications_received %>%
+					mutate(present = publication_id %in% publications_list_collected$publication_id) %>%
+					filter(!present & !is.na(publication_id)) %>%
+					select(-present)
 				
 				# add new publications to database table "publication" if present and not NA
 				if (nrow(publications_new) > 0) {
