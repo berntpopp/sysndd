@@ -799,7 +799,7 @@ function(req, res, review_json) {
 			##-------------------------------------------------------------------##
 
 			##-------------------------------------------------------------------##
-			# check which request type was requested and perform database update accoringly
+			# check which request type was requested and perform database update accordingly
 			if ( req$REQUEST_METHOD == "POST") {
 				##-------------------------------------------------------------------##
 				## for the post request we connect to the database and then add new publications, the new synopis and the associate the synopis with phenotypesa nd publications
@@ -844,7 +844,7 @@ function(req, res, review_json) {
 				
 			} else if ( req$REQUEST_METHOD == "PUT") {
 				##-------------------------------------------------------------------##
-				## for the put request we first find the review_id saved in the re_review, delte assocaited phenoytpe and publication connections and publications associated only in that review then proceed to update the review and make new connections
+				## for the put request we first find the review_id saved in the re_review, delete associated phenotype and publication connections and publications associated only in that review then proceed to update the review and make new connections
 				
 				# get the review_id using the re_review_entity_id
 				review_id_from_re_review_entity_id <- (pool %>% 
@@ -879,7 +879,8 @@ function(req, res, review_json) {
 				
 				# delete old publications if only present in previous version of this review
 				if (length(publication_id_to_purge) > 0) {
-				dbExecute(sysndd_db, paste0("DELETE FROM ndd_review_publication_join WHERE publication_id IN (", str_c(publication_id_to_purge, collapse=", "), ");"))
+					dbExecute(sysndd_db, paste0("DELETE FROM ndd_review_publication_join WHERE publication_id IN (", str_c(publication_id_to_purge, collapse=", "), ");"))
+				}
 				
 				# add new publications to database table "publication" if present and not NA
 				if (nrow(publications_new) > 0) {
@@ -920,7 +921,6 @@ function(req, res, review_json) {
 				# disconnect from database
 				dbDisconnect(sysndd_db)
 				##-------------------------------------------------------------------##
-				}
 			}
 			##-------------------------------------------------------------------##
 		} else {

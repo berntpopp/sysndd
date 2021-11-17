@@ -917,6 +917,7 @@ export default {
           }
         },
         async submitReview(submission) {
+
           let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/review?review_json=';
           
           if (this.entity[0].re_review_review_saved === 1) {
@@ -959,14 +960,14 @@ export default {
 
           review_submission.re_review_entity_id = this.entity[0].re_review_entity_id;
           review_submission.entity_id = this.entity[0].entity_id;
-          review_submission.synopsis = this.synopsis_review;
+          review_submission.synopsis = encodeURIComponent(this.synopsis_review);
           review_submission.literature = {};
           review_submission.literature.additional_references = this.literature_review;
           review_submission.literature.gene_review = this.genereviews_review;
           review_submission.phenotypes = {};
           review_submission.phenotypes.phenotype_id = phenotypes_submission;
           review_submission.phenotypes.modifier_id = modifiers_submission;
-          review_submission.comment = this.review_comment;
+          review_submission.comment = encodeURIComponent(this.review_comment);
 
           this.submitReview(review_submission);
           this.resetReviewModal();
