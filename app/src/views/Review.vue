@@ -552,7 +552,7 @@
       :id="approveModal.id" 
       size="sm" 
       centered 
-      ok-title="Approve selected" 
+      ok-title="Approve" 
       no-close-on-esc 
       no-close-on-backdrop 
       header-bg-variant="dark" 
@@ -590,6 +590,15 @@
           <label class="custom-control-label" for="approveStatusSwitch">Status</label>
           </div>
 
+          <div>
+            <b-button 
+            size="sm" 
+            variant="warning"
+            @click="handleUnsetSubmission()" 
+            >
+              <b-icon icon="unlock" font-scale="1.0"></b-icon> Unsubmit
+            </b-button>
+          </div>
       </b-modal>
       <!-- 4) Approve modal -->
 
@@ -1048,6 +1057,24 @@ export default {
         async handleApproveOk(bvModalEvt) {
 
           let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/approve/' + this.entity[0].re_review_entity_id + '?status_ok=' + this.status_approved + '&review_ok=' + this.review_approved;
+
+          try {
+            let response = await this.axios.put(apiUrl, {}, {
+              headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+              }
+            });
+          } catch (e) {
+            console.error(e);
+          }
+
+        this.resetApproveModal();
+        this.reloadReReviewData();
+
+        },
+        async handleUnsetSubmission(bvModalEvt) {
+
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/unsubmit/' + this.entity[0].re_review_entity_id;
 
           try {
             let response = await this.axios.put(apiUrl, {}, {
