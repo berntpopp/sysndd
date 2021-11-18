@@ -1070,6 +1070,38 @@ function(req, res, submit_json) {
 
 
 #* @tag reviews
+## put a re-review submission back into unsubmitted mode (only Admin and Curator status users)
+#* @serializer json list(na="string")
+#' @put /api/re_review/unsubmit/<re_review_id>
+function(req, res, re_review_id) {
+	# first check rights
+	if ( length(req$user_id) == 0) {
+	
+		res$status <- 401 # Unauthorized
+		return(list(error="Please authenticate."))
+
+	} else if ( req$user_role %in% c("Admin", "Curator") ) {
+				
+		submit_user_id <- req$user_id
+		re_review_id <- as.integer(re_review_id)
+
+		# connect to database
+		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+		# execute update query
+		dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET re_review_submitted = 0 WHERE re_review_entity_id = ", re_review_id, ";"))
+
+		# disconnect from database
+		dbDisconnect(sysndd_db)
+		
+	} else {
+		res$status <- 403 # Forbidden
+		return(list(error="Write access forbidden."))
+	}
+}
+
+
+#* @tag reviews
 ## put the re-review status and review approvement (only Admin and Curator status users)
 #* @serializer json list(na="string")
 #' @put /api/re_review/approve/<re_review_id>
