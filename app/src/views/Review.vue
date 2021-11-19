@@ -174,7 +174,7 @@
 
             <template #cell(entity_id)="data">
               <div>
-                <b-link v-bind:href="'/Entities/' + data.item.entity_id">
+                <b-link v-bind:href="'/Entities/' + data.item.entity_id" target="_blank">
                   <b-badge 
                   variant="primary"
                   style="cursor:pointer"
@@ -187,7 +187,7 @@
 
             <template #cell(symbol)="data">
               <div class="font-italic">
-                <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
+                <b-link v-bind:href="'/Genes/' + data.item.hgnc_id" target="_blank"> 
                   <b-badge pill variant="success"
                   v-b-tooltip.hover.leftbottom 
                   v-bind:title="data.item.hgnc_id"
@@ -200,7 +200,7 @@
 
             <template #cell(disease_ontology_name)="data">
               <div>
-                <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"> 
+                <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')" target="_blank"> 
                   <b-badge 
                   pill 
                   variant="secondary"
@@ -263,8 +263,10 @@
 
         <template #modal-title>
           <h4>Entity: 
-            <b-badge variant="primary">
-              {{ reviewModal.title }}
+            <b-badge 
+            variant="primary"
+            >
+            {{ reviewModal.title }}
             </b-badge>
           </h4>
         </template>
@@ -275,15 +277,30 @@
 
         <form ref="form" @submit.stop.prevent="handleSubmit">
 
+            <!-- small entity table in review modal-->
+            >
             <b-table
                 :items="entity"
                 :fields="entity_fields"
                 small
             >
 
+            <template #cell(entity_id)="data">
+              <div>
+                <b-link v-bind:href="'/Entities/' + data.item.entity_id" target="_blank">
+                  <b-badge 
+                  variant="primary"
+                  style="cursor:pointer"
+                  >
+                  sysndd:{{ data.item.entity_id }}
+                  </b-badge>
+                </b-link>
+              </div>
+            </template>
+
             <template #cell(symbol)="data">
               <div class="font-italic">
-                <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
+                <b-link v-bind:href="'/Genes/' + data.item.hgnc_id" target="_blank"> 
                   <b-badge pill variant="success"
                   v-b-tooltip.hover.leftbottom 
                   v-bind:title="data.item.hgnc_id"
@@ -296,7 +313,7 @@
 
             <template #cell(disease_ontology_name)="data">
               <div class="overflow-hidden text-truncate">
-                <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"> 
+                <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')" target="_blank"> 
                   <b-badge 
                   pill 
                   variant="secondary"
@@ -351,7 +368,8 @@
             </template>
             
             </b-table>
-
+            <!-- small entity table in review modal-->
+            
               <label class="mr-sm-2 font-weight-bold" for="textarea-synopsis">Synopsis</label>
                 <b-badge pill id="popover-badge-help-synopsis" href="#" variant="info">
                   <b-icon icon="question-circle-fill"></b-icon>
@@ -677,6 +695,7 @@ export default {
           },
           entity: [],
           entity_fields: [
+            { key: 'entity_id', label: 'Entity', sortable: true, sortDirection: 'desc', class: 'text-left' },
             { key: 'symbol', label: 'Gene', sortable: false, class: 'text-left' },
             {
               key: 'disease_ontology_name',
