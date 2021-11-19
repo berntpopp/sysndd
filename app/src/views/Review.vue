@@ -118,13 +118,14 @@
               <b-button 
                 size="sm" 
                 @click="infoReview(row.item, row.index, $event.target)" 
-                class="mr-1"
+                class="mr-1 btn-xs"
                 variant="secondary"
                 v-b-tooltip.hover.left 
                 title="new review"
                 >
                   <b-icon 
                   icon="pen"
+                  font-scale="0.9"
                   :variant="review_style[saved(row.item.review_id)]"
                   >
                   </b-icon>
@@ -133,13 +134,14 @@
               <b-button 
                 size="sm" 
                 @click="infoStatus(row.item, row.index, $event.target)" 
-                class="mr-1" 
+                class="mr-1 btn-xs" 
                 :variant="stoplights_style[row.item.category_id]"
                 v-b-tooltip.hover.top 
                 title="edit status"
                 >
                   <b-icon 
                   icon="stoplights"
+                  font-scale="0.9"
                   :variant="status_style[saved(row.item.status_id)]"
                   >
                   </b-icon>
@@ -149,31 +151,39 @@
               <b-button 
                 size="sm" 
                 @click="infoSubmit(row.item, row.index, $event.target)" 
-                class="mr-1"
+                class="mr-1 btn-xs" 
                 :variant="saved_style[row.item.re_review_review_saved]"
                 v-b-tooltip.hover.right 
                 title="submit entity review"
                 v-if="!curation_selected"
               >
-                <b-icon icon="check2-circle"></b-icon>
+                <b-icon 
+                icon="check2-circle"
+                font-scale="0.9"
+                >
+                </b-icon>
               </b-button>
 
               <!-- Button for curation mode -->
               <b-button 
                 size="sm" 
                 @click="infoApprove(row.item, row.index, $event.target)" 
-                class="mr-1"
+                class="mr-1 btn-xs" 
                 variant="danger"
                 v-b-tooltip.hover.right 
                 title="approve entity review/status"
                 v-if="curation_selected"
               >
-                <b-icon icon="check2-circle"></b-icon>
+                <b-icon 
+                icon="check2-circle"
+                font-scale="0.9"
+                >
+                </b-icon>
               </b-button>
             </template>
 
             <template #cell(entity_id)="data">
-              <div>
+              <div class="overflow-hidden text-truncate">
                 <b-link v-bind:href="'/Entities/' + data.item.entity_id" target="_blank">
                   <b-badge 
                   variant="primary"
@@ -186,7 +196,7 @@
             </template>
 
             <template #cell(symbol)="data">
-              <div class="font-italic">
+              <div class="font-italic overflow-hidden text-truncate">
                 <b-link v-bind:href="'/Genes/' + data.item.hgnc_id" target="_blank"> 
                   <b-badge pill variant="success"
                   v-b-tooltip.hover.leftbottom 
@@ -199,7 +209,7 @@
             </template>
 
             <template #cell(disease_ontology_name)="data">
-              <div>
+              <div class="overflow-hidden text-truncate">
                 <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')" target="_blank"> 
                   <b-badge 
                   pill 
@@ -214,7 +224,7 @@
             </template>
 
             <template #cell(hpo_mode_of_inheritance_term_name)="data">
-              <div>
+              <div class="overflow-hidden text-truncate">
                 <b-badge 
                 pill 
                 variant="info" 
@@ -229,7 +239,7 @@
             </template>
 
             <template #cell(ndd_phenotype)="data">
-              <div>
+              <div class="overflow-hidden text-truncate">
                 <b-avatar 
                 size="1.4em" 
                 :icon="ndd_icon[data.item.ndd_phenotype]"
@@ -277,8 +287,7 @@
 
         <form ref="form" @submit.stop.prevent="handleSubmit">
 
-            <!-- small entity table in review modal-->
-            >
+            <!-- small entity table in review modal -->
             <b-table
                 :items="entity"
                 :fields="entity_fields"
@@ -368,7 +377,7 @@
             </template>
             
             </b-table>
-            <!-- small entity table in review modal-->
+            <!-- small entity table in review modal -->
             
               <label class="mr-sm-2 font-weight-bold" for="textarea-synopsis">Synopsis</label>
                 <b-badge pill id="popover-badge-help-synopsis" href="#" variant="info">
@@ -1150,5 +1159,11 @@ export default {
     font-size: .875rem;
     line-height: .5;
     border-radius: .2rem;
+  }
+  .badge-container .badge {
+  width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space:nowrap;
   }
 </style>
