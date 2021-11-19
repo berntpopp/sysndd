@@ -7,12 +7,58 @@
 
       <b-collapse id="nav-collapse" is-nav>
         <b-navbar-nav>
-          <b-nav-item href="/Entities">Entities</b-nav-item>
-          <b-nav-item href="/Genes">Genes</b-nav-item>
-          <b-nav-item href="/Phenotypes">Phenotypes</b-nav-item>
-          <b-nav-item href="/Panels">Panels</b-nav-item>
-          <b-nav-item href="/Comparisons">Comparisons</b-nav-item>
+          <!-- Navbar Tables dropdown -->
+          <b-nav-item-dropdown text="Tables">
+            <b-dropdown-item href="/Entities">Entities</b-dropdown-item>
+            <b-dropdown-item href="/Genes">Genes</b-dropdown-item>
+            <b-dropdown-item href="/Phenotypes">Phenotypes</b-dropdown-item>
+            <b-dropdown-item href="/Panels">Panels</b-dropdown-item>
+          </b-nav-item-dropdown>
+
+          <!-- Navbar Analyses dropdown -->
+          <b-nav-item-dropdown text="Analyses">
+            <b-dropdown-item href="/Comparisons">Comparisons</b-dropdown-item>
+          </b-nav-item-dropdown>
+
           <b-nav-item href="/About">About</b-nav-item>
+
+
+          <b-nav-item-dropdown 
+          text="Search"
+          v-if="this.$router.currentRoute.name!=='Home'"
+          >
+          <b-nav-form style="width:220px">
+              <b-input-group class="mb-2">
+                <b-form-input 
+                list="search-list" 
+                type="search" 
+                placeholder="..." 
+                size="sm"
+                autocomplete="off" 
+                style="width:180px" 
+                v-model="search_input"
+                @input="loadSearchInfo"
+                @keydown.native="keydown_handler"
+                >
+                </b-form-input>
+
+                <b-datalist id="search-list" 
+                :options="search"
+                >
+                </b-datalist>
+
+                <b-input-group-append>
+                  <b-button
+                  variant="outline-primary"
+                  size="sm"
+                  >
+                    <b-icon icon="search"></b-icon>
+                  </b-button>
+                </b-input-group-append>
+              </b-input-group>
+          </b-nav-form>
+          </b-nav-item-dropdown>
+          
         </b-navbar-nav>
 
         <!-- Right aligned nav items -->
@@ -49,7 +95,9 @@ export default {
           curate: false,
           admin: false,
           user_from_jwt: [],
-          time_to_logout: 0
+          time_to_logout: 0,
+          search_input: '',
+          search: []
         }
   },
   watch: { // used to refreh navar on login push
@@ -143,6 +191,23 @@ export default {
         console.error(e);
         }
     }, 
+    async loadSearchInfo() {
+    let apiSearchURL = process.env.VUE_APP_API_URL + '/api/search/' + this.search_input;
+    try {
+      let response_search = await this.axios.get(apiSearchURL);
+      this.search = response_search.data;
+      } catch (e) {
+       console.error(e);
+      }
+    if (this.search[0] === this.search_input) {
+      this.$router.push('/Search/' + this.search_input);
+    }
+    },
+  keydown_handler(event) {
+     if (event.which === 13 & this.search_input.length > 1) {
+        this.$router.push('/Search/' + this.search_input);
+     }
+    },
     doUserLogOut() {
       if (localStorage.user || localStorage.token) {
         localStorage.removeItem('user');
