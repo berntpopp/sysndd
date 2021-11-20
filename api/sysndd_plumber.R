@@ -654,11 +654,16 @@ function(review_requested) {
 	# get data from database and filter
 	sysndd_db_review_table <- pool %>% 
 		tbl("ndd_entity_review")
-
+	user_table <- pool %>% 
+		tbl("user") %>% 
+		select(user_id, user_name, user_role)
+		
 	sysndd_db_review_table_collected <- sysndd_db_review_table %>%
 		filter(review_id == review_requested) %>%
+		left_join(user_table, by = c("review_user_id" = "user_id")) %>%
+		left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
 		collect() %>%
-		select(review_id, entity_id, synopsis, review_date, comment)
+		select(review_id, entity_id, synopsis, is_primary, review_date, review_user_name = user_name.x, review_user_role = user_role.x, review_approved, approving_user_name = user_name.y, approving_user_role = user_role.y, comment)
 
 	sysndd_db_review_table_collected
 }
@@ -1678,15 +1683,19 @@ function(status_requested) {
 	# get data from database and filter
 	sysndd_db_status_table <- pool %>% 
 		tbl("ndd_entity_status")
-
+	user_table <- pool %>% 
+		tbl("user") %>% 
+		select(user_id, user_name, user_role)
 	ndd_entity_status_categories_collected <- pool %>% 
 		tbl("ndd_entity_status_categories_list")
 
 	sysndd_db_status_table_collected <- sysndd_db_status_table %>%
 		filter(status_id == status_requested) %>%
 		inner_join(ndd_entity_status_categories_collected, by=c("category_id")) %>%
+		left_join(user_table, by = c("status_user_id" = "user_id")) %>%
+		left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
 		collect() %>%
-		select(status_id, entity_id, category, category_id, status_date, comment, problematic) %>%
+		select(status_id, entity_id, category, category_id, is_active, status_date, status_user_name = user_name.x, status_user_role = user_role.x, status_approved, approving_user_name = user_name.y, approving_user_role = user_role.y, comment, problematic) %>%
 		arrange(status_date)
 
 	sysndd_db_status_table_collected

@@ -153,7 +153,7 @@
                 @click="infoSubmit(row.item, row.index, $event.target)" 
                 class="mr-1 btn-xs" 
                 :variant="saved_style[row.item.re_review_review_saved]"
-                v-b-tooltip.hover.right 
+                v-b-tooltip.hover.top 
                 title="submit entity review"
                 v-if="!curation_selected"
               >
@@ -279,7 +279,26 @@
             {{ reviewModal.title }}
             </b-badge>
           </h4>
+          
         </template>
+
+        <template #modal-footer="{ ok, cancel }">
+          <div class="w-100">
+            <p class="float-left">
+              Review by: 
+              <b-icon icon="person-circle" font-scale="1.0"></b-icon> <b-badge variant="dark">  {{ review[0].review_user_name }} </b-badge> <b-badge variant="dark"> {{ review[0].review_user_role }} </b-badge>
+            </p>
+
+            <!-- Emulate built in modal footer ok and cancel button actions -->
+            <b-button variant="primary" class="float-right mr-2" @click="ok()">
+              Save review
+            </b-button>
+            <b-button variant="secondary" class="float-right mr-2" @click="cancel()">
+              Cancel
+            </b-button>
+          </div>
+        </template>
+
       <b-container fluid v-if="loading_review_modal">
         <b-spinner label="Loading..." class="float-center"></b-spinner>
       </b-container>
@@ -497,7 +516,7 @@
       no-close-on-backdrop 
       header-bg-variant="dark" 
       header-text-variant="light" 
-      @hide="resetReviewModal" 
+      @hide="resetStatusModal" 
       @ok="handleStatusOk"
       >
         <template #modal-title>
@@ -506,6 +525,23 @@
               {{ statusModal.title }}
             </b-badge>
           </h4>
+        </template>
+
+        <template #modal-footer="{ ok, cancel }">
+          <div class="w-100">
+            <p class="float-left">
+              Status by: 
+              <b-icon icon="person-circle" font-scale="1.0"></b-icon> <b-badge variant="dark">  {{ status[0].status_user_name }} </b-badge> <b-badge variant="dark"> {{ status[0].status_user_role }} </b-badge>
+            </p>
+
+            <!-- Emulate built in modal footer ok and cancel button actions -->
+            <b-button variant="primary" class="float-right mr-2" @click="ok()">
+              Save status
+            </b-button>
+            <b-button variant="secondary" class="float-right mr-2" @click="cancel()">
+              Cancel
+            </b-button>
+          </div>
         </template>
 
         <form ref="form" @submit.stop.prevent="handleSubmit">
@@ -745,6 +781,7 @@ export default {
           publication_options: [],
           phenotypes_review: [],
           phenotypes_options: [],
+          status: [{status_user_name: ''}],
           status_options: [],
           status_selected: 0,
           removal_selected: 0,
@@ -808,6 +845,7 @@ export default {
           this.review_comment = '';
         },
         resetStatusModal() {
+          this.status = [{status_user_name: ''}];
           this.status_selected = 0;
           this.removal_selected = 0;
           this.status_comment = '';
@@ -927,6 +965,8 @@ export default {
             let response_status = await this.axios.get(apiStatusURL);
 
             // assign response data to global variables
+            this.status = response_status.data;
+
             this.status_selected = response_status.data[0].category_id;
             if (response_status.data[0].comment !== null) {
               this.status_comment = response_status.data[0].comment;
