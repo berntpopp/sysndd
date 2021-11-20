@@ -163,7 +163,7 @@
                     </template>
 
                     <template #cell(symbol)="data">
-                      <div class="font-italic">
+                      <div class="overflow-hidden text-truncate font-italic">
                         <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
                           <b-badge pill variant="success" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</b-badge>
                         </b-link>
