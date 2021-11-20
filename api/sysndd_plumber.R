@@ -361,8 +361,14 @@ function(res, sort = "entity_id", `page[after]` = 0, `page[size]` = "all") {
 	}
 
 	# get data from database
+	ndd_entity_review <- pool %>% 
+		tbl("ndd_entity_review") %>%
+		filter(is_primary) %>%
+		select(entity_id, synopsis)
+		
 	sysndd_db_disease_table <- pool %>% 
 		tbl("ndd_entity_view") %>%
+		left_join(ndd_entity_review, by = c("entity_id")) %>%
 		arrange(!!!syms(sort_list)) %>%
 		collect()
 

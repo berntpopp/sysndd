@@ -271,6 +271,7 @@ export default {
             { key: 'disease_ontology_id_version', label: 'Ontology ID version', class: 'text-left' },
             { key: 'disease_ontology_name', label: 'Disease ontology name', class: 'text-left' },
             { key: 'entry_date', label: 'Entry date', class: 'text-left' },
+            { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-left' },
           ],
           totalRows: 0,
           currentPage: 1,
