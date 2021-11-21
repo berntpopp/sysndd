@@ -217,7 +217,7 @@
                   v-b-tooltip.hover.leftbottom
                   v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version"
                   >
-                  {{ truncate(data.item.disease_ontology_name, 30) }}
+                  {{ truncate(data.item.disease_ontology_name, 40) }}
                   </b-badge>
                 </b-link>
               </div> 
@@ -320,6 +320,7 @@
                   variant="primary"
                   style="cursor:pointer"
                   >
+                  <b-icon icon="box-arrow-up-right" font-scale="0.9"></b-icon>
                   sysndd:{{ data.item.entity_id }}
                   </b-badge>
                 </b-link>
@@ -333,6 +334,7 @@
                   v-b-tooltip.hover.leftbottom 
                   v-bind:title="data.item.hgnc_id"
                   >
+                  <b-icon icon="box-arrow-up-right" font-scale="0.9"></b-icon>
                   {{ data.item.symbol }}
                   </b-badge>
                 </b-link>
@@ -348,6 +350,7 @@
                   v-b-tooltip.hover.leftbottom
                   v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version"
                   >
+                  <b-icon icon="box-arrow-up-right" font-scale="0.9"></b-icon>
                   {{ truncate(data.item.disease_ontology_name, 40) }}
                   </b-badge>
                 </b-link>
@@ -461,15 +464,59 @@
                   - Input is only valid when starting with <strong>"PMID:"</strong> followed by a number
                 </b-popover>
 
-                <b-form-tags
-                  input-id="publications-select"
-                  v-model="literature_review"
-                  separator=" ,;"
-                  placeholder="Enter PMIDs separated by space, comma or semicolon"
-                  :tag-validator="tagValidatorPMID"
-                  remove-on-delete
+                <!-- publications tag form with links out -->
+                <b-form-tags 
+                input-id="literature-select"
+                v-model="literature_review" 
+                no-outer-focus 
+                class="my-0"
+                separator=" ,;"
+                :tag-validator="tagValidatorPMID"
+                remove-on-delete
                 >
+                  <template v-slot="{ tags, inputAttrs, inputHandlers, addTag, removeTag }">
+                    <b-input-group class="my-0">
+                      <b-form-input
+                        v-bind="inputAttrs"
+                        v-on="inputHandlers"
+                        placeholder="Enter PMIDs separated by space, comma or semicolon"
+                        class="form-control"
+                        size="sm"
+                      ></b-form-input>
+                      <b-input-group-append>
+                        <b-button @click="addTag()" 
+                        variant="secondary"
+                        size="sm"
+                        >
+                        Add
+                        </b-button>
+                      </b-input-group-append>
+                    </b-input-group>
+
+                    <div class="d-inline-block">
+                      <h6>
+                      <b-form-tag
+                      v-for="tag in tags"
+                      @remove="removeTag(tag)"
+                      :key="tag"
+                      :title="tag"
+                      variant="secondary"
+                      >
+                        <b-link 
+                        v-bind:href="'https://pubmed.ncbi.nlm.nih.gov/' + tag.replace('PMID:', '')" 
+                        target="_blank" 
+                        class="text-light"
+                        >
+                        <b-icon icon="box-arrow-up-right" font-scale="0.9"></b-icon>
+                          {{ tag }}
+                        </b-link>
+                      </b-form-tag>
+                      </h6>
+                    </div>
+
+                  </template>
                 </b-form-tags>
+
 
               <label class="mr-sm-2 font-weight-bold" for="genereviews-select">GeneReviews</label>
                 <b-badge pill id="popover-badge-help-genereviews" href="#" variant="info">
@@ -482,14 +529,59 @@
                   - Input is only valid when starting with <strong>"PMID:"</strong> followed by a number
                 </b-popover>
 
-                <b-form-tags
-                  input-id="genereviews-select"
-                  v-model="genereviews_review"
-                  separator=" ,;"
-                  placeholder="Enter PMIDs separated by space, comma or semicolon"
-                  :tag-validator="tagValidatorPMID"
-                  remove-on-delete
-                ></b-form-tags>
+
+                <!-- genereviews tag form with links out -->
+                <b-form-tags 
+                input-id="genereviews-select"
+                v-model="genereviews_review" 
+                no-outer-focus 
+                class="my-0"
+                separator=" ,;"
+                :tag-validator="tagValidatorPMID"
+                remove-on-delete
+                >
+                  <template v-slot="{ tags, inputAttrs, inputHandlers, addTag, removeTag }">
+                    <b-input-group class="my-0">
+                      <b-form-input
+                        v-bind="inputAttrs"
+                        v-on="inputHandlers"
+                        placeholder="Enter PMIDs separated by space, comma or semicolon"
+                        class="form-control"
+                        size="sm"
+                      ></b-form-input>
+                      <b-input-group-append>
+                        <b-button @click="addTag()" 
+                        variant="secondary"
+                        size="sm"
+                        >
+                        Add
+                        </b-button>
+                      </b-input-group-append>
+                    </b-input-group>
+
+                    <div class="d-inline-block">
+                      <h6>
+                      <b-form-tag
+                      v-for="tag in tags"
+                      @remove="removeTag(tag)"
+                      :key="tag"
+                      :title="tag"
+                      variant="secondary"
+                      >
+                        <b-link 
+                        v-bind:href="'https://pubmed.ncbi.nlm.nih.gov/' + tag.replace('PMID:', '')" 
+                        target="_blank" 
+                        class="text-light"
+                        >
+                        <b-icon icon="box-arrow-up-right" font-scale="0.9"></b-icon>
+                          {{ tag }}
+                        </b-link>
+                      </b-form-tag>
+                      </h6>
+                    </div>
+
+                  </template>
+                </b-form-tags>
 
           <label class="mr-sm-2 font-weight-bold" for="textarea-review">Comment</label>
           <b-form-textarea
@@ -800,7 +892,8 @@ export default {
             "abbreviation": [],
             "orcid": [],
             "exp": []
-          }
+          },
+          state: false
         }
       },
       computed: {
