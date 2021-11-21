@@ -50,7 +50,7 @@ pool <- dbPool(
 
 
 ##-------------------------------------------------------------------##
-Sys.setenv(SMTP_PASSWORD = dw$mail_noreply_password)
+Sys.setenv(SMTP_PASSWORD=toString(dw$mail_noreply_password))
 ##-------------------------------------------------------------------##
 
 
@@ -2364,7 +2364,7 @@ function(searchterm, helper = TRUE) {
 
 #* @tag authentication
 ## authentication create user
-## example data: {"user_name":"nextuser21", "first_name":"Mark", "family_name":"Sugar", "email":"bernt.popp.md2@gmail.com", "orcid":"0001-0002-3679-1081", "comment":"I love research", "terms_agreed":"accepteds"}
+## example data: {"user_name":"nextuser21", "first_name":"Mark", "family_name":"Sugar", "email":"bernt.popp.md2@gmail.com", "orcid":"0001-0002-3679-1081", "comment":"I love research", "terms_agreed":"accepted"}
 #* @serializer json list(na="string")
 #' @get /api/auth/signup
 function(signup_data) {
