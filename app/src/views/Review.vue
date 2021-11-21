@@ -310,6 +310,7 @@
             <b-table
                 :items="entity"
                 :fields="entity_fields"
+                stacked="lg"
                 small
             >
 
