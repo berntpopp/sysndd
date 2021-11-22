@@ -26,6 +26,7 @@ library(reshape2)
 library(blastula)
 library(keyring)
 library(future)
+library(knitr)
 ##-------------------------------------------------------------------##
 
 
@@ -1183,6 +1184,7 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
 	}
 }
 
+
 #* @tag reviews
 ## get the re-review overview table for the user logged in
 #* @serializer json list(na="string")
@@ -1227,6 +1229,67 @@ function(req, res, curate=FALSE) {
 			collect()
 		
 		re_review_user_list
+
+	} else {
+		res$status <- 403 # Forbidden
+		return(list(error="Read access forbidden."))
+	}
+}
+
+
+#* @tag reviews
+## request a new batch of entities to review by mail to curators
+#* @serializer json list(na="string")
+#' @get /api/re_review/new_batch
+function(req, res) {
+		
+	user <- req$user_id
+	
+	# first check rights
+	if ( length(user) == 0 & !(req$user_role %in% c("Admin", "Curator", "Reviewer"))) {
+	
+		res$status <- 401 # Unauthorized
+		return(list(error="Please authenticate."))
+
+	} else if ( req$user_role %in% c("Admin", "Curator", "Reviewer") ) {
+					
+		user_table <- pool %>% 
+			tbl("user") %>%
+			collect()
+			
+		user_info <- user_table %>%
+			filter(user_id == user) %>%
+			select(user_id, user_name, email, orcid)
+
+		curator_mail <- (user_table %>%
+			filter(user_role == "Curator"))$email
+
+		email <-  compose_email(
+		body = md(c("Hello", user_info$user_name, "!<br />", 
+		"<br />Your request for another **re-review batch** has been send to the curators.",
+		"They will review and activate your application shortly. <br /><br />",
+		"Requesting user info:", 
+		user_info %>% kable("html"),
+		"<br />", 
+		"Best wishes, <br />The SysNDD team")),
+		footer = md("Visit [SysNDD.org](https://www.sysndd.org) for the latest NDD information")
+		)
+
+		email %>%
+		  smtp_send(
+			from = "noreply@sysndd.org",
+			to = user_info$email,
+			bcc = curator_mail,
+			subject = "Your re-review batch request from SysNDD.org",
+			credentials = creds_envvar(
+				pass_envvar = "SMTP_PASSWORD",
+				user = dw$mail_noreply_user,
+				host = dw$mail_noreply_host,
+				port = dw$mail_noreply_port,
+			use_ssl = dw$mail_noreply_use_ssl
+			)
+		  )
+		res <- "Request mail send!"
 
 	} else {
 		res$status <- 403 # Forbidden
