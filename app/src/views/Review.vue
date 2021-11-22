@@ -1252,10 +1252,20 @@ export default {
         this.reloadReReviewData();
 
         },
-        newBatchApplication() {
- 
-          console.log("Application send.");
- 
+        async newBatchApplication() {
+
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/new_batch';
+
+          try {
+            let response = await this.axios.get(apiUrl, {
+              headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+              }
+            });
+            this.makeToast('Application send.', 'Success', 'success');
+          } catch (e) {
+            console.error(e);
+          }
         },
         addTag(newTag) {
             const tag = {
@@ -1278,6 +1288,14 @@ export default {
             number_return = 1;
           }
           return number_return;
+        },
+        makeToast(event, title = null, variant = null) {
+            this.$bvToast.toast('' + event, {
+              title: title,
+              toaster: 'b-toaster-top-right',
+              variant: variant,
+              solid: true
+            })
         },
         truncate(str, n) {
           return (str.length > n) ? str.substr(0, n-1) + '...' : str;
