@@ -60,6 +60,7 @@ Sys.setenv(SMTP_PASSWORD=toString(dw$mail_noreply_password))
 ## global variables
 inheritance_input_allowed <- c("X-linked", "Dominant", "Recessive", "Other", "All")
 output_columns_allowed <- c("category", "inheritance", "symbol", "hgnc_id", "entrez_id", "ensembl_gene_id", "ucsc_id", "bed_hg19", "bed_hg38")
+user_status_allowed <- c("Admin", "Curator", "Reviewer", "Viewer")
 ##-------------------------------------------------------------------##
 
 
@@ -253,6 +254,7 @@ make_matrix_plot_mem <- memoise(make_matrix_plot)
 #* @apiTag comparisons NDD gene list comparisons related endpoints
 #* @apiTag search Database search related endpoints
 #* @apiTag statistics Database statistics
+#* @apiTag user User account related endpoints
 #* @apiTag authentication Authentication related endpoints
 ##-------------------------------------------------------------------##
 ##-------------------------------------------------------------------##
@@ -1246,7 +1248,7 @@ function(req, res) {
 	user <- req$user_id
 	
 	# first check rights
-	if ( length(user) == 0 & !(req$user_role %in% c("Admin", "Curator", "Reviewer"))) {
+	if ( length(user) == 0 ) {
 	
 		res$status <- 401 # Unauthorized
 		return(list(error="Please authenticate."))
@@ -1289,8 +1291,56 @@ function(req, res) {
 			use_ssl = dw$mail_noreply_use_ssl
 			)
 		  )
+		  
 		res <- "Request mail send!"
 
+	} else {
+		res$status <- 403 # Forbidden
+		return(list(error="Read access forbidden."))
+	}
+}
+
+
+#* @tag reviews
+## get a summary table of currently assigned re-review batches
+#* @serializer json list(na="string")
+#' @get /api/re_review/assignment_table
+function(req, res) {
+		
+	user <- req$user_id
+	
+	# first check rights
+	if ( length(user) == 0 ) {
+	
+		res$status <- 401 # Unauthorized
+		return(list(error="Please authenticate."))
+
+	} else if ( req$user_role %in% c("Admin", "Curator") ) {
+
+		re_review_entity_connect_table <- pool %>% 
+			tbl("re_review_entity_connect") %>%
+			select(re_review_batch, re_review_review_saved, re_review_status_saved, re_review_submitted, re_review_approved) %>%
+			group_by(re_review_batch) %>%
+			collect() %>% 
+			mutate(entity_count = 1) %>%
+			summarise_at(vars(re_review_review_saved:entity_count), sum)
+			
+		re_review_assignment_table <- pool %>% 
+			tbl("re_review_assignment")
+			
+		user_table <- pool %>% 
+			tbl("user") %>%
+			select(user_id, user_name)
+			
+		re_review_assignment_table_user <- re_review_assignment_table %>%
+			left_join(user_table, by = c("user_id")) %>%
+			collect() %>%
+			left_join(re_review_entity_connect_table, by = c("re_review_batch")) %>%
+			select(assignment_id, user_id, user_name, re_review_batch, re_review_review_saved, re_review_status_saved, re_review_submitted, re_review_approved, entity_count) %>%
+			arrange(user_id)
+
+		# return tibble
+		re_review_assignment_table_user
 	} else {
 		res$status <- 403 # Forbidden
 		return(list(error="Read access forbidden."))
@@ -2423,7 +2473,176 @@ function(searchterm, helper = TRUE) {
 
 
 ##-------------------------------------------------------------------##
-##Authentication section
+## User endpoint section
+
+#* @tag user
+## get a summary table of currently assigned re-review batches
+#* @serializer json list(na="string")
+#' @get /api/user/table
+function(req, res) {
+		
+	user <- req$user_id
+	
+	# first check rights
+	if ( length(user) == 0 ) {
+	
+		res$status <- 401 # Unauthorized
+		return(list(error="Please authenticate."))
+
+	} else if ( req$user_role %in% c("Admin") ) {
+			
+		user_table <- pool %>% 
+			tbl("user") %>%
+			select(user_id, user_name, email, orcid, first_name, family_name, comment, terms_agreed, created_at, user_role, approved) %>%
+			collect()
+
+		# return tibble
+		user_table
+		
+	} else if ( req$user_role %in% c("Curator") ) {
+			
+		user_table <- pool %>% 
+			tbl("user") %>%
+			select(user_id, user_name, email, orcid, first_name, family_name, comment, terms_agreed, created_at, user_role, approved) %>%
+			filter(approved == 0) %>%
+			collect()
+
+		# return tibble
+		user_table
+		
+	}  else {
+		res$status <- 403 # Forbidden
+		return(list(error="Read access forbidden."))
+	}
+}
+
+
+#* @tag user
+## manage user application approval
+#' @put /api/user/approval
+function(req, res, user_id = 0, status_approval = FALSE) {
+		
+	user <- req$user_id
+	user_id_approval <- as.integer(user_id)
+	
+	status_approval <- as.logical(status_approval)
+
+	#check if user_id_approval exists and is not allready approved
+	user_table <- pool %>% 
+		tbl("user") %>%
+		select(user_id, approved) %>%
+		filter(user_id == user_id_approval) %>%
+		collect()
+	user_id_approval_exists <- as.logical(length(user_table$user_id))
+	user_id_approval_approved <- as.logical(user_table$approved[1])
+
+	# first check rights
+	if ( length(user) == 0 ) {
+	
+		res$status <- 401 # Unauthorized
+		return(list(error="Please authenticate."))
+
+	} else if ( req$user_role %in% c("Admin", "Curator") & !user_id_approval_exists) {
+	
+		res$status <- 409 # Conflict
+		return(list(error="User account does not exist."))
+		
+	} else if ( req$user_role %in% c("Admin", "Curator") & user_id_approval_exists & user_id_approval_approved) {
+	
+		res$status <- 409 # Conflict
+		return(list(error="User account already active."))
+		
+	} else if ( req$user_role %in% c("Admin", "Curator") & user_id_approval_exists & !user_id_approval_approved) {
+
+		if ( status_approval ) {
+			# connect to database, put approval for user application then disconnect
+			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+			dbExecute(sysndd_db, paste0("UPDATE user SET approved = 1 WHERE user_id = ", user_id_approval, ";"))
+			dbDisconnect(sysndd_db)
+		}  else {
+			# connect to database, delete application then disconnect
+			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+			dbExecute(sysndd_db, paste0("DELETE FROM user WHERE user_id = ", user_id_approval, ";"))
+			dbDisconnect(sysndd_db)
+		}
+	} else {
+		res$status <- 403 # Forbidden
+		return(list(error="Read access forbidden."))
+	}
+}
+
+
+#* @tag user
+## manage user application approval
+#' @put /api/user/change_role
+function(req, res, user_id, role_assigned = "Viewer") {
+	user <- req$user_id
+	user_id_role <- as.integer(user_id)
+	role_assigned <- as.character(role_assigned)
+	
+	# first check rights
+	if ( length(user) == 0 ) {
+		res$status <- 401 # Unauthorized
+		return(list(error="Please authenticate."))
+	} else if ( req$user_role %in% c("Admin") ) {
+		# connect to database and perform update query then disconnect
+		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+		dbExecute(sysndd_db, paste0("UPDATE user SET user_role = '", role_assigned, "' WHERE user_id = ", user_id_role, ";"))
+		dbDisconnect(sysndd_db)
+	} else if ( req$user_role %in% c("Curator") & role_assigned %in% c("Curator", "Reviewer", "Viewer")) {
+		# connect to database and perform update query then disconnect
+		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+		dbExecute(sysndd_db, paste0("UPDATE user SET user_role = '", role_assigned, "' WHERE user_id = ", user_id_role, ";"))
+		dbDisconnect(sysndd_db)
+	} else if ( req$user_role %in% c("Curator") & role_assigned %in% c("Admin")) {
+		res$status <- 403 # Forbidden
+		return(list(error="Insufficiant rights."))
+	} else {
+		res$status <- 403 # Forbidden
+		return(list(error="Write access forbidden."))
+	}
+}
+
+
+#* @tag user
+## get list of all available user status options
+#' @get /api/user/role_list
+function(req, res) {
+
+	user <- req$user_id
+
+	# first check rights
+	if ( length(user) == 0 ) {
+
+		res$status <- 401 # Unauthorized
+		return(list(error="Please authenticate."))
+
+	} else if ( req$user_role %in% c("Admin") ) {
+
+		role_list <- as_tibble(user_status_allowed) %>%
+			select(role = value)
+		role_list
+		
+	} else if ( req$user_role %in% c("Curator") ) {
+
+		role_list <- as_tibble(user_status_allowed) %>%
+			select(role = value) %>%
+			filter(role != "Admin")
+		role_list
+
+	} else {
+		res$status <- 403 # Forbidden
+		return(list(error="Read access forbidden."))
+	}
+}
+
+## User endpoint section
+##-------------------------------------------------------------------##
+
+
+
+##-------------------------------------------------------------------##
+## Authentication section
 
 #* @tag authentication
 ## authentication create user
