@@ -98,12 +98,14 @@
               <b-row>
                 <b-col class="my-1">
 
-
   <b-input-group
    prepend="Username"
    size="sm"
   >
-    <b-form-select>
+    <b-form-select
+    :options="user_options"
+    v-model="user_id_assignment"
+    >
     </b-form-select>
     <b-input-group-append>
       <b-button block size="sm">
@@ -193,7 +195,9 @@ export default {
   name: 'Curate',
     data() {
       return {
-        status_options: [],
+        role_options: [],
+        user_options: [],
+        user_id_assignment: 0,
         switch_user_approval_text: {true: "Approve user", false: "Delete application"},
         user_approval_style: {0: "danger", 1: "primary"},
         loadingEntityNew: true,
@@ -218,6 +222,7 @@ export default {
     },
     mounted() {
       this.loadRoleList();
+      this.loadUserList();
     },
     watch: {
       tabIndex(value) {
@@ -237,9 +242,23 @@ export default {
                 'Authorization': 'Bearer ' + localStorage.getItem('token')
               }
             });
-            //Object.entries(response.data).forEach(([key, value]) => this.role_options.push(value.category));
             this.role_options = response.data.map(item => {
               return { value: item.role, text: item.role };
+            });
+          } catch (e) {
+            console.error(e);
+          }
+        },
+        async loadUserList() {
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/user/list?roles=Curator,Reviewer';
+          try {
+            let response = await this.axios.get(apiUrl, {
+              headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+              }
+            });
+            this.user_options = response.data.map(item => {
+              return { value: item.user_id, text: item.user_name, role: item.user_role};
             });
           } catch (e) {
             console.error(e);

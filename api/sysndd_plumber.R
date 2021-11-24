@@ -60,7 +60,7 @@ Sys.setenv(SMTP_PASSWORD=toString(dw$mail_noreply_password))
 ## global variables
 inheritance_input_allowed <- c("X-linked", "Dominant", "Recessive", "Other", "All")
 output_columns_allowed <- c("category", "inheritance", "symbol", "hgnc_id", "entrez_id", "ensembl_gene_id", "ucsc_id", "bed_hg19", "bed_hg38")
-user_status_allowed <- c("Admin", "Curator", "Reviewer", "Viewer")
+user_status_allowed <- c("Administrator", "Curator", "Reviewer", "Viewer")
 ##-------------------------------------------------------------------##
 
 
@@ -461,7 +461,7 @@ function(entity_data) {
 #' @delete /api/entities/delete
 function(sysndd_id, req, res) {
 
-  if (req$user_role == "Admin"){
+  if (req$user_role == "Administrator"){
     sysndd_id <- as.integer(sysndd_id)
 	# connect to database
 	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
@@ -740,7 +740,7 @@ function(review_requested) {
 #' @put /api/re_review/review
 function(req, res, review_json) {
 	# first check rights
-	if ( req$user_role %in% c("Admin", "Curator", "Reviewer") ) {
+	if ( req$user_role %in% c("Administrator", "Curator", "Reviewer") ) {
 				
 		review_user_id <- req$user_id
 		review_data <- fromJSON(review_json)
@@ -973,7 +973,7 @@ function(req, res, review_json) {
 #' @put /api/re_review/status
 function(req, res, status_json) {
 	# first check rights
-	if ( req$user_role %in% c("Admin", "Curator", "Reviewer") ) {
+	if ( req$user_role %in% c("Administrator", "Curator", "Reviewer") ) {
 				
 		status_user_id <- req$user_id
 		status_data <- fromJSON(status_json)
@@ -1054,7 +1054,7 @@ function(req, res, status_json) {
 #' @put /api/re_review/submit
 function(req, res, submit_json) {
 	# first check rights
-	if ( req$user_role %in% c("Admin", "Curator", "Reviewer") ) {
+	if ( req$user_role %in% c("Administrator", "Curator", "Reviewer") ) {
 				
 		submit_user_id <- req$user_id
 		submit_data <- fromJSON(submit_json)
@@ -1084,7 +1084,7 @@ function(req, res, submit_json) {
 
 
 #* @tag reviews
-## put a re-review submission back into unsubmitted mode (only Admin and Curator status users)
+## put a re-review submission back into unsubmitted mode (only Administrator and Curator status users)
 #* @serializer json list(na="string")
 #' @put /api/re_review/unsubmit/<re_review_id>
 function(req, res, re_review_id) {
@@ -1094,7 +1094,7 @@ function(req, res, re_review_id) {
 		res$status <- 401 # Unauthorized
 		return(list(error="Please authenticate."))
 
-	} else if ( req$user_role %in% c("Admin", "Curator") ) {
+	} else if ( req$user_role %in% c("Administrator", "Curator") ) {
 				
 		submit_user_id <- req$user_id
 		re_review_id <- as.integer(re_review_id)
@@ -1116,7 +1116,7 @@ function(req, res, re_review_id) {
 
 
 #* @tag reviews
-## put the re-review status and review approvement (only Admin and Curator status users)
+## put the re-review status and review approvement (only Administrator and Curator status users)
 #* @serializer json list(na="string")
 #' @put /api/re_review/approve/<re_review_id>
 function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
@@ -1129,7 +1129,7 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
 		res$status <- 401 # Unauthorized
 		return(list(error="Please authenticate."))
 
-	} else if ( req$user_role %in% c("Admin", "Curator") ) {
+	} else if ( req$user_role %in% c("Administrator", "Curator") ) {
 				
 		submit_user_id <- req$user_id
 		re_review_id <- as.integer(re_review_id)
@@ -1200,7 +1200,7 @@ function(req, res, curate=FALSE) {
 		res$status <- 401 # Unauthorized
 		return(list(error="Please authenticate."))
 
-	} else if ( (req$user_role %in% c("Admin", "Curator", "Reviewer") & !curate ) | (req$user_role %in% c("Admin", "Curator") & curate ) ) {
+	} else if ( (req$user_role %in% c("Administrator", "Curator", "Reviewer") & !curate ) | (req$user_role %in% c("Administrator", "Curator") & curate ) ) {
 						
 		user <- req$user_id
 
@@ -1253,7 +1253,7 @@ function(req, res) {
 		res$status <- 401 # Unauthorized
 		return(list(error="Please authenticate."))
 
-	} else if ( req$user_role %in% c("Admin", "Curator", "Reviewer") ) {
+	} else if ( req$user_role %in% c("Administrator", "Curator", "Reviewer") ) {
 					
 		user_table <- pool %>% 
 			tbl("user") %>%
@@ -1315,7 +1315,7 @@ function(req, res) {
 		res$status <- 401 # Unauthorized
 		return(list(error="Please authenticate."))
 
-	} else if ( req$user_role %in% c("Admin", "Curator") ) {
+	} else if ( req$user_role %in% c("Administrator", "Curator") ) {
 
 		re_review_entity_connect_table <- pool %>% 
 			tbl("re_review_entity_connect") %>%
@@ -1385,12 +1385,12 @@ function(req, res, user_id) {
 		res$status <- 401 # Unauthorized
 		return(list(error="Please authenticate."))
 
-	} else if ( req$user_role %in% c("Admin", "Curator") & !user_id_assign_exists) {
+	} else if ( req$user_role %in% c("Administrator", "Curator") & !user_id_assign_exists) {
 	
 		res$status <- 409 # Conflict
 		return(list(error="User account does not exist."))
 		
-	} else if ( req$user_role %in% c("Admin", "Curator") & user_id_assign_exists) {
+	} else if ( req$user_role %in% c("Administrator", "Curator") & user_id_assign_exists) {
 
 		# connect to database, append assignment table then disconnect
 		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
@@ -1894,7 +1894,7 @@ function() {
 #' @post /api/status
 function(req, res, status_json) {
 	# first check rights
-	if ( req$user_role %in% c("Admin", "Curator", "Reviewer") ) {
+	if ( req$user_role %in% c("Administrator", "Curator", "Reviewer") ) {
 				
 		status_user_id <- req$user_id
 		status_data <- fromJSON(status_json)
@@ -2545,7 +2545,7 @@ function(req, res) {
 		res$status <- 401 # Unauthorized
 		return(list(error="Please authenticate."))
 
-	} else if ( req$user_role %in% c("Admin") ) {
+	} else if ( req$user_role %in% c("Administrator") ) {
 			
 		user_table <- pool %>% 
 			tbl("user") %>%
@@ -2598,17 +2598,17 @@ function(req, res, user_id = 0, status_approval = FALSE) {
 		res$status <- 401 # Unauthorized
 		return(list(error="Please authenticate."))
 
-	} else if ( req$user_role %in% c("Admin", "Curator") & !user_id_approval_exists) {
+	} else if ( req$user_role %in% c("Administrator", "Curator") & !user_id_approval_exists) {
 	
 		res$status <- 409 # Conflict
 		return(list(error="User account does not exist."))
 		
-	} else if ( req$user_role %in% c("Admin", "Curator") & user_id_approval_exists & user_id_approval_approved) {
+	} else if ( req$user_role %in% c("Administrator", "Curator") & user_id_approval_exists & user_id_approval_approved) {
 	
 		res$status <- 409 # Conflict
 		return(list(error="User account already active."))
 		
-	} else if ( req$user_role %in% c("Admin", "Curator") & user_id_approval_exists & !user_id_approval_approved) {
+	} else if ( req$user_role %in% c("Administrator", "Curator") & user_id_approval_exists & !user_id_approval_approved) {
 
 		if ( status_approval ) {
 			# connect to database, put approval for user application then disconnect
@@ -2640,7 +2640,7 @@ function(req, res, user_id, role_assigned = "Viewer") {
 	if ( length(user) == 0 ) {
 		res$status <- 401 # Unauthorized
 		return(list(error="Please authenticate."))
-	} else if ( req$user_role %in% c("Admin") ) {
+	} else if ( req$user_role %in% c("Administrator") ) {
 		# connect to database and perform update query then disconnect
 		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 		dbExecute(sysndd_db, paste0("UPDATE user SET user_role = '", role_assigned, "' WHERE user_id = ", user_id_role, ";"))
@@ -2650,7 +2650,7 @@ function(req, res, user_id, role_assigned = "Viewer") {
 		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 		dbExecute(sysndd_db, paste0("UPDATE user SET user_role = '", role_assigned, "' WHERE user_id = ", user_id_role, ";"))
 		dbDisconnect(sysndd_db)
-	} else if ( req$user_role %in% c("Curator") & role_assigned %in% c("Admin")) {
+	} else if ( req$user_role %in% c("Curator") & role_assigned %in% c("Administrator")) {
 		res$status <- 403 # Forbidden
 		return(list(error="Insufficiant rights."))
 	} else {
@@ -2673,7 +2673,7 @@ function(req, res) {
 		res$status <- 401 # Unauthorized
 		return(list(error="Please authenticate."))
 
-	} else if ( req$user_role %in% c("Admin") ) {
+	} else if ( req$user_role %in% c("Administrator") ) {
 
 		role_list <- as_tibble(user_status_allowed) %>%
 			select(role = value)
@@ -2683,9 +2683,54 @@ function(req, res) {
 
 		role_list <- as_tibble(user_status_allowed) %>%
 			select(role = value) %>%
-			filter(role != "Admin")
+			filter(role != "Administrator")
 		role_list
 
+	} else {
+		res$status <- 403 # Forbidden
+		return(list(error="Read access forbidden."))
+	}
+}
+
+
+#* @tag user
+## get list of users based having a role
+#' @get /api/user/list
+function(req, res, roles = "Viewer") {
+
+	user <- req$user_id
+
+	# split the roles input by comma and check if roles are in the allowed roles
+	roles_list <- str_trim(str_split(str_squish(roles), ",")[[1]])
+
+	# check if received roles are in allowed roles
+	roles_allowed_check <- all(roles_list %in% user_status_allowed)
+
+	if ( !roles_allowed_check ) {
+		res$status <- 400
+		res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
+		status = 400,
+		message = paste0("Some of the submitted roles are not in the allowed roles list.")
+		))
+		return(res)
+	}
+
+	# first check rights
+	if ( length(user) == 0 ) {
+
+		res$status <- 401 # Unauthorized
+		return(list(error="Please authenticate."))
+
+	} else if ( req$user_role %in% c("Administrator", "Curator") ) {
+
+		user_table_roles <- pool %>% 
+			tbl("user") %>%
+			filter(approved == 1) %>%
+			filter(user_role %in% roles_list) %>%
+			select(user_id, user_name, user_role) %>%
+			collect()
+		user_table_roles
+		
 	} else {
 		res$status <- 403 # Forbidden
 		return(list(error="Read access forbidden."))
