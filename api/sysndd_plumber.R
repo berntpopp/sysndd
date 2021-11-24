@@ -1347,6 +1347,62 @@ function(req, res) {
 	}
 }
 
+
+#* @tag reviews
+## put a new re-review batch assignment
+#* @serializer json list(na="string")
+#' @put /api/re_review/batch/assign
+function(req, res, user_id) {
+		
+	user <- req$user_id
+	user_id_assign <- as.integer(user_id)
+	
+	status_approval <- as.logical(status_approval)
+
+	#check if user_id_assign exists
+	user_table <- pool %>% 
+		tbl("user") %>%
+		select(user_id, approved) %>%
+		filter(user_id == user_id_assign) %>%
+		collect()
+	user_id_assign_exists <- as.logical(length(user_table$user_id))
+
+	# compute next batch
+	re_review_batch <- pool %>% 
+		tbl("re_review_assignment") %>%
+		select(re_review_batch) %>%
+		collect() %>%
+		unique() %>%
+		summarise(re_review_batch = max (re_review_batch))
+	re_review_batch_next <- re_review_batch$re_review_batch + 1
+
+	# make tibble to append
+	assignment_table <- tibble("user_id" = user_id_assign, "re_review_batch" = re_review_batch_next)
+
+	# first check rights
+	if ( length(user) == 0 ) {
+	
+		res$status <- 401 # Unauthorized
+		return(list(error="Please authenticate."))
+
+	} else if ( req$user_role %in% c("Admin", "Curator") & !user_id_assign_exists) {
+	
+		res$status <- 409 # Conflict
+		return(list(error="User account does not exist."))
+		
+	} else if ( req$user_role %in% c("Admin", "Curator") & user_id_assign_exists) {
+
+		# connect to database, append assignment table then disconnect
+		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+		dbAppendTable(sysndd_db, "re_review_assignment", assignment_table)
+		dbDisconnect(sysndd_db)
+
+	} else {
+		res$status <- 403 # Forbidden
+		return(list(error="Read access forbidden."))
+	}
+}
+
 ## Review endpoints
 ##-------------------------------------------------------------------##
 

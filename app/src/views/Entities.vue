@@ -41,7 +41,7 @@
                 <b-col class="my-1">
                   <b-button block v-on:click="removeFilters(); removeSearch();" size="sm">
                     <b-icon icon="filter" class="mx-1"></b-icon>
-                    Reset filters
+                    Reset
                   </b-button>
                 </b-col>
 

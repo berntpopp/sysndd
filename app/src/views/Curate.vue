@@ -87,6 +87,43 @@
 
             <b-tab title="Re-review managment">
               <b-spinner label="Loading..." v-if="loadingReReviewManagment" class="float-center m-5"></b-spinner>
+              <b-container fluid v-else>
+                
+          <!-- User Interface controls -->
+          <b-card 
+          header-tag="header"
+          bg-variant="light"
+          >
+            <b-col>
+              <b-row>
+                <b-col class="my-1">
+
+
+  <b-input-group
+   prepend="Username"
+   size="sm"
+  >
+    <b-form-select>
+    </b-form-select>
+    <b-input-group-append>
+      <b-button block size="sm">
+        <b-icon icon="plus-square" class="mx-1"></b-icon>
+        Assign new batch
+      </b-button>
+    </b-input-group-append>
+  </b-input-group>
+
+
+                </b-col>
+
+                <b-col class="my-1">
+                </b-col>
+              </b-row>
+            </b-col>
+          </b-card>
+          <!-- User Interface controls -->
+
+                
                 <b-table
                 :items="items_ReReviewTable"
                 stacked="md"
@@ -97,10 +134,10 @@
                 striped
                 hover
                 sort-icon-left
-                v-else
               >
 
               </b-table>
+              </b-container>
             </b-tab>
 
           </b-tabs>
