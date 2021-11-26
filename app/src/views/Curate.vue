@@ -340,8 +340,7 @@ export default {
           }
         },
         async handleNewBatchAssignment() {
-console.log(this.user_id_assignment);
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/new_batch/assign?user_id=' + this.user_id_assignment;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/batch/assign?user_id=' + this.user_id_assignment;
 
           try {
             let response = await this.axios.put(apiUrl, {}, {
