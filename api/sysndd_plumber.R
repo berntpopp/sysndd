@@ -1359,18 +1359,18 @@ function(req, res, user_id) {
 ## delete certain re-review batch assignment
 #* @serializer json list(na="string")
 #' @delete /api/re_review/batch/unassign
-function(req, res, assignment_id) {
+function(req, res, re_review_batch) {
 		
 	user <- req$user_id
-	assignment_id_unassign <- as.integer(assignment_id)
+	re_review_batch_unassign <- as.integer(re_review_batch)
 
 	#check if assignment_id_unassign exists
 	re_review_assignment_table <- pool %>% 
 		tbl("re_review_assignment") %>%
-		select(assignment_id) %>%
-		filter(assignment_id == assignment_id_unassign) %>%
+		select(re_review_batch) %>%
+		filter(re_review_batch == re_review_batch_unassign) %>%
 		collect()
-	assignment_id_unassign_exists <- as.logical(length(re_review_assignment_table$assignment_id))
+	re_review_batch_unassign_exists <- as.logical(length(re_review_assignment_table$re_review_batch))
 
 	# first check rights
 	if ( length(user) == 0 ) {
@@ -1378,16 +1378,16 @@ function(req, res, assignment_id) {
 		res$status <- 401 # Unauthorized
 		return(list(error="Please authenticate."))
 
-	} else if ( req$user_role %in% c("Administrator", "Curator") & !assignment_id_unassign_exists) {
+	} else if ( req$user_role %in% c("Administrator", "Curator") & !re_review_batch_unassign_exists) {
 	
 		res$status <- 409 # Conflict
-		return(list(error="Assignment does not exist."))
+		return(list(error="Batch does not exist."))
 		
-	} else if ( req$user_role %in% c("Administrator", "Curator") & assignment_id_unassign_exists) {
+	} else if ( req$user_role %in% c("Administrator", "Curator") & re_review_batch_unassign_exists) {
 
 		# connect to database, delete assignment then disconnect
 		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-		dbExecute(sysndd_db, paste0("DELETE FROM re_review_assignment WHERE assignment_id = ", assignment_id_unassign, ";"))
+		dbExecute(sysndd_db, paste0("DELETE FROM re_review_assignment WHERE re_review_batch = ", re_review_batch_unassign, ";"))
 		dbDisconnect(sysndd_db)
 
 	} else {

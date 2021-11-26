@@ -140,6 +140,24 @@
                 sort-icon-left
               >
 
+                <template #cell(re_review_batch)="data">
+                  <b-button 
+                    size="sm" 
+                    class="mr-1 btn-xs" 
+                    v-b-tooltip.hover.top 
+                    title="unassign this batch"
+                    variant="danger"
+                    @click="handleBatchUnAssignment(data.item.re_review_batch)"
+                  >
+                    <b-icon 
+                    icon="file-earmark-minus"
+                    font-scale="0.9"
+                    >
+                    </b-icon>
+                    {{ data.item.re_review_batch }}
+                  </b-button>
+                </template>
+
               </b-table>
               </b-container>
             </b-tab>
@@ -344,6 +362,20 @@ export default {
 
           try {
             let response = await this.axios.put(apiUrl, {}, {
+              headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+              }
+            });
+          } catch (e) {
+            console.error(e);
+          }
+        this.loadReReviewTableData();
+        },
+        async handleBatchUnAssignment(batch_id) {
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/batch/unassign?re_review_batch=' + batch_id;
+
+          try {
+            let response = await this.axios.delete(apiUrl, {
               headers: {
                 'Authorization': 'Bearer ' + localStorage.getItem('token')
               }
