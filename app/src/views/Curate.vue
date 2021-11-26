@@ -86,6 +86,35 @@
                   >
                   </b-icon>
                 </b-button>
+
+                <b-button 
+                  size="sm" 
+                  class="mr-1 btn-xs"
+                  variant="secondary"
+                  v-b-tooltip.hover.left 
+                  title="Edit review"
+                  >
+                    <b-icon 
+                    icon="pen"
+                    font-scale="0.9"
+                    >
+                    </b-icon>
+                </b-button>
+
+                <b-button 
+                  size="sm" 
+                  class="mr-1 btn-xs" 
+                  variant="danger"
+                  v-b-tooltip.hover.right 
+                  title="Approve review"
+                >
+                  <b-icon 
+                  icon="check2-circle"
+                  font-scale="0.9"
+                  >
+                  </b-icon>
+                </b-button>
+
               </template>
 
               <template #row-details="row">
@@ -183,6 +212,35 @@
                   >
                   </b-icon>
                 </b-button>
+
+                <b-button 
+                  size="sm" 
+                  class="mr-1 btn-xs"
+                  variant="secondary"
+                  v-b-tooltip.hover.left 
+                  title="Edit status"
+                  >
+                    <b-icon 
+                    icon="pen"
+                    font-scale="0.9"
+                    >
+                    </b-icon>
+                </b-button>
+
+                <b-button 
+                  size="sm" 
+                  class="mr-1 btn-xs" 
+                  variant="danger"
+                  v-b-tooltip.hover.right 
+                  title="Approve status"
+                >
+                  <b-icon 
+                  icon="check2-circle"
+                  font-scale="0.9"
+                  >
+                  </b-icon>
+                </b-button>
+
               </template>
 
               <template #row-details="row">
