@@ -24,6 +24,7 @@
               <b-spinner label="Loading..." v-if="loadingReviewApprove" class="float-center m-5"></b-spinner>
               <b-table
                 :items="items_ReviewTable"
+                :fields="fields_ReviewTable"
                 stacked="md"
                 head-variant="light"
                 show-empty
@@ -34,6 +35,71 @@
                 sort-icon-left
                 v-else
               >
+
+              <template #cell(entity_id)="data">
+                <div>
+                  <b-link v-bind:href="'/Entities/' + data.item.entity_id">
+                    <b-badge 
+                    variant="primary"
+                    style="cursor:pointer"
+                    >
+                    sysndd:{{ data.item.entity_id }}
+                    </b-badge>
+                  </b-link>
+                </div>
+              </template>
+
+              <template #cell(synopsis)="data">
+                <div>
+                  <b-form-textarea
+                    plaintext 
+                    size="sm"
+                    rows="1"
+                    :value="data.item.synopsis"
+                  >
+                  </b-form-textarea>
+                </div> 
+              </template>
+
+              <template #cell(comment)="data">
+                <div>
+                  <b-form-textarea
+                    plaintext 
+                    size="sm"
+                    rows="1"
+                    :value="data.item.comment"
+                  >
+                  </b-form-textarea>
+                </div> 
+              </template>
+
+              <template #cell(actions)="row">
+                <b-button 
+                size="sm"
+                class="mr-1 btn-xs"
+                variant="outline-primary" 
+                @click="row.toggleDetails"
+                >
+                  <b-icon 
+                  :icon="row.detailsShowing ? 'eye-slash' : 'eye'"
+                  font-scale="0.9"
+                  >
+                  </b-icon>
+                </b-button>
+              </template>
+
+              <template #row-details="row">
+                <b-card>
+                  <b-table
+                    :items="[row.item]"
+                    :fields="fields_details_ReviewTable"
+                    stacked 
+                    small
+                  >
+                  </b-table>
+                </b-card>
+              </template>
+
               </b-table>
             </b-tab>
 
@@ -41,6 +107,7 @@
               <b-spinner label="Loading..." v-if="loadingStatusApprove" class="float-center m-5"></b-spinner>
               <b-table
                 :items="items_StatusTable"
+                :fields="fields_StatusTable"
                 stacked="md"
                 head-variant="light"
                 show-empty
@@ -51,6 +118,85 @@
                 sort-icon-left
                 v-else
               >
+
+              <template #cell(entity_id)="data">
+                <div>
+                  <b-link v-bind:href="'/Entities/' + data.item.entity_id">
+                    <b-badge 
+                    variant="primary"
+                    style="cursor:pointer"
+                    >
+                    sysndd:{{ data.item.entity_id }}
+                    </b-badge>
+                  </b-link>
+                </div>
+              </template>
+
+              <template #cell(category)="data">
+                <div>
+                  <b-avatar
+                  size="1.4em"
+                  icon="stoplights"
+                  :variant="stoplights_style[data.item.category]"
+                  v-b-tooltip.hover.left 
+                  v-bind:title="data.item.category"
+                  >
+                  </b-avatar>
+                </div> 
+              </template>
+
+              <template #cell(problematic)="data">
+                <div>
+                  <b-avatar
+                  size="1.4em"
+                  :icon="problematic_symbol[data.item.problematic]"
+                  :variant="problematic_style[data.item.problematic]"
+                  v-b-tooltip.hover.left 
+                  v-bind:title="problematic_text[data.item.problematic]"
+                  >
+                  </b-avatar>
+                </div> 
+              </template>
+
+              <template #cell(comment)="data">
+                <div>
+                  <b-form-textarea
+                    plaintext 
+                    size="sm"
+                    rows="1"
+                    :value="data.item.comment"
+                  >
+                  </b-form-textarea>
+                </div> 
+              </template>
+
+              <template #cell(actions)="row">
+                <b-button 
+                size="sm"
+                class="mr-1 btn-xs"
+                variant="outline-primary" 
+                @click="row.toggleDetails"
+                >
+                  <b-icon 
+                  :icon="row.detailsShowing ? 'eye-slash' : 'eye'"
+                  font-scale="0.9"
+                  >
+                  </b-icon>
+                </b-button>
+              </template>
+
+              <template #row-details="row">
+                <b-card>
+                  <b-table
+                    :items="[row.item]"
+                    :fields="fields_details_StatusTable"
+                    stacked 
+                    small
+                  >
+                  </b-table>
+                </b-card>
+              </template>
+
               </b-table>
             </b-tab>
 
@@ -238,6 +384,10 @@ export default {
   name: 'Curate',
     data() {
       return {
+        stoplights_style: {"Definitive": "success", "Moderate": "primary", "Limited": "warning", "Refuted": "danger"},
+        problematic_style: {"0": "success", "1": "danger"},
+        problematic_symbol: {"0": "check-square", "1": "question-square"},
+        problematic_text: {"0": "No problems", "1": "Entitiy status marked problematic"},
         role_options: [],
         user_options: [],
         user_id_assignment: 0,
@@ -250,7 +400,34 @@ export default {
         loadingUsersApprove: true,
         items_UsersTable: [],
         items_StatusTable: [],
+        fields_StatusTable: [
+            { key: 'entity_id', label: 'Entity', sortable: true, filterable: true, sortDirection: 'desc', class: 'text-left' },
+            { key: 'category', label: 'Category', sortable: true, filterable: true, class: 'text-left' },
+            { key: 'comment', label: 'Comment', sortable: true, filterable: true, class: 'text-left' },
+            { key: 'problematic', label: 'Problematic', sortable: true, filterable: true, class: 'text-left' },
+            { key: 'actions', label: 'Actions' }
+        ],
+        fields_details_StatusTable: [
+            { key: 'status_id', label: 'Status ID', sortable: true, filterable: true, sortDirection: 'desc', class: 'text-left' },
+            { key: 'status_date', label: 'Status date', sortable: true, filterable: true, class: 'text-left' },
+            { key: 'status_user_id', label: 'Status user ID', sortable: true, filterable: true, class: 'text-left' },
+            { key: 'is_active', label: 'Active', sortable: true, filterable: true, class: 'text-left' },
+            { key: 'comment', label: 'Comment', sortable: true, filterable: true, class: 'text-left' }
+        ],
         items_ReviewTable: [],
+        fields_ReviewTable: [
+            { key: 'entity_id', label: 'Entity', sortable: true, filterable: true, sortDirection: 'desc', class: 'text-left' },
+            { key: 'synopsis', label: 'Clinical synopsis', sortable: true, filterable: true, class: 'text-left' },
+            { key: 'comment', label: 'Comment', sortable: true, filterable: true, class: 'text-left' },
+            { key: 'actions', label: 'Actions' }
+        ],
+        fields_details_ReviewTable: [
+            { key: 'review_id', label: 'Review ID', sortable: true, filterable: true, sortDirection: 'desc', class: 'text-left' },
+            { key: 'review_date', label: 'Review date', sortable: true, filterable: true, class: 'text-left' },
+            { key: 'review_user_id', label: 'Review user ID', sortable: true, filterable: true, class: 'text-left' },
+            { key: 'is_primary', label: 'Primary', sortable: true, filterable: true, class: 'text-left' },
+            { key: 'synopsis', label: 'Clinical synopsis', sortable: true, filterable: true, class: 'text-left' }
+        ],
         totalRows_UsersTable: 0,
         totalRows_StatusTable: 0,
         totalRows_ReviewTable: 0,
