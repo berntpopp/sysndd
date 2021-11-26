@@ -232,6 +232,13 @@ random_password <- function() {
 }
 
 
+# based on https://stackoverflow.com/questions/24833566/get-initials-from-string-of-words
+generate_initials <- function(first_name, family_name) {
+		initials <- paste(substr(strsplit(paste0(first_name, " ", family_name), " ")[[1]], 1, 1), collapse="")
+		return(initials)
+}
+
+
 send_noreply_email <- function(email_body, email_subject, email_recipient, email_blind_copy = "noreply@sysndd.org") {
 		email <-  compose_email(
 			body = md(email_body),
@@ -253,7 +260,7 @@ send_noreply_email <- function(email_body, email_subject, email_recipient, email
 			)
 		  ))
 		return("Request mail send!")
-	}
+}
 
 
 # Memoise functions
@@ -2647,7 +2654,7 @@ function(req, res, user_id = 0, status_approval = FALSE) {
 	#check if user_id_approval exists and is not allready approved
 	user_table <- pool %>% 
 		tbl("user") %>%
-		select(user_id, approved) %>%
+		select(user_id, approved, first_name, family_name, email) %>%
 		filter(user_id == user_id_approval) %>%
 		collect()
 	user_id_approval_exists <- as.logical(length(user_table$user_id))
@@ -2672,9 +2679,15 @@ function(req, res, user_id = 0, status_approval = FALSE) {
 	} else if ( req$user_role %in% c("Administrator", "Curator") & user_id_approval_exists & !user_id_approval_approved) {
 
 		if ( status_approval ) {
+			# genrate password
+			user_password <- random_password()
+			user_initials <- generate_initials(user_table$first_name, user_table$family_name)
+			
 			# connect to database, put approval for user application then disconnect
 			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 			dbExecute(sysndd_db, paste0("UPDATE user SET approved = 1 WHERE user_id = ", user_id_approval, ";"))
+			dbExecute(sysndd_db, paste0("UPDATE user SET password = '", user_password,"' WHERE user_id = ", user_id_approval, ";"))
+			dbExecute(sysndd_db, paste0("UPDATE user SET abbreviation = '", user_initials, "' WHERE user_id = ", user_id_approval, ";"))
 			dbDisconnect(sysndd_db)
 		}  else {
 			# connect to database, delete application then disconnect
