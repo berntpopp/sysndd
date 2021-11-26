@@ -2689,6 +2689,14 @@ function(req, res, user_id = 0, status_approval = FALSE) {
 			dbExecute(sysndd_db, paste0("UPDATE user SET password = '", user_password,"' WHERE user_id = ", user_id_approval, ";"))
 			dbExecute(sysndd_db, paste0("UPDATE user SET abbreviation = '", user_initials, "' WHERE user_id = ", user_id_approval, ";"))
 			dbDisconnect(sysndd_db)
+			
+			# send mail
+			res <-  send_noreply_email(c(
+				 "Your registration for sysndd.org has been approved by a curator. Your password (please change after first login):",
+				 user_password),
+				 "Account approved for SysNDD.org",
+				 user_table$email
+				)
 		}  else {
 			# connect to database, delete application then disconnect
 			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
