@@ -22,14 +22,36 @@
 
             <b-tab title="Review approve">
               <b-spinner label="Loading..." v-if="loadingReviewApprove" class="float-center m-5"></b-spinner>
-              <b-container fluid v-else>
-              </b-container>
+              <b-table
+                :items="items_ReviewTable"
+                stacked="md"
+                head-variant="light"
+                show-empty
+                small
+                fixed
+                striped
+                hover
+                sort-icon-left
+                v-else
+              >
+              </b-table>
             </b-tab>
 
             <b-tab title="Status approve">
               <b-spinner label="Loading..." v-if="loadingStatusApprove" class="float-center m-5"></b-spinner>
-              <b-container fluid v-else>
-              </b-container>
+              <b-table
+                :items="items_StatusTable"
+                stacked="md"
+                head-variant="light"
+                show-empty
+                small
+                fixed
+                striped
+                hover
+                sort-icon-left
+                v-else
+              >
+              </b-table>
             </b-tab>
 
             <b-tab title="Users approve">
@@ -44,6 +66,7 @@
                 striped
                 hover
                 sort-icon-left
+                empty-text="Currently no open user applications."
                 v-else
               >
 
@@ -226,7 +249,11 @@ export default {
         loadingStatusApprove: true,
         loadingUsersApprove: true,
         items_UsersTable: [],
+        items_StatusTable: [],
+        items_ReviewTable: [],
         totalRows_UsersTable: 0,
+        totalRows_StatusTable: 0,
+        totalRows_ReviewTable: 0,
         approveUserModal: {
           id: 'approve-usermodal',
           title: '',
@@ -250,6 +277,10 @@ export default {
           this.loadReReviewTableData();
         } else if (value === 4 & this.loadingUsersApprove) {
           this.loadUserTableData();
+        } else if (value === 3 & this.loadingUsersApprove) {
+          this.loadStatusTableData();
+        } else if (value === 2 & this.loadingUsersApprove) {
+          this.loadReviewTableData();
         }
       }
     },
@@ -326,6 +357,38 @@ export default {
             console.error(e);
           }
           this.loadingUsersApprove = false;
+        },
+        async loadStatusTableData() {
+          this.loadingStatusApprove = true;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/status';
+          try {
+            let response = await this.axios.get(apiUrl, {
+              headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+              }
+            });
+            this.items_StatusTable = response.data;
+            this.totalRows_StatusTable = response.data.length;
+          } catch (e) {
+            console.error(e);
+          }
+          this.loadingStatusApprove = false;
+        },
+        async loadReviewTableData() {
+          this.loadingReviewApprove = true;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/review';
+          try {
+            let response = await this.axios.get(apiUrl, {
+              headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+              }
+            });
+            this.items_ReviewTable = response.data;
+            this.totalRows_ReviewTable = response.data.length;
+          } catch (e) {
+            console.error(e);
+          }
+          this.loadingReviewApprove = false;
         },
         async handleUserApproveOk(bvModalEvt) {
 

@@ -226,7 +226,7 @@ make_matrix_plot <- function(data_melt) {
 
 # based on https://stackoverflow.com/questions/22219035/function-to-generate-a-random-password
 random_password <- function() {
-	samp <- c(0:9,letters,LETTERS,"!", "§", "$", "%", "&", "(", ")", "*")
+	samp <- c(0:9,letters,LETTERS,"!", "§", "$")
 	password <- paste(sample(samp,10),collapse="")
 	return(password)
 }
@@ -690,6 +690,26 @@ function(sysndd_id) {
 
 ##-------------------------------------------------------------------##
 ## Review endpoints
+
+#* @tag reviews
+## get review list
+#* @serializer json list(na="null")
+#' @get /api/review
+function(req, res, `filter[review_approved]` = 0) {
+
+	filter_review_approved <- as.integer(`filter[review_approved]`)
+	
+	# get data from database and filter
+	sysndd_db_review_table_collected <- pool %>% 
+		tbl("ndd_entity_review") %>% 
+		filter(review_approved == filter_review_approved) %>%
+		collect() %>%
+		select(review_id, entity_id, synopsis, is_primary, review_date, review_user_id, review_approved, approving_user_id, comment)
+
+	sysndd_db_review_table_collected
+}
+
+
 #* @tag reviews
 ## get a single review by review_id
 #* @serializer json list(na="null")
@@ -1913,6 +1933,31 @@ function(hpo_list = "", logical_operator = "and", res) {
 ## Status endpoints
 
 #* @tag status
+## get status list
+#* @serializer json list(na="null")
+#' @get /api/status
+function(req, res, `filter[status_approved]` = 0) {
+
+	filter_status_approved <- as.integer(`filter[status_approved]`)
+
+	# get data from database and filter
+	sysndd_db_status_table <- pool %>% 
+		tbl("ndd_entity_status") %>% 
+		filter(status_approved == filter_status_approved)
+	ndd_entity_status_categories_collected <- pool %>% 
+		tbl("ndd_entity_status_categories_list")
+
+	sysndd_db_status_table_collected <- sysndd_db_status_table %>%
+		inner_join(ndd_entity_status_categories_collected, by=c("category_id")) %>%
+		collect() %>%
+		select(status_id, entity_id, category, category_id, is_active, status_date, status_user_id, status_approved, approving_user_id, comment, problematic) %>%
+		arrange(status_date)
+
+	sysndd_db_status_table_collected
+}
+
+
+#* @tag status
 ## get a single status by status_id
 #* @serializer json list(na="null")
 #' @get /api/status/<status_requested>
@@ -2888,7 +2933,7 @@ function(signup_data) {
 function(req, res, user_name, password) {
 	
 	check_user <- user_name
-	check_pass <- password
+	check_pass <- URLdecode(password)
 	
 	# load secret and convert to raw
 	key <- charToRaw(dw$secret)
