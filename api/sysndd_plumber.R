@@ -1242,7 +1242,7 @@ function(req, res, curate=FALSE) {
 #* @tag reviews
 ## request a new batch of entities to review by mail to curators
 #* @serializer json list(na="string")
-#' @get /api/re_review/new_batch
+#' @get /api/re_review/new_batch/apply
 function(req, res) {
 		
 	user <- req$user_id
@@ -1351,13 +1351,11 @@ function(req, res) {
 #* @tag reviews
 ## put a new re-review batch assignment
 #* @serializer json list(na="string")
-#' @put /api/re_review/batch/assign
+#' @put /api/re_review/new_batch/assign
 function(req, res, user_id) {
 		
 	user <- req$user_id
 	user_id_assign <- as.integer(user_id)
-	
-	status_approval <- as.logical(status_approval)
 
 	#check if user_id_assign exists
 	user_table <- pool %>% 

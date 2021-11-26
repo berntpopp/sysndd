@@ -98,23 +98,26 @@
               <b-row>
                 <b-col class="my-1">
 
-  <b-input-group
-   prepend="Username"
-   size="sm"
-  >
-    <b-form-select
-    :options="user_options"
-    v-model="user_id_assignment"
-    >
-    </b-form-select>
-    <b-input-group-append>
-      <b-button block size="sm">
-        <b-icon icon="plus-square" class="mx-1"></b-icon>
-        Assign new batch
-      </b-button>
-    </b-input-group-append>
-  </b-input-group>
-
+                  <!-- button and select for new batch assignment -->
+                  <b-input-group
+                  prepend="Username"
+                  size="sm"
+                  >
+                    <b-form-select
+                    :options="user_options"
+                    v-model="user_id_assignment"
+                    >
+                    </b-form-select>
+                    <b-input-group-append>
+                      <b-button 
+                      block size="sm"
+                      @click="handleNewBatchAssignment"
+                      >
+                        <b-icon icon="plus-square" class="mx-1"></b-icon>
+                        Assign new batch
+                      </b-button>
+                    </b-input-group-append>
+                  </b-input-group>
 
                 </b-col>
 
@@ -125,7 +128,6 @@
           </b-card>
           <!-- User Interface controls -->
 
-                
                 <b-table
                 :items="items_ReReviewTable"
                 stacked="md"
@@ -336,6 +338,21 @@ export default {
           } catch (e) {
             console.error(e);
           }
+        },
+        async handleNewBatchAssignment() {
+console.log(this.user_id_assignment);
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/new_batch/assign?user_id=' + this.user_id_assignment;
+
+          try {
+            let response = await this.axios.put(apiUrl, {}, {
+              headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+              }
+            });
+          } catch (e) {
+            console.error(e);
+          }
+        this.loadReReviewTableData();
         },
       }
     };

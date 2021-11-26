@@ -1254,7 +1254,7 @@ export default {
         },
         async newBatchApplication() {
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/new_batch';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/new_batch/apply';
 
           try {
             let response = await this.axios.get(apiUrl, {
