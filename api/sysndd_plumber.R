@@ -189,13 +189,13 @@ info_from_genereviews <- function(Bookshelf_ID)  {
 
 
 # based on https://xiaolianglin.com/2018/12/05/Use-memoise-to-speed-up-your-R-plumber-API/
-
 nest_gene_tibble <- function(tibble) {
     nested_tibble <- tibble %>%
         nest_by(symbol, hgnc_id, .key = "entities")
     
     return(nested_tibble)
 }
+
 
 make_entities_plot <- function(data_tibble) {
 	plot <- ggplot(data = data_tibble , aes(x = entry_date, color = category)) +
@@ -209,6 +209,7 @@ make_entities_plot <- function(data_tibble) {
 	return(base64Encode(readBin(file, "raw", n = file.info(file)$size), "txt"))
 }
 
+
 make_matrix_plot <- function(data_melt) {
 	matrix_plot <- ggplot(data = data_melt, aes(x=Var1, y=Var2, fill=value)) +
 		geom_tile(color = "white") +
@@ -221,6 +222,39 @@ make_matrix_plot <- function(data_melt) {
 	ggsave(file, matrix_plot, width = 3.0, height = 3.5, dpi = 150, units = "in")
 	return(base64Encode(readBin(file, "raw", n = file.info(file)$size), "txt"))
 }
+
+
+# based on https://stackoverflow.com/questions/22219035/function-to-generate-a-random-password
+random_password <- function() {
+	samp <- c(0:9,letters,LETTERS,"!", "§", "$", "%", "&", "(", ")", "*")
+	password <- paste(sample(samp,10),collapse="")
+	return(password)
+}
+
+
+send_noreply_email <- function(email_body, email_subject, email_recipient, email_blind_copy = "noreply@sysndd.org") {
+		email <-  compose_email(
+			body = md(email_body),
+			footer = md("Visit [SysNDD.org](https://www.sysndd.org) for the latest information on Neurodevelopmental Disorders.")
+			)
+
+		suppressMessages(email %>%
+		  smtp_send(
+			from = "noreply@sysndd.org",
+			subject = email_subject,
+			to = email_recipient,
+			bcc = email_blind_copy,
+			credentials = creds_envvar(
+				pass_envvar = "SMTP_PASSWORD",
+				user = dw$mail_noreply_user,
+				host = dw$mail_noreply_host,
+				port = dw$mail_noreply_port,
+				use_ssl = dw$mail_noreply_use_ssl
+			)
+		  ))
+		return("Request mail send!")
+	}
+
 
 # Memoise functions
 nest_gene_tibble_mem <- memoise(nest_gene_tibble)
@@ -1266,33 +1300,16 @@ function(req, res) {
 		curator_mail <- (user_table %>%
 			filter(user_role == "Curator"))$email
 
-		email <-  compose_email(
-		body = md(c("Hello", user_info$user_name, "!<br />", 
-		"<br />Your request for another **re-review batch** has been send to the curators.",
-		"They will review and activate your application shortly. <br /><br />",
-		"Requesting user info:", 
-		user_info %>% kable("html"),
-		"<br />", 
-		"Best wishes, <br />The SysNDD team")),
-		footer = md("Visit [SysNDD.org](https://www.sysndd.org) for the latest NDD information")
-		)
-
-		email %>%
-		  smtp_send(
-			from = "noreply@sysndd.org",
-			to = user_info$email,
-			bcc = curator_mail,
-			subject = "Your re-review batch request from SysNDD.org",
-			credentials = creds_envvar(
-				pass_envvar = "SMTP_PASSWORD",
-				user = dw$mail_noreply_user,
-				host = dw$mail_noreply_host,
-				port = dw$mail_noreply_port,
-			use_ssl = dw$mail_noreply_use_ssl
-			)
-		  )
-		  
-		res <- "Request mail send!"
+		res <- send_noreply_email(c("Hello", user_info$user_name, "!<br />", 
+			"<br />Your request for another **re-review batch** has been send to the curators.",
+			"They will review and activate your application shortly. <br /><br />",
+			"Requesting user info:", 
+			user_info %>% kable("html"),
+			"<br />", 
+			"Best wishes, <br />The SysNDD team"),
+			"Your re-review batch request from SysNDD.org",
+			user_info$email,
+			curator_mail)
 
 	} else {
 		res$status <- 403 # Forbidden
@@ -2823,32 +2840,16 @@ function(signup_data) {
 
 		# connect to database
 		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-
 		dbAppendTable(sysndd_db, "user", user)
-		
 		dbDisconnect(sysndd_db)
-		
-		email <- compose_email(
-		  body = md(c(
-			 "Your registration request for sysndd.org has been send to the curators who will review it soon. Information provided:",
-			 user
-		  ))
-		)
 
-		email %>%
-		  smtp_send(
-			from = "noreply@sysndd.org",
-			to = user$email,
-			subject = "Your registration request to SysNDD.org",
-			credentials = creds_envvar(
-				pass_envvar = "SMTP_PASSWORD",
-				user = dw$mail_noreply_user,
-				host = dw$mail_noreply_host,
-				port = dw$mail_noreply_port,
-			use_ssl = dw$mail_noreply_use_ssl
+		# send mail
+		res <-  send_noreply_email(c(
+			 "Your registration request for sysndd.org has been send to the curators who will review it soon. Information provided:",
+			 user),
+			 "Your registration request to SysNDD.org",
+			 user$email
 			)
-		  )
-		res <- "Registered successfully!"
 	
   } else {
 		res$status <- 404
