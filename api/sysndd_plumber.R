@@ -226,8 +226,8 @@ make_matrix_plot <- function(data_melt) {
 
 # based on https://stackoverflow.com/questions/22219035/function-to-generate-a-random-password
 random_password <- function() {
-	samp <- c(0:9,letters,LETTERS,"!", "§", "$")
-	password <- paste(sample(samp,10),collapse="")
+	samp <- c(0:9, letters, LETTERS, "!", "$")
+	password <- paste(sample(samp, 12), collapse="")
 	return(password)
 }
 
