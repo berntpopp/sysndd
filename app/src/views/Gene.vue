@@ -49,12 +49,12 @@
 
               <template #cell(entrez_id)="data">
                <b-row>
-                  <b-row v-for="id in data.item.entrez_id.split(';')" :key="id"> 
+                  <b-row v-for="id in (data.item.entrez_id + '').split(';')" :key="id"> 
                       <b-col>
                         <b-button 
                         class="btn-xs mx-2" 
                         variant="outline-primary"
-                        v-bind:src="data.item.entrez_id.split(';')" 
+                        v-bind:src=" (data.item.entrez_id + '').split(';')" 
                         v-bind:href="'https://www.ncbi.nlm.nih.gov/gene/'+ id" 
                         target="_blank" 
                         >
