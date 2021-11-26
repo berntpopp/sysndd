@@ -1319,13 +1319,17 @@ function(req, res, user_id) {
 	user_id_assign_exists <- as.logical(length(user_table$user_id))
 
 	# compute next batch
-	re_review_batch <- pool %>% 
+	re_review_assignment <- pool %>% 
 		tbl("re_review_assignment") %>%
+		select(re_review_batch)
+	re_review_entity_connect <- pool %>% 
+		tbl("re_review_entity_connect") %>%
 		select(re_review_batch) %>%
+		anti_join(re_review_assignment, by=c("re_review_batch")) %>%
 		collect() %>%
 		unique() %>%
-		summarise(re_review_batch = max(re_review_batch))
-	re_review_batch_next <- re_review_batch$re_review_batch + 1
+		summarise(re_review_batch = min(re_review_batch))
+	re_review_batch_next <- re_review_entity_connect$re_review_batch
 
 	# make tibble to append
 	assignment_table <- tibble("user_id" = user_id_assign, "re_review_batch" = re_review_batch_next)
