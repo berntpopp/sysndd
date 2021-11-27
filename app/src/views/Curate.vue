@@ -357,6 +357,7 @@
 
                 <b-table
                 :items="items_ReReviewTable"
+                :fields="fields_ReReviewTable"
                 stacked="md"
                 head-variant="light"
                 show-empty
@@ -366,8 +367,11 @@
                 hover
                 sort-icon-left
               >
+                <template #cell(user_name)="row">
+                  <b-icon icon="person-circle" font-scale="1.0"></b-icon> <b-badge variant="dark">  {{ row.item.user_name }} </b-badge>
+                </template>
 
-                <template #cell(re_review_batch)="data">
+                <template #cell(actions)="data">
                   <b-button 
                     size="sm" 
                     class="mr-1 btn-xs" 
@@ -381,7 +385,6 @@
                     font-scale="0.9"
                     >
                     </b-icon>
-                    {{ data.item.re_review_batch }}
                   </b-button>
                 </template>
 
@@ -498,6 +501,16 @@ export default {
         user_approved: false, 
         loadingReReviewManagment: true,
         items_ReReviewTable: [],
+        fields_ReReviewTable: [
+            { key: 'user_name', label: 'Username', sortable: true, filterable: true, sortDirection: 'desc', class: 'text-left' },
+            { key: 're_review_batch', label: 'Re-review batch ID', sortable: true, filterable: true, class: 'text-left' },
+            { key: 're_review_review_saved', label: 'Review saved count', sortable: true, filterable: true, class: 'text-left' },
+            { key: 're_review_status_saved', label: 'Status saved count', sortable: true, filterable: true, class: 'text-left' },
+            { key: 're_review_submitted', label: 'Re-review submitted count', sortable: true, filterable: true, class: 'text-left' },
+            { key: 're_review_approved', label: 'Re-review approved count', sortable: true, filterable: true, class: 'text-left' },
+            { key: 'entity_count', label: 'Total entities in batch', sortable: true, filterable: true, class: 'text-left' },
+            { key: 'actions', label: 'Actions' }
+        ],
         totalRows_ReReviewTable: 0,
         tabIndex: 0
       };
