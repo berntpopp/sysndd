@@ -802,7 +802,7 @@ function(review_id_requested) {
 ## Re-review endpoints
 
 #* @tag re_review
-## post a new clinical synopsis for a entity_id in re-review mode
+## post or put a new clinical synopsis for a entity_id in re-review mode
 ## example data: {"re_review_entity_id":1, "entity_id": 1, "synopsis": "activating, gain-of-function mutations: congenital hypertrichosis, neonatal macrosomia, distinct osteochondrodysplasia, cardiomegaly; activating mutations", "literature": {"additional_references": ["PMID:22608503", "PMID:22610116"], "gene_review": ["PMID:25275207"]}, "phenotypes": {"phenotype_id": ["HP:0000256", "HP:0000924", "HP:0001256", "HP:0001574", "HP:0001627", "HP:0002342"], "modifier_id": [1,1,1,1,1,1]}, "comment": ""}
 #* @serializer json list(na="string")
 #' @post /api/re_review/review
@@ -2038,6 +2038,58 @@ function(req, res, status_json) {
 			return(list(error="Submitted data can not be null."))
 		}
 
+	} else {
+		res$status <- 403 # Forbidden
+		return(list(error="Write access forbidden."))
+	}
+}
+
+
+#* @tag status
+## put the status approvement (only Administrator and Curator status users)
+#* @serializer json list(na="string")
+#' @put /api/status/approve/<status_id_requested>
+function(req, res, status_id_requested, status_ok = FALSE) {
+	status_ok <- as.logical(status_ok)
+	
+	# first check rights
+	if ( length(req$user_id) == 0) {
+	
+		res$status <- 401 # Unauthorized
+		return(list(error="Please authenticate."))
+
+	} else if ( req$user_role %in% c("Administrator", "Curator") ) {
+				
+		submit_user_id <- req$user_id
+		status_id_requested <- as.integer(status_id_requested)
+		
+		# get table data from database
+		ndd_entity_status_data <- pool %>% 
+			tbl("ndd_entity_status") %>%
+			filter(status_id == status_id_requested) %>%
+			collect()
+		
+		# connect to database
+		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+		# set status if confirmed
+		if ( status_ok ) {
+			# reset all stati in ndd_entity_status to inactive
+			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET is_active = 0 WHERE entity_id = ", ndd_entity_status_data$entity_id, ";"))
+
+			# set status of the new status from re_review_entity_connect to active, add approving_user_id and set approved status to approved
+			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET is_active = 1 WHERE status_id = ", ndd_entity_status_data$status_id, ";"))
+			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET approving_user_id = ", submit_user_id, " WHERE status_id = ", ndd_entity_status_data$status_id, ";"))
+			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET status_approved = 1 WHERE status_id = ", ndd_entity_status_data$status_id, ";"))
+		} else {
+			# add approving_user_id and set approved status to unapproved
+			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET approving_user_id = ", submit_user_id, " WHERE status_id = ", ndd_entity_status_data$status_id, ";"))
+			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET status_approved = 0 WHERE status_id = ", ndd_entity_status_data$status_id, ";"))
+		}
+
+		# disconnect from database
+		dbDisconnect(sysndd_db)
+		
 	} else {
 		res$status <- 403 # Forbidden
 		return(list(error="Write access forbidden."))

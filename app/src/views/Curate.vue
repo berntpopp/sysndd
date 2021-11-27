@@ -14,13 +14,13 @@
               </b-container>
             </b-tab>
 
-            <b-tab title="Modify entity">
+            <b-tab title="Modify entity" lazy>
               <b-spinner label="Loading..." v-if="loadingEntityModify" class="float-center m-5"></b-spinner>
               <b-container fluid v-else>
               </b-container>
             </b-tab>
 
-            <b-tab title="Review approve">
+            <b-tab title="Review approve" lazy>
               <b-spinner label="Loading..." v-if="loadingReviewApprove" class="float-center m-5"></b-spinner>
               <b-table
                 :items="items_ReviewTable"
@@ -132,7 +132,7 @@
               </b-table>
             </b-tab>
 
-            <b-tab title="Status approve">
+            <b-tab title="Status approve" lazy>
               <b-spinner label="Loading..." v-if="loadingStatusApprove" class="float-center m-5"></b-spinner>
               <b-table
                 :items="items_StatusTable"
@@ -258,7 +258,7 @@
               </b-table>
             </b-tab>
 
-            <b-tab title="Users approve">
+            <b-tab title="Users approve" lazy>
               <b-spinner label="Loading..." v-if="loadingUsersApprove" class="float-center m-5"></b-spinner>
                 <b-table
                 :items="items_UsersTable"
@@ -312,48 +312,48 @@
               </b-table>
             </b-tab>
 
-            <b-tab title="Re-review managment">
+            <b-tab title="Re-review managment" lazy>
               <b-spinner label="Loading..." v-if="loadingReReviewManagment" class="float-center m-5"></b-spinner>
               <b-container fluid v-else>
                 
-          <!-- User Interface controls -->
-          <b-card 
-          header-tag="header"
-          bg-variant="light"
-          >
-            <b-col>
-              <b-row>
-                <b-col class="my-1">
+              <!-- User Interface controls -->
+              <b-card 
+              header-tag="header"
+              bg-variant="light"
+              >
+                <b-col>
+                  <b-row>
+                    <b-col class="my-1">
 
-                  <!-- button and select for new batch assignment -->
-                  <b-input-group
-                  prepend="Username"
-                  size="sm"
-                  >
-                    <b-form-select
-                    :options="user_options"
-                    v-model="user_id_assignment"
-                    >
-                    </b-form-select>
-                    <b-input-group-append>
-                      <b-button 
-                      block size="sm"
-                      @click="handleNewBatchAssignment"
+                      <!-- button and select for new batch assignment -->
+                      <b-input-group
+                      prepend="Username"
+                      size="sm"
                       >
-                        <b-icon icon="plus-square" class="mx-1"></b-icon>
-                        Assign new batch
-                      </b-button>
-                    </b-input-group-append>
-                  </b-input-group>
+                        <b-form-select
+                        :options="user_options"
+                        v-model="user_id_assignment"
+                        >
+                        </b-form-select>
+                        <b-input-group-append>
+                          <b-button 
+                          block size="sm"
+                          @click="handleNewBatchAssignment"
+                          >
+                            <b-icon icon="plus-square" class="mx-1"></b-icon>
+                            Assign new batch
+                          </b-button>
+                        </b-input-group-append>
+                      </b-input-group>
 
-                </b-col>
+                    </b-col>
 
-                <b-col class="my-1">
+                    <b-col class="my-1">
+                    </b-col>
+                  </b-row>
                 </b-col>
-              </b-row>
-            </b-col>
-          </b-card>
-          <!-- User Interface controls -->
+              </b-card>
+              <!-- User Interface controls -->
 
                 <b-table
                 :items="items_ReReviewTable"
