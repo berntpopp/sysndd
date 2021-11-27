@@ -224,6 +224,7 @@ make_matrix_plot <- function(data_melt) {
 }
 
 
+# generate anrandom password
 # based on https://stackoverflow.com/questions/22219035/function-to-generate-a-random-password
 random_password <- function() {
 	samp <- c(0:9, letters, LETTERS, "!", "$")
@@ -232,6 +233,7 @@ random_password <- function() {
 }
 
 
+# generate initials for avatar from full name
 # based on https://stackoverflow.com/questions/24833566/get-initials-from-string-of-words
 generate_initials <- function(first_name, family_name) {
 		initials <- paste(substr(strsplit(paste0(first_name, " ", family_name), " ")[[1]], 1, 1), collapse="")
@@ -260,6 +262,78 @@ send_noreply_email <- function(email_body, email_subject, email_recipient, email
 			)
 		  ))
 		return("Request mail send!")
+}
+
+
+put_post_db_status <- function(request_method, status_data, status_user_id) {
+
+		if ( !is.null(status_data$category) | !is.null(status_data$problematic)) {
+
+			# convert status data to tibble, check if comment is null and handle
+			if ( !is.null(status_data$comment) ) {
+				status_received <- as_tibble(status_data) %>% 
+					add_column(status_user_id)
+			} else {
+				status_data$comment <- ""
+				status_received <- as_tibble(status_data) %>% 
+					add_column(status_user_id) %>% 
+					select(-comment)
+			}
+
+			# check request type and perform database update accoringly
+			if ( request_method == "POST" & !is.null(status_data$entity_id)) {
+				# remove status_id if provided as input
+				status_received <- tryCatch({
+					status_received %>% 
+					select(-status_id)
+				}, error = function(e) {
+					status_received
+				})
+			
+				# connect to database
+				sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+				# submit the new status and disconnect from database and get the id of the last insert for association with other tables
+				dbAppendTable(sysndd_db, "ndd_entity_status", status_received)
+				# disconnect from database
+				dbDisconnect(sysndd_db)
+				
+				# return OK
+				return(list(status=200,message="OK. Entry created."))
+				
+			} else if ( request_method == "PUT" & !is.null(status_data$status_id)) {
+				# remove entity_id if provided from status_received and remove status_id to prepare update query
+				status_received <- tryCatch({
+					status_received %>% 
+					select(-entity_id, -status_id)
+				}, error = function(e) {
+					status_received
+				})
+
+				# generate update query
+				update_query <- as_tibble(status_received) %>%
+					mutate(row = row_number()) %>%  
+					mutate(across(where(is.logical), as.integer)) %>%
+					mutate(across(where(is.numeric), as.character)) %>%
+					pivot_longer(-row) %>% 
+					mutate(query = paste0(name, "='", value, "'")) %>% 
+					select(query) %>% 
+					summarise(query = str_c(query, collapse = ", "))
+					
+				# connect to database
+				sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+				# submit the new status
+				dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET ", update_query, " WHERE status_id = ", status_data$status_id, ";"))
+				# disconnect from database
+				dbDisconnect(sysndd_db)
+				
+				# return OK
+				return(list(status=200,message="OK. Entry updated."))
+			}
+
+		} else {
+			# return error
+			return(list(status=400,error="Submitted data can not be null."))
+		}
 }
 
 
@@ -2061,7 +2135,6 @@ function() {
 }
 
 
-
 #* @tag status
 ## post a new status for a entity_id or put an update to a certain status_id
 ## example data: '{"status_id":3,"entity_id":3,"category_id":1,"comment":"fsa","problematic": true}' (privide status_id for put and entity_id for post reqests)
@@ -2072,71 +2145,12 @@ function(req, res, status_json) {
 	# first check rights
 	if ( req$user_role %in% c("Administrator", "Curator") ) {
 				
-		status_user_id <- req$user_id
 		status_data <- fromJSON(status_json)
-
-		if ( !is.null(status_data$category) | !is.null(status_data$problematic)) {
-
-			# convert status data to tibble, check if comment is null and handle
-			if ( !is.null(status_data$comment) ) {
-				status_received <- as_tibble(status_data) %>% 
-					add_column(status_user_id)
-			} else {
-				status_data$comment <- ""
-				status_received <- as_tibble(status_data) %>% 
-					add_column(status_user_id) %>% 
-					select(-comment)
-			}
-
-			# check request type and perform database update accoringly
-			if ( req$REQUEST_METHOD == "POST" & !is.null(status_data$entity_id)) {
-				# remove status_id if provided as input
-				status_received <- tryCatch({
-					status_received %>% 
-					select(-status_id)
-				}, error = function(e) {
-					status_received
-				})
-			
-				# connect to database
-				sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-
-				# submit the new status and disconnect from database and get the id of the last insert for association with other tables
-				dbAppendTable(sysndd_db, "ndd_entity_status", status_received)
 		
-				# disconnect from database
-				dbDisconnect(sysndd_db)
-			} else if ( req$REQUEST_METHOD == "PUT" & !is.null(status_data$status_id)) {
-				# remove entity_id if provided from status_received and remove status_id to prepare update query
-				status_received <- tryCatch({
-					status_received %>% 
-					select(-entity_id, -status_id)
-				}, error = function(e) {
-					status_received
-				})
+		response <- put_post_db_status(req$REQUEST_METHOD, status_data, req$user_id)
 
-				# generate update query
-				update_query <- as_tibble(status_received) %>%
-					mutate(row = row_number()) %>%  
-					mutate(across(where(is.logical), as.integer)) %>%
-					mutate(across(where(is.numeric), as.character)) %>%
-					pivot_longer(-row) %>% 
-					mutate(query = paste0(name, "='", value, "'")) %>% 
-					select(query) %>% 
-					summarise(query = str_c(query, collapse = ", "))
-					
-				# connect to database
-				sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-				# submit the new status
-				dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET ", update_query, " WHERE status_id = ", status_data$status_id, ";"))
-				# disconnect from database
-				dbDisconnect(sysndd_db)
-			}
-
-		} else {
-			res$status <- 400 # Bad Request
-			return(list(error="Submitted data can not be null."))
-		}
+		res$status <- response$status
+		return(response)
 
 	} else {
 		res$status <- 403 # Forbidden
