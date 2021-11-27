@@ -1016,9 +1016,9 @@ export default {
           this.loading_review_modal = true;
 
           // define API query URLs
-          let apiReviewURL = process.env.VUE_APP_API_URL + '/api/reviews/' + review_id;
-          let apiPublicationsURL = process.env.VUE_APP_API_URL + '/api/reviews/' + review_id + '/publications';
-          let apiPhenotypesURL = process.env.VUE_APP_API_URL + '/api/reviews/' + review_id + '/phenotypes';
+          let apiReviewURL = process.env.VUE_APP_API_URL + '/api/review/' + review_id;
+          let apiPublicationsURL = process.env.VUE_APP_API_URL + '/api/review/' + review_id + '/publications';
+          let apiPhenotypesURL = process.env.VUE_APP_API_URL + '/api/review/' + review_id + '/phenotypes';
 
           try {
             // get API responses
@@ -1074,7 +1074,7 @@ export default {
             }
         },
         async loadPhenotypesList() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotypes_list';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype_list';
           try {
             let response = await this.axios.get(apiUrl);
             this.phenotypes_options = response.data;

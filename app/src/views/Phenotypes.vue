@@ -270,7 +270,7 @@ export default {
       },
       methods: {
         async loadPhenotypesData() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotypes_list';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype_list';
           try {
             let response = await this.axios.get(apiUrl);
             this.phenotypes_options = response.data;
@@ -293,7 +293,7 @@ export default {
           break;
           }
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotypes/entities/browse?hpo_list=' + this.selected_input.join() + '&logical_operator=' + logical_operator;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype/entities/browse?hpo_list=' + this.selected_input.join() + '&logical_operator=' + logical_operator;
 
           try {
             let response = await this.axios.get(apiUrl);
@@ -309,7 +309,7 @@ export default {
         },
         async loadEntities() {
           this.entities_data = [];
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/entities/' + this.entities.join();
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/entity/' + this.entities.join();
           try {
             let response = await this.axios.get(apiUrl);
             this.entities_data = response.data;
@@ -363,7 +363,7 @@ export default {
           }
 
           //based on https://morioh.com/p/f4d331b62cda
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotypes/entities/excel?hpo_list=' + this.selected_input.join() + '&logical_operator=' + logical_operator;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype/entities/excel?hpo_list=' + this.selected_input.join() + '&logical_operator=' + logical_operator;
           try {
             let response = await this.axios({
                     url: apiUrl,

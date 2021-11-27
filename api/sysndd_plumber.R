@@ -283,15 +283,15 @@ make_matrix_plot_mem <- memoise(make_matrix_plot)
 #* @apiContact list(name = "API Support", url = "http://www.sysndd.org/support", email = "support@sysndd.org")
 #* @apiLicense list(name = "CC BY 4.0", url = "https://creativecommons.org/licenses/by/4.0/")
 
-#* @apiTag entities Entities related endpoints
-#* @apiTag reviews Reviews related endpoints
+#* @apiTag entity Entity related endpoints
+#* @apiTag review Reviews related endpoints
 #* @apiTag status Status related endpoints
 #* @apiTag re_review Re-review related endpoints
-#* @apiTag publications Publication related endpoints
-#* @apiTag genes Gene related endpoints
+#* @apiTag publication Publication related endpoints
+#* @apiTag gene Gene related endpoints
 #* @apiTag ontology Ontology related endpoints
 #* @apiTag inheritance Inheritance related endpoints
-#* @apiTag phenotypes Phenoptype related endpoints
+#* @apiTag phenotype Phenoptype related endpoints
 #* @apiTag panels Gene panel related endpoints
 #* @apiTag comparisons NDD gene list comparisons related endpoints
 #* @apiTag search Database search related endpoints
@@ -369,10 +369,10 @@ function(req, res) {
 ##-------------------------------------------------------------------##
 ## Entity endpoints
 
-#* @tag entities
+#* @tag entity
 ## get all entities
 #* @serializer json list(na="string")
-#' @get /api/entities
+#' @get /api/entity
 function(res, sort = "entity_id", `page[after]` = 0, `page[size]` = "all") {
 
 	# get number of rows in ndd_entity_view
@@ -449,26 +449,26 @@ function(res, sort = "entity_id", `page[after]` = 0, `page[size]` = "all") {
 		))
 
 	# generate links for self, next and prev pages
-	self <- paste0("http://", dw$host, ":", dw$port_self, "/api/entities/?sort=", sort, "&page[after]=", `page[after]`, "&page[size]=", `page[size]`)
+	self <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity/?sort=", sort, "&page[after]=", `page[after]`, "&page[size]=", `page[size]`)
 	if ( length(page_after_row_prev) == 0 ){
 		prev <- "null"
 	} else
 	{
-		prev <- paste0("http://", dw$host, ":", dw$port_self, "/api/entities?sort=", sort, "&page[after]=", page_after_row_prev, "&page[size]=", `page[size]`)
+		prev <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity?sort=", sort, "&page[after]=", page_after_row_prev, "&page[size]=", `page[size]`)
 	}
 	
 	if ( length(page_after_row_next) == 0 ){
 		`next` <- "null"
 	} else
 	{
-		`next` <- paste0("http://", dw$host, ":", dw$port_self, "/api/entities?sort=", sort, "&page[after]=", page_after_row_next, "&page[size]=", `page[size]`)
+		`next` <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity?sort=", sort, "&page[after]=", page_after_row_next, "&page[size]=", `page[size]`)
 	}
 	
 	if ( length(page_after_row_last) == 0 ){
 		last <- "null"
 	} else
 	{
-		last <- paste0("http://", dw$host, ":", dw$port_self, "/api/entities?sort=", sort, "&page[after]=", page_after_row_last, "&page[size]=", `page[size]`)
+		last <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity?sort=", sort, "&page[after]=", page_after_row_last, "&page[size]=", `page[size]`)
 	}
 
 	links <- as_tibble(list("prev" = prev, "self" = self, "next" = `next`, "last" = last))
@@ -478,11 +478,11 @@ function(res, sort = "entity_id", `page[after]` = 0, `page[size]` = "all") {
 }
 
 
-#* @tag entities
+#* @tag entity
 ## create a new entity
 ## example data: {"hgnc_id":"HGNC:21396", "hpo_mode_of_inheritance_term":"HP:0000007", "disease_ontology_id_version":"OMIM:210600", "ndd_phenotype":"1"}
 #* @serializer json list(na="string")
-#' @post /api/entities/create
+#' @post /api/entity/create
 function(entity_data) {
 
 	entity_data <- as_tibble(fromJSON(entity_data)) %>%
@@ -497,10 +497,10 @@ function(entity_data) {
 }
 
 
-#* @tag entities
+#* @tag entity
 ## delete an entity
 #* @serializer json list(na="string")
-#' @delete /api/entities/delete
+#' @delete /api/entity/delete
 function(sysndd_id, req, res) {
 
   if (req$user_role == "Administrator"){
@@ -523,10 +523,10 @@ function(sysndd_id, req, res) {
 }
 
 
-#* @tag entities
+#* @tag entity
 ## update an entity
 #* @serializer json list(na="string")
-#' @put /api/entities/update
+#' @put /api/entity/update
 function(sysndd_id, entity_data) {
 
 	sysndd_id <- as.integer(sysndd_id)
@@ -548,10 +548,10 @@ function(sysndd_id, entity_data) {
 }
 
 
-#* @tag entities
+#* @tag entity
 ## get a single entity
 #* @serializer json list(na="string")
-#' @get /api/entities/<sysndd_id>
+#' @get /api/entity/<sysndd_id>
 function(sysndd_id) {
 	# remove spaces from list
 	sysndd_id <- URLdecode(sysndd_id) %>%
@@ -575,10 +575,10 @@ function(sysndd_id) {
 }
 
 
-#* @tag entities
+#* @tag entity
 ## get all phenotypes for a entity_id
 #* @serializer json list(na="string")
-#' @get /api/entities/<sysndd_id>/phenotypes
+#' @get /api/entity/<sysndd_id>/phenotypes
 function(sysndd_id) {
 
 	# get data from database and filter
@@ -599,10 +599,10 @@ function(sysndd_id) {
 }
 
 
-#* @tag entities
+#* @tag entity
 ## get all clinical synopsis for a entity_id
 #* @serializer json list(na="null")
-#' @get /api/entities/<sysndd_id>/review
+#' @get /api/entity/<sysndd_id>/review
 function(sysndd_id) {
 
 	# get data from database and filter
@@ -622,10 +622,10 @@ function(sysndd_id) {
 }
 
 
-#* @tag entities
+#* @tag entity
 ## get status for a entity_id
 #* @serializer json list(na="string")
-#' @get /api/entities/<sysndd_id>/status
+#' @get /api/entity/<sysndd_id>/status
 function(sysndd_id) {
 
 	# get data from database and filter
@@ -645,11 +645,11 @@ function(sysndd_id) {
 }
 
 
-#* @tag entities
+#* @tag entity
 ## post a new status for a entity_id
 ## example data: {"category_id":"1", "status_user_id":"1"}
 #* @serializer json list(na="string")
-#' @post /api/entities/<sysndd_id>/status
+#' @post /api/entity/<sysndd_id>/status
 function(sysndd_id, category_in) {
 
 	# connect to database
@@ -662,10 +662,10 @@ function(sysndd_id, category_in) {
 }
 
 
-#* @tag entities
+#* @tag entity
 ## get all publications for a entity_id
 #* @serializer json list(na="string")
-#' @get /api/entities/<sysndd_id>/publications
+#' @get /api/entity/<sysndd_id>/publications
 function(sysndd_id) {
 
 	# get data from database and filter
@@ -692,7 +692,7 @@ function(sysndd_id) {
 ##-------------------------------------------------------------------##
 ## Review endpoints
 
-#* @tag reviews
+#* @tag review
 ## get review list
 #* @serializer json list(na="null")
 #' @get /api/review
@@ -711,10 +711,10 @@ function(req, res, `filter[review_approved]` = 0) {
 }
 
 
-#* @tag reviews
+#* @tag review
 ## get a single review by review_id
 #* @serializer json list(na="null")
-#' @get /api/reviews/<review_id_requested>
+#' @get /api/review/<review_id_requested>
 function(review_id_requested) {
 	# remove spaces from list
 	review_id_requested <- URLdecode(review_id_requested) %>%
@@ -740,10 +740,10 @@ function(review_id_requested) {
 }
 
 
-#* @tag reviews
+#* @tag review
 ## get all phenotypes for a review
 #* @serializer json list(na="string")
-#' @get /api/reviews/<review_id_requested>/phenotypes
+#' @get /api/review/<review_id_requested>/phenotypes
 function(review_id_requested) {
 	# remove spaces from list
 	review_id_requested <- URLdecode(review_id_requested) %>%
@@ -768,10 +768,10 @@ function(review_id_requested) {
 }
 
 
-#* @tag reviews
+#* @tag review
 ## get all publications for a reviews_id
 #* @serializer json list(na="string")
-#' @get /api/reviews/<review_id_requested>/publications
+#' @get /api/review/<review_id_requested>/publications
 function(review_id_requested) {
 	# remove spaces from list
 	review_id_requested <- URLdecode(review_id_requested) %>%
@@ -1507,10 +1507,10 @@ function(req, res) {
 ##-------------------------------------------------------------------##
 ## Publication endpoints
 
-#* @tag publications
+#* @tag publication
 ## get a publication by pmid
 #* @serializer json list(na="string")
-#' @get /api/publications/<pmid>
+#' @get /api/publication/<pmid>
 function(pmid) {
 
 	pmid <- URLdecode(pmid) %>%
@@ -1534,10 +1534,10 @@ function(pmid) {
 ##-------------------------------------------------------------------##
 ## Gene endpoints
 
-#* @tag genes
+#* @tag gene
 ## get all genes and associated entities
 #* @serializer json list(na="string")
-#' @get /api/genes
+#' @get /api/gene
 function() {
 
 	# get data from database and filter
@@ -1556,10 +1556,10 @@ function() {
 }
 
 
-#* @tag genes
+#* @tag gene
 ## get infos for a single gene by hgnc_id
 #* @serializer json list(na="string")
-#' @get /api/genes/<hgnc>
+#' @get /api/gene/<hgnc>
 function(hgnc) {
 
 	hgnc <- URLdecode(hgnc) %>%
@@ -1576,10 +1576,10 @@ function(hgnc) {
 }
 
 
-#* @tag genes
+#* @tag gene
 ## get infos for a single gene by symbol
 #* @serializer json list(na="string")
-#' @get /api/genes/symbol/<symbol>
+#' @get /api/gene/symbol/<symbol>
 function(symbol) {
 
 	symbol_input <- URLdecode(symbol) %>%
@@ -1595,10 +1595,10 @@ function(symbol) {
 }
 
 
-#* @tag genes
+#* @tag gene
 ## get all entities for a single gene by hgnc_id
 #* @serializer json list(na="string")
-#' @get /api/genes/<hgnc>/entities
+#' @get /api/gene/<hgnc>/entities
 function(hgnc) {
 
 	hgnc <- URLdecode(hgnc) %>%
@@ -1619,10 +1619,10 @@ function(hgnc) {
 }
 
 
-#* @tag genes
+#* @tag gene
 ## get all entities for a single gene by symbol
 #* @serializer json list(na="string")
-#' @get /api/genes/symbol/<symbol>/entities
+#' @get /api/gene/symbol/<symbol>/entities
 function(symbol) {
 
 	symbol_input <- URLdecode(symbol) %>%
@@ -1767,10 +1767,10 @@ function(hpo) {
 ##-------------------------------------------------------------------##
 ## Phenotype endpoints
 
-#* @tag phenotypes
+#* @tag phenotype
 ## get list of all phenotypes
 #* @serializer json list(na="string")
-#' @get /api/phenotypes_list
+#' @get /api/phenotype_list
 function() {
 	phenotype_list_collected <- pool %>% 
 		tbl("phenotype_list") %>%
@@ -1780,10 +1780,10 @@ function() {
 }
 
 
-#* @tag phenotypes
+#* @tag phenotype
 ## get a phenotype by hpo_id
 #* @serializer json list(na="string")
-#' @get /api/phenotypes/<hpo>
+#' @get /api/phenotype/<hpo>
 function(hpo) {
 
 	hpo <- URLdecode(hpo) %>%
@@ -1800,10 +1800,10 @@ function(hpo) {
 }
 
 
-#* @tag phenotypes
+#* @tag phenotype
 ## get a list of entities associated with a list of phenotypes for browsing
 #* @serializer json list(na="string")
-#' @get /api/phenotypes/entities/browse
+#' @get /api/phenotype/entities/browse
 function(hpo_list = "", logical_operator = "and") {
 
 	hpo_list <- URLdecode(hpo_list) %>%
@@ -1846,10 +1846,10 @@ function(hpo_list = "", logical_operator = "and") {
 }
 
 
-#* @tag phenotypes
+#* @tag phenotype
 ## get a list of entities associated with a list of phenotypes for download as Excel file
 #* @serializer contentType list(type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-#' @get /api/phenotypes/entities/excel
+#' @get /api/phenotype/entities/excel
 function(hpo_list = "", logical_operator = "and", res) {
 
 	hpo_list <- URLdecode(hpo_list) %>%
