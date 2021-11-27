@@ -286,6 +286,7 @@ make_matrix_plot_mem <- memoise(make_matrix_plot)
 #* @apiTag entities Entities related endpoints
 #* @apiTag reviews Reviews related endpoints
 #* @apiTag status Status related endpoints
+#* @apiTag re_review Re-review related endpoints
 #* @apiTag publications Publication related endpoints
 #* @apiTag genes Gene related endpoints
 #* @apiTag ontology Ontology related endpoints
@@ -713,10 +714,10 @@ function(req, res, `filter[review_approved]` = 0) {
 #* @tag reviews
 ## get a single review by review_id
 #* @serializer json list(na="null")
-#' @get /api/reviews/<review_requested>
-function(review_requested) {
+#' @get /api/reviews/<review_id_requested>
+function(review_id_requested) {
 	# remove spaces from list
-	review_requested <- URLdecode(review_requested) %>%
+	review_id_requested <- URLdecode(review_id_requested) %>%
 		str_split(pattern=",", simplify=TRUE) %>%
 		str_replace_all(" ", "") %>%
 		unique()
@@ -729,7 +730,7 @@ function(review_requested) {
 		select(user_id, user_name, user_role)
 		
 	sysndd_db_review_table_collected <- sysndd_db_review_table %>%
-		filter(review_id == review_requested) %>%
+		filter(review_id == review_id_requested) %>%
 		left_join(user_table, by = c("review_user_id" = "user_id")) %>%
 		left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
 		collect() %>%
@@ -742,10 +743,10 @@ function(review_requested) {
 #* @tag reviews
 ## get all phenotypes for a review
 #* @serializer json list(na="string")
-#' @get /api/reviews/<review_requested>/phenotypes
-function(review_requested) {
+#' @get /api/reviews/<review_id_requested>/phenotypes
+function(review_id_requested) {
 	# remove spaces from list
-	review_requested <- URLdecode(review_requested) %>%
+	review_id_requested <- URLdecode(review_id_requested) %>%
 		str_split(pattern=",", simplify=TRUE) %>%
 		str_replace_all(" ", "") %>%
 		unique()
@@ -760,7 +761,7 @@ function(review_requested) {
 		collect()
 
 	phenotype_list <- ndd_review_phenotype_connect_collected %>%
-		filter(review_id == review_requested) %>%
+		filter(review_id == review_id_requested) %>%
 		inner_join(phenotype_list_collected, by=c("phenotype_id")) %>%
 		select(review_id, entity_id, phenotype_id, HPO_term, modifier_id) %>%
 		arrange(phenotype_id)
@@ -770,10 +771,10 @@ function(review_requested) {
 #* @tag reviews
 ## get all publications for a reviews_id
 #* @serializer json list(na="string")
-#' @get /api/reviews/<review_requested>/publications
-function(review_requested) {
+#' @get /api/reviews/<review_id_requested>/publications
+function(review_id_requested) {
 	# remove spaces from list
-	review_requested <- URLdecode(review_requested) %>%
+	review_id_requested <- URLdecode(review_id_requested) %>%
 		str_split(pattern=",", simplify=TRUE) %>%
 		str_replace_all(" ", "") %>%
 		unique()
@@ -788,12 +789,19 @@ function(review_requested) {
 		collect()
 
 	ndd_entity_publication_list <- ndd_review_publication_join_collected %>%
-		filter(review_id == review_requested) %>%
+		filter(review_id == review_id_requested) %>%
 		arrange(publication_id)
 }
 
+## Review endpoints
+##-------------------------------------------------------------------##
 
-#* @tag reviews
+
+
+##-------------------------------------------------------------------##
+## Re-review endpoints
+
+#* @tag re_review
 ## post a new clinical synopsis for a entity_id in re-review mode
 ## example data: {"re_review_entity_id":1, "entity_id": 1, "synopsis": "activating, gain-of-function mutations: congenital hypertrichosis, neonatal macrosomia, distinct osteochondrodysplasia, cardiomegaly; activating mutations", "literature": {"additional_references": ["PMID:22608503", "PMID:22610116"], "gene_review": ["PMID:25275207"]}, "phenotypes": {"phenotype_id": ["HP:0000256", "HP:0000924", "HP:0001256", "HP:0001574", "HP:0001627", "HP:0002342"], "modifier_id": [1,1,1,1,1,1]}, "comment": ""}
 #* @serializer json list(na="string")
@@ -1026,7 +1034,7 @@ function(req, res, review_json) {
 }
 
 
-#* @tag reviews
+#* @tag re_review
 ## post a new status for a entity_id in re-review mode
 ## example data: '{"re_review_entity_id":3,"entity_id":3,"comment":"fsa","problematic": true}'
 #* @serializer json list(na="string")
@@ -1108,7 +1116,7 @@ function(req, res, status_json) {
 }
 
 
-#* @tag reviews
+#* @tag re_review
 ## put the re-review submission
 ## example data: {"re_review_entity_id":1, "re_review_submitted":1, "status_id":1, "review_id":1}
 #* @serializer json list(na="string")
@@ -1144,7 +1152,7 @@ function(req, res, submit_json) {
 }
 
 
-#* @tag reviews
+#* @tag re_review
 ## put a re-review submission back into unsubmitted mode (only Administrator and Curator status users)
 #* @serializer json list(na="string")
 #' @put /api/re_review/unsubmit/<re_review_id>
@@ -1176,7 +1184,7 @@ function(req, res, re_review_id) {
 }
 
 
-#* @tag reviews
+#* @tag re_review
 ## put the re-review status and review approvement (only Administrator and Curator status users)
 #* @serializer json list(na="string")
 #' @put /api/re_review/approve/<re_review_id>
@@ -1248,7 +1256,7 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
 }
 
 
-#* @tag reviews
+#* @tag re_review
 ## get the re-review overview table for the user logged in
 #* @serializer json list(na="string")
 #' @get /api/re_review_table
@@ -1300,7 +1308,7 @@ function(req, res, curate=FALSE) {
 }
 
 
-#* @tag reviews
+#* @tag re_review
 ## request a new batch of entities to review by mail to curators
 #* @serializer json list(na="string")
 #' @get /api/re_review/batch/apply
@@ -1345,7 +1353,7 @@ function(req, res) {
 }
 
 
-#* @tag reviews
+#* @tag re_review
 ## put a new re-review batch assignment
 #* @serializer json list(na="string")
 #' @put /api/re_review/batch/assign
@@ -1403,7 +1411,7 @@ function(req, res, user_id) {
 }
 
 
-#* @tag reviews
+#* @tag re_review
 ## delete certain re-review batch assignment
 #* @serializer json list(na="string")
 #' @delete /api/re_review/batch/unassign
@@ -1445,7 +1453,7 @@ function(req, res, re_review_batch) {
 }
 
 
-#* @tag reviews
+#* @tag re_review
 ## get a summary table of currently assigned re-review batches
 #* @serializer json list(na="string")
 #' @get /api/re_review/assignment_table
@@ -1491,7 +1499,7 @@ function(req, res) {
 	}
 }
 
-## Review endpoints
+## Re-review endpoints
 ##-------------------------------------------------------------------##
 
 
@@ -1960,10 +1968,10 @@ function(req, res, `filter[status_approved]` = 0) {
 #* @tag status
 ## get a single status by status_id
 #* @serializer json list(na="null")
-#' @get /api/status/<status_requested>
-function(status_requested) {
+#' @get /api/status/<status_id_requested>
+function(status_id_requested) {
 	# remove spaces from list
-	status_requested <- URLdecode(status_requested) %>%
+	status_id_requested <- URLdecode(status_id_requested) %>%
 		str_split(pattern=",", simplify=TRUE) %>%
 		str_replace_all(" ", "") %>%
 		unique()
@@ -1978,7 +1986,7 @@ function(status_requested) {
 		tbl("ndd_entity_status_categories_list")
 
 	sysndd_db_status_table_collected <- sysndd_db_status_table %>%
-		filter(status_id == status_requested) %>%
+		filter(status_id == status_id_requested) %>%
 		inner_join(ndd_entity_status_categories_collected, by=c("category_id")) %>%
 		left_join(user_table, by = c("status_user_id" = "user_id")) %>%
 		left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
