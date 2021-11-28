@@ -70,6 +70,23 @@ user_status_allowed <- c("Administrator", "Curator", "Reviewer", "Viewer")
 # Define global functions
 
 ## pubmed and genereviews functions
+check_pmid <- function(pmid_input) {
+	input_tibble <- as_tibble(pmid_input) %>%
+		mutate(publication_id = as.character(value)) %>%
+		mutate(publication_id = str_remove(publication_id, "PMID:")) %>%
+		select(-value)
+
+	input_tibble_request <- input_tibble %>%
+		mutate(publication_id = paste0(publication_id, "[PMID]")) %>%
+		unique() %>%
+		rowwise() %>%
+		mutate(count = get_pubmed_ids(publication_id)$Count) %>%
+		ungroup()
+
+	return(as.logical(as.integer(input_tibble_request$count)))
+}
+
+
 pubmed_info_from_pmid <- function(pmid_tibble, request_max = 200) {
 	input_tibble <- as_tibble(pmid_tibble) %>%
 		mutate(publication_id = as.character(value)) %>%
@@ -1001,7 +1018,7 @@ function(req, res, review_json) {
 			# check request type and perform database update accordingly
 			if ( req$REQUEST_METHOD == "POST") {
 				##-------------------------------------------------------------------##
-				## for the post request we connect to the database and then add new publications, the new synopis and the associate the synopis with phenotypesa nd publications
+				## for the post request we connect to the database and then add new publications, the new synopsis and then associate the synopis with phenotypes and publications
 				# connect to database
 				sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
@@ -1132,7 +1149,7 @@ function(req, res, review_json) {
 
 				# generate update query
 				update_query <- as_tibble(sysnopsis_received) %>%
-					mutate(row = row_number()) %>%  
+					mutate(row = row_number()) %>%
 					mutate(across(where(is.logical), as.integer)) %>%
 					mutate(across(where(is.numeric), as.character)) %>%
 					pivot_longer(-row) %>% 
@@ -1212,7 +1229,7 @@ function(req, res, status_json) {
 
 				# generate update query
 				update_query <- as_tibble(status_received) %>%
-					mutate(row = row_number()) %>%  
+					mutate(row = row_number()) %>%
 					mutate(across(where(is.logical), as.integer)) %>%
 					mutate(across(where(is.numeric), as.character)) %>%
 					pivot_longer(-row) %>% 
@@ -1652,6 +1669,19 @@ function(pmid) {
 		collect()
 }
 
+
+#* @tag publication
+## check if a omid iexists in pubmed
+#* @serializer json list(na="string")
+#' @get /api/publication/check/<pmid>
+function(req, res, pmid) {
+
+	pmid <- URLdecode(pmid) %>%
+		str_replace_all("[^0-9]+", "")
+
+	check_pmid(pmid) 
+}
+
 ## Publication endpoints
 ##-------------------------------------------------------------------##
 
@@ -1791,7 +1821,7 @@ function(ontology_id) {
 		group_by(disease_ontology_id) %>%
 		summarise_all(~paste(unique(.), collapse = ';')) %>%
 		ungroup() %>%
-		mutate(across(everything(), ~replace(., . ==  "NULL" , "")))
+		mutate(across(everything(), ~replace(., . == "NULL" , "")))
 }
 
 
@@ -1812,7 +1842,7 @@ function(ontology_name) {
 		group_by(disease_ontology_id) %>%
 		summarise_all(~paste(unique(.), collapse = ';')) %>%
 		ungroup() %>%
-		mutate(across(everything(), ~replace(., . ==  "NULL" , "")))
+		mutate(across(everything(), ~replace(., . == "NULL" , "")))
 }
 
 
@@ -2036,7 +2066,7 @@ function(hpo_list = "", logical_operator = "and", res) {
 	  hpo_input = hpo_list, 
 	  operator_input = logical_operator
 	) %>%
-    pivot_longer(everything(), names_to = "request", values_to = "value")
+	pivot_longer(everything(), names_to = "request", values_to = "value")
 
 	# generate excel file output
 	filename <- file.path(tempdir(), "phenotype_panel.xlsx")
@@ -2045,13 +2075,13 @@ function(hpo_list = "", logical_operator = "and", res) {
 	attachmentString = paste0("attachment; filename=phenotype_panel.", creation_date, ".xlsx")
 
 	res$setHeader("Content-Disposition", attachmentString)
-		  
+
 	# Read in the raw contents of the binary file
 	bin <- readBin(filename, "raw", n=file.info(filename)$size)
 
 	#Check file existence and delete
 	if (file.exists(filename)) {
-	  file.remove(filename)
+		file.remove(filename)
 	}
 
 	#Return the binary contents
@@ -2239,12 +2269,12 @@ function() {
 		select(column = value)
 
 	options <- tibble(
-	  lists = c("categories_list", "inheritance_list", "columns_list"),
-	  options = list(
-		tibble(value = categories_list$category),
-		tibble(value = inheritance_list$inheritance),
-		tibble(value = columns_list$column)
-	  )
+		lists = c("categories_list", "inheritance_list", "columns_list"),
+		options = list(
+			tibble(value = categories_list$category),
+			tibble(value = inheritance_list$inheritance),
+			tibble(value = columns_list$column)
+			)
 	)
 	
 	options
@@ -2273,7 +2303,7 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 		mutate(sortable = "true") %>%
 		mutate(class = "text-left") %>%
 		mutate(sortByFormatted = "true") %>%
-		mutate(filterByFormatted = "true")        
+		mutate(filterByFormatted = "true")
 
 	# validate inputs
 	ndd_entity_status_categories_list <- pool %>% 
@@ -2310,7 +2340,7 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 	}
 	
 	# join entity_view and non_alt_loci_set tables
-	sysndd_db_ndd_entity_view  <- pool %>% 
+	sysndd_db_ndd_entity_view <- pool %>% 
 		tbl("ndd_entity_view") %>%
 		filter(ndd_phenotype == 1) %>%
 		select(hgnc_id, symbol, inheritance = hpo_mode_of_inheritance_term_name, category)
