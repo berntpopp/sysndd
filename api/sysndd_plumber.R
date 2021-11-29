@@ -69,6 +69,71 @@ user_status_allowed <- c("Administrator", "Curator", "Reviewer", "Viewer")
 ##-------------------------------------------------------------------##
 # Define global functions
 
+put_post_db_phenotype_connections <- function(request_method, phenotypes_data, review_id, entity_id) {
+	##-------------------------------------------------------------------##
+	# get allowed HPO terms
+	phenotype_list_collected <- pool %>%
+		tbl("phenotype_list") %>%
+		select(phenotype_id) %>%
+		arrange(HPO_term) %>%
+		collect()
+
+	# check if received phenoytpes are in allowed phenotypes
+	phenoytpes_allowed <- all(phenotypes_data$phenotype_id %in% phenotype_list_collected$phenotype_id)
+	
+	if ( phenoytpes_allowed ) {
+		if ( request_method == "POST" ) {
+			# prepare phenotype tibble for submission
+			phenotypes_submission <- phenotypes_data %>% 
+				add_column(review_id) %>% 
+				add_column(entity_id) %>% 
+				select(review_id, phenotype_id, entity_id, modifier_id)
+			
+			# connect to database
+			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+			# submit phenotypes from new review to database
+			dbAppendTable(sysndd_db, "ndd_review_phenotype_connect", phenotypes_submission)
+
+			# disconnect from database
+			dbDisconnect(sysndd_db)
+
+			# return OK
+			return(list(status=200,message="OK. Entry created."))
+		} else if ( request_method == "PUT" ) {
+			# prepare phenotype tibble for submission
+			phenotypes_submission <- phenotypes_data %>% 
+				add_column(review_id) %>% 
+				add_column(entity_id) %>% 
+				select(review_id, phenotype_id, entity_id, modifier_id)
+
+			# connect to database
+			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+			# delete old phenotype connections for review_id first
+			dbExecute(sysndd_db, paste0("DELETE FROM ndd_review_phenotype_connect WHERE review_id = ", review_id, ";"))
+
+			# submit phenotypes from new review to database
+			dbAppendTable(sysndd_db, "ndd_review_phenotype_connect", phenotypes_submission)
+
+			# disconnect from database
+			dbDisconnect(sysndd_db)
+
+			# return OK
+			return(list(status=200,message="OK. Entry created."))
+		} else {
+			# return Method Not Allowed
+			return(list(status=405,message="Method Not Allowed."))
+		}
+	
+	} else {
+		# return Bad Request
+		return(list(status=400,message="Some of the submitted phenotypes are not in the allowed phenotype_id list."))
+	}
+	##-------------------------------------------------------------------##
+}
+
+
 ## pubmed and genereviews functions
 
 # this function checks whether all PMIDS in a list are valid and can be found in pubmed, returns true if all are and false if one is invalid
@@ -89,7 +154,7 @@ check_pmid <- function(pmid_input) {
 }
 
 
-# this function takes a tibble of publication _ds and publication_types and adds them to the database if tehy are new
+# this function takes a tibble of publication_ids and publication_types and adds them to the database if tehy are new
 new_publication <- function(publications_received) {
 	# check if all received PMIDs are valid
 	if ( check_pmid(publications_received$publication_id) ) {
@@ -430,6 +495,9 @@ put_post_db_status <- function(request_method, status_data, status_user_id) {
 				
 				# return OK
 				return(list(status=200,message="OK. Entry updated."))
+			} else {
+			# return Method Not Allowed
+			return(list(status=405,message="Method Not Allowed."))
 			}
 
 		} else {
@@ -1096,7 +1164,6 @@ function(req, res, review_json) {
 				))
 				return(res)
 			}
-
 			##-------------------------------------------------------------------##
 
 			##-------------------------------------------------------------------##
