@@ -69,6 +69,64 @@ user_status_allowed <- c("Administrator", "Curator", "Reviewer", "Viewer")
 ##-------------------------------------------------------------------##
 # Define global functions
 
+put_post_db_publication_connections <- function(request_method, publication_data, review_id, entity_id) {
+	##-------------------------------------------------------------------##
+	# get publication_ids present in table
+	publication_list_collected <- pool %>%
+		tbl("publication") %>%
+		select(publication_id) %>%
+		arrange(publication_id) %>%
+		collect()
+
+	# check if received publications are in allowed publications
+	publications_allowed <- all(publication_data$publication_id %in% publication_list_collected$publication_id)
+
+	# prepare publications tibble for submission
+	publications_submission <- publications_received %>% 
+		add_column(review_id) %>% 
+		add_column(entity_id) %>% 
+		select(review_id, entity_id, publication_id, publication_type)
+				
+	if ( publications_allowed ) {
+		if ( request_method == "POST" ) {
+			# connect to database
+			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+			# submit publications from new review to database	
+			dbAppendTable(sysndd_db, "ndd_review_publication_join", publications_submission)
+
+			# disconnect from database
+			dbDisconnect(sysndd_db)
+
+			# return OK
+			return(list(status=200,message="OK. Entry created."))
+		} else if ( request_method == "PUT" ) {
+			# connect to database
+			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+			# delete old publication connections for review_id
+			dbExecute(sysndd_db, paste0("DELETE FROM ndd_review_publication_join WHERE review_id = ", review_id, ";"))
+
+			# submit publications from new review to database	
+			dbAppendTable(sysndd_db, "ndd_review_publication_join", publications_submission)
+
+			# disconnect from database
+			dbDisconnect(sysndd_db)
+
+			# return OK
+			return(list(status=200,message="OK. Entry created."))
+		} else {
+			# return Method Not Allowed
+			return(list(status=405,message="Method Not Allowed."))
+		}
+	} else {
+		# return Bad Request
+		return(list(status=400,message="Some of the submitted publications are not in the allowed in the publications list. Add them there first."))
+	}
+	##-------------------------------------------------------------------##
+}
+
+
 put_post_db_phenotype_connections <- function(request_method, phenotypes_data, review_id, entity_id) {
 	##-------------------------------------------------------------------##
 	# get allowed HPO terms
@@ -80,15 +138,15 @@ put_post_db_phenotype_connections <- function(request_method, phenotypes_data, r
 
 	# check if received phenoytpes are in allowed phenotypes
 	phenoytpes_allowed <- all(phenotypes_data$phenotype_id %in% phenotype_list_collected$phenotype_id)
-	
+
+	# prepare phenotype tibble for submission
+	phenotypes_submission <- phenotypes_data %>% 
+		add_column(review_id) %>% 
+		add_column(entity_id) %>% 
+		select(review_id, phenotype_id, entity_id, modifier_id)
+
 	if ( phenoytpes_allowed ) {
 		if ( request_method == "POST" ) {
-			# prepare phenotype tibble for submission
-			phenotypes_submission <- phenotypes_data %>% 
-				add_column(review_id) %>% 
-				add_column(entity_id) %>% 
-				select(review_id, phenotype_id, entity_id, modifier_id)
-			
 			# connect to database
 			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
@@ -101,12 +159,6 @@ put_post_db_phenotype_connections <- function(request_method, phenotypes_data, r
 			# return OK
 			return(list(status=200,message="OK. Entry created."))
 		} else if ( request_method == "PUT" ) {
-			# prepare phenotype tibble for submission
-			phenotypes_submission <- phenotypes_data %>% 
-				add_column(review_id) %>% 
-				add_column(entity_id) %>% 
-				select(review_id, phenotype_id, entity_id, modifier_id)
-
 			# connect to database
 			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
