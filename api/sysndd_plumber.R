@@ -171,7 +171,17 @@ put_post_db_publication_connections <- function(request_method, publication_data
 		add_column(review_id) %>% 
 		add_column(entity_id) %>% 
 		select(review_id, entity_id, publication_id, publication_type)
-				
+
+	# for the PUT requst we check whether the submitted entity ID matches the curent one associated with the review id to not allow changing this connection
+	ndd_review_publication_for_id_match <- pool %>%
+		tbl("ndd_review_publication_join") %>%
+		select(review_id, entity_id) %>%
+		filter(review_id == 1) %>%
+		collect() %>%
+		unique()
+	
+	entity_id_match <- ( ndd_review_publication_for_id_match$entity_id[1] == entity_id )
+			
 	if ( publications_allowed ) {
 		if ( request_method == "POST" ) {
 			# connect to database
@@ -185,7 +195,7 @@ put_post_db_publication_connections <- function(request_method, publication_data
 
 			# return OK
 			return(list(status=200,message="OK. Entry created."))
-		} else if ( request_method == "PUT" ) {
+		} else if ( request_method == "PUT" & entity_id_match ) {
 			# connect to database
 			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
@@ -230,6 +240,16 @@ put_post_db_phenotype_connections <- function(request_method, phenotypes_data, r
 		add_column(entity_id) %>% 
 		select(review_id, phenotype_id, entity_id, modifier_id)
 
+	# for the PUT requst we check whether the submitted entity ID matches the curent one associated with the review id to not allow changing this connection
+	ndd_review_phenotype_for_id_match <- pool %>%
+		tbl("ndd_review_phenotype_connect") %>%
+		select(review_id, entity_id) %>%
+		filter(review_id == 1) %>%
+		collect() %>%
+		unique()
+	
+	entity_id_match <- ( ndd_review_phenotype_for_id_match$entity_id[1] == entity_id )
+
 	if ( phenoytpes_allowed ) {
 		if ( request_method == "POST" ) {
 			# connect to database
@@ -243,7 +263,7 @@ put_post_db_phenotype_connections <- function(request_method, phenotypes_data, r
 
 			# return OK
 			return(list(status=200,message="OK. Entry created."))
-		} else if ( request_method == "PUT" ) {
+		} else if ( request_method == "PUT" & entity_id_match ) {
 			# connect to database
 			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
