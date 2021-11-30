@@ -69,6 +69,91 @@ user_status_allowed <- c("Administrator", "Curator", "Reviewer", "Viewer")
 ##-------------------------------------------------------------------##
 # Define global functions
 
+put_post_db_review <- function(request_method, synopsis, comment, review_user_id, entity_id, review_id = NULL) {
+	if ( !is.null(synopsis) & !is.null(entity_id) & nchar(synopsis) > 0 ) {
+		##-------------------------------------------------------------------##
+		# block to convert the review components into independent tibbles and validate
+		# convert sysnopsis to tibble, check if comment is null and handle
+		if ( !is.null(comment) ) {
+			sysnopsis_received <- as_tibble(synopsis) %>% 
+				add_column(entity_id) %>% 
+				add_column(comment) %>% 
+				add_column(review_user_id) %>% 
+				select(entity_id, synopsis = value, review_user_id, comment)
+		} else {
+			sysnopsis_received <- as_tibble(synopsis) %>% 
+				add_column(entity_id) %>%
+				add_column(review_user_id) %>% 
+				select(entity_id, synopsis = value, review_user_id, comment = NULL)
+		}
+		##-------------------------------------------------------------------##
+
+		##-------------------------------------------------------------------##
+		# check request type and perform database update accordingly
+		if ( request_method == "POST" & is.null(review_id)) {
+			##-------------------------------------------------------------------##
+			## for the post request we connect to the database and then add the new synopsis 
+			# connect to database
+			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+			# submit the new synopsis and get the id of the last insert for association with other tables
+			dbAppendTable(sysndd_db, "ndd_entity_review", sysnopsis_received)
+			submitted_review_id <- dbGetQuery(sysndd_db, "SELECT LAST_INSERT_ID();") %>% 
+				as_tibble() %>% 
+				select(review_id = `LAST_INSERT_ID()`)
+
+			# disconnect from database
+			dbDisconnect(sysndd_db)
+
+			# return OK
+			return(list(status=200,message="OK. Entry created.",entry=submitted_review_id))
+			##-------------------------------------------------------------------##
+			
+		} else if ( request_method == "PUT" & !is.null(review_id)) {
+			##-------------------------------------------------------------------##
+			## for the put request we update the review and set it's status to 0
+			# generate update query, we remove entity_id to not allow canging the review entity connection
+			update_query <- as_tibble(sysnopsis_received) %>%
+				select(-entity_id) %>%
+				mutate(row = row_number()) %>%
+				mutate(across(where(is.logical), as.integer)) %>%
+				mutate(across(where(is.numeric), as.character)) %>%
+				pivot_longer(-row) %>% 
+				mutate(query = paste0(name, "='", value, "'")) %>% 
+				select(query) %>% 
+				summarise(query = str_c(query, collapse = ", "))
+				
+			# connect to database
+			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+			# perform the review update
+			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET ", update_query, " WHERE review_id = ", review_id, ";"))
+
+			# reset approval status
+			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET review_approved=0 WHERE review_id = ", review_id, ";"))
+			
+			# reset approval user
+			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET approving_user_id=NULL WHERE review_id = ", review_id, ";"))
+			
+			# disconnect from database
+			dbDisconnect(sysndd_db)
+
+			# return OK
+			return(list(status=200,message="OK. Entry created.",entry=review_id))
+			##-------------------------------------------------------------------##
+		} else {
+			# return Method Not Allowed
+			return(list(status=405,message="Method Not Allowed."))
+		}
+		##-------------------------------------------------------------------##
+
+	} else {
+		res$status <- 400 # Bad Request
+		return(list(error="Submitted synopsis data can not be empty."))
+	}
+}
+
+
 put_post_db_publication_connections <- function(request_method, publication_data, review_id, entity_id) {
 	##-------------------------------------------------------------------##
 	# get publication_ids present in table
@@ -117,7 +202,7 @@ put_post_db_publication_connections <- function(request_method, publication_data
 			return(list(status=200,message="OK. Entry created."))
 		} else {
 			# return Method Not Allowed
-			return(list(status=405,message="Method Not Allowed."))
+			return(list(status=405,message="Method not Allowed."))
 		}
 	} else {
 		# return Bad Request
@@ -175,7 +260,7 @@ put_post_db_phenotype_connections <- function(request_method, phenotypes_data, r
 			return(list(status=200,message="OK. Entry created."))
 		} else {
 			# return Method Not Allowed
-			return(list(status=405,message="Method Not Allowed."))
+			return(list(status=405,message="Method not Allowed."))
 		}
 	
 	} else {
@@ -549,7 +634,7 @@ put_post_db_status <- function(request_method, status_data, status_user_id) {
 				return(list(status=200,message="OK. Entry updated."))
 			} else {
 			# return Method Not Allowed
-			return(list(status=405,message="Method Not Allowed."))
+			return(list(status=405,message="Method not Allowed."))
 			}
 
 		} else {
