@@ -154,7 +154,7 @@ put_post_db_review <- function(request_method, synopsis, comment, review_user_id
 }
 
 
-put_post_db_publication_connections <- function(request_method, publication_data, review_id, entity_id) {
+put_post_db_publication_connections <- function(request_method, publication_data, entity_id, review_id) {
 	##-------------------------------------------------------------------##
 	# get publication_ids present in table
 	publication_list_collected <- pool %>%
@@ -222,7 +222,7 @@ put_post_db_publication_connections <- function(request_method, publication_data
 }
 
 
-put_post_db_phenotype_connections <- function(request_method, phenotypes_data, review_id, entity_id) {
+put_post_db_phenotype_connections <- function(request_method, phenotypes_data, entity_id, review_id) {
 	##-------------------------------------------------------------------##
 	# get allowed HPO terms
 	phenotype_list_collected <- pool %>%
@@ -293,7 +293,7 @@ put_post_db_phenotype_connections <- function(request_method, phenotypes_data, r
 
 ## pubmed and genereviews functions
 
-# this function checks whether all PMIDS in a list are valid and can be found in pubmed, returns true if all are and false if one is invalid
+# this function checks whether all PMIDs in a list are valid and can be found in pubmed, returns true if all are and false if one is invalid
 check_pmid <- function(pmid_input) {
 	input_tibble <- as_tibble(pmid_input) %>%
 		mutate(publication_id = as.character(value)) %>%
@@ -311,7 +311,7 @@ check_pmid <- function(pmid_input) {
 }
 
 
-# this function takes a tibble of publication_ids and publication_types and adds them to the database if tehy are new
+# this function takes a tibble of publication_ids and publication_types and adds them to the database if they are new
 new_publication <- function(publications_received) {
 	# check if all received PMIDs are valid
 	if ( check_pmid(publications_received$publication_id) ) {
@@ -1109,6 +1109,132 @@ function(req, res, `filter[review_approved]` = 0) {
 		select(review_id, entity_id, synopsis, is_primary, review_date, review_user_id, review_approved, approving_user_id, comment)
 
 	sysndd_db_review_table_collected
+}
+
+
+#* @tag review
+## post or put a new clinical synopsis for a entity_id
+## example data: {"review_id": 1, "entity_id": 1, "synopsis": "activating, gain-of-function mutations: congenital hypertrichosis, neonatal macrosomia, distinct osteochondrodysplasia, cardiomegaly; activating mutations", "literature": {"additional_references": ["PMID:22608503", "PMID:22610116"], "gene_review": ["PMID:25275207"]}, "phenotypes": {"phenotype_id": ["HP:0000256", "HP:0000924", "HP:0001256", "HP:0001574", "HP:0001627", "HP:0002342"], "modifier_id": [1,1,1,1,1,1]}, "comment": ""}
+#* @serializer json list(na="string")
+#' @post /api/review
+#' @put /api/review
+function(req, res, review_json) {
+	# first check rights
+	if ( req$user_role %in% c("Administrator", "Curator") ) {
+				
+		review_user_id <- req$user_id
+		review_data <- fromJSON(review_json)
+
+		if ( !is.null(review_data$synopsis) & !is.null(review_data$entity_id) & nchar(review_data$synopsis) > 0 ) {
+
+			##-------------------------------------------------------------------##
+			# convert publications to tibble
+			if ( length(compact(review_data$literature)) > 0 ) {
+				publications_received <- bind_rows(as_tibble(compact(review_data$literature$additional_references)), as_tibble(compact(review_data$literature$gene_review)), .id = "publication_type") %>% 
+					select(publication_id = value, publication_type) %>%
+					mutate(publication_type = case_when(
+					  publication_type == 1 ~ "additional_references",
+					  publication_type == 2 ~ "gene_review"
+					)) %>%
+					unique() %>%
+					select(publication_id, publication_type) %>%
+					arrange(publication_id)
+
+			} else {
+				publications_received <- as_tibble_row(c(publication_id = NA, publication_type = NA))
+			}
+
+			# convert sysnopsis to tibble, check if comment is null and handle
+			if ( !is.null(review_data$comment) ) {
+				sysnopsis_received <- as_tibble(review_data$synopsis) %>% 
+					add_column(review_data$entity_id) %>% 
+					add_column(review_data$comment) %>% 
+					add_column(review_user_id) %>% 
+					select(entity_id = `review_data$entity_id`, synopsis = value, review_user_id, comment = `review_data$comment`)
+			} else {
+				sysnopsis_received <- as_tibble(review_data$synopsis) %>% 
+					add_column(review_data$entity_id) %>%
+					add_column(review_user_id) %>% 
+					select(entity_id = `review_data$entity_id`, synopsis = value, review_user_id, comment = NULL)
+			}
+
+			# convert phenotypes to tibble
+			phenotypes_received <- as_tibble(review_data$phenotypes)
+
+			##-------------------------------------------------------------------##
+
+
+			##-------------------------------------------------------------------##
+			# check request type and perform database update accordingly
+			if ( req$REQUEST_METHOD == "POST" ) {
+				##-------------------------------------------------------------------##
+				# use the "new_publication function" to update the publications table
+				response_publication <- new_publication(publications_received)
+				
+				# use the "put_post_db_review" function to add the review to the database table and receive an review_id
+				response_review <- put_post_db_review(req$REQUEST_METHOD, sysnopsis_received$synopsis, sysnopsis_received$comment, sysnopsis_received$review_user_id, sysnopsis_received$entity_id)
+				
+				# make the publictaion to review connections using the function "put_post_db_publication_connections"
+				response_publication_connections <- put_post_db_publication_connections(req$REQUEST_METHOD, publications_received, sysnopsis_received$entity_id, response_review$entry)
+				
+				# make the phenotype to review connections using the function "response_phenotype_connections"
+				response_phenotype_connections <- put_post_db_phenotype_connections(req$REQUEST_METHOD, phenotypes_received, sysnopsis_received$entity_id, response_review$entry)
+				
+				# compute response
+				response <- as_tibble(response_publication) %>% 
+					bind_rows(as_tibble(response_review)) %>% 
+					bind_rows(as_tibble(response_publication_connections)) %>%	
+					bind_rows(as_tibble(response_phenotype_connections)) %>%
+					select(status, message) %>%
+					unique() %>%
+					mutate(status = max(status)) %>%
+					mutate(message = str_c(message, collapse = "; "))
+					
+				# return aggregated response
+				return(list(status=response$status,message=response$message))
+				##-------------------------------------------------------------------##
+			} else if ( req$REQUEST_METHOD == "PUT" ) {
+				##-------------------------------------------------------------------##
+				# use the "new_publication function" to update the publications table
+				response_publication <- new_publication(publications_received)
+				
+				# use the "put_post_db_review" function to add the review to the database table and receive an review_id
+				response_review <- put_post_db_review(req$REQUEST_METHOD, sysnopsis_received$synopsis, sysnopsis_received$comment, sysnopsis_received$review_user_id, sysnopsis_received$entity_id, review_data$review_id)
+				
+				# make the publictaion to review connections using the function "put_post_db_publication_connections"
+				response_publication_connections <- put_post_db_publication_connections(req$REQUEST_METHOD, publications_received, sysnopsis_received$entity_id, review_data$review_id)
+				
+				# make the phenotype to review connections using the function "response_phenotype_connections"
+				response_phenotype_connections <- put_post_db_phenotype_connections(req$REQUEST_METHOD, phenotypes_received, sysnopsis_received$entity_id, review_data$review_id)
+				
+				# compute response
+				response <- as_tibble(response_publication) %>% 
+					bind_rows(as_tibble(response_review)) %>% 
+					bind_rows(as_tibble(response_publication_connections)) %>%	
+					bind_rows(as_tibble(response_phenotype_connections)) %>%
+					select(status, message) %>%
+					unique() %>%
+					mutate(status = max(status)) %>%
+					mutate(message = str_c(message, collapse = "; ")) 
+					
+				# return aggregated response
+				return(list(status=response$status,message=response$message))
+				##-------------------------------------------------------------------##
+			} else {
+				# return Method Not Allowed
+				return(list(status=405,message="Method Not Allowed."))
+			}
+			##-------------------------------------------------------------------##
+
+		} else {
+			res$status <- 400 # Bad Request
+			return(list(error="Submitted synopsis data can not be empty."))
+		}
+
+	} else {
+		res$status <- 403 # Forbidden
+		return(list(error="Write access forbidden."))
+	}
 }
 
 
