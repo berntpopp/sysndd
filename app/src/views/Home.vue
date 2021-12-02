@@ -264,7 +264,7 @@ export default {
       } catch (e) {
        console.error(e);
       }
-    if (this.search[0] === this.search_input) {
+    if (this.search[0] === this.search_input & isNaN(this.search_input)) {
       this.$router.push('/Search/' + this.search_input);
     }
     },
