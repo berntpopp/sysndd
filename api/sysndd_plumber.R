@@ -68,7 +68,7 @@ user_status_allowed <- c("Administrator", "Curator", "Reviewer", "Viewer")
 ##-------------------------------------------------------------------##
 ##-------------------------------------------------------------------##
 # Define global functions
-put_post_db_entity <- function(hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, pathogenicity_mode, ndd_phenotype, entry_user_id, entity_id = NULL) {
+post_db_entity <- function(hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, pathogenicity_mode, ndd_phenotype, entry_user_id) {
 	if ( !is.null(hgnc_id) & !is.null(hpo_mode_of_inheritance_term) & !is.null(disease_ontology_id_version) & !is.null(pathogenicity_mode) & !is.null(ndd_phenotype) ) {
 		##-------------------------------------------------------------------##
 		# block to convert the entity components into tibble
@@ -934,20 +934,26 @@ function(res, sort = "entity_id", `page[after]` = 0, `page[size]` = "all") {
 
 #* @tag entity
 ## create a new entity
-## example data: {"hgnc_id":"HGNC:21396", "hpo_mode_of_inheritance_term":"HP:0000007", "disease_ontology_id_version":"OMIM:210600", "ndd_phenotype":"1"}
+## example data: {"hgnc_id":"HGNC:21396", "hpo_mode_of_inheritance_term":"HP:0000007", "disease_ontology_id_version":"OMIM:210600", "pathogenicity_mode":"1", "ndd_phenotype":"1"}
 #* @serializer json list(na="string")
 #' @post /api/entity/create
-function(entity_data) {
+function(req, res, entity_data) {
 
-	entity_data <- as_tibble(fromJSON(entity_data)) %>%
-		select(hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, ndd_phenotype)
+	# first check rights
+	if ( req$user_role %in% c("Administrator", "Curator") ) {
+				
+		entry_user_id <- req$user_id
+		entity_data <- fromJSON(entity_data)
+		
+		response_entity <- post_db_entity(entity_data$hgnc_id, entity_data$hpo_mode_of_inheritance_term, entity_data$disease_ontology_id_version, entity_data$pathogenicity_mode, entity_data$ndd_phenotype, entry_user_id)
 
-	# connect to database
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+		res$status <- response_entity$status
+		return(response_entity)
 
-	dbAppendTable(sysndd_db, "ndd_entity", entity_data)
-	dbDisconnect(sysndd_db)
-	res <- "Data submitted successfully!"
+	} else {
+		res$status <- 403 # Forbidden
+		return(list(error="Write access forbidden."))
+	}
 }
 
 
