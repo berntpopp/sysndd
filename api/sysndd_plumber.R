@@ -68,6 +68,59 @@ user_status_allowed <- c("Administrator", "Curator", "Reviewer", "Viewer")
 ##-------------------------------------------------------------------##
 ##-------------------------------------------------------------------##
 # Define global functions
+put_post_db_entity <- function(hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, pathogenicity_mode, ndd_phenotype, entry_user_id, entity_id = NULL) {
+	if ( !is.null(hgnc_id) & !is.null(hpo_mode_of_inheritance_term) & !is.null(disease_ontology_id_version) & !is.null(pathogenicity_mode) & !is.null(ndd_phenotype) ) {
+		##-------------------------------------------------------------------##
+		# block to convert the entity components into tibble
+		entity_received <- as_tibble(hgnc_id) %>% 
+			add_column(hpo_mode_of_inheritance_term) %>% 
+			add_column(disease_ontology_id_version) %>% 
+			add_column(pathogenicity_mode) %>% 
+			add_column(ndd_phenotype) %>% 
+			add_column(entry_user_id) %>% 
+			select(hgnc_id = value, hpo_mode_of_inheritance_term, disease_ontology_id_version, pathogenicity_mode, ndd_phenotype, entry_user_id)
+		##-------------------------------------------------------------------##
+
+		##-------------------------------------------------------------------##
+		## connect to the database and then add the new entity 
+		# connect to database
+		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+		# submit the new entity and get the id of the last insert for association with other tables
+		db_append <- tryCatch({
+			dbAppendTable(sysndd_db, "ndd_entity", entity_received)
+		}, error = function(cond) {
+            # Choose a return value in case of error
+            return(cond$message)
+		})
+
+		if ( db_append == 1 ) {
+		submitted_entity_id <- dbGetQuery(sysndd_db, "SELECT LAST_INSERT_ID();") %>% 
+			as_tibble() %>% 
+			select(entity_id = `LAST_INSERT_ID()`)
+		} else if ( is.na(as.logical(db_append)) ) {
+		submitted_entity_id <- NA
+		db_error <- db_append
+		}
+
+		# disconnect from database
+		dbDisconnect(sysndd_db)
+
+		if ( db_append == 1 ) {
+		# return OK
+		return(list(status=200,message="OK. Entry created.",entry=submitted_entity_id))
+		} else if ( is.na(as.logical(db_append)) ) {
+		return(list(status=500,message="Internal Server Error. Entry not created.",entry=submitted_entity_id,error=db_error))
+		}
+
+		##-------------------------------------------------------------------##
+
+	} else {
+		# return Bad Request
+		return(list(status=405,message="Submitted entity components can not be empty."))
+	}
+}
+
 
 put_post_db_review <- function(request_method, synopsis, comment, review_user_id, entity_id, review_id = NULL) {
 	if ( !is.null(synopsis) & !is.null(entity_id) & nchar(synopsis) > 0 ) {
@@ -113,7 +166,7 @@ put_post_db_review <- function(request_method, synopsis, comment, review_user_id
 			##-------------------------------------------------------------------##
 			## for the put request we update the review and set it's status to 0
 			# generate update query, we remove entity_id to not allow canging the review entity connection
-			update_query <- as_tibble(sysnopsis_received) %>%
+			update_query <- sysnopsis_received %>%
 				select(-entity_id) %>%
 				mutate(row = row_number()) %>%
 				mutate(across(where(is.logical), as.integer)) %>%
@@ -148,8 +201,8 @@ put_post_db_review <- function(request_method, synopsis, comment, review_user_id
 		##-------------------------------------------------------------------##
 
 	} else {
-		res$status <- 400 # Bad Request
-		return(list(error="Submitted synopsis data can not be empty."))
+		# return Bad Request
+		return(list(status=405,message="Submitted synopsis data can not be empty."))
 	}
 }
 
