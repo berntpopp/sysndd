@@ -13,8 +13,8 @@ import { BIconPersonCircle,
   BIconEyeSlash, 
   BIconPen, 
   BIconCheck2Circle, 
-  BIconHandsThumbsUp, 
-  BIconHandsThumbsDown, 
+  BIconHandThumbsUp, 
+  BIconHandThumbsDown, 
   BIconBoxArrowUpRight, 
   BIconTable,
   BIconDownload,
@@ -64,8 +64,8 @@ Vue.component("BIconEye", BIconEye)
 Vue.component("BIconEyeSlash", BIconEyeSlash)
 Vue.component("BIconPen", BIconPen)
 Vue.component("BIconCheck2Circle", BIconCheck2Circle)
-Vue.component("BIconHandsThumbsUp", BIconHandsThumbsUp)
-Vue.component("BIconHandsThumbsDown", BIconHandsThumbsDown)
+Vue.component("BIconHandThumbsUp", BIconHandThumbsUp)
+Vue.component("BIconHandThumbsDown", BIconHandThumbsDown)
 Vue.component("BIconBoxArrowUpRight", BIconBoxArrowUpRight)
 Vue.component("BIconTable", BIconTable)
 Vue.component("BIconDownload", BIconDownload)
