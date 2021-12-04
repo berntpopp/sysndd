@@ -1,7 +1,7 @@
 import Vue from 'vue'
 import App from './App.vue'
 
-import { BootstrapVue, IconsPlugin } from 'bootstrap-vue'
+import { IconsPlugin } from 'bootstrap-vue'
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
 import Multiselect from 'vue-multiselect'
@@ -28,8 +28,9 @@ Vue.config.productionTip = false
 
 Vue.use(VueAxios, axios)
 
-// Make BootstrapVue available throughout your project
-Vue.use(BootstrapVue)
+import { ToastPlugin } from 'bootstrap-vue'
+Vue.use(ToastPlugin)
+
 // Install the BootstrapVue icon components plugin
 Vue.use(IconsPlugin)
 

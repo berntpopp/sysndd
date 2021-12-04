@@ -26,10 +26,10 @@
                 >
                 </b-form-input>
                 
-                <b-datalist id="search-list" 
+                <b-form-datalist id="search-list" 
                 :options="search"
                 >
-                </b-datalist>
+                </b-form-datalist>
 
                 <b-input-group-append>
                   <b-button
