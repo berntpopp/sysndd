@@ -1,7 +1,27 @@
 import Vue from 'vue'
 import App from './App.vue'
 
-import { IconsPlugin } from 'bootstrap-vue'
+import { BIconPersonCircle, 
+  BIconStoplights, 
+  BIconFilter, 
+  BIconSearch, 
+  BIconCheck, 
+  BIconX, 
+  BIconXCircle, 
+  BIconArrowRepeat, 
+  BIconEye, 
+  BIconEyeSlash, 
+  BIconPen, 
+  BIconCheck2Circle, 
+  BIconHandsThumbsUp, 
+  BIconHandsThumbsDown, 
+  BIconBoxArrowUpRight, 
+  BIconTable,
+  BIconDownload,
+  BIconClipboardCheck,
+  BIconQuestionCircleFill,
+  BIconCheckSquare,
+  BIconQuestionSquare} from 'bootstrap-vue'
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
 import Multiselect from 'vue-multiselect'
@@ -32,7 +52,27 @@ import { ToastPlugin } from 'bootstrap-vue'
 Vue.use(ToastPlugin)
 
 // Install the BootstrapVue icon components plugin
-Vue.use(IconsPlugin)
+Vue.component("BIconPersonCircle", BIconPersonCircle)
+Vue.component("BIconStoplights", BIconStoplights)
+Vue.component("BIconFilter", BIconFilter)
+Vue.component("BIconSearch", BIconSearch)
+Vue.component("BIconCheck", BIconCheck)
+Vue.component("BIconX", BIconX)
+Vue.component("BIconXCircle", BIconXCircle)
+Vue.component("BIconArrowRepeat", BIconArrowRepeat)
+Vue.component("BIconEye", BIconEye)
+Vue.component("BIconEyeSlash", BIconEyeSlash)
+Vue.component("BIconPen", BIconPen)
+Vue.component("BIconCheck2Circle", BIconCheck2Circle)
+Vue.component("BIconHandsThumbsUp", BIconHandsThumbsUp)
+Vue.component("BIconHandsThumbsDown", BIconHandsThumbsDown)
+Vue.component("BIconBoxArrowUpRight", BIconBoxArrowUpRight)
+Vue.component("BIconTable", BIconTable)
+Vue.component("BIconDownload", BIconDownload)
+Vue.component("BIconClipboardCheck", BIconClipboardCheck)
+Vue.component("BIconQuestionCircleFill", BIconQuestionCircleFill)
+Vue.component("BIconCheckSquare", BIconCheckSquare)
+Vue.component("BIconQuestionSquare", BIconQuestionSquare)
 
 // register vue-multiselect globally
 Vue.component('multiselect', Multiselect)
@@ -46,8 +86,8 @@ Object.keys(rules).forEach(rule => {
 localize("en", en);
 
 // Install VeeValidate components globally
-Vue.component("ValidationObserver", ValidationObserver);
-Vue.component("ValidationProvider", ValidationProvider);
+Vue.component("ValidationObserver", ValidationObserver)
+Vue.component("ValidationProvider", ValidationProvider)
 
 new Vue({
   router,
