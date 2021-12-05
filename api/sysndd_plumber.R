@@ -220,7 +220,7 @@ put_post_db_publication_connections <- function(request_method, publication_data
 	publications_allowed <- all(publication_data$publication_id %in% publication_list_collected$publication_id)
 
 	# prepare publications tibble for submission
-	publications_submission <- publications_received %>% 
+	publications_submission <- publication_data %>% 
 		add_column(review_id) %>% 
 		add_column(entity_id) %>% 
 		select(review_id, entity_id, publication_id, publication_type)
@@ -934,21 +934,141 @@ function(res, sort = "entity_id", `page[after]` = 0, `page[size]` = "all") {
 
 #* @tag entity
 ## create a new entity
-## example data: {"hgnc_id":"HGNC:21396", "hpo_mode_of_inheritance_term":"HP:0000007", "disease_ontology_id_version":"OMIM:210600", "pathogenicity_mode":"1", "ndd_phenotype":"1"}
+## example data: entity_json: '{"hgnc_id":"HGNC:21396", "hpo_mode_of_inheritance_term":"HP:0000007", "disease_ontology_id_version":"OMIM:210600", "pathogenicity_mode":"1", "ndd_phenotype":"1"}'
+## example data: review_json: '{"synopsis": "activating, gain-of-function mutations: congenital hypertrichosis, neonatal macrosomia, distinct osteochondrodysplasia, cardiomegaly; activating mutations", "literature": {"additional_references": ["PMID:22608503", "PMID:22610116"], "gene_review": ["PMID:25275207"]}, "phenotypes": {"phenotype_id": ["HP:0000256", "HP:0000924", "HP:0001256", "HP:0001574", "HP:0001627", "HP:0002342"], "modifier_id": [1,1,1,1,1,1]}, "comment": ""}'
+## example data: status_json: '{"category_id":1, "comment":"fsa", "problematic": true}'
 #* @serializer json list(na="string")
 #' @post /api/entity/create
-function(req, res, entity_data) {
+function(req, res, entity_json, review_json, status_json) {
 
 	# first check rights
 	if ( req$user_role %in% c("Administrator", "Curator") ) {
-				
+	
 		entry_user_id <- req$user_id
-		entity_data <- fromJSON(entity_data)
+		review_user_id <- req$user_id
+		status_user_id <- req$user_id
+		entity_data <- fromJSON(entity_json)
+		review_data <- fromJSON(review_json)
+		status_data <- fromJSON(status_json)
 		
+		##-------------------------------------------------------------------##
+		# block to post new entity
 		response_entity <- post_db_entity(entity_data$hgnc_id, entity_data$hpo_mode_of_inheritance_term, entity_data$disease_ontology_id_version, entity_data$pathogenicity_mode, entity_data$ndd_phenotype, entry_user_id)
+		##-------------------------------------------------------------------##
 
-		res$status <- response_entity$status
-		return(response_entity)
+		if ( response_entity$status == 200 ) {
+		##-------------------------------------------------------------------##
+		# block to post new review for posted entity
+			##-------------------------------------------------------------------##
+			# data preparation
+			# convert publications to tibble
+			if ( length(compact(review_data$literature)) > 0 ) {
+				publications_received <- bind_rows(as_tibble(compact(review_data$literature$additional_references)), as_tibble(compact(review_data$literature$gene_review)), .id = "publication_type") %>% 
+					select(publication_id = value, publication_type) %>%
+					mutate(publication_type = case_when(
+					  publication_type == 1 ~ "additional_references",
+					  publication_type == 2 ~ "gene_review"
+					)) %>%
+					unique() %>%
+					select(publication_id, publication_type) %>%
+					arrange(publication_id)
+
+			} else {
+				publications_received <- as_tibble_row(c(publication_id = NA, publication_type = NA))
+			}
+
+			# convert sysnopsis to tibble, check if comment is null and handle
+			if ( !is.null(review_data$comment) ) {
+				sysnopsis_received <- as_tibble(review_data$synopsis) %>% 
+					add_column(response_entity$entry$entity_id) %>% 
+					add_column(review_data$comment) %>% 
+					add_column(review_user_id) %>% 
+					select(entity_id = `response_entity$entry$entity_id`, synopsis = value, review_user_id, comment = `review_data$comment`)
+			} else {
+				sysnopsis_received <- as_tibble(review_data$synopsis) %>% 
+					add_column(response_entity$entry$entity_id) %>%
+					add_column(review_user_id) %>% 
+					select(entity_id = `response_entity$entry$entity_id`, synopsis = value, review_user_id, comment = NULL)
+			}
+
+			# convert phenotypes to tibble
+			phenotypes_received <- as_tibble(review_data$phenotypes)
+
+			##-------------------------------------------------------------------##
+			
+			##-------------------------------------------------------------------##
+			# use the "new_publication function" to update the publications table
+			response_publication <- new_publication(publications_received)
+
+			# use the "put_post_db_review" function to add the review to the database table and receive an review_id
+			response_review <- put_post_db_review("POST", sysnopsis_received$synopsis, sysnopsis_received$comment, sysnopsis_received$review_user_id, sysnopsis_received$entity_id)
+			
+			# make the publictaion to review connections using the function "put_post_db_publication_connections"
+			response_publication_connections <- put_post_db_publication_connections("POST", publications_received, sysnopsis_received$entity_id, response_review$entry)
+
+			# make the phenotype to review connections using the function "response_phenotype_connections"
+			response_phenotype_connections <- put_post_db_phenotype_connections("POST", phenotypes_received, sysnopsis_received$entity_id, response_review$entry)
+
+			# compute aggregated review response
+			response_review_post <- as_tibble(response_publication) %>% 
+				bind_rows(as_tibble(response_review)) %>% 
+				bind_rows(as_tibble(response_publication_connections)) %>%	
+				bind_rows(as_tibble(response_phenotype_connections)) %>%
+				select(status, message) %>%
+				unique() %>%
+				mutate(status = max(status)) %>%
+				mutate(message = str_c(message, collapse = "; "))
+			##-------------------------------------------------------------------##
+		##-------------------------------------------------------------------##
+		} else {
+			res$status <- response_entity$status
+			return(list(status=response_entity$status,message=response_entity$message))
+		}
+
+
+		if ( response_entity$status == 200 & response_review_post$status == 200 ) {
+		##-------------------------------------------------------------------##
+		# block to post new status for posted entity
+			##-------------------------------------------------------------------##
+			# data preparation
+			status_data <- as_tibble(status_data) %>% 
+				add_column(response_entity$entry$entity_id) %>% 
+				select(entity_id = `response_entity$entry$entity_id`, category_id, review_user_id, comment, problematic)
+			##-------------------------------------------------------------------##
+			
+			##-------------------------------------------------------------------##
+			# use the put_post_db_status function to add the review to the database table
+			response_status_post <- put_post_db_status("POST", status_data, status_user_id)
+			##-------------------------------------------------------------------##		
+			
+		##-------------------------------------------------------------------##
+		} else {
+			response_entity_review_post <- as_tibble(response_entity) %>% 
+				bind_rows(as_tibble(response_review_post)) %>%
+				select(status, message) %>%
+				unique() %>%
+				mutate(status = max(status)) %>%
+				mutate(message = str_c(message, collapse = "; "))
+			
+			res$status <- response_entity_review_post$status
+			return(list(status=response_entity_review_post$status,message=response_entity_review_post$message))
+		}
+
+		if ( response_entity$status == 200 & response_review_post$status == 200 & response_status_post$status == 200 ) {
+			res$status <- response_entity$status
+			return(response_entity)
+		} else {
+			response <- as_tibble(response_entity) %>% 
+				bind_rows(as_tibble(response_review_post)) %>%
+				bind_rows(as_tibble(response_status_post)) %>%
+				select(status, message) %>%
+				unique() %>%
+				mutate(status = max(status)) %>%
+				mutate(message = str_c(message, collapse = "; "))
+			
+			res$status <- response$status
+			return(list(status=response$status,message=response$message))
+		}
 
 	} else {
 		res$status <- 403 # Forbidden
@@ -1175,8 +1295,8 @@ function(req, res, `filter[review_approved]` = 0) {
 ## post or put a new clinical synopsis for a entity_id
 ## example data: {"review_id": 1, "entity_id": 1, "synopsis": "activating, gain-of-function mutations: congenital hypertrichosis, neonatal macrosomia, distinct osteochondrodysplasia, cardiomegaly; activating mutations", "literature": {"additional_references": ["PMID:22608503", "PMID:22610116"], "gene_review": ["PMID:25275207"]}, "phenotypes": {"phenotype_id": ["HP:0000256", "HP:0000924", "HP:0001256", "HP:0001574", "HP:0001627", "HP:0002342"], "modifier_id": [1,1,1,1,1,1]}, "comment": ""}
 #* @serializer json list(na="string")
-#' @post /api/review
-#' @put /api/review
+#' @post /api/review/create
+#' @put /api/review/update
 function(req, res, review_json) {
 	# first check rights
 	if ( req$user_role %in% c("Administrator", "Curator") ) {
@@ -2663,8 +2783,8 @@ function() {
 ## post a new status for a entity_id or put an update to a certain status_id
 ## example data: '{"status_id":3,"entity_id":3,"category_id":1,"comment":"fsa","problematic": true}' (privide status_id for put and entity_id for post reqests)
 #* @serializer json list(na="string")
-#' @post /api/status
-#' @put /api/status
+#' @post /api/status/create
+#' @put /api/status/update
 function(req, res, status_json) {
 	# first check rights
 	if ( req$user_role %in% c("Administrator", "Curator") ) {
