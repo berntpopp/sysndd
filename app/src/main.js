@@ -1,5 +1,6 @@
 import Vue from 'vue'
 import App from './App.vue'
+import VueMeta from 'vue-meta'
 
 import { BIconPersonCircle, 
   BIconStoplights, 
@@ -73,6 +74,9 @@ Vue.component("BIconClipboardCheck", BIconClipboardCheck)
 Vue.component("BIconQuestionCircleFill", BIconQuestionCircleFill)
 Vue.component("BIconCheckSquare", BIconCheckSquare)
 Vue.component("BIconQuestionSquare", BIconQuestionSquare)
+
+// register vue-meta globally
+Vue.use(VueMeta)
 
 // register vue-multiselect globally
 Vue.component('multiselect', Multiselect)
