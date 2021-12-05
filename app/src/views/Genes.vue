@@ -241,6 +241,20 @@
 <script>
 export default {
   name: 'Genes',
+  metaInfo: {
+    // if no subcomponents specify a metaInfo.title, this title will be used
+    title: 'Genes',
+    // all titles will be injected into this template
+    titleTemplate: '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
+    htmlAttrs: {
+      lang: 'en'
+    },
+    meta: [
+      { charset: 'utf-8' }, 
+      { name: 'description', content: 'The Genes table view allows browsing NDD associations by gene.' }, 
+      { name: 'theme-color',  media: "(prefers-color-scheme: dark)",  content: "black" }
+    ]
+  },
   data() {
         return {
           stoplights_style: {"Definitive": "success", "Moderate": "primary", "Limited": "warning", "Refuted": "danger"},
