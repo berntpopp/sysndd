@@ -22,7 +22,9 @@ import { BIconPersonCircle,
   BIconClipboardCheck,
   BIconQuestionCircleFill,
   BIconCheckSquare,
-  BIconQuestionSquare} from 'bootstrap-vue'
+  BIconQuestionSquare,
+  BIconPlusSquare,
+  BIconFileEarmarkMinus} from 'bootstrap-vue'
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
 import Multiselect from 'vue-multiselect'
@@ -74,6 +76,8 @@ Vue.component("BIconClipboardCheck", BIconClipboardCheck)
 Vue.component("BIconQuestionCircleFill", BIconQuestionCircleFill)
 Vue.component("BIconCheckSquare", BIconCheckSquare)
 Vue.component("BIconQuestionSquare", BIconQuestionSquare)
+Vue.component("BIconPlusSquare", BIconPlusSquare)
+Vue.component("BIconFileEarmarkMinus", BIconFileEarmarkMinus)
 
 // register vue-meta globally
 Vue.use(VueMeta)
