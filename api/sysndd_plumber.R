@@ -3386,7 +3386,7 @@ function() {
 ## Search endpoints
 
 #* @tag search
-## searchthe entity view by by columns entity_id, hgnc_id, symbol, disease_ontology_id_version, disease_ontology_name
+## search the entity view by columns entity_id, hgnc_id, symbol, disease_ontology_id_version, disease_ontology_name
 #* @serializer json list(na="string")
 #' @get /api/search/<searchterm>
 function(searchterm, helper = TRUE) {
@@ -3452,6 +3452,43 @@ function(searchterm, helper = TRUE) {
 	} else {
 		sysndd_db_entity_search_return
 	}
+}
+
+
+#* @tag search
+## search the ontology_set table by columns disease_ontology_id_version, disease_ontology_name
+#* @serializer json list(na="string")
+#' @get /api/search/ontology/<searchterm>
+function(searchterm, helper = TRUE) {
+	searchterm <- URLdecode(searchterm) %>%
+		str_squish()
+
+	sysndd_db_ontology_set_search <- pool %>% 
+		tbl("ontology_set") %>%
+		arrange(disease_ontology_id_version) %>%
+		collect() %>%
+		select(disease_ontology_name, disease_ontology_id_version) %>%
+		mutate(disease_ontology = as.character(disease_ontology_id_version)) %>%
+		pivot_longer(!disease_ontology_id_version, names_to = "search", values_to = "results") %>%
+		mutate(search = str_replace(search, "disease_ontology", "disease_ontology_id_version")) %>%
+		mutate(searchdist = stringdist(str_to_lower(results), str_to_lower(searchterm), method='jw', p=0.1)) %>%
+		arrange(searchdist, results)
+
+	# compute filtered length with match < 0.1
+	sysndd_db_ontology_set_search_length <- sysndd_db_ontology_set_search %>%
+		filter(searchdist < 0.1) %>%
+		tally()
+	
+	if (sysndd_db_ontology_set_search_length$n > 10) {
+		return_count <- sysndd_db_ontology_set_search_length$n
+	} else {
+		return_count <- 10
+	}
+	
+	sysndd_db_ontology_set_search_return <- sysndd_db_ontology_set_search %>% 
+		slice_head(n=return_count)
+
+	sysndd_db_ontology_set_search_return
 }
 
 ## Search endpoints
