@@ -3459,7 +3459,7 @@ function(searchterm, helper = TRUE) {
 ## search the ontology_set table by columns disease_ontology_id_version, disease_ontology_name
 #* @serializer json list(na="string")
 #' @get /api/search/ontology/<searchterm>
-function(searchterm, helper = TRUE) {
+function(searchterm) {
 	searchterm <- URLdecode(searchterm) %>%
 		str_squish()
 
@@ -3489,6 +3489,38 @@ function(searchterm, helper = TRUE) {
 		slice_head(n=return_count)
 
 	sysndd_db_ontology_set_search_return
+}
+
+
+#* @tag search
+## search the search_non_alt_loci_view table by columns hgnc_id, symbol
+#* @serializer json list(na="string")
+#' @get /api/search/gene/<searchterm>
+function(searchterm) {
+	searchterm <- URLdecode(searchterm) %>%
+		str_squish()
+
+	non_alt_loci_set_search <- pool %>% 
+		tbl("search_non_alt_loci_view") %>%
+		collect() %>%
+		mutate(searchdist = stringdist(str_to_lower(result), str_to_lower(searchterm), method='jw', p=0.1)) %>%
+		arrange(searchdist, result)
+
+	# compute filtered length with match < 0.1
+	non_alt_loci_set_search_length <- non_alt_loci_set_search %>%
+		filter(searchdist < 0.1) %>%
+		tally()
+	
+	if (non_alt_loci_set_search_length$n > 10) {
+		return_count <- non_alt_loci_set_search_length$n
+	} else {
+		return_count <- 10
+	}
+	
+	non_alt_loci_set_search_return <- non_alt_loci_set_search %>% 
+		slice_head(n=return_count)
+
+	non_alt_loci_set_search_return
 }
 
 ## Search endpoints
