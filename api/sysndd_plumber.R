@@ -3501,7 +3501,8 @@ function(searchterm) {
 		str_squish()
 
 	non_alt_loci_set_search <- pool %>% 
-		tbl("search_non_alt_loci_view") %>%
+		tbl("search_non_alt_loci_view") %>% 
+		filter(result %like% paste0("%", searchterm, "%")) %>%
 		collect() %>%
 		mutate(searchdist = stringdist(str_to_lower(result), str_to_lower(searchterm), method='jw', p=0.1)) %>%
 		arrange(searchdist, result)
