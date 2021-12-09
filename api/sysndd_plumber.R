@@ -3456,7 +3456,7 @@ function(searchterm, helper = TRUE) {
 
 
 #* @tag search
-## search the ontology_set table by columns disease_ontology_id_version, disease_ontology_name
+## search the search_ontology_set view by columns disease_ontology_id_version, disease_ontology_name
 #* @serializer json list(na="string")
 #' @get /api/search/ontology/<searchterm>
 function(searchterm) {
@@ -3464,15 +3464,11 @@ function(searchterm) {
 		str_squish()
 
 	sysndd_db_ontology_set_search <- pool %>% 
-		tbl("ontology_set") %>%
-		arrange(disease_ontology_id_version) %>%
+		tbl("search_ontology_set") %>%
+		filter(result %like% paste0("%", searchterm, "%")) %>%
 		collect() %>%
-		select(disease_ontology_name, disease_ontology_id_version) %>%
-		mutate(disease_ontology = as.character(disease_ontology_id_version)) %>%
-		pivot_longer(!disease_ontology_id_version, names_to = "search", values_to = "results") %>%
-		mutate(search = str_replace(search, "disease_ontology", "disease_ontology_id_version")) %>%
-		mutate(searchdist = stringdist(str_to_lower(results), str_to_lower(searchterm), method='jw', p=0.1)) %>%
-		arrange(searchdist, results)
+		mutate(searchdist = stringdist(str_to_lower(result), str_to_lower(searchterm), method='jw', p=0.1)) %>%
+		arrange(searchdist, result)
 
 	# compute filtered length with match < 0.1
 	sysndd_db_ontology_set_search_length <- sysndd_db_ontology_set_search %>%
