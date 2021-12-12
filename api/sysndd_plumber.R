@@ -2529,6 +2529,19 @@ function(hpo) {
 		collect()
 }
 
+
+#* @tag inheritance
+## get list of all inheritanceterms
+#* @serializer json list(na="string")
+#' @get /api/inheritance_list
+function() {
+	status_list_collected <- pool %>% 
+		tbl("mode_of_inheritance_list") %>%
+		arrange(hpo_mode_of_inheritance_term) %>%
+		collect() %>%
+		filter(is_active == 1)
+}
+
 ## Inheritance endpoints
 ##-------------------------------------------------------------------##
 
