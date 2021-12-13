@@ -2539,7 +2539,8 @@ function() {
 		tbl("mode_of_inheritance_list") %>%
 		arrange(hpo_mode_of_inheritance_term) %>%
 		collect() %>%
-		filter(is_active == 1)
+		filter(is_active == 1) %>%
+		select(-is_active, -update_date)
 }
 
 ## Inheritance endpoints
@@ -3472,7 +3473,7 @@ function(searchterm, helper = TRUE) {
 ## search the search_ontology_set view by columns disease_ontology_id_version, disease_ontology_name
 #* @serializer json list(na="string")
 #' @get /api/search/ontology/<searchterm>
-function(searchterm) {
+function(searchterm, helper = TRUE) {
 	searchterm <- URLdecode(searchterm) %>%
 		str_squish()
 
@@ -3497,7 +3498,18 @@ function(searchterm) {
 	sysndd_db_ontology_set_search_return <- sysndd_db_ontology_set_search %>% 
 		slice_head(n=return_count)
 
-	sysndd_db_ontology_set_search_return
+
+	# change output by helper input to unique values (helper = TRUE) or entities (helper = FALSE)
+	if (helper) {
+		sysndd_db_ontology_set_search_return_helper <- (sysndd_db_ontology_set_search_return %>% 
+			select(-hgnc_id, -search, -searchdist) %>%
+			as.list())$result
+	} else {
+		sysndd_db_ontology_set_search_return_helper <- sysndd_db_ontology_set_search_return
+	}
+
+	sysndd_db_ontology_set_search_return_helper
+
 }
 
 
@@ -3505,7 +3517,7 @@ function(searchterm) {
 ## search the search_non_alt_loci_view table by columns hgnc_id, symbol
 #* @serializer json list(na="string")
 #' @get /api/search/gene/<searchterm>
-function(searchterm) {
+function(searchterm, helper = TRUE) {
 	searchterm <- URLdecode(searchterm) %>%
 		str_squish()
 
@@ -3530,7 +3542,16 @@ function(searchterm) {
 	non_alt_loci_set_search_return <- non_alt_loci_set_search %>% 
 		slice_head(n=return_count)
 
-	non_alt_loci_set_search_return
+	# change output by helper input to unique values (helper = TRUE) or entities (helper = FALSE)
+	if (helper) {
+		non_alt_loci_set_search_return_helper <- (non_alt_loci_set_search_return %>% 
+			select(-hgnc_id, -search, -searchdist) %>%
+			as.list())$result
+	} else {
+		non_alt_loci_set_search_return_helper <- non_alt_loci_set_search_return
+	}
+
+	non_alt_loci_set_search_return_helper
 }
 
 ## Search endpoints

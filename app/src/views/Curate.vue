@@ -9,8 +9,16 @@
           <b-tabs content-class="mt-3" v-model="tabIndex">
 
             <b-tab title="New entity" active>
-              <b-spinner label="Loading..." v-if="loadingEntityNew" class="float-center m-5"></b-spinner>
-              <b-container fluid v-else>
+              <b-container fluid>
+                <b-input-group-append>
+                    <b-button 
+                      size="sm"
+                      @click="infoEntity($event.target)" 
+                    >
+                      <b-icon icon="plus-square" class="mx-1"></b-icon>
+                      Create new entity
+                    </b-button>
+                  </b-input-group-append>
               </b-container>
             </b-tab>
 
@@ -398,6 +406,73 @@
         </b-col>
       </b-row>
 
+      <!-- New Entity modal -->
+      <b-modal 
+      :id="entityModal.id" 
+      size="xl" 
+      centered 
+      ok-title="Save entity" 
+      no-close-on-esc 
+      no-close-on-backdrop 
+      header-bg-variant="dark" 
+      header-text-variant="light" 
+      >
+          <template #modal-title>
+              <h4>Entity: 
+              <b-badge 
+              variant="primary"
+              >
+              {{ entityModal.title }}
+              </b-badge>
+              </h4>
+          </template>
+
+          <b-container fluid>
+              <form ref="form" @submit.stop.prevent="handleSubmit">
+
+              <b-input-group class="mb-2">
+                <b-form-input 
+                list="gene-list" 
+                type="search" 
+                placeholder="..." 
+                size="sm"
+                autocomplete="off" 
+                style="width:180px" 
+                v-model="gene_input"
+                @input="loadGeneInfo"
+                >
+                </b-form-input>
+
+                <b-form-datalist id="gene-list" 
+                :options="gene_search"
+                >
+                </b-form-datalist>
+              </b-input-group>
+
+              <b-input-group class="mb-2">
+                <b-form-input 
+                list="ontology-list" 
+                type="search" 
+                placeholder="..." 
+                size="sm"
+                autocomplete="off" 
+                style="width:180px" 
+                v-model="ontology_input"
+                @input="loadOntologyInfo"
+                >
+                </b-form-input>
+
+                <b-form-datalist id="ontology-list" 
+                :options="ontology_search"
+                >
+                </b-form-datalist>
+              </b-input-group>
+
+              </form>
+          </b-container>
+      </b-modal>
+      <!-- New Entity modal -->
+
 
       <!-- Manage user approval modal -->
       <b-modal 
@@ -461,6 +536,7 @@ export default {
         loadingUsersApprove: true,
         items_UsersTable: [],
         items_StatusTable: [],
+        entity: [],
         fields_StatusTable: [
             { key: 'entity_id', label: 'Entity', sortable: true, filterable: true, sortDirection: 'desc', class: 'text-left' },
             { key: 'category', label: 'Category', sortable: true, filterable: true, class: 'text-left' },
@@ -492,6 +568,11 @@ export default {
         totalRows_UsersTable: 0,
         totalRows_StatusTable: 0,
         totalRows_ReviewTable: 0,
+        entityModal: {
+          id: 'entity-modal',
+          title: '',
+          content: []
+        },
         approveUserModal: {
           id: 'approve-usermodal',
           title: '',
@@ -512,6 +593,10 @@ export default {
             { key: 'actions', label: 'Actions' }
         ],
         totalRows_ReReviewTable: 0,
+        gene_input: '',
+        gene_search: [],
+        ontology_input: '',
+        ontology_search: [],
         tabIndex: 0
       };
     },
@@ -533,6 +618,24 @@ export default {
       }
     },
     methods: {
+        async loadGeneInfo() {
+          let apiSearchURL = process.env.VUE_APP_API_URL + '/api/search/gene/' + this.gene_input;
+          try {
+            let response_search = await this.axios.get(apiSearchURL);
+            this.gene_search = response_search.data;
+            } catch (e) {
+            console.error(e);
+            }
+        },
+        async loadOntologyInfo() {
+          let apiSearchURL = process.env.VUE_APP_API_URL + '/api/search/ontology/' + this.ontology_input;
+          try {
+            let response_search = await this.axios.get(apiSearchURL);
+            this.ontology_search = response_search.data;
+            } catch (e) {
+            console.error(e);
+            }
+        },
         async loadRoleList() {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/user/role_list';
           try {
@@ -695,6 +798,12 @@ export default {
             console.error(e);
           }
         this.loadReReviewTableData();
+        },
+        infoEntity(button) {
+          this.entityModal.title = "New";
+          this.entity = [];
+
+          this.$root.$emit('bv::show::modal', this.entityModal.id, button);
         },
       }
     };
