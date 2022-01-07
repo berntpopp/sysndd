@@ -51,12 +51,6 @@ pool <- dbPool(
 
 
 ##-------------------------------------------------------------------##
-Sys.setenv(SMTP_PASSWORD=toString(dw$mail_noreply_password))
-##-------------------------------------------------------------------##
-
-
-
-##-------------------------------------------------------------------##
 ## global variables
 inheritance_input_allowed <- c("X-linked", "Dominant", "Recessive", "Other", "All")
 output_columns_allowed <- c("category", "inheritance", "symbol", "hgnc_id", "entrez_id", "ensembl_gene_id", "ucsc_id", "bed_hg19", "bed_hg38")
