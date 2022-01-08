@@ -15,6 +15,7 @@ RUN npm audit fix
 FROM nginx:alpine
 RUN rm /etc/nginx/conf.d/default.conf
 COPY ./docker/nginx/prod.conf /etc/nginx/conf.d/
+COPY ./docker/nginx/nginx.conf /etc/nginx/
 COPY ./docker/nginx/cert.pem /etc/nginx/certificates/
 COPY ./docker/nginx/key.pem /etc/nginx/certificates/
 # Set working directory to nginx asset directory
