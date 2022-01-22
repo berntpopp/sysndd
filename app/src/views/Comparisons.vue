@@ -198,6 +198,32 @@
                 </div> 
               </template>
 
+              <template #cell(omim_ndd)="data">
+                <div>
+                  <b-avatar 
+                  size="1.4em" 
+                  :icon="yn_icon[data.item.omim_ndd]"
+                  :variant="yn_icon_style[data.item.omim_ndd]"
+                  v-b-tooltip.hover.left 
+                  v-bind:title="data.item.omim_ndd"
+                  >
+                  </b-avatar>
+                </div> 
+              </template>
+
+              <template #cell(orphanet_id)="data">
+                <div>
+                  <b-avatar 
+                  size="1.4em" 
+                  :icon="yn_icon[data.item.orphanet_id]"
+                  :variant="yn_icon_style[data.item.orphanet_id]"
+                  v-b-tooltip.hover.left 
+                  v-bind:title="data.item.orphanet_id"
+                  >
+                  </b-avatar>
+                </div> 
+              </template>
+
               </b-table>
 
             </b-tab>
