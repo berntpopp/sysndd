@@ -1,25 +1,9 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 
-import Home from '../views/Home.vue'
-import Entities from '../views/Entities.vue'
-import Genes from '../views/Genes.vue'
-import Phenotypes from '../views/Phenotypes.vue'
-import Comparisons from '../views/Comparisons.vue'
-import About from '../views/About.vue'
-import Login from '../views/Login.vue'
-import Register from '../views/Register.vue'
-import User from '../views/User.vue'
-import Review from '../views/Review.vue'
-import Curate from '../views/Curate.vue'
-import Admin from '../views/Admin.vue'
-import Panels from '../views/Panels.vue'
-import Ontology from '../views/Ontology.vue'
-
-import Entity from '../views/Entity.vue'
-import Gene from '../views/Gene.vue'
-import Search from '../views/Search.vue'
-import API from '../views/API.vue'
+function lazyLoad(view){
+  return() => import(`@/views/${view}.vue`)
+}
 
 Vue.use(VueRouter)
 
@@ -27,32 +11,32 @@ const routes = [
   {
     path: '/',
     name: 'Home',
-    component: Home
+    component: lazyLoad('Home')
   },
   {
     path: '/Entities',
     name: 'Entities',
-    component: Entities
+    component: lazyLoad('Entities')
   },
   {
     path: '/Genes',
     name: 'Genes',
-    component: Genes
+    component: lazyLoad('Genes')
   },
   {
     path: '/Phenotypes',
     name: 'Phenotypes',
-    component: Phenotypes
+    component: lazyLoad('Phenotypes')
   },
   {
     path: '/Comparisons',
     name: 'Comparisons',
-    component: Comparisons
+    component: lazyLoad('Comparisons')
   },
   {
     path: '/Panels/:category_input?/:inheritance_input?',
     name: 'Panels',
-    component: Panels,
+    component: lazyLoad('Panels'),
     beforeEnter: (to, from, next) => {
       if (["All", "Limited", "Definitive", "Moderate", "Refuted"].includes(to.params.category_input) && ["All", "Dominant", "Other", "Recessive", "X-linked"].includes(to.params.inheritance_input) ) {
         next(); // <-- everything good, proceed
@@ -64,27 +48,27 @@ const routes = [
   {
     path: '/About',
     name: 'About',
-    component: About
+    component: lazyLoad('About')
   },
   {
     path: '/Login',
     name: 'Login',
-    component: Login
+    component: lazyLoad('Login')
   },
   {
     path: '/Register',
     name: 'Register',
-    component: Register
+    component: lazyLoad('Register')
   },
   {
     path: '/User',
     name: 'User',
-    component: User
+    component: lazyLoad('User')
   },
   {
     path: '/Review',
     name: 'Review',
-    component: Review,
+    component: lazyLoad('Review'),
     beforeEnter: (to, from, next) => {
       const allowed_roles = ["Administrator", "Curator", "Reviewer"];
       let expires = 0;
@@ -104,7 +88,7 @@ const routes = [
   {
     path: '/Curate',
     name: 'Curate',
-    component: Curate,
+    component: lazyLoad('Curate'),
     beforeEnter: (to, from, next) => {
       const allowed_roles = ["Administrator", "Curator"];
       let expires = 0;
@@ -124,7 +108,7 @@ const routes = [
   {
     path: '/Admin',
     name: 'Admin',
-    component: Admin,
+    component: lazyLoad('Admin'),
     beforeEnter: (to, from, next) => {
       const allowed_roles = ["Administrator"];
       let expires = 0;
@@ -143,23 +127,23 @@ const routes = [
   },
   {
     path: '/Entities/:sysndd_id',
-    component: Entity
+    component: lazyLoad('Entity')
   },
   {
     path: '/Genes/:gene_id',
-    component: Gene
+    component: lazyLoad('Gene')
   },
   {
     path: '/Search/:search_term',
-    component: Search
+    component: lazyLoad('Search')
   },
   {
     path: '/API',
-    component: API
+    component: lazyLoad('API')
   },
   {
     path: '/Ontology/:disease_term',
-    component: Ontology
+    component: lazyLoad('Ontology')
   }
 ]
 

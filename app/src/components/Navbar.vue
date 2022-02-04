@@ -100,10 +100,10 @@ export default {
           search: []
         }
   },
-  watch: { // used to refreh navar on login push
+watch: { // used to refreh navbar on login push
   $route(to, from) { 
     if(to !== from){ 
-      location.reload(); 
+      this.isUserLoggedIn()
       }
   } 
   },
