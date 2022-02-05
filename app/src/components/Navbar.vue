@@ -259,6 +259,9 @@ li {
 a {
   color: #42b983;
 }
+::v-deep .nav-link {
+   color: #FFF!important;
+}
 ::v-deep .dropdown-menu {
 background-color: #343A40!important; 
 color: #FFF!important; 
