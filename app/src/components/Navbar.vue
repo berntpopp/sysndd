@@ -22,10 +22,9 @@
 
           <b-nav-item href="/About">About</b-nav-item>
 
-
           <b-nav-item-dropdown 
           text="Search"
-          v-if="this.$router.currentRoute.name!=='Home'"
+          v-if="show_search"
           >
           <b-nav-form style="width:220px">
               <b-input-group class="mb-2">
@@ -97,14 +96,16 @@ export default {
           user_from_jwt: [],
           time_to_logout: 0,
           search_input: '',
-          search: []
+          search: [],
+          show_search: false
         }
   },
 watch: { // used to refreh navbar on login push
   $route(to, from) { 
     if(to !== from){ 
-      this.isUserLoggedIn()
+      this.isUserLoggedIn();
       }
+    this.$router.onReady(() => this.show_search = (this.$route.name !== "Home"));
   } 
   },
   mounted() {
@@ -114,7 +115,6 @@ watch: { // used to refreh navbar on login push
       this.updateDiffs();
     },1000);
     this.updateDiffs();
-
     },
   methods: {
     isUserLoggedIn() {
