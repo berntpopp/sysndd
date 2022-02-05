@@ -1,7 +1,7 @@
 <template>
   <div class="container-fluid" style="min-height:90vh">
-    <b-container fluid v-if="loading"> <b-spinner label="Loading..." class="spinner float-center m-5"></b-spinner> </b-container>
-    <b-container fluid v-else>
+
+    <b-container>
 
         <b-row class="justify-content-md-center py-2">
           <b-col md="12">
@@ -44,7 +44,11 @@
 
             </b-jumbotron>
 
-            <b-card-group deck>
+            <b-container fluid v-if="loading" style="min-height:50vh"> 
+              <b-spinner label="Loading..." class="spinner float-center m-5"></b-spinner>
+            </b-container>
+
+            <b-card-group deck v-else>
               <b-card header-tag="header">
                 <template #header>
                   <h6 class="mb-0 font-weight-bold">Curated entities</h6>
