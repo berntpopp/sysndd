@@ -1,42 +1,38 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 
-function lazyLoad(view){
-  return() => import(`@/views/${view}.vue`)
-}
-
 Vue.use(VueRouter)
 
 const routes = [
   {
     path: '/',
     name: 'Home',
-    component: lazyLoad('Home')
+    component: () => import(/* webpackChunkName: "Home" */ '@/views/Home.vue')
   },
   {
     path: '/Entities',
     name: 'Entities',
-    component: lazyLoad('Entities')
+    component: () => import(/* webpackChunkName: "Tables" */ '@/views/Entities.vue')
   },
   {
     path: '/Genes',
     name: 'Genes',
-    component: lazyLoad('Genes')
+    component: () => import(/* webpackChunkName: "Tables" */ '@/views/Genes.vue')
   },
   {
     path: '/Phenotypes',
     name: 'Phenotypes',
-    component: lazyLoad('Phenotypes')
+    component: () => import(/* webpackChunkName: "Tables" */ '@/views/Phenotypes.vue')
   },
   {
     path: '/Comparisons',
     name: 'Comparisons',
-    component: lazyLoad('Comparisons')
+    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/Comparisons.vue')
   },
   {
     path: '/Panels/:category_input?/:inheritance_input?',
     name: 'Panels',
-    component: lazyLoad('Panels'),
+    component: () => import(/* webpackChunkName: "Tables" */ '@/views/Panels.vue'),
     beforeEnter: (to, from, next) => {
       if (["All", "Limited", "Definitive", "Moderate", "Refuted"].includes(to.params.category_input) && ["All", "Dominant", "Other", "Recessive", "X-linked"].includes(to.params.inheritance_input) ) {
         next(); // <-- everything good, proceed
@@ -48,27 +44,27 @@ const routes = [
   {
     path: '/About',
     name: 'About',
-    component: lazyLoad('About')
+    component: () => import(/* webpackChunkName: "About" */ '@/views/About.vue')
   },
   {
     path: '/Login',
     name: 'Login',
-    component: lazyLoad('Login')
+    component: () => import(/* webpackChunkName: "User" */ '@/views/Login.vue')
   },
   {
     path: '/Register',
     name: 'Register',
-    component: lazyLoad('Register')
+    component: () => import(/* webpackChunkName: "User" */ '@/views/Register.vue')
   },
   {
     path: '/User',
     name: 'User',
-    component: lazyLoad('User')
+    component: () => import(/* webpackChunkName: "User" */ '@/views/User.vue')
   },
   {
     path: '/Review',
     name: 'Review',
-    component: lazyLoad('Review'),
+    component: () => import(/* webpackChunkName: "DataEntry" */ '@/views/Review.vue'),
     beforeEnter: (to, from, next) => {
       const allowed_roles = ["Administrator", "Curator", "Reviewer"];
       let expires = 0;
@@ -88,7 +84,7 @@ const routes = [
   {
     path: '/Curate',
     name: 'Curate',
-    component: lazyLoad('Curate'),
+    component: () => import(/* webpackChunkName: "DataEntry" */ '@/views/Curate.vue'),
     beforeEnter: (to, from, next) => {
       const allowed_roles = ["Administrator", "Curator"];
       let expires = 0;
@@ -108,7 +104,7 @@ const routes = [
   {
     path: '/Admin',
     name: 'Admin',
-    component: lazyLoad('Admin'),
+    component: () => import(/* webpackChunkName: "DataEntry" */ '@/views/Admin.vue'),
     beforeEnter: (to, from, next) => {
       const allowed_roles = ["Administrator"];
       let expires = 0;
@@ -127,23 +123,23 @@ const routes = [
   },
   {
     path: '/Entities/:sysndd_id',
-    component: lazyLoad('Entity')
+    component: () => import(/* webpackChunkName: "Pages" */ '@/views/Entity.vue')
   },
   {
     path: '/Genes/:gene_id',
-    component: lazyLoad('Gene')
+    component: () => import(/* webpackChunkName: "Pages" */ '@/views/Gene.vue')
   },
   {
     path: '/Search/:search_term',
-    component: lazyLoad('Search')
+    component: () => import(/* webpackChunkName: "Pages" */ '@/views/Search.vue')
   },
   {
     path: '/API',
-    component: lazyLoad('API')
+    component: () => import(/* webpackChunkName: "Pages" */ '@/views/API.vue')
   },
   {
     path: '/Ontology/:disease_term',
-    component: lazyLoad('Ontology')
+    component: () => import(/* webpackChunkName: "Pages" */ '@/views/Ontology.vue')
   }
 ]
 
