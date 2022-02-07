@@ -3636,7 +3636,7 @@ function(req, res, user_id = 0, status_approval = FALSE) {
 	} else if ( req$user_role %in% c("Administrator", "Curator") & user_id_approval_exists & !user_id_approval_approved) {
 
 		if ( status_approval ) {
-			# genrate password
+			# generate password
 			user_password <- random_password()
 			user_initials <- generate_initials(user_table$first_name, user_table$family_name)
 			
@@ -3654,7 +3654,7 @@ function(req, res, user_id = 0, status_approval = FALSE) {
 				 "Account approved for SysNDD.org",
 				 user_table$email
 				)
-		}  else {
+		} else {
 			# connect to database, delete application then disconnect
 			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 			dbExecute(sysndd_db, paste0("DELETE FROM user WHERE user_id = ", user_id_approval, ";"))
@@ -3770,6 +3770,73 @@ function(req, res, roles = "Viewer") {
 			collect()
 		user_table_roles
 		
+	} else {
+		res$status <- 403 # Forbidden
+		return(list(error="Read access forbidden."))
+	}
+}
+
+
+#* @tag user
+## change user password
+#' @put /api/user/password/change
+function(req, res, user_id_pass_change = 0, old_pass = "", new_pass_1 = "", new_pass_2 = "") {
+		
+	user <- req$user_id
+	user_id_pass_change <- as.integer(user_id_pass_change)
+
+	#get user data from database table
+	user_table <- pool %>% 
+		tbl("user") %>%
+		select(user_id, user_name, password, approved, first_name, family_name, email) %>%
+		filter(user_id == user_id_pass_change) %>%
+		collect()
+
+	#check if user_id_pass_change exists
+	user_id_pass_change_exists <- as.logical(length(user_table$user_id))
+	user_id_pass_change_approved <- as.logical(user_table$approved[1])
+
+	#check if paswords match and the new password satisfies minimal criteria
+	old_pass_match <- user_table$password[1] == old_pass
+	new_pass_match_and_valid <- (new_pass_1 == new_pass_2) && 
+		(new_pass_1 != old_pass) && 
+		nchar(new_pass_1) > 7 &&
+		grepl("[a-z]", new_pass_1) &&
+		grepl("[A-Z]", new_pass_1) &&
+		grepl("\\d", new_pass_1) &&
+		grepl("[!@#$%^&*]", new_pass_1)
+
+	# first check rights
+	if ( length(user) == 0 ) {
+	
+		res$status <- 401 # Unauthorized
+		return(list(error="Please authenticate."))
+
+	} else if ( (req$user_role %in% c("Administrator") || user == user_id_pass_change) && !user_id_pass_change_exists && (old_pass_match || req$user_role %in% c("Administrator")) && new_pass_match_and_valid) {
+	
+		res$status <- 409 # Conflict
+		return(list(error="User account does not exist."))
+		
+	} else if ( (req$user_role %in% c("Administrator") || user == user_id_pass_change) && user_id_pass_change_exists && !user_id_pass_change_approved && (old_pass_match || req$user_role %in% c("Administrator")) && new_pass_match_and_valid) {
+	
+		res$status <- 409 # Conflict
+		return(list(error="User account not approved."))
+		
+	} else if ( (req$user_role %in% c("Administrator") || user == user_id_pass_change) && (!(old_pass_match || req$user_role %in% c("Administrator")) || !new_pass_match_and_valid)) {
+	
+		res$status <- 409 # Conflict
+		return(list(error="Password input problem."))
+		
+	}  else if ( (req$user_role %in% c("Administrator") || user == user_id_pass_change) && user_id_pass_change_exists && user_id_pass_change_approved && (old_pass_match || req$user_role %in% c("Administrator")) && new_pass_match_and_valid) {
+
+		# connect to database, put approval for user application then disconnect
+		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+		dbExecute(sysndd_db, paste0("UPDATE user SET password = '", new_pass_1,"' WHERE user_id = ", user_id_pass_change, ";"))
+		dbDisconnect(sysndd_db)
+		
+		res$status <- 201 # Created
+		return(list(message="Password successfully changed."))
+			
 	} else {
 		res$status <- 403 # Forbidden
 		return(list(error="Read access forbidden."))
