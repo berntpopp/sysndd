@@ -25,6 +25,7 @@
                 size="sm"
               >
                 <b-form-select 
+                @input="requestSelected"
                 input-id="category-select"
                 v-model="selected_category" 
                 :options="categories_list" 
@@ -40,6 +41,7 @@
                 size="sm"
               >
                 <b-form-select 
+                @input="requestSelected"
                 input-id="inheritance-select"
                 v-model="selected_inheritance" 
                 :options="inheritance_list" 
@@ -58,6 +60,7 @@
                 size="sm"
               >
                 <b-form-select 
+                @input="requestSelected"
                 input-id="columns-select"
                 v-model="selected_columns" 
                 :options="columns_list" 
@@ -78,6 +81,7 @@
                 size="sm"
               >
                 <b-form-select 
+                @input="requestSelected"
                 input-id="sort-select"
                 v-model="selected_sort" 
                 :options="sort_list" 
@@ -88,19 +92,16 @@
               </b-input-group>
               <b-row>
                 <b-col class="my-1">
-                  <b-button block v-on:click="requestSelected" size="sm">
-                    <b-icon icon="search" class="mx-1"></b-icon>
-                    Browse
-                  </b-button>
-                </b-col>
-
-                <b-col class="my-1">
                   <b-button block v-on:click="requestExcel" size="sm">
                     <b-icon icon="table" class="mx-1"></b-icon>
                     <b-icon icon="download" v-if="!downloading"></b-icon>
                     <b-spinner small v-if="downloading"></b-spinner>
                     .xlsx
                   </b-button>
+                </b-col>
+
+                <b-col class="my-1">
+
                 </b-col>
               </b-row>
             </b-col>

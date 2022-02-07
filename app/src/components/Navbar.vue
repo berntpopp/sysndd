@@ -262,6 +262,9 @@ a {
 ::v-deep .nav-link {
    color: #FFF!important;
 }
+::v-deep .nav-link:hover {
+   color: #BBB!important;
+}
 ::v-deep .dropdown-menu {
 background-color: #343A40!important; 
 color: #FFF!important; 
