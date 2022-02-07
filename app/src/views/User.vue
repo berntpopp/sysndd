@@ -219,6 +219,12 @@ export default {
           this.makeToast(e, 'Error', 'success');
           this.pass_change_visible = false;
         }
+      this.resetPasswordForm();
+    },
+    resetPasswordForm() {
+      this.current_password = '';
+      this.new_password_entry = '';
+      this.new_password_repeat = '';
     },
     makeToast(event, title = null, variant = null) {
         this.$bvToast.toast('' + event, {
