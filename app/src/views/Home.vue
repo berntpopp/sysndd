@@ -1,7 +1,7 @@
 <template>
   <div class="container-fluid" style="min-height:90vh">
 
-    <b-container>
+    <b-container fluid>
 
         <b-row class="justify-content-md-center py-2">
           <b-col md="12">
