@@ -6,5 +6,12 @@ module.exports = {
     configureWebpack: {
         devtool: 'source-map',
         plugins: [ new BootstrapVueLoader() ]
-    }
+    },
+    css: {
+        loaderOptions: {
+          sass: {
+            prependData: `@import "@/assets/scss/custom.scss";`
+          }
+        }
+      }
 }

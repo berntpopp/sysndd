@@ -346,7 +346,6 @@ export default {
 }
 </script>
 
-
 <style scoped>
 .btn-group-xs > .btn, .btn-xs {
   padding: .25rem .4rem;

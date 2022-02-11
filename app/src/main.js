@@ -2,6 +2,8 @@ import Vue from 'vue'
 import App from './App.vue'
 import VueMeta from 'vue-meta'
 
+import './assets/css/custom.css';
+
 import { BIconPersonCircle, 
   BIconStoplights, 
   BIconFilter, 
@@ -25,6 +27,7 @@ import { BIconPersonCircle,
   BIconQuestionSquare,
   BIconPlusSquare,
   BIconFileEarmarkMinus} from 'bootstrap-vue'
+
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
 import Multiselect from 'vue-multiselect'
