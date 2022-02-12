@@ -62,7 +62,7 @@ const routes = [
     component: () => import(/* webpackChunkName: "User" */ '@/views/User.vue')
   },
   {
-    path: '/PasswordReset/:request_jwt',
+    path: '/PasswordReset/:request_jwt?',
     name: 'PasswordReset',
     component: () => import(/* webpackChunkName: "User" */ '@/views/PasswordReset.vue')
   },

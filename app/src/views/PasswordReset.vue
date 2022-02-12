@@ -124,14 +124,18 @@ export default {
     async checkURLParameter() {
       this.loading = true;
 
-        if (this.parseJwt(this.$route.params.request_jwt) == null) {
+        let decode_jwt = this.parseJwt(this.$route.params.request_jwt);
+        let timestamp = Math.floor(new Date().getTime() / 1000);
+
+        if (decode_jwt == null) {
           this.show_change_container = false;
           this.show_request_container = true;
+        } else if (decode_jwt.exp < timestamp) {
+          setTimeout(() => { this.$router.push('/'); }, 1000);
         } else {
           this.show_change_container = true;
           this.show_request_container = false;
         }
-
       this.loading = false;
       },
     parseJwt(token) {
@@ -158,7 +162,16 @@ export default {
       setTimeout(() => { this.$router.push('/'); }, 1000);
     },
     async doPasswordChange() {
-
+      let apiUrl = process.env.VUE_APP_API_URL + '/api/user/password/reset/change?new_pass_1=' + this.new_password_entry + '&new_pass_2=' + this.new_password_repeat;
+      try {
+        let response = await this.axios.get(apiUrl, {
+          headers: {
+            'Authorization': 'Bearer ' + this.$route.params.request_jwt
+          }
+        });
+      } catch (e) {
+        this.makeToast(e, 'Error', 'danger');
+      }
       this.resetChangeForm();
     },
     resetChangeForm() {

@@ -3809,7 +3809,7 @@ function(req, res, user_id_pass_change = 0, old_pass = "", new_pass_1 = "", new_
 	user_id_pass_change_exists <- as.logical(length(user_table$user_id))
 	user_id_pass_change_approved <- as.logical(user_table$approved[1])
 
-	#check if paswords match and the new password satisfies minimal criteria
+	#check if passwords match and the new password satisfies minimal criteria
 	old_pass_match <- user_table$password[1] == old_pass
 	new_pass_match_and_valid <- (new_pass_1 == new_pass_2) && 
 		(new_pass_1 != old_pass) && 
@@ -3859,8 +3859,12 @@ function(req, res, user_id_pass_change = 0, old_pass = "", new_pass_1 = "", new_
 
 #* @tag user
 ## request password reset
-#' @put /api/user/password/reset/request
+#' @get /api/user/password/reset/request
 function(req, res, email_request = "") {
+
+	user_table <- pool %>% 
+			tbl("user") %>%
+			collect()
 
 	# first validate email
 	if ( !isValidEmail(email_request) ) {
@@ -3868,14 +3872,15 @@ function(req, res, email_request = "") {
 		res$status <- 400 # Bad Request
 		return(list(error="Invalid Parameter Value Error."))
 
-	} else {
+	} else if ( !(email_request %in% user_table$email) ) {
+		res$status <- 200 # OK
+		res <- "Request mail send!"
+	} else if ( (email_request %in% user_table$email) ) {
 	
 		email_user <- str_to_lower(toString(email_request))
 
 		#get user data from database table
-		user_table <- pool %>% 
-			tbl("user") %>%
-			collect() %>%
+		user_table <- user_table %>%
 			mutate(email_lower = str_to_lower(email)) %>%
 			filter(email_lower == email_user) %>%
 			mutate(hash = toString(md5(paste0(dw$salt, password)))) %>%
@@ -3886,8 +3891,8 @@ function(req, res, email_request = "") {
 
 		# request time
 		timestamp_request <- Sys.time()
-		timestamp_iat <- as.numeric(timestamp_request)
-		timestamp_exp <-  as.numeric(timestamp_request) + dw$refresh
+		timestamp_iat <- as.integer(timestamp_request)
+		timestamp_exp <- as.integer(timestamp_request) + dw$refresh
 
 		# load secret and convert to raw
 		key <- charToRaw(dw$secret)
@@ -3902,12 +3907,75 @@ function(req, res, email_request = "") {
 		reset_url <- paste0(dw$base_url, "PasswordReset/", jwt)
 
 		# send mail
+		res$status <- 200 # OK
 		res <- send_noreply_email(c(
 			 "We received a password reset for your account at sysndd.org. Use this link to reset:",
 			 reset_url),
 			 "Your password reset request for SysNDD.org",
 			 user_table$email
 			)
+	} else {
+		res$status <- 401 # Unauthorized
+		return(list(error="Error or unauthorized."))
+	}
+}
+
+
+#* @tag user
+## do password reset
+#' @get /api/user/password/reset/change
+function(req, res, new_pass_1 = "", new_pass_2 = "") {
+
+	# load jwt from header
+	jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
+
+	# load secret and convert to raw
+	key <- charToRaw(dw$secret)
+		
+	user_jwt <- jwt_decode_hmac(jwt, secret = key)
+	user_jwt$token_expired = (user_jwt$exp < as.numeric(Sys.time()))
+
+	if (is.null(jwt) || user_jwt$token_expired){
+		res$status <- 401 # Unauthorized
+		return(list(error="Reset token expired."))
+	} else {
+		#get user data from database table
+		user_table <- pool %>% 
+			tbl("user") %>%
+			collect() %>%
+			filter(user_id == user_jwt$user_id) %>%
+			mutate(hash = toString(md5(paste0(dw$salt, password)))) %>%
+			mutate(timestamp_iat = as.integer(password_reset_date) - dw$refresh) %>%
+			mutate(timestamp_exp = as.integer(password_reset_date)) %>%
+			select(user_id, user_name, hash, email, timestamp_iat, timestamp_exp)
+
+		# compute JWT check
+		claim_check <- jwt_claim(user_id = user_table$user_id, user_name = user_table$user_name, email = user_table$email, hash = user_table$hash, iat = user_table$timestamp_iat, exp = user_table$timestamp_exp)
+		jwt_check <- jwt_encode_hmac(claim_check, secret = key)
+		jwt_match <- (jwt == jwt_check)
+
+		# check if passwords match and the new password satisfies minimal criteria
+		new_pass_match_and_valid <- (new_pass_1 == new_pass_2) && 
+			nchar(new_pass_1) > 7 &&
+			grepl("[a-z]", new_pass_1) &&
+			grepl("[A-Z]", new_pass_1) &&
+			grepl("\\d", new_pass_1) &&
+			grepl("[!@#$%^&*]", new_pass_1)
+
+		# connect to database and change password if criteria fullfilled, remove time to invalidate JWT
+		if (jwt_match && new_pass_match_and_valid){
+			# connect to database, put approval for user application then disconnect
+			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+			dbExecute(sysndd_db, paste0("UPDATE user SET password = '", new_pass_1,"' WHERE user_id = ", user_jwt$user_id, ";"))
+			dbExecute(sysndd_db, paste0("UPDATE user SET password_reset_date = NULL WHERE user_id = ", user_jwt$user_id, ";"))
+			dbDisconnect(sysndd_db)
+			
+			res$status <- 201 # Created
+			return(list(message="Password successfully changed."))
+		} else {
+			res$status <- 409 # Conflict
+			return(list(error="Password or JWT input problem."))
+		}
 	}
 }
 
