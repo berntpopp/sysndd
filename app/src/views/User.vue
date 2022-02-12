@@ -216,7 +216,7 @@ export default {
         this.pass_change_visible = false;
         } catch (e) {
           console.error(e.response.status);
-          this.makeToast(e, 'Error', 'success');
+          this.makeToast(e, 'Error', 'danger');
           this.pass_change_visible = false;
         }
       this.resetPasswordForm();

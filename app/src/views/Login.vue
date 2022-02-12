@@ -101,7 +101,7 @@ export default {
         this.signinWithJWT();
         } catch (e) {
           console.error(e.response.status);
-          this.makeToast(e, 'Error', 'success');
+          this.makeToast(e, 'Error', 'danger');
         }
       }, 
     async signinWithJWT() {

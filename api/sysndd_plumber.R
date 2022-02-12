@@ -1,6 +1,5 @@
 # sysndd_plumber.R
 ## to do: adapt "serializer json list(na="null")"
-## to do: add pool library for connection managment
 
 
 ##-------------------------------------------------------------------##
@@ -32,6 +31,14 @@ library(knitr)
 
 ##-------------------------------------------------------------------##
 dw <- config::get("sysndd_db_local")
+##-------------------------------------------------------------------##
+
+
+
+##-------------------------------------------------------------------##
+if(nchar(Sys.getenv("SMTP_PASSWORD")) == 0) {
+	Sys.setenv("SMTP_PASSWORD"=toString(dw$mail_noreply_password))
+}
 ##-------------------------------------------------------------------##
 
 
@@ -595,12 +602,19 @@ make_matrix_plot <- function(data_melt) {
 }
 
 
-# generate anrandom password
+# generate a random password
 # based on https://stackoverflow.com/questions/22219035/function-to-generate-a-random-password
 random_password <- function() {
 	samp <- c(0:9, letters, LETTERS, "!", "$")
 	password <- paste(sample(samp, 12), collapse="")
 	return(password)
+}
+
+
+# validate email
+# based on https://www.r-bloggers.com/2012/07/validating-email-adresses-in-r/
+isValidEmail <- function(x) {
+    grepl("\\<[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\>", as.character(x), ignore.case=TRUE)
 }
 
 
@@ -613,7 +627,7 @@ generate_initials <- function(first_name, family_name) {
 
 
 send_noreply_email <- function(email_body, email_subject, email_recipient, email_blind_copy = "noreply@sysndd.org") {
-		email <-  compose_email(
+		email <- compose_email(
 			body = md(email_body),
 			footer = md("Visit [SysNDD.org](https://www.sysndd.org) for the latest information on Neurodevelopmental Disorders.")
 			)
@@ -682,7 +696,7 @@ put_post_db_status <- function(request_method, status_data, status_user_id) {
 
 				# generate update query
 				update_query <- as_tibble(status_received) %>%
-					mutate(row = row_number()) %>%  
+					mutate(row = row_number()) %>%
 					mutate(across(where(is.logical), as.integer)) %>%
 					mutate(across(where(is.numeric), as.character)) %>%
 					pivot_longer(-row) %>% 
@@ -758,9 +772,9 @@ make_matrix_plot_mem <- memoise(make_matrix_plot)
 ## enable cross origin requests
 ## based on https://github.com/rstudio/plumber/issues/66
 function(req, res) {
-  
+
 	res$setHeader("Access-Control-Allow-Origin", "*")
-  
+
 	if (req$REQUEST_METHOD == "OPTIONS") {
 		res$setHeader("Access-Control-Allow-Methods","*")
 		res$setHeader("Access-Control-Allow-Headers", req$HTTP_ACCESS_CONTROL_REQUEST_HEADERS)
@@ -794,7 +808,7 @@ function(req, res) {
 		if (is.null(req$HTTP_AUTHORIZATION)) {
 			res$status <- 401 # Unauthorized
 			return(list(error="Authorization http header missing."))
-		} else if (jwt_decode_hmac(str_remove(req$HTTP_AUTHORIZATION, "Bearer "), secret = key)$exp  < as.numeric(Sys.time())) {
+		} else if (jwt_decode_hmac(str_remove(req$HTTP_AUTHORIZATION, "Bearer "), secret = key)$exp < as.numeric(Sys.time())) {
 			res$status <- 401 # Unauthorized
 			return(list(error="Token expired."))
 		} else {
@@ -884,16 +898,16 @@ function(res, sort = "entity_id", `page[after]` = 0, `page[size]` = "all") {
 	page_after_row_prev <- ( sysndd_db_disease_table %>%
 		filter(row_number() == page_after_row - page_size) )$entity_id
 	page_after_row_last <- ( sysndd_db_disease_table %>%
-		filter(row_number() ==  page_size * (page_count - 1) ) )$entity_id
+		filter(row_number() == page_size * (page_count - 1) ) )$entity_id
 		
 	# filter by row
 	sysndd_db_disease_table <- sysndd_db_disease_table %>%
 		filter(row_number() > page_after_row & row_number() <= page_after_row + page_size)
 
-	sysndd_db_disease_collected <- sysndd_db_disease_table  %>%
+	sysndd_db_disease_collected <- sysndd_db_disease_table %>%
 		mutate(ndd_phenotype = case_when(
-		  ndd_phenotype == 1 ~ "Yes",
-		  ndd_phenotype == 0 ~ "No"
+			ndd_phenotype == 1 ~ "Yes",
+			ndd_phenotype == 0 ~ "No"
 		))
 
 	# generate links for self, next and prev pages
@@ -960,8 +974,8 @@ function(req, res, entity_json, review_json, status_json) {
 				publications_received <- bind_rows(as_tibble(compact(review_data$literature$additional_references)), as_tibble(compact(review_data$literature$gene_review)), .id = "publication_type") %>% 
 					select(publication_id = value, publication_type) %>%
 					mutate(publication_type = case_when(
-					  publication_type == 1 ~ "additional_references",
-					  publication_type == 2 ~ "gene_review"
+						publication_type == 1 ~ "additional_references",
+						publication_type == 2 ~ "gene_review"
 					)) %>%
 					unique() %>%
 					select(publication_id, publication_type) %>%
@@ -1077,8 +1091,8 @@ function(req, res, entity_json, review_json, status_json) {
 #' @delete /api/entity/delete
 function(sysndd_id, req, res) {
 
-  if (req$user_role == "Administrator"){
-    sysndd_id <- as.integer(sysndd_id)
+	if (req$user_role == "Administrator"){
+	sysndd_id <- as.integer(sysndd_id)
 	# connect to database
 	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
@@ -1090,10 +1104,9 @@ function(sysndd_id, req, res) {
 
 	dbDisconnect(sysndd_db)
 	res <- "Entry deleted."
-  } else {
-    res$status <- 401 # Unauthorized
-  }
-
+	} else {
+		res$status <- 401 # Unauthorized
+	}
 }
 
 
@@ -1106,7 +1119,7 @@ function(sysndd_id, entity_data) {
 	sysndd_id <- as.integer(sysndd_id)
 	
 	update_query <- as_tibble(fromJSON(entity_data)) %>%
-    select(hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, ndd_phenotype) %>% 
+	select(hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, ndd_phenotype) %>% 
 	mutate(row = row_number()) %>% 
 	pivot_longer(-row) %>% 
 	mutate(query = paste0(name, "='", value, "'")) %>% 
@@ -1141,8 +1154,8 @@ function(sysndd_id) {
 		filter(entity_id %in% sysndd_id) %>%
 		collect() %>%
 		mutate(ndd_phenotype = case_when(
-		  ndd_phenotype == 1 ~ "Yes",
-		  ndd_phenotype == 0 ~ "No"
+			ndd_phenotype == 1 ~ "Yes",
+			ndd_phenotype == 0 ~ "No"
 		))
 
 	sysndd_db_disease_collected
@@ -3648,7 +3661,7 @@ function(req, res, user_id = 0, status_approval = FALSE) {
 			dbDisconnect(sysndd_db)
 			
 			# send mail
-			res <-  send_noreply_email(c(
+			res <- send_noreply_email(c(
 				 "Your registration for sysndd.org has been approved by a curator. Your password (please change after first login):",
 				 user_password),
 				 "Account approved for SysNDD.org",
@@ -3843,6 +3856,61 @@ function(req, res, user_id_pass_change = 0, old_pass = "", new_pass_1 = "", new_
 	}
 }
 
+
+#* @tag user
+## request password reset
+#' @get /api/user/password/reset/request
+function(req, res, email_request = "") {
+
+	# first validate email
+	if ( !isValidEmail(email_request) ) {
+	
+		res$status <- 400 # Bad Request
+		return(list(error="Invalid Parameter Value Error."))
+
+	} else {
+	
+		email_user <- str_to_lower(toString(email_request))
+
+		#get user data from database table
+		user_table <- pool %>% 
+			tbl("user") %>%
+			collect() %>%
+			mutate(email_lower = str_to_lower(email)) %>%
+			filter(email_lower == email_user) %>%
+			select(user_id, user_name, email)
+
+		# extract user_id by mail
+		user_id_from_email <- user_table$user_id
+
+		# request time
+		timestamp_request <- Sys.time()
+		timestamp_iat <- as.numeric(timestamp_request)
+		timestamp_exp <-  as.numeric(timestamp_request) + dw$refresh
+
+		# load secret and convert to raw
+		key <- charToRaw(dw$secret)
+
+		# connect to database, put timestamp of request password reset
+		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+		dbExecute(sysndd_db, paste0("UPDATE user SET password_reset_date = '", timestamp_request,"' WHERE user_id = ", user_id_from_email[1], ";"))
+		dbDisconnect(sysndd_db)
+
+		claim <- jwt_claim(user_id = user_table$user_id, user_name = user_table$user_name, email = user_table$email, iat = timestamp_iat, exp = timestamp_exp)
+		jwt <- jwt_encode_hmac(claim, secret = key)
+		reset_url <- paste0(dw$base_url, "PasswordReset/", jwt)
+
+		# send mail
+		res <- send_noreply_email(c(
+			 "We received a password reset for your account at sysndd.org. Use this link to reset:",
+			 reset_url),
+			 "Your password reset request for SysNDD.org",
+			 user_table$email
+			)
+
+	}
+}
+
 ## User endpoint section
 ##-------------------------------------------------------------------##
 
@@ -3889,7 +3957,7 @@ function(signup_data) {
 		dbDisconnect(sysndd_db)
 
 		# send mail
-		res <-  send_noreply_email(c(
+		res <- send_noreply_email(c(
 			 "Your registration request for sysndd.org has been send to the curators who will review it soon. Information provided:",
 			 user),
 			 "Your registration request to SysNDD.org",
