@@ -3859,7 +3859,7 @@ function(req, res, user_id_pass_change = 0, old_pass = "", new_pass_1 = "", new_
 
 #* @tag user
 ## request password reset
-#' @get /api/user/password/reset/request
+#' @put /api/user/password/reset/request
 function(req, res, email_request = "") {
 
 	# first validate email
@@ -3878,7 +3878,8 @@ function(req, res, email_request = "") {
 			collect() %>%
 			mutate(email_lower = str_to_lower(email)) %>%
 			filter(email_lower == email_user) %>%
-			select(user_id, user_name, email)
+			mutate(hash = toString(md5(paste0(dw$salt, password)))) %>%
+			select(user_id, user_name, hash, email)
 
 		# extract user_id by mail
 		user_id_from_email <- user_table$user_id
@@ -3896,7 +3897,7 @@ function(req, res, email_request = "") {
 		dbExecute(sysndd_db, paste0("UPDATE user SET password_reset_date = '", timestamp_request,"' WHERE user_id = ", user_id_from_email[1], ";"))
 		dbDisconnect(sysndd_db)
 
-		claim <- jwt_claim(user_id = user_table$user_id, user_name = user_table$user_name, email = user_table$email, iat = timestamp_iat, exp = timestamp_exp)
+		claim <- jwt_claim(user_id = user_table$user_id, user_name = user_table$user_name, email = user_table$email, hash = user_table$hash, iat = timestamp_iat, exp = timestamp_exp)
 		jwt <- jwt_encode_hmac(claim, secret = key)
 		reset_url <- paste0(dw$base_url, "PasswordReset/", jwt)
 
@@ -3907,7 +3908,6 @@ function(req, res, email_request = "") {
 			 "Your password reset request for SysNDD.org",
 			 user_table$email
 			)
-
 	}
 }
 
