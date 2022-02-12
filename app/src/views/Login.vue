@@ -58,8 +58,8 @@
 
               </validation-observer>
 
-              Don't have an account yet and want to help? <b-link v-bind:href="'/Register'">Register now.</b-link>
-
+              Don't have an account yet and want to help? <b-link v-bind:href="'/Register'">Register now.</b-link> <br />
+              Forgot your password? <b-link v-bind:href="'/PasswordReset'">Reset now.</b-link>
             </b-card-text>  
             </b-card>
           </b-col>
