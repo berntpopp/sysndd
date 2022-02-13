@@ -1,5 +1,4 @@
 library(plumber)
-future::plan("multisession")
 
 setwd("/sysndd_api_volume")
 
