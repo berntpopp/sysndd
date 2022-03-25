@@ -6,22 +6,22 @@
         <b-collapse id="footer-collapse" is-nav>
           <b-navbar-nav justified class="flex-grow-1">
             <b-nav-item :link-attrs="link['license']" href="http://creativecommons.org/licenses/by/4.0/" target="_blank">
-              <img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" height="30"  />
+              <img src="../../public/licensebuttons.netlby4.0_88x31.png" height="34" alt="Creative Commons License" />
             </b-nav-item>
             <b-nav-item :link-attrs="link['github']" href="https://github.com/berntpopp/sysndd" target="_blank">
-              <img src="../../public/GitHub-Mark-64px.png" height="30" alt="" />
+              <img src="../../public/GitHub-Mark-64px_white.png" height="34" alt="GitHub Logo" />
             </b-nav-item>
             <b-nav-item :link-attrs="link['api']" href="/API">
-              <img src="../../public/swagger.svg" height="30" alt="" />
+              <img src="../../public/swagger.svg" height="34" alt="Swagger OpenAPI Logo" />
             </b-nav-item>
             <b-nav-item :link-attrs="link['dfg']" href="https://www.dfg.de/" target="_blank">
-              <img src="../../public/dfg_logo_schriftzug_schwarz_foerderung_en.gif" height="30" alt="" />
+              <img src="../../public/dfg_logo_foerderung/dfg_logo_schriftzug_blau_foerderung_4c.png" height="34" alt="DFG gefördert Logo" />
             </b-nav-item>
             <b-nav-item :link-attrs="link['unibe']" href="https://www.unibe.ch/" target="_blank">
-              <img src="../../public/ub_16pt_rgb_quer_2018.png" height="30" alt="" />
+              <img src="../../public/ub_16pt_rgb_quer_2018_68px.png" height="34" alt="Universität Bern Logo" />
             </b-nav-item>
             <b-nav-item :link-attrs="link['ern-ithaca']" href="https://ern-ithaca.eu/" target="_blank" >
-              <img src="https://ern-ithaca.eu/wp-content/uploads/2020/04/ITHACA-logo.jpg" height="30" alt="" />
+              <img src="../../public/logo_blue_tiny.png" height="34" alt="ERN ITHACA Logo" />
             </b-nav-item>
           </b-navbar-nav>
         </b-collapse>
