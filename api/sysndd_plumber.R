@@ -198,8 +198,8 @@ function(res, sort = "entity_id", `page[after]` = 0, `page[size]` = "all") {
 	# split the sort input by comma and check if entity_idis in the resulting list, if not append to the list for unique sorting
 	sort_list <- str_split(str_squish(sort), ",")[[1]]
 	
-	if ( !("entity_id" %in% sort) ){
-		sort_list <- append(sort, "entity_id")
+	if ( !("entity_id" %in% sort_list) ){
+		sort_list <- append(sort_list, "entity_id")
 	}
 
 	# check if `page[size]` is either "all" or a valid integer and convert or assign values accordingly
