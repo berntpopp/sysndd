@@ -55,3 +55,37 @@ send_noreply_email <- function(email_body, email_subject, email_recipient, email
 		  ))
 		return("Request mail send!")
 }
+
+# generate sort expressions to parse
+generate_sort_exprs <- function(sort_string, unique_id = "entity_id") {
+
+	# split the sort input by comma and compute directions based on presence of + or - in front of the string
+	sort_tibble <- as_tibble(str_split(str_squish(sort_string), ",")[[1]]) %>%
+        select(column = value) %>%
+        mutate(direction = case_when(
+            str_sub(column, 1, 1) == "+" ~ "asc",
+            str_sub(column, 1, 1) == "-" ~ "desc",
+            TRUE ~ "asc",
+        )) %>%
+        mutate(column = case_when(
+            str_sub(column, 1, 1) == "+" ~ str_sub(column, 2, -1),
+            str_sub(column, 1, 1) == "-" ~ str_sub(column, 2, -1),
+            TRUE ~ column,
+        )) %>%
+        mutate(exprs = case_when(
+            direction == "asc" ~ column,
+            direction == "desc" ~ paste0("desc(", column, ")"),
+        )) %>%
+		unique %>%
+		group_by(column) %>%
+		mutate(count = n())
+
+    sort_list <- sort_tibble$exprs
+
+    # and check if entity_idis in the resulting list, if not append to the list for unique sorting
+	if ( !(unique_id %in% sort_list | paste0("desc(", unique_id, ")") %in% sort_list) ){
+		sort_list <- append(sort_list, "entity_id")
+	}
+
+    return(sort_list)
+}

@@ -26,6 +26,7 @@ library(blastula)
 library(keyring)
 library(future)
 library(knitr)
+library(rlang)
 ##-------------------------------------------------------------------##
 
 
@@ -195,13 +196,6 @@ function(res, sort = "entity_id", `page[after]` = 0, `page[size]` = "all") {
 		collect()
 		)$n
 
-	# split the sort input by comma and check if entity_idis in the resulting list, if not append to the list for unique sorting
-	sort_list <- str_split(str_squish(sort), ",")[[1]]
-	
-	if ( !("entity_id" %in% sort_list) ){
-		sort_list <- append(sort_list, "entity_id")
-	}
-
 	# check if `page[size]` is either "all" or a valid integer and convert or assign values accordingly
 	if ( `page[size]` == "all" ){
 		page_after <- 0
@@ -218,16 +212,19 @@ function(res, sort = "entity_id", `page[after]` = 0, `page[size]` = "all") {
 		return(list(error="Invalid Parameter Value Error."))
 	}
 
+	# geerate sort expression based on sort input
+	sort_exprs <- generate_sort_exprs(sort)
+
 	# get data from database
 	ndd_entity_review <- pool %>% 
 		tbl("ndd_entity_review") %>%
 		filter(is_primary) %>%
 		select(entity_id, synopsis)
-		
+
 	sysndd_db_disease_table <- pool %>% 
 		tbl("ndd_entity_view") %>%
 		left_join(ndd_entity_review, by = c("entity_id")) %>%
-		arrange(!!!syms(sort_list)) %>%
+		arrange(rlang::parse_exprs(sort_exprs)) %>%
 		collect()
 
 	# find the current row of the requested page_after entry
