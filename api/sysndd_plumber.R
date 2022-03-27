@@ -189,28 +189,7 @@ function(req, res) {
 #' @get /api/entity
 function(res, sort = "entity_id", filter = "", `page[after]` = 0, `page[size]` = "all") {
 
-	# get number of rows in ndd_entity_view
-	sysndd_db_disease_rows <- (pool %>% 
-		tbl("ndd_entity_view") %>%
-		summarise(n = n()) %>%
-		collect()
-		)$n
-
-	# check if `page[size]` is either "all" or a valid integer and convert or assign values accordingly
-	if ( `page[size]` == "all" ){
-		page_after <- 0
-		page_size <- sysndd_db_disease_rows
-		page_count <- ceiling(sysndd_db_disease_rows/page_size)
-	} else if ( is.numeric(as.integer(`page[size]`)) )
-	{
-		page_after <- as.integer(`page[after]`)
-		page_size <- as.integer(`page[size]`)
-		page_count <- ceiling(sysndd_db_disease_rows/page_size)
-	} else
-	{
-		res$status <- 400 #Bad Request
-		return(list(error="Invalid Parameter Value Error."))
-	}
+	start_time <- Sys.time()
 
 	# generate sort expression based on sort input
 	sort_exprs <- generate_sort_expressions(sort)
@@ -231,6 +210,26 @@ function(res, sort = "entity_id", filter = "", `page[after]` = 0, `page[size]` =
 		arrange(rlang::parse_exprs(sort_exprs)) %>%
 		filter(!!!rlang::parse_exprs(filter_exprs)) %>%
 		collect()
+
+	# get number of rows in filtered ndd_entity_view
+	sysndd_db_disease_rows <- (sysndd_db_disease_table %>%
+		summarise(n = n()))$n
+
+	# check if `page[size]` is either "all" or a valid integer and convert or assign values accordingly
+	if ( `page[size]` == "all" ){
+		page_after <- 0
+		page_size <- sysndd_db_disease_rows
+		page_count <- ceiling(sysndd_db_disease_rows/page_size)
+	} else if ( is.numeric(as.integer(`page[size]`)) )
+	{
+		page_after <- as.integer(`page[after]`)
+		page_size <- as.integer(`page[size]`)
+		page_count <- ceiling(sysndd_db_disease_rows/page_size)
+	} else
+	{
+		res$status <- 400 #Bad Request
+		return(list(error="Invalid Parameter Value Error."))
+	}
 
 	# find the current row of the requested page_after entry
 	page_after_row <- (sysndd_db_disease_table %>%
@@ -286,10 +285,17 @@ function(res, sort = "entity_id", filter = "", `page[after]` = 0, `page[size]` =
 		last <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), "&page[after]=", page_after_row_last, "&page[size]=", `page[size]`)
 	}
 
+	# generate links object
 	links <- as_tibble(list("prev" = prev, "self" = self, "next" = `next`, "last" = last))
 
-	# 
-	list(links = links, data = sysndd_db_disease_collected)
+	# compute execution time
+	end_time <- Sys.time()
+	execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
+
+	meta <- as_tibble(list("sort" = sort, "filter" = filter, "perPage" = page_size, "currentPage" = ceiling((page_after_row+1)/page_size), "totalPages" = page_count, "currentItemID" = `page[after]`, "totalItems" = sysndd_db_disease_rows, "executionTime" = execution_time))
+
+	# generate object to return
+	list(links = links, meta = meta, data = sysndd_db_disease_collected)
 }
 
 
