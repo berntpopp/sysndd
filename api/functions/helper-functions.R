@@ -102,11 +102,11 @@ generate_filter_expressions <- function(filter_string) {
 		   separate(value, c("logic", "column", "value"), sep = "\\(|\\,") %>%
 		   mutate(value = str_remove_all(value, "'|\\)")) %>%
 		   mutate(exprs = case_when(
-				column == "any" & logic == "contains" ~ paste0("if_any(everything(), ~str_detect(.x, '", value, "')"),
-				column == "all" & logic == "contains" ~ paste0("if_all(everything(), ~str_detect(.x, '", value, "')"),
+				column == "any" & logic == "contains" ~ paste0("if_any(everything(), ~str_detect(.x, '", value, "'))"),
+				column == "all" & logic == "contains" ~ paste0("if_all(everything(), ~str_detect(.x, '", value, "'))"),
 				!(column %in% c("all", "any")) & logic == "contains" ~ paste0("str_detect(", column, ", '", value, "')"),
-				column == "any" & logic == "equals" ~ paste0("if_any(everything(), ~str_detect(.x, '^", value, "$')"),
-				column == "all" & logic == "equals" ~ paste0("if_all(everything(), ~str_detect(.x, '^", value, "$')"),
+				column == "any" & logic == "equals" ~ paste0("if_any(everything(), ~str_detect(.x, '^", value, "$'))"),
+				column == "all" & logic == "equals" ~ paste0("if_all(everything(), ~str_detect(.x, '^", value, "$'))"),
 				!(column %in% c("all", "any")) & logic == "equals" ~ paste0("str_detect(", column, ", '^", value, "$')"),
 			)) %>%
 			filter(!is.na(exprs))

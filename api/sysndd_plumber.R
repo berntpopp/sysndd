@@ -224,11 +224,12 @@ function(res, sort = "entity_id", filter = "", `page[after]` = 0, `page[size]` =
 		filter(is_primary) %>%
 		select(entity_id, synopsis)
 
+	# '!!!' in filter needed to evaluate formula for any/ all cases (https://stackoverflow.com/questions/66070864/operating-across-columns-rowwise-in-r-dbplyr)
 	sysndd_db_disease_table <- pool %>% 
 		tbl("ndd_entity_view") %>%
 		left_join(ndd_entity_review, by = c("entity_id")) %>%
 		arrange(rlang::parse_exprs(sort_exprs)) %>%
-		filter(rlang::parse_exprs(filter_exprs)) %>%
+		filter(!!!rlang::parse_exprs(filter_exprs)) %>%
 		collect()
 
 	# find the current row of the requested page_after entry
