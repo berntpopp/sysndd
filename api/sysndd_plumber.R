@@ -211,6 +211,7 @@ function(res, sort = "entity_id", filter = "", `page[after]` = 0, `page[size]` =
 		filter(!!!rlang::parse_exprs(filter_exprs)) %>%
 		collect()
 
+	## to do: I think all the selection prcess should be a helper function to repurpose in the other tables
 	# get number of rows in filtered ndd_entity_view
 	sysndd_db_disease_rows <- (sysndd_db_disease_table %>%
 		summarise(n = n()))$n
