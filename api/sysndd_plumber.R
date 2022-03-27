@@ -187,7 +187,7 @@ function(req, res) {
 ## get all entities
 #* @serializer json list(na="string")
 #' @get /api/entity
-function(res, sort = "entity_id", `page[after]` = 0, `page[size]` = "all") {
+function(res, sort = "entity_id", filter = "", `page[after]` = 0, `page[size]` = "all") {
 
 	# get number of rows in ndd_entity_view
 	sysndd_db_disease_rows <- (pool %>% 
@@ -212,8 +212,11 @@ function(res, sort = "entity_id", `page[after]` = 0, `page[size]` = "all") {
 		return(list(error="Invalid Parameter Value Error."))
 	}
 
-	# geerate sort expression based on sort input
-	sort_exprs <- generate_sort_exprs(sort)
+	# generate sort expression based on sort input
+	sort_exprs <- generate_sort_expressions(sort)
+
+	# generate filter expression based on filter input
+	filter_exprs <- generate_filter_expressions(filter)
 
 	# get data from database
 	ndd_entity_review <- pool %>% 
@@ -225,6 +228,7 @@ function(res, sort = "entity_id", `page[after]` = 0, `page[size]` = "all") {
 		tbl("ndd_entity_view") %>%
 		left_join(ndd_entity_review, by = c("entity_id")) %>%
 		arrange(rlang::parse_exprs(sort_exprs)) %>%
+		filter(rlang::parse_exprs(filter_exprs)) %>%
 		collect()
 
 	# find the current row of the requested page_after entry
@@ -259,26 +263,26 @@ function(res, sort = "entity_id", `page[after]` = 0, `page[size]` = "all") {
 		))
 
 	# generate links for self, next and prev pages
-	self <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity/?sort=", sort, "&page[after]=", `page[after]`, "&page[size]=", `page[size]`)
+	self <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity/?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), "&page[after]=", `page[after]`, "&page[size]=", `page[size]`)
 	if ( length(page_after_row_prev) == 0 ){
 		prev <- "null"
 	} else
 	{
-		prev <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity?sort=", sort, "&page[after]=", page_after_row_prev, "&page[size]=", `page[size]`)
+		prev <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), "&page[after]=", page_after_row_prev, "&page[size]=", `page[size]`)
 	}
 	
 	if ( length(page_after_row_next) == 0 ){
 		`next` <- "null"
 	} else
 	{
-		`next` <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity?sort=", sort, "&page[after]=", page_after_row_next, "&page[size]=", `page[size]`)
+		`next` <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), "&page[after]=", page_after_row_next, "&page[size]=", `page[size]`)
 	}
 	
 	if ( length(page_after_row_last) == 0 ){
 		last <- "null"
 	} else
 	{
-		last <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity?sort=", sort, "&page[after]=", page_after_row_last, "&page[size]=", `page[size]`)
+		last <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), "&page[after]=", page_after_row_last, "&page[size]=", `page[size]`)
 	}
 
 	links <- as_tibble(list("prev" = prev, "self" = self, "next" = `next`, "last" = last))
