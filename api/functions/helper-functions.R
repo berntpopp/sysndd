@@ -111,7 +111,6 @@ generate_filter_expressions <- function(filter_string) {
 			)) %>%
 			filter(!is.na(exprs))
 
-
 		sort_list <- filter_tibble$exprs
 
 		return(sort_list)
@@ -149,4 +148,90 @@ select_tibble_fields <- function(selection_tibble, fields_requested, unique_id =
 	}
 
     return(selection_tibble)
+}
+
+# generate cursor pagination information from a tibble
+generate_cursor_pagination_info <- function(pagination_tibble, page_size = "all", page_after = 0, pagination_identifier = "entity_id") {
+
+	# get number of rows in filtered ndd_entity_view
+	pagination_tibble_rows <- (pagination_tibble %>%
+		summarise(n = n()))$n
+
+	# check if page_size is either "all" or a valid integer and convert or assign values accordingly
+	if ( page_size == "all" ){
+		page_after <- 0
+		page_size <- pagination_tibble_rows
+		page_count <- ceiling(pagination_tibble_rows/page_size)
+	} else if ( is.numeric(as.integer(page_size)) )
+	{
+		page_after <- as.integer(page_after)
+		page_size <- as.integer(page_size)
+		page_count <- ceiling(pagination_tibble_rows/page_size)
+	} else
+	{
+		stop("Page size provided is not numeric or all.")
+	}
+
+	# find the current row of the requested page_after entry
+	page_after_row <- (pagination_tibble %>%
+		mutate(row = row_number()) %>%
+		filter(!!sym(pagination_identifier) == page_after)
+		)$row
+
+	if ( length(page_after_row) == 0 ){
+		page_after_row <- 0
+		page_after_row_next <- ( pagination_tibble %>%
+			filter(row_number() == page_after_row + page_size + 1) %>%
+			select(!!sym(pagination_identifier)) )[[1]]
+	} else {
+		page_after_row_next <- ( pagination_tibble %>%
+			filter(row_number() == page_after_row + page_size) %>%
+			select(!!sym(pagination_identifier)) )[[1]]
+	}
+
+	# find next and prev item row
+	page_after_row_prev <- ( pagination_tibble %>%
+		filter(row_number() == page_after_row - page_size) %>%
+			select(!!sym(pagination_identifier)) )[[1]]
+	page_after_row_last <- ( pagination_tibble %>%
+		filter(row_number() == page_size * (page_count - 1) ) %>%
+			select(!!sym(pagination_identifier)) )[[1]]
+		
+	# filter by row
+	pagination_tibble <- pagination_tibble %>%
+		filter(row_number() > page_after_row & row_number() <= page_after_row + page_size)
+
+	# generate links for self, next and prev pages
+	self <- paste0("&page[after]=", page_after, "&page[size]=", page_size)
+	if ( length(page_after_row_prev) == 0 ){
+		prev <- "null"
+	} else
+	{
+		prev <- paste0("&page[after]=", page_after_row_prev, "&page[size]=", page_size)
+	}
+	
+	if ( length(page_after_row_next) == 0 ){
+		`next` <- "null"
+	} else
+	{
+		`next` <- paste0("&page[after]=", page_after_row_next, "&page[size]=", page_size)
+	}
+	
+	if ( length(page_after_row_last) == 0 ){
+		last <- "null"
+	} else
+	{
+		last <- paste0("&page[after]=", page_after_row_last, "&page[size]=", page_size)
+	}
+
+	# generate links object
+	links <- as_tibble(list("prev" = prev, "self" = self, "next" = `next`, "last" = last))
+	
+	# generate meta object
+	meta <- as_tibble(list("perPage" = page_size, "currentPage" = ceiling((page_after_row+1)/page_size), "totalPages" = page_count, "currentItemID" = page_after, "totalItems" = pagination_tibble_rows))
+
+	# generate return list
+	return_data <- list(links = links, meta = meta, data = pagination_tibble)
+	
+	return(return_data)
 }

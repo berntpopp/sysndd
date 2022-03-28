@@ -212,6 +212,7 @@ function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = 0, `
 		filter(!!!rlang::parse_exprs(filter_exprs)) %>%
 		collect()
 
+	## to do: this needs to be in the MySQL database view instead
 	sysndd_db_disease_table <- sysndd_db_disease_table %>%
 		mutate(ndd_phenotype = case_when(
 			ndd_phenotype == 1 ~ "Yes",
@@ -221,86 +222,28 @@ function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = 0, `
 	# select fields from table based on input using the helper function "select_tibble_fields"
 	sysndd_db_disease_table <- select_tibble_fields(sysndd_db_disease_table, fields, "entity_id")
 
-	## to do: I think all the selection process should be a helper function to repurpose in the other tables
-	# get number of rows in filtered ndd_entity_view
-	sysndd_db_disease_rows <- (sysndd_db_disease_table %>%
-		summarise(n = n()))$n
-
-	# check if `page[size]` is either "all" or a valid integer and convert or assign values accordingly
-	if ( `page[size]` == "all" ){
-		page_after <- 0
-		page_size <- sysndd_db_disease_rows
-		page_count <- ceiling(sysndd_db_disease_rows/page_size)
-	} else if ( is.numeric(as.integer(`page[size]`)) )
-	{
-		page_after <- as.integer(`page[after]`)
-		page_size <- as.integer(`page[size]`)
-		page_count <- ceiling(sysndd_db_disease_rows/page_size)
-	} else
-	{
-		res$status <- 400 #Bad Request
-		return(list(error="Invalid Parameter Value Error."))
-	}
-
-	# find the current row of the requested page_after entry
-	page_after_row <- (sysndd_db_disease_table %>%
-		mutate(row = row_number()) %>%
-		filter(entity_id == page_after)
-		)$row
-
-	if ( length(page_after_row) == 0 ){
-		page_after_row <- 0
-		page_after_row_next <- ( sysndd_db_disease_table %>%
-			filter(row_number() == page_after_row + page_size + 1) )$entity_id
-	} else {
-		page_after_row_next <- ( sysndd_db_disease_table %>%
-			filter(row_number() == page_after_row + page_size) )$entity_id
-	}
-
-	# find next and prev item row
-	page_after_row_prev <- ( sysndd_db_disease_table %>%
-		filter(row_number() == page_after_row - page_size) )$entity_id
-	page_after_row_last <- ( sysndd_db_disease_table %>%
-		filter(row_number() == page_size * (page_count - 1) ) )$entity_id
-		
-	# filter by row
-	sysndd_db_disease_table <- sysndd_db_disease_table %>%
-		filter(row_number() > page_after_row & row_number() <= page_after_row + page_size)
-
-	# generate links for self, next and prev pages
-	self <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity/?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), ifelse(fields != "", paste0("&fields=", fields), ""), "&page[after]=", `page[after]`, "&page[size]=", `page[size]`)
-	if ( length(page_after_row_prev) == 0 ){
-		prev <- "null"
-	} else
-	{
-		prev <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), ifelse(fields != "", paste0("&fields=", fields), ""),  "&page[after]=", page_after_row_prev, "&page[size]=", `page[size]`)
-	}
-	
-	if ( length(page_after_row_next) == 0 ){
-		`next` <- "null"
-	} else
-	{
-		`next` <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), ifelse(fields != "", paste0("&fields=", fields), ""),  "&page[after]=", page_after_row_next, "&page[size]=", `page[size]`)
-	}
-	
-	if ( length(page_after_row_last) == 0 ){
-		last <- "null"
-	} else
-	{
-		last <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), ifelse(fields != "", paste0("&fields=", fields), ""),  "&page[after]=", page_after_row_last, "&page[size]=", `page[size]`)
-	}
-
-	# generate links object
-	links <- as_tibble(list("prev" = prev, "self" = self, "next" = `next`, "last" = last))
+	# use the helper generate_cursor_pagination_info to generate cursor pagination information from a tibble
+	sysndd_db_disease_table_pagination_info <- generate_cursor_pagination_info(sysndd_db_disease_table, `page[size]`, `page[after]`, "entity_id")
 
 	# compute execution time
 	end_time <- Sys.time()
 	execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
 
-	meta <- as_tibble(list("sort" = sort, "filter" = filter, "fields" = fields, "perPage" = `page[size]`, "currentPage" = ceiling((page_after_row+1)/page_size), "totalPages" = page_count, "currentItemID" = `page[after]`, "totalItems" = sysndd_db_disease_rows, "executionTime" = execution_time))
+	# add columns to the meta information from generate_cursor_pagination_info function return
+	meta <- sysndd_db_disease_table_pagination_info$meta %>%
+		add_column(as_tibble(list("sort" = sort, "filter" = filter, "fields" = fields, "executionTime" = execution_time))) 
+
+	# add host, port and other information to links from the link information from generate_cursor_pagination_info function return
+	links <- sysndd_db_disease_table_pagination_info$links %>%
+  		pivot_longer(everything(), names_to = "type", values_to = "link") %>%
+		mutate(link = case_when(
+			link != "null" ~ paste0("http://", dw$host, ":", dw$port_self, "/api/entity?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), ifelse(fields != "", paste0("&fields=", fields), ""),  link),
+			link == "null" ~ "null"
+		)) %>%
+  		pivot_wider(everything(), names_from = "type", values_from = "link")
 
 	# generate object to return
-	list(links = links, meta = meta, data = sysndd_db_disease_table)
+	list(links = links, meta = meta, data = sysndd_db_disease_table_pagination_info$data)
 }
 
 
