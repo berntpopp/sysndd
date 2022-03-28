@@ -2271,20 +2271,22 @@ function() {
 #* @tag panels
 ## get panel data by cetgory and inheritance terms for browsing
 #* @serializer json list(na="string")
+#* @param sort Output column to arrange output on (choose from: category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38).
+#* @param filter Comma separated list of filetrs to apply.
+#* @param fields Comma separated list of output columns (choose from: category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38).
 #* @param category_input The entity association category to filter.
 #* @param inheritance_input The entity inheritance type to filter.
-#* @param output_columns Comma separated list of output columns (choose from: category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38).
-#* @param output_sort Output column to arrange output on (choose from: category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38).
 #' @get /api/panels/browse
-function(category_input = "Definitive", inheritance_input = "All", output_columns = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38", output_sort = "symbol", res) {
+function(res, sort = "symbol", filter = "", fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38", category_input = "Definitive", inheritance_input = "All") {
 	
-	output_columns_list <- URLdecode(output_columns) %>%
+	fields_list <- URLdecode(fields) %>%
 		str_split(pattern=",", simplify=TRUE) %>%
 		str_replace_all(" ", "") %>%
 		unique()
 
 	# generate table with field information for display
-	fields_tibble <- as_tibble(output_columns_list) %>%
+	# to do: this has to be updated through some logic based on field types in MySQl table in a function
+	fields_tibble <- as_tibble(fields_list) %>%
 		select(key = value) %>%
 		mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
 		mutate(sortable = "true") %>%
@@ -2299,11 +2301,11 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 		collect() %>%
 		add_row(category = "All")
 
-	if ( !(Reduce("&", output_columns_list %in% output_columns_allowed)) | !(Reduce("&", output_sort %in% output_columns_allowed)) ) {
+	if ( !(Reduce("&", fields_list %in% output_columns_allowed)) | !(Reduce("&", sort %in% output_columns_allowed)) ) {
 		res$status <- 400
 		res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
 		status = 400,
-		message = paste0("Input for 'output_columns' or 'output_sort' parameter not in list of allowed columns (allowed values=", paste0(output_columns_allowed, collapse=","), ").")
+		message = paste0("Input for 'fields' or 'sort' parameter not in list of allowed columns (allowed values=", paste0(output_columns_allowed, collapse=","), ").")
 		))
 		return(res)
 	}
@@ -2361,8 +2363,8 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 			mutate(inheritance = str_c(unique(inheritance), collapse = "; ")) %>%
 			ungroup() %>%
 			unique() %>%
-			arrange(!!sym(output_sort)) %>%
-			select(all_of(output_columns_list))
+			arrange(!!sym(sort)) %>%
+			select(all_of(fields_list))
 	} else if ( (category_input == "All") & (inheritance_input != "All") ) {
 		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
 			mutate(category_filter = "All") %>%
@@ -2373,8 +2375,8 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 			mutate(inheritance = str_c(unique(inheritance), collapse = "; ")) %>%
 			ungroup() %>%
 			unique() %>%
-			arrange(!!sym(output_sort)) %>%
-			select(all_of(output_columns_list))
+			arrange(!!sym(sort)) %>%
+			select(all_of(fields_list))
 	} else if ( (category_input != "All") & (inheritance_input == "All") ) {
 		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
 			mutate(inheritance_filter = "All") %>%
@@ -2385,21 +2387,19 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 			mutate(inheritance = str_c(unique(inheritance), collapse = "; ")) %>%
 			ungroup() %>%
 			unique() %>%
-			arrange(!!sym(output_sort)) %>%
-			select(all_of(output_columns_list))
+			arrange(!!sym(sort)) %>%
+			select(all_of(fields_list))
 	} else {
 		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
 			unique() %>%
 			filter(category_filter == category_input, inheritance_filter == inheritance_input) %>%
-			arrange(!!sym(output_sort)) %>%
-			select(all_of(output_columns_list))
+			arrange(!!sym(sort)) %>%
+			select(all_of(fields_list))
 	}
 
 	# return list of format and data
 	list(fields = fields_tibble, data = sysndd_db_disease_genes_panel)
-
 }
-
 
 
 #* @tag panels

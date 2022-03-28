@@ -91,34 +91,61 @@ generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
     return(sort_list)
 }
 
+
 # generate expression expressions to parse
 # semantics according to https://www.jsonapi.net/usage/reading/filtering.html
 # currently only implemented "Equality" and "Contains text"
-# need to imüölement error handling
-# need to implement whether the respectivecolumns exist
-generate_filter_expressions <- function(filter_string) {
-	if (filter_string != "") {
-		# 	
-		filter_tibble <- as_tibble(str_split(str_squish(filter_string), "\\),")[[1]]) %>%
-		   separate(value, c("logic", "column", "value"), sep = "\\(|\\,") %>%
-		   mutate(value = str_remove_all(value, "'|\\)")) %>%
-		   mutate(exprs = case_when(
-				column == "any" & logic == "contains" ~ paste0("if_any(everything(), ~str_detect(.x, '", value, "'))"),
-				column == "all" & logic == "contains" ~ paste0("if_all(everything(), ~str_detect(.x, '", value, "'))"),
-				!(column %in% c("all", "any")) & logic == "contains" ~ paste0("str_detect(", column, ", '", value, "')"),
-				column == "any" & logic == "equals" ~ paste0("if_any(everything(), ~str_detect(.x, '^", value, "$'))"),
-				column == "all" & logic == "equals" ~ paste0("if_all(everything(), ~str_detect(.x, '^", value, "$'))"),
-				!(column %in% c("all", "any")) & logic == "equals" ~ paste0("str_detect(", column, ", '^", value, "$')"),
-			)) %>%
-			filter(!is.na(exprs))
+# need to implement error handling
+# need to implement whether the respective columns exist
+# need to implement allowed Operations as input argument
+generate_filter_expressions <- function(filter_string, operations_allowed = "equals,contains,has") {
+	# define supported operations
+	operations_supported <- "equals,contains,has" %>%
+		str_split(pattern=",", simplify=TRUE) %>%
+		str_replace_all(" ", "") %>%
+		unique()
 
-		sort_list <- filter_tibble$exprs
+	# transform submitted operations to list
+	operations_allowed <- URLdecode(operations_allowed) %>%
+		str_split(pattern=",", simplify=TRUE) %>%
+		str_replace_all(" ", "") %>%
+		unique()
 
-		return(sort_list)
+	filter_string <- URLdecode(filter_string) %>%
+		str_replace_all(" ", "")
+
+    # check if requested column names exist in tibble, if error
+	if ( all(operations_allowed %in% operations_supported) ){
+		if (filter_string != "") {
+			# 
+			filter_tibble <- as_tibble(str_split(str_squish(filter_string), "\\),")[[1]]) %>%
+			separate(value, c("logic", "column_value"), sep = "\\(") %>%
+			separate(column_value, c("column", "filter_value"), sep = "\\,", extra = "merge") %>%
+			mutate(filter_value = str_remove_all(filter_value, "'|\\)")) %>%
+			mutate(exprs = case_when(
+					column == "any" & logic == "contains" ~ paste0("if_any(everything(), ~str_detect(.x, '", filter_value, "'))"),
+					column == "all" & logic == "contains" ~ paste0("if_all(everything(), ~str_detect(.x, '", filter_value, "'))"),
+					!(column %in% c("all", "any")) & logic == "contains" ~ paste0("str_detect(", column, ", '", filter_value, "')"),
+					column == "any" & logic == "equals" ~ paste0("if_any(everything(), ~str_detect(.x, '^", filter_value, "$'))"),
+					column == "all" & logic == "equals" ~ paste0("if_all(everything(), ~str_detect(.x, '^", filter_value, "$'))"),
+					!(column %in% c("all", "any")) & logic == "equals" ~ paste0("str_detect(", column, ", '^", filter_value, "$')"),
+					column == "any" & logic == "any" ~ paste0("if_any(everything(), ~str_detect(.x, ", str_replace_all(paste0("'^", filter_value, "$')"), pattern = "\\,", replacement = "$|^"), ")"),
+					column == "all" & logic == "any" ~ paste0("if_all(everything(), ~str_detect(.x, ", str_replace_all(paste0("'^", filter_value, "$')"), pattern = "\\,", replacement = "$|^"), ")"),
+					!(column %in% c("all", "any")) & logic == "any" ~ paste0("str_detect(", column, ", ", str_replace_all(paste0("'^", filter_value, "$')"), pattern = "\\,", replacement = "$|^")),
+				)) %>%
+				filter(!is.na(exprs))
+
+			sort_list <- filter_tibble$exprs
+
+			return(sort_list)
+		} else {
+			return(filter_string)
+		}
 	} else {
-		return(filter_string)
+		stop("Some requested operations are not supported.")
 	}
 }
+
 
 # select requested fields from tibble
 select_tibble_fields <- function(selection_tibble, fields_requested, unique_id = "entity_id") {
@@ -143,13 +170,14 @@ select_tibble_fields <- function(selection_tibble, fields_requested, unique_id =
     # check if requested column names exist in tibble, if error
 	if ( all(fields_requested %in% tibble_colnames) ){
 		selection_tibble <- selection_tibble %>%
-		select(fields_requested)
+		select(all_of(fields_requested))
 	} else {
 		stop("Some requested fields are not in the column names.")
 	}
 
     return(selection_tibble)
 }
+
 
 # generate cursor pagination information from a tibble
 generate_cursor_pagination_info <- function(pagination_tibble, page_size = "all", page_after = 0, pagination_identifier = "entity_id") {
