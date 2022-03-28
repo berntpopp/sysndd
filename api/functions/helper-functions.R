@@ -98,9 +98,9 @@ generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
 # need to implement error handling
 # need to implement whether the respective columns exist
 # need to implement allowed Operations as input argument
-generate_filter_expressions <- function(filter_string, operations_allowed = "equals,contains,has") {
+generate_filter_expressions <- function(filter_string, operations_allowed = "equals,contains,any") {
 	# define supported operations
-	operations_supported <- "equals,contains,has" %>%
+	operations_supported <- "equals,contains,any" %>%
 		str_split(pattern=",", simplify=TRUE) %>%
 		str_replace_all(" ", "") %>%
 		unique()
@@ -114,7 +114,7 @@ generate_filter_expressions <- function(filter_string, operations_allowed = "equ
 	filter_string <- URLdecode(filter_string) %>%
 		str_replace_all(" ", "")
 
-    # check if requested column names exist in tibble, if error
+    # check if requested operations are supported, if not through error
 	if ( all(operations_allowed %in% operations_supported) ){
 		if (filter_string != "") {
 			# 
@@ -133,10 +133,10 @@ generate_filter_expressions <- function(filter_string, operations_allowed = "equ
 					column == "all" & logic == "any" ~ paste0("if_all(everything(), ~str_detect(.x, ", str_replace_all(paste0("'^", filter_value, "$')"), pattern = "\\,", replacement = "$|^"), ")"),
 					!(column %in% c("all", "any")) & logic == "any" ~ paste0("str_detect(", column, ", ", str_replace_all(paste0("'^", filter_value, "$')"), pattern = "\\,", replacement = "$|^")),
 				)) %>%
+				filter(logic %in% operations_allowed) %>%
 				filter(!is.na(exprs))
 
 			sort_list <- filter_tibble$exprs
-
 			return(sort_list)
 		} else {
 			return(filter_string)
