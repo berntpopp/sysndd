@@ -319,7 +319,7 @@ export default {
 
         },
         async requestSelected() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/panels/browse?category_input=' + this.selected_category + '&inheritance_input=' + this.selected_inheritance + '&output_columns=' + this.selected_columns.join() + '&output_sort=' + this.selected_sort;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/panels/browse?sort=' + this.selected_sort + '&filter=any(category,' + this.selected_category + '),any(inheritance_filter,' + this.selected_inheritance + ')' + '&fields=' + this.selected_columns.join();
           try {
             let response = await this.axios.get(apiUrl);
             

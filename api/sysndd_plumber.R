@@ -2279,22 +2279,6 @@ function(res, sort = "symbol", filter = "equals(category,'Definitive'),any(inher
 
     start_time <- Sys.time()
 
-	# generate sort expression based on sort input
-	sort_exprs <- generate_sort_expressions(sort, unique_id = "symbol")
-
-	# generate filter expression based on filter input
-	filter_exprs <- generate_filter_expressions(filter)
-
-	# generate table with field information for display
-	# to do: this has to be updated through some logic based on field types in MySQl table in a function
-	fields_tibble <- as_tibble(fields) %>%
-		select(key = value) %>%
-		mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
-		mutate(sortable = "true") %>%
-		mutate(class = "text-left") %>%
-		mutate(sortByFormatted = "true") %>%
-		mutate(filterByFormatted = "true")
-
 	# get allowed values for category
 	ndd_entity_status_categories_list <- pool %>% 
 		tbl("ndd_entity_status_categories_list") %>%
@@ -2308,6 +2292,28 @@ function(res, sort = "symbol", filter = "equals(category,'Definitive'),any(inher
 		select(inheritance_filter) %>%
 		collect() %>%
         unique()
+
+	# replace "All" with respective allowed values
+	filter <- str_replace(filter, "category,'All'", paste0("category,",str_c(ndd_entity_status_categories_list$category, collapse = ","))) %>%
+		str_replace("category,All", paste0("category,",str_c(ndd_entity_status_categories_list$category, collapse = ","))) %>%
+		str_replace("inheritance_filter,'All'", paste0("inheritance_filter,",str_c(mode_of_inheritance_list$inheritance_filter, collapse = ","))) %>%
+		str_replace("inheritance_filter,All", paste0("inheritance_filter,",str_c(mode_of_inheritance_list$inheritance_filter, collapse = ",")))
+
+	# generate sort expression based on sort input
+	sort_exprs <- generate_sort_expressions(sort, unique_id = "symbol")
+
+	# generate filter expression based on filter input
+	filter_exprs <- generate_filter_expressions(filter)
+
+	# generate table with field information for display
+	# to do: this has to be updated through some logic based on field types in MySQl table in a function
+	fields_tibble <- as_tibble(str_split(fields, ",")[[1]]) %>%
+		select(key = value) %>%
+		mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
+		mutate(sortable = "true") %>%
+		mutate(class = "text-left") %>%
+		mutate(sortByFormatted = "true") %>%
+		mutate(filterByFormatted = "true")
 
 	# join entity_view and non_alt_loci_set tables
 	sysndd_db_ndd_entity_view <- pool %>% 
