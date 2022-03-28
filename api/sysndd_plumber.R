@@ -192,7 +192,7 @@ function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = 0, `
 	start_time <- Sys.time()
 
 	# generate sort expression based on sort input
-	sort_exprs <- generate_sort_expressions(sort)
+	sort_exprs <- generate_sort_expressions(sort, unique_id = "entity_id")
 
 	# generate filter expression based on filter input
 	filter_exprs <- generate_filter_expressions(filter)
@@ -208,16 +208,16 @@ function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = 0, `
 	sysndd_db_disease_table <- pool %>% 
 		tbl("ndd_entity_view") %>%
 		left_join(ndd_entity_review, by = c("entity_id")) %>%
-		arrange(rlang::parse_exprs(sort_exprs)) %>%
-		filter(!!!rlang::parse_exprs(filter_exprs)) %>%
-		collect()
+		collect() %>%
+		arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
+		filter(!!!rlang::parse_exprs(filter_exprs))
 
 	## to do: this needs to be in the MySQL database view instead
 	sysndd_db_disease_table <- sysndd_db_disease_table %>%
 		mutate(ndd_phenotype = case_when(
 			ndd_phenotype == 1 ~ "Yes",
 			ndd_phenotype == 0 ~ "No",
-			TRUE ~ ndd_phenotype
+			TRUE ~ as.character(ndd_phenotype)
 		))
 
 	# select fields from table based on input using the helper function "select_tibble_fields"
@@ -464,7 +464,7 @@ function(sysndd_id) {
 		mutate(ndd_phenotype = case_when(
 			ndd_phenotype == 1 ~ "Yes",
 			ndd_phenotype == 0 ~ "No",
-			TRUE ~ ndd_phenotype
+			TRUE ~ as.character(ndd_phenotype)
 		))
 
 	sysndd_db_disease_collected
@@ -1624,22 +1624,60 @@ function(req, res, pmid) {
 ## get all genes and associated entities
 #* @serializer json list(na="string")
 #' @get /api/gene
-function() {
+function(res, sort = "symbol", filter = "", fields = "", `page[after]` = 0, `page[size]` = "all") {
+
+	start_time <- Sys.time()
+
+	# generate sort expression based on sort input
+	sort_exprs <- generate_sort_expressions(sort, unique_id = "symbol")
+
+	# generate filter expression based on filter input
+	filter_exprs <- generate_filter_expressions(filter)
 
 	# get data from database and filter
 	sysndd_db_genes_table <- pool %>% 
 		tbl("ndd_entity_view") %>%
 		arrange(entity_id) %>%
-		collect() %>%
+		collect()
+
+	## to do: this needs to be in the MySQL database view instead
+	sysndd_db_genes_table <- sysndd_db_genes_table %>% 
 		mutate(ndd_phenotype = case_when(
 		  ndd_phenotype == 1 ~ "Yes",
 		  ndd_phenotype == 0 ~ "No",
-		  TRUE ~ ndd_phenotype
+		  TRUE ~ as.character(ndd_phenotype)
 		))
 
-	sysndd_db_genes_collected <- nest_gene_tibble(sysndd_db_genes_table)
+	# arrange and apply filters according to input
+	sysndd_db_genes_nested <- nest_gene_tibble(sysndd_db_genes_table) %>%
+		arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
+		filter(!!!rlang::parse_exprs(filter_exprs))
 
-	sysndd_db_genes_collected
+	# select fields from table based on input using the helper function "select_tibble_fields"
+	sysndd_db_genes_nested <- select_tibble_fields(sysndd_db_genes_nested, fields, "symbol")
+
+	# use the helper generate_cursor_pagination_info to generate cursor pagination information from a tibble
+	sysndd_db_genes_nested_pagination_info <- generate_cursor_pagination_info(sysndd_db_genes_nested, `page[size]`, `page[after]`, "symbol")
+
+	# compute execution time
+	end_time <- Sys.time()
+	execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
+	
+	# add columns to the meta information from generate_cursor_pagination_info function return
+	meta <- sysndd_db_genes_nested_pagination_info$meta %>%
+		add_column(as_tibble(list("sort" = sort, "filter" = filter, "fields" = fields, "executionTime" = execution_time)))
+
+	# add host, port and other information to links from the link information from generate_cursor_pagination_info function return
+	links <- sysndd_db_genes_nested_pagination_info$links %>%
+  		pivot_longer(everything(), names_to = "type", values_to = "link") %>%
+		mutate(link = case_when(
+			link != "null" ~ paste0("http://", dw$host, ":", dw$port_self, "/api/gene?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), ifelse(fields != "", paste0("&fields=", fields), ""),  link),
+			link == "null" ~ "null"
+		)) %>%
+  		pivot_wider(everything(), names_from = "type", values_from = "link")
+
+	# generate object to return
+	list(links = links, meta = meta, data = sysndd_db_genes_nested_pagination_info$data)
 }
 
 
@@ -1700,7 +1738,7 @@ function(hgnc) {
 		mutate(ndd_phenotype = case_when(
 		  ndd_phenotype == 1 ~ "Yes",
 		  ndd_phenotype == 0 ~ "No",
-		  TRUE ~ ndd_phenotype
+		  TRUE ~ as.character(ndd_phenotype)
 		))
 
 	entity_by_gene_list
@@ -1724,7 +1762,7 @@ function(symbol) {
 		mutate(ndd_phenotype = case_when(
 		  ndd_phenotype == 1 ~ "Yes",
 		  ndd_phenotype == 0 ~ "No",
-		  TRUE ~ ndd_phenotype
+		  TRUE ~ as.character(ndd_phenotype)
 		))
 
 	entity_by_gene_list
@@ -1795,7 +1833,7 @@ function(ontology_id) {
 		mutate(ndd_phenotype = case_when(
 		  ndd_phenotype == 1 ~ "Yes",
 		  ndd_phenotype == 0 ~ "No",
-		  TRUE ~ ndd_phenotype
+		  TRUE ~ as.character(ndd_phenotype)
 		))
 
 	entity_by_ontology_id_list
@@ -1818,7 +1856,7 @@ function(ontology_name) {
 		mutate(ndd_phenotype = case_when(
 		  ndd_phenotype == 1 ~ "Yes",
 		  ndd_phenotype == 0 ~ "No",
-		  TRUE ~ ndd_phenotype
+		  TRUE ~ as.character(ndd_phenotype)
 		))
 
 	entity_by_ontology_name_list
@@ -2619,7 +2657,7 @@ function() {
 		mutate(ndd_phenotype = case_when(
 		  ndd_phenotype == 1 ~ "Yes",
 		  ndd_phenotype == 0 ~ "No",
-		  TRUE ~ ndd_phenotype
+		  TRUE ~ as.character(ndd_phenotype)
 		)) %>%
 		filter(ndd_phenotype == "Yes")
 
@@ -2736,7 +2774,7 @@ function(searchterm, helper = TRUE) {
 		mutate(ndd_phenotype = case_when(
 		  ndd_phenotype == 1 ~ "Yes",
 		  ndd_phenotype == 0 ~ "No",
-		  TRUE ~ ndd_phenotype
+		  TRUE ~ as.character(ndd_phenotype)
 		)) %>%
 		select(entity_id, hgnc_id, symbol, disease_ontology_id_version, disease_ontology_name) %>%
 		mutate(entity = as.character(entity_id)) %>%

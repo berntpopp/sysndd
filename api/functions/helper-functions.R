@@ -2,7 +2,8 @@
 # based on https://xiaolianglin.com/2018/12/05/Use-memoise-to-speed-up-your-R-plumber-API/
 nest_gene_tibble <- function(tibble) {
     nested_tibble <- tibble %>%
-        nest_by(symbol, hgnc_id, .key = "entities")
+        nest_by(symbol, hgnc_id, .key = "entities") %>%
+		ungroup()
     
     return(nested_tibble)
 }
