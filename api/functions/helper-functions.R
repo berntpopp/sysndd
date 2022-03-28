@@ -112,7 +112,7 @@ generate_filter_expressions <- function(filter_string, operations_allowed = "equ
 		unique()
 
 	filter_string <- URLdecode(filter_string) %>%
-		str_replace_all(" ", "")
+		str_trim()
 
     # check if requested operations are supported, if not through error
 	if ( all(operations_allowed %in% operations_supported) ){
@@ -161,9 +161,9 @@ select_tibble_fields <- function(selection_tibble, fields_requested, unique_id =
 		fields_requested <- tibble_colnames
 	}
 
-    # check if entity_id is in the column names, if not prepend to the list for unique sorting
+    # check if unique_id variable is in the column names, if not prepend to the list for unique sorting
 	if ( !(unique_id %in% fields_requested) ){
-		fields_requested <- purrr::prepend(fields_requested, "entity_id")
+		fields_requested <- purrr::prepend(fields_requested, unique_id)
 		fields_requested <- Filter(function(x) !identical("",x), fields_requested)
 	}
 	

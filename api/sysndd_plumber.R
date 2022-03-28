@@ -2274,19 +2274,20 @@ function() {
 #* @param sort Output column to arrange output on (choose from: category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38).
 #* @param filter Comma separated list of filetrs to apply.
 #* @param fields Comma separated list of output columns (choose from: category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38).
-#* @param category_input The entity association category to filter.
-#* @param inheritance_input The entity inheritance type to filter.
 #' @get /api/panels/browse
-function(res, sort = "symbol", filter = "", fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38", category_input = "Definitive", inheritance_input = "All") {
-	
-	fields_list <- URLdecode(fields) %>%
-		str_split(pattern=",", simplify=TRUE) %>%
-		str_replace_all(" ", "") %>%
-		unique()
+function(res, sort = "symbol", filter = "equals(category,'Definitive'),any(inheritance_filter,'Dominant','Recessive','X-linked','Other')", fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38", `page[after]` = 0, `page[size]` = "all") {
+
+    start_time <- Sys.time()
+
+	# generate sort expression based on sort input
+	sort_exprs <- generate_sort_expressions(sort, unique_id = "symbol")
+
+	# generate filter expression based on filter input
+	filter_exprs <- generate_filter_expressions(filter)
 
 	# generate table with field information for display
 	# to do: this has to be updated through some logic based on field types in MySQl table in a function
-	fields_tibble <- as_tibble(fields_list) %>%
+	fields_tibble <- as_tibble(fields) %>%
 		select(key = value) %>%
 		mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
 		mutate(sortable = "true") %>%
@@ -2294,45 +2295,25 @@ function(res, sort = "symbol", filter = "", fields = "category,inheritance,symbo
 		mutate(sortByFormatted = "true") %>%
 		mutate(filterByFormatted = "true")
 
-	# validate inputs
+	# get allowed values for category
 	ndd_entity_status_categories_list <- pool %>% 
 		tbl("ndd_entity_status_categories_list") %>%
 		select(category) %>%
+		collect()
+
+	# get allowed values for inheritance
+	mode_of_inheritance_list <- pool %>% 
+		tbl("mode_of_inheritance_list") %>%
+        filter(is_active) %>%
+		select(inheritance_filter) %>%
 		collect() %>%
-		add_row(category = "All")
+        unique()
 
-	if ( !(Reduce("&", fields_list %in% output_columns_allowed)) | !(Reduce("&", sort %in% output_columns_allowed)) ) {
-		res$status <- 400
-		res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
-		status = 400,
-		message = paste0("Input for 'fields' or 'sort' parameter not in list of allowed columns (allowed values=", paste0(output_columns_allowed, collapse=","), ").")
-		))
-		return(res)
-	}
-
-	if ( !(category_input %in% ndd_entity_status_categories_list$category) ) {
-		res$status <- 400
-		res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
-		status = 400,
-		message = paste0("Required 'category_input' parameter not in categories list (allowed values=", paste0(ndd_entity_status_categories_list$category, collapse=","), ").")
-		))
-		return(res)
-	}
-	
-	if ( !(inheritance_input %in% inheritance_input_allowed) ) {
-		res$status <- 400
-		res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
-		status = 400,
-		message = paste0("Required 'inheritance_input' parameter not in categories list (allowed values=", paste0(inheritance_input_allowed, collapse=","), ").")
-		))
-		return(res)
-	}
-	
 	# join entity_view and non_alt_loci_set tables
 	sysndd_db_ndd_entity_view <- pool %>% 
 		tbl("ndd_entity_view") %>%
 		filter(ndd_phenotype == 1) %>%
-		select(hgnc_id, symbol, inheritance = hpo_mode_of_inheritance_term_name, category)
+		select(hgnc_id, symbol, inheritance = hpo_mode_of_inheritance_term_name, inheritance_filter, category)
 	sysndd_db_non_alt_loci_set <- pool %>% 
 		tbl("non_alt_loci_set") %>%
 		select(hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38)
@@ -2340,65 +2321,41 @@ function(res, sort = "symbol", filter = "", fields = "category,inheritance,symbo
 	sysndd_db_disease_genes <- sysndd_db_ndd_entity_view %>%
 		left_join(sysndd_db_non_alt_loci_set, by =c("hgnc_id")) %>%
 		collect() %>%
+		filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+        select(-inheritance_filter) %>%
 		unique() %>%
-		mutate(inheritance_filter = case_when(
-		  str_detect(inheritance, "X-linked") ~ "X-linked",
-		  str_detect(inheritance, "Autosomal dominant inheritance") ~ "Dominant",
-		  str_detect(inheritance, "Autosomal recessive inheritance") ~ "Recessive",
-		  TRUE ~ "Other"
+        arrange(symbol, inheritance) %>%
+        group_by(symbol) %>%
+        mutate(inheritance = str_c(unique(inheritance), collapse = "; ")) %>%
+        ungroup() %>%
+        unique() %>%
+		arrange(!!!rlang::parse_exprs(sort_exprs))
+
+	# select fields from table based on input using the helper function "select_tibble_fields"
+	sysndd_db_disease_genes_panel <- select_tibble_fields(sysndd_db_disease_genes, fields, "symbol")
+
+	# use the helper generate_cursor_pagination_info to generate cursor pagination information from a tibble
+	sysndd_db_disease_genes_panel_pagination_info <- generate_cursor_pagination_info(sysndd_db_disease_genes_panel, `page[size]`, `page[after]`, "symbol")
+
+	# compute execution time
+	end_time <- Sys.time()
+	execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
+
+	# add columns to the meta information from generate_cursor_pagination_info function return
+	meta <- sysndd_db_disease_genes_panel_pagination_info$meta %>%
+		add_column(as_tibble(list("sort" = sort, "filter" = filter, "fields" = fields, "executionTime" = execution_time))) 
+
+	# add host, port and other information to links from the link information from generate_cursor_pagination_info function return
+	links <- sysndd_db_disease_genes_panel_pagination_info$links %>%
+  		pivot_longer(everything(), names_to = "type", values_to = "link") %>%
+		mutate(link = case_when(
+			link != "null" ~ paste0("http://", dw$host, ":", dw$port_self, "/api/panels/browse?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), ifelse(fields != "", paste0("&fields=", fields), ""),  link),
+			link == "null" ~ "null"
 		)) %>%
-		mutate(category_filter = category) %>%
-		select(category, inheritance, symbol, hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38, category_filter, inheritance_filter) %>%
-		arrange(desc(category), inheritance)
-	
-	# compute output based on input parameters
-	if ( (category_input == "All") & (inheritance_input == "All") ) {
-		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
-			mutate(category_filter = "All") %>%
-			mutate(inheritance_filter = "All") %>%
-			unique() %>%
-			filter(category_filter == category_input, inheritance_filter == inheritance_input) %>%
-			arrange(symbol, inheritance) %>%
-			group_by(symbol) %>%
-			mutate(inheritance = str_c(unique(inheritance), collapse = "; ")) %>%
-			ungroup() %>%
-			unique() %>%
-			arrange(!!sym(sort)) %>%
-			select(all_of(fields_list))
-	} else if ( (category_input == "All") & (inheritance_input != "All") ) {
-		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
-			mutate(category_filter = "All") %>%
-			unique() %>%
-			filter(category_filter == category_input, inheritance_filter == inheritance_input) %>%
-			arrange(symbol, inheritance) %>%
-			group_by(symbol) %>%
-			mutate(inheritance = str_c(unique(inheritance), collapse = "; ")) %>%
-			ungroup() %>%
-			unique() %>%
-			arrange(!!sym(sort)) %>%
-			select(all_of(fields_list))
-	} else if ( (category_input != "All") & (inheritance_input == "All") ) {
-		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
-			mutate(inheritance_filter = "All") %>%
-			unique() %>%
-			filter(category_filter == category_input, inheritance_filter == inheritance_input) %>%
-			arrange(symbol, inheritance) %>%
-			group_by(symbol) %>%
-			mutate(inheritance = str_c(unique(inheritance), collapse = "; ")) %>%
-			ungroup() %>%
-			unique() %>%
-			arrange(!!sym(sort)) %>%
-			select(all_of(fields_list))
-	} else {
-		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
-			unique() %>%
-			filter(category_filter == category_input, inheritance_filter == inheritance_input) %>%
-			arrange(!!sym(sort)) %>%
-			select(all_of(fields_list))
-	}
+  		pivot_wider(everything(), names_from = "type", values_from = "link")
 
 	# return list of format and data
-	list(fields = fields_tibble, data = sysndd_db_disease_genes_panel)
+	list(links = links, meta = meta, fields = fields_tibble, data = sysndd_db_disease_genes_panel_pagination_info$data)
 }
 
 
