@@ -216,7 +216,8 @@ function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = 0, `
 	sysndd_db_disease_table <- sysndd_db_disease_table %>%
 		mutate(ndd_phenotype = case_when(
 			ndd_phenotype == 1 ~ "Yes",
-			ndd_phenotype == 0 ~ "No"
+			ndd_phenotype == 0 ~ "No",
+			TRUE ~ ndd_phenotype
 		))
 
 	# select fields from table based on input using the helper function "select_tibble_fields"
@@ -462,7 +463,8 @@ function(sysndd_id) {
 		collect() %>%
 		mutate(ndd_phenotype = case_when(
 			ndd_phenotype == 1 ~ "Yes",
-			ndd_phenotype == 0 ~ "No"
+			ndd_phenotype == 0 ~ "No",
+			TRUE ~ ndd_phenotype
 		))
 
 	sysndd_db_disease_collected
@@ -1631,7 +1633,8 @@ function() {
 		collect() %>%
 		mutate(ndd_phenotype = case_when(
 		  ndd_phenotype == 1 ~ "Yes",
-		  ndd_phenotype == 0 ~ "No"
+		  ndd_phenotype == 0 ~ "No",
+		  TRUE ~ ndd_phenotype
 		))
 
 	sysndd_db_genes_collected <- nest_gene_tibble(sysndd_db_genes_table)
@@ -1696,7 +1699,8 @@ function(hgnc) {
 		collect() %>%
 		mutate(ndd_phenotype = case_when(
 		  ndd_phenotype == 1 ~ "Yes",
-		  ndd_phenotype == 0 ~ "No"
+		  ndd_phenotype == 0 ~ "No",
+		  TRUE ~ ndd_phenotype
 		))
 
 	entity_by_gene_list
@@ -1719,7 +1723,8 @@ function(symbol) {
 		collect() %>%
 		mutate(ndd_phenotype = case_when(
 		  ndd_phenotype == 1 ~ "Yes",
-		  ndd_phenotype == 0 ~ "No"
+		  ndd_phenotype == 0 ~ "No",
+		  TRUE ~ ndd_phenotype
 		))
 
 	entity_by_gene_list
@@ -1789,7 +1794,8 @@ function(ontology_id) {
 		collect() %>%
 		mutate(ndd_phenotype = case_when(
 		  ndd_phenotype == 1 ~ "Yes",
-		  ndd_phenotype == 0 ~ "No"
+		  ndd_phenotype == 0 ~ "No",
+		  TRUE ~ ndd_phenotype
 		))
 
 	entity_by_ontology_id_list
@@ -1811,7 +1817,8 @@ function(ontology_name) {
 		collect() %>%
 		mutate(ndd_phenotype = case_when(
 		  ndd_phenotype == 1 ~ "Yes",
-		  ndd_phenotype == 0 ~ "No"
+		  ndd_phenotype == 0 ~ "No",
+		  TRUE ~ ndd_phenotype
 		))
 
 	entity_by_ontology_name_list
@@ -2611,7 +2618,8 @@ function() {
 		collect() %>%
 		mutate(ndd_phenotype = case_when(
 		  ndd_phenotype == 1 ~ "Yes",
-		  ndd_phenotype == 0 ~ "No"
+		  ndd_phenotype == 0 ~ "No",
+		  TRUE ~ ndd_phenotype
 		)) %>%
 		filter(ndd_phenotype == "Yes")
 
@@ -2727,7 +2735,8 @@ function(searchterm, helper = TRUE) {
 		collect() %>%
 		mutate(ndd_phenotype = case_when(
 		  ndd_phenotype == 1 ~ "Yes",
-		  ndd_phenotype == 0 ~ "No"
+		  ndd_phenotype == 0 ~ "No",
+		  TRUE ~ ndd_phenotype
 		)) %>%
 		select(entity_id, hgnc_id, symbol, disease_ontology_id_version, disease_ontology_name) %>%
 		mutate(entity = as.character(entity_id)) %>%
