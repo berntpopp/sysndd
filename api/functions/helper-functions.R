@@ -60,7 +60,7 @@ send_noreply_email <- function(email_body, email_subject, email_recipient, email
 generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
 
 	# split the sort input by comma and compute directions based on presence of + or - in front of the string
-	sort_tibble <- as_tibble(str_split(str_squish(sort_string), ",")[[1]]) %>%
+	sort_tibble <- as_tibble(str_split(str_replace_all(sort_string, fixed(" "), ""), ",")[[1]]) %>%
         select(column = value) %>%
         mutate(direction = case_when(
             str_sub(column, 1, 1) == "+" ~ "asc",
@@ -118,4 +118,35 @@ generate_filter_expressions <- function(filter_string) {
 	} else {
 		return(filter_string)
 	}
+}
+
+# select requested fields from tibble
+select_tibble_fields <- function(selection_tibble, fields_requested, unique_id = "entity_id") {
+
+	# get column names from selection_tibble
+	tibble_colnames <- colnames(selection_tibble)
+
+	# check if fields_requested is empty string, if so assign tibble_colnames to it, else 
+	# split the fields_requested input by comma
+	if ( fields_requested != "" ){
+		fields_requested <- str_split(str_replace_all(fields_requested, fixed(" "), ""), ",")[[1]]
+	} else {
+		fields_requested <- tibble_colnames
+	}
+
+    # check if entity_id is in the column names, if not prepend to the list for unique sorting
+	if ( !(unique_id %in% fields_requested) ){
+		fields_requested <- purrr::prepend(fields_requested, "entity_id")
+		fields_requested <- Filter(function(x) !identical("",x), fields_requested)
+	}
+	
+    # check if requested column names exist in tibble, if error
+	if ( all(fields_requested %in% tibble_colnames) ){
+		selection_tibble <- selection_tibble %>%
+		select(fields_requested)
+	} else {
+		stop("Some requested fields are not in the column names.")
+	}
+
+    return(selection_tibble)
 }

@@ -187,7 +187,7 @@ function(req, res) {
 ## get all entities
 #* @serializer json list(na="string")
 #' @get /api/entity
-function(res, sort = "entity_id", filter = "", `page[after]` = 0, `page[size]` = "all") {
+function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = 0, `page[size]` = "all") {
 
 	start_time <- Sys.time()
 
@@ -197,12 +197,13 @@ function(res, sort = "entity_id", filter = "", `page[after]` = 0, `page[size]` =
 	# generate filter expression based on filter input
 	filter_exprs <- generate_filter_expressions(filter)
 
-	# get data from database
+	# get review data from database
 	ndd_entity_review <- pool %>% 
 		tbl("ndd_entity_review") %>%
 		filter(is_primary) %>%
 		select(entity_id, synopsis)
 
+	# get entity data from database
 	# '!!!' in filter needed to evaluate formula for any/ all cases (https://stackoverflow.com/questions/66070864/operating-across-columns-rowwise-in-r-dbplyr)
 	sysndd_db_disease_table <- pool %>% 
 		tbl("ndd_entity_view") %>%
@@ -211,7 +212,16 @@ function(res, sort = "entity_id", filter = "", `page[after]` = 0, `page[size]` =
 		filter(!!!rlang::parse_exprs(filter_exprs)) %>%
 		collect()
 
-	## to do: I think all the selection prcess should be a helper function to repurpose in the other tables
+	sysndd_db_disease_table <- sysndd_db_disease_table %>%
+		mutate(ndd_phenotype = case_when(
+			ndd_phenotype == 1 ~ "Yes",
+			ndd_phenotype == 0 ~ "No"
+		))
+
+	# select fields from table based on input using the helper function "select_tibble_fields"
+	sysndd_db_disease_table <- select_tibble_fields(sysndd_db_disease_table, fields, "entity_id")
+
+	## to do: I think all the selection process should be a helper function to repurpose in the other tables
 	# get number of rows in filtered ndd_entity_view
 	sysndd_db_disease_rows <- (sysndd_db_disease_table %>%
 		summarise(n = n()))$n
@@ -257,33 +267,27 @@ function(res, sort = "entity_id", filter = "", `page[after]` = 0, `page[size]` =
 	sysndd_db_disease_table <- sysndd_db_disease_table %>%
 		filter(row_number() > page_after_row & row_number() <= page_after_row + page_size)
 
-	sysndd_db_disease_collected <- sysndd_db_disease_table %>%
-		mutate(ndd_phenotype = case_when(
-			ndd_phenotype == 1 ~ "Yes",
-			ndd_phenotype == 0 ~ "No"
-		))
-
 	# generate links for self, next and prev pages
-	self <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity/?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), "&page[after]=", `page[after]`, "&page[size]=", `page[size]`)
+	self <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity/?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), ifelse(fields != "", paste0("&fields=", fields), ""), "&page[after]=", `page[after]`, "&page[size]=", `page[size]`)
 	if ( length(page_after_row_prev) == 0 ){
 		prev <- "null"
 	} else
 	{
-		prev <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), "&page[after]=", page_after_row_prev, "&page[size]=", `page[size]`)
+		prev <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), ifelse(fields != "", paste0("&fields=", fields), ""),  "&page[after]=", page_after_row_prev, "&page[size]=", `page[size]`)
 	}
 	
 	if ( length(page_after_row_next) == 0 ){
 		`next` <- "null"
 	} else
 	{
-		`next` <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), "&page[after]=", page_after_row_next, "&page[size]=", `page[size]`)
+		`next` <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), ifelse(fields != "", paste0("&fields=", fields), ""),  "&page[after]=", page_after_row_next, "&page[size]=", `page[size]`)
 	}
 	
 	if ( length(page_after_row_last) == 0 ){
 		last <- "null"
 	} else
 	{
-		last <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), "&page[after]=", page_after_row_last, "&page[size]=", `page[size]`)
+		last <- paste0("http://", dw$host, ":", dw$port_self, "/api/entity?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), ifelse(fields != "", paste0("&fields=", fields), ""),  "&page[after]=", page_after_row_last, "&page[size]=", `page[size]`)
 	}
 
 	# generate links object
@@ -293,10 +297,10 @@ function(res, sort = "entity_id", filter = "", `page[after]` = 0, `page[size]` =
 	end_time <- Sys.time()
 	execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
 
-	meta <- as_tibble(list("sort" = sort, "filter" = filter, "perPage" = page_size, "currentPage" = ceiling((page_after_row+1)/page_size), "totalPages" = page_count, "currentItemID" = `page[after]`, "totalItems" = sysndd_db_disease_rows, "executionTime" = execution_time))
+	meta <- as_tibble(list("sort" = sort, "filter" = filter, "fields" = fields, "perPage" = `page[size]`, "currentPage" = ceiling((page_after_row+1)/page_size), "totalPages" = page_count, "currentItemID" = `page[after]`, "totalItems" = sysndd_db_disease_rows, "executionTime" = execution_time))
 
 	# generate object to return
-	list(links = links, meta = meta, data = sysndd_db_disease_collected)
+	list(links = links, meta = meta, data = sysndd_db_disease_table)
 }
 
 
