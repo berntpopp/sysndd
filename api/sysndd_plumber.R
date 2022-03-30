@@ -1947,45 +1947,82 @@ function(hpo) {
 ## get a list of entities associated with a list of phenotypes for browsing
 #* @serializer json list(na="string")
 #' @get /api/phenotype/entities/browse
-function(hpo_list = "", logical_operator = "and") {
+function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = 0, `page[size]` = "all") {
 
-	hpo_list <- URLdecode(hpo_list) %>%
-		str_split(pattern=",", simplify=TRUE) %>%
-		str_replace_all("[^0-9]+", "") %>%
-		str_replace("^", "HP:") %>%
-		unique()
+	start_time <- Sys.time()
 
-	# get data from database and filter
-	if ( logical_operator == "and" ) {
-		entity_list_from_phenotype_list_collected <- pool %>% 
-			tbl("ndd_review_phenotype_connect") %>%
-			filter(phenotype_id %in% hpo_list) %>%
-			arrange(phenotype_id) %>%
-			select(entity_id, phenotype_id) %>%
-			collect() %>%
-			unique() %>%
-			arrange(entity_id) %>%
-			mutate(found=TRUE) %>%
-			pivot_wider(names_from = phenotype_id, values_from = found) %>%
-			replace(., is.na(.), FALSE) %>%
-			pivot_longer(-entity_id, names_to = c("phenotype_id")) %>%
-			select(-phenotype_id) %>%
-			group_by(entity_id) %>%
-			summarise(value = all(value)) %>%
-			filter(value) %>%
-			select(entity_id) %>%
-			ungroup()
-	} else if ( logical_operator == "or" ) {
-		entity_list_from_phenotype_list_collected <- pool %>% 
-			tbl("ndd_review_phenotype_connect") %>%
-			filter(phenotype_id %in% hpo_list) %>%
-			arrange(entity_id) %>%
-			select(entity_id,) %>%
-			collect() %>%
-			unique()
-	}
+	filter <- URLdecode(filter) %>%
+		str_replace_all("HP:", "HP_")
+
+	# generate sort expression based on sort input
+	sort_exprs <- generate_sort_expressions(sort, unique_id = "entity_id")
+
+	# generate filter expression based on filter input
+	filter_exprs <- generate_filter_expressions(filter)
+
+	#
+	ndd_review_phenotype_connect_wide <- pool %>% 
+		tbl("ndd_review_phenotype_connect") %>%
+		mutate(phenotype_id = str_replace_all(phenotype_id, ":", "_")) %>%
+		select(entity_id, phenotype_id) %>%
+		mutate(found="TRUE") %>% 
+		pivot_wider(names_from = phenotype_id, values_from = found, values_fill="FALSE")
 	
-	entity_list_from_phenotype_list_collected
+	#
+	sysndd_db_entity_phenotype_table <- pool %>% 
+		tbl("ndd_entity_view") %>%
+		left_join(ndd_review_phenotype_connect_wide, by = c("entity_id")) %>%
+		collect() %>%
+		filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+		pivot_longer(
+			cols = starts_with("HP_"),
+			names_to = "phenotype_id",
+			values_to = "phenotype_present"
+		) %>%
+		filter(phenotype_present == TRUE) %>%
+		mutate(phenotype_id = str_replace_all(phenotype_id, "_", ":")) %>%
+		group_by(entity_id) %>% 
+		arrange(entity_id, phenotype_id) %>%
+		mutate(phenotype_id = paste0(phenotype_id, collapse = ",")) %>%
+		ungroup() %>%
+		unique() %>%
+		select(-phenotype_present) %>%
+		arrange(!!!rlang::parse_exprs(sort_exprs))
+		
+	## to do: this needs to be in the MySQL database view instead
+	sysndd_db_entity_phenotype_table <- sysndd_db_entity_phenotype_table %>%
+		mutate(ndd_phenotype = case_when(
+			ndd_phenotype == 1 ~ "Yes",
+			ndd_phenotype == 0 ~ "No",
+			TRUE ~ as.character(ndd_phenotype)
+		))
+
+	# select fields from table based on input using the helper function "select_tibble_fields"
+	sysndd_db_entity_phenotype_table <- select_tibble_fields(sysndd_db_entity_phenotype_table, fields, "entity_id")
+
+	# use the helper generate_cursor_pagination_info to generate cursor pagination information from a tibble
+	sysndd_db_entity_phenotype_table_pagination_info <- generate_cursor_pagination_info(sysndd_db_entity_phenotype_table, `page[size]`, `page[after]`, "entity_id")
+
+	# compute execution time
+	end_time <- Sys.time()
+	execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
+
+	# add columns to the meta information from generate_cursor_pagination_info function return
+	meta <- sysndd_db_entity_phenotype_table_pagination_info$meta %>%
+		add_column(as_tibble(list("sort" = sort, "filter" = filter, "fields" = fields, "executionTime" = execution_time))) 
+
+	# add host, port and other information to links from the link information from generate_cursor_pagination_info function return
+	links <- sysndd_db_entity_phenotype_table_pagination_info$links %>%
+  		pivot_longer(everything(), names_to = "type", values_to = "link") %>%
+		mutate(link = case_when(
+			link != "null" ~ paste0("http://", dw$host, ":", dw$port_self, "/api/phenotype/entities/browse?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), ifelse(fields != "", paste0("&fields=", fields), ""),  link),
+			link == "null" ~ "null"
+		)) %>%
+  		pivot_wider(everything(), names_from = "type", values_from = "link")
+
+	# generate object to return
+	list(links = links, meta = meta, data = sysndd_db_entity_phenotype_table_pagination_info$data)
+
 }
 
 

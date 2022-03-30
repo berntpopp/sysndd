@@ -249,6 +249,7 @@ export default {
             { key: 'disease_ontology_name', label: 'Disease ontology name', class: 'text-left' },
             { key: 'entry_date', label: 'Entry date', class: 'text-left' },
           ],
+          selected_sort: "entity_id",
           totalRows: 0,
           currentPage: 1,
           perPage: 10,
@@ -293,28 +294,15 @@ export default {
           break;
           }
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype/entities/browse?hpo_list=' + this.selected_input.join() + '&logical_operator=' + logical_operator;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype/entities/browse?sort=' + this.selected_sort + '&filter=' + logical_operator + '(equals(' + this.selected_input.join(',TRUE),equals(') + ',TRUE))';
 
           try {
             let response = await this.axios.get(apiUrl);
-            
-            for (var i in response.data) {
-              this.entities.push(response.data[i]['entity_id']);
-            }
 
-          } catch (e) {
-            console.error(e);
-          }
-            this.loadEntities();
-        },
-        async loadEntities() {
-          this.entities_data = [];
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/entity/' + this.entities.join();
-          try {
-            let response = await this.axios.get(apiUrl);
-            this.entities_data = response.data;
-            this.totalRows = response.data.length;
+            this.entities_data = response.data.data;
+            this.totalRows = response.data.data.length;
             this.currentPage = 1;
+
           } catch (e) {
             console.error(e);
           }
