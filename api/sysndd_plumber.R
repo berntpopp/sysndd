@@ -187,7 +187,7 @@ function(req, res) {
 ## get all entities
 #* @serializer json list(na="string")
 #' @get /api/entity
-function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = 0, `page[size]` = "all") {
+function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = 0, `page[size]` = "10") {
 
 	start_time <- Sys.time()
 
@@ -1948,6 +1948,8 @@ function(hpo) {
 #* @serializer json list(na="string")
 #' @get /api/phenotype/entities/browse
 function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = 0, `page[size]` = "all") {
+
+	#to do: need to speed this up by making a database view instead of recalculating the transposition and join with each time (expensive)
 
 	start_time <- Sys.time()
 

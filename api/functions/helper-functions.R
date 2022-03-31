@@ -280,10 +280,21 @@ generate_cursor_pagination_info <- function(pagination_tibble, page_size = "all"
 	}
 
 	# generate links object
-	links <- as_tibble(list("prev" = prev, "self" = self, "next" = `next`, "last" = last))
+	links <- as_tibble(list("prev" = prev, 
+		"self" = self, 
+		"next" = `next`, 
+		"last" = last))
 	
 	# generate meta object
-	meta <- as_tibble(list("perPage" = page_size, "currentPage" = ceiling((page_after_row+1)/page_size), "totalPages" = page_count, "currentItemID" = page_after, "totalItems" = pagination_tibble_rows))
+	meta <- as_tibble(list("perPage" = page_size, 
+		"currentPage" = ceiling((page_after_row+1)/page_size), 
+		"totalPages" = page_count, 
+		"prevItemID" = (if (length(page_after_row_prev) == 0) {"null"} else {page_after_row_prev}), 
+		"currentItemID" = page_after, 
+		"nextItemID" = (if (length(page_after_row_next) == 0) {"null"} else {page_after_row_next}), 
+		"lastItemID" = (if (length(page_after_row_last) == 0) {"null"} else {page_after_row_last}), 
+		"totalItems" = pagination_tibble_rows)
+	)
 
 	# generate return list
 	return_data <- list(links = links, meta = meta, data = pagination_tibble)
