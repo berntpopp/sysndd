@@ -3,6 +3,7 @@ import App from './App.vue'
 import VueMeta from 'vue-meta'
 
 import './assets/css/custom.css';
+import './assets/js/functions.js';
 
 import { BIconPersonCircle, 
   BIconStoplights, 

@@ -100,7 +100,7 @@ export default {
           show_search: false
         }
   },
-watch: { // used to refreh navbar on login push
+watch: { // used to refresh navbar on login push
   $route(to, from) { 
     if(to !== from){ 
       this.isUserLoggedIn();
