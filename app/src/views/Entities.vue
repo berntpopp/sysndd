@@ -319,16 +319,20 @@ export default {
       },
       watch: {
       sortBy(value) {
-        this.loadEntitiesData();
+        this.handleSortChange();
       },
       perPage(value) {
         this.handlePerPageChange();
       },
       sortDesc(value) {
-        this.loadEntitiesData();
+        this.handleSortChange();
       }
       },
       methods: {
+        handleSortChange() {
+          this.currentItemID = 0;
+          this.loadEntitiesData();
+        },
         handlePerPageChange() {
           this.currentItemID = 0;
           this.loadEntitiesData();
