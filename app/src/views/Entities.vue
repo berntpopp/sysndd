@@ -12,7 +12,7 @@
           bg-variant="light"
           >
           <template #header>
-            <h6 class="mb-1 text-left font-weight-bold">Entities table <b-badge variant="primary">Entities: {{totalRows}} </b-badge></h6>
+            <h6 class="mb-1 text-left font-weight-bold">Entities table <b-badge variant="primary" v-b-tooltip.hover.bottom v-bind:title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime">Entities: {{totalRows}} </b-badge></h6>
           </template>
           <b-row>
             <b-col class="my-1">
@@ -293,6 +293,7 @@ export default {
           prevItemID: null,
           nextItemID: null,
           lastItemID: null,
+          executionTime: 0,
           perPage: 10,
           pageOptions: [10, 25, 50, { value: 100, text: "Show a lot" }],
           sortBy: 'entity_id',
@@ -350,7 +351,7 @@ export default {
         filtered() {
           let filter_string_not_empty = Object.filter(this.filter, value => value !== '');
 
-          if (Object.keys(filter_string_not_empty).length  !== 0) {
+          if (Object.keys(filter_string_not_empty).length !== 0) {
             this.filter_string = 'contains(' + Object.keys(filter_string_not_empty).map((key) => [key, this.filter[key]].join(',')).join('),contains(') + ')';
             this.loadEntitiesData();
           } else {
@@ -381,6 +382,8 @@ export default {
             this.currentItemID = response.data.meta[0].currentItemID;
             this.nextItemID = response.data.meta[0].nextItemID;
             this.lastItemID = response.data.meta[0].lastItemID;
+            this.executionTime = response.data.meta[0].executionTime;
+
             this.isBusy = false;
 
           } catch (e) {
