@@ -300,8 +300,7 @@ export default {
       lang: 'en'
     },
     meta: [
-      { charset: 'utf-8' },
-      { name: 'description', content: 'This Ontology view shows specific information for a disease.' }
+      { vmid: 'description', name: 'description', content: 'This Ontology view shows specific information for a disease.' }
     ]
   },
   data() {

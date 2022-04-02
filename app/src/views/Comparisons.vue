@@ -253,8 +253,7 @@
       lang: 'en'
     },
     meta: [
-      { charset: 'utf-8' },
-      { name: 'description', content: 'The Comparisions analysis can be used to compare different curation efforts for neurodevelopmental disorders (inlucing attention-deficit/hyperactivity disorder (ADHD), autism spectrum disorders (ASD), learning disabilities and intellectual disability) based on UpSet plots, correlation matrix or tabular views.' }
+      { vmid: 'description', name: 'description', content: 'The Comparisions analysis can be used to compare different curation efforts for neurodevelopmental disorders (inlucing attention-deficit/hyperactivity disorder (ADHD), autism spectrum disorders (ASD), learning disabilities and intellectual disability) based on UpSet plots, correlation matrix or tabular views.' }
     ]
   },
     components: {

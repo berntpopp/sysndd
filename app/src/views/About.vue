@@ -301,8 +301,7 @@ export default {
       lang: 'en'
     },
     meta: [
-      { charset: 'utf-8' },
-      { name: 'description', content: 'The About view contains information abouit the SysNDD curation effort and website.' }
+      { vmid: 'description', name: 'description', content: 'The About view contains information abouit the SysNDD curation effort and website.' }
     ]
   },
   data() {

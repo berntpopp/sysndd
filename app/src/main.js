@@ -84,7 +84,13 @@ Vue.component("BIconPlusSquare", BIconPlusSquare)
 Vue.component("BIconFileEarmarkMinus", BIconFileEarmarkMinus)
 
 // register vue-meta globally
-Vue.use(VueMeta)
+Vue.use(VueMeta, {
+  keyName: 'metaInfo',
+  attribute: 'data-vue-meta',
+  ssrAttribute: 'data-vue-meta-server-rendered',
+  tagIDKeyName: 'vmid',
+  refreshOnceOnNavigation: true
+})
 
 // register vue-multiselect globally
 Vue.component('multiselect', Multiselect)

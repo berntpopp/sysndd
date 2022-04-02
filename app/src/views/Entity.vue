@@ -209,8 +209,7 @@ export default {
       lang: 'en'
     },
     meta: [
-      { charset: 'utf-8' },
-      { name: 'description', content: 'This Entity view shows specific information for an entity.' }
+      { vmid: 'description', name: 'description', content: 'This Entity view shows specific information for an entity.' }
     ]
   },
   data() {

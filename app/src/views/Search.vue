@@ -59,8 +59,8 @@ export default {
       lang: 'en'
     },
     meta: [
-      { charset: 'utf-8' },
-      { name: 'description', content: 'The Search table shows results of database searches and their similarity when no exact terms was identified.' }
+      { vmid: 'description', name: 'description', content: 'The Search table shows results of database searches and their similarity when no exact terms was identified.' },
+      { vmid: 'robots', name: 'robots', content: 'noindex' }
     ]
   },
   data() {

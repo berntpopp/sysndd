@@ -268,8 +268,7 @@ export default {
       lang: 'en'
     },
     meta: [
-      { charset: 'utf-8' },
-      { name: 'description', content: 'This Gene view shows specific information for a gene.' }
+      { vmid: 'description', name: 'description', content: 'This Gene view shows specific information for a gene.' }
     ]
   },
   data() {

@@ -21,8 +21,7 @@ export default {
       lang: 'en'
     },
     meta: [
-      { charset: 'utf-8' },
-      { name: 'description', content: 'The SysNDD database is based on its predecessor database, SysID. It contains a manually curated catalogue of published genes implicated in neurodevelopmental disorders (NDDs) and classified into primary and candidate genes according to the degree of underlying evidence.' }
+      { vmid: 'description', name: 'description', content: 'SysNDD contains a manually curated catalogue of published genes implicated in neurodevelopmental disorders (NDDs) and classified into primary and candidate genes according to the degree of underlying evidence.' }
     ]
   },
   components: {

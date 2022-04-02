@@ -242,8 +242,7 @@ export default {
       lang: 'en'
     },
     meta: [
-      { charset: 'utf-8' },
-      { name: 'description', content: 'The Entities table view allows browsing NDD associated entities.' }
+      { vmid: 'description', name: 'description', content: 'An expert curated resource of neurodevelopmental disorders.' }
     ]
   },
   data() {

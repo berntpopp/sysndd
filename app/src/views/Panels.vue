@@ -270,8 +270,7 @@ export default {
       lang: 'en'
     },
     meta: [
-      { charset: 'utf-8' },
-      { name: 'description', content: 'The Panels table view allows composing panels of genes associated with NDD which can be sued for filtering in sequencing studies.' }
+      { vmid: 'description', name: 'description', content: 'The Panels table view allows composing panels of genes associated with NDD which can be sued for filtering in sequencing studies.' }
     ]
   },
   data() {

@@ -252,8 +252,7 @@ export default {
       lang: 'en'
     },
     meta: [
-      { charset: 'utf-8' }, 
-      { name: 'description', content: 'The Genes table view allows browsing NDD associations by gene.' }
+      { vmid: 'description', name: 'description', content: 'The Genes table view allows browsing NDD associations by gene.' }
     ]
   },
   data() {

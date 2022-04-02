@@ -168,8 +168,7 @@ export default {
       lang: 'en'
     },
     meta: [
-      { charset: 'utf-8' },
-      { name: 'description', content: 'The Register view allows to appy for a new SysNDD account.' }
+      { vmid: 'description', name: 'description', content: 'The Register view allows to appy for a new SysNDD account.' }
     ]
   },
   data() {

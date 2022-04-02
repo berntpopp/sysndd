@@ -214,8 +214,7 @@ export default {
       lang: 'en'
     },
     meta: [
-      { charset: 'utf-8' },
-      { name: 'description', content: 'The Phenotypes table view allows browsing NDD associated entities by pehnotype and filtering with download possibility.' }
+      { vmid: 'description', name: 'description', content: 'The Phenotypes table view allows browsing NDD associated entities by pehnotype and filtering with download possibility.' }
     ]
   },
   data() {

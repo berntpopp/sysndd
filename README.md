@@ -1,4 +1,4 @@
-# sysndd
+# SysNDD
 
 ## Project setup
 ```

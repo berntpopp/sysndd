@@ -203,6 +203,20 @@
 <script>
 export default {
   name: 'Home',
+  metaInfo: {
+    // if no subcomponents specify a metaInfo.title, this title will be used
+    title: 'Home',
+    // all titles will be injected into this template
+    titleTemplate: '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
+    htmlAttrs: {
+      lang: 'en'
+    },
+    meta: [
+      { vmid: 'description', name: 'description', content: 'The Home view shows current information about NDD (attention-deficit/hyperactivity disorder (ADHD), autism, learning disabilities, intellectual disability) entities .' },
+      { vmid: 'keywords', name: 'keywords', content: 'neurodevelopmental disorders, NDD, autism, ASD, learning disabilities, intellectual disability, ID, attention-deficit/hyperactivity disorder, ADHD' },
+      { vmid: 'author', name: 'author', content: 'SysNDD database' }
+    ]
+  },
   data() {
         return {
           stoplights_style: {"Definitive": "success", "Moderate": "primary", "Limited": "warning", "Refuted": "danger"},

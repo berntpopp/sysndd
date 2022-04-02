@@ -81,8 +81,7 @@ export default {
       lang: 'en'
     },
     meta: [
-      { charset: 'utf-8' },
-      { name: 'description', content: 'The Login view allows users and curators to log into their SysNDD account.' }
+      { vmid: 'description', name: 'description', content: 'The Login view allows users and curators to log into their SysNDD account.' }
     ]
   },
   data() {
