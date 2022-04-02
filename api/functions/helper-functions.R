@@ -219,7 +219,6 @@ generate_cursor_pagination_info <- function(pagination_tibble, page_size = "all"
 		page_count <- ceiling(pagination_tibble_rows/page_size)
 	} else if ( is.numeric(as.integer(page_size)) )
 	{
-		page_after <- as.integer(page_after)
 		page_size <- as.integer(page_size)
 		page_count <- ceiling(pagination_tibble_rows/page_size)
 	} else

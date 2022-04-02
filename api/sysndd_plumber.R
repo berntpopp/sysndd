@@ -1624,7 +1624,7 @@ function(req, res, pmid) {
 ## get all genes and associated entities
 #* @serializer json list(na="string")
 #' @get /api/gene
-function(res, sort = "symbol", filter = "", fields = "", `page[after]` = 0, `page[size]` = "all") {
+function(res, sort = "symbol", filter = "", fields = "", `page[after]` = "0", `page[size]` = "10") {
 
 	start_time <- Sys.time()
 
@@ -1947,7 +1947,7 @@ function(hpo) {
 ## get a list of entities associated with a list of phenotypes for browsing
 #* @serializer json list(na="string")
 #' @get /api/phenotype/entities/browse
-function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = 0, `page[size]` = "all") {
+function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = "0", `page[size]` = "all") {
 
 	#to do: need to speed this up by making a database view instead of recalculating the transposition and join with each time (expensive)
 

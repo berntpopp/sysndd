@@ -12,7 +12,7 @@
           bg-variant="light"
           >
           <template #header>
-            <h6 class="mb-1 text-left font-weight-bold">Genes table <b-badge variant="success">Genes: {{totalRows}} </b-badge></h6>
+            <h6 class="mb-1 text-left font-weight-bold">Genes table <b-badge variant="success" v-b-tooltip.hover.bottom v-bind:title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime">Genes: {{totalRows}} </b-badge></h6>
           </template>
 
           <b-row>
@@ -21,14 +21,16 @@
                 class="mb-1"
               >
                 <b-input-group
-                prepend="Search" 
+                prepend="Search"
                 size="sm">
                   <b-form-input
                     id="filter-input"
-                    v-model="filter"
+                    v-model="filter['any']"
                     type="search"
                     placeholder="any field by typing here"
                     debounce="500"
+                    @click="removeFilters()"
+                    @update="filtered()"
                   ></b-form-input>
                 </b-input-group>
               </b-form-group>
@@ -55,13 +57,14 @@
               </b-input-group>
 
               <b-pagination
+                @change="handlePageChange"
                 v-model="currentPage"
                 :total-rows="totalRows"
                 :per-page="perPage"
                 align="fill"
                 size="sm"
                 class="my-0"
-                last-number
+                limit=2
               ></b-pagination>
             </b-col>
           </b-row>
@@ -72,12 +75,10 @@
             :items="items"
             :fields="fields"
             :current-page="currentPage"
-            :per-page="perPage"
-            :filter="filter"
             :filter-included-fields="filterOn"
             :sort-by.sync="sortBy"
             :sort-desc.sync="sortDesc"
-            :sort-direction="sortDirection"
+            :busy="isBusy"
             stacked="md"
             head-variant="light"
             show-empty
@@ -86,7 +87,8 @@
             striped
             hover
             sort-icon-left
-            @filtered="onFiltered"
+            no-local-sorting
+            no-local-pagination
           >
 
             <template #cell(actions)="row">
@@ -251,8 +253,7 @@ export default {
     },
     meta: [
       { charset: 'utf-8' }, 
-      { name: 'description', content: 'The Genes table view allows browsing NDD associations by gene.' }, 
-      { name: 'theme-color',  media: "(prefers-color-scheme: dark)",  content: "black" }
+      { name: 'description', content: 'The Genes table view allows browsing NDD associations by gene.' }
     ]
   },
   data() {
@@ -264,12 +265,23 @@ export default {
           inheritance_short_text: {"Autosomal dominant inheritance": "AD", "Autosomal recessive inheritance": "AR", "X-linked inheritance": "X", "X-linked recessive inheritance": "XR", "X-linked dominant inheritance": "XD", "Mitochondrial inheritance": "M", "Somatic mutation": "S", "Semidominant mode of inheritance": "sD"},
           items: [],
           fields: [
-            { key: 'symbol', label: 'Gene Symbol', sortable: true, class: 'text-left' },
-            { key: 'category', label: 'Category', sortable: true, class: 'text-left' },
+            { 
+              key: 'symbol', 
+              label: 'Gene Symbol', 
+              sortable: true, 
+              sortDirection: 'desc', 
+              class: 'text-left' 
+            },
+            { 
+              key: 'category', 
+              label: 'Category', 
+              sortable: false, 
+              class: 'text-left' 
+            },
             {
               key: 'hpo_mode_of_inheritance_term_name',
               label: 'Inheritance',
-              sortable: true,
+              sortable: false,
               class: 'text-left',
               sortByFormatted: true,
               filterByFormatted: true
@@ -287,63 +299,131 @@ export default {
             },
             { key: 'hpo_mode_of_inheritance_term_name',
               label: 'Inheritance',
-              sortable: true,
+              sortable: false,
               filterable: true, 
               class: 'text-left',
               sortByFormatted: true,
               filterByFormatted: true
             },
-            { key: 'category', label: 'Category', sortable: true, filterable: true, class: 'text-left' },            
-            { key: 'ndd_phenotype', label: 'NDD', sortable: true, class: 'text-left' }
+            { 
+              key: 'category', 
+              label: 'Category', 
+              sortable: false, 
+              filterable: true, 
+              class: 'text-left' 
+            },            
+            { 
+              key: 'ndd_phenotype', 
+              label: 'NDD', 
+              sortable: false, 
+              class: 'text-left' 
+            }
           ],
           totalRows: 0,
           currentPage: 1,
+          currentItemID: 0,
+          prevItemID: null,
+          nextItemID: null,
+          lastItemID: null,
+          executionTime: 0,
           perPage: 10,
           pageOptions: [10, 25, 50, { value: 100, text: "Show a lot" }],
-          sortBy: '',
+          sortBy: 'symbol',
           sortDesc: false,
-          sortDirection: 'asc',
-          filter: null,
+          filter: {any: '', entity_id: '', symbol: '', disease_ontology_name: '', disease_ontology_id_version: '', hpo_mode_of_inheritance_term_name: '', hpo_mode_of_inheritance_term: '', ndd_phenotype: '', category: ''}, 
+          filter_string: '',
           filterOn: [],
           infoModal: {
             id: 'info-modal',
             title: '',
             content: ''
           },
-          loading: true
-        }
-      },
-      computed: {
-        sortOptions() {
-          // Create an options list from our fields
-          return this.fields
-            .filter(f => f.sortable)
-            .map(f => {
-              return { text: f.label, value: f.key }
-            })
+          loading: true,
+          isBusy: true
         }
       },
       mounted() {
         // Set the initial number of items
         this.loadEntitiesData();
+        setTimeout(() => {this.loading = false}, 500);
+      },
+      watch: {
+        sortBy(value) {
+          this.handleSortChange();
+        },
+        perPage(value) {
+          this.handlePerPageChange();
+        },
+        sortDesc(value) {
+          this.handleSortChange();
+        }
       },
       methods: {
-        onFiltered(filteredItems) {
-          // Trigger pagination to update the number of buttons/pages due to filtering
-          this.totalRows = filteredItems.length
-          this.currentPage = 1
+        handleSortChange() {
+          this.currentItemID = 0;
+          this.loadEntitiesData();
+        },
+        handlePerPageChange() {
+          this.currentItemID = 0;
+          this.loadEntitiesData();
+        },
+        handlePageChange(value) {
+          if (value == 1) {
+            this.currentItemID = 0;
+            this.loadEntitiesData();
+          } else if (value == this.totalPages) {
+            this.currentItemID = this.lastItemID;
+            this.loadEntitiesData();
+          } else if (value > this.currentPage) {
+            this.currentItemID = this.nextItemID;
+            this.loadEntitiesData();
+          } else if (value < this.currentPage) {
+            this.currentItemID = this.prevItemID;
+            this.loadEntitiesData();
+          }
+        },
+        filtered() {
+          let filter_string_not_empty = Object.filter(this.filter, value => value !== '');
+
+          if (Object.keys(filter_string_not_empty).length !== 0) {
+            this.filter_string = 'contains(' + Object.keys(filter_string_not_empty).map((key) => [key, this.filter[key]].join(',')).join('),contains(') + ')';
+            this.loadEntitiesData();
+          } else {
+            this.filter_string = '';
+            this.loadEntitiesData();
+          }
+        },
+        removeFilters() {
+          this.filter = {any: '', entity_id: '', symbol: '', disease_ontology_name: '', disease_ontology_id_version: '', hpo_mode_of_inheritance_term_name: '', hpo_mode_of_inheritance_term: '', ndd_phenotype: '', category: ''};
+          this.filtered();
+        },
+        removeSearch() {
+          this.filter['any']  = '';
+          this.filtered();
         },
         async loadEntitiesData() {
-          this.loading = true;
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/gene';
+          this.isBusy = true;
+
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/gene?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + this.filter_string + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
+
           try {
             let response = await this.axios.get(apiUrl);
             this.items = response.data.data;
-            this.totalRows = response.data.data.length;
+
+              this.totalRows = response.data.meta[0].totalItems;
+              this.currentPage = response.data.meta[0].currentPage;
+              this.totalPages = response.data.meta[0].totalPages;
+              this.prevItemID = response.data.meta[0].prevItemID;
+              this.currentItemID = response.data.meta[0].currentItemID;
+              this.nextItemID = response.data.meta[0].nextItemID;
+              this.lastItemID = response.data.meta[0].lastItemID;
+              this.executionTime = response.data.meta[0].executionTime;
+
+              this.isBusy = false;
+
           } catch (e) {
             console.error(e);
           }
-          this.loading = false;
         },
         truncate(str, n){
           return (str.length > n) ? str.substr(0, n-1) + '...' : str;

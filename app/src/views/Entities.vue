@@ -24,7 +24,7 @@
                 size="sm">
                   <b-form-input
                     id="filter-input"
-                    v-model="filter['any'] "
+                    v-model="filter['any']"
                     type="search"
                     placeholder="any field by typing here"
                     debounce="500"
@@ -68,7 +68,7 @@
               </b-input-group>
 
               <b-pagination
-              @change="handlePageChange"
+                @change="handlePageChange"
                 v-model="currentPage"
                 :total-rows="totalRows"
                 :per-page="perPage"
@@ -88,7 +88,6 @@
             :items="items"
             :fields="fields"
             :current-page="currentPage"
-            :filter="filterTable"
             :filter-included-fields="filterOn"
             :sort-by.sync="sortBy"
             :sort-desc.sync="sortDesc"
@@ -256,8 +255,21 @@ export default {
           inheritance_short_text: {"Autosomal dominant inheritance": "AD", "Autosomal recessive inheritance": "AR", "X-linked inheritance": "X", "X-linked recessive inheritance": "XR", "X-linked dominant inheritance": "XD", "Mitochondrial inheritance": "M", "Somatic mutation": "S", "Semidominant mode of inheritance": "sD"},
           items: [],
           fields: [
-            { key: 'entity_id', label: 'Entity', sortable: true, filterable: true, sortDirection: 'asc', class: 'text-left' },
-            { key: 'symbol', label: 'Symbol', sortable: true, filterable: true, class: 'text-left' },
+            { 
+              key: 'entity_id', 
+              label: 'Entity', 
+              sortable: true, 
+              filterable: true, 
+              sortDirection: 'asc', 
+              class: 'text-left' 
+            },
+            { 
+              key: 'symbol', 
+              label: 'Symbol', 
+              sortable: true, 
+              filterable: true, 
+              class: 'text-left' 
+            },
             {
               key: 'disease_ontology_name',
               label: 'Disease',
@@ -276,9 +288,24 @@ export default {
               sortByFormatted: true,
               filterByFormatted: true
             },
-            { key: 'category', label: 'Category', sortable: true, filterable: true, class: 'text-left' },
-            { key: 'ndd_phenotype', label: 'NDD', sortable: true, filterable: true, class: 'text-left' },
-            { key: 'actions', label: 'Actions' }
+            { 
+              key: 'category', 
+              label: 'Category', 
+              sortable: true, 
+              filterable: true, 
+              class: 'text-left' 
+            },
+            { 
+              key: 'ndd_phenotype', 
+              label: 'NDD', 
+              sortable: true, 
+              filterable: true, 
+              class: 'text-left'
+            },
+            { 
+              key: 'actions', 
+              label: 'Actions'
+            }
           ],
           fields_details: [
             { key: 'hgnc_id', label: 'HGNC ID', class: 'text-left' },
@@ -298,8 +325,6 @@ export default {
           pageOptions: [10, 25, 50, { value: 100, text: "Show a lot" }],
           sortBy: 'entity_id',
           sortDesc: false,
-          sortDirection: 'asc',
-          filterTable: null,
           filter: {any: '', entity_id: '', symbol: '', disease_ontology_name: '', disease_ontology_id_version: '', hpo_mode_of_inheritance_term_name: '', hpo_mode_of_inheritance_term: '', ndd_phenotype: '', category: ''}, 
           filter_string: '',
           filterOn: [],
@@ -318,15 +343,15 @@ export default {
         setTimeout(() => {this.loading = false}, 500);
       },
       watch: {
-      sortBy(value) {
-        this.handleSortChange();
-      },
-      perPage(value) {
-        this.handlePerPageChange();
-      },
-      sortDesc(value) {
-        this.handleSortChange();
-      }
+        sortBy(value) {
+          this.handleSortChange();
+        },
+        perPage(value) {
+          this.handlePerPageChange();
+        },
+        sortDesc(value) {
+          this.handleSortChange();
+        }
       },
       methods: {
         handleSortChange() {
@@ -363,11 +388,11 @@ export default {
             this.loadEntitiesData();
           }
         },
-        removeFilters(){
+        removeFilters() {
           this.filter = {any: '', entity_id: '', symbol: '', disease_ontology_name: '', disease_ontology_id_version: '', hpo_mode_of_inheritance_term_name: '', hpo_mode_of_inheritance_term: '', ndd_phenotype: '', category: ''};
           this.filtered();
         },
-        removeSearch(){
+        removeSearch() {
           this.filter['any']  = '';
           this.filtered();
         },
@@ -375,24 +400,24 @@ export default {
           this.isBusy = true;
           let apiUrl = process.env.VUE_APP_API_URL + '/api/entity?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + this.filter_string + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
 
-        try {
-            let response = await this.axios.get(apiUrl);
-            this.items = response.data.data;
+          try {
+              let response = await this.axios.get(apiUrl);
+              this.items = response.data.data;
 
-            this.totalRows = response.data.meta[0].totalItems;
-            this.currentPage = response.data.meta[0].currentPage;
-            this.totalPages = response.data.meta[0].totalPages;
-            this.prevItemID = response.data.meta[0].prevItemID;
-            this.currentItemID = response.data.meta[0].currentItemID;
-            this.nextItemID = response.data.meta[0].nextItemID;
-            this.lastItemID = response.data.meta[0].lastItemID;
-            this.executionTime = response.data.meta[0].executionTime;
+              this.totalRows = response.data.meta[0].totalItems;
+              this.currentPage = response.data.meta[0].currentPage;
+              this.totalPages = response.data.meta[0].totalPages;
+              this.prevItemID = response.data.meta[0].prevItemID;
+              this.currentItemID = response.data.meta[0].currentItemID;
+              this.nextItemID = response.data.meta[0].nextItemID;
+              this.lastItemID = response.data.meta[0].lastItemID;
+              this.executionTime = response.data.meta[0].executionTime;
 
-            this.isBusy = false;
+              this.isBusy = false;
 
-          } catch (e) {
-            console.error(e);
-          }
+            } catch (e) {
+              console.error(e);
+            }
         },
         truncate(str, n){
           return (str.length > n) ? str.substr(0, n-1) + '...' : str;
