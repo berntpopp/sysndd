@@ -205,6 +205,19 @@
 <script>
 export default {
   name: 'Phenotypes',
+  metaInfo: {
+    // if no subcomponents specify a metaInfo.title, this title will be used
+    title: 'Phenotypes',
+    // all titles will be injected into this template
+    titleTemplate: '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
+    htmlAttrs: {
+      lang: 'en'
+    },
+    meta: [
+      { charset: 'utf-8' },
+      { name: 'description', content: 'The Phenotypes table view allows browsing NDD associated entities by pehnotype and filtering with download possibility.' }
+    ]
+  },
   data() {
         return {
           stoplights_style: {"Definitive": "success", "Moderate": "primary", "Limited": "warning", "Refuted": "danger"},

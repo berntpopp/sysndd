@@ -49,7 +49,20 @@
 
 <script>
 export default {
-  name: 'Gene',
+  name: 'Search',
+    metaInfo: {
+    // if no subcomponents specify a metaInfo.title, this title will be used
+    title: 'Search',
+    // all titles will be injected into this template
+    titleTemplate: '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
+    htmlAttrs: {
+      lang: 'en'
+    },
+    meta: [
+      { charset: 'utf-8' },
+      { name: 'description', content: 'The Search table shows results of database searches and their similarity when no exact terms was identified.' }
+    ]
+  },
   data() {
         return {
           result_variant: {"entity_id": "primary", "symbol": "success", "disease_ontology_id_version": "secondary", "disease_ontology_name": "secondary"},

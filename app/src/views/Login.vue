@@ -72,6 +72,19 @@
 <script>
 export default {
   name: 'Login',
+  metaInfo: {
+    // if no subcomponents specify a metaInfo.title, this title will be used
+    title: 'Login',
+    // all titles will be injected into this template
+    titleTemplate: '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
+    htmlAttrs: {
+      lang: 'en'
+    },
+    meta: [
+      { charset: 'utf-8' },
+      { name: 'description', content: 'The Login view allows users and curators to log into their SysNDD account.' }
+    ]
+  },
   data() {
       return {
         user_name: '',

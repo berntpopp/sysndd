@@ -159,6 +159,19 @@
 <script>
 export default {
   name: 'Register',
+  metaInfo: {
+    // if no subcomponents specify a metaInfo.title, this title will be used
+    title: 'Register',
+    // all titles will be injected into this template
+    titleTemplate: '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
+    htmlAttrs: {
+      lang: 'en'
+    },
+    meta: [
+      { charset: 'utf-8' },
+      { name: 'description', content: 'The Register view allows to appy for a new SysNDD account.' }
+    ]
+  },
   data() {
       return {
         registration_form: {

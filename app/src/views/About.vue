@@ -292,6 +292,19 @@
 <script>
 export default {
   name: 'About',
+  metaInfo: {
+    // if no subcomponents specify a metaInfo.title, this title will be used
+    title: 'About',
+    // all titles will be injected into this template
+    titleTemplate: '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
+    htmlAttrs: {
+      lang: 'en'
+    },
+    meta: [
+      { charset: 'utf-8' },
+      { name: 'description', content: 'The About view contains information abouit the SysNDD curation effort and website.' }
+    ]
+  },
   data() {
       return {
         name: 'About',
