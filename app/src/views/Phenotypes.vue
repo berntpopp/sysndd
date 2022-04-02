@@ -1,6 +1,7 @@
 <template>
   <div class="container-fluid" style="min-height:90vh">
-    <b-container fluid>
+  <b-spinner label="Loading..." v-if="loading" class="float-center m-5"></b-spinner>
+    <b-container fluid v-else>
 
       <b-row class="justify-content-md-center py-2">
         <b-col col md="12">
@@ -10,8 +11,8 @@
           bg-variant="light"
           >
           <template #header>
-            <h6 class="mb-1 text-left font-weight-bold">Phenotypes search <b-badge variant="primary">Associated entities: {{totalRows}} </b-badge></h6>
-          </template>
+            <h6 class="mb-1 text-left font-weight-bold">Phenotypes search <b-badge variant="primary" v-b-tooltip.hover.bottom v-bind:title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime">Associated entities: {{totalRows}} </b-badge></h6>
+         </template>
           <b-row>
             <b-col class="my-1">
                 <multiselect 
@@ -72,13 +73,14 @@
               </b-input-group>
 
               <b-pagination
+                @change="handlePageChange"
                 v-model="currentPage"
                 :total-rows="totalRows"
                 :per-page="perPage"
                 align="fill"
                 size="sm"
                 class="my-0"
-                last-number
+                limit=2
               ></b-pagination>
             </b-col>
           </b-row>
@@ -86,15 +88,13 @@
 
           <!-- Main table element -->
           <b-table
-            :items="entities_data"
-            :fields="entities_data_fields"
+            :items="items"
+            :fields="fields"
             :current-page="currentPage"
-            :per-page="perPage"
-            :filter="filter"
             :filter-included-fields="filterOn"
             :sort-by.sync="sortBy"
             :sort-desc.sync="sortDesc"
-            :sort-direction="sortDirection"
+            :busy="isBusy"
             stacked="md"
             head-variant="light"
             show-empty
@@ -103,6 +103,8 @@
             striped
             hover
             sort-icon-left
+            no-local-sorting
+            no-local-pagination
           >
 
             <template #cell(actions)="row">
@@ -231,11 +233,21 @@ export default {
           ],
           phenotypes_options: [],
           selected_input: [],
-          entities: [],
-          entities_data: [],
-          entities_data_fields: [
-            { key: 'entity_id', label: 'Entity', sortable: true, sortDirection: 'desc', class: 'text-left' },
-            { key: 'symbol', label: 'Gene Symbol', sortable: true, class: 'text-left' },
+          items: [],
+          fields: [
+            { 
+              key: 'entity_id', 
+              label: 'Entity', 
+              sortable: true, 
+              sortDirection: 'desc', 
+              class: 'text-left' 
+              },
+            { 
+              key: 'symbol', 
+              label: 'Gene Symbol', 
+              sortable: true, 
+              class: 'text-left'
+            },
             {
               key: 'disease_ontology_name',
               label: 'Disease',
@@ -252,8 +264,16 @@ export default {
               sortByFormatted: true,
               filterByFormatted: true
             },
-            { key: 'ndd_phenotype', label: 'NDD', sortable: true, class: 'text-left' },
-            { key: 'actions', label: 'Actions' }
+            { 
+              key: 'ndd_phenotype', 
+              label: 'NDD', 
+              sortable: true, 
+              class: 'text-left'
+            },
+            { 
+              key: 'actions', 
+              label: 'Actions' 
+            }
           ],
           fields_details: [
             { key: 'hgnc_id', label: 'HGNC ID', class: 'text-left' },
@@ -261,27 +281,85 @@ export default {
             { key: 'disease_ontology_name', label: 'Disease ontology name', class: 'text-left' },
             { key: 'entry_date', label: 'Entry date', class: 'text-left' },
           ],
-          selected_sort: "entity_id",
           totalRows: 0,
           currentPage: 1,
+          currentItemID: 0,
+          prevItemID: null,
+          nextItemID: null,
+          lastItemID: null,
+          executionTime: 0,
           perPage: 10,
           pageOptions: [10, 25, 50, { value: 100, text: "Show a lot" }],
-          sortBy: '',
+          sortBy: "entity_id",
           sortDesc: false,
           sortDirection: 'asc',
           filter: null,
           filterOn: [],
           checked: false,
           downloading: false,
-          loading: true
+          loading: true,
+          isBusy: true
         }
       },
       mounted() {
-        // Set the initial number of items
         this.loadPhenotypesData();
         this.requestSelected();
+        setTimeout(() => {this.loading = false}, 1000);
+      },
+      watch: {
+        sortBy(value) {
+          this.handleSortChange();
+        },
+        perPage(value) {
+          this.handlePerPageChange();
+        },
+        sortDesc(value) {
+          this.handleSortChange();
+        }
       },
       methods: {
+        handleSortChange() {
+          this.currentItemID = 0;
+          this.loadEntitiesFromPhenotypes();
+        },
+        handlePerPageChange() {
+          this.currentItemID = 0;
+          this.loadEntitiesFromPhenotypes();
+        },
+        handlePageChange(value) {
+          if (value == 1) {
+            this.currentItemID = 0;
+            this.loadEntitiesFromPhenotypes();
+          } else if (value == this.totalPages) {
+            this.currentItemID = this.lastItemID;
+            this.loadEntitiesFromPhenotypes();
+          } else if (value > this.currentPage) {
+            this.currentItemID = this.nextItemID;
+            this.loadEntitiesFromPhenotypes();
+          } else if (value < this.currentPage) {
+            this.currentItemID = this.prevItemID;
+            this.loadEntitiesFromPhenotypes();
+          }
+        },
+        filtered() {
+          let filter_string_not_empty = Object.filter(this.filter, value => value !== '');
+
+          if (Object.keys(filter_string_not_empty).length !== 0) {
+            this.filter_string = 'contains(' + Object.keys(filter_string_not_empty).map((key) => [key, this.filter[key]].join(',')).join('),contains(') + ')';
+            this.loadEntitiesFromPhenotypes();
+          } else {
+            this.filter_string = '';
+            this.loadEntitiesFromPhenotypes();
+          }
+        },
+        removeFilters() {
+          this.filter = {any: '', entity_id: '', symbol: '', disease_ontology_name: '', disease_ontology_id_version: '', hpo_mode_of_inheritance_term_name: '', hpo_mode_of_inheritance_term: '', ndd_phenotype: '', category: ''};
+          this.filtered();
+        },
+        removeSearch() {
+          this.filter['any']  = '';
+          this.filtered();
+        },
         async loadPhenotypesData() {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype_list';
           try {
@@ -292,7 +370,7 @@ export default {
           }
         },
         async loadEntitiesFromPhenotypes() {
-          this.entities = [];
+          this.isBusy = true;
 
           let logical_operator = "";
 
@@ -306,15 +384,23 @@ export default {
           break;
           }
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype/entities/browse?sort=' + this.selected_sort + '&filter=' + logical_operator + '(equals(' + this.selected_input.join(',TRUE),equals(') + ',TRUE))';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype/entities/browse?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + logical_operator + '(equals(' + this.selected_input.join(',TRUE),equals(') + ',TRUE))' + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
 
           try {
             let response = await this.axios.get(apiUrl);
 
-            this.entities_data = response.data.data;
-            this.totalRows = response.data.data.length;
-            this.currentPage = 1;
+            this.items = response.data.data;
 
+            this.totalRows = response.data.meta[0].totalItems;
+            this.currentPage = response.data.meta[0].currentPage;
+            this.totalPages = response.data.meta[0].totalPages;
+            this.prevItemID = response.data.meta[0].prevItemID;
+            this.currentItemID = response.data.meta[0].currentItemID;
+            this.nextItemID = response.data.meta[0].nextItemID;
+            this.lastItemID = response.data.meta[0].lastItemID;
+            this.executionTime = response.data.meta[0].executionTime;
+
+            this.isBusy = false;
           } catch (e) {
             console.error(e);
           }
@@ -334,7 +420,7 @@ export default {
               }
               this.loadEntitiesFromPhenotypes();
             } else {
-              this.entities_data = [];
+              this.items = [];
               this.totalRows = 0;
             }
           },

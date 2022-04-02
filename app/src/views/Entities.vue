@@ -337,7 +337,6 @@ export default {
         }
       },
       mounted() {
-        // Set the initial number of items
         this.loadEntitiesData();
         setTimeout(() => {this.loading = false}, 500);
       },
