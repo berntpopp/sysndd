@@ -12,7 +12,7 @@
           bg-variant="light"
           >
           <template #header>
-            <h6 class="mb-1 text-left font-weight-bold">Panel compilation and download <b-badge variant="success">Genes: {{totalRows}} </b-badge></h6>
+            <h6 class="mb-1 text-left font-weight-bold">Panel compilation and download <b-badge variant="primary" v-b-tooltip.hover.bottom v-bind:title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime">Genes: {{totalRows}} </b-badge></h6>
           </template>
 
           <b-row>
@@ -83,7 +83,7 @@
                 <b-form-select 
                 @input="requestSelected"
                 input-id="sort-select"
-                v-model="selected_sort" 
+                v-model="sortBy" 
                 :options="sort_list" 
                 text-field="value"
                 size="sm"
@@ -122,13 +122,14 @@
               </b-input-group>
 
               <b-pagination
+                @change="handlePageChange"
                 v-model="currentPage"
                 :total-rows="totalRows"
                 :per-page="perPage"
                 align="fill"
                 size="sm"
                 class="my-0"
-                last-number
+                limit=2
               ></b-pagination>
             </b-col>
 
@@ -138,24 +139,23 @@
           <!-- Main table element -->
           
           <b-table
-            :items="panel_data"
-            :fields="panel_fields"
+            :items="items"
+            :fields="fields"
             :current-page="currentPage"
-            :per-page="perPage"
-            :filter="filter"
             :filter-included-fields="filterOn"
             :sort-by.sync="sortBy"
             :sort-desc.sync="sortDesc"
-            :sort-direction="sortDirection"
+            :busy="isBusy"
             stacked="md"
             head-variant="light"
-            fixed
             show-empty
             small
+            fixed
             striped
             hover
             sort-icon-left
-            style="width: 100%; white-space: nowrap;"
+            no-local-sorting
+            no-local-pagination
           >
 
             <template #cell(category)="data">
@@ -282,28 +282,86 @@ export default {
           selected_category: null,
           selected_inheritance: null,
           selected_columns: [],
-          selected_sort: "symbol",
-          panel_data: [],
-          panel_fields: [],
+          items: [],
+          fields: [],
           totalRows: 0,
           currentPage: 1,
+          currentItemID: 0,
+          prevItemID: null,
+          nextItemID: null,
+          lastItemID: null,
+          executionTime: 0,
           perPage: 10,
           pageOptions: [10, 25, 50, { value: 100, text: "Show a lot" }],
-          sortBy: '',
+          sortBy: "symbol",
           sortDesc: false,
           sortDirection: 'asc',
           filter: null,
           filterOn: [],
           loading: true,
+          isBusy: true,
           downloading: false,
           show_table: false
         }
       },
       mounted() {
-        // Set the initial number of items
         this.loadOptionsData();
+        setTimeout(() => {this.loading = false}, 500);
+      },
+      watch: {
+        sortBy(value) {
+          this.handleSortChange();
+        },
+        perPage(value) {
+          this.handlePerPageChange();
+        },
+        sortDesc(value) {
+          this.handleSortChange();
+        }
       },
       methods: {
+        handleSortChange() {
+          this.currentItemID = 0;
+          this.requestSelected();
+        },
+        handlePerPageChange() {
+          this.currentItemID = 0;
+          this.requestSelected();
+        },
+        handlePageChange(value) {
+          if (value == 1) {
+            this.currentItemID = 0;
+            this.requestSelected();
+          } else if (value == this.totalPages) {
+            this.currentItemID = this.lastItemID;
+            this.requestSelected();
+          } else if (value > this.currentPage) {
+            this.currentItemID = this.nextItemID;
+            this.requestSelected();
+          } else if (value < this.currentPage) {
+            this.currentItemID = this.prevItemID;
+            this.requestSelected();
+          }
+        },
+        filtered() {
+          let filter_string_not_empty = Object.filter(this.filter, value => value !== '');
+
+          if (Object.keys(filter_string_not_empty).length !== 0) {
+            this.filter_string = 'contains(' + Object.keys(filter_string_not_empty).map((key) => [key, this.filter[key]].join(',')).join('),contains(') + ')';
+            this.requestSelected();
+          } else {
+            this.filter_string = '';
+            this.requestSelected();
+          }
+        },
+        removeFilters() {
+          this.filter = {any: ''};
+          this.filtered();
+        },
+        removeSearch() {
+          this.filter['any']  = '';
+          this.filtered();
+        },
         async loadOptionsData() {
           this.loading = true;
 
@@ -331,15 +389,26 @@ export default {
 
         },
         async requestSelected() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/panels/browse?sort=' + this.selected_sort + '&filter=any(category,' + this.selected_category + '),any(inheritance_filter,' + this.selected_inheritance + ')' + '&fields=' + this.selected_columns.join();
+          this.isBusy = true;
+
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/panels/browse?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=any(category,' + this.selected_category + '),any(inheritance_filter,' + this.selected_inheritance + ')' + '&fields=' + this.selected_columns.join() + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
+         
           try {
             let response = await this.axios.get(apiUrl);
             
-            this.panel_data = response.data.data;
-            this.panel_fields = response.data.fields;
+            this.items = response.data.data;
+            this.fields = response.data.fields;
             
-            this.totalRows = response.data.data.length;
-            this.currentPage = 1;
+            this.totalRows = response.data.meta[0].totalItems;
+            this.currentPage = response.data.meta[0].currentPage;
+            this.totalPages = response.data.meta[0].totalPages;
+            this.prevItemID = response.data.meta[0].prevItemID;
+            this.currentItemID = response.data.meta[0].currentItemID;
+            this.nextItemID = response.data.meta[0].nextItemID;
+            this.lastItemID = response.data.meta[0].lastItemID;
+            this.executionTime = response.data.meta[0].executionTime;
+
+            this.isBusy = false;
 
           } catch (e) {
             console.error(e);
@@ -350,7 +419,7 @@ export default {
         async requestExcel() {
           this.downloading = true;
           //based on https://morioh.com/p/f4d331b62cda
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/panels/excel?category_input=' + this.selected_category + '&inheritance_input=' + this.selected_inheritance + '&output_columns=' + this.selected_columns.join() + '&output_sort=' + this.selected_sort;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/panels/excel?category_input=' + this.selected_category + '&inheritance_input=' + this.selected_inheritance + '&output_columns=' + this.selected_columns.join() + '&output_sort=' + this.sortBy;
           try {
             let response = await this.axios({
                     url: apiUrl,

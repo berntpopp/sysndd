@@ -85,7 +85,7 @@ generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
 
     # and check if entity_idis in the resulting list, if not append to the list for unique sorting
 	if ( !(unique_id %in% sort_list | paste0("desc(", unique_id, ")") %in% sort_list) ){
-		sort_list <- append(sort_list, "entity_id")
+		sort_list <- append(sort_list, unique_id)
 	}
 
     return(sort_list)
