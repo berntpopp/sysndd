@@ -1,5 +1,5 @@
 <template>
-  <div class="container-fluid" style="min-height:90vh">
+  <div class="container-fluid">
     <b-container fluid>
 
       <b-row class="justify-content-md-center py-2">
