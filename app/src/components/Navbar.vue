@@ -17,7 +17,8 @@
 
           <!-- Navbar Analyses dropdown -->
           <b-nav-item-dropdown text="Analyses">
-            <b-dropdown-item href="/Comparisons">Comparisons</b-dropdown-item>
+            <b-dropdown-item href="/CurationComparisons">Compare curations</b-dropdown-item>
+            <b-dropdown-item href="/PhenotypeCorrelations">Correlate phenotypes</b-dropdown-item>
           </b-nav-item-dropdown>
 
           <b-nav-item href="/About">About</b-nav-item>
@@ -271,7 +272,7 @@ color: #FFF!important;
 }
 ::v-deep .dropdown-item {
 color: #FFF!important; 
-width: 160px;
+width: 200px;
 }
 ::v-deep .dropdown-item:hover {
   background-color: #999!important; 

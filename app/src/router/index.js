@@ -25,9 +25,14 @@ const routes = [
     component: () => import(/* webpackChunkName: "Tables" */ '@/views/Phenotypes.vue')
   },
   {
-    path: '/Comparisons',
-    name: 'Comparisons',
-    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/Comparisons.vue')
+    path: '/CurationComparisons',
+    name: 'CurationComparisons',
+    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/CurationComparisons.vue')
+  },
+  {
+    path: '/PhenotypeCorrelations',
+    name: 'PhenotypeCorrelations',
+    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/PhenotypeCorrelations.vue')
   },
   {
     path: '/Panels/:category_input?/:inheritance_input?',

@@ -350,10 +350,10 @@
   import UpSetJS, { extractSets, ISets, ISet } from '@upsetjs/vue';
 
   export default {
-  name: 'Comparisions',
+  name: 'CurationComparisons',
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
-    title: 'Comparisions',
+    title: 'Curation comparisons',
     // all titles will be injected into this template
     titleTemplate: '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
     htmlAttrs: {
