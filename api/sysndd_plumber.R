@@ -2675,6 +2675,51 @@ function() {
 ## Comparisons endpoints
 
 #* @tag comparisons
+## get list of all panel api options
+#* @serializer json list(na="string")
+#' @get /api/comparisons/options
+function() {
+	# connect to database and get comparisons view
+	ndd_database_comparison_view <- pool %>% 
+		tbl("ndd_database_comparison_view") %>%
+		collect() 
+		
+	list <- ndd_database_comparison_view %>%
+		select(list) %>%
+		unique() %>%
+		arrange(list)
+	
+	inheritance <- ndd_database_comparison_view %>%
+		select(inheritance) %>%
+		unique() %>%
+		arrange(inheritance)
+
+	category <- ndd_database_comparison_view %>%
+		select(category) %>%
+		unique() %>%
+		arrange(category)
+
+	pathogenicity_mode <- ndd_database_comparison_view %>%
+		select(pathogenicity_mode) %>%
+		unique() %>%
+		arrange(pathogenicity_mode)
+
+	data <- tibble(
+		columns = c("list", "inheritance", "category", "pathogenicity_mode"),
+		options = list(
+			tibble(value = list),
+			tibble(value = inheritance$inheritance),
+			tibble(value = category$category),
+			tibble(value = pathogenicity_mode$pathogenicity_mode)
+		)
+	)
+	
+	# generate object to return
+	list(data = data)
+}
+
+
+#* @tag comparisons
 ## Return interactive plot showing intersection between different databases
 #* @serializer json list(na="string")
 #' @get /api/comparisons/upset
