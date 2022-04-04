@@ -30,6 +30,9 @@
           header-tag="header"
           bg-variant="light"
           >
+          <template #header>
+            <h6 class="mb-1 text-left font-weight-bold">Genes table <b-badge variant="success" v-b-tooltip.hover.bottom v-bind:title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime">Genes: {{totalRows}} </b-badge></h6>
+          </template>
           <b-row>
             <b-col class="my-1">
               <b-form-group
@@ -52,7 +55,18 @@
               </b-form-group>
             </b-col>
 
-            <b-col class="my-1">
+            <b-col>
+              <b-row>
+                <b-col class="my-1">
+                  <b-button block v-on:click="removeFilters(); removeSearch();" size="sm">
+                    <b-icon icon="filter" class="mx-1"></b-icon>
+                    Reset
+                  </b-button>
+                </b-col>
+
+                <b-col class="my-1">
+                </b-col>
+              </b-row>
             </b-col>
 
             <b-col class="my-1">
@@ -108,6 +122,22 @@
                 no-local-sorting
                 no-local-pagination
               >
+
+          <!-- based on:  https://stackoverflow.com/questions/52959195/bootstrap-vue-b-table-with-filter-in-header -->
+          <template slot="top-row" slot-scope="{ fields }">
+            <td v-for="field in fields" :key="field.key">
+              <b-form-input 
+              v-model="filter[field.key]" 
+              placeholder="..."
+              debounce="500"
+              size="sm"
+              type="search"
+              @click="removeSearch()"
+              @update="filtered()"
+              >
+              </b-form-input>
+            </td>
+          </template>
 
               <template #cell(symbol)="data">
                 <div class="font-italic">
