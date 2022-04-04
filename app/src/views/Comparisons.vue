@@ -274,8 +274,8 @@
             "geisinger_DBD"
           ]
         }],
-        width: 100,
-        height: 100,
+        width: 1200,
+        height: 600,
         items: [],
         totalRows: 0,
         currentPage: 1,
@@ -310,9 +310,6 @@
     },
     mounted() {
       this.loadComparisonsUpsetData();
-      const bb = this.$el.getBoundingClientRect();
-      this.width = bb.width;
-      this.height = bb.height;
     },
     methods: {
         async loadComparisonsUpsetData() {
