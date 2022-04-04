@@ -35,6 +35,16 @@ const routes = [
     component: () => import(/* webpackChunkName: "Analyses" */ '@/views/PhenotypeCorrelations.vue')
   },
   {
+    path: '/EntriesOverTime',
+    name: 'EntriesOverTime',
+    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/EntriesOverTime.vue')
+  },
+  {
+    path: '/GeneNetworks',
+    name: 'GeneNetworks',
+    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/GeneNetworks.vue')
+  },
+  {
     path: '/Panels/:category_input?/:inheritance_input?',
     name: 'Panels',
     component: () => import(/* webpackChunkName: "Tables" */ '@/views/Panels.vue'),

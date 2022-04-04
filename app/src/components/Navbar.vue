@@ -19,6 +19,8 @@
           <b-nav-item-dropdown text="Analyses">
             <b-dropdown-item href="/CurationComparisons">Compare curations</b-dropdown-item>
             <b-dropdown-item href="/PhenotypeCorrelations">Correlate phenotypes</b-dropdown-item>
+            <b-dropdown-item href="/EntriesOverTime">Entries over time</b-dropdown-item>
+            <b-dropdown-item href="/GeneNetworks">Gene networks</b-dropdown-item>
           </b-nav-item-dropdown>
 
           <b-nav-item href="/About">About</b-nav-item>
