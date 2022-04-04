@@ -8,17 +8,91 @@
           <div>
           <b-tabs content-class="mt-3" v-model="tabIndex">
 
-            
-            <b-tab title="Overlap plot" active>
+            <b-tab title="Overlap" active>
               <b-spinner label="Loading..." v-if="loadingUpset" class="float-center m-5"></b-spinner>
               <b-container fluid v-else>
+
+                <!-- User Interface controls -->
+                <b-card 
+                header-tag="header"
+                bg-variant="light"
+                >
+                <template #header>
+                  <h6 class="mb-1 text-left font-weight-bold">Upset plot showing the overlap between different selected curation effors for neurodevelopmental disorders.</h6>
+                </template>
+                  <b-row>
+                    <!-- column 1 -->
+                    <b-col class="my-1">
+                      <b-input-group
+                        prepend="Lists"
+                        class="mb-1"
+                        size="sm"
+                      >
+                        <b-form-select 
+                        @input="loadComparisonsUpsetData"
+                        input-id="columns-select"
+                        v-model="selected_columns" 
+                        :options="columns_list" 
+                        text-field="value"
+                        multiple
+                        :select-size="3"
+                        size="sm"
+                        >
+                        </b-form-select>
+                      </b-input-group>
+                    </b-col>
+
+                    <!-- column 2 -->
+                    <b-col class="my-1">
+                    </b-col>
+
+                    <!-- column 3 -->
+                    <b-col class="my-1">
+                    </b-col>
+
+                    <!-- column 4 -->
+                    <b-col class="my-1">
+                    </b-col>
+                  </b-row>
+                </b-card>
+                <!-- User Interface controls -->
+
                 <UpSetJS :sets="sets" :width="width" :height="height" @hover="hover" :selection="selection"></UpSetJS>
               </b-container>
             </b-tab>
 
-            <b-tab title="Correlation matrix">
+            <b-tab title="Correlation">
               <b-spinner label="Loading..." v-if="loadingMatrix" class="float-center m-5"></b-spinner>
               <b-container fluid v-else>
+
+                <!-- User Interface controls -->
+                <b-card 
+                header-tag="header"
+                bg-variant="light"
+                >
+                <template #header>
+                  <h6 class="mb-1 text-left font-weight-bold">Matrix plot of the correlation between different curation effors for neurodevelopmental disorders.</h6>
+                </template>
+                  <b-row>
+                    <!-- column 1 -->
+                    <b-col class="my-1">
+                    </b-col>
+
+                    <!-- column 2 -->
+                    <b-col class="my-1">
+                    </b-col>
+
+                    <!-- column 3 -->
+                    <b-col class="my-1">
+                    </b-col>
+
+                    <!-- column 4 -->
+                    <b-col class="my-1">
+                    </b-col>
+                  </b-row>
+                </b-card>
+                <!-- User Interface controls -->
+
                 <b-img :src="image" fluid alt="Fluid image"></b-img>
               </b-container>
             </b-tab>
@@ -31,7 +105,8 @@
           bg-variant="light"
           >
           <template #header>
-            <h6 class="mb-1 text-left font-weight-bold">Genes table <b-badge variant="success" v-b-tooltip.hover.bottom v-bind:title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime">Genes: {{totalRows}} </b-badge></h6>
+            <h6 class="mb-1 text-left font-weight-bold">Comparing the presence of a gene in different curation effors for neurodevelopmental disorders.</h6>
+            <h6 class="mb-1 text-left font-weight-bold"><b-badge variant="success" v-b-tooltip.hover.bottom v-bind:title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime">Genes: {{totalRows}} </b-badge></h6>
           </template>
           <b-row>
             <b-col class="my-1">
@@ -306,8 +381,10 @@
             "geisinger_DBD"
           ]
         }],
-        width: 1200,
+        width: 1400,
         height: 600,
+        columns_list: [],
+        selected_columns: [],
         items: [],
         fields: [
           { 
@@ -421,9 +498,30 @@
       },
     },
     mounted() {
-      this.loadComparisonsUpsetData();
+      this.loadOptionsData();
     },
     methods: {
+        async loadOptionsData() {
+          // have to add other options here and normalize the function both here and in the API
+          this.loading = true;
+
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/comparisons/options';
+          try {
+            let response = await this.axios.get(apiUrl);
+            this.columns_list = response.data.list;
+
+            var c = [];
+            for (var i = 0; i < response.data.list.length; i++ ) c.push(response.data.list[i].list);
+            this.columns_list = c;
+            this.selected_columns = c.slice(0, 4);
+
+            this.loadComparisonsUpsetData();
+
+          } catch (e) {
+            console.error(e);
+          }
+
+        },
         handleSortChange() {
           this.currentItemID = 0;
           this.loadTableData();
@@ -468,7 +566,8 @@
         },
         async loadComparisonsUpsetData() {
           this.loadingUpset = true;
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/comparisons/upset';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/comparisons/upset?fields=' + this.selected_columns.join();
+   
           try {
             let response = await this.axios.get(apiUrl);
             this.elems = response.data;

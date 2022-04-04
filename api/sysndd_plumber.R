@@ -2686,8 +2686,15 @@ function() {
 		
 	list <- ndd_database_comparison_view %>%
 		select(list) %>%
+		group_by(list) %>%
+		# count number of entries for sorting
+		mutate(count = n()) %>%
 		unique() %>%
-		arrange(list)
+		# check if value equals SysNDD
+		mutate(self = (list == "SysNDD")) %>%
+		# sort so self is top, then the databases with most entries descending
+		arrange(desc(self), desc(count)) %>%
+		select(list)
 	
 	inheritance <- ndd_database_comparison_view %>%
 		select(inheritance) %>%
@@ -2704,18 +2711,15 @@ function() {
 		unique() %>%
 		arrange(pathogenicity_mode)
 
-	data <- tibble(
-		columns = c("list", "inheritance", "category", "pathogenicity_mode"),
-		options = list(
-			tibble(value = list),
-			tibble(value = inheritance$inheritance),
-			tibble(value = category$category),
-			tibble(value = pathogenicity_mode$pathogenicity_mode)
-		)
+	data <- list(
+		list = list,
+		inheritance = inheritance,
+		category = category,
+		pathogenicity_mode = pathogenicity_mode
 	)
 	
 	# generate object to return
-	list(data = data)
+	data
 }
 
 
@@ -2723,19 +2727,36 @@ function() {
 ## Return interactive plot showing intersection between different databases
 #* @serializer json list(na="string")
 #' @get /api/comparisons/upset
-function() {
+function(res, fields = "") {
 	# get data from database and filter
 	ndd_database_comparison_gene_list  <- pool %>% 
 		tbl("ndd_database_comparison_view") %>%
-		collect() %>%
+		collect()
+
+	# split the fields input by comma
+	if ( fields != "" ){
+		fields <- str_split(str_replace_all(fields, fixed(" "), ""), ",")[[1]]
+	} else {
+		fields <- (ndd_database_comparison_gene_list %>%
+			select(list) %>%
+			unique() %>%
+			as.list())$list
+	}
+
+	# get data from database and filter
+	comparison_upset_data  <- ndd_database_comparison_gene_list %>%
 		select(name = hgnc_id, sets = list) %>%
 		unique() %>%
+		filter(sets %in% fields) %>%
 		group_by(name) %>%
 		arrange(name) %>%
 		mutate(sets = str_c(sets, collapse = ",")) %>%
 		unique() %>%
 		ungroup() %>%
 		mutate(sets = strsplit(sets,","))
+	
+	# generate object to return
+	comparison_upset_data
 }
 
 #* @tag comparisons
