@@ -2,7 +2,7 @@
   <div class="container-fluid">
     <b-container fluid>
 
-      Content comming
+      Content coming
 
     </b-container>
   </div>

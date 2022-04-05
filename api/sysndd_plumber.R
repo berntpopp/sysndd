@@ -11,7 +11,6 @@ library(RMariaDB)
 library(jsonlite)
 library(config)
 library(jose)
-library(plotly)
 library(RCurl)
 library(stringdist)
 library(xlsx)
@@ -27,6 +26,7 @@ library(keyring)
 library(future)
 library(knitr)
 library(rlang)
+library(timetk)
 ##-------------------------------------------------------------------##
 
 
@@ -2664,6 +2664,44 @@ function() {
 		filter(ndd_phenotype == "Yes")
 
 	make_entities_plot(sysndd_db_disease_collected)
+}
+
+
+#* @tag statistics
+## get database entry development over time
+#* @serializer json list(na="string")
+#' @get /api/statistics/entities_over_time
+function() {
+
+	# get data from database and filter
+	sysndd_db_disease_collected  <- pool %>% 
+		tbl("ndd_entity_view") %>%
+		arrange(entity_id) %>%
+		select(entity_id, ndd_phenotype, category, entry_date) %>%
+		collect() %>%
+		mutate(ndd_phenotype = case_when(
+		  ndd_phenotype == 1 ~ "Yes",
+		  ndd_phenotype == 0 ~ "No",
+		  TRUE ~ as.character(ndd_phenotype)
+		)) %>%
+		mutate(count = 1) %>%
+		filter(ndd_phenotype == "Yes") %>%
+		arrange(entry_date) %>%
+		group_by(category) %>%
+		summarise_by_time(
+			.date_var = entry_date,
+			.by       = "month", # Setup for monthly aggregation
+			# Summarization
+			count  = sum(count)
+		) %>% 
+		mutate(cumulative_count = cumsum(count)) %>%
+		ungroup() %>%
+		filter(category == "Definitive") %>%
+		mutate(entry_date = strftime(entry_date , "%Y-%m-%d"))
+
+	# generate object to return
+	sysndd_db_disease_collected
+
 }
 
 ## Statistics endpoints

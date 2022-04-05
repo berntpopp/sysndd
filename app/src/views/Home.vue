@@ -55,7 +55,7 @@
                 </template>
                 <b-img :src="image" height="375" width="675" fluid alt="Plot of Curated entities over time"></b-img>
                 <b-card-text class="text-left">
-                  NDD genes since the SysID publication
+                  NDD entities since the SysID publication
                   <b-link href="https://pubmed.ncbi.nlm.nih.gov/26748517/" target="_blank"> 
                   (Kochinke & Zweier et al. 2016)
                   </b-link>.
