@@ -2696,11 +2696,15 @@ function() {
 		) %>% 
 		mutate(cumulative_count = cumsum(count)) %>%
 		ungroup() %>%
-		filter(category == "Definitive") %>%
 		mutate(entry_date = strftime(entry_date , "%Y-%m-%d"))
 
 	# generate object to return
-	sysndd_db_disease_collected
+    sysndd_db_disease_nested <- sysndd_db_disease_collected %>%
+        nest_by(category, .key = "values") %>%
+		ungroup()
+
+	# generate object to return
+	sysndd_db_disease_nested
 
 }
 
