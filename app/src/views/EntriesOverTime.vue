@@ -6,7 +6,6 @@
 
         <div id="my_dataviz"></div>
 
-
     </b-container>
   </div>
 </template>

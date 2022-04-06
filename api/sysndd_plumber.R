@@ -1924,26 +1924,6 @@ function() {
 
 
 #* @tag phenotype
-## get a phenotype by hpo_id
-#* @serializer json list(na="string")
-#' @get /api/phenotype/<hpo>
-function(hpo) {
-
-	hpo <- URLdecode(hpo) %>%
-		str_replace_all("[^0-9]+", "")
-	hpo <- paste0("HP:",hpo)
-
-	# get data from database and filter
-	phenotype_list_collected <- pool %>% 
-		tbl("phenotype_list") %>%
-		filter(phenotype_id == hpo) %>%
-		select(phenotype_id, HPO_term, HPO_term_definition, HPO_term_synonyms) %>%
-		arrange(phenotype_id) %>%
-		collect()
-}
-
-
-#* @tag phenotype
 ## get a list of entities associated with a list of phenotypes for browsing
 #* @serializer json list(na="string")
 #' @get /api/phenotype/entities/browse
@@ -2114,6 +2094,57 @@ function(hpo_list = "", logical_operator = "and", res) {
 	bin
 }
 
+
+#* @tag phenotype
+## get correlation between phenotypes
+#* @serializer json list(na="string")
+#' @get /api/phenotype/correlation
+function() {
+
+	# get data from database, filter and restructure
+	ndd_entity_view_tbl <- pool %>% 
+		tbl("ndd_entity_view")
+	ndd_review_phenotype_connect_tbl <- pool %>% 
+		tbl("ndd_review_phenotype_connect")
+	modifier_list_tbl <- pool %>% 
+		tbl("modifier_list")
+	phenotype_list_tbl <- pool %>% 
+		tbl("phenotype_list")
+
+	sysndd_db_phenotypes  <- ndd_entity_view_tbl %>%
+		left_join(ndd_review_phenotype_connect_tbl, by = c("entity_id")) %>%
+		left_join(modifier_list_tbl, by = c("modifier_id")) %>%
+		left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
+		collect() %>%
+		mutate(ndd_phenotype = case_when(
+			ndd_phenotype == 1 ~ "Yes",
+			ndd_phenotype == 0 ~ "No"
+		)) %>%
+		filter(ndd_phenotype == "Yes") %>%
+		filter(category == "Definitive") %>%
+		filter(modifier_name == "present") %>%
+		select(entity_id, phenotype_id, HPO_term)
+
+	# compute correlation matrix
+	sysndd_db_phenotypes_matrix <- sysndd_db_phenotypes %>%
+		select(-phenotype_id) %>%
+		mutate(has_HPO_term = HPO_term) %>%
+		mutate(has_HPO_term = case_when(
+			  !is.na(has_HPO_term) ~ 1
+			)) %>%
+		pivot_wider(names_from = HPO_term, values_from = has_HPO_term) %>% 
+		replace(is.na(.), 0) %>% 
+		select(-entity_id)
+
+	# compute correlation matrix
+	sysndd_db_phenotypes_correlation <- round(cor(sysndd_db_phenotypes_matrix),2)
+	sysndd_db_phenotypes_correlation_melted <- melt(sysndd_db_phenotypes_correlation) %>%
+			select(x = Var1, y = Var2, value)
+
+	# generate object to return
+	sysndd_db_phenotypes_correlation_melted
+
+}
 ## Phenotype endpoints
 ##-------------------------------------------------------------------##
 
@@ -2827,6 +2858,38 @@ function() {
 
 	# generate plot
 	make_matrix_plot(ndd_database_comparison_correlation_melted)
+
+}
+
+
+#* @tag comparisons
+## get correlation data between different databases
+#* @serializer json list(na="string")
+#' @get /api/comparisons/correlation
+function() {
+
+	# get data from database, filter and restructure
+	ndd_database_comparison_matrix  <- pool %>% 
+		tbl("ndd_database_comparison_view") %>%
+		collect() %>%
+		select(hgnc_id, list) %>%
+		unique() %>%
+		mutate(in_list = list) %>%
+		pivot_wider(names_from = list, values_from = in_list) %>%
+		select(-hgnc_id) %>%
+		mutate_all(~ case_when(
+			  is.na(.) ~ 0,
+			  !is.na(.) ~ 1,
+			)
+		)
+
+	# compute correlation matrix
+	ndd_database_comparison_correlation <- cosine(ndd_database_comparison_matrix)
+	ndd_database_comparison_correlation_melted <- melt(ndd_database_comparison_correlation) %>%
+		select(x = Var1, y = Var2, value)
+
+	# generate object to return
+	ndd_database_comparison_correlation_melted
 
 }
 
