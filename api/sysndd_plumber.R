@@ -2863,9 +2863,9 @@ function() {
 
 
 #* @tag comparisons
-## get correlation data between different databases
+## get cosine similarity data between different databases
 #* @serializer json list(na="string")
-#' @get /api/comparisons/correlation
+#' @get /api/comparisons/similarity
 function() {
 
 	# get data from database, filter and restructure
@@ -2883,13 +2883,13 @@ function() {
 			)
 		)
 
-	# compute correlation matrix
-	ndd_database_comparison_correlation <- cosine(ndd_database_comparison_matrix)
-	ndd_database_comparison_correlation_melted <- melt(ndd_database_comparison_correlation) %>%
+	# compute similarity matrix
+	ndd_database_comparison_similarity <- cosine(ndd_database_comparison_matrix)
+	ndd_database_comparison_similarity_melted <- melt(ndd_database_comparison_similarity) %>%
 		select(x = Var1, y = Var2, value)
 
 	# generate object to return
-	ndd_database_comparison_correlation_melted
+	ndd_database_comparison_similarity_melted
 
 }
 
