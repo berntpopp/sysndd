@@ -2,7 +2,7 @@
   <div class="container-fluid">
     <b-container fluid>
 
-<b-row class="justify-content-md-center py-2">
+      <b-row class="justify-content-md-center py-2">
         <b-col col md="12">
 
           <div>
@@ -36,7 +36,10 @@
 
             <b-tab title="Inheritance patterns">
             </b-tab>
-            
+
+            <b-tab title="Dual inheritance">
+            </b-tab>
+
           </b-tabs>
           </div>
           
