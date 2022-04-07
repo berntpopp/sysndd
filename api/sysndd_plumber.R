@@ -2832,35 +2832,6 @@ function(res, fields = "") {
 	comparison_upset_data
 }
 
-#* @tag comparisons
-## Return interactive plot data showing intersection between different databases
-#* @serializer text
-#' @get /api/comparisons/correlation_plot
-function() {
-	# get data from database, filter and restructure
-	ndd_database_comparison_matrix  <- pool %>% 
-		tbl("ndd_database_comparison_view") %>%
-		collect() %>%
-		select(hgnc_id, list) %>%
-		unique() %>%
-		mutate(in_list = list) %>%
-		pivot_wider(names_from = list, values_from = in_list) %>%
-		select(-hgnc_id) %>%
-		mutate_all(~ case_when(
-			  is.na(.) ~ 0,
-			  !is.na(.) ~ 1,
-			)
-		)
-
-	# compute correlation matrix
-	ndd_database_comparison_correlation <- cosine(ndd_database_comparison_matrix)
-	ndd_database_comparison_correlation_melted <- melt(ndd_database_comparison_correlation)
-
-	# generate plot
-	make_matrix_plot(ndd_database_comparison_correlation_melted)
-
-}
-
 
 #* @tag comparisons
 ## get cosine similarity data between different databases
