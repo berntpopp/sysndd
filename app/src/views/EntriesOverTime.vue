@@ -117,7 +117,7 @@
               return { 
                 category: item.category, 
                 values: item.values.map(value => {
-                    return { cumulative_count: value.cumulative_count, entry_date: d3.timeParse("%Y-%m-%d")(value.entry_date) };
+                    return { cumulative_count: value.cumulative_count, entry_date_text: value.entry_date, entry_date: d3.timeParse("%Y-%m-%d")(value.entry_date) };
                   })
               };
             });
@@ -180,7 +180,7 @@
       }
       const mousemove = function(event,d) {
         Tooltip
-          .html("Count: " + d.cumulative_count)
+          .html("Count: " + d.cumulative_count + "<br>Date: " + d.entry_date_text)
           .style("left", `${event.layerX+20}px`)
           .style("top", `${event.layerY+20}px`)
       }
