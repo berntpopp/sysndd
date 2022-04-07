@@ -2,9 +2,46 @@
   <div class="container-fluid">
     <b-container fluid>
 
-      NDD entities since the SysID publication
+<b-row class="justify-content-md-center py-2">
+        <b-col col md="12">
 
-        <div id="my_dataviz"></div>
+          <div>
+          <b-tabs content-class="mt-3" v-model="tabIndex">
+
+            <b-tab title="Entities over time" active>
+              <b-spinner label="Loading..." v-if="loadingPage" class="float-center m-5"></b-spinner>
+              <b-container fluid v-else>
+
+                <!-- User Interface controls -->
+                <b-card 
+                header-tag="header"
+                bg-variant="light"
+                >
+                <template #header>
+                  <h6 class="mb-1 text-left font-weight-bold">NDD entities since the SysID publication.</h6>
+                </template>
+
+                </b-card>
+                <!-- User Interface controls -->
+
+                <!-- Content -->
+                <div id="my_dataviz" class="svg-container"></div>
+                <!-- Content -->
+                
+              </b-container>
+            </b-tab>
+
+            <b-tab title="Genes over time">
+            </b-tab>
+
+            <b-tab title="Inheritance patterns">
+            </b-tab>
+            
+          </b-tabs>
+          </div>
+          
+        </b-col>
+      </b-row>
 
     </b-container>
   </div>
@@ -28,10 +65,11 @@
       { vmid: 'description', name: 'description', content: 'This analysis shows the development of database entries over time for neurodevelopmental disorders curated in SysNDD.' }
     ]
   },
-
   data() {
     return {
       items: [],
+      tabIndex: 0,
+      loadingPage: false,
       };
     },
     mounted() {
@@ -55,17 +93,19 @@
       },
       generateGraph() {
       // based on https://d3-graph-gallery.com/graph/connectedscatter_legend.html and https://d3-graph-gallery.com/graph/connectedscatter_tooltip.html
+      // resposnsive styling based on https://chartio.com/resources/tutorials/how-to-resize-an-svg-when-the-window-is-resized-in-d3-js/
 
       // set the dimensions and margins of the graph
-      const margin = {top: 50, right: 30, bottom: 30, left: 60},
+      const margin = {top: 50, right: 50, bottom: 50, left: 50},
           width = 600 - margin.left - margin.right,
           height = 400 - margin.top - margin.bottom;
 
       // append the svg object to the body of the page
       const svg = d3.select("#my_dataviz")
         .append("svg")
-          .attr("width", width + margin.left + margin.right)
-          .attr("height", height + margin.top + margin.bottom)
+        .attr("viewBox", `0 0 600 400`)
+        .attr("preserveAspectRatio", "xMinYMin meet")
+        .classed("svg-content", true)
         .append("g")
           .attr("transform",
                 "translate(" + margin.left + "," + margin.top + ")");
@@ -118,16 +158,16 @@
           .style("stroke-width", 4)
           .style("fill", "none")
 
-    // create a tooltip
-    const Tooltip = d3.select("#my_dataviz")
-      .append("div")
-      .style("opacity", 0)
-      .attr("class", "tooltip")
-      .style("background-color", "white")
-      .style("border", "solid")
-      .style("border-width", "2px")
-      .style("border-radius", "5px")
-      .style("padding", "5px")
+      // create a tooltip
+      const Tooltip = d3.select("#my_dataviz")
+        .append("div")
+        .style("opacity", 0)
+        .attr("class", "tooltip")
+        .style("background-color", "white")
+        .style("border", "solid")
+        .style("border-width", "2px")
+        .style("border-radius", "5px")
+        .style("padding", "5px")
 
       // Three function that change the tooltip when user hover / move / leave a cell
       // layerX/Y replaced by clientX/Y
@@ -138,8 +178,8 @@
       const mousemove = function(event,d) {
         Tooltip
           .html("Count: " + d.cumulative_count)
-          .style("left", `${event.clientX+10}px`)
-          .style("top", `${event.clientY-30}px`)
+          .style("left", `${event.layerX+20}px`)
+          .style("top", `${event.layerY+20}px`)
       }
       const mouseleave = function(event,d) {
         Tooltip
@@ -196,4 +236,18 @@
     line-height: .5;
     border-radius: .2rem;
   }
+  .svg-container {
+    display: inline-block;
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    vertical-align: top;
+    overflow: hidden;
+}
+.svg-content {
+    display: inline-block;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
 </style>
