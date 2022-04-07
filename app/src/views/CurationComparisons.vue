@@ -469,6 +469,7 @@
         sortBy: 'symbol',
         sortDesc: false,
         filter: {any: ''}, 
+        filter_string: '', 
         filterOn: [],
         selection: null,
         image: '',
