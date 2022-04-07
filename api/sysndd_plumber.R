@@ -2145,6 +2145,50 @@ function() {
 	sysndd_db_phenotypes_correlation_melted
 
 }
+
+
+#* @tag phenotype
+## get counts phenotypes in annotated entities
+#* @serializer json list(na="string")
+#' @get /api/phenotype/count
+function() {
+
+	# get data from database, filter and restructure
+	ndd_entity_view_tbl <- pool %>% 
+		tbl("ndd_entity_view")
+	ndd_review_phenotype_connect_tbl <- pool %>% 
+		tbl("ndd_review_phenotype_connect")
+	modifier_list_tbl <- pool %>% 
+		tbl("modifier_list")
+	phenotype_list_tbl <- pool %>% 
+		tbl("phenotype_list")
+
+	sysndd_db_phenotypes  <- ndd_entity_view_tbl %>%
+		left_join(ndd_review_phenotype_connect_tbl, by = c("entity_id")) %>%
+		left_join(modifier_list_tbl, by = c("modifier_id")) %>%
+		left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
+		collect() %>%
+		mutate(ndd_phenotype = case_when(
+			ndd_phenotype == 1 ~ "Yes",
+			ndd_phenotype == 0 ~ "No"
+		)) %>%
+		filter(ndd_phenotype == "Yes") %>%
+		filter(category == "Definitive") %>%
+		filter(modifier_name == "present") %>%
+		select(entity_id, phenotype_id, HPO_term)
+
+	# compute counts
+    sysndd_db_phenotypes_count <- sysndd_db_phenotypes %>%
+        group_by(HPO_term) %>%
+        tally() %>%
+        arrange(desc(n)) %>%
+        ungroup() %>%
+        select(HPO_term, count = n)
+
+	# generate object to return
+	sysndd_db_phenotypes_count
+
+}
 ## Phenotype endpoints
 ##-------------------------------------------------------------------##
 
