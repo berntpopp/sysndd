@@ -71,6 +71,7 @@
   data() {
     return {
       items: [],
+      itemsMeta: [],
       tabIndex: 0,
       loadingPage: false,
       };
@@ -81,12 +82,13 @@
     methods: {
       async loadData() {
 
-        let apiUrl = process.env.VUE_APP_API_URL + '/api/statistics/entities_over_time';
+        let apiUrl = process.env.VUE_APP_API_URL + '/api/statistics/entities_over_time?aggregate=entity_id&group=category';
 
         try {
           let response = await this.axios.get(apiUrl);
 
-          this.items = response.data;
+          this.items = response.data.data;
+          this.itemsMeta = response.data.meta;
 
           this.generateGraph();
 
@@ -115,7 +117,7 @@
 
       const data = this.items.map(item => {
               return { 
-                category: item.category, 
+                group: item.group, 
                 values: item.values.map(value => {
                     return { cumulative_count: value.cumulative_count, entry_date_text: value.entry_date, entry_date: d3.timeParse("%Y-%m-%d")(value.entry_date) };
                   })
@@ -123,10 +125,8 @@
             });
 
       // generate array of all categories
-      const allCategories = this.items.map(item => item.category);
-
-      // List of groups (here I have one group per column)
-      const allGroup = ["Definitive", "Limited"]
+      const allCategories = this.items.map(item => item.group);
+      const maxCount = this.itemsMeta[0].max_cumulative_count;
 
       // A color scale: one color for each group
       const myColor = d3.scaleOrdinal()
@@ -143,7 +143,7 @@
 
       // Add Y axis
       const y = d3.scaleLinear()
-        .domain([0, d3.max(data[0].values, d => +d.cumulative_count)])
+        .domain([0, maxCount])
         .range([ height, 0 ]);
         svg.append("g")
           .call(d3.axisLeft(y));
@@ -155,9 +155,9 @@
       svg.selectAll("myLines")
         .data(data)
         .join("path")
-          .attr("class", d => d.category)
+          .attr("class", d => d.group)
           .attr("d", d => line(d.values))
-          .attr("stroke", d => myColor(d.category))
+          .attr("stroke", d => myColor(d.group))
           .style("stroke-width", 4)
           .style("fill", "none")
 
@@ -195,8 +195,8 @@
         .selectAll("myDots")
         .data(data)
         .join('g')
-          .style("fill", d => myColor(d.category))
-          .attr("class", d => d.category)
+          .style("fill", d => myColor(d.group))
+          .attr("class", d => d.group)
         // Second we need to enter in the 'values' part of this group
         .selectAll("myPoints")
         .data(d => d.values)
@@ -217,14 +217,14 @@
           .append("text")
             .attr('x', 30)
             .attr('y', (d,i) => 30 + i*20)
-            .text(d => d.category)
-            .style("fill", d => myColor(d.category))
+            .text(d => d.group)
+            .style("fill", d => myColor(d.group))
             .style("font-size", 15)
           .on("click", function(event,d){
             // is the element currently visible ?
-            const currentOpacity = d3.selectAll("." + d.category).style("opacity")
+            const currentOpacity = d3.selectAll("." + d.group).style("opacity")
             // Change the opacity: from 0 to 1 or from 1 to 0
-            d3.selectAll("." + d.category).transition().style("opacity", currentOpacity == 1 ? 0:1)
+            d3.selectAll("." + d.group).transition().style("opacity", currentOpacity == 1 ? 0:1)
           })
 
       }

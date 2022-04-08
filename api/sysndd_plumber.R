@@ -2748,12 +2748,30 @@ function() {
 #' @get /api/statistics/entities_over_time
 function(res, aggregate = "entity_id", group = "category") {
 
+	start_time <- Sys.time()
+
+	if ( !(aggregate %in% c("entity_id", "symbol")) | !(group %in% c("category", "inheritance_filter"))) {
+		res$status <- 400
+		res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
+		status = 400,
+		message = paste0("Required 'aggregate' or 'group' parameter not in categories list.")
+		))
+		return(res)
+	}
+
 	# get data from database and filter
 	sysndd_db_disease_collected  <- pool %>% 
 		tbl("ndd_entity_view") %>%
 		arrange(!!rlang::sym(aggregate)) %>%
 		select(!!rlang::sym(aggregate), ndd_phenotype, !!rlang::sym(group), entry_date) %>%
 		collect() %>%
+		# conditional pipe to remove duplicate genes with multiple entries and same inheritance 
+		{if(aggregate == "symbol") 
+			group_by(., symbol) %>%
+			mutate(., entry_date = min(entry_date)) %>%
+			ungroup(.) %>%
+			unique(.)
+		 else .} %>%
 		mutate(ndd_phenotype = case_when(
 		  ndd_phenotype == 1 ~ "Yes",
 		  ndd_phenotype == 0 ~ "No",
@@ -2776,11 +2794,20 @@ function(res, aggregate = "entity_id", group = "category") {
 	# generate object to return
     sysndd_db_disease_nested <- sysndd_db_disease_collected %>%
         nest_by(!!rlang::sym(group), .key = "values") %>%
-		ungroup()
+		ungroup() %>%
+		select("group" = !!rlang::sym(group), values)
+
+	# compute execution time
+	end_time <- Sys.time()
+	execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
+
+	# add columns to the meta information from generate_cursor_pagination_info function return
+	meta <- as_tibble(list("aggregate" = aggregate, "group" = group, "max_count" = max(sysndd_db_disease_collected$count), "max_cumulative_count" = max(sysndd_db_disease_collected$cumulative_count), "executionTime" = execution_time))
 
 	# generate object to return
 	sysndd_db_disease_nested
-
+	# generate object to return
+	list(meta = meta, data = sysndd_db_disease_nested)
 }
 
 ## Statistics endpoints
