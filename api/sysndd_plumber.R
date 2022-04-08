@@ -2746,13 +2746,13 @@ function() {
 ## get database entry development over time
 #* @serializer json list(na="string")
 #' @get /api/statistics/entities_over_time
-function() {
+function(res, aggregate = "entity_id", group = "category") {
 
 	# get data from database and filter
 	sysndd_db_disease_collected  <- pool %>% 
 		tbl("ndd_entity_view") %>%
-		arrange(entity_id) %>%
-		select(entity_id, ndd_phenotype, category, entry_date) %>%
+		arrange(!!rlang::sym(aggregate)) %>%
+		select(!!rlang::sym(aggregate), ndd_phenotype, !!rlang::sym(group), entry_date) %>%
 		collect() %>%
 		mutate(ndd_phenotype = case_when(
 		  ndd_phenotype == 1 ~ "Yes",
@@ -2762,7 +2762,7 @@ function() {
 		mutate(count = 1) %>%
 		filter(ndd_phenotype == "Yes") %>%
 		arrange(entry_date) %>%
-		group_by(category) %>%
+		group_by(!!rlang::sym(group)) %>%
 		summarise_by_time(
 			.date_var = entry_date,
 			.by       = "month", # Setup for monthly aggregation
@@ -2775,7 +2775,7 @@ function() {
 
 	# generate object to return
     sysndd_db_disease_nested <- sysndd_db_disease_collected %>%
-        nest_by(category, .key = "values") %>%
+        nest_by(!!rlang::sym(group), .key = "values") %>%
 		ungroup()
 
 	# generate object to return

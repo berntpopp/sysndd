@@ -92,7 +92,7 @@ generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
 }
 
 
-# generate expression expressions to parse
+# generate filter expressions to parse
 # semantics according to https://www.jsonapi.net/usage/reading/filtering.html
 # currently only implemented "Equality" and "Contains text"
 # need to implement error handling
