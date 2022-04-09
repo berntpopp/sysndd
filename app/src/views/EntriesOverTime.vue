@@ -4,10 +4,7 @@
 
       <b-row class="justify-content-md-center py-2">
         <b-col col md="12">
-
           <div>
-          <b-tabs content-class="mt-3" v-model="tabIndex">
-
             <b-tab title="Entities over time" active>
               <b-spinner label="Loading..." v-if="loadingPage" class="float-center m-5"></b-spinner>
               <b-container fluid v-else>
@@ -20,6 +17,56 @@
                 <template #header>
                   <h6 class="mb-1 text-left font-weight-bold">NDD entities since the SysID publication.</h6>
                 </template>
+                <b-row>
+
+                  <!-- column 1 -->
+                  <b-col class="my-1">
+                    <b-input-group
+                      prepend="Aggregation"
+                      class="mb-1"
+                      size="sm"
+                    >
+                      <b-form-select 
+                      @input="loadData"
+                      input-id="aggregate-select"
+                      v-model="selected_aggregate" 
+                      :options="aggregate_list" 
+                      text-field="value"
+                      size="sm"
+                      >
+                      </b-form-select>
+                    </b-input-group>
+
+                    <b-input-group
+                      prepend="Grouping"
+                      class="mb-1"
+                      size="sm"
+                    >
+                      <b-form-select 
+                      @input="loadData"
+                      input-id="group-select"
+                      v-model="selected_group" 
+                      :options="group_list" 
+                      text-field="value"
+                      size="sm"
+                      >
+                      </b-form-select>
+                    </b-input-group>
+                  </b-col>
+
+                  <!-- column 2 -->
+                  <b-col class="my-1">
+                  </b-col>
+
+                  <!-- column 3 -->
+                  <b-col class="my-1">
+                  </b-col>
+
+                  <!-- column 4 -->
+                  <b-col class="my-1">
+                  </b-col>
+
+                </b-row>
 
                 </b-card>
                 <!-- User Interface controls -->
@@ -30,17 +77,6 @@
                 
               </b-container>
             </b-tab>
-
-            <b-tab title="Genes over time">
-            </b-tab>
-
-            <b-tab title="Inheritance patterns">
-            </b-tab>
-
-            <b-tab title="Dual inheritance">
-            </b-tab>
-
-          </b-tabs>
           </div>
           
         </b-col>
@@ -70,6 +106,10 @@
   },
   data() {
     return {
+      aggregate_list: ["entity_id", "symbol"],
+      selected_aggregate: "entity_id",
+      group_list: ["category", "inheritance_filter"],
+      selected_group: "category",
       items: [],
       itemsMeta: [],
       tabIndex: 0,
@@ -82,7 +122,7 @@
     methods: {
       async loadData() {
 
-        let apiUrl = process.env.VUE_APP_API_URL + '/api/statistics/entities_over_time?aggregate=entity_id&group=category';
+        let apiUrl = process.env.VUE_APP_API_URL + '/api/statistics/entities_over_time?aggregate=' + this.selected_aggregate + '&group=' + this.selected_group;
 
         try {
           let response = await this.axios.get(apiUrl);
@@ -104,6 +144,9 @@
       const margin = {top: 50, right: 50, bottom: 50, left: 50},
           width = 600 - margin.left - margin.right,
           height = 400 - margin.top - margin.bottom;
+
+      // first remove svg
+      d3.select("svg").remove();
 
       // append the svg object to the body of the page
       const svg = d3.select("#my_dataviz")
