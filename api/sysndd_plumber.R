@@ -2765,6 +2765,12 @@ function(res, aggregate = "entity_id", group = "category") {
 		arrange(!!rlang::sym(aggregate)) %>%
 		select(!!rlang::sym(aggregate), ndd_phenotype, !!rlang::sym(group), entry_date) %>%
 		collect() %>%
+		mutate(ndd_phenotype = case_when(
+		  ndd_phenotype == 1 ~ "Yes",
+		  ndd_phenotype == 0 ~ "No",
+		  TRUE ~ as.character(ndd_phenotype)
+		)) %>%
+		filter(ndd_phenotype == "Yes") %>%
 		# conditional pipe to remove duplicate genes with multiple entries and same inheritance 
 		{if(aggregate == "symbol") 
 			group_by(., symbol) %>%
@@ -2772,13 +2778,7 @@ function(res, aggregate = "entity_id", group = "category") {
 			ungroup(.) %>%
 			unique(.)
 		 else .} %>%
-		mutate(ndd_phenotype = case_when(
-		  ndd_phenotype == 1 ~ "Yes",
-		  ndd_phenotype == 0 ~ "No",
-		  TRUE ~ as.character(ndd_phenotype)
-		)) %>%
 		mutate(count = 1) %>%
-		filter(ndd_phenotype == "Yes") %>%
 		arrange(entry_date) %>%
 		group_by(!!rlang::sym(group)) %>%
 		summarise_by_time(
