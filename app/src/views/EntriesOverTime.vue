@@ -146,7 +146,9 @@
           height = 400 - margin.top - margin.bottom;
 
       // first remove svg
-      d3.select("svg").remove();
+      d3.select("#my_dataviz")
+        .select("svg")
+        .remove();
 
       // append the svg object to the body of the page
       const svg = d3.select("#my_dataviz")
