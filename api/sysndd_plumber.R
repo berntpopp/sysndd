@@ -250,12 +250,10 @@ function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = 0, `
 
 #* @tag entity
 ## create a new entity
-## example data: entity_json: '{"hgnc_id":"HGNC:21396", "hpo_mode_of_inheritance_term":"HP:0000007", "disease_ontology_id_version":"OMIM:210600", "pathogenicity_mode":"1", "ndd_phenotype":"1"}'
-## example data: review_json: '{"synopsis": "activating, gain-of-function mutations: congenital hypertrichosis, neonatal macrosomia, distinct osteochondrodysplasia, cardiomegaly; activating mutations", "literature": {"additional_references": ["PMID:22608503", "PMID:22610116"], "gene_review": ["PMID:25275207"]}, "phenotypes": {"phenotype_id": ["HP:0000256", "HP:0000924", "HP:0001256", "HP:0001574", "HP:0001627", "HP:0002342"], "modifier_id": [1,1,1,1,1,1]}, "comment": ""}'
-## example data: status_json: '{"category_id":1, "comment":"fsa", "problematic": true}'
+## example data: create_json <- '{"entity": {"hgnc_id":"HGNC:21396", "hpo_mode_of_inheritance_term":"HP:0000007", "disease_ontology_id_version":"OMIM:210600", "pathogenicity_mode":"1", "ndd_phenotype":"1"}, "review": {"synopsis": "activating, gain-of-function mutations: congenital hypertrichosis, neonatal macrosomia, distinct osteochondrodysplasia, cardiomegaly; activating mutations", "literature": {"additional_references": ["PMID:22608503", "PMID:22610116"], "gene_review": ["PMID:25275207"]}, "phenotypes": [ {"phenotype_id": "HP:0000256", "modifier_id": 1}, {"phenotype_id": "HP:0000924", "modifier_id": 1}, {"phenotype_id": "HP:0001256", "modifier_id": 1}, {"phenotype_id": "HP:0001574", "modifier_id": 1}, {"phenotype_id": "HP:0001627", "modifier_id": 1}, {"phenotype_id": "HP:0002342", "modifier_id": 1} ], "comment": ""}, "status": {"category_id":1, "comment":"fsa", "problematic": true}}'
 #* @serializer json list(na="string")
 #' @post /api/entity/create
-function(req, res, entity_json, review_json, status_json) {
+function(req, res, create_json) {
 
 	# first check rights
 	if ( req$user_role %in% c("Administrator", "Curator") ) {
@@ -263,13 +261,12 @@ function(req, res, entity_json, review_json, status_json) {
 		entry_user_id <- req$user_id
 		review_user_id <- req$user_id
 		status_user_id <- req$user_id
-		entity_data <- fromJSON(entity_json)
-		review_data <- fromJSON(review_json)
-		status_data <- fromJSON(status_json)
+
+		create_data <- fromJSON(create_json)
 		
 		##-------------------------------------------------------------------##
 		# block to post new entity
-		response_entity <- post_db_entity(entity_data$hgnc_id, entity_data$hpo_mode_of_inheritance_term, entity_data$disease_ontology_id_version, entity_data$pathogenicity_mode, entity_data$ndd_phenotype, entry_user_id)
+		response_entity <- post_db_entity(create_data$entity$hgnc_id, create_data$entity$hpo_mode_of_inheritance_term, create_data$entity$disease_ontology_id_version, create_data$entity$pathogenicity_mode, create_data$entity$ndd_phenotype, entry_user_id)
 		##-------------------------------------------------------------------##
 
 		if ( response_entity$status == 200 ) {
@@ -278,8 +275,8 @@ function(req, res, entity_json, review_json, status_json) {
 			##-------------------------------------------------------------------##
 			# data preparation
 			# convert publications to tibble
-			if ( length(compact(review_data$literature)) > 0 ) {
-				publications_received <- bind_rows(as_tibble(compact(review_data$literature$additional_references)), as_tibble(compact(review_data$literature$gene_review)), .id = "publication_type") %>% 
+			if ( length(compact(create_data$review$literature)) > 0 ) {
+				publications_received <- bind_rows(as_tibble(compact(create_data$review$literature$additional_references)), as_tibble(compact(create_data$review$literature$gene_review)), .id = "publication_type") %>% 
 					select(publication_id = value, publication_type) %>%
 					mutate(publication_type = case_when(
 						publication_type == 1 ~ "additional_references",
@@ -294,21 +291,21 @@ function(req, res, entity_json, review_json, status_json) {
 			}
 
 			# convert sysnopsis to tibble, check if comment is null and handle
-			if ( !is.null(review_data$comment) ) {
-				sysnopsis_received <- as_tibble(review_data$synopsis) %>% 
+			if ( !is.null(create_data$review$comment) ) {
+				sysnopsis_received <- as_tibble(create_data$review$synopsis) %>% 
 					add_column(response_entity$entry$entity_id) %>% 
-					add_column(review_data$comment) %>% 
+					add_column(create_data$review$comment) %>% 
 					add_column(review_user_id) %>% 
-					select(entity_id = `response_entity$entry$entity_id`, synopsis = value, review_user_id, comment = `review_data$comment`)
+					select(entity_id = `response_entity$entry$entity_id`, synopsis = value, review_user_id, comment = `create_data$review$comment`)
 			} else {
-				sysnopsis_received <- as_tibble(review_data$synopsis) %>% 
+				sysnopsis_received <- as_tibble(create_data$review$synopsis) %>% 
 					add_column(response_entity$entry$entity_id) %>%
 					add_column(review_user_id) %>% 
 					select(entity_id = `response_entity$entry$entity_id`, synopsis = value, review_user_id, comment = NULL)
 			}
 
 			# convert phenotypes to tibble
-			phenotypes_received <- as_tibble(review_data$phenotypes)
+			phenotypes_received <- as_tibble(create_data$review$phenotypes)
 
 			##-------------------------------------------------------------------##
 			
@@ -347,14 +344,14 @@ function(req, res, entity_json, review_json, status_json) {
 		# block to post new status for posted entity
 			##-------------------------------------------------------------------##
 			# data preparation
-			status_data <- as_tibble(status_data) %>% 
+			create_data$status <- as_tibble(create_data$status) %>% 
 				add_column(response_entity$entry$entity_id) %>% 
 				select(entity_id = `response_entity$entry$entity_id`, category_id, review_user_id, comment, problematic)
 			##-------------------------------------------------------------------##
 			
 			##-------------------------------------------------------------------##
 			# use the put_post_db_status function to add the review to the database table
-			response_status_post <- put_post_db_status("POST", status_data, status_user_id)
+			response_status_post <- put_post_db_status("POST", create_data$status, status_user_id)
 			##-------------------------------------------------------------------##		
 			
 		##-------------------------------------------------------------------##
