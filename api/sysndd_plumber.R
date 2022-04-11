@@ -3175,6 +3175,52 @@ function(searchterm, helper = TRUE) {
 	non_alt_loci_set_search_return_helper
 }
 
+
+#* @tag search
+## search the search_mode_of_inheritance_list_view table by columns hpo_mode_of_inheritance_term_name, hpo_mode_of_inheritance_term
+#* @serializer json list(na="string")
+#' @get /api/search/inheritance/<searchterm>
+function(searchterm, helper = TRUE) {
+	searchterm <- URLdecode(searchterm) %>%
+		str_squish()
+
+	mode_of_inheritance_list_search <- pool %>% 
+		tbl("search_mode_of_inheritance_list_view") %>% 
+		filter(result %like% paste0("%", searchterm, "%")) %>%
+		collect() %>%
+		mutate(searchdist = stringdist(str_to_lower(result), str_to_lower(searchterm), method='jw', p=0.1)) %>%
+		arrange(searchdist, result)
+
+	# compute filtered length with match < 0.1
+	mode_of_inheritance_list_search_length <- mode_of_inheritance_list_search %>%
+		filter(searchdist < 0.1) %>%
+		tally()
+	
+	if (mode_of_inheritance_list_search_length$n > 10) {
+		return_count <- mode_of_inheritance_list_search_length$n
+	} else {
+		return_count <- 10
+	}
+	
+	mode_of_inheritance_list_search_return <- mode_of_inheritance_list_search %>% 
+		slice_head(n=return_count)
+
+	# change output by helper input to unique values (helper = TRUE) or entities (helper = FALSE)
+	if (helper) {
+		mode_of_inheritance_list_search_return_helper <- (mode_of_inheritance_list_search_return %>% 
+			select(-hpo_mode_of_inheritance_term, -search, -searchdist) %>%
+			as.list())$result
+	} else {
+		mode_of_inheritance_list_search_return_helper <- mode_of_inheritance_list_search_return %>%
+			nest_by(result, .key = "values") %>%
+			ungroup() %>%
+			pivot_wider(everything(), names_from = "result", values_from = "values")
+	}
+
+	# return output
+	mode_of_inheritance_list_search_return_helper
+}
+
 ## Search endpoints
 ##-------------------------------------------------------------------##
 
