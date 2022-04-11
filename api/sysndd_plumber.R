@@ -3094,7 +3094,8 @@ function(searchterm, helper = TRUE) {
 		filter(result %like% paste0("%", searchterm, "%")) %>%
 		collect() %>%
 		mutate(searchdist = stringdist(str_to_lower(result), str_to_lower(searchterm), method='jw', p=0.1)) %>%
-		arrange(searchdist, result)
+		arrange(searchdist, result) %>%
+		select(result, disease_ontology_id_version, search, searchdist)
 
 	# compute filtered length with match < 0.1
 	sysndd_db_ontology_set_search_length <- sysndd_db_ontology_set_search %>%
@@ -3114,14 +3115,17 @@ function(searchterm, helper = TRUE) {
 	# change output by helper input to unique values (helper = TRUE) or entities (helper = FALSE)
 	if (helper) {
 		sysndd_db_ontology_set_search_return_helper <- (sysndd_db_ontology_set_search_return %>% 
-			select(-hgnc_id, -search, -searchdist) %>%
+			select(-disease_ontology_id_version, -search, -searchdist) %>%
 			as.list())$result
 	} else {
-		sysndd_db_ontology_set_search_return_helper <- sysndd_db_ontology_set_search_return
+		sysndd_db_ontology_set_search_return_helper <- sysndd_db_ontology_set_search_return %>%
+			nest_by(result, .key = "values") %>%
+			ungroup() %>%
+			pivot_wider(everything(), names_from = "result", values_from = "values")
 	}
 
+	# return output
 	sysndd_db_ontology_set_search_return_helper
-
 }
 
 
@@ -3138,7 +3142,8 @@ function(searchterm, helper = TRUE) {
 		filter(result %like% paste0("%", searchterm, "%")) %>%
 		collect() %>%
 		mutate(searchdist = stringdist(str_to_lower(result), str_to_lower(searchterm), method='jw', p=0.1)) %>%
-		arrange(searchdist, result)
+		arrange(searchdist, result) %>%
+		select(result, hgnc_id, search, searchdist)
 
 	# compute filtered length with match < 0.1
 	non_alt_loci_set_search_length <- non_alt_loci_set_search %>%
@@ -3160,9 +3165,13 @@ function(searchterm, helper = TRUE) {
 			select(-hgnc_id, -search, -searchdist) %>%
 			as.list())$result
 	} else {
-		non_alt_loci_set_search_return_helper <- non_alt_loci_set_search_return
+		non_alt_loci_set_search_return_helper <- non_alt_loci_set_search_return %>%
+			nest_by(result, .key = "values") %>%
+			ungroup() %>%
+			pivot_wider(everything(), names_from = "result", values_from = "values")
 	}
 
+	# return output
 	non_alt_loci_set_search_return_helper
 }
 
