@@ -109,6 +109,7 @@ make_matrix_plot_mem <- memoise(make_matrix_plot)
 #* @apiTag panels Gene panel related endpoints
 #* @apiTag comparisons NDD gene list comparisons related endpoints
 #* @apiTag search Database search related endpoints
+#* @apiTag list Database list related endpoints
 #* @apiTag statistics Database statistics
 #* @apiTag user User account related endpoints
 #* @apiTag authentication Authentication related endpoints
@@ -3222,6 +3223,31 @@ function(searchterm, helper = TRUE) {
 }
 
 ## Search endpoints
+##-------------------------------------------------------------------##
+
+
+
+##-------------------------------------------------------------------##
+## List endpoints
+
+#* @tag list
+## get list of all status
+#* @serializer json list(na="string")
+#' @get /api/list/status
+function() {
+	status_list_collected <- pool %>% 
+		tbl("ndd_entity_status_categories_list") %>%
+		arrange(category_id) %>%
+		collect() %>%
+		nest_by(category, .key = "values") %>%
+		ungroup() %>%
+		pivot_wider(everything(), names_from = "category", values_from = "values")
+
+	# return output
+	status_list_collected
+}
+
+## List endpoints
 ##-------------------------------------------------------------------##
 
 
