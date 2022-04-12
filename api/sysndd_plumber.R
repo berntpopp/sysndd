@@ -72,10 +72,10 @@ user_status_allowed <- c("Administrator", "Curator", "Reviewer", "Viewer")
 # Global functions
 
 # load source files
-source("functions/database-functions.R")
-source("functions/publication-functions.R")
-source("functions/plot-functions.R")
-source("functions/helper-functions.R")
+source("functions/database-functions.R", local = TRUE)
+source("functions/publication-functions.R", local = TRUE)
+source("functions/plot-functions.R", local = TRUE)
+source("functions/helper-functions.R", local = TRUE)
 
 # convert to memoise functions
 nest_gene_tibble_mem <- memoise(nest_gene_tibble)
