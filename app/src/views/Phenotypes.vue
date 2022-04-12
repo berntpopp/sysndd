@@ -15,20 +15,14 @@
          </template>
           <b-row>
             <b-col class="my-1">
-                <multiselect 
-                id="phenotype_select"
-                @input="requestSelected"
-                v-model="value"
-                tag-placeholder="Add this as new tag" 
-                placeholder="Search or add a tag" 
-                label="HPO_term" 
-                track-by="phenotype_id" 
-                :options="phenotypes_options" 
-                :multiple="true"
-                :taggable="true" 
-                @tag="addTag"
-                >
-                </multiselect> 
+                <treeselect 
+                  id="phenotype_select"
+                  @input="requestSelected"
+                  v-model="value" 
+                  :multiple="true" 
+                  :options="phenotypes_options"
+                  :normalizer="normalizer"
+                />
             </b-col>
 
             <b-col>
@@ -205,7 +199,14 @@
 
 
 <script>
+  // import the Treeselect component
+  import Treeselect from '@riophae/vue-treeselect'
+  // import the Treeselect styles
+  import '@riophae/vue-treeselect/dist/vue-treeselect.css'
+
 export default {
+  // register the Treeselect component
+  components: { Treeselect },
   name: 'Phenotypes',
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
@@ -227,12 +228,8 @@ export default {
           ndd_icon_text: {"No": "not associated with NDDs", "Yes": "associated with NDDs"},
           inheritance_short_text: {"Autosomal dominant inheritance": "AD", "Autosomal recessive inheritance": "AR", "X-linked inheritance": "X", "X-linked recessive inheritance": "XR", "X-linked dominant inheritance": "XD", "Mitochondrial inheritance": "M", "Somatic mutation": "S", "Semidominant mode of inheritance": "sD"},
           switch_text: {true: "OR", false: "AND"},
-          value: [{
-            "phenotype_id": "HP:0001249",
-            "HPO_term": "Intellectual disability"}
-          ],
+          value: ["HP:0001249"],
           phenotypes_options: [],
-          selected_input: [],
           items: [],
           fields: [
             { 
@@ -302,7 +299,7 @@ export default {
         }
       },
       mounted() {
-        this.loadPhenotypesData();
+        this.loadPhenotypesList();
         this.requestSelected();
         setTimeout(() => {this.loading = false}, 1000);
       },
@@ -360,13 +357,19 @@ export default {
           this.filter['any']  = '';
           this.filtered();
         },
-        async loadPhenotypesData() {
+        async loadPhenotypesList() {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/list/phenotype';
           try {
             let response = await this.axios.get(apiUrl);
             this.phenotypes_options = response.data;
           } catch (e) {
             console.error(e);
+          }
+        },
+        normalizer(node) {
+          return {
+            id: node.phenotype_id,
+            label: node.HPO_term,
           }
         },
         async loadEntitiesFromPhenotypes() {
@@ -384,7 +387,7 @@ export default {
           break;
           }
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype/entities/browse?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + logical_operator + '(equals(' + this.selected_input.join(',TRUE),equals(') + ',TRUE))' + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype/entities/browse?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + logical_operator + '(equals(' + this.value.join(',TRUE),equals(') + ',TRUE))' + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
 
           try {
             let response = await this.axios.get(apiUrl);
@@ -405,19 +408,8 @@ export default {
             console.error(e);
           }
         },
-        addTag(newTag) {
-            const tag = {
-              phenotype_id: newTag
-            }
-            this.options.push(tag);
-            this.value.push(tag);
-          },
         requestSelected() {
             if (this.value.length > 0) {
-              this.selected_input = [];
-              for (var i in this.value) {
-                this.selected_input.push(this.value[i]['phenotype_id']);
-              }
               this.loadEntitiesFromPhenotypes();
             } else {
               this.items = [];
@@ -426,10 +418,6 @@ export default {
           },
         requestSelectedExcel() {
             if (this.value.length > 0) {
-              this.selected_input = [];
-              for (var i in this.value) {
-                this.selected_input.push(this.value[i]['phenotype_id']);
-              }
               this.requestExcel();
             }
           },
@@ -449,7 +437,7 @@ export default {
           }
 
           //based on https://morioh.com/p/f4d331b62cda
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype/entities/excel?hpo_list=' + this.selected_input.join() + '&logical_operator=' + logical_operator;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype/entities/excel?hpo_list=' + this.value.join() + '&logical_operator=' + logical_operator;
           try {
             let response = await this.axios({
                     url: apiUrl,

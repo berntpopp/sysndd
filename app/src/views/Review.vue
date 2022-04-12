@@ -437,20 +437,14 @@
                   Only phenotypes that occur in 20% or more of affected individuals should be included. 
                   Please also include information on severity of ID.
                 </b-popover>
-
-                <multiselect 
-                  id="phenotype-select"
-                  v-model="phenotypes_review"
-                  tag-placeholder="Add this as new tag" 
-                  placeholder="Search or add a tag" 
-                  label="HPO_term" 
-                  track-by="phenotype_id" 
-                  :options="phenotypes_options" 
-                  :multiple="true"
-                  :taggable="true" 
-                  @tag="addTag"
-                  >
-                </multiselect> 
+                
+                <treeselect 
+                  id="phenotype_select"
+                  v-model="phenotypes_review" 
+                  :multiple="true" 
+                  :options="phenotypes_options"
+                  :normalizer="normalizer"
+                />
 
               <label class="mr-sm-2 font-weight-bold" for="publications-select">Publications</label>
                 <b-badge pill id="popover-badge-help-publications" href="#" variant="info">
@@ -765,7 +759,14 @@
 
 
 <script>
+  // import the Treeselect component
+  import Treeselect from '@riophae/vue-treeselect'
+  // import the Treeselect styles
+  import '@riophae/vue-treeselect/dist/vue-treeselect.css'
+
 export default {
+  // register the Treeselect component
+  components: { Treeselect },
   name: 'Review',
   data() {
         return {
@@ -934,6 +935,7 @@ export default {
           this.entity = [];
           this.entity_review = [];
           this.synopsis_review = '';
+          this.phenotypes_review = [];
           this.literature_review = [];
           this.genereviews_review = [];
           this.review_comment = '';
@@ -1036,7 +1038,9 @@ export default {
             } else {
               this.review_comment = '';
             }
-            this.phenotypes_review = this.phenotypes;
+            
+            Object.entries(this.phenotypes).forEach(([key, value]) => this.phenotypes_review.push(value.phenotype_id));
+            console.log(this.phenotypes_review)
 
             // filter the publications data into groups and assign to global variables
             let literature_filter = response_publications.data.filter(li => li.publication_type === "additional_references");
@@ -1080,6 +1084,12 @@ export default {
             this.phenotypes_options = response.data;
           } catch (e) {
             console.error(e);
+          }
+        },
+        normalizer(node) {
+          return {
+            id: node.phenotype_id,
+            label: node.HPO_term,
           }
         },
         async loadStatusList() {
@@ -1127,13 +1137,13 @@ export default {
         },
         handleReviewOk(bvModalEvt) {
 
-          let review_submission = {};
-          let phenotypes_submission = [];
-          let modifiers_submission = [];
+          const review_submission = {};
+          const phenotypes_submission = this.phenotypes_review;
 
-          Object.entries(this.phenotypes_review).forEach(([key, value]) => {
-            phenotypes_submission.push(value.phenotype_id);
-            modifiers_submission.push(value.modifier_id);
+          // TO DO: need to change this to incorporate real modifiers selection
+          const modifiers_submission = [];
+          Object.entries(this.phenotypes_review).forEach(([value]) => {
+            modifiers_submission.push(1);
             }
           );
 

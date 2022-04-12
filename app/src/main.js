@@ -31,8 +31,6 @@ import { BIconPersonCircle,
 
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
-import Multiselect from 'vue-multiselect'
-import 'vue-multiselect/dist/vue-multiselect.min.css'
 
 import VueAxios from 'vue-axios'
 import axios from 'axios'
@@ -92,9 +90,6 @@ Vue.use(VueMeta, {
   refreshOnceOnNavigation: true
 })
 
-// register vue-multiselect globally
-Vue.component('multiselect', Multiselect)
-Vue.use(Multiselect)
 
 // Install VeeValidate rules and localization (based on https://codesandbox.io/s/boostrapvue-veevalidate-v3-example-xm3et?from-embed=&file=/index.js)
 Object.keys(rules).forEach(rule => {

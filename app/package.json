@@ -1,5 +1,5 @@
 {
-  "name": "SysNDD",
+  "name": "sysndd",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -19,7 +19,6 @@
     "vue": "^2.6.14",
     "vue-axios": "^3.2.4",
     "vue-meta": "^2.4.0",
-    "vue-multiselect": "^2.1.6",
     "vue-router": "^3.2.0",
     "vue-server-renderer": "^2.6.14",
     "vuex": "^3.6.2"
