@@ -121,25 +121,6 @@
                   </b-row>
               </template>
 
-              <template #cell(UMLS)="data">
-                <b-row>
-                  <b-row v-for="id in data.item.UMLS.split(';')" :key="id"> 
-                      <b-col>
-                        <b-button 
-                        class="btn-xs mx-2" 
-                        variant="outline-primary"
-                        v-bind:src="data.item.UMLS.split(';')" 
-                        v-bind:href="'https://www.ncbi.nlm.nih.gov/medgen/'+ id.replace('UMLS:', '')" 
-                        target="_blank" 
-                        >
-                          <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                          {{ id }}
-                        </b-button>
-                      </b-col>
-                    </b-row>
-                  </b-row>
-              </template>
-
               <template #cell(EFO)="data">
                 <b-row>
                   <b-row v-for="id in data.item.EFO.split(';')" :key="id"> 
@@ -337,7 +318,6 @@ export default {
             { key: 'DOID', label: 'DOID', sortable: true, class: 'text-left' },
             { key: 'MONDO', label: 'MONDO', sortable: true, class: 'text-left' },
             { key: 'Orphanet', label: 'Orphanet', sortable: true, class: 'text-left' },
-            { key: 'UMLS', label: 'UMLS', sortable: true, class: 'text-left' },
             { key: 'EFO', label: 'EFO', sortable: true, class: 'text-left' }
           ],
           entities_data: [],

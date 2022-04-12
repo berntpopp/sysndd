@@ -1784,7 +1784,7 @@ function(ontology_id) {
 	ontology_set_collected <- pool %>% 
 		tbl("ontology_set") %>%
 		filter(disease_ontology_id == ontology_id) %>%
-		select(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, disease_ontology_source, disease_ontology_is_specific, hgnc_id, hpo_mode_of_inheritance_term, DOID, MONDO, Orphanet, UMLS, EFO) %>%
+		select(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, disease_ontology_source, disease_ontology_is_specific, hgnc_id, hpo_mode_of_inheritance_term, DOID, MONDO, Orphanet, EFO) %>%
 		arrange(disease_ontology_id_version) %>%
 		collect() %>%
 		group_by(disease_ontology_id) %>%
@@ -1805,7 +1805,7 @@ function(ontology_name) {
 	ontology_set_collected <- pool %>% 
 		tbl("ontology_set") %>%
 		filter(disease_ontology_name == ontology_name) %>%
-		select(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, disease_ontology_source, disease_ontology_is_specific, hgnc_id, hpo_mode_of_inheritance_term, DOID, MONDO, Orphanet, UMLS, EFO) %>%
+		select(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, disease_ontology_source, disease_ontology_is_specific, hgnc_id, hpo_mode_of_inheritance_term, DOID, MONDO, Orphanet, EFO) %>%
 		arrange(disease_ontology_id_version) %>%
 		collect() %>%
 		group_by(disease_ontology_id) %>%
