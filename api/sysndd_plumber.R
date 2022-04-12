@@ -1909,19 +1909,6 @@ function() {
 ## Phenotype endpoints
 
 #* @tag phenotype
-## get list of all phenotypes
-#* @serializer json list(na="string")
-#' @get /api/phenotype_list
-function() {
-	phenotype_list_collected <- pool %>% 
-		tbl("phenotype_list") %>%
-		select(phenotype_id, HPO_term, HPO_term_definition, HPO_term_synonyms) %>%
-		arrange(HPO_term) %>%
-		collect()
-}
-
-
-#* @tag phenotype
 ## get a list of entities associated with a list of phenotypes for browsing
 #* @serializer json list(na="string")
 #' @get /api/phenotype/entities/browse
@@ -3245,6 +3232,22 @@ function() {
 
 	# return output
 	status_list_collected
+}
+
+
+#* @tag list
+## get list of all phenotypes
+#* @serializer json list(na="string")
+#' @get /api/list/phenotype
+function() {
+	phenotype_list_collected <- pool %>% 
+		tbl("phenotype_list") %>%
+		select(phenotype_id, HPO_term, HPO_term_definition, HPO_term_synonyms) %>%
+		arrange(HPO_term) %>%
+		collect()
+
+	# return output
+	phenotype_list_collected
 }
 
 ## List endpoints

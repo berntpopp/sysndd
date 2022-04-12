@@ -1074,7 +1074,7 @@ export default {
             }
         },
         async loadPhenotypesList() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype_list';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/list/phenotype';
           try {
             let response = await this.axios.get(apiUrl);
             this.phenotypes_options = response.data;
