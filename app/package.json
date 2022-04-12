@@ -9,6 +9,7 @@
     "start": "vue-cli-service serve --open"
   },
   "dependencies": {
+    "@riophae/vue-treeselect": "^0.4.0",
     "@upsetjs/vue": "^1.9.1",
     "bootstrap": "^4.6.0",
     "bootstrap-vue": "^2.21.2",
