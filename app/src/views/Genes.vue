@@ -138,14 +138,14 @@
                     </div> 
                   </template>
 
-                  <template #cell(ndd_phenotype)="data">
+                  <template #cell(ndd_phenotype_word)="data">
                     <div>
                       <b-avatar 
                       size="1.4em" 
-                      :icon="ndd_icon[data.item.ndd_phenotype]"
-                      :variant="ndd_icon_style[data.item.ndd_phenotype]"
+                      :icon="ndd_icon[data.item.ndd_phenotype_word]"
+                      :variant="ndd_icon_style[data.item.ndd_phenotype_word]"
                       v-b-tooltip.hover.left 
-                      v-bind:title="ndd_icon_text[data.item.ndd_phenotype]"
+                      v-bind:title="ndd_icon_text[data.item.ndd_phenotype_word]"
                       >
                       </b-avatar>
                     </div> 
@@ -312,7 +312,7 @@ export default {
               class: 'text-left' 
             },            
             { 
-              key: 'ndd_phenotype', 
+              key: 'ndd_phenotype_word', 
               label: 'NDD', 
               sortable: false, 
               class: 'text-left' 
@@ -329,7 +329,7 @@ export default {
           pageOptions: [10, 25, 50, { value: 100, text: "Show a lot" }],
           sortBy: 'symbol',
           sortDesc: false,
-          filter: {any: '', entity_id: '', symbol: '', disease_ontology_name: '', disease_ontology_id_version: '', hpo_mode_of_inheritance_term_name: '', hpo_mode_of_inheritance_term: '', ndd_phenotype: '', category: ''}, 
+          filter: {any: '', entity_id: '', symbol: '', disease_ontology_name: '', disease_ontology_id_version: '', hpo_mode_of_inheritance_term_name: '', hpo_mode_of_inheritance_term: '', ndd_phenotype_word: '', category: ''}, 
           filter_string: '',
           filterOn: [],
           infoModal: {
@@ -393,7 +393,7 @@ export default {
           }
         },
         removeFilters() {
-          this.filter = {any: '', entity_id: '', symbol: '', disease_ontology_name: '', disease_ontology_id_version: '', hpo_mode_of_inheritance_term_name: '', hpo_mode_of_inheritance_term: '', ndd_phenotype: '', category: ''};
+          this.filter = {any: '', entity_id: '', symbol: '', disease_ontology_name: '', disease_ontology_id_version: '', hpo_mode_of_inheritance_term_name: '', hpo_mode_of_inheritance_term: '', ndd_phenotype_word: '', category: ''};
           this.filtered();
         },
         removeSearch() {

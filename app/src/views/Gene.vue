@@ -235,14 +235,14 @@
               </div>
             </template>
 
-            <template #cell(ndd_phenotype)="data">
+            <template #cell(ndd_phenotype_word)="data">
               <div>
                 <b-avatar 
                 size="1.4em" 
-                :icon="ndd_icon[data.item.ndd_phenotype]"
-                :variant="ndd_icon_style[data.item.ndd_phenotype]"
+                :icon="ndd_icon[data.item.ndd_phenotype_word]"
+                :variant="ndd_icon_style[data.item.ndd_phenotype_word]"
                 v-b-tooltip.hover.left 
-                v-bind:title="ndd_icon_text[data.item.ndd_phenotype]"
+                v-bind:title="ndd_icon_text[data.item.ndd_phenotype_word]"
                 >
                 </b-avatar>
               </div> 
@@ -309,7 +309,7 @@ export default {
               sortByFormatted: true,
               filterByFormatted: true
             },
-            { key: 'ndd_phenotype', label: 'NDD', sortable: true, class: 'text-left' },
+            { key: 'ndd_phenotype_word', label: 'NDD', sortable: true, class: 'text-left' },
             { key: 'actions', label: 'Actions' }
           ],
           fields_details: [

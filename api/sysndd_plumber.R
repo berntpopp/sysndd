@@ -213,14 +213,6 @@ function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = 0, `
 		arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
 		filter(!!!rlang::parse_exprs(filter_exprs))
 
-	## to do: this needs to be in the MySQL database view instead
-	sysndd_db_disease_table <- sysndd_db_disease_table %>%
-		mutate(ndd_phenotype = case_when(
-			ndd_phenotype == 1 ~ "Yes",
-			ndd_phenotype == 0 ~ "No",
-			TRUE ~ as.character(ndd_phenotype)
-		))
-
 	# select fields from table based on input using the helper function "select_tibble_fields"
 	sysndd_db_disease_table <- select_tibble_fields(sysndd_db_disease_table, fields, "entity_id")
 
@@ -458,12 +450,7 @@ function(sysndd_id) {
 
 	sysndd_db_disease_collected <- sysndd_db_disease_table %>%
 		filter(entity_id %in% sysndd_id) %>%
-		collect() %>%
-		mutate(ndd_phenotype = case_when(
-			ndd_phenotype == 1 ~ "Yes",
-			ndd_phenotype == 0 ~ "No",
-			TRUE ~ as.character(ndd_phenotype)
-		))
+		collect()
 
 	sysndd_db_disease_collected
 }
@@ -1638,14 +1625,6 @@ function(res, sort = "symbol", filter = "", fields = "", `page[after]` = "0", `p
 		arrange(entity_id) %>%
 		collect()
 
-	## to do: this needs to be in the MySQL database view instead
-	sysndd_db_genes_table <- sysndd_db_genes_table %>% 
-		mutate(ndd_phenotype = case_when(
-		  ndd_phenotype == 1 ~ "Yes",
-		  ndd_phenotype == 0 ~ "No",
-		  TRUE ~ as.character(ndd_phenotype)
-		))
-
 	# arrange and apply filters according to input
 	sysndd_db_genes_nested <- nest_gene_tibble(sysndd_db_genes_table) %>%
 		arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
@@ -1732,12 +1711,7 @@ function(hgnc) {
 	entity_by_gene_list <- pool %>% 
 		tbl("ndd_entity_view") %>%
 		filter(hgnc_id == hgnc) %>%
-		collect() %>%
-		mutate(ndd_phenotype = case_when(
-		  ndd_phenotype == 1 ~ "Yes",
-		  ndd_phenotype == 0 ~ "No",
-		  TRUE ~ as.character(ndd_phenotype)
-		))
+		collect()
 
 	entity_by_gene_list
 }
@@ -1756,12 +1730,7 @@ function(symbol) {
 	entity_by_gene_list <- pool %>% 
 		tbl("ndd_entity_view") %>%
 		filter(str_to_lower(symbol) == symbol_input) %>%
-		collect() %>%
-		mutate(ndd_phenotype = case_when(
-		  ndd_phenotype == 1 ~ "Yes",
-		  ndd_phenotype == 0 ~ "No",
-		  TRUE ~ as.character(ndd_phenotype)
-		))
+		collect()
 
 	entity_by_gene_list
 }
@@ -1827,12 +1796,7 @@ function(ontology_id) {
 	entity_by_ontology_id_list <- pool %>% 
 		tbl("ndd_entity_view") %>%
 		filter(disease_ontology_id_version == ontology_id) %>%
-		collect() %>%
-		mutate(ndd_phenotype = case_when(
-		  ndd_phenotype == 1 ~ "Yes",
-		  ndd_phenotype == 0 ~ "No",
-		  TRUE ~ as.character(ndd_phenotype)
-		))
+		collect()
 
 	entity_by_ontology_id_list
 }
@@ -1850,12 +1814,7 @@ function(ontology_name) {
 	entity_by_ontology_name_list <- pool %>% 
 		tbl("ndd_entity_view") %>%
 		filter(disease_ontology_name == ontology_name) %>%
-		collect() %>%
-		mutate(ndd_phenotype = case_when(
-		  ndd_phenotype == 1 ~ "Yes",
-		  ndd_phenotype == 0 ~ "No",
-		  TRUE ~ as.character(ndd_phenotype)
-		))
+		collect()
 
 	entity_by_ontology_name_list
 }
@@ -1951,14 +1910,6 @@ function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = "0",
 		unique() %>%
 		select(-phenotype_present) %>%
 		arrange(!!!rlang::parse_exprs(sort_exprs))
-		
-	## to do: this needs to be in the MySQL database view instead
-	sysndd_db_entity_phenotype_table <- sysndd_db_entity_phenotype_table %>%
-		mutate(ndd_phenotype = case_when(
-			ndd_phenotype == 1 ~ "Yes",
-			ndd_phenotype == 0 ~ "No",
-			TRUE ~ as.character(ndd_phenotype)
-		))
 
 	# select fields from table based on input using the helper function "select_tibble_fields"
 	sysndd_db_entity_phenotype_table <- select_tibble_fields(sysndd_db_entity_phenotype_table, fields, "entity_id")
@@ -2101,11 +2052,7 @@ function() {
 		left_join(ndd_review_phenotype_connect_tbl, by = c("entity_id")) %>%
 		left_join(modifier_list_tbl, by = c("modifier_id")) %>%
 		left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
-		mutate(ndd_phenotype = case_when(
-			ndd_phenotype == 1 ~ "Yes",
-			ndd_phenotype == 0 ~ "No"
-		)) %>%
-		filter(ndd_phenotype == "Yes") %>%
+		filter(ndd_phenotype == 1) %>%
 		filter(category == "Definitive") %>%
 		filter(modifier_name == "present") %>%
 		select(entity_id, phenotype_id, HPO_term)
@@ -2157,11 +2104,7 @@ function() {
 		left_join(ndd_review_phenotype_connect_tbl, by = c("entity_id")) %>%
 		left_join(modifier_list_tbl, by = c("modifier_id")) %>%
 		left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
-		mutate(ndd_phenotype = case_when(
-			ndd_phenotype == 1 ~ "Yes",
-			ndd_phenotype == 0 ~ "No"
-		)) %>%
-		filter(ndd_phenotype == "Yes") %>%
+		filter(ndd_phenotype == 1) %>%
 		filter(category == "Definitive") %>%
 		filter(modifier_name == "present") %>%
 		select(entity_id, phenotype_id, HPO_term)
@@ -2720,12 +2663,7 @@ function() {
 		arrange(entity_id) %>%
 		select(entity_id, ndd_phenotype, category, entry_date) %>%
 		collect() %>%
-		mutate(ndd_phenotype = case_when(
-		  ndd_phenotype == 1 ~ "Yes",
-		  ndd_phenotype == 0 ~ "No",
-		  TRUE ~ as.character(ndd_phenotype)
-		)) %>%
-		filter(ndd_phenotype == "Yes")
+		filter(ndd_phenotype == 1)
 
 	make_entities_plot(sysndd_db_disease_collected)
 }
@@ -2754,12 +2692,7 @@ function(res, aggregate = "entity_id", group = "category") {
 		arrange(!!rlang::sym(aggregate)) %>%
 		select(!!rlang::sym(aggregate), ndd_phenotype, !!rlang::sym(group), entry_date) %>%
 		collect() %>%
-		mutate(ndd_phenotype = case_when(
-		  ndd_phenotype == 1 ~ "Yes",
-		  ndd_phenotype == 0 ~ "No",
-		  TRUE ~ as.character(ndd_phenotype)
-		)) %>%
-		filter(ndd_phenotype == "Yes") %>%
+		filter(ndd_phenotype == 1) %>%
 		# conditional pipe to remove duplicate genes with multiple entries and same inheritance 
 		{if(aggregate == "symbol") 
 			group_by(., symbol) %>%
@@ -3006,11 +2939,6 @@ function(searchterm, helper = TRUE) {
 		tbl("ndd_entity_view") %>%
 		arrange(entity_id) %>%
 		collect() %>%
-		mutate(ndd_phenotype = case_when(
-		  ndd_phenotype == 1 ~ "Yes",
-		  ndd_phenotype == 0 ~ "No",
-		  TRUE ~ as.character(ndd_phenotype)
-		)) %>%
 		select(entity_id, hgnc_id, symbol, disease_ontology_id_version, disease_ontology_name) %>%
 		mutate(entity = as.character(entity_id)) %>%
 		pivot_longer(!entity_id, names_to = "search", values_to = "results") %>%
