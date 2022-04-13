@@ -1929,11 +1929,7 @@ function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = "0",
 
 	#
 	ndd_review_phenotype_connect_wide <- pool %>% 
-		tbl("ndd_review_phenotype_connect") %>%
-		mutate(phenotype_id = str_replace_all(phenotype_id, ":", "_")) %>%
-		select(entity_id, phenotype_id) %>%
-		mutate(found="TRUE") %>% 
-		pivot_wider(names_from = phenotype_id, values_from = found, values_fill="FALSE")
+		tbl("ndd_review_phenotype_connect_wide_view")
 	
 	#
 	sysndd_db_entity_phenotype_table <- pool %>% 
