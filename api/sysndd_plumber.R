@@ -3172,6 +3172,22 @@ function() {
 	phenotype_list_collected
 }
 
+
+#* @tag list
+## get list of all variation ontology terms
+#* @serializer json list(na="string")
+#' @get /api/list/variation_ontology
+function() {
+	variation_ontology_list_collected <- pool %>% 
+		tbl("variation_ontology_list") %>%
+		select(vario_id, name, definition) %>%
+		arrange(vario_id) %>%
+		collect()
+
+	# return output
+	variation_ontology_list_collected
+}
+
 ## List endpoints
 ##-------------------------------------------------------------------##
 
