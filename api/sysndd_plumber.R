@@ -1781,8 +1781,8 @@ function(ontology_id) {
 	ontology_id <- URLdecode(ontology_id)
 
 	# get data from database and filter
-	ontology_set_collected <- pool %>% 
-		tbl("ontology_set") %>%
+	disease_ontology_set_collected <- pool %>% 
+		tbl("disease_ontology_set") %>%
 		filter(disease_ontology_id == ontology_id) %>%
 		select(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, disease_ontology_source, disease_ontology_is_specific, hgnc_id, hpo_mode_of_inheritance_term, DOID, MONDO, Orphanet, EFO) %>%
 		arrange(disease_ontology_id_version) %>%
@@ -1802,8 +1802,8 @@ function(ontology_name) {
 	ontology_name <- URLdecode(ontology_name)
 
 	# get data from database and filter
-	ontology_set_collected <- pool %>% 
-		tbl("ontology_set") %>%
+	disease_ontology_set_collected <- pool %>% 
+		tbl("disease_ontology_set") %>%
 		filter(disease_ontology_name == ontology_name) %>%
 		select(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, disease_ontology_source, disease_ontology_is_specific, hgnc_id, hpo_mode_of_inheritance_term, DOID, MONDO, Orphanet, EFO) %>%
 		arrange(disease_ontology_id_version) %>%
@@ -3070,15 +3070,15 @@ function(searchterm, helper = TRUE) {
 
 
 #* @tag search
-## search the search_ontology_set view by columns disease_ontology_id_version, disease_ontology_name
+## search the search_disease_ontology_set view by columns disease_ontology_id_version, disease_ontology_name
 #* @serializer json list(na="string")
 #' @get /api/search/ontology/<searchterm>
 function(searchterm, helper = TRUE) {
 	searchterm <- URLdecode(searchterm) %>%
 		str_squish()
 
-	sysndd_db_ontology_set_search <- pool %>% 
-		tbl("search_ontology_set") %>%
+	sysndd_db_disease_ontology_set_search <- pool %>% 
+		tbl("search_disease_ontology_set") %>%
 		filter(result %like% paste0("%", searchterm, "%")) %>%
 		collect() %>%
 		mutate(searchdist = stringdist(str_to_lower(result), str_to_lower(searchterm), method='jw', p=0.1)) %>%
@@ -3086,34 +3086,34 @@ function(searchterm, helper = TRUE) {
 		select(result, disease_ontology_id_version, search, searchdist)
 
 	# compute filtered length with match < 0.1
-	sysndd_db_ontology_set_search_length <- sysndd_db_ontology_set_search %>%
+	sysndd_db_disease_ontology_set_search_length <- sysndd_db_disease_ontology_set_search %>%
 		filter(searchdist < 0.1) %>%
 		tally()
 	
-	if (sysndd_db_ontology_set_search_length$n > 10) {
-		return_count <- sysndd_db_ontology_set_search_length$n
+	if (sysndd_db_disease_ontology_set_search_length$n > 10) {
+		return_count <- sysndd_db_disease_ontology_set_search_length$n
 	} else {
 		return_count <- 10
 	}
 	
-	sysndd_db_ontology_set_search_return <- sysndd_db_ontology_set_search %>% 
+	sysndd_db_disease_ontology_set_search_return <- sysndd_db_disease_ontology_set_search %>% 
 		slice_head(n=return_count)
 
 
 	# change output by helper input to unique values (helper = TRUE) or entities (helper = FALSE)
 	if (helper) {
-		sysndd_db_ontology_set_search_return_helper <- (sysndd_db_ontology_set_search_return %>% 
+		sysndd_db_disease_ontology_set_search_return_helper <- (sysndd_db_disease_ontology_set_search_return %>% 
 			select(-disease_ontology_id_version, -search, -searchdist) %>%
 			as.list())$result
 	} else {
-		sysndd_db_ontology_set_search_return_helper <- sysndd_db_ontology_set_search_return %>%
+		sysndd_db_disease_ontology_set_search_return_helper <- sysndd_db_disease_ontology_set_search_return %>%
 			nest_by(result, .key = "values") %>%
 			ungroup() %>%
 			pivot_wider(everything(), names_from = "result", values_from = "values")
 	}
 
 	# return output
-	sysndd_db_ontology_set_search_return_helper
+	sysndd_db_disease_ontology_set_search_return_helper
 }
 
 
