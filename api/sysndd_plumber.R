@@ -3169,12 +3169,38 @@ function() {
 ## get list of all phenotypes
 #* @serializer json list(na="string")
 #' @get /api/list/phenotype
-function() {
-	phenotype_list_collected <- pool %>% 
-		tbl("phenotype_list") %>%
-		select(phenotype_id, HPO_term, HPO_term_definition, HPO_term_synonyms) %>%
-		arrange(HPO_term) %>%
-		collect()
+function(tree = FALSE) {
+
+	# change output by tree input to simple table (tree = FALSE) or treeselect comptaible output with modifiers (tree = TRUE)
+	if (tree) {
+		modifier_list_collected <- pool %>% 
+			tbl("modifier_list") %>%
+			select(modifier_id, modifier_name) %>%
+			arrange(modifier_id) %>%
+			collect()
+
+		phenotype_list_collected <- pool %>% 
+			tbl("phenotype_list") %>%
+			select(phenotype_id, HPO_term, HPO_term_definition, HPO_term_synonyms) %>%
+			arrange(HPO_term) %>%
+			collect() %>%
+			mutate(children = list(modifier_list_collected)) %>% 
+			unnest(children) %>% 
+			filter(modifier_id != 1) %>%
+			mutate(id = paste0(modifier_id, "-", phenotype_id)) %>% 
+			mutate(label = paste0(modifier_name, ": ", HPO_term)) %>%
+			select(-modifier_id, -modifier_name) %>%
+			nest(data = c(id, label)) %>%
+			mutate(phenotype_id = paste0("1-", phenotype_id)) %>%
+			mutate(HPO_term = paste0("present: ", HPO_term)) %>%
+			select(id = phenotype_id, label = HPO_term, children = data)
+	} else {
+		phenotype_list_collected <- pool %>% 
+			tbl("phenotype_list") %>%
+			select(phenotype_id, HPO_term, HPO_term_definition, HPO_term_synonyms) %>%
+			arrange(HPO_term) %>%
+			collect()
+	}
 
 	# return output
 	phenotype_list_collected
