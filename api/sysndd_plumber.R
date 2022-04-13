@@ -3006,8 +3006,7 @@ function(searchterm, helper = TRUE) {
 		filter(result %like% paste0("%", searchterm, "%")) %>%
 		collect() %>%
 		mutate(searchdist = stringdist(str_to_lower(result), str_to_lower(searchterm), method='jw', p=0.1)) %>%
-		arrange(searchdist, result) %>%
-		select(result, disease_ontology_id_version, search, searchdist)
+		arrange(searchdist, result)
 
 	# compute filtered length with match < 0.1
 	sysndd_db_disease_ontology_set_search_length <- sysndd_db_disease_ontology_set_search %>%
@@ -3054,8 +3053,7 @@ function(searchterm, helper = TRUE) {
 		filter(result %like% paste0("%", searchterm, "%")) %>%
 		collect() %>%
 		mutate(searchdist = stringdist(str_to_lower(result), str_to_lower(searchterm), method='jw', p=0.1)) %>%
-		arrange(searchdist, result) %>%
-		select(result, hgnc_id, search, searchdist)
+		arrange(searchdist, result)
 
 	# compute filtered length with match < 0.1
 	non_alt_loci_set_search_length <- non_alt_loci_set_search %>%
