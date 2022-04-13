@@ -1,15 +1,14 @@
 
-post_db_entity <- function(hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, pathogenicity_mode, ndd_phenotype, entry_user_id) {
-	if ( !is.null(hgnc_id) & !is.null(hpo_mode_of_inheritance_term) & !is.null(disease_ontology_id_version) & !is.null(pathogenicity_mode) & !is.null(ndd_phenotype) ) {
+post_db_entity <- function(hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, ndd_phenotype, entry_user_id) {
+	if ( !is.null(hgnc_id) & !is.null(hpo_mode_of_inheritance_term) & !is.null(disease_ontology_id_version) & !is.null(ndd_phenotype) ) {
 		##-------------------------------------------------------------------##
 		# block to convert the entity components into tibble
 		entity_received <- as_tibble(hgnc_id) %>% 
 			add_column(hpo_mode_of_inheritance_term) %>% 
 			add_column(disease_ontology_id_version) %>% 
-			add_column(pathogenicity_mode) %>% 
 			add_column(ndd_phenotype) %>% 
 			add_column(entry_user_id) %>% 
-			select(hgnc_id = value, hpo_mode_of_inheritance_term, disease_ontology_id_version, pathogenicity_mode, ndd_phenotype, entry_user_id)
+			select(hgnc_id = value, hpo_mode_of_inheritance_term, disease_ontology_id_version, ndd_phenotype, entry_user_id)
 		##-------------------------------------------------------------------##
 
 		##-------------------------------------------------------------------##
@@ -160,7 +159,7 @@ put_post_db_publication_connections <- function(request_method, publication_data
 	ndd_review_publication_for_id_match <- pool %>%
 		tbl("ndd_review_publication_join") %>%
 		select(review_id, entity_id) %>%
-		filter(review_id == 1) %>%
+		filter(review_id == {{review_id}}) %>%
 		collect() %>%
 		unique()
 	
@@ -224,11 +223,11 @@ put_post_db_phenotype_connections <- function(request_method, phenotypes_data, e
 		add_column(entity_id) %>% 
 		select(review_id, phenotype_id, entity_id, modifier_id)
 
-	# for the PUT requst we check whether the submitted entity ID matches the curent one associated with the review id to not allow changing this connection
+	# for the PUT request we check whether the submitted entity ID matches the current one associated with the review id to not allow changing this connection
 	ndd_review_phenotype_for_id_match <- pool %>%
 		tbl("ndd_review_phenotype_connect") %>%
 		select(review_id, entity_id) %>%
-		filter(review_id == 1) %>%
+		filter(review_id == {{review_id}}) %>%
 		collect() %>%
 		unique()
 	
@@ -270,6 +269,75 @@ put_post_db_phenotype_connections <- function(request_method, phenotypes_data, e
 	} else {
 		# return Bad Request
 		return(list(status=400,message="Some of the submitted phenotypes are not in the allowed phenotype_id list."))
+	}
+	##-------------------------------------------------------------------##
+}
+
+
+put_post_db_variation_ontology_connections <- function(request_method, variation_ontology_data, entity_id, review_id) {
+	##-------------------------------------------------------------------##
+	# get allowed variation ontology terms
+	variation_ontology_list_collected <- pool %>%
+		tbl("variation_ontology_list") %>%
+		select(vario_id) %>%
+		arrange(vario_id) %>%
+		collect()
+
+	# check if received variation ontology terms are in allowed variation ontology terms
+	variation_ontology_allowed <- all(variation_ontology_data$vario_id %in% variation_ontology_list_collected$vario_id)
+
+	# prepare variation ontology tibble for submission
+	variation_ontology_submission <- variation_ontology_data %>% 
+		add_column(review_id) %>% 
+		add_column(entity_id) %>% 
+		select(review_id, vario_id, entity_id)
+
+	# for the PUT request we check whether the submitted entity ID matches the current one associated with the review id to not allow changing this connection
+	ndd_review_variation_ontology_for_id_match <- pool %>%
+		tbl("ndd_review_variation_ontology_connect") %>%
+		select(review_id, entity_id) %>%
+		filter(review_id == {{review_id}}) %>%
+		collect() %>%
+		unique()
+	
+	entity_id_match <- ( ndd_review_variation_ontology_for_id_match$entity_id[1] == entity_id )
+
+	if ( variation_ontology_allowed ) {
+		if ( request_method == "POST" ) {
+			# connect to database
+			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+			# submit variation ontology terms from new review to database
+			dbAppendTable(sysndd_db, "ndd_review_variation_ontology_connect", variation_ontology_submission)
+
+			# disconnect from database
+			dbDisconnect(sysndd_db)
+
+			# return OK
+			return(list(status=200,message="OK. Entry created."))
+		} else if ( request_method == "PUT" & entity_id_match ) {
+			# connect to database
+			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+
+			# delete old variation ontology connections for review_id first
+			dbExecute(sysndd_db, paste0("DELETE FROM ndd_review_variation_ontology_connect WHERE review_id = ", review_id, ";"))
+
+			# submit variation ontology terms from new review to database
+			dbAppendTable(sysndd_db, "ndd_review_variation_ontology_connect", variation_ontology_submission)
+
+			# disconnect from database
+			dbDisconnect(sysndd_db)
+
+			# return OK
+			return(list(status=200,message="OK. Entry created."))
+		} else {
+			# return Method Not Allowed
+			return(list(status=405,message="Method not Allowed."))
+		}
+	
+	} else {
+		# return Bad Request
+		return(list(status=400,message="Some of the submitted variation ontology terms are not in the allowed vario_id list."))
 	}
 	##-------------------------------------------------------------------##
 }

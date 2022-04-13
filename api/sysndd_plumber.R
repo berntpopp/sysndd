@@ -243,7 +243,7 @@ function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = 0, `
 
 #* @tag entity
 ## create a new entity
-## example data: create_json <- '{"entity": {"hgnc_id":"HGNC:21396", "hpo_mode_of_inheritance_term":"HP:0000007", "disease_ontology_id_version":"OMIM:210600", "pathogenicity_mode":"1", "ndd_phenotype":"1"}, "review": {"synopsis": "activating, gain-of-function mutations: congenital hypertrichosis, neonatal macrosomia, distinct osteochondrodysplasia, cardiomegaly; activating mutations", "literature": {"additional_references": ["PMID:22608503", "PMID:22610116"], "gene_review": ["PMID:25275207"]}, "phenotypes": [ {"phenotype_id": "HP:0000256", "modifier_id": 1}, {"phenotype_id": "HP:0000924", "modifier_id": 1}, {"phenotype_id": "HP:0001256", "modifier_id": 1}, {"phenotype_id": "HP:0001574", "modifier_id": 1}, {"phenotype_id": "HP:0001627", "modifier_id": 1}, {"phenotype_id": "HP:0002342", "modifier_id": 1} ], "comment": ""}, "status": {"category_id":1, "comment":"fsa", "problematic": true}}'
+## example data: create_json <- '{"entity": {"hgnc_id":"HGNC:21396", "disease_ontology_id_version":"OMIM:210600", "hpo_mode_of_inheritance_term":"HP:0000007", "ndd_phenotype":"1"}, "review": {"synopsis": "activating, gain-of-function mutations: congenital hypertrichosis, neonatal macrosomia, distinct osteochondrodysplasia, cardiomegaly; activating mutations", "literature": {"additional_references": ["PMID:22608503", "PMID:22610116"], "gene_review": ["PMID:25275207"]}, "phenotypes": [ {"phenotype_id": "HP:0000256", "modifier_id": 1}, {"phenotype_id": "HP:0000924", "modifier_id": 1}, {"phenotype_id": "HP:0001256", "modifier_id": 1}, {"phenotype_id": "HP:0001574", "modifier_id": 1}, {"phenotype_id": "HP:0001627", "modifier_id": 1}, {"phenotype_id": "HP:0002342", "modifier_id": 1} ], "variation_ontology": [ "VariO:0001" ], "comment": ""}, "status": {"category_id":1, "comment":"fsa", "problematic": true}}'
 #* @serializer json list(na="string")
 #' @post /api/entity/create
 function(req, res, create_json) {
@@ -259,7 +259,7 @@ function(req, res, create_json) {
 		
 		##-------------------------------------------------------------------##
 		# block to post new entity
-		response_entity <- post_db_entity(create_data$entity$hgnc_id, create_data$entity$hpo_mode_of_inheritance_term, create_data$entity$disease_ontology_id_version, create_data$entity$pathogenicity_mode, create_data$entity$ndd_phenotype, entry_user_id)
+		response_entity <- post_db_entity(create_data$entity$hgnc_id, create_data$entity$hpo_mode_of_inheritance_term, create_data$entity$disease_ontology_id_version, create_data$entity$ndd_phenotype, entry_user_id)
 		##-------------------------------------------------------------------##
 
 		if ( response_entity$status == 200 ) {
@@ -300,6 +300,10 @@ function(req, res, create_json) {
 			# convert phenotypes to tibble
 			phenotypes_received <- as_tibble(create_data$review$phenotypes)
 
+			# convert variation ontology to tibble
+			variation_ontology_received <- as_tibble(create_data$review$variation_ontology) %>% 
+					select(vario_id = value)
+
 			##-------------------------------------------------------------------##
 			
 			##-------------------------------------------------------------------##
@@ -310,16 +314,20 @@ function(req, res, create_json) {
 			response_review <- put_post_db_review("POST", sysnopsis_received$synopsis, sysnopsis_received$comment, sysnopsis_received$review_user_id, sysnopsis_received$entity_id)
 			
 			# make the publictaion to review connections using the function "put_post_db_publication_connections"
-			response_publication_connections <- put_post_db_publication_connections("POST", publications_received, sysnopsis_received$entity_id, response_review$entry)
+			response_publication_connections <- put_post_db_publication_connections("POST", publications_received, as.integer(sysnopsis_received$entity_id), as.integer(response_review$entry$review_id))
 
 			# make the phenotype to review connections using the function "response_phenotype_connections"
-			response_phenotype_connections <- put_post_db_phenotype_connections("POST", phenotypes_received, sysnopsis_received$entity_id, response_review$entry)
+			response_phenotype_connections <- put_post_db_phenotype_connections("POST", phenotypes_received, as.integer(sysnopsis_received$entity_id), as.integer(response_review$entry$review_id))
+
+			# make the variation ontology to review connections using the function "put_post_db_variation_ontology_connections"
+			response_variation_ontology_connections <- put_post_db_variation_ontology_connections("POST", variation_ontology_received, as.integer(sysnopsis_received$entity_id), as.integer(response_review$entry$review_id))
 
 			# compute aggregated review response
-			response_review_post <- as_tibble(response_publication) %>% 
-				bind_rows(as_tibble(response_review)) %>% 
-				bind_rows(as_tibble(response_publication_connections)) %>%	
+			response_review_post <- as_tibble(response_publication) %>%
+				bind_rows(as_tibble(response_review)) %>%
+				bind_rows(as_tibble(response_publication_connections)) %>%
 				bind_rows(as_tibble(response_phenotype_connections)) %>%
+				bind_rows(as_tibble(response_variation_ontology_connections)) %>%
 				select(status, message) %>%
 				unique() %>%
 				mutate(status = max(status)) %>%
