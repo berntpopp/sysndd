@@ -122,6 +122,26 @@ const routes = [
     }
   },
   {
+    path: '/NewEntity',
+    name: 'NewEntity',
+    component: () => import(/* webpackChunkName: "DataEntry" */ '@/views/curate/NewEntity.vue'),
+    beforeEnter: (to, from, next) => {
+      const allowed_roles = ["Administrator", "Curator"];
+      let expires = 0;
+      let timestamp = 0;
+      let user_role = "Viewer";
+      
+      if (localStorage.token) {
+        expires = JSON.parse(localStorage.user).exp;
+        user_role = JSON.parse(localStorage.user).user_role;
+        timestamp = Math.floor(new Date().getTime() / 1000);
+      }
+
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) next({ name: 'Login' })
+      else next();
+    }
+  },
+  {
     path: '/Admin',
     name: 'Admin',
     component: () => import(/* webpackChunkName: "DataEntry" */ '@/views/Admin.vue'),
