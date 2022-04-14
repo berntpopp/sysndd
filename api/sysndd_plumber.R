@@ -3052,7 +3052,7 @@ function(searchterm, helper = TRUE) {
 ## search the search_non_alt_loci_view table by columns hgnc_id, symbol
 #* @serializer json list(na="string")
 #' @get /api/search/gene/<searchterm>
-function(searchterm, helper = TRUE) {
+function(searchterm, tree = FALSE) {
 	searchterm <- URLdecode(searchterm) %>%
 		str_squish()
 
@@ -3077,11 +3077,10 @@ function(searchterm, helper = TRUE) {
 	non_alt_loci_set_search_return <- non_alt_loci_set_search %>% 
 		slice_head(n=return_count)
 
-	# change output by helper input to unique values (helper = TRUE) or entities (helper = FALSE)
-	if (helper) {
-		non_alt_loci_set_search_return_helper <- (non_alt_loci_set_search_return %>% 
-			select(-hgnc_id, -search, -searchdist) %>%
-			as.list())$result
+	# the "tree" option allows output data to be formated as arrays for the treeselect library
+	if (tree) {
+		non_alt_loci_set_search_return_helper <- non_alt_loci_set_search_return %>% 
+			select(id = hgnc_id, label = result, search, searchdist)
 	} else {
 		non_alt_loci_set_search_return_helper <- non_alt_loci_set_search_return %>%
 			nest_by(result, .key = "values") %>%
@@ -3171,7 +3170,8 @@ function() {
 #' @get /api/list/phenotype
 function(tree = FALSE) {
 
-	# change output by tree input to simple table (tree = FALSE) or treeselect comptaible output with modifiers (tree = TRUE)
+	# the "tree" option allows output data to be formated as arrays for the treeselect library
+	# change output by tree input to simple table (tree = FALSE) or treeselect compatible output with modifiers (tree = TRUE)
 	if (tree) {
 		modifier_list_collected <- pool %>% 
 			tbl("modifier_list") %>%
