@@ -3005,7 +3005,7 @@ function(searchterm, helper = TRUE) {
 ## search the search_disease_ontology_set view by columns disease_ontology_id_version, disease_ontology_name
 #* @serializer json list(na="string")
 #' @get /api/search/ontology/<searchterm>
-function(searchterm, helper = TRUE) {
+function(searchterm, tree = FALSE) {
 	searchterm <- URLdecode(searchterm) %>%
 		str_squish()
 
@@ -3030,12 +3030,10 @@ function(searchterm, helper = TRUE) {
 	sysndd_db_disease_ontology_set_search_return <- sysndd_db_disease_ontology_set_search %>% 
 		slice_head(n=return_count)
 
-
-	# change output by helper input to unique values (helper = TRUE) or entities (helper = FALSE)
-	if (helper) {
-		sysndd_db_disease_ontology_set_search_return_helper <- (sysndd_db_disease_ontology_set_search_return %>% 
-			select(-disease_ontology_id_version, -search, -searchdist) %>%
-			as.list())$result
+	# the "tree" option allows output data to be formated as arrays for the treeselect library
+	if (tree) {
+		sysndd_db_disease_ontology_set_search_return_helper <- sysndd_db_disease_ontology_set_search_return %>%
+			select(id = disease_ontology_id_version, label = result, search, searchdist)
 	} else {
 		sysndd_db_disease_ontology_set_search_return_helper <- sysndd_db_disease_ontology_set_search_return %>%
 			nest_by(result, .key = "values") %>%
@@ -3097,7 +3095,7 @@ function(searchterm, tree = FALSE) {
 ## search the search_mode_of_inheritance_list_view table by columns hpo_mode_of_inheritance_term_name, hpo_mode_of_inheritance_term
 #* @serializer json list(na="string")
 #' @get /api/search/inheritance/<searchterm>
-function(searchterm, helper = TRUE) {
+function(searchterm, tree = FALSE) {
 	searchterm <- URLdecode(searchterm) %>%
 		str_squish()
 
@@ -3122,11 +3120,10 @@ function(searchterm, helper = TRUE) {
 	mode_of_inheritance_list_search_return <- mode_of_inheritance_list_search %>% 
 		slice_head(n=return_count)
 
-	# change output by helper input to unique values (helper = TRUE) or entities (helper = FALSE)
-	if (helper) {
-		mode_of_inheritance_list_search_return_helper <- (mode_of_inheritance_list_search_return %>% 
-			select(-hpo_mode_of_inheritance_term, -search, -searchdist) %>%
-			as.list())$result
+	# the "tree" option allows output data to be formated as arrays for the treeselect library
+	if (tree) {
+		mode_of_inheritance_list_search_return_helper <- mode_of_inheritance_list_search_return %>% 
+			select(id = hpo_mode_of_inheritance_term, label = result, search, searchdist)
 	} else {
 		mode_of_inheritance_list_search_return_helper <- mode_of_inheritance_list_search_return %>%
 			nest_by(result, .key = "values") %>%
