@@ -67,7 +67,17 @@
         <b-navbar-nav class="ml-auto">
 
           <b-nav-item v-if="user && admin" href="/Admin">Admin</b-nav-item>
-          <b-nav-item v-if="user && curate" href="/Curate">Curate</b-nav-item>
+
+          <!-- Navbar Curation dropdown -->
+          <b-nav-item-dropdown v-if="user && curate" text="Curation">
+            <b-dropdown-item href="/CreateEntity">Create entity</b-dropdown-item>
+            <b-dropdown-item href="/ModifyEntity">Modify entity</b-dropdown-item>
+            <b-dropdown-item href="/ApproveReview">Approve review</b-dropdown-item>
+            <b-dropdown-item href="/ApproveStatus">Approve status</b-dropdown-item>
+            <b-dropdown-item href="/ApproveUser">Approve user</b-dropdown-item>
+            <b-dropdown-item href="/ManageReReview">Manage re-review</b-dropdown-item>
+          </b-nav-item-dropdown>
+
           <b-nav-item v-if="user && review" href="/Review">Review</b-nav-item>
           
           <b-nav-item-dropdown right v-if="user">

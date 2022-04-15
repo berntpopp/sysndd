@@ -288,7 +288,7 @@
 export default {
   // register the Treeselect component
   components: { Treeselect },
-  name: 'NewEntity',
+  name: 'CreateEntity',
     data() {
       return {
         entity: {},
