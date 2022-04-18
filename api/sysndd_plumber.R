@@ -37,8 +37,8 @@ dw <- config::get("sysndd_db_local")
 
 
 ##-------------------------------------------------------------------##
-if(nchar(Sys.getenv("SMTP_PASSWORD")) == 0) {
-	Sys.setenv("SMTP_PASSWORD"=toString(dw$mail_noreply_password))
+if (nchar(Sys.getenv("SMTP_PASSWORD")) == 0) {
+  Sys.setenv("SMTP_PASSWORD"=toString(dw$mail_noreply_password))
 }
 ##-------------------------------------------------------------------##
 
@@ -126,56 +126,56 @@ make_matrix_plot_mem <- memoise(make_matrix_plot)
 ## based on https://github.com/rstudio/plumber/issues/66
 function(req, res) {
 
-	res$setHeader("Access-Control-Allow-Origin", "*")
+  res$setHeader("Access-Control-Allow-Origin", "*")
 
-	if (req$REQUEST_METHOD == "OPTIONS") {
-		res$setHeader("Access-Control-Allow-Methods","*")
-		res$setHeader("Access-Control-Allow-Headers", req$HTTP_ACCESS_CONTROL_REQUEST_HEADERS)
-		res$status <- 200 
-		return(list())
-	} else {
-		plumber::forward()
-	}
+  if (req$REQUEST_METHOD == "OPTIONS") {
+    res$setHeader("Access-Control-Allow-Methods", "*")
+    res$setHeader("Access-Control-Allow-Headers", req$HTTP_ACCESS_CONTROL_REQUEST_HEADERS)
+    res$status <- 200
+    return(list())
+  } else {
+    plumber::forward()
+  }
 }
 
 
 #* @filter check_signin
 ## check signin from header token and set user variable to request
 function(req, res) {
-	# load secret and convert to raw
-	key <- charToRaw(dw$secret)
+  # load secret and convert to raw
+  key <- charToRaw(dw$secret)
 
-	if (req$REQUEST_METHOD == "GET" & is.null(req$HTTP_AUTHORIZATION)) {
-		plumber::forward()
-	} else if (req$REQUEST_METHOD == "GET" & !is.null(req$HTTP_AUTHORIZATION)) {
-		# load jwt from header
-		jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
-		# decode jwt
-		user <- jwt_decode_hmac(str_remove(req$HTTP_AUTHORIZATION, "Bearer "), secret = key)
-		# add user_id and user_role as value to request
-		req$user_id <- as.integer(user$user_id)
-		req$user_role <- user$user_role
-		# and forward request
-		plumber::forward()
-	} else {
-		if (is.null(req$HTTP_AUTHORIZATION)) {
-			res$status <- 401 # Unauthorized
-			return(list(error="Authorization http header missing."))
-		} else if (jwt_decode_hmac(str_remove(req$HTTP_AUTHORIZATION, "Bearer "), secret = key)$exp < as.numeric(Sys.time())) {
-			res$status <- 401 # Unauthorized
-			return(list(error="Token expired."))
-		} else {
-			# load jwt from header
-			jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
-			# decode jwt
-			user <- jwt_decode_hmac(str_remove(req$HTTP_AUTHORIZATION, "Bearer "), secret = key)
-			# add user_id and user_role as value to request
-			req$user_id <- as.integer(user$user_id)
-			req$user_role <- user$user_role
-			# and forward request
-			plumber::forward()
-		}
-	}
+  if (req$REQUEST_METHOD == "GET" & is.null(req$HTTP_AUTHORIZATION)) {
+    plumber::forward()
+  } else if (req$REQUEST_METHOD == "GET" & !is.null(req$HTTP_AUTHORIZATION)) {
+    # load jwt from header
+    jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
+    # decode jwt
+    user <- jwt_decode_hmac(str_remove(req$HTTP_AUTHORIZATION, "Bearer "), secret = key)
+    # add user_id and user_role as value to request
+    req$user_id <- as.integer(user$user_id)
+    req$user_role <- user$user_role
+    # and forward request
+    plumber::forward()
+  } else {
+    if (is.null(req$HTTP_AUTHORIZATION)) {
+      res$status <- 401 # Unauthorized
+      return(list(error="Authorization http header missing."))
+    } else if (jwt_decode_hmac(str_remove(req$HTTP_AUTHORIZATION, "Bearer "), secret = key)$exp < as.numeric(Sys.time())) {
+      res$status <- 401 # Unauthorized
+      return(list(error="Token expired."))
+    } else {
+      # load jwt from header
+      jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
+      # decode jwt
+      user <- jwt_decode_hmac(str_remove(req$HTTP_AUTHORIZATION, "Bearer "), secret = key)
+      # add user_id and user_role as value to request
+      req$user_id <- as.integer(user$user_id)
+      req$user_role <- user$user_role
+      # and forward request
+      plumber::forward()
+    }
+  }
 }
 ##-------------------------------------------------------------------##
 
@@ -190,54 +190,54 @@ function(req, res) {
 #' @get /api/entity
 function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = 0, `page[size]` = "10") {
 
-	start_time <- Sys.time()
+  start_time <- Sys.time()
 
-	# generate sort expression based on sort input
-	sort_exprs <- generate_sort_expressions(sort, unique_id = "entity_id")
+  # generate sort expression based on sort input
+  sort_exprs <- generate_sort_expressions(sort, unique_id = "entity_id")
 
-	# generate filter expression based on filter input
-	filter_exprs <- generate_filter_expressions(filter)
+  # generate filter expression based on filter input
+  filter_exprs <- generate_filter_expressions(filter)
 
-	# get review data from database
-	ndd_entity_review <- pool %>% 
-		tbl("ndd_entity_review") %>%
-		filter(is_primary) %>%
-		select(entity_id, synopsis)
+  # get review data from database
+  ndd_entity_review <- pool %>%
+    tbl("ndd_entity_review") %>%
+    filter(is_primary) %>%
+    select(entity_id, synopsis)
 
-	# get entity data from database
-	# '!!!' in filter needed to evaluate formula for any/ all cases (https://stackoverflow.com/questions/66070864/operating-across-columns-rowwise-in-r-dbplyr)
-	sysndd_db_disease_table <- pool %>% 
-		tbl("ndd_entity_view") %>%
-		left_join(ndd_entity_review, by = c("entity_id")) %>%
-		collect() %>%
-		arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
-		filter(!!!rlang::parse_exprs(filter_exprs))
+  # get entity data from database
+  # '!!!' in filter needed to evaluate formula for any/ all cases (https://stackoverflow.com/questions/66070864/operating-across-columns-rowwise-in-r-dbplyr)
+  sysndd_db_disease_table <- pool %>% 
+    tbl("ndd_entity_view") %>%
+    left_join(ndd_entity_review, by = c("entity_id")) %>%
+    collect() %>%
+    arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
+    filter(!!!rlang::parse_exprs(filter_exprs))
 
-	# select fields from table based on input using the helper function "select_tibble_fields"
-	sysndd_db_disease_table <- select_tibble_fields(sysndd_db_disease_table, fields, "entity_id")
+  # select fields from table based on input using the helper function "select_tibble_fields"
+  sysndd_db_disease_table <- select_tibble_fields(sysndd_db_disease_table, fields, "entity_id")
 
-	# use the helper generate_cursor_pagination_info to generate cursor pagination information from a tibble
-	sysndd_db_disease_table_pagination_info <- generate_cursor_pagination_info(sysndd_db_disease_table, `page[size]`, `page[after]`, "entity_id")
+  # use the helper generate_cursor_pagination_info to generate cursor pagination information from a tibble
+  sysndd_db_disease_table_pagination_info <- generate_cursor_pagination_info(sysndd_db_disease_table, `page[size]`, `page[after]`, "entity_id")
 
-	# compute execution time
-	end_time <- Sys.time()
-	execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
+  # compute execution time
+  end_time <- Sys.time()
+  execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
 
-	# add columns to the meta information from generate_cursor_pagination_info function return
-	meta <- sysndd_db_disease_table_pagination_info$meta %>%
-		add_column(as_tibble(list("sort" = sort, "filter" = filter, "fields" = fields, "executionTime" = execution_time))) 
+  # add columns to the meta information from generate_cursor_pagination_info function return
+  meta <- sysndd_db_disease_table_pagination_info$meta %>%
+    add_column(as_tibble(list("sort" = sort, "filter" = filter, "fields" = fields, "executionTime" = execution_time))) 
 
-	# add host, port and other information to links from the link information from generate_cursor_pagination_info function return
-	links <- sysndd_db_disease_table_pagination_info$links %>%
-  		pivot_longer(everything(), names_to = "type", values_to = "link") %>%
-		mutate(link = case_when(
-			link != "null" ~ paste0("http://", dw$host, ":", dw$port_self, "/api/entity?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), ifelse(fields != "", paste0("&fields=", fields), ""),  link),
-			link == "null" ~ "null"
-		)) %>%
-  		pivot_wider(everything(), names_from = "type", values_from = "link")
+  # add host, port and other information to links from the link information from generate_cursor_pagination_info function return
+  links <- sysndd_db_disease_table_pagination_info$links %>%
+      pivot_longer(everything(), names_to = "type", values_to = "link") %>%
+    mutate(link = case_when(
+      link != "null" ~ paste0("http://", dw$host, ":", dw$port_self, "/api/entity?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), ifelse(fields != "", paste0("&fields=", fields), ""),  link),
+      link == "null" ~ "null"
+    )) %>%
+      pivot_wider(everything(), names_from = "type", values_from = "link")
 
-	# generate object to return
-	list(links = links, meta = meta, data = sysndd_db_disease_table_pagination_info$data)
+  # generate object to return
+  list(links = links, meta = meta, data = sysndd_db_disease_table_pagination_info$data)
 }
 
 
@@ -248,146 +248,146 @@ function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = 0, `
 #' @post /api/entity/create
 function(req, res, create_json) {
 
-	# first check rights
-	if ( req$user_role %in% c("Administrator", "Curator") ) {
-	
-		entry_user_id <- req$user_id
-		review_user_id <- req$user_id
-		status_user_id <- req$user_id
+  # first check rights
+  if ( req$user_role %in% c("Administrator", "Curator") ) {
+  
+    entry_user_id <- req$user_id
+    review_user_id <- req$user_id
+    status_user_id <- req$user_id
 
-		create_data <- fromJSON(create_json)
-		
-		##-------------------------------------------------------------------##
-		# block to post new entity
-		response_entity <- post_db_entity(create_data$entity$hgnc_id, create_data$entity$hpo_mode_of_inheritance_term, create_data$entity$disease_ontology_id_version, create_data$entity$ndd_phenotype, entry_user_id)
-		##-------------------------------------------------------------------##
+    create_data <- fromJSON(create_json)
+    
+    ##-------------------------------------------------------------------##
+    # block to post new entity
+    response_entity <- PostDatabaseEntity(create_data$entity$hgnc_id, create_data$entity$hpo_mode_of_inheritance_term, create_data$entity$disease_ontology_id_version, create_data$entity$ndd_phenotype, entry_user_id)
+    ##-------------------------------------------------------------------##
 
-		if ( response_entity$status == 200 ) {
-		##-------------------------------------------------------------------##
-		# block to post new review for posted entity
-			##-------------------------------------------------------------------##
-			# data preparation
-			# convert publications to tibble
-			if ( length(compact(create_data$review$literature)) > 0 ) {
-				publications_received <- bind_rows(as_tibble(compact(create_data$review$literature$additional_references)), as_tibble(compact(create_data$review$literature$gene_review)), .id = "publication_type") %>% 
-					select(publication_id = value, publication_type) %>%
-					mutate(publication_type = case_when(
-						publication_type == 1 ~ "additional_references",
-						publication_type == 2 ~ "gene_review"
-					)) %>%
-					unique() %>%
-					select(publication_id, publication_type) %>%
-					arrange(publication_id)
+    if ( response_entity$status == 200 ) {
+    ##-------------------------------------------------------------------##
+    # block to post new review for posted entity
+      ##-------------------------------------------------------------------##
+      # data preparation
+      # convert publications to tibble
+      if ( length(compact(create_data$review$literature)) > 0 ) {
+        publications_received <- bind_rows(as_tibble(compact(create_data$review$literature$additional_references)), as_tibble(compact(create_data$review$literature$gene_review)), .id = "publication_type") %>% 
+          select(publication_id = value, publication_type) %>%
+          mutate(publication_type = case_when(
+            publication_type == 1 ~ "additional_references",
+            publication_type == 2 ~ "gene_review"
+          )) %>%
+          unique() %>%
+          select(publication_id, publication_type) %>%
+          arrange(publication_id)
 
-			} else {
-				publications_received <- as_tibble_row(c(publication_id = NA, publication_type = NA))
-			}
+      } else {
+        publications_received <- as_tibble_row(c(publication_id = NA, publication_type = NA))
+      }
 
-			# convert sysnopsis to tibble, check if comment is null and handle
-			if ( !is.null(create_data$review$comment) ) {
-				sysnopsis_received <- as_tibble(create_data$review$synopsis) %>% 
-					add_column(response_entity$entry$entity_id) %>% 
-					add_column(create_data$review$comment) %>% 
-					add_column(review_user_id) %>% 
-					select(entity_id = `response_entity$entry$entity_id`, synopsis = value, review_user_id, comment = `create_data$review$comment`)
-			} else {
-				sysnopsis_received <- as_tibble(create_data$review$synopsis) %>% 
-					add_column(response_entity$entry$entity_id) %>%
-					add_column(review_user_id) %>% 
-					select(entity_id = `response_entity$entry$entity_id`, synopsis = value, review_user_id, comment = NULL)
-			}
+      # convert sysnopsis to tibble, check if comment is null and handle
+      if ( !is.null(create_data$review$comment) ) {
+        sysnopsis_received <- as_tibble(create_data$review$synopsis) %>% 
+          add_column(response_entity$entry$entity_id) %>% 
+          add_column(create_data$review$comment) %>% 
+          add_column(review_user_id) %>% 
+          select(entity_id = `response_entity$entry$entity_id`, synopsis = value, review_user_id, comment = `create_data$review$comment`)
+      } else {
+        sysnopsis_received <- as_tibble(create_data$review$synopsis) %>% 
+          add_column(response_entity$entry$entity_id) %>%
+          add_column(review_user_id) %>% 
+          select(entity_id = `response_entity$entry$entity_id`, synopsis = value, review_user_id, comment = NULL)
+      }
 
-			# convert phenotypes to tibble
-			phenotypes_received <- as_tibble(create_data$review$phenotypes)
+      # convert phenotypes to tibble
+      phenotypes_received <- as_tibble(create_data$review$phenotypes)
 
-			# convert variation ontology to tibble
-			variation_ontology_received <- as_tibble(create_data$review$variation_ontology) %>% 
-					select(vario_id = value)
+      # convert variation ontology to tibble
+      variation_ontology_received <- as_tibble(create_data$review$variation_ontology) %>% 
+          select(vario_id = value)
 
-			##-------------------------------------------------------------------##
-			
-			##-------------------------------------------------------------------##
-			# use the "new_publication function" to update the publications table
-			response_publication <- new_publication(publications_received)
+      ##-------------------------------------------------------------------##
+      
+      ##-------------------------------------------------------------------##
+      # use the "new_publication function" to update the publications table
+      response_publication <- new_publication(publications_received)
 
-			# use the "put_post_db_review" function to add the review to the database table and receive an review_id
-			response_review <- put_post_db_review("POST", sysnopsis_received$synopsis, sysnopsis_received$comment, sysnopsis_received$review_user_id, sysnopsis_received$entity_id)
-			
-			# make the publictaion to review connections using the function "put_post_db_publication_connections"
-			response_publication_connections <- put_post_db_publication_connections("POST", publications_received, as.integer(sysnopsis_received$entity_id), as.integer(response_review$entry$review_id))
+      # use the "PutPostDatabaseReview" function to add the review to the database table and receive an review_id
+      response_review <- PutPostDatabaseReview("POST", sysnopsis_received$synopsis, sysnopsis_received$comment, sysnopsis_received$review_user_id, sysnopsis_received$entity_id)
+      
+      # make the publictaion to review connections using the function "PutPostDatabasePubCon"
+      response_publication_connections <- PutPostDatabasePubCon("POST", publications_received, as.integer(sysnopsis_received$entity_id), as.integer(response_review$entry$review_id))
 
-			# make the phenotype to review connections using the function "response_phenotype_connections"
-			response_phenotype_connections <- put_post_db_phenotype_connections("POST", phenotypes_received, as.integer(sysnopsis_received$entity_id), as.integer(response_review$entry$review_id))
+      # make the phenotype to review connections using the function "response_phenotype_connections"
+      response_phenotype_connections <- PutPostDatabasePhenCon("POST", phenotypes_received, as.integer(sysnopsis_received$entity_id), as.integer(response_review$entry$review_id))
 
-			# make the variation ontology to review connections using the function "put_post_db_variation_ontology_connections"
-			response_variation_ontology_connections <- put_post_db_variation_ontology_connections("POST", variation_ontology_received, as.integer(sysnopsis_received$entity_id), as.integer(response_review$entry$review_id))
+      # make the variation ontology to review connections using the function "PutPostDatabaseVarOntCon"
+      response_variation_ontology_connections <- PutPostDatabaseVarOntCon("POST", variation_ontology_received, as.integer(sysnopsis_received$entity_id), as.integer(response_review$entry$review_id))
 
-			# compute aggregated review response
-			response_review_post <- as_tibble(response_publication) %>%
-				bind_rows(as_tibble(response_review)) %>%
-				bind_rows(as_tibble(response_publication_connections)) %>%
-				bind_rows(as_tibble(response_phenotype_connections)) %>%
-				bind_rows(as_tibble(response_variation_ontology_connections)) %>%
-				select(status, message) %>%
-				unique() %>%
-				mutate(status = max(status)) %>%
-				mutate(message = str_c(message, collapse = "; "))
-			##-------------------------------------------------------------------##
-		##-------------------------------------------------------------------##
-		} else {
-			res$status <- response_entity$status
-			return(list(status=response_entity$status,message=response_entity$message))
-		}
+      # compute aggregated review response
+      response_review_post <- as_tibble(response_publication) %>%
+        bind_rows(as_tibble(response_review)) %>%
+        bind_rows(as_tibble(response_publication_connections)) %>%
+        bind_rows(as_tibble(response_phenotype_connections)) %>%
+        bind_rows(as_tibble(response_variation_ontology_connections)) %>%
+        select(status, message) %>%
+        unique() %>%
+        mutate(status = max(status)) %>%
+        mutate(message = str_c(message, collapse = "; "))
+      ##-------------------------------------------------------------------##
+    ##-------------------------------------------------------------------##
+    } else {
+      res$status <- response_entity$status
+      return(list(status=response_entity$status,message=response_entity$message))
+    }
 
 
-		if ( response_entity$status == 200 & response_review_post$status == 200 ) {
-		##-------------------------------------------------------------------##
-		# block to post new status for posted entity
-			##-------------------------------------------------------------------##
-			# data preparation
-			create_data$status <- as_tibble(create_data$status) %>% 
-				add_column(response_entity$entry$entity_id) %>% 
-				select(entity_id = `response_entity$entry$entity_id`, category_id, review_user_id, comment, problematic)
-			##-------------------------------------------------------------------##
-			
-			##-------------------------------------------------------------------##
-			# use the put_post_db_status function to add the review to the database table
-			response_status_post <- put_post_db_status("POST", create_data$status, status_user_id)
-			##-------------------------------------------------------------------##		
-			
-		##-------------------------------------------------------------------##
-		} else {
-			response_entity_review_post <- as_tibble(response_entity) %>% 
-				bind_rows(as_tibble(response_review_post)) %>%
-				select(status, message) %>%
-				unique() %>%
-				mutate(status = max(status)) %>%
-				mutate(message = str_c(message, collapse = "; "))
-			
-			res$status <- response_entity_review_post$status
-			return(list(status=response_entity_review_post$status,message=response_entity_review_post$message))
-		}
+    if ( response_entity$status == 200 & response_review_post$status == 200 ) {
+    ##-------------------------------------------------------------------##
+    # block to post new status for posted entity
+      ##-------------------------------------------------------------------##
+      # data preparation
+      create_data$status <- as_tibble(create_data$status) %>% 
+        add_column(response_entity$entry$entity_id) %>% 
+        select(entity_id = `response_entity$entry$entity_id`, category_id, review_user_id, comment, problematic)
+      ##-------------------------------------------------------------------##
+      
+      ##-------------------------------------------------------------------##
+      # use the PutPostDatabaseStatus function to add the review to the database table
+      response_status_post <- PutPostDatabaseStatus("POST", create_data$status, status_user_id)
+      ##-------------------------------------------------------------------##    
+      
+    ##-------------------------------------------------------------------##
+    } else {
+      response_entity_review_post <- as_tibble(response_entity) %>% 
+        bind_rows(as_tibble(response_review_post)) %>%
+        select(status, message) %>%
+        unique() %>%
+        mutate(status = max(status)) %>%
+        mutate(message = str_c(message, collapse = "; "))
+      
+      res$status <- response_entity_review_post$status
+      return(list(status=response_entity_review_post$status,message=response_entity_review_post$message))
+    }
 
-		if ( response_entity$status == 200 & response_review_post$status == 200 & response_status_post$status == 200 ) {
-			res$status <- response_entity$status
-			return(response_entity)
-		} else {
-			response <- as_tibble(response_entity) %>% 
-				bind_rows(as_tibble(response_review_post)) %>%
-				bind_rows(as_tibble(response_status_post)) %>%
-				select(status, message) %>%
-				unique() %>%
-				mutate(status = max(status)) %>%
-				mutate(message = str_c(message, collapse = "; "))
-			
-			res$status <- response$status
-			return(list(status=response$status,message=response$message))
-		}
+    if ( response_entity$status == 200 & response_review_post$status == 200 & response_status_post$status == 200 ) {
+      res$status <- response_entity$status
+      return(response_entity)
+    } else {
+      response <- as_tibble(response_entity) %>% 
+        bind_rows(as_tibble(response_review_post)) %>%
+        bind_rows(as_tibble(response_status_post)) %>%
+        select(status, message) %>%
+        unique() %>%
+        mutate(status = max(status)) %>%
+        mutate(message = str_c(message, collapse = "; "))
+      
+      res$status <- response$status
+      return(list(status=response$status,message=response$message))
+    }
 
-	} else {
-		res$status <- 403 # Forbidden
-		return(list(error="Write access forbidden."))
-	}
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error="Write access forbidden."))
+  }
 }
 
 
@@ -397,22 +397,22 @@ function(req, res, create_json) {
 #' @delete /api/entity/delete
 function(sysndd_id, req, res) {
 
-	if (req$user_role == "Administrator"){
-	sysndd_id <- as.integer(sysndd_id)
-	# connect to database
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+  if (req$user_role == "Administrator"){
+  sysndd_id <- as.integer(sysndd_id)
+  # connect to database
+  sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
-	dbExecute(sysndd_db, paste0("DELETE FROM ndd_review_phenotype_connect WHERE entity_id = ", sysndd_id, ";"))
-	dbExecute(sysndd_db, paste0("DELETE FROM ndd_review_publication_join WHERE entity_id = ", sysndd_id, ";"))
-	dbExecute(sysndd_db, paste0("DELETE FROM ndd_entity_status WHERE entity_id = ", sysndd_id, ";"))
-	dbExecute(sysndd_db, paste0("DELETE FROM ndd_entity_review WHERE entity_id = ", sysndd_id, ";"))
-	dbExecute(sysndd_db, paste0("DELETE FROM ndd_entity WHERE entity_id = ", sysndd_id, ";"))
+  dbExecute(sysndd_db, paste0("DELETE FROM ndd_review_phenotype_connect WHERE entity_id = ", sysndd_id, ";"))
+  dbExecute(sysndd_db, paste0("DELETE FROM ndd_review_publication_join WHERE entity_id = ", sysndd_id, ";"))
+  dbExecute(sysndd_db, paste0("DELETE FROM ndd_entity_status WHERE entity_id = ", sysndd_id, ";"))
+  dbExecute(sysndd_db, paste0("DELETE FROM ndd_entity_review WHERE entity_id = ", sysndd_id, ";"))
+  dbExecute(sysndd_db, paste0("DELETE FROM ndd_entity WHERE entity_id = ", sysndd_id, ";"))
 
-	dbDisconnect(sysndd_db)
-	res <- "Entry deleted."
-	} else {
-		res$status <- 401 # Unauthorized
-	}
+  dbDisconnect(sysndd_db)
+  res <- "Entry deleted."
+  } else {
+    res$status <- 401 # Unauthorized
+  }
 }
 
 
@@ -422,22 +422,22 @@ function(sysndd_id, req, res) {
 #' @put /api/entity/update
 function(sysndd_id, entity_data) {
 
-	sysndd_id <- as.integer(sysndd_id)
-	
-	update_query <- as_tibble(fromJSON(entity_data)) %>%
-	select(hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, ndd_phenotype) %>% 
-	mutate(row = row_number()) %>% 
-	pivot_longer(-row) %>% 
-	mutate(query = paste0(name, "='", value, "'")) %>% 
-	select(query) %>% 
-	summarise(query = str_c(query, collapse = ", "))
-	
-	# connect to database
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+  sysndd_id <- as.integer(sysndd_id)
+  
+  update_query <- as_tibble(fromJSON(entity_data)) %>%
+  select(hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, ndd_phenotype) %>% 
+  mutate(row = row_number()) %>% 
+  pivot_longer(-row) %>% 
+  mutate(query = paste0(name, "='", value, "'")) %>% 
+  select(query) %>% 
+  summarise(query = str_c(query, collapse = ", "))
+  
+  # connect to database
+  sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
-	dbExecute(sysndd_db, paste0("UPDATE ndd_entity SET ", update_query, " WHERE entity_id = ", sysndd_id, ";"))
+  dbExecute(sysndd_db, paste0("UPDATE ndd_entity SET ", update_query, " WHERE entity_id = ", sysndd_id, ";"))
 
-	dbDisconnect(sysndd_db)
+  dbDisconnect(sysndd_db)
 }
 
 
@@ -446,21 +446,21 @@ function(sysndd_id, entity_data) {
 #* @serializer json list(na="string")
 #' @get /api/entity/<sysndd_id>
 function(sysndd_id) {
-	# remove spaces from list
-	sysndd_id <- URLdecode(sysndd_id) %>%
-		str_split(pattern=",", simplify=TRUE) %>%
-		str_replace_all(" ", "") %>%
-		unique()
+  # remove spaces from list
+  sysndd_id <- URLdecode(sysndd_id) %>%
+    str_split(pattern=",", simplify=TRUE) %>%
+    str_replace_all(" ", "") %>%
+    unique()
 
-	# get data from database and filter
-	sysndd_db_disease_table <- pool %>% 
-		tbl("ndd_entity_view")
+  # get data from database and filter
+  sysndd_db_disease_table <- pool %>% 
+    tbl("ndd_entity_view")
 
-	sysndd_db_disease_collected <- sysndd_db_disease_table %>%
-		filter(entity_id %in% sysndd_id) %>%
-		collect()
+  sysndd_db_disease_collected <- sysndd_db_disease_table %>%
+    filter(entity_id %in% sysndd_id) %>%
+    collect()
 
-	sysndd_db_disease_collected
+  sysndd_db_disease_collected
 }
 
 
@@ -470,21 +470,21 @@ function(sysndd_id) {
 #' @get /api/entity/<sysndd_id>/phenotypes
 function(sysndd_id) {
 
-	# get data from database and filter
-	ndd_review_phenotype_connect_collected <- pool %>% 
-		tbl("ndd_review_phenotype_connect") %>%
-		filter(is_active == 1) %>%
-		collect()
-	phenotype_list_collected <- pool %>% 
-		tbl("phenotype_list") %>%
-		collect()
+  # get data from database and filter
+  ndd_review_phenotype_connect_collected <- pool %>% 
+    tbl("ndd_review_phenotype_connect") %>%
+    filter(is_active == 1) %>%
+    collect()
+  phenotype_list_collected <- pool %>% 
+    tbl("phenotype_list") %>%
+    collect()
 
-	phenotype_list <- ndd_review_phenotype_connect_collected %>%
-		filter(entity_id == sysndd_id) %>%
-		inner_join(phenotype_list_collected, by=c("phenotype_id")) %>%
-		select(entity_id, phenotype_id, HPO_term, modifier_id) %>%
-		arrange(phenotype_id) %>%
-		unique()
+  phenotype_list <- ndd_review_phenotype_connect_collected %>%
+    filter(entity_id == sysndd_id) %>%
+    inner_join(phenotype_list_collected, by=c("phenotype_id")) %>%
+    select(entity_id, phenotype_id, HPO_term, modifier_id) %>%
+    arrange(phenotype_id) %>%
+    unique()
 }
 
 
@@ -494,20 +494,20 @@ function(sysndd_id) {
 #' @get /api/entity/<sysndd_id>/review
 function(sysndd_id) {
 
-	# get data from database and filter
-	ndd_entity_review_collected <- pool %>% 
-		tbl("ndd_entity_review") %>%
-		collect()
+  # get data from database and filter
+  ndd_entity_review_collected <- pool %>% 
+    tbl("ndd_entity_review") %>%
+    collect()
 
-	ndd_entity_review_list <- ndd_entity_review_collected %>%
-		filter(entity_id == sysndd_id & is_primary) %>%
-		select(entity_id, synopsis, review_date) %>%
-		arrange(review_date)
-		
-	ndd_entity_review_list_joined <- as_tibble(sysndd_id) %>% 
-		select(entity_id = value) %>%
-		mutate(entity_id = as.integer(entity_id)) %>%
-		left_join(ndd_entity_review_list, by = c("entity_id"))
+  ndd_entity_review_list <- ndd_entity_review_collected %>%
+    filter(entity_id == sysndd_id & is_primary) %>%
+    select(entity_id, synopsis, review_date) %>%
+    arrange(review_date)
+    
+  ndd_entity_review_list_joined <- as_tibble(sysndd_id) %>% 
+    select(entity_id = value) %>%
+    mutate(entity_id = as.integer(entity_id)) %>%
+    left_join(ndd_entity_review_list, by = c("entity_id"))
 }
 
 
@@ -517,20 +517,20 @@ function(sysndd_id) {
 #' @get /api/entity/<sysndd_id>/status
 function(sysndd_id) {
 
-	# get data from database and filter
-	ndd_entity_status_collected <- pool %>% 
-		tbl("ndd_entity_status") %>%
-		collect()
+  # get data from database and filter
+  ndd_entity_status_collected <- pool %>% 
+    tbl("ndd_entity_status") %>%
+    collect()
 
-	ndd_entity_status_categories_collected <- pool %>% 
-		tbl("ndd_entity_status_categories_list") %>%
-		collect()
+  ndd_entity_status_categories_collected <- pool %>% 
+    tbl("ndd_entity_status_categories_list") %>%
+    collect()
 
-	ndd_entity_status_list <- ndd_entity_status_collected %>%
-		filter(entity_id == sysndd_id & is_active) %>%
-		inner_join(ndd_entity_status_categories_collected, by=c("category_id")) %>%
-		select(entity_id, category, category_id, status_date) %>%
-		arrange(status_date)
+  ndd_entity_status_list <- ndd_entity_status_collected %>%
+    filter(entity_id == sysndd_id & is_active) %>%
+    inner_join(ndd_entity_status_categories_collected, by=c("category_id")) %>%
+    select(entity_id, category, category_id, status_date) %>%
+    arrange(status_date)
 }
 
 
@@ -541,13 +541,13 @@ function(sysndd_id) {
 #' @post /api/entity/<sysndd_id>/status
 function(sysndd_id, category_in) {
 
-	# connect to database
-	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+  # connect to database
+  sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
-	new_status <- as_tibble(fromJSON(category_in)) %>% 
-		add_column(sysndd_id) %>% 
-		select(entity_id = sysndd_id, category_id, status_user_id)
-	dbAppendTable(sysndd_db, "ndd_entity_status", new_status)
+  new_status <- as_tibble(fromJSON(category_in)) %>% 
+    add_column(sysndd_id) %>% 
+    select(entity_id = sysndd_id, category_id, status_user_id)
+  dbAppendTable(sysndd_db, "ndd_entity_status", new_status)
 }
 
 
@@ -557,20 +557,20 @@ function(sysndd_id, category_in) {
 #' @get /api/entity/<sysndd_id>/publications
 function(sysndd_id) {
 
-	# get data from database and filter
-	ndd_review_publication_join_collected <- pool %>% 
-		tbl("ndd_review_publication_join") %>%
-		filter(is_reviewed == 1) %>%
-		collect()
-	publication_collected <- pool %>% 
-		tbl("publication") %>%
-		collect()
+  # get data from database and filter
+  ndd_review_publication_join_collected <- pool %>% 
+    tbl("ndd_review_publication_join") %>%
+    filter(is_reviewed == 1) %>%
+    collect()
+  publication_collected <- pool %>% 
+    tbl("publication") %>%
+    collect()
 
-	ndd_entity_publication_list <- ndd_review_publication_join_collected %>%
-		filter(entity_id == sysndd_id) %>%
-		select(entity_id, publication_id, publication_type, is_reviewed) %>%
-		arrange(publication_id) %>%
-		unique()
+  ndd_entity_publication_list <- ndd_review_publication_join_collected %>%
+    filter(entity_id == sysndd_id) %>%
+    select(entity_id, publication_id, publication_type, is_reviewed) %>%
+    arrange(publication_id) %>%
+    unique()
 }
 
 ## Entity endpoints
@@ -587,16 +587,16 @@ function(sysndd_id) {
 #' @get /api/review
 function(req, res, `filter[review_approved]` = 0) {
 
-	filter_review_approved <- as.integer(`filter[review_approved]`)
-	
-	# get data from database and filter
-	sysndd_db_review_table_collected <- pool %>% 
-		tbl("ndd_entity_review") %>% 
-		filter(review_approved == filter_review_approved) %>%
-		collect() %>%
-		select(review_id, entity_id, synopsis, is_primary, review_date, review_user_id, review_approved, approving_user_id, comment)
+  filter_review_approved <- as.integer(`filter[review_approved]`)
+  
+  # get data from database and filter
+  sysndd_db_review_table_collected <- pool %>% 
+    tbl("ndd_entity_review") %>% 
+    filter(review_approved == filter_review_approved) %>%
+    collect() %>%
+    select(review_id, entity_id, synopsis, is_primary, review_date, review_user_id, review_approved, approving_user_id, comment)
 
-	sysndd_db_review_table_collected
+  sysndd_db_review_table_collected
 }
 
 
@@ -607,122 +607,122 @@ function(req, res, `filter[review_approved]` = 0) {
 #' @post /api/review/create
 #' @put /api/review/update
 function(req, res, review_json) {
-	# first check rights
-	if ( req$user_role %in% c("Administrator", "Curator") ) {
-				
-		review_user_id <- req$user_id
-		review_data <- fromJSON(review_json)
+  # first check rights
+  if ( req$user_role %in% c("Administrator", "Curator") ) {
+        
+    review_user_id <- req$user_id
+    review_data <- fromJSON(review_json)
 
-		if ( !is.null(review_data$synopsis) & !is.null(review_data$entity_id) & nchar(review_data$synopsis) > 0 ) {
+    if ( !is.null(review_data$synopsis) & !is.null(review_data$entity_id) & nchar(review_data$synopsis) > 0 ) {
 
-			##-------------------------------------------------------------------##
-			# convert publications to tibble
-			if ( length(compact(review_data$literature)) > 0 ) {
-				publications_received <- bind_rows(as_tibble(compact(review_data$literature$additional_references)), as_tibble(compact(review_data$literature$gene_review)), .id = "publication_type") %>% 
-					select(publication_id = value, publication_type) %>%
-					mutate(publication_type = case_when(
-					  publication_type == 1 ~ "additional_references",
-					  publication_type == 2 ~ "gene_review"
-					)) %>%
-					unique() %>%
-					select(publication_id, publication_type) %>%
-					arrange(publication_id)
+      ##-------------------------------------------------------------------##
+      # convert publications to tibble
+      if ( length(compact(review_data$literature)) > 0 ) {
+        publications_received <- bind_rows(as_tibble(compact(review_data$literature$additional_references)), as_tibble(compact(review_data$literature$gene_review)), .id = "publication_type") %>% 
+          select(publication_id = value, publication_type) %>%
+          mutate(publication_type = case_when(
+            publication_type == 1 ~ "additional_references",
+            publication_type == 2 ~ "gene_review"
+          )) %>%
+          unique() %>%
+          select(publication_id, publication_type) %>%
+          arrange(publication_id)
 
-			} else {
-				publications_received <- as_tibble_row(c(publication_id = NA, publication_type = NA))
-			}
+      } else {
+        publications_received <- as_tibble_row(c(publication_id = NA, publication_type = NA))
+      }
 
-			# convert sysnopsis to tibble, check if comment is null and handle
-			if ( !is.null(review_data$comment) ) {
-				sysnopsis_received <- as_tibble(review_data$synopsis) %>% 
-					add_column(review_data$entity_id) %>% 
-					add_column(review_data$comment) %>% 
-					add_column(review_user_id) %>% 
-					select(entity_id = `review_data$entity_id`, synopsis = value, review_user_id, comment = `review_data$comment`)
-			} else {
-				sysnopsis_received <- as_tibble(review_data$synopsis) %>% 
-					add_column(review_data$entity_id) %>%
-					add_column(review_user_id) %>% 
-					select(entity_id = `review_data$entity_id`, synopsis = value, review_user_id, comment = NULL)
-			}
+      # convert sysnopsis to tibble, check if comment is null and handle
+      if ( !is.null(review_data$comment) ) {
+        sysnopsis_received <- as_tibble(review_data$synopsis) %>% 
+          add_column(review_data$entity_id) %>% 
+          add_column(review_data$comment) %>% 
+          add_column(review_user_id) %>% 
+          select(entity_id = `review_data$entity_id`, synopsis = value, review_user_id, comment = `review_data$comment`)
+      } else {
+        sysnopsis_received <- as_tibble(review_data$synopsis) %>% 
+          add_column(review_data$entity_id) %>%
+          add_column(review_user_id) %>% 
+          select(entity_id = `review_data$entity_id`, synopsis = value, review_user_id, comment = NULL)
+      }
 
-			# convert phenotypes to tibble
-			phenotypes_received <- as_tibble(review_data$phenotypes)
+      # convert phenotypes to tibble
+      phenotypes_received <- as_tibble(review_data$phenotypes)
 
-			##-------------------------------------------------------------------##
+      ##-------------------------------------------------------------------##
 
 
-			##-------------------------------------------------------------------##
-			# check request type and perform database update accordingly
-			if ( req$REQUEST_METHOD == "POST" ) {
-				##-------------------------------------------------------------------##
-				# use the "new_publication function" to update the publications table
-				response_publication <- new_publication(publications_received)
-				
-				# use the "put_post_db_review" function to add the review to the database table and receive an review_id
-				response_review <- put_post_db_review(req$REQUEST_METHOD, sysnopsis_received$synopsis, sysnopsis_received$comment, sysnopsis_received$review_user_id, sysnopsis_received$entity_id)
-				
-				# make the publictaion to review connections using the function "put_post_db_publication_connections"
-				response_publication_connections <- put_post_db_publication_connections(req$REQUEST_METHOD, publications_received, sysnopsis_received$entity_id, response_review$entry)
-				
-				# make the phenotype to review connections using the function "response_phenotype_connections"
-				response_phenotype_connections <- put_post_db_phenotype_connections(req$REQUEST_METHOD, phenotypes_received, sysnopsis_received$entity_id, response_review$entry)
-				
-				# compute response
-				response <- as_tibble(response_publication) %>% 
-					bind_rows(as_tibble(response_review)) %>% 
-					bind_rows(as_tibble(response_publication_connections)) %>%	
-					bind_rows(as_tibble(response_phenotype_connections)) %>%
-					select(status, message) %>%
-					unique() %>%
-					mutate(status = max(status)) %>%
-					mutate(message = str_c(message, collapse = "; "))
-					
-				# return aggregated response
-				return(list(status=response$status,message=response$message))
-				##-------------------------------------------------------------------##
-			} else if ( req$REQUEST_METHOD == "PUT" ) {
-				##-------------------------------------------------------------------##
-				# use the "new_publication function" to update the publications table
-				response_publication <- new_publication(publications_received)
-				
-				# use the "put_post_db_review" function to add the review to the database table and receive an review_id
-				response_review <- put_post_db_review(req$REQUEST_METHOD, sysnopsis_received$synopsis, sysnopsis_received$comment, sysnopsis_received$review_user_id, sysnopsis_received$entity_id, review_data$review_id)
-				
-				# make the publictaion to review connections using the function "put_post_db_publication_connections"
-				response_publication_connections <- put_post_db_publication_connections(req$REQUEST_METHOD, publications_received, sysnopsis_received$entity_id, review_data$review_id)
-				
-				# make the phenotype to review connections using the function "response_phenotype_connections"
-				response_phenotype_connections <- put_post_db_phenotype_connections(req$REQUEST_METHOD, phenotypes_received, sysnopsis_received$entity_id, review_data$review_id)
-				
-				# compute response
-				response <- as_tibble(response_publication) %>% 
-					bind_rows(as_tibble(response_review)) %>% 
-					bind_rows(as_tibble(response_publication_connections)) %>%	
-					bind_rows(as_tibble(response_phenotype_connections)) %>%
-					select(status, message) %>%
-					unique() %>%
-					mutate(status = max(status)) %>%
-					mutate(message = str_c(message, collapse = "; ")) 
-					
-				# return aggregated response
-				return(list(status=response$status,message=response$message))
-				##-------------------------------------------------------------------##
-			} else {
-				# return Method Not Allowed
-				return(list(status=405,message="Method Not Allowed."))
-			}
-			##-------------------------------------------------------------------##
+      ##-------------------------------------------------------------------##
+      # check request type and perform database update accordingly
+      if ( req$REQUEST_METHOD == "POST" ) {
+        ##-------------------------------------------------------------------##
+        # use the "new_publication function" to update the publications table
+        response_publication <- new_publication(publications_received)
+        
+        # use the "PutPostDatabaseReview" function to add the review to the database table and receive an review_id
+        response_review <- PutPostDatabaseReview(req$REQUEST_METHOD, sysnopsis_received$synopsis, sysnopsis_received$comment, sysnopsis_received$review_user_id, sysnopsis_received$entity_id)
+        
+        # make the publictaion to review connections using the function "PutPostDatabasePubCon"
+        response_publication_connections <- PutPostDatabasePubCon(req$REQUEST_METHOD, publications_received, sysnopsis_received$entity_id, response_review$entry)
+        
+        # make the phenotype to review connections using the function "response_phenotype_connections"
+        response_phenotype_connections <- PutPostDatabasePhenCon(req$REQUEST_METHOD, phenotypes_received, sysnopsis_received$entity_id, response_review$entry)
+        
+        # compute response
+        response <- as_tibble(response_publication) %>% 
+          bind_rows(as_tibble(response_review)) %>% 
+          bind_rows(as_tibble(response_publication_connections)) %>%  
+          bind_rows(as_tibble(response_phenotype_connections)) %>%
+          select(status, message) %>%
+          unique() %>%
+          mutate(status = max(status)) %>%
+          mutate(message = str_c(message, collapse = "; "))
+          
+        # return aggregated response
+        return(list(status=response$status,message=response$message))
+        ##-------------------------------------------------------------------##
+      } else if ( req$REQUEST_METHOD == "PUT" ) {
+        ##-------------------------------------------------------------------##
+        # use the "new_publication function" to update the publications table
+        response_publication <- new_publication(publications_received)
+        
+        # use the "PutPostDatabaseReview" function to add the review to the database table and receive an review_id
+        response_review <- PutPostDatabaseReview(req$REQUEST_METHOD, sysnopsis_received$synopsis, sysnopsis_received$comment, sysnopsis_received$review_user_id, sysnopsis_received$entity_id, review_data$review_id)
+        
+        # make the publictaion to review connections using the function "PutPostDatabasePubCon"
+        response_publication_connections <- PutPostDatabasePubCon(req$REQUEST_METHOD, publications_received, sysnopsis_received$entity_id, review_data$review_id)
+        
+        # make the phenotype to review connections using the function "response_phenotype_connections"
+        response_phenotype_connections <- PutPostDatabasePhenCon(req$REQUEST_METHOD, phenotypes_received, sysnopsis_received$entity_id, review_data$review_id)
+        
+        # compute response
+        response <- as_tibble(response_publication) %>% 
+          bind_rows(as_tibble(response_review)) %>% 
+          bind_rows(as_tibble(response_publication_connections)) %>%  
+          bind_rows(as_tibble(response_phenotype_connections)) %>%
+          select(status, message) %>%
+          unique() %>%
+          mutate(status = max(status)) %>%
+          mutate(message = str_c(message, collapse = "; ")) 
+          
+        # return aggregated response
+        return(list(status=response$status,message=response$message))
+        ##-------------------------------------------------------------------##
+      } else {
+        # return Method Not Allowed
+        return(list(status=405,message="Method Not Allowed."))
+      }
+      ##-------------------------------------------------------------------##
 
-		} else {
-			res$status <- 400 # Bad Request
-			return(list(error="Submitted synopsis data can not be empty."))
-		}
+    } else {
+      res$status <- 400 # Bad Request
+      return(list(error="Submitted synopsis data can not be empty."))
+    }
 
-	} else {
-		res$status <- 403 # Forbidden
-		return(list(error="Write access forbidden."))
-	}
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error="Write access forbidden."))
+  }
 }
 
 
@@ -731,27 +731,27 @@ function(req, res, review_json) {
 #* @serializer json list(na="null")
 #' @get /api/review/<review_id_requested>
 function(review_id_requested) {
-	# remove spaces from list
-	review_id_requested <- URLdecode(review_id_requested) %>%
-		str_split(pattern=",", simplify=TRUE) %>%
-		str_replace_all(" ", "") %>%
-		unique()
+  # remove spaces from list
+  review_id_requested <- URLdecode(review_id_requested) %>%
+    str_split(pattern=",", simplify=TRUE) %>%
+    str_replace_all(" ", "") %>%
+    unique()
 
-	# get data from database and filter
-	sysndd_db_review_table <- pool %>% 
-		tbl("ndd_entity_review")
-	user_table <- pool %>% 
-		tbl("user") %>% 
-		select(user_id, user_name, user_role)
-		
-	sysndd_db_review_table_collected <- sysndd_db_review_table %>%
-		filter(review_id == review_id_requested) %>%
-		left_join(user_table, by = c("review_user_id" = "user_id")) %>%
-		left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
-		collect() %>%
-		select(review_id, entity_id, synopsis, is_primary, review_date, review_user_name = user_name.x, review_user_role = user_role.x, review_approved, approving_user_name = user_name.y, approving_user_role = user_role.y, comment)
+  # get data from database and filter
+  sysndd_db_review_table <- pool %>% 
+    tbl("ndd_entity_review")
+  user_table <- pool %>% 
+    tbl("user") %>% 
+    select(user_id, user_name, user_role)
+    
+  sysndd_db_review_table_collected <- sysndd_db_review_table %>%
+    filter(review_id == review_id_requested) %>%
+    left_join(user_table, by = c("review_user_id" = "user_id")) %>%
+    left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
+    collect() %>%
+    select(review_id, entity_id, synopsis, is_primary, review_date, review_user_name = user_name.x, review_user_role = user_role.x, review_approved, approving_user_name = user_name.y, approving_user_role = user_role.y, comment)
 
-	sysndd_db_review_table_collected
+  sysndd_db_review_table_collected
 }
 
 
@@ -760,26 +760,26 @@ function(review_id_requested) {
 #* @serializer json list(na="string")
 #' @get /api/review/<review_id_requested>/phenotypes
 function(review_id_requested) {
-	# remove spaces from list
-	review_id_requested <- URLdecode(review_id_requested) %>%
-		str_split(pattern=",", simplify=TRUE) %>%
-		str_replace_all(" ", "") %>%
-		unique()
+  # remove spaces from list
+  review_id_requested <- URLdecode(review_id_requested) %>%
+    str_split(pattern=",", simplify=TRUE) %>%
+    str_replace_all(" ", "") %>%
+    unique()
 
-	# get data from database and filter
-	ndd_review_phenotype_connect_collected <- pool %>% 
-		tbl("ndd_review_phenotype_connect") %>%
-		collect()
+  # get data from database and filter
+  ndd_review_phenotype_connect_collected <- pool %>% 
+    tbl("ndd_review_phenotype_connect") %>%
+    collect()
 
-	phenotype_list_collected <- pool %>% 
-		tbl("phenotype_list") %>%
-		collect()
+  phenotype_list_collected <- pool %>% 
+    tbl("phenotype_list") %>%
+    collect()
 
-	phenotype_list <- ndd_review_phenotype_connect_collected %>%
-		filter(review_id == review_id_requested) %>%
-		inner_join(phenotype_list_collected, by=c("phenotype_id")) %>%
-		select(review_id, entity_id, phenotype_id, HPO_term, modifier_id) %>%
-		arrange(phenotype_id)
+  phenotype_list <- ndd_review_phenotype_connect_collected %>%
+    filter(review_id == review_id_requested) %>%
+    inner_join(phenotype_list_collected, by=c("phenotype_id")) %>%
+    select(review_id, entity_id, phenotype_id, HPO_term, modifier_id) %>%
+    arrange(phenotype_id)
 }
 
 
@@ -788,24 +788,24 @@ function(review_id_requested) {
 #* @serializer json list(na="string")
 #' @get /api/review/<review_id_requested>/publications
 function(review_id_requested) {
-	# remove spaces from list
-	review_id_requested <- URLdecode(review_id_requested) %>%
-		str_split(pattern=",", simplify=TRUE) %>%
-		str_replace_all(" ", "") %>%
-		unique()
-		
-	# get data from database and filter
-	ndd_review_publication_join_collected <- pool %>% 
-		tbl("ndd_review_publication_join") %>%
-		collect()
+  # remove spaces from list
+  review_id_requested <- URLdecode(review_id_requested) %>%
+    str_split(pattern=",", simplify=TRUE) %>%
+    str_replace_all(" ", "") %>%
+    unique()
+    
+  # get data from database and filter
+  ndd_review_publication_join_collected <- pool %>% 
+    tbl("ndd_review_publication_join") %>%
+    collect()
 
-	publication_collected <- pool %>% 
-		tbl("publication") %>%
-		collect()
+  publication_collected <- pool %>% 
+    tbl("publication") %>%
+    collect()
 
-	ndd_entity_publication_list <- ndd_review_publication_join_collected %>%
-		filter(review_id == review_id_requested) %>%
-		arrange(publication_id)
+  ndd_entity_publication_list <- ndd_review_publication_join_collected %>%
+    filter(review_id == review_id_requested) %>%
+    arrange(publication_id)
 }
 
 
@@ -814,50 +814,50 @@ function(review_id_requested) {
 #* @serializer json list(na="string")
 #' @put /api/review/approve/<review_id_requested>
 function(req, res, review_id_requested, review_ok = FALSE) {
-	review_ok <- as.logical(review_ok)
-	
-	# first check rights
-	if ( length(req$user_id) == 0) {
-	
-		res$status <- 401 # Unauthorized
-		return(list(error="Please authenticate."))
+  review_ok <- as.logical(review_ok)
+  
+  # first check rights
+  if ( length(req$user_id) == 0) {
+  
+    res$status <- 401 # Unauthorized
+    return(list(error="Please authenticate."))
 
-	} else if ( req$user_role %in% c("Administrator", "Curator") ) {
-				
-		submit_user_id <- req$user_id
-		review_id_requested <- as.integer(review_id_requested)
-		
-		# get table data from database
-		ndd_entity_review_data <- pool %>% 
-			tbl("ndd_entity_review") %>%
-			filter(review_id == review_id_requested) %>%
-			collect()
-		
-		# connect to database
-		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+  } else if ( req$user_role %in% c("Administrator", "Curator") ) {
+        
+    submit_user_id <- req$user_id
+    review_id_requested <- as.integer(review_id_requested)
+    
+    # get table data from database
+    ndd_entity_review_data <- pool %>% 
+      tbl("ndd_entity_review") %>%
+      filter(review_id == review_id_requested) %>%
+      collect()
+    
+    # connect to database
+    sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
-		# set review if confirmed
-		if ( review_ok ) {
-			# reset all reviews in ndd_entity_review to not primary
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET is_primary = 0 WHERE entity_id = ", ndd_entity_review_data$entity_id, ";"))
+    # set review if confirmed
+    if ( review_ok ) {
+      # reset all reviews in ndd_entity_review to not primary
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET is_primary = 0 WHERE entity_id = ", ndd_entity_review_data$entity_id, ";"))
 
-			# set the review from ndd_entity_review_data to primary, add approving_user_id and set review_approved status to approved
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET is_primary = 1 WHERE review_id = ", ndd_entity_review_data$review_id, ";"))
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET approving_user_id = ", submit_user_id, " WHERE review_id = ", ndd_entity_review_data$review_id, ";"))
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET review_approved = 1 WHERE review_id = ", ndd_entity_review_data$review_id, ";"))
-		} else {
-			# add approving_user_id and set review_approved status to unapproved
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET approving_user_id = ", submit_user_id, " WHERE review_id = ", ndd_entity_review_data$review_id, ";"))
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET review_approved = 0 WHERE review_id = ", ndd_entity_review_data$review_id, ";"))
-		}
+      # set the review from ndd_entity_review_data to primary, add approving_user_id and set review_approved status to approved
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET is_primary = 1 WHERE review_id = ", ndd_entity_review_data$review_id, ";"))
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET approving_user_id = ", submit_user_id, " WHERE review_id = ", ndd_entity_review_data$review_id, ";"))
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET review_approved = 1 WHERE review_id = ", ndd_entity_review_data$review_id, ";"))
+    } else {
+      # add approving_user_id and set review_approved status to unapproved
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET approving_user_id = ", submit_user_id, " WHERE review_id = ", ndd_entity_review_data$review_id, ";"))
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET review_approved = 0 WHERE review_id = ", ndd_entity_review_data$review_id, ";"))
+    }
 
-		# disconnect from database
-		dbDisconnect(sysndd_db)
-		
-	} else {
-		res$status <- 403 # Forbidden
-		return(list(error="Write access forbidden."))
-	}
+    # disconnect from database
+    dbDisconnect(sysndd_db)
+    
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error="Write access forbidden."))
+  }
 }
 
 ## Review endpoints
@@ -875,228 +875,228 @@ function(req, res, review_id_requested, review_ok = FALSE) {
 #' @post /api/re_review/review
 #' @put /api/re_review/review
 function(req, res, review_json) {
-	# first check rights
-	if ( req$user_role %in% c("Administrator", "Curator", "Reviewer") ) {
-				
-		review_user_id <- req$user_id
-		review_data <- fromJSON(review_json)
+  # first check rights
+  if ( req$user_role %in% c("Administrator", "Curator", "Reviewer") ) {
+        
+    review_user_id <- req$user_id
+    review_data <- fromJSON(review_json)
 
-		if ( !is.null(review_data$synopsis) & !is.null(review_data$entity_id) & nchar(review_data$synopsis) > 0 ) {
+    if ( !is.null(review_data$synopsis) & !is.null(review_data$entity_id) & nchar(review_data$synopsis) > 0 ) {
 
-			# convert phenotypes to tibble
-			phenotypes_received <- as_tibble(review_data$phenotypes)
+      # convert phenotypes to tibble
+      phenotypes_received <- as_tibble(review_data$phenotypes)
 
-			# convert publications to tibble
-			if ( length(compact(review_data$literature)) > 0 ) {
-				publications_received <- bind_rows(as_tibble(compact(review_data$literature$additional_references)), as_tibble(compact(review_data$literature$gene_review)), .id = "publication_type") %>% 
-					select(publication_id = value, publication_type) %>%
-					mutate(publication_type = case_when(
-					  publication_type == 1 ~ "additional_references",
-					  publication_type == 2 ~ "gene_review"
-					)) %>%
-					unique() %>%
-					select(publication_id, publication_type) %>%
-					arrange(publication_id)
+      # convert publications to tibble
+      if ( length(compact(review_data$literature)) > 0 ) {
+        publications_received <- bind_rows(as_tibble(compact(review_data$literature$additional_references)), as_tibble(compact(review_data$literature$gene_review)), .id = "publication_type") %>% 
+          select(publication_id = value, publication_type) %>%
+          mutate(publication_type = case_when(
+            publication_type == 1 ~ "additional_references",
+            publication_type == 2 ~ "gene_review"
+          )) %>%
+          unique() %>%
+          select(publication_id, publication_type) %>%
+          arrange(publication_id)
 
-			} else {
-				publications_received <- as_tibble_row(c(publication_id = NA, publication_type = NA))
-			}
+      } else {
+        publications_received <- as_tibble_row(c(publication_id = NA, publication_type = NA))
+      }
 
-			# convert sysnopsis to tibble, check if comment is null and handle
-			if ( !is.null(review_data$comment) ) {
-				sysnopsis_received <- as_tibble(review_data$synopsis) %>% 
-					add_column(review_data$entity_id) %>% 
-					add_column(review_data$comment) %>% 
-					add_column(review_user_id) %>% 
-					select(entity_id = `review_data$entity_id`, synopsis = value, review_user_id, comment = `review_data$comment`)
-			} else {
-				sysnopsis_received <- as_tibble(review_data$synopsis) %>% 
-					add_column(review_data$entity_id) %>%
-					add_column(review_user_id) %>% 
-					select(entity_id = `review_data$entity_id`, synopsis = value, review_user_id, comment = NULL)
-			}
+      # convert sysnopsis to tibble, check if comment is null and handle
+      if ( !is.null(review_data$comment) ) {
+        sysnopsis_received <- as_tibble(review_data$synopsis) %>% 
+          add_column(review_data$entity_id) %>% 
+          add_column(review_data$comment) %>% 
+          add_column(review_user_id) %>% 
+          select(entity_id = `review_data$entity_id`, synopsis = value, review_user_id, comment = `review_data$comment`)
+      } else {
+        sysnopsis_received <- as_tibble(review_data$synopsis) %>% 
+          add_column(review_data$entity_id) %>%
+          add_column(review_user_id) %>% 
+          select(entity_id = `review_data$entity_id`, synopsis = value, review_user_id, comment = NULL)
+      }
 
-			##-------------------------------------------------------------------##
-			# get allowed HPO terms
-			phenotype_list_collected <- pool %>%
-				tbl("phenotype_list") %>%
-				select(phenotype_id) %>%
-				arrange(HPO_term) %>%
-				collect()
+      ##-------------------------------------------------------------------##
+      # get allowed HPO terms
+      phenotype_list_collected <- pool %>%
+        tbl("phenotype_list") %>%
+        select(phenotype_id) %>%
+        arrange(HPO_term) %>%
+        collect()
 
-			# check if received phenoytpes are in allowed phenotypes
-			phenoytpes_allowed <- all(phenotypes_received$phenotype_id %in% phenotype_list_collected$phenotype_id)
-			
-			if ( !phenoytpes_allowed ) {
-				res$status <- 400
-				res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
-				status = 400,
-				message = paste0("Some of the submitted phenotypes are not in the allowed phenotype_id list.")
-				))
-				return(res)
-			}
-			##-------------------------------------------------------------------##
+      # check if received phenoytpes are in allowed phenotypes
+      phenoytpes_allowed <- all(phenotypes_received$phenotype_id %in% phenotype_list_collected$phenotype_id)
+      
+      if ( !phenoytpes_allowed ) {
+        res$status <- 400
+        res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
+        status = 400,
+        message = paste0("Some of the submitted phenotypes are not in the allowed phenotype_id list.")
+        ))
+        return(res)
+      }
+      ##-------------------------------------------------------------------##
 
-			##-------------------------------------------------------------------##
-			# check request type and perform database update accordingly
-			if ( req$REQUEST_METHOD == "POST") {
-				##-------------------------------------------------------------------##
-				## for the post request we connect to the database and then add new publications, the new synopsis and then associate the synopis with phenotypes and publications
-				# connect to database
-				sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+      ##-------------------------------------------------------------------##
+      # check request type and perform database update accordingly
+      if ( req$REQUEST_METHOD == "POST") {
+        ##-------------------------------------------------------------------##
+        ## for the post request we connect to the database and then add new publications, the new synopsis and then associate the synopis with phenotypes and publications
+        # connect to database
+        sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
-				# get existing PMIDs
-				publications_list_collected <- pool %>%
-					tbl("publication") %>%
-					select(publication_id) %>%
-					arrange(publication_id) %>%
-					collect()
-				
-				# check if publication_ids are already present in the database
-				publications_new <- publications_received %>%
-					mutate(present = publication_id %in% publications_list_collected$publication_id) %>%
-					filter(!present & !is.na(publication_id)) %>%
-					select(-present)
-				
-				# add new publications to database table "publication" if present and not NA
-				if (nrow(publications_new) > 0) {
-					dbAppendTable(sysndd_db, "publication", publications_new)
-				}
+        # get existing PMIDs
+        publications_list_collected <- pool %>%
+          tbl("publication") %>%
+          select(publication_id) %>%
+          arrange(publication_id) %>%
+          collect()
+        
+        # check if publication_ids are already present in the database
+        publications_new <- publications_received %>%
+          mutate(present = publication_id %in% publications_list_collected$publication_id) %>%
+          filter(!present & !is.na(publication_id)) %>%
+          select(-present)
+        
+        # add new publications to database table "publication" if present and not NA
+        if (nrow(publications_new) > 0) {
+          dbAppendTable(sysndd_db, "publication", publications_new)
+        }
 
-				# submit the new synopsis and get the id of the last insert for association with other tables
-				dbAppendTable(sysndd_db, "ndd_entity_review", sysnopsis_received)
-				submitted_review_id <- dbGetQuery(sysndd_db, "SELECT LAST_INSERT_ID();") %>% 
-					as_tibble() %>% 
-					select(review_id = `LAST_INSERT_ID()`)
+        # submit the new synopsis and get the id of the last insert for association with other tables
+        dbAppendTable(sysndd_db, "ndd_entity_review", sysnopsis_received)
+        submitted_review_id <- dbGetQuery(sysndd_db, "SELECT LAST_INSERT_ID();") %>% 
+          as_tibble() %>% 
+          select(review_id = `LAST_INSERT_ID()`)
 
-				# prepare phenotype tibble for submission
-				phenotypes_submission <- phenotypes_received %>% 
-					add_column(submitted_review_id$review_id) %>% 
-					add_column(review_data$entity_id) %>% 
-					select(review_id = `submitted_review_id$review_id`, phenotype_id, entity_id = `review_data$entity_id`, modifier_id)
+        # prepare phenotype tibble for submission
+        phenotypes_submission <- phenotypes_received %>% 
+          add_column(submitted_review_id$review_id) %>% 
+          add_column(review_data$entity_id) %>% 
+          select(review_id = `submitted_review_id$review_id`, phenotype_id, entity_id = `review_data$entity_id`, modifier_id)
 
-				# submit phenotypes from new review to database
-				dbAppendTable(sysndd_db, "ndd_review_phenotype_connect", phenotypes_submission)
+        # submit phenotypes from new review to database
+        dbAppendTable(sysndd_db, "ndd_review_phenotype_connect", phenotypes_submission)
 
-				# prepare publications tibble for submission
-				publications_submission <- publications_received %>% 
-					add_column(submitted_review_id$review_id) %>% 
-					add_column(review_data$entity_id) %>% 
-					select(review_id = `submitted_review_id$review_id`, entity_id = `review_data$entity_id`, publication_id, publication_type)
+        # prepare publications tibble for submission
+        publications_submission <- publications_received %>% 
+          add_column(submitted_review_id$review_id) %>% 
+          add_column(review_data$entity_id) %>% 
+          select(review_id = `submitted_review_id$review_id`, entity_id = `review_data$entity_id`, publication_id, publication_type)
 
-				# submit publications from new review to database	
-				dbAppendTable(sysndd_db, "ndd_review_publication_join", publications_submission)
+        # submit publications from new review to database  
+        dbAppendTable(sysndd_db, "ndd_review_publication_join", publications_submission)
 
-				# execute update query for re_review_entity_connect saving status and review_id
-				dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET ", "re_review_review_saved = 1, ", "review_id=", submitted_review_id$review_id, " WHERE re_review_entity_id = ", review_data$re_review_entity_id, ";"))
+        # execute update query for re_review_entity_connect saving status and review_id
+        dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET ", "re_review_review_saved = 1, ", "review_id=", submitted_review_id$review_id, " WHERE re_review_entity_id = ", review_data$re_review_entity_id, ";"))
 
-				# disconnect from database
-				dbDisconnect(sysndd_db)
-				##-------------------------------------------------------------------##
-				
-			} else if ( req$REQUEST_METHOD == "PUT") {
-				##-------------------------------------------------------------------##
-				## for the put request we first find the review_id saved in the re_review, delete associated phenotype and publication connections and publications associated only in that review then proceed to update the review and make new connections
-				
-				# get the review_id using the re_review_entity_id
-				review_id_from_re_review_entity_id <- (pool %>% 
-					tbl("re_review_entity_connect") %>%
-					collect() %>%
-					filter(re_review_entity_id %in% review_data$re_review_entity_id))$review_id
+        # disconnect from database
+        dbDisconnect(sysndd_db)
+        ##-------------------------------------------------------------------##
+        
+      } else if ( req$REQUEST_METHOD == "PUT") {
+        ##-------------------------------------------------------------------##
+        ## for the put request we first find the review_id saved in the re_review, delete associated phenotype and publication connections and publications associated only in that review then proceed to update the review and make new connections
+        
+        # get the review_id using the re_review_entity_id
+        review_id_from_re_review_entity_id <- (pool %>% 
+          tbl("re_review_entity_connect") %>%
+          collect() %>%
+          filter(re_review_entity_id %in% review_data$re_review_entity_id))$review_id
 
-				# compute publications only present in the former review which are to be deleted before adding the new publications to the review
-				ndd_review_publication_join <- pool %>% 
-					tbl("ndd_review_publication_join") %>%
-					collect() 
-				ndd_review_publication_join_count <-ndd_review_publication_join %>%
-					select(publication_id) %>%
-					group_by(publication_id) %>%
-					mutate(count = n()) %>%
-					ungroup() %>%
-					unique()
-				publication_id_to_purge <- (ndd_review_publication_join %>%
-					left_join(ndd_review_publication_join_count, by = c("publication_id")) %>%
-					filter(review_id %in% review_id_from_re_review_entity_id) %>%
-					filter(count == 1) %>%
-					mutate(publication_id = paste0("'", publication_id, "'")))$publication_id
+        # compute publications only present in the former review which are to be deleted before adding the new publications to the review
+        ndd_review_publication_join <- pool %>% 
+          tbl("ndd_review_publication_join") %>%
+          collect() 
+        ndd_review_publication_join_count <-ndd_review_publication_join %>%
+          select(publication_id) %>%
+          group_by(publication_id) %>%
+          mutate(count = n()) %>%
+          ungroup() %>%
+          unique()
+        publication_id_to_purge <- (ndd_review_publication_join %>%
+          left_join(ndd_review_publication_join_count, by = c("publication_id")) %>%
+          filter(review_id %in% review_id_from_re_review_entity_id) %>%
+          filter(count == 1) %>%
+          mutate(publication_id = paste0("'", publication_id, "'")))$publication_id
 
-				# connect to database
-				sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-				
-				# delete old phenotype connections for review_id first
-				dbExecute(sysndd_db, paste0("DELETE FROM ndd_review_phenotype_connect WHERE review_id = ", review_id_from_re_review_entity_id, ";"))
-				
-				# delete old publication connections for review_id second
-				dbExecute(sysndd_db, paste0("DELETE FROM ndd_review_publication_join WHERE review_id = ", review_id_from_re_review_entity_id, ";"))
-				
-				# delete old publication connections if only present in previous version of this review
-				if (length(publication_id_to_purge) > 0) {
-					dbExecute(sysndd_db, paste0("DELETE FROM publication WHERE publication_id IN (", str_c(publication_id_to_purge, collapse=", "), ");"))
-				}
+        # connect to database
+        sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+        
+        # delete old phenotype connections for review_id first
+        dbExecute(sysndd_db, paste0("DELETE FROM ndd_review_phenotype_connect WHERE review_id = ", review_id_from_re_review_entity_id, ";"))
+        
+        # delete old publication connections for review_id second
+        dbExecute(sysndd_db, paste0("DELETE FROM ndd_review_publication_join WHERE review_id = ", review_id_from_re_review_entity_id, ";"))
+        
+        # delete old publication connections if only present in previous version of this review
+        if (length(publication_id_to_purge) > 0) {
+          dbExecute(sysndd_db, paste0("DELETE FROM publication WHERE publication_id IN (", str_c(publication_id_to_purge, collapse=", "), ");"))
+        }
 
-				# get existing PMIDs
-				publications_list_collected <- pool %>%
-					tbl("publication") %>%
-					select(publication_id) %>%
-					arrange(publication_id) %>%
-					collect()
-				
-				# check if publication_ids are already present in the database
-				publications_new <- publications_received %>%
-					mutate(present = publication_id %in% publications_list_collected$publication_id) %>%
-					filter(!present & !is.na(publication_id)) %>%
-					select(-present)
-				
-				# add new publications to database table "publication" if present and not NA
-				if (nrow(publications_new) > 0) {
-					dbAppendTable(sysndd_db, "publication", publications_new)
-				}
+        # get existing PMIDs
+        publications_list_collected <- pool %>%
+          tbl("publication") %>%
+          select(publication_id) %>%
+          arrange(publication_id) %>%
+          collect()
+        
+        # check if publication_ids are already present in the database
+        publications_new <- publications_received %>%
+          mutate(present = publication_id %in% publications_list_collected$publication_id) %>%
+          filter(!present & !is.na(publication_id)) %>%
+          select(-present)
+        
+        # add new publications to database table "publication" if present and not NA
+        if (nrow(publications_new) > 0) {
+          dbAppendTable(sysndd_db, "publication", publications_new)
+        }
 
-				# prepare phenotype tibble for submission
-				phenotypes_submission <- phenotypes_received %>% 
-					add_column(review_id_from_re_review_entity_id) %>% 
-					add_column(review_data$entity_id) %>% 
-					select(review_id = review_id_from_re_review_entity_id, phenotype_id, entity_id = `review_data$entity_id`, modifier_id)
+        # prepare phenotype tibble for submission
+        phenotypes_submission <- phenotypes_received %>% 
+          add_column(review_id_from_re_review_entity_id) %>% 
+          add_column(review_data$entity_id) %>% 
+          select(review_id = review_id_from_re_review_entity_id, phenotype_id, entity_id = `review_data$entity_id`, modifier_id)
 
-				# submit phenotypes from new review to database
-				dbAppendTable(sysndd_db, "ndd_review_phenotype_connect", phenotypes_submission)
+        # submit phenotypes from new review to database
+        dbAppendTable(sysndd_db, "ndd_review_phenotype_connect", phenotypes_submission)
 
-				# prepare publications tibble for submission
-				publications_submission <- publications_received %>% 
-					add_column(review_id_from_re_review_entity_id) %>% 
-					add_column(review_data$entity_id) %>% 
-					select(review_id = review_id_from_re_review_entity_id, entity_id = `review_data$entity_id`, publication_id, publication_type)
+        # prepare publications tibble for submission
+        publications_submission <- publications_received %>% 
+          add_column(review_id_from_re_review_entity_id) %>% 
+          add_column(review_data$entity_id) %>% 
+          select(review_id = review_id_from_re_review_entity_id, entity_id = `review_data$entity_id`, publication_id, publication_type)
 
-				# submit publications from new review to database	
-				dbAppendTable(sysndd_db, "ndd_review_publication_join", publications_submission)
+        # submit publications from new review to database  
+        dbAppendTable(sysndd_db, "ndd_review_publication_join", publications_submission)
 
-				# generate update query
-				update_query <- as_tibble(sysnopsis_received) %>%
-					mutate(row = row_number()) %>%
-					mutate(across(where(is.logical), as.integer)) %>%
-					mutate(across(where(is.numeric), as.character)) %>%
-					pivot_longer(-row) %>% 
-					mutate(query = paste0(name, "='", value, "'")) %>% 
-					select(query) %>% 
-					summarise(query = str_c(query, collapse = ", "))
+        # generate update query
+        update_query <- as_tibble(sysnopsis_received) %>%
+          mutate(row = row_number()) %>%
+          mutate(across(where(is.logical), as.integer)) %>%
+          mutate(across(where(is.numeric), as.character)) %>%
+          pivot_longer(-row) %>% 
+          mutate(query = paste0(name, "='", value, "'")) %>% 
+          select(query) %>% 
+          summarise(query = str_c(query, collapse = ", "))
 
-				# submit the new review
-				dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET ", update_query, " WHERE review_id = ", review_id_from_re_review_entity_id, ";"))
-				
-				# disconnect from database
-				dbDisconnect(sysndd_db)
-				##-------------------------------------------------------------------##
-			}
-			##-------------------------------------------------------------------##
-		} else {
-			res$status <- 400 # Bad Request
-			return(list(error="Submitted synopsis data can not be empty."))
-		}
+        # submit the new review
+        dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET ", update_query, " WHERE review_id = ", review_id_from_re_review_entity_id, ";"))
+        
+        # disconnect from database
+        dbDisconnect(sysndd_db)
+        ##-------------------------------------------------------------------##
+      }
+      ##-------------------------------------------------------------------##
+    } else {
+      res$status <- 400 # Bad Request
+      return(list(error="Submitted synopsis data can not be empty."))
+    }
 
-	} else {
-		res$status <- 403 # Forbidden
-		return(list(error="Write access forbidden."))
-	}
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error="Write access forbidden."))
+  }
 }
 
 
@@ -1107,78 +1107,78 @@ function(req, res, review_json) {
 #' @post /api/re_review/status
 #' @put /api/re_review/status
 function(req, res, status_json) {
-	# first check rights
-	if ( req$user_role %in% c("Administrator", "Curator", "Reviewer") ) {
-				
-		status_user_id <- req$user_id
-		status_data <- fromJSON(status_json)
+  # first check rights
+  if ( req$user_role %in% c("Administrator", "Curator", "Reviewer") ) {
+        
+    status_user_id <- req$user_id
+    status_data <- fromJSON(status_json)
 
-		if ( !is.null(status_data$category) | !is.null(status_data$problematic)) {
+    if ( !is.null(status_data$category) | !is.null(status_data$problematic)) {
 
-			# convert status data to tibble, check if comment is null and handle
-			if ( !is.null(status_data$comment) ) {
-				status_received <- as_tibble(status_data) %>% 
-					add_column(status_user_id) %>% 
-					select(-re_review_entity_id)
-			} else {
-				status_data$comment <- ""
-				status_received <- as_tibble(status_data) %>% 
-					add_column(status_user_id) %>% 
-					select(-re_review_entity_id, -comment)
-			}
+      # convert status data to tibble, check if comment is null and handle
+      if ( !is.null(status_data$comment) ) {
+        status_received <- as_tibble(status_data) %>% 
+          add_column(status_user_id) %>% 
+          select(-re_review_entity_id)
+      } else {
+        status_data$comment <- ""
+        status_received <- as_tibble(status_data) %>% 
+          add_column(status_user_id) %>% 
+          select(-re_review_entity_id, -comment)
+      }
 
-			# check request type and perform database update accoringly
-			if ( req$REQUEST_METHOD == "POST") {
-				# connect to database
-				sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+      # check request type and perform database update accoringly
+      if ( req$REQUEST_METHOD == "POST") {
+        # connect to database
+        sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
-				# submit the new status and disconnect from database and get the id of the last insert for association with other tables
-				dbAppendTable(sysndd_db, "ndd_entity_status", status_received)
-				submitted_status_id <- dbGetQuery(sysndd_db, "SELECT LAST_INSERT_ID();") %>% 
-					as_tibble() %>% 
-					select(status_id = `LAST_INSERT_ID()`)		
+        # submit the new status and disconnect from database and get the id of the last insert for association with other tables
+        dbAppendTable(sysndd_db, "ndd_entity_status", status_received)
+        submitted_status_id <- dbGetQuery(sysndd_db, "SELECT LAST_INSERT_ID();") %>% 
+          as_tibble() %>% 
+          select(status_id = `LAST_INSERT_ID()`)    
 
-				# execute update query for re_review_entity_connect saving status and status_id
-				dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET ", "re_review_status_saved = 1, ", "status_id=", submitted_status_id$status_id, " WHERE re_review_entity_id = ", status_data$re_review_entity_id, ";"))
-		
-				# disconnect from database
-				dbDisconnect(sysndd_db)
-			} else if ( req$REQUEST_METHOD == "PUT") {
-				# get the status_id using the re_review_entity_id
-				status_id <- (pool %>% 
-					tbl("re_review_entity_connect") %>%
-					collect() %>%
-					filter(re_review_entity_id %in% status_data$re_review_entity_id))$status_id
+        # execute update query for re_review_entity_connect saving status and status_id
+        dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET ", "re_review_status_saved = 1, ", "status_id=", submitted_status_id$status_id, " WHERE re_review_entity_id = ", status_data$re_review_entity_id, ";"))
+    
+        # disconnect from database
+        dbDisconnect(sysndd_db)
+      } else if ( req$REQUEST_METHOD == "PUT") {
+        # get the status_id using the re_review_entity_id
+        status_id <- (pool %>% 
+          tbl("re_review_entity_connect") %>%
+          collect() %>%
+          filter(re_review_entity_id %in% status_data$re_review_entity_id))$status_id
 
-				# generate update query
-				update_query <- as_tibble(status_received) %>%
-					mutate(row = row_number()) %>%
-					mutate(across(where(is.logical), as.integer)) %>%
-					mutate(across(where(is.numeric), as.character)) %>%
-					pivot_longer(-row) %>% 
-					mutate(query = paste0(name, "='", value, "'")) %>% 
-					select(query) %>% 
-					summarise(query = str_c(query, collapse = ", "))	
-					
-				# connect to database
-				sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+        # generate update query
+        update_query <- as_tibble(status_received) %>%
+          mutate(row = row_number()) %>%
+          mutate(across(where(is.logical), as.integer)) %>%
+          mutate(across(where(is.numeric), as.character)) %>%
+          pivot_longer(-row) %>% 
+          mutate(query = paste0(name, "='", value, "'")) %>% 
+          select(query) %>% 
+          summarise(query = str_c(query, collapse = ", "))  
+          
+        # connect to database
+        sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
-				# submit the new status
-				dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET ", update_query, " WHERE status_id = ", status_id, ";"))
-		
-				# disconnect from database
-				dbDisconnect(sysndd_db)
-			}
+        # submit the new status
+        dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET ", update_query, " WHERE status_id = ", status_id, ";"))
+    
+        # disconnect from database
+        dbDisconnect(sysndd_db)
+      }
 
-		} else {
-			res$status <- 400 # Bad Request
-			return(list(error="Submitted data can not be null."))
-		}
+    } else {
+      res$status <- 400 # Bad Request
+      return(list(error="Submitted data can not be null."))
+    }
 
-	} else {
-		res$status <- 403 # Forbidden
-		return(list(error="Write access forbidden."))
-	}
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error="Write access forbidden."))
+  }
 }
 
 
@@ -1188,33 +1188,33 @@ function(req, res, status_json) {
 #* @serializer json list(na="string")
 #' @put /api/re_review/submit
 function(req, res, submit_json) {
-	# first check rights
-	if ( req$user_role %in% c("Administrator", "Curator", "Reviewer") ) {
-				
-		submit_user_id <- req$user_id
-		submit_data <- fromJSON(submit_json)
+  # first check rights
+  if ( req$user_role %in% c("Administrator", "Curator", "Reviewer") ) {
+        
+    submit_user_id <- req$user_id
+    submit_data <- fromJSON(submit_json)
 
-		update_query <- as_tibble(submit_data) %>%
-			select(-re_review_entity_id) %>%
-			mutate(row = row_number()) %>% 
-			pivot_longer(-row) %>% 
-			mutate(query = paste0(name, "='", value, "'")) %>% 
-			select(query) %>% 
-			summarise(query = str_c(query, collapse = ", "))
-		
-		# connect to database
-		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+    update_query <- as_tibble(submit_data) %>%
+      select(-re_review_entity_id) %>%
+      mutate(row = row_number()) %>% 
+      pivot_longer(-row) %>% 
+      mutate(query = paste0(name, "='", value, "'")) %>% 
+      select(query) %>% 
+      summarise(query = str_c(query, collapse = ", "))
+    
+    # connect to database
+    sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
-		# execute update query
-		dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET ", update_query, " WHERE re_review_entity_id = ", submit_data$re_review_entity_id, ";"))
+    # execute update query
+    dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET ", update_query, " WHERE re_review_entity_id = ", submit_data$re_review_entity_id, ";"))
 
-		# disconnect from database
-		dbDisconnect(sysndd_db)
-		
-	} else {
-		res$status <- 403 # Forbidden
-		return(list(error="Write access forbidden."))
-	}
+    # disconnect from database
+    dbDisconnect(sysndd_db)
+    
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error="Write access forbidden."))
+  }
 }
 
 
@@ -1223,30 +1223,30 @@ function(req, res, submit_json) {
 #* @serializer json list(na="string")
 #' @put /api/re_review/unsubmit/<re_review_id>
 function(req, res, re_review_id) {
-	# first check rights
-	if ( length(req$user_id) == 0) {
-	
-		res$status <- 401 # Unauthorized
-		return(list(error="Please authenticate."))
+  # first check rights
+  if ( length(req$user_id) == 0) {
+  
+    res$status <- 401 # Unauthorized
+    return(list(error="Please authenticate."))
 
-	} else if ( req$user_role %in% c("Administrator", "Curator") ) {
-				
-		submit_user_id <- req$user_id
-		re_review_id <- as.integer(re_review_id)
+  } else if ( req$user_role %in% c("Administrator", "Curator") ) {
+        
+    submit_user_id <- req$user_id
+    re_review_id <- as.integer(re_review_id)
 
-		# connect to database
-		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+    # connect to database
+    sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
-		# execute update query
-		dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET re_review_submitted = 0 WHERE re_review_entity_id = ", re_review_id, ";"))
+    # execute update query
+    dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET re_review_submitted = 0 WHERE re_review_entity_id = ", re_review_id, ";"))
 
-		# disconnect from database
-		dbDisconnect(sysndd_db)
-		
-	} else {
-		res$status <- 403 # Forbidden
-		return(list(error="Write access forbidden."))
-	}
+    # disconnect from database
+    dbDisconnect(sysndd_db)
+    
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error="Write access forbidden."))
+  }
 }
 
 
@@ -1255,70 +1255,70 @@ function(req, res, re_review_id) {
 #* @serializer json list(na="string")
 #' @put /api/re_review/approve/<re_review_id>
 function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
-	status_ok <- as.logical(status_ok)
-	review_ok <- as.logical(review_ok)
-	
-	# first check rights
-	if ( length(req$user_id) == 0) {
-	
-		res$status <- 401 # Unauthorized
-		return(list(error="Please authenticate."))
+  status_ok <- as.logical(status_ok)
+  review_ok <- as.logical(review_ok)
+  
+  # first check rights
+  if ( length(req$user_id) == 0) {
+  
+    res$status <- 401 # Unauthorized
+    return(list(error="Please authenticate."))
 
-	} else if ( req$user_role %in% c("Administrator", "Curator") ) {
-				
-		submit_user_id <- req$user_id
-		re_review_id <- as.integer(re_review_id)
-		
-		# get table data from database
-		re_review_entity_connect_data <- pool %>% 
-			tbl("re_review_entity_connect") %>%
-			filter(re_review_entity_id == re_review_id) %>%
-			collect()
-		
-		# connect to database
-		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+  } else if ( req$user_role %in% c("Administrator", "Curator") ) {
+        
+    submit_user_id <- req$user_id
+    re_review_id <- as.integer(re_review_id)
+    
+    # get table data from database
+    re_review_entity_connect_data <- pool %>% 
+      tbl("re_review_entity_connect") %>%
+      filter(re_review_entity_id == re_review_id) %>%
+      collect()
+    
+    # connect to database
+    sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
-		# set status if confirmed
-		if ( status_ok ) {
-			# reset all stati in ndd_entity_status to inactive
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET is_active = 0 WHERE entity_id = ", re_review_entity_connect_data$entity_id, ";"))
+    # set status if confirmed
+    if ( status_ok ) {
+      # reset all stati in ndd_entity_status to inactive
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET is_active = 0 WHERE entity_id = ", re_review_entity_connect_data$entity_id, ";"))
 
-			# set status of the new status from re_review_entity_connect to active, add approving_user_id and set approved status to approved
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET is_active = 1 WHERE status_id = ", re_review_entity_connect_data$status_id, ";"))
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET approving_user_id = ", submit_user_id, " WHERE status_id = ", re_review_entity_connect_data$status_id, ";"))
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET status_approved = 1 WHERE status_id = ", re_review_entity_connect_data$status_id, ";"))
-		} else {
-			# add approving_user_id and set approved status to unapproved
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET approving_user_id = ", submit_user_id, " WHERE status_id = ", re_review_entity_connect_data$status_id, ";"))
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET status_approved = 0 WHERE status_id = ", re_review_entity_connect_data$status_id, ";"))
-		}
+      # set status of the new status from re_review_entity_connect to active, add approving_user_id and set approved status to approved
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET is_active = 1 WHERE status_id = ", re_review_entity_connect_data$status_id, ";"))
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET approving_user_id = ", submit_user_id, " WHERE status_id = ", re_review_entity_connect_data$status_id, ";"))
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET status_approved = 1 WHERE status_id = ", re_review_entity_connect_data$status_id, ";"))
+    } else {
+      # add approving_user_id and set approved status to unapproved
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET approving_user_id = ", submit_user_id, " WHERE status_id = ", re_review_entity_connect_data$status_id, ";"))
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET status_approved = 0 WHERE status_id = ", re_review_entity_connect_data$status_id, ";"))
+    }
 
-		# set review if confirmed
-		if ( review_ok ) {
-			# reset all reviews in ndd_entity_review to not primary
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET is_primary = 0 WHERE entity_id = ", re_review_entity_connect_data$entity_id, ";"))
+    # set review if confirmed
+    if ( review_ok ) {
+      # reset all reviews in ndd_entity_review to not primary
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET is_primary = 0 WHERE entity_id = ", re_review_entity_connect_data$entity_id, ";"))
 
-			# set the new review from re_review_entity_connect to primary, add approving_user_id and set approved status to approved
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET is_primary = 1 WHERE review_id = ", re_review_entity_connect_data$review_id, ";"))
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET approving_user_id = ", submit_user_id, " WHERE review_id = ", re_review_entity_connect_data$review_id, ";"))
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET review_approved = 1 WHERE review_id = ", re_review_entity_connect_data$review_id, ";"))
-		} else {
-			# add approving_user_id and set approved status to unapproved
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET approving_user_id = ", submit_user_id, " WHERE review_id = ", re_review_entity_connect_data$review_id, ";"))
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET review_approved = 0 WHERE review_id = ", re_review_entity_connect_data$review_id, ";"))
-		}
+      # set the new review from re_review_entity_connect to primary, add approving_user_id and set approved status to approved
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET is_primary = 1 WHERE review_id = ", re_review_entity_connect_data$review_id, ";"))
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET approving_user_id = ", submit_user_id, " WHERE review_id = ", re_review_entity_connect_data$review_id, ";"))
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET review_approved = 1 WHERE review_id = ", re_review_entity_connect_data$review_id, ";"))
+    } else {
+      # add approving_user_id and set approved status to unapproved
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET approving_user_id = ", submit_user_id, " WHERE review_id = ", re_review_entity_connect_data$review_id, ";"))
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET review_approved = 0 WHERE review_id = ", re_review_entity_connect_data$review_id, ";"))
+    }
 
-		# set re_review_approved status to yes and add approving_user_id
-		dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET re_review_approved = 1 WHERE re_review_entity_id = ", re_review_id, ";"))
-		dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET approving_user_id = ", submit_user_id, " WHERE re_review_entity_id = ", re_review_id, ";"))	
+    # set re_review_approved status to yes and add approving_user_id
+    dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET re_review_approved = 1 WHERE re_review_entity_id = ", re_review_id, ";"))
+    dbExecute(sysndd_db, paste0("UPDATE re_review_entity_connect SET approving_user_id = ", submit_user_id, " WHERE re_review_entity_id = ", re_review_id, ";"))  
 
-		# disconnect from database
-		dbDisconnect(sysndd_db)
-		
-	} else {
-		res$status <- 403 # Forbidden
-		return(list(error="Write access forbidden."))
-	}
+    # disconnect from database
+    dbDisconnect(sysndd_db)
+    
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error="Write access forbidden."))
+  }
 }
 
 
@@ -1327,50 +1327,50 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
 #* @serializer json list(na="string")
 #' @get /api/re_review_table
 function(req, res, curate=FALSE) {
-	curate <- as.logical(curate)
+  curate <- as.logical(curate)
 
-	# first check rights
-	if ( length(req$user_id) == 0) {
-	
-		res$status <- 401 # Unauthorized
-		return(list(error="Please authenticate."))
+  # first check rights
+  if ( length(req$user_id) == 0) {
+  
+    res$status <- 401 # Unauthorized
+    return(list(error="Please authenticate."))
 
-	} else if ( (req$user_role %in% c("Administrator", "Curator", "Reviewer") & !curate ) | (req$user_role %in% c("Administrator", "Curator") & curate ) ) {
-						
-		user <- req$user_id
+  } else if ( (req$user_role %in% c("Administrator", "Curator", "Reviewer") & !curate ) | (req$user_role %in% c("Administrator", "Curator") & curate ) ) {
+            
+    user <- req$user_id
 
-		# get table data from database and filter
-		re_review_entity_connect <- pool %>% 
-			tbl("re_review_entity_connect") %>%
-			filter(re_review_approved == 0) %>%
-			{if(curate) filter(., re_review_submitted == 1) else filter(., re_review_submitted == 0)}
-		re_review_assignment <- pool %>% 
-			tbl("re_review_assignment") %>% 
-			{if(!curate) filter(., user_id == user) else .}
-		ndd_entity_view <- pool %>% 
-			tbl("ndd_entity_view")
-		ndd_entity_status_category <- pool %>% 
-			tbl("ndd_entity_status") %>%
-			select(status_id, category_id)
-		ndd_entity_status_categories_list <- pool %>% 
-			tbl("ndd_entity_status_categories_list")
-			
-		# join and collect
-		re_review_user_list <- re_review_entity_connect %>%
-			inner_join(re_review_assignment, by = c("re_review_batch")) %>%
-			select(re_review_entity_id, entity_id, re_review_review_saved, re_review_status_saved, re_review_submitted, status_id, review_id) %>%
-			inner_join(ndd_entity_view, by = c("entity_id")) %>%
-			select(-category_id, -category) %>%
-			inner_join(ndd_entity_status_category, by = c("status_id")) %>%
-			inner_join(ndd_entity_status_categories_list, by = c("category_id")) %>%
-			collect()
-		
-		re_review_user_list
+    # get table data from database and filter
+    re_review_entity_connect <- pool %>% 
+      tbl("re_review_entity_connect") %>%
+      filter(re_review_approved == 0) %>%
+      {if(curate) filter(., re_review_submitted == 1) else filter(., re_review_submitted == 0)}
+    re_review_assignment <- pool %>% 
+      tbl("re_review_assignment") %>% 
+      {if(!curate) filter(., user_id == user) else .}
+    ndd_entity_view <- pool %>% 
+      tbl("ndd_entity_view")
+    ndd_entity_status_category <- pool %>% 
+      tbl("ndd_entity_status") %>%
+      select(status_id, category_id)
+    ndd_entity_status_categories_list <- pool %>% 
+      tbl("ndd_entity_status_categories_list")
+      
+    # join and collect
+    re_review_user_list <- re_review_entity_connect %>%
+      inner_join(re_review_assignment, by = c("re_review_batch")) %>%
+      select(re_review_entity_id, entity_id, re_review_review_saved, re_review_status_saved, re_review_submitted, status_id, review_id) %>%
+      inner_join(ndd_entity_view, by = c("entity_id")) %>%
+      select(-category_id, -category) %>%
+      inner_join(ndd_entity_status_category, by = c("status_id")) %>%
+      inner_join(ndd_entity_status_categories_list, by = c("category_id")) %>%
+      collect()
+    
+    re_review_user_list
 
-	} else {
-		res$status <- 403 # Forbidden
-		return(list(error="Read access forbidden."))
-	}
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error="Read access forbidden."))
+  }
 }
 
 
@@ -1379,43 +1379,43 @@ function(req, res, curate=FALSE) {
 #* @serializer json list(na="string")
 #' @get /api/re_review/batch/apply
 function(req, res) {
-		
-	user <- req$user_id
-	
-	# first check rights
-	if ( length(user) == 0 ) {
-	
-		res$status <- 401 # Unauthorized
-		return(list(error="Please authenticate."))
+    
+  user <- req$user_id
+  
+  # first check rights
+  if ( length(user) == 0 ) {
+  
+    res$status <- 401 # Unauthorized
+    return(list(error="Please authenticate."))
 
-	} else if ( req$user_role %in% c("Administrator", "Curator", "Reviewer") ) {
-					
-		user_table <- pool %>% 
-			tbl("user") %>%
-			collect()
-			
-		user_info <- user_table %>%
-			filter(user_id == user) %>%
-			select(user_id, user_name, email, orcid)
+  } else if ( req$user_role %in% c("Administrator", "Curator", "Reviewer") ) {
+          
+    user_table <- pool %>% 
+      tbl("user") %>%
+      collect()
+      
+    user_info <- user_table %>%
+      filter(user_id == user) %>%
+      select(user_id, user_name, email, orcid)
 
-		curator_mail <- (user_table %>%
-			filter(user_role == "Curator"))$email
+    curator_mail <- (user_table %>%
+      filter(user_role == "Curator"))$email
 
-		res <- send_noreply_email(c("Hello", user_info$user_name, "!<br />", 
-			"<br />Your request for another **re-review batch** has been send to the curators.",
-			"They will review and activate your application shortly. <br /><br />",
-			"Requesting user info:", 
-			user_info %>% kable("html"),
-			"<br />", 
-			"Best wishes, <br />The SysNDD team"),
-			"Your re-review batch request from SysNDD.org",
-			user_info$email,
-			curator_mail)
+    res <- send_noreply_email(c("Hello", user_info$user_name, "!<br />", 
+      "<br />Your request for another **re-review batch** has been send to the curators.",
+      "They will review and activate your application shortly. <br /><br />",
+      "Requesting user info:", 
+      user_info %>% kable("html"),
+      "<br />", 
+      "Best wishes, <br />The SysNDD team"),
+      "Your re-review batch request from SysNDD.org",
+      user_info$email,
+      curator_mail)
 
-	} else {
-		res$status <- 403 # Forbidden
-		return(list(error="Read access forbidden."))
-	}
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error="Read access forbidden."))
+  }
 }
 
 
@@ -1424,56 +1424,56 @@ function(req, res) {
 #* @serializer json list(na="string")
 #' @put /api/re_review/batch/assign
 function(req, res, user_id) {
-		
-	user <- req$user_id
-	user_id_assign <- as.integer(user_id)
+    
+  user <- req$user_id
+  user_id_assign <- as.integer(user_id)
 
-	#check if user_id_assign exists
-	user_table <- pool %>% 
-		tbl("user") %>%
-		select(user_id, approved) %>%
-		filter(user_id == user_id_assign) %>%
-		collect()
-	user_id_assign_exists <- as.logical(length(user_table$user_id))
+  #check if user_id_assign exists
+  user_table <- pool %>% 
+    tbl("user") %>%
+    select(user_id, approved) %>%
+    filter(user_id == user_id_assign) %>%
+    collect()
+  user_id_assign_exists <- as.logical(length(user_table$user_id))
 
-	# compute next batch
-	re_review_assignment <- pool %>% 
-		tbl("re_review_assignment") %>%
-		select(re_review_batch)
-	re_review_entity_connect <- pool %>% 
-		tbl("re_review_entity_connect") %>%
-		select(re_review_batch) %>%
-		anti_join(re_review_assignment, by=c("re_review_batch")) %>%
-		collect() %>%
-		unique() %>%
-		summarise(re_review_batch = min(re_review_batch))
-	re_review_batch_next <- re_review_entity_connect$re_review_batch
+  # compute next batch
+  re_review_assignment <- pool %>% 
+    tbl("re_review_assignment") %>%
+    select(re_review_batch)
+  re_review_entity_connect <- pool %>% 
+    tbl("re_review_entity_connect") %>%
+    select(re_review_batch) %>%
+    anti_join(re_review_assignment, by=c("re_review_batch")) %>%
+    collect() %>%
+    unique() %>%
+    summarise(re_review_batch = min(re_review_batch))
+  re_review_batch_next <- re_review_entity_connect$re_review_batch
 
-	# make tibble to append
-	assignment_table <- tibble("user_id" = user_id_assign, "re_review_batch" = re_review_batch_next)
+  # make tibble to append
+  assignment_table <- tibble("user_id" = user_id_assign, "re_review_batch" = re_review_batch_next)
 
-	# first check rights
-	if ( length(user) == 0 ) {
-	
-		res$status <- 401 # Unauthorized
-		return(list(error="Please authenticate."))
+  # first check rights
+  if ( length(user) == 0 ) {
+  
+    res$status <- 401 # Unauthorized
+    return(list(error="Please authenticate."))
 
-	} else if ( req$user_role %in% c("Administrator", "Curator") & !user_id_assign_exists) {
-	
-		res$status <- 409 # Conflict
-		return(list(error="User account does not exist."))
-		
-	} else if ( req$user_role %in% c("Administrator", "Curator") & user_id_assign_exists) {
+  } else if ( req$user_role %in% c("Administrator", "Curator") & !user_id_assign_exists) {
+  
+    res$status <- 409 # Conflict
+    return(list(error="User account does not exist."))
+    
+  } else if ( req$user_role %in% c("Administrator", "Curator") & user_id_assign_exists) {
 
-		# connect to database, append assignment table then disconnect
-		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-		dbAppendTable(sysndd_db, "re_review_assignment", assignment_table)
-		dbDisconnect(sysndd_db)
+    # connect to database, append assignment table then disconnect
+    sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+    dbAppendTable(sysndd_db, "re_review_assignment", assignment_table)
+    dbDisconnect(sysndd_db)
 
-	} else {
-		res$status <- 403 # Forbidden
-		return(list(error="Read access forbidden."))
-	}
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error="Read access forbidden."))
+  }
 }
 
 
@@ -1482,40 +1482,40 @@ function(req, res, user_id) {
 #* @serializer json list(na="string")
 #' @delete /api/re_review/batch/unassign
 function(req, res, re_review_batch) {
-		
-	user <- req$user_id
-	re_review_batch_unassign <- as.integer(re_review_batch)
+    
+  user <- req$user_id
+  re_review_batch_unassign <- as.integer(re_review_batch)
 
-	#check if assignment_id_unassign exists
-	re_review_assignment_table <- pool %>% 
-		tbl("re_review_assignment") %>%
-		select(re_review_batch) %>%
-		filter(re_review_batch == re_review_batch_unassign) %>%
-		collect()
-	re_review_batch_unassign_exists <- as.logical(length(re_review_assignment_table$re_review_batch))
+  #check if assignment_id_unassign exists
+  re_review_assignment_table <- pool %>% 
+    tbl("re_review_assignment") %>%
+    select(re_review_batch) %>%
+    filter(re_review_batch == re_review_batch_unassign) %>%
+    collect()
+  re_review_batch_unassign_exists <- as.logical(length(re_review_assignment_table$re_review_batch))
 
-	# first check rights
-	if ( length(user) == 0 ) {
-	
-		res$status <- 401 # Unauthorized
-		return(list(error="Please authenticate."))
+  # first check rights
+  if ( length(user) == 0 ) {
+  
+    res$status <- 401 # Unauthorized
+    return(list(error="Please authenticate."))
 
-	} else if ( req$user_role %in% c("Administrator", "Curator") & !re_review_batch_unassign_exists) {
-	
-		res$status <- 409 # Conflict
-		return(list(error="Batch does not exist."))
-		
-	} else if ( req$user_role %in% c("Administrator", "Curator") & re_review_batch_unassign_exists) {
+  } else if ( req$user_role %in% c("Administrator", "Curator") & !re_review_batch_unassign_exists) {
+  
+    res$status <- 409 # Conflict
+    return(list(error="Batch does not exist."))
+    
+  } else if ( req$user_role %in% c("Administrator", "Curator") & re_review_batch_unassign_exists) {
 
-		# connect to database, delete assignment then disconnect
-		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-		dbExecute(sysndd_db, paste0("DELETE FROM re_review_assignment WHERE re_review_batch = ", re_review_batch_unassign, ";"))
-		dbDisconnect(sysndd_db)
+    # connect to database, delete assignment then disconnect
+    sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+    dbExecute(sysndd_db, paste0("DELETE FROM re_review_assignment WHERE re_review_batch = ", re_review_batch_unassign, ";"))
+    dbDisconnect(sysndd_db)
 
-	} else {
-		res$status <- 403 # Forbidden
-		return(list(error="Read access forbidden."))
-	}
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error="Read access forbidden."))
+  }
 }
 
 
@@ -1524,45 +1524,45 @@ function(req, res, re_review_batch) {
 #* @serializer json list(na="string")
 #' @get /api/re_review/assignment_table
 function(req, res) {
-		
-	user <- req$user_id
-	
-	# first check rights
-	if ( length(user) == 0 ) {
-	
-		res$status <- 401 # Unauthorized
-		return(list(error="Please authenticate."))
+    
+  user <- req$user_id
+  
+  # first check rights
+  if ( length(user) == 0 ) {
+  
+    res$status <- 401 # Unauthorized
+    return(list(error="Please authenticate."))
 
-	} else if ( req$user_role %in% c("Administrator", "Curator") ) {
+  } else if ( req$user_role %in% c("Administrator", "Curator") ) {
 
-		re_review_entity_connect_table <- pool %>% 
-			tbl("re_review_entity_connect") %>%
-			select(re_review_batch, re_review_review_saved, re_review_status_saved, re_review_submitted, re_review_approved) %>%
-			group_by(re_review_batch) %>%
-			collect() %>% 
-			mutate(entity_count = 1) %>%
-			summarise_at(vars(re_review_review_saved:entity_count), sum)
-			
-		re_review_assignment_table <- pool %>% 
-			tbl("re_review_assignment")
-			
-		user_table <- pool %>% 
-			tbl("user") %>%
-			select(user_id, user_name)
-			
-		re_review_assignment_table_user <- re_review_assignment_table %>%
-			left_join(user_table, by = c("user_id")) %>%
-			collect() %>%
-			left_join(re_review_entity_connect_table, by = c("re_review_batch")) %>%
-			select(assignment_id, user_id, user_name, re_review_batch, re_review_review_saved, re_review_status_saved, re_review_submitted, re_review_approved, entity_count) %>%
-			arrange(user_id)
+    re_review_entity_connect_table <- pool %>% 
+      tbl("re_review_entity_connect") %>%
+      select(re_review_batch, re_review_review_saved, re_review_status_saved, re_review_submitted, re_review_approved) %>%
+      group_by(re_review_batch) %>%
+      collect() %>% 
+      mutate(entity_count = 1) %>%
+      summarise_at(vars(re_review_review_saved:entity_count), sum)
+      
+    re_review_assignment_table <- pool %>% 
+      tbl("re_review_assignment")
+      
+    user_table <- pool %>% 
+      tbl("user") %>%
+      select(user_id, user_name)
+      
+    re_review_assignment_table_user <- re_review_assignment_table %>%
+      left_join(user_table, by = c("user_id")) %>%
+      collect() %>%
+      left_join(re_review_entity_connect_table, by = c("re_review_batch")) %>%
+      select(assignment_id, user_id, user_name, re_review_batch, re_review_review_saved, re_review_status_saved, re_review_submitted, re_review_approved, entity_count) %>%
+      arrange(user_id)
 
-		# return tibble
-		re_review_assignment_table_user
-	} else {
-		res$status <- 403 # Forbidden
-		return(list(error="Read access forbidden."))
-	}
+    # return tibble
+    re_review_assignment_table_user
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error="Read access forbidden."))
+  }
 }
 
 ## Re-review endpoints
@@ -1579,17 +1579,17 @@ function(req, res) {
 #' @get /api/publication/<pmid>
 function(pmid) {
 
-	pmid <- URLdecode(pmid) %>%
-		str_replace_all("[^0-9]+", "")
-	pmid <- paste0("PMID:",pmid)
+  pmid <- URLdecode(pmid) %>%
+    str_replace_all("[^0-9]+", "")
+  pmid <- paste0("PMID:",pmid)
 
-	# get data from database and filter
-	publication_collected <- pool %>% 
-		tbl("publication") %>%
-		filter(publication_id == pmid) %>%
-		select(publication_id, other_publication_id, Title, Abstract, Lastname, Firstname, Publication_date, Journal, Keywords) %>%
-		arrange(publication_id) %>%
-		collect()
+  # get data from database and filter
+  publication_collected <- pool %>% 
+    tbl("publication") %>%
+    filter(publication_id == pmid) %>%
+    select(publication_id, other_publication_id, Title, Abstract, Lastname, Firstname, Publication_date, Journal, Keywords) %>%
+    arrange(publication_id) %>%
+    collect()
 }
 
 
@@ -1599,10 +1599,10 @@ function(pmid) {
 #' @get /api/publication/validate/<pmid>
 function(req, res, pmid) {
 
-	pmid <- URLdecode(pmid) %>%
-		str_replace_all("[^0-9]+", "")
+  pmid <- URLdecode(pmid) %>%
+    str_replace_all("[^0-9]+", "")
 
-	check_pmid(pmid) 
+  check_pmid(pmid) 
 }
 
 ## Publication endpoints
@@ -1619,50 +1619,50 @@ function(req, res, pmid) {
 #' @get /api/gene
 function(res, sort = "symbol", filter = "", fields = "", `page[after]` = "0", `page[size]` = "10") {
 
-	start_time <- Sys.time()
+  start_time <- Sys.time()
 
-	# generate sort expression based on sort input
-	sort_exprs <- generate_sort_expressions(sort, unique_id = "symbol")
+  # generate sort expression based on sort input
+  sort_exprs <- generate_sort_expressions(sort, unique_id = "symbol")
 
-	# generate filter expression based on filter input
-	filter_exprs <- generate_filter_expressions(filter)
+  # generate filter expression based on filter input
+  filter_exprs <- generate_filter_expressions(filter)
 
-	# get data from database and filter
-	sysndd_db_genes_table <- pool %>% 
-		tbl("ndd_entity_view") %>%
-		arrange(entity_id) %>%
-		collect()
+  # get data from database and filter
+  sysndd_db_genes_table <- pool %>% 
+    tbl("ndd_entity_view") %>%
+    arrange(entity_id) %>%
+    collect()
 
-	# arrange and apply filters according to input
-	sysndd_db_genes_nested <- nest_gene_tibble(sysndd_db_genes_table) %>%
-		arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
-		filter(!!!rlang::parse_exprs(filter_exprs))
+  # arrange and apply filters according to input
+  sysndd_db_genes_nested <- nest_gene_tibble(sysndd_db_genes_table) %>%
+    arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
+    filter(!!!rlang::parse_exprs(filter_exprs))
 
-	# select fields from table based on input using the helper function "select_tibble_fields"
-	sysndd_db_genes_nested <- select_tibble_fields(sysndd_db_genes_nested, fields, "symbol")
+  # select fields from table based on input using the helper function "select_tibble_fields"
+  sysndd_db_genes_nested <- select_tibble_fields(sysndd_db_genes_nested, fields, "symbol")
 
-	# use the helper generate_cursor_pagination_info to generate cursor pagination information from a tibble
-	sysndd_db_genes_nested_pagination_info <- generate_cursor_pagination_info(sysndd_db_genes_nested, `page[size]`, `page[after]`, "symbol")
+  # use the helper generate_cursor_pagination_info to generate cursor pagination information from a tibble
+  sysndd_db_genes_nested_pagination_info <- generate_cursor_pagination_info(sysndd_db_genes_nested, `page[size]`, `page[after]`, "symbol")
 
-	# compute execution time
-	end_time <- Sys.time()
-	execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
-	
-	# add columns to the meta information from generate_cursor_pagination_info function return
-	meta <- sysndd_db_genes_nested_pagination_info$meta %>%
-		add_column(as_tibble(list("sort" = sort, "filter" = filter, "fields" = fields, "executionTime" = execution_time)))
+  # compute execution time
+  end_time <- Sys.time()
+  execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
+  
+  # add columns to the meta information from generate_cursor_pagination_info function return
+  meta <- sysndd_db_genes_nested_pagination_info$meta %>%
+    add_column(as_tibble(list("sort" = sort, "filter" = filter, "fields" = fields, "executionTime" = execution_time)))
 
-	# add host, port and other information to links from the link information from generate_cursor_pagination_info function return
-	links <- sysndd_db_genes_nested_pagination_info$links %>%
-  		pivot_longer(everything(), names_to = "type", values_to = "link") %>%
-		mutate(link = case_when(
-			link != "null" ~ paste0("http://", dw$host, ":", dw$port_self, "/api/gene?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), ifelse(fields != "", paste0("&fields=", fields), ""),  link),
-			link == "null" ~ "null"
-		)) %>%
-  		pivot_wider(everything(), names_from = "type", values_from = "link")
+  # add host, port and other information to links from the link information from generate_cursor_pagination_info function return
+  links <- sysndd_db_genes_nested_pagination_info$links %>%
+      pivot_longer(everything(), names_to = "type", values_to = "link") %>%
+    mutate(link = case_when(
+      link != "null" ~ paste0("http://", dw$host, ":", dw$port_self, "/api/gene?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), ifelse(fields != "", paste0("&fields=", fields), ""),  link),
+      link == "null" ~ "null"
+    )) %>%
+      pivot_wider(everything(), names_from = "type", values_from = "link")
 
-	# generate object to return
-	list(links = links, meta = meta, data = sysndd_db_genes_nested_pagination_info$data)
+  # generate object to return
+  list(links = links, meta = meta, data = sysndd_db_genes_nested_pagination_info$data)
 }
 
 
@@ -1672,17 +1672,17 @@ function(res, sort = "symbol", filter = "", fields = "", `page[after]` = "0", `p
 #' @get /api/gene/<hgnc>
 function(hgnc) {
 
-	hgnc <- URLdecode(hgnc) %>%
-		str_replace_all("HGNC:", "")
-	hgnc <- paste0("HGNC:",hgnc)
+  hgnc <- URLdecode(hgnc) %>%
+    str_replace_all("HGNC:", "")
+  hgnc <- paste0("HGNC:",hgnc)
 
-	# get data from database and filter
-	non_alt_loci_set_collected <- pool %>% 
-		tbl("non_alt_loci_set") %>%
-		filter(hgnc_id == hgnc) %>%
-		select(hgnc_id, symbol, name, entrez_id, ensembl_gene_id, ucsc_id, ccds_id, uniprot_ids) %>%
-		arrange(hgnc_id) %>%
-		collect()
+  # get data from database and filter
+  non_alt_loci_set_collected <- pool %>% 
+    tbl("non_alt_loci_set") %>%
+    filter(hgnc_id == hgnc) %>%
+    select(hgnc_id, symbol, name, entrez_id, ensembl_gene_id, ucsc_id, ccds_id, uniprot_ids) %>%
+    arrange(hgnc_id) %>%
+    collect()
 }
 
 
@@ -1692,16 +1692,16 @@ function(hgnc) {
 #' @get /api/gene/symbol/<symbol>
 function(symbol) {
 
-	symbol_input <- URLdecode(symbol) %>%
-		str_to_lower()
-		
-	# get data from database and filter
-	non_alt_loci_set_collected <- pool %>% 
-		tbl("non_alt_loci_set") %>%
-		filter(str_to_lower(symbol) == symbol_input) %>%
-		select(hgnc_id, symbol, name, entrez_id, ensembl_gene_id, ucsc_id, ccds_id, uniprot_ids) %>%
-		arrange(hgnc_id) %>%
-		collect()
+  symbol_input <- URLdecode(symbol) %>%
+    str_to_lower()
+    
+  # get data from database and filter
+  non_alt_loci_set_collected <- pool %>% 
+    tbl("non_alt_loci_set") %>%
+    filter(str_to_lower(symbol) == symbol_input) %>%
+    select(hgnc_id, symbol, name, entrez_id, ensembl_gene_id, ucsc_id, ccds_id, uniprot_ids) %>%
+    arrange(hgnc_id) %>%
+    collect()
 }
 
 
@@ -1711,17 +1711,17 @@ function(symbol) {
 #' @get /api/gene/<hgnc>/entities
 function(hgnc) {
 
-	hgnc <- URLdecode(hgnc) %>%
-		str_replace_all("[^0-9]+", "")
-	hgnc <- paste0("HGNC:",hgnc)
+  hgnc <- URLdecode(hgnc) %>%
+    str_replace_all("[^0-9]+", "")
+  hgnc <- paste0("HGNC:",hgnc)
 
-	# get data from database and filter
-	entity_by_gene_list <- pool %>% 
-		tbl("ndd_entity_view") %>%
-		filter(hgnc_id == hgnc) %>%
-		collect()
+  # get data from database and filter
+  entity_by_gene_list <- pool %>% 
+    tbl("ndd_entity_view") %>%
+    filter(hgnc_id == hgnc) %>%
+    collect()
 
-	entity_by_gene_list
+  entity_by_gene_list
 }
 
 
@@ -1731,16 +1731,16 @@ function(hgnc) {
 #' @get /api/gene/symbol/<symbol>/entities
 function(symbol) {
 
-	symbol_input <- URLdecode(symbol) %>%
-		str_to_lower()
+  symbol_input <- URLdecode(symbol) %>%
+    str_to_lower()
 
-	# get data from database and filter
-	entity_by_gene_list <- pool %>% 
-		tbl("ndd_entity_view") %>%
-		filter(str_to_lower(symbol) == symbol_input) %>%
-		collect()
+  # get data from database and filter
+  entity_by_gene_list <- pool %>% 
+    tbl("ndd_entity_view") %>%
+    filter(str_to_lower(symbol) == symbol_input) %>%
+    collect()
 
-	entity_by_gene_list
+  entity_by_gene_list
 }
 ## Gene endpoints
 ##-------------------------------------------------------------------##
@@ -1755,19 +1755,19 @@ function(symbol) {
 #* @serializer json list(na="string")
 #' @get /api/ontology/<ontology_id>
 function(ontology_id) {
-	ontology_id <- URLdecode(ontology_id)
+  ontology_id <- URLdecode(ontology_id)
 
-	# get data from database and filter
-	disease_ontology_set_collected <- pool %>% 
-		tbl("disease_ontology_set") %>%
-		filter(disease_ontology_id == ontology_id) %>%
-		select(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, disease_ontology_source, disease_ontology_is_specific, hgnc_id, hpo_mode_of_inheritance_term, DOID, MONDO, Orphanet, EFO) %>%
-		arrange(disease_ontology_id_version) %>%
-		collect() %>%
-		group_by(disease_ontology_id) %>%
-		summarise_all(~paste(unique(.), collapse = ';')) %>%
-		ungroup() %>%
-		mutate(across(everything(), ~replace(., . == "NULL" , "")))
+  # get data from database and filter
+  disease_ontology_set_collected <- pool %>% 
+    tbl("disease_ontology_set") %>%
+    filter(disease_ontology_id == ontology_id) %>%
+    select(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, disease_ontology_source, disease_ontology_is_specific, hgnc_id, hpo_mode_of_inheritance_term, DOID, MONDO, Orphanet, EFO) %>%
+    arrange(disease_ontology_id_version) %>%
+    collect() %>%
+    group_by(disease_ontology_id) %>%
+    summarise_all(~paste(unique(.), collapse = ';')) %>%
+    ungroup() %>%
+    mutate(across(everything(), ~replace(., . == "NULL" , "")))
 }
 
 
@@ -1776,19 +1776,19 @@ function(ontology_id) {
 #* @serializer json list(na="string")
 #' @get /api/ontology/name/<ontology_name>
 function(ontology_name) {
-	ontology_name <- URLdecode(ontology_name)
+  ontology_name <- URLdecode(ontology_name)
 
-	# get data from database and filter
-	disease_ontology_set_collected <- pool %>% 
-		tbl("disease_ontology_set") %>%
-		filter(disease_ontology_name == ontology_name) %>%
-		select(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, disease_ontology_source, disease_ontology_is_specific, hgnc_id, hpo_mode_of_inheritance_term, DOID, MONDO, Orphanet, EFO) %>%
-		arrange(disease_ontology_id_version) %>%
-		collect() %>%
-		group_by(disease_ontology_id) %>%
-		summarise_all(~paste(unique(.), collapse = ';')) %>%
-		ungroup() %>%
-		mutate(across(everything(), ~replace(., . == "NULL" , "")))
+  # get data from database and filter
+  disease_ontology_set_collected <- pool %>% 
+    tbl("disease_ontology_set") %>%
+    filter(disease_ontology_name == ontology_name) %>%
+    select(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, disease_ontology_source, disease_ontology_is_specific, hgnc_id, hpo_mode_of_inheritance_term, DOID, MONDO, Orphanet, EFO) %>%
+    arrange(disease_ontology_id_version) %>%
+    collect() %>%
+    group_by(disease_ontology_id) %>%
+    summarise_all(~paste(unique(.), collapse = ';')) %>%
+    ungroup() %>%
+    mutate(across(everything(), ~replace(., . == "NULL" , "")))
 }
 
 
@@ -1798,15 +1798,15 @@ function(ontology_name) {
 #' @get /api/ontology/<ontology_id>/entities
 function(ontology_id) {
 
-	ontology_id <- URLdecode(ontology_id)
+  ontology_id <- URLdecode(ontology_id)
 
-	# get data from database and filter
-	entity_by_ontology_id_list <- pool %>% 
-		tbl("ndd_entity_view") %>%
-		filter(disease_ontology_id_version == ontology_id) %>%
-		collect()
+  # get data from database and filter
+  entity_by_ontology_id_list <- pool %>% 
+    tbl("ndd_entity_view") %>%
+    filter(disease_ontology_id_version == ontology_id) %>%
+    collect()
 
-	entity_by_ontology_id_list
+  entity_by_ontology_id_list
 }
 
 
@@ -1816,15 +1816,15 @@ function(ontology_id) {
 #' @get /api/ontology/name/<ontology_name>/entities
 function(ontology_name) {
 
-	ontology_name <- URLdecode(ontology_name)
+  ontology_name <- URLdecode(ontology_name)
 
-	# get data from database and filter
-	entity_by_ontology_name_list <- pool %>% 
-		tbl("ndd_entity_view") %>%
-		filter(disease_ontology_name == ontology_name) %>%
-		collect()
+  # get data from database and filter
+  entity_by_ontology_name_list <- pool %>% 
+    tbl("ndd_entity_view") %>%
+    filter(disease_ontology_name == ontology_name) %>%
+    collect()
 
-	entity_by_ontology_name_list
+  entity_by_ontology_name_list
 }
 
 ## Ontology endpoints
@@ -1840,17 +1840,17 @@ function(ontology_name) {
 #* @serializer json list(na="string")
 #' @get /api/inheritance/<hpo>
 function(hpo) {
-	hpo <- URLdecode(hpo) %>%
-		str_replace_all("[^0-9]+", "")
-	hpo <- paste0("HP:",hpo)
+  hpo <- URLdecode(hpo) %>%
+    str_replace_all("[^0-9]+", "")
+  hpo <- paste0("HP:",hpo)
 
-	# get data from database and filter
-	mode_of_inheritance_list_collected <- pool %>% 
-		tbl("mode_of_inheritance_list") %>%
-		filter(hpo_mode_of_inheritance_term == hpo) %>%
-		select(hpo_mode_of_inheritance_term, hpo_mode_of_inheritance_term_name) %>%
-		arrange(hpo_mode_of_inheritance_term) %>%
-		collect()
+  # get data from database and filter
+  mode_of_inheritance_list_collected <- pool %>% 
+    tbl("mode_of_inheritance_list") %>%
+    filter(hpo_mode_of_inheritance_term == hpo) %>%
+    select(hpo_mode_of_inheritance_term, hpo_mode_of_inheritance_term_name) %>%
+    arrange(hpo_mode_of_inheritance_term) %>%
+    collect()
 }
 
 
@@ -1859,12 +1859,12 @@ function(hpo) {
 #* @serializer json list(na="string")
 #' @get /api/inheritance_list
 function() {
-	status_list_collected <- pool %>% 
-		tbl("mode_of_inheritance_list") %>%
-		arrange(hpo_mode_of_inheritance_term) %>%
-		collect() %>%
-		filter(is_active == 1) %>%
-		select(-is_active, -update_date)
+  status_list_collected <- pool %>% 
+    tbl("mode_of_inheritance_list") %>%
+    arrange(hpo_mode_of_inheritance_term) %>%
+    collect() %>%
+    filter(is_active == 1) %>%
+    select(-is_active, -update_date)
 }
 
 ## Inheritance endpoints
@@ -1881,69 +1881,69 @@ function() {
 #' @get /api/phenotype/entities/browse
 function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = "0", `page[size]` = "all") {
 
-	#to do: need to speed this up by making a database view instead of recalculating the transposition and join with each time (expensive)
+  #to do: need to speed this up by making a database view instead of recalculating the transposition and join with each time (expensive)
 
-	start_time <- Sys.time()
+  start_time <- Sys.time()
 
-	filter <- URLdecode(filter) %>%
-		str_replace_all("HP:", "HP_")
+  filter <- URLdecode(filter) %>%
+    str_replace_all("HP:", "HP_")
 
-	# generate sort expression based on sort input
-	sort_exprs <- generate_sort_expressions(sort, unique_id = "entity_id")
+  # generate sort expression based on sort input
+  sort_exprs <- generate_sort_expressions(sort, unique_id = "entity_id")
 
-	# generate filter expression based on filter input
-	filter_exprs <- generate_filter_expressions(filter)
+  # generate filter expression based on filter input
+  filter_exprs <- generate_filter_expressions(filter)
 
-	#
-	ndd_review_phenotype_connect_wide <- pool %>% 
-		tbl("ndd_review_phenotype_connect_wide_view")
-	
-	#
-	sysndd_db_entity_phenotype_table <- pool %>% 
-		tbl("ndd_entity_view") %>%
-		left_join(ndd_review_phenotype_connect_wide, by = c("entity_id")) %>%
-		collect() %>%
-		filter(!!!rlang::parse_exprs(filter_exprs)) %>%
-		pivot_longer(
-			cols = starts_with("HP_"),
-			names_to = "phenotype_id",
-			values_to = "phenotype_present"
-		) %>%
-		filter(phenotype_present == TRUE) %>%
-		mutate(phenotype_id = str_replace_all(phenotype_id, "_", ":")) %>%
-		group_by(entity_id) %>% 
-		arrange(entity_id, phenotype_id) %>%
-		mutate(phenotype_id = paste0(phenotype_id, collapse = ",")) %>%
-		ungroup() %>%
-		unique() %>%
-		select(-phenotype_present) %>%
-		arrange(!!!rlang::parse_exprs(sort_exprs))
+  #
+  ndd_review_phenotype_connect_wide <- pool %>% 
+    tbl("ndd_review_phenotype_connect_wide_view")
+  
+  #
+  sysndd_db_entity_phenotype_table <- pool %>% 
+    tbl("ndd_entity_view") %>%
+    left_join(ndd_review_phenotype_connect_wide, by = c("entity_id")) %>%
+    collect() %>%
+    filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+    pivot_longer(
+      cols = starts_with("HP_"),
+      names_to = "phenotype_id",
+      values_to = "phenotype_present"
+    ) %>%
+    filter(phenotype_present == TRUE) %>%
+    mutate(phenotype_id = str_replace_all(phenotype_id, "_", ":")) %>%
+    group_by(entity_id) %>% 
+    arrange(entity_id, phenotype_id) %>%
+    mutate(phenotype_id = paste0(phenotype_id, collapse = ",")) %>%
+    ungroup() %>%
+    unique() %>%
+    select(-phenotype_present) %>%
+    arrange(!!!rlang::parse_exprs(sort_exprs))
 
-	# select fields from table based on input using the helper function "select_tibble_fields"
-	sysndd_db_entity_phenotype_table <- select_tibble_fields(sysndd_db_entity_phenotype_table, fields, "entity_id")
+  # select fields from table based on input using the helper function "select_tibble_fields"
+  sysndd_db_entity_phenotype_table <- select_tibble_fields(sysndd_db_entity_phenotype_table, fields, "entity_id")
 
-	# use the helper generate_cursor_pagination_info to generate cursor pagination information from a tibble
-	sysndd_db_entity_phenotype_table_pagination_info <- generate_cursor_pagination_info(sysndd_db_entity_phenotype_table, `page[size]`, `page[after]`, "entity_id")
+  # use the helper generate_cursor_pagination_info to generate cursor pagination information from a tibble
+  sysndd_db_entity_phenotype_table_pagination_info <- generate_cursor_pagination_info(sysndd_db_entity_phenotype_table, `page[size]`, `page[after]`, "entity_id")
 
-	# compute execution time
-	end_time <- Sys.time()
-	execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
+  # compute execution time
+  end_time <- Sys.time()
+  execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
 
-	# add columns to the meta information from generate_cursor_pagination_info function return
-	meta <- sysndd_db_entity_phenotype_table_pagination_info$meta %>%
-		add_column(as_tibble(list("sort" = sort, "filter" = filter, "fields" = fields, "executionTime" = execution_time))) 
+  # add columns to the meta information from generate_cursor_pagination_info function return
+  meta <- sysndd_db_entity_phenotype_table_pagination_info$meta %>%
+    add_column(as_tibble(list("sort" = sort, "filter" = filter, "fields" = fields, "executionTime" = execution_time))) 
 
-	# add host, port and other information to links from the link information from generate_cursor_pagination_info function return
-	links <- sysndd_db_entity_phenotype_table_pagination_info$links %>%
-  		pivot_longer(everything(), names_to = "type", values_to = "link") %>%
-		mutate(link = case_when(
-			link != "null" ~ paste0("http://", dw$host, ":", dw$port_self, "/api/phenotype/entities/browse?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), ifelse(fields != "", paste0("&fields=", fields), ""),  link),
-			link == "null" ~ "null"
-		)) %>%
-  		pivot_wider(everything(), names_from = "type", values_from = "link")
+  # add host, port and other information to links from the link information from generate_cursor_pagination_info function return
+  links <- sysndd_db_entity_phenotype_table_pagination_info$links %>%
+      pivot_longer(everything(), names_to = "type", values_to = "link") %>%
+    mutate(link = case_when(
+      link != "null" ~ paste0("http://", dw$host, ":", dw$port_self, "/api/phenotype/entities/browse?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), ifelse(fields != "", paste0("&fields=", fields), ""),  link),
+      link == "null" ~ "null"
+    )) %>%
+      pivot_wider(everything(), names_from = "type", values_from = "link")
 
-	# generate object to return
-	list(links = links, meta = meta, data = sysndd_db_entity_phenotype_table_pagination_info$data)
+  # generate object to return
+  list(links = links, meta = meta, data = sysndd_db_entity_phenotype_table_pagination_info$data)
 
 }
 
@@ -1954,84 +1954,84 @@ function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = "0",
 #' @get /api/phenotype/entities/excel
 function(hpo_list = "", logical_operator = "and", res) {
 
-	hpo_list <- URLdecode(hpo_list) %>%
-		str_split(pattern=",", simplify=TRUE) %>%
-		str_replace_all("[^0-9]+", "") %>%
-		str_replace("^", "HP:") %>%
-		unique()
+  hpo_list <- URLdecode(hpo_list) %>%
+    str_split(pattern=",", simplify=TRUE) %>%
+    str_replace_all("[^0-9]+", "") %>%
+    str_replace("^", "HP:") %>%
+    unique()
 
-	# get data from database and filter
-	if ( logical_operator == "and" ) {
-		entity_list_from_phenotype_list_collected <- pool %>% 
-			tbl("ndd_review_phenotype_connect") %>%
-			filter(phenotype_id %in% hpo_list) %>%
-			arrange(phenotype_id) %>%
-			select(entity_id, phenotype_id) %>%
-			collect() %>%
-			unique() %>%
-			arrange(entity_id) %>%
-			mutate(found=TRUE) %>%
-			pivot_wider(names_from = phenotype_id, values_from = found) %>%
-			replace(., is.na(.), FALSE) %>%
-			pivot_longer(-entity_id, names_to = c("phenotype_id")) %>%
-			select(-phenotype_id) %>%
-			group_by(entity_id) %>%
-			summarise(value = all(value)) %>%
-			filter(value) %>%
-			select(entity_id) %>%
-			ungroup()
+  # get data from database and filter
+  if ( logical_operator == "and" ) {
+    entity_list_from_phenotype_list_collected <- pool %>% 
+      tbl("ndd_review_phenotype_connect") %>%
+      filter(phenotype_id %in% hpo_list) %>%
+      arrange(phenotype_id) %>%
+      select(entity_id, phenotype_id) %>%
+      collect() %>%
+      unique() %>%
+      arrange(entity_id) %>%
+      mutate(found=TRUE) %>%
+      pivot_wider(names_from = phenotype_id, values_from = found) %>%
+      replace(., is.na(.), FALSE) %>%
+      pivot_longer(-entity_id, names_to = c("phenotype_id")) %>%
+      select(-phenotype_id) %>%
+      group_by(entity_id) %>%
+      summarise(value = all(value)) %>%
+      filter(value) %>%
+      select(entity_id) %>%
+      ungroup()
 
-	# get entity data for the excel sheet
-		sysndd_db_entity_table <- pool %>% 
-			tbl("ndd_entity_view") %>%
-			collect() %>%
-			filter(entity_id %in% entity_list_from_phenotype_list_collected$entity_id) %>%
-			arrange(entity_id)
-	} else if ( logical_operator == "or" ) {
-		entity_list_from_phenotype_list_collected <- pool %>% 
-			tbl("ndd_review_phenotype_connect") %>%
-			filter(phenotype_id %in% hpo_list) %>%
-			arrange(entity_id) %>%
-			select(entity_id,) %>%
-			collect() %>%
-			unique()
+  # get entity data for the excel sheet
+    sysndd_db_entity_table <- pool %>% 
+      tbl("ndd_entity_view") %>%
+      collect() %>%
+      filter(entity_id %in% entity_list_from_phenotype_list_collected$entity_id) %>%
+      arrange(entity_id)
+  } else if ( logical_operator == "or" ) {
+    entity_list_from_phenotype_list_collected <- pool %>% 
+      tbl("ndd_review_phenotype_connect") %>%
+      filter(phenotype_id %in% hpo_list) %>%
+      arrange(entity_id) %>%
+      select(entity_id,) %>%
+      collect() %>%
+      unique()
 
-	# get entity data for the excel sheet
-		sysndd_db_entity_table <- pool %>% 
-			tbl("ndd_entity_view") %>%
-			collect() %>%
-			filter(entity_id %in% entity_list_from_phenotype_list_collected$entity_id) %>%
-			arrange(entity_id)
-	}
+  # get entity data for the excel sheet
+    sysndd_db_entity_table <- pool %>% 
+      tbl("ndd_entity_view") %>%
+      collect() %>%
+      filter(entity_id %in% entity_list_from_phenotype_list_collected$entity_id) %>%
+      arrange(entity_id)
+  }
 
-	# generate request statistic for output
-	creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"), "%Y-%m-%dT %H:%M:%S")
-	
-	request_stats <- tibble(
-	  creation_date = creation_date, 
-	  hpo_input = hpo_list, 
-	  operator_input = logical_operator
-	) %>%
-	pivot_longer(everything(), names_to = "request", values_to = "value")
+  # generate request statistic for output
+  creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"), "%Y-%m-%dT %H:%M:%S")
+  
+  request_stats <- tibble(
+    creation_date = creation_date, 
+    hpo_input = hpo_list, 
+    operator_input = logical_operator
+  ) %>%
+  pivot_longer(everything(), names_to = "request", values_to = "value")
 
-	# generate excel file output
-	filename <- file.path(tempdir(), "phenotype_panel.xlsx")
-	write.xlsx(sysndd_db_entity_table, filename, sheetName="sysndd_phenotype_panel", append=FALSE)
-	write.xlsx(request_stats, filename, sheetName="request", append=TRUE)
-	attachmentString = paste0("attachment; filename=phenotype_panel.", creation_date, ".xlsx")
+  # generate excel file output
+  filename <- file.path(tempdir(), "phenotype_panel.xlsx")
+  write.xlsx(sysndd_db_entity_table, filename, sheetName="sysndd_phenotype_panel", append=FALSE)
+  write.xlsx(request_stats, filename, sheetName="request", append=TRUE)
+  attachmentString = paste0("attachment; filename=phenotype_panel.", creation_date, ".xlsx")
 
-	res$setHeader("Content-Disposition", attachmentString)
+  res$setHeader("Content-Disposition", attachmentString)
 
-	# Read in the raw contents of the binary file
-	bin <- readBin(filename, "raw", n=file.info(filename)$size)
+  # Read in the raw contents of the binary file
+  bin <- readBin(filename, "raw", n=file.info(filename)$size)
 
-	#Check file existence and delete
-	if (file.exists(filename)) {
-		file.remove(filename)
-	}
+  #Check file existence and delete
+  if (file.exists(filename)) {
+    file.remove(filename)
+  }
 
-	#Return the binary contents
-	bin
+  #Return the binary contents
+  bin
 }
 
 
@@ -2041,48 +2041,48 @@ function(hpo_list = "", logical_operator = "and", res) {
 #' @get /api/phenotype/correlation
 function() {
 
-	# to do: this should be a view instead in SQL
-	# get data from database, filter and restructure
-	ndd_entity_view_tbl <- pool %>% 
-		tbl("ndd_entity_view") %>%
-		collect()
-	ndd_review_phenotype_connect_tbl <- pool %>% 
-		tbl("ndd_review_phenotype_connect") %>%
-		collect()
-	modifier_list_tbl <- pool %>% 
-		tbl("modifier_list") %>%
-		collect()
-	phenotype_list_tbl <- pool %>% 
-		tbl("phenotype_list") %>%
-		collect()
+  # to do: this should be a view instead in SQL
+  # get data from database, filter and restructure
+  ndd_entity_view_tbl <- pool %>% 
+    tbl("ndd_entity_view") %>%
+    collect()
+  ndd_review_phenotype_connect_tbl <- pool %>% 
+    tbl("ndd_review_phenotype_connect") %>%
+    collect()
+  modifier_list_tbl <- pool %>% 
+    tbl("modifier_list") %>%
+    collect()
+  phenotype_list_tbl <- pool %>% 
+    tbl("phenotype_list") %>%
+    collect()
 
-	sysndd_db_phenotypes  <- ndd_entity_view_tbl %>%
-		left_join(ndd_review_phenotype_connect_tbl, by = c("entity_id")) %>%
-		left_join(modifier_list_tbl, by = c("modifier_id")) %>%
-		left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
-		filter(ndd_phenotype == 1) %>%
-		filter(category == "Definitive") %>%
-		filter(modifier_name == "present") %>%
-		select(entity_id, phenotype_id, HPO_term)
+  sysndd_db_phenotypes  <- ndd_entity_view_tbl %>%
+    left_join(ndd_review_phenotype_connect_tbl, by = c("entity_id")) %>%
+    left_join(modifier_list_tbl, by = c("modifier_id")) %>%
+    left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
+    filter(ndd_phenotype == 1) %>%
+    filter(category == "Definitive") %>%
+    filter(modifier_name == "present") %>%
+    select(entity_id, phenotype_id, HPO_term)
 
-	# compute correlation matrix
-	sysndd_db_phenotypes_matrix <- sysndd_db_phenotypes %>%
-		select(-phenotype_id) %>%
-		mutate(has_HPO_term = HPO_term) %>%
-		mutate(has_HPO_term = case_when(
-			  !is.na(has_HPO_term) ~ 1
-			)) %>%
-		pivot_wider(names_from = HPO_term, values_from = has_HPO_term) %>% 
-		replace(is.na(.), 0) %>% 
-		select(-entity_id)
+  # compute correlation matrix
+  sysndd_db_phenotypes_matrix <- sysndd_db_phenotypes %>%
+    select(-phenotype_id) %>%
+    mutate(has_HPO_term = HPO_term) %>%
+    mutate(has_HPO_term = case_when(
+        !is.na(has_HPO_term) ~ 1
+      )) %>%
+    pivot_wider(names_from = HPO_term, values_from = has_HPO_term) %>% 
+    replace(is.na(.), 0) %>% 
+    select(-entity_id)
 
-	# compute correlation matrix
-	sysndd_db_phenotypes_correlation <- round(cor(sysndd_db_phenotypes_matrix),2)
-	sysndd_db_phenotypes_correlation_melted <- melt(sysndd_db_phenotypes_correlation) %>%
-			select(x = Var1, y = Var2, value)
+  # compute correlation matrix
+  sysndd_db_phenotypes_correlation <- round(cor(sysndd_db_phenotypes_matrix),2)
+  sysndd_db_phenotypes_correlation_melted <- melt(sysndd_db_phenotypes_correlation) %>%
+      select(x = Var1, y = Var2, value)
 
-	# generate object to return
-	sysndd_db_phenotypes_correlation_melted
+  # generate object to return
+  sysndd_db_phenotypes_correlation_melted
 
 }
 
@@ -2093,31 +2093,31 @@ function() {
 #' @get /api/phenotype/count
 function() {
 
-	# to do: this should be a view instead in SQL
-	# get data from database, filter and restructure
-	ndd_entity_view_tbl <- pool %>% 
-		tbl("ndd_entity_view") %>%
-		collect()
-	ndd_review_phenotype_connect_tbl <- pool %>% 
-		tbl("ndd_review_phenotype_connect") %>%
-		collect()
-	modifier_list_tbl <- pool %>% 
-		tbl("modifier_list") %>%
-		collect()
-	phenotype_list_tbl <- pool %>% 
-		tbl("phenotype_list") %>%
-		collect()
+  # to do: this should be a view instead in SQL
+  # get data from database, filter and restructure
+  ndd_entity_view_tbl <- pool %>% 
+    tbl("ndd_entity_view") %>%
+    collect()
+  ndd_review_phenotype_connect_tbl <- pool %>% 
+    tbl("ndd_review_phenotype_connect") %>%
+    collect()
+  modifier_list_tbl <- pool %>% 
+    tbl("modifier_list") %>%
+    collect()
+  phenotype_list_tbl <- pool %>% 
+    tbl("phenotype_list") %>%
+    collect()
 
-	sysndd_db_phenotypes  <- ndd_entity_view_tbl %>%
-		left_join(ndd_review_phenotype_connect_tbl, by = c("entity_id")) %>%
-		left_join(modifier_list_tbl, by = c("modifier_id")) %>%
-		left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
-		filter(ndd_phenotype == 1) %>%
-		filter(category == "Definitive") %>%
-		filter(modifier_name == "present") %>%
-		select(entity_id, phenotype_id, HPO_term)
+  sysndd_db_phenotypes  <- ndd_entity_view_tbl %>%
+    left_join(ndd_review_phenotype_connect_tbl, by = c("entity_id")) %>%
+    left_join(modifier_list_tbl, by = c("modifier_id")) %>%
+    left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
+    filter(ndd_phenotype == 1) %>%
+    filter(category == "Definitive") %>%
+    filter(modifier_name == "present") %>%
+    select(entity_id, phenotype_id, HPO_term)
 
-	# compute counts
+  # compute counts
     sysndd_db_phenotypes_count <- sysndd_db_phenotypes %>%
         group_by(HPO_term) %>%
         tally() %>%
@@ -2125,8 +2125,8 @@ function() {
         ungroup() %>%
         select(HPO_term, count = n)
 
-	# generate object to return
-	sysndd_db_phenotypes_count
+  # generate object to return
+  sysndd_db_phenotypes_count
 
 }
 ## Phenotype endpoints
@@ -2143,22 +2143,22 @@ function() {
 #' @get /api/status
 function(req, res, `filter[status_approved]` = 0) {
 
-	filter_status_approved <- as.integer(`filter[status_approved]`)
+  filter_status_approved <- as.integer(`filter[status_approved]`)
 
-	# get data from database and filter
-	sysndd_db_status_table <- pool %>% 
-		tbl("ndd_entity_status") %>% 
-		filter(status_approved == filter_status_approved)
-	ndd_entity_status_categories_collected <- pool %>% 
-		tbl("ndd_entity_status_categories_list")
+  # get data from database and filter
+  sysndd_db_status_table <- pool %>% 
+    tbl("ndd_entity_status") %>% 
+    filter(status_approved == filter_status_approved)
+  ndd_entity_status_categories_collected <- pool %>% 
+    tbl("ndd_entity_status_categories_list")
 
-	sysndd_db_status_table_collected <- sysndd_db_status_table %>%
-		inner_join(ndd_entity_status_categories_collected, by=c("category_id")) %>%
-		collect() %>%
-		select(status_id, entity_id, category, category_id, is_active, status_date, status_user_id, status_approved, approving_user_id, comment, problematic) %>%
-		arrange(status_date)
+  sysndd_db_status_table_collected <- sysndd_db_status_table %>%
+    inner_join(ndd_entity_status_categories_collected, by=c("category_id")) %>%
+    collect() %>%
+    select(status_id, entity_id, category, category_id, is_active, status_date, status_user_id, status_approved, approving_user_id, comment, problematic) %>%
+    arrange(status_date)
 
-	sysndd_db_status_table_collected
+  sysndd_db_status_table_collected
 }
 
 
@@ -2167,31 +2167,31 @@ function(req, res, `filter[status_approved]` = 0) {
 #* @serializer json list(na="null")
 #' @get /api/status/<status_id_requested>
 function(status_id_requested) {
-	# remove spaces from list
-	status_id_requested <- URLdecode(status_id_requested) %>%
-		str_split(pattern=",", simplify=TRUE) %>%
-		str_replace_all(" ", "") %>%
-		unique()
+  # remove spaces from list
+  status_id_requested <- URLdecode(status_id_requested) %>%
+    str_split(pattern=",", simplify=TRUE) %>%
+    str_replace_all(" ", "") %>%
+    unique()
 
-	# get data from database and filter
-	sysndd_db_status_table <- pool %>% 
-		tbl("ndd_entity_status")
-	user_table <- pool %>% 
-		tbl("user") %>% 
-		select(user_id, user_name, user_role)
-	ndd_entity_status_categories_collected <- pool %>% 
-		tbl("ndd_entity_status_categories_list")
+  # get data from database and filter
+  sysndd_db_status_table <- pool %>% 
+    tbl("ndd_entity_status")
+  user_table <- pool %>% 
+    tbl("user") %>% 
+    select(user_id, user_name, user_role)
+  ndd_entity_status_categories_collected <- pool %>% 
+    tbl("ndd_entity_status_categories_list")
 
-	sysndd_db_status_table_collected <- sysndd_db_status_table %>%
-		filter(status_id == status_id_requested) %>%
-		inner_join(ndd_entity_status_categories_collected, by=c("category_id")) %>%
-		left_join(user_table, by = c("status_user_id" = "user_id")) %>%
-		left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
-		collect() %>%
-		select(status_id, entity_id, category, category_id, is_active, status_date, status_user_name = user_name.x, status_user_role = user_role.x, status_approved, approving_user_name = user_name.y, approving_user_role = user_role.y, comment, problematic) %>%
-		arrange(status_date)
+  sysndd_db_status_table_collected <- sysndd_db_status_table %>%
+    filter(status_id == status_id_requested) %>%
+    inner_join(ndd_entity_status_categories_collected, by=c("category_id")) %>%
+    left_join(user_table, by = c("status_user_id" = "user_id")) %>%
+    left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
+    collect() %>%
+    select(status_id, entity_id, category, category_id, is_active, status_date, status_user_name = user_name.x, status_user_role = user_role.x, status_approved, approving_user_name = user_name.y, approving_user_role = user_role.y, comment, problematic) %>%
+    arrange(status_date)
 
-	sysndd_db_status_table_collected
+  sysndd_db_status_table_collected
 }
 
 #* @tag status
@@ -2199,10 +2199,10 @@ function(status_id_requested) {
 #* @serializer json list(na="string")
 #' @get /api/status_list
 function() {
-	status_list_collected <- pool %>% 
-		tbl("ndd_entity_status_categories_list") %>%
-		arrange(category_id) %>%
-		collect()
+  status_list_collected <- pool %>% 
+    tbl("ndd_entity_status_categories_list") %>%
+    arrange(category_id) %>%
+    collect()
 }
 
 
@@ -2213,20 +2213,20 @@ function() {
 #' @post /api/status/create
 #' @put /api/status/update
 function(req, res, status_json) {
-	# first check rights
-	if ( req$user_role %in% c("Administrator", "Curator") ) {
-				
-		status_data <- fromJSON(status_json)
-		
-		response <- put_post_db_status(req$REQUEST_METHOD, status_data, req$user_id)
+  # first check rights
+  if ( req$user_role %in% c("Administrator", "Curator") ) {
+        
+    status_data <- fromJSON(status_json)
+    
+    response <- PutPostDatabaseStatus(req$REQUEST_METHOD, status_data, req$user_id)
 
-		res$status <- response$status
-		return(response)
+    res$status <- response$status
+    return(response)
 
-	} else {
-		res$status <- 403 # Forbidden
-		return(list(error="Write access forbidden."))
-	}
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error="Write access forbidden."))
+  }
 }
 
 
@@ -2235,50 +2235,50 @@ function(req, res, status_json) {
 #* @serializer json list(na="string")
 #' @put /api/status/approve/<status_id_requested>
 function(req, res, status_id_requested, status_ok = FALSE) {
-	status_ok <- as.logical(status_ok)
-	
-	# first check rights
-	if ( length(req$user_id) == 0) {
-	
-		res$status <- 401 # Unauthorized
-		return(list(error="Please authenticate."))
+  status_ok <- as.logical(status_ok)
+  
+  # first check rights
+  if ( length(req$user_id) == 0) {
+  
+    res$status <- 401 # Unauthorized
+    return(list(error="Please authenticate."))
 
-	} else if ( req$user_role %in% c("Administrator", "Curator") ) {
-				
-		submit_user_id <- req$user_id
-		status_id_requested <- as.integer(status_id_requested)
-		
-		# get table data from database
-		ndd_entity_status_data <- pool %>% 
-			tbl("ndd_entity_status") %>%
-			filter(status_id == status_id_requested) %>%
-			collect()
-		
-		# connect to database
-		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+  } else if ( req$user_role %in% c("Administrator", "Curator") ) {
+        
+    submit_user_id <- req$user_id
+    status_id_requested <- as.integer(status_id_requested)
+    
+    # get table data from database
+    ndd_entity_status_data <- pool %>% 
+      tbl("ndd_entity_status") %>%
+      filter(status_id == status_id_requested) %>%
+      collect()
+    
+    # connect to database
+    sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
-		# set status if confirmed
-		if ( status_ok ) {
-			# reset all stati in ndd_entity_status to inactive
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET is_active = 0 WHERE entity_id = ", ndd_entity_status_data$entity_id, ";"))
+    # set status if confirmed
+    if ( status_ok ) {
+      # reset all stati in ndd_entity_status to inactive
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET is_active = 0 WHERE entity_id = ", ndd_entity_status_data$entity_id, ";"))
 
-			# set status of the new status from ndd_entity_status_data to active, add approving_user_id and set approved status to approved
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET is_active = 1 WHERE status_id = ", ndd_entity_status_data$status_id, ";"))
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET approving_user_id = ", submit_user_id, " WHERE status_id = ", ndd_entity_status_data$status_id, ";"))
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET status_approved = 1 WHERE status_id = ", ndd_entity_status_data$status_id, ";"))
-		} else {
-			# add approving_user_id and set approved status to unapproved
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET approving_user_id = ", submit_user_id, " WHERE status_id = ", ndd_entity_status_data$status_id, ";"))
-			dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET status_approved = 0 WHERE status_id = ", ndd_entity_status_data$status_id, ";"))
-		}
+      # set status of the new status from ndd_entity_status_data to active, add approving_user_id and set approved status to approved
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET is_active = 1 WHERE status_id = ", ndd_entity_status_data$status_id, ";"))
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET approving_user_id = ", submit_user_id, " WHERE status_id = ", ndd_entity_status_data$status_id, ";"))
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET status_approved = 1 WHERE status_id = ", ndd_entity_status_data$status_id, ";"))
+    } else {
+      # add approving_user_id and set approved status to unapproved
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET approving_user_id = ", submit_user_id, " WHERE status_id = ", ndd_entity_status_data$status_id, ";"))
+      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET status_approved = 0 WHERE status_id = ", ndd_entity_status_data$status_id, ";"))
+    }
 
-		# disconnect from database
-		dbDisconnect(sysndd_db)
-		
-	} else {
-		res$status <- 403 # Forbidden
-		return(list(error="Write access forbidden."))
-	}
+    # disconnect from database
+    dbDisconnect(sysndd_db)
+    
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error="Write access forbidden."))
+  }
 }
 
 ## status endpoints
@@ -2294,31 +2294,31 @@ function(req, res, status_id_requested, status_ok = FALSE) {
 #* @serializer json list(na="string")
 #' @get /api/panels/options
 function() {
-	# connect to database and get category list
-	categories_list <- pool %>% 
-		tbl("ndd_entity_status_categories_list") %>%
-		select(category) %>%
-		collect() %>%
-		add_row(category = "All") %>%
-		arrange(category)
-	
-	inheritance_list <- as_tibble(inheritance_input_allowed) %>%
-		select(inheritance = value) %>%
-		arrange(inheritance)
+  # connect to database and get category list
+  categories_list <- pool %>% 
+    tbl("ndd_entity_status_categories_list") %>%
+    select(category) %>%
+    collect() %>%
+    add_row(category = "All") %>%
+    arrange(category)
+  
+  inheritance_list <- as_tibble(inheritance_input_allowed) %>%
+    select(inheritance = value) %>%
+    arrange(inheritance)
 
-	columns_list <- as_tibble(output_columns_allowed) %>%
-		select(column = value)
+  columns_list <- as_tibble(output_columns_allowed) %>%
+    select(column = value)
 
-	options <- tibble(
-		lists = c("categories_list", "inheritance_list", "columns_list"),
-		options = list(
-			tibble(value = categories_list$category),
-			tibble(value = inheritance_list$inheritance),
-			tibble(value = columns_list$column)
-			)
-	)
-	
-	options
+  options <- tibble(
+    lists = c("categories_list", "inheritance_list", "columns_list"),
+    options = list(
+      tibble(value = categories_list$category),
+      tibble(value = inheritance_list$inheritance),
+      tibble(value = columns_list$column)
+      )
+  )
+  
+  options
 }
 
 
@@ -2333,89 +2333,89 @@ function(res, sort = "symbol", filter = "equals(category,'Definitive'),any(inher
 
     start_time <- Sys.time()
 
-	# get allowed values for category
-	ndd_entity_status_categories_list <- pool %>% 
-		tbl("ndd_entity_status_categories_list") %>%
-		select(category) %>%
-		collect()
+  # get allowed values for category
+  ndd_entity_status_categories_list <- pool %>% 
+    tbl("ndd_entity_status_categories_list") %>%
+    select(category) %>%
+    collect()
 
-	# get allowed values for inheritance
-	mode_of_inheritance_list <- pool %>% 
-		tbl("mode_of_inheritance_list") %>%
+  # get allowed values for inheritance
+  mode_of_inheritance_list <- pool %>% 
+    tbl("mode_of_inheritance_list") %>%
         filter(is_active) %>%
-		select(inheritance_filter) %>%
-		collect() %>%
+    select(inheritance_filter) %>%
+    collect() %>%
         unique()
 
-	# replace "All" with respective allowed values
-	filter <- str_replace(filter, "category,'All'", paste0("category,",str_c(ndd_entity_status_categories_list$category, collapse = ","))) %>%
-		str_replace("category,All", paste0("category,",str_c(ndd_entity_status_categories_list$category, collapse = ","))) %>%
-		str_replace("inheritance_filter,'All'", paste0("inheritance_filter,",str_c(mode_of_inheritance_list$inheritance_filter, collapse = ","))) %>%
-		str_replace("inheritance_filter,All", paste0("inheritance_filter,",str_c(mode_of_inheritance_list$inheritance_filter, collapse = ",")))
+  # replace "All" with respective allowed values
+  filter <- str_replace(filter, "category,'All'", paste0("category,",str_c(ndd_entity_status_categories_list$category, collapse = ","))) %>%
+    str_replace("category,All", paste0("category,",str_c(ndd_entity_status_categories_list$category, collapse = ","))) %>%
+    str_replace("inheritance_filter,'All'", paste0("inheritance_filter,",str_c(mode_of_inheritance_list$inheritance_filter, collapse = ","))) %>%
+    str_replace("inheritance_filter,All", paste0("inheritance_filter,",str_c(mode_of_inheritance_list$inheritance_filter, collapse = ",")))
 
-	# generate sort expression based on sort input
-	sort_exprs <- generate_sort_expressions(sort, unique_id = "symbol")
+  # generate sort expression based on sort input
+  sort_exprs <- generate_sort_expressions(sort, unique_id = "symbol")
 
-	# generate filter expression based on filter input
-	filter_exprs <- generate_filter_expressions(filter)
+  # generate filter expression based on filter input
+  filter_exprs <- generate_filter_expressions(filter)
 
-	# generate table with field information for display
-	# to do: this has to be updated through some logic based on field types in MySQl table in a function
-	fields_tibble <- as_tibble(str_split(fields, ",")[[1]]) %>%
-		select(key = value) %>%
-		mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
-		mutate(sortable = "true") %>%
-		mutate(class = "text-left") %>%
-		mutate(sortByFormatted = "true") %>%
-		mutate(filterByFormatted = "true")
+  # generate table with field information for display
+  # to do: this has to be updated through some logic based on field types in MySQl table in a function
+  fields_tibble <- as_tibble(str_split(fields, ",")[[1]]) %>%
+    select(key = value) %>%
+    mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
+    mutate(sortable = "true") %>%
+    mutate(class = "text-left") %>%
+    mutate(sortByFormatted = "true") %>%
+    mutate(filterByFormatted = "true")
 
-	# join entity_view and non_alt_loci_set tables
-	sysndd_db_ndd_entity_view <- pool %>% 
-		tbl("ndd_entity_view") %>%
-		filter(ndd_phenotype == 1) %>%
-		select(hgnc_id, symbol, inheritance = hpo_mode_of_inheritance_term_name, inheritance_filter, category)
-	sysndd_db_non_alt_loci_set <- pool %>% 
-		tbl("non_alt_loci_set") %>%
-		select(hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38)
-	
-	sysndd_db_disease_genes <- sysndd_db_ndd_entity_view %>%
-		left_join(sysndd_db_non_alt_loci_set, by =c("hgnc_id")) %>%
-		collect() %>%
-		filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+  # join entity_view and non_alt_loci_set tables
+  sysndd_db_ndd_entity_view <- pool %>% 
+    tbl("ndd_entity_view") %>%
+    filter(ndd_phenotype == 1) %>%
+    select(hgnc_id, symbol, inheritance = hpo_mode_of_inheritance_term_name, inheritance_filter, category)
+  sysndd_db_non_alt_loci_set <- pool %>% 
+    tbl("non_alt_loci_set") %>%
+    select(hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38)
+  
+  sysndd_db_disease_genes <- sysndd_db_ndd_entity_view %>%
+    left_join(sysndd_db_non_alt_loci_set, by =c("hgnc_id")) %>%
+    collect() %>%
+    filter(!!!rlang::parse_exprs(filter_exprs)) %>%
         select(-inheritance_filter) %>%
-		unique() %>%
+    unique() %>%
         arrange(symbol, inheritance) %>%
         group_by(symbol) %>%
         mutate(inheritance = str_c(unique(inheritance), collapse = "; ")) %>%
         ungroup() %>%
         unique() %>%
-		arrange(!!!rlang::parse_exprs(sort_exprs))
+    arrange(!!!rlang::parse_exprs(sort_exprs))
 
-	# select fields from table based on input using the helper function "select_tibble_fields"
-	sysndd_db_disease_genes_panel <- select_tibble_fields(sysndd_db_disease_genes, fields, "symbol")
+  # select fields from table based on input using the helper function "select_tibble_fields"
+  sysndd_db_disease_genes_panel <- select_tibble_fields(sysndd_db_disease_genes, fields, "symbol")
 
-	# use the helper generate_cursor_pagination_info to generate cursor pagination information from a tibble
-	sysndd_db_disease_genes_panel_pagination_info <- generate_cursor_pagination_info(sysndd_db_disease_genes_panel, `page[size]`, `page[after]`, "symbol")
+  # use the helper generate_cursor_pagination_info to generate cursor pagination information from a tibble
+  sysndd_db_disease_genes_panel_pagination_info <- generate_cursor_pagination_info(sysndd_db_disease_genes_panel, `page[size]`, `page[after]`, "symbol")
 
-	# compute execution time
-	end_time <- Sys.time()
-	execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
+  # compute execution time
+  end_time <- Sys.time()
+  execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
 
-	# add columns to the meta information from generate_cursor_pagination_info function return
-	meta <- sysndd_db_disease_genes_panel_pagination_info$meta %>%
-		add_column(as_tibble(list("sort" = sort, "filter" = filter, "fields" = fields, "executionTime" = execution_time))) 
+  # add columns to the meta information from generate_cursor_pagination_info function return
+  meta <- sysndd_db_disease_genes_panel_pagination_info$meta %>%
+    add_column(as_tibble(list("sort" = sort, "filter" = filter, "fields" = fields, "executionTime" = execution_time))) 
 
-	# add host, port and other information to links from the link information from generate_cursor_pagination_info function return
-	links <- sysndd_db_disease_genes_panel_pagination_info$links %>%
-  		pivot_longer(everything(), names_to = "type", values_to = "link") %>%
-		mutate(link = case_when(
-			link != "null" ~ paste0("http://", dw$host, ":", dw$port_self, "/api/panels/browse?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), ifelse(fields != "", paste0("&fields=", fields), ""),  link),
-			link == "null" ~ "null"
-		)) %>%
-  		pivot_wider(everything(), names_from = "type", values_from = "link")
+  # add host, port and other information to links from the link information from generate_cursor_pagination_info function return
+  links <- sysndd_db_disease_genes_panel_pagination_info$links %>%
+      pivot_longer(everything(), names_to = "type", values_to = "link") %>%
+    mutate(link = case_when(
+      link != "null" ~ paste0("http://", dw$host, ":", dw$port_self, "/api/panels/browse?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), ifelse(fields != "", paste0("&fields=", fields), ""),  link),
+      link == "null" ~ "null"
+    )) %>%
+      pivot_wider(everything(), names_from = "type", values_from = "link")
 
-	# return list of format and data
-	list(links = links, meta = meta, fields = fields_tibble, data = sysndd_db_disease_genes_panel_pagination_info$data)
+  # return list of format and data
+  list(links = links, meta = meta, fields = fields_tibble, data = sysndd_db_disease_genes_panel_pagination_info$data)
 }
 
 
@@ -2428,145 +2428,145 @@ function(res, sort = "symbol", filter = "equals(category,'Definitive'),any(inher
 #* @param output_sort Output column to arrange output on (choose from: category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38).
 #' @get /api/panels/excel
 function(category_input = "Definitive", inheritance_input = "All", output_columns = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38", output_sort = "symbol", res) {
-	
-	output_columns_list <- URLdecode(output_columns) %>%
-		str_split(pattern=",", simplify=TRUE) %>%
-		str_replace_all(" ", "") %>%
-		unique()
+  
+  output_columns_list <- URLdecode(output_columns) %>%
+    str_split(pattern=",", simplify=TRUE) %>%
+    str_replace_all(" ", "") %>%
+    unique()
 
-	# connect to database and validate inputs
-	ndd_entity_status_categories_list <- pool %>% 
-		tbl("ndd_entity_status_categories_list") %>%
-		select(category) %>%
-		collect() %>%
-		add_row(category = "All")
+  # connect to database and validate inputs
+  ndd_entity_status_categories_list <- pool %>% 
+    tbl("ndd_entity_status_categories_list") %>%
+    select(category) %>%
+    collect() %>%
+    add_row(category = "All")
 
-	if ( !(Reduce("&", output_columns_list %in% output_columns_allowed)) | !(Reduce("&", output_sort %in% output_columns_allowed)) ) {
-		res$status <- 400
-		res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
-		status = 400,
-		message = paste0("Input for 'output_columns' or 'output_sort' parameter not in list of allowed columns (allowed values=", paste0(output_columns_allowed, collapse=","), ").")
-		))
-		return(res)
-	}
+  if ( !(Reduce("&", output_columns_list %in% output_columns_allowed)) | !(Reduce("&", output_sort %in% output_columns_allowed)) ) {
+    res$status <- 400
+    res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
+    status = 400,
+    message = paste0("Input for 'output_columns' or 'output_sort' parameter not in list of allowed columns (allowed values=", paste0(output_columns_allowed, collapse=","), ").")
+    ))
+    return(res)
+  }
 
-	if ( !(category_input %in% ndd_entity_status_categories_list$category) ) {
-		res$status <- 400
-		res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
-		status = 400,
-		message = paste0("Required 'category_input' parameter not in categories list (allowed values=", paste0(ndd_entity_status_categories_list$category, collapse=","), ").")
-		))
-		return(res)
-	}
-	
-	if ( !(inheritance_input %in% inheritance_input_allowed) ) {
-		res$status <- 400
-		res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
-		status = 400,
-		message = paste0("Required 'inheritance_input' parameter not in categories list (allowed values=", paste0(inheritance_input_allowed, collapse=","), ").")
-		))
-		return(res)
-	}
-	
-	# join entity_view and non_alt_loci_set tables
-	sysndd_db_ndd_entity_view <- pool %>% 
-		tbl("ndd_entity_view") %>%
-		filter(ndd_phenotype == 1) %>%
-		select(hgnc_id, symbol, inheritance = hpo_mode_of_inheritance_term_name, category)
-	sysndd_db_non_alt_loci_set <- pool %>% 
-		tbl("non_alt_loci_set") %>%
-		select(hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38)
-	
-	sysndd_db_disease_genes <- sysndd_db_ndd_entity_view %>%
-		left_join(sysndd_db_non_alt_loci_set, by =c("hgnc_id")) %>%
-		collect() %>%
-		unique() %>%
-		mutate(inheritance_filter = case_when(
-		  str_detect(inheritance, "X-linked") ~ "X-linked",
-		  str_detect(inheritance, "Autosomal dominant inheritance") ~ "Dominant",
-		  str_detect(inheritance, "Autosomal recessive inheritance") ~ "Recessive",
-		  TRUE ~ "Other"
-		)) %>%
-		mutate(category_filter = category) %>%
-		select(category, inheritance, symbol, hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38, category_filter, inheritance_filter) %>%
-		arrange(desc(category), inheritance)
-	
-	# compute output based on input parameters
-	if ( (category_input == "All") & (inheritance_input == "All") ) {
-		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
-			mutate(category_filter = "All") %>%
-			mutate(inheritance_filter = "All") %>%
-			unique() %>%
-			filter(category_filter == category_input, inheritance_filter == inheritance_input) %>%
-			arrange(symbol, inheritance) %>%
-			group_by(symbol) %>%
-			mutate(inheritance = str_c(unique(inheritance), collapse = "; ")) %>%
-			ungroup() %>%
-			unique() %>%
-			arrange(!!sym(output_sort)) %>%
-			select(all_of(output_columns_list))
-	} else if ( (category_input == "All") & (inheritance_input != "All") ) {
-		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
-			mutate(category_filter = "All") %>%
-			unique() %>%
-			filter(category_filter == category_input, inheritance_filter == inheritance_input) %>%
-			arrange(symbol, inheritance) %>%
-			group_by(symbol) %>%
-			mutate(inheritance = str_c(unique(inheritance), collapse = "; ")) %>%
-			ungroup() %>%
-			unique() %>%
-			arrange(!!sym(output_sort)) %>%
-			select(all_of(output_columns_list))
-	} else if ( (category_input != "All") & (inheritance_input == "All") ) {
-		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
-			mutate(inheritance_filter = "All") %>%
-			unique() %>%
-			filter(category_filter == category_input, inheritance_filter == inheritance_input) %>%
-			arrange(symbol, inheritance) %>%
-			group_by(symbol) %>%
-			mutate(inheritance = str_c(unique(inheritance), collapse = "; ")) %>%
-			ungroup() %>%
-			unique() %>%
-			arrange(!!sym(output_sort)) %>%
-			select(all_of(output_columns_list))
-	} else {
-		sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
-			unique() %>%
-			filter(category_filter == category_input, inheritance_filter == inheritance_input) %>%
-			arrange(!!sym(output_sort)) %>%
-			select(all_of(output_columns_list))
-	}
+  if ( !(category_input %in% ndd_entity_status_categories_list$category) ) {
+    res$status <- 400
+    res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
+    status = 400,
+    message = paste0("Required 'category_input' parameter not in categories list (allowed values=", paste0(ndd_entity_status_categories_list$category, collapse=","), ").")
+    ))
+    return(res)
+  }
+  
+  if ( !(inheritance_input %in% inheritance_input_allowed) ) {
+    res$status <- 400
+    res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
+    status = 400,
+    message = paste0("Required 'inheritance_input' parameter not in categories list (allowed values=", paste0(inheritance_input_allowed, collapse=","), ").")
+    ))
+    return(res)
+  }
+  
+  # join entity_view and non_alt_loci_set tables
+  sysndd_db_ndd_entity_view <- pool %>% 
+    tbl("ndd_entity_view") %>%
+    filter(ndd_phenotype == 1) %>%
+    select(hgnc_id, symbol, inheritance = hpo_mode_of_inheritance_term_name, category)
+  sysndd_db_non_alt_loci_set <- pool %>% 
+    tbl("non_alt_loci_set") %>%
+    select(hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38)
+  
+  sysndd_db_disease_genes <- sysndd_db_ndd_entity_view %>%
+    left_join(sysndd_db_non_alt_loci_set, by =c("hgnc_id")) %>%
+    collect() %>%
+    unique() %>%
+    mutate(inheritance_filter = case_when(
+      str_detect(inheritance, "X-linked") ~ "X-linked",
+      str_detect(inheritance, "Autosomal dominant inheritance") ~ "Dominant",
+      str_detect(inheritance, "Autosomal recessive inheritance") ~ "Recessive",
+      TRUE ~ "Other"
+    )) %>%
+    mutate(category_filter = category) %>%
+    select(category, inheritance, symbol, hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38, category_filter, inheritance_filter) %>%
+    arrange(desc(category), inheritance)
+  
+  # compute output based on input parameters
+  if ( (category_input == "All") & (inheritance_input == "All") ) {
+    sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
+      mutate(category_filter = "All") %>%
+      mutate(inheritance_filter = "All") %>%
+      unique() %>%
+      filter(category_filter == category_input, inheritance_filter == inheritance_input) %>%
+      arrange(symbol, inheritance) %>%
+      group_by(symbol) %>%
+      mutate(inheritance = str_c(unique(inheritance), collapse = "; ")) %>%
+      ungroup() %>%
+      unique() %>%
+      arrange(!!sym(output_sort)) %>%
+      select(all_of(output_columns_list))
+  } else if ( (category_input == "All") & (inheritance_input != "All") ) {
+    sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
+      mutate(category_filter = "All") %>%
+      unique() %>%
+      filter(category_filter == category_input, inheritance_filter == inheritance_input) %>%
+      arrange(symbol, inheritance) %>%
+      group_by(symbol) %>%
+      mutate(inheritance = str_c(unique(inheritance), collapse = "; ")) %>%
+      ungroup() %>%
+      unique() %>%
+      arrange(!!sym(output_sort)) %>%
+      select(all_of(output_columns_list))
+  } else if ( (category_input != "All") & (inheritance_input == "All") ) {
+    sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
+      mutate(inheritance_filter = "All") %>%
+      unique() %>%
+      filter(category_filter == category_input, inheritance_filter == inheritance_input) %>%
+      arrange(symbol, inheritance) %>%
+      group_by(symbol) %>%
+      mutate(inheritance = str_c(unique(inheritance), collapse = "; ")) %>%
+      ungroup() %>%
+      unique() %>%
+      arrange(!!sym(output_sort)) %>%
+      select(all_of(output_columns_list))
+  } else {
+    sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
+      unique() %>%
+      filter(category_filter == category_input, inheritance_filter == inheritance_input) %>%
+      arrange(!!sym(output_sort)) %>%
+      select(all_of(output_columns_list))
+  }
 
-	# generate request statistic for output
-	creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"), "%Y-%m-%dT %H:%M:%S")
-	
-	request_stats <- tibble(
-	  creation_date = creation_date, 
-	  category_input = category_input, 
-	  inheritance_input = inheritance_input,
-	  output_columns = output_columns,
-	  output_sort = output_sort,
-	) %>%
+  # generate request statistic for output
+  creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"), "%Y-%m-%dT %H:%M:%S")
+  
+  request_stats <- tibble(
+    creation_date = creation_date, 
+    category_input = category_input, 
+    inheritance_input = inheritance_input,
+    output_columns = output_columns,
+    output_sort = output_sort,
+  ) %>%
     pivot_longer(everything(), names_to = "request", values_to = "value")
 
-	# generate excel file output
-	filename <- file.path(tempdir(), "panel.xlsx")
-	write.xlsx(sysndd_db_disease_genes_panel, filename, sheetName="sysndd", append=FALSE)
-	write.xlsx(request_stats, filename, sheetName="request", append=TRUE)
-	attachmentString = paste0("attachment; filename=panel.", category_input, "_", inheritance_input, ".", creation_date, ".xlsx")
-		  
-	res$setHeader("Content-Disposition", attachmentString)
-		  
-	# Read in the raw contents of the binary file
-	bin <- readBin(filename, "raw", n=file.info(filename)$size)
+  # generate excel file output
+  filename <- file.path(tempdir(), "panel.xlsx")
+  write.xlsx(sysndd_db_disease_genes_panel, filename, sheetName="sysndd", append=FALSE)
+  write.xlsx(request_stats, filename, sheetName="request", append=TRUE)
+  attachmentString = paste0("attachment; filename=panel.", category_input, "_", inheritance_input, ".", creation_date, ".xlsx")
+      
+  res$setHeader("Content-Disposition", attachmentString)
+      
+  # Read in the raw contents of the binary file
+  bin <- readBin(filename, "raw", n=file.info(filename)$size)
 
-	#Check file existence and delete
-	if (file.exists(filename)) {
-	  file.remove(filename)
-	}
+  #Check file existence and delete
+  if (file.exists(filename)) {
+    file.remove(filename)
+  }
 
-	#Return the binary contents
-	bin
+  #Return the binary contents
+  bin
 }
 ## Panels endpoints
 ##-------------------------------------------------------------------##
@@ -2581,46 +2581,46 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 #* @serializer json list(na="string")
 #' @get /api/statistics/genes
 function() {
-	sysndd_db_disease_genes <- pool %>% 
-		tbl("ndd_entity_view") %>%
-		arrange(entity_id) %>%
-		filter(ndd_phenotype == 1) %>%
-		select(symbol, inheritance = hpo_mode_of_inheritance_term_name, category) %>%
-		collect()
-	
-	sysndd_db_disease_genes_grouped_by_category_and_inheritance <- sysndd_db_disease_genes %>%
-		unique() %>% 
-		mutate(inheritance = case_when(
-		  str_detect(inheritance, "X-linked") ~ "X-linked",
-		  str_detect(inheritance, "Autosomal dominant inheritance") ~ "Dominant",
-		  str_detect(inheritance, "Autosomal recessive inheritance") ~ "Recessive",
-		  TRUE ~ "Other"
-		)) %>% 
-		group_by(category, inheritance) %>%
-		tally() %>%
-		ungroup() %>%
-		arrange(desc(category), desc(n)) %>% 
-		mutate(category_group = category) %>%
-		group_by(category_group) %>% 
-		nest() %>% 
-		ungroup() %>%
-		select(category = category_group, groups = data)
+  sysndd_db_disease_genes <- pool %>% 
+    tbl("ndd_entity_view") %>%
+    arrange(entity_id) %>%
+    filter(ndd_phenotype == 1) %>%
+    select(symbol, inheritance = hpo_mode_of_inheritance_term_name, category) %>%
+    collect()
+  
+  sysndd_db_disease_genes_grouped_by_category_and_inheritance <- sysndd_db_disease_genes %>%
+    unique() %>% 
+    mutate(inheritance = case_when(
+      str_detect(inheritance, "X-linked") ~ "X-linked",
+      str_detect(inheritance, "Autosomal dominant inheritance") ~ "Dominant",
+      str_detect(inheritance, "Autosomal recessive inheritance") ~ "Recessive",
+      TRUE ~ "Other"
+    )) %>% 
+    group_by(category, inheritance) %>%
+    tally() %>%
+    ungroup() %>%
+    arrange(desc(category), desc(n)) %>% 
+    mutate(category_group = category) %>%
+    group_by(category_group) %>% 
+    nest() %>% 
+    ungroup() %>%
+    select(category = category_group, groups = data)
 
-	sysndd_db_disease_genes_grouped_by_category <- sysndd_db_disease_genes %>% 
-		select(-inheritance) %>%
-		unique() %>%
-		group_by(category) %>%
-		tally() %>%
-		ungroup() %>%
-		arrange(desc(category), desc(n)) %>%
-		group_by(category) %>%
-		mutate(inheritance = "All")
-		
-	sysndd_db_disease_genes_statistics <- sysndd_db_disease_genes_grouped_by_category %>%
-		left_join(sysndd_db_disease_genes_grouped_by_category_and_inheritance, by = c("category")) %>%
-		arrange(category)
+  sysndd_db_disease_genes_grouped_by_category <- sysndd_db_disease_genes %>% 
+    select(-inheritance) %>%
+    unique() %>%
+    group_by(category) %>%
+    tally() %>%
+    ungroup() %>%
+    arrange(desc(category), desc(n)) %>%
+    group_by(category) %>%
+    mutate(inheritance = "All")
+    
+  sysndd_db_disease_genes_statistics <- sysndd_db_disease_genes_grouped_by_category %>%
+    left_join(sysndd_db_disease_genes_grouped_by_category_and_inheritance, by = c("category")) %>%
+    arrange(category)
 
-	sysndd_db_disease_genes_statistics
+  sysndd_db_disease_genes_statistics
 }
 
 
@@ -2629,16 +2629,16 @@ function() {
 #* @serializer json list(na="string")
 #' @get /api/statistics/news
 function(n = 5) {
-	# get data from database and filter
-	sysndd_db_disease_genes_news <- pool %>% 
-		tbl("ndd_entity_view") %>%
-		arrange(entity_id) %>%
-		filter(ndd_phenotype == 1 & category == "Definitive") %>%
-		collect() %>%
-		arrange(desc(entry_date)) %>%
-		slice(1:n)
+  # get data from database and filter
+  sysndd_db_disease_genes_news <- pool %>% 
+    tbl("ndd_entity_view") %>%
+    arrange(entity_id) %>%
+    filter(ndd_phenotype == 1 & category == "Definitive") %>%
+    collect() %>%
+    arrange(desc(entry_date)) %>%
+    slice(1:n)
 
-	sysndd_db_disease_genes_news
+  sysndd_db_disease_genes_news
 }
 
 
@@ -2647,16 +2647,16 @@ function(n = 5) {
 #* @serializer json list(na="string")
 #' @get /api/statistics/last_update
 function() {
-	# get data from database and filter
-	sysndd_db_disease_entry_date_last <- pool %>% 
-		tbl("ndd_entity_view") %>%
-		select(entry_date) %>%
-		arrange(desc(entry_date)) %>%
-		head(1) %>%
-		collect() %>%
-		select(last_update = entry_date)
+  # get data from database and filter
+  sysndd_db_disease_entry_date_last <- pool %>% 
+    tbl("ndd_entity_view") %>%
+    select(entry_date) %>%
+    arrange(desc(entry_date)) %>%
+    head(1) %>%
+    collect() %>%
+    select(last_update = entry_date)
 
-	sysndd_db_disease_entry_date_last
+  sysndd_db_disease_entry_date_last
 }
 
 
@@ -2665,15 +2665,15 @@ function() {
 #* @serializer text
 #' @get /api/statistics/entities_plot
 function() {
-	# get data from database and filter
-	sysndd_db_disease_collected  <- pool %>% 
-		tbl("ndd_entity_view") %>%
-		arrange(entity_id) %>%
-		select(entity_id, ndd_phenotype, category, entry_date) %>%
-		collect() %>%
-		filter(ndd_phenotype == 1)
+  # get data from database and filter
+  sysndd_db_disease_collected  <- pool %>% 
+    tbl("ndd_entity_view") %>%
+    arrange(entity_id) %>%
+    select(entity_id, ndd_phenotype, category, entry_date) %>%
+    collect() %>%
+    filter(ndd_phenotype == 1)
 
-	make_entities_plot(sysndd_db_disease_collected)
+  make_entities_plot(sysndd_db_disease_collected)
 }
 
 
@@ -2683,61 +2683,61 @@ function() {
 #' @get /api/statistics/entities_over_time
 function(res, aggregate = "entity_id", group = "category") {
 
-	start_time <- Sys.time()
+  start_time <- Sys.time()
 
-	if ( !(aggregate %in% c("entity_id", "symbol")) | !(group %in% c("category", "inheritance_filter"))) {
-		res$status <- 400
-		res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
-		status = 400,
-		message = paste0("Required 'aggregate' or 'group' parameter not in categories list.")
-		))
-		return(res)
-	}
+  if ( !(aggregate %in% c("entity_id", "symbol")) | !(group %in% c("category", "inheritance_filter"))) {
+    res$status <- 400
+    res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
+    status = 400,
+    message = paste0("Required 'aggregate' or 'group' parameter not in categories list.")
+    ))
+    return(res)
+  }
 
-	# get data from database and filter
-	sysndd_db_disease_collected  <- pool %>% 
-		tbl("ndd_entity_view") %>%
-		arrange(!!rlang::sym(aggregate)) %>%
-		select(!!rlang::sym(aggregate), ndd_phenotype, !!rlang::sym(group), entry_date) %>%
-		collect() %>%
-		filter(ndd_phenotype == 1) %>%
-		# conditional pipe to remove duplicate genes with multiple entries and same inheritance 
-		{if(aggregate == "symbol") 
-			group_by(., symbol) %>%
-			mutate(., entry_date = min(entry_date)) %>%
-			ungroup(.) %>%
-			unique(.)
-		 else .} %>%
-		mutate(count = 1) %>%
-		arrange(entry_date) %>%
-		group_by(!!rlang::sym(group)) %>%
-		summarise_by_time(
-			.date_var = entry_date,
-			.by       = "month", # Setup for monthly aggregation
-			# Summarization
-			count  = sum(count)
-		) %>% 
-		mutate(cumulative_count = cumsum(count)) %>%
-		ungroup() %>%
-		mutate(entry_date = strftime(entry_date , "%Y-%m-%d"))
+  # get data from database and filter
+  sysndd_db_disease_collected  <- pool %>% 
+    tbl("ndd_entity_view") %>%
+    arrange(!!rlang::sym(aggregate)) %>%
+    select(!!rlang::sym(aggregate), ndd_phenotype, !!rlang::sym(group), entry_date) %>%
+    collect() %>%
+    filter(ndd_phenotype == 1) %>%
+    # conditional pipe to remove duplicate genes with multiple entries and same inheritance 
+    {if(aggregate == "symbol") 
+      group_by(., symbol) %>%
+      mutate(., entry_date = min(entry_date)) %>%
+      ungroup(.) %>%
+      unique(.)
+     else .} %>%
+    mutate(count = 1) %>%
+    arrange(entry_date) %>%
+    group_by(!!rlang::sym(group)) %>%
+    summarise_by_time(
+      .date_var = entry_date,
+      .by       = "month", # Setup for monthly aggregation
+      # Summarization
+      count  = sum(count)
+    ) %>% 
+    mutate(cumulative_count = cumsum(count)) %>%
+    ungroup() %>%
+    mutate(entry_date = strftime(entry_date , "%Y-%m-%d"))
 
-	# generate object to return
+  # generate object to return
     sysndd_db_disease_nested <- sysndd_db_disease_collected %>%
         nest_by(!!rlang::sym(group), .key = "values") %>%
-		ungroup() %>%
-		select("group" = !!rlang::sym(group), values)
+    ungroup() %>%
+    select("group" = !!rlang::sym(group), values)
 
-	# compute execution time
-	end_time <- Sys.time()
-	execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
+  # compute execution time
+  end_time <- Sys.time()
+  execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
 
-	# add columns to the meta information from generate_cursor_pagination_info function return
-	meta <- as_tibble(list("aggregate" = aggregate, "group" = group, "max_count" = max(sysndd_db_disease_collected$count), "max_cumulative_count" = max(sysndd_db_disease_collected$cumulative_count), "executionTime" = execution_time))
+  # add columns to the meta information from generate_cursor_pagination_info function return
+  meta <- as_tibble(list("aggregate" = aggregate, "group" = group, "max_count" = max(sysndd_db_disease_collected$count), "max_cumulative_count" = max(sysndd_db_disease_collected$cumulative_count), "executionTime" = execution_time))
 
-	# generate object to return
-	sysndd_db_disease_nested
-	# generate object to return
-	list(meta = meta, data = sysndd_db_disease_nested)
+  # generate object to return
+  sysndd_db_disease_nested
+  # generate object to return
+  list(meta = meta, data = sysndd_db_disease_nested)
 }
 
 ## Statistics endpoints
@@ -2753,47 +2753,47 @@ function(res, aggregate = "entity_id", group = "category") {
 #* @serializer json list(na="string")
 #' @get /api/comparisons/options
 function() {
-	# connect to database and get comparisons view
-	ndd_database_comparison_view <- pool %>% 
-		tbl("ndd_database_comparison_view") %>%
-		collect() 
-		
-	list <- ndd_database_comparison_view %>%
-		select(list) %>%
-		group_by(list) %>%
-		# count number of entries for sorting
-		mutate(count = n()) %>%
-		unique() %>%
-		# check if value equals SysNDD
-		mutate(self = (list == "SysNDD")) %>%
-		# sort so self is top, then the databases with most entries descending
-		arrange(desc(self), desc(count)) %>%
-		select(list)
-	
-	inheritance <- ndd_database_comparison_view %>%
-		select(inheritance) %>%
-		unique() %>%
-		arrange(inheritance)
+  # connect to database and get comparisons view
+  ndd_database_comparison_view <- pool %>% 
+    tbl("ndd_database_comparison_view") %>%
+    collect() 
+    
+  list <- ndd_database_comparison_view %>%
+    select(list) %>%
+    group_by(list) %>%
+    # count number of entries for sorting
+    mutate(count = n()) %>%
+    unique() %>%
+    # check if value equals SysNDD
+    mutate(self = (list == "SysNDD")) %>%
+    # sort so self is top, then the databases with most entries descending
+    arrange(desc(self), desc(count)) %>%
+    select(list)
+  
+  inheritance <- ndd_database_comparison_view %>%
+    select(inheritance) %>%
+    unique() %>%
+    arrange(inheritance)
 
-	category <- ndd_database_comparison_view %>%
-		select(category) %>%
-		unique() %>%
-		arrange(category)
+  category <- ndd_database_comparison_view %>%
+    select(category) %>%
+    unique() %>%
+    arrange(category)
 
-	pathogenicity_mode <- ndd_database_comparison_view %>%
-		select(pathogenicity_mode) %>%
-		unique() %>%
-		arrange(pathogenicity_mode)
+  pathogenicity_mode <- ndd_database_comparison_view %>%
+    select(pathogenicity_mode) %>%
+    unique() %>%
+    arrange(pathogenicity_mode)
 
-	data <- list(
-		list = list,
-		inheritance = inheritance,
-		category = category,
-		pathogenicity_mode = pathogenicity_mode
-	)
-	
-	# generate object to return
-	data
+  data <- list(
+    list = list,
+    inheritance = inheritance,
+    category = category,
+    pathogenicity_mode = pathogenicity_mode
+  )
+  
+  # generate object to return
+  data
 }
 
 
@@ -2802,35 +2802,35 @@ function() {
 #* @serializer json list(na="string")
 #' @get /api/comparisons/upset
 function(res, fields = "") {
-	# get data from database and filter
-	ndd_database_comparison_gene_list  <- pool %>% 
-		tbl("ndd_database_comparison_view") %>%
-		collect()
+  # get data from database and filter
+  ndd_database_comparison_gene_list  <- pool %>% 
+    tbl("ndd_database_comparison_view") %>%
+    collect()
 
-	# split the fields input by comma
-	if ( fields != "" ){
-		fields <- str_split(str_replace_all(fields, fixed(" "), ""), ",")[[1]]
-	} else {
-		fields <- (ndd_database_comparison_gene_list %>%
-			select(list) %>%
-			unique() %>%
-			as.list())$list
-	}
+  # split the fields input by comma
+  if ( fields != "" ){
+    fields <- str_split(str_replace_all(fields, fixed(" "), ""), ",")[[1]]
+  } else {
+    fields <- (ndd_database_comparison_gene_list %>%
+      select(list) %>%
+      unique() %>%
+      as.list())$list
+  }
 
-	# get data from database and filter
-	comparison_upset_data  <- ndd_database_comparison_gene_list %>%
-		select(name = hgnc_id, sets = list) %>%
-		unique() %>%
-		filter(sets %in% fields) %>%
-		group_by(name) %>%
-		arrange(name) %>%
-		mutate(sets = str_c(sets, collapse = ",")) %>%
-		unique() %>%
-		ungroup() %>%
-		mutate(sets = strsplit(sets,","))
-	
-	# generate object to return
-	comparison_upset_data
+  # get data from database and filter
+  comparison_upset_data  <- ndd_database_comparison_gene_list %>%
+    select(name = hgnc_id, sets = list) %>%
+    unique() %>%
+    filter(sets %in% fields) %>%
+    group_by(name) %>%
+    arrange(name) %>%
+    mutate(sets = str_c(sets, collapse = ",")) %>%
+    unique() %>%
+    ungroup() %>%
+    mutate(sets = strsplit(sets,","))
+  
+  # generate object to return
+  comparison_upset_data
 }
 
 
@@ -2840,28 +2840,28 @@ function(res, fields = "") {
 #' @get /api/comparisons/similarity
 function() {
 
-	# get data from database, filter and restructure
-	ndd_database_comparison_matrix  <- pool %>% 
-		tbl("ndd_database_comparison_view") %>%
-		collect() %>%
-		select(hgnc_id, list) %>%
-		unique() %>%
-		mutate(in_list = list) %>%
-		pivot_wider(names_from = list, values_from = in_list) %>%
-		select(-hgnc_id) %>%
-		mutate_all(~ case_when(
-			  is.na(.) ~ 0,
-			  !is.na(.) ~ 1,
-			)
-		)
+  # get data from database, filter and restructure
+  ndd_database_comparison_matrix  <- pool %>% 
+    tbl("ndd_database_comparison_view") %>%
+    collect() %>%
+    select(hgnc_id, list) %>%
+    unique() %>%
+    mutate(in_list = list) %>%
+    pivot_wider(names_from = list, values_from = in_list) %>%
+    select(-hgnc_id) %>%
+    mutate_all(~ case_when(
+        is.na(.) ~ 0,
+        !is.na(.) ~ 1,
+      )
+    )
 
-	# compute similarity matrix
-	ndd_database_comparison_similarity <- cosine(ndd_database_comparison_matrix)
-	ndd_database_comparison_similarity_melted <- melt(ndd_database_comparison_similarity) %>%
-		select(x = Var1, y = Var2, value)
+  # compute similarity matrix
+  ndd_database_comparison_similarity <- cosine(ndd_database_comparison_matrix)
+  ndd_database_comparison_similarity_melted <- melt(ndd_database_comparison_similarity) %>%
+    select(x = Var1, y = Var2, value)
 
-	# generate object to return
-	ndd_database_comparison_similarity_melted
+  # generate object to return
+  ndd_database_comparison_similarity_melted
 
 }
 
@@ -2872,60 +2872,60 @@ function() {
 #' @get /api/comparisons/table
 function(res, sort = "symbol", filter = "", fields = "", `page[after]` = "0", `page[size]` = "10") {
 
-	start_time <- Sys.time()
+  start_time <- Sys.time()
 
-	# generate sort expression based on sort input
-	sort_exprs <- generate_sort_expressions(sort, unique_id = "symbol")
+  # generate sort expression based on sort input
+  sort_exprs <- generate_sort_expressions(sort, unique_id = "symbol")
 
-	# generate filter expression based on filter input
-	filter_exprs <- generate_filter_expressions(filter)
+  # generate filter expression based on filter input
+  filter_exprs <- generate_filter_expressions(filter)
 
-	# get data from database, filter and restructure
-	ndd_database_comparison_view <- pool %>% 
-		tbl("ndd_database_comparison_view")
-	
-	sysndd_db_non_alt_loci_set <- pool %>% 
-		tbl("non_alt_loci_set") %>%
-		select(hgnc_id, symbol)
-	
-	ndd_database_comparison_table  <- ndd_database_comparison_view %>% 
-		left_join(sysndd_db_non_alt_loci_set, by =c("hgnc_id")) %>%
-		collect() %>%
-		select(symbol, hgnc_id, list) %>%
-		unique() %>%
-		mutate(in_list = "yes") %>%
-		pivot_wider(names_from = list, values_from = in_list, values_fill="no")
+  # get data from database, filter and restructure
+  ndd_database_comparison_view <- pool %>% 
+    tbl("ndd_database_comparison_view")
+  
+  sysndd_db_non_alt_loci_set <- pool %>% 
+    tbl("non_alt_loci_set") %>%
+    select(hgnc_id, symbol)
+  
+  ndd_database_comparison_table  <- ndd_database_comparison_view %>% 
+    left_join(sysndd_db_non_alt_loci_set, by =c("hgnc_id")) %>%
+    collect() %>%
+    select(symbol, hgnc_id, list) %>%
+    unique() %>%
+    mutate(in_list = "yes") %>%
+    pivot_wider(names_from = list, values_from = in_list, values_fill="no")
 
-	# arrange and apply filters according to input
-	ndd_database_comparison_table <- ndd_database_comparison_table %>%
-		arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
-		filter(!!!rlang::parse_exprs(filter_exprs))
+  # arrange and apply filters according to input
+  ndd_database_comparison_table <- ndd_database_comparison_table %>%
+    arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
+    filter(!!!rlang::parse_exprs(filter_exprs))
 
-	# select fields from table based on input using the helper function "select_tibble_fields"
-	ndd_database_comparison_table <- select_tibble_fields(ndd_database_comparison_table, fields, "symbol")
+  # select fields from table based on input using the helper function "select_tibble_fields"
+  ndd_database_comparison_table <- select_tibble_fields(ndd_database_comparison_table, fields, "symbol")
 
-	# use the helper generate_cursor_pagination_info to generate cursor pagination information from a tibble
-	ndd_database_comparison_table_info <- generate_cursor_pagination_info(ndd_database_comparison_table, `page[size]`, `page[after]`, "symbol")
+  # use the helper generate_cursor_pagination_info to generate cursor pagination information from a tibble
+  ndd_database_comparison_table_info <- generate_cursor_pagination_info(ndd_database_comparison_table, `page[size]`, `page[after]`, "symbol")
 
-	# compute execution time
-	end_time <- Sys.time()
-	execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
+  # compute execution time
+  end_time <- Sys.time()
+  execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
 
-	# add columns to the meta information from generate_cursor_pagination_info function return
-	meta <- ndd_database_comparison_table_info$meta %>%
-		add_column(as_tibble(list("sort" = sort, "filter" = filter, "fields" = fields, "executionTime" = execution_time)))
+  # add columns to the meta information from generate_cursor_pagination_info function return
+  meta <- ndd_database_comparison_table_info$meta %>%
+    add_column(as_tibble(list("sort" = sort, "filter" = filter, "fields" = fields, "executionTime" = execution_time)))
 
-	# add host, port and other information to links from the link information from generate_cursor_pagination_info function return
-	links <- ndd_database_comparison_table_info$links %>%
-  		pivot_longer(everything(), names_to = "type", values_to = "link") %>%
-		mutate(link = case_when(
-			link != "null" ~ paste0("http://", dw$host, ":", dw$port_self, "/api/comparisons/table?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), ifelse(fields != "", paste0("&fields=", fields), ""),  link),
-			link == "null" ~ "null"
-		)) %>%
-  		pivot_wider(everything(), names_from = "type", values_from = "link")
+  # add host, port and other information to links from the link information from generate_cursor_pagination_info function return
+  links <- ndd_database_comparison_table_info$links %>%
+      pivot_longer(everything(), names_to = "type", values_to = "link") %>%
+    mutate(link = case_when(
+      link != "null" ~ paste0("http://", dw$host, ":", dw$port_self, "/api/comparisons/table?sort=", sort, ifelse(filter != "", paste0("&filter=", filter), ""), ifelse(fields != "", paste0("&fields=", fields), ""),  link),
+      link == "null" ~ "null"
+    )) %>%
+      pivot_wider(everything(), names_from = "type", values_from = "link")
 
-	# generate object to return
-	list(links = links, meta = meta, data = ndd_database_comparison_table_info$data)
+  # generate object to return
+  list(links = links, meta = meta, data = ndd_database_comparison_table_info$data)
 
 }
 ##-------------------------------------------------------------------##
@@ -2940,64 +2940,64 @@ function(res, sort = "symbol", filter = "", fields = "", `page[after]` = "0", `p
 #* @serializer json list(na="string")
 #' @get /api/search/<searchterm>
 function(searchterm, helper = TRUE) {
-	searchterm <- URLdecode(searchterm) %>%
-		str_squish()
+  searchterm <- URLdecode(searchterm) %>%
+    str_squish()
 
-	sysndd_db_entity_search <- pool %>% 
-		tbl("ndd_entity_view") %>%
-		arrange(entity_id) %>%
-		collect() %>%
-		select(entity_id, hgnc_id, symbol, disease_ontology_id_version, disease_ontology_name) %>%
-		mutate(entity = as.character(entity_id)) %>%
-		pivot_longer(!entity_id, names_to = "search", values_to = "results") %>%
-		mutate(search = str_replace(search, "entity", "entity_id")) %>%
-		mutate(searchdist = stringdist(str_to_lower(results), str_to_lower(searchterm), method='jw', p=0.1)) %>%
-		arrange(searchdist, results) %>%
-		mutate(link = case_when(
-			search == "hgnc_id" ~ paste0("/Genes/", results),
-			search == "symbol" ~ paste0("/Genes/", results),
-			search == "disease_ontology_id_version" ~ paste0("/Ontology/", results),
-			search == "disease_ontology_name" ~ paste0("/Ontology/", results),
-			search == "entity_id" ~ paste0("/Entities/", results)
-		))
+  sysndd_db_entity_search <- pool %>% 
+    tbl("ndd_entity_view") %>%
+    arrange(entity_id) %>%
+    collect() %>%
+    select(entity_id, hgnc_id, symbol, disease_ontology_id_version, disease_ontology_name) %>%
+    mutate(entity = as.character(entity_id)) %>%
+    pivot_longer(!entity_id, names_to = "search", values_to = "results") %>%
+    mutate(search = str_replace(search, "entity", "entity_id")) %>%
+    mutate(searchdist = stringdist(str_to_lower(results), str_to_lower(searchterm), method='jw', p=0.1)) %>%
+    arrange(searchdist, results) %>%
+    mutate(link = case_when(
+      search == "hgnc_id" ~ paste0("/Genes/", results),
+      search == "symbol" ~ paste0("/Genes/", results),
+      search == "disease_ontology_id_version" ~ paste0("/Ontology/", results),
+      search == "disease_ontology_name" ~ paste0("/Ontology/", results),
+      search == "entity_id" ~ paste0("/Entities/", results)
+    ))
 
-	# change output by helper input to unique values (helper = TRUE) or entities (helper = FALSE)
-	if (helper) {
-		sysndd_db_entity_search_helper <- sysndd_db_entity_search %>% 
-			select(-entity_id, -link) %>%
-			unique()
-	} else {
-		sysndd_db_entity_search_helper <- sysndd_db_entity_search
-	}
+  # change output by helper input to unique values (helper = TRUE) or entities (helper = FALSE)
+  if (helper) {
+    sysndd_db_entity_search_helper <- sysndd_db_entity_search %>% 
+      select(-entity_id, -link) %>%
+      unique()
+  } else {
+    sysndd_db_entity_search_helper <- sysndd_db_entity_search
+  }
 
-	# compute filtered length with match < 0.1
-	sysndd_db_entity_search_length <- sysndd_db_entity_search_helper %>%
-		filter(searchdist < 0.1) %>%
-		tally()
-	
-	if (sysndd_db_entity_search_length$n > 10) {
-		return_count <- sysndd_db_entity_search_length$n
-	} else {
-		return_count <- 10
-	}
-	
-	# check if perfect match exists
-	if (sysndd_db_entity_search$searchdist[1] == 0 & is.na(suppressWarnings(as.integer(sysndd_db_entity_search$results[1])))) {
-		sysndd_db_entity_search_return <- sysndd_db_entity_search_helper %>%
-			slice_head(n=1)
-	} else {
-		sysndd_db_entity_search_return <- sysndd_db_entity_search_helper %>% 
-			slice_head(n=return_count)
-	}
+  # compute filtered length with match < 0.1
+  sysndd_db_entity_search_length <- sysndd_db_entity_search_helper %>%
+    filter(searchdist < 0.1) %>%
+    tally()
+  
+  if (sysndd_db_entity_search_length$n > 10) {
+    return_count <- sysndd_db_entity_search_length$n
+  } else {
+    return_count <- 10
+  }
+  
+  # check if perfect match exists
+  if (sysndd_db_entity_search$searchdist[1] == 0 & is.na(suppressWarnings(as.integer(sysndd_db_entity_search$results[1])))) {
+    sysndd_db_entity_search_return <- sysndd_db_entity_search_helper %>%
+      slice_head(n=1)
+  } else {
+    sysndd_db_entity_search_return <- sysndd_db_entity_search_helper %>% 
+      slice_head(n=return_count)
+  }
 
-	# change output by helper input to unique values (helper = TRUE) or entities (helper = FALSE)
-	if (helper) {
-		(sysndd_db_entity_search_return %>% 
-				select(results) %>% 
-				as.list())$results
-	} else {
-		sysndd_db_entity_search_return
-	}
+  # change output by helper input to unique values (helper = TRUE) or entities (helper = FALSE)
+  if (helper) {
+    (sysndd_db_entity_search_return %>% 
+        select(results) %>% 
+        as.list())$results
+  } else {
+    sysndd_db_entity_search_return
+  }
 }
 
 
@@ -3006,43 +3006,43 @@ function(searchterm, helper = TRUE) {
 #* @serializer json list(na="string")
 #' @get /api/search/ontology/<searchterm>
 function(searchterm, tree = FALSE) {
-	searchterm <- URLdecode(searchterm) %>%
-		str_squish()
+  searchterm <- URLdecode(searchterm) %>%
+    str_squish()
 
-	sysndd_db_disease_ontology_set_search <- pool %>% 
-		tbl("search_disease_ontology_set") %>%
-		filter(result %like% paste0("%", searchterm, "%")) %>%
-		collect() %>%
-		mutate(searchdist = stringdist(str_to_lower(result), str_to_lower(searchterm), method='jw', p=0.1)) %>%
-		arrange(searchdist, result)
+  sysndd_db_disease_ontology_set_search <- pool %>% 
+    tbl("search_disease_ontology_set") %>%
+    filter(result %like% paste0("%", searchterm, "%")) %>%
+    collect() %>%
+    mutate(searchdist = stringdist(str_to_lower(result), str_to_lower(searchterm), method='jw', p=0.1)) %>%
+    arrange(searchdist, result)
 
-	# compute filtered length with match < 0.1
-	sysndd_db_disease_ontology_set_search_length <- sysndd_db_disease_ontology_set_search %>%
-		filter(searchdist < 0.1) %>%
-		tally()
-	
-	if (sysndd_db_disease_ontology_set_search_length$n > 10) {
-		return_count <- sysndd_db_disease_ontology_set_search_length$n
-	} else {
-		return_count <- 10
-	}
-	
-	sysndd_db_disease_ontology_set_search_return <- sysndd_db_disease_ontology_set_search %>% 
-		slice_head(n=return_count)
+  # compute filtered length with match < 0.1
+  sysndd_db_disease_ontology_set_search_length <- sysndd_db_disease_ontology_set_search %>%
+    filter(searchdist < 0.1) %>%
+    tally()
+  
+  if (sysndd_db_disease_ontology_set_search_length$n > 10) {
+    return_count <- sysndd_db_disease_ontology_set_search_length$n
+  } else {
+    return_count <- 10
+  }
+  
+  sysndd_db_disease_ontology_set_search_return <- sysndd_db_disease_ontology_set_search %>% 
+    slice_head(n=return_count)
 
-	# the "tree" option allows output data to be formated as arrays for the treeselect library
-	if (tree) {
-		sysndd_db_disease_ontology_set_search_return_helper <- sysndd_db_disease_ontology_set_search_return %>%
-			select(id = disease_ontology_id_version, label = result, search, searchdist)
-	} else {
-		sysndd_db_disease_ontology_set_search_return_helper <- sysndd_db_disease_ontology_set_search_return %>%
-			nest_by(result, .key = "values") %>%
-			ungroup() %>%
-			pivot_wider(everything(), names_from = "result", values_from = "values")
-	}
+  # the "tree" option allows output data to be formated as arrays for the treeselect library
+  if (tree) {
+    sysndd_db_disease_ontology_set_search_return_helper <- sysndd_db_disease_ontology_set_search_return %>%
+      select(id = disease_ontology_id_version, label = result, search, searchdist)
+  } else {
+    sysndd_db_disease_ontology_set_search_return_helper <- sysndd_db_disease_ontology_set_search_return %>%
+      nest_by(result, .key = "values") %>%
+      ungroup() %>%
+      pivot_wider(everything(), names_from = "result", values_from = "values")
+  }
 
-	# return output
-	sysndd_db_disease_ontology_set_search_return_helper
+  # return output
+  sysndd_db_disease_ontology_set_search_return_helper
 }
 
 
@@ -3051,43 +3051,43 @@ function(searchterm, tree = FALSE) {
 #* @serializer json list(na="string")
 #' @get /api/search/gene/<searchterm>
 function(searchterm, tree = FALSE) {
-	searchterm <- URLdecode(searchterm) %>%
-		str_squish()
+  searchterm <- URLdecode(searchterm) %>%
+    str_squish()
 
-	non_alt_loci_set_search <- pool %>% 
-		tbl("search_non_alt_loci_view") %>% 
-		filter(result %like% paste0("%", searchterm, "%")) %>%
-		collect() %>%
-		mutate(searchdist = stringdist(str_to_lower(result), str_to_lower(searchterm), method='jw', p=0.1)) %>%
-		arrange(searchdist, result)
+  non_alt_loci_set_search <- pool %>% 
+    tbl("search_non_alt_loci_view") %>% 
+    filter(result %like% paste0("%", searchterm, "%")) %>%
+    collect() %>%
+    mutate(searchdist = stringdist(str_to_lower(result), str_to_lower(searchterm), method='jw', p=0.1)) %>%
+    arrange(searchdist, result)
 
-	# compute filtered length with match < 0.1
-	non_alt_loci_set_search_length <- non_alt_loci_set_search %>%
-		filter(searchdist < 0.1) %>%
-		tally()
-	
-	if (non_alt_loci_set_search_length$n > 10) {
-		return_count <- non_alt_loci_set_search_length$n
-	} else {
-		return_count <- 10
-	}
-	
-	non_alt_loci_set_search_return <- non_alt_loci_set_search %>% 
-		slice_head(n=return_count)
+  # compute filtered length with match < 0.1
+  non_alt_loci_set_search_length <- non_alt_loci_set_search %>%
+    filter(searchdist < 0.1) %>%
+    tally()
+  
+  if (non_alt_loci_set_search_length$n > 10) {
+    return_count <- non_alt_loci_set_search_length$n
+  } else {
+    return_count <- 10
+  }
+  
+  non_alt_loci_set_search_return <- non_alt_loci_set_search %>% 
+    slice_head(n=return_count)
 
-	# the "tree" option allows output data to be formated as arrays for the treeselect library
-	if (tree) {
-		non_alt_loci_set_search_return_helper <- non_alt_loci_set_search_return %>% 
-			select(id = hgnc_id, label = result, search, searchdist)
-	} else {
-		non_alt_loci_set_search_return_helper <- non_alt_loci_set_search_return %>%
-			nest_by(result, .key = "values") %>%
-			ungroup() %>%
-			pivot_wider(everything(), names_from = "result", values_from = "values")
-	}
+  # the "tree" option allows output data to be formated as arrays for the treeselect library
+  if (tree) {
+    non_alt_loci_set_search_return_helper <- non_alt_loci_set_search_return %>% 
+      select(id = hgnc_id, label = result, search, searchdist)
+  } else {
+    non_alt_loci_set_search_return_helper <- non_alt_loci_set_search_return %>%
+      nest_by(result, .key = "values") %>%
+      ungroup() %>%
+      pivot_wider(everything(), names_from = "result", values_from = "values")
+  }
 
-	# return output
-	non_alt_loci_set_search_return_helper
+  # return output
+  non_alt_loci_set_search_return_helper
 }
 
 
@@ -3096,43 +3096,43 @@ function(searchterm, tree = FALSE) {
 #* @serializer json list(na="string")
 #' @get /api/search/inheritance/<searchterm>
 function(searchterm, tree = FALSE) {
-	searchterm <- URLdecode(searchterm) %>%
-		str_squish()
+  searchterm <- URLdecode(searchterm) %>%
+    str_squish()
 
-	mode_of_inheritance_list_search <- pool %>% 
-		tbl("search_mode_of_inheritance_list_view") %>% 
-		filter(result %like% paste0("%", searchterm, "%")) %>%
-		collect() %>%
-		mutate(searchdist = stringdist(str_to_lower(result), str_to_lower(searchterm), method='jw', p=0.1)) %>%
-		arrange(searchdist, result)
+  mode_of_inheritance_list_search <- pool %>% 
+    tbl("search_mode_of_inheritance_list_view") %>% 
+    filter(result %like% paste0("%", searchterm, "%")) %>%
+    collect() %>%
+    mutate(searchdist = stringdist(str_to_lower(result), str_to_lower(searchterm), method='jw', p=0.1)) %>%
+    arrange(searchdist, result)
 
-	# compute filtered length with match < 0.1
-	mode_of_inheritance_list_search_length <- mode_of_inheritance_list_search %>%
-		filter(searchdist < 0.1) %>%
-		tally()
-	
-	if (mode_of_inheritance_list_search_length$n > 10) {
-		return_count <- mode_of_inheritance_list_search_length$n
-	} else {
-		return_count <- 10
-	}
-	
-	mode_of_inheritance_list_search_return <- mode_of_inheritance_list_search %>% 
-		slice_head(n=return_count)
+  # compute filtered length with match < 0.1
+  mode_of_inheritance_list_search_length <- mode_of_inheritance_list_search %>%
+    filter(searchdist < 0.1) %>%
+    tally()
+  
+  if (mode_of_inheritance_list_search_length$n > 10) {
+    return_count <- mode_of_inheritance_list_search_length$n
+  } else {
+    return_count <- 10
+  }
+  
+  mode_of_inheritance_list_search_return <- mode_of_inheritance_list_search %>% 
+    slice_head(n=return_count)
 
-	# the "tree" option allows output data to be formated as arrays for the treeselect library
-	if (tree) {
-		mode_of_inheritance_list_search_return_helper <- mode_of_inheritance_list_search_return %>% 
-			select(id = hpo_mode_of_inheritance_term, label = result, search, searchdist)
-	} else {
-		mode_of_inheritance_list_search_return_helper <- mode_of_inheritance_list_search_return %>%
-			nest_by(result, .key = "values") %>%
-			ungroup() %>%
-			pivot_wider(everything(), names_from = "result", values_from = "values")
-	}
+  # the "tree" option allows output data to be formated as arrays for the treeselect library
+  if (tree) {
+    mode_of_inheritance_list_search_return_helper <- mode_of_inheritance_list_search_return %>% 
+      select(id = hpo_mode_of_inheritance_term, label = result, search, searchdist)
+  } else {
+    mode_of_inheritance_list_search_return_helper <- mode_of_inheritance_list_search_return %>%
+      nest_by(result, .key = "values") %>%
+      ungroup() %>%
+      pivot_wider(everything(), names_from = "result", values_from = "values")
+  }
 
-	# return output
-	mode_of_inheritance_list_search_return_helper
+  # return output
+  mode_of_inheritance_list_search_return_helper
 }
 
 ## Search endpoints
@@ -3148,16 +3148,16 @@ function(searchterm, tree = FALSE) {
 #* @serializer json list(na="string")
 #' @get /api/list/status
 function() {
-	status_list_collected <- pool %>% 
-		tbl("ndd_entity_status_categories_list") %>%
-		arrange(category_id) %>%
-		collect() %>%
-		nest_by(category, .key = "values") %>%
-		ungroup() %>%
-		pivot_wider(everything(), names_from = "category", values_from = "values")
+  status_list_collected <- pool %>% 
+    tbl("ndd_entity_status_categories_list") %>%
+    arrange(category_id) %>%
+    collect() %>%
+    nest_by(category, .key = "values") %>%
+    ungroup() %>%
+    pivot_wider(everything(), names_from = "category", values_from = "values")
 
-	# return output
-	status_list_collected
+  # return output
+  status_list_collected
 }
 
 
@@ -3167,40 +3167,40 @@ function() {
 #' @get /api/list/phenotype
 function(tree = FALSE) {
 
-	# the "tree" option allows output data to be formated as arrays for the treeselect library
-	# change output by tree input to simple table (tree = FALSE) or treeselect compatible output with modifiers (tree = TRUE)
-	if (tree) {
-		modifier_list_collected <- pool %>% 
-			tbl("modifier_list") %>%
-			select(modifier_id, modifier_name) %>%
-			arrange(modifier_id) %>%
-			collect()
+  # the "tree" option allows output data to be formated as arrays for the treeselect library
+  # change output by tree input to simple table (tree = FALSE) or treeselect compatible output with modifiers (tree = TRUE)
+  if (tree) {
+    modifier_list_collected <- pool %>% 
+      tbl("modifier_list") %>%
+      select(modifier_id, modifier_name) %>%
+      arrange(modifier_id) %>%
+      collect()
 
-		phenotype_list_collected <- pool %>% 
-			tbl("phenotype_list") %>%
-			select(phenotype_id, HPO_term, HPO_term_definition, HPO_term_synonyms) %>%
-			arrange(HPO_term) %>%
-			collect() %>%
-			mutate(children = list(modifier_list_collected)) %>% 
-			unnest(children) %>% 
-			filter(modifier_id != 1) %>%
-			mutate(id = paste0(modifier_id, "-", phenotype_id)) %>% 
-			mutate(label = paste0(modifier_name, ": ", HPO_term)) %>%
-			select(-modifier_id, -modifier_name) %>%
-			nest(data = c(id, label)) %>%
-			mutate(phenotype_id = paste0("1-", phenotype_id)) %>%
-			mutate(HPO_term = paste0("present: ", HPO_term)) %>%
-			select(id = phenotype_id, label = HPO_term, children = data)
-	} else {
-		phenotype_list_collected <- pool %>% 
-			tbl("phenotype_list") %>%
-			select(phenotype_id, HPO_term, HPO_term_definition, HPO_term_synonyms) %>%
-			arrange(HPO_term) %>%
-			collect()
-	}
+    phenotype_list_collected <- pool %>% 
+      tbl("phenotype_list") %>%
+      select(phenotype_id, HPO_term, HPO_term_definition, HPO_term_synonyms) %>%
+      arrange(HPO_term) %>%
+      collect() %>%
+      mutate(children = list(modifier_list_collected)) %>% 
+      unnest(children) %>% 
+      filter(modifier_id != 1) %>%
+      mutate(id = paste0(modifier_id, "-", phenotype_id)) %>% 
+      mutate(label = paste0(modifier_name, ": ", HPO_term)) %>%
+      select(-modifier_id, -modifier_name) %>%
+      nest(data = c(id, label)) %>%
+      mutate(phenotype_id = paste0("1-", phenotype_id)) %>%
+      mutate(HPO_term = paste0("present: ", HPO_term)) %>%
+      select(id = phenotype_id, label = HPO_term, children = data)
+  } else {
+    phenotype_list_collected <- pool %>% 
+      tbl("phenotype_list") %>%
+      select(phenotype_id, HPO_term, HPO_term_definition, HPO_term_synonyms) %>%
+      arrange(HPO_term) %>%
+      collect()
+  }
 
-	# return output
-	phenotype_list_collected
+  # return output
+  phenotype_list_collected
 }
 
 
@@ -3209,14 +3209,14 @@ function(tree = FALSE) {
 #* @serializer json list(na="string")
 #' @get /api/list/variation_ontology
 function() {
-	variation_ontology_list_collected <- pool %>% 
-		tbl("variation_ontology_list") %>%
-		select(vario_id, name, definition) %>%
-		arrange(vario_id) %>%
-		collect()
+  variation_ontology_list_collected <- pool %>% 
+    tbl("variation_ontology_list") %>%
+    select(vario_id, name, definition) %>%
+    arrange(vario_id) %>%
+    collect()
 
-	# return output
-	variation_ontology_list_collected
+  # return output
+  variation_ontology_list_collected
 }
 
 ## List endpoints
@@ -3232,40 +3232,40 @@ function() {
 #* @serializer json list(na="string")
 #' @get /api/user/table
 function(req, res) {
-		
-	user <- req$user_id
-	
-	# first check rights
-	if ( length(user) == 0 ) {
-	
-		res$status <- 401 # Unauthorized
-		return(list(error="Please authenticate."))
+    
+  user <- req$user_id
+  
+  # first check rights
+  if ( length(user) == 0 ) {
+  
+    res$status <- 401 # Unauthorized
+    return(list(error="Please authenticate."))
 
-	} else if ( req$user_role %in% c("Administrator") ) {
-			
-		user_table <- pool %>% 
-			tbl("user") %>%
-			select(user_id, user_name, email, orcid, first_name, family_name, comment, terms_agreed, created_at, user_role, approved) %>%
-			collect()
+  } else if ( req$user_role %in% c("Administrator") ) {
+      
+    user_table <- pool %>% 
+      tbl("user") %>%
+      select(user_id, user_name, email, orcid, first_name, family_name, comment, terms_agreed, created_at, user_role, approved) %>%
+      collect()
 
-		# return tibble
-		user_table
-		
-	} else if ( req$user_role %in% c("Curator") ) {
-			
-		user_table <- pool %>% 
-			tbl("user") %>%
-			select(user_id, user_name, email, orcid, first_name, family_name, comment, terms_agreed, created_at, user_role, approved) %>%
-			filter(approved == 0) %>%
-			collect()
+    # return tibble
+    user_table
+    
+  } else if ( req$user_role %in% c("Curator") ) {
+      
+    user_table <- pool %>% 
+      tbl("user") %>%
+      select(user_id, user_name, email, orcid, first_name, family_name, comment, terms_agreed, created_at, user_role, approved) %>%
+      filter(approved == 0) %>%
+      collect()
 
-		# return tibble
-		user_table
-		
-	}  else {
-		res$status <- 403 # Forbidden
-		return(list(error="Read access forbidden."))
-	}
+    # return tibble
+    user_table
+    
+  }  else {
+    res$status <- 403 # Forbidden
+    return(list(error="Read access forbidden."))
+  }
 }
 
 
@@ -3273,68 +3273,68 @@ function(req, res) {
 ## manage user application approval
 #' @put /api/user/approval
 function(req, res, user_id = 0, status_approval = FALSE) {
-		
-	user <- req$user_id
-	user_id_approval <- as.integer(user_id)
-	
-	status_approval <- as.logical(status_approval)
+    
+  user <- req$user_id
+  user_id_approval <- as.integer(user_id)
+  
+  status_approval <- as.logical(status_approval)
 
-	#check if user_id_approval exists and is not allready approved
-	user_table <- pool %>% 
-		tbl("user") %>%
-		select(user_id, approved, first_name, family_name, email) %>%
-		filter(user_id == user_id_approval) %>%
-		collect()
-	user_id_approval_exists <- as.logical(length(user_table$user_id))
-	user_id_approval_approved <- as.logical(user_table$approved[1])
+  #check if user_id_approval exists and is not allready approved
+  user_table <- pool %>% 
+    tbl("user") %>%
+    select(user_id, approved, first_name, family_name, email) %>%
+    filter(user_id == user_id_approval) %>%
+    collect()
+  user_id_approval_exists <- as.logical(length(user_table$user_id))
+  user_id_approval_approved <- as.logical(user_table$approved[1])
 
-	# first check rights
-	if ( length(user) == 0 ) {
-	
-		res$status <- 401 # Unauthorized
-		return(list(error="Please authenticate."))
+  # first check rights
+  if ( length(user) == 0 ) {
+  
+    res$status <- 401 # Unauthorized
+    return(list(error="Please authenticate."))
 
-	} else if ( req$user_role %in% c("Administrator", "Curator") & !user_id_approval_exists) {
-	
-		res$status <- 409 # Conflict
-		return(list(error="User account does not exist."))
-		
-	} else if ( req$user_role %in% c("Administrator", "Curator") & user_id_approval_exists & user_id_approval_approved) {
-	
-		res$status <- 409 # Conflict
-		return(list(error="User account already active."))
-		
-	} else if ( req$user_role %in% c("Administrator", "Curator") & user_id_approval_exists & !user_id_approval_approved) {
+  } else if ( req$user_role %in% c("Administrator", "Curator") & !user_id_approval_exists) {
+  
+    res$status <- 409 # Conflict
+    return(list(error="User account does not exist."))
+    
+  } else if ( req$user_role %in% c("Administrator", "Curator") & user_id_approval_exists & user_id_approval_approved) {
+  
+    res$status <- 409 # Conflict
+    return(list(error="User account already active."))
+    
+  } else if ( req$user_role %in% c("Administrator", "Curator") & user_id_approval_exists & !user_id_approval_approved) {
 
-		if ( status_approval ) {
-			# generate password
-			user_password <- random_password()
-			user_initials <- generate_initials(user_table$first_name, user_table$family_name)
-			
-			# connect to database, put approval for user application then disconnect
-			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-			dbExecute(sysndd_db, paste0("UPDATE user SET approved = 1 WHERE user_id = ", user_id_approval, ";"))
-			dbExecute(sysndd_db, paste0("UPDATE user SET password = '", user_password,"' WHERE user_id = ", user_id_approval, ";"))
-			dbExecute(sysndd_db, paste0("UPDATE user SET abbreviation = '", user_initials, "' WHERE user_id = ", user_id_approval, ";"))
-			dbDisconnect(sysndd_db)
-			
-			# send mail
-			res <- send_noreply_email(c(
-				 "Your registration for sysndd.org has been approved by a curator. Your password (please change after first login):",
-				 user_password),
-				 "Account approved for SysNDD.org",
-				 user_table$email
-				)
-		} else {
-			# connect to database, delete application then disconnect
-			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-			dbExecute(sysndd_db, paste0("DELETE FROM user WHERE user_id = ", user_id_approval, ";"))
-			dbDisconnect(sysndd_db)
-		}
-	} else {
-		res$status <- 403 # Forbidden
-		return(list(error="Read access forbidden."))
-	}
+    if ( status_approval ) {
+      # generate password
+      user_password <- random_password()
+      user_initials <- generate_initials(user_table$first_name, user_table$family_name)
+      
+      # connect to database, put approval for user application then disconnect
+      sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+      dbExecute(sysndd_db, paste0("UPDATE user SET approved = 1 WHERE user_id = ", user_id_approval, ";"))
+      dbExecute(sysndd_db, paste0("UPDATE user SET password = '", user_password,"' WHERE user_id = ", user_id_approval, ";"))
+      dbExecute(sysndd_db, paste0("UPDATE user SET abbreviation = '", user_initials, "' WHERE user_id = ", user_id_approval, ";"))
+      dbDisconnect(sysndd_db)
+      
+      # send mail
+      res <- send_noreply_email(c(
+         "Your registration for sysndd.org has been approved by a curator. Your password (please change after first login):",
+         user_password),
+         "Account approved for SysNDD.org",
+         user_table$email
+        )
+    } else {
+      # connect to database, delete application then disconnect
+      sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+      dbExecute(sysndd_db, paste0("DELETE FROM user WHERE user_id = ", user_id_approval, ";"))
+      dbDisconnect(sysndd_db)
+    }
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error="Read access forbidden."))
+  }
 }
 
 
@@ -3342,31 +3342,31 @@ function(req, res, user_id = 0, status_approval = FALSE) {
 ## manage user application approval
 #' @put /api/user/change_role
 function(req, res, user_id, role_assigned = "Viewer") {
-	user <- req$user_id
-	user_id_role <- as.integer(user_id)
-	role_assigned <- as.character(role_assigned)
-	
-	# first check rights
-	if ( length(user) == 0 ) {
-		res$status <- 401 # Unauthorized
-		return(list(error="Please authenticate."))
-	} else if ( req$user_role %in% c("Administrator") ) {
-		# connect to database and perform update query then disconnect
-		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-		dbExecute(sysndd_db, paste0("UPDATE user SET user_role = '", role_assigned, "' WHERE user_id = ", user_id_role, ";"))
-		dbDisconnect(sysndd_db)
-	} else if ( req$user_role %in% c("Curator") & role_assigned %in% c("Curator", "Reviewer", "Viewer")) {
-		# connect to database and perform update query then disconnect
-		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-		dbExecute(sysndd_db, paste0("UPDATE user SET user_role = '", role_assigned, "' WHERE user_id = ", user_id_role, ";"))
-		dbDisconnect(sysndd_db)
-	} else if ( req$user_role %in% c("Curator") & role_assigned %in% c("Administrator")) {
-		res$status <- 403 # Forbidden
-		return(list(error="Insufficiant rights."))
-	} else {
-		res$status <- 403 # Forbidden
-		return(list(error="Write access forbidden."))
-	}
+  user <- req$user_id
+  user_id_role <- as.integer(user_id)
+  role_assigned <- as.character(role_assigned)
+  
+  # first check rights
+  if ( length(user) == 0 ) {
+    res$status <- 401 # Unauthorized
+    return(list(error="Please authenticate."))
+  } else if ( req$user_role %in% c("Administrator") ) {
+    # connect to database and perform update query then disconnect
+    sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+    dbExecute(sysndd_db, paste0("UPDATE user SET user_role = '", role_assigned, "' WHERE user_id = ", user_id_role, ";"))
+    dbDisconnect(sysndd_db)
+  } else if ( req$user_role %in% c("Curator") & role_assigned %in% c("Curator", "Reviewer", "Viewer")) {
+    # connect to database and perform update query then disconnect
+    sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+    dbExecute(sysndd_db, paste0("UPDATE user SET user_role = '", role_assigned, "' WHERE user_id = ", user_id_role, ";"))
+    dbDisconnect(sysndd_db)
+  } else if ( req$user_role %in% c("Curator") & role_assigned %in% c("Administrator")) {
+    res$status <- 403 # Forbidden
+    return(list(error="Insufficiant rights."))
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error="Write access forbidden."))
+  }
 }
 
 
@@ -3375,31 +3375,31 @@ function(req, res, user_id, role_assigned = "Viewer") {
 #' @get /api/user/role_list
 function(req, res) {
 
-	user <- req$user_id
+  user <- req$user_id
 
-	# first check rights
-	if ( length(user) == 0 ) {
+  # first check rights
+  if ( length(user) == 0 ) {
 
-		res$status <- 401 # Unauthorized
-		return(list(error="Please authenticate."))
+    res$status <- 401 # Unauthorized
+    return(list(error="Please authenticate."))
 
-	} else if ( req$user_role %in% c("Administrator") ) {
+  } else if ( req$user_role %in% c("Administrator") ) {
 
-		role_list <- as_tibble(user_status_allowed) %>%
-			select(role = value)
-		role_list
-		
-	} else if ( req$user_role %in% c("Curator") ) {
+    role_list <- as_tibble(user_status_allowed) %>%
+      select(role = value)
+    role_list
+    
+  } else if ( req$user_role %in% c("Curator") ) {
 
-		role_list <- as_tibble(user_status_allowed) %>%
-			select(role = value) %>%
-			filter(role != "Administrator")
-		role_list
+    role_list <- as_tibble(user_status_allowed) %>%
+      select(role = value) %>%
+      filter(role != "Administrator")
+    role_list
 
-	} else {
-		res$status <- 403 # Forbidden
-		return(list(error="Read access forbidden."))
-	}
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error="Read access forbidden."))
+  }
 }
 
 
@@ -3408,43 +3408,43 @@ function(req, res) {
 #' @get /api/user/list
 function(req, res, roles = "Viewer") {
 
-	user <- req$user_id
+  user <- req$user_id
 
-	# split the roles input by comma and check if roles are in the allowed roles
-	roles_list <- str_trim(str_split(str_squish(roles), ",")[[1]])
+  # split the roles input by comma and check if roles are in the allowed roles
+  roles_list <- str_trim(str_split(str_squish(roles), ",")[[1]])
 
-	# check if received roles are in allowed roles
-	roles_allowed_check <- all(roles_list %in% user_status_allowed)
+  # check if received roles are in allowed roles
+  roles_allowed_check <- all(roles_list %in% user_status_allowed)
 
-	if ( !roles_allowed_check ) {
-		res$status <- 400
-		res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
-		status = 400,
-		message = paste0("Some of the submitted roles are not in the allowed roles list.")
-		))
-		return(res)
-	}
+  if ( !roles_allowed_check ) {
+    res$status <- 400
+    res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
+    status = 400,
+    message = paste0("Some of the submitted roles are not in the allowed roles list.")
+    ))
+    return(res)
+  }
 
-	# first check rights
-	if ( length(user) == 0 ) {
+  # first check rights
+  if ( length(user) == 0 ) {
 
-		res$status <- 401 # Unauthorized
-		return(list(error="Please authenticate."))
+    res$status <- 401 # Unauthorized
+    return(list(error="Please authenticate."))
 
-	} else if ( req$user_role %in% c("Administrator", "Curator") ) {
+  } else if ( req$user_role %in% c("Administrator", "Curator") ) {
 
-		user_table_roles <- pool %>% 
-			tbl("user") %>%
-			filter(approved == 1) %>%
-			filter(user_role %in% roles_list) %>%
-			select(user_id, user_name, user_role) %>%
-			collect()
-		user_table_roles
-		
-	} else {
-		res$status <- 403 # Forbidden
-		return(list(error="Read access forbidden."))
-	}
+    user_table_roles <- pool %>% 
+      tbl("user") %>%
+      filter(approved == 1) %>%
+      filter(user_role %in% roles_list) %>%
+      select(user_id, user_name, user_role) %>%
+      collect()
+    user_table_roles
+    
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error="Read access forbidden."))
+  }
 }
 
 
@@ -3452,66 +3452,66 @@ function(req, res, roles = "Viewer") {
 ## change user password
 #' @put /api/user/password/change
 function(req, res, user_id_pass_change = 0, old_pass = "", new_pass_1 = "", new_pass_2 = "") {
-		
-	user <- req$user_id
-	user_id_pass_change <- as.integer(user_id_pass_change)
+    
+  user <- req$user_id
+  user_id_pass_change <- as.integer(user_id_pass_change)
 
-	#get user data from database table
-	user_table <- pool %>% 
-		tbl("user") %>%
-		select(user_id, user_name, password, approved, first_name, family_name, email) %>%
-		filter(user_id == user_id_pass_change) %>%
-		collect()
+  #get user data from database table
+  user_table <- pool %>% 
+    tbl("user") %>%
+    select(user_id, user_name, password, approved, first_name, family_name, email) %>%
+    filter(user_id == user_id_pass_change) %>%
+    collect()
 
-	#check if user_id_pass_change exists
-	user_id_pass_change_exists <- as.logical(length(user_table$user_id))
-	user_id_pass_change_approved <- as.logical(user_table$approved[1])
+  #check if user_id_pass_change exists
+  user_id_pass_change_exists <- as.logical(length(user_table$user_id))
+  user_id_pass_change_approved <- as.logical(user_table$approved[1])
 
-	#check if passwords match and the new password satisfies minimal criteria
-	old_pass_match <- user_table$password[1] == old_pass
-	new_pass_match_and_valid <- (new_pass_1 == new_pass_2) && 
-		(new_pass_1 != old_pass) && 
-		nchar(new_pass_1) > 7 &&
-		grepl("[a-z]", new_pass_1) &&
-		grepl("[A-Z]", new_pass_1) &&
-		grepl("\\d", new_pass_1) &&
-		grepl("[!@#$%^&*]", new_pass_1)
+  #check if passwords match and the new password satisfies minimal criteria
+  old_pass_match <- user_table$password[1] == old_pass
+  new_pass_match_and_valid <- (new_pass_1 == new_pass_2) && 
+    (new_pass_1 != old_pass) && 
+    nchar(new_pass_1) > 7 &&
+    grepl("[a-z]", new_pass_1) &&
+    grepl("[A-Z]", new_pass_1) &&
+    grepl("\\d", new_pass_1) &&
+    grepl("[!@#$%^&*]", new_pass_1)
 
-	# first check rights
-	if ( length(user) == 0 ) {
-	
-		res$status <- 401 # Unauthorized
-		return(list(error="Please authenticate."))
+  # first check rights
+  if ( length(user) == 0 ) {
+  
+    res$status <- 401 # Unauthorized
+    return(list(error="Please authenticate."))
 
-	} else if ( (req$user_role %in% c("Administrator") || user == user_id_pass_change) && !user_id_pass_change_exists && (old_pass_match || req$user_role %in% c("Administrator")) && new_pass_match_and_valid) {
-	
-		res$status <- 409 # Conflict
-		return(list(error="User account does not exist."))
-		
-	} else if ( (req$user_role %in% c("Administrator") || user == user_id_pass_change) && user_id_pass_change_exists && !user_id_pass_change_approved && (old_pass_match || req$user_role %in% c("Administrator")) && new_pass_match_and_valid) {
-	
-		res$status <- 409 # Conflict
-		return(list(error="User account not approved."))
-		
-	} else if ( (req$user_role %in% c("Administrator") || user == user_id_pass_change) && (!(old_pass_match || req$user_role %in% c("Administrator")) || !new_pass_match_and_valid)) {
-	
-		res$status <- 409 # Conflict
-		return(list(error="Password input problem."))
-		
-	}  else if ( (req$user_role %in% c("Administrator") || user == user_id_pass_change) && user_id_pass_change_exists && user_id_pass_change_approved && (old_pass_match || req$user_role %in% c("Administrator")) && new_pass_match_and_valid) {
+  } else if ( (req$user_role %in% c("Administrator") || user == user_id_pass_change) && !user_id_pass_change_exists && (old_pass_match || req$user_role %in% c("Administrator")) && new_pass_match_and_valid) {
+  
+    res$status <- 409 # Conflict
+    return(list(error="User account does not exist."))
+    
+  } else if ( (req$user_role %in% c("Administrator") || user == user_id_pass_change) && user_id_pass_change_exists && !user_id_pass_change_approved && (old_pass_match || req$user_role %in% c("Administrator")) && new_pass_match_and_valid) {
+  
+    res$status <- 409 # Conflict
+    return(list(error="User account not approved."))
+    
+  } else if ( (req$user_role %in% c("Administrator") || user == user_id_pass_change) && (!(old_pass_match || req$user_role %in% c("Administrator")) || !new_pass_match_and_valid)) {
+  
+    res$status <- 409 # Conflict
+    return(list(error="Password input problem."))
+    
+  }  else if ( (req$user_role %in% c("Administrator") || user == user_id_pass_change) && user_id_pass_change_exists && user_id_pass_change_approved && (old_pass_match || req$user_role %in% c("Administrator")) && new_pass_match_and_valid) {
 
-		# connect to database, put approval for user application then disconnect
-		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-		dbExecute(sysndd_db, paste0("UPDATE user SET password = '", new_pass_1,"' WHERE user_id = ", user_id_pass_change, ";"))
-		dbDisconnect(sysndd_db)
-		
-		res$status <- 201 # Created
-		return(list(message="Password successfully changed."))
-			
-	} else {
-		res$status <- 403 # Forbidden
-		return(list(error="Read access forbidden."))
-	}
+    # connect to database, put approval for user application then disconnect
+    sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+    dbExecute(sysndd_db, paste0("UPDATE user SET password = '", new_pass_1,"' WHERE user_id = ", user_id_pass_change, ";"))
+    dbDisconnect(sysndd_db)
+    
+    res$status <- 201 # Created
+    return(list(message="Password successfully changed."))
+      
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error="Read access forbidden."))
+  }
 }
 
 
@@ -3520,62 +3520,62 @@ function(req, res, user_id_pass_change = 0, old_pass = "", new_pass_1 = "", new_
 #' @get /api/user/password/reset/request
 function(req, res, email_request = "") {
 
-	user_table <- pool %>% 
-			tbl("user") %>%
-			collect()
+  user_table <- pool %>% 
+      tbl("user") %>%
+      collect()
 
-	# first validate email
-	if ( !isValidEmail(email_request) ) {
-	
-		res$status <- 400 # Bad Request
-		return(list(error="Invalid Parameter Value Error."))
+  # first validate email
+  if ( !isValidEmail(email_request) ) {
+  
+    res$status <- 400 # Bad Request
+    return(list(error="Invalid Parameter Value Error."))
 
-	} else if ( !(email_request %in% user_table$email) ) {
-		res$status <- 200 # OK
-		res <- "Request mail send!"
-	} else if ( (email_request %in% user_table$email) ) {
-	
-		email_user <- str_to_lower(toString(email_request))
+  } else if ( !(email_request %in% user_table$email) ) {
+    res$status <- 200 # OK
+    res <- "Request mail send!"
+  } else if ( (email_request %in% user_table$email) ) {
+  
+    email_user <- str_to_lower(toString(email_request))
 
-		#get user data from database table
-		user_table <- user_table %>%
-			mutate(email_lower = str_to_lower(email)) %>%
-			filter(email_lower == email_user) %>%
-			mutate(hash = toString(md5(paste0(dw$salt, password)))) %>%
-			select(user_id, user_name, hash, email)
+    #get user data from database table
+    user_table <- user_table %>%
+      mutate(email_lower = str_to_lower(email)) %>%
+      filter(email_lower == email_user) %>%
+      mutate(hash = toString(md5(paste0(dw$salt, password)))) %>%
+      select(user_id, user_name, hash, email)
 
-		# extract user_id by mail
-		user_id_from_email <- user_table$user_id
+    # extract user_id by mail
+    user_id_from_email <- user_table$user_id
 
-		# request time
-		timestamp_request <- Sys.time()
-		timestamp_iat <- as.integer(timestamp_request)
-		timestamp_exp <- as.integer(timestamp_request) + dw$refresh
+    # request time
+    timestamp_request <- Sys.time()
+    timestamp_iat <- as.integer(timestamp_request)
+    timestamp_exp <- as.integer(timestamp_request) + dw$refresh
 
-		# load secret and convert to raw
-		key <- charToRaw(dw$secret)
+    # load secret and convert to raw
+    key <- charToRaw(dw$secret)
 
-		# connect to database, put timestamp of request password reset
-		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-		dbExecute(sysndd_db, paste0("UPDATE user SET password_reset_date = '", timestamp_request,"' WHERE user_id = ", user_id_from_email[1], ";"))
-		dbDisconnect(sysndd_db)
+    # connect to database, put timestamp of request password reset
+    sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+    dbExecute(sysndd_db, paste0("UPDATE user SET password_reset_date = '", timestamp_request,"' WHERE user_id = ", user_id_from_email[1], ";"))
+    dbDisconnect(sysndd_db)
 
-		claim <- jwt_claim(user_id = user_table$user_id, user_name = user_table$user_name, email = user_table$email, hash = user_table$hash, iat = timestamp_iat, exp = timestamp_exp)
-		jwt <- jwt_encode_hmac(claim, secret = key)
-		reset_url <- paste0(dw$base_url, "PasswordReset/", jwt)
+    claim <- jwt_claim(user_id = user_table$user_id, user_name = user_table$user_name, email = user_table$email, hash = user_table$hash, iat = timestamp_iat, exp = timestamp_exp)
+    jwt <- jwt_encode_hmac(claim, secret = key)
+    reset_url <- paste0(dw$base_url, "PasswordReset/", jwt)
 
-		# send mail
-		res$status <- 200 # OK
-		res <- send_noreply_email(c(
-			 "We received a password reset for your account at sysndd.org. Use this link to reset:",
-			 reset_url),
-			 "Your password reset request for SysNDD.org",
-			 user_table$email
-			)
-	} else {
-		res$status <- 401 # Unauthorized
-		return(list(error="Error or unauthorized."))
-	}
+    # send mail
+    res$status <- 200 # OK
+    res <- send_noreply_email(c(
+       "We received a password reset for your account at sysndd.org. Use this link to reset:",
+       reset_url),
+       "Your password reset request for SysNDD.org",
+       user_table$email
+      )
+  } else {
+    res$status <- 401 # Unauthorized
+    return(list(error="Error or unauthorized."))
+  }
 }
 
 
@@ -3584,57 +3584,57 @@ function(req, res, email_request = "") {
 #' @get /api/user/password/reset/change
 function(req, res, new_pass_1 = "", new_pass_2 = "") {
 
-	# load jwt from header
-	jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
+  # load jwt from header
+  jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
 
-	# load secret and convert to raw
-	key <- charToRaw(dw$secret)
-		
-	user_jwt <- jwt_decode_hmac(jwt, secret = key)
-	user_jwt$token_expired = (user_jwt$exp < as.numeric(Sys.time()))
+  # load secret and convert to raw
+  key <- charToRaw(dw$secret)
+    
+  user_jwt <- jwt_decode_hmac(jwt, secret = key)
+  user_jwt$token_expired = (user_jwt$exp < as.numeric(Sys.time()))
 
-	if (is.null(jwt) || user_jwt$token_expired){
-		res$status <- 401 # Unauthorized
-		return(list(error="Reset token expired."))
-	} else {
-		#get user data from database table
-		user_table <- pool %>% 
-			tbl("user") %>%
-			collect() %>%
-			filter(user_id == user_jwt$user_id) %>%
-			mutate(hash = toString(md5(paste0(dw$salt, password)))) %>%
-			mutate(timestamp_iat = as.integer(password_reset_date) - dw$refresh) %>%
-			mutate(timestamp_exp = as.integer(password_reset_date)) %>%
-			select(user_id, user_name, hash, email, timestamp_iat, timestamp_exp)
+  if (is.null(jwt) || user_jwt$token_expired){
+    res$status <- 401 # Unauthorized
+    return(list(error="Reset token expired."))
+  } else {
+    #get user data from database table
+    user_table <- pool %>% 
+      tbl("user") %>%
+      collect() %>%
+      filter(user_id == user_jwt$user_id) %>%
+      mutate(hash = toString(md5(paste0(dw$salt, password)))) %>%
+      mutate(timestamp_iat = as.integer(password_reset_date) - dw$refresh) %>%
+      mutate(timestamp_exp = as.integer(password_reset_date)) %>%
+      select(user_id, user_name, hash, email, timestamp_iat, timestamp_exp)
 
-		# compute JWT check
-		claim_check <- jwt_claim(user_id = user_table$user_id, user_name = user_table$user_name, email = user_table$email, hash = user_table$hash, iat = user_table$timestamp_iat, exp = user_table$timestamp_exp)
-		jwt_check <- jwt_encode_hmac(claim_check, secret = key)
-		jwt_match <- (jwt == jwt_check)
+    # compute JWT check
+    claim_check <- jwt_claim(user_id = user_table$user_id, user_name = user_table$user_name, email = user_table$email, hash = user_table$hash, iat = user_table$timestamp_iat, exp = user_table$timestamp_exp)
+    jwt_check <- jwt_encode_hmac(claim_check, secret = key)
+    jwt_match <- (jwt == jwt_check)
 
-		# check if passwords match and the new password satisfies minimal criteria
-		new_pass_match_and_valid <- (new_pass_1 == new_pass_2) && 
-			nchar(new_pass_1) > 7 &&
-			grepl("[a-z]", new_pass_1) &&
-			grepl("[A-Z]", new_pass_1) &&
-			grepl("\\d", new_pass_1) &&
-			grepl("[!@#$%^&*]", new_pass_1)
+    # check if passwords match and the new password satisfies minimal criteria
+    new_pass_match_and_valid <- (new_pass_1 == new_pass_2) && 
+      nchar(new_pass_1) > 7 &&
+      grepl("[a-z]", new_pass_1) &&
+      grepl("[A-Z]", new_pass_1) &&
+      grepl("\\d", new_pass_1) &&
+      grepl("[!@#$%^&*]", new_pass_1)
 
-		# connect to database and change password if criteria fullfilled, remove time to invalidate JWT
-		if (jwt_match && new_pass_match_and_valid){
-			# connect to database, put approval for user application then disconnect
-			sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-			dbExecute(sysndd_db, paste0("UPDATE user SET password = '", new_pass_1,"' WHERE user_id = ", user_jwt$user_id, ";"))
-			dbExecute(sysndd_db, paste0("UPDATE user SET password_reset_date = NULL WHERE user_id = ", user_jwt$user_id, ";"))
-			dbDisconnect(sysndd_db)
-			
-			res$status <- 201 # Created
-			return(list(message="Password successfully changed."))
-		} else {
-			res$status <- 409 # Conflict
-			return(list(error="Password or JWT input problem."))
-		}
-	}
+    # connect to database and change password if criteria fullfilled, remove time to invalidate JWT
+    if (jwt_match && new_pass_match_and_valid){
+      # connect to database, put approval for user application then disconnect
+      sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+      dbExecute(sysndd_db, paste0("UPDATE user SET password = '", new_pass_1,"' WHERE user_id = ", user_jwt$user_id, ";"))
+      dbExecute(sysndd_db, paste0("UPDATE user SET password_reset_date = NULL WHERE user_id = ", user_jwt$user_id, ";"))
+      dbDisconnect(sysndd_db)
+      
+      res$status <- 201 # Created
+      return(list(message="Password successfully changed."))
+    } else {
+      res$status <- 409 # Conflict
+      return(list(error="Password or JWT input problem."))
+    }
+  }
 }
 
 ## User endpoint section
@@ -3651,49 +3651,49 @@ function(req, res, new_pass_1 = "", new_pass_2 = "") {
 #* @serializer json list(na="string")
 #' @get /api/auth/signup
 function(signup_data) {
-	user <- as_tibble(fromJSON(signup_data)) %>%
-			mutate(terms_agreed = case_when(
-			  terms_agreed == "accepted" ~ "1",
-			  terms_agreed != "accepted" ~ "0"
-			)) %>%
-		select(user_name, first_name, family_name, email, orcid, comment, terms_agreed)
+  user <- as_tibble(fromJSON(signup_data)) %>%
+      mutate(terms_agreed = case_when(
+        terms_agreed == "accepted" ~ "1",
+        terms_agreed != "accepted" ~ "0"
+      )) %>%
+    select(user_name, first_name, family_name, email, orcid, comment, terms_agreed)
 
-	input_validation <- pivot_longer(user, cols = everything()) %>%
-			mutate(valid = case_when(
-			  name == "user_name" ~ (nchar(value) >= 5 & nchar(value) <= 20),
-			  name == "first_name" ~ (nchar(value) >= 2 & nchar(value) <= 50),
-			  name == "family_name" ~ (nchar(value) >= 2 & nchar(value) <= 50),
-			  name == "email" ~ str_detect(value, regex(".+@.+\\..+", dotall = TRUE)),
-			  name == "orcid" ~ str_detect(value, regex("^(([0-9]{4})-){3}[0-9]{3}[0-9X]$", dotall = TRUE)),
-			  name == "comment" ~ (nchar(value) >= 10 & nchar(value) <= 250),
-			  name == "terms_agreed" ~ (value == "1")
-			)) %>%
-			mutate(all = "1") %>%
-			select(all, valid) %>%
-			group_by(all) %>%
-			summarise(valid = as.logical(prod(valid))) %>%
-			ungroup() %>%
-			select(valid)
+  input_validation <- pivot_longer(user, cols = everything()) %>%
+      mutate(valid = case_when(
+        name == "user_name" ~ (nchar(value) >= 5 & nchar(value) <= 20),
+        name == "first_name" ~ (nchar(value) >= 2 & nchar(value) <= 50),
+        name == "family_name" ~ (nchar(value) >= 2 & nchar(value) <= 50),
+        name == "email" ~ str_detect(value, regex(".+@.+\\..+", dotall = TRUE)),
+        name == "orcid" ~ str_detect(value, regex("^(([0-9]{4})-){3}[0-9]{3}[0-9X]$", dotall = TRUE)),
+        name == "comment" ~ (nchar(value) >= 10 & nchar(value) <= 250),
+        name == "terms_agreed" ~ (value == "1")
+      )) %>%
+      mutate(all = "1") %>%
+      select(all, valid) %>%
+      group_by(all) %>%
+      summarise(valid = as.logical(prod(valid))) %>%
+      ungroup() %>%
+      select(valid)
 
-	if (input_validation$valid){
+  if (input_validation$valid){
 
-		# connect to database
-		sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
-		dbAppendTable(sysndd_db, "user", user)
-		dbDisconnect(sysndd_db)
+    # connect to database
+    sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
+    dbAppendTable(sysndd_db, "user", user)
+    dbDisconnect(sysndd_db)
 
-		# send mail
-		res <- send_noreply_email(c(
-			 "Your registration request for sysndd.org has been send to the curators who will review it soon. Information provided:",
-			 user),
-			 "Your registration request to SysNDD.org",
-			 user$email
-			)
-	
+    # send mail
+    res <- send_noreply_email(c(
+       "Your registration request for sysndd.org has been send to the curators who will review it soon. Information provided:",
+       user),
+       "Your registration request to SysNDD.org",
+       user$email
+      )
+  
   } else {
-		res$status <- 404
-		res$body <- "Please provide valid registration data."
-		res
+    res$status <- 404
+    res$body <- "Please provide valid registration data."
+    res
   }
 }
 
@@ -3704,42 +3704,42 @@ function(signup_data) {
 #* @serializer json list(na="string")
 #' @get /api/auth/authenticate
 function(req, res, user_name, password) {
-	
-	check_user <- user_name
-	check_pass <- URLdecode(password)
-	
-	# load secret and convert to raw
-	key <- charToRaw(dw$secret)
-	
-	# check if user provided credentials
-		  if (is.null(check_user) || nchar(check_user) < 5 || nchar(check_user) > 20 || is.null(check_pass) || nchar(check_pass) < 5 || nchar(check_pass) > 50) {
-			res$status <- 404
-			res$body <- "Please provide valid username and password."
-			res
-		  }
+  
+  check_user <- user_name
+  check_pass <- URLdecode(password)
+  
+  # load secret and convert to raw
+  key <- charToRaw(dw$secret)
+  
+  # check if user provided credentials
+      if (is.null(check_user) || nchar(check_user) < 5 || nchar(check_user) > 20 || is.null(check_pass) || nchar(check_pass) < 5 || nchar(check_pass) > 50) {
+      res$status <- 404
+      res$body <- "Please provide valid username and password."
+      res
+      }
 
-	# connect to database, find user in database and password is correct
-	user_filtered <- pool %>% 
-		tbl("user") %>%
-		filter(user_name == check_user & password == check_pass & approved == 1) %>%
-		select(-password) %>%
-		collect() %>%
-		mutate(iat = as.numeric(Sys.time())) %>%
-		mutate(exp = as.numeric(Sys.time()) + dw$refresh)
-	
-	# return answer depending on user credentials status
-	if (nrow(user_filtered) != 1){
-		res$status <- 401
-		res$body <- "User or password wrong."
-		res
-	}
+  # connect to database, find user in database and password is correct
+  user_filtered <- pool %>% 
+    tbl("user") %>%
+    filter(user_name == check_user & password == check_pass & approved == 1) %>%
+    select(-password) %>%
+    collect() %>%
+    mutate(iat = as.numeric(Sys.time())) %>%
+    mutate(exp = as.numeric(Sys.time()) + dw$refresh)
+  
+  # return answer depending on user credentials status
+  if (nrow(user_filtered) != 1){
+    res$status <- 401
+    res$body <- "User or password wrong."
+    res
+  }
 
-	if (nrow(user_filtered) == 1){
-		claim <- jwt_claim(user_id = user_filtered$user_id, user_name = user_filtered$user_name, email = user_filtered$email, user_role = user_filtered$user_role, user_created = user_filtered$created_at, abbreviation = user_filtered$abbreviation, orcid = user_filtered$orcid, iat = user_filtered$iat, exp = user_filtered$exp)
-		
-		jwt <- jwt_encode_hmac(claim, secret = key)
-		jwt
-	}
+  if (nrow(user_filtered) == 1){
+    claim <- jwt_claim(user_id = user_filtered$user_id, user_name = user_filtered$user_name, email = user_filtered$email, user_role = user_filtered$user_role, user_created = user_filtered$created_at, abbreviation = user_filtered$abbreviation, orcid = user_filtered$orcid, iat = user_filtered$iat, exp = user_filtered$exp)
+    
+    jwt <- jwt_encode_hmac(claim, secret = key)
+    jwt
+  }
 }
 
 
@@ -3747,21 +3747,21 @@ function(req, res, user_name, password) {
 #* @get /api/auth/signin
 #* @serializer json list(na="string")
 function(req, res) {
-	# load secret and convert to raw
-	key <- charToRaw(dw$secret)
-	
-	# load jwt from header
-	jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
-	
-	user <- jwt_decode_hmac(jwt, secret = key)
-	user$token_expired = (user$exp < as.numeric(Sys.time()))
-	
-	if (is.null(jwt) || user$token_expired){
-		res$status <- 401 # Unauthorized
-		return(list(error="Authentication not successful."))
-	} else {
-		return(list(user_id = user$user_id, user_name = user$user_name, email = user$email, user_role = user$user_role, user_created = user$user_created, abbreviation = user$abbreviation, orcid = user$orcid, exp = user$exp))
-	}
+  # load secret and convert to raw
+  key <- charToRaw(dw$secret)
+  
+  # load jwt from header
+  jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
+  
+  user <- jwt_decode_hmac(jwt, secret = key)
+  user$token_expired = (user$exp < as.numeric(Sys.time()))
+  
+  if (is.null(jwt) || user$token_expired){
+    res$status <- 401 # Unauthorized
+    return(list(error="Authentication not successful."))
+  } else {
+    return(list(user_id = user$user_id, user_name = user$user_name, email = user$email, user_role = user$user_role, user_created = user$user_created, abbreviation = user$abbreviation, orcid = user$orcid, exp = user$exp))
+  }
 }
 
 
@@ -3769,24 +3769,24 @@ function(req, res) {
 #* @get /api/auth/refresh
 #* @serializer json list(na="string")
 function(req, res) {
-	# load secret and convert to raw
-	key <- charToRaw(dw$secret)
-	
-	# load jwt from header
-	jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
-	
-	user <- jwt_decode_hmac(jwt, secret = key)
-	user$token_expired = (user$exp < as.numeric(Sys.time()))
-	
-	if (is.null(jwt) || user$token_expired){
-		res$status <- 401 # Unauthorized
-		return(list(error="Authentication not successful."))
-	} else {
-		claim <- jwt_claim(user_id = user$user_id, user_name = user$user_name, email = user$email, user_role = user$user_role, user_created = user$user_created, abbreviation = user$abbreviation, orcid = user$orcid, iat = as.numeric(Sys.time()), exp = as.numeric(Sys.time()) + dw$refresh)
+  # load secret and convert to raw
+  key <- charToRaw(dw$secret)
+  
+  # load jwt from header
+  jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
+  
+  user <- jwt_decode_hmac(jwt, secret = key)
+  user$token_expired = (user$exp < as.numeric(Sys.time()))
+  
+  if (is.null(jwt) || user$token_expired){
+    res$status <- 401 # Unauthorized
+    return(list(error="Authentication not successful."))
+  } else {
+    claim <- jwt_claim(user_id = user$user_id, user_name = user$user_name, email = user$email, user_role = user$user_role, user_created = user$user_created, abbreviation = user$abbreviation, orcid = user$orcid, iat = as.numeric(Sys.time()), exp = as.numeric(Sys.time()) + dw$refresh)
 
-		jwt <- jwt_encode_hmac(claim, secret = key)
-		jwt
-	}
+    jwt <- jwt_encode_hmac(claim, secret = key)
+    jwt
+  }
 }
 
 ##Authentication section
