@@ -36,7 +36,6 @@
 
               <treeselect
                 id="gene-select" 
-                style="width:180px" 
                 :multiple="false"
                 :async="true"
                 :load-options="loadGeneInfoTree"
@@ -51,7 +50,6 @@
 
               <treeselect
                 id="ontology-select" 
-                style="width:180px" 
                 :multiple="false"
                 :async="true"
                 :load-options="loadOntologyInfoTree"
@@ -66,7 +64,6 @@
 
               <treeselect
                 id="inheritance-select" 
-                style="width:180px" 
                 :multiple="false"
                 :async="true"
                 :load-options="loadInheritanceInfoTree"
