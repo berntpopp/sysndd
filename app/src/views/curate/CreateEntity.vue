@@ -20,7 +20,7 @@
             <b-container fluid>
 
               <validation-observer ref="observer" v-slot="{ handleSubmit }">
-              <b-form ref="form" @submit.stop.prevent="handleSubmit(infoEntity)">
+              <b-form ref="form" @submit.stop.prevent="handleSubmit(checkSubmission)">
 
           <b-input-group-append>
             <b-button 
@@ -32,6 +32,26 @@
               Create new entity
             </b-button>
           </b-input-group-append>
+
+
+      <!-- Submission check modal -->
+      <b-modal 
+      id="submissionModal" 
+      ref="submissionModal" 
+      size="lg" 
+      centered 
+      ok-title="Submit" 
+      no-close-on-esc 
+      no-close-on-backdrop 
+      header-bg-variant="dark" 
+      header-text-variant="light"
+      title="Check entity submission"
+      @ok="submitEntity"
+      >
+        <p class="my-4">Are you sure you want to submit this entity?</p>
+      </b-modal>
+      <!-- Submission check modal -->
+
 
           <b-row>
             <!-- column 1 -->
@@ -308,7 +328,7 @@ export default {
   name: 'CreateEntity',
     data() {
       return {
-        entity: {},
+        entity_submission: {},
         gene_input: null,
         ontology_input: null,
         inheritance_input: null,
@@ -415,9 +435,7 @@ export default {
             console.error(e);
             }
         },
-        async infoEntity() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/entity/create?create_json=';
-
+        infoEntity() {
           // define entity specific attributes as constants from inputs
           const entity_hgnc_id = this.gene_input;
           const entity_disease_ontology_id_version = this.ontology_input;
@@ -428,19 +446,12 @@ export default {
           const new_literature = new this.Literature(this.literature_review, this.genereviews_review);
 
           // define phenotype specific attributes as constants from inputs
-
-
-
           const new_phenotype = this.phenotypes_review.map(item => {
               return new this.Phenotype(item.split('-')[1], item.split('-')[0]);
             });
- 
-
-          console.log(new_phenotype);
 
           // define variation ontology specific attributes as constants from inputs
           const new_variation_ontology = this.variation_ontology_review;
-          console.log(new_variation_ontology);
 
           // define review specific attributes as constants from inputs
           const review_synopsis = this.synopsis_review; 
@@ -456,23 +467,58 @@ export default {
 
           // compose submission
           const new_submission = new this.Submission(new_entity, new_review, new_status);
+          
+          this.entity_submission = new_submission;
 
-          // TO DO: maybe put in different function
+        },
+        async submitEntity() {
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/entity/create?create_json=';
+
           try {
-            let submission_json = JSON.stringify(new_submission);
+            let submission_json = JSON.stringify(this.entity_submission);
 
-          console.log(submission_json);
-          console.log(apiUrl);
-
-/*              let response = await this.axios.post(apiUrl + submission_json, {}, {
+            let response = await this.axios.post(apiUrl + submission_json, {}, {
                headers: {
                  'Authorization': 'Bearer ' + localStorage.getItem('token')
                }
-             }); */
-          } catch (e) {
-            console.error(e);
-          }
+             });
 
+            this.makeToast('The new entity has been submitted ' + '(status ' + response.status + ' (' + response.statusText + ').', 'Success', 'success');
+            this.resetForm();
+
+          } catch (e) {
+            this.makeToast(e, 'Error', 'danger');
+          }
+        },
+        checkSubmission() {
+          this.$refs['submissionModal'].show();
+          this.infoEntity();
+        },
+        resetForm() {
+          this.entity_submission = {};
+          this.gene_input = null;
+          this.ontology_input = null;
+          this.inheritance_input = null;
+          this.phenotypes_review = [],
+          this.variation_ontology_review = [];
+          this.synopsis_review = "";
+          this.literature_review = [];
+          this.genereviews_review = [];
+          this.review_comment = "";
+          this.status_selected = null;
+          this.NDD_selected = null;
+
+          this.$nextTick(() => {
+            this.$refs.observer.reset();
+          });
+        },
+        makeToast(event, title = null, variant = null) {
+            this.$bvToast.toast('' + event, {
+              title: title,
+              toaster: 'b-toaster-top-right',
+              variant: variant,
+              solid: true
+            })
         },
 // these object constructor functions should go in a mixin
 // https://learnvue.co/2019/12/how-to-manage-mixins-in-vuejs/#the-solution-vuejs-mixins
