@@ -208,8 +208,13 @@ function(req, res) {
 ## Entity endpoints
 
 #* @tag entity
-## get all entities
+#* allows filtering and field selection from all entities
 #* @serializer json list(na="string")
+#* @param sort:str
+#* @param filter:str
+#* @param fields:str
+#* @param page[after]:str
+#* @param page[size]:str
 #' @get /api/entity
 function(res,
   sort = "entity_id",
@@ -295,7 +300,7 @@ function(res,
 
 
 #* @tag entity
-## create a new entity
+#* creates a new entity
 ## example data: create_json <- '{"entity": {"hgnc_id":"HGNC:21396", "disease_ontology_id_version":"OMIM:210600", "hpo_mode_of_inheritance_term":"HP:0000007", "ndd_phenotype":"1"}, "review": {"synopsis": "activating, gain-of-function mutations: congenital hypertrichosis, neonatal macrosomia, distinct osteochondrodysplasia, cardiomegaly; activating mutations", "literature": {"additional_references": ["PMID:22608503", "PMID:22610116"], "gene_review": ["PMID:25275207"]}, "phenotypes": [ {"phenotype_id": "HP:0000256", "modifier_id": 1}, {"phenotype_id": "HP:0000924", "modifier_id": 1}, {"phenotype_id": "HP:0001256", "modifier_id": 1}, {"phenotype_id": "HP:0001574", "modifier_id": 1}, {"phenotype_id": "HP:0001627", "modifier_id": 1}, {"phenotype_id": "HP:0002342", "modifier_id": 1} ], "variation_ontology": [ "VariO:0001" ], "comment": ""}, "status": {"category_id":1, "comment":"fsa", "problematic": true}}'
 #* @serializer json list(na="string")
 #' @post /api/entity/create
@@ -491,7 +496,7 @@ function(req, res, create_json) {
 
 
 #* @tag entity
-## delete an entity
+#* deletes an entity
 #* @serializer json list(na="string")
 #' @delete /api/entity/delete
 function(sysndd_id, req, res) {
@@ -537,7 +542,7 @@ function(sysndd_id, req, res) {
 
 
 #* @tag entity
-## update an entity
+#* updates an entity
 #* @serializer json list(na="string")
 #' @put /api/entity/update
 function(sysndd_id, entity_data) {
@@ -576,7 +581,7 @@ function(sysndd_id, entity_data) {
 
 
 #* @tag entity
-## get a single entity
+#* gets a single entity
 #* @serializer json list(na="string")
 #' @get /api/entity/<sysndd_id>
 function(sysndd_id) {
@@ -599,7 +604,7 @@ function(sysndd_id) {
 
 
 #* @tag entity
-## get all phenotypes for a entity_id
+#* gets all phenotypes for a entity_id
 #* @serializer json list(na="string")
 #' @get /api/entity/<sysndd_id>/phenotypes
 function(sysndd_id) {
@@ -623,7 +628,7 @@ function(sysndd_id) {
 
 
 #* @tag entity
-## get all clinical synopsis for a entity_id
+#* gets all clinical synopsis for a entity_id
 #* @serializer json list(na="null")
 #' @get /api/entity/<sysndd_id>/review
 function(sysndd_id) {
@@ -646,7 +651,7 @@ function(sysndd_id) {
 
 
 #* @tag entity
-## get status for a entity_id
+#* gets status for a entity_id
 #* @serializer json list(na="string")
 #' @get /api/entity/<sysndd_id>/status
 function(sysndd_id) {
@@ -669,7 +674,7 @@ function(sysndd_id) {
 
 
 #* @tag entity
-## post a new status for a entity_id
+#* posts a new status for a entity_id
 ## example data: {"category_id":"1", "status_user_id":"1"}
 #* @serializer json list(na="string")
 #' @post /api/entity/<sysndd_id>/status
@@ -692,7 +697,7 @@ function(sysndd_id, category_in) {
 
 
 #* @tag entity
-## get all publications for a entity_id
+#* gets all publications for a entity_id
 #* @serializer json list(na="string")
 #' @get /api/entity/<sysndd_id>/publications
 function(sysndd_id) {
@@ -722,7 +727,7 @@ function(sysndd_id) {
 ## Review endpoints
 
 #* @tag review
-## get review list
+#* gets review list
 #* @serializer json list(na="null")
 #' @get /api/review
 function(req, res, `filter[review_approved]` = 0) {
@@ -749,7 +754,7 @@ function(req, res, `filter[review_approved]` = 0) {
 
 
 #* @tag review
-## post or put a new clinical synopsis for a entity_id
+#* posts or puts a new clinical synopsis for a entity_id
 ## example data: {"review_id": 1, "entity_id": 1, "synopsis": "activating, gain-of-function mutations: congenital hypertrichosis, neonatal macrosomia, distinct osteochondrodysplasia, cardiomegaly; activating mutations", "literature": {"additional_references": ["PMID:22608503", "PMID:22610116"], "gene_review": ["PMID:25275207"]}, "phenotypes": {"phenotype_id": ["HP:0000256", "HP:0000924", "HP:0001256", "HP:0001574", "HP:0001627", "HP:0002342"], "modifier_id": [1,1,1,1,1,1]}, "comment": ""}
 #* @serializer json list(na="string")
 #' @post /api/review/create
@@ -919,7 +924,7 @@ function(req, res, review_json) {
 
 
 #* @tag review
-## get a single review by review_id
+#* gets a single review by review_id
 #* @serializer json list(na="null")
 #' @get /api/review/<review_id_requested>
 function(review_id_requested) {
@@ -958,7 +963,7 @@ function(review_id_requested) {
 
 
 #* @tag review
-## get all phenotypes for a review
+#* gets all phenotypes for a review
 #* @serializer json list(na="string")
 #' @get /api/review/<review_id_requested>/phenotypes
 function(review_id_requested) {
@@ -986,7 +991,7 @@ function(review_id_requested) {
 
 
 #* @tag review
-## get all publications for a reviews_id
+#* gets all publications for a reviews_id
 #* @serializer json list(na="string")
 #' @get /api/review/<review_id_requested>/publications
 function(review_id_requested) {
@@ -1012,7 +1017,7 @@ function(review_id_requested) {
 
 
 #* @tag review
-## put the review approvement (only Administrator and Curator status users)
+#* puts the review approvement (only Administrator and Curator status users)
 #* @serializer json list(na="string")
 #' @put /api/review/approve/<review_id_requested>
 function(req, res, review_id_requested, review_ok = FALSE) {
@@ -1106,7 +1111,7 @@ function(req, res, review_id_requested, review_ok = FALSE) {
 ## Re-review endpoints
 
 #* @tag re_review
-## post or put a new clinical synopsis for a entity_id in re-review mode
+#* posts or puts a new clinical synopsis for a entity_id in re-review mode
 ## example data: {"re_review_entity_id":1, "entity_id": 1, "synopsis": "activating, gain-of-function mutations: congenital hypertrichosis, neonatal macrosomia, distinct osteochondrodysplasia, cardiomegaly; activating mutations", "literature": {"additional_references": ["PMID:22608503", "PMID:22610116"], "gene_review": ["PMID:25275207"]}, "phenotypes": {"phenotype_id": ["HP:0000256", "HP:0000924", "HP:0001256", "HP:0001574", "HP:0001627", "HP:0002342"], "modifier_id": [1,1,1,1,1,1]}, "comment": ""}
 #* @serializer json list(na="string")
 #' @post /api/re_review/review
@@ -1424,7 +1429,7 @@ function(req, res, review_json) {
 
 
 #* @tag re_review
-## post a new status for a entity_id in re-review mode
+#* posts a new status for a entity_id in re-review mode
 ## example data:
 ## '{"re_review_entity_id":3,"entity_id":3,"comment":"fsa","problematic": true}'
 #* @serializer json list(na="string")
@@ -1535,7 +1540,7 @@ function(req, res, status_json) {
 
 
 #* @tag re_review
-## put the re-review submission
+#* puts the re-review submission
 ## example data:
 ## {"re_review_entity_id":1, "re_review_submitted":1, "status_id":1, "review_id":1}
 #* @serializer json list(na="string")
@@ -1583,8 +1588,8 @@ function(req, res, submit_json) {
 
 
 #* @tag re_review
-## put a re-review submission back into unsubmitted mode
-## (only Administrator and Curator status users)
+#* puts a re-review submission back into unsubmitted mode
+#* (only Administrator and Curator status users)
 #* @serializer json list(na="string")
 #' @put /api/re_review/unsubmit/<re_review_id>
 function(req, res, re_review_id) {
@@ -1627,7 +1632,8 @@ function(req, res, re_review_id) {
 
 
 #* @tag re_review
-## put the re-review status and review approvement (only Administrator and Curator status users)
+#* puts the re-review status and review approvement
+#* (only Administrator and Curator status users)
 #* @serializer json list(na="string")
 #' @put /api/re_review/approve/<re_review_id>
 function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
@@ -1727,7 +1733,7 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
 
 
 #* @tag re_review
-## get the re-review overview table for the user logged in
+#* gets the re-review overview table for the user logged in
 #* @serializer json list(na="string")
 #' @get /api/re_review_table
 function(req, res, curate=FALSE) {
@@ -1785,7 +1791,7 @@ function(req, res, curate=FALSE) {
 
 
 #* @tag re_review
-## request a new batch of entities to review by mail to curators
+#* requests a new batch of entities to review by mail to curators
 #* @serializer json list(na="string")
 #' @get /api/re_review/batch/apply
 function(req, res) {
@@ -1830,7 +1836,7 @@ function(req, res) {
 
 
 #* @tag re_review
-## put a new re-review batch assignment
+#* puts a new re-review batch assignment
 #* @serializer json list(na="string")
 #' @put /api/re_review/batch/assign
 function(req, res, user_id) {
@@ -1895,7 +1901,7 @@ function(req, res, user_id) {
 
 
 #* @tag re_review
-## delete certain re-review batch assignment
+#* deletes certain re-review batch assignment
 #* @serializer json list(na="string")
 #' @delete /api/re_review/batch/unassign
 function(req, res, re_review_batch) {
@@ -1944,7 +1950,7 @@ function(req, res, re_review_batch) {
 
 
 #* @tag re_review
-## get a summary table of currently assigned re-review batches
+#* gets a summary table of currently assigned re-review batches
 #* @serializer json list(na="string")
 #' @get /api/re_review/assignment_table
 function(req, res) {
@@ -1998,7 +2004,7 @@ function(req, res) {
 ## Publication endpoints
 
 #* @tag publication
-## get a publication by pmid
+#* gets a publication by pmid
 #* @serializer json list(na="string")
 #' @get /api/publication/<pmid>
 function(pmid) {
@@ -2026,7 +2032,7 @@ function(pmid) {
 
 
 #* @tag publication
-## validate if a pmid exists in pubmed
+#* validates if a pmid exists in pubmed
 #* @serializer json list(na="string")
 #' @get /api/publication/validate/<pmid>
 function(req, res, pmid) {
@@ -2046,7 +2052,7 @@ function(req, res, pmid) {
 ## Gene endpoints
 
 #* @tag gene
-## get all genes and associated entities
+#* allows filtering and field selection from all genes and associated entities
 #* @serializer json list(na="string")
 #' @get /api/gene
 function(res,
@@ -2121,7 +2127,7 @@ function(res,
 
 
 #* @tag gene
-## get infos for a single gene by hgnc_id
+#* gets infos for a single gene by hgnc_id
 #* @serializer json list(na="string")
 #' @get /api/gene/<hgnc>
 function(hgnc) {
@@ -2148,7 +2154,7 @@ function(hgnc) {
 
 
 #* @tag gene
-## get infos for a single gene by symbol
+#* gets infos for a single gene by symbol
 #* @serializer json list(na="string")
 #' @get /api/gene/symbol/<symbol>
 function(symbol) {
@@ -2174,7 +2180,7 @@ function(symbol) {
 
 
 #* @tag gene
-## get all entities for a single gene by hgnc_id
+#* gets all entities for a single gene by hgnc_id
 #* @serializer json list(na="string")
 #' @get /api/gene/<hgnc>/entities
 function(hgnc) {
@@ -2194,7 +2200,7 @@ function(hgnc) {
 
 
 #* @tag gene
-## get all entities for a single gene by symbol
+#* gets all entities for a single gene by symbol
 #* @serializer json list(na="string")
 #' @get /api/gene/symbol/<symbol>/entities
 function(symbol) {
@@ -2219,7 +2225,7 @@ function(symbol) {
 ## Ontology endpoints
 
 #* @tag ontology
-## get an ontology entry by disease_ontology_id_version
+#* gets an ontology entry by disease_ontology_id_version
 #* @serializer json list(na="string")
 #' @get /api/ontology/<ontology_id>
 function(ontology_id) {
@@ -2250,7 +2256,7 @@ function(ontology_id) {
 
 
 #* @tag ontology
-## get an ontology entry by disease_ontology_name
+#* gets an ontology entry by disease_ontology_name
 #* @serializer json list(na="string")
 #' @get /api/ontology/name/<ontology_name>
 function(ontology_name) {
@@ -2281,7 +2287,7 @@ function(ontology_name) {
 
 
 #* @tag ontology
-## get all entities for a single disease by ontology_id
+#* gets all entities for a single disease by ontology_id
 #* @serializer json list(na="string")
 #' @get /api/ontology/<ontology_id>/entities
 function(ontology_id) {
@@ -2299,7 +2305,7 @@ function(ontology_id) {
 
 
 #* @tag ontology
-## get all entities for a single disease by ontology_id
+#* gets all entities for a single disease by ontology_id
 #* @serializer json list(na="string")
 #' @get /api/ontology/name/<ontology_name>/entities
 function(ontology_name) {
@@ -2324,7 +2330,7 @@ function(ontology_name) {
 ## Inheritance endpoints
 
 #* @tag inheritance
-## get a inheritance by hpo_id
+#* gets a inheritance by hpo_id
 #* @serializer json list(na="string")
 #' @get /api/inheritance/<hpo>
 function(hpo) {
@@ -2343,7 +2349,7 @@ function(hpo) {
 
 
 #* @tag inheritance
-## get list of all inheritanceterms
+#* gets list of all inheritanceterms
 #* @serializer json list(na="string")
 #' @get /api/inheritance_list
 function() {
@@ -2364,7 +2370,7 @@ function() {
 ## Phenotype endpoints
 
 #* @tag phenotype
-## get a list of entities associated with a list of phenotypes for browsing
+#* gets a list of entities associated with a list of phenotypes for browsing
 #* @serializer json list(na="string")
 #' @get /api/phenotype/entities/browse
 function(res,
@@ -2465,7 +2471,7 @@ function(res,
 
 
 #* @tag phenotype
-## get a list of entities associated with a list of phenotypes for
+#* gets a list of entities associated with a list of phenotypes for
 ## download as Excel file
 #* @serializer contentType list(type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 #' @get /api/phenotype/entities/excel
@@ -2555,7 +2561,7 @@ function(hpo_list = "", logical_operator = "and", res) {
 
 
 #* @tag phenotype
-## get correlation between phenotypes
+#* gets correlation between phenotypes
 #* @serializer json list(na="string")
 #' @get /api/phenotype/correlation
 function() {
@@ -2607,7 +2613,7 @@ function() {
 
 
 #* @tag phenotype
-## get counts phenotypes in annotated entities
+#* gets counts phenotypes in annotated entities
 #* @serializer json list(na="string")
 #' @get /api/phenotype/count
 function() {
@@ -2657,7 +2663,7 @@ function() {
 ## Status endpoints
 
 #* @tag status
-## get status list
+#* gets the status list
 #* @serializer json list(na="null")
 #' @get /api/status
 function(req, res, `filter[status_approved]` = 0) {
@@ -2692,7 +2698,7 @@ function(req, res, `filter[status_approved]` = 0) {
 
 
 #* @tag status
-## get a single status by status_id
+#* gets a single status by status_id
 #* @serializer json list(na="null")
 #' @get /api/status/<status_id_requested>
 function(status_id_requested) {
@@ -2736,7 +2742,7 @@ function(status_id_requested) {
 }
 
 #* @tag status
-## get list of all status
+#* gets a list of all status
 #* @serializer json list(na="string")
 #' @get /api/status_list
 function() {
@@ -2748,7 +2754,7 @@ function() {
 
 
 #* @tag status
-## post a new status for a entity_id or put an update to a certain status_id
+#* posts a new status for a entity_id or put an update to a certain status_id
 ## example data: '{"status_id":3,"entity_id":3,"category_id":1,"comment":"fsa","problematic": true}' (privide status_id for put and entity_id for post reqests)
 #* @serializer json list(na="string")
 #' @post /api/status/create
@@ -2775,7 +2781,8 @@ function(req, res, status_json) {
 
 
 #* @tag status
-## put the status approvement (only Administrator and Curator status users)
+#* puts the status approvement
+#* (only Administrator and Curator status users)
 #* @serializer json list(na="string")
 #' @put /api/status/approve/<status_id_requested>
 function(req, res, status_id_requested, status_ok = FALSE) {
@@ -2840,7 +2847,7 @@ function(req, res, status_id_requested, status_ok = FALSE) {
 ## Panels endpoints
 
 #* @tag panels
-## get list of all panel api options
+#* gets list of all panel api options
 #* @serializer json list(na="string")
 #' @get /api/panels/options
 function() {
@@ -2873,7 +2880,7 @@ function() {
 
 
 #* @tag panels
-## get panel data by cetgory and inheritance terms for browsing
+#* gets panel data by cetgory and inheritance terms for browsing
 #* @serializer json list(na="string")
 #* @param sort Output column to arrange output on (choose from: category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38).
 #* @param filter Comma separated list of filetrs to apply.
@@ -3018,7 +3025,7 @@ function(res,
 
 
 #* @tag panels
-## get panel data by cetgory and inheritance terms for download as Excel file
+#* gets panel data by cetgory and inheritance terms for download as Excel file
 #* @serializer contentType list(type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 #* @param category_input The entity association category to filter.
 #* @param inheritance_input The entity inheritance type to filter.
@@ -3192,7 +3199,7 @@ function(category_input = "Definitive", inheritance_input = "All", output_column
 ## Statistics endpoints
 
 #* @tag statistics
-## get statistics for all genes assoicated with a NDD phenotype by inheritance and assocation category
+#* gets statistics for all genes assoicated with a NDD phenotype by inheritance and assocation category
 #* @serializer json list(na="string")
 #' @get /api/statistics/genes
 function() {
@@ -3242,7 +3249,7 @@ function() {
 
 
 #* @tag statistics
-## get last n entries in definitive category as news
+#* gets last n entries in definitive category as news
 #* @serializer json list(na="string")
 #' @get /api/statistics/news
 function(n = 5) {
@@ -3260,7 +3267,7 @@ function(n = 5) {
 
 
 #* @tag statistics
-## get date of last update
+#* gets date of last update
 #* @serializer json list(na="string")
 #' @get /api/statistics/last_update
 function() {
@@ -3278,8 +3285,7 @@ function() {
 
 
 #* @tag statistics
-## Return interactive plot showing the database entry
-## development over time using plotly
+#* returns plot showing the database entry
 #* @serializer text
 #' @get /api/statistics/entities_plot
 function() {
@@ -3296,7 +3302,7 @@ function() {
 
 
 #* @tag statistics
-## get database entry development over time
+#* gets database entry development over time
 #* @serializer json list(na="string")
 #' @get /api/statistics/entities_over_time
 function(res, aggregate = "entity_id", group = "category") {
@@ -3356,7 +3362,8 @@ function(res, aggregate = "entity_id", group = "category") {
   execution_time <- as.character(paste0(round(end_time - start_time, 2),
   " secs"))
 
-  # add columns to the meta information from generate_cursor_pagination_info function return
+  # add columns to the meta information from
+  # generate_cursor_pagination_info function return
   meta <- as_tibble(list("aggregate" = aggregate,
     "group" = group,
     "max_count" = max(sysndd_db_disease_collected$count),
@@ -3378,7 +3385,7 @@ function(res, aggregate = "entity_id", group = "category") {
 ## Comparisons endpoints
 
 #* @tag comparisons
-## get list of all panel api options
+#* gets list of all panel api options
 #* @serializer json list(na="string")
 #' @get /api/comparisons/options
 function() {
@@ -3398,7 +3405,7 @@ function() {
     # sort so self is top, then the databases with most entries descending
     arrange(desc(self), desc(count)) %>%
     select(list)
-  
+
   inheritance <- ndd_database_comparison_view %>%
     select(inheritance) %>%
     unique() %>%
@@ -3420,14 +3427,14 @@ function() {
     category = category,
     pathogenicity_mode = pathogenicity_mode
   )
-  
+
   # generate object to return
   data
 }
 
 
 #* @tag comparisons
-## Return interactive plot showing intersection between different databases
+#* return plot data showing intersection between different databases
 #* @serializer json list(na="string")
 #' @get /api/comparisons/upset
 function(res, fields = "") {
@@ -3457,14 +3464,14 @@ function(res, fields = "") {
     unique() %>%
     ungroup() %>%
     mutate(sets = strsplit(sets,","))
-  
+
   # generate object to return
   comparison_upset_data
 }
 
 
 #* @tag comparisons
-## get cosine similarity data between different databases
+#* gets cosine similarity data between different databases for plotting
 #* @serializer json list(na="string")
 #' @get /api/comparisons/similarity
 function() {
@@ -3496,7 +3503,8 @@ function() {
 
 
 #* @tag comparisons
-## Return table showing the presence of NDD assoicated genes in different databases
+#* returns a table showing the presence of
+#* NDD associated genes in different databases
 #* @serializer json list(na="string")
 #' @get /api/comparisons/table
 function(res, sort = "symbol", filter = "", fields = "", `page[after]` = "0", `page[size]` = "10") {
@@ -3512,11 +3520,11 @@ function(res, sort = "symbol", filter = "", fields = "", `page[after]` = "0", `p
   # get data from database, filter and restructure
   ndd_database_comparison_view <- pool %>%
     tbl("ndd_database_comparison_view")
-  
+
   sysndd_db_non_alt_loci_set <- pool %>%
     tbl("non_alt_loci_set") %>%
     select(hgnc_id, symbol)
-  
+
   ndd_database_comparison_table  <- ndd_database_comparison_view %>%
     left_join(sysndd_db_non_alt_loci_set, by =c("hgnc_id")) %>%
     collect() %>%
@@ -3565,7 +3573,8 @@ function(res, sort = "symbol", filter = "", fields = "", `page[after]` = "0", `p
 ## Search endpoints
 
 #* @tag search
-## search the entity view by columns entity_id, hgnc_id, symbol, disease_ontology_id_version, disease_ontology_name
+#* searches the entity view by columns entity_id,
+#* hgnc_id, symbol, disease_ontology_id_version, disease_ontology_name
 #* @serializer json list(na="string")
 #' @get /api/search/<searchterm>
 function(searchterm, helper = TRUE) {
@@ -3590,7 +3599,8 @@ function(searchterm, helper = TRUE) {
       search == "entity_id" ~ paste0("/Entities/", results)
     ))
 
-  # change output by helper input to unique values (helper = TRUE) or entities (helper = FALSE)
+  # change output by helper input to unique
+  # values (helper = TRUE) or entities (helper = FALSE)
   if (helper) {
     sysndd_db_entity_search_helper <- sysndd_db_entity_search %>%
       select(-entity_id, -link) %>%
@@ -3603,13 +3613,13 @@ function(searchterm, helper = TRUE) {
   sysndd_db_entity_search_length <- sysndd_db_entity_search_helper %>%
     filter(searchdist < 0.1) %>%
     tally()
-  
+
   if (sysndd_db_entity_search_length$n > 10) {
     return_count <- sysndd_db_entity_search_length$n
   } else {
     return_count <- 10
   }
-  
+
   # check if perfect match exists
   if (sysndd_db_entity_search$searchdist[1] == 0 & is.na(suppressWarnings(as.integer(sysndd_db_entity_search$results[1])))) {
     sysndd_db_entity_search_return <- sysndd_db_entity_search_helper %>%
@@ -3619,7 +3629,8 @@ function(searchterm, helper = TRUE) {
       slice_head(n=return_count)
   }
 
-  # change output by helper input to unique values (helper = TRUE) or entities (helper = FALSE)
+  # change output by helper input to 
+  # unique values (helper = TRUE) or entities (helper = FALSE)
   if (helper) {
     (sysndd_db_entity_search_return %>%
         select(results) %>%
@@ -3631,7 +3642,8 @@ function(searchterm, helper = TRUE) {
 
 
 #* @tag search
-## search the search_disease_ontology_set view by columns disease_ontology_id_version, disease_ontology_name
+#* searches the search_disease_ontology_set view by
+#* columns disease_ontology_id_version, disease_ontology_name
 #* @serializer json list(na="string")
 #' @get /api/search/ontology/<searchterm>
 function(searchterm, tree = FALSE) {
@@ -3649,17 +3661,18 @@ function(searchterm, tree = FALSE) {
   sysndd_db_disease_ontology_set_search_length <- sysndd_db_disease_ontology_set_search %>%
     filter(searchdist < 0.1) %>%
     tally()
-  
+
   if (sysndd_db_disease_ontology_set_search_length$n > 10) {
     return_count <- sysndd_db_disease_ontology_set_search_length$n
   } else {
     return_count <- 10
   }
-  
+
   sysndd_db_disease_ontology_set_search_return <- sysndd_db_disease_ontology_set_search %>%
     slice_head(n=return_count)
 
-  # the "tree" option allows output data to be formated as arrays for the treeselect library
+  # the "tree" option allows output data to be formated
+  # as arrays for the treeselect library
   if (tree) {
     sysndd_db_disease_ontology_set_search_return_helper <- sysndd_db_disease_ontology_set_search_return %>%
       select(id = disease_ontology_id_version, label = result, search, searchdist)
@@ -3676,7 +3689,7 @@ function(searchterm, tree = FALSE) {
 
 
 #* @tag search
-## search the search_non_alt_loci_view table by columns hgnc_id, symbol
+#* searches the search_non_alt_loci_view table by columns hgnc_id, symbol
 #* @serializer json list(na="string")
 #' @get /api/search/gene/<searchterm>
 function(searchterm, tree = FALSE) {
@@ -3694,17 +3707,18 @@ function(searchterm, tree = FALSE) {
   non_alt_loci_set_search_length <- non_alt_loci_set_search %>%
     filter(searchdist < 0.1) %>%
     tally()
-  
+
   if (non_alt_loci_set_search_length$n > 10) {
     return_count <- non_alt_loci_set_search_length$n
   } else {
     return_count <- 10
   }
-  
+
   non_alt_loci_set_search_return <- non_alt_loci_set_search %>%
     slice_head(n=return_count)
 
-  # the "tree" option allows output data to be formated as arrays for the treeselect library
+  # the "tree" option allows output data to be formated
+  # as arrays for the treeselect library
   if (tree) {
     non_alt_loci_set_search_return_helper <- non_alt_loci_set_search_return %>%
       select(id = hgnc_id, label = result, search, searchdist)
@@ -3721,7 +3735,8 @@ function(searchterm, tree = FALSE) {
 
 
 #* @tag search
-## search the search_mode_of_inheritance_list_view table by columns hpo_mode_of_inheritance_term_name, hpo_mode_of_inheritance_term
+#* searches the search_mode_of_inheritance_list_view table by columns
+#* hpo_mode_of_inheritance_term_name, hpo_mode_of_inheritance_term
 #* @serializer json list(na="string")
 #' @get /api/search/inheritance/<searchterm>
 function(searchterm, tree = FALSE) {
@@ -3739,13 +3754,13 @@ function(searchterm, tree = FALSE) {
   mode_of_inheritance_list_search_length <- mode_of_inheritance_list_search %>%
     filter(searchdist < 0.1) %>%
     tally()
-  
+
   if (mode_of_inheritance_list_search_length$n > 10) {
     return_count <- mode_of_inheritance_list_search_length$n
   } else {
     return_count <- 10
   }
-  
+
   mode_of_inheritance_list_search_return <- mode_of_inheritance_list_search %>%
     slice_head(n=return_count)
 
@@ -3773,7 +3788,7 @@ function(searchterm, tree = FALSE) {
 ## List endpoints
 
 #* @tag list
-## get list of all status
+#* gets a list of all status
 #* @serializer json list(na="string")
 #' @get /api/list/status
 function() {
@@ -3791,7 +3806,7 @@ function() {
 
 
 #* @tag list
-## get list of all phenotypes
+#* gets a list of all phenotypes
 #* @serializer json list(na="string")
 #' @get /api/list/phenotype
 function(tree = FALSE) {
@@ -3834,7 +3849,7 @@ function(tree = FALSE) {
 
 
 #* @tag list
-## get list of all variation ontology terms
+#* gets a list of all variation ontology terms
 #* @serializer json list(na="string")
 #' @get /api/list/variation_ontology
 function() {
@@ -3857,21 +3872,21 @@ function() {
 ## User endpoint section
 
 #* @tag user
-## get a summary table of currently assigned re-review batches
+#* gets a summary table of currently assigned re-review batches
 #* @serializer json list(na="string")
 #' @get /api/user/table
 function(req, res) {
-    
+
   user <- req$user_id
-  
+
   # first check rights
   if (length(user) == 0) {
-  
+
     res$status <- 401 # Unauthorized
     return(list(error="Please authenticate."))
 
   } else if (req$user_role %in% c("Administrator")) {
-      
+
     user_table <- pool %>%
       tbl("user") %>%
       select(user_id, user_name, email, orcid, first_name, family_name, comment, terms_agreed, created_at, user_role, approved) %>%
@@ -3879,9 +3894,9 @@ function(req, res) {
 
     # return tibble
     user_table
-    
+
   } else if (req$user_role %in% c("Curator")) {
-      
+
     user_table <- pool %>%
       tbl("user") %>%
       select(user_id, user_name, email, orcid, first_name, family_name, comment, terms_agreed, created_at, user_role, approved) %>%
@@ -3890,7 +3905,7 @@ function(req, res) {
 
     # return tibble
     user_table
-    
+
   } else {
     res$status <- 403 # Forbidden
     return(list(error="Read access forbidden."))
@@ -3899,13 +3914,13 @@ function(req, res) {
 
 
 #* @tag user
-## manage user application approval
+#* manages user application approval
 #' @put /api/user/approval
 function(req, res, user_id = 0, status_approval = FALSE) {
-    
+
   user <- req$user_id
   user_id_approval <- as.integer(user_id)
-  
+
   status_approval <- as.logical(status_approval)
 
   #check if user_id_approval exists and is not allready approved
@@ -3919,12 +3934,12 @@ function(req, res, user_id = 0, status_approval = FALSE) {
 
   # first check rights
   if (length(user) == 0) {
-  
+
     res$status <- 401 # Unauthorized
     return(list(error="Please authenticate."))
 
   } else if (req$user_role %in% c("Administrator", "Curator") & !user_id_approval_exists) {
-  
+
     res$status <- 409 # Conflict
     return(list(error="User account does not exist."))
 
@@ -3982,7 +3997,7 @@ function(req, res, user_id = 0, status_approval = FALSE) {
 
 
 #* @tag user
-## manage user application approval
+#* manages user application approval
 #' @put /api/user/change_role
 function(req, res, user_id, role_assigned = "Viewer") {
   user <- req$user_id
@@ -4028,7 +4043,7 @@ function(req, res, user_id, role_assigned = "Viewer") {
 
 
 #* @tag user
-## get list of all available user status options
+#* gets a list of all available user status options
 #' @get /api/user/role_list
 function(req, res) {
 
@@ -4061,7 +4076,7 @@ function(req, res) {
 
 
 #* @tag user
-## get list of users based having a role
+#* gets a list of users based having a role
 #' @get /api/user/list
 function(req, res, roles = "Viewer") {
 
@@ -4097,7 +4112,7 @@ function(req, res, roles = "Viewer") {
       select(user_id, user_name, user_role) %>%
       collect()
     user_table_roles
-    
+
   } else {
     res$status <- 403 # Forbidden
     return(list(error="Read access forbidden."))
@@ -4106,10 +4121,10 @@ function(req, res, roles = "Viewer") {
 
 
 #* @tag user
-## change user password
+#* changes the user password
 #' @put /api/user/password/change
 function(req, res, user_id_pass_change = 0, old_pass = "", new_pass_1 = "", new_pass_2 = "") {
-    
+
   user <- req$user_id
   user_id_pass_change <- as.integer(user_id_pass_change)
 
@@ -4180,7 +4195,7 @@ function(req, res, user_id_pass_change = 0, old_pass = "", new_pass_1 = "", new_
 
 
 #* @tag user
-## request password reset
+#* request password reset
 #' @get /api/user/password/reset/request
 function(req, res, email_request = "") {
 
@@ -4251,7 +4266,7 @@ function(req, res, email_request = "") {
 
 
 #* @tag user
-## do password reset
+#* does password reset
 #' @get /api/user/password/reset/change
 function(req, res, new_pass_1 = "", new_pass_2 = "") {
 
@@ -4260,7 +4275,7 @@ function(req, res, new_pass_1 = "", new_pass_2 = "") {
 
   # load secret and convert to raw
   key <- charToRaw(dw$secret)
-    
+
   user_jwt <- jwt_decode_hmac(jwt, secret = key)
   user_jwt$token_expired <- (user_jwt$exp < as.numeric(Sys.time()))
 
@@ -4324,7 +4339,7 @@ function(req, res, new_pass_1 = "", new_pass_2 = "") {
 ## Authentication section
 
 #* @tag authentication
-## authentication create user
+#* manages user signup
 ## example data: {"user_name":"nextuser21", "first_name":"Mark", "family_name":"Sugar", "email":"bernt.popp.md2@gmail.com", "orcid":"0001-0002-3679-1081", "comment":"I love research", "terms_agreed":"accepted"}
 #* @serializer json list(na="string")
 #' @get /api/auth/signup
@@ -4384,7 +4399,7 @@ function(signup_data) {
 
 
 #* @tag authentication
-## authentication login user
+#* does user login
 ## based on https://github.com/jandix/sealr/blob/master/examples/jwt_simple_example.R
 #* @serializer json list(na="string")
 #' @get /api/auth/authenticate
@@ -4429,8 +4444,9 @@ function(req, res, user_name, password) {
 
 
 #* @tag authentication
-#* @get /api/auth/signin
+#* does user authentication
 #* @serializer json list(na="string")
+#' @get /api/auth/signin
 function(req, res) {
   # load secret and convert to raw
   key <- charToRaw(dw$secret)
@@ -4451,8 +4467,9 @@ function(req, res) {
 
 
 #* @tag authentication
-#* @get /api/auth/refresh
+#* does authentication refresh
 #* @serializer json list(na="string")
+#' @get /api/auth/refresh
 function(req, res) {
   # load secret and convert to raw
   key <- charToRaw(dw$secret)
