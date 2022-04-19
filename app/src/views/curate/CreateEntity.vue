@@ -16,7 +16,7 @@
                 Create new entity
               </h6>
             </template>
-                            <b-input-group-append>
+                  <b-input-group-append>
                     <b-button 
                       size="sm"
                       @click="infoEntity()" 
@@ -396,17 +396,23 @@ export default {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/entity/create?create_json=';
 
           // define entity specific attributes as constants from inputs
-          const entity_hgnc_id = this.gene_search[this.gene_input][0].hgnc_id;
-          const entity_disease_ontology_id_version = this.ontology_search[this.ontology_input][0].disease_ontology_id_version;
-          const entity_hpo_mode_of_inheritance_term = this.inheritance_search[this.inheritance_input][0].hpo_mode_of_inheritance_term;
+          const entity_hgnc_id = this.gene_input;
+          const entity_disease_ontology_id_version = this.ontology_input;
+          const entity_hpo_mode_of_inheritance_term = this.inheritance_input;
           const entity_ndd_phenotype = this.NDD_options[this.NDD_selected][0].boolean_id;
 
           // define literature specific attributes as constants from inputs
           const new_literature = new this.Literature(this.literature_review, this.genereviews_review);
 
           // define phenotype specific attributes as constants from inputs
-          const new_phenotype = new this.Phenotype(this.phenotypes_review);
-          console.log(this.phenotypes_review);
+
+
+
+          const new_phenotype = this.phenotypes_review.map(item => {
+              return new this.Phenotype(item.split('-')[1], item.split('-')[0]);
+            });
+ 
+
           console.log(new_phenotype);
 
           // define variation ontology specific attributes as constants from inputs
