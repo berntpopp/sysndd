@@ -23,11 +23,14 @@ import { BIconPersonCircle,
   BIconTable,
   BIconDownload,
   BIconClipboardCheck,
+  BIconClipboardPlus,
   BIconQuestionCircleFill,
   BIconCheckSquare,
   BIconQuestionSquare,
   BIconPlusSquare,
-  BIconFileEarmarkMinus} from 'bootstrap-vue'
+  BIconFileEarmarkMinus,
+  BIconLink,
+  BIconGear} from 'bootstrap-vue'
 
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
@@ -75,11 +78,14 @@ Vue.component("BIconBoxArrowUpRight", BIconBoxArrowUpRight)
 Vue.component("BIconTable", BIconTable)
 Vue.component("BIconDownload", BIconDownload)
 Vue.component("BIconClipboardCheck", BIconClipboardCheck)
+Vue.component("BIconClipboardPlus", BIconClipboardPlus)
 Vue.component("BIconQuestionCircleFill", BIconQuestionCircleFill)
 Vue.component("BIconCheckSquare", BIconCheckSquare)
 Vue.component("BIconQuestionSquare", BIconQuestionSquare)
 Vue.component("BIconPlusSquare", BIconPlusSquare)
 Vue.component("BIconFileEarmarkMinus", BIconFileEarmarkMinus)
+Vue.component("BIconLink", BIconLink)
+Vue.component("BIconGear", BIconGear)
 
 // register vue-meta globally
 Vue.use(VueMeta, {

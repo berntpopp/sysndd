@@ -70,12 +70,36 @@
 
           <!-- Navbar Curation dropdown -->
           <b-nav-item-dropdown v-if="user && curate" text="Curation">
-            <b-dropdown-item href="/CreateEntity">Create entity</b-dropdown-item>
-            <b-dropdown-item href="/ModifyEntity">Modify entity</b-dropdown-item>
-            <b-dropdown-item href="/ApproveReview">Approve review</b-dropdown-item>
-            <b-dropdown-item href="/ApproveStatus">Approve status</b-dropdown-item>
-            <b-dropdown-item href="/ApproveUser">Approve user</b-dropdown-item>
-            <b-dropdown-item href="/ManageReReview">Manage re-review</b-dropdown-item>
+            <b-dropdown-item href="/CreateEntity">
+              <b-icon icon="plus-square" font-scale="1.0"></b-icon> 
+              <b-icon icon="link" font-scale="1.0"></b-icon> 
+              Create entity
+            </b-dropdown-item>
+            <b-dropdown-item href="/ModifyEntity">
+              <b-icon icon="pen" font-scale="1.0"></b-icon> 
+              <b-icon icon="link" font-scale="1.0"></b-icon> 
+              Modify entity
+            </b-dropdown-item>
+            <b-dropdown-item href="/ApproveReview">
+              <b-icon icon="check" font-scale="1.0"></b-icon> 
+              <b-icon icon="clipboard-plus" font-scale="1.0"></b-icon> 
+              Approve review
+            </b-dropdown-item>
+            <b-dropdown-item href="/ApproveStatus">
+              <b-icon icon="check" font-scale="1.0"></b-icon> 
+              <b-icon icon="stoplights" font-scale="1.0"></b-icon> 
+              Approve status
+            </b-dropdown-item>
+            <b-dropdown-item href="/ApproveUser">
+              <b-icon icon="check" font-scale="1.0"></b-icon> 
+              <b-icon icon="person-circle" font-scale="1.0"></b-icon> 
+              Approve user
+            </b-dropdown-item>
+            <b-dropdown-item href="/ManageReReview">
+              <b-icon icon="gear" font-scale="1.0"></b-icon> 
+              <b-icon icon="clipboard-check" font-scale="1.0"></b-icon> 
+              Manage re-review
+            </b-dropdown-item>
           </b-nav-item-dropdown>
 
           <b-nav-item v-if="user && review" href="/Review">Review</b-nav-item>
