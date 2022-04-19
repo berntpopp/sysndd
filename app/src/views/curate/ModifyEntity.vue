@@ -16,41 +16,9 @@
                 Modify an existing entity
               </h6>
             </template>
-
-            <b-container fluid>
-              <form ref="form" @submit.stop.prevent="handleSubmit">
-
-          <b-row>
-            <!-- column 1 -->
-            <b-col class="my-1">
-
-            </b-col>
-
-            <!-- column 2 -->
-            <b-col class="my-1">
-
-            </b-col>
-
-            <!-- column 3 -->
-            <b-col class="my-1">
-              
-            </b-col>
-
-            <!-- column 4 -->
-            <b-col class="my-1">
-              
-            </b-col>
-
-            <!-- column 5 -->
-            <b-col class="my-1">
-              
-            </b-col>
-          </b-row>
-
-
-              </form>
-            </b-container>
           </b-card>
+          <!-- User Interface controls -->
+
 
         </b-col>
       </b-row>
@@ -63,7 +31,7 @@
 <script>
 
 export default {
-  name: 'NewEntity',
+  name: 'ApproveStatus',
     data() {
       return {
       };
