@@ -206,7 +206,7 @@ function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = 0, `
 
   # get entity data from database
   # '!!!' in filter needed to evaluate formula for any/ all cases (https://stackoverflow.com/questions/66070864/operating-across-columns-rowwise-in-r-dbplyr)
-  sysndd_db_disease_table <- pool %>% 
+  sysndd_db_disease_table <- pool %>%
     tbl("ndd_entity_view") %>%
     left_join(ndd_entity_review, by = c("entity_id")) %>%
     collect() %>%
@@ -249,20 +249,20 @@ function(res, sort = "entity_id", filter = "", fields = "", `page[after]` = 0, `
 function(req, res, create_json) {
 
   # first check rights
-  if ( req$user_role %in% c("Administrator", "Curator") ) {
-  
+  if (req$user_role %in% c("Administrator", "Curator")) {
+
     entry_user_id <- req$user_id
     review_user_id <- req$user_id
     status_user_id <- req$user_id
 
     create_data <- fromJSON(create_json)
-    
+
     ##-------------------------------------------------------------------##
     # block to post new entity
     response_entity <- PostDatabaseEntity(create_data$entity$hgnc_id, create_data$entity$hpo_mode_of_inheritance_term, create_data$entity$disease_ontology_id_version, create_data$entity$ndd_phenotype, entry_user_id)
     ##-------------------------------------------------------------------##
 
-    if ( response_entity$status == 200 ) {
+    if (response_entity$status == 200) {
     ##-------------------------------------------------------------------##
     # block to post new review for posted entity
       ##-------------------------------------------------------------------##
@@ -284,8 +284,8 @@ function(req, res, create_json) {
       }
 
       # convert sysnopsis to tibble, check if comment is null and handle
-      if ( !is.null(create_data$review$comment) ) {
-        sysnopsis_received <- as_tibble(create_data$review$synopsis) %>% 
+      if (!is.null(create_data$review$comment)) {
+        sysnopsis_received <- as_tibble(create_data$review$synopsis) %>%
           add_column(response_entity$entry$entity_id) %>% 
           add_column(create_data$review$comment) %>% 
           add_column(review_user_id) %>% 
@@ -876,18 +876,18 @@ function(req, res, review_id_requested, review_ok = FALSE) {
 #' @put /api/re_review/review
 function(req, res, review_json) {
   # first check rights
-  if ( req$user_role %in% c("Administrator", "Curator", "Reviewer") ) {
+  if (req$user_role %in% c("Administrator", "Curator", "Reviewer")) {
         
     review_user_id <- req$user_id
     review_data <- fromJSON(review_json)
 
-    if ( !is.null(review_data$synopsis) & !is.null(review_data$entity_id) & nchar(review_data$synopsis) > 0 ) {
+    if (!is.null(review_data$synopsis) & !is.null(review_data$entity_id) & nchar(review_data$synopsis) > 0) {
 
       # convert phenotypes to tibble
       phenotypes_received <- as_tibble(review_data$phenotypes)
 
       # convert publications to tibble
-      if ( length(compact(review_data$literature)) > 0 ) {
+      if (length(compact(review_data$literature)) > 0) {
         publications_received <- bind_rows(as_tibble(compact(review_data$literature$additional_references)), as_tibble(compact(review_data$literature$gene_review)), .id = "publication_type") %>% 
           select(publication_id = value, publication_type) %>%
           mutate(publication_type = case_when(
@@ -903,7 +903,7 @@ function(req, res, review_json) {
       }
 
       # convert sysnopsis to tibble, check if comment is null and handle
-      if ( !is.null(review_data$comment) ) {
+      if (!is.null(review_data$comment)) {
         sysnopsis_received <- as_tibble(review_data$synopsis) %>% 
           add_column(review_data$entity_id) %>% 
           add_column(review_data$comment) %>% 
@@ -927,7 +927,7 @@ function(req, res, review_json) {
       # check if received phenoytpes are in allowed phenotypes
       phenoytpes_allowed <- all(phenotypes_received$phenotype_id %in% phenotype_list_collected$phenotype_id)
       
-      if ( !phenoytpes_allowed ) {
+      if (!phenoytpes_allowed) {
         res$status <- 400
         res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
         status = 400,
@@ -939,7 +939,7 @@ function(req, res, review_json) {
 
       ##-------------------------------------------------------------------##
       # check request type and perform database update accordingly
-      if ( req$REQUEST_METHOD == "POST") {
+      if (req$REQUEST_METHOD == "POST") {
         ##-------------------------------------------------------------------##
         ## for the post request we connect to the database and then add new publications, the new synopsis and then associate the synopis with phenotypes and publications
         # connect to database
@@ -994,7 +994,7 @@ function(req, res, review_json) {
         dbDisconnect(sysndd_db)
         ##-------------------------------------------------------------------##
         
-      } else if ( req$REQUEST_METHOD == "PUT") {
+      } else if (req$REQUEST_METHOD == "PUT") {
         ##-------------------------------------------------------------------##
         ## for the put request we first find the review_id saved in the re_review, delete associated phenotype and publication connections and publications associated only in that review then proceed to update the review and make new connections
         
@@ -1108,15 +1108,15 @@ function(req, res, review_json) {
 #' @put /api/re_review/status
 function(req, res, status_json) {
   # first check rights
-  if ( req$user_role %in% c("Administrator", "Curator", "Reviewer") ) {
+  if (req$user_role %in% c("Administrator", "Curator", "Reviewer")) {
         
     status_user_id <- req$user_id
     status_data <- fromJSON(status_json)
 
-    if ( !is.null(status_data$category) | !is.null(status_data$problematic)) {
+    if (!is.null(status_data$category) | !is.null(status_data$problematic)) {
 
       # convert status data to tibble, check if comment is null and handle
-      if ( !is.null(status_data$comment) ) {
+      if (!is.null(status_data$comment)) {
         status_received <- as_tibble(status_data) %>% 
           add_column(status_user_id) %>% 
           select(-re_review_entity_id)
@@ -1128,7 +1128,7 @@ function(req, res, status_json) {
       }
 
       # check request type and perform database update accoringly
-      if ( req$REQUEST_METHOD == "POST") {
+      if (req$REQUEST_METHOD == "POST") {
         # connect to database
         sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
@@ -1143,7 +1143,7 @@ function(req, res, status_json) {
     
         # disconnect from database
         dbDisconnect(sysndd_db)
-      } else if ( req$REQUEST_METHOD == "PUT") {
+      } else if (req$REQUEST_METHOD == "PUT") {
         # get the status_id using the re_review_entity_id
         status_id <- (pool %>% 
           tbl("re_review_entity_connect") %>%
@@ -1189,7 +1189,7 @@ function(req, res, status_json) {
 #' @put /api/re_review/submit
 function(req, res, submit_json) {
   # first check rights
-  if ( req$user_role %in% c("Administrator", "Curator", "Reviewer") ) {
+  if (req$user_role %in% c("Administrator", "Curator", "Reviewer")) {
         
     submit_user_id <- req$user_id
     submit_data <- fromJSON(submit_json)
@@ -1224,12 +1224,12 @@ function(req, res, submit_json) {
 #' @put /api/re_review/unsubmit/<re_review_id>
 function(req, res, re_review_id) {
   # first check rights
-  if ( length(req$user_id) == 0) {
+  if (length(req$user_id) == 0) {
   
     res$status <- 401 # Unauthorized
     return(list(error="Please authenticate."))
 
-  } else if ( req$user_role %in% c("Administrator", "Curator") ) {
+  } else if (req$user_role %in% c("Administrator", "Curator")) {
         
     submit_user_id <- req$user_id
     re_review_id <- as.integer(re_review_id)
@@ -1259,12 +1259,12 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
   review_ok <- as.logical(review_ok)
   
   # first check rights
-  if ( length(req$user_id) == 0) {
+  if (length(req$user_id) == 0) {
   
     res$status <- 401 # Unauthorized
     return(list(error="Please authenticate."))
 
-  } else if ( req$user_role %in% c("Administrator", "Curator") ) {
+  } else if (req$user_role %in% c("Administrator", "Curator")) {
         
     submit_user_id <- req$user_id
     re_review_id <- as.integer(re_review_id)
@@ -1279,7 +1279,7 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
     sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
 
     # set status if confirmed
-    if ( status_ok ) {
+    if (status_ok) {
       # reset all stati in ndd_entity_status to inactive
       dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status SET is_active = 0 WHERE entity_id = ", re_review_entity_connect_data$entity_id, ";"))
 
@@ -1294,7 +1294,7 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
     }
 
     # set review if confirmed
-    if ( review_ok ) {
+    if (review_ok) {
       # reset all reviews in ndd_entity_review to not primary
       dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET is_primary = 0 WHERE entity_id = ", re_review_entity_connect_data$entity_id, ";"))
 
@@ -1330,12 +1330,12 @@ function(req, res, curate=FALSE) {
   curate <- as.logical(curate)
 
   # first check rights
-  if ( length(req$user_id) == 0) {
+  if (length(req$user_id) == 0) {
   
     res$status <- 401 # Unauthorized
     return(list(error="Please authenticate."))
 
-  } else if ( (req$user_role %in% c("Administrator", "Curator", "Reviewer") & !curate ) | (req$user_role %in% c("Administrator", "Curator") & curate ) ) {
+  } else if ((req$user_role %in% c("Administrator", "Curator", "Reviewer") & !curate ) | (req$user_role %in% c("Administrator", "Curator") & curate)) {
             
     user <- req$user_id
 
@@ -1453,17 +1453,17 @@ function(req, res, user_id) {
   assignment_table <- tibble("user_id" = user_id_assign, "re_review_batch" = re_review_batch_next)
 
   # first check rights
-  if ( length(user) == 0 ) {
+  if (length(user) == 0) {
   
     res$status <- 401 # Unauthorized
     return(list(error="Please authenticate."))
 
-  } else if ( req$user_role %in% c("Administrator", "Curator") & !user_id_assign_exists) {
+  } else if (req$user_role %in% c("Administrator", "Curator") & !user_id_assign_exists) {
   
     res$status <- 409 # Conflict
     return(list(error="User account does not exist."))
     
-  } else if ( req$user_role %in% c("Administrator", "Curator") & user_id_assign_exists) {
+  } else if (req$user_role %in% c("Administrator", "Curator") & user_id_assign_exists) {
 
     # connect to database, append assignment table then disconnect
     sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
@@ -1495,17 +1495,17 @@ function(req, res, re_review_batch) {
   re_review_batch_unassign_exists <- as.logical(length(re_review_assignment_table$re_review_batch))
 
   # first check rights
-  if ( length(user) == 0 ) {
+  if (length(user) == 0 ) {
   
     res$status <- 401 # Unauthorized
     return(list(error="Please authenticate."))
 
-  } else if ( req$user_role %in% c("Administrator", "Curator") & !re_review_batch_unassign_exists) {
+  } else if (req$user_role %in% c("Administrator", "Curator") & !re_review_batch_unassign_exists) {
   
     res$status <- 409 # Conflict
     return(list(error="Batch does not exist."))
     
-  } else if ( req$user_role %in% c("Administrator", "Curator") & re_review_batch_unassign_exists) {
+  } else if (req$user_role %in% c("Administrator", "Curator") & re_review_batch_unassign_exists) {
 
     # connect to database, delete assignment then disconnect
     sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password, server = dw$server, host = dw$host, port = dw$port)
@@ -1528,12 +1528,12 @@ function(req, res) {
   user <- req$user_id
   
   # first check rights
-  if ( length(user) == 0 ) {
+  if (length(user) == 0) {
   
     res$status <- 401 # Unauthorized
     return(list(error="Please authenticate."))
 
-  } else if ( req$user_role %in% c("Administrator", "Curator") ) {
+  } else if (req$user_role %in% c("Administrator", "Curator")) {
 
     re_review_entity_connect_table <- pool %>% 
       tbl("re_review_entity_connect") %>%
@@ -1961,7 +1961,7 @@ function(hpo_list = "", logical_operator = "and", res) {
     unique()
 
   # get data from database and filter
-  if ( logical_operator == "and" ) {
+  if (logical_operator == "and") {
     entity_list_from_phenotype_list_collected <- pool %>% 
       tbl("ndd_review_phenotype_connect") %>%
       filter(phenotype_id %in% hpo_list) %>%
@@ -1987,7 +1987,7 @@ function(hpo_list = "", logical_operator = "and", res) {
       collect() %>%
       filter(entity_id %in% entity_list_from_phenotype_list_collected$entity_id) %>%
       arrange(entity_id)
-  } else if ( logical_operator == "or" ) {
+  } else if (logical_operator == "or") {
     entity_list_from_phenotype_list_collected <- pool %>% 
       tbl("ndd_review_phenotype_connect") %>%
       filter(phenotype_id %in% hpo_list) %>%
@@ -2214,7 +2214,7 @@ function() {
 #' @put /api/status/update
 function(req, res, status_json) {
   # first check rights
-  if ( req$user_role %in% c("Administrator", "Curator") ) {
+  if (req$user_role %in% c("Administrator", "Curator")) {
         
     status_data <- fromJSON(status_json)
     
@@ -2238,12 +2238,12 @@ function(req, res, status_id_requested, status_ok = FALSE) {
   status_ok <- as.logical(status_ok)
   
   # first check rights
-  if ( length(req$user_id) == 0) {
+  if (length(req$user_id) == 0) {
   
     res$status <- 401 # Unauthorized
     return(list(error="Please authenticate."))
 
-  } else if ( req$user_role %in% c("Administrator", "Curator") ) {
+  } else if (req$user_role %in% c("Administrator", "Curator")) {
         
     submit_user_id <- req$user_id
     status_id_requested <- as.integer(status_id_requested)

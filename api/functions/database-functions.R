@@ -1,3 +1,5 @@
+## database interaction functions
+
 PostDatabaseEntity <- function(hgnc_id,
   hpo_mode_of_inheritance_term,
   disease_ontology_id_version,
