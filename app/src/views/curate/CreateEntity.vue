@@ -16,18 +16,22 @@
                 Create new entity
               </h6>
             </template>
-                  <b-input-group-append>
-                    <b-button 
-                      size="sm"
-                      @click="infoEntity()" 
-                    >
-                      <b-icon icon="plus-square" class="mx-1"></b-icon>
-                      Create new entity
-                    </b-button>
-                  </b-input-group-append>
 
             <b-container fluid>
-              <form ref="form" @submit.stop.prevent="handleSubmit">
+
+              <validation-observer ref="observer" v-slot="{ handleSubmit }">
+              <b-form ref="form" @submit.stop.prevent="handleSubmit(infoEntity)">
+
+          <b-input-group-append>
+            <b-button 
+              size="sm"
+              type="submit" 
+              variant="dark"
+            >
+              <b-icon icon="plus-square" class="mx-1"></b-icon>
+              Create new entity
+            </b-button>
+          </b-input-group-append>
 
           <b-row>
             <!-- column 1 -->
@@ -40,6 +44,7 @@
                 :async="true"
                 :load-options="loadGeneInfoTree"
                 v-model="gene_input"
+                required
               />
 
             </b-col>
@@ -54,6 +59,7 @@
                 :async="true"
                 :load-options="loadOntologyInfoTree"
                 v-model="ontology_input"
+                required
               />
 
             </b-col>
@@ -68,6 +74,7 @@
                 :async="true"
                 :load-options="loadInheritanceInfoTree"
                 v-model="inheritance_input"
+                required
               />
 
             </b-col>
@@ -81,6 +88,7 @@
                 :options="Object.keys(NDD_options)"
                 v-model="NDD_selected"
                 size="sm"
+                required
               >
               </b-form-select>
             </b-col>
@@ -94,6 +102,7 @@
                 :options="Object.keys(status_options)"
                 v-model="status_selected"
                 size="sm"
+                required
               >
               </b-form-select>
             </b-col>
@@ -102,13 +111,22 @@
           <!-- Sysnopsis input -->
           <label class="mr-sm-2 font-weight-bold" for="textarea-synopsis">Synopsis</label>
 
+            <validation-provider
+              name="validation-synopsis"
+              :rules="{ required: true, min: 10, max: 2000 }"
+              v-slot="validationContext"
+            >
+
             <b-form-textarea
               id="textarea-synopsis"
               rows="3"
               size="sm" 
               v-model="synopsis_review"
+              :state="getValidationState(validationContext)"
             >
             </b-form-textarea>
+
+            </validation-provider>
           <!-- Sysnopsis input -->
 
           <!-- Phenotype select -->
@@ -120,11 +138,11 @@
               :flat="true"
               :options="phenotypes_options"
               :normalizer="normalizePhenotypes"
+              required
             />
-              
-          <!-- Variation ontology select -->
-
           <!-- Phenotype select -->
+
+          <!-- Variation ontology select -->
           <label class="mr-sm-2 font-weight-bold" for="phenotype-select">Variation ontology</label>
 
             <treeselect 
@@ -132,6 +150,7 @@
               :multiple="true" 
               :options="variation_ontology_options"
               :normalizer="normalizeVariationOntology"
+              required
             />
               
           <!-- Variation ontology select -->
@@ -140,7 +159,7 @@
             <label class="mr-sm-2 font-weight-bold" for="publications-select">Publications</label>
 
               <!-- publications tag form with links out -->
-              <b-form-tags 
+              <b-form-tags
               input-id="literature-select"
               v-model="literature_review" 
               no-outer-focus 
@@ -264,7 +283,8 @@
           </b-form-textarea>
           <!-- Review comments -->
 
-              </form>
+              </b-form>
+              </validation-observer>
             </b-container>
           </b-card>
 
@@ -296,10 +316,10 @@ export default {
         phenotypes_review: [],
         variation_ontology_options: [],
         variation_ontology_review: [],
-        synopsis_review: '',
+        synopsis_review: "",
         literature_review: [],
         genereviews_review: [],
-        review_comment: '',
+        review_comment: "",
         status_options: [],
         status_selected: null,
         NDD_options: {"No": [{"boolean_id": 0, "logical": "FALSE"}], "Yes": [{"boolean_id": 1, "logical": "TRUE"}]},
@@ -312,6 +332,9 @@ export default {
       this.loadStatusList();
     },
     methods: {
+        getValidationState({ dirty, validated, valid = null }) {
+          return dirty || validated ? valid : null;
+        },
         async loadPhenotypesList() {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/list/phenotype?tree=true';
           try {

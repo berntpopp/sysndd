@@ -428,7 +428,7 @@
           </template>
 
           <b-container fluid>
-              <form ref="form" @submit.stop.prevent="handleSubmit">
+              <b-form ref="form" @submit.stop.prevent="handleSubmit">
 
               <b-input-group class="mb-2">
                 <b-form-input 
@@ -468,7 +468,7 @@
                 </b-form-datalist>
               </b-input-group>
 
-              </form>
+              </b-form>
           </b-container>
       </b-modal>
       <!-- New Entity modal -->

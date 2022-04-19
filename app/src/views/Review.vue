@@ -121,7 +121,7 @@
                 class="mr-1 btn-xs"
                 variant="secondary"
                 v-b-tooltip.hover.left 
-                title="new review"
+                title="edit review"
                 >
                   <b-icon 
                   icon="pen"
@@ -304,7 +304,7 @@
       </b-container>
       <b-container fluid v-else>
 
-        <form ref="form" @submit.stop.prevent="handleSubmit">
+        <b-form ref="form" @submit.stop.prevent="handleSubmit">
 
             <!-- small entity table in review modal -->
             <b-table
@@ -587,7 +587,7 @@
             placeholder="Additional comments to this entity relevant for the curator."
           >
           </b-form-textarea>
-        </form>
+        </b-form>
       </b-container>
       </b-modal>
       <!-- 1) Review modal -->
@@ -631,7 +631,7 @@
           </div>
         </template>
 
-        <form ref="form" @submit.stop.prevent="handleSubmit">
+        <b-form ref="form" @submit.stop.prevent="handleSubmit">
           <label class="mr-sm-2 font-weight-bold" for="status-select">Status</label>
           <b-icon 
             icon="stoplights-fill"
@@ -666,7 +666,7 @@
             placeholder="Why should this entities status be changed."
           >
           </b-form-textarea>
-        </form>
+        </b-form>
       </b-modal>
       <!-- 2) Status modal -->
 
