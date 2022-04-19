@@ -495,91 +495,6 @@ function(req, res, create_json) {
 
 
 #* @tag entity
-#* deletes an entity
-#* @serializer json list(na="string")
-#' @delete /api/entity/delete
-function(sysndd_id, req, res) {
-
-  if (req$user_role == "Administrator"){
-  sysndd_id <- as.integer(sysndd_id)
-  # connect to database
-  sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-    dbname = dw$dbname,
-    user = dw$user,
-    password = dw$password,
-    server = dw$server,
-    host = dw$host,
-    port = dw$port)
-
-  dbExecute(sysndd_db, paste0("DELETE FROM ndd_review_phenotype_connect ",
-    "WHERE entity_id = ",
-    sysndd_id,
-    ";"))
-  dbExecute(sysndd_db, paste0("DELETE FROM ndd_review_publication_join ",
-    "WHERE entity_id = ",
-    sysndd_id,
-    ";"))
-  dbExecute(sysndd_db, paste0("DELETE FROM ndd_entity_status ",
-    "WHERE entity_id = ",
-    sysndd_id,
-    ";"))
-  dbExecute(sysndd_db, paste0("DELETE FROM ndd_entity_review ",
-    "WHERE entity_id = ",
-    sysndd_id,
-    ";"))
-  dbExecute(sysndd_db, paste0("DELETE FROM ndd_entity ",
-    "WHERE entity_id = ",
-    sysndd_id,
-    ";"))
-
-  dbDisconnect(sysndd_db)
-  res <- "Entry deleted."
-  } else {
-    res$status <- 401 # Unauthorized
-  }
-}
-
-
-#* @tag entity
-#* updates an entity
-#* @serializer json list(na="string")
-#' @put /api/entity/update
-function(sysndd_id, entity_data) {
-
-  sysndd_id <- as.integer(sysndd_id)
-
-  update_query <- as_tibble(fromJSON(entity_data)) %>%
-  select(hgnc_id,
-    hpo_mode_of_inheritance_term,
-    disease_ontology_id_version,
-    ndd_phenotype) %>%
-  mutate(row = row_number()) %>%
-  pivot_longer(-row) %>%
-  mutate(query = paste0(name, "='", value, "'")) %>%
-  select(query) %>%
-  summarise(query = str_c(query, collapse = ", "))
-
-  # connect to database
-  sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-    dbname = dw$dbname,
-    user = dw$user,
-    password = dw$password,
-    server = dw$server,
-    host = dw$host,
-    port = dw$port)
-
-  dbExecute(sysndd_db,
-    paste0("UPDATE ndd_entity SET ",
-      update_query,
-      " WHERE entity_id = ",
-      sysndd_id,
-      ";"))
-
-  dbDisconnect(sysndd_db)
-}
-
-
-#* @tag entity
 #* gets a single entity
 #* @serializer json list(na="string")
 #' @get /api/entity/<sysndd_id>
@@ -669,29 +584,6 @@ function(sysndd_id) {
     inner_join(entity_status_categories_coll, by=c("category_id")) %>%
     select(entity_id, category, category_id, status_date) %>%
     arrange(status_date)
-}
-
-
-#* @tag entity
-#* posts a new status for a entity_id
-## example data: {"category_id":"1", "status_user_id":"1"}
-#* @serializer json list(na="string")
-#' @post /api/entity/<sysndd_id>/status
-function(sysndd_id, category_in) {
-
-  # connect to database
-  sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-    dbname = dw$dbname,
-    user = dw$user,
-    password = dw$password,
-    server = dw$server,
-    host = dw$host,
-    port = dw$port)
-
-  new_status <- as_tibble(fromJSON(category_in)) %>%
-    add_column(sysndd_id) %>%
-    select(entity_id = sysndd_id, category_id, status_user_id)
-  dbAppendTable(sysndd_db, "ndd_entity_status", new_status)
 }
 
 
