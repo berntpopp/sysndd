@@ -313,14 +313,11 @@ function(req, res, create_json) {
     status_user_id <- req$user_id
 
     create_data <- fromJSON(create_json)
+    create_data$entity$entry_user_id <- entry_user_id
 
     ##-------------------------------------------------------------------##
     # block to post new entity
-    response_entity <- PostDatabaseEntity(create_data$entity$hgnc_id,
-      create_data$entity$hpo_mode_of_inheritance_term,
-      create_data$entity$disease_ontology_id_version,
-      create_data$entity$ndd_phenotype,
-      entry_user_id)
+    response_entity <- PostDatabaseEntity(create_data$entity)
     ##-------------------------------------------------------------------##
 
     if (response_entity$status == 200) {
@@ -504,7 +501,7 @@ function(req, res, rename_json) {
   # first check rights
   if (req$user_role %in% c("Administrator", "Curator")) {
 
-    entry_user_id <- req$user_id
+    new_entry_user_id <- req$user_id
 
     rename_data <- fromJSON(rename_json)
 
@@ -520,6 +517,7 @@ function(req, res, rename_json) {
     ndd_entity_replaced <- ndd_entity_original %>%
         mutate(disease_ontology_id_version =
           rename_data$entity$disease_ontology_id_version) %>%
+          mutate(entry_user_id = new_entry_user_id) %>%
         select(-entity_id)
     ##-------------------------------------------------------------------##
 
@@ -533,11 +531,7 @@ function(req, res, rename_json) {
         ##-------------------------------------------------------------------##
         # block to post new entity using PostDatabaseEntity function
         # this returns the new entity_id
-        response_new_entity <- PostDatabaseEntity(ndd_entity_replaced$hgnc_id,
-        ndd_entity_replaced$hpo_mode_of_inheritance_term,
-        ndd_entity_replaced$disease_ontology_id_version,
-        ndd_entity_replaced$ndd_phenotype,
-        entry_user_id)
+        response_new_entity <- PostDatabaseEntity(ndd_entity_replaced)
         ##-------------------------------------------------------------------##
 
         ##-------------------------------------------------------------------##

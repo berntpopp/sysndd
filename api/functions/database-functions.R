@@ -1,25 +1,22 @@
 ## database interaction functions
 
-PostDatabaseEntity <- function(hgnc_id,
-  hpo_mode_of_inheritance_term,
-  disease_ontology_id_version,
-  ndd_phenotype, entry_user_id) {
-  if (!is.null(hgnc_id) &
-    !is.null(hpo_mode_of_inheritance_term) &
-    !is.null(disease_ontology_id_version) &
-    !is.null(ndd_phenotype)
+## to do: remove all singular arguments, they should be one object instead
+PostDatabaseEntity <- function(entity_data) {
+
+  if (!is.null(entity_data$hgnc_id) &
+    !is.null(entity_data$hpo_mode_of_inheritance_term) &
+    !is.null(entity_data$disease_ontology_id_version) &
+    !is.null(entity_data$ndd_phenotype) &
+    !is.null(entity_data$entry_user_id)
     ) {
     ##-------------------------------------------------------------------##
     # block to convert the entity components into tibble
-    entity_received <- as_tibble(hgnc_id) %>%
-      add_column(hpo_mode_of_inheritance_term) %>%
-      add_column(disease_ontology_id_version) %>%
-      add_column(ndd_phenotype) %>%
-      add_column(entry_user_id) %>%
-      select(hgnc_id = value,
+    entity_received <- as_tibble(entity_data) %>%
+      select(hgnc_id,
         hpo_mode_of_inheritance_term,
         disease_ontology_id_version,
-        ndd_phenotype, entry_user_id
+        ndd_phenotype,
+        entry_user_id
         )
     ##-------------------------------------------------------------------##
 
@@ -569,7 +566,7 @@ PutPostDatabaseVarOntCon <- function(request_method,
   ##-------------------------------------------------------------------##
 }
 
-
+## to do: remove status_user_id, it should be in status_data instead
 PutPostDatabaseStatus <- function(request_method,
   status_data,
   status_user_id) {
