@@ -21,8 +21,13 @@
 
             <b-card
               class="my-2"
-              title="1. Select an entity"
             >
+
+            <template #header>
+              <h6 class="mb-1 text-left font-weight-bold">
+                1. Select an entity
+              </h6>
+            </template>
 
               <b-row>
                 <b-col class="my-1">
@@ -31,7 +36,7 @@
                     id="entity-select" 
                     :multiple="false"
                     :async="true"
-                    :load-options="loadEntityInfo"
+                    :load-options="searchEntityInfo"
                     v-model="entity_input"
                     :normalizer="normalizer"
                     required
@@ -44,9 +49,17 @@
 
             <b-card
               class="my-2"
-              title="2. Options to modify the above selected entity"
               v-if="entity_input"
             >
+
+            <template #header>
+              <h6 class="mb-1 text-left font-weight-bold">
+                2. Options to modify the selected entity
+                <b-badge variant="primary">
+                 sysndd:{{ entity_input }}
+                </b-badge>
+              </h6>
+            </template>
 
               <b-row>
                 <b-col class="my-1">
@@ -54,6 +67,7 @@
                     <b-button 
                       size="sm"
                       variant="dark"
+                      @click="showEntityRename()"
                     >
                       <b-icon icon="pen" font-scale="1.0"></b-icon> 
                       <b-icon icon="link" font-scale="1.0"></b-icon> 
@@ -67,6 +81,7 @@
                     <b-button 
                       size="sm"
                       variant="dark"
+                      v-b-modal.deactivateModal
                     >
                       <b-icon icon="x" font-scale="1.0"></b-icon> 
                       <b-icon icon="link" font-scale="1.0"></b-icon> 
@@ -80,6 +95,7 @@
                     <b-button 
                       size="sm"
                       variant="dark"
+                      v-b-modal.modifyReviewModal
                     >
                       <b-icon icon="pen" font-scale="1.0"></b-icon> 
                       <b-icon icon="clipboard-plus" font-scale="1.0"></b-icon> 
@@ -93,6 +109,7 @@
                     <b-button 
                       size="sm"
                       variant="dark"
+                      v-b-modal.modifyStatusModal
                     >
                       <b-icon icon="pen" font-scale="1.0"></b-icon> 
                       <b-icon icon="stoplights" font-scale="1.0"></b-icon> 
@@ -108,6 +125,89 @@
 
         </b-col>
       </b-row>
+
+
+      <!-- Rename disease modal -->
+      <b-modal 
+      id="renameModal" 
+      ref="renameModal" 
+      size="lg" 
+      centered 
+      ok-title="Submit" 
+      no-close-on-esc 
+      no-close-on-backdrop 
+      header-bg-variant="dark" 
+      header-text-variant="light"
+      title="Rename entity disease"
+      @ok="submitEntityRename"
+      >
+        <p class="my-4">Select a new disease name:</p>
+
+        <treeselect
+          id="ontology-select" 
+          :multiple="false"
+          :async="true"
+          :load-options="loadOntologyInfoTree"
+          v-model="ontology_input"
+          required
+        />
+        
+      </b-modal>
+      <!-- Rename disease modal -->
+
+
+      <!-- Deactivate entity modal -->
+      <b-modal 
+      id="deactivateModal" 
+      ref="deactivateModal" 
+      size="lg" 
+      centered 
+      ok-title="Submit" 
+      no-close-on-esc 
+      no-close-on-backdrop 
+      header-bg-variant="dark" 
+      header-text-variant="light"
+      title="Deactivate entity"
+      >
+        <p class="my-4">Are you sure that you want to deactivate this entity?</p>
+      </b-modal>
+      <!-- Deactivate entity modal -->
+
+
+      <!-- Modify review modal -->
+      <b-modal 
+      id="modifyReviewModal" 
+      ref="modifyReviewModal" 
+      size="lg" 
+      centered 
+      ok-title="Submit" 
+      no-close-on-esc 
+      no-close-on-backdrop 
+      header-bg-variant="dark" 
+      header-text-variant="light"
+      title="Modify review for entity"
+      >
+        <p class="my-4">Inputs to modify review data</p>
+      </b-modal>
+      <!-- Modify review modal -->
+
+
+      <!-- Modify status modal -->
+      <b-modal 
+      id="modifyStatusModal" 
+      ref="modifyStatusModal" 
+      size="lg" 
+      centered 
+      ok-title="Submit" 
+      no-close-on-esc 
+      no-close-on-backdrop 
+      header-bg-variant="dark" 
+      header-text-variant="light"
+      title="Modify status for entity"
+      >
+        <p class="my-4">Inputs to modify status data</p>
+      </b-modal>
+      <!-- Modify status modal -->
 
     </b-container>
   </div>
@@ -128,12 +228,14 @@ export default {
     data() {
       return {
         entity_input: null,
+        ontology_input: null,
+        entity_info: null,
       };
     },
     mounted() {
     },
     methods: {
-        async loadEntityInfo({searchQuery, callback}) {
+        async searchEntityInfo({searchQuery, callback}) {
           let apiSearchURL = process.env.VUE_APP_API_URL + '/api/entity?filter=contains(any,' + searchQuery + ')';
 
           try {
@@ -144,12 +246,114 @@ export default {
             console.error(e);
             }
         },
+        async getEntity() {
+          let apiSearchURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(entity_id,' + this.entity_input + ')';
+
+          try {
+            let response = await this.axios.get(apiSearchURL);
+
+            // compose entity
+            this.entity_info = new this.Entity(response.data.data[0].hgnc_id, response.data.data[0].disease_ontology_id_version, response.data.data[0].hpo_mode_of_inheritance_term, response.data.data[0].ndd_phenotype, response.data.data[0].entity_id);
+
+            } catch (e) {
+            console.error(e);
+            }
+        },
         normalizer(node) {
           return {
             id: node.entity_id,
             label: "sysndd:" + node.entity_id + " (" + node.symbol + " - " + node.disease_ontology_id_version + " - " + node.hpo_mode_of_inheritance_term_name + ")",
           }
         },
+        async loadOntologyInfoTree({searchQuery, callback}) {
+          let apiSearchURL = process.env.VUE_APP_API_URL + '/api/search/ontology/' + searchQuery + '?tree=true';
+
+          try {
+            let response_search = await this.axios.get(apiSearchURL);
+            callback(null, response_search.data);
+            } catch (e) {
+            console.error(e);
+            }
+        },
+        showEntityRename() {
+          this.getEntity();
+          this.$refs['renameModal'].show();
+        },
+        async submitEntityRename() {
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/entity/rename?rename_json=';
+
+          // assign new disease_ontology_id
+          this.entity_info.disease_ontology_id_version = this.ontology_input;
+
+          // compose submission
+          const submission = new this.Submission(this.entity_info);
+
+          try {
+            let submission_json = JSON.stringify(submission);
+            console.log(submission_json);
+
+            let response = await this.axios.post(apiUrl + submission_json, {}, {
+               headers: {
+                 'Authorization': 'Bearer ' + localStorage.getItem('token')
+               }
+             });
+
+            this.makeToast('The new disease name for this entity has been submitted ' + '(status ' + response.status + ' (' + response.statusText + ').', 'Success', 'success');
+            this.resetForm();
+
+          } catch (e) {
+            this.makeToast(e, 'Error', 'danger');
+          }
+        },
+        resetForm() {
+          this.entity_input = null;
+          this.ontology_input = null;
+          this.entity_info = null;
+        },
+        makeToast(event, title = null, variant = null) {
+            this.$bvToast.toast('' + event, {
+              title: title,
+              toaster: 'b-toaster-top-right',
+              variant: variant,
+              solid: true
+            })
+        },
+// these object constructor functions should go in a mixin
+// https://learnvue.co/2019/12/how-to-manage-mixins-in-vuejs/#the-solution-vuejs-mixins
+Submission(entity, review, status) {
+      this.entity = entity;
+      this.review = review;
+      this.status = status;
+    },
+// to do: adapt this elsewhere to contain entity_id and make it optional
+Entity(hgnc_id, disease_ontology_id_version, hpo_mode_of_inheritance_term, ndd_phenotype, entity_id) {
+      this.hgnc_id = hgnc_id;
+      this.disease_ontology_id_version = disease_ontology_id_version;
+      this.hpo_mode_of_inheritance_term = hpo_mode_of_inheritance_term;
+      this.ndd_phenotype = ndd_phenotype;
+      this.entity_id = entity_id;
+    },
+Review(synopsis, literature, phenotypes, variation_ontology, comment) {
+      this.synopsis = synopsis;
+      this.literature = literature;
+      this.phenotypes = phenotypes;
+      this.variation_ontology = variation_ontology;
+      this.comment = comment;
+    },
+Status(category_id, comment, problematic) {
+      this.category_id = category_id;
+      this.comment = comment;
+      this.problematic = problematic;
+    },
+Phenotype(phenotype_id, modifier_id) {
+      this.phenotype_id = phenotype_id;
+      this.modifier_id = modifier_id;
+    },
+Literature(additional_references, gene_review) {
+      this.additional_references = additional_references;
+      this.gene_review = gene_review;
+    },
+// these functions should go in a mixin
     }
     };
 </script>
