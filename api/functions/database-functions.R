@@ -574,7 +574,7 @@ PutPostDatabaseStatus <- function(request_method,
   status_data,
   status_user_id) {
 
-    if (!is.null(status_data$category) | !is.null(status_data$problematic)) {
+    if (!is.null(status_data$category_id) | !is.null(status_data$problematic)) {
 
       # convert status data to tibble, check if comment is null and handle
       if (!is.null(status_data$comment)) {
