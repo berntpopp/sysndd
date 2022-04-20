@@ -1,11 +1,11 @@
 ## database interaction functions
 
 PostDatabaseEntity <- function(entity_data) {
-  if (!is.null(entity_data$hgnc_id) &
-    !is.null(entity_data$hpo_mode_of_inheritance_term) &
-    !is.null(entity_data$disease_ontology_id_version) &
-    !is.null(entity_data$ndd_phenotype) &
-    !is.null(entity_data$entry_user_id)
+  if ("hgnc_id" %in% colnames(entity_data) &
+      "hpo_mode_of_inheritance_term" %in% colnames(entity_data) &
+      "disease_ontology_id_version" %in% colnames(entity_data) &
+      "ndd_phenotype" %in% colnames(entity_data) &
+      "entry_user_id" %in% colnames(entity_data)
     ) {
     ##-------------------------------------------------------------------##
     # block to convert the entity components into tibble
@@ -553,10 +553,11 @@ PutPostDatabaseVarOntCon <- function(request_method,
 
 PutPostDatabaseStatus <- function(request_method,
   status_data) {
-    if (!is.null(status_data$category_id) | !is.null(status_data$problematic)) {
+    if ("category_id" %in% colnames(status_data) |
+        "problematic" %in% colnames(status_data)) {
 
       # convert status data to tibble, check if comment is null and handle
-      if (!is.null(status_data$comment)) {
+      if ("comment" %in% colnames(status_data)) {
         status_received <- as_tibble(status_data)
       } else {
         status_data$comment <- ""
@@ -565,7 +566,8 @@ PutPostDatabaseStatus <- function(request_method,
       }
 
       # check request type and perform database update accoringly
-      if (request_method == "POST" & !is.null(status_data$entity_id)) {
+      if (request_method == "POST" &
+          "entity_id" %in% colnames(status_data)) {
         # remove status_id if provided as input
         status_received <- tryCatch({
           status_received %>%
@@ -594,7 +596,8 @@ PutPostDatabaseStatus <- function(request_method,
         # return OK
         return(list(status=200, message="OK. Entry created."))
 
-      } else if (request_method == "PUT" & !is.null(status_data$status_id)) {
+      } else if (request_method == "PUT" &
+                "status_id" %in% colnames(status_data)) {
         # remove entity_id if provided from status_received and
         # remove status_id to prepare update query
         status_received <- tryCatch({
