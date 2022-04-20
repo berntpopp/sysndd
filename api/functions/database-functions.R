@@ -80,13 +80,55 @@ PostDatabaseEntity <- function(hgnc_id,
 }
 
 
+# This function is used to deactivate an entity
+# and set it's replacement if applicable
+PutDatabaseEntityDeactivation <- function(entity_id,
+  replacement = "NULL") {
+  if (!is.null(entity_id)
+    ) {
+    ##-------------------------------------------------------------------##
+    # connect to database
+    sysndd_db <- dbConnect(RMariaDB::MariaDB(),
+    dbname = dw$dbname,
+    user = dw$user,
+    password = dw$password,
+    server = dw$server,
+    host = dw$host,
+    port = dw$port
+    )
+
+    # perform the review update
+    dbExecute(sysndd_db, paste0("UPDATE ndd_entity SET ",
+    "is_active = 0, ",
+    "replaced_by = ",
+    replacement,
+    " WHERE entity_id = ",
+    entity_id,
+    ";")
+    )
+
+    # disconnect from database
+    dbDisconnect(sysndd_db)
+
+    # return OK
+    return(list(status=200, message="OK. Entity deactivated.", entry=entity_id))
+    ##-------------------------------------------------------------------##
+
+  } else {
+    # return Bad Request
+    return(list(status=405,
+      message="Submitted entity_id can not be empty.")
+      )
+  }
+}
+
+
 PutPostDatabaseReview <- function(request_method,
   synopsis,
   comment,
   review_user_id,
   entity_id,
-  review_id = NULL
-  ) {
+  review_id = NULL) {
   if (!is.null(synopsis) & !is.null(entity_id) & nchar(synopsis) > 0) {
     ##-------------------------------------------------------------------##
     # block to convert the review components
@@ -213,8 +255,7 @@ PutPostDatabaseReview <- function(request_method,
 PutPostDatabasePubCon <- function(request_method,
   publication_data,
   entity_id,
-  review_id
-  ) {
+  review_id) {
   ##-------------------------------------------------------------------##
   # get publication_ids present in table
   publication_list_collected <- pool %>%
@@ -320,8 +361,7 @@ PutPostDatabasePubCon <- function(request_method,
 PutPostDatabasePhenCon <- function(request_method,
   phenotypes_data,
   entity_id,
-  review_id
-  ) {
+  review_id) {
   ##-------------------------------------------------------------------##
   # get allowed HPO terms
   phenotype_list_collected <- pool %>%
@@ -426,8 +466,7 @@ PutPostDatabasePhenCon <- function(request_method,
 PutPostDatabaseVarOntCon <- function(request_method,
   variation_ontology_data,
   entity_id,
-  review_id
-  ) {
+  review_id) {
   ##-------------------------------------------------------------------##
   # get allowed variation ontology terms
   variation_ontology_list <- pool %>%
@@ -531,7 +570,9 @@ PutPostDatabaseVarOntCon <- function(request_method,
 }
 
 
-PutPostDatabaseStatus <- function(request_method, status_data, status_user_id) {
+PutPostDatabaseStatus <- function(request_method,
+  status_data,
+  status_user_id) {
 
     if (!is.null(status_data$category) | !is.null(status_data$problematic)) {
 
