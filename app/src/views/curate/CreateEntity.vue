@@ -10,6 +10,7 @@
           <b-card 
           header-tag="header"
           bg-variant="light"
+          align="left"
           >
             <template #header>
               <h6 class="mb-1 text-left font-weight-bold">
@@ -34,23 +35,23 @@
           </b-input-group-append>
 
 
-      <!-- Submission check modal -->
-      <b-modal 
-      id="submissionModal" 
-      ref="submissionModal" 
-      size="lg" 
-      centered 
-      ok-title="Submit" 
-      no-close-on-esc 
-      no-close-on-backdrop 
-      header-bg-variant="dark" 
-      header-text-variant="light"
-      title="Check entity submission"
-      @ok="submitEntity"
-      >
-        <p class="my-4">Are you sure you want to submit this entity?</p>
-      </b-modal>
-      <!-- Submission check modal -->
+          <!-- Submission check modal -->
+          <b-modal 
+          id="submissionModal" 
+          ref="submissionModal" 
+          size="lg" 
+          centered 
+          ok-title="Submit" 
+          no-close-on-esc 
+          no-close-on-backdrop 
+          header-bg-variant="dark" 
+          header-text-variant="light"
+          title="Check entity submission"
+          @ok="submitEntity"
+          >
+            <p class="my-4">Are you sure you want to submit this entity?</p>
+          </b-modal>
+          <!-- Submission check modal -->
 
 
           <b-row>
