@@ -382,10 +382,7 @@ function(req, res, create_json) {
       # the review to the database table and receive an review_id
       response_review <- PutPostDatabaseReview(
         "POST",
-        sysnopsis_received$synopsis,
-        sysnopsis_received$comment,
-        sysnopsis_received$review_user_id,
-        sysnopsis_received$entity_id)
+        sysnopsis_received)
 
       # make the publictaion to review connections
       # using the function "PutPostDatabasePubCon"
@@ -551,6 +548,12 @@ function(req, res, rename_json) {
             collect() %>%
             filter(entity_id == rename_data$entity$entity_id, is_primary == 1)
 
+        # replace entity_id in ndd_entity_status_original tibble
+        ndd_entity_review_replaced <- ndd_entity_review_original %>%
+          mutate(entity_id = response_new_entity$entry$entity_id) %>%
+          select(-review_id)
+
+        # get all connections for review
         ndd_review_publication_join_original <- pool %>%
             tbl("ndd_review_publication_join") %>%
             collect() %>%
@@ -571,65 +574,63 @@ function(req, res, rename_json) {
 
         # use the "PutPostDatabaseReview" function to add the
         # review to the database table with the new entity_id and receive
-        # an review_id for subsequent connection settings
-        response_review <- PutPostDatabaseReview("POST",
-            ndd_entity_review_original$synopsis,
-            ndd_entity_review_original$comment,
-            ndd_entity_review_original$review_user_id,
-            response_new_entity$entry$entity_id)
+        # a review_id for subsequent connection settings
+        response_review <- PutPostDatabaseReview(
+          "POST",
+          ndd_entity_review_replaced)
 
         # make the publictaion to review connections
         # using the function "PutPostDatabasePubCon"
         response_publication_connections <- PutPostDatabasePubCon(
-        "POST",
-        ndd_review_publication_join_original,
-        as.integer(response_new_entity$entry$entity_id),
-        as.integer(response_review$entry$review_id))
+          "POST",
+          ndd_review_publication_join_original,
+          as.integer(response_new_entity$entry$entity_id),
+          as.integer(response_review$entry$review_id))
 
         # make the phenotype to review connections
         # using the function "response_phenotype_connections"
         response_phenotype_connections <- PutPostDatabasePhenCon(
-        "POST",
-        ndd_review_phenotype_connect_original,
-        as.integer(response_new_entity$entry$entity_id),
-        as.integer(response_review$entry$review_id))
+          "POST",
+          ndd_review_phenotype_connect_original,
+          as.integer(response_new_entity$entry$entity_id),
+          as.integer(response_review$entry$review_id))
 
         # make the variation ontology to review connections
         # using the function "PutPostDatabaseVarOntCon"
         response_variation_ontology_conn <- PutPostDatabaseVarOntCon(
-        "POST",
-        ndd_review_variation_ontology_connect_original,
-        as.integer(response_new_entity$entry$entity_id),
-        as.integer(response_review$entry$review_id))
+          "POST",
+          ndd_review_variation_ontology_connect_original,
+          as.integer(response_new_entity$entry$entity_id),
+          as.integer(response_review$entry$review_id))
 
         # compute aggregated review response
         response_review_post <- as_tibble(response_review) %>%
-        bind_rows(as_tibble(response_publication_connections)) %>%
-        bind_rows(as_tibble(response_phenotype_connections)) %>%
-        bind_rows(as_tibble(response_variation_ontology_conn)) %>%
-        select(status, message) %>%
-        unique() %>%
-        mutate(status = max(status)) %>%
-        mutate(message = str_c(message, collapse = "; "))
+          bind_rows(as_tibble(response_publication_connections)) %>%
+          bind_rows(as_tibble(response_phenotype_connections)) %>%
+          bind_rows(as_tibble(response_variation_ontology_conn)) %>%
+          select(status, message) %>%
+          unique() %>%
+          mutate(status = max(status)) %>%
+          mutate(message = str_c(message, collapse = "; "))
         ##-------------------------------------------------------------------##
 
         ##-------------------------------------------------------------------##
         # block to post new status for posted entity
         # get the original status data for the submitted old entity_id
         ndd_entity_status_original <- pool %>%
-            tbl("ndd_entity_status") %>%
-            collect() %>%
-            filter(entity_id == rename_data$entity$entity_id, is_active == 1)
+          tbl("ndd_entity_status") %>%
+          collect() %>%
+          filter(entity_id == rename_data$entity$entity_id, is_active == 1)
 
         # replace entity_id in ndd_entity_status_original tibble
         ndd_entity_status_replaced <- ndd_entity_status_original %>%
-            mutate(entity_id = response_new_entity$entry$entity_id) %>%
-            select(-status_id)
+          mutate(entity_id = response_new_entity$entry$entity_id) %>%
+          select(-status_id)
 
         # use the PutPostDatabaseStatus function to
         # add the status to the database table
         response_status_post <- PutPostDatabaseStatus("POST",
-        ndd_entity_status_replaced)
+          ndd_entity_status_replaced)
         ##-------------------------------------------------------------------##
 
         ##-------------------------------------------------------------------##
@@ -890,10 +891,7 @@ function(req, res, review_json) {
         # review to the database table and receive an review_id
         response_review <- PutPostDatabaseReview(
           req$REQUEST_METHOD,
-          sysnopsis_received$synopsis,
-          sysnopsis_received$comment,
-          sysnopsis_received$review_user_id,
-          sysnopsis_received$entity_id)
+          sysnopsis_received)
 
         # make the publictaion to review connections using the
         # function "PutPostDatabasePubCon"
@@ -929,14 +927,15 @@ function(req, res, review_json) {
         # use the "new_publication function" to update the publications table
         response_publication <- new_publication(publications_received)
 
-        # use the "PutPostDatabaseReview" function to add the
+        # first add the review_id from the received
+        # review_data to the sysnopsis_received tibble
+        sysnopsis_received$review_id <- review_data$review_id
+
+        # then use the "PutPostDatabaseReview" function to add the
         # review to the database table and receive an review_id
-        response_review <- PutPostDatabaseReview(req$REQUEST_METHOD,
-          sysnopsis_received$synopsis,
-          sysnopsis_received$comment,
-          sysnopsis_received$review_user_id,
-          sysnopsis_received$entity_id,
-          review_data$review_id)
+        response_review <- PutPostDatabaseReview(
+          req$REQUEST_METHOD,
+          sysnopsis_received)
 
         # make the publictaion to review connections using
         # the function "PutPostDatabasePubCon"

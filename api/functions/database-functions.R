@@ -1,7 +1,6 @@
 ## database interaction functions
 
 PostDatabaseEntity <- function(entity_data) {
-
   if (!is.null(entity_data$hgnc_id) &
     !is.null(entity_data$hpo_mode_of_inheritance_term) &
     !is.null(entity_data$disease_ontology_id_version) &
@@ -120,33 +119,18 @@ PutDatabaseEntityDeactivation <- function(entity_id,
 
 
 PutPostDatabaseReview <- function(request_method,
-  synopsis,
-  comment,
-  review_user_id,
-  entity_id,
-  review_id = NULL) {
-  if (!is.null(synopsis) & !is.null(entity_id) & nchar(synopsis) > 0) {
+  review_data) {
     ##-------------------------------------------------------------------##
-    # block to convert the review components
-    # into independent tibbles and validate
-    # convert sysnopsis to tibble, check if comment is null and handle
-    if (!is.null(comment)) {
-      sysnopsis_received <- as_tibble(synopsis) %>%
-        add_column(entity_id) %>%
-        add_column(comment) %>%
-        add_column(review_user_id) %>%
-        select(entity_id, synopsis = value, review_user_id, comment)
-    } else {
-      sysnopsis_received <- as_tibble(synopsis) %>%
-        add_column(entity_id) %>%
-        add_column(review_user_id) %>%
-        select(entity_id, synopsis = value, review_user_id, comment = NULL)
-    }
+    # convert sysnopsis to tibble
+    sysnopsis_received <- as_tibble(review_data)
     ##-------------------------------------------------------------------##
+  if (("synopsis" %in% colnames(sysnopsis_received)) &
+      ("entity_id" %in% colnames(sysnopsis_received)) &
+      nchar(sysnopsis_received$synopsis) > 0) {
 
     ##-------------------------------------------------------------------##
     # check request type and perform database update accordingly
-    if (request_method == "POST" & is.null(review_id)) {
+    if (request_method == "POST" & !("review_id" %in% colnames(review_data))) {
       ##-------------------------------------------------------------------##
       ## for the post request we connect
       ## to the database and then add the new synopsis
@@ -178,7 +162,8 @@ PutPostDatabaseReview <- function(request_method,
         entry=submitted_review_id)
         )
       ##-------------------------------------------------------------------##
-    } else if (request_method == "PUT" & !is.null(review_id)) {
+    } else if (request_method == "PUT" &
+               ("review_id" %in% colnames(review_data))) {
       ##-------------------------------------------------------------------##
       ## for the put request we update the review and set it's status to 0
       # generate update query, we remove entity_id
