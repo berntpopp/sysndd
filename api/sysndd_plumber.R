@@ -495,6 +495,183 @@ function(req, res, create_json) {
 
 
 #* @tag entity
+#* renames an entity
+## example data: rename_json <- '{"entity": {"entity_id":"2477", "hgnc_id":"HGNC:12766", "disease_ontology_id_version":"OMIM:619695", "hpo_mode_of_inheritance_term":"HP:0000006", "ndd_phenotype":"1"}}'
+#* @serializer json list(na="string")
+#' @post /api/entity/rename
+function(req, res, rename_json) {
+
+  # first check rights
+  if (req$user_role %in% c("Administrator", "Curator")) {
+
+    entry_user_id <- req$user_id
+
+    rename_data <- fromJSON(rename_json)
+
+    ##-------------------------------------------------------------------##
+    # get information for submitted old entity_id
+    ndd_entity_original <- pool %>%
+        tbl("ndd_entity") %>%
+        collect() %>%
+        filter(entity_id == rename_data$entity$entity_id)
+
+    # replace disease_ontology_id_version in ndd_entity
+    # original tibble and select entity_id
+    ndd_entity_replaced <- ndd_entity_original %>%
+        mutate(disease_ontology_id_version =
+          rename_data$entity$disease_ontology_id_version) %>%
+        select(-entity_id)
+    ##-------------------------------------------------------------------##
+
+    if (rename_data$entity$hgnc_id == ndd_entity_replaced$hgnc_id &&
+        rename_data$entity$hpo_mode_of_inheritance_term ==
+          ndd_entity_replaced$hpo_mode_of_inheritance_term &&
+        rename_data$entity$ndd_phenotype == ndd_entity_replaced$ndd_phenotype &&
+        rename_data$entity$disease_ontology_id_version !=
+          ndd_entity_original$disease_ontology_id_version) {
+
+        ##-------------------------------------------------------------------##
+        # block to post new entity using PostDatabaseEntity function
+        # this returns the new entity_id
+        response_new_entity <- PostDatabaseEntity(ndd_entity_replaced$hgnc_id,
+        ndd_entity_replaced$hpo_mode_of_inheritance_term,
+        ndd_entity_replaced$disease_ontology_id_version,
+        ndd_entity_replaced$ndd_phenotype,
+        entry_user_id)
+        ##-------------------------------------------------------------------##
+
+        ##-------------------------------------------------------------------##
+        # deactivate the old entity_id and set replacement using
+        # the PutDatabaseEntityDeactivation function
+        response_deactivate <- PutDatabaseEntityDeactivation(
+          ndd_entity_original$entity_id,
+          response_new_entity$entry$entity_id)
+        ##-------------------------------------------------------------------##
+
+        ##-------------------------------------------------------------------##
+        # block to copy all review info from old entity to new one
+        # get the original review data for the submitted old entity_id
+        ndd_entity_review_original <- pool %>%
+            tbl("ndd_entity_review") %>%
+            collect() %>%
+            filter(entity_id == rename_data$entity$entity_id, is_primary == 1)
+
+        ndd_review_publication_join_original <- pool %>%
+            tbl("ndd_review_publication_join") %>%
+            collect() %>%
+            filter(review_id == ndd_entity_review_original$review_id) %>%
+            select(publication_id, publication_type)
+
+        ndd_review_phenotype_connect_original <- pool %>%
+            tbl("ndd_review_phenotype_connect") %>%
+            collect() %>%
+            filter(review_id == ndd_entity_review_original$review_id) %>%
+            select(phenotype_id, modifier_id)
+
+        ndd_review_variation_ontology_connect_original <- pool %>%
+            tbl("ndd_review_variation_ontology_connect") %>%
+            collect() %>%
+            filter(review_id == ndd_entity_review_original$review_id) %>%
+            select(vario_id)
+
+        # use the "PutPostDatabaseReview" function to add the
+        # review to the database table with the new entity_id and receive
+        # an review_id for subsequent connection settings
+        response_review <- PutPostDatabaseReview("POST",
+            ndd_entity_review_original$synopsis,
+            ndd_entity_review_original$comment,
+            ndd_entity_review_original$review_user_id,
+            response_new_entity$entry$entity_id)
+
+        # make the publictaion to review connections
+        # using the function "PutPostDatabasePubCon"
+        response_publication_connections <- PutPostDatabasePubCon(
+        "POST",
+        ndd_review_publication_join_original,
+        as.integer(response_new_entity$entry$entity_id),
+        as.integer(response_review$entry$review_id))
+
+        # make the phenotype to review connections
+        # using the function "response_phenotype_connections"
+        response_phenotype_connections <- PutPostDatabasePhenCon(
+        "POST",
+        ndd_review_phenotype_connect_original,
+        as.integer(response_new_entity$entry$entity_id),
+        as.integer(response_review$entry$review_id))
+
+        # make the variation ontology to review connections
+        # using the function "PutPostDatabaseVarOntCon"
+        response_variation_ontology_conn <- PutPostDatabaseVarOntCon(
+        "POST",
+        ndd_review_variation_ontology_connect_original,
+        as.integer(response_new_entity$entry$entity_id),
+        as.integer(response_review$entry$review_id))
+
+        # compute aggregated review response
+        response_review_post <- as_tibble(response_review) %>%
+        bind_rows(as_tibble(response_publication_connections)) %>%
+        bind_rows(as_tibble(response_phenotype_connections)) %>%
+        bind_rows(as_tibble(response_variation_ontology_conn)) %>%
+        select(status, message) %>%
+        unique() %>%
+        mutate(status = max(status)) %>%
+        mutate(message = str_c(message, collapse = "; "))
+        ##-------------------------------------------------------------------##
+
+        ##-------------------------------------------------------------------##
+        # block to post new status for posted entity
+        # get the original status data for the submitted old entity_id
+        ndd_entity_status_original <- pool %>%
+            tbl("ndd_entity_status") %>%
+            collect() %>%
+            filter(entity_id == rename_data$entity$entity_id, is_active == 1)
+
+        # replace entity_id in ndd_entity_status_original tibble
+        ndd_entity_status_replaced <- ndd_entity_status_original %>%
+            mutate(entity_id = response_new_entity$entry$entity_id) %>%
+            select(-status_id, -status_user_id)
+
+        # use the PutPostDatabaseStatus function to
+        # add the status to the database table
+        response_status_post <- PutPostDatabaseStatus("POST",
+        ndd_entity_status_replaced,
+        ndd_entity_status_original$status_user_id)
+        ##-------------------------------------------------------------------##
+
+        ##-------------------------------------------------------------------##
+        # block to compute response
+        if (response_new_entity$status == 200 &
+        response_review_post$status == 200 &
+        response_status_post$status == 200) {
+        res$status <- response_new_entity$status
+        return(response_new_entity)
+        } else {
+        response <- as_tibble(response_new_entity) %>%
+            bind_rows(as_tibble(response_review_post)) %>%
+            bind_rows(as_tibble(response_status_post)) %>%
+            select(status, message) %>%
+            unique() %>%
+            mutate(status = max(status)) %>%
+            mutate(message = str_c(message, collapse = "; "))
+
+        res$status <- response$status
+        return(list(status=response$status, message=response$message))
+        }
+        ##-------------------------------------------------------------------##
+
+    } else {
+      res$status <- 400 # Bad Request
+      return(list(error="This endpoint only allows renaming the disease ontology of an entity."))
+    }
+
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error="Write access forbidden."))
+  }
+}
+
+
+#* @tag entity
 #* gets a single entity
 #* @serializer json list(na="string")
 #' @get /api/entity/<sysndd_id>
