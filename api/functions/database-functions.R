@@ -1,22 +1,26 @@
 ## database interaction functions
 
 PostDatabaseEntity <- function(entity_data) {
-  if ("hgnc_id" %in% colnames(entity_data) &
-      "hpo_mode_of_inheritance_term" %in% colnames(entity_data) &
-      "disease_ontology_id_version" %in% colnames(entity_data) &
-      "ndd_phenotype" %in% colnames(entity_data) &
-      "entry_user_id" %in% colnames(entity_data)
-    ) {
     ##-------------------------------------------------------------------##
     # block to convert the entity components into tibble
-    entity_received <- as_tibble(entity_data) %>%
-      select(hgnc_id,
+    entity_received <- as_tibble(entity_data)
+    ##-------------------------------------------------------------------##
+
+  if ("hgnc_id" %in% colnames(entity_received) &
+      "hpo_mode_of_inheritance_term" %in% colnames(entity_received) &
+      "disease_ontology_id_version" %in% colnames(entity_received) &
+      "ndd_phenotype" %in% colnames(entity_received) &
+      "entry_user_id" %in% colnames(entity_received)
+    ) {
+
+    # select columns needed
+    entity_received <- entity_received %>%
+        select(hgnc_id,
         hpo_mode_of_inheritance_term,
         disease_ontology_id_version,
         ndd_phenotype,
         entry_user_id
         )
-    ##-------------------------------------------------------------------##
 
     ##-------------------------------------------------------------------##
     ## connect to the database and then add the new entity
@@ -120,17 +124,19 @@ PutDatabaseEntityDeactivation <- function(entity_id,
 
 PutPostDatabaseReview <- function(request_method,
   review_data) {
-    ##-------------------------------------------------------------------##
-    # convert sysnopsis to tibble
-    sysnopsis_received <- as_tibble(review_data)
-    ##-------------------------------------------------------------------##
-  if (("synopsis" %in% colnames(sysnopsis_received)) &
-      ("entity_id" %in% colnames(sysnopsis_received)) &
-      nchar(sysnopsis_received$synopsis) > 0) {
+  ##-------------------------------------------------------------------##
+  # convert review_received to tibble
+  review_received <- as_tibble(review_data)
+  ##-------------------------------------------------------------------##
+
+  if (("synopsis" %in% colnames(review_received)) &
+      ("entity_id" %in% colnames(review_received)) &
+      nchar(review_received$synopsis) > 0) {
 
     ##-------------------------------------------------------------------##
     # check request type and perform database update accordingly
-    if (request_method == "POST" & !("review_id" %in% colnames(review_data))) {
+    if (request_method == "POST" &
+        !("review_id" %in% colnames(review_received))) {
       ##-------------------------------------------------------------------##
       ## for the post request we connect
       ## to the database and then add the new synopsis
@@ -146,7 +152,7 @@ PutPostDatabaseReview <- function(request_method,
 
       # submit the new synopsis and get the id of
       # the last insert for association with other tables
-      dbAppendTable(sysndd_db, "ndd_entity_review", sysnopsis_received)
+      dbAppendTable(sysndd_db, "ndd_entity_review", review_received)
       submitted_review_id <- dbGetQuery(sysndd_db,
           "SELECT LAST_INSERT_ID();"
           ) %>%
@@ -163,12 +169,12 @@ PutPostDatabaseReview <- function(request_method,
         )
       ##-------------------------------------------------------------------##
     } else if (request_method == "PUT" &
-               ("review_id" %in% colnames(review_data))) {
+               ("review_id" %in% colnames(review_received))) {
       ##-------------------------------------------------------------------##
       ## for the put request we update the review and set it's status to 0
       # generate update query, we remove entity_id
       # to not allow canging the review entity connection
-      update_query <- sysnopsis_received %>%
+      update_query <- review_received %>%
         select(-entity_id) %>%
         mutate(row = row_number()) %>%
         mutate(across(where(is.logical), as.integer)) %>%
