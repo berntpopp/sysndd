@@ -101,6 +101,7 @@
               </b-button>
 
               <b-button 
+                @click="infoApproveReview(row.item, row.index, $event.target)" 
                 size="sm" 
                 class="mr-1 btn-xs" 
                 variant="danger"
@@ -134,6 +135,29 @@
         </b-col>
       </b-row>
 
+      <!-- Approve modal -->
+      <b-modal 
+      :id="approveModal.id" 
+      size="sm" 
+      centered 
+      ok-title="Approve" 
+      no-close-on-esc 
+      no-close-on-backdrop 
+      header-bg-variant="dark" 
+      header-text-variant="light" 
+      @ok="handleApproveOk"
+      >
+        <template #modal-title>
+          <h4>Entity: 
+            <b-badge variant="primary">
+              {{ approveModal.title }}
+            </b-badge>
+          </h4>
+        </template>
+
+      </b-modal>
+      <!-- Approve modal -->
+
     </b-container>
   </div>
 </template>
@@ -161,6 +185,12 @@ export default {
             { key: 'synopsis', label: 'Clinical synopsis', sortable: true, filterable: true, class: 'text-left' }
         ],
         totalRows_ReviewTable: 0,
+        entity: [],
+        approveModal: {
+          id: 'approve-modal',
+          title: '',
+          content: []
+        },
       };
     },
     mounted() {
@@ -182,6 +212,37 @@ export default {
             console.error(e);
           }
           this.loadingReviewApprove = false;
+        },
+        infoReview(item, index, button) {
+          this.reviewModal.title = `sysndd:${item.entity_id}`;
+          this.entity = [];
+          this.entity.push(item);
+          
+          this.loadReviewInfo(item.review_id);
+          this.$root.$emit('bv::show::modal', this.reviewModal.id, button);
+        },
+        infoApproveReview(item, index, button) {
+          this.approveModal.title = `sysndd:${item.entity_id}`;
+          this.entity = [];
+          this.entity.push(item);
+          this.$root.$emit('bv::show::modal', this.approveModal.id, button);
+        },
+        async handleApproveOk(bvModalEvt) {
+
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/review/approve/' + this.entity[0].review_id + '?review_ok=true';
+
+          try {
+            let response = await this.axios.put(apiUrl, {}, {
+              headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+              }
+            });
+
+          this.loadReviewTableData();
+
+          } catch (e) {
+            console.error(e);
+          }
         },
     }
     };

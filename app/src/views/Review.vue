@@ -1040,7 +1040,6 @@ export default {
             }
             
             Object.entries(this.phenotypes).forEach(([key, value]) => this.phenotypes_review.push(value.phenotype_id));
-            console.log(this.phenotypes_review)
 
             // filter the publications data into groups and assign to global variables
             let literature_filter = response_publications.data.filter(li => li.publication_type === "additional_references");
