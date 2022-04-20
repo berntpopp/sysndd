@@ -1,6 +1,5 @@
 ## database interaction functions
 
-## to do: remove all singular arguments, they should be one object instead
 PostDatabaseEntity <- function(entity_data) {
 
   if (!is.null(entity_data$hgnc_id) &
@@ -566,21 +565,17 @@ PutPostDatabaseVarOntCon <- function(request_method,
   ##-------------------------------------------------------------------##
 }
 
-## to do: remove status_user_id, it should be in status_data instead
-PutPostDatabaseStatus <- function(request_method,
-  status_data,
-  status_user_id) {
 
+PutPostDatabaseStatus <- function(request_method,
+  status_data) {
     if (!is.null(status_data$category_id) | !is.null(status_data$problematic)) {
 
       # convert status data to tibble, check if comment is null and handle
       if (!is.null(status_data$comment)) {
-        status_received <- as_tibble(status_data) %>%
-          add_column(status_user_id)
+        status_received <- as_tibble(status_data)
       } else {
         status_data$comment <- ""
         status_received <- as_tibble(status_data) %>%
-          add_column(status_user_id) %>%
           select(-comment)
       }
 

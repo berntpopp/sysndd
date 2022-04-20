@@ -447,9 +447,10 @@ function(req, res, create_json) {
       ##-------------------------------------------------------------------##
       # use the PutPostDatabaseStatus function to
       # add the review to the database table
+      create_data$status$status_user_id <- status_user_id
+
       response_status_post <- PutPostDatabaseStatus("POST",
-        create_data$status,
-        status_user_id)
+        create_data$status)
       ##-------------------------------------------------------------------##
 
     ##-------------------------------------------------------------------##
@@ -623,13 +624,12 @@ function(req, res, rename_json) {
         # replace entity_id in ndd_entity_status_original tibble
         ndd_entity_status_replaced <- ndd_entity_status_original %>%
             mutate(entity_id = response_new_entity$entry$entity_id) %>%
-            select(-status_id, -status_user_id)
+            select(-status_id)
 
         # use the PutPostDatabaseStatus function to
         # add the status to the database table
         response_status_post <- PutPostDatabaseStatus("POST",
-        ndd_entity_status_replaced,
-        ndd_entity_status_original$status_user_id)
+        ndd_entity_status_replaced)
         ##-------------------------------------------------------------------##
 
         ##-------------------------------------------------------------------##
@@ -2926,10 +2926,11 @@ function(req, res, status_json) {
 
     status_data <- fromJSON(status_json)
 
+    status_data$status_user_id <- req$user_id
+
     response <- PutPostDatabaseStatus(
       req$REQUEST_METHOD,
-      status_data,
-      req$user_id)
+      status_data)
 
     res$status <- response$status
     return(response)
