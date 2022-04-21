@@ -1,0 +1,44 @@
+version: '3.8'
+services:
+ mysql:
+  image: mariadb:10.7.3
+  container_name: mysql
+  command: mysqld --default-authentication-plugin=mysql_native_password
+  restart: always
+  environment:
+   MYSQL_DATABASE: ${MYSQL_DATABASE}
+   MYSQL_USER: ${MYSQL_USER}
+   MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+   MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+  ports:
+   - "7654:3306"
+  volumes:
+   - ../data/mysql/:/var/lib/mysql/
+ api:
+  build: ./api/
+  command: Rscript /sysndd_api_volume/start_sysndd_api.R
+  restart: always
+  volumes:
+  - ./api/:/sysndd_api_volume/
+  ports:
+     - "7777-7787:7777"
+  environment:
+   PASSWORD: ${PASSWORD}
+   SMTP_PASSWORD: ${SMTP_PASSWORD}
+   API_CONFIG: ${API_CONFIG}
+ alb:
+  image: 'dockercloud/haproxy'
+  links:
+     - api
+  volumes:
+     - /var/run/docker.sock:/var/run/docker.sock
+  restart: always
+ app:
+  build: ./app/
+  container_name: sysndd_app
+  restart: always
+  ports:
+     - "80:80"
+     - "443:443"
+volumes:
+ sysndd_api_volume:
