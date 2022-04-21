@@ -49,23 +49,11 @@
             </b-container>
 
             <b-card-group deck v-else>
-              <b-card header-tag="header">
-                <template #header>
-                  <h6 class="mb-0 font-weight-bold">Curated entities</h6>
-                </template>
-                <b-img :src="image" height="375" width="675" fluid alt="Plot of Curated entities over time"></b-img>
-                <b-card-text class="text-left">
-                  NDD entities since the SysID publication
-                  <b-link href="https://pubmed.ncbi.nlm.nih.gov/26748517/" target="_blank"> 
-                  (Kochinke & Zweier et al. 2016)
-                  </b-link>.
-                </b-card-text>
-              </b-card>
 
 
               <b-card header-tag="header">
                 <template #header>
-                  <h6 class="mb-0 font-weight-bold">Current gene statistics ({{ last_update }})</h6>
+                  <h6 class="mb-0 font-weight-bold">Current gene statistics</h6>
                 </template>
                 <b-card-text class="text-left">
                   <b-table
@@ -223,7 +211,6 @@ export default {
           inheritance_short_text: {"Dominant": "AD", "Recessive": "AR", "X-linked": "X", "Other": "M/S"},
           search_input: '',
           search: [],
-          last_update: '',
           genes_statistics: [],
           genes_statistics_fields: [
             { key: 'category', label: 'Category', class: 'text-left' },
@@ -244,7 +231,6 @@ export default {
             }
           ],
           loading: true,
-          image: ''
       }
   }, 
   mounted() {
@@ -255,19 +241,13 @@ export default {
     this.loading = true;
     let apiStatisticsGenesURL = process.env.VUE_APP_API_URL + '/api/statistics/genes';
     let apiNewsURL = process.env.VUE_APP_API_URL + '/api/statistics/news';
-    let apiNewsLastUpdate = process.env.VUE_APP_API_URL + '/api/statistics/last_update';
-    let apiNewsEntitiesPlot = process.env.VUE_APP_API_URL + '/api/statistics/entities_plot';
 
     try {
       let response_statistics_genes = await this.axios.get(apiStatisticsGenesURL);
       let response_news = await this.axios.get(apiNewsURL);
-      let response_last_update = await this.axios.get(apiNewsLastUpdate);
-      let response_entities_plot = await this.axios.get(apiNewsEntitiesPlot);
 
       this.genes_statistics = response_statistics_genes.data;
       this.news = response_news.data;
-      this.last_update = response_last_update.data[0].last_update;
-      this.image = 'data:image/png;base64,'.concat(this.image.concat(response_entities_plot.data)) ;
 
       } catch (e) {
        console.error(e);
