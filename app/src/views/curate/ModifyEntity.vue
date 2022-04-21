@@ -25,7 +25,7 @@
 
             <template #header>
               <h6 class="mb-1 text-left font-weight-bold">
-                1. Select an entity
+                1. Select an entity to modify
               </h6>
             </template>
 
@@ -37,7 +37,7 @@
                     :multiple="false"
                     :async="true"
                     :load-options="searchEntityInfo"
-                    v-model="entity_input"
+                    v-model="modify_entity_input"
                     :normalizer="normalizer"
                     required
                   />
@@ -49,14 +49,14 @@
 
             <b-card
               class="my-2"
-              v-if="entity_input"
+              v-if="modify_entity_input"
             >
 
             <template #header>
               <h6 class="mb-1 text-left font-weight-bold">
                 2. Options to modify the selected entity
                 <b-badge variant="primary">
-                 sysndd:{{ entity_input }}
+                 sysndd:{{ modify_entity_input }}
                 </b-badge>
               </h6>
             </template>
@@ -81,7 +81,7 @@
                     <b-button 
                       size="sm"
                       variant="dark"
-                      v-b-modal.deactivateModal
+                      @click="showEntityDeactivate()"
                     >
                       <b-icon icon="x" font-scale="1.0"></b-icon> 
                       <b-icon icon="link" font-scale="1.0"></b-icon> 
@@ -129,17 +129,17 @@
 
       <!-- Rename disease modal -->
       <b-modal 
-      id="renameModal" 
-      ref="renameModal" 
-      size="lg" 
-      centered 
-      ok-title="Submit" 
-      no-close-on-esc 
-      no-close-on-backdrop 
-      header-bg-variant="dark" 
-      header-text-variant="light"
-      title="Rename entity disease"
-      @ok="submitEntityRename"
+        id="renameModal" 
+        ref="renameModal" 
+        size="lg" 
+        centered 
+        ok-title="Submit" 
+        no-close-on-esc 
+        no-close-on-backdrop 
+        header-bg-variant="dark" 
+        header-text-variant="light"
+        title="Rename entity disease"
+        @ok="submitEntityRename"
       >
         <p class="my-4">Select a new disease name:</p>
 
@@ -158,18 +158,70 @@
 
       <!-- Deactivate entity modal -->
       <b-modal 
-      id="deactivateModal" 
-      ref="deactivateModal" 
-      size="lg" 
-      centered 
-      ok-title="Submit" 
-      no-close-on-esc 
-      no-close-on-backdrop 
-      header-bg-variant="dark" 
-      header-text-variant="light"
-      title="Deactivate entity"
+        id="deactivateModal" 
+        ref="deactivateModal" 
+        size="lg" 
+        centered 
+        ok-title="Submit" 
+        no-close-on-esc 
+        no-close-on-backdrop 
+        header-bg-variant="dark" 
+        header-text-variant="light"
+        title="Deactivate entity"
+        @ok="submitEntityDeactivation"
       >
-        <p class="my-4">Are you sure that you want to deactivate this entity?</p>
+        <div>
+          <p class="my-2">1. Are you sure that you want to deactivate this entity?</p>
+
+          <div class="custom-control custom-switch">
+          <input 
+            type="checkbox" 
+            button-variant="info"
+            class="custom-control-input" 
+            id="deactivateSwitch"
+            v-model="deactivate_check"
+          >
+          <label class="custom-control-label" for="deactivateSwitch">
+            {{ deactivate_check ? 'Yes' : 'No' }}
+          </label>
+          </div>
+        </div>
+
+        <div
+          v-if="deactivate_check"
+        >
+          <p class="my-2">2. Was this entity replaced by another one?</p>
+
+          <div class="custom-control custom-switch">
+          <input 
+            type="checkbox" 
+            button-variant="info"
+            class="custom-control-input" 
+            id="replaceSwitch"
+            v-model="replace_check"
+          >
+          <label class="custom-control-label" for="replaceSwitch">
+            {{ replace_check ? 'Yes' : 'No' }}
+          </label>
+          </div>
+        </div>
+
+        <div
+          v-if="replace_check"
+        >
+          <p class="my-2">3. Select the entity replacing the above one:</p>
+
+            <treeselect
+              id="entity-select" 
+              :multiple="false"
+              :async="true"
+              :load-options="searchEntityInfo"
+              v-model="replace_entity_input"
+              :normalizer="normalizer"
+              required
+            />
+
+        </div>
       </b-modal>
       <!-- Deactivate entity modal -->
 
@@ -227,9 +279,12 @@ export default {
   name: 'ApproveStatus',
     data() {
       return {
-        entity_input: null,
+        modify_entity_input: null,
+        replace_entity_input: null,
         ontology_input: null,
         entity_info: null,
+        deactivate_check: false,
+        replace_check: false,
       };
     },
     mounted() {
@@ -247,13 +302,13 @@ export default {
             }
         },
         async getEntity() {
-          let apiSearchURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(entity_id,' + this.entity_input + ')';
+          let apiSearchURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(entity_id,' + this.modify_entity_input + ')';
 
           try {
             let response = await this.axios.get(apiSearchURL);
 
             // compose entity
-            this.entity_info = new this.Entity(response.data.data[0].hgnc_id, response.data.data[0].disease_ontology_id_version, response.data.data[0].hpo_mode_of_inheritance_term, response.data.data[0].ndd_phenotype, response.data.data[0].entity_id);
+            this.entity_info = new this.Entity(response.data.data[0].hgnc_id, response.data.data[0].disease_ontology_id_version, response.data.data[0].hpo_mode_of_inheritance_term, response.data.data[0].ndd_phenotype, response.data.data[0].entity_id, response.data.data[0].is_active, response.data.data[0].replaced_by);
 
             } catch (e) {
             console.error(e);
@@ -279,6 +334,10 @@ export default {
           this.getEntity();
           this.$refs['renameModal'].show();
         },
+        showEntityDeactivate() {
+          this.getEntity();
+          this.$refs['deactivateModal'].show();
+        },
         async submitEntityRename() {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/entity/rename?rename_json=';
 
@@ -290,7 +349,6 @@ export default {
 
           try {
             let submission_json = JSON.stringify(submission);
-            console.log(submission_json);
 
             let response = await this.axios.post(apiUrl + submission_json, {}, {
                headers: {
@@ -305,10 +363,42 @@ export default {
             this.makeToast(e, 'Error', 'danger');
           }
         },
+        async submitEntityDeactivation() {
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/entity/deactivate?deactivate_json=';
+
+          // assign new is_active
+          this.entity_info.is_active = (this.deactivate_check ? '0' : '1');
+
+          // assign replace_entity_input
+          this.entity_info.replaced_by = (this.replace_entity_input == null ? "NULL" : this.replace_entity_input);
+          
+          // compose submission
+          const submission = new this.Submission(this.entity_info);
+
+          try {
+            let submission_json = JSON.stringify(submission);
+            console.log(submission_json);
+
+            let response = await this.axios.post(apiUrl + submission_json, {}, {
+               headers: {
+                 'Authorization': 'Bearer ' + localStorage.getItem('token')
+               }
+             });
+
+            this.makeToast('The deactivation for this entity has been submitted ' + '(status ' + response.status + ' (' + response.statusText + ').', 'Success', 'success');
+            this.resetForm();
+
+          } catch (e) {
+            this.makeToast(e, 'Error', 'danger');
+          }
+        },
         resetForm() {
-          this.entity_input = null;
+          this.modify_entity_input = null;
+          this.replace_entity_input = null;
           this.ontology_input = null;
           this.entity_info = null;
+          this.deactivate_check = false;
+          this.replace_check = false;
         },
         makeToast(event, title = null, variant = null) {
             this.$bvToast.toast('' + event, {
@@ -325,13 +415,15 @@ Submission(entity, review, status) {
       this.review = review;
       this.status = status;
     },
-// to do: adapt this elsewhere to contain entity_id and make it optional
-Entity(hgnc_id, disease_ontology_id_version, hpo_mode_of_inheritance_term, ndd_phenotype, entity_id) {
+// to do: adapt this elsewhere to contain entity_id, is_active and make them optional
+Entity(hgnc_id, disease_ontology_id_version, hpo_mode_of_inheritance_term, ndd_phenotype, entity_id, is_active, replaced_by) {
       this.hgnc_id = hgnc_id;
       this.disease_ontology_id_version = disease_ontology_id_version;
       this.hpo_mode_of_inheritance_term = hpo_mode_of_inheritance_term;
       this.ndd_phenotype = ndd_phenotype;
       this.entity_id = entity_id;
+      this.is_active = is_active;
+      this.replaced_by = replaced_by;
     },
 Review(synopsis, literature, phenotypes, variation_ontology, comment) {
       this.synopsis = synopsis;

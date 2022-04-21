@@ -697,8 +697,6 @@ function(req, res, deactivate_json) {
     ##-------------------------------------------------------------------##
 
     if (deactivate_data$entity$hgnc_id == ndd_entity_replaced$hgnc_id &&
-        deactivate_data$entity$disease_ontology_id_version ==
-          ndd_entity_replaced$disease_ontology_id_version &&
         deactivate_data$entity$hpo_mode_of_inheritance_term ==
           ndd_entity_replaced$hpo_mode_of_inheritance_term &&
         deactivate_data$entity$ndd_phenotype ==
