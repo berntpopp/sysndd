@@ -3501,23 +3501,6 @@ function() {
 
 
 #* @tag statistics
-#* returns plot showing the database entry
-#* @serializer text
-#' @get /api/statistics/entities_plot
-function() {
-  # get data from database and filter
-  sysndd_db_disease_collected  <- pool %>%
-    tbl("ndd_entity_view") %>%
-    arrange(entity_id) %>%
-    select(entity_id, ndd_phenotype, category, entry_date) %>%
-    collect() %>%
-    filter(ndd_phenotype == 1)
-
-  make_entities_plot(sysndd_db_disease_collected)
-}
-
-
-#* @tag statistics
 #* gets database entry development over time
 #* @serializer json list(na="string")
 #' @get /api/statistics/entities_over_time

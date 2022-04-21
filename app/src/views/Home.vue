@@ -50,7 +50,6 @@
 
             <b-card-group deck v-else>
 
-
               <b-card header-tag="header">
                 <template #header>
                   <h6 class="mb-0 font-weight-bold">Current gene statistics</h6>
