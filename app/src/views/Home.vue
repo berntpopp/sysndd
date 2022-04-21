@@ -55,75 +55,89 @@
                   <h6 class="mb-0 font-weight-bold">Current gene statistics</h6>
                 </template>
                 <b-card-text class="text-left">
-                  <b-table
-                      :items="genes_statistics"
-                      :fields="genes_statistics_fields"
-                      stacked="md"
-                      head-variant="light"
-                      show-empty
-                      small
-                  >
 
-                  <template #cell(category)="data">
-                    <div>
-                      <b-avatar
-                      size="1.4em"
-                      icon="stoplights"
-                      :variant="stoplights_style[data.item.category]"
-                      >
-                      </b-avatar> {{ data.item.category }}
-                    </div> 
+                <b-skeleton-wrapper :loading="loading_statistics">
+                  <template #loading>
+                    <b-skeleton-table
+                      :rows="4"
+                      :columns="3"
+                      :table-props="{ bordered: false, striped: false, small: true}"
+                    ></b-skeleton-table>
                   </template>
 
-                  <template #cell(n)="data">
-                    <b-link v-bind:href="'/Panels/' + data.item.category + '/' + data.item.inheritance ">
-                      <div style="cursor:pointer">{{ data.item.n }}</div>
-                    </b-link>
-                  </template>
-
-                  <template #cell(actions)="row">
-                    <b-button class="btn-xs" @click="row.toggleDetails" variant="outline-primary">
-                      {{ row.detailsShowing ? 'hide' : 'show' }}
-                    </b-button>
-                  </template>
-
-                  <template #row-details="row">
-                    <b-card>
-                      <b-table
-                        :items="row.item.groups"
-                        :fields="genes_statistics_details_fields"
+                    <b-table
+                        :items="genes_statistics"
+                        :fields="genes_statistics_fields"
+                        stacked="md"
                         head-variant="light"
                         show-empty
                         small
-                        fixed
-                        striped
-                        sort-icon-left
-                      >
+                    >
 
-                        <template #cell(inheritance)="data">
-                          <div>
-                            <b-badge 
-                            pill 
-                            variant="info" 
-                            class="justify-content-md-center" 
-                            size="1.3em"
-                            >
-                            {{ inheritance_short_text[data.item.inheritance] }}
-                            </b-badge> {{ data.item.inheritance }}
-                          </div>
-                        </template>
+                    <template #cell(category)="data">
+                      <div>
+                        <b-avatar
+                        size="1.4em"
+                        icon="stoplights"
+                        :variant="stoplights_style[data.item.category]"
+                        >
+                        </b-avatar> {{ data.item.category }}
+                      </div> 
+                    </template>
 
-                        <template #cell(n)="data">
-                          <b-link v-bind:href="'/Panels/' + data.item.category + '/' + data.item.inheritance ">
-                            <div style="cursor:pointer">{{ data.item.n }}</div>
-                          </b-link>
-                        </template>
+                    <template #cell(n)="data">
+                      <b-link v-bind:href="'/Panels/' + data.item.category + '/' + data.item.inheritance ">
+                        <div style="cursor:pointer">{{ data.item.n }}</div>
+                      </b-link>
+                    </template>
 
-                      </b-table>
-                    </b-card>
-                  </template>
+                    <template #cell(actions)="row">
+                      <b-button class="btn-xs" @click="row.toggleDetails" variant="outline-primary">
+                        {{ row.detailsShowing ? 'hide' : 'show' }}
+                      </b-button>
+                    </template>
 
-                  </b-table>
+                    <template #row-details="row">
+                      <b-card>
+                        <b-table
+                          :items="row.item.groups"
+                          :fields="genes_statistics_details_fields"
+                          head-variant="light"
+                          show-empty
+                          small
+                          fixed
+                          striped
+                          sort-icon-left
+                        >
+
+                          <template #cell(inheritance)="data">
+                            <div>
+                              <b-badge 
+                              pill 
+                              variant="info" 
+                              class="justify-content-md-center" 
+                              size="1.3em"
+                              >
+                              {{ inheritance_short_text[data.item.inheritance] }}
+                              </b-badge> {{ data.item.inheritance }}
+                            </div>
+                          </template>
+
+                          <template #cell(n)="data">
+                            <b-link v-bind:href="'/Panels/' + data.item.category + '/' + data.item.inheritance ">
+                              <div style="cursor:pointer">{{ data.item.n }}</div>
+                            </b-link>
+                          </template>
+
+                        </b-table>
+
+                      </b-card>
+                    </template>
+
+                    </b-table>
+
+                </b-skeleton-wrapper>
+
                 </b-card-text>
               </b-card>
 
@@ -133,48 +147,59 @@
                   <h6 class="mb-0 font-weight-bold">Gene news</h6>
                 </template>
                 <b-card-text class="text-left">
-                  
-                  <b-table
-                    :items="news"
-                    :fields="news_fields"
-                    stacked="md"
-                    head-variant="light"
-                    show-empty
-                    small
-                    fixed
-                    style="width: 100%; white-space: nowrap;"
-                  >
-                    
-                    <template #table-colgroup="scope">
-                      <col
-                        v-for="field in scope.fields"
-                        :key="field.key"
-                        :style="{ width: field.key === 'symbol' ? '35%' : '65%' }"
-                      >
-                    </template>
 
-                    <template #cell(symbol)="data">
-                      <div class="overflow-hidden text-truncate font-italic">
-                        <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
-                          <b-badge pill variant="success" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</b-badge>
-                        </b-link>
-                      </div>
-                    </template>
+                <b-skeleton-wrapper :loading="loading_statistics">
+                  <template #loading>
+                    <b-skeleton-table
+                      :rows="5"
+                      :columns="2"
+                      :table-props="{ bordered: false, striped: false, small: true }"
+                    ></b-skeleton-table>
+                  </template>
 
-                    <template #cell(disease_ontology_name)="data">
-                      <div class="overflow-hidden text-truncate">
-                        <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version"> 
-                          <b-badge pill variant="secondary" 
-                          v-b-tooltip.hover.leftbottom 
-                          v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version"
-                          >
-                          {{ truncate(data.item.disease_ontology_name, 40) }}
-                          </b-badge>
-                        </b-link>
-                      </div>
-                    </template>
+                    <b-table
+                      :items="news"
+                      :fields="news_fields"
+                      stacked="md"
+                      head-variant="light"
+                      show-empty
+                      small
+                      fixed
+                      style="width: 100%; white-space: nowrap;"
+                    >
+                      
+                      <template #table-colgroup="scope">
+                        <col
+                          v-for="field in scope.fields"
+                          :key="field.key"
+                          :style="{ width: field.key === 'symbol' ? '35%' : '65%' }"
+                        >
+                      </template>
 
-                  </b-table>
+                      <template #cell(symbol)="data">
+                        <div class="overflow-hidden text-truncate font-italic">
+                          <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
+                            <b-badge pill variant="success" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</b-badge>
+                          </b-link>
+                        </div>
+                      </template>
+
+                      <template #cell(disease_ontology_name)="data">
+                        <div class="overflow-hidden text-truncate">
+                          <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version"> 
+                            <b-badge pill variant="secondary" 
+                            v-b-tooltip.hover.leftbottom 
+                            v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version"
+                            >
+                            {{ truncate(data.item.disease_ontology_name, 40) }}
+                            </b-badge>
+                          </b-link>
+                        </div>
+                      </template>
+
+                    </b-table>
+
+                </b-skeleton-wrapper>
 
                 </b-card-text>
               </b-card>
@@ -229,29 +254,47 @@ export default {
               class: 'text-left'
             }
           ],
-          loading: true,
+          loading: false,
+          loading_statistics: true,
+          loading_news: true,
       }
   }, 
   mounted() {
-    this.loadStatisticsAndNewsInfo();
+    this.loadStatistics();
+    this.loadNews();
     },
   methods: {
-  async loadStatisticsAndNewsInfo() {
-    this.loading = true;
+  async loadStatistics() {
+    this.loading_statistics = true;
+
     let apiStatisticsGenesURL = process.env.VUE_APP_API_URL + '/api/statistics/genes';
-    let apiNewsURL = process.env.VUE_APP_API_URL + '/api/statistics/news';
 
     try {
       let response_statistics_genes = await this.axios.get(apiStatisticsGenesURL);
-      let response_news = await this.axios.get(apiNewsURL);
 
       this.genes_statistics = response_statistics_genes.data;
-      this.news = response_news.data;
+
+      this.loading_statistics = false;
 
       } catch (e) {
        console.error(e);
       }
-    this.loading = false;
+    },
+  async loadNews() {
+    this.loading_news = true;
+
+    let apiNewsURL = process.env.VUE_APP_API_URL + '/api/statistics/news';
+
+    try {
+      let response_news = await this.axios.get(apiNewsURL);
+
+      this.news = response_news.data;
+
+      this.loading_news = false;
+
+      } catch (e) {
+       console.error(e);
+      }
     },
   async loadSearchInfo() {
     let apiSearchURL = process.env.VUE_APP_API_URL + '/api/search/' + this.search_input;
