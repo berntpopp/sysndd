@@ -511,7 +511,7 @@ function(req, res, rename_json) {
         filter(entity_id == rename_data$entity$entity_id)
 
     # replace disease_ontology_id_version in ndd_entity
-    # original tibble and select entity_id
+    # original tibble and deselect entity_id
     ndd_entity_replaced <- ndd_entity_original %>%
         mutate(disease_ontology_id_version =
           rename_data$entity$disease_ontology_id_version) %>%
@@ -657,6 +657,74 @@ function(req, res, rename_json) {
     } else {
       res$status <- 400 # Bad Request
       return(list(error="This endpoint only allows renaming the disease ontology of an entity."))
+    }
+
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error="Write access forbidden."))
+  }
+}
+
+
+#* @tag entity
+#* deactivates an entity
+## example data: deactivate_json <- '{"entity": {"entity_id":"10", "hgnc_id":"HGNC:27288", "disease_ontology_id_version":"OMIM:614265", "hpo_mode_of_inheritance_term":"HP:0000007", "ndd_phenotype":"1", "is_active":"0", "replaced_by":"NULL"}}'
+#* @serializer json list(na="string")
+#' @post /api/entity/deactivate
+function(req, res, deactivate_json) {
+
+  # first check rights
+  if (req$user_role %in% c("Administrator", "Curator")) {
+
+    deactivate_user_id <- req$user_id
+
+    deactivate_data <- fromJSON(deactivate_json)
+
+    ##-------------------------------------------------------------------##
+    # get information for submitted old entity_id
+    ndd_entity_original <- pool %>%
+        tbl("ndd_entity") %>%
+        collect() %>%
+        filter(entity_id == deactivate_data$entity$entity_id)
+
+    # replace is_active and replaced_by in ndd_entity
+    # original tibble and select entity_id
+    ndd_entity_replaced <- ndd_entity_original %>%
+        mutate(is_active =
+          deactivate_data$entity$is_active) %>%
+        mutate(replaced_by =
+          deactivate_data$entity$replaced_by)
+    ##-------------------------------------------------------------------##
+
+    if (deactivate_data$entity$hgnc_id == ndd_entity_replaced$hgnc_id &&
+        deactivate_data$entity$disease_ontology_id_version ==
+          ndd_entity_replaced$disease_ontology_id_version &&
+        deactivate_data$entity$hpo_mode_of_inheritance_term ==
+          ndd_entity_replaced$hpo_mode_of_inheritance_term &&
+        deactivate_data$entity$ndd_phenotype ==
+          ndd_entity_replaced$ndd_phenotype &&
+        deactivate_data$entity$is_active !=
+          ndd_entity_original$is_active) {
+
+        ##-------------------------------------------------------------------##
+        # block to deactivate the entity using 
+        # PutDatabaseEntityDeactivation function
+        response_new_entity <- PutDatabaseEntityDeactivation(
+          deactivate_data$entity$entity_id,
+          ndd_entity_replaced$replaced_by)
+        ##-------------------------------------------------------------------##
+
+
+        ##-------------------------------------------------------------------##
+        # block to compute response
+        res$status <- response_new_entity$status
+        return(list(status=response_new_entity$status,
+          message=response_new_entity$message))
+        ##-------------------------------------------------------------------##
+
+    } else {
+      res$status <- 400 # Bad Request
+      return(list(error="This endpoint only allows deactivating an entity."))
     }
 
   } else {

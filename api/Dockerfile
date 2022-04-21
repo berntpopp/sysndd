@@ -8,4 +8,4 @@ libsecret-1-dev \
 libbz2-dev \
 libicu-dev \
 liblzma-dev
-RUN install2.r Rcpp plumber DBI RMariaDB jsonlite config jose RCurl stringdist xlsx easyPubMed rvest lubridate pool memoise coop reshape2 blastula keyring future knitr timetk
+RUN install2.r Rcpp plumber DBI RMariaDB jsonlite config jose RCurl stringdist xlsx easyPubMed rvest lubridate pool memoise coop reshape2 blastula keyring future knitr rlang timetk
