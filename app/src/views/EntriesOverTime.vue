@@ -122,7 +122,7 @@
     methods: {
       async loadData() {
 
-        let apiUrl = process.env.VUE_APP_API_URL + '/api/statistics/entities_over_time?aggregate=' + this.selected_aggregate + '&group=' + this.selected_group;
+        let apiUrl = process.env.VUE_APP_API_URL + '/alb/statistics/entities_over_time?aggregate=' + this.selected_aggregate + '&group=' + this.selected_group;
 
         try {
           let response = await this.axios.get(apiUrl);

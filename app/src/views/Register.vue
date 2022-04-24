@@ -199,7 +199,7 @@ export default {
     },
     async sendRegistration() {
 
-    let apiUrl = process.env.VUE_APP_API_URL + '/api/auth/signup?signup_data=' ;
+    let apiUrl = process.env.VUE_APP_API_URL + '/alb/auth/signup?signup_data=' ;
 
       try {
         let submission_json = JSON.stringify(this.registration_form);

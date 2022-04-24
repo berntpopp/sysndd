@@ -403,7 +403,7 @@ export default {
         async loadEntitiesData() {
           this.isBusy = true;
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/gene?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + this.filter_string + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
+          let apiUrl = process.env.VUE_APP_API_URL + '/alb/gene?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + this.filter_string + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
 
           try {
             let response = await this.axios.get(apiUrl);

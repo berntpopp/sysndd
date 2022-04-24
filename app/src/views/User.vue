@@ -172,7 +172,7 @@ export default {
       }
     }, 
     async refreshWithJWT() {
-      let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/api/auth/refresh';
+      let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/alb/auth/refresh';
 
       try {
         let response_refresh = await this.axios.get(apiAuthenticateURL, {
@@ -189,7 +189,7 @@ export default {
         }
     }, 
     async signinWithJWT() {
-      let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/api/auth/signin';
+      let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/alb/auth/signin';
 
       try {
         let response_signin = await this.axios.get(apiAuthenticateURL, {
@@ -205,7 +205,7 @@ export default {
         }
     },
     async changePassword() {
-      let apiChangePasswordURL = process.env.VUE_APP_API_URL + '/api/user/password/change?user_id_pass_change=' + this.user.user_id[0] + '&old_pass=' + this.current_password + '&new_pass_1=' + this.new_password_entry + '&new_pass_2=' + this.new_password_repeat;
+      let apiChangePasswordURL = process.env.VUE_APP_API_URL + '/alb/user/password/change?user_id_pass_change=' + this.user.user_id[0] + '&old_pass=' + this.current_password + '&new_pass_1=' + this.new_password_entry + '&new_pass_2=' + this.new_password_repeat;
       try {
         let response_password_change = await this.axios.put(apiChangePasswordURL, {}, {
           headers: {

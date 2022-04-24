@@ -365,7 +365,7 @@ export default {
         async loadOptionsData() {
           this.loading = true;
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/panels/options';
+          let apiUrl = process.env.VUE_APP_API_URL + '/alb/panels/options';
           try {
             let response = await this.axios.get(apiUrl);
             this.categories_list = response.data[0].options;
@@ -391,7 +391,7 @@ export default {
         async requestSelected() {
           this.isBusy = true;
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/panels/browse?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=any(category,' + this.selected_category + '),any(inheritance_filter,' + this.selected_inheritance + ')' + '&fields=' + this.selected_columns.join() + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
+          let apiUrl = process.env.VUE_APP_API_URL + '/alb/panels/browse?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=any(category,' + this.selected_category + '),any(inheritance_filter,' + this.selected_inheritance + ')' + '&fields=' + this.selected_columns.join() + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
          
           try {
             let response = await this.axios.get(apiUrl);
@@ -419,7 +419,7 @@ export default {
         async requestExcel() {
           this.downloading = true;
           //based on https://morioh.com/p/f4d331b62cda
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/panels/excel?category_input=' + this.selected_category + '&inheritance_input=' + this.selected_inheritance + '&output_columns=' + this.selected_columns.join() + '&output_sort=' + this.sortBy;
+          let apiUrl = process.env.VUE_APP_API_URL + '/alb/panels/excel?category_input=' + this.selected_category + '&inheritance_input=' + this.selected_inheritance + '&output_columns=' + this.selected_columns.join() + '&output_sort=' + this.sortBy;
           try {
             let response = await this.axios({
                     url: apiUrl,

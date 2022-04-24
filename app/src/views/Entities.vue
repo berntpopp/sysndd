@@ -396,7 +396,7 @@ export default {
         },
         async loadEntitiesData() {
           this.isBusy = true;
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/entity?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + this.filter_string + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
+          let apiUrl = process.env.VUE_APP_API_URL + '/alb/entity?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + this.filter_string + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
 
           try {
               let response = await this.axios.get(apiUrl);

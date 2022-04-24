@@ -147,7 +147,7 @@ export default {
       }
     },
     async requestPasswordReset() {
-      let apiPasswordResetRequest = process.env.VUE_APP_API_URL + '/api/user/password/reset/request?email_request=' + this.email_entry;
+      let apiPasswordResetRequest = process.env.VUE_APP_API_URL + '/alb/user/password/reset/request?email_request=' + this.email_entry;
 
       try {
         let response_reset_request = await this.axios.get(apiPasswordResetRequest, {});
@@ -162,7 +162,7 @@ export default {
       setTimeout(() => { this.$router.push('/'); }, 1000);
     },
     async doPasswordChange() {
-      let apiUrl = process.env.VUE_APP_API_URL + '/api/user/password/reset/change?new_pass_1=' + this.new_password_entry + '&new_pass_2=' + this.new_password_repeat;
+      let apiUrl = process.env.VUE_APP_API_URL + '/alb/user/password/reset/change?new_pass_1=' + this.new_password_entry + '&new_pass_2=' + this.new_password_repeat;
       try {
         let response = await this.axios.get(apiUrl, {
           headers: {
