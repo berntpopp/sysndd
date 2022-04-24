@@ -218,7 +218,7 @@ export default {
     methods: {
         async loadStatusTableData() {
           this.loadingStatusApprove = true;
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/status';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/status';
           try {
             let response = await this.axios.get(apiUrl, {
               headers: {
@@ -240,7 +240,7 @@ export default {
         },
         async handleStatusOk(bvModalEvt) {
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/status/approve/' + this.entity[0].status_id + '?status_ok=true';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/status/approve/' + this.entity[0].status_id + '?status_ok=true';
 
           try {
             let response = await this.axios.put(apiUrl, {}, {

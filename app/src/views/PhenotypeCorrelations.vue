@@ -85,7 +85,7 @@
     methods: {
       async loadMatrixData() {
 
-        let apiUrl = process.env.VUE_APP_API_URL + '/alb/phenotype/correlation';
+        let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype/correlation';
 
         try {
           let response = await this.axios.get(apiUrl);
@@ -100,7 +100,7 @@
       },
       async loadCountData() {
 
-        let apiUrl = process.env.VUE_APP_API_URL + '/alb/phenotype/count';
+        let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype/count';
 
         try {
           let response = await this.axios.get(apiUrl);

@@ -512,7 +512,7 @@
           // have to add other options here and normalize the function both here and in the API
           this.loading = true;
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/comparisons/options';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/comparisons/options';
           try {
             let response = await this.axios.get(apiUrl);
             this.columns_list = response.data.list;
@@ -573,7 +573,7 @@
         },
         async loadComparisonsUpsetData() {
           this.loadingUpset = true;
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/comparisons/upset?fields=' + this.selected_columns.join();
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/comparisons/upset?fields=' + this.selected_columns.join();
    
           try {
             let response = await this.axios.get(apiUrl);
@@ -587,7 +587,7 @@
         },
         async loadTableData() {
           this.isBusy = true;
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/comparisons/table?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + this.filter_string + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/comparisons/table?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + this.filter_string + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
           
           try {
             let response = await this.axios.get(apiUrl);
@@ -611,7 +611,7 @@
         async loadMatrixData() {
           this.loadingMatrix = true;
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/comparisons/similarity';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/comparisons/similarity';
 
           try {
             let response = await this.axios.get(apiUrl);

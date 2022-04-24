@@ -352,10 +352,10 @@ export default {
   methods: {
   async loadEntityInfo() {
     this.loading = true;
-    let apiDiseaseOntologyURL = process.env.VUE_APP_API_URL + '/alb/ontology/' + this.$route.params.disease_term;
-    let apiDiseaseNameURL = process.env.VUE_APP_API_URL + '/alb/ontology/name/' + this.$route.params.disease_term;
-    let apiEntitiesByOntologyURL = process.env.VUE_APP_API_URL + '/alb/ontology/' + this.$route.params.disease_term + '/entities';
-    let apiEntitiesByNameURL = process.env.VUE_APP_API_URL + '/alb/ontology/name/' + this.$route.params.disease_term + '/entities';
+    let apiDiseaseOntologyURL = process.env.VUE_APP_API_URL + '/api/ontology/' + this.$route.params.disease_term;
+    let apiDiseaseNameURL = process.env.VUE_APP_API_URL + '/api/ontology/name/' + this.$route.params.disease_term;
+    let apiEntitiesByOntologyURL = process.env.VUE_APP_API_URL + '/api/ontology/' + this.$route.params.disease_term + '/entities';
+    let apiEntitiesByNameURL = process.env.VUE_APP_API_URL + '/api/ontology/name/' + this.$route.params.disease_term + '/entities';
 
     try {
       let response_ontology = await this.axios.get(apiDiseaseOntologyURL);

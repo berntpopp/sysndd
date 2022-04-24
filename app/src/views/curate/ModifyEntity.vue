@@ -291,7 +291,7 @@ export default {
     },
     methods: {
         async searchEntityInfo({searchQuery, callback}) {
-          let apiSearchURL = process.env.VUE_APP_API_URL + '/alb/entity?filter=contains(any,' + searchQuery + ')';
+          let apiSearchURL = process.env.VUE_APP_API_URL + '/api/entity?filter=contains(any,' + searchQuery + ')';
 
           try {
             let response_search = await this.axios.get(apiSearchURL);
@@ -302,7 +302,7 @@ export default {
             }
         },
         async getEntity() {
-          let apiSearchURL = process.env.VUE_APP_API_URL + '/alb/entity?filter=equals(entity_id,' + this.modify_entity_input + ')';
+          let apiSearchURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(entity_id,' + this.modify_entity_input + ')';
 
           try {
             let response = await this.axios.get(apiSearchURL);
@@ -321,7 +321,7 @@ export default {
           }
         },
         async loadOntologyInfoTree({searchQuery, callback}) {
-          let apiSearchURL = process.env.VUE_APP_API_URL + '/alb/search/ontology/' + searchQuery + '?tree=true';
+          let apiSearchURL = process.env.VUE_APP_API_URL + '/api/search/ontology/' + searchQuery + '?tree=true';
 
           try {
             let response_search = await this.axios.get(apiSearchURL);
@@ -339,7 +339,7 @@ export default {
           this.$refs['deactivateModal'].show();
         },
         async submitEntityRename() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/entity/rename?rename_json=';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/entity/rename?rename_json=';
 
           // assign new disease_ontology_id
           this.entity_info.disease_ontology_id_version = this.ontology_input;
@@ -364,7 +364,7 @@ export default {
           }
         },
         async submitEntityDeactivation() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/entity/deactivate?deactivate_json=';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/entity/deactivate?deactivate_json=';
 
           // assign new is_active
           this.entity_info.is_active = (this.deactivate_check ? '0' : '1');

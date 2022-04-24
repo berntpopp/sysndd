@@ -163,7 +163,7 @@ watch: { // used to refresh navbar on login push
       }
     },
     async checkSigninWithJWT() {
-      let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/alb/auth/signin';
+      let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/api/auth/signin';
 
       try {
         let response_signin = await this.axios.get(apiAuthenticateURL, {
@@ -196,7 +196,7 @@ watch: { // used to refresh navbar on login push
         }
     }, 
     async refreshWithJWT() {
-      let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/alb/auth/refresh';
+      let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/api/auth/refresh';
 
       try {
         let response_refresh = await this.axios.get(apiAuthenticateURL, {
@@ -213,7 +213,7 @@ watch: { // used to refresh navbar on login push
         }
     }, 
     async signinWithJWT() {
-      let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/alb/auth/signin';
+      let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/api/auth/signin';
 
       try {
         let response_signin = await this.axios.get(apiAuthenticateURL, {
@@ -229,7 +229,7 @@ watch: { // used to refresh navbar on login push
         }
     }, 
     async loadSearchInfo() {
-    let apiSearchURL = process.env.VUE_APP_API_URL + '/alb/search/' + this.search_input;
+    let apiSearchURL = process.env.VUE_APP_API_URL + '/api/search/' + this.search_input;
     try {
       let response_search = await this.axios.get(apiSearchURL);
       this.search = response_search.data;

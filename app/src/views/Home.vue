@@ -267,7 +267,7 @@ export default {
   async loadStatistics() {
     this.loading_statistics = true;
 
-    let apiStatisticsGenesURL = process.env.VUE_APP_API_URL + '/alb/statistics/genes';
+    let apiStatisticsGenesURL = process.env.VUE_APP_API_URL + '/api/statistics/genes';
 
     try {
       let response_statistics_genes = await this.axios.get(apiStatisticsGenesURL);
@@ -283,7 +283,7 @@ export default {
   async loadNews() {
     this.loading_news = true;
 
-    let apiNewsURL = process.env.VUE_APP_API_URL + '/alb/statistics/news';
+    let apiNewsURL = process.env.VUE_APP_API_URL + '/api/statistics/news';
 
     try {
       let response_news = await this.axios.get(apiNewsURL);
@@ -297,7 +297,7 @@ export default {
       }
     },
   async loadSearchInfo() {
-    let apiSearchURL = process.env.VUE_APP_API_URL + '/alb/search/' + this.search_input;
+    let apiSearchURL = process.env.VUE_APP_API_URL + '/api/search/' + this.search_input;
     try {
       let response_search = await this.axios.get(apiSearchURL);
       this.search = response_search.data;

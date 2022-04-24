@@ -105,7 +105,7 @@ export default {
       return dirty || validated ? valid : null;
     },
     async loadJWT() {
-      let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/alb/auth/authenticate?user_name=' + this.user_name + '&password=' + this.password;
+      let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/api/auth/authenticate?user_name=' + this.user_name + '&password=' + this.password;
       try {
         let response_authenticate = await this.axios.get(apiAuthenticateURL);
         localStorage.setItem('token', response_authenticate.data[0]);
@@ -117,7 +117,7 @@ export default {
         }
       }, 
     async signinWithJWT() {
-      let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/alb/auth/signin';
+      let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/api/auth/signin';
 
       try {
         let response_signin = await this.axios.get(apiAuthenticateURL, {

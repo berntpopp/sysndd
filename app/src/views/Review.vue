@@ -980,7 +980,7 @@ export default {
         },
         async loadReReviewData() {
           this.loading = true;
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/re_review_table';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review_table';
           try {
             let response = await this.axios.get(apiUrl, {
               headers: {
@@ -999,7 +999,7 @@ export default {
           this.loading = true;
 
           this.items = [];
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/re_review_table?curate=' + this.curation_selected;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review_table?curate=' + this.curation_selected;
           try {
             let response = await this.axios.get(apiUrl, {
               headers: {
@@ -1018,9 +1018,9 @@ export default {
           this.loading_review_modal = true;
 
           // define API query URLs
-          let apiReviewURL = process.env.VUE_APP_API_URL + '/alb/review/' + review_id;
-          let apiPublicationsURL = process.env.VUE_APP_API_URL + '/alb/review/' + review_id + '/publications';
-          let apiPhenotypesURL = process.env.VUE_APP_API_URL + '/alb/review/' + review_id + '/phenotypes';
+          let apiReviewURL = process.env.VUE_APP_API_URL + '/api/review/' + review_id;
+          let apiPublicationsURL = process.env.VUE_APP_API_URL + '/api/review/' + review_id + '/publications';
+          let apiPhenotypesURL = process.env.VUE_APP_API_URL + '/api/review/' + review_id + '/phenotypes';
 
           try {
             // get API responses
@@ -1055,7 +1055,7 @@ export default {
         },
         async loadStatusInfo(status_id) {
           // define API query URLs
-          let apiStatusURL = process.env.VUE_APP_API_URL + '/alb/status/' + status_id;
+          let apiStatusURL = process.env.VUE_APP_API_URL + '/api/status/' + status_id;
 
           try {
             // get API responses
@@ -1077,7 +1077,7 @@ export default {
             }
         },
         async loadPhenotypesList() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/list/phenotype';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/list/phenotype';
           try {
             let response = await this.axios.get(apiUrl);
             this.phenotypes_options = response.data;
@@ -1092,7 +1092,7 @@ export default {
           }
         },
         async loadStatusList() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/status_list';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/status_list';
           try {
             let response = await this.axios.get(apiUrl);
             //Object.entries(response.data).forEach(([key, value]) => this.status_options.push(value.category));
@@ -1106,7 +1106,7 @@ export default {
         },
         async submitReview(submission) {
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/re_review/review?review_json=';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/review?review_json=';
           
           if (this.entity[0].re_review_review_saved === 1) {
             try {
@@ -1162,7 +1162,7 @@ export default {
           this.reloadReReviewData();
         },
         async submitStatus(status) {
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/re_review/status?status_json=';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/status?status_json=';
           
           if (this.entity[0].re_review_status_saved === 1) {
             try {
@@ -1210,7 +1210,7 @@ export default {
           re_review_submission.re_review_entity_id = this.entity[0].re_review_entity_id;
           re_review_submission.re_review_submitted = 1;
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/re_review/submit?submit_json=';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/submit?submit_json=';
           try {
             let submit_json = JSON.stringify(re_review_submission);
             let response = await this.axios.put(apiUrl + submit_json, {}, {
@@ -1227,7 +1227,7 @@ export default {
         },
         async handleApproveOk(bvModalEvt) {
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/re_review/approve/' + this.entity[0].re_review_entity_id + '?status_ok=' + this.status_approved + '&review_ok=' + this.review_approved;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/approve/' + this.entity[0].re_review_entity_id + '?status_ok=' + this.status_approved + '&review_ok=' + this.review_approved;
 
           try {
             let response = await this.axios.put(apiUrl, {}, {
@@ -1245,7 +1245,7 @@ export default {
         },
         async handleUnsetSubmission(bvModalEvt) {
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/re_review/unsubmit/' + this.entity[0].re_review_entity_id;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/unsubmit/' + this.entity[0].re_review_entity_id;
 
           try {
             let response = await this.axios.put(apiUrl, {}, {
@@ -1263,7 +1263,7 @@ export default {
         },
         async newBatchApplication() {
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/re_review/batch/apply';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/batch/apply';
 
           try {
             let response = await this.axios.get(apiUrl, {

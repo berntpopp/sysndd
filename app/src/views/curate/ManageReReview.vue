@@ -122,7 +122,7 @@ export default {
     },
     methods: {
         async loadUserList() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/user/list?roles=Curator,Reviewer';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/user/list?roles=Curator,Reviewer';
           try {
             let response = await this.axios.get(apiUrl, {
               headers: {
@@ -138,7 +138,7 @@ export default {
         },
         async loadReReviewTableData() {
           this.loadingReReviewManagment = true;
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/re_review/assignment_table';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/assignment_table';
           try {
             let response = await this.axios.get(apiUrl, {
               headers: {
@@ -153,7 +153,7 @@ export default {
           this.loadingReReviewManagment = false;
         },
         async handleNewBatchAssignment() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/re_review/batch/assign?user_id=' + this.user_id_assignment;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/batch/assign?user_id=' + this.user_id_assignment;
 
           try {
             let response = await this.axios.put(apiUrl, {}, {
@@ -167,7 +167,7 @@ export default {
         this.loadReReviewTableData();
         },
         async handleBatchUnAssignment(batch_id) {
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/re_review/batch/unassign?re_review_batch=' + batch_id;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/batch/unassign?re_review_batch=' + batch_id;
 
           try {
             let response = await this.axios.delete(apiUrl, {

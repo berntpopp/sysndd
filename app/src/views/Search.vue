@@ -82,7 +82,7 @@ export default {
   methods: {
   async loadSearchInfo() {
     this.loading = true;
-    let apiSearchURL = process.env.VUE_APP_API_URL + '/alb/search/' + this.$route.params.search_term + '?helper=false';
+    let apiSearchURL = process.env.VUE_APP_API_URL + '/api/search/' + this.$route.params.search_term + '?helper=false';
     try {
       let response_search = await this.axios.get(apiSearchURL);
 

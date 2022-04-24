@@ -199,7 +199,7 @@ export default {
     methods: {
         async loadReviewTableData() {
           this.loadingReviewApprove = true;
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/review';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/review';
           try {
             let response = await this.axios.get(apiUrl, {
               headers: {
@@ -229,7 +229,7 @@ export default {
         },
         async handleApproveOk(bvModalEvt) {
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/review/approve/' + this.entity[0].review_id + '?review_ok=true';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/review/approve/' + this.entity[0].review_id + '?review_ok=true';
 
           try {
             let response = await this.axios.put(apiUrl, {}, {

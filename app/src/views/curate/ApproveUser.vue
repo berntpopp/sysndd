@@ -147,7 +147,7 @@ export default {
     methods: {
         async loadUserTableData() {
           this.loadingUsersApprove = true;
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/user/table';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/user/table';
           try {
             let response = await this.axios.get(apiUrl, {
               headers: {
@@ -162,7 +162,7 @@ export default {
           this.loadingUsersApprove = false;
         },
         async loadRoleList() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/user/role_list';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/user/role_list';
           try {
             let response = await this.axios.get(apiUrl, {
               headers: {
@@ -177,7 +177,7 @@ export default {
           }
         },
         async loadUserList() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/user/list?roles=Curator,Reviewer';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/user/list?roles=Curator,Reviewer';
           try {
             let response = await this.axios.get(apiUrl, {
               headers: {
@@ -204,7 +204,7 @@ export default {
         },
         async handleUserApproveOk(bvModalEvt) {
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/user/approval?user_id=' + this.approve_user[0].user_id + '&status_approval=' + this.user_approved;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/user/approval?user_id=' + this.approve_user[0].user_id + '&status_approval=' + this.user_approved;
 
           try {
             let response = await this.axios.put(apiUrl, {}, {
@@ -220,7 +220,7 @@ export default {
         },
         async handleUserChangeRole(user_id, user_role) {
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/user/change_role?user_id=' + user_id + '&role_assigned=' + user_role;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/user/change_role?user_id=' + user_id + '&role_assigned=' + user_role;
 
           try {
             let response = await this.axios.put(apiUrl, {}, {

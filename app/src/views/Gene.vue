@@ -327,10 +327,10 @@ export default {
   methods: {
   async loadEntityInfo() {
     this.loading = true;
-    let apiGeneURL = process.env.VUE_APP_API_URL + '/alb/gene/' + this.$route.params.gene_id;
-    let apiGeneSymbolURL = process.env.VUE_APP_API_URL + '/alb/gene/symbol/' + this.$route.params.gene_id;
-    let apiEntitiesByGeneURL = process.env.VUE_APP_API_URL + '/alb/gene/' + this.$route.params.gene_id + '/entities';
-    let apiEntitiesByGeneSymbolURL = process.env.VUE_APP_API_URL + '/alb/gene/symbol/' + this.$route.params.gene_id + '/entities';
+    let apiGeneURL = process.env.VUE_APP_API_URL + '/api/gene/' + this.$route.params.gene_id;
+    let apiGeneSymbolURL = process.env.VUE_APP_API_URL + '/api/gene/symbol/' + this.$route.params.gene_id;
+    let apiEntitiesByGeneURL = process.env.VUE_APP_API_URL + '/api/gene/' + this.$route.params.gene_id + '/entities';
+    let apiEntitiesByGeneSymbolURL = process.env.VUE_APP_API_URL + '/api/gene/symbol/' + this.$route.params.gene_id + '/entities';
 
     try {
       let response_gene = await this.axios.get(apiGeneURL);

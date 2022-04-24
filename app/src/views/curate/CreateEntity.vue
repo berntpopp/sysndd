@@ -357,7 +357,7 @@ export default {
           return dirty || validated ? valid : null;
         },
         async loadPhenotypesList() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/list/phenotype?tree=true';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/list/phenotype?tree=true';
           try {
             let response = await this.axios.get(apiUrl);
             this.phenotypes_options = response.data;
@@ -372,7 +372,7 @@ export default {
           }
         },
         async loadVariationOntologyList() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/list/variation_ontology';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/list/variation_ontology';
           try {
             let response = await this.axios.get(apiUrl);
             this.variation_ontology_options = response.data;
@@ -387,7 +387,7 @@ export default {
           }
         },
         async loadStatusList() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/list/status';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/list/status';
           try {
             let response = await this.axios.get(apiUrl);
             this.status_options = response.data[0];
@@ -407,7 +407,7 @@ export default {
           return !isNaN(Number(tag.replace('PMID:', ''))) && tag.includes('PMID:') && tag.replace('PMID:', '').length > 4 && tag.replace('PMID:', '').length < 9;
         },
         async loadGeneInfoTree({searchQuery, callback}) {
-          let apiSearchURL = process.env.VUE_APP_API_URL + '/alb/search/gene/' + searchQuery + '?tree=true';
+          let apiSearchURL = process.env.VUE_APP_API_URL + '/api/search/gene/' + searchQuery + '?tree=true';
 
           try {
             let response_search = await this.axios.get(apiSearchURL);
@@ -417,7 +417,7 @@ export default {
             }
         },
         async loadOntologyInfoTree({searchQuery, callback}) {
-          let apiSearchURL = process.env.VUE_APP_API_URL + '/alb/search/ontology/' + searchQuery + '?tree=true';
+          let apiSearchURL = process.env.VUE_APP_API_URL + '/api/search/ontology/' + searchQuery + '?tree=true';
 
           try {
             let response_search = await this.axios.get(apiSearchURL);
@@ -427,7 +427,7 @@ export default {
             }
         },
         async loadInheritanceInfoTree({searchQuery, callback}) {
-          let apiSearchURL = process.env.VUE_APP_API_URL + '/alb/search/inheritance/' + searchQuery + '?tree=true';
+          let apiSearchURL = process.env.VUE_APP_API_URL + '/api/search/inheritance/' + searchQuery + '?tree=true';
 
           try {
             let response_search = await this.axios.get(apiSearchURL);
@@ -473,7 +473,7 @@ export default {
 
         },
         async submitEntity() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/alb/entity/create?create_json=';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/entity/create?create_json=';
 
           try {
             let submission_json = JSON.stringify(this.entity_submission);
