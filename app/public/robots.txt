@@ -1,2 +1,3 @@
+Sitemap: https://sysndd.dbmr.unibe.ch/sitemap.xml
 User-agent: *
 Disallow:
