@@ -1,5 +1,5 @@
 <template>
-  <div class="container-fluid">
+  <div class="container-fluid text-left py-2">
     <div class="swagger" id="swagger">
     </div>
   </div>
