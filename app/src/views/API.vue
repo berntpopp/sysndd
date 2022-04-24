@@ -1,32 +1,29 @@
 <template>
-  <div class="container-fluid">
-    <div class="swagger" id="swagger">
-    </div>
+  <div>
+    <iframe :src="source"></iframe>
   </div>
 </template>
 
 <script>
-import SwaggerUI from 'swagger-ui';
-import 'swagger-ui/dist/swagger-ui.css';
 
 export default {
-    name: "Swagger",
-    mounted() {
-      this.loadAPIInfo();
-    },
-  methods: {
-  async loadAPIInfo() {
-        let apiURL = process.env.VUE_APP_API_URL + '/openapi.json';
-        SwaggerUI({
-            dom_id: '#swagger',
-            url: apiURL,
-            docExpansion: 'none'
-        })
-    }
+  name: "Swagger",
+  data() {
+        return {
+          source: process.env.VUE_APP_API_URL + '/__docs__/',
+        }
   }
 }
 </script>
 
 <style scoped>
-
-</style>
+#app, #app iframe {
+  height: 89vh;
+  width: 100vw;
+  border: none;
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+</style> 
