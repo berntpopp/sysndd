@@ -1,7 +1,7 @@
 <template>
   <div>
     <b-navbar toggleable="md" type="dark" variant="dark" class="py-0">
-      <b-navbar-brand href="/"><img src="../../public/android-chrome-192x192_68px.png" height="40" width="40" alt="SysNDD Logo"> SysNDD</b-navbar-brand>
+      <b-navbar-brand href="/"><img src="../../public/android-chrome-192x192_68px.png" height="40" width="40" alt="SysNDD Logo" rel="preload"> SysNDD</b-navbar-brand>
 
       <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
 
