@@ -248,7 +248,7 @@
                 <b-collapse id="accordion-7" accordion="my-accordion" role="tabpanel">
                   <b-card-body>
                     <b-container fluid="sm" class="text-left py-2">
-                    The Institute for Human Genetics (University Hospital Bern, Bern, Switzerland) makes no representation about the suitability or accuracy of this software or data for any purpose, and makes no warranties, including fitness for a particular purpose or that the use of this software will not infringe any third party patents, copyrights, trademarks or other rights.
+                    The Department of Human Genetics (University Hospital, University Bern, Bern, Switzerland) makes no representation about the suitability or accuracy of this software or data for any purpose, and makes no warranties, including fitness for a particular purpose or that the use of this software will not infringe any third party patents, copyrights, trademarks or other rights.
                     </b-container>
                     <b-container fluid="sm" class="text-left py-2">
                     <span class="font-weight-bold">Responsible for this website:</span> Bernt Popp (admin [at] sysndd.org)
@@ -258,10 +258,11 @@
                     </b-container>
                     <b-container fluid="sm" class="text-left py-2">
                     <span class="font-weight-bold">Address:</span>
-                    Universitätsklinik für Humangenetik
-                    Inselspital, Universitätsspital Bern
-                    Freiburgstrasse
-                    3010 Bern
+                    Universitätsklinik für Humangenetik, 
+                    Inselspital, Universitätsspital Bern, 
+                    Freiburgstrasse 15, 
+                    3010 Bern, 
+                    Switzerland
                     </b-container>
                   </b-card-body>
                  </b-collapse>
@@ -276,7 +277,7 @@
                 <b-collapse id="accordion-8" accordion="my-accordion" role="tabpanel">
                   <b-card-body>
                     <b-container fluid="sm" class="text-left py-2">
-                    If you have technical problems using SysNDD or requests regading the data or functionallity, please contact us at support [at] sysndd.org.
+                    If you have technical problems using SysNDD or requests regarding the data or functionality, please contact us at support [at] sysndd.org.
                     </b-container>
                   </b-card-body>
                 </b-collapse>
