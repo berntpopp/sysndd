@@ -255,7 +255,7 @@ const routes = [
   },
   {
     path: '/API',
-    component: () => import(/* webpackChunkName: "Pages" */ '@/views/API.vue')
+    component: () => import(/* webpackChunkName: "API" */ '@/views/API.vue')
   },
   {
     path: '/Ontology/:disease_term',
