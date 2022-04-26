@@ -97,9 +97,9 @@ source("functions/plot-functions.R", local = TRUE)
 source("functions/helper-functions.R", local = TRUE)
 
 # convert to memoise functions
+nest_gene_statistics_tibble_mem <- memoise(nest_gene_statistics_tibble)
+generate_gene_news_tibble_mem <- memoise(generate_gene_news_tibble)
 nest_gene_tibble_mem <- memoise(nest_gene_tibble)
-make_entities_plot_mem <- memoise(make_entities_plot)
-make_matrix_plot_mem <- memoise(make_matrix_plot)
 
 ##-------------------------------------------------------------------##
 ##-------------------------------------------------------------------##
@@ -2292,7 +2292,7 @@ function(res,
     collect()
 
   # arrange and apply filters according to input
-  sysndd_db_genes_nested <- nest_gene_tibble(sysndd_db_genes_table) %>%
+  sysndd_db_genes_nested <- nest_gene_tibble_mem(sysndd_db_genes_table) %>%
     arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
     filter(!!!rlang::parse_exprs(filter_exprs))
 
@@ -3489,49 +3489,9 @@ function(
 #* @serializer json list(na="string")
 #' @get /api/statistics/genes
 function() {
-  sysndd_db_disease_genes <- pool %>%
-    tbl("ndd_entity_view") %>%
-    arrange(entity_id) %>%
-    filter(ndd_phenotype == 1) %>%
-    select(symbol,
-      inheritance = hpo_mode_of_inheritance_term_name,
-      category) %>%
-    collect()
+ disease_genes_statistics <- nest_gene_statistics_tibble_mem()
 
-  disease_genes_group_cat_inh <- sysndd_db_disease_genes %>%
-    unique() %>%
-    mutate(inheritance = case_when(
-      str_detect(inheritance, "X-linked") ~ "X-linked",
-      str_detect(inheritance, "Autosomal dominant inheritance") ~ "Dominant",
-      str_detect(inheritance, "Autosomal recessive inheritance") ~ "Recessive",
-      TRUE ~ "Other"
-    )) %>%
-    group_by(category, inheritance) %>%
-    tally() %>%
-    ungroup() %>%
-    arrange(desc(category), desc(n)) %>%
-    mutate(category_group = category) %>%
-    group_by(category_group) %>%
-    nest() %>%
-    ungroup() %>%
-    select(category = category_group, groups = data)
-
-  disease_genes_group_category <- sysndd_db_disease_genes %>%
-    select(-inheritance) %>%
-    unique() %>%
-    group_by(category) %>%
-    tally() %>%
-    ungroup() %>%
-    arrange(desc(category), desc(n)) %>%
-    group_by(category) %>%
-    mutate(inheritance = "All")
-
-  disease_genes_statistics <- disease_genes_group_category %>%
-    left_join(disease_genes_group_cat_inh,
-     by = c("category")) %>%
-    arrange(category)
-
-  disease_genes_statistics
+ disease_genes_statistics
 }
 
 
@@ -3540,16 +3500,9 @@ function() {
 #* @serializer json list(na="string")
 #' @get /api/statistics/news
 function(n = 5) {
-  # get data from database and filter
-  sysndd_db_disease_genes_news <- pool %>%
-    tbl("ndd_entity_view") %>%
-    arrange(entity_id) %>%
-    filter(ndd_phenotype == 1 & category == "Definitive") %>%
-    collect() %>%
-    arrange(desc(entry_date)) %>%
-    slice(1:n)
+ sysndd_db_disease_genes_news <- generate_gene_news_tibble_mem(5)
 
-  sysndd_db_disease_genes_news
+ sysndd_db_disease_genes_news
 }
 
 
