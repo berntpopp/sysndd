@@ -144,6 +144,12 @@
                 </b-col>
 
                 <b-col class="my-1">
+                  <b-button block v-on:click="requestExcel" size="sm">
+                    <b-icon icon="table" class="mx-1"></b-icon>
+                    <b-icon icon="download" v-if="!downloading"></b-icon>
+                    <b-spinner small v-if="downloading"></b-spinner>
+                    .xlsx
+                  </b-button>
                 </b-col>
               </b-row>
             </b-col>
@@ -477,7 +483,8 @@
         loadingMatrix: true,
         loadingTable: true,
         tabIndex: 0,
-        isBusy: true
+        isBusy: true,
+        downloading: false,
       };
     },
     watch: {
@@ -587,7 +594,7 @@
         },
         async loadTableData() {
           this.isBusy = true;
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/comparisons/table?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + this.filter_string + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/comparisons/browse?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + this.filter_string + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
           
           try {
             let response = await this.axios.get(apiUrl);
@@ -607,6 +614,34 @@
           } catch (e) {
             console.error(e);
           }
+        },
+        async requestExcel() {
+          this.downloading = true;
+
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/comparisons/excel?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + this.filter_string;
+
+          try {
+            let response = await this.axios({
+                    url: apiUrl,
+                    method: 'GET',
+                    responseType: 'blob',
+                }).then((response) => {
+                     var fileURL = window.URL.createObjectURL(new Blob([response.data]));
+                     var fileLink = document.createElement('a');
+
+                     fileLink.href = fileURL;
+                     fileLink.setAttribute('download', 'curation_comparisons.xlsx');
+                     document.body.appendChild(fileLink);
+
+                     fileLink.click();
+                });
+
+          } catch (e) {
+            console.error(e);
+          }
+
+          this.downloading = false;
+
         },
         async loadMatrixData() {
           this.loadingMatrix = true;

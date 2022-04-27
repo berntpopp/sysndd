@@ -1,6 +1,97 @@
 ## endpoint functions
 
 
+# generate comparisons list
+generate_comparisons_list <- function(  sort = "symbol",
+  filter = "",
+  fields = "",
+  `page[after]` = "0",
+  `page[size]` = "10") {
+  # set start time
+  start_time <- Sys.time()
+
+  # generate sort expression based on sort input
+  sort_exprs <- generate_sort_expressions(sort, unique_id = "symbol")
+
+  # generate filter expression based on filter input
+  filter_exprs <- generate_filter_expressions(filter)
+
+  # get data from database, filter and restructure
+  ndd_database_comparison_view <- pool %>%
+    tbl("ndd_database_comparison_view")
+
+  sysndd_db_non_alt_loci_set <- pool %>%
+    tbl("non_alt_loci_set") %>%
+    select(hgnc_id, symbol)
+
+  ndd_database_comparison_table  <- ndd_database_comparison_view %>%
+    left_join(sysndd_db_non_alt_loci_set, by =c("hgnc_id")) %>%
+    collect() %>%
+    select(symbol, hgnc_id, list) %>%
+    unique() %>%
+    mutate(in_list = "yes") %>%
+    pivot_wider(names_from = list, values_from = in_list, values_fill="no")
+
+  # arrange and apply filters according to input
+  ndd_database_comparison_table <- ndd_database_comparison_table %>%
+    arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
+    filter(!!!rlang::parse_exprs(filter_exprs))
+
+  # select fields from table based on input using
+  # the helper function "select_tibble_fields"
+  ndd_database_comparison_table <- select_tibble_fields(
+    ndd_database_comparison_table,
+    fields,
+    "symbol")
+
+  # use the helper generate_cursor_pagination_info
+  # to generate cursor pagination information from a tibble
+  ndd_database_comp_table_info <- generate_cursor_pagination_info(
+    ndd_database_comparison_table,
+    `page[size]`,
+    `page[after]`,
+    "symbol")
+
+  # compute execution time
+  end_time <- Sys.time()
+  execution_time <- as.character(paste0(round(end_time - start_time, 2),
+  " secs"))
+
+  # add columns to the meta information from generate
+  # cursor_pagination_info function return
+  meta <- ndd_database_comp_table_info$meta %>%
+    add_column(as_tibble(list("sort" = sort,
+      "filter" = filter,
+      "fields" = fields,
+      "executionTime" = execution_time)))
+
+  # add host, port and other information to links from the link
+  # information from generate_cursor_pagination_info function return
+  links <- ndd_database_comp_table_info$links %>%
+      pivot_longer(everything(), names_to = "type", values_to = "link") %>%
+    mutate(link = case_when(
+      link != "null" ~ paste0("http://",
+        dw$host, ":",
+        dw$port_self,
+        "/api/comparisons/table?sort=",
+        sort, ifelse(filter != "",
+        paste0("&filter=", filter),
+        ""),
+        ifelse(fields != "", paste0("&fields=", fields), ""),
+        link),
+      link == "null" ~ "null"
+    )) %>%
+      pivot_wider(everything(), names_from = "type", values_from = "link")
+
+  # generate object to return
+  return_list <- list(links = links,
+    meta = meta,
+    data = ndd_database_comp_table_info$data)
+
+  # return the list
+  return(return_list)
+  }
+
 # generate phenotype entities list
 generate_phenotype_entities_list <- function(sort = "entity_id",
   filter = "",

@@ -3359,7 +3359,7 @@ function() {
 #* returns a table showing the presence of
 #* NDD associated genes in different databases
 #* @serializer json list(na="string")
-#' @get /api/comparisons/table
+#' @get /api/comparisons/browse
 function(
   res,
   sort = "symbol",
@@ -3367,87 +3367,76 @@ function(
   fields = "",
   `page[after]` = "0",
   `page[size]` = "10") {
+# call the endpoint function generate_phenotype_entities
+comparisons_list <- generate_comparisons_list(sort,
+  filter,
+  fields,
+  `page[after]`,
+  `page[size]`)
 
-  start_time <- Sys.time()
+# return the list
+comparisons_list
+}
 
-  # generate sort expression based on sort input
-  sort_exprs <- generate_sort_expressions(sort, unique_id = "symbol")
 
-  # generate filter expression based on filter input
-  filter_exprs <- generate_filter_expressions(filter)
+#* @tag comparisons
+#* returns a table showing the presence of NDD associated
+#* genes in different databases for download as Excel file
+## download as Excel file
+#* @serializer contentType list(type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+#' @get /api/comparisons/excel
+function(
+  res,
+  sort = "symbol",
+  filter = "",
+  fields = "",
+  `page[after]` = "0",
+  `page[size]` = "all") {
+# call the endpoint function generate_phenotype_entities
+comparisons_list <- generate_comparisons_list(sort,
+  filter,
+  fields,
+  `page[after]`,
+  `page[size]`)
 
-  # get data from database, filter and restructure
-  ndd_database_comparison_view <- pool %>%
-    tbl("ndd_database_comparison_view")
+  # generate creation date statistic for output
+  creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"),
+    "%Y-%m-%dT %H:%M:%S")
 
-  sysndd_db_non_alt_loci_set <- pool %>%
-    tbl("non_alt_loci_set") %>%
-    select(hgnc_id, symbol)
+  # generate excel file output
+  filename <- file.path(tempdir(), "curation_comparisons.xlsx")
 
-  ndd_database_comparison_table  <- ndd_database_comparison_view %>%
-    left_join(sysndd_db_non_alt_loci_set, by =c("hgnc_id")) %>%
-    collect() %>%
-    select(symbol, hgnc_id, list) %>%
-    unique() %>%
-    mutate(in_list = "yes") %>%
-    pivot_wider(names_from = list, values_from = in_list, values_fill="no")
+  write.xlsx(comparisons_list$data,
+    filename,
+    sheetName="data",
+    append=FALSE)
 
-  # arrange and apply filters according to input
-  ndd_database_comparison_table <- ndd_database_comparison_table %>%
-    arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
-    filter(!!!rlang::parse_exprs(filter_exprs))
+  write.xlsx(comparisons_list$meta,
+    filename,
+    sheetName="meta",
+    append=TRUE)
 
-  # select fields from table based on input using
-  # the helper function "select_tibble_fields"
-  ndd_database_comparison_table <- select_tibble_fields(
-    ndd_database_comparison_table,
-    fields,
-    "symbol")
+  write.xlsx(comparisons_list$links,
+    filename,
+    sheetName="links",
+    append=TRUE)
 
-  # use the helper generate_cursor_pagination_info
-  # to generate cursor pagination information from a tibble
-  ndd_database_comp_table_info <- generate_cursor_pagination_info(
-    ndd_database_comparison_table,
-    `page[size]`,
-    `page[after]`,
-    "symbol")
+  attachmentString <- paste0("attachment; filename=curation_comparisons.",
+    creation_date,
+    ".xlsx")
 
-  # compute execution time
-  end_time <- Sys.time()
-  execution_time <- as.character(paste0(round(end_time - start_time, 2),
-  " secs"))
+  res$setHeader("Content-Disposition", attachmentString)
 
-  # add columns to the meta information from generate
-  # cursor_pagination_info function return
-  meta <- ndd_database_comp_table_info$meta %>%
-    add_column(as_tibble(list("sort" = sort,
-      "filter" = filter,
-      "fields" = fields,
-      "executionTime" = execution_time)))
+  # Read in the raw contents of the binary file
+  bin <- readBin(filename, "raw", n=file.info(filename)$size)
 
-  # add host, port and other information to links from the link
-  # information from generate_cursor_pagination_info function return
-  links <- ndd_database_comp_table_info$links %>%
-      pivot_longer(everything(), names_to = "type", values_to = "link") %>%
-    mutate(link = case_when(
-      link != "null" ~ paste0("http://",
-        dw$host, ":",
-        dw$port_self,
-        "/api/comparisons/table?sort=",
-        sort, ifelse(filter != "",
-        paste0("&filter=", filter),
-        ""),
-        ifelse(fields != "", paste0("&fields=", fields), ""),
-        link),
-      link == "null" ~ "null"
-    )) %>%
-      pivot_wider(everything(), names_from = "type", values_from = "link")
+  #Check file existence and delete
+  if (file.exists(filename)) {
+    file.remove(filename)
+  }
 
-  # generate object to return
-  list(links = links,
-    meta = meta,
-    data = ndd_database_comp_table_info$data)
-
+  #Return the binary contents
+  bin
 }
 ##-------------------------------------------------------------------##
 
