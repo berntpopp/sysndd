@@ -418,27 +418,28 @@ export default {
         },
         async requestExcel() {
           this.downloading = true;
-          //based on https://morioh.com/p/f4d331b62cda
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/panels/excel?category_input=' + this.selected_category + '&inheritance_input=' + this.selected_inheritance + '&output_columns=' + this.selected_columns.join() + '&output_sort=' + this.sortBy;
+          
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/panels/excel?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=any(category,' + this.selected_category + '),any(inheritance_filter,' + this.selected_inheritance + ')' + '&fields=' + this.selected_columns.join();
+         
           try {
-            let response = await this.axios({
-                    url: apiUrl,
-                    method: 'GET',
-                    responseType: 'blob',
-                }).then((response) => {
-                     var fileURL = window.URL.createObjectURL(new Blob([response.data]));
-                     var fileLink = document.createElement('a');
+              let response = await this.axios({
+                      url: apiUrl,
+                      method: 'GET',
+                      responseType: 'blob',
+                  }).then((response) => {
+                      var fileURL = window.URL.createObjectURL(new Blob([response.data]));
+                      var fileLink = document.createElement('a');
 
-                     fileLink.href = fileURL;
-                     fileLink.setAttribute('download', 'panel.xlsx');
-                     document.body.appendChild(fileLink);
+                      fileLink.href = fileURL;
+                      fileLink.setAttribute('download', 'panel.xlsx');
+                      document.body.appendChild(fileLink);
 
-                     fileLink.click();
-                });
+                      fileLink.click();
+                  });
 
-          } catch (e) {
-            console.error(e);
-          }
+            } catch (e) {
+              console.error(e);
+            }
           
           this.downloading = false;
           

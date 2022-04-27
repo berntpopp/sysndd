@@ -3022,10 +3022,10 @@ function() {
 
 
 #* @tag panels
-#* gets panel data by cetgory and inheritance terms for browsing
+#* gets panel data by category and inheritance terms for browsing
 #* @serializer json list(na="string")
 #* @param sort Output column to arrange output on.
-#* @param filter Comma separated list of filetrs to apply.
+#* @param filter Comma separated list of filters to apply.
 #* @param fields Comma separated list of output columns.
 #' @get /api/panels/browse
 function(res,
@@ -3034,310 +3034,61 @@ function(res,
   fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38",
   `page[after]` = 0,
   `page[size]` = "all") {
-
-    start_time <- Sys.time()
-
-  # get allowed values for category
-  ndd_entity_status_categories_list <- pool %>%
-    tbl("ndd_entity_status_categories_list") %>%
-    select(category) %>%
-    collect()
-
-  # get allowed values for inheritance
-  mode_of_inheritance_list <- pool %>%
-    tbl("mode_of_inheritance_list") %>%
-        filter(is_active) %>%
-    select(inheritance_filter) %>%
-    collect() %>%
-        unique()
-
-  # replace "All" with respective allowed values
-  filter <- str_replace(filter,
-    "category,'All'",
-    paste0("category,",
-      str_c(ndd_entity_status_categories_list$category, collapse = ","))) %>%
-    str_replace("category,All",
-    paste0("category,",
-      str_c(ndd_entity_status_categories_list$category, collapse = ","))) %>%
-    str_replace("inheritance_filter,'All'",
-    paste0("inheritance_filter,",
-      str_c(mode_of_inheritance_list$inheritance_filter, collapse = ","))) %>%
-    str_replace("inheritance_filter,All",
-    paste0("inheritance_filter,",
-      str_c(mode_of_inheritance_list$inheritance_filter, collapse = ",")))
-
-  # generate sort expression based on sort input
-  sort_exprs <- generate_sort_expressions(sort, unique_id = "symbol")
-
-  # generate filter expression based on filter input
-  filter_exprs <- generate_filter_expressions(filter)
-
-  # generate table with field information for display
-  # to do: this has to be updated through some logic based
-  # on field types in MySQl table in a function
-  fields_tibble <- as_tibble(str_split(fields, ",")[[1]]) %>%
-    select(key = value) %>%
-    mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
-    mutate(sortable = "true") %>%
-    mutate(class = "text-left") %>%
-    mutate(sortByFormatted = "true") %>%
-    mutate(filterByFormatted = "true")
-
-  # join entity_view and non_alt_loci_set tables
-  sysndd_db_ndd_entity_view <- pool %>%
-    tbl("ndd_entity_view") %>%
-    filter(ndd_phenotype == 1) %>%
-    select(hgnc_id,
-      symbol,
-      inheritance = hpo_mode_of_inheritance_term_name,
-      inheritance_filter, category)
-
-  sysndd_db_non_alt_loci_set <- pool %>%
-    tbl("non_alt_loci_set") %>%
-    select(hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38)
-
-  sysndd_db_disease_genes <- sysndd_db_ndd_entity_view %>%
-    left_join(sysndd_db_non_alt_loci_set, by =c("hgnc_id")) %>%
-    collect() %>%
-    filter(!!!rlang::parse_exprs(filter_exprs)) %>%
-        select(-inheritance_filter) %>%
-    unique() %>%
-        arrange(symbol, inheritance) %>%
-        group_by(symbol) %>%
-        mutate(inheritance = str_c(unique(inheritance), collapse = "; ")) %>%
-        ungroup() %>%
-        unique() %>%
-    arrange(!!!rlang::parse_exprs(sort_exprs))
-
-  # select fields from table based on input using
-  # the helper function "select_tibble_fields"
-  sysndd_db_disease_genes_panel <- select_tibble_fields(
-    sysndd_db_disease_genes,
+  # call the endpoint function generate_panels_list
+  panels_list <- generate_panels_list(sort,
+    filter,
     fields,
-    "symbol")
-
-  # use the helper generate_cursor_pagination_info to
-  # generate cursor pagination information from a tibble
-  disease_genes_panel_pag_inf <- generate_cursor_pagination_info(
-    sysndd_db_disease_genes_panel,
-    `page[size]`,
     `page[after]`,
-    "symbol")
+    `page[size]`)
 
-  # compute execution time
-  end_time <- Sys.time()
-  execution_time <- as.character(paste0(round(end_time - start_time, 2),
-    " secs"))
-
-  # add columns to the meta information from
-  # generate_cursor_pagination_info function return
-  meta <- disease_genes_panel_pag_inf$meta %>%
-    add_column(as_tibble(list("sort" = sort,
-      "filter" = filter,
-      "fields" = fields,
-      "executionTime" = execution_time)))
-
-  # add host, port and other information to links from the
-  # link information from generate_cursor_pagination_info function return
-  links <- disease_genes_panel_pag_inf$links %>%
-      pivot_longer(everything(), names_to = "type", values_to = "link") %>%
-    mutate(link = case_when(
-      link != "null" ~ paste0("http://",
-        dw$host, ":",
-        dw$port_self,
-        "/api/panels/browse?sort=",
-        sort,
-        ifelse(filter != "",
-          paste0("&filter=", filter),
-          ""),
-        ifelse(fields != "",
-          paste0("&fields=", fields),
-          ""),
-        link),
-      link == "null" ~ "null"
-    )) %>%
-      pivot_wider(everything(), names_from = "type", values_from = "link")
-
-  # return list of format and data
-  list(links = links,
-    meta = meta,
-    fields = fields_tibble,
-    data = disease_genes_panel_pag_inf$data)
+  # return the list
+  panels_list
 }
 
 
 #* @tag panels
-#* gets panel data by cetgory and inheritance terms for download as Excel file
+#* gets panel data by category and inheritance terms for download as Excel file
 #* @serializer contentType list(type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-#* @param category_input The entity association category to filter.
-#* @param inheritance_input The entity inheritance type to filter.
-#* @param output_columns Comma separated list of output columns.
-#* @param output_sort Output column to arrange output on.
+#* @param sort Output column to arrange output on.
+#* @param filter Comma separated list of filters to apply.
+#* @param fields Comma separated list of output columns.
 #' @get /api/panels/excel
-function(
-  category_input = "Definitive",
-  inheritance_input = "All",
-  output_columns = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38",
-  output_sort = "symbol", res) {
+function(res,
+  sort = "symbol",
+  filter = "equals(category,'Definitive'),any(inheritance_filter,'Dominant','Recessive','X-linked','Other')",
+  fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38",
+  `page[after]` = 0,
+  `page[size]` = "all") {
+  # call the endpoint function generate_panels_list
+  panels_list <- generate_panels_list(sort,
+    filter,
+    fields,
+    `page[after]`,
+    `page[size]`)
 
-  output_columns_list <- URLdecode(output_columns) %>%
-    str_split(pattern=",", simplify=TRUE) %>%
-    str_replace_all(" ", "") %>%
-    unique()
-
-  # connect to database and validate inputs
-  ndd_entity_status_categories_list <- pool %>%
-    tbl("ndd_entity_status_categories_list") %>%
-    select(category) %>%
-    collect() %>%
-    add_row(category = "All")
-
-  if (!(Reduce("&", output_columns_list %in% output_columns_allowed)) |
-      !(Reduce("&", output_sort %in% output_columns_allowed))) {
-    res$status <- 400
-    res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
-    status = 400,
-    message = paste0("Input for 'output_columns' or 'output_sort'",
-      "parameter not in list of allowed columns (allowed values=",
-      paste0(output_columns_allowed, collapse=","),
-      ").")
-    ))
-    return(res)
-  }
-
-  if (!(category_input %in% ndd_entity_status_categories_list$category)) {
-    res$status <- 400
-    res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
-    status = 400,
-    message = paste0("Required 'category_input'",
-      "parameter not in categories list (allowed values=",
-      paste0(ndd_entity_status_categories_list$category, collapse=","),
-      ").")
-    ))
-    return(res)
-  }
-
-  if (!(inheritance_input %in% inheritance_input_allowed)) {
-    res$status <- 400
-    res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
-    status = 400,
-    message = paste0("Required 'inheritance_input'",
-      "parameter not in categories list (allowed values=",
-      paste0(inheritance_input_allowed, collapse=","),
-      ").")
-    ))
-    return(res)
-  }
-
-  # join entity_view and non_alt_loci_set tables
-  sysndd_db_ndd_entity_view <- pool %>%
-    tbl("ndd_entity_view") %>%
-    filter(ndd_phenotype == 1) %>%
-    select(hgnc_id,
-      symbol,
-      inheritance = hpo_mode_of_inheritance_term_name,
-      category)
-  sysndd_db_non_alt_loci_set <- pool %>%
-    tbl("non_alt_loci_set") %>%
-    select(hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38)
-
-  sysndd_db_disease_genes <- sysndd_db_ndd_entity_view %>%
-    left_join(sysndd_db_non_alt_loci_set, by =c("hgnc_id")) %>%
-    collect() %>%
-    unique() %>%
-    mutate(inheritance_filter = case_when(
-      str_detect(inheritance, "X-linked") ~ "X-linked",
-      str_detect(inheritance, "Autosomal dominant inheritance") ~ "Dominant",
-      str_detect(inheritance, "Autosomal recessive inheritance") ~ "Recessive",
-      TRUE ~ "Other"
-    )) %>%
-    mutate(category_filter = category) %>%
-    select(category,
-      inheritance,
-      symbol,
-      hgnc_id,
-      entrez_id,
-      ensembl_gene_id,
-      ucsc_id, bed_hg19,
-      bed_hg38,
-      category_filter,
-      inheritance_filter) %>%
-    arrange(desc(category), inheritance)
-
-  # compute output based on input parameters
-  if ((category_input == "All") & (inheritance_input == "All")) {
-    sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
-      mutate(category_filter = "All") %>%
-      mutate(inheritance_filter = "All") %>%
-      unique() %>%
-      filter(category_filter == category_input,
-        inheritance_filter == inheritance_input) %>%
-      arrange(symbol, inheritance) %>%
-      group_by(symbol) %>%
-      mutate(inheritance = str_c(unique(inheritance), collapse = "; ")) %>%
-      ungroup() %>%
-      unique() %>%
-      arrange(!!sym(output_sort)) %>%
-      select(all_of(output_columns_list))
-  } else if ((category_input == "All") & (inheritance_input != "All")) {
-    sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
-      mutate(category_filter = "All") %>%
-      unique() %>%
-      filter(category_filter == category_input,
-        inheritance_filter == inheritance_input) %>%
-      arrange(symbol, inheritance) %>%
-      group_by(symbol) %>%
-      mutate(inheritance = str_c(unique(inheritance), collapse = "; ")) %>%
-      ungroup() %>%
-      unique() %>%
-      arrange(!!sym(output_sort)) %>%
-      select(all_of(output_columns_list))
-  } else if ((category_input != "All") & (inheritance_input == "All")) {
-    sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
-      mutate(inheritance_filter = "All") %>%
-      unique() %>%
-      filter(category_filter == category_input,
-        inheritance_filter == inheritance_input) %>%
-      arrange(symbol, inheritance) %>%
-      group_by(symbol) %>%
-      mutate(inheritance = str_c(unique(inheritance), collapse = "; ")) %>%
-      ungroup() %>%
-      unique() %>%
-      arrange(!!sym(output_sort)) %>%
-      select(all_of(output_columns_list))
-  } else {
-    sysndd_db_disease_genes_panel <- sysndd_db_disease_genes %>%
-      unique() %>%
-      filter(category_filter == category_input,
-        inheritance_filter == inheritance_input) %>%
-      arrange(!!sym(output_sort)) %>%
-      select(all_of(output_columns_list))
-  }
-
-  # generate request statistic for output
+  # generate creation date statistic for output
   creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"),
     "%Y-%m-%dT %H:%M:%S")
 
-  request_stats <- tibble(
-    creation_date = creation_date,
-    category_input = category_input,
-    inheritance_input = inheritance_input,
-    output_columns = output_columns,
-    output_sort = output_sort,
-  ) %>%
-    pivot_longer(everything(), names_to = "request", values_to = "value")
-
   # generate excel file output
-  filename <- file.path(tempdir(), "panel.xlsx")
-  write.xlsx(sysndd_db_disease_genes_panel,
+  filename <- file.path(tempdir(), "sysndd_panel.xlsx")
+
+  write.xlsx(panels_list$data,
     filename,
-    sheetName="sysndd",
+    sheetName="data",
     append=FALSE)
 
-  write.xlsx(request_stats, filename, sheetName="request", append=TRUE)
-  attachmentString <- paste0("attachment; filename=panel.",
-    category_input, "_",
-    inheritance_input, ".",
+  write.xlsx(panels_list$meta,
+    filename,
+    sheetName="meta",
+    append=TRUE)
+
+  write.xlsx(panels_list$links,
+    filename,
+    sheetName="links",
+    append=TRUE)
+
+  attachmentString <- paste0("attachment; filename=sysndd_panel.",
     creation_date,
     ".xlsx")
 
