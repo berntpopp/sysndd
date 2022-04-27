@@ -436,8 +436,8 @@ export default {
           break;
           }
 
-          //based on https://morioh.com/p/f4d331b62cda
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype/entities/excel?hpo_list=' + this.value.join() + '&logical_operator=' + logical_operator;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype/entities/excel?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + logical_operator + '(equals(' + this.value.join(',TRUE),equals(') + ',TRUE))' + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
+
           try {
             let response = await this.axios({
                     url: apiUrl,
