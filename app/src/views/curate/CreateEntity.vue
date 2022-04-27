@@ -185,7 +185,7 @@
               v-model="literature_review" 
               no-outer-focus 
               class="my-0"
-              separator=" ,;"
+              separator=",;"
               :tag-validator="tagValidatorPMID"
               remove-on-delete
               >
@@ -243,7 +243,7 @@
               v-model="genereviews_review" 
               no-outer-focus 
               class="my-0"
-              separator=" ,;"
+              separator=",;"
               :tag-validator="tagValidatorPMID"
               remove-on-delete
               >
@@ -395,16 +395,10 @@ export default {
             console.error(e);
           }
         },
-        addTag(newTag) {
-            const tag = {
-              phenotype_id: newTag
-            }
-            this.options.push(tag);
-            this.value.push(tag);
-        },
         tagValidatorPMID(tag) {
           // Individual PMID tag validator function
-          return !isNaN(Number(tag.replace('PMID:', ''))) && tag.includes('PMID:') && tag.replace('PMID:', '').length > 4 && tag.replace('PMID:', '').length < 9;
+          tag = tag.replace(/\s+/g,'');
+          return !isNaN(Number(tag.replaceAll('PMID:', ''))) && tag.includes('PMID:') && tag.replace('PMID:', '').length > 4 && tag.replace('PMID:', '').length < 9;
         },
         async loadGeneInfoTree({searchQuery, callback}) {
           let apiSearchURL = process.env.VUE_APP_API_URL + '/api/search/gene/' + searchQuery + '?tree=true';
@@ -444,7 +438,16 @@ export default {
           const entity_ndd_phenotype = this.NDD_options[this.NDD_selected][0].boolean_id;
 
           // define literature specific attributes as constants from inputs
-          const new_literature = new this.Literature(this.literature_review, this.genereviews_review);
+          // first clean the arrays
+          const literature_review_clean = this.literature_review.map(element => {
+            return element.replace(/\s+/g,'');
+          });
+
+          const genereviews_review_clean = this.genereviews_review.map(element => {
+            return element.replace(/\s+/g,'');
+          });
+
+          const new_literature = new this.Literature(literature_review_clean, genereviews_review_clean);
 
           // define phenotype specific attributes as constants from inputs
           const new_phenotype = this.phenotypes_review.map(item => {
