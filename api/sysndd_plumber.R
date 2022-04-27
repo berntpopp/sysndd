@@ -29,15 +29,11 @@ library(timetk)
 ##-------------------------------------------------------------------##
 
 
+
 ##-------------------------------------------------------------------##
 dw <- config::get(Sys.getenv("API_CONFIG"))
-
 ##-------------------------------------------------------------------##
 
-
-##-------------------------------------------------------------------##
-options("plumber.apiURL" = dw$base_url)
-##-------------------------------------------------------------------##
 
 
 ##-------------------------------------------------------------------##
@@ -88,16 +84,18 @@ user_status_allowed <- c("Administrator",
 
 ##-------------------------------------------------------------------##
 ##-------------------------------------------------------------------##
-# Global functions
+# Global API functions
+options("plumber.apiURL" = dw$base_url)
 
 # load source files
 source("functions/database-functions.R", local = TRUE)
+source("functions/endpoint-functions.R", local = TRUE)
 source("functions/publication-functions.R", local = TRUE)
 source("functions/plot-functions.R", local = TRUE)
 source("functions/helper-functions.R", local = TRUE)
 
 # convert to memoise functions
-nest_gene_statistics_tibble_mem <- memoise(nest_gene_statistics_tibble)
+generate_gene_statistics_tibble_mem <- memoise(generate_gene_statistics_tibble)
 generate_gene_news_tibble_mem <- memoise(generate_gene_news_tibble)
 nest_gene_tibble_mem <- memoise(nest_gene_tibble)
 
@@ -2601,95 +2599,15 @@ function(res,
   fields = "",
   `page[after]` = "0",
   `page[size]` = "all") {
+# call the endpoint function generate_phenotype_entities
+phenotype_entities_list <- generate_phenotype_entities_list(sort,
+  filter,
+  fields,
+  `page[after]`,
+  `page[size]`)
 
-  # to do: need to speed this up by making a database view instead
-  # of recalculating the transposition and join with each time (expensive)
-
-  start_time <- Sys.time()
-
-  filter <- URLdecode(filter) %>%
-    str_replace_all("HP:", "HP_")
-
-  # generate sort expression based on sort input
-  sort_exprs <- generate_sort_expressions(sort, unique_id = "entity_id")
-
-  # generate filter expression based on filter input
-  filter_exprs <- generate_filter_expressions(filter)
-
-  #
-  ndd_review_phenotype_connect_wide <- pool %>%
-    tbl("ndd_review_phenotype_connect_wide_view")
-
-  #
-  sysndd_db_entity_phenotype_table <- pool %>%
-    tbl("ndd_entity_view") %>%
-    left_join(ndd_review_phenotype_connect_wide, by = c("entity_id")) %>%
-    collect() %>%
-    filter(!!!rlang::parse_exprs(filter_exprs)) %>%
-    pivot_longer(
-      cols = starts_with("HP_"),
-      names_to = "phenotype_id",
-      values_to = "phenotype_present"
-    ) %>%
-    filter(phenotype_present == TRUE) %>%
-    mutate(phenotype_id = str_replace_all(phenotype_id, "_", ":")) %>%
-    group_by(entity_id) %>%
-    arrange(entity_id, phenotype_id) %>%
-    mutate(phenotype_id = paste0(phenotype_id, collapse = ",")) %>%
-    ungroup() %>%
-    unique() %>%
-    select(-phenotype_present) %>%
-    arrange(!!!rlang::parse_exprs(sort_exprs))
-
-  # select fields from table based on input
-  # using the helper function "select_tibble_fields"
-  sysndd_db_entity_phenotype_table <- select_tibble_fields(
-    sysndd_db_entity_phenotype_table,
-    fields,
-    "entity_id")
-
-  # use the helper generate_cursor_pagination_info
-  # to generate cursor pagination information from a tibble
-  sysndd_db_entity_phenotype_table_pagination_info <- generate_cursor_pagination_info(
-    sysndd_db_entity_phenotype_table,
-    `page[size]`, `page[after]`,
-    "entity_id")
-
-  # compute execution time
-  end_time <- Sys.time()
-  execution_time <- as.character(paste0(round(end_time - start_time, 2),
-  " secs"))
-
-  # add columns to the meta information from
-  # generate_cursor_pagination_info function return
-  meta <- sysndd_db_entity_phenotype_table_pagination_info$meta %>%
-    add_column(as_tibble(list("sort" = sort,
-      "filter" = filter,
-      "fields" = fields,
-      "executionTime" = execution_time)))
-
-  # add host, port and other information to links from the link
-  # information from generate_cursor_pagination_info function return
-  links <- sysndd_db_entity_phenotype_table_pagination_info$links %>%
-      pivot_longer(everything(), names_to = "type", values_to = "link") %>%
-    mutate(link = case_when(
-      link != "null" ~ paste0("http://",
-        dw$host, ":",
-        dw$port_self,
-        "/api/phenotype/entities/browse?sort=",
-        sort,
-        ifelse(filter != "", paste0("&filter=", filter), ""),
-        ifelse(fields != "", paste0("&fields=", fields), ""),
-        link),
-      link == "null" ~ "null"
-    )) %>%
-      pivot_wider(everything(), names_from = "type", values_from = "link")
-
-  # generate object to return
-  list(links = links,
-    meta = meta,
-    data = sysndd_db_entity_phenotype_table_pagination_info$data)
-
+# return the list
+phenotype_entities_list
 }
 
 
@@ -2698,79 +2616,40 @@ function(res,
 ## download as Excel file
 #* @serializer contentType list(type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 #' @get /api/phenotype/entities/excel
-function(hpo_list = "", logical_operator = "and", res) {
+function(res,
+  sort = "entity_id",
+  filter = "",
+  fields = "",
+  `page[after]` = "0",
+  `page[size]` = "all") {
+# call the endpoint function generate_phenotype_entities
+phenotype_entities_list <- generate_phenotype_entities_list(sort,
+  filter,
+  fields,
+  `page[after]`,
+  `page[size]`)
 
-  hpo_list <- URLdecode(hpo_list) %>%
-    str_split(pattern=",", simplify=TRUE) %>%
-    str_replace_all("[^0-9]+", "") %>%
-    str_replace("^", "HP:") %>%
-    unique()
-
-  # get data from database and filter
-  if (logical_operator == "and") {
-    entity_list_from_phenotype_list_coll <- pool %>%
-      tbl("ndd_review_phenotype_connect") %>%
-      filter(phenotype_id %in% hpo_list) %>%
-      arrange(phenotype_id) %>%
-      select(entity_id, phenotype_id) %>%
-      collect() %>%
-      unique() %>%
-      arrange(entity_id) %>%
-      mutate(found=TRUE) %>%
-      pivot_wider(names_from = phenotype_id, values_from = found) %>%
-      replace(., is.na(.), FALSE) %>%
-      pivot_longer(-entity_id, names_to = c("phenotype_id")) %>%
-      select(-phenotype_id) %>%
-      group_by(entity_id) %>%
-      summarise(value = all(value)) %>%
-      filter(value) %>%
-      select(entity_id) %>%
-      ungroup()
-
-  # get entity data for the excel sheet
-    sysndd_db_entity_table <- pool %>%
-      tbl("ndd_entity_view") %>%
-      collect() %>%
-      filter(entity_id %in%
-        entity_list_from_phenotype_list_coll$entity_id) %>%
-      arrange(entity_id)
-  } else if (logical_operator == "or") {
-    entity_list_from_phenotype_list_coll <- pool %>%
-      tbl("ndd_review_phenotype_connect") %>%
-      filter(phenotype_id %in% hpo_list) %>%
-      arrange(entity_id) %>%
-      select(entity_id,) %>%
-      collect() %>%
-      unique()
-
-  # get entity data for the excel sheet
-    sysndd_db_entity_table <- pool %>%
-      tbl("ndd_entity_view") %>%
-      collect() %>%
-      filter(entity_id %in%
-        entity_list_from_phenotype_list_coll$entity_id) %>%
-      arrange(entity_id)
-  }
-
-  # generate request statistic for output
+  # generate creation date statistic for output
   creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"),
     "%Y-%m-%dT %H:%M:%S")
 
-  request_stats <- tibble(
-    creation_date = creation_date,
-    hpo_input = hpo_list,
-    operator_input = logical_operator
-  ) %>%
-  pivot_longer(everything(), names_to = "request", values_to = "value")
-
   # generate excel file output
   filename <- file.path(tempdir(), "phenotype_panel.xlsx")
-  write.xlsx(sysndd_db_entity_table,
+
+  write.xlsx(phenotype_entities_list$data,
     filename,
-    sheetName="sysndd_phenotype_panel",
+    sheetName="data",
     append=FALSE)
 
-  write.xlsx(request_stats, filename, sheetName="request", append=TRUE)
+  write.xlsx(phenotype_entities_list$meta,
+    filename,
+    sheetName="meta",
+    append=TRUE)
+
+  write.xlsx(phenotype_entities_list$links,
+    filename,
+    sheetName="links",
+    append=TRUE)
 
   attachmentString <- paste0("attachment; filename=phenotype_panel.",
     creation_date,
@@ -3489,7 +3368,7 @@ function(
 #* @serializer json list(na="string")
 #' @get /api/statistics/genes
 function() {
- disease_genes_statistics <- nest_gene_statistics_tibble_mem()
+ disease_genes_statistics <- generate_gene_statistics_tibble_mem()
 
  disease_genes_statistics
 }
