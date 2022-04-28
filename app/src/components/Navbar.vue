@@ -1,7 +1,7 @@
 <template>
   <div>
-    <b-navbar toggleable="md" type="dark" variant="dark" class="py-0">
-      <b-navbar-brand href="/"><img src="../../public/android-chrome-192x192_68px.png" height="40" width="40" alt="SysNDD Logo" rel="preload"> SysNDD</b-navbar-brand>
+    <b-navbar toggleable="md" type="dark" variant="dark" class="py-0 bg-navbar">
+      <b-navbar-brand href="/"><img src="../../public/brain-neurodevelopmental-disorders-sysndd-logo.png" height="40" width="40" alt="SysNDD Logo" rel="preload"> SysNDD</b-navbar-brand>
 
       <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
 
@@ -313,5 +313,8 @@ width: 200px;
 ::v-deep .dropdown-item:hover {
   background-color: #999!important; 
   color: #000!important; 
+}
+.bg-navbar {
+  background-image: linear-gradient(to right, #434343 0%, black 100%);
 }
 </style>

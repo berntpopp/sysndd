@@ -1,65 +1,76 @@
 <template>
-  <div class="container-fluid">
+  <div class="bg-gradient">
 
     <b-container fluid>
 
-        <b-row class="justify-content-md-center py-2">
+        <b-row class="justify-content-md-center">
           <b-col md="12">
 
-            <b-jumbotron class="text-left" style="padding-top: 5px; padding-bottom: 5px">
+        <b-row class="justify-content-md-center">
+          <b-col md="8">
+            <b-container fluid="sm" class="py-3">
+              <h3 class="text-center font-weight-bold">
+                Welcome to SysNDD, 
+              </h3>
 
-              <template #lead>
-                The expert curated database of gene disease relationships in neurodevelopmental disorders (NDDs).
-              </template>
-
-              <b-input-group class="mb-2">
-                <b-form-input 
-                autofocus
-                list="search-list" 
-                type="search" 
-                placeholder="Search the SysNDD-db by genes, entities and diseases using names or identifiers" 
-                size="md"
-                autocomplete="off" 
-                v-model="search_input"
-                @input="loadSearchInfo"
-                @keydown.native="keydown_handler"
-                >
-                </b-form-input>
-                
-                <b-form-datalist id="search-list" 
-                :options="search"
-                >
-                </b-form-datalist>
-
-                <b-input-group-append>
-                  <b-button
-                  variant="outline-primary"
-                  size="md"
-                  :disabled="search_input.length < 2"
-                  v-bind:href="'/Search/' + search_input" >
-                    <b-icon icon="search"></b-icon>
-                  </b-button>
-                </b-input-group-append>
-              </b-input-group>
-
-            </b-jumbotron>
-
-            <b-container fluid v-if="loading" style="min-height:50vh"> 
-              <b-spinner label="Loading..." class="spinner float-center m-5"></b-spinner>
+              <h4 class="text-center">
+                the expert curated database of gene disease relationships in <mark>neurodevelopmental disorders</mark> (NDD).
+              </h4>
             </b-container>
 
-            <b-card-group deck v-else>
+            <b-input-group class="mb-2 p-2">
+              <b-form-input 
+              autofocus
+              class="border-dark"
+              list="search-list" 
+              type="search" 
+              placeholder="Search the SysNDD-db by genes, entities and diseases using names or identifiers" 
+              size="md"
+              autocomplete="off" 
+              v-model="search_input"
+              @input="loadSearchInfo"
+              @keydown.native="keydown_handler"
+              >
+              </b-form-input>
+              
+              <b-form-datalist id="search-list" 
+              :options="search"
+              >
+              </b-form-datalist>
 
-              <b-card header-tag="header">
+              <b-input-group-append>
+                <b-button
+                variant="outline-dark"
+                size="md"
+                :disabled="search_input.length < 2"
+                v-bind:href="'/Search/' + search_input" >
+                  <b-icon icon="search"></b-icon>
+                </b-button>
+              </b-input-group-append>
+            </b-input-group>
+
+          </b-col>
+        </b-row>
+
+        <b-row>
+          <b-col md="6">
+
+              <b-card 
+                header-tag="header"
+                class="my-3 text-left"
+                body-class="p-0"
+                header-class="p-1"
+                border-variant="dark"
+              >
                 <template #header>
-                  <h6 class="mb-0 font-weight-bold">Current gene statistics</h6>
+                  <h5 class="mb-0 font-weight-bold">Current gene statistics</h5>
                 </template>
                 <b-card-text class="text-left">
 
                 <b-skeleton-wrapper :loading="loading_statistics">
                   <template #loading>
                     <b-skeleton-table
-                      :rows="4"
+                      :rows="2"
                       :columns="3"
                       :table-props="{ bordered: false, striped: false, small: true}"
                     ></b-skeleton-table>
@@ -142,16 +153,22 @@
               </b-card>
 
 
-              <b-card header-tag="header">
+              <b-card 
+                header-tag="header"
+                class="my-3 text-left"
+                body-class="p-0"
+                header-class="p-1"
+                border-variant="dark"
+              >
                 <template #header>
-                  <h6 class="mb-0 font-weight-bold">Gene news</h6>
+                  <h5 class="mb-0 font-weight-bold">Gene news</h5>
                 </template>
                 <b-card-text class="text-left">
 
                 <b-skeleton-wrapper :loading="loading_statistics">
                   <template #loading>
                     <b-skeleton-table
-                      :rows="5"
+                      :rows="3"
                       :columns="2"
                       :table-props="{ bordered: false, striped: false, small: true }"
                     ></b-skeleton-table>
@@ -203,8 +220,28 @@
 
                 </b-card-text>
               </b-card>
-            </b-card-group>   
+          </b-col>
 
+          <b-col md="6" align-self="center">
+            <div class="container-fluid text-left py-2 my-3">
+
+              <span class="word">NDD comprise <mark>developmental delay</mark> (DD), <mark>intellectual disability</mark> (ID) and <mark>autism spectrum disorder</mark> (ASD). </span><br>
+              <img class="circle" src="../../public/brain-neurodevelopmental-disorders-sysndd.png" alt="Brain logo for the SysNDD neurodevelopmental-disorders website" />
+              <span class="word">This clinically and genetically extremely <mark>heterogeneous</mark> disease group affects <mark>about 2% of newborns</mark>. </span><br>
+              <span class="word">SysNDD aims to empower clinical diagnostics, counseling and research for NDDs though <mark>expert curation</mark>. </span><br>
+
+              <span class="word">We define “gene-inheritance-disease” units as “<mark>entities</mark>”. </span><br> 
+              <span class="word">They are color coded throughout the website: <b-badge variant="primary">Entity:
+                          <b-badge pill variant="success">Gene</b-badge> 
+                          <b-badge pill variant="info">Inheritance</b-badge> 
+                          <b-badge pill variant="secondary">Disease</b-badge> 
+                        </b-badge></span><br>
+                <span class="word">The SysNDD tool allows browsing and download of tabular views for curated NDD entity components in the <mark>Tables</mark> section. It offers multiple <mark>Analyses</mark> sections for genes, phenotypes and comparisions with other curation efforts. </span><br>
+
+            </div>
+          </b-col>
+
+        </b-row>
           </b-col>
         </b-row>
 
@@ -295,7 +332,7 @@ export default {
   async loadNews() {
     this.loading_news = true;
 
-    let apiNewsURL = process.env.VUE_APP_API_URL + '/api/statistics/news';
+    let apiNewsURL = process.env.VUE_APP_API_URL + '/api/statistics/news?n=5';
 
     try {
       let response_news = await this.axios.get(apiNewsURL);
@@ -344,5 +381,34 @@ export default {
     white-space: nowrap; /* forces text to single line */
     overflow: hidden;
     text-overflow: ellipsis;
+}
+.bg-gradient {
+  margin:0px;
+  height:100%;
+  min-height:calc(100vh - 100px);
+}
+.border-dark {
+    border: 1;
+    border-color: #000;
+}
+.word {
+  font-size: 1.25em;
+}
+mark {
+  display: inline-block;
+  line-height: 0em;
+  padding-bottom: 0.5em;
+  font-weight: bold;
+  background-color: #EAADBA;
+}
+.circle {
+  height: 150px;
+  width: 150px;
+  border-radius: 20%;
+  background-color: #FFF;
+  margin: 0 5px 5px 0;
+  float: left;
+  -webkit-shape-outside: circle();
+  shape-outside: circle();
 }
 </style>

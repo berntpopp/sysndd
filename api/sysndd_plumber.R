@@ -3130,7 +3130,7 @@ function() {
 #* @serializer json list(na="string")
 #' @get /api/statistics/news
 function(n = 5) {
- sysndd_db_disease_genes_news <- generate_gene_news_tibble_mem(5)
+ sysndd_db_disease_genes_news <- generate_gene_news_tibble_mem(n)
 
  sysndd_db_disease_genes_news
 }

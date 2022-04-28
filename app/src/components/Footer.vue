@@ -1,7 +1,7 @@
 <template>
   <div class="footer">
 
-    <b-navbar toggleable="sm" type="light" variant="light" class="py-0">
+    <b-navbar toggleable="sm" type="light" variant="light" class="py-0 bg-footer">
       <b-navbar-toggle target="footer-collapse"></b-navbar-toggle>
         <b-collapse id="footer-collapse" is-nav>
           <b-navbar-nav justified class="flex-grow-1">
@@ -56,5 +56,8 @@ li {
 }
 a {
   color: #42b983;
+}
+.bg-footer {
+  background-image: linear-gradient(to top, #d5d4d0 0%, #d5d4d0 1%, #eeeeec 31%, #efeeec 75%, #e9e9e7 100%);
 }
 </style>

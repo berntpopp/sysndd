@@ -182,13 +182,12 @@
                     </b-row>
                     <b-row>
                       <b-col md="12">
-                        The core principle of SysNDD are immutable “gene-inheritance-disease-[consequence]” units, so called “entities”.
+                        The core principle of SysNDD are immutable “gene-inheritance-disease” units, so called “entities”.
                         <br>
                         <h2><b-badge variant="primary">Entity:
                           <b-badge pill variant="success">Gene</b-badge> 
                           <b-badge pill variant="info">Inheritance</b-badge> 
                           <b-badge pill variant="secondary">Disease</b-badge> 
-                          <b-badge pill variant="dark">Consequence</b-badge>
                         </b-badge></h2>
                         To allow interoperability and linking to other data sources, these entities are defined through ontology terms (HGNC identifier for genes, OMIM or MONDO for disease and inheritance from HPO). 
                         The mutational consequence is currently not active but will be implemented with the next updates.<br><br>
