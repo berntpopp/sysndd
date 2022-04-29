@@ -14,8 +14,10 @@
 
                 <!-- User Interface controls -->
                 <b-card 
-                header-tag="header"
-                bg-variant="light"
+                  header-tag="header"
+                  body-class="p-0"
+                  header-class="p-1"
+                  border-variant="dark"
                 >
                 <template #header>
                   <h6 class="mb-1 text-left font-weight-bold">Upset plot showing the overlap between different selected curation effors for neurodevelopmental disorders.</h6>
@@ -54,10 +56,11 @@
                     <b-col class="my-1">
                     </b-col>
                   </b-row>
-                </b-card>
                 <!-- User Interface controls -->
 
                 <UpSetJS :sets="sets" :width="width" :height="height" @hover="hover" :selection="selection"></UpSetJS>
+
+                </b-card>
               </b-container>
             </b-tab>
 
@@ -67,8 +70,10 @@
 
                 <!-- User Interface controls -->
                 <b-card 
-                header-tag="header"
-                bg-variant="light"
+                  header-tag="header"
+                  body-class="p-0"
+                  header-class="p-1"
+                  border-variant="dark"
                 >
                 <template #header>
                   <h6 class="mb-1 text-left font-weight-bold">Matrix plot of the cosine similarity between different curation effors for neurodevelopmental disorders.</h6>
@@ -90,8 +95,9 @@
                     <b-col class="my-1">
                     </b-col>
                   </b-row>
-                </b-card>
                 <!-- User Interface controls -->
+
+                </b-card>
 
               </b-container>
               
@@ -105,8 +111,10 @@
 
           <!-- User Interface controls -->
           <b-card 
-          header-tag="header"
-          bg-variant="light"
+            header-tag="header"
+            body-class="p-0"
+            header-class="p-1"
+            border-variant="dark"
           >
           <template #header>
             <h6 class="mb-1 text-left font-weight-bold">Comparing the presence of a gene in different curation effors for neurodevelopmental disorders.</h6>
@@ -183,7 +191,6 @@
               ></b-pagination>
             </b-col>
           </b-row>
-          </b-card>
           <!-- User Interface controls -->
 
               <!-- Main table element -->
@@ -342,6 +349,7 @@
               </template>
 
               </b-table>
+          </b-card>
 
             </b-tab>
             

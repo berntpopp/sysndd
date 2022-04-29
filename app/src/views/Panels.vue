@@ -9,7 +9,9 @@
           <!-- User Interface controls -->
           <b-card 
           header-tag="header"
-          bg-variant="light"
+          body-class="p-0"
+          header-class="p-1"
+          border-variant="dark"
           >
           <template #header>
             <h6 class="mb-1 text-left font-weight-bold">Panel compilation and download <b-badge variant="primary" v-b-tooltip.hover.bottom v-bind:title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime">Genes: {{totalRows}} </b-badge></h6>
@@ -134,10 +136,9 @@
             </b-col>
 
           </b-row>
-        </b-card>
+
 
           <!-- Main table element -->
-          
           <b-table
             :items="items"
             :fields="fields"
@@ -249,6 +250,7 @@
             </template>
 
           </b-table>
+        </b-card>
 
         </b-col>
       </b-row>

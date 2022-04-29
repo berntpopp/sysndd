@@ -14,8 +14,10 @@
 
                 <!-- User Interface controls -->
                 <b-card 
-                header-tag="header"
-                bg-variant="light"
+                  header-tag="header"
+                  body-class="p-0"
+                  header-class="p-1"
+                  border-variant="dark"
                 >
                 <template #header>
                   <h6 class="mb-1 text-left font-weight-bold">Matrix of phenotype correlations.</h6>
