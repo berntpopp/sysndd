@@ -9,14 +9,15 @@
           <!-- User Interface controls -->
           <b-card 
           header-tag="header"
-          bg-variant="light"
+            body-class="p-0"
+            header-class="p-1"
+            border-variant="dark"
           >
             <template #header>
               <h6 class="mb-1 text-left font-weight-bold">
                 Approve new reviews
               </h6>
             </template>
-          </b-card>
           <!-- User Interface controls -->
 
           <!-- Main table -->
@@ -132,6 +133,8 @@
           </b-table>
           <!-- Main table -->
 
+          </b-card>
+          
         </b-col>
       </b-row>
 

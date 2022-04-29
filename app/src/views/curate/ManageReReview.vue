@@ -8,8 +8,10 @@
 
           <!-- User Interface controls -->
           <b-card 
-          header-tag="header"
-          bg-variant="light"
+            header-tag="header"
+            body-class="p-0"
+            header-class="p-1"
+            border-variant="dark"
           >
             <template #header>
               <h6 class="mb-1 text-left font-weight-bold">
@@ -48,8 +50,6 @@
                 </b-col>
               </b-row>
             </b-col>
-
-          </b-card>
           <!-- User Interface controls -->
 
                 <b-table
@@ -86,6 +86,8 @@
                 </template>
 
               </b-table>
+
+          </b-card>
 
         </b-col>
       </b-row>

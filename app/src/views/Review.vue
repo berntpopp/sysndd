@@ -8,9 +8,11 @@
 
           <!-- User Interface controls -->
           <b-card 
-          header-tag="header"
-          bg-variant="light"
-          :header-bg-variant="header_style[curation_selected]"
+            header-tag="header"
+            body-class="p-0"
+            header-class="p-1"
+            border-variant="dark"
+            :header-bg-variant="header_style[curation_selected]"
           >
           <template #header>
             <b-row>
@@ -86,7 +88,6 @@
               ></b-pagination>
             </b-col>
           </b-row>
-          </b-card>
           <!-- User Interface controls -->
 
 
@@ -252,6 +253,8 @@
             </template>
 
           </b-table>
+
+          </b-card>
 
         </b-col>
       </b-row>

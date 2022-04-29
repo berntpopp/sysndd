@@ -8,9 +8,11 @@
 
           <!-- User Interface controls -->
           <b-card 
-          header-tag="header"
-          bg-variant="light"
-          align="left"
+            header-tag="header"
+            align="left"
+            body-class="p-1"
+            header-class="p-1"
+            border-variant="dark"
           >
             <template #header>
               <h6 class="mb-1 text-left font-weight-bold">
@@ -21,6 +23,9 @@
 
             <b-card
               class="my-2"
+              body-class="p-0"
+              header-class="p-1"
+              border-variant="dark"
             >
 
             <template #header>
@@ -50,6 +55,9 @@
             <b-card
               class="my-2"
               v-if="modify_entity_input"
+              body-class="p-0"
+              header-class="p-1"
+              border-variant="dark"
             >
 
             <template #header>

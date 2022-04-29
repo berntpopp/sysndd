@@ -8,15 +8,16 @@
 
           <!-- User Interface controls -->
           <b-card 
-          header-tag="header"
-          bg-variant="light"
+            header-tag="header"
+            body-class="p-0"
+            header-class="p-1"
+            border-variant="dark"
           >
             <template #header>
               <h6 class="mb-1 text-left font-weight-bold">
                 Approve new user applications
               </h6>
             </template>
-          </b-card>
           <!-- User Interface controls -->
 
 
@@ -73,6 +74,8 @@
 
           </b-table>
           <!-- Main table -->
+
+          </b-card>
 
         </b-col>
       </b-row>
