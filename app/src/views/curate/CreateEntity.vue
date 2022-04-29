@@ -385,7 +385,7 @@ export default {
         normalizeVariationOntology(node) {
           return {
             id: node.vario_id,
-            label: node.name,
+            label: node.vario_name,
           }
         },
         async loadStatusList() {

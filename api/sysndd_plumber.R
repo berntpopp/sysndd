@@ -3756,7 +3756,7 @@ function(tree = FALSE) {
 function() {
   variation_ontology_list_coll <- pool %>%
     tbl("variation_ontology_list") %>%
-    select(vario_id, name, definition) %>%
+    select(vario_id, vario_name, definition) %>%
     arrange(vario_id) %>%
     collect()
 
