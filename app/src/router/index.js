@@ -12,42 +12,42 @@ const routes = [
   {
     path: '/Entities',
     name: 'Entities',
-    component: () => import(/* webpackChunkName: "Tables"*/ '@/views/Entities.vue')
+    component: () => import(/* webpackChunkName: "Tables"*/ '@/views/tables/Entities.vue')
   },
   {
     path: '/Genes',
     name: 'Genes',
-    component: () => import(/* webpackChunkName: "Tables" */ '@/views/Genes.vue')
+    component: () => import(/* webpackChunkName: "Tables" */ '@/views/tables/Genes.vue')
   },
   {
     path: '/Phenotypes',
     name: 'Phenotypes',
-    component: () => import(/* webpackChunkName: "Tables" */ '@/views/Phenotypes.vue')
+    component: () => import(/* webpackChunkName: "Tables" */ '@/views/tables/Phenotypes.vue')
   },
   {
     path: '/CurationComparisons',
     name: 'CurationComparisons',
-    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/CurationComparisons.vue')
+    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/analyses/CurationComparisons.vue')
   },
   {
     path: '/PhenotypeCorrelations',
     name: 'PhenotypeCorrelations',
-    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/PhenotypeCorrelations.vue')
+    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/analyses/PhenotypeCorrelations.vue')
   },
   {
     path: '/EntriesOverTime',
     name: 'EntriesOverTime',
-    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/EntriesOverTime.vue')
+    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/analyses/EntriesOverTime.vue')
   },
   {
     path: '/GeneNetworks',
     name: 'GeneNetworks',
-    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/GeneNetworks.vue')
+    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/analyses/GeneNetworks.vue')
   },
   {
     path: '/Panels/:category_input?/:inheritance_input?',
     name: 'Panels',
-    component: () => import(/* webpackChunkName: "Tables" */ '@/views/Panels.vue'),
+    component: () => import(/* webpackChunkName: "Tables" */ '@/views/tables/Panels.vue'),
     beforeEnter: (to, from, next) => {
       if (["All", "Limited", "Definitive", "Moderate", "Refuted"].includes(to.params.category_input) && ["All", "Dominant", "Other", "Recessive", "X-linked"].includes(to.params.inheritance_input) ) {
         next(); // <-- everything good, proceed
@@ -243,15 +243,15 @@ const routes = [
   },
   {
     path: '/Entities/:sysndd_id',
-    component: () => import(/* webpackChunkName: "Pages" */ '@/views/Entity.vue')
+    component: () => import(/* webpackChunkName: "Pages" */ '@/views/pages/Entity.vue')
   },
   {
     path: '/Genes/:gene_id',
-    component: () => import(/* webpackChunkName: "Pages" */ '@/views/Gene.vue')
+    component: () => import(/* webpackChunkName: "Pages" */ '@/views/pages/Gene.vue')
   },
   {
     path: '/Search/:search_term',
-    component: () => import(/* webpackChunkName: "Pages" */ '@/views/Search.vue')
+    component: () => import(/* webpackChunkName: "Pages" */ '@/views/pages/Search.vue')
   },
   {
     path: '/API',
@@ -259,7 +259,7 @@ const routes = [
   },
   {
     path: '/Ontology/:disease_term',
-    component: () => import(/* webpackChunkName: "Pages" */ '@/views/Ontology.vue')
+    component: () => import(/* webpackChunkName: "Pages" */ '@/views/pages/Ontology.vue')
   }
 ]
 
