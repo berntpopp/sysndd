@@ -3717,6 +3717,7 @@ function(tree = FALSE) {
   if (tree) {
     modifier_list_collected <- pool %>%
       tbl("modifier_list") %>%
+      filter(allowed_phenotype) %>%
       select(modifier_id, modifier_name) %>%
       arrange(modifier_id) %>%
       collect()
@@ -3753,12 +3754,42 @@ function(tree = FALSE) {
 #* gets a list of all variation ontology terms
 #* @serializer json list(na="string")
 #' @get /api/list/variation_ontology
-function() {
-  variation_ontology_list_coll <- pool %>%
-    tbl("variation_ontology_list") %>%
-    select(vario_id, vario_name, definition) %>%
-    arrange(vario_id) %>%
-    collect()
+function(tree = FALSE) {
+
+  # the "tree" option allows output data to be formated as
+  # arrays for the treeselect library
+  # change output by tree input to simple table (tree = FALSE)
+  # or treeselect compatible output with modifiers (tree = TRUE)
+  if (tree) {
+    modifier_list_collected <- pool %>%
+      tbl("modifier_list") %>%
+      filter(allowed_variation) %>%
+      select(modifier_id, modifier_name) %>%
+      arrange(modifier_id) %>%
+      collect()
+
+    variation_ontology_list_coll <- pool %>%
+      tbl("variation_ontology_list") %>%
+      select(vario_id, vario_name, definition) %>%
+      arrange(vario_id) %>%
+      collect() %>%
+      mutate(children = list(modifier_list_collected)) %>%
+      unnest(children) %>%
+      filter(modifier_id != 1) %>%
+      mutate(id = paste0(modifier_id, "-", vario_id)) %>%
+      mutate(label = paste0(modifier_name, ": ", vario_name)) %>%
+      select(-modifier_id, -modifier_name) %>%
+      nest(data = c(id, label)) %>%
+      mutate(vario_id = paste0("1-", vario_id)) %>%
+      mutate(vario_name = paste0("present: ", vario_name)) %>%
+      select(id = vario_id, label = vario_name, children = data)
+  } else {
+    variation_ontology_list_coll <- pool %>%
+      tbl("variation_ontology_list") %>%
+      select(vario_id, vario_name, definition) %>%
+      arrange(vario_id) %>%
+      collect()
+  }
 
   # return output
   variation_ontology_list_coll
