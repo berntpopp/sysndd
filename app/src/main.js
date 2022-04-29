@@ -32,7 +32,9 @@ import { BIconPersonCircle,
   BIconLink,
   BIconGear} from 'bootstrap-vue'
 
-import 'bootstrap/dist/css/bootstrap.css'
+// based on https://stackoverflow.com/questions/54829710/how-to-override-bootstrap-variables-in-vue-workflow-vanilla-bootstrap
+// import 'bootstrap/dist/css/bootstrap.css'
+import '../src/assets/scss/custom.scss';
 import 'bootstrap-vue/dist/bootstrap-vue.css'
 
 import VueAxios from 'vue-axios'

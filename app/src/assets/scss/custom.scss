@@ -1,6 +1,14 @@
 $text-main: #2c3e50;
 $enable-gradients: true;
 
+
+$primary: #0D47A1;
+
+$theme-colors: (
+  'primary': #1565C0
+);
+
 //based on https://stackoverflow.com/questions/58581748/what-are-the-steps-to-using-custom-bootstrap-sass-in-a-vue-cli-3-project
 @import 'node_modules/bootstrap/scss/bootstrap';
 @import 'node_modules/bootstrap-vue/src/index.scss';
+

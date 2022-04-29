@@ -226,7 +226,6 @@
             <div class="container-fluid text-left py-2 my-3">
 
               <span class="word">NDD comprise <mark>developmental delay</mark> (DD), <mark>intellectual disability</mark> (ID) and <mark>autism spectrum disorder</mark> (ASD). </span><br>
-              <img class="circle" src="../../public/brain-neurodevelopmental-disorders-sysndd.png" alt="Brain logo for the SysNDD neurodevelopmental-disorders website" />
               <span class="word">This clinically and genetically extremely <mark>heterogeneous</mark> disease group affects <mark>about 2% of newborns</mark>. </span><br>
               <span class="word">SysNDD aims to empower clinical diagnostics, counseling and research for NDDs though <mark>expert curation</mark>. </span><br>
 
@@ -386,6 +385,7 @@ export default {
   margin:0px;
   height:100%;
   min-height:calc(100vh - 100px);
+  background-image: linear-gradient(-225deg, #E3FDF5 0%, #FFE6FA 100%);
 }
 .border-dark {
     border: 1;
