@@ -171,6 +171,7 @@
             <treeselect 
               v-model="variation_ontology_review" 
               :multiple="true" 
+              :flat="true"
               :options="variation_ontology_options"
               :normalizer="normalizeVariationOntology"
               required
@@ -374,7 +375,7 @@ export default {
           }
         },
         async loadVariationOntologyList() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/list/variation_ontology';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/list/variation_ontology?tree=true';
           try {
             let response = await this.axios.get(apiUrl);
             this.variation_ontology_options = response.data;
@@ -384,8 +385,8 @@ export default {
         },
         normalizeVariationOntology(node) {
           return {
-            id: node.vario_id,
-            label: node.vario_name,
+            id: node.id,
+            label: node.label,
           }
         },
         async loadStatusList() {
@@ -457,7 +458,9 @@ export default {
             });
 
           // define variation ontology specific attributes as constants from inputs
-          const new_variation_ontology = this.variation_ontology_review;
+          const new_variation_ontology = this.variation_ontology_review.map(item => {
+              return new this.Variation(item.split('-')[1], item.split('-')[0]);
+            });
 
           // define review specific attributes as constants from inputs
           const review_synopsis = this.synopsis_review; 
@@ -553,6 +556,10 @@ Status(category_id, comment, problematic) {
     },
 Phenotype(phenotype_id, modifier_id) {
       this.phenotype_id = phenotype_id;
+      this.modifier_id = modifier_id;
+    },
+Variation(vario_id, modifier_id) {
+      this.vario_id = vario_id;
       this.modifier_id = modifier_id;
     },
 Literature(additional_references, gene_review) {

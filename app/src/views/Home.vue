@@ -14,7 +14,7 @@
               </h3>
 
               <h4 class="text-center">
-                the expert curated database of gene disease relationships in <mark>neurodevelopmental disorders</mark> (NDD).
+                the expert curated database of gene disease relationships in <mark>neurodevelopmental</mark> <mark>disorders</mark> (NDD).
               </h4>
             </b-container>
 
