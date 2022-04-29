@@ -43,7 +43,7 @@
                     :async="true"
                     :load-options="searchEntityInfo"
                     v-model="modify_entity_input"
-                    :normalizer="normalizer"
+                    :normalizer="normalizerEntitySearch"
                     required
                   />
 
@@ -157,6 +157,7 @@
           :async="true"
           :load-options="loadOntologyInfoTree"
           v-model="ontology_input"
+          :normalizer="normalizerOntologySearch"
           required
         />
         
@@ -225,7 +226,7 @@
               :async="true"
               :load-options="searchEntityInfo"
               v-model="replace_entity_input"
-              :normalizer="normalizer"
+              :normalizer="normalizerEntitySearch"
               required
             />
 
@@ -322,10 +323,16 @@ export default {
             console.error(e);
             }
         },
-        normalizer(node) {
+        normalizerEntitySearch(node) {
           return {
             id: node.entity_id,
-            label: "sysndd:" + node.entity_id + " (" + node.symbol + " - " + node.disease_ontology_id_version + " - " + node.hpo_mode_of_inheritance_term_name + ")",
+            label: "sysndd:" + node.entity_id + " (" + node.symbol + " - " + node.disease_ontology_name + " - (" + node.disease_ontology_id_version + ") - " + node.hpo_mode_of_inheritance_term_name + ")",
+          }
+        },
+        normalizerOntologySearch(node) {
+          return {
+            id: node.id,
+            label: node.id + " (" + node.label + ")",
           }
         },
         async loadOntologyInfoTree({searchQuery, callback}) {
