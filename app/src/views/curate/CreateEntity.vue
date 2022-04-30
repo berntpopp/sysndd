@@ -82,6 +82,7 @@
                 :async="true"
                 :load-options="loadOntologyInfoTree"
                 v-model="ontology_input"
+                :normalizer="normalizerOntologySearch"
                 required
               />
 
@@ -423,6 +424,12 @@ export default {
             console.error(e);
             }
         },
+        normalizerOntologySearch(node) {
+          return {
+            id: node.id,
+            label: node.id + " (" + node.label + ")",
+          }
+        },
         async loadInheritanceInfoTree({searchQuery, callback}) {
           let apiSearchURL = process.env.VUE_APP_API_URL + '/api/search/inheritance/' + searchQuery + '?tree=true';
 
@@ -463,8 +470,8 @@ export default {
             });
 
           // define review specific attributes as constants from inputs
-          const review_synopsis = this.synopsis_review; 
-          const review_comment = this.review_comment; 
+          const review_synopsis = this.synopsis_review;
+          const review_comment = this.review_comment;
           const new_review = new this.Review(review_synopsis, new_literature, new_phenotype, new_variation_ontology, review_comment);
 
           // define status specific attributes as constants from inputs
