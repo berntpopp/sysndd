@@ -471,7 +471,7 @@ PutPostDatabaseVarOntCon <- function(request_method,
   variation_ontology_submission <- variation_ontology_data %>%
     add_column(review_id) %>%
     add_column(entity_id) %>%
-    select(review_id, vario_id, entity_id)
+    select(review_id, vario_id, modifier_id, entity_id)
 
   # for the PUT request we check whether the submitted entity ID
   # matches the current one associated with the review id to not

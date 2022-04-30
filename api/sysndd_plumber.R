@@ -303,7 +303,7 @@ function(res,
 
 #* @tag entity
 #* creates a new entity
-## example data: create_json <- '{"entity": {"hgnc_id":"HGNC:21396", "disease_ontology_id_version":"OMIM:210600", "hpo_mode_of_inheritance_term":"HP:0000007", "ndd_phenotype":"1"}, "review": {"synopsis": "activating, gain-of-function mutations: congenital hypertrichosis, neonatal macrosomia, distinct osteochondrodysplasia, cardiomegaly; activating mutations", "literature": {"additional_references": ["PMID:22608503", "PMID:22610116"], "gene_review": ["PMID:25275207"]}, "phenotypes": [ {"phenotype_id": "HP:0000256", "modifier_id": 1}, {"phenotype_id": "HP:0000924", "modifier_id": 1}, {"phenotype_id": "HP:0001256", "modifier_id": 1}, {"phenotype_id": "HP:0001574", "modifier_id": 1}, {"phenotype_id": "HP:0001627", "modifier_id": 1}, {"phenotype_id": "HP:0002342", "modifier_id": 1} ], "variation_ontology": [ "VariO:0001" ], "comment": ""}, "status": {"category_id":1, "comment":"fsa", "problematic": true}}'
+## example data: create_json <- '{"entity": {"hgnc_id":"HGNC:21396", "disease_ontology_id_version":"OMIM:210600", "hpo_mode_of_inheritance_term":"HP:0000007", "ndd_phenotype":"1"}, "review": {"synopsis": "activating, gain-of-function mutations: congenital hypertrichosis, neonatal macrosomia, distinct osteochondrodysplasia, cardiomegaly; activating mutations", "literature": {"additional_references": ["PMID:22608503", "PMID:22610116"], "gene_review": ["PMID:25275207"]}, "phenotypes": [ {"phenotype_id": "HP:0000256", "modifier_id": 1}, {"phenotype_id": "HP:0000924", "modifier_id": 1}, {"phenotype_id": "HP:0001256", "modifier_id": 1}, {"phenotype_id": "HP:0001574", "modifier_id": 1}, {"phenotype_id": "HP:0001627", "modifier_id": 1}, {"phenotype_id": "HP:0002342", "modifier_id": 1} ], "variation_ontology": [ {"vario_id": "VariO:0001", "modifier_id": 1} ], "comment": ""}, "status": {"category_id":1, "comment":"fsa", "problematic": true}}'
 #* @serializer json list(na="string")
 #' @post /api/entity/create
 function(req, res, create_json) {
@@ -372,8 +372,7 @@ function(req, res, create_json) {
       phenotypes_received <- as_tibble(create_data$review$phenotypes)
 
       # convert variation ontology to tibble
-      variation_ontology_received <- as_tibble(create_data$review$variation_ontology) %>%
-          select(vario_id = value)
+      variation_ontology_received <- as_tibble(create_data$review$variation_ontology)
 
       ##-------------------------------------------------------------------##
 
