@@ -87,10 +87,10 @@ new_publication <- function(publications_received) {
 }
 
 
-info_from_pmid <- function(pmid_tibble, request_max = 200) {
-  pmid_tibble <- str_replace_all(pmid_tibble, "PMID:", "")
+info_from_pmid <- function(pmid_value, request_max = 200) {
+  pmid_value <- str_replace_all(pmid_value, "PMID:", "")
 
-  input_tibble <- as_tibble(pmid_tibble) %>%
+  input_tibble <- as_tibble(pmid_value) %>%
     mutate(publication_id = as.character(value)) %>%
     mutate(publication_id = str_remove(publication_id, "PMID:")) %>%
     select(-value)

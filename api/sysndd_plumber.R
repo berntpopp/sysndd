@@ -579,7 +579,7 @@ function(req, res, rename_json) {
             tbl("ndd_review_variation_ontology_connect") %>%
             collect() %>%
             filter(review_id == ndd_entity_review_original$review_id) %>%
-            select(vario_id)
+            select(vario_id, modifier_id)
 
         # use the "PutPostDatabaseReview" function to add the
         # review to the database table with the new entity_id and receive
