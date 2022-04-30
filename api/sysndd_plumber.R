@@ -95,9 +95,16 @@ source("functions/plot-functions.R", local = TRUE)
 source("functions/helper-functions.R", local = TRUE)
 
 # convert to memoise functions
-generate_gene_statistics_tibble_mem <- memoise(generate_gene_statistics_tibble)
-generate_gene_news_tibble_mem <- memoise(generate_gene_news_tibble)
-nest_gene_tibble_mem <- memoise(nest_gene_tibble)
+# Expire items in cache after 10 minutes
+# and set cache 100 MB limit
+cm <- cachem::cache_mem(max_age = 10 * 60,
+  max_size = 100 * 1024 ^ 2)
+generate_gene_stat_tibble_mem <- memoise(generate_gene_stat_tibble,
+  cache = cm)
+generate_gene_news_tibble_mem <- memoise(generate_gene_news_tibble,
+  cache = cm)
+nest_gene_tibble_mem <- memoise(nest_gene_tibble,
+  cache = cm)
 
 ##-------------------------------------------------------------------##
 ##-------------------------------------------------------------------##
@@ -3118,7 +3125,7 @@ function(res,
 #* @serializer json list(na="string")
 #' @get /api/statistics/genes
 function() {
- disease_genes_statistics <- generate_gene_statistics_tibble_mem()
+ disease_genes_statistics <- generate_gene_stat_tibble_mem()
 
  disease_genes_statistics
 }

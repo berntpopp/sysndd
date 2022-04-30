@@ -2,7 +2,7 @@
 
 
 # generate comparisons list
-generate_comparisons_list <- function(  sort = "symbol",
+generate_comparisons_list <- function(sort = "symbol",
   filter = "",
   fields = "",
   `page[after]` = "0",
@@ -111,13 +111,13 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
   filter_exprs <- generate_filter_expressions(filter)
 
   # load the wide phenotype view
-  ndd_review_phenotype_connect_wide <- pool %>%
+  ndd_review_phenotype_connect_w <- pool %>%
     tbl("ndd_review_phenotype_connect_wide_view")
 
   #
   sysndd_db_entity_phenotype_table <- pool %>%
     tbl("ndd_entity_view") %>%
-    left_join(ndd_review_phenotype_connect_wide, by = c("entity_id")) %>%
+    left_join(ndd_review_phenotype_connect_w, by = c("entity_id")) %>%
     collect() %>%
     filter(!!!rlang::parse_exprs(filter_exprs)) %>%
     pivot_longer(
@@ -144,7 +144,7 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
 
   # use the helper generate_cursor_pagination_info
   # to generate cursor pagination information from a tibble
-  sysndd_db_entity_phenotype_table_pagination_info <- generate_cursor_pagination_info(
+  entity_phenotype_table_pag_info <- generate_cursor_pagination_info(
     sysndd_db_entity_phenotype_table,
     `page[size]`, `page[after]`,
     "entity_id")
@@ -156,7 +156,7 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
 
   # add columns to the meta information from
   # generate_cursor_pagination_info function return
-  meta <- sysndd_db_entity_phenotype_table_pagination_info$meta %>%
+  meta <- entity_phenotype_table_pag_info$meta %>%
     add_column(as_tibble(list("sort" = sort,
       "filter" = filter,
       "fields" = fields,
@@ -164,7 +164,7 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
 
   # add host, port and other information to links from the link
   # information from generate_cursor_pagination_info function return
-  links <- sysndd_db_entity_phenotype_table_pagination_info$links %>%
+  links <- entity_phenotype_table_pag_info$links %>%
       pivot_longer(everything(), names_to = "type", values_to = "link") %>%
     mutate(link = case_when(
       link != "null" ~ paste0("http://",
@@ -182,7 +182,7 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
   # generate object to return
   return_list <- list(links = links,
     meta = meta,
-    data = sysndd_db_entity_phenotype_table_pagination_info$data)
+    data = entity_phenotype_table_pag_info$data)
 
   # return the list
   return(return_list)
@@ -200,7 +200,7 @@ generate_panels_list <- function(sort = "symbol",
   start_time <- Sys.time()
 
   # get allowed values for category
-  ndd_entity_status_categories_list <- pool %>%
+  entity_status_categories_list <- pool %>%
     tbl("ndd_entity_status_categories_list") %>%
     select(category) %>%
     collect()
@@ -217,16 +217,20 @@ generate_panels_list <- function(sort = "symbol",
   filter <- str_replace(filter,
     "category,'All'",
     paste0("category,",
-      str_c(ndd_entity_status_categories_list$category, collapse = ","))) %>%
+      str_c(entity_status_categories_list$category,
+        ollapse = ","))) %>%
     str_replace("category,All",
     paste0("category,",
-      str_c(ndd_entity_status_categories_list$category, collapse = ","))) %>%
+      str_c(entity_status_categories_list$category,
+        collapse = ","))) %>%
     str_replace("inheritance_filter,'All'",
     paste0("inheritance_filter,",
-      str_c(mode_of_inheritance_list$inheritance_filter, collapse = ","))) %>%
+      str_c(mode_of_inheritance_list$inheritance_filter,
+        collapse = ","))) %>%
     str_replace("inheritance_filter,All",
     paste0("inheritance_filter,",
-      str_c(mode_of_inheritance_list$inheritance_filter, collapse = ",")))
+      str_c(mode_of_inheritance_list$inheritance_filter,
+        collapse = ",")))
 
   # generate sort expression based on sort input
   sort_exprs <- generate_sort_expressions(sort, unique_id = "symbol")
@@ -331,7 +335,7 @@ generate_panels_list <- function(sort = "symbol",
 }
 
 # nest the gene statistics
-generate_gene_statistics_tibble <- function() {
+generate_gene_stat_tibble <- function() {
   sysndd_db_disease_genes <- pool %>%
     tbl("ndd_entity_view") %>%
     arrange(entity_id) %>%
