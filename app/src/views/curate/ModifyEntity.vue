@@ -103,7 +103,7 @@
                     <b-button 
                       size="sm"
                       variant="dark"
-                      v-b-modal.modifyReviewModal
+                      @click="showReviewModify()"
                     >
                       <b-icon icon="pen" font-scale="1.0"></b-icon> 
                       <b-icon icon="clipboard-plus" font-scale="1.0"></b-icon> 
@@ -262,6 +262,7 @@
       no-close-on-backdrop 
       header-bg-variant="dark" 
       header-text-variant="light"
+      @ok="submitReviewChange"
       >
 
       <template #modal-title>
@@ -272,7 +273,174 @@
         </h4>
       </template>
 
-        <p class="my-4">Inputs to modify review data</p>
+        <b-form ref="form" @submit.stop.prevent="submitReviewChange">
+
+          <!-- Synopsis textarea -->
+          <label class="mr-sm-2 font-weight-bold" for="review-textarea-synopsis">Synopsis</label>
+          <b-form-textarea
+            id="review-textarea-synopsis"
+            rows="3"
+            size="sm" 
+            v-model="review_info.synopsis"
+          >
+          </b-form-textarea>
+          <!-- Synopsis textarea -->
+
+          <!-- Phenotype select -->
+          <label class="mr-sm-2 font-weight-bold" for="review-phenotype-select">Phenotypes</label>
+
+            <treeselect 
+              id="review-phenotype-select"
+              v-model="select_phenotype" 
+              :multiple="true" 
+              :flat="true"
+              :options="phenotypes_options"
+              :normalizer="normalizePhenotypes"
+              required
+            />
+          <!-- Phenotype select -->
+
+          <!-- Variation ontolog select -->
+          <label class="mr-sm-2 font-weight-bold" for="review-variation-select">Variation ontology</label>
+
+            <treeselect 
+              id="review-variation-select"
+              v-model="select_variation" 
+              :multiple="true" 
+              :flat="true"
+              :options="variation_ontology_options"
+              :normalizer="normalizeVariationOntology"
+              required
+            />
+          <!-- Variation ontolog select -->
+
+
+          <!-- publications tag form with links out -->
+          <label class="mr-sm-2 font-weight-bold" for="review-publications-select">Publications</label>
+          <b-form-tags 
+          input-id="review-literature-select"
+          v-model="select_additional_references" 
+          no-outer-focus 
+          class="my-0"
+          separator=" ,;"
+          :tag-validator="tagValidatorPMID"
+          remove-on-delete
+          >
+            <template v-slot="{ tags, inputAttrs, inputHandlers, addTag, removeTag }">
+              <b-input-group class="my-0">
+                <b-form-input
+                  v-bind="inputAttrs"
+                  v-on="inputHandlers"
+                  placeholder="Enter PMIDs separated by comma or semicolon"
+                  class="form-control"
+                  size="sm"
+                ></b-form-input>
+                <b-input-group-append>
+                  <b-button @click="addTag()" 
+                  variant="secondary"
+                  size="sm"
+                  >
+                  Add
+                  </b-button>
+                </b-input-group-append>
+              </b-input-group>
+
+              <div class="d-inline-block">
+                <h6>
+                <b-form-tag
+                v-for="tag in tags"
+                @remove="removeTag(tag)"
+                :key="tag"
+                :title="tag"
+                variant="secondary"
+                >
+                  <b-link 
+                  v-bind:href="'https://pubmed.ncbi.nlm.nih.gov/' + tag.replace('PMID:', '')" 
+                  target="_blank" 
+                  class="text-light"
+                  >
+                  <b-icon icon="box-arrow-up-right" font-scale="0.9"></b-icon>
+                    {{ tag }}
+                  </b-link>
+                </b-form-tag>
+                </h6>
+              </div>
+
+            </template>
+          </b-form-tags>
+          <!-- publications tag form with links out -->
+
+
+          <!-- genereviews tag form with links out -->
+          <label class="mr-sm-2 font-weight-bold" for="review-genereviews-select">Genereviews</label>
+          <b-form-tags 
+          input-id="review-genereviews-select"
+          v-model="select_gene_reviews" 
+          no-outer-focus 
+          class="my-0"
+          separator=" ,;"
+          :tag-validator="tagValidatorPMID"
+          remove-on-delete
+          >
+            <template v-slot="{ tags, inputAttrs, inputHandlers, addTag, removeTag }">
+              <b-input-group class="my-0">
+                <b-form-input
+                  v-bind="inputAttrs"
+                  v-on="inputHandlers"
+                  placeholder="Enter PMIDs separated by comma or semicolon"
+                  class="form-control"
+                  size="sm"
+                ></b-form-input>
+                <b-input-group-append>
+                  <b-button @click="addTag()" 
+                  variant="secondary"
+                  size="sm"
+                  >
+                  Add
+                  </b-button>
+                </b-input-group-append>
+              </b-input-group>
+
+              <div class="d-inline-block">
+                <h6>
+                <b-form-tag
+                v-for="tag in tags"
+                @remove="removeTag(tag)"
+                :key="tag"
+                :title="tag"
+                variant="secondary"
+                >
+                  <b-link 
+                  v-bind:href="'https://pubmed.ncbi.nlm.nih.gov/' + tag.replace('PMID:', '')" 
+                  target="_blank" 
+                  class="text-light"
+                  >
+                  <b-icon icon="box-arrow-up-right" font-scale="0.9"></b-icon>
+                    {{ tag }}
+                  </b-link>
+                </b-form-tag>
+                </h6>
+              </div>
+
+            </template>
+          </b-form-tags>
+          <!-- genereviews tag form with links out -->
+
+
+          <!-- Review comment textarea -->
+          <label class="mr-sm-2 font-weight-bold" for="review-textarea-comment">Comment</label>
+          <b-form-textarea
+            id="review-textarea-comment"
+            rows="2"
+            size="sm" 
+            v-model="review_info.comment"
+            placeholder="Additional comments to this entity relevant for the curator."
+          >
+          </b-form-textarea>
+          <!-- Review comment textarea -->
+
+        </b-form>
+
       </b-modal>
       <!-- Modify review modal -->
 
@@ -299,13 +467,7 @@
         </h4>
       </template>
 
-        <b-form ref="form" @submit.stop.prevent="handleSubmit">
-          <label class="mr-sm-2 font-weight-bold" for="status-select">Status</label>
-          <b-icon 
-            icon="stoplights-fill"
-            :variant="stoplights_style[status_info.category_id]"
-          >
-          </b-icon>
+        <b-form ref="form" @submit.stop.prevent="submitStatusChange">
 
           <treeselect
             id="status-select" 
@@ -360,25 +522,58 @@ export default {
       return {
         stoplights_style: {1: "success", 2: "primary", 3: "warning", 4: "danger", "Definitive": "success", "Moderate": "primary", "Limited": "warning", "Refuted": "danger"},
         status_options: [],
+        phenotypes_options: [],
+        variation_ontology_options: [],
         modify_entity_input: null,
         replace_entity_input: null,
         ontology_input: null,
-        entity_info: {
-          entity_id: null,
-        },
-        status_info: {
-          category_id: 0,
-          problematic: 0,
-          comment: "",
-        },
+        entity_info: new this.Entity(),
+        review_info: new this.Review(),
+        select_phenotype: [],
+        select_variation: [],
+        select_additional_references: [],
+        select_gene_reviews: [],
+        status_info: new this.Status(),
         deactivate_check: false,
         replace_check: false,
       };
     },
     mounted() {
       this.loadStatusList();
+      this.loadPhenotypesList();
+      this.loadVariationOntologyList();
     },
     methods: {
+        async loadPhenotypesList() {
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/list/phenotype?tree=true';
+          try {
+            let response = await this.axios.get(apiUrl);
+            this.phenotypes_options = response.data;
+          } catch (e) {
+            console.error(e);
+          }
+        },
+        normalizePhenotypes(node) {
+          return {
+            id: node.id,
+            label: node.label,
+          }
+        },
+        async loadVariationOntologyList() {
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/list/variation_ontology?tree=true';
+          try {
+            let response = await this.axios.get(apiUrl);
+            this.variation_ontology_options = response.data;
+          } catch (e) {
+            console.error(e);
+          }
+        },
+        normalizeVariationOntology(node) {
+          return {
+            id: node.id,
+            label: node.label,
+          }
+        },
         async loadStatusList() {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/list/status?tree=true';
           try {
@@ -408,7 +603,61 @@ export default {
             // compose entity
             this.entity_info = new this.Entity(response.data.data[0].hgnc_id, response.data.data[0].disease_ontology_id_version, response.data.data[0].hpo_mode_of_inheritance_term, response.data.data[0].ndd_phenotype, response.data.data[0].entity_id, response.data.data[0].is_active, response.data.data[0].replaced_by);
 
-      console.log(this.entity_info);
+            } catch (e) {
+            console.error(e);
+            }
+        },
+        async getReview() {
+          let apiGetReviewURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.modify_entity_input + '/review';
+          let apiGetPhenotypesURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.modify_entity_input + '/phenotypes';
+          let apiGetVariationURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.modify_entity_input + '/variation';
+          let apiGetPublicationsURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.modify_entity_input + '/publications';
+
+          try {
+            let response_review = await this.axios.get(apiGetReviewURL);
+            let response_phenotypes = await this.axios.get(apiGetPhenotypesURL);
+            let response_variation = await this.axios.get(apiGetVariationURL);
+            let response_publications = await this.axios.get(apiGetPublicationsURL);
+
+            // define phenotype specific attributes as constants from response
+            const new_phenotype = response_phenotypes.data.map(item => {
+                return new this.Phenotype(item.phenotype_id, item.modifier_id);
+              });
+            this.select_phenotype = response_phenotypes.data.map(item => {
+                return item.modifier_id + '-' + item.phenotype_id;
+              });
+
+            // define variation specific attributes as constants from response
+            const new_variation = response_variation.data.map(item => {
+                return new this.Variation(item.vario_id, item.modifier_id);
+              });
+            this.select_variation = response_variation.data.map(item => {
+                return item.modifier_id + '-' + item.vario_id;
+              });
+
+            // define publication specific attributes as constants from response
+            const literature_gene_reviews = response_publications.data
+              .filter(item => item.publication_type == "gene_review")
+              .map(item => {
+                return item.publication_id });
+
+            const literature_additional_references = response_publications.data
+              .filter(item => item.publication_type == "additional_references")
+              .map(item => {
+                return item.publication_id });
+
+            this.select_additional_references = literature_additional_references;
+            this.select_gene_reviews = literature_gene_reviews;
+            
+            const new_literature = new this.Literature(literature_additional_references, literature_gene_reviews);
+
+            // compose review
+            this.review_info = new this.Review(response_review.data[0].synopsis,
+              new_literature,
+              new_phenotype,
+              new_variation,
+              response_review.data[0].comment
+            );
 
             } catch (e) {
             console.error(e);
@@ -423,7 +672,7 @@ export default {
             // compose entity
             this.status_info = new this.Status(response.data[0].category_id, response.data[0].comment, response.data[0].problematic);
 
-      console.log(this.status_info);
+            this.status_info.status_id = response.data[0].status_id;
 
             } catch (e) {
             console.error(e);
@@ -464,6 +713,11 @@ export default {
         showEntityDeactivate() {
           this.getEntity();
           this.$refs['deactivateModal'].show();
+        },
+        showReviewModify() {
+          this.getEntity();
+          this.getReview();
+          this.$refs['modifyReviewModal'].show();
         },
         showStatusModify() {
           this.getEntity();
@@ -524,19 +778,71 @@ export default {
             this.makeToast(e, 'Error', 'danger');
           }
         },
+        async submitReviewChange() {
+
+          // compose new literature as constants from inputs
+          const replace_literature = new this.Literature(this.select_additional_references, this.select_gene_reviews);
+
+          // compose phenotype specific attributes as constants from inputs
+          const replace_phenotype = this.select_phenotype.map(item => {
+              return new this.Phenotype(item.split('-')[1], item.split('-')[0]);
+            });
+
+          // compose variation ontology specific attributes as constants from inputs
+          const replace_variation_ontology = this.select_variation.map(item => {
+              return new this.Variation(item.split('-')[1], item.split('-')[0]);
+            });
+
+          // assign to object
+          this.review_info.literature = replace_literature;
+          this.review_info.phenotypes = replace_phenotype;
+          this.review_info.variation_ontology = replace_variation_ontology;
+
+console.log(this.review_info);
+
+        },
         async submitStatusChange() {
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/status/update?status_json=';
 
 console.log(this.status_info);
+
+          try {
+            let submission_json = JSON.stringify(this.status_info);
+
+console.log(submission_json);
+
+            let response = await this.axios.put(apiUrl + submission_json, {}, {
+               headers: {
+                 'Authorization': 'Bearer ' + localStorage.getItem('token')
+               }
+             });
+
+            this.makeToast('The new status this entity has been submitted ' + '(status ' + response.status + ' (' + response.statusText + ').', 'Success', 'success');
+            this.resetForm();
+
+          } catch (e) {
+            this.makeToast(e, 'Error', 'danger');
+          }
 
         },
         resetForm() {
           this.modify_entity_input = null;
           this.replace_entity_input = null;
           this.ontology_input = null;
-          this.entity_info = null;
-          this.status = null;
+          this.entity_info = new this.Entity();
+          this.review_info = new this.Review();
+          this.select_phenotype = [];
+          this.select_variation = [];
+          this.select_additional_references = [];
+          this.select_gene_reviews = [];
+          this.status_info = new this.Status();
           this.deactivate_check = false;
           this.replace_check = false;
+        },
+        tagValidatorPMID(tag) {
+          // Individual PMID tag validator function
+          tag = tag.replace(/\s+/g,'');
+          return !isNaN(Number(tag.replaceAll('PMID:', ''))) && tag.includes('PMID:') && tag.replace('PMID:', '').length > 4 && tag.replace('PMID:', '').length < 9;
         },
         makeToast(event, title = null, variant = null) {
             this.$bvToast.toast('' + event, {
@@ -577,6 +883,10 @@ Status(category_id, comment, problematic) {
     },
 Phenotype(phenotype_id, modifier_id) {
       this.phenotype_id = phenotype_id;
+      this.modifier_id = modifier_id;
+    },
+Variation(vario_id, modifier_id) {
+      this.vario_id = vario_id;
       this.modifier_id = modifier_id;
     },
 Literature(additional_references, gene_review) {

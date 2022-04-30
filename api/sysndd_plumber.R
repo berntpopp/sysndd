@@ -789,6 +789,30 @@ function(sysndd_id) {
 
 
 #* @tag entity
+#* gets all variation ontology terms for a entity_id
+#* @serializer json list(na="string")
+#' @get /api/entity/<sysndd_id>/variation
+function(sysndd_id) {
+
+  # get data from database and filter
+  ndd_review_variation_conn_coll <- pool %>%
+    tbl("ndd_review_variation_ontology_connect") %>%
+    filter(is_active == 1) %>%
+    collect()
+  variation_list_collected <- pool %>%
+    tbl("variation_ontology_list") %>%
+    collect()
+
+  variation_list <- ndd_review_variation_conn_coll %>%
+    filter(entity_id == sysndd_id) %>%
+    inner_join(variation_list_collected, by=c("vario_id")) %>%
+    select(entity_id, vario_id, vario_name, modifier_id) %>%
+    arrange(vario_id) %>%
+    unique()
+}
+
+
+#* @tag entity
 #* gets all clinical synopsis for a entity_id
 #* @serializer json list(na="null")
 #' @get /api/entity/<sysndd_id>/review
@@ -801,7 +825,7 @@ function(sysndd_id) {
 
   ndd_entity_review_list <- ndd_entity_review_collected %>%
     filter(entity_id == sysndd_id & is_primary) %>%
-    select(entity_id, synopsis, review_date) %>%
+    select(entity_id, synopsis, review_date, comment) %>%
     arrange(review_date)
 
   ndd_entity_review_list_joined <- as_tibble(sysndd_id) %>%
@@ -829,7 +853,8 @@ function(sysndd_id) {
   ndd_entity_status_list <- ndd_entity_status_collected %>%
     filter(entity_id == sysndd_id & is_active) %>%
     inner_join(entity_status_categories_coll, by=c("category_id")) %>%
-    select(entity_id,
+    select(status_id,
+      entity_id,
       category,
       category_id,
       status_date,
@@ -2876,7 +2901,8 @@ function() {
 
 #* @tag status
 #* posts a new status for a entity_id or put an update to a certain status_id
-## example data: '{"status_id":3,"entity_id":3,"category_id":1,"comment":"fsa","problematic": true}' (privide status_id for put and entity_id for post reqests)
+## example data: '{"status_id":3,"entity_id":3,"category_id":1,"comment":"fsa","problematic": true}' 
+## (provide status_id for put and entity_id for post reqests)
 #* @serializer json list(na="string")
 #' @post /api/status/create
 #' @put /api/status/update

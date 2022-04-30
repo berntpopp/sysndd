@@ -201,7 +201,7 @@
                       v-bind="inputAttrs"
                       v-on="inputHandlers"
                       autocomplete="off" 
-                      placeholder="Enter PMIDs separated by space, comma or semicolon"
+                      placeholder="Enter PMIDs separated by comma or semicolon"
                       class="form-control"
                       size="sm"
                     ></b-form-input>
@@ -259,7 +259,7 @@
                       v-bind="inputAttrs"
                       v-on="inputHandlers"
                       autocomplete="off" 
-                      placeholder="Enter PMIDs separated by space, comma or semicolon"
+                      placeholder="Enter PMIDs separated by comma or semicolon"
                       class="form-control"
                       size="sm"
                     ></b-form-input>

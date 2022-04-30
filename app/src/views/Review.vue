@@ -477,7 +477,7 @@
                       <b-form-input
                         v-bind="inputAttrs"
                         v-on="inputHandlers"
-                        placeholder="Enter PMIDs separated by space, comma or semicolon"
+                        placeholder="Enter PMIDs separated by comma or semicolon"
                         class="form-control"
                         size="sm"
                       ></b-form-input>
@@ -514,6 +514,7 @@
 
                   </template>
                 </b-form-tags>
+                <!-- publications tag form with links out -->
 
 
               <label class="mr-sm-2 font-weight-bold" for="genereviews-select">GeneReviews</label>
@@ -543,7 +544,7 @@
                       <b-form-input
                         v-bind="inputAttrs"
                         v-on="inputHandlers"
-                        placeholder="Enter PMIDs separated by space, comma or semicolon"
+                        placeholder="Enter PMIDs separated by comma or semicolon"
                         class="form-control"
                         size="sm"
                       ></b-form-input>

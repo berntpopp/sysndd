@@ -559,21 +559,17 @@ PutPostDatabaseVarOntCon <- function(request_method,
 
 PutPostDatabaseStatus <- function(request_method,
   status_data) {
-    if ("category_id" %in% colnames(status_data) |
-        "problematic" %in% colnames(status_data)) {
+    ##-------------------------------------------------------------------##
+    # block to convert the entity components into tibble
+    status_received <- as_tibble(status_data)
+    ##-------------------------------------------------------------------##
 
-      # convert status data to tibble, check if comment is null and handle
-      if ("comment" %in% colnames(status_data)) {
-        status_received <- as_tibble(status_data)
-      } else {
-        status_data$comment <- ""
-        status_received <- as_tibble(status_data) %>%
-          select(-comment)
-      }
+    if ("category_id" %in% colnames(status_received) |
+        "problematic" %in% colnames(status_received)) {
 
       # check request type and perform database update accoringly
       if (request_method == "POST" &
-          "entity_id" %in% colnames(status_data)) {
+          "entity_id" %in% colnames(status_received)) {
         # remove status_id if provided as input
         status_received <- tryCatch({
           status_received %>%
@@ -603,7 +599,7 @@ PutPostDatabaseStatus <- function(request_method,
         return(list(status=200, message="OK. Entry created."))
 
       } else if (request_method == "PUT" &
-                "status_id" %in% colnames(status_data)) {
+                "status_id" %in% colnames(status_received)) {
         # remove entity_id if provided from status_received and
         # remove status_id to prepare update query
         status_received <- tryCatch({
@@ -638,7 +634,7 @@ PutPostDatabaseStatus <- function(request_method,
           paste0("UPDATE ndd_entity_status SET ",
           update_query,
           " WHERE status_id = ",
-          status_data$status_id, ";")
+          status_received$status_id, ";")
           )
 
         # disconnect from database
