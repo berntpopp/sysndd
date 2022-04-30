@@ -117,7 +117,7 @@
                     <b-button 
                       size="sm"
                       variant="dark"
-                      v-b-modal.modifyStatusModal
+                      @click="showStatusModify()"
                     >
                       <b-icon icon="pen" font-scale="1.0"></b-icon> 
                       <b-icon icon="stoplights" font-scale="1.0"></b-icon> 
@@ -146,9 +146,17 @@
         no-close-on-backdrop 
         header-bg-variant="dark" 
         header-text-variant="light"
-        title="Rename entity disease"
         @ok="submitEntityRename"
       >
+
+        <template #modal-title>
+          <h4>Rename entity disease: 
+            <b-badge variant="primary">
+              sysndd:{{ entity_info.entity_id }}
+            </b-badge>
+          </h4>
+        </template>
+
         <p class="my-4">Select a new disease name:</p>
 
         <treeselect
@@ -176,9 +184,17 @@
         no-close-on-backdrop 
         header-bg-variant="dark" 
         header-text-variant="light"
-        title="Deactivate entity"
         @ok="submitEntityDeactivation"
       >
+
+      <template #modal-title>
+        <h4>"Deactivate entity: 
+          <b-badge variant="primary">
+            sysndd:{{ entity_info.entity_id }}
+          </b-badge>
+        </h4>
+      </template>
+
         <div>
           <p class="my-2">1. Are you sure that you want to deactivate this entity?</p>
 
@@ -246,8 +262,16 @@
       no-close-on-backdrop 
       header-bg-variant="dark" 
       header-text-variant="light"
-      title="Modify review for entity"
       >
+
+      <template #modal-title>
+        <h4>Modify review for entity: 
+          <b-badge variant="primary">
+            sysndd:{{ entity_info.entity_id }}
+          </b-badge>
+        </h4>
+      </template>
+
         <p class="my-4">Inputs to modify review data</p>
       </b-modal>
       <!-- Modify review modal -->
@@ -255,18 +279,64 @@
 
       <!-- Modify status modal -->
       <b-modal 
-      id="modifyStatusModal" 
-      ref="modifyStatusModal" 
-      size="lg" 
-      centered 
-      ok-title="Submit" 
-      no-close-on-esc 
-      no-close-on-backdrop 
-      header-bg-variant="dark" 
-      header-text-variant="light"
-      title="Modify status for entity"
+        id="modifyStatusModal" 
+        ref="modifyStatusModal" 
+        size="lg" 
+        centered 
+        ok-title="Submit" 
+        no-close-on-esc 
+        no-close-on-backdrop 
+        header-bg-variant="dark" 
+        header-text-variant="light"
+        @ok="submitStatusChange"
       >
-        <p class="my-4">Inputs to modify status data</p>
+
+      <template #modal-title>
+        <h4>Modify status for entity: 
+          <b-badge variant="primary">
+            sysndd:{{ entity_info.entity_id }}
+          </b-badge>
+        </h4>
+      </template>
+
+        <b-form ref="form" @submit.stop.prevent="handleSubmit">
+          <label class="mr-sm-2 font-weight-bold" for="status-select">Status</label>
+          <b-icon 
+            icon="stoplights-fill"
+            :variant="stoplights_style[status_info.category_id]"
+          >
+          </b-icon>
+
+          <treeselect
+            id="status-select" 
+            :multiple="false"
+            :options="status_options"
+            v-model="status_info.category_id"
+            :normalizer="normalizeStatus"
+          />
+
+          <div class="custom-control custom-switch">
+          <input 
+            type="checkbox" 
+            button-variant="info"
+            class="custom-control-input" 
+            id="removeSwitch"
+            v-model="status_info.problematic"
+          >
+          <label class="custom-control-label" for="removeSwitch">Suggest removal</label>
+          </div>
+
+          <label class="mr-sm-2 font-weight-bold" for="status-textarea-comment">Comment</label>
+          <b-form-textarea
+            id="status-textarea-comment"
+            rows="2"
+            size="sm" 
+            v-model="status_info.comment"
+            placeholder="Why should this entities status be changed."
+          >
+          </b-form-textarea>
+        </b-form>
+
       </b-modal>
       <!-- Modify status modal -->
 
@@ -288,17 +358,36 @@ export default {
   name: 'ApproveStatus',
     data() {
       return {
+        stoplights_style: {1: "success", 2: "primary", 3: "warning", 4: "danger", "Definitive": "success", "Moderate": "primary", "Limited": "warning", "Refuted": "danger"},
+        status_options: [],
         modify_entity_input: null,
         replace_entity_input: null,
         ontology_input: null,
-        entity_info: null,
+        entity_info: {
+          entity_id: null,
+        },
+        status_info: {
+          category_id: 0,
+          problematic: 0,
+          comment: "",
+        },
         deactivate_check: false,
         replace_check: false,
       };
     },
     mounted() {
+      this.loadStatusList();
     },
     methods: {
+        async loadStatusList() {
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/list/status?tree=true';
+          try {
+            let response = await this.axios.get(apiUrl);
+            this.status_options = response.data;
+          } catch (e) {
+            console.error(e);
+          }
+        },
         async searchEntityInfo({searchQuery, callback}) {
           let apiSearchURL = process.env.VUE_APP_API_URL + '/api/entity?filter=contains(any,' + searchQuery + ')';
 
@@ -311,13 +400,30 @@ export default {
             }
         },
         async getEntity() {
-          let apiSearchURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(entity_id,' + this.modify_entity_input + ')';
+          let apiGetURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(entity_id,' + this.modify_entity_input + ')';
 
           try {
-            let response = await this.axios.get(apiSearchURL);
+            let response = await this.axios.get(apiGetURL);
 
             // compose entity
             this.entity_info = new this.Entity(response.data.data[0].hgnc_id, response.data.data[0].disease_ontology_id_version, response.data.data[0].hpo_mode_of_inheritance_term, response.data.data[0].ndd_phenotype, response.data.data[0].entity_id, response.data.data[0].is_active, response.data.data[0].replaced_by);
+
+      console.log(this.entity_info);
+
+            } catch (e) {
+            console.error(e);
+            }
+        },
+        async getStatus() {
+          let apiGetURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.modify_entity_input + '/status';
+
+          try {
+            let response = await this.axios.get(apiGetURL);
+
+            // compose entity
+            this.status_info = new this.Status(response.data[0].category_id, response.data[0].comment, response.data[0].problematic);
+
+      console.log(this.status_info);
 
             } catch (e) {
             console.error(e);
@@ -333,6 +439,12 @@ export default {
           return {
             id: node.id,
             label: node.id + " (" + node.label + ")",
+          }
+        },
+        normalizeStatus(node) {
+          return {
+            id: node.category_id,
+            label: node.category,
           }
         },
         async loadOntologyInfoTree({searchQuery, callback}) {
@@ -352,6 +464,11 @@ export default {
         showEntityDeactivate() {
           this.getEntity();
           this.$refs['deactivateModal'].show();
+        },
+        showStatusModify() {
+          this.getEntity();
+          this.getStatus();
+          this.$refs['modifyStatusModal'].show();
         },
         async submitEntityRename() {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/entity/rename?rename_json=';
@@ -407,11 +524,17 @@ export default {
             this.makeToast(e, 'Error', 'danger');
           }
         },
+        async submitStatusChange() {
+
+console.log(this.status_info);
+
+        },
         resetForm() {
           this.modify_entity_input = null;
           this.replace_entity_input = null;
           this.ontology_input = null;
           this.entity_info = null;
+          this.status = null;
           this.deactivate_check = false;
           this.replace_check = false;
         },
