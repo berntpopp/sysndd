@@ -813,7 +813,7 @@ function(sysndd_id) {
 
 #* @tag entity
 #* gets status for a entity_id
-#* @serializer json list(na="string")
+#* @serializer json list(na="null")
 #' @get /api/entity/<sysndd_id>/status
 function(sysndd_id) {
 
@@ -829,7 +829,12 @@ function(sysndd_id) {
   ndd_entity_status_list <- ndd_entity_status_collected %>%
     filter(entity_id == sysndd_id & is_active) %>%
     inner_join(entity_status_categories_coll, by=c("category_id")) %>%
-    select(entity_id, category, category_id, status_date) %>%
+    select(entity_id,
+      category,
+      category_id,
+      status_date,
+      comment,
+      problematic) %>%
     arrange(status_date)
 }
 
@@ -3696,17 +3701,26 @@ function(searchterm, tree = FALSE) {
 #* gets a list of all status
 #* @serializer json list(na="string")
 #' @get /api/list/status
-function() {
+function(tree = FALSE) {
   status_list_collected <- pool %>%
     tbl("ndd_entity_status_categories_list") %>%
     arrange(category_id) %>%
-    collect() %>%
-    nest_by(category, .key = "values") %>%
-    ungroup() %>%
-    pivot_wider(everything(), names_from = "category", values_from = "values")
+    collect()
+
+  # the "tree" option allows output data to be formated
+  # as arrays for the treeselect library
+  # do = disease_ontology
+  if (tree) {
+    status_list_return_helper <- status_list_collected
+  } else {
+    status_list_return_helper <- status_list_collected %>%
+      nest_by(category, .key = "values") %>%
+      ungroup() %>%
+      pivot_wider(everything(), names_from = "category", values_from = "values")
+  }
 
   # return output
-  status_list_collected
+  status_list_return_helper
 }
 
 
