@@ -120,15 +120,17 @@
             <!-- column 5 -->
             <b-col class="my-1">
               <label class="mr-sm-2 font-weight-bold" for="status-select">Status</label>
-              <b-form-select 
-                id="status-select" 
+
+              <treeselect
+                id="status-select"
                 class="status-control"
-                :options="Object.keys(status_options)"
+                :multiple="false"
+                :options="status_options"
                 v-model="status_selected"
-                size="sm"
+                :normalizer="normalizeStatus"
                 required
-              >
-              </b-form-select>
+              />
+
             </b-col>
           </b-row>
 
@@ -391,10 +393,10 @@ export default {
           }
         },
         async loadStatusList() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/list/status';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/list/status?tree=true';
           try {
             let response = await this.axios.get(apiUrl);
-            this.status_options = response.data[0];
+            this.status_options = response.data;
           } catch (e) {
             console.error(e);
           }
@@ -428,6 +430,12 @@ export default {
           return {
             id: node.id,
             label: node.id + " (" + node.label + ")",
+          }
+        },
+        normalizeStatus(node) {
+          return {
+            id: node.category_id,
+            label: node.category,
           }
         },
         async loadInheritanceInfoTree({searchQuery, callback}) {
@@ -475,8 +483,7 @@ export default {
           const new_review = new this.Review(review_synopsis, new_literature, new_phenotype, new_variation_ontology, review_comment);
 
           // define status specific attributes as constants from inputs
-          const status_category_id = this.status_options[this.status_selected][0].category_id;
-          const new_status = new this.Status(status_category_id, "", 0);
+          const new_status = new this.Status(this.status_selected, "", 0);
 
           // compose entity
           const new_entity = new this.Entity(entity_hgnc_id, entity_disease_ontology_id_version, entity_hpo_mode_of_inheritance_term, entity_ndd_phenotype);
