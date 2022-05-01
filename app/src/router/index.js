@@ -40,6 +40,11 @@ const routes = [
     component: () => import(/* webpackChunkName: "Analyses" */ '@/views/analyses/EntriesOverTime.vue')
   },
   {
+    path: '/PublicationsNDD',
+    name: 'PublicationsNDD',
+    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/analyses/PublicationsNDD.vue')
+  },
+  {
     path: '/GeneNetworks',
     name: 'GeneNetworks',
     component: () => import(/* webpackChunkName: "Analyses" */ '@/views/analyses/GeneNetworks.vue')

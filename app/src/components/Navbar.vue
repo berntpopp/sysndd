@@ -20,6 +20,7 @@
             <b-dropdown-item href="/CurationComparisons">Compare curations</b-dropdown-item>
             <b-dropdown-item href="/PhenotypeCorrelations">Correlate phenotypes</b-dropdown-item>
             <b-dropdown-item href="/EntriesOverTime">Entries over time</b-dropdown-item>
+            <b-dropdown-item href="/PublicationsNDD">NDD Publications</b-dropdown-item>
             <b-dropdown-item href="/GeneNetworks">Gene networks</b-dropdown-item>
           </b-nav-item-dropdown>
 
