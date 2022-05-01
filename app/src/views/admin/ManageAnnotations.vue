@@ -6,7 +6,7 @@
       <b-row class="justify-content-md-center py-2">
         <b-col col md="10">
 
-          <h3>Admin</h3>
+          <h3>Manage annotations</h3>
         </b-col>
       </b-row>
     </b-container>
@@ -16,7 +16,7 @@
 
 <script>
 export default {
-  name: 'Admin',
+  name: 'ManageAnnotations',
   }
 </script>
 

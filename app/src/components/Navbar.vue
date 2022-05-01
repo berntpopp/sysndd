@@ -66,7 +66,26 @@
         <!-- Right aligned nav items -->
         <b-navbar-nav class="ml-auto">
 
-          <b-nav-item v-if="user && admin" href="/Admin">Admin</b-nav-item>
+
+          <!-- Navbar Admin dropdown -->
+          <b-nav-item-dropdown v-if="user && admin" text="Administration">
+            <b-dropdown-item href="/ManageUser">
+              <b-icon icon="gear" font-scale="1.0"></b-icon> 
+              <b-icon icon="person-circle" font-scale="1.0"></b-icon> 
+              Manage user
+            </b-dropdown-item>
+            <b-dropdown-item href="/ManageAnnotations">
+              <b-icon icon="gear" font-scale="1.0"></b-icon> 
+              <b-icon icon="table" font-scale="1.0"></b-icon> 
+              Manage annotations
+            </b-dropdown-item>
+            <b-dropdown-item href="/ManageAbout">
+              <b-icon icon="gear" font-scale="1.0"></b-icon> 
+              <b-icon icon="question-circle-fill" font-scale="1.0"></b-icon> 
+              Manage about
+            </b-dropdown-item>
+          </b-nav-item-dropdown>
+          <!-- Navbar Admin dropdown -->
 
           <!-- Navbar Curation dropdown -->
           <b-nav-item-dropdown v-if="user && curate" text="Curation">
@@ -101,6 +120,7 @@
               Manage re-review
             </b-dropdown-item>
           </b-nav-item-dropdown>
+          <!-- Navbar Curation dropdown -->
 
           <b-nav-item v-if="user && review" href="/Review">Review</b-nav-item>
           
@@ -308,7 +328,7 @@ color: #FFF!important;
 }
 ::v-deep .dropdown-item {
 color: #FFF!important; 
-width: 200px;
+width: 220px;
 }
 ::v-deep .dropdown-item:hover {
   background-color: #999!important; 
