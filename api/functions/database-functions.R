@@ -198,7 +198,7 @@ PutPostDatabaseReview <- function(request_method,
       dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET ",
         update_query,
         " WHERE review_id = ",
-        review_id,
+        review_received$review_id,
         ";")
         )
 
@@ -206,7 +206,7 @@ PutPostDatabaseReview <- function(request_method,
       dbExecute(sysndd_db,
         paste0("UPDATE ndd_entity_review ",
         "SET review_approved=0 WHERE review_id = ",
-        review_id,
+        review_received$review_id,
         ";")
         )
 
@@ -214,7 +214,7 @@ PutPostDatabaseReview <- function(request_method,
       dbExecute(sysndd_db,
         paste0("UPDATE ndd_entity_review ",
         "SET approving_user_id=NULL WHERE review_id = ",
-        review_id,
+        review_received$review_id,
         ";")
         )
 
@@ -222,7 +222,9 @@ PutPostDatabaseReview <- function(request_method,
       dbDisconnect(sysndd_db)
 
       # return OK
-      return(list(status=200, message="OK. Entry created.", entry=review_id))
+      return(list(status=200, 
+        message="OK. Entry created.",
+        entry=review_received$review_id))
       ##-------------------------------------------------------------------##
     } else {
       # return Method Not Allowed
@@ -424,7 +426,7 @@ PutPostDatabasePhenCon <- function(request_method,
       # submit phenotypes from new review to database
       dbAppendTable(sysndd_db,
         "ndd_review_phenotype_connect",
-        phenotypes_submissio
+        phenotypes_submission
         )
 
       # disconnect from database

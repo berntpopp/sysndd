@@ -825,7 +825,7 @@ function(sysndd_id) {
 
   ndd_entity_review_list <- ndd_entity_review_collected %>%
     filter(entity_id == sysndd_id & is_primary) %>%
-    select(entity_id, synopsis, review_date, comment) %>%
+    select(entity_id, review_id, synopsis, review_date, comment) %>%
     arrange(review_date)
 
   ndd_entity_review_list_joined <- as_tibble(sysndd_id) %>%
@@ -982,6 +982,9 @@ function(req, res, review_json) {
       # convert phenotypes to tibble
       phenotypes_received <- as_tibble(review_data$phenotypes)
 
+      # convert variation ontology to tibble
+      variation_received <- as_tibble(review_data$variation_ontology)
+
       ##-------------------------------------------------------------------##
 
 
@@ -1014,11 +1017,20 @@ function(req, res, review_json) {
           sysnopsis_received$entity_id,
           response_review$entry)
 
+        # make the variation ontology to review connections
+        # using the function "PutPostDatabaseVarOntCon"
+        response_variation_ontology_conn <- PutPostDatabaseVarOntCon(
+          req$REQUEST_METHOD,
+          variation_received,
+          as.integer(sysnopsis_received$entity_id),
+          as.integer(response_review$entry))
+
         # compute response
         response <- as_tibble(response_publication) %>%
           bind_rows(as_tibble(response_review)) %>%
           bind_rows(as_tibble(response_publication_connections)) %>%
           bind_rows(as_tibble(response_phenotype_connections)) %>%
+          bind_rows(as_tibble(response_variation_ontology_conn)) %>%
           select(status, message) %>%
           unique() %>%
           mutate(status = max(status)) %>%
@@ -1058,11 +1070,20 @@ function(req, res, review_json) {
           sysnopsis_received$entity_id,
           review_data$review_id)
 
+        # make the variation ontology to review connections
+        # using the function "PutPostDatabaseVarOntCon"
+        response_variation_ontology_conn <- PutPostDatabaseVarOntCon(
+          req$REQUEST_METHOD,
+          variation_received,
+          as.integer(sysnopsis_received$entity_id),
+          as.integer(review_data$review_id))
+
         # compute response
         response <- as_tibble(response_publication) %>%
           bind_rows(as_tibble(response_review)) %>%
           bind_rows(as_tibble(response_publication_connections)) %>%
           bind_rows(as_tibble(response_phenotype_connections)) %>%
+          bind_rows(as_tibble(response_variation_ontology_conn)) %>%
           select(status, message) %>%
           unique() %>%
           mutate(status = max(status)) %>%

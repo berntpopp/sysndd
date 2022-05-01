@@ -659,6 +659,9 @@ export default {
               response_review.data[0].comment
             );
 
+            this.review_info.review_id = response_review.data[0].review_id;
+            this.review_info.entity_id = response_review.data[0].entity_id;
+
             } catch (e) {
             console.error(e);
             }
@@ -763,7 +766,6 @@ export default {
 
           try {
             let submission_json = JSON.stringify(submission);
-            console.log(submission_json);
 
             let response = await this.axios.post(apiUrl + submission_json, {}, {
                headers: {
@@ -779,6 +781,7 @@ export default {
           }
         },
         async submitReviewChange() {
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/review/update?review_json=';
 
           // compose new literature as constants from inputs
           const replace_literature = new this.Literature(this.select_additional_references, this.select_gene_reviews);
@@ -800,12 +803,32 @@ export default {
 
 console.log(this.review_info);
 
+          // perform update PUT request
+          try {
+            let submission_json = JSON.stringify(this.review_info);
+
+console.log(submission_json);
+
+            let response = await this.axios.put(apiUrl + submission_json, {}, {
+               headers: {
+                 'Authorization': 'Bearer ' + localStorage.getItem('token')
+               }
+             });
+
+            this.makeToast('The new review for this entity has been submitted ' + '(status ' + response.status + ' (' + response.statusText + ').', 'Success', 'success');
+            this.resetForm();
+
+          } catch (e) {
+            this.makeToast(e, 'Error', 'danger');
+          }
+
         },
         async submitStatusChange() {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/status/update?status_json=';
 
 console.log(this.status_info);
 
+          // perform update PUT request
           try {
             let submission_json = JSON.stringify(this.status_info);
 
@@ -817,7 +840,7 @@ console.log(submission_json);
                }
              });
 
-            this.makeToast('The new status this entity has been submitted ' + '(status ' + response.status + ' (' + response.statusText + ').', 'Success', 'success');
+            this.makeToast('The new status for this entity has been submitted ' + '(status ' + response.status + ' (' + response.statusText + ').', 'Success', 'success');
             this.resetForm();
 
           } catch (e) {

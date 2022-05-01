@@ -218,7 +218,7 @@ generate_panels_list <- function(sort = "symbol",
     "category,'All'",
     paste0("category,",
       str_c(entity_status_categories_list$category,
-        ollapse = ","))) %>%
+        collapse = ","))) %>%
     str_replace("category,All",
     paste0("category,",
       str_c(entity_status_categories_list$category,
