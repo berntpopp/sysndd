@@ -97,7 +97,7 @@ source("functions/helper-functions.R", local = TRUE)
 # convert to memoise functions
 # Expire items in cache after 10 minutes
 # and set cache 100 MB limit
-cm <- cachem::cache_mem(max_age = 10 * 60,
+cm <- cachem::cache_mem(max_age = 5 * 60,
   max_size = 100 * 1024 ^ 2)
 generate_gene_stat_tibble_mem <- memoise(generate_gene_stat_tibble,
   cache = cm)
