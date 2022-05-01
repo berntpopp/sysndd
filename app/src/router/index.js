@@ -260,7 +260,10 @@ const routes = [
   {
     path: '/Ontology/:disease_term',
     component: () => import(/* webpackChunkName: "Pages" */ '@/views/pages/Ontology.vue')
-  }
+  },
+  { path: "*",
+  component: () => import(/* webpackChunkName: "Pages" */ '@/views/PageNotFound.vue')
+  },
 ]
 
 const router = new VueRouter({
