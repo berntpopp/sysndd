@@ -2,9 +2,10 @@
   <div class="container-fluid">
     <b-container fluid>
 
+    <b-overlay :show="checking_entity" rounded="sm">
+
       <b-row class="justify-content-md-center py-2">
         <b-col col md="12">
-
 
           <!-- User Interface controls -->
           <b-card 
@@ -49,12 +50,12 @@
           header-bg-variant="dark" 
           header-text-variant="light"
           title="Check entity submission"
+          @hide="hideSubmitEntityModal" 
           @ok="submitEntity"
           >
             <p class="my-4">Are you sure you want to submit this entity?</p>
           </b-modal>
           <!-- Submission check modal -->
-
 
           <b-row>
             <!-- column 1 -->
@@ -318,21 +319,26 @@
         </b-col>
       </b-row>
 
+    </b-overlay>
+
     </b-container>
   </div>
 </template>
 
 
 <script>
-  // import the Treeselect component
-  import Treeselect from '@riophae/vue-treeselect'
-  // import the Treeselect styles
-  import '@riophae/vue-treeselect/dist/vue-treeselect.css'
+import toastMixin from '@/assets/js/mixins/toastMixin.js'
+
+// import the Treeselect component
+import Treeselect from '@riophae/vue-treeselect'
+// import the Treeselect styles
+import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 
 export default {
   // register the Treeselect component
   components: { Treeselect },
   name: 'CreateEntity',
+  mixins: [toastMixin],
     data() {
       return {
         entity_submission: {},
@@ -351,6 +357,7 @@ export default {
         status_selected: null,
         NDD_options: {"No": [{"boolean_id": 0, "logical": "FALSE"}], "Yes": [{"boolean_id": 1, "logical": "TRUE"}]},
         NDD_selected: null,
+        checking_entity: false,
       };
     },
     mounted() {
@@ -510,12 +517,14 @@ console.log(submission_json);
 
             this.makeToast('The new entity has been submitted ' + '(status ' + response.status + ' (' + response.statusText + ').', 'Success', 'success');
             this.resetForm();
+            this.checking_entity = false;
 
           } catch (e) {
             this.makeToast(e, 'Error', 'danger');
           }
         },
         checkSubmission() {
+          this.checking_entity = true;
           this.$refs['submissionModal'].show();
           this.infoEntity();
         },
@@ -537,13 +546,8 @@ console.log(submission_json);
             this.$refs.observer.reset();
           });
         },
-        makeToast(event, title = null, variant = null) {
-            this.$bvToast.toast('' + event, {
-              title: title,
-              toaster: 'b-toaster-top-right',
-              variant: variant,
-              solid: true
-            })
+        hideSubmitEntityModal() {
+          this.checking_entity = false;
         },
 // these object constructor functions should go in a mixin
 // https://learnvue.co/2019/12/how-to-manage-mixins-in-vuejs/#the-solution-vuejs-mixins

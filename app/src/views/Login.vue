@@ -70,8 +70,11 @@
 </template>
 
 <script>
+import toastMixin from '@/assets/js/mixins/toastMixin.js'
+
 export default {
   name: 'Login',
+  mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
     title: 'Login',
@@ -159,14 +162,6 @@ export default {
         self.animated = false
       }, 1000)
     },
-    makeToast(event, title = null, variant = null) {
-        this.$bvToast.toast('' + event, {
-          title: title,
-          toaster: 'b-toaster-top-right',
-          variant: variant,
-          solid: true
-        })
-    }
   }
 }
 </script>

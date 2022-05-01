@@ -102,8 +102,11 @@
 </template>
 
 <script>
+import toastMixin from '@/assets/js/mixins/toastMixin.js'
+
 export default {
   name: 'PasswordReset',
+  mixins: [toastMixin],
   data() {
         return {
           show_change_container: false,
@@ -179,14 +182,6 @@ export default {
       this.new_password_repeat = '';
       setTimeout(() => { this.$router.push('/'); }, 1000);
     },
-    makeToast(event, title = null, variant = null) {
-        this.$bvToast.toast('' + event, {
-          title: title,
-          toaster: 'b-toaster-top-right',
-          variant: variant,
-          solid: true
-        })
-    }
   }
 }
 </script>

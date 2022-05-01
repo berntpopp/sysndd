@@ -518,16 +518,19 @@
 
 
 <script>
-  // import the Treeselect component
-  import Treeselect from '@riophae/vue-treeselect'
-  // import the Treeselect styles
-  import '@riophae/vue-treeselect/dist/vue-treeselect.css'
+import toastMixin from '@/assets/js/mixins/toastMixin.js'
+
+// import the Treeselect component
+import Treeselect from '@riophae/vue-treeselect'
+// import the Treeselect styles
+import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 
 
 export default {
   // register the Treeselect component
   components: { Treeselect },
   name: 'ApproveStatus',
+  mixins: [toastMixin],
     data() {
       return {
         stoplights_style: {1: "success", 2: "primary", 3: "warning", 4: "danger", "Definitive": "success", "Moderate": "primary", "Limited": "warning", "Refuted": "danger"},
@@ -888,14 +891,6 @@ console.log(submission_json);
           // Individual PMID tag validator function
           tag = tag.replace(/\s+/g,'');
           return !isNaN(Number(tag.replaceAll('PMID:', ''))) && tag.includes('PMID:') && tag.replace('PMID:', '').length > 4 && tag.replace('PMID:', '').length < 9;
-        },
-        makeToast(event, title = null, variant = null) {
-            this.$bvToast.toast('' + event, {
-              title: title,
-              toaster: 'b-toaster-top-right',
-              variant: variant,
-              solid: true
-            })
         },
 // these object constructor functions should go in a mixin
 // https://learnvue.co/2019/12/how-to-manage-mixins-in-vuejs/#the-solution-vuejs-mixins

@@ -121,8 +121,11 @@
 </template>
 
 <script>
+import toastMixin from '@/assets/js/mixins/toastMixin.js'
+
 export default {
   name: 'User',
+  mixins: [toastMixin],
   data() {
         return {
           user: {
@@ -226,14 +229,6 @@ export default {
       this.new_password_entry = '';
       this.new_password_repeat = '';
     },
-    makeToast(event, title = null, variant = null) {
-        this.$bvToast.toast('' + event, {
-          title: title,
-          toaster: 'b-toaster-top-right',
-          variant: variant,
-          solid: true
-        })
-    }
   }
 }
 </script>

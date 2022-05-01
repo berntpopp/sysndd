@@ -143,8 +143,11 @@
 </template>
 
 <script>
+import toastMixin from '@/assets/js/mixins/toastMixin.js'
+
 export default {
   name: 'Navbar',
+  mixins: [toastMixin],
   data() {
         return {
           user: null,
@@ -289,14 +292,6 @@ watch: { // used to refresh navbar on login push
         }
       }
     },
-    makeToast(event, title = null, variant = null) {
-        this.$bvToast.toast('' + event, {
-          title: title,
-          toaster: 'b-toaster-top-right',
-          variant: variant,
-          solid: true
-        })
-    }
   }
 }
 </script>
