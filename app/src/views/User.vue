@@ -1,5 +1,5 @@
 <template>
-  <div class="container-fluid">
+  <div class="container-fluid centered">
 
     <b-container>
       <b-row class="justify-content-md-center py-4">
@@ -244,5 +244,11 @@ export default {
   font-size: .875rem;
   line-height: .5;
   border-radius: .2rem;
+}
+.centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height:calc(100vh - 100px);
 }
 </style>
