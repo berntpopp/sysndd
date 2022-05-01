@@ -188,7 +188,7 @@
       >
 
       <template #modal-title>
-        <h4>"Deactivate entity: 
+        <h4>Deactivate entity: 
           <b-badge variant="primary">
             sysndd:{{ entity_info.entity_id }}
           </b-badge>
@@ -255,13 +255,14 @@
       <b-modal 
       id="modifyReviewModal" 
       ref="modifyReviewModal" 
-      size="lg" 
+      size="xl" 
       centered 
       ok-title="Submit" 
       no-close-on-esc 
       no-close-on-backdrop 
       header-bg-variant="dark" 
       header-text-variant="light"
+      :busy="loading_review_modal"
       @ok="submitReviewChange"
       >
 
@@ -272,6 +273,8 @@
           </b-badge>
         </h4>
       </template>
+
+      <b-overlay :show="loading_review_modal" rounded="sm">
 
         <b-form ref="form" @submit.stop.prevent="submitReviewChange">
 
@@ -441,6 +444,8 @@
 
         </b-form>
 
+      </b-overlay>
+
       </b-modal>
       <!-- Modify review modal -->
 
@@ -456,6 +461,7 @@
         no-close-on-backdrop 
         header-bg-variant="dark" 
         header-text-variant="light"
+        :busy="loading_status_modal"
         @ok="submitStatusChange"
       >
 
@@ -466,6 +472,8 @@
           </b-badge>
         </h4>
       </template>
+
+      <b-overlay :show="loading_status_modal" rounded="sm">
 
         <b-form ref="form" @submit.stop.prevent="submitStatusChange">
 
@@ -498,6 +506,8 @@
           >
           </b-form-textarea>
         </b-form>
+
+      </b-overlay>
 
       </b-modal>
       <!-- Modify status modal -->
@@ -536,6 +546,10 @@ export default {
         status_info: new this.Status(),
         deactivate_check: false,
         replace_check: false,
+        loading_rename_modal: true,
+        loading_deactivate_modal: true,
+        loading_review_modal: true,
+        loading_status_modal: true,
       };
     },
     mounted() {
@@ -608,6 +622,8 @@ export default {
             }
         },
         async getReview() {
+          this.loading_review_modal = true;
+
           let apiGetReviewURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.modify_entity_input + '/review';
           let apiGetPhenotypesURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.modify_entity_input + '/phenotypes';
           let apiGetVariationURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.modify_entity_input + '/variation';
@@ -662,11 +678,15 @@ export default {
             this.review_info.review_id = response_review.data[0].review_id;
             this.review_info.entity_id = response_review.data[0].entity_id;
 
+          this.loading_review_modal = false;
+
             } catch (e) {
             console.error(e);
             }
         },
         async getStatus() {
+          this.loading_status_modal = true;
+
           let apiGetURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.modify_entity_input + '/status';
 
           try {
@@ -676,6 +696,8 @@ export default {
             this.status_info = new this.Status(response.data[0].category_id, response.data[0].comment, response.data[0].problematic);
 
             this.status_info.status_id = response.data[0].status_id;
+
+          this.loading_status_modal = false;
 
             } catch (e) {
             console.error(e);
