@@ -384,22 +384,28 @@ function(req, res, create_json) {
       ##-------------------------------------------------------------------##
 
       ##-------------------------------------------------------------------##
-      # use the "new_publication function" to update the publications table
-      response_publication <- new_publication(publications_received)
-
       # use the "PutPostDatabaseReview" function to add
       # the review to the database table and receive an review_id
       response_review <- PutPostDatabaseReview(
         "POST",
         sysnopsis_received)
 
-      # make the publictaion to review connections
-      # using the function "PutPostDatabasePubCon"
-      response_publication_connections <- PutPostDatabasePubCon(
-        "POST",
-        publications_received,
-        as.integer(sysnopsis_received$entity_id),
-        as.integer(response_review$entry$review_id))
+      # only submit publications if not empty
+      if (length(compact(create_data$review$literature)) > 0) {
+        # use the "new_publication function" to update the publications table
+        response_publication <- new_publication(publications_received)
+
+        # make the publictaion to review connections
+        # using the function "PutPostDatabasePubCon"
+        response_publication_connections <- PutPostDatabasePubCon(
+          "POST",
+          publications_received,
+          as.integer(sysnopsis_received$entity_id),
+          as.integer(response_review$entry$review_id))
+      } else {
+        response_publication <- list(status=200, message="OK. Skipped.")
+        response_publication_connections <- list(status=200, message="OK. Skipped.")
+      }
 
       # make the phenotype to review connections
       # using the function "response_phenotype_connections"
@@ -424,9 +430,9 @@ function(req, res, create_json) {
         bind_rows(as_tibble(response_phenotype_connections)) %>%
         bind_rows(as_tibble(response_variation_ontology_conn)) %>%
         select(status, message) %>%
-        unique() %>%
         mutate(status = max(status)) %>%
-        mutate(message = str_c(message, collapse = "; "))
+        mutate(message = str_c(message, collapse = "; ")) %>%
+        unique()
       ##-------------------------------------------------------------------##
     ##-------------------------------------------------------------------##
     } else {
@@ -992,22 +998,28 @@ function(req, res, review_json) {
       # check request type and perform database update accordingly
       if (req$REQUEST_METHOD == "POST") {
         ##-------------------------------------------------------------------##
-        # use the "new_publication function" to update the publications table
-        response_publication <- new_publication(publications_received)
-
         # use the "PutPostDatabaseReview" function to add the
         # review to the database table and receive an review_id
         response_review <- PutPostDatabaseReview(
           req$REQUEST_METHOD,
           sysnopsis_received)
 
-        # make the publictaion to review connections using the
-        # function "PutPostDatabasePubCon"
-        response_publication_connections <- PutPostDatabasePubCon(
-          req$REQUEST_METHOD,
-          publications_received,
-          sysnopsis_received$entity_id,
-          response_review$entry)
+        # only submit publications if not empty
+        if (length(compact(create_data$review$literature)) > 0) {
+          # use the "new_publication function" to update the publications table
+          response_publication <- new_publication(publications_received)
+
+          # make the publictaion to review connections using the
+          # function "PutPostDatabasePubCon"
+          response_publication_connections <- PutPostDatabasePubCon(
+            req$REQUEST_METHOD,
+            publications_received,
+            sysnopsis_received$entity_id,
+            response_review$entry)
+        } else {
+          response_publication <- list(status=200, message="OK. Skipped.")
+          response_publication_connections <- list(status=200, message="OK. Skipped.")
+        }
 
         # make the phenotype to review connections using the
         # function "response_phenotype_connections"
@@ -1041,18 +1053,25 @@ function(req, res, review_json) {
         ##-------------------------------------------------------------------##
       } else if (req$REQUEST_METHOD == "PUT") {
         ##-------------------------------------------------------------------##
-        # use the "new_publication function" to update the publications table
-        response_publication <- new_publication(publications_received)
 
         # first add the review_id from the received
         # review_data to the sysnopsis_received tibble
         sysnopsis_received$review_id <- review_data$review_id
 
-        # then use the "PutPostDatabaseReview" function to add the
-        # review to the database table and receive an review_id
-        response_review <- PutPostDatabaseReview(
-          req$REQUEST_METHOD,
-          sysnopsis_received)
+        # only submit publications if not empty
+        if (length(compact(create_data$review$literature)) > 0) {
+          # use the "new_publication function" to update the publications table
+          response_publication <- new_publication(publications_received)
+
+          # then use the "PutPostDatabaseReview" function to add the
+          # review to the database table and receive an review_id
+          response_review <- PutPostDatabaseReview(
+            req$REQUEST_METHOD,
+            sysnopsis_received)
+        } else {
+          response_publication <- list(status=200, message="OK. Skipped.")
+        response_publication_connections <- list(status=200, message="OK. Skipped.")
+        }
 
         # make the publictaion to review connections using
         # the function "PutPostDatabasePubCon"

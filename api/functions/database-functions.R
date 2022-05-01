@@ -338,7 +338,7 @@ PutPostDatabasePubCon <- function(request_method,
     # return Bad Request
     return(list(status=400,
       message=paste0("Some of the submitted publications are not in",
-        "the allowed in the publications list. Add them there first."
+        " the allowed in the publications list. Add them there first."
         )
       )
     )
