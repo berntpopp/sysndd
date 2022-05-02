@@ -325,7 +325,7 @@
           v-model="select_additional_references" 
           no-outer-focus 
           class="my-0"
-          separator=" ,;"
+          separator=",;"
           :tag-validator="tagValidatorPMID"
           remove-on-delete
           >
