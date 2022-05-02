@@ -449,9 +449,10 @@ function(req, res, create_json) {
       # data preparation
       create_data$status <- as_tibble(create_data$status) %>%
         add_column(response_entity$entry$entity_id) %>%
+        add_column(status_user_id) %>%
         select(entity_id = `response_entity$entry$entity_id`,
           category_id,
-          review_user_id,
+          status_user_id,
           comment,
           problematic)
       ##-------------------------------------------------------------------##
@@ -959,7 +960,6 @@ function(req, res, review_json) {
           unique() %>%
           select(publication_id, publication_type) %>%
           arrange(publication_id)
-
       } else {
         publications_received <- as_tibble_row(c(publication_id = NA,
           publication_type = NA))
@@ -1005,7 +1005,7 @@ function(req, res, review_json) {
           sysnopsis_received)
 
         # only submit publications if not empty
-        if (length(compact(create_data$review$literature)) > 0) {
+        if (length(compact(review_data$literature)) > 0) {
           # use the "new_publication function" to update the publications table
           response_publication <- new_publication(publications_received)
 
@@ -1059,7 +1059,7 @@ function(req, res, review_json) {
         sysnopsis_received$review_id <- review_data$review_id
 
         # only submit publications if not empty
-        if (length(compact(create_data$review$literature)) > 0) {
+        if (length(compact(review_data$literature)) > 0) {
           # use the "new_publication function" to update the publications table
           response_publication <- new_publication(publications_received)
 

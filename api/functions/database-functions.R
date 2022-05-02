@@ -44,7 +44,7 @@ PostDatabaseEntity <- function(entity_data) {
 
     if (db_append == 1) {
     submitted_entity_id <- dbGetQuery(sysndd_db, "SELECT LAST_INSERT_ID();") %>%
-      as_tibble() %>%
+      tibble::as_tibble() %>%
       select(entity_id = `LAST_INSERT_ID()`)
     } else if (is.na(as.logical(db_append))) {
     submitted_entity_id <- NA
@@ -156,7 +156,7 @@ PutPostDatabaseReview <- function(request_method,
       submitted_review_id <- dbGetQuery(sysndd_db,
           "SELECT LAST_INSERT_ID();"
           ) %>%
-        as_tibble() %>%
+        tibble::as_tibble() %>%
         select(review_id = `LAST_INSERT_ID()`)
 
       # disconnect from database
@@ -563,7 +563,8 @@ PutPostDatabaseStatus <- function(request_method,
   status_data) {
     ##-------------------------------------------------------------------##
     # block to convert the entity components into tibble
-    status_received <- as_tibble(status_data)
+    status_received <- purrr::compact(status_data) %>% 
+      tibble::as_tibble()
     ##-------------------------------------------------------------------##
 
     if ("category_id" %in% colnames(status_received) |
