@@ -48,8 +48,11 @@
 </template>
 
 <script>
+import toastMixin from '@/assets/js/mixins/toastMixin.js'
+
 export default {
   name: 'Search',
+  mixins: [toastMixin],
     metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
     title: 'Search',
@@ -89,7 +92,7 @@ export default {
       this.search = response_search.data;
 
       } catch (e) {
-       console.error(e);
+       this.makeToast(e, 'Error', 'danger');
       }
     
       if (this.search.length == 1) {

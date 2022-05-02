@@ -188,7 +188,7 @@ export default {
         this.signinWithJWT();
 
         } catch (e) {
-        console.error(e);
+          this.makeToast(e, 'Error', 'danger');
         }
     }, 
     async signinWithJWT() {
@@ -204,7 +204,7 @@ export default {
         localStorage.setItem('user', JSON.stringify(response_signin.data));
 
         } catch (e) {
-        console.error(e);
+          this.makeToast(e, 'Error', 'danger');
         }
     },
     async changePassword() {
@@ -218,7 +218,6 @@ export default {
         this.makeToast(response_password_change.data.message + ' (status ' + response_password_change.status + ')', 'Success', 'success');
         this.pass_change_visible = false;
         } catch (e) {
-          console.error(e.response.status);
           this.makeToast(e, 'Error', 'danger');
           this.pass_change_visible = false;
         }

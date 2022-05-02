@@ -244,8 +244,11 @@
 
 
 <script>
+import toastMixin from '@/assets/js/mixins/toastMixin.js'
+
 export default {
   name: 'Genes',
+  mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
     title: 'Genes',
@@ -424,7 +427,7 @@ export default {
               this.isBusy = false;
 
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
         },
         truncate(str, n){

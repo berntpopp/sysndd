@@ -210,7 +210,6 @@ export default {
         this.makeToast('Your registration request has been send ' + '(status ' + response.status + ' (' + response.statusText + ').', 'Success', 'success');
         this.successfulRegistration();
       } catch (e) {
-        console.error(e.response.status);
         this.makeToast(e, 'Error', 'danger');
       }
 

@@ -257,8 +257,11 @@
 </template>
 
 <script>
+import toastMixin from '@/assets/js/mixins/toastMixin.js'
+
 export default {
   name: 'Gene',
+  mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
     title: 'Gene',
@@ -347,7 +350,7 @@ export default {
       }
 
       } catch (e) {
-       console.error(e);
+       this.makeToast(e, 'Error', 'danger');
       }
     this.loading = false;
     },

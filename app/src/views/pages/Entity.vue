@@ -198,8 +198,11 @@
 </template>
 
 <script>
+import toastMixin from '@/assets/js/mixins/toastMixin.js'
+
 export default {
   name: 'Entity',
+  mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
     title: 'Entity',
@@ -278,7 +281,7 @@ export default {
       this.publications = response_publications.data;
       this.phenotypes = response_phenotypes.data;
       } catch (e) {
-       console.error(e);
+       this.makeToast(e, 'Error', 'danger');
       }
     this.loading = false;
     } 

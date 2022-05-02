@@ -376,7 +376,7 @@ export default {
             let response = await this.axios.get(apiUrl);
             this.phenotypes_options = response.data;
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
         },
         normalizePhenotypes(node) {
@@ -391,7 +391,7 @@ export default {
             let response = await this.axios.get(apiUrl);
             this.variation_ontology_options = response.data;
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
         },
         normalizeVariationOntology(node) {
@@ -406,7 +406,7 @@ export default {
             let response = await this.axios.get(apiUrl);
             this.status_options = response.data;
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
         },
         tagValidatorPMID(tag) {
@@ -421,7 +421,7 @@ export default {
             let response_search = await this.axios.get(apiSearchURL);
             callback(null, response_search.data);
             } catch (e) {
-            console.error(e);
+              this.makeToast(e, 'Error', 'danger');
             }
         },
         async loadOntologyInfoTree({searchQuery, callback}) {
@@ -431,7 +431,7 @@ export default {
             let response_search = await this.axios.get(apiSearchURL);
             callback(null, response_search.data);
             } catch (e) {
-            console.error(e);
+              this.makeToast(e, 'Error', 'danger');
             }
         },
         normalizerOntologySearch(node) {
@@ -453,7 +453,7 @@ export default {
             let response_search = await this.axios.get(apiSearchURL);
             callback(null, response_search.data);
             } catch (e) {
-            console.error(e);
+              this.makeToast(e, 'Error', 'danger');
             }
         },
         infoEntity() {

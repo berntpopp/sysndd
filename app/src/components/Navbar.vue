@@ -216,7 +216,7 @@ watch: { // used to refresh navbar on login push
         }
 
         } catch (e) {
-        console.error(e);
+          this.makeToast(e, 'Error', 'danger');
         }
     }, 
     async refreshWithJWT() {
@@ -233,7 +233,7 @@ watch: { // used to refresh navbar on login push
         this.signinWithJWT();
 
         } catch (e) {
-        console.error(e);
+          this.makeToast(e, 'Error', 'danger');
         }
     }, 
     async signinWithJWT() {
@@ -249,7 +249,7 @@ watch: { // used to refresh navbar on login push
         localStorage.setItem('user', JSON.stringify(response_signin.data));
 
         } catch (e) {
-        console.error(e);
+          this.makeToast(e, 'Error', 'danger');
         }
     }, 
     async loadSearchInfo() {
@@ -258,7 +258,7 @@ watch: { // used to refresh navbar on login push
       let response_search = await this.axios.get(apiSearchURL);
       this.search = response_search.data;
       } catch (e) {
-       console.error(e);
+        this.makeToast(e, 'Error', 'danger');
       }
     if (this.search[0] === this.search_input & isNaN(this.search_input)) {
       this.$router.push('/Search/' + this.search_input);

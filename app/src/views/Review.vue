@@ -998,7 +998,7 @@ export default {
             this.items = response.data;
             this.totalRows = response.data.length;
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
           this.loading = false;
         },
@@ -1017,7 +1017,7 @@ export default {
             this.items = response.data;
             this.totalRows = response.data.length;
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
           this.loading = false;
         },
@@ -1057,7 +1057,7 @@ export default {
           this.loading_review_modal = false;
 
             } catch (e) {
-            console.error(e);
+              this.makeToast(e, 'Error', 'danger');
             }
         },
         async loadStatusInfo(status_id) {
@@ -1080,7 +1080,7 @@ export default {
             this.removal_selected = response_status.data[0].problematic;
 
             } catch (e) {
-            console.error(e);
+              this.makeToast(e, 'Error', 'danger');
             }
         },
         async loadPhenotypesList() {
@@ -1089,7 +1089,7 @@ export default {
             let response = await this.axios.get(apiUrl);
             this.phenotypes_options = response.data;
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
         },
         normalizer(node) {
@@ -1108,7 +1108,7 @@ export default {
             });
 
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
         },
         async submitReview(submission) {
@@ -1125,7 +1125,7 @@ export default {
                 }
               });
             } catch (e) {
-              console.error(e);
+              this.makeToast(e, 'Error', 'danger');
             }
           } else {
             try {
@@ -1137,7 +1137,7 @@ export default {
                 }
               });
             } catch (e) {
-              console.error(e);
+              this.makeToast(e, 'Error', 'danger');
             }
           }
         },
@@ -1180,7 +1180,7 @@ export default {
                 }
               });
             } catch (e) {
-              console.error(e);
+              this.makeToast(e, 'Error', 'danger');
             }
           } else {
             try {
@@ -1192,7 +1192,7 @@ export default {
                 }
               });
             } catch (e) {
-              console.error(e);
+              this.makeToast(e, 'Error', 'danger');
             }
           }
         },
@@ -1226,7 +1226,7 @@ export default {
               }
             });
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
 
         this.reloadReReviewData();
@@ -1243,7 +1243,7 @@ export default {
               }
             });
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
 
         this.resetApproveModal();
@@ -1261,7 +1261,7 @@ export default {
               }
             });
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
 
         this.resetApproveModal();
@@ -1280,7 +1280,7 @@ export default {
             });
             this.makeToast('Application send.', 'Success', 'success');
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
         },
         addTag(newTag) {

@@ -167,9 +167,11 @@
 
 
 <script>
+import toastMixin from '@/assets/js/mixins/toastMixin.js'
 
 export default {
   name: 'ApproveReview',
+  mixins: [toastMixin],
     data() {
       return {
         loadingReviewApprove: true,
@@ -212,7 +214,7 @@ export default {
             this.items_ReviewTable = response.data;
             this.totalRows_ReviewTable = response.data.length;
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
           this.loadingReviewApprove = false;
         },
@@ -244,7 +246,7 @@ export default {
           this.loadReviewTableData();
 
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
         },
     }

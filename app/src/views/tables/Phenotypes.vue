@@ -203,6 +203,8 @@
 
 
 <script>
+  import toastMixin from '@/assets/js/mixins/toastMixin.js'
+
   // import the Treeselect component
   import Treeselect from '@riophae/vue-treeselect'
   // import the Treeselect styles
@@ -212,6 +214,7 @@ export default {
   // register the Treeselect component
   components: { Treeselect },
   name: 'Phenotypes',
+  mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
     title: 'Phenotypes',
@@ -367,7 +370,7 @@ export default {
             let response = await this.axios.get(apiUrl);
             this.phenotypes_options = response.data;
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
         },
         normalizer(node) {
@@ -409,7 +412,7 @@ export default {
 
             this.isBusy = false;
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
         },
         requestSelected() {
@@ -459,7 +462,7 @@ export default {
                 });
 
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
 
           this.downloading = false;

@@ -249,8 +249,11 @@
 </template>
 
 <script>
+import toastMixin from '@/assets/js/mixins/toastMixin.js'
+
 export default {
   name: 'Home',
+  mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
     title: 'Home',
@@ -325,7 +328,7 @@ export default {
       this.loading_statistics = false;
 
       } catch (e) {
-       console.error(e);
+       this.makeToast(e, 'Error', 'danger');
       }
     },
   async loadNews() {
@@ -341,7 +344,7 @@ export default {
       this.loading_news = false;
 
       } catch (e) {
-       console.error(e);
+       this.makeToast(e, 'Error', 'danger');
       }
     },
   async loadSearchInfo() {
@@ -350,7 +353,7 @@ export default {
       let response_search = await this.axios.get(apiSearchURL);
       this.search = response_search.data;
       } catch (e) {
-       console.error(e);
+       this.makeToast(e, 'Error', 'danger');
       }
     if (this.search[0] === this.search_input & isNaN(this.search_input)) {
       this.$router.push('/Search/' + this.search_input);

@@ -122,9 +122,11 @@
 
 
 <script>
+import toastMixin from '@/assets/js/mixins/toastMixin.js'
 
 export default {
   name: 'ApproveStatus',
+  mixins: [toastMixin],
     data() {
       return {
         role_options: [],
@@ -160,7 +162,7 @@ export default {
             this.items_UsersTable = response.data;
             this.totalRows_UsersTable = response.data.length;
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
           this.loadingUsersApprove = false;
         },
@@ -176,7 +178,7 @@ export default {
               return { value: item.role, text: item.role };
             });
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
         },
         async loadUserList() {
@@ -191,7 +193,7 @@ export default {
               return { value: item.user_id, text: item.user_name, role: item.user_role};
             });
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
         },
         infoApproveUser(item, index, button) {
@@ -216,7 +218,7 @@ export default {
               }
             });
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
         this.resetUserApproveModal();
         this.loadUserTableData();
@@ -232,7 +234,7 @@ export default {
               }
             });
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
         },
     }

@@ -98,9 +98,11 @@
 
 
 <script>
+import toastMixin from '@/assets/js/mixins/toastMixin.js'
 
 export default {
   name: 'ApproveStatus',
+  mixins: [toastMixin],
     data() {
       return {
         user_options: [],
@@ -135,7 +137,7 @@ export default {
               return { value: item.user_id, text: item.user_name, role: item.user_role};
             });
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
         },
         async loadReReviewTableData() {
@@ -150,7 +152,7 @@ export default {
             this.items_ReReviewTable = response.data;
             this.totalRows_ReReviewTable = response.data.length;
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
           this.loadingReReviewManagment = false;
         },
@@ -164,7 +166,7 @@ export default {
               }
             });
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
         this.loadReReviewTableData();
         },
@@ -178,7 +180,7 @@ export default {
               }
             });
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
         this.loadReReviewTableData();
         },

@@ -365,11 +365,14 @@
 
 
 <script>
+  import toastMixin from '@/assets/js/mixins/toastMixin.js'
+
   import UpSetJS, { extractSets, ISets, ISet } from '@upsetjs/vue';
   import * as d3 from 'd3';
 
   export default {
   name: 'CurationComparisons',
+  mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
     title: 'Curation comparisons',
@@ -540,7 +543,7 @@
             this.loadComparisonsUpsetData();
 
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
 
         },
@@ -594,7 +597,7 @@
             let response = await this.axios.get(apiUrl);
             this.elems = response.data;
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
 
           this.loadingUpset = false;
@@ -620,7 +623,7 @@
             this.isBusy = false;
 
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
         },
         async requestExcel() {
@@ -645,7 +648,7 @@
                 });
 
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
 
           this.downloading = false;
@@ -664,7 +667,7 @@
             this.generateGraph();
 
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
 
           this.loadingMatrix = false;

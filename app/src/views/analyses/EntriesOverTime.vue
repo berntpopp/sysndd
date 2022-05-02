@@ -90,10 +90,13 @@
 
 
 <script>
+  import toastMixin from '@/assets/js/mixins/toastMixin.js'
+
   import * as d3 from 'd3';
 
   export default {
   name: 'EntriesOverTime',
+  mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
     title: 'Entries over time',
@@ -135,7 +138,7 @@
           this.generateGraph();
 
         } catch (e) {
-          console.error(e);
+          this.makeToast(e, 'Error', 'danger');
         }
       },
       generateGraph() {

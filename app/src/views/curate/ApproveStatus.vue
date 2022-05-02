@@ -181,9 +181,11 @@
 
 
 <script>
+import toastMixin from '@/assets/js/mixins/toastMixin.js'
 
 export default {
   name: 'ApproveStatus',
+  mixins: [toastMixin],
     data() {
       return {
         loadingStatusApprove: true,
@@ -231,7 +233,7 @@ export default {
             this.items_StatusTable = response.data;
             this.totalRows_StatusTable = response.data.length;
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
           this.loadingStatusApprove = false;
         },
@@ -255,7 +257,7 @@ export default {
           this.loadStatusTableData();
 
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
         },
     }

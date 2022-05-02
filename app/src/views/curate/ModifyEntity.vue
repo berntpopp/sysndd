@@ -568,7 +568,7 @@ export default {
             let response = await this.axios.get(apiUrl);
             this.phenotypes_options = response.data;
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
         },
         normalizePhenotypes(node) {
@@ -583,7 +583,7 @@ export default {
             let response = await this.axios.get(apiUrl);
             this.variation_ontology_options = response.data;
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
         },
         normalizeVariationOntology(node) {
@@ -598,7 +598,7 @@ export default {
             let response = await this.axios.get(apiUrl);
             this.status_options = response.data;
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
         },
         async searchEntityInfo({searchQuery, callback}) {
@@ -609,7 +609,7 @@ export default {
 
             callback(null, response_search.data.data);
             } catch (e) {
-            console.error(e);
+              this.makeToast(e, 'Error', 'danger');
             }
         },
         async getEntity() {
@@ -622,7 +622,7 @@ export default {
             this.entity_info = new this.Entity(response.data.data[0].hgnc_id, response.data.data[0].disease_ontology_id_version, response.data.data[0].hpo_mode_of_inheritance_term, response.data.data[0].ndd_phenotype, response.data.data[0].entity_id, response.data.data[0].is_active, response.data.data[0].replaced_by);
 
             } catch (e) {
-            console.error(e);
+              this.makeToast(e, 'Error', 'danger');
             }
         },
         async getReview() {
@@ -685,7 +685,7 @@ export default {
           this.loading_review_modal = false;
 
             } catch (e) {
-            console.error(e);
+              this.makeToast(e, 'Error', 'danger');
             }
         },
         async getStatus() {
@@ -704,7 +704,7 @@ export default {
           this.loading_status_modal = false;
 
             } catch (e) {
-            console.error(e);
+              this.makeToast(e, 'Error', 'danger');
             }
         },
         normalizerEntitySearch(node) {
@@ -732,7 +732,7 @@ export default {
             let response_search = await this.axios.get(apiSearchURL);
             callback(null, response_search.data);
             } catch (e) {
-            console.error(e);
+              this.makeToast(e, 'Error', 'danger');
             }
         },
         showEntityRename() {

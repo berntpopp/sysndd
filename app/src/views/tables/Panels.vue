@@ -261,8 +261,11 @@
 
 
 <script>
+import toastMixin from '@/assets/js/mixins/toastMixin.js'
+
 export default {
   name: 'Panels',
+  mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
     title: 'Panels',
@@ -386,7 +389,7 @@ export default {
             this.requestSelected();
 
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
 
         },
@@ -413,7 +416,7 @@ export default {
             this.isBusy = false;
 
           } catch (e) {
-            console.error(e);
+            this.makeToast(e, 'Error', 'danger');
           }
 
           this.loading = false;
@@ -440,7 +443,7 @@ export default {
                   });
 
             } catch (e) {
-              console.error(e);
+              this.makeToast(e, 'Error', 'danger');
             }
           
           this.downloading = false;

@@ -115,7 +115,6 @@ export default {
         this.makeToast('You have logged in  ' + '(status ' + response_authenticate.status + ' (' + response_authenticate.statusText + ').', 'Success', 'success');
         this.signinWithJWT();
         } catch (e) {
-          console.error(e.response.status);
           this.makeToast(e, 'Error', 'danger');
         }
       }, 
@@ -133,7 +132,7 @@ export default {
         this.$router.push('/');
 
         } catch (e) {
-        console.error(e);
+          this.makeToast(e, 'Error', 'danger');
         }
     }, 
     resetForm() {
