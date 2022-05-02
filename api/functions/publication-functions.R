@@ -87,6 +87,88 @@ new_publication <- function(publications_received) {
 }
 
 
+## this custom function replaces "table_articles_byAuth" from
+## easypubmed because that function is buggy
+table_articles_from_xml <- function(pubmed_xml_data) {
+# convert to xml
+pmid_xml <- read_xml(pubmed_xml_data)
+
+# extract values
+pmid <- pmid_xml %>%
+  xml_find_all("//PMID") %>%
+  xml_text()
+
+doi <- pmid_xml %>%
+  xml_find_all("//ELocationID[@EIdType='doi']") %>%
+  xml_text()
+
+title <- pmid_xml %>%
+  xml_find_all("//ArticleTitle") %>%
+  xml_text()
+
+abstract <- pmid_xml %>%
+  xml_find_all("//AbstractText") %>%
+  xml_text()
+
+jabbrv <- pmid_xml %>%
+  xml_find_all("//ISOAbbreviation") %>%
+  xml_text()
+
+journal <- pmid_xml %>%
+  xml_find_all("//Title") %>%
+  xml_text()
+
+# for older articles use keywords
+mesh <- pmid_xml %>%
+  xml_find_all("//DescriptorName") %>%
+  xml_text()
+
+year <- pmid_xml %>%
+  xml_find_all("//PubMedPubDate[@PubStatus='pubmed']/Year") %>%
+  xml_text()
+
+month <- pmid_xml %>%
+  xml_find_all("//PubMedPubDate[@PubStatus='pubmed']/Month") %>%
+  xml_text()
+
+day <- pmid_xml %>%
+  xml_find_all("//PubMedPubDate[@PubStatus='pubmed']/Day") %>%
+  xml_text()
+
+lastname <- pmid_xml %>%
+  xml_find_all("//AuthorList/Author[1]/LastName") %>%
+  xml_text()
+
+firstname <- pmid_xml %>%
+  xml_find_all("//AuthorList/Author[1]/ForeName") %>%
+  xml_text()
+
+address <- pmid_xml %>%
+  xml_find_all("//AuthorList/Author[1]/AffiliationInfo") %>%
+  xml_text()
+
+# return list of results
+return_tibble <- as_tibble(
+    list(pmid=pmid,
+        doi=doi,
+        title=title,
+        abstract=abstract,
+        jabbrv=jabbrv,
+        journal=journal,
+        keywords=str_c(mesh, collapse="; "),
+        year=year,
+        month=month,
+        day=day,
+        lastname=lastname,
+        firstname=firstname,
+        address=str_c(address, collapse="; ")
+    )
+  )
+
+return(return_tibble)
+}
+
+
 info_from_pmid <- function(pmid_value, request_max = 200) {
   pmid_value <- str_replace_all(pmid_value, "PMID:", "")
 
@@ -109,10 +191,7 @@ info_from_pmid <- function(pmid_value, request_max = 200) {
     mutate(response = fetch_pubmed_data(get_pubmed_ids(publication_id),
       encoding = "ASCII")) %>%
     ungroup() %>%
-    mutate(new_PM_df = map(response, ~table_articles_byAuth(pubmed_data = .x,
-                                   included_authors = "first",
-                                   max_chars = 1000,
-                                   encoding = "ASCII"))) %>%
+    mutate(new_PM_df = map(response, ~table_articles_from_xml(.x))) %>%
     unnest(cols = new_PM_df) %>%
     mutate(other_publication_id = paste0("DOI:", doi)) %>%
     mutate(Publication_date = paste0(year, "-", month, "-", day)) %>%

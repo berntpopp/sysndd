@@ -14,6 +14,7 @@ library(RCurl)
 library(stringdist)
 library(xlsx)
 library(easyPubMed)
+library(xml2)
 library(rvest)
 library(lubridate)
 library(pool)
@@ -279,7 +280,7 @@ function(res,
   # add columns to the meta information from
   # generate_cursor_pagination_info function return
   meta <- disease_table_pagination_info$meta %>%
-    add_column(as_tibble(list("sort" = sort,
+    add_column(tibble::as_tibble(list("sort" = sort,
     "filter" = filter,
     "fields" = fields,
     "executionTime" = execution_time)))
@@ -338,8 +339,8 @@ function(req, res, create_json) {
       # convert publications to tibble
       if (length(compact(create_data$review$literature)) > 0) {
         publications_received <- bind_rows(
-            as_tibble(compact(create_data$review$literature$additional_references)),
-            as_tibble(compact(create_data$review$literature$gene_review)),
+            tibble::as_tibble(compact(create_data$review$literature$additional_references)),
+            tibble::as_tibble(compact(create_data$review$literature$gene_review)),
             .id = "publication_type") %>%
           select(publication_id = value, publication_type) %>%
           mutate(publication_type = case_when(
@@ -351,13 +352,13 @@ function(req, res, create_json) {
           arrange(publication_id)
 
       } else {
-        publications_received <- as_tibble_row(c(publication_id = NA,
+        publications_received <- tibble::as_tibble_row(c(publication_id = NA,
           publication_type = NA))
       }
 
       # convert sysnopsis to tibble, check if comment is null and handle
       if (!is.null(create_data$review$comment)) {
-        sysnopsis_received <- as_tibble(create_data$review$synopsis) %>%
+        sysnopsis_received <- tibble::as_tibble(create_data$review$synopsis) %>%
           add_column(response_entity$entry$entity_id) %>%
           add_column(create_data$review$comment) %>%
           add_column(review_user_id) %>%
@@ -366,7 +367,7 @@ function(req, res, create_json) {
             review_user_id,
             comment = `create_data$review$comment`)
       } else {
-        sysnopsis_received <- as_tibble(create_data$review$synopsis) %>%
+        sysnopsis_received <- tibble::as_tibble(create_data$review$synopsis) %>%
           add_column(response_entity$entry$entity_id) %>%
           add_column(review_user_id) %>%
           select(entity_id = `response_entity$entry$entity_id`,
@@ -376,10 +377,10 @@ function(req, res, create_json) {
       }
 
       # convert phenotypes to tibble
-      phenotypes_received <- as_tibble(create_data$review$phenotypes)
+      phenotypes_received <- tibble::as_tibble(create_data$review$phenotypes)
 
       # convert variation ontology to tibble
-      variation_ontology_received <- as_tibble(create_data$review$variation_ontology)
+      variation_ontology_received <- tibble::as_tibble(create_data$review$variation_ontology)
 
       ##-------------------------------------------------------------------##
 
@@ -424,11 +425,11 @@ function(req, res, create_json) {
         as.integer(response_review$entry$review_id))
 
       # compute aggregated review response
-      response_review_post <- as_tibble(response_publication) %>%
-        bind_rows(as_tibble(response_review)) %>%
-        bind_rows(as_tibble(response_publication_connections)) %>%
-        bind_rows(as_tibble(response_phenotype_connections)) %>%
-        bind_rows(as_tibble(response_variation_ontology_conn)) %>%
+      response_review_post <- tibble::as_tibble(response_publication) %>%
+        bind_rows(tibble::as_tibble(response_review)) %>%
+        bind_rows(tibble::as_tibble(response_publication_connections)) %>%
+        bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
+        bind_rows(tibble::as_tibble(response_variation_ontology_conn)) %>%
         select(status, message) %>%
         mutate(status = max(status)) %>%
         mutate(message = str_c(message, collapse = "; ")) %>%
@@ -447,7 +448,7 @@ function(req, res, create_json) {
     # block to post new status for posted entity
       ##-------------------------------------------------------------------##
       # data preparation
-      create_data$status <- as_tibble(create_data$status) %>%
+      create_data$status <- tibble::as_tibble(create_data$status) %>%
         add_column(response_entity$entry$entity_id) %>%
         add_column(status_user_id) %>%
         select(entity_id = `response_entity$entry$entity_id`,
@@ -468,8 +469,8 @@ function(req, res, create_json) {
 
     ##-------------------------------------------------------------------##
     } else {
-      response_entity_review_post <- as_tibble(response_entity) %>%
-        bind_rows(as_tibble(response_review_post)) %>%
+      response_entity_review_post <- tibble::as_tibble(response_entity) %>%
+        bind_rows(tibble::as_tibble(response_review_post)) %>%
         select(status, message) %>%
         unique() %>%
         mutate(status = max(status)) %>%
@@ -486,9 +487,9 @@ function(req, res, create_json) {
       res$status <- response_entity$status
       return(response_entity)
     } else {
-      response <- as_tibble(response_entity) %>%
-        bind_rows(as_tibble(response_review_post)) %>%
-        bind_rows(as_tibble(response_status_post)) %>%
+      response <- tibble::as_tibble(response_entity) %>%
+        bind_rows(tibble::as_tibble(response_review_post)) %>%
+        bind_rows(tibble::as_tibble(response_status_post)) %>%
         select(status, message) %>%
         unique() %>%
         mutate(status = max(status)) %>%
@@ -620,10 +621,10 @@ function(req, res, rename_json) {
           as.integer(response_review$entry$review_id))
 
         # compute aggregated review response
-        response_review_post <- as_tibble(response_review) %>%
-          bind_rows(as_tibble(response_publication_connections)) %>%
-          bind_rows(as_tibble(response_phenotype_connections)) %>%
-          bind_rows(as_tibble(response_variation_ontology_conn)) %>%
+        response_review_post <- tibble::as_tibble(response_review) %>%
+          bind_rows(tibble::as_tibble(response_publication_connections)) %>%
+          bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
+          bind_rows(tibble::as_tibble(response_variation_ontology_conn)) %>%
           select(status, message) %>%
           unique() %>%
           mutate(status = max(status)) %>%
@@ -657,9 +658,9 @@ function(req, res, rename_json) {
         res$status <- response_new_entity$status
         return(response_new_entity)
         } else {
-        response <- as_tibble(response_new_entity) %>%
-            bind_rows(as_tibble(response_review_post)) %>%
-            bind_rows(as_tibble(response_status_post)) %>%
+        response <- tibble::as_tibble(response_new_entity) %>%
+            bind_rows(tibble::as_tibble(response_review_post)) %>%
+            bind_rows(tibble::as_tibble(response_status_post)) %>%
             select(status, message) %>%
             unique() %>%
             mutate(status = max(status)) %>%
@@ -835,7 +836,7 @@ function(sysndd_id) {
     select(entity_id, review_id, synopsis, review_date, comment) %>%
     arrange(review_date)
 
-  ndd_entity_review_list_joined <- as_tibble(sysndd_id) %>%
+  ndd_entity_review_list_joined <- tibble::as_tibble(sysndd_id) %>%
     select(entity_id = value) %>%
     mutate(entity_id = as.integer(entity_id)) %>%
     left_join(ndd_entity_review_list, by = c("entity_id"))
@@ -949,8 +950,8 @@ function(req, res, review_json) {
       # convert publications to tibble
       if (length(compact(review_data$literature)) > 0) {
         publications_received <- bind_rows(
-            as_tibble(compact(review_data$literature$additional_references)),
-            as_tibble(compact(review_data$literature$gene_review)),
+            tibble::as_tibble(compact(review_data$literature$additional_references)),
+            tibble::as_tibble(compact(review_data$literature$gene_review)),
             .id = "publication_type") %>%
           select(publication_id = value, publication_type) %>%
           mutate(publication_type = case_when(
@@ -961,13 +962,13 @@ function(req, res, review_json) {
           select(publication_id, publication_type) %>%
           arrange(publication_id)
       } else {
-        publications_received <- as_tibble_row(c(publication_id = NA,
+        publications_received <- tibble::as_tibble_row(c(publication_id = NA,
           publication_type = NA))
       }
 
       # convert sysnopsis to tibble, check if comment is null and handle
       if (!is.null(review_data$comment)) {
-        sysnopsis_received <- as_tibble(review_data$synopsis) %>%
+        sysnopsis_received <- tibble::as_tibble(review_data$synopsis) %>%
           add_column(review_data$entity_id) %>%
           add_column(review_data$comment) %>%
           add_column(review_user_id) %>%
@@ -976,7 +977,7 @@ function(req, res, review_json) {
             review_user_id,
             comment = `review_data$comment`)
       } else {
-        sysnopsis_received <- as_tibble(review_data$synopsis) %>%
+        sysnopsis_received <- tibble::as_tibble(review_data$synopsis) %>%
           add_column(review_data$entity_id) %>%
           add_column(review_user_id) %>%
           select(entity_id = `review_data$entity_id`,
@@ -986,10 +987,10 @@ function(req, res, review_json) {
       }
 
       # convert phenotypes to tibble
-      phenotypes_received <- as_tibble(review_data$phenotypes)
+      phenotypes_received <- tibble::as_tibble(review_data$phenotypes)
 
       # convert variation ontology to tibble
-      variation_received <- as_tibble(review_data$variation_ontology)
+      variation_received <- tibble::as_tibble(review_data$variation_ontology)
 
       ##-------------------------------------------------------------------##
 
@@ -1038,11 +1039,11 @@ function(req, res, review_json) {
           as.integer(response_review$entry))
 
         # compute response
-        response <- as_tibble(response_publication) %>%
-          bind_rows(as_tibble(response_review)) %>%
-          bind_rows(as_tibble(response_publication_connections)) %>%
-          bind_rows(as_tibble(response_phenotype_connections)) %>%
-          bind_rows(as_tibble(response_variation_ontology_conn)) %>%
+        response <- tibble::as_tibble(response_publication) %>%
+          bind_rows(tibble::as_tibble(response_review)) %>%
+          bind_rows(tibble::as_tibble(response_publication_connections)) %>%
+          bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
+          bind_rows(tibble::as_tibble(response_variation_ontology_conn)) %>%
           select(status, message) %>%
           unique() %>%
           mutate(status = max(status)) %>%
@@ -1070,7 +1071,7 @@ function(req, res, review_json) {
             sysnopsis_received)
         } else {
           response_publication <- list(status=200, message="OK. Skipped.")
-        response_publication_connections <- list(status=200, message="OK. Skipped.")
+          response_publication_connections <- list(status=200, message="OK. Skipped.")
         }
 
         # make the publictaion to review connections using
@@ -1098,11 +1099,11 @@ function(req, res, review_json) {
           as.integer(review_data$review_id))
 
         # compute response
-        response <- as_tibble(response_publication) %>%
-          bind_rows(as_tibble(response_review)) %>%
-          bind_rows(as_tibble(response_publication_connections)) %>%
-          bind_rows(as_tibble(response_phenotype_connections)) %>%
-          bind_rows(as_tibble(response_variation_ontology_conn)) %>%
+        response <- tibble::as_tibble(response_publication) %>%
+          bind_rows(tibble::as_tibble(response_review)) %>%
+          bind_rows(tibble::as_tibble(response_publication_connections)) %>%
+          bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
+          bind_rows(tibble::as_tibble(response_variation_ontology_conn)) %>%
           select(status, message) %>%
           unique() %>%
           mutate(status = max(status)) %>%
@@ -1334,13 +1335,13 @@ function(req, res, review_json) {
       nchar(review_data$synopsis) > 0) {
 
       # convert phenotypes to tibble
-      phenotypes_received <- as_tibble(review_data$phenotypes)
+      phenotypes_received <- tibble::as_tibble(review_data$phenotypes)
 
       # convert publications to tibble
       if (length(compact(review_data$literature)) > 0) {
         publications_received <- bind_rows(
-            as_tibble(compact(review_data$literature$additional_references)),
-            as_tibble(compact(review_data$literature$gene_review)),
+            tibble::as_tibble(compact(review_data$literature$additional_references)),
+            tibble::as_tibble(compact(review_data$literature$gene_review)),
             .id = "publication_type") %>%
           select(publication_id = value, publication_type) %>%
           mutate(publication_type = case_when(
@@ -1352,13 +1353,13 @@ function(req, res, review_json) {
           arrange(publication_id)
 
       } else {
-        publications_received <- as_tibble_row(c(publication_id = NA,
+        publications_received <- tibble::as_tibble_row(c(publication_id = NA,
           publication_type = NA))
       }
 
       # convert sysnopsis to tibble, check if comment is null and handle
       if (!is.null(review_data$comment)) {
-        sysnopsis_received <- as_tibble(review_data$synopsis) %>%
+        sysnopsis_received <- tibble::as_tibble(review_data$synopsis) %>%
           add_column(review_data$entity_id) %>%
           add_column(review_data$comment) %>%
           add_column(review_user_id) %>%
@@ -1367,7 +1368,7 @@ function(req, res, review_json) {
             review_user_id,
             comment = `review_data$comment`)
       } else {
-        sysnopsis_received <- as_tibble(review_data$synopsis) %>%
+        sysnopsis_received <- tibble::as_tibble(review_data$synopsis) %>%
           add_column(review_data$entity_id) %>%
           add_column(review_user_id) %>%
           select(entity_id = `review_data$entity_id`,
@@ -1441,7 +1442,7 @@ function(req, res, review_json) {
         dbAppendTable(sysndd_db, "ndd_entity_review", sysnopsis_received)
         submitted_review_id <- dbGetQuery(sysndd_db,
             "SELECT LAST_INSERT_ID();") %>%
-          as_tibble() %>%
+          tibble::as_tibble() %>%
           select(review_id = `LAST_INSERT_ID()`)
 
         # prepare phenotype tibble for submission
@@ -1600,7 +1601,7 @@ function(req, res, review_json) {
           publications_submission)
 
         # generate update query
-        update_query <- as_tibble(sysnopsis_received) %>%
+        update_query <- tibble::as_tibble(sysnopsis_received) %>%
           mutate(row = row_number()) %>%
           mutate(across(where(is.logical), as.integer)) %>%
           mutate(across(where(is.numeric), as.character)) %>%
@@ -1652,12 +1653,12 @@ function(req, res, status_json) {
 
       # convert status data to tibble, check if comment is null and handle
       if (!is.null(status_data$comment)) {
-        status_received <- as_tibble(status_data) %>%
+        status_received <- tibble::as_tibble(status_data) %>%
           add_column(status_user_id) %>%
           select(-re_review_entity_id)
       } else {
         status_data$comment <- ""
-        status_received <- as_tibble(status_data) %>%
+        status_received <- tibble::as_tibble(status_data) %>%
           add_column(status_user_id) %>%
           select(-re_review_entity_id, -comment)
       }
@@ -1678,7 +1679,7 @@ function(req, res, status_json) {
         dbAppendTable(sysndd_db, "ndd_entity_status", status_received)
         submitted_status_id <- dbGetQuery(sysndd_db,
             "SELECT LAST_INSERT_ID();") %>%
-          as_tibble() %>%
+          tibble::as_tibble() %>%
           select(status_id = `LAST_INSERT_ID()`)
 
         # execute update query for re_review_entity_connect
@@ -1703,7 +1704,7 @@ function(req, res, status_json) {
             status_data$re_review_entity_id))$status_id
 
         # generate update query
-        update_query <- as_tibble(status_received) %>%
+        update_query <- tibble::as_tibble(status_received) %>%
           mutate(row = row_number()) %>%
           mutate(across(where(is.logical), as.integer)) %>%
           mutate(across(where(is.numeric), as.character)) %>%
@@ -1758,7 +1759,7 @@ function(req, res, submit_json) {
     submit_user_id <- req$user_id
     submit_data <- fromJSON(submit_json)
 
-    update_query <- as_tibble(submit_data) %>%
+    update_query <- tibble::as_tibble(submit_data) %>%
       select(-re_review_entity_id) %>%
       mutate(row = row_number()) %>%
       pivot_longer(-row) %>%
@@ -2393,7 +2394,7 @@ function(res,
   # add columns to the meta information from
   # generate_cursor_pagination_info function return
   meta <- sysndd_db_genes_nested_pagination_info$meta %>%
-    add_column(as_tibble(list("sort" = sort,
+    add_column(tibble::as_tibble(list("sort" = sort,
       "filter" = filter,
       "fields" = fields,
       "executionTime" = execution_time)))
@@ -3078,11 +3079,11 @@ function() {
     add_row(category = "All") %>%
     arrange(category)
 
-  inheritance_list <- as_tibble(inheritance_input_allowed) %>%
+  inheritance_list <- tibble::as_tibble(inheritance_input_allowed) %>%
     select(inheritance = value) %>%
     arrange(inheritance)
 
-  columns_list <- as_tibble(output_columns_allowed) %>%
+  columns_list <- tibble::as_tibble(output_columns_allowed) %>%
     select(column = value)
 
   options <- tibble(
@@ -3294,7 +3295,7 @@ function(res, aggregate = "entity_id", group = "category") {
 
   # add columns to the meta information from
   # generate_cursor_pagination_info function return
-  meta <- as_tibble(list("aggregate" = aggregate,
+  meta <- tibble::as_tibble(list("aggregate" = aggregate,
     "group" = group,
     "max_count" = max(sysndd_db_disease_collected$count),
     "max_cumulative_count" = max(sysndd_db_disease_collected$cumulative_count),
@@ -4139,13 +4140,13 @@ function(req, res) {
 
   } else if (req$user_role %in% c("Administrator")) {
 
-    role_list <- as_tibble(user_status_allowed) %>%
+    role_list <- tibble::as_tibble(user_status_allowed) %>%
       select(role = value)
     role_list
 
   } else if (req$user_role %in% c("Curator")) {
 
-    role_list <- as_tibble(user_status_allowed) %>%
+    role_list <- tibble::as_tibble(user_status_allowed) %>%
       select(role = value) %>%
       filter(role != "Administrator")
     role_list
@@ -4491,7 +4492,7 @@ function(req, res, new_pass_1 = "", new_pass_2 = "") {
 #* @serializer json list(na="string")
 #' @get /api/auth/signup
 function(signup_data) {
-  user <- as_tibble(fromJSON(signup_data)) %>%
+  user <- tibble::as_tibble(fromJSON(signup_data)) %>%
       mutate(terms_agreed = case_when(
         terms_agreed == "accepted" ~ "1",
         terms_agreed != "accepted" ~ "0"

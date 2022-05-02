@@ -9,4 +9,4 @@ libbz2-dev \
 libicu-dev \
 liblzma-dev \
 libsodium-dev
-RUN install2.r Rcpp plumber DBI RMariaDB jsonlite config jose RCurl stringdist xlsx easyPubMed rvest lubridate pool memoise coop reshape2 blastula keyring future knitr rlang timetk
+RUN install2.r Rcpp plumber DBI RMariaDB jsonlite config jose RCurl stringdist xlsx easyPubMed rvest lubridate pool memoise coop reshape2 blastula keyring future knitr rlang timetk xml2
