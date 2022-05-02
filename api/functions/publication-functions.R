@@ -151,10 +151,10 @@ address <- pmid_xml %>%
 return_tibble <- as_tibble(
     list(pmid=pmid,
         doi=doi,
-        title=title,
+        title=str_c(title, collapse=" "),
         abstract=str_c(abstract, collapse=" "),
         jabbrv=jabbrv,
-        journal=journal,
+        journal=journal[1],
         keywords=str_c(mesh, collapse="; "),
         year=year,
         month=month,

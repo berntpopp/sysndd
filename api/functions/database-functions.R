@@ -264,10 +264,10 @@ PutPostDatabasePubCon <- function(request_method,
     select(review_id, entity_id, publication_id, publication_type)
 
   # for the PUT requst we check whether the submitted entity ID
-  # matches the curent one associated with the review id to
+  # matches the current one associated with the review id to
   # not allow changing this connection
   ndd_review_publication_for_match <- (pool %>%
-    tbl("ndd_review_publication_join") %>%
+    tbl("ndd_entity_review") %>%
     select(review_id, entity_id) %>%
     filter(review_id == {{review_id}}) %>%
     collect() %>%
