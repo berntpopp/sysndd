@@ -102,6 +102,17 @@ doi <- pmid_xml %>%
   xml_find_all("//ELocationID[@EIdType='doi']") %>%
   xml_text()
 
+doi2 <- pmid_xml %>%
+  xml_find_all("//ArticleId[@EIdType='doi']") %>%
+  xml_text()
+
+if(length(doi) == 0 & length(doi2) != 0) {
+    doi <- doi2
+} else if (length(doi) == 0 &
+  length(doi2) == 0) {
+    doi <- ""
+}
+
 title <- pmid_xml %>%
   xml_find_all("//ArticleTitle") %>%
   xml_text()
@@ -143,13 +154,24 @@ firstname <- pmid_xml %>%
   xml_find_all("//AuthorList/Author[1]/ForeName") %>%
   xml_text()
 
+collective <- pmid_xml %>%
+  xml_find_all("//AuthorList/Author[1]/CollectiveName") %>%
+  xml_text()
+
+if((length(firstname) == 0 |
+  length(firstname) == 0) &
+  length(collective) != 0) {
+    lastname <- collective
+    firstname <- collective
+}
+
 address <- pmid_xml %>%
   xml_find_all("//AuthorList/Author[1]/AffiliationInfo") %>%
   xml_text()
 
 # return list of results
 return_tibble <- as_tibble(
-    list(pmid=pmid,
+    list(pmid=pmid[1],
         doi=doi,
         title=str_c(title, collapse=" "),
         abstract=str_c(abstract, collapse=" "),
