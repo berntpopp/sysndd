@@ -754,7 +754,7 @@ export default {
           this.$refs['modifyStatusModal'].show();
         },
         async submitEntityRename() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/entity/rename?rename_json=';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/entity/rename';
 
           // assign new disease_ontology_id
           this.entity_info.disease_ontology_id_version = this.ontology_input;
@@ -763,9 +763,7 @@ export default {
           const submission = new this.Submission(this.entity_info);
 
           try {
-            let submission_json = JSON.stringify(submission);
-
-            let response = await this.axios.post(apiUrl + submission_json, {}, {
+            let response = await this.axios.post(apiUrl, {rename_json: submission}, {
                headers: {
                  'Authorization': 'Bearer ' + localStorage.getItem('token')
                }
@@ -779,7 +777,7 @@ export default {
           }
         },
         async submitEntityDeactivation() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/entity/deactivate?deactivate_json=';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/entity/deactivate';
 
           // assign new is_active
           this.entity_info.is_active = (this.deactivate_check ? '0' : '1');
@@ -791,9 +789,7 @@ export default {
           const submission = new this.Submission(this.entity_info);
 
           try {
-            let submission_json = JSON.stringify(submission);
-
-            let response = await this.axios.post(apiUrl + submission_json, {}, {
+            let response = await this.axios.post(apiUrl, {deactivate_json: submission}, {
                headers: {
                  'Authorization': 'Bearer ' + localStorage.getItem('token')
                }
@@ -807,7 +803,7 @@ export default {
           }
         },
         async submitReviewChange() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/review/update?review_json=';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/review/update';
 
           // compose new literature as constants from inputs
           const replace_literature = new this.Literature(this.select_additional_references, this.select_gene_reviews);
@@ -831,11 +827,7 @@ console.log(this.review_info);
 
           // perform update PUT request
           try {
-            let submission_json = JSON.stringify(this.review_info);
-
-console.log(submission_json);
-
-            let response = await this.axios.put(apiUrl + submission_json, {}, {
+            let response = await this.axios.put(apiUrl, {review_json: this.review_info}, {
                headers: {
                  'Authorization': 'Bearer ' + localStorage.getItem('token')
                }
@@ -850,17 +842,13 @@ console.log(submission_json);
 
         },
         async submitStatusChange() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/status/update?status_json=';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/status/update';
 
 console.log(this.status_info);
 
           // perform update PUT request
           try {
-            let submission_json = JSON.stringify(this.status_info);
-
-console.log(submission_json);
-
-            let response = await this.axios.put(apiUrl + submission_json, {}, {
+            let response = await this.axios.put(apiUrl, {status_json: this.status_info}, {
                headers: {
                  'Authorization': 'Bearer ' + localStorage.getItem('token')
                }

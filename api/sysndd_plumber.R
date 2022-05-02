@@ -316,8 +316,6 @@ function(res,
 #' @post /api/entity/create
 function(req, res) {
 
-print(req$argsBody)
-print(req$REQUEST_METHOD)
   create_data <- req$argsBody$create_json
 
   # first check rights
@@ -514,14 +512,14 @@ print(req$REQUEST_METHOD)
 ## example data: rename_json <- '{"entity": {"entity_id":"2477", "hgnc_id":"HGNC:12766", "disease_ontology_id_version":"OMIM:619695", "hpo_mode_of_inheritance_term":"HP:0000006", "ndd_phenotype":"1"}}'
 #* @serializer json list(na="string")
 #' @post /api/entity/rename
-function(req, res, rename_json) {
+function(req, res) {
 
   # first check rights
   if (req$user_role %in% c("Administrator", "Curator")) {
 
     new_entry_user_id <- req$user_id
 
-    rename_data <- fromJSON(rename_json)
+    rename_data <- req$argsBody$rename_json
 
     ##-------------------------------------------------------------------##
     # get information for submitted old entity_id
@@ -691,14 +689,14 @@ function(req, res, rename_json) {
 ## example data: deactivate_json <- '{"entity": {"entity_id":"10", "hgnc_id":"HGNC:27288", "disease_ontology_id_version":"OMIM:614265", "hpo_mode_of_inheritance_term":"HP:0000007", "ndd_phenotype":"1", "is_active":"0", "replaced_by":"NULL"}}'
 #* @serializer json list(na="string")
 #' @post /api/entity/deactivate
-function(req, res, deactivate_json) {
+function(req, res) {
 
   # first check rights
   if (req$user_role %in% c("Administrator", "Curator")) {
 
     deactivate_user_id <- req$user_id
 
-    deactivate_data <- fromJSON(deactivate_json)
+    deactivate_data <- req$argsBody$deactivate_json
 
     ##-------------------------------------------------------------------##
     # get information for submitted old entity_id
@@ -938,12 +936,13 @@ function(req, res, `filter[review_approved]` = 0) {
 #* @serializer json list(na="string")
 #' @post /api/review/create
 #' @put /api/review/update
-function(req, res, review_json) {
+function(req, res) {
+
   # first check rights
   if (req$user_role %in% c("Administrator", "Curator")) {
 
     review_user_id <- req$user_id
-    review_data <- fromJSON(review_json)
+    review_data <- req$argsBody$review_json
 
     if (!is.null(review_data$synopsis) &
       !is.null(review_data$entity_id) &
@@ -2950,11 +2949,12 @@ function() {
 #* @serializer json list(na="string")
 #' @post /api/status/create
 #' @put /api/status/update
-function(req, res, status_json) {
+function(req, res) {
+
   # first check rights
   if (req$user_role %in% c("Administrator", "Curator")) {
 
-    status_data <- fromJSON(status_json)
+    status_data <- req$argsBody$status_json
 
     status_data$status_user_id <- req$user_id
 
