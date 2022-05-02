@@ -152,7 +152,7 @@ return_tibble <- as_tibble(
     list(pmid=pmid,
         doi=doi,
         title=title,
-        abstract=abstract,
+        abstract=str_c(abstract, collapse=" "),
         jabbrv=jabbrv,
         journal=journal,
         keywords=str_c(mesh, collapse="; "),

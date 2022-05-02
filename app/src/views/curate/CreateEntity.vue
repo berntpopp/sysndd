@@ -503,14 +503,13 @@ export default {
 
         },
         async submitEntity() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/entity/create?create_json=';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/entity/create';
 
           try {
-            let submission_json = JSON.stringify(this.entity_submission);
 
-console.log(submission_json);
+console.log(this.entity_submission);
 
-            let response = await this.axios.post(apiUrl + submission_json, {}, {
+            let response = await this.axios.post(apiUrl, {create_json: this.entity_submission}, {
                headers: {
                  'Authorization': 'Bearer ' + localStorage.getItem('token')
                }
