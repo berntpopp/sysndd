@@ -349,6 +349,7 @@ function(req, res) {
             publication_type == 2 ~ "gene_review"
           )) %>%
           unique() %>%
+          mutate(publication_id = str_replace_all(publication_id, "\\s", "")) %>%
           select(publication_id, publication_type) %>%
           arrange(publication_id)
 
@@ -962,7 +963,8 @@ function(req, res) {
           )) %>%
           unique() %>%
           select(publication_id, publication_type) %>%
-          arrange(publication_id)
+          arrange(publication_id) %>%
+          mutate(publication_id = str_replace_all(publication_id, "\\s", ""))
       } else {
         publications_received <- tibble::as_tibble_row(c(publication_id = NA,
           publication_type = NA))
@@ -1353,8 +1355,8 @@ function(req, res, review_json) {
           )) %>%
           unique() %>%
           select(publication_id, publication_type) %>%
-          arrange(publication_id)
-
+          arrange(publication_id) %>%
+          mutate(publication_id = str_replace_all(publication_id, "\\s", ""))
       } else {
         publications_received <- tibble::as_tibble_row(c(publication_id = NA,
           publication_type = NA))

@@ -805,8 +805,17 @@ export default {
         async submitReviewChange() {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/review/create';
 
-          // compose new literature as constants from inputs
-          const replace_literature = new this.Literature(this.select_additional_references, this.select_gene_reviews);
+          // define literature specific attributes as constants from inputs
+          // first clean the arrays
+          const select_additional_references_clean = this.select_additional_references.map(element => {
+            return element.replace(/\s+/g,'');
+          });
+
+          const select_gene_reviews_clean = this.select_gene_reviews.map(element => {
+            return element.replace(/\s+/g,'');
+          });
+
+          const replace_literature = new this.Literature(select_additional_references_clean, select_gene_reviews_clean);
 
           // compose phenotype specific attributes as constants from inputs
           const replace_phenotype = this.select_phenotype.map(item => {

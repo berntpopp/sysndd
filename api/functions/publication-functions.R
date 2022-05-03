@@ -179,8 +179,8 @@ return_tibble <- as_tibble(
         journal=journal[1],
         keywords=str_c(mesh, collapse="; "),
         year=year,
-        month=month,
-        day=day,
+        month=str_pad(month, 2, "left", pad="0"),
+        day=str_pad(day, 2, "left", pad="0"),
         lastname=lastname,
         firstname=firstname,
         address=str_c(address, collapse="; ")
