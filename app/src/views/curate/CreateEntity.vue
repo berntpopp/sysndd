@@ -26,7 +26,8 @@
               <validation-observer ref="observer" v-slot="{ handleSubmit }">
               <b-form ref="form" @submit.stop.prevent="handleSubmit(checkSubmission)">
 
-          <b-input-group-append>
+          <b-input-group-append
+              class="py-1">
             <b-button 
               size="sm"
               type="submit" 
@@ -37,6 +38,7 @@
             </b-button>
           </b-input-group-append>
 
+<hr class="mt-2 mb-3"/>
 
           <!-- Submission check modal -->
           <b-modal 
@@ -60,7 +62,7 @@
           <b-row>
             <!-- column 1 -->
             <b-col class="my-1">
-              <label class="mr-sm-2 font-weight-bold" for="gene-select">Gene</label>
+              <label class="mr-sm-2 mb-0 font-weight-bold" for="gene-select">Gene</label>
 
               <treeselect
                 id="gene-select" 
@@ -68,14 +70,18 @@
                 :async="true"
                 :load-options="loadGeneInfoTree"
                 v-model="gene_input"
+                :normalizer="normalizerGeneSearch"
                 required
               />
 
             </b-col>
 
+          </b-row>
+          <b-row>
+
             <!-- column 2 -->
             <b-col class="my-1">
-              <label class="mr-sm-2 font-weight-bold" for="ontology-select">Disease</label>
+              <label class="mr-sm-2 mb-0 font-weight-bold" for="ontology-select">Disease</label>
 
               <treeselect
                 id="ontology-select" 
@@ -89,9 +95,12 @@
 
             </b-col>
 
+          </b-row>
+          <b-row>
+
             <!-- column 3 -->
             <b-col class="my-1">
-              <label class="mr-sm-2 font-weight-bold" for="inheritance-select">Inheritance</label>
+              <label class="mr-sm-2 mb-0 font-weight-bold" for="inheritance-select">Inheritance</label>
 
               <treeselect
                 id="inheritance-select" 
@@ -104,9 +113,12 @@
 
             </b-col>
 
+          </b-row>
+          <b-row>
+
             <!-- column 4 -->
             <b-col class="my-1">
-              <label class="mr-sm-2 font-weight-bold" for="NDD-select">NDD</label>
+              <label class="mr-sm-2 mb-0 font-weight-bold" for="NDD-select">NDD</label>
               <b-form-select 
                 id="NDD-select" 
                 class="NDD-control"
@@ -120,7 +132,7 @@
 
             <!-- column 5 -->
             <b-col class="my-1">
-              <label class="mr-sm-2 font-weight-bold" for="status-select">Status</label>
+              <label class="mr-sm-2 mb-0 font-weight-bold" for="status-select">Status</label>
 
               <treeselect
                 id="status-select"
@@ -135,8 +147,10 @@
             </b-col>
           </b-row>
 
+<hr class="mt-2 mb-3"/>
+
           <!-- Sysnopsis input -->
-          <label class="mr-sm-2 font-weight-bold" for="textarea-synopsis">Synopsis</label>
+          <label class="mr-sm-2 mb-0 font-weight-bold" for="textarea-synopsis">Synopsis</label>
 
             <validation-provider
               name="validation-synopsis"
@@ -157,7 +171,7 @@
           <!-- Sysnopsis input -->
 
           <!-- Phenotype select -->
-          <label class="mr-sm-2 font-weight-bold" for="phenotype-select">Phenotypes</label>
+          <label class="mr-sm-2 mb-0 font-weight-bold" for="phenotype-select">Phenotypes</label>
 
             <treeselect 
               v-model="phenotypes_review" 
@@ -165,12 +179,11 @@
               :flat="true"
               :options="phenotypes_options"
               :normalizer="normalizePhenotypes"
-              required
             />
           <!-- Phenotype select -->
 
           <!-- Variation ontology select -->
-          <label class="mr-sm-2 font-weight-bold" for="phenotype-select">Variation ontology</label>
+          <label class="mr-sm-2 mb-0 font-weight-bold" for="phenotype-select">Variation ontology</label>
 
             <treeselect 
               v-model="variation_ontology_review" 
@@ -178,13 +191,13 @@
               :flat="true"
               :options="variation_ontology_options"
               :normalizer="normalizeVariationOntology"
-              required
             />
               
           <!-- Variation ontology select -->
+<hr class="mt-2 mb-3"/>
 
           <!-- Publication select -->
-            <label class="mr-sm-2 font-weight-bold" for="publications-select">Publications</label>
+            <label class="mr-sm-2 mb-0 font-weight-bold" for="publications-select">Publications</label>
 
               <!-- publications tag form with links out -->
               <b-form-tags
@@ -242,7 +255,7 @@
           <!-- Publication select -->
 
           <!-- Genereviews select -->
-            <label class="mr-sm-2 font-weight-bold" for="genereviews-select">GeneReviews</label>
+            <label class="mr-sm-2 mb-0 font-weight-bold" for="genereviews-select">GeneReviews</label>
             
               <!-- genereviews tag form with links out -->
               <b-form-tags 
@@ -299,8 +312,10 @@
               </b-form-tags>
           <!-- Genereviews select -->
 
+<hr class="mt-2 mb-3"/>
+
           <!-- Review comments -->
-          <label class="mr-sm-2 font-weight-bold" for="textarea-review">Comment</label>
+          <label class="mr-sm-2 mb-0 font-weight-bold" for="textarea-review">Comment</label>
           <b-form-textarea
             id="textarea-review"
             rows="2"
@@ -435,6 +450,12 @@ export default {
             }
         },
         normalizerOntologySearch(node) {
+          return {
+            id: node.id,
+            label: node.id + " (" + node.label + ")",
+          }
+        },
+        normalizerGeneSearch(node) {
           return {
             id: node.id,
             label: node.id + " (" + node.label + ")",
