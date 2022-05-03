@@ -3644,6 +3644,9 @@ function(searchterm, tree = FALSE) {
     do_set_search_return_helper <- do_set_search_return %>%
       select(id = disease_ontology_id_version,
         label = result,
+        disease_ontology_id_version,
+        disease_ontology_id,
+        disease_ontology_name,
         search,
         searchdist)
   } else {
@@ -3694,7 +3697,7 @@ function(searchterm, tree = FALSE) {
   # as arrays for the treeselect library
   if (tree) {
     nal_set_search_return_helper <- non_alt_loci_set_search_return %>%
-      select(id = hgnc_id, label = result, search, searchdist)
+      select(id = hgnc_id, label = result, symbol, name, search, searchdist)
   } else {
     nal_set_search_return_helper <- non_alt_loci_set_search_return %>%
       nest_by(result, .key = "values") %>%

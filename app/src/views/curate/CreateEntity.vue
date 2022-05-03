@@ -452,13 +452,13 @@ export default {
         normalizerOntologySearch(node) {
           return {
             id: node.id,
-            label: node.id + " (" + node.label + ")",
+            label: node.id + " (" + node.disease_ontology_name + ")",
           }
         },
         normalizerGeneSearch(node) {
           return {
             id: node.id,
-            label: node.id + " (" + node.label + ")",
+            label: node.id + " (" + node.symbol + "; " + node.name + ")",
           }
         },
         normalizeStatus(node) {
