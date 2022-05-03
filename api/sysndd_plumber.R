@@ -1017,8 +1017,8 @@ function(req, res) {
           response_publication_connections <- PutPostDatabasePubCon(
             req$REQUEST_METHOD,
             publications_received,
-            sysnopsis_received$entity_id,
-            response_review$entry)
+            as.integer(sysnopsis_received$entity_id),
+            as.integer(response_review$entry$review_id))
         } else {
           response_publication <- list(status=200, message="OK. Skipped.")
           response_publication_connections <- list(status=200, message="OK. Skipped.")
@@ -1029,8 +1029,8 @@ function(req, res) {
         response_phenotype_connections <- PutPostDatabasePhenCon(
           req$REQUEST_METHOD,
           phenotypes_received,
-          sysnopsis_received$entity_id,
-          response_review$entry)
+          as.integer(sysnopsis_received$entity_id),
+          as.integer(response_review$entry$review_id))
 
         # make the variation ontology to review connections
         # using the function "PutPostDatabaseVarOntCon"
@@ -1038,7 +1038,7 @@ function(req, res) {
           req$REQUEST_METHOD,
           variation_received,
           as.integer(sysnopsis_received$entity_id),
-          as.integer(response_review$entry))
+          as.integer(response_review$entry$review_id))
 
         # compute response
         response <- tibble::as_tibble(response_publication) %>%
@@ -1090,8 +1090,8 @@ function(req, res) {
         response_phenotype_connections <- PutPostDatabasePhenCon(
           req$REQUEST_METHOD,
           phenotypes_received,
-          sysnopsis_received$entity_id,
-          review_data$review_id)
+          as.integer(sysnopsis_received$entity_id),
+          as.integer(review_data$review_id))
 
         # make the variation ontology to review connections
         # using the function "PutPostDatabaseVarOntCon"

@@ -803,7 +803,7 @@ export default {
           }
         },
         async submitReviewChange() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/review/update';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/review/create';
 
           // compose new literature as constants from inputs
           const replace_literature = new this.Literature(this.select_additional_references, this.select_gene_reviews);
@@ -827,7 +827,7 @@ console.log(this.review_info);
 
           // perform update PUT request
           try {
-            let response = await this.axios.put(apiUrl, {review_json: this.review_info}, {
+            let response = await this.axios.post(apiUrl, {review_json: this.review_info}, {
                headers: {
                  'Authorization': 'Bearer ' + localStorage.getItem('token')
                }
