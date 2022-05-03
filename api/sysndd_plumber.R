@@ -1061,20 +1061,16 @@ function(req, res) {
         # review_data to the sysnopsis_received tibble
         sysnopsis_received$review_id <- review_data$review_id
 
+        # then use the "PutPostDatabaseReview" function to add the
+        # review to the database table and receive an review_id
+        response_review <- PutPostDatabaseReview(
+            req$REQUEST_METHOD,
+            sysnopsis_received)
+
         # only submit publications if not empty
         if (length(compact(review_data$literature)) > 0) {
           # use the "new_publication function" to update the publications table
           response_publication <- new_publication(publications_received)
-
-          # then use the "PutPostDatabaseReview" function to add the
-          # review to the database table and receive an review_id
-          response_review <- PutPostDatabaseReview(
-            req$REQUEST_METHOD,
-            sysnopsis_received)
-        } else {
-          response_publication <- list(status=200, message="OK. Skipped.")
-          response_publication_connections <- list(status=200, message="OK. Skipped.")
-        }
 
         # make the publictaion to review connections using
         # the function "PutPostDatabasePubCon"
@@ -1083,6 +1079,11 @@ function(req, res) {
           publications_received,
           sysnopsis_received$entity_id,
           review_data$review_id)
+
+        } else {
+          response_publication <- list(status=200, message="OK. Skipped.")
+          response_publication_connections <- list(status=200, message="OK. Skipped.")
+        }
 
         # make the phenotype to review connections using
         # the function "response_phenotype_connections"
