@@ -537,11 +537,12 @@ console.log(this.entity_submission);
              });
 
             this.makeToast('The new entity has been submitted ' + '(status ' + response.status + ' (' + response.statusText + ').', 'Success', 'success');
-            this.resetForm();
-            this.checking_entity = false;
 
           } catch (e) {
             this.makeToast(e, 'Error', 'danger');
+          } finally {
+            this.resetForm();
+            this.checking_entity = false;
           }
         },
         checkSubmission() {

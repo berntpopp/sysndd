@@ -3722,12 +3722,13 @@ function(searchterm, tree = FALSE) {
   mode_of_inheritance_list_search <- pool %>%
     tbl("search_mode_of_inheritance_list_view") %>%
     filter(result %like% paste0("%", searchterm, "%")) %>%
+    filter(result %like% paste0("%", searchterm, "%")) %>%
     collect() %>%
     mutate(searchdist = stringdist(str_to_lower(result),
       str_to_lower(searchterm),
       method="jw",
       p=0.1)) %>%
-    arrange(searchdist, result)
+    arrange(searchdist, sort)
 
   # compute filtered length with match < 0.1
   moi_list_search_length <- mode_of_inheritance_list_search %>%
@@ -3863,6 +3864,7 @@ function(tree = FALSE) {
 
     variation_ontology_list_coll <- pool %>%
       tbl("variation_ontology_list") %>%
+      filter(is_active) %>%
       select(vario_id, vario_name, definition) %>%
       arrange(vario_id) %>%
       collect() %>%
