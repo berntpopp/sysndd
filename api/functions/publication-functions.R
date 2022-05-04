@@ -106,10 +106,19 @@ doi2 <- pmid_xml %>%
   xml_find_all("//ArticleId[@EIdType='doi']") %>%
   xml_text()
 
+doi3 <- pmid_xml %>%
+  xml_find_all("//ArticleId[@IdType='doi']") %>%
+  xml_text()
+
 if (length(doi) == 0 & length(doi2) != 0) {
     doi <- doi2
 } else if (length(doi) == 0 &
-  length(doi2) == 0) {
+  length(doi2) == 0 &
+  length(doi3) != 0) {
+    doi <- doi3
+} else if (length(doi) == 0 &
+  length(doi2) == 0 &
+  length(doi3) == 0) {
     doi <- ""
 }
 
