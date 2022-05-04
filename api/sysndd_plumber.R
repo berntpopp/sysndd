@@ -311,7 +311,7 @@ function(res,
 
 #* @tag entity
 #* creates a new entity
-## example data: create_json <- '{"entity": {"hgnc_id":"HGNC:21396", "disease_ontology_id_version":"OMIM:210600", "hpo_mode_of_inheritance_term":"HP:0000007", "ndd_phenotype":"1"}, "review": {"synopsis": "activating, gain-of-function mutations: congenital hypertrichosis, neonatal macrosomia, distinct osteochondrodysplasia, cardiomegaly; activating mutations", "literature": {"additional_references": ["PMID:22608503", "PMID:22610116"], "gene_review": ["PMID:25275207"]}, "phenotypes": [ {"phenotype_id": "HP:0000256", "modifier_id": 1}, {"phenotype_id": "HP:0000924", "modifier_id": 1}, {"phenotype_id": "HP:0001256", "modifier_id": 1}, {"phenotype_id": "HP:0001574", "modifier_id": 1}, {"phenotype_id": "HP:0001627", "modifier_id": 1}, {"phenotype_id": "HP:0002342", "modifier_id": 1} ], "variation_ontology": [ {"vario_id": "VariO:0001", "modifier_id": 1} ], "comment": ""}, "status": {"category_id":1, "comment":"fsa", "problematic": true}}'
+## example data: create_json <- '{"entity": {"hgnc_id":"HGNC:21396", "disease_ontology_id_version":"OMIM:210600","hpo_mode_of_inheritance_term":"HP:0000007", "ndd_phenotype":"1"}, "review": {"synopsis": "activating, gain-of-function mutations: congenital hypertrichosis, neonatal macrosomia, distinct osteochondrodysplasia, cardiomegaly; activating mutations", "literature": {"additional_references": ["PMID:22608503", "PMID:22610116"], "gene_review": ["PMID:25275207"]}, "phenotypes": [ {"phenotype_id": "HP:0000256", "modifier_id": 1}, {"phenotype_id": "HP:0000924", "modifier_id": 1}, {"phenotype_id": "HP:0001256", "modifier_id": 1}, {"phenotype_id": "HP:0001574", "modifier_id": 1}, {"phenotype_id": "HP:0001627", "modifier_id": 1}, {"phenotype_id": "HP:0002342", "modifier_id": 1} ], "variation_ontology": [ {"vario_id": "VariO:0001", "modifier_id": 1} ], "comment": ""}, "status": {"category_id":1, "comment":"fsa", "problematic": true}}'
 #* @serializer json list(na="string")
 #' @post /api/entity/create
 function(req, res) {
@@ -351,13 +351,18 @@ function(req, res) {
           unique() %>%
           select(publication_id, publication_type) %>%
           arrange(publication_id) %>%
-          mutate(publication_id = str_replace_all(publication_id, "\\s", "")) %>%
+          mutate(publication_id = str_replace_all(publication_id,
+            "\\s",
+            "")) %>%
           rowwise() %>%
-          mutate(gr_check = genereviews_from_pmid(publication_id, check = TRUE)) %>%
+          mutate(gr_check = genereviews_from_pmid(publication_id,
+            check = TRUE)) %>%
           ungroup() %>%
           mutate(publication_type = case_when(
-            publication_type == "additional_references" & gr_check ~ "gene_review",
-            publication_type == "gene_review" & !gr_check ~ "additional_references",
+            publication_type == "additional_references" & gr_check ~
+              "gene_review",
+            publication_type == "gene_review" & !gr_check ~
+              "additional_references",
             TRUE ~ publication_type
           )) %>%
           select(-gr_check)
@@ -397,7 +402,7 @@ function(req, res) {
 
       ##-------------------------------------------------------------------##
       # use the "PutPostDatabaseReview" function to add
-      # the review to the database table and receive an review_id
+      # the review to the database table and receive a review_id
       response_review <- PutPostDatabaseReview(
         "POST",
         sysnopsis_received)
@@ -415,25 +420,39 @@ function(req, res) {
           as.integer(sysnopsis_received$entity_id),
           as.integer(response_review$entry$review_id))
       } else {
-        response_publication <- list(status=200, message="OK. Skipped.")
-        response_publication_connections <- list(status=200, message="OK. Skipped.")
+        response_publication <- list(status=200,
+          message="OK. Skipped.")
+        response_publication_connections <- list(status=200,
+          message="OK. Skipped.")
       }
 
-      # make the phenotype to review connections
-      # using the function "response_phenotype_connections"
-      response_phenotype_connections <- PutPostDatabasePhenCon(
-        "POST",
-        phenotypes_received,
-        as.integer(sysnopsis_received$entity_id),
-        as.integer(response_review$entry$review_id))
+      # only submit phenotype connections if not empty
+      if (length(compact(create_data$review$phenotypes)) > 0) {
+        # make the phenotype to review connections
+        # using the function "response_phenotype_connections"
+        response_phenotype_connections <- PutPostDatabasePhenCon(
+          "POST",
+          phenotypes_received,
+          as.integer(sysnopsis_received$entity_id),
+          as.integer(response_review$entry$review_id))
+      } else {
+        response_phenotype_connections <- list(status=200,
+          message="OK. Skipped.")
+      }
 
-      # make the variation ontology to review connections
-      # using the function "PutPostDatabaseVarOntCon"
-      response_variation_ontology_conn <- PutPostDatabaseVarOntCon(
-        "POST",
-        variation_ontology_received,
-        as.integer(sysnopsis_received$entity_id),
-        as.integer(response_review$entry$review_id))
+      # only submit variation ontology connections if not empty
+      if (length(compact(create_data$review$variation_ontology)) > 0) {
+        # make the variation ontology to review connections
+        # using the function "PutPostDatabaseVarOntCon"
+        response_variation_ontology_conn <- PutPostDatabaseVarOntCon(
+          "POST",
+          variation_ontology_received,
+          as.integer(sysnopsis_received$entity_id),
+          as.integer(response_review$entry$review_id))
+      } else {
+        response_variation_ontology_conn <- list(status=200,
+          message="OK. Skipped.")
+      }
 
       # compute aggregated review response
       response_review_post <- tibble::as_tibble(response_publication) %>%
@@ -607,29 +626,47 @@ function(req, res) {
           "POST",
           ndd_entity_review_replaced)
 
-        # make the publictaion to review connections
-        # using the function "PutPostDatabasePubCon"
-        response_publication_connections <- PutPostDatabasePubCon(
-          "POST",
-          ndd_review_publication_join_original,
-          as.integer(response_new_entity$entry$entity_id),
-          as.integer(response_review$entry$review_id))
+        # only submit publication connections if not empty
+        if (length(compact(ndd_review_publication_join_original)) > 0) {
+          # make the publictaion to review connections
+          # using the function "PutPostDatabasePubCon"
+          response_publication_connections <- PutPostDatabasePubCon(
+            "POST",
+            ndd_review_publication_join_original,
+            as.integer(response_new_entity$entry$entity_id),
+            as.integer(response_review$entry$review_id))
+        } else {
+          response_publication_connections <- list(status=200,
+            message="OK. Skipped.")
+        }
 
-        # make the phenotype to review connections
-        # using the function "response_phenotype_connections"
-        response_phenotype_connections <- PutPostDatabasePhenCon(
-          "POST",
-          ndd_review_phenotype_connect_original,
-          as.integer(response_new_entity$entry$entity_id),
-          as.integer(response_review$entry$review_id))
+        # only submit phenotype connections if not empty
+        if (length(compact(ndd_review_phenotype_connect_original)) > 0) {
+          # make the phenotype to review connections
+          # using the function "response_phenotype_connections"
+          response_phenotype_connections <- PutPostDatabasePhenCon(
+            "POST",
+            ndd_review_phenotype_connect_original,
+            as.integer(response_new_entity$entry$entity_id),
+            as.integer(response_review$entry$review_id))
+        } else {
+          response_phenotype_connections <- list(status=200,
+            message="OK. Skipped.")
+        }
 
-        # make the variation ontology to review connections
-        # using the function "PutPostDatabaseVarOntCon"
-        response_variation_ontology_conn <- PutPostDatabaseVarOntCon(
-          "POST",
-          ndd_review_variation_ontology_connect_original,
-          as.integer(response_new_entity$entry$entity_id),
-          as.integer(response_review$entry$review_id))
+        # only submit variation ontology connections if not empty
+        if (length(compact(ndd_review_variation_ontology_connect_original)) > 0) {
+          # make the variation ontology to review connections
+          # using the function "PutPostDatabaseVarOntCon"
+          response_variation_ontology_conn <- PutPostDatabaseVarOntCon(
+            "POST",
+            ndd_review_variation_ontology_connect_original,
+            as.integer(response_new_entity$entry$entity_id),
+            as.integer(response_review$entry$review_id))
+        } else {
+          response_variation_ontology_conn <- list(status=200,
+            message="OK. Skipped.")
+        }
 
         # compute aggregated review response
         response_review_post <- tibble::as_tibble(response_review) %>%
@@ -973,13 +1010,17 @@ function(req, res) {
           unique() %>%
           select(publication_id, publication_type) %>%
           arrange(publication_id) %>%
-          mutate(publication_id = str_replace_all(publication_id, "\\s", "")) %>%
+          mutate(publication_id = str_replace_all(publication_id,
+            "\\s",
+            "")) %>%
           rowwise() %>%
           mutate(gr_check = genereviews_from_pmid(publication_id, check = TRUE)) %>%
           ungroup() %>%
           mutate(publication_type = case_when(
-            publication_type == "additional_references" & gr_check ~ "gene_review",
-            publication_type == "gene_review" & !gr_check ~ "additional_references",
+            publication_type == "additional_references" & gr_check ~
+              "gene_review",
+            publication_type == "gene_review" & !gr_check ~
+              "additional_references",
             TRUE ~ publication_type
           )) %>%
           select(-gr_check)
@@ -1041,24 +1082,37 @@ function(req, res) {
             as.integer(response_review$entry$review_id))
         } else {
           response_publication <- list(status=200, message="OK. Skipped.")
-          response_publication_connections <- list(status=200, message="OK. Skipped.")
+          response_publication_connections <- list(status=200,
+            message="OK. Skipped.")
         }
 
-        # make the phenotype to review connections using the
-        # function "response_phenotype_connections"
-        response_phenotype_connections <- PutPostDatabasePhenCon(
-          req$REQUEST_METHOD,
-          phenotypes_received,
-          as.integer(sysnopsis_received$entity_id),
-          as.integer(response_review$entry$review_id))
+        # only submit phenotype connections if not empty
+        if (length(compact(phenotypes_received)) > 0) {
+          # make the phenotype to review connections using the
+          # function "response_phenotype_connections"
+          response_phenotype_connections <- PutPostDatabasePhenCon(
+            req$REQUEST_METHOD,
+            phenotypes_received,
+            as.integer(sysnopsis_received$entity_id),
+            as.integer(response_review$entry$review_id))
+        } else {
+          response_phenotype_connections <- list(status=200,
+            message="OK. Skipped.")
+        }
 
-        # make the variation ontology to review connections
-        # using the function "PutPostDatabaseVarOntCon"
-        response_variation_ontology_conn <- PutPostDatabaseVarOntCon(
-          req$REQUEST_METHOD,
-          variation_received,
-          as.integer(sysnopsis_received$entity_id),
-          as.integer(response_review$entry$review_id))
+        # only submit variation ontology connections if not empty
+        if (length(compact(variation_received)) > 0) {
+          # make the variation ontology to review connections
+          # using the function "PutPostDatabaseVarOntCon"
+          response_variation_ontology_conn <- PutPostDatabaseVarOntCon(
+            req$REQUEST_METHOD,
+            variation_received,
+            as.integer(sysnopsis_received$entity_id),
+            as.integer(response_review$entry$review_id))
+        } else {
+          response_variation_ontology_conn <- list(status=200,
+            message="OK. Skipped.")
+        }
 
         # compute response
         response <- tibble::as_tibble(response_publication) %>%
@@ -1105,21 +1159,33 @@ function(req, res) {
           response_publication_connections <- list(status=200, message="OK. Skipped.")
         }
 
-        # make the phenotype to review connections using
-        # the function "response_phenotype_connections"
-        response_phenotype_connections <- PutPostDatabasePhenCon(
-          req$REQUEST_METHOD,
-          phenotypes_received,
-          as.integer(sysnopsis_received$entity_id),
-          as.integer(review_data$review_id))
+        # only submit phenotype connections if not empty
+        if (length(compact(phenotypes_received)) > 0) {
+          # make the phenotype to review connections using
+          # the function "response_phenotype_connections"
+          response_phenotype_connections <- PutPostDatabasePhenCon(
+            req$REQUEST_METHOD,
+            phenotypes_received,
+            as.integer(sysnopsis_received$entity_id),
+            as.integer(review_data$review_id))
+        } else {
+          response_phenotype_connections <- list(status=200,
+            message="OK. Skipped.")
+        }
 
-        # make the variation ontology to review connections
-        # using the function "PutPostDatabaseVarOntCon"
-        response_variation_ontology_conn <- PutPostDatabaseVarOntCon(
-          req$REQUEST_METHOD,
-          variation_received,
-          as.integer(sysnopsis_received$entity_id),
-          as.integer(review_data$review_id))
+        # only submit variation ontology connections if not empty
+        if (length(compact(variation_received)) > 0) {
+          # make the variation ontology to review connections
+          # using the function "PutPostDatabaseVarOntCon"
+          response_variation_ontology_conn <- PutPostDatabaseVarOntCon(
+            req$REQUEST_METHOD,
+            variation_received,
+            as.integer(sysnopsis_received$entity_id),
+            as.integer(review_data$review_id))
+        } else {
+          response_variation_ontology_conn <- list(status=200,
+            message="OK. Skipped.")
+        }
 
         # compute response
         response <- tibble::as_tibble(response_publication) %>%

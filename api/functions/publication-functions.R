@@ -106,7 +106,7 @@ doi2 <- pmid_xml %>%
   xml_find_all("//ArticleId[@EIdType='doi']") %>%
   xml_text()
 
-if(length(doi) == 0 & length(doi2) != 0) {
+if (length(doi) == 0 & length(doi2) != 0) {
     doi <- doi2
 } else if (length(doi) == 0 &
   length(doi2) == 0) {
@@ -158,7 +158,7 @@ collective <- pmid_xml %>%
   xml_find_all("//AuthorList/Author[1]/CollectiveName") %>%
   xml_text()
 
-if((length(firstname) == 0 |
+if ((length(firstname) == 0 |
   length(firstname) == 0) &
   length(collective) != 0) {
     lastname <- collective
@@ -248,10 +248,13 @@ info_from_genereviews_pmid <- function(pmid_input) {
 }
 
 
+## to do: find a faster implementation of the check
 genereviews_from_pmid <- function(pmid_input, check = FALSE) {
   pmid_input <- str_replace_all(pmid_input, "PMID:", "")
 
-  url <- paste0("https://www.ncbi.nlm.nih.gov/books/NBK1116/?term=", pmid_input, "[PMID]")
+  url <- paste0("https://www.ncbi.nlm.nih.gov/books/NBK1116/?term=",
+    pmid_input,
+    "[PMID]")
   url_request <- url(url, "rb")
 
   webpage_request <- xml2::read_html(url_request, options = c("RECOVER"))
@@ -268,7 +271,7 @@ genereviews_from_pmid <- function(pmid_input, check = FALSE) {
   Bookshelf_ID_tibble <- as_tibble(Bookshelf_ID)
   Bookshelf_IDs <- str_c(Bookshelf_ID_tibble$value, collapse = ",")
 
-  if(!check) {
+  if (!check) {
     return(Bookshelf_IDs)
   } else {
     return(as.logical(nchar(Bookshelf_IDs)))
