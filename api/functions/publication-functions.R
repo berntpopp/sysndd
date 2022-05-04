@@ -129,9 +129,13 @@ journal <- pmid_xml %>%
   xml_find_all("//Title") %>%
   xml_text()
 
-# for older articles use keywords
+# get both keyword and mesh terms, later merge
 mesh <- pmid_xml %>%
   xml_find_all("//DescriptorName") %>%
+  xml_text()
+
+keyword <- pmid_xml %>%
+  xml_find_all("//Keyword") %>%
   xml_text()
 
 year <- pmid_xml %>%
@@ -177,7 +181,7 @@ return_tibble <- as_tibble(
         abstract=str_c(abstract, collapse=" "),
         jabbrv=jabbrv,
         journal=journal[1],
-        keywords=str_c(mesh, collapse="; "),
+        keywords=str_c(unique(str_squish(c(mesh, keyword))), collapse="; "),
         year=year,
         month=str_pad(month, 2, "left", pad="0"),
         day=str_pad(day, 2, "left", pad="0"),
