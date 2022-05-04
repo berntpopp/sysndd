@@ -371,7 +371,7 @@ export default {
         review_comment: "",
         status_options: [],
         status_selected: null,
-        NDD_options: {"No": [{"boolean_id": 0, "logical": "FALSE"}], "Yes": [{"boolean_id": 1, "logical": "TRUE"}]},
+        NDD_options: {"Yes": [{"boolean_id": 1, "logical": "TRUE"}], "No": [{"boolean_id": 0, "logical": "FALSE"}]},
         NDD_selected: null,
         checking_entity: false,
       };
