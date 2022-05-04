@@ -248,8 +248,10 @@ info_from_genereviews_pmid <- function(pmid_input) {
 }
 
 
-genereviews_from_pmid <- function(pmid_input) {
-  url <- paste0("https://www.ncbi.nlm.nih.gov/books/NBK1116/?term=", pmid_input)
+genereviews_from_pmid <- function(pmid_input, check = FALSE) {
+  pmid_input <- str_replace_all(pmid_input, "PMID:", "")
+
+  url <- paste0("https://www.ncbi.nlm.nih.gov/books/NBK1116/?term=", pmid_input, "[PMID]")
   url_request <- url(url, "rb")
 
   webpage_request <- xml2::read_html(url_request, options = c("RECOVER"))
@@ -266,7 +268,12 @@ genereviews_from_pmid <- function(pmid_input) {
   Bookshelf_ID_tibble <- as_tibble(Bookshelf_ID)
   Bookshelf_IDs <- str_c(Bookshelf_ID_tibble$value, collapse = ",")
 
-  return(Bookshelf_IDs)
+  if(!check) {
+    return(Bookshelf_IDs)
+  } else {
+    return(as.logical(nchar(Bookshelf_IDs)))
+  }
+
 }
 
 

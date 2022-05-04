@@ -349,9 +349,18 @@ function(req, res) {
             publication_type == 2 ~ "gene_review"
           )) %>%
           unique() %>%
-          mutate(publication_id = str_replace_all(publication_id, "\\s", "")) %>%
           select(publication_id, publication_type) %>%
-          arrange(publication_id)
+          arrange(publication_id) %>%
+          mutate(publication_id = str_replace_all(publication_id, "\\s", "")) %>%
+          rowwise() %>%
+          mutate(gr_check = genereviews_from_pmid(publication_id, check = TRUE)) %>%
+          ungroup() %>%
+          mutate(publication_type = case_when(
+            publication_type == "additional_references" & gr_check ~ "gene_review",
+            publication_type == "gene_review" & !gr_check ~ "additional_references",
+            TRUE ~ publication_type
+          )) %>%
+          select(-gr_check)
 
       } else {
         publications_received <- tibble::as_tibble_row(c(publication_id = NA,
@@ -964,7 +973,16 @@ function(req, res) {
           unique() %>%
           select(publication_id, publication_type) %>%
           arrange(publication_id) %>%
-          mutate(publication_id = str_replace_all(publication_id, "\\s", ""))
+          mutate(publication_id = str_replace_all(publication_id, "\\s", "")) %>%
+          rowwise() %>%
+          mutate(gr_check = genereviews_from_pmid(publication_id, check = TRUE)) %>%
+          ungroup() %>%
+          mutate(publication_type = case_when(
+            publication_type == "additional_references" & gr_check ~ "gene_review",
+            publication_type == "gene_review" & !gr_check ~ "additional_references",
+            TRUE ~ publication_type
+          )) %>%
+          select(-gr_check)
       } else {
         publications_received <- tibble::as_tibble_row(c(publication_id = NA,
           publication_type = NA))
@@ -1356,7 +1374,16 @@ function(req, res, review_json) {
           unique() %>%
           select(publication_id, publication_type) %>%
           arrange(publication_id) %>%
-          mutate(publication_id = str_replace_all(publication_id, "\\s", ""))
+          mutate(publication_id = str_replace_all(publication_id, "\\s", "")) %>%
+          rowwise() %>%
+          mutate(gr_check = genereviews_from_pmid(publication_id, check = TRUE)) %>%
+          ungroup() %>%
+          mutate(publication_type = case_when(
+            publication_type == "additional_references" & gr_check ~ "gene_review",
+            publication_type == "gene_review" & !gr_check ~ "additional_references",
+            TRUE ~ publication_type
+          )) %>%
+          select(-gr_check)
       } else {
         publications_received <- tibble::as_tibble_row(c(publication_id = NA,
           publication_type = NA))
