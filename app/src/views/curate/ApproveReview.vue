@@ -20,6 +20,22 @@
             </template>
           <!-- User Interface controls -->
 
+          <!-- button for approve all -->
+          <b-form ref="form" @submit.stop.prevent="checkAllApprove">
+            <b-input-group-append
+                class="p-1">
+              <b-button 
+                size="sm"
+                type="submit" 
+                variant="dark"
+              >
+                <b-icon icon="check2-circle" class="mx-1"></b-icon>
+                Approve all reviews
+              </b-button>
+            </b-input-group-append>
+          </b-form>
+          <!-- button for approve all -->
+
           <!-- Main table -->
           <b-spinner label="Loading..." v-if="loadingReviewApprove" class="float-center m-5"></b-spinner>
           <b-table
@@ -161,6 +177,36 @@
       </b-modal>
       <!-- Approve modal -->
 
+
+      <!-- Check approve all modal -->
+      <b-modal 
+      id="approveAllModal" 
+      ref="approveAllModal" 
+      size="lg" 
+      centered 
+      ok-title="Submit" 
+      no-close-on-esc 
+      no-close-on-backdrop 
+      header-bg-variant="dark" 
+      header-text-variant="light"
+      title="Approve all reviews" 
+      @ok="handleAllReviewsOk"
+      >
+        <p class="my-4">Are you sure you want to <span class="font-weight-bold">approve ALL</span> reviews below?</p>
+        <div class="custom-control custom-switch">
+          <input 
+            type="checkbox" 
+            button-variant="info"
+            class="custom-control-input" 
+            id="removeSwitch"
+            v-model="approve_all_selected"
+          >
+          <label class="custom-control-label" for="removeSwitch"><b>{{ switch_approve_text[approve_all_selected] }}</b></label>
+        </div>
+      </b-modal>
+      <!-- Check approve all modal -->
+
+
     </b-container>
   </div>
 </template>
@@ -196,6 +242,8 @@ export default {
           title: '',
           content: []
         },
+        approve_all_selected: false,
+        switch_approve_text: {true: "Yes", false: "No"},
       };
     },
     mounted() {
@@ -248,6 +296,29 @@ export default {
           } catch (e) {
             this.makeToast(e, 'Error', 'danger');
           }
+        },
+        async handleAllReviewsOk() {
+          if(this.approve_all_selected) {
+            this.items_ReviewTable.forEach((x, i) => {
+                  let apiUrl = process.env.VUE_APP_API_URL + '/api/review/approve/' + x.review_id + '?review_ok=true';
+                  try {
+                    let response = this.axios.put(apiUrl, {}, {
+                      headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('token')
+                      }
+                    });
+
+                  this.loadReviewTableData();
+
+                  } catch (e) {
+                    this.makeToast(e, 'Error', 'danger');
+                  }
+              }
+            );
+          }
+        },
+        checkAllApprove() {
+          this.$refs['approveAllModal'].show();
         },
     }
     };
