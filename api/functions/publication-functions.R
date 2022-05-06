@@ -352,7 +352,7 @@ info_from_genereviews <- function(Bookshelf_ID) {
 
   return_tibble <- as_tibble_row(c("publication_id" = pmid,
       "Bookshelf_ID" = Bookshelf_ID,
-      "Title" = title, "Abstract" = abstract,
+      "Title" = title[1], "Abstract" = abstract,
       "Date" = date_revision,
       "First_author" = first_author,
       "Keywords" = keywords)) %>%
