@@ -178,6 +178,14 @@ if ((length(firstname) == 0 |
     firstname <- collective
 }
 
+if (length(year) == 0 |
+  length(month) == 0 |
+  length(day) == 0)  {
+    year <- format(Sys.time(), "%Y")
+    month <- format(Sys.time(), "%m")
+    day <- format(Sys.time(), "%d")
+}
+
 address <- pmid_xml %>%
   xml_find_all("//AuthorList/Author[1]/AffiliationInfo") %>%
   xml_text()
