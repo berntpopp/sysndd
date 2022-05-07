@@ -366,12 +366,16 @@ export default {
       let response_entities_by_ontology = await this.axios.get(apiEntitiesByOntologyURL);
       let response_entities_by_name = await this.axios.get(apiEntitiesByNameURL);
 
-      if (response_ontology.data == 0) {
-        this.ontology = response_name.data;
-        this.entities_data = response_entities_by_name.data;
+      if (response_ontology.data == 0 && response_name.data) {
+          this.$router.push('/PageNotFound');
       } else {
-        this.ontology = response_ontology.data;
-        this.entities_data = response_entities_by_ontology.data;
+        if (response_ontology.data == 0) {
+          this.ontology = response_name.data;
+          this.entities_data = response_entities_by_name.data;
+        } else {
+          this.ontology = response_ontology.data;
+          this.entities_data = response_entities_by_ontology.data;
+        }
       }
 
       } catch (e) {

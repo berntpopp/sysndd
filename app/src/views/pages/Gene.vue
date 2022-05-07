@@ -325,10 +325,10 @@ export default {
       }
   }, 
   mounted() {
-    this.loadEntityInfo();
+    this.loadGeneInfo();
     },
   methods: {
-  async loadEntityInfo() {
+  async loadGeneInfo() {
     this.loading = true;
     let apiGeneURL = process.env.VUE_APP_API_URL + '/api/gene/' + this.$route.params.gene_id;
     let apiGeneSymbolURL = process.env.VUE_APP_API_URL + '/api/gene/symbol/' + this.$route.params.gene_id;
@@ -341,12 +341,16 @@ export default {
       let response_entities_by_gene = await this.axios.get(apiEntitiesByGeneURL);
       let response_entities_by_symbol = await this.axios.get(apiEntitiesByGeneSymbolURL);
 
-      if (response_gene.data.length == 0) {
-        this.gene = response_symbol.data;
-        this.entities_data = response_entities_by_symbol.data;
+      if (response_gene.data.length == 0 && response_symbol.data.length == 0) {
+          this.$router.push('/PageNotFound');
       } else {
-        this.gene = response_gene.data;
-        this.entities_data = response_entities_by_gene.data;
+        if (response_gene.data.length == 0) {
+          this.gene = response_symbol.data;
+          this.entities_data = response_entities_by_symbol.data;
+        } else {
+          this.gene = response_gene.data;
+          this.entities_data = response_entities_by_gene.data;
+        }
       }
 
       } catch (e) {

@@ -259,23 +259,41 @@ export default {
       }
   }, 
   mounted() {
-    this.loadEntityInfo();
+    this.loadEntity();
     },
   methods: {
-  async loadEntityInfo() {
+
+  async loadEntity() {
     this.loading = true;
+
     let apiEntityURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.$route.params.sysndd_id;
+
+    try {
+      let response_entity = await this.axios.get(apiEntityURL);
+      this.entity = response_entity.data;
+
+        if (this.entity.length === 0) {
+          this.$router.push('/PageNotFound');
+        } else {
+          this.loadEntityInfo();
+        }
+
+      } catch (e) {
+       this.makeToast(e, 'Error', 'danger');
+      }
+  },
+  async loadEntityInfo() {
     let apiStatusURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.$route.params.sysndd_id + '/status';
     let apiReviewURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.$route.params.sysndd_id + '/review';
     let apiPublicationsURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.$route.params.sysndd_id + '/publications';
     let apiPhenotypesURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.$route.params.sysndd_id + '/phenotypes';
+
     try {
-      let response_entity = await this.axios.get(apiEntityURL);
       let response_status = await this.axios.get(apiStatusURL);
       let response_review = await this.axios.get(apiReviewURL);
       let response_publications = await this.axios.get(apiPublicationsURL);
       let response_phenotypes = await this.axios.get(apiPhenotypesURL);
-      this.entity = response_entity.data;
+
       this.status = response_status.data;
       this.review = response_review.data;
       this.publications = response_publications.data;
@@ -283,8 +301,10 @@ export default {
       } catch (e) {
        this.makeToast(e, 'Error', 'danger');
       }
+
     this.loading = false;
-    } 
+
+    }
   }
 }
 </script>
