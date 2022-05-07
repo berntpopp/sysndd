@@ -299,7 +299,7 @@ export default {
       }
   }, 
   mounted() {
-
+      this.warnCookiesAndUsage();
     },
   created() {
     // watch the params of the route to fetch the data again
@@ -315,6 +315,18 @@ export default {
     )
   },
   methods: {
+  warnCookiesAndUsage() {
+    const usage_policy = "The information on this website is not intended for direct diagnostic use or medical decision-making without review by a genetics professional." +
+        "Individuals should not change their health behavior on the basis of information contained on this website. SysNDD does not independently verify the information gathered from external sources. " +
+        "If you have questions about specific gene-disease claims, please contact the respective primary sources. If you have questions about the representation of the data on this website, please contact support [at] sysndd.org."
+
+    const cookies_warning = "The SysNDD website does not use cookies and tries to be completely stateless for regular users. " +
+        "Our parent domain unibe.ch uses cookies which we do not control (see their legal notice)." +
+        " Server side programs keep error logs to improve SysNDD. These are deleted regularly."
+
+    this.makeToast(usage_policy, 'Usage policy', 'danger', 'b-toaster-bottom-full', true);
+    this.makeToast(cookies_warning, 'Data privacy', 'info', 'b-toaster-bottom-full', true);
+  },
   async loadStatistics() {
     this.loading_statistics = true;
 

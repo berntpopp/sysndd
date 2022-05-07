@@ -114,6 +114,7 @@
                 <b-collapse id="accordion-4" accordion="my-accordion" role="tabpanel">
                   <b-card-body>
                     <b-container fluid="sm" class="text-left py-2">
+                      <b-card-text class="text-left"><span class="font-weight-bold">2022-05-07:</span> First SysNDD native data update. depricating SysID. SysNDD now in usable beta mode.</b-card-text>
                       <b-card-text class="text-left"><span class="font-weight-bold">2021-11-09:</span> Several updates to the APP, API and DB preparing it for re-review mode.</b-card-text>
                       <b-card-text class="text-left"><span class="font-weight-bold">2021-08-16:</span> SysNDD is currently in alpha development status and changes. We currently recommend using the stable <b-link href="https://www.sysid.dbmr.unibe.ch/" target="_blank">SysID database</b-link> for your work until a more stable beta status is reached.</b-card-text>
                     </b-container>
