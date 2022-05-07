@@ -1,12 +1,13 @@
 // assets/js/mixins/toastMixin.js
 export default {
       methods: {
-      makeToast(event, title = null, variant = null) {
+      makeToast(event, title = null, variant = null, toaster = 'b-toaster-top-right', hide = false) {
             this.$bvToast.toast('' + event, {
                   title: title,
-                  toaster: 'b-toaster-top-right',
+                  toaster: toaster,
                   variant: variant,
-                  solid: true
+                  solid: true,
+                  noAutoHide: hide
             })
       }
     },
