@@ -831,11 +831,18 @@ function(sysndd_id) {
     tbl("ndd_review_phenotype_connect") %>%
     filter(is_active == 1) %>%
     collect()
+
   phenotype_list_collected <- pool %>%
     tbl("phenotype_list") %>%
     collect()
 
-  phenotype_list <- ndd_review_phenotype_conn_coll %>%
+  ndd_entity_active <- pool %>%
+    tbl("ndd_entity_view") %>%
+    select(entity_id) %>%
+    collect()
+
+  phenotype_list <- ndd_entity_active %>%
+    left_join(ndd_review_phenotype_conn_coll, by = c("entity_id")) %>%
     filter(entity_id == sysndd_id) %>%
     inner_join(phenotype_list_collected, by=c("phenotype_id")) %>%
     select(entity_id, phenotype_id, HPO_term, modifier_id) %>%
@@ -931,11 +938,14 @@ function(sysndd_id) {
     tbl("ndd_review_publication_join") %>%
     filter(is_reviewed == 1) %>%
     collect()
-  publication_collected <- pool %>%
-    tbl("publication") %>%
+
+  ndd_entity_active <- pool %>%
+    tbl("ndd_entity_view") %>%
+    select(entity_id) %>%
     collect()
 
-  ndd_entity_publication_list <- ndd_review_publication_join_coll %>%
+  ndd_entity_publication_list <- ndd_entity_active %>%
+    left_join( ndd_review_publication_join_coll, by = c("entity_id")) %>%
     filter(entity_id == sysndd_id) %>%
     select(entity_id, publication_id, publication_type, is_reviewed) %>%
     arrange(publication_id) %>%
