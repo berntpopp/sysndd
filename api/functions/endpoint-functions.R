@@ -25,12 +25,12 @@ generate_comparisons_list <- function(sort = "symbol",
     select(hgnc_id, symbol)
 
   ndd_database_comparison_table  <- ndd_database_comparison_view %>%
-    left_join(sysndd_db_non_alt_loci_set, by =c("hgnc_id")) %>%
+    left_join(sysndd_db_non_alt_loci_set, by = c("hgnc_id")) %>%
     collect() %>%
     select(symbol, hgnc_id, list) %>%
     unique() %>%
     mutate(in_list = "yes") %>%
-    pivot_wider(names_from = list, values_from = in_list, values_fill="no")
+    pivot_wider(names_from = list, values_from = in_list, values_fill = "no")
 
   # arrange and apply filters according to input
   ndd_database_comparison_table <- ndd_database_comparison_table %>%
@@ -44,9 +44,9 @@ generate_comparisons_list <- function(sort = "symbol",
     fields,
     "symbol")
 
-  # use the helper generate_cursor_pagination_info
+  # use the helper generate_cursor_pag_inf
   # to generate cursor pagination information from a tibble
-  ndd_database_comp_table_info <- generate_cursor_pagination_info(
+  ndd_database_comp_table_info <- generate_cursor_pag_inf(
     ndd_database_comparison_table,
     `page[size]`,
     `page[after]`,
@@ -66,7 +66,7 @@ generate_comparisons_list <- function(sort = "symbol",
       "executionTime" = execution_time)))
 
   # add host, port and other information to links from the link
-  # information from generate_cursor_pagination_info function return
+  # information from generate_cursor_pag_inf function return
   links <- ndd_database_comp_table_info$links %>%
       pivot_longer(everything(), names_to = "type", values_to = "link") %>%
     mutate(link = case_when(
@@ -142,9 +142,9 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
     fields,
     "entity_id")
 
-  # use the helper generate_cursor_pagination_info
+  # use the helper generate_cursor_pag_inf
   # to generate cursor pagination information from a tibble
-  entity_phenotype_table_pag_info <- generate_cursor_pagination_info(
+  entity_phenotype_table_pag_info <- generate_cursor_pag_inf(
     sysndd_db_entity_phenotype_table,
     `page[size]`, `page[after]`,
     "entity_id")
@@ -155,7 +155,7 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
   " secs"))
 
   # add columns to the meta information from
-  # generate_cursor_pagination_info function return
+  # generate_cursor_pag_inf function return
   meta <- entity_phenotype_table_pag_info$meta %>%
     add_column(as_tibble(list("sort" = sort,
       "filter" = filter,
@@ -163,7 +163,7 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
       "executionTime" = execution_time)))
 
   # add host, port and other information to links from the link
-  # information from generate_cursor_pagination_info function return
+  # information from generate_cursor_pag_inf function return
   links <- entity_phenotype_table_pag_info$links %>%
       pivot_longer(everything(), names_to = "type", values_to = "link") %>%
     mutate(link = case_when(
@@ -263,7 +263,7 @@ generate_panels_list <- function(sort = "symbol",
     select(hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38)
 
   sysndd_db_disease_genes <- sysndd_db_ndd_entity_view %>%
-    left_join(sysndd_db_non_alt_loci_set, by =c("hgnc_id")) %>%
+    left_join(sysndd_db_non_alt_loci_set, by = c("hgnc_id")) %>%
     collect() %>%
     filter(!!!rlang::parse_exprs(filter_exprs)) %>%
         select(-inheritance_filter) %>%
@@ -282,9 +282,9 @@ generate_panels_list <- function(sort = "symbol",
     fields,
     "symbol")
 
-  # use the helper generate_cursor_pagination_info to
+  # use the helper generate_cursor_pag_inf to
   # generate cursor pagination information from a tibble
-  disease_genes_panel_pag_inf <- generate_cursor_pagination_info(
+  disease_genes_panel_pag_inf <- generate_cursor_pag_inf(
     sysndd_db_disease_genes_panel,
     `page[size]`,
     `page[after]`,
@@ -296,7 +296,7 @@ generate_panels_list <- function(sort = "symbol",
     " secs"))
 
   # add columns to the meta information from
-  # generate_cursor_pagination_info function return
+  # generate_cursor_pag_inf function return
   meta <- disease_genes_panel_pag_inf$meta %>%
     add_column(as_tibble(list("sort" = sort,
       "filter" = filter,
@@ -304,7 +304,7 @@ generate_panels_list <- function(sort = "symbol",
       "executionTime" = execution_time)))
 
   # add host, port and other information to links from the
-  # link information from generate_cursor_pagination_info function return
+  # link information from generate_cursor_pag_inf function return
   links <- disease_genes_panel_pag_inf$links %>%
       pivot_longer(everything(), names_to = "type", values_to = "link") %>%
     mutate(link = case_when(

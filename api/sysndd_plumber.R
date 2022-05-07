@@ -264,9 +264,9 @@ function(res,
     fields,
     "entity_id")
 
-  # use the helper generate_cursor_pagination_info to
+  # use the helper generate_cursor_pag_inf to
   # generate cursor pagination information from a tibble
-  disease_table_pagination_info <- generate_cursor_pagination_info(
+  disease_table_pagination_info <- generate_cursor_pag_inf(
     sysndd_db_disease_table,
     `page[size]`,
     `page[after]`,
@@ -278,7 +278,7 @@ function(res,
     " secs"))
 
   # add columns to the meta information from
-  # generate_cursor_pagination_info function return
+  # generate_cursor_pag_inf function return
   meta <- disease_table_pagination_info$meta %>%
     add_column(tibble::as_tibble(list("sort" = sort,
     "filter" = filter,
@@ -286,7 +286,7 @@ function(res,
     "executionTime" = execution_time)))
 
   # add host, port and other information to links from
-  # the link information from generate_cursor_pagination_info function return
+  # the link information from generate_cursor_pag_inf function return
   links <- disease_table_pagination_info$links %>%
       pivot_longer(everything(), names_to = "type", values_to = "link") %>%
     mutate(link = case_when(
@@ -2488,7 +2488,7 @@ function(res,
 
   # use the helper generate_cursor_pagination
   # info to generate cursor pagination information from a tibble
-  sysndd_db_genes_nested_pagination_info <- generate_cursor_pagination_info(
+  sysndd_db_genes_nested_pagination_info <- generate_cursor_pag_inf(
     sysndd_db_genes_nested,
     `page[size]`,
     `page[after]`,
@@ -2500,7 +2500,7 @@ function(res,
   " secs"))
 
   # add columns to the meta information from
-  # generate_cursor_pagination_info function return
+  # generate_cursor_pag_inf function return
   meta <- sysndd_db_genes_nested_pagination_info$meta %>%
     add_column(tibble::as_tibble(list("sort" = sort,
       "filter" = filter,
@@ -2508,7 +2508,7 @@ function(res,
       "executionTime" = execution_time)))
 
   # add host, port and other information to links from the link
-  # information from generate_cursor_pagination_info function return
+  # information from generate_cursor_pag_inf function return
   links <- sysndd_db_genes_nested_pagination_info$links %>%
       pivot_longer(everything(), names_to = "type", values_to = "link") %>%
     mutate(link = case_when(
@@ -3403,7 +3403,7 @@ function(res, aggregate = "entity_id", group = "category") {
   " secs"))
 
   # add columns to the meta information from
-  # generate_cursor_pagination_info function return
+  # generate_cursor_pag_inf function return
   meta <- tibble::as_tibble(list("aggregate" = aggregate,
     "group" = group,
     "max_count" = max(sysndd_db_disease_collected$count),

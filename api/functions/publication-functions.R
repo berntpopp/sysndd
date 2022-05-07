@@ -78,11 +78,11 @@ new_publication <- function(publications_received) {
     dbDisconnect(sysndd_db)
 
     # return OK
-    return(list(status=200, message="OK. Entry created."))
+    return(list(status = 200, message = "OK. Entry created."))
 
   } else {
     # return Bad Request
-    return(list(status=400, message="Bad Request. Invalid PMIDs detected."))
+    return(list(status = 400, message = "Bad Request. Invalid PMIDs detected."))
   }
 }
 
@@ -148,15 +148,15 @@ keyword <- pmid_xml %>%
   xml_text()
 
 year <- pmid_xml %>%
-  xml_find_all("//PubMedPubDate[@PubStatus='pubmed']/Year") %>%
+  xml_find_all("//PubMedPubDate[@Pubstatus = 'pubmed']/Year") %>%
   xml_text()
 
 month <- pmid_xml %>%
-  xml_find_all("//PubMedPubDate[@PubStatus='pubmed']/Month") %>%
+  xml_find_all("//PubMedPubDate[@Pubstatus = 'pubmed']/Month") %>%
   xml_text()
 
 day <- pmid_xml %>%
-  xml_find_all("//PubMedPubDate[@PubStatus='pubmed']/Day") %>%
+  xml_find_all("//PubMedPubDate[@Pubstatus = 'pubmed']/Day") %>%
   xml_text()
 
 lastname <- pmid_xml %>%
@@ -184,19 +184,19 @@ address <- pmid_xml %>%
 
 # return list of results
 return_tibble <- as_tibble(
-    list(pmid=pmid[1],
-        doi=doi,
-        title=str_c(title, collapse=" "),
-        abstract=str_c(abstract, collapse=" "),
-        jabbrv=jabbrv,
-        journal=journal[1],
-        keywords=str_c(unique(str_squish(c(mesh, keyword))), collapse="; "),
-        year=year,
-        month=str_pad(month, 2, "left", pad="0"),
-        day=str_pad(day, 2, "left", pad="0"),
-        lastname=lastname,
-        firstname=firstname,
-        address=str_c(address, collapse="; ")
+    list(pmid = pmid[1],
+        doi = doi,
+        title = str_c(title, collapse = " "),
+        abstract = str_c(abstract, collapse = " "),
+        jabbrv = jabbrv,
+        journal = journal[1],
+        keywords = str_c(unique(str_squish(c(mesh, keyword))), collapse = "; "),
+        year = year,
+        month = str_pad(month, 2, "left", pad = "0"),
+        day = str_pad(day, 2, "left", pad = "0"),
+        lastname = lastname,
+        firstname = firstname,
+        address = str_c(address, collapse = "; ")
     )
   )
 
@@ -216,7 +216,7 @@ info_from_pmid <- function(pmid_value, request_max = 200) {
   groups_number <- ceiling(row_number / request_max)
 
   input_tibble_request <- input_tibble %>%
-    mutate(group = sample(1:groups_number, row_number, replace=TRUE)) %>%
+    mutate(group = sample(1:groups_number, row_number, replace = TRUE)) %>%
     group_by(group) %>%
     mutate(publication_id = paste0(publication_id, "[PMID]")) %>%
     mutate(publication_id = str_flatten(publication_id, collapse = " or ")) %>%
@@ -238,7 +238,7 @@ info_from_pmid <- function(pmid_value, request_max = 200) {
       Publication_date,
       Journal_abbreviation = jabbrv,
       Journal = journal,
-      Keywords= keywords,
+      Keywords = keywords,
       Lastname = lastname,
       Firstname = firstname)
 

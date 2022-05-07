@@ -56,15 +56,15 @@ PostDatabaseEntity <- function(entity_data) {
 
     if (db_append == 1) {
     # return OK
-    return(list(status=200,
-      message="OK. Entry created.",
-      entry=submitted_entity_id)
+    return(list(status = 200,
+      message = "OK. Entry created.",
+      entry = submitted_entity_id)
       )
     } else if (is.na(as.logical(db_append))) {
-    return(list(status=500,
-      message="Internal Server Error. Entry not created.",
-      entry=submitted_entity_id,
-      error=db_error)
+    return(list(status = 500,
+      message = "Internal Server Error. Entry not created.",
+      entry = submitted_entity_id,
+      error = db_error)
       )
     }
 
@@ -72,8 +72,8 @@ PostDatabaseEntity <- function(entity_data) {
 
   } else {
     # return Bad Request
-    return(list(status=405,
-      message="Submitted entity components can not be empty.")
+    return(list(status = 405,
+      message = "Submitted entity components can not be empty.")
       )
   }
 }
@@ -110,17 +110,18 @@ PutDatabaseEntityDeactivation <- function(entity_id,
     dbDisconnect(sysndd_db)
 
     # return OK
-    return(list(status=200, message="OK. Entity deactivated.", entry=entity_id))
+    return(list(status = 200,
+      message = "OK. Entity deactivated.",
+      entry = entity_id))
     ##-------------------------------------------------------------------##
 
   } else {
     # return Bad Request
-    return(list(status=405,
-      message="Submitted entity_id can not be empty.")
+    return(list(status = 405,
+      message = "Submitted entity_id can not be empty.")
       )
   }
 }
-
 
 PutPostDatabaseReview <- function(request_method,
   review_data) {
@@ -163,9 +164,9 @@ PutPostDatabaseReview <- function(request_method,
       dbDisconnect(sysndd_db)
 
       # return OK
-      return(list(status=200,
-        message="OK. Entry created.",
-        entry=submitted_review_id)
+      return(list(status = 200,
+        message = "OK. Entry created.",
+        entry = submitted_review_id)
         )
       ##-------------------------------------------------------------------##
     } else if (request_method == "PUT" &
@@ -222,20 +223,20 @@ PutPostDatabaseReview <- function(request_method,
       dbDisconnect(sysndd_db)
 
       # return OK
-      return(list(status=200, 
-        message="OK. Entry created.",
-        entry=review_received$review_id))
+      return(list(status = 200,
+        message = "OK. Entry created.",
+        entry = review_received$review_id))
       ##-------------------------------------------------------------------##
     } else {
       # return Method Not Allowed
-      return(list(status=405, message="Method Not Allowed."))
+      return(list(status = 405, message = "Method Not Allowed."))
     }
     ##-------------------------------------------------------------------##
 
   } else {
     # return Bad Request
-    return(list(status=405,
-      message="Submitted synopsis data can not be empty.")
+    return(list(status = 405,
+      message = "Submitted synopsis data can not be empty.")
       )
   }
 }
@@ -298,8 +299,8 @@ PutPostDatabasePubCon <- function(request_method,
       dbDisconnect(sysndd_db)
 
       # return OK
-      return(list(status=200,
-        message="OK. Entry created.")
+      return(list(status = 200,
+        message = "OK. Entry created.")
         )
     } else if (request_method == "PUT" & entity_id_match) {
       # connect to database
@@ -329,15 +330,15 @@ PutPostDatabasePubCon <- function(request_method,
       dbDisconnect(sysndd_db)
 
       # return OK
-      return(list(status=200, message="OK. Entry created."))
+      return(list(status = 200, message = "OK. Entry created."))
     } else {
       # return Method Not Allowed
-      return(list(status=405, message="Method not Allowed."))
+      return(list(status = 405, message = "Method not Allowed."))
     }
   } else {
     # return Bad Request
-    return(list(status=400,
-      message=paste0("Some of the submitted publications are not in",
+    return(list(status = 400,
+      message = paste0("Some of the submitted publications are not in",
         " the allowed in the publications list. Add them there first."
         )
       )
@@ -404,7 +405,7 @@ PutPostDatabasePhenCon <- function(request_method,
       dbDisconnect(sysndd_db)
 
       # return OK
-      return(list(status=200, message="OK. Entry created."))
+      return(list(status = 200, message = "OK. Entry created."))
     } else if (request_method == "PUT" & entity_id_match) {
       # connect to database
       sysndd_db <- dbConnect(RMariaDB::MariaDB(),
@@ -433,16 +434,17 @@ PutPostDatabasePhenCon <- function(request_method,
       dbDisconnect(sysndd_db)
 
       # return OK
-      return(list(status=200, message="OK. Entry created."))
+      return(list(status = 200,
+      message = "OK. Entry created."))
     } else {
       # return Method Not Allowed
-      return(list(status=405, message="Method not Allowed."))
+      return(list(status = 405, message = "Method not Allowed."))
     }
 
   } else {
     # return Bad Request
-    return(list(status=400,
-      message=paste0("Some of the submitted phenotypes are",
+    return(list(status = 400,
+      message = paste0("Some of the submitted phenotypes are",
       "not in the allowed phenotype_id list."
       )
       )
@@ -510,7 +512,7 @@ PutPostDatabaseVarOntCon <- function(request_method,
       dbDisconnect(sysndd_db)
 
       # return OK
-      return(list(status=200, message="OK. Entry created."))
+      return(list(status = 200, message = "OK. Entry created."))
     } else if (request_method == "PUT" & entity_id_match) {
       # connect to database
       sysndd_db <- dbConnect(RMariaDB::MariaDB(),
@@ -540,16 +542,18 @@ PutPostDatabaseVarOntCon <- function(request_method,
       dbDisconnect(sysndd_db)
 
       # return OK
-      return(list(status=200, message="OK. Entry created."))
+      return(list(status = 200,
+        message = "OK. Entry created."))
     } else {
       # return Method Not Allowed
-      return(list(status=405, message="Method not Allowed."))
+      return(list(status = 405,
+        message = "Method not Allowed."))
     }
 
   } else {
     # return Bad Request
-    return(list(status=400,
-      message=paste0("Some of the submitted variation ontology ",
+    return(list(status = 400,
+      message = paste0("Some of the submitted variation ontology ",
         "terms are not in the allowed vario_id list."
         )
       )
@@ -563,7 +567,7 @@ PutPostDatabaseStatus <- function(request_method,
   status_data) {
     ##-------------------------------------------------------------------##
     # block to convert the entity components into tibble
-    status_received <- purrr::compact(status_data) %>% 
+    status_received <- purrr::compact(status_data) %>%
       tibble::as_tibble()
     ##-------------------------------------------------------------------##
 
@@ -599,7 +603,8 @@ PutPostDatabaseStatus <- function(request_method,
         dbDisconnect(sysndd_db)
 
         # return OK
-        return(list(status=200, message="OK. Entry created."))
+        return(list(status = 200,
+          message = "OK. Entry created."))
 
       } else if (request_method == "PUT" &
                 "status_id" %in% colnames(status_received)) {
@@ -644,14 +649,17 @@ PutPostDatabaseStatus <- function(request_method,
         dbDisconnect(sysndd_db)
 
         # return OK
-        return(list(status=200, message="OK. Entry updated."))
+        return(list(status = 200,
+          message = "OK. Entry updated."))
       } else {
       # return Method Not Allowed
-      return(list(status=405, message="Method not Allowed."))
+      return(list(status = 405,
+        message = "Method not Allowed."))
       }
 
     } else {
       # return error
-      return(list(status=400, error="Submitted data can not be null."))
+      return(list(status = 400,
+        error = "Submitted data can not be null."))
     }
 }
