@@ -700,6 +700,7 @@ export default {
             this.status_info = new this.Status(response.data[0].category_id, response.data[0].comment, response.data[0].problematic);
 
             this.status_info.status_id = response.data[0].status_id;
+            this.status_info.entity_id = response.data[0].entity_id;
 
           this.loading_status_modal = false;
 
@@ -851,13 +852,13 @@ console.log(this.review_info);
 
         },
         async submitStatusChange() {
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/status/update';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/status/create';
 
 console.log(this.status_info);
 
           // perform update PUT request
           try {
-            let response = await this.axios.put(apiUrl, {status_json: this.status_info}, {
+            let response = await this.axios.post(apiUrl, {status_json: this.status_info}, {
                headers: {
                  'Authorization': 'Bearer ' + localStorage.getItem('token')
                }
