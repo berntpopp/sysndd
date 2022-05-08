@@ -32,7 +32,8 @@ import { BIconPersonCircle,
   BIconPlusSquare,
   BIconFileEarmarkMinus,
   BIconLink,
-  BIconGear} from 'bootstrap-vue'
+  BIconGear,
+  BIconExclamationTriangle} from 'bootstrap-vue'
 
 // based on https://stackoverflow.com/questions/54829710/how-to-override-bootstrap-variables-in-vue-workflow-vanilla-bootstrap
 // import 'bootstrap/dist/css/bootstrap.css'
@@ -90,6 +91,7 @@ Vue.component("BIconPlusSquare", BIconPlusSquare)
 Vue.component("BIconFileEarmarkMinus", BIconFileEarmarkMinus)
 Vue.component("BIconLink", BIconLink)
 Vue.component("BIconGear", BIconGear)
+Vue.component("BIconExclamationTriangle", BIconExclamationTriangle)
 
 // register vue-meta globally
 Vue.use(VueMeta, {
