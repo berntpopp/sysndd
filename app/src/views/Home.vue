@@ -189,7 +189,7 @@
                         <col
                           v-for="field in scope.fields"
                           :key="field.key"
-                          :style="{ width: field.key === 'symbol' ? '35%' : '65%' }"
+                          :style="{ width: field.width }"
                         >
                       </template>
 
@@ -212,6 +212,32 @@
                             </b-badge>
                           </b-link>
                         </div>
+                      </template>
+
+                      <template #cell(category)="data">
+                        <div>
+                          <b-avatar
+                          size="1.4em"
+                          icon="stoplights"
+                          :variant="stoplights_style[data.item.category]"
+                          v-b-tooltip.hover.left 
+                          v-bind:title="data.item.category"
+                          >
+                          </b-avatar>
+                        </div> 
+                      </template>
+
+                      <template #cell(ndd_phenotype_word)="data">
+                        <div>
+                          <b-avatar 
+                          size="1.4em" 
+                          :icon="ndd_icon[data.item.ndd_phenotype_word]"
+                          :variant="ndd_icon_style[data.item.ndd_phenotype_word]"
+                          v-b-tooltip.hover.left 
+                          v-bind:title="ndd_icon_text[data.item.ndd_phenotype_word]"
+                          >
+                          </b-avatar>
+                        </div> 
                       </template>
 
                     </b-table>
@@ -311,6 +337,9 @@ export default {
   data() {
         return {
           stoplights_style: {"Definitive": "success", "Moderate": "primary", "Limited": "warning", "Refuted": "danger"},
+          ndd_icon: {"No": "x", "Yes": "check"},
+          ndd_icon_style: {"No": "warning", "Yes": "success"},
+          ndd_icon_text: {"No": "not associated with NDDs", "Yes": "associated with NDDs"},
           inheritance_short_text: {"Dominant": "AD", "Recessive": "AR", "X-linked": "X", "Other": "M/S"},
           search_input: '',
           search: [],
@@ -326,11 +355,35 @@ export default {
           ],
           news: [],
           news_fields: [
-            { key: 'symbol', label: 'Symbol', class: 'text-left' },
+            { 
+              key: 'symbol',
+              label: 'Symbol',
+              class: 'text-left',
+              width: "20%"
+              },
             {
               key: 'disease_ontology_name',
               label: 'Disease',
-              class: 'text-left'
+              class: 'text-left',
+              width: "40%"
+            },
+            { 
+              key: 'category', 
+              label: 'Category', 
+              class: 'text-left',
+              width: "10%"
+            },
+            {
+              key: 'ndd_phenotype_word',
+              label: 'NDD',
+              class: 'text-left',
+              width: "10%"
+            },
+            {
+              key: 'entry_date',
+              label: 'Entry',
+              class: 'text-left',
+              width: "20%"
             }
           ],
           loading: false,
