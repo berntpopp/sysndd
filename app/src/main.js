@@ -2,6 +2,8 @@ import Vue from 'vue'
 import App from './App.vue'
 import VueMeta from 'vue-meta'
 
+import { createPinia, PiniaVuePlugin } from 'pinia'
+
 import './assets/css/custom.css';
 import './assets/js/functions.js';
 
@@ -110,8 +112,13 @@ localize("en", en);
 Vue.component("ValidationObserver", ValidationObserver)
 Vue.component("ValidationProvider", ValidationProvider)
 
+// use pinia
+Vue.use(PiniaVuePlugin)
+const pinia = createPinia()
+
 new Vue({
   router,
+  pinia,
   render: h => h(App)
 }).$mount('#app')
 
