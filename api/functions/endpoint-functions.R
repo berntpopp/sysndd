@@ -336,6 +336,9 @@ generate_panels_list <- function(sort = "symbol",
 
 # nest the gene statistics
 generate_gene_stat_tibble <- function() {
+  # set start time
+  start_time <- Sys.time()
+
   sysndd_db_disease_genes <- pool %>%
     tbl("ndd_entity_view") %>%
     arrange(entity_id) %>%
@@ -378,7 +381,33 @@ generate_gene_stat_tibble <- function() {
      by = c("category")) %>%
     arrange(category)
 
-  return(disease_genes_statistics)
+  # get data for last entry from database as meta
+  disease_entry_date_last <- pool %>%
+    tbl("ndd_entity_view") %>%
+    select(entry_date) %>%
+    arrange(desc(entry_date)) %>%
+    head(1) %>%
+    collect() %>%
+    select(last_update = entry_date)
+
+  # compute execution time
+  end_time <- Sys.time()
+  execution_time <- as.character(paste0(round(end_time - start_time, 2),
+  " secs"))
+
+  # add columns to the meta information from generate
+  # cursor_pagination_info function return
+  meta <- as_tibble(list(
+      "last_update" = disease_entry_date_last$last_update,
+      "executionTime" = execution_time))
+
+  # generate object to return
+  return_list <- list(
+    meta = meta,
+    data = disease_genes_statistics)
+
+  # return the list
+  return(return_list)
 }
 
 

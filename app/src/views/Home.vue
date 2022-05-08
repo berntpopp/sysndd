@@ -8,7 +8,7 @@
 
         <b-row class="justify-content-md-center">
           <b-col md="8">
-            <b-container fluid="sm" class="py-3">
+            <b-container fluid="lg" class="py-3">
               <h3 class="text-center font-weight-bold">
                 Welcome to SysNDD, 
               </h3>
@@ -63,7 +63,7 @@
                 border-variant="dark"
               >
                 <template #header>
-                  <h5 class="mb-0 font-weight-bold">Current gene statistics</h5>
+                  <h5 class="mb-0 font-weight-bold">Current gene statistics (last update: {{genes_statistics.meta[0].last_update}})</h5>
                 </template>
                 <b-card-text class="text-left">
 
@@ -77,9 +77,9 @@
                   </template>
 
                     <b-table
-                        :items="genes_statistics"
+                        :items="genes_statistics.data"
                         :fields="genes_statistics_fields"
-                        stacked="md"
+                        stacked="lg"
                         head-variant="light"
                         show-empty
                         small
@@ -177,7 +177,7 @@
                     <b-table
                       :items="news"
                       :fields="news_fields"
-                      stacked="md"
+                      stacked="lg"
                       head-variant="light"
                       show-empty
                       small
@@ -211,6 +211,21 @@
                             {{ truncate(data.item.disease_ontology_name, 40) }}
                             </b-badge>
                           </b-link>
+                        </div>
+                      </template>
+
+                      <template #cell(inheritance_filter)="data">
+                        <div>
+                          <b-badge 
+                          pill 
+                          variant="info" 
+                          class="justify-content-md-center" 
+                          size="1.3em"
+                          v-b-tooltip.hover.leftbottom 
+                          v-bind:title="data.item.inheritance_filter + ' (' + data.item.inheritance_filter + ')'"
+                          >
+                          {{ inheritance_short_text[data.item.inheritance_filter] }}
+                          </b-badge>
                         </div>
                       </template>
 
@@ -248,7 +263,7 @@
               </b-card>
           </b-col>
 
-          <b-col md="6" align-self="center">
+          <b-col md="6">
             <div class="container-fluid text-left py-2 my-3">
 
               <span class="word">NDD comprise <mark>developmental delay</mark> (DD), <mark>intellectual disability</mark> (ID) and <mark>autism spectrum disorder</mark> (ASD). </span><br>
@@ -343,7 +358,16 @@ export default {
           inheritance_short_text: {"Dominant": "AD", "Recessive": "AR", "X-linked": "X", "Other": "M/S"},
           search_input: '',
           search: [],
-          genes_statistics: [],
+          genes_statistics:
+          {
+            meta: [
+              {
+                last_update: null,
+                executionTime: null,
+              }
+              ],
+            data: [],
+          },
           genes_statistics_fields: [
             { key: 'category', label: 'Category', class: 'text-left' },
             { key: 'n', label: 'Count', class: 'text-left' },
@@ -359,19 +383,25 @@ export default {
               key: 'symbol',
               label: 'Symbol',
               class: 'text-left',
-              width: "20%"
+              width: "15%"
               },
             {
               key: 'disease_ontology_name',
               label: 'Disease',
               class: 'text-left',
-              width: "40%"
+              width: "30%"
+            },
+            {
+              key: 'inheritance_filter',
+              label: 'Inh.',
+              class: 'text-left',
+              width: "10%"
             },
             { 
               key: 'category', 
               label: 'Category', 
               class: 'text-left',
-              width: "10%"
+              width: "15%"
             },
             {
               key: 'ndd_phenotype_word',

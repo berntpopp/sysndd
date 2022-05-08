@@ -3362,24 +3362,6 @@ function(n = 5) {
 
 
 #* @tag statistics
-#* gets date of last update
-#* @serializer json list(na="string")
-#' @get /api/statistics/last_update
-function() {
-  # get data from database and filter
-  disease_entry_date_last <- pool %>%
-    tbl("ndd_entity_view") %>%
-    select(entry_date) %>%
-    arrange(desc(entry_date)) %>%
-    head(1) %>%
-    collect() %>%
-    select(last_update = entry_date)
-
-  disease_entry_date_last
-}
-
-
-#* @tag statistics
 #* gets database entry development over time
 #* @serializer json list(na="string")
 #' @get /api/statistics/entities_over_time
