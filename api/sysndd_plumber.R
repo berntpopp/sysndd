@@ -1334,17 +1334,30 @@ function(req, res, review_id_requested, review_ok = FALSE) {
   if (length(req$user_id) == 0) {
 
     res$status <- 401 # Unauthorized
-    return(list(error="Please authenticate."))
+    return(list(error = "Please authenticate."))
 
   } else if (req$user_role %in% c("Administrator", "Curator")) {
 
     submit_user_id <- req$user_id
-    review_id_requested <- as.integer(review_id_requested)
+
+    # set review if confirmed
+    if (review_id_requested == "all") {
+      # get data from database and filter
+      review_id_requested_tibble <- pool %>%
+        tbl("ndd_entity_review") %>%
+        filter(review_approved == 0) %>%
+        collect() %>%
+        select(review_id)
+
+      review_id_requested <- review_id_requested_tibble$review_id
+    } else {
+      review_id_requested <- as.integer(review_id_requested)
+    }
 
     # get table data from database
     ndd_entity_review_data <- pool %>%
       tbl("ndd_entity_review") %>%
-      filter(review_id == review_id_requested) %>%
+      filter(review_id %in% review_id_requested) %>%
       collect()
 
     # connect to database
@@ -1361,43 +1374,44 @@ function(req, res, review_id_requested, review_ok = FALSE) {
       # reset all reviews in ndd_entity_review to not primary
       dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review ",
         "SET is_primary = 0 ",
-        "WHERE entity_id = ",
-        ndd_entity_review_data$entity_id,
-        ";"))
+        "WHERE entity_id IN (",
+        str_c(ndd_entity_review_data$entity_id, collapse = ", "),
+        ");"))
 
       # set the review from ndd_entity_review_data to primary,
       # add approving_user_id and set review_approved status to approved
       dbExecute(sysndd_db,
-        paste0("UPDATE ndd_entity_review SET is_primary = 1 WHERE review_id = ",
-          ndd_entity_review_data$review_id,
-          ";"))
+        paste0("UPDATE ndd_entity_review SET is_primary = 1 ",
+           "WHERE review_id IN (",
+          str_c(ndd_entity_review_data$review_id, collapse = ", "),
+          ");"))
       dbExecute(sysndd_db,
         paste0("UPDATE ndd_entity_review SET approving_user_id = ",
           submit_user_id,
-          " WHERE review_id = ",
-          ndd_entity_review_data$review_id,
-          ";"))
+          " WHERE review_id IN (",
+          str_c(ndd_entity_review_data$review_id, collapse = ", "),
+          ");"))
       dbExecute(sysndd_db,
         paste0("UPDATE ndd_entity_review ",
         "SET review_approved = 1 ",
-        "WHERE review_id = ",
-          ndd_entity_review_data$review_id,
-        ";"))
+        "WHERE review_id IN (",
+        str_c(ndd_entity_review_data$review_id, collapse = ", "),
+        ");"))
     } else {
       # add approving_user_id and set review_approved status to unapproved
       dbExecute(sysndd_db,
         paste0("UPDATE ndd_entity_review ",
           "SET approving_user_id = ",
           submit_user_id,
-          " WHERE review_id = ",
-          ndd_entity_review_data$review_id,
-          ";"))
+          " WHERE review_id IN (",
+          str_c(ndd_entity_review_data$review_id, collapse = ", "),
+          ");"))
       dbExecute(sysndd_db,
         paste0("UPDATE ndd_entity_review ",
           "SET review_approved = 0 ",
-          "WHERE review_id = ",
-          ndd_entity_review_data$review_id,
-          ";"))
+          "WHERE review_id IN (",
+          str_c(ndd_entity_review_data$review_id, collapse = ", "),
+          ");"))
     }
 
     # disconnect from database
@@ -1451,13 +1465,20 @@ function(req, res, review_json) {
           unique() %>%
           select(publication_id, publication_type) %>%
           arrange(publication_id) %>%
-          mutate(publication_id = str_replace_all(publication_id, "\\s", "")) %>%
+          mutate(publication_id =
+            str_replace_all(
+              publication_id,
+              "\\s",
+              "")) %>%
           rowwise() %>%
-          mutate(gr_check = genereviews_from_pmid(publication_id, check = TRUE)) %>%
+          mutate(gr_check = genereviews_from_pmid(publication_id,
+            check = TRUE)) %>%
           ungroup() %>%
           mutate(publication_type = case_when(
-            publication_type == "additional_references" & gr_check ~ "gene_review",
-            publication_type == "gene_review" & !gr_check ~ "additional_references",
+            publication_type == "additional_references" &
+              gr_check ~ "gene_review",
+            publication_type == "gene_review" &
+              !gr_check ~ "additional_references",
             TRUE ~ publication_type
           )) %>%
           select(-gr_check)

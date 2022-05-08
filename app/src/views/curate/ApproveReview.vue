@@ -299,22 +299,19 @@ export default {
         },
         async handleAllReviewsOk() {
           if(this.approve_all_selected) {
-            this.items_ReviewTable.forEach((x, i) => {
-                  let apiUrl = process.env.VUE_APP_API_URL + '/api/review/approve/' + x.review_id + '?review_ok=true';
-                  try {
-                    let response = this.axios.put(apiUrl, {}, {
-                      headers: {
-                        'Authorization': 'Bearer ' + localStorage.getItem('token')
-                      }
-                    });
+            let apiUrl = process.env.VUE_APP_API_URL + '/api/review/approve/all?review_ok=true';
+            try {
+              let response = this.axios.put(apiUrl, {}, {
+                headers: {
+                  'Authorization': 'Bearer ' + localStorage.getItem('token')
+                }
+              });
 
-                  this.loadReviewTableData();
+            this.loadReviewTableData();
 
-                  } catch (e) {
-                    this.makeToast(e, 'Error', 'danger');
-                  }
-              }
-            );
+            } catch (e) {
+              this.makeToast(e, 'Error', 'danger');
+            }
           }
         },
         checkAllApprove() {

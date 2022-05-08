@@ -256,7 +256,6 @@ select_tibble_fields <- function(selection_tibble,
   } else {
     stop("Some requested fields are not in the column names.")
   }
-
     return(selection_tibble)
 }
 
