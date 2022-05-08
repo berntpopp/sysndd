@@ -11,6 +11,6 @@ root <- pr("sysndd_plumber.R") %>%
       spec
     }) %>%
         pr_run(host = "0.0.0.0", port = 7777) %>%
-    pr_hook("exit", function(){
+    pr_hook("exit", function() {
         poolClose(pool)
       })

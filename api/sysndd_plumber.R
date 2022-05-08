@@ -416,7 +416,7 @@ function(req, res) {
 
         # make the publictaion to review connections
         # using the function "PutPostDatabasePubCon"
-        response_publication_connections <- PutPostDatabasePubCon(
+        response_publication_conn <- PutPostDatabasePubCon(
           "POST",
           publications_received,
           as.integer(sysnopsis_received$entity_id),
@@ -424,7 +424,7 @@ function(req, res) {
       } else {
         response_publication <- list(status = 200,
           message = "OK. Skipped.")
-        response_publication_connections <- list(status = 200,
+        response_publication_conn <- list(status = 200,
           message = "OK. Skipped.")
       }
 
@@ -459,7 +459,7 @@ function(req, res) {
       # compute aggregated review response
       response_review_post <- tibble::as_tibble(response_publication) %>%
         bind_rows(tibble::as_tibble(response_review)) %>%
-        bind_rows(tibble::as_tibble(response_publication_connections)) %>%
+        bind_rows(tibble::as_tibble(response_publication_conn)) %>%
         bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
         bind_rows(tibble::as_tibble(response_variation_ontology_conn)) %>%
         select(status, message) %>%
@@ -603,19 +603,19 @@ function(req, res) {
           select(-review_id)
 
         # get all connections for review
-        ndd_review_publication_join_original <- pool %>%
+        ndd_review_publication_join_ori <- pool %>%
             tbl("ndd_review_publication_join") %>%
             collect() %>%
             filter(review_id == ndd_entity_review_original$review_id) %>%
             select(publication_id, publication_type)
 
-        ndd_review_phenotype_connect_original <- pool %>%
+        ndd_review_phenotype_connect_ori <- pool %>%
             tbl("ndd_review_phenotype_connect") %>%
             collect() %>%
             filter(review_id == ndd_entity_review_original$review_id) %>%
             select(phenotype_id, modifier_id)
 
-        ndd_review_variation_ontology_connect_original <- pool %>%
+        ndd_review_variation_ontology_conn_ori <- pool %>%
             tbl("ndd_review_variation_ontology_connect") %>%
             collect() %>%
             filter(review_id == ndd_entity_review_original$review_id) %>%
@@ -629,26 +629,26 @@ function(req, res) {
           ndd_entity_review_replaced)
 
         # only submit publication connections if not empty
-        if (length(compact(ndd_review_publication_join_original)) > 0) {
+        if (length(compact(ndd_review_publication_join_ori)) > 0) {
           # make the publictaion to review connections
           # using the function "PutPostDatabasePubCon"
-          response_publication_connections <- PutPostDatabasePubCon(
+          response_publication_conn <- PutPostDatabasePubCon(
             "POST",
-            ndd_review_publication_join_original,
+            ndd_review_publication_join_ori,
             as.integer(response_new_entity$entry$entity_id),
             as.integer(response_review$entry$review_id))
         } else {
-          response_publication_connections <- list(status = 200,
+          response_publication_conn <- list(status = 200,
             message = "OK. Skipped.")
         }
 
         # only submit phenotype connections if not empty
-        if (length(compact(ndd_review_phenotype_connect_original)) > 0) {
+        if (length(compact(ndd_review_phenotype_connect_ori)) > 0) {
           # make the phenotype to review connections
           # using the function "response_phenotype_connections"
           response_phenotype_connections <- PutPostDatabasePhenCon(
             "POST",
-            ndd_review_phenotype_connect_original,
+            ndd_review_phenotype_connect_ori,
             as.integer(response_new_entity$entry$entity_id),
             as.integer(response_review$entry$review_id))
         } else {
@@ -657,12 +657,12 @@ function(req, res) {
         }
 
         # only submit variation ontology connections if not empty
-        if (length(compact(ndd_review_variation_ontology_connect_original)) > 0) {
+        if (length(compact(ndd_review_variation_ontology_conn_ori)) > 0) {
           # make the variation ontology to review connections
           # using the function "PutPostDatabaseVarOntCon"
           response_variation_ontology_conn <- PutPostDatabaseVarOntCon(
             "POST",
-            ndd_review_variation_ontology_connect_original,
+            ndd_review_variation_ontology_conn_ori,
             as.integer(response_new_entity$entry$entity_id),
             as.integer(response_review$entry$review_id))
         } else {
@@ -672,7 +672,7 @@ function(req, res) {
 
         # compute aggregated review response
         response_review_post <- tibble::as_tibble(response_review) %>%
-          bind_rows(tibble::as_tibble(response_publication_connections)) %>%
+          bind_rows(tibble::as_tibble(response_publication_conn)) %>%
           bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
           bind_rows(tibble::as_tibble(response_variation_ontology_conn)) %>%
           select(status, message) %>%
@@ -807,7 +807,7 @@ function(req, res) {
 function(sysndd_id) {
   # remove spaces from list
   sysndd_id <- URLdecode(sysndd_id) %>%
-    str_split(pattern=",", simplify=TRUE) %>%
+    str_split(pattern = ",", simplify = TRUE) %>%
     str_replace_all(" ", "") %>%
     unique()
 
@@ -948,7 +948,7 @@ function(sysndd_id) {
     collect()
 
   ndd_entity_publication_list <- ndd_entity_active %>%
-    left_join( ndd_review_publication_join_coll, by = c("entity_id")) %>%
+    left_join(ndd_review_publication_join_coll, by = c("entity_id")) %>%
     filter(entity_id == sysndd_id) %>%
     select(entity_id, publication_id, publication_type, is_reviewed) %>%
     arrange(publication_id) %>%
@@ -1088,14 +1088,14 @@ function(req, res) {
 
           # make the publictaion to review connections using the
           # function "PutPostDatabasePubCon"
-          response_publication_connections <- PutPostDatabasePubCon(
+          response_publication_conn <- PutPostDatabasePubCon(
             req$REQUEST_METHOD,
             publications_received,
             as.integer(sysnopsis_received$entity_id),
             as.integer(response_review$entry$review_id))
         } else {
           response_publication <- list(status = 200, message = "OK. Skipped.")
-          response_publication_connections <- list(status = 200,
+          response_publication_conn <- list(status = 200,
             message = "OK. Skipped.")
         }
 
@@ -1130,7 +1130,7 @@ function(req, res) {
         # compute response
         response <- tibble::as_tibble(response_publication) %>%
           bind_rows(tibble::as_tibble(response_review)) %>%
-          bind_rows(tibble::as_tibble(response_publication_connections)) %>%
+          bind_rows(tibble::as_tibble(response_publication_conn)) %>%
           bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
           bind_rows(tibble::as_tibble(response_variation_ontology_conn)) %>%
           select(status, message) %>%
@@ -1161,7 +1161,7 @@ function(req, res) {
 
         # make the publictaion to review connections using
         # the function "PutPostDatabasePubCon"
-        response_publication_connections <- PutPostDatabasePubCon(
+        response_publication_conn <- PutPostDatabasePubCon(
           req$REQUEST_METHOD,
           publications_received,
           sysnopsis_received$entity_id,
@@ -1169,7 +1169,7 @@ function(req, res) {
 
         } else {
           response_publication <- list(status = 200, message = "OK. Skipped.")
-          response_publication_connections <- list(status = 200, message = "OK. Skipped.")
+          response_publication_conn <- list(status = 200, message = "OK. Skipped.")
         }
 
         # only submit phenotype connections if not empty
@@ -1203,7 +1203,7 @@ function(req, res) {
         # compute response
         response <- tibble::as_tibble(response_publication) %>%
           bind_rows(tibble::as_tibble(response_review)) %>%
-          bind_rows(tibble::as_tibble(response_publication_connections)) %>%
+          bind_rows(tibble::as_tibble(response_publication_conn)) %>%
           bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
           bind_rows(tibble::as_tibble(response_variation_ontology_conn)) %>%
           select(status, message) %>%
@@ -1239,7 +1239,7 @@ function(req, res) {
 function(review_id_requested) {
   # remove spaces from list
   review_id_requested <- URLdecode(review_id_requested) %>%
-    str_split(pattern=",", simplify=TRUE) %>%
+    str_split(pattern = ",", simplify = TRUE) %>%
     str_replace_all(" ", "") %>%
     unique()
 
@@ -1278,7 +1278,7 @@ function(review_id_requested) {
 function(review_id_requested) {
   # remove spaces from list
   review_id_requested <- URLdecode(review_id_requested) %>%
-    str_split(pattern=",", simplify=TRUE) %>%
+    str_split(pattern = ",", simplify = TRUE) %>%
     str_replace_all(" ", "") %>%
     unique()
 
@@ -1306,7 +1306,7 @@ function(review_id_requested) {
 function(review_id_requested) {
   # remove spaces from list
   review_id_requested <- URLdecode(review_id_requested) %>%
-    str_split(pattern=",", simplify=TRUE) %>%
+    str_split(pattern = ",", simplify = TRUE) %>%
     str_replace_all(" ", "") %>%
     unique()
 
@@ -1680,7 +1680,7 @@ function(req, res, review_json) {
         if (length(publication_id_to_purge) > 0) {
           dbExecute(sysndd_db,
             paste0("DELETE FROM publication WHERE publication_id IN (",
-              str_c(publication_id_to_purge, collapse=", "),
+              str_c(publication_id_to_purge, collapse = ", "),
               ");"))
         }
 
@@ -2778,7 +2778,7 @@ function(hpo) {
 
 
 #* @tag inheritance
-#* gets list of all inheritanceterms
+#* gets list of all inheritance terms
 #* @serializer json list(na="string")
 #' @get /api/inheritance_list
 function() {
@@ -2799,7 +2799,7 @@ function() {
 ## Phenotype endpoints
 
 #* @tag phenotype
-#* gets a list of entities associated with a list of phenotypes for browsing
+#* gets a list of entities associated with a list of phenotypes
 #* @serializer json list(na="string")
 #' @get /api/phenotype/entities/browse
 function(res,
@@ -2822,7 +2822,7 @@ phenotype_entities_list
 
 #* @tag phenotype
 #* gets a list of entities associated with a list of phenotypes for
-## download as Excel file
+#* download as Excel file
 #* @serializer contentType list(type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 #' @get /api/phenotype/entities/excel
 function(res,
@@ -2847,17 +2847,17 @@ phenotype_entities_list <- generate_phenotype_entities_list(sort,
 
   write.xlsx(phenotype_entities_list$data,
     filename,
-    sheetName="data",
+    sheetName = "data",
     append = FALSE)
 
   write.xlsx(phenotype_entities_list$meta,
     filename,
-    sheetName="meta",
+    sheetName = "meta",
     append = TRUE)
 
   write.xlsx(phenotype_entities_list$links,
     filename,
-    sheetName="links",
+    sheetName = "links",
     append = TRUE)
 
   attachmentString <- paste0("attachment; filename=phenotype_panel.",
@@ -2867,7 +2867,7 @@ phenotype_entities_list <- generate_phenotype_entities_list(sort,
   res$setHeader("Content-Disposition", attachmentString)
 
   # Read in the raw contents of the binary file
-  bin <- readBin(filename, "raw", n=file.info(filename)$size)
+  bin <- readBin(filename, "raw", n = file.info(filename)$size)
 
   #Check file existence and delete
   if (file.exists(filename)) {
@@ -2932,7 +2932,7 @@ function() {
 
 
 #* @tag phenotype
-#* gets counts phenotypes in annotated entities
+#* gets counts of phenotypes in annotated entities
 #* @serializer json list(na="string")
 #' @get /api/phenotype/count
 function() {
@@ -3023,7 +3023,7 @@ function(req, res, `filter[status_approved]` = 0) {
 function(status_id_requested) {
   # remove spaces from list
   status_id_requested <- URLdecode(status_id_requested) %>%
-    str_split(pattern=",", simplify=TRUE) %>%
+    str_split(pattern = ",", simplify = TRUE) %>%
     str_replace_all(" ", "") %>%
     unique()
 
@@ -3074,7 +3074,7 @@ function() {
 
 #* @tag status
 #* posts a new status for a entity_id or put an update to a certain status_id
-## example data: '{"status_id":3,"entity_id":3,"category_id":1,"comment":"fsa","problematic": true}' 
+## example data: '{"status_id":3,"entity_id":3,"category_id":1,"comment":"fsa","problematic": true}'
 ## (provide status_id for put and entity_id for post reqests)
 #* @serializer json list(na="string")
 #' @post /api/status/create
@@ -3214,7 +3214,7 @@ function(req, res, status_id_requested, status_ok = FALSE) {
 ## Panels endpoints
 
 #* @tag panels
-#* gets list of all panel api options
+#* gets list of all panel filtering options
 #* @serializer json list(na="string")
 #' @get /api/panels/options
 function() {
@@ -3247,7 +3247,7 @@ function() {
 
 
 #* @tag panels
-#* gets panel data by category and inheritance terms for browsing
+#* gets panel data by category and inheritance terms
 #* @serializer json list(na="string")
 #* @param sort Output column to arrange output on.
 #* @param filter Comma separated list of filters to apply.
@@ -3300,17 +3300,17 @@ function(res,
 
   write.xlsx(panels_list$data,
     filename,
-    sheetName="data",
+    sheetName = "data",
     append = FALSE)
 
   write.xlsx(panels_list$meta,
     filename,
-    sheetName="meta",
+    sheetName = "meta",
     append = TRUE)
 
   write.xlsx(panels_list$links,
     filename,
-    sheetName="links",
+    sheetName = "links",
     append = TRUE)
 
   attachmentString <- paste0("attachment; filename=sysndd_panel.",
@@ -3446,7 +3446,7 @@ function(res, aggregate = "entity_id", group = "category") {
 ## Comparisons endpoints
 
 #* @tag comparisons
-#* gets list of all panel api options
+#* gets list of all panel filtering options
 #* @serializer json list(na="string")
 #' @get /api/comparisons/options
 function() {
@@ -3616,17 +3616,17 @@ comparisons_list <- generate_comparisons_list(sort,
 
   write.xlsx(comparisons_list$data,
     filename,
-    sheetName="data",
+    sheetName = "data",
     append = FALSE)
 
   write.xlsx(comparisons_list$meta,
     filename,
-    sheetName="meta",
+    sheetName = "meta",
     append = TRUE)
 
   write.xlsx(comparisons_list$links,
     filename,
-    sheetName="links",
+    sheetName = "links",
     append = TRUE)
 
   attachmentString <- paste0("attachment; filename=curation_comparisons.",
@@ -3636,7 +3636,7 @@ comparisons_list <- generate_comparisons_list(sort,
   res$setHeader("Content-Disposition", attachmentString)
 
   # Read in the raw contents of the binary file
-  bin <- readBin(filename, "raw", n=file.info(filename)$size)
+  bin <- readBin(filename, "raw", n = file.info(filename)$size)
 
   #Check file existence and delete
   if (file.exists(filename)) {
@@ -3676,7 +3676,7 @@ function(searchterm, helper = TRUE) {
     mutate(search = str_replace(search, "entity", "entity_id")) %>%
     mutate(searchdist = stringdist(str_to_lower(results),
       str_to_lower(searchterm),
-      method="jw",
+      smethod = "jw",
       p=0.1)) %>%
     arrange(searchdist, results) %>%
     mutate(link = case_when(
@@ -3712,10 +3712,10 @@ function(searchterm, helper = TRUE) {
   if (sysndd_db_entity_search$searchdist[1] == 0 &
     is.na(suppressWarnings(as.integer(sysndd_db_entity_search$results[1])))) {
     sysndd_db_entity_search_return <- sysndd_db_entity_search_helper %>%
-      slice_head(n=1)
+      slice_head(n = 1)
   } else {
     sysndd_db_entity_search_return <- sysndd_db_entity_search_helper %>%
-      slice_head(n=return_count)
+      slice_head(n = return_count)
   }
 
   # change output by helper input to
@@ -3746,7 +3746,7 @@ function(searchterm, tree = FALSE) {
     mutate(searchdist = stringdist(
       str_to_lower(result),
       str_to_lower(searchterm),
-      method="jw",
+      smethod = "jw",
       p=0.1)) %>%
     arrange(searchdist, result)
 
@@ -3762,7 +3762,7 @@ function(searchterm, tree = FALSE) {
   }
 
   do_set_search_return <- do_set_search %>%
-    slice_head(n=return_count)
+    slice_head(n = return_count)
 
   # the "tree" option allows output data to be formated
   # as arrays for the treeselect library
@@ -3802,7 +3802,7 @@ function(searchterm, tree = FALSE) {
     collect() %>%
     mutate(searchdist = stringdist(str_to_lower(result),
       str_to_lower(searchterm),
-      method="jw",
+      smethod = "jw",
       p=0.1)) %>%
     arrange(searchdist, result)
 
@@ -3818,7 +3818,7 @@ function(searchterm, tree = FALSE) {
   }
 
   non_alt_loci_set_search_return <- non_alt_loci_set_search %>%
-    slice_head(n=return_count)
+    slice_head(n = return_count)
 
   # the "tree" option allows output data to be formated
   # as arrays for the treeselect library
@@ -3853,7 +3853,7 @@ function(searchterm, tree = FALSE) {
     collect() %>%
     mutate(searchdist = stringdist(str_to_lower(result),
       str_to_lower(searchterm),
-      method="jw",
+      smethod = "jw",
       p=0.1)) %>%
     arrange(searchdist, sort)
 
@@ -3869,7 +3869,7 @@ function(searchterm, tree = FALSE) {
   }
 
   moi_list_search_return <- mode_of_inheritance_list_search %>%
-    slice_head(n=return_count)
+    slice_head(n = return_count)
 
   # the "tree" option allows output data to be
   # formated as arrays for the treeselect library
@@ -3910,7 +3910,7 @@ function(tree = FALSE) {
 
   # the "tree" option allows output data to be formated
   # as arrays for the treeselect library
-  # do = disease_ontology
+  # do short for disease_ontology
   if (tree) {
     status_list_return_helper <- status_list_collected
   } else {
@@ -4458,7 +4458,7 @@ function(req, res, email_request = "") {
       collect()
 
   # first validate email
-  if (!isValidEmail(email_request)) {
+  if (!is_valid_email(email_request)) {
 
     res$status <- 400 # Bad Request
     return(list(error = "Invalid Parameter Value Error."))
@@ -4545,7 +4545,7 @@ function(req, res, new_pass_1 = "", new_pass_2 = "") {
   user_jwt <- jwt_decode_hmac(jwt, secret = key)
   user_jwt$token_expired <- (user_jwt$exp < as.numeric(Sys.time()))
 
-  if (is.null(jwt) || user_jwt$token_expired){
+  if (is.null(jwt) || user_jwt$token_expired) {
     res$status <- 401 # Unauthorized
     return(list(error = "Reset token expired."))
   } else {
@@ -4580,7 +4580,7 @@ function(req, res, new_pass_1 = "", new_pass_2 = "") {
 
     # connect to database and change password
     # if criteria fullfilled, remove time to invalidate JWT
-    if (jwt_match && new_pass_match_and_valid){
+    if (jwt_match && new_pass_match_and_valid) {
       # connect to database, put approval for user application then disconnect
     sysndd_db <- dbConnect(RMariaDB::MariaDB(),
       dbname = dw$dbname,
@@ -4658,7 +4658,7 @@ function(signup_data) {
       ungroup() %>%
       select(valid)
 
-  if (input_validation$valid){
+  if (input_validation$valid) {
 
     # connect to database
     sysndd_db <- dbConnect(RMariaDB::MariaDB(),
@@ -4725,13 +4725,13 @@ function(req, res, user_name, password) {
     mutate(exp = as.numeric(Sys.time()) + dw$refresh)
 
   # return answer depending on user credentials status
-  if (nrow(user_filtered) != 1){
+  if (nrow(user_filtered) != 1) {
     res$status <- 401
     res$body <- "User or password wrong."
     res
   }
 
-  if (nrow(user_filtered) == 1){
+  if (nrow(user_filtered) == 1) {
     claim <- jwt_claim(user_id = user_filtered$user_id,
     user_name = user_filtered$user_name,
     email = user_filtered$email,
@@ -4762,7 +4762,7 @@ function(req, res) {
   user <- jwt_decode_hmac(jwt, secret = key)
   user$token_expired <- (user$exp < as.numeric(Sys.time()))
 
-  if (is.null(jwt) || user$token_expired){
+  if (is.null(jwt) || user$token_expired) {
     res$status <- 401 # Unauthorized
     return(list(error = "Authentication not successful."))
   } else {
@@ -4792,7 +4792,7 @@ function(req, res) {
   user <- jwt_decode_hmac(jwt, secret = key)
   user$token_expired <- (user$exp < as.numeric(Sys.time()))
 
-  if (is.null(jwt) || user$token_expired){
+  if (is.null(jwt) || user$token_expired) {
     res$status <- 401 # Unauthorized
     return(list(error = "Authentication not successful."))
   } else {

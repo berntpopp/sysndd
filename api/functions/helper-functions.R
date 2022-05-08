@@ -24,7 +24,7 @@ random_password <- function() {
 
 # validate email
 # based on https://www.r-bloggers.com/2012/07/validating-email-adresses-in-r/
-isValidEmail <- function(x) {
+is_valid_email <- function(x) {
     grepl("\\<[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\>",
       as.character(x),
       ignore.case = TRUE
