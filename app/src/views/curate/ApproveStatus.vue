@@ -308,22 +308,19 @@ export default {
         },
         async handleAllStatusOk() {
           if(this.approve_all_selected) {
-            this.items_StatusTable.forEach((x, i) => {
-                let apiUrl = process.env.VUE_APP_API_URL + '/api/status/approve/' + x.status_id + '?status_ok=true';
-                try {
-                  let response = this.axios.put(apiUrl, {}, {
-                    headers: {
-                      'Authorization': 'Bearer ' + localStorage.getItem('token')
-                    }
-                  });
+              let apiUrl = process.env.VUE_APP_API_URL + '/api/status/approve/all?status_ok=true';
+              try {
+                let response = this.axios.put(apiUrl, {}, {
+                  headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('token')
+                  }
+                });
 
-                this.loadStatusTableData();
+              this.loadStatusTableData();
 
-                } catch (e) {
-                  this.makeToast(e, 'Error', 'danger');
-                }
+              } catch (e) {
+                this.makeToast(e, 'Error', 'danger');
               }
-            );
           }
         },
         checkAllApprove() {

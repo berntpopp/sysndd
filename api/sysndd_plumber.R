@@ -1340,7 +1340,7 @@ function(req, res, review_id_requested, review_ok = FALSE) {
 
     submit_user_id <- req$user_id
 
-    # set review if confirmed
+    # set review_id depending on request is all or one
     if (review_id_requested == "all") {
       # get data from database and filter
       review_id_requested_tibble <- pool %>%
@@ -2995,7 +2995,7 @@ function(req, res, `filter[status_approved]` = 0) {
     tbl("ndd_entity_status_categories_list")
 
   sysndd_db_status_table_collected <- sysndd_db_status_table %>%
-    inner_join(entity_status_categories_coll, by=c("category_id")) %>%
+    inner_join(entity_status_categories_coll, by = c("category_id")) %>%
     collect() %>%
     select(status_id,
       entity_id,
@@ -3112,17 +3112,30 @@ function(req, res, status_id_requested, status_ok = FALSE) {
   if (length(req$user_id) == 0) {
 
     res$status <- 401 # Unauthorized
-    return(list(error="Please authenticate."))
+    return(list(error = "Please authenticate."))
 
   } else if (req$user_role %in% c("Administrator", "Curator")) {
 
     submit_user_id <- req$user_id
-    status_id_requested <- as.integer(status_id_requested)
+
+    # set status_id depending on request is all or one
+    if (status_id_requested == "all") {
+      # get data from database and filter
+      sysndd_db_status_table <- pool %>%
+        tbl("ndd_entity_status") %>%
+        filter(status_approved == 0) %>%
+        collect() %>%
+        select(status_id)
+
+      status_id_requested <- sysndd_db_status_table$status_id
+    } else {
+      status_id_requested <- as.integer(status_id_requested)
+    }
 
     # get table data from database
     ndd_entity_status_data <- pool %>%
       tbl("ndd_entity_status") %>%
-      filter(status_id == status_id_requested) %>%
+      filter(status_id %in% status_id_requested) %>%
       collect()
 
     # connect to database
@@ -3138,46 +3151,47 @@ function(req, res, status_id_requested, status_ok = FALSE) {
     if (status_ok) {
       # reset all stati in ndd_entity_status to inactive
       dbExecute(sysndd_db,
-        paste0("UPDATE ndd_entity_status SET is_active = 0 WHERE entity_id = ",
-          ndd_entity_status_data$entity_id,
-          ";"))
+        paste0("UPDATE ndd_entity_status SET is_active = 0 ",
+          "WHERE entity_id IN (",
+          str_c(ndd_entity_status_data$entity_id, collapse = ", "),
+          ");"))
 
       # set status of the new status from ndd_entity_status_data to active,
       # add approving_user_id and set approved status to approved
       dbExecute(sysndd_db,
-        paste0("UPDATE ndd_entity_status SET is_active = 1 WHERE status_id = ",
-          ndd_entity_status_data$status_id,
-          ";"))
+        paste0("UPDATE ndd_entity_status SET is_active = 1 ",
+        "WHERE status_id IN (",
+          str_c(ndd_entity_status_data$status_id, collapse = ", "),
+          ");"))
 
       dbExecute(sysndd_db,
         paste0("UPDATE ndd_entity_status SET approving_user_id = ",
           submit_user_id,
-          " WHERE status_id = ",
-          ndd_entity_status_data$status_id,
-          ";"))
+          " WHERE status_id IN (",
+          str_c(ndd_entity_status_data$status_id, collapse = ", "),
+          ");"))
 
       dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status ",
         "SET status_approved = 1 ",
-        "WHERE status_id = ",
-        ndd_entity_status_data$status_id,
-        ";"))
+        "WHERE status_id IN (",
+          str_c(ndd_entity_status_data$status_id, collapse = ", "),
+          ");"))
 
     } else {
       # add approving_user_id and set approved status to unapproved
       dbExecute(sysndd_db,
         paste0("UPDATE ndd_entity_status SET approving_user_id = ",
           submit_user_id,
-          " WHERE status_id = ",
-          ndd_entity_status_data$status_id,
-          ";"))
+          " WHERE status_id IN (",
+          str_c(ndd_entity_status_data$status_id, collapse = ", "),
+          ");"))
 
       dbExecute(sysndd_db,
         paste0("UPDATE ndd_entity_status ",
           "SET status_approved = 0 ",
-          "WHERE status_id = ",
-          ndd_entity_status_data$status_id,
-          ";"))
-
+          "WHERE status_id IN (",
+          str_c(ndd_entity_status_data$status_id, collapse = ", "),
+          ");"))
     }
 
     # disconnect from database
@@ -3185,7 +3199,7 @@ function(req, res, status_id_requested, status_ok = FALSE) {
 
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Write access forbidden."))
+    return(list(error = "Write access forbidden."))
   }
 }
 
