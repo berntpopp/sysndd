@@ -5,7 +5,7 @@ make_entities_plot <- function(data_tibble) {
     stat_bin(data = subset(data_tibble, category == "Definitive"),
       aes(y = cumsum(..count..)),
       geom = "step", bins = 30) +
-    stat_bin(data=subset(data_tibble, category == "Limited"),
+    stat_bin(data = subset(data_tibble, category == "Limited"),
       aes(y = cumsum(..count..)),
       geom = "step", bins = 30) +
     theme_classic() +

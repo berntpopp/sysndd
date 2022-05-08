@@ -191,11 +191,11 @@ function(req, res) {
   } else {
     if (is.null(req$HTTP_AUTHORIZATION)) {
       res$status <- 401 # Unauthorized
-      return(list(error="Authorization http header missing."))
+      return(list(error = "Authorization http header missing."))
     } else if (jwt_decode_hmac(str_remove(req$HTTP_AUTHORIZATION, "Bearer "),
         secret = key)$exp < as.numeric(Sys.time())) {
       res$status <- 401 # Unauthorized
-      return(list(error="Token expired."))
+      return(list(error = "Token expired."))
     } else {
       # load jwt from header
       jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
@@ -340,8 +340,10 @@ function(req, res) {
       # convert publications to tibble
       if (length(compact(create_data$review$literature)) > 0) {
         publications_received <- bind_rows(
-            tibble::as_tibble(compact(create_data$review$literature$additional_references)),
-            tibble::as_tibble(compact(create_data$review$literature$gene_review)),
+            tibble::as_tibble(compact(
+              create_data$review$literature$additional_references)),
+            tibble::as_tibble(compact(
+              create_data$review$literature$gene_review)),
             .id = "publication_type") %>%
           select(publication_id = value, publication_type) %>%
           mutate(publication_type = case_when(
@@ -420,10 +422,10 @@ function(req, res) {
           as.integer(sysnopsis_received$entity_id),
           as.integer(response_review$entry$review_id))
       } else {
-        response_publication <- list(status=200,
-          message="OK. Skipped.")
-        response_publication_connections <- list(status=200,
-          message="OK. Skipped.")
+        response_publication <- list(status = 200,
+          message = "OK. Skipped.")
+        response_publication_connections <- list(status = 200,
+          message = "OK. Skipped.")
       }
 
       # only submit phenotype connections if not empty
@@ -436,8 +438,8 @@ function(req, res) {
           as.integer(sysnopsis_received$entity_id),
           as.integer(response_review$entry$review_id))
       } else {
-        response_phenotype_connections <- list(status=200,
-          message="OK. Skipped.")
+        response_phenotype_connections <- list(status = 200,
+          message = "OK. Skipped.")
       }
 
       # only submit variation ontology connections if not empty
@@ -450,8 +452,8 @@ function(req, res) {
           as.integer(sysnopsis_received$entity_id),
           as.integer(response_review$entry$review_id))
       } else {
-        response_variation_ontology_conn <- list(status=200,
-          message="OK. Skipped.")
+        response_variation_ontology_conn <- list(status = 200,
+          message = "OK. Skipped.")
       }
 
       # compute aggregated review response
@@ -507,8 +509,8 @@ function(req, res) {
         mutate(message = str_c(message, collapse = "; "))
 
       res$status <- response_entity_review_post$status
-      return(list(status=response_entity_review_post$status,
-        message=response_entity_review_post$message))
+      return(list(status = response_entity_review_post$status,
+        message = response_entity_review_post$message))
     }
 
     if (response_entity$status == 200 &
@@ -526,12 +528,12 @@ function(req, res) {
         mutate(message = str_c(message, collapse = "; "))
 
       res$status <- response$status
-      return(list(status=response$status, message=response$message))
+      return(list(status = response$status, message = response$message))
     }
 
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Write access forbidden."))
+    return(list(error = "Write access forbidden."))
   }
 }
 
@@ -636,8 +638,8 @@ function(req, res) {
             as.integer(response_new_entity$entry$entity_id),
             as.integer(response_review$entry$review_id))
         } else {
-          response_publication_connections <- list(status=200,
-            message="OK. Skipped.")
+          response_publication_connections <- list(status = 200,
+            message = "OK. Skipped.")
         }
 
         # only submit phenotype connections if not empty
@@ -650,8 +652,8 @@ function(req, res) {
             as.integer(response_new_entity$entry$entity_id),
             as.integer(response_review$entry$review_id))
         } else {
-          response_phenotype_connections <- list(status=200,
-            message="OK. Skipped.")
+          response_phenotype_connections <- list(status = 200,
+            message = "OK. Skipped.")
         }
 
         # only submit variation ontology connections if not empty
@@ -664,8 +666,8 @@ function(req, res) {
             as.integer(response_new_entity$entry$entity_id),
             as.integer(response_review$entry$review_id))
         } else {
-          response_variation_ontology_conn <- list(status=200,
-            message="OK. Skipped.")
+          response_variation_ontology_conn <- list(status = 200,
+            message = "OK. Skipped.")
         }
 
         # compute aggregated review response
@@ -845,7 +847,7 @@ function(sysndd_id) {
   phenotype_list <- ndd_entity_active %>%
     left_join(ndd_review_phenotype_conn_coll, by = c("entity_id")) %>%
     filter(entity_id == sysndd_id) %>%
-    inner_join(phenotype_list_collected, by=c("phenotype_id")) %>%
+    inner_join(phenotype_list_collected, by = c("phenotype_id")) %>%
     select(entity_id, phenotype_id, HPO_term, modifier_id) %>%
     arrange(phenotype_id) %>%
     unique()
@@ -869,7 +871,7 @@ function(sysndd_id) {
 
   variation_list <- ndd_review_variation_conn_coll %>%
     filter(entity_id == sysndd_id) %>%
-    inner_join(variation_list_collected, by=c("vario_id")) %>%
+    inner_join(variation_list_collected, by = c("vario_id")) %>%
     select(entity_id, vario_id, vario_name, modifier_id) %>%
     arrange(vario_id) %>%
     unique()
@@ -916,7 +918,7 @@ function(sysndd_id) {
 
   ndd_entity_status_list <- ndd_entity_status_collected %>%
     filter(entity_id == sysndd_id & is_active) %>%
-    inner_join(entity_status_categories_coll, by=c("category_id")) %>%
+    inner_join(entity_status_categories_coll, by = c("category_id")) %>%
     select(status_id,
       entity_id,
       category,
@@ -1092,9 +1094,9 @@ function(req, res) {
             as.integer(sysnopsis_received$entity_id),
             as.integer(response_review$entry$review_id))
         } else {
-          response_publication <- list(status=200, message="OK. Skipped.")
-          response_publication_connections <- list(status=200,
-            message="OK. Skipped.")
+          response_publication <- list(status = 200, message = "OK. Skipped.")
+          response_publication_connections <- list(status = 200,
+            message = "OK. Skipped.")
         }
 
         # only submit phenotype connections if not empty
@@ -1107,8 +1109,8 @@ function(req, res) {
             as.integer(sysnopsis_received$entity_id),
             as.integer(response_review$entry$review_id))
         } else {
-          response_phenotype_connections <- list(status=200,
-            message="OK. Skipped.")
+          response_phenotype_connections <- list(status = 200,
+            message = "OK. Skipped.")
         }
 
         # only submit variation ontology connections if not empty
@@ -1121,8 +1123,8 @@ function(req, res) {
             as.integer(sysnopsis_received$entity_id),
             as.integer(response_review$entry$review_id))
         } else {
-          response_variation_ontology_conn <- list(status=200,
-            message="OK. Skipped.")
+          response_variation_ontology_conn <- list(status = 200,
+            message = "OK. Skipped.")
         }
 
         # compute response
@@ -1137,7 +1139,7 @@ function(req, res) {
           mutate(message = str_c(message, collapse = "; "))
 
         # return aggregated response
-        return(list(status=response$status, message=response$message))
+        return(list(status = response$status, message = response$message))
         ##-------------------------------------------------------------------##
       } else if (req$REQUEST_METHOD == "PUT") {
         ##-------------------------------------------------------------------##
@@ -1166,8 +1168,8 @@ function(req, res) {
           review_data$review_id)
 
         } else {
-          response_publication <- list(status=200, message="OK. Skipped.")
-          response_publication_connections <- list(status=200, message="OK. Skipped.")
+          response_publication <- list(status = 200, message = "OK. Skipped.")
+          response_publication_connections <- list(status = 200, message = "OK. Skipped.")
         }
 
         # only submit phenotype connections if not empty
@@ -1180,8 +1182,8 @@ function(req, res) {
             as.integer(sysnopsis_received$entity_id),
             as.integer(review_data$review_id))
         } else {
-          response_phenotype_connections <- list(status=200,
-            message="OK. Skipped.")
+          response_phenotype_connections <- list(status = 200,
+            message = "OK. Skipped.")
         }
 
         # only submit variation ontology connections if not empty
@@ -1194,8 +1196,8 @@ function(req, res) {
             as.integer(sysnopsis_received$entity_id),
             as.integer(review_data$review_id))
         } else {
-          response_variation_ontology_conn <- list(status=200,
-            message="OK. Skipped.")
+          response_variation_ontology_conn <- list(status = 200,
+            message = "OK. Skipped.")
         }
 
         # compute response
@@ -1210,22 +1212,22 @@ function(req, res) {
           mutate(message = str_c(message, collapse = "; "))
 
         # return aggregated response
-        return(list(status=response$status, message=response$message))
+        return(list(status = response$status, message = response$message))
         ##-------------------------------------------------------------------##
       } else {
         # return Method Not Allowed
-        return(list(status=405, message="Method Not Allowed."))
+        return(list(status = 405, message = "Method Not Allowed."))
       }
       ##-------------------------------------------------------------------##
 
     } else {
       res$status <- 400 # Bad Request
-      return(list(error="Submitted synopsis data can not be empty."))
+      return(list(error = "Submitted synopsis data can not be empty."))
     }
 
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Write access forbidden."))
+    return(list(error = "Write access forbidden."))
   }
 }
 
@@ -1291,7 +1293,7 @@ function(review_id_requested) {
 
   phenotype_list <- ndd_review_phenotype_conn_coll %>%
     filter(review_id == review_id_requested) %>%
-    inner_join(phenotype_list_collected, by=c("phenotype_id")) %>%
+    inner_join(phenotype_list_collected, by = c("phenotype_id")) %>%
     select(review_id, entity_id, phenotype_id, HPO_term, modifier_id) %>%
     arrange(phenotype_id)
 }
@@ -1419,7 +1421,7 @@ function(req, res, review_id_requested, review_ok = FALSE) {
 
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Write access forbidden."))
+    return(list(error = "Write access forbidden."))
   }
 }
 
@@ -1755,12 +1757,12 @@ function(req, res, review_json) {
       ##-------------------------------------------------------------------##
     } else {
       res$status <- 400 # Bad Request
-      return(list(error="Submitted synopsis data can not be empty."))
+      return(list(error = "Submitted synopsis data can not be empty."))
     }
 
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Write access forbidden."))
+    return(list(error = "Write access forbidden."))
   }
 }
 
@@ -1866,12 +1868,12 @@ function(req, res, status_json) {
 
     } else {
       res$status <- 400 # Bad Request
-      return(list(error="Submitted data can not be null."))
+      return(list(error = "Submitted data can not be null."))
     }
 
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Write access forbidden."))
+    return(list(error = "Write access forbidden."))
   }
 }
 
@@ -1919,7 +1921,7 @@ function(req, res, submit_json) {
 
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Write access forbidden."))
+    return(list(error = "Write access forbidden."))
   }
 }
 
@@ -1934,7 +1936,7 @@ function(req, res, re_review_id) {
   if (length(req$user_id) == 0) {
 
     res$status <- 401 # Unauthorized
-    return(list(error="Please authenticate."))
+    return(list(error = "Please authenticate."))
 
   } else if (req$user_role %in% c("Administrator", "Curator")) {
 
@@ -1963,7 +1965,7 @@ function(req, res, re_review_id) {
 
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Write access forbidden."))
+    return(list(error = "Write access forbidden."))
   }
 }
 
@@ -1981,7 +1983,7 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
   if (length(req$user_id) == 0) {
 
     res$status <- 401 # Unauthorized
-    return(list(error="Please authenticate."))
+    return(list(error = "Please authenticate."))
 
   } else if (req$user_role %in% c("Administrator", "Curator")) {
 
@@ -2123,7 +2125,7 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
 
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Write access forbidden."))
+    return(list(error = "Write access forbidden."))
   }
 }
 
@@ -2139,7 +2141,7 @@ function(req, res, curate=FALSE) {
   if (length(req$user_id) == 0) {
 
     res$status <- 401 # Unauthorized
-    return(list(error="Please authenticate."))
+    return(list(error = "Please authenticate."))
 
   } else if (
     (req$user_role %in% c("Administrator", "Curator", "Reviewer") & !curate) |
@@ -2183,7 +2185,7 @@ function(req, res, curate=FALSE) {
 
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Read access forbidden."))
+    return(list(error = "Read access forbidden."))
   }
 }
 
@@ -2200,7 +2202,7 @@ function(req, res) {
   if (length(user) == 0) {
 
     res$status <- 401 # Unauthorized
-    return(list(error="Please authenticate."))
+    return(list(error = "Please authenticate."))
 
   } else if (req$user_role %in% c("Administrator", "Curator", "Reviewer")) {
 
@@ -2228,7 +2230,7 @@ function(req, res) {
 
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Read access forbidden."))
+    return(list(error = "Read access forbidden."))
   }
 }
 
@@ -2257,7 +2259,7 @@ function(req, res, user_id) {
   re_review_entity_connect <- pool %>%
     tbl("re_review_entity_connect") %>%
     select(re_review_batch) %>%
-    anti_join(re_review_assignment, by=c("re_review_batch")) %>%
+    anti_join(re_review_assignment, by = c("re_review_batch")) %>%
     collect() %>%
     unique() %>%
     summarise(re_review_batch = min(re_review_batch))
@@ -2271,12 +2273,12 @@ function(req, res, user_id) {
   if (length(user) == 0) {
 
     res$status <- 401 # Unauthorized
-    return(list(error="Please authenticate."))
+    return(list(error = "Please authenticate."))
 
   } else if (req$user_role %in% c("Administrator", "Curator") & !user_id_assign_exists) {
 
     res$status <- 409 # Conflict
-    return(list(error="User account does not exist."))
+    return(list(error = "User account does not exist."))
 
   } else if (req$user_role %in% c("Administrator", "Curator") & user_id_assign_exists) {
 
@@ -2294,7 +2296,7 @@ function(req, res, user_id) {
 
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Read access forbidden."))
+    return(list(error = "Read access forbidden."))
   }
 }
 
@@ -2321,14 +2323,14 @@ function(req, res, re_review_batch) {
   if (length(user) == 0) {
 
     res$status <- 401 # Unauthorized
-    return(list(error="Please authenticate."))
+    return(list(error = "Please authenticate."))
 
   } else if (
     req$user_role %in% c("Administrator", "Curator") &
     !re_review_batch_unassign_exists) {
 
     res$status <- 409 # Conflict
-    return(list(error="Batch does not exist."))
+    return(list(error = "Batch does not exist."))
 
   } else if (
     req$user_role %in% c("Administrator", "Curator") &
@@ -2352,7 +2354,7 @@ function(req, res, re_review_batch) {
 
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Read access forbidden."))
+    return(list(error = "Read access forbidden."))
   }
 }
 
@@ -2369,7 +2371,7 @@ function(req, res) {
   if (length(user) == 0) {
 
     res$status <- 401 # Unauthorized
-    return(list(error="Please authenticate."))
+    return(list(error = "Please authenticate."))
 
   } else if (req$user_role %in% c("Administrator", "Curator")) {
 
@@ -2411,7 +2413,7 @@ function(req, res) {
     re_review_assignment_table_user
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Read access forbidden."))
+    return(list(error = "Read access forbidden."))
   }
 }
 
@@ -2846,17 +2848,17 @@ phenotype_entities_list <- generate_phenotype_entities_list(sort,
   write.xlsx(phenotype_entities_list$data,
     filename,
     sheetName="data",
-    append=FALSE)
+    append = FALSE)
 
   write.xlsx(phenotype_entities_list$meta,
     filename,
     sheetName="meta",
-    append=TRUE)
+    append = TRUE)
 
   write.xlsx(phenotype_entities_list$links,
     filename,
     sheetName="links",
-    append=TRUE)
+    append = TRUE)
 
   attachmentString <- paste0("attachment; filename=phenotype_panel.",
     creation_date,
@@ -3036,7 +3038,7 @@ function(status_id_requested) {
 
   sysndd_db_status_table_collected <- sysndd_db_status_table %>%
     filter(status_id == status_id_requested) %>%
-    inner_join(entity_status_categories_coll, by=c("category_id")) %>%
+    inner_join(entity_status_categories_coll, by = c("category_id")) %>%
     left_join(user_table, by = c("status_user_id" = "user_id")) %>%
     left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
     collect() %>%
@@ -3095,7 +3097,7 @@ function(req, res) {
 
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Write access forbidden."))
+    return(list(error = "Write access forbidden."))
   }
 }
 
@@ -3299,17 +3301,17 @@ function(res,
   write.xlsx(panels_list$data,
     filename,
     sheetName="data",
-    append=FALSE)
+    append = FALSE)
 
   write.xlsx(panels_list$meta,
     filename,
     sheetName="meta",
-    append=TRUE)
+    append = TRUE)
 
   write.xlsx(panels_list$links,
     filename,
     sheetName="links",
-    append=TRUE)
+    append = TRUE)
 
   attachmentString <- paste0("attachment; filename=sysndd_panel.",
     creation_date,
@@ -3318,7 +3320,7 @@ function(res,
   res$setHeader("Content-Disposition", attachmentString)
 
   # Read in the raw contents of the binary file
-  bin <- readBin(filename, "raw", n=file.info(filename)$size)
+  bin <- readBin(filename, "raw", n = file.info(filename)$size)
 
   #Check file existence and delete
   if (file.exists(filename)) {
@@ -3413,7 +3415,8 @@ function(res, aggregate = "entity_id", group = "category") {
       mutate(., entry_date = min(entry_date)) %>%
       ungroup(.) %>%
       unique(.)
-     else .} %>%
+     else .
+     } %>%
     mutate(count = 1) %>%
     arrange(entry_date) %>%
     group_by(!!rlang::sym(group)) %>%
@@ -3632,17 +3635,17 @@ comparisons_list <- generate_comparisons_list(sort,
   write.xlsx(comparisons_list$data,
     filename,
     sheetName="data",
-    append=FALSE)
+    append = FALSE)
 
   write.xlsx(comparisons_list$meta,
     filename,
     sheetName="meta",
-    append=TRUE)
+    append = TRUE)
 
   write.xlsx(comparisons_list$links,
     filename,
     sheetName="links",
-    append=TRUE)
+    append = TRUE)
 
   attachmentString <- paste0("attachment; filename=curation_comparisons.",
     creation_date,
@@ -4052,7 +4055,7 @@ function(req, res) {
   if (length(user) == 0) {
 
     res$status <- 401 # Unauthorized
-    return(list(error="Please authenticate."))
+    return(list(error = "Please authenticate."))
 
   } else if (req$user_role %in% c("Administrator")) {
 
@@ -4097,7 +4100,7 @@ function(req, res) {
 
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Read access forbidden."))
+    return(list(error = "Read access forbidden."))
   }
 }
 
@@ -4125,20 +4128,20 @@ function(req, res, user_id = 0, status_approval = FALSE) {
   if (length(user) == 0) {
 
     res$status <- 401 # Unauthorized
-    return(list(error="Please authenticate."))
+    return(list(error = "Please authenticate."))
 
   } else if (req$user_role %in% c("Administrator", "Curator") &
       !user_id_approval_exists) {
 
     res$status <- 409 # Conflict
-    return(list(error="User account does not exist."))
+    return(list(error = "User account does not exist."))
 
   } else if (req$user_role %in% c("Administrator", "Curator") &
       user_id_approval_exists &
       user_id_approval_approved) {
 
     res$status <- 409 # Conflict
-    return(list(error="User account already active."))
+    return(list(error = "User account already active."))
 
   } else if (req$user_role %in% c("Administrator", "Curator") &
       user_id_approval_exists &
@@ -4208,7 +4211,7 @@ function(req, res, user_id = 0, status_approval = FALSE) {
     }
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Read access forbidden."))
+    return(list(error = "Read access forbidden."))
   }
 }
 
@@ -4224,7 +4227,7 @@ function(req, res, user_id, role_assigned = "Viewer") {
   # first check rights
   if (length(user) == 0) {
     res$status <- 401 # Unauthorized
-    return(list(error="Please authenticate."))
+    return(list(error = "Please authenticate."))
   } else if (req$user_role %in% c("Administrator")) {
     # connect to database and perform update query then disconnect
     sysndd_db <- dbConnect(RMariaDB::MariaDB(),
@@ -4267,10 +4270,10 @@ function(req, res, user_id, role_assigned = "Viewer") {
   } else if (req$user_role %in% c("Curator") &
       role_assigned %in% c("Administrator")) {
     res$status <- 403 # Forbidden
-    return(list(error="Insufficiant rights."))
+    return(list(error = "Insufficiant rights."))
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Write access forbidden."))
+    return(list(error = "Write access forbidden."))
   }
 }
 
@@ -4286,7 +4289,7 @@ function(req, res) {
   if (length(user) == 0) {
 
     res$status <- 401 # Unauthorized
-    return(list(error="Please authenticate."))
+    return(list(error = "Please authenticate."))
 
   } else if (req$user_role %in% c("Administrator")) {
 
@@ -4303,7 +4306,7 @@ function(req, res) {
 
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Read access forbidden."))
+    return(list(error = "Read access forbidden."))
   }
 }
 
@@ -4335,7 +4338,7 @@ function(req, res, roles = "Viewer") {
   if (length(user) == 0) {
 
     res$status <- 401 # Unauthorized
-    return(list(error="Please authenticate."))
+    return(list(error = "Please authenticate."))
 
   } else if (req$user_role %in% c("Administrator", "Curator")) {
 
@@ -4349,7 +4352,7 @@ function(req, res, roles = "Viewer") {
 
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Read access forbidden."))
+    return(list(error = "Read access forbidden."))
   }
 }
 
@@ -4399,7 +4402,7 @@ function(
   if (length(user) == 0) {
 
     res$status <- 401 # Unauthorized
-    return(list(error="Please authenticate."))
+    return(list(error = "Please authenticate."))
 
   } else if (
     (req$user_role %in% c("Administrator") || user == user_id_pass_change) &&
@@ -4408,7 +4411,7 @@ function(
     new_pass_match_and_valid) {
 
     res$status <- 409 # Conflict
-    return(list(error="User account does not exist."))
+    return(list(error = "User account does not exist."))
 
   } else if (
     (req$user_role %in% c("Administrator") || user == user_id_pass_change) &&
@@ -4417,7 +4420,7 @@ function(
     new_pass_match_and_valid) {
 
     res$status <- 409 # Conflict
-    return(list(error="User account not approved."))
+    return(list(error = "User account not approved."))
 
   } else if (
     (req$user_role %in% c("Administrator") || user == user_id_pass_change) &&
@@ -4426,7 +4429,7 @@ function(
       !new_pass_match_and_valid)) {
 
     res$status <- 409 # Conflict
-    return(list(error="Password input problem."))
+    return(list(error = "Password input problem."))
 
   }  else if (
     (req$user_role %in% c("Administrator") || user == user_id_pass_change) &&
@@ -4454,11 +4457,11 @@ function(
     dbDisconnect(sysndd_db)
 
     res$status <- 201 # Created
-    return(list(message="Password successfully changed."))
+    return(list(message = "Password successfully changed."))
 
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Read access forbidden."))
+    return(list(error = "Read access forbidden."))
   }
 }
 
@@ -4476,7 +4479,7 @@ function(req, res, email_request = "") {
   if (!isValidEmail(email_request)) {
 
     res$status <- 400 # Bad Request
-    return(list(error="Invalid Parameter Value Error."))
+    return(list(error = "Invalid Parameter Value Error."))
 
   } else if (!(email_request %in% user_table$email)) {
     res$status <- 200 # OK
@@ -4541,7 +4544,7 @@ function(req, res, email_request = "") {
       )
   } else {
     res$status <- 401 # Unauthorized
-    return(list(error="Error or unauthorized."))
+    return(list(error = "Error or unauthorized."))
   }
 }
 
@@ -4562,7 +4565,7 @@ function(req, res, new_pass_1 = "", new_pass_2 = "") {
 
   if (is.null(jwt) || user_jwt$token_expired){
     res$status <- 401 # Unauthorized
-    return(list(error="Reset token expired."))
+    return(list(error = "Reset token expired."))
   } else {
     #get user data from database table
     user_table <- pool %>%
@@ -4620,10 +4623,10 @@ function(req, res, new_pass_1 = "", new_pass_2 = "") {
       dbDisconnect(sysndd_db)
 
       res$status <- 201 # Created
-      return(list(message="Password successfully changed."))
+      return(list(message = "Password successfully changed."))
     } else {
       res$status <- 409 # Conflict
-      return(list(error="Password or JWT input problem."))
+      return(list(error = "Password or JWT input problem."))
     }
   }
 }
@@ -4779,7 +4782,7 @@ function(req, res) {
 
   if (is.null(jwt) || user$token_expired){
     res$status <- 401 # Unauthorized
-    return(list(error="Authentication not successful."))
+    return(list(error = "Authentication not successful."))
   } else {
     return(list(user_id = user$user_id,
       user_name = user$user_name,
@@ -4809,7 +4812,7 @@ function(req, res) {
 
   if (is.null(jwt) || user$token_expired){
     res$status <- 401 # Unauthorized
-    return(list(error="Authentication not successful."))
+    return(list(error = "Authentication not successful."))
   } else {
     claim <- jwt_claim(user_id = user$user_id,
       user_name = user$user_name,

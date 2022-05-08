@@ -17,7 +17,7 @@ nest_gene_tibble <- function(tibble) {
 # questions/22219035/function-to-generate-a-random-password"
 random_password <- function() {
   samp <- c(0:9, letters, LETTERS, "!", "$")
-  password <- paste(sample(samp, 12), collapse="")
+  password <- paste(sample(samp, 12), collapse = "")
   return(password)
 }
 
