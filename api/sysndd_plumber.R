@@ -715,18 +715,19 @@ function(req, res) {
             mutate(message = str_c(message, collapse = "; "))
 
         res$status <- response$status
-        return(list(status=response$status, message=response$message))
+        return(list(status = response$status,
+           message = response$message))
         }
         ##-------------------------------------------------------------------##
 
     } else {
       res$status <- 400 # Bad Request
-      return(list(error="This endpoint only allows renaming the disease ontology of an entity."))
+      return(list(error = "This endpoint only allows renaming the disease ontology of an entity."))
     }
 
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Write access forbidden."))
+    return(list(error = "Write access forbidden."))
   }
 }
 
@@ -770,7 +771,7 @@ function(req, res) {
           ndd_entity_original$is_active) {
 
         ##-------------------------------------------------------------------##
-        # block to deactivate the entity using 
+        # block to deactivate the entity using
         # PutDatabaseEntityDeactivation function
         response_new_entity <- PutDatabaseEntityDeactivation(
           deactivate_data$entity$entity_id,
@@ -781,18 +782,18 @@ function(req, res) {
         ##-------------------------------------------------------------------##
         # block to compute response
         res$status <- response_new_entity$status
-        return(list(status=response_new_entity$status,
-          message=response_new_entity$message))
+        return(list(status = response_new_entity$status,
+          message = response_new_entity$message))
         ##-------------------------------------------------------------------##
 
     } else {
       res$status <- 400 # Bad Request
-      return(list(error="This endpoint only allows deactivating an entity."))
+      return(list(error = "This endpoint only allows deactivating an entity."))
     }
 
   } else {
     res$status <- 403 # Forbidden
-    return(list(error="Write access forbidden."))
+    return(list(error = "Write access forbidden."))
   }
 }
 
