@@ -2903,7 +2903,7 @@ function() {
   ndd_entity_review <- pool %>%
     tbl("ndd_entity_review") %>%
     collect() %>%
-    filter() %>%
+    filter(is_primary == 1) %>%
     select(review_id)
 
   sysndd_db_phenotypes  <- ndd_entity_view_tbl %>%
@@ -2964,7 +2964,7 @@ function() {
   ndd_entity_review <- pool %>%
     tbl("ndd_entity_review") %>%
     collect() %>%
-    filter() %>%
+    filter(is_primary == 1) %>%
     select(review_id)
 
   sysndd_db_phenotypes  <- ndd_entity_view_tbl %>%
