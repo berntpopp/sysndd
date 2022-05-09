@@ -3676,7 +3676,7 @@ function(searchterm, helper = TRUE) {
     mutate(search = str_replace(search, "entity", "entity_id")) %>%
     mutate(searchdist = stringdist(str_to_lower(results),
       str_to_lower(searchterm),
-      smethod = "jw",
+      method = "jw",
       p=0.1)) %>%
     arrange(searchdist, results) %>%
     mutate(link = case_when(
@@ -3746,7 +3746,7 @@ function(searchterm, tree = FALSE) {
     mutate(searchdist = stringdist(
       str_to_lower(result),
       str_to_lower(searchterm),
-      smethod = "jw",
+      method = "jw",
       p=0.1)) %>%
     arrange(searchdist, result)
 
@@ -3802,7 +3802,7 @@ function(searchterm, tree = FALSE) {
     collect() %>%
     mutate(searchdist = stringdist(str_to_lower(result),
       str_to_lower(searchterm),
-      smethod = "jw",
+      method = "jw",
       p=0.1)) %>%
     arrange(searchdist, result)
 
@@ -3853,7 +3853,7 @@ function(searchterm, tree = FALSE) {
     collect() %>%
     mutate(searchdist = stringdist(str_to_lower(result),
       str_to_lower(searchterm),
-      smethod = "jw",
+      method = "jw",
       p=0.1)) %>%
     arrange(searchdist, sort)
 
