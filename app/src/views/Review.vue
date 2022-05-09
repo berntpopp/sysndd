@@ -608,7 +608,7 @@
       header-bg-variant="dark" 
       header-text-variant="light" 
       @hide="resetStatusModal" 
-      @ok="handleStatusOk"
+      @ok="handleStatusEdit"
       >
         <template #modal-title>
           <h4>Entity: 
@@ -1196,7 +1196,7 @@ export default {
             }
           }
         },
-        handleStatusOk(bvModalEvt) {
+        handleStatusEdit(bvModalEvt) {
           let status_submission = {};
 
           status_submission.re_review_entity_id = this.entity[0].re_review_entity_id;

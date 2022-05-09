@@ -123,6 +123,7 @@
                 variant="secondary"
                 v-b-tooltip.hover.left 
                 title="Edit status"
+                @click="infoStatus(row.item, row.index, $event.target)" 
                 >
                   <b-icon 
                   icon="pen"
@@ -191,6 +192,71 @@
       </b-modal>
       <!-- Approve modal -->
 
+
+
+      <!-- Modify status modal -->
+      <b-modal 
+        :id="statusModal.id" 
+        :ref="statusModal.id" 
+        size="lg" 
+        centered 
+        ok-title="Submit" 
+        no-close-on-esc 
+        no-close-on-backdrop 
+        header-bg-variant="dark" 
+        header-text-variant="light"
+        :busy="loading_status_modal"
+        @ok="submitStatusChange"
+      >
+
+      <template #modal-title>
+        <h4>Modify status for entity: 
+          <b-badge variant="primary">
+            sysndd:{{ status_info.entity_id }}
+          </b-badge>
+        </h4>
+      </template>
+
+      <b-overlay :show="loading_status_modal" rounded="sm">
+
+        <b-form ref="form" @submit.stop.prevent="submitStatusChange">
+
+          <treeselect
+            id="status-select" 
+            :multiple="false"
+            :options="status_options"
+            v-model="status_info.category_id"
+            :normalizer="normalizeStatus"
+          />
+
+          <div class="custom-control custom-switch">
+          <input 
+            type="checkbox" 
+            button-variant="info"
+            class="custom-control-input" 
+            id="removeSwitch"
+            v-model="status_info.problematic"
+          >
+          <label class="custom-control-label" for="removeSwitch">Suggest removal</label>
+          </div>
+
+          <label class="mr-sm-2 font-weight-bold" for="status-textarea-comment">Comment</label>
+          <b-form-textarea
+            id="status-textarea-comment"
+            rows="2"
+            size="sm" 
+            v-model="status_info.comment"
+            placeholder="Why should this entities status be changed."
+          >
+          </b-form-textarea>
+        </b-form>
+
+      </b-overlay>
+
+      </b-modal>
+      <!-- Modify status modal -->
+
+
       <!-- Check approve all modal -->
       <b-modal 
       id="approveAllModal" 
@@ -226,10 +292,19 @@
 
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin.js'
+import submissionObjectsMixin from '@/assets/js/mixins/submissionObjectsMixin.js'
+
+// import the Treeselect component
+import Treeselect from '@riophae/vue-treeselect'
+// import the Treeselect styles
+import '@riophae/vue-treeselect/dist/vue-treeselect.css'
+
 
 export default {
+  // register the Treeselect component
+  components: { Treeselect },
   name: 'ApproveStatus',
-  mixins: [toastMixin],
+  mixins: [toastMixin, submissionObjectsMixin],
     data() {
       return {
         loadingStatusApprove: true,
@@ -252,8 +327,15 @@ export default {
             { key: 'is_active', label: 'Active', sortable: true, filterable: true, class: 'text-left' },
             { key: 'comment', label: 'Comment', sortable: true, filterable: true, class: 'text-left' }
         ],
+        statusModal: {
+          id: 'status-modal',
+          title: '',
+          content: []
+        },
+        entity_info: new this.Entity(),
+        status_info: new this.Status(),
+        status_options: [],
         totalRows_StatusTable: 0,
-        entity: [],
         approveModal: {
           id: 'approve-modal',
           title: '',
@@ -261,12 +343,23 @@ export default {
         },
         approve_all_selected: false,
         switch_approve_text: {true: "Yes", false: "No"},
+        loading_status_modal: true,
       };
     },
     mounted() {
+      this.loadStatusList();
       this.loadStatusTableData();
     },
     methods: {
+        async loadStatusList() {
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/list/status?tree=true';
+          try {
+            let response = await this.axios.get(apiUrl);
+            this.status_options = response.data;
+          } catch (e) {
+            this.makeToast(e, 'Error', 'danger');
+          }
+        },
         async loadStatusTableData() {
           this.loadingStatusApprove = true;
           let apiUrl = process.env.VUE_APP_API_URL + '/api/status';
@@ -283,11 +376,62 @@ export default {
           }
           this.loadingStatusApprove = false;
         },
+        async loadStatusInfo(status_id) {
+          this.loading_status_modal = true;
+
+          let apiGetURL = process.env.VUE_APP_API_URL + '/api/status/' + status_id;
+
+          try {
+            let response = await this.axios.get(apiGetURL);
+
+            // compose entity
+            this.status_info = new this.Status(response.data[0].category_id, response.data[0].comment, response.data[0].problematic);
+
+            this.status_info.status_id = response.data[0].status_id;
+            this.status_info.entity_id = response.data[0].entity_id;
+
+          this.loading_status_modal = false;
+
+            } catch (e) {
+              this.makeToast(e, 'Error', 'danger');
+            }
+        },
+        async submitStatusChange() {
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/status/update';
+
+          // perform update PUT request
+          try {
+            let response = await this.axios.put(apiUrl, {status_json: this.status_info}, {
+               headers: {
+                 'Authorization': 'Bearer ' + localStorage.getItem('token')
+               }
+             });
+
+            this.makeToast('The new status for this entity has been submitted ' + '(status ' + response.status + ' (' + response.statusText + ').', 'Success', 'success');
+            this.resetForm();
+            this.loadStatusTableData();
+
+          } catch (e) {
+            this.makeToast(e, 'Error', 'danger');
+          }
+
+        },
+        resetForm() {
+          this.entity_info = new this.Entity();
+          this.status_info = new this.Status();
+        },
         infoApproveStatus(item, index, button) {
           this.approveModal.title = `sysndd:${item.entity_id}`;
           this.entity = [];
           this.entity.push(item);
           this.$root.$emit('bv::show::modal', this.approveModal.id, button);
+        },
+        infoStatus(item, index, button) {
+          this.statusModal.title = `sysndd:${item.entity_id}`;
+          this.entity = [];
+          this.entity.push(item);
+          this.loadStatusInfo(item.status_id);
+          this.$root.$emit('bv::show::modal', this.statusModal.id, button);
         },
         async handleStatusOk(bvModalEvt) {
 
@@ -321,6 +465,12 @@ export default {
               } catch (e) {
                 this.makeToast(e, 'Error', 'danger');
               }
+          }
+        },
+        normalizeStatus(node) {
+          return {
+            id: node.category_id,
+            label: node.category,
           }
         },
         checkAllApprove() {
