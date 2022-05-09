@@ -610,7 +610,7 @@ PutPostDatabaseStatus <- function(request_method,
                 "status_id" %in% colnames(status_received)) {
         # remove entity_id if provided from status_received and
         # remove status_id to prepare update query
-        status_received <- tryCatch({
+        status_received_data <- tryCatch({
           status_received %>%
           select(-entity_id, -status_id)
         }, error = function(e) {
@@ -618,7 +618,7 @@ PutPostDatabaseStatus <- function(request_method,
         })
 
         # generate update query
-        update_query <- as_tibble(status_received) %>%
+        update_query <- as_tibble(status_received_data) %>%
           mutate(row = row_number()) %>%
           mutate(across(where(is.logical), as.integer)) %>%
           mutate(across(where(is.numeric), as.character)) %>%
