@@ -63,7 +63,7 @@
                 border-variant="dark"
               >
                 <template #header>
-                  <h5 class="mb-0 font-weight-bold">Current gene statistics (last update: {{genes_statistics.meta[0].last_update}})</h5>
+                  <h5 class="mb-0 font-weight-bold">Current gene statistics (last update: {{ last_update }})</h5>
                 </template>
                 <b-card-text class="text-left">
 
@@ -191,6 +191,21 @@
                           :key="field.key"
                           :style="{ width: field.width }"
                         >
+                      </template>
+
+                      <template #cell(entity_id)="data">
+                        <div>
+                          <b-link v-bind:href="'/Entities/' + data.item.entity_id">
+                            <b-badge 
+                            variant="primary"
+                            style="cursor:pointer"
+                             v-b-tooltip.hover.rightbottom
+                             v-bind:title="'Entry date: ' + data.item.entry_date"
+                            >
+                            sysndd:{{ data.item.entity_id }}
+                            </b-badge>
+                          </b-link>
+                        </div>
                       </template>
 
                       <template #cell(symbol)="data">
@@ -377,8 +392,15 @@ export default {
             { key: 'inheritance', label: 'Inheritance' },
             { key: 'n', label: 'Count', class: 'text-left' }
           ],
+          last_update: null,
           news: [],
           news_fields: [
+            {
+              key: 'entity_id',
+              label: 'Entity',
+              class: 'text-left',
+              width: "20%"
+            },
             { 
               key: 'symbol',
               label: 'Symbol',
@@ -408,12 +430,6 @@ export default {
               label: 'NDD',
               class: 'text-left',
               width: "10%"
-            },
-            {
-              key: 'entry_date',
-              label: 'Entry',
-              class: 'text-left',
-              width: "20%"
             }
           ],
           loading: false,
@@ -455,6 +471,8 @@ export default {
       let response_statistics_genes = await this.axios.get(apiStatisticsGenesURL);
 
       this.genes_statistics = response_statistics_genes.data;
+      const date_last_update = new Date(response_statistics_genes.data.meta[0].last_update);
+      this.last_update = date_last_update.toLocaleDateString();
 
       this.loading_statistics = false;
 
