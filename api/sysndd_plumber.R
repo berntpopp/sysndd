@@ -2899,12 +2899,20 @@ function() {
   phenotype_list_tbl <- pool %>%
     tbl("phenotype_list") %>%
     collect()
+  # needed to filter only active reviews
+  ndd_entity_review <- pool %>%
+    tbl("ndd_entity_review") %>%
+    collect() %>%
+    filter() %>%
+    select(review_id)
 
   sysndd_db_phenotypes  <- ndd_entity_view_tbl %>%
     left_join(ndd_review_phenotype_connect_tbl, by = c("entity_id")) %>%
     left_join(modifier_list_tbl, by = c("modifier_id")) %>%
     left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
     filter(ndd_phenotype == 1) %>%
+    # needed to filter only active reviews
+    filter(review_id %in% ndd_entity_review$review_id) %>%
     filter(category == "Definitive") %>%
     filter(modifier_name == "present") %>%
     select(entity_id, phenotype_id, HPO_term)
@@ -2916,6 +2924,7 @@ function() {
     mutate(has_HPO_term = case_when(
         !is.na(has_HPO_term) ~ 1
       )) %>%
+    unique() %>%
     pivot_wider(names_from = HPO_term, values_from = has_HPO_term) %>%
     replace(is.na(.), 0) %>%
     select(-entity_id)
@@ -2951,12 +2960,20 @@ function() {
   phenotype_list_tbl <- pool %>%
     tbl("phenotype_list") %>%
     collect()
+  # needed to filter only active reviews
+  ndd_entity_review <- pool %>%
+    tbl("ndd_entity_review") %>%
+    collect() %>%
+    filter() %>%
+    select(review_id)
 
   sysndd_db_phenotypes  <- ndd_entity_view_tbl %>%
     left_join(ndd_review_phenotype_connect_tbl, by = c("entity_id")) %>%
     left_join(modifier_list_tbl, by = c("modifier_id")) %>%
     left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
     filter(ndd_phenotype == 1) %>%
+    # needed to filter only active reviews
+    filter(review_id %in% ndd_entity_review$review_id) %>%
     filter(category == "Definitive") %>%
     filter(modifier_name == "present") %>%
     select(entity_id, phenotype_id, HPO_term)
