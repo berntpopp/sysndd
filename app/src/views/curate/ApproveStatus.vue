@@ -37,10 +37,11 @@
           <!-- button for approve all -->
 
           <!-- Main table -->
-          <b-spinner label="Loading..." v-if="loadingStatusApprove" class="float-center m-5"></b-spinner>
+          <b-spinner label="Loading..." v-if="loading_status_approve" class="float-center m-5"></b-spinner>
           <b-table
             :items="items_StatusTable"
             :fields="fields_StatusTable"
+            :busy="isBusy"
             stacked="md"
             head-variant="light"
             show-empty
@@ -307,7 +308,6 @@ export default {
   mixins: [toastMixin, submissionObjectsMixin],
     data() {
       return {
-        loadingStatusApprove: true,
         stoplights_style: {"Definitive": "success", "Moderate": "primary", "Limited": "warning", "Refuted": "danger"},
         problematic_style: {"0": "success", "1": "danger"},
         problematic_symbol: {"0": "check-square", "1": "question-square"},
@@ -343,25 +343,29 @@ export default {
         },
         approve_all_selected: false,
         switch_approve_text: {true: "Yes", false: "No"},
+        loading_status_approve: true,
         loading_status_modal: true,
+        isBusy: true
       };
     },
     mounted() {
       this.loadStatusList();
-      this.loadStatusTableData();
     },
     methods: {
         async loadStatusList() {
+          this.loading_status_approve = true;
           let apiUrl = process.env.VUE_APP_API_URL + '/api/list/status?tree=true';
           try {
             let response = await this.axios.get(apiUrl);
             this.status_options = response.data;
+
+            this.loadStatusTableData();
           } catch (e) {
             this.makeToast(e, 'Error', 'danger');
           }
         },
         async loadStatusTableData() {
-          this.loadingStatusApprove = true;
+          this.isBusy = true;
           let apiUrl = process.env.VUE_APP_API_URL + '/api/status';
           try {
             let response = await this.axios.get(apiUrl, {
@@ -374,7 +378,8 @@ export default {
           } catch (e) {
             this.makeToast(e, 'Error', 'danger');
           }
-          this.loadingStatusApprove = false;
+          this.isBusy = false;
+          this.loading_status_approve = false;
         },
         async loadStatusInfo(status_id) {
           this.loading_status_modal = true;
