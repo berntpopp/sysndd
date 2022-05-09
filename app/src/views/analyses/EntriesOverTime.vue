@@ -212,30 +212,30 @@
           .style("fill", "none")
 
       // create a tooltip
-      const Tooltip = d3.select("#my_dataviz")
+      const tooltip = d3.select("#my_dataviz")
         .append("div")
         .style("opacity", 0)
         .attr("class", "tooltip")
         .style("background-color", "white")
         .style("border", "solid")
-        .style("border-width", "2px")
+        .style("border-width", "1px")
         .style("border-radius", "5px")
-        .style("padding", "5px")
+        .style("padding", "2px")
 
       // Three function that change the tooltip when user hover / move / leave a cell
       // layerX/Y replaced by clientX/Y
       const mouseover = function(event,d) {
-        Tooltip
+        tooltip
           .style("opacity", 1)
       }
       const mousemove = function(event,d) {
-        Tooltip
+        tooltip
           .html("Count: " + d.cumulative_count + "<br>Date: " + d.entry_date_text)
           .style("left", `${event.layerX+20}px`)
           .style("top", `${event.layerY+20}px`)
       }
       const mouseleave = function(event,d) {
-        Tooltip
+        tooltip
           .style("opacity", 0)
       }
 
