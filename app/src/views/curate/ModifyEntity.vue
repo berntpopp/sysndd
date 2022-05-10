@@ -835,7 +835,7 @@ export default {
 
 console.log(this.review_info);
 
-          // perform update PUT request
+          // perform update POST request
           try {
             let response = await this.axios.post(apiUrl, {review_json: this.review_info}, {
                headers: {

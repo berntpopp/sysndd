@@ -37,10 +37,11 @@
           <!-- button for approve all -->
 
           <!-- Main table -->
-          <b-spinner label="Loading..." v-if="loadingReviewApprove" class="float-center m-5"></b-spinner>
+          <b-spinner label="Loading..." v-if="loading_review_approve" class="float-center m-5"></b-spinner>
           <b-table
             :items="items_ReviewTable"
             :fields="fields_ReviewTable"
+            :busy="isBusy"
             stacked="md"
             head-variant="light"
             show-empty
@@ -109,6 +110,7 @@
                 variant="secondary"
                 v-b-tooltip.hover.left 
                 title="Edit review"
+                @click="infoReview(row.item, row.index, $event.target)" 
                 >
                   <b-icon 
                   icon="pen"
@@ -178,6 +180,205 @@
       <!-- Approve modal -->
 
 
+      <!-- Modify review modal -->
+      <b-modal 
+      :id="reviewModal.id" 
+      :ref="reviewModal.id" 
+      size="xl" 
+      centered 
+      ok-title="Submit" 
+      no-close-on-esc 
+      no-close-on-backdrop 
+      header-bg-variant="dark" 
+      header-text-variant="light"
+      :busy="loading_review_modal"
+      @ok="submitReviewChange"
+      >
+
+      <template #modal-title>
+        <h4>Modify review for entity: 
+          <b-badge variant="primary">
+            sysndd:{{ review_info.entity_id }}
+          </b-badge>
+        </h4>
+      </template>
+
+      <b-overlay :show="loading_review_modal" rounded="sm">
+
+        <b-form ref="form" @submit.stop.prevent="submitReviewChange">
+
+          <!-- Synopsis textarea -->
+          <label class="mr-sm-2 font-weight-bold" for="review-textarea-synopsis">Synopsis</label>
+          <b-form-textarea
+            id="review-textarea-synopsis"
+            rows="3"
+            size="sm" 
+            v-model="review_info.synopsis"
+          >
+          </b-form-textarea>
+          <!-- Synopsis textarea -->
+
+          <!-- Phenotype select -->
+          <label class="mr-sm-2 font-weight-bold" for="review-phenotype-select">Phenotypes</label>
+
+            <treeselect 
+              id="review-phenotype-select"
+              v-model="select_phenotype" 
+              :multiple="true" 
+              :flat="true"
+              :options="phenotypes_options"
+              :normalizer="normalizePhenotypes"
+              required
+            />
+          <!-- Phenotype select -->
+
+          <!-- Variation ontolog select -->
+          <label class="mr-sm-2 font-weight-bold" for="review-variation-select">Variation ontology</label>
+
+            <treeselect 
+              id="review-variation-select"
+              v-model="select_variation" 
+              :multiple="true" 
+              :flat="true"
+              :options="variation_ontology_options"
+              :normalizer="normalizeVariationOntology"
+              required
+            />
+          <!-- Variation ontolog select -->
+
+
+          <!-- publications tag form with links out -->
+          <label class="mr-sm-2 font-weight-bold" for="review-publications-select">Publications</label>
+          <b-form-tags 
+          input-id="review-literature-select"
+          v-model="select_additional_references" 
+          no-outer-focus 
+          class="my-0"
+          separator=",;"
+          :tag-validator="tagValidatorPMID"
+          remove-on-delete
+          >
+            <template v-slot="{ tags, inputAttrs, inputHandlers, addTag, removeTag }">
+              <b-input-group class="my-0">
+                <b-form-input
+                  v-bind="inputAttrs"
+                  v-on="inputHandlers"
+                  placeholder="Enter PMIDs separated by comma or semicolon"
+                  class="form-control"
+                  size="sm"
+                ></b-form-input>
+                <b-input-group-append>
+                  <b-button @click="addTag()" 
+                  variant="secondary"
+                  size="sm"
+                  >
+                  Add
+                  </b-button>
+                </b-input-group-append>
+              </b-input-group>
+
+              <div class="d-inline-block">
+                <h6>
+                <b-form-tag
+                v-for="tag in tags"
+                @remove="removeTag(tag)"
+                :key="tag"
+                :title="tag"
+                variant="secondary"
+                >
+                  <b-link 
+                  v-bind:href="'https://pubmed.ncbi.nlm.nih.gov/' + tag.replace('PMID:', '')" 
+                  target="_blank" 
+                  class="text-light"
+                  >
+                  <b-icon icon="box-arrow-up-right" font-scale="0.9"></b-icon>
+                    {{ tag }}
+                  </b-link>
+                </b-form-tag>
+                </h6>
+              </div>
+
+            </template>
+          </b-form-tags>
+          <!-- publications tag form with links out -->
+
+
+          <!-- genereviews tag form with links out -->
+          <label class="mr-sm-2 font-weight-bold" for="review-genereviews-select">Genereviews</label>
+          <b-form-tags 
+          input-id="review-genereviews-select"
+          v-model="select_gene_reviews" 
+          no-outer-focus 
+          class="my-0"
+          separator=" ,;"
+          :tag-validator="tagValidatorPMID"
+          remove-on-delete
+          >
+            <template v-slot="{ tags, inputAttrs, inputHandlers, addTag, removeTag }">
+              <b-input-group class="my-0">
+                <b-form-input
+                  v-bind="inputAttrs"
+                  v-on="inputHandlers"
+                  placeholder="Enter PMIDs separated by comma or semicolon"
+                  class="form-control"
+                  size="sm"
+                ></b-form-input>
+                <b-input-group-append>
+                  <b-button @click="addTag()" 
+                  variant="secondary"
+                  size="sm"
+                  >
+                  Add
+                  </b-button>
+                </b-input-group-append>
+              </b-input-group>
+
+              <div class="d-inline-block">
+                <h6>
+                <b-form-tag
+                v-for="tag in tags"
+                @remove="removeTag(tag)"
+                :key="tag"
+                :title="tag"
+                variant="secondary"
+                >
+                  <b-link 
+                  v-bind:href="'https://pubmed.ncbi.nlm.nih.gov/' + tag.replace('PMID:', '')" 
+                  target="_blank" 
+                  class="text-light"
+                  >
+                  <b-icon icon="box-arrow-up-right" font-scale="0.9"></b-icon>
+                    {{ tag }}
+                  </b-link>
+                </b-form-tag>
+                </h6>
+              </div>
+
+            </template>
+          </b-form-tags>
+          <!-- genereviews tag form with links out -->
+
+
+          <!-- Review comment textarea -->
+          <label class="mr-sm-2 font-weight-bold" for="review-textarea-comment">Comment</label>
+          <b-form-textarea
+            id="review-textarea-comment"
+            rows="2"
+            size="sm" 
+            v-model="review_info.comment"
+            placeholder="Additional comments to this entity relevant for the curator."
+          >
+          </b-form-textarea>
+          <!-- Review comment textarea -->
+
+        </b-form>
+
+      </b-overlay>
+
+      </b-modal>
+      <!-- Modify review modal -->
+
+
       <!-- Check approve all modal -->
       <b-modal 
       id="approveAllModal" 
@@ -214,13 +415,23 @@
 
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin.js'
+import submissionObjectsMixin from '@/assets/js/mixins/submissionObjectsMixin.js'
+
+// import the Treeselect component
+import Treeselect from '@riophae/vue-treeselect'
+// import the Treeselect styles
+import '@riophae/vue-treeselect/dist/vue-treeselect.css'
+
 
 export default {
+  // register the Treeselect component
+  components: { Treeselect },
   name: 'ApproveReview',
-  mixins: [toastMixin],
+  mixins: [toastMixin, submissionObjectsMixin],
     data() {
       return {
-        loadingReviewApprove: true,
+        phenotypes_options: [],
+        variation_ontology_options: [],
         items_ReviewTable: [],
         fields_ReviewTable: [
             { key: 'entity_id', label: 'Entity', sortable: true, filterable: true, sortDirection: 'desc', class: 'text-left' },
@@ -242,16 +453,62 @@ export default {
           title: '',
           content: []
         },
+        reviewModal: {
+          id: 'review-modal',
+          title: '',
+          content: []
+        },
+        entity_info: new this.Entity(),
+        review_info: new this.Review(),
+        select_phenotype: [],
+        select_variation: [],
+        select_additional_references: [],
+        select_gene_reviews: [],
         approve_all_selected: false,
         switch_approve_text: {true: "Yes", false: "No"},
+        loading_review_approve: true,
+        loading_review_modal: true,
+        isBusy: true
       };
     },
     mounted() {
+      this.loadPhenotypesList();
+      this.loadVariationOntologyList();
       this.loadReviewTableData();
     },
     methods: {
+        async loadPhenotypesList() {
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/list/phenotype?tree=true';
+          try {
+            let response = await this.axios.get(apiUrl);
+            this.phenotypes_options = response.data;
+          } catch (e) {
+            this.makeToast(e, 'Error', 'danger');
+          }
+        },
+        async loadVariationOntologyList() {
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/list/variation_ontology?tree=true';
+          try {
+            let response = await this.axios.get(apiUrl);
+            this.variation_ontology_options = response.data;
+          } catch (e) {
+            this.makeToast(e, 'Error', 'danger');
+          }
+        },
+        normalizePhenotypes(node) {
+          return {
+            id: node.id,
+            label: node.label,
+          }
+        },
+        normalizeVariationOntology(node) {
+          return {
+            id: node.id,
+            label: node.label,
+          }
+        },
         async loadReviewTableData() {
-          this.loadingReviewApprove = true;
+          this.isBusy = true;
           let apiUrl = process.env.VUE_APP_API_URL + '/api/review';
           try {
             let response = await this.axios.get(apiUrl, {
@@ -264,12 +521,124 @@ export default {
           } catch (e) {
             this.makeToast(e, 'Error', 'danger');
           }
-          this.loadingReviewApprove = false;
+          this.isBusy = false;
+          this.loading_review_approve = false;
+        },
+        async loadReviewInfo(review_id) {
+          this.loading_review_modal = true;
+
+          let apiGetReviewURL = process.env.VUE_APP_API_URL + '/api/review/' + review_id;
+          let apiGetPhenotypesURL = process.env.VUE_APP_API_URL + '/api/review/' + review_id + '/phenotypes';
+          let apiGetVariationURL = process.env.VUE_APP_API_URL + '/api/review/' + review_id + '/variation';
+          let apiGetPublicationsURL = process.env.VUE_APP_API_URL + '/api/review/' + review_id + '/publications';
+
+          try {
+            let response_review = await this.axios.get(apiGetReviewURL);
+            let response_phenotypes = await this.axios.get(apiGetPhenotypesURL);
+            let response_variation = await this.axios.get(apiGetVariationURL);
+            let response_publications = await this.axios.get(apiGetPublicationsURL);
+
+            // define phenotype specific attributes as constants from response
+            const new_phenotype = response_phenotypes.data.map(item => {
+                return new this.Phenotype(item.phenotype_id, item.modifier_id);
+              });
+            this.select_phenotype = response_phenotypes.data.map(item => {
+                return item.modifier_id + '-' + item.phenotype_id;
+              });
+
+            // define variation specific attributes as constants from response
+            const new_variation = response_variation.data.map(item => {
+                return new this.Variation(item.vario_id, item.modifier_id);
+              });
+            this.select_variation = response_variation.data.map(item => {
+                return item.modifier_id + '-' + item.vario_id;
+              });
+
+            // define publication specific attributes as constants from response
+            const literature_gene_reviews = response_publications.data
+              .filter(item => item.publication_type == "gene_review")
+              .map(item => {
+                return item.publication_id });
+
+            const literature_additional_references = response_publications.data
+              .filter(item => item.publication_type == "additional_references")
+              .map(item => {
+                return item.publication_id });
+
+            this.select_additional_references = literature_additional_references;
+            this.select_gene_reviews = literature_gene_reviews;
+            
+            const new_literature = new this.Literature(literature_additional_references, literature_gene_reviews);
+
+            // compose review
+            this.review_info = new this.Review(response_review.data[0].synopsis,
+            new_literature,
+            new_phenotype,
+            new_variation,
+            response_review.data[0].comment
+            );
+
+            this.review_info.review_id = response_review.data[0].review_id;
+            this.review_info.entity_id = response_review.data[0].entity_id;
+
+          this.loading_review_modal = false;
+
+            } catch (e) {
+              this.makeToast(e, 'Error', 'danger');
+            }
+        },
+        async submitReviewChange() {
+          this.isBusy = true;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/review/update';
+
+          // define literature specific attributes as constants from inputs
+          // first clean the arrays
+          const select_additional_references_clean = this.select_additional_references.map(element => {
+            return element.replace(/\s+/g,'');
+          });
+
+          const select_gene_reviews_clean = this.select_gene_reviews.map(element => {
+            return element.replace(/\s+/g,'');
+          });
+
+          const replace_literature = new this.Literature(select_additional_references_clean, select_gene_reviews_clean);
+
+          // compose phenotype specific attributes as constants from inputs
+          const replace_phenotype = this.select_phenotype.map(item => {
+              return new this.Phenotype(item.split('-')[1], item.split('-')[0]);
+            });
+
+          // compose variation ontology specific attributes as constants from inputs
+          const replace_variation_ontology = this.select_variation.map(item => {
+              return new this.Variation(item.split('-')[1], item.split('-')[0]);
+            });
+
+          // assign to object
+          this.review_info.literature = replace_literature;
+          this.review_info.phenotypes = replace_phenotype;
+          this.review_info.variation_ontology = replace_variation_ontology;
+
+console.log(this.review_info);
+
+          // perform update PUT request
+          try {
+            let response = await this.axios.put(apiUrl, {review_json: this.review_info}, {
+               headers: {
+                 'Authorization': 'Bearer ' + localStorage.getItem('token')
+               }
+             });
+
+            this.makeToast('The new review for this entity has been submitted ' + '(status ' + response.status + ' (' + response.statusText + ').', 'Success', 'success');
+            this.resetForm();
+            this.loadReviewTableData();
+
+          } catch (e) {
+            this.makeToast(e, 'Error', 'danger');
+          }
+
         },
         infoReview(item, index, button) {
           this.reviewModal.title = `sysndd:${item.entity_id}`;
-          this.entity = [];
-          this.entity.push(item);
           
           this.loadReviewInfo(item.review_id);
           this.$root.$emit('bv::show::modal', this.reviewModal.id, button);
@@ -316,6 +685,19 @@ export default {
         },
         checkAllApprove() {
           this.$refs['approveAllModal'].show();
+        },
+        resetForm() {
+          this.entity_info = new this.Entity();
+          this.review_info = new this.Review();
+          this.select_phenotype = [];
+          this.select_variation = [];
+          this.select_additional_references = [];
+          this.select_gene_reviews = [];
+        },
+        tagValidatorPMID(tag) {
+          // Individual PMID tag validator function
+          tag = tag.replace(/\s+/g,'');
+          return !isNaN(Number(tag.replaceAll('PMID:', ''))) && tag.includes('PMID:') && tag.replace('PMID:', '').length > 4 && tag.replace('PMID:', '').length < 9;
         },
     }
     };

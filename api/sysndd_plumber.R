@@ -1300,6 +1300,34 @@ function(review_id_requested) {
 
 
 #* @tag review
+#* gets all variant_ontology terms for a review
+#* @serializer json list(na="string")
+#' @get /api/review/<review_id_requested>/variation
+function(review_id_requested) {
+  # remove spaces from list
+  review_id_requested <- URLdecode(review_id_requested) %>%
+    str_split(pattern = ",", simplify = TRUE) %>%
+    str_replace_all(" ", "") %>%
+    unique()
+
+  # get data from database and filter
+  review_variation_ontology_con <- pool %>%
+    tbl("ndd_review_variation_ontology_connect") %>%
+    collect()
+
+  variation_ontology_list_col <- pool %>%
+    tbl("variation_ontology_list") %>%
+    collect()
+
+  variation_list <- review_variation_ontology_con %>%
+    filter(review_id == review_id_requested) %>%
+    inner_join(variation_ontology_list_col, by = c("vario_id")) %>%
+    select(review_id, entity_id, vario_id, vario_name, modifier_id) %>%
+    arrange(vario_id)
+}
+
+
+#* @tag review
 #* gets all publications for a reviews_id
 #* @serializer json list(na="string")
 #' @get /api/review/<review_id_requested>/publications

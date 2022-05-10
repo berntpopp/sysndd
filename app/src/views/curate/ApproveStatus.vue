@@ -332,7 +332,6 @@ export default {
           title: '',
           content: []
         },
-        entity_info: new this.Entity(),
         status_info: new this.Status(),
         status_options: [],
         totalRows_StatusTable: 0,
@@ -422,25 +421,21 @@ export default {
 
         },
         resetForm() {
-          this.entity_info = new this.Entity();
           this.status_info = new this.Status();
         },
         infoApproveStatus(item, index, button) {
           this.approveModal.title = `sysndd:${item.entity_id}`;
-          this.entity = [];
-          this.entity.push(item);
+          this.loadStatusInfo(item.status_id);
           this.$root.$emit('bv::show::modal', this.approveModal.id, button);
         },
         infoStatus(item, index, button) {
           this.statusModal.title = `sysndd:${item.entity_id}`;
-          this.entity = [];
-          this.entity.push(item);
           this.loadStatusInfo(item.status_id);
           this.$root.$emit('bv::show::modal', this.statusModal.id, button);
         },
         async handleStatusOk(bvModalEvt) {
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/status/approve/' + this.entity[0].status_id + '?status_ok=true';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/status/approve/' + this.status_info.status_id + '?status_ok=true';
 
           try {
             let response = await this.axios.put(apiUrl, {}, {
