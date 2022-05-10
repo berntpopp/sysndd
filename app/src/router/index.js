@@ -288,18 +288,22 @@ const routes = [
   },
   {
     path: '/Entities/:sysndd_id',
+    name: 'Entity',
     component: () => import(/* webpackChunkName: "Pages" */ '@/views/pages/Entity.vue')
   },
   {
     path: '/Genes/:gene_id',
+    name: 'Gene',
     component: () => import(/* webpackChunkName: "Pages" */ '@/views/pages/Gene.vue')
   },
   {
     path: '/Search/:search_term',
+    name: 'Search',
     component: () => import(/* webpackChunkName: "Pages" */ '@/views/pages/Search.vue')
   },
   {
     path: '/API',
+    name: 'API',
     component: () => import(/* webpackChunkName: "API" */ '@/views/API.vue')
   },
   {

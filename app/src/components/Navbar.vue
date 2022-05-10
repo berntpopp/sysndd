@@ -30,7 +30,7 @@
           text="Search"
           v-if="show_search"
           >
-          <b-nav-form style="width:220px">
+          <b-nav-form style="width:220px" @submit.stop.prevent="keydown_handler()">
               <b-input-group class="mb-2">
                 <b-form-input 
                 list="search-list" 
@@ -41,7 +41,6 @@
                 style="width:180px" 
                 v-model="search_input"
                 @input="loadSearchInfo"
-                @keydown.native="keydown_handler"
                 >
                 </b-form-input>
 
@@ -54,6 +53,8 @@
                   <b-button
                   variant="outline-primary"
                   size="sm"
+                  :disabled="search_input.length < 2"
+                  v-bind:href="'/Search/' + search_input" 
                   >
                     <b-icon icon="search"></b-icon>
                   </b-button>
@@ -265,8 +266,9 @@ watch: { // used to refresh navbar on login push
     }
     },
   keydown_handler(event) {
-     if (event.which === 13 & this.search_input.length > 1) {
-        this.$router.push('/Search/' + this.search_input);
+     if (this.search_input.length > 1) {
+       console.log(this.search_input);
+        this.$router.push(({ name: 'Search', params: { search_term: this.search_input }}));
      }
     },
     doUserLogOut() {
