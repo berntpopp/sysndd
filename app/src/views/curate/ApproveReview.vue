@@ -176,6 +176,8 @@
           </h4>
         </template>
 
+        You have finished checking this review and <span class="font-weight-bold">want to submit it</span>?
+
       </b-modal>
       <!-- Approve modal -->
 
@@ -201,6 +203,23 @@
             sysndd:{{ review_info.entity_id }}
           </b-badge>
         </h4>
+      </template>
+
+      <template #modal-footer="{ ok, cancel }">
+        <div class="w-100">
+          <p class="float-left">
+            Review by: 
+            <b-icon icon="person-circle" font-scale="1.0"></b-icon> <b-badge variant="dark">  {{ review_info.review_user_name }} </b-badge> <b-badge variant="dark"> {{ review_info.review_user_role }} </b-badge>
+          </p>
+
+          <!-- Emulate built in modal footer ok and cancel button actions -->
+          <b-button variant="primary" class="float-right mr-2" @click="ok()">
+            Save review
+          </b-button>
+          <b-button variant="secondary" class="float-right mr-2" @click="cancel()">
+            Cancel
+          </b-button>
+        </div>
       </template>
 
       <b-overlay :show="loading_review_modal" rounded="sm">
@@ -442,7 +461,7 @@ export default {
         fields_details_ReviewTable: [
             { key: 'review_id', label: 'Review ID', sortable: true, filterable: true, sortDirection: 'desc', class: 'text-left' },
             { key: 'review_date', label: 'Review date', sortable: true, filterable: true, class: 'text-left' },
-            { key: 'review_user_id', label: 'Review user ID', sortable: true, filterable: true, class: 'text-left' },
+            { key: 'review_user_name', label: 'Review user', sortable: true, filterable: true, class: 'text-left' },
             { key: 'is_primary', label: 'Primary', sortable: true, filterable: true, class: 'text-left' },
             { key: 'synopsis', label: 'Clinical synopsis', sortable: true, filterable: true, class: 'text-left' }
         ],
@@ -580,6 +599,8 @@ export default {
 
             this.review_info.review_id = response_review.data[0].review_id;
             this.review_info.entity_id = response_review.data[0].entity_id;
+            this.review_info.review_user_name = response_review.data[0].review_user_name;
+            this.review_info.review_user_role = response_review.data[0].review_user_role;
 
           this.loading_review_modal = false;
 

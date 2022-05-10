@@ -972,8 +972,14 @@ function(req, res, `filter[review_approved]` = 0) {
   filter_review_approved <- as.integer(`filter[review_approved]`)
 
   # get data from database and filter
+  user_table <- pool %>%
+    tbl("user") %>%
+    select(user_id, user_name, user_role)
+
   sysndd_db_review_table_collected <- pool %>%
     tbl("ndd_entity_review") %>%
+    left_join(user_table, by = c("review_user_id" = "user_id")) %>%
+    left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
     filter(review_approved == filter_review_approved) %>%
     collect() %>%
     select(review_id,
@@ -981,8 +987,11 @@ function(req, res, `filter[review_approved]` = 0) {
       synopsis,
       is_primary,
       review_date,
-      review_user_id,
+      review_user_name = user_name.x,
+      review_user_role = user_role.x,
       review_approved,
+      approving_user_name = user_name.y,
+      approving_user_role = user_role.y,
       approving_user_id,
       comment)
 
@@ -1246,6 +1255,7 @@ function(review_id_requested) {
   # get data from database and filter
   sysndd_db_review_table <- pool %>%
     tbl("ndd_entity_review")
+
   user_table <- pool %>%
     tbl("user") %>%
     select(user_id, user_name, user_role)
@@ -3038,11 +3048,18 @@ function(req, res, `filter[status_approved]` = 0) {
   sysndd_db_status_table <- pool %>%
     tbl("ndd_entity_status") %>%
     filter(status_approved == filter_status_approved)
+
+  user_table <- pool %>%
+    tbl("user") %>%
+    select(user_id, user_name, user_role)
+
   entity_status_categories_coll <- pool %>%
     tbl("ndd_entity_status_categories_list")
 
   sysndd_db_status_table_collected <- sysndd_db_status_table %>%
     inner_join(entity_status_categories_coll, by = c("category_id")) %>%
+    left_join(user_table, by = c("status_user_id" = "user_id")) %>%
+    left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
     collect() %>%
     select(status_id,
       entity_id,
@@ -3050,8 +3067,11 @@ function(req, res, `filter[status_approved]` = 0) {
       category_id,
       is_active,
       status_date,
-      status_user_id,
+      status_user_name = user_name.x,
+      status_user_role = user_role.x,
       status_approved,
+      approving_user_name = user_name.y,
+      approving_user_role = user_role.y,
       approving_user_id,
       comment,
       problematic) %>%
@@ -3075,9 +3095,11 @@ function(status_id_requested) {
   # get data from database and filter
   sysndd_db_status_table <- pool %>%
     tbl("ndd_entity_status")
+
   user_table <- pool %>%
     tbl("user") %>%
     select(user_id, user_name, user_role)
+
   entity_status_categories_coll <- pool %>%
     tbl("ndd_entity_status_categories_list")
 

@@ -190,6 +190,8 @@
           </h4>
         </template>
 
+        You have finished checking this status and <span class="font-weight-bold">want to submit it</span>?
+
       </b-modal>
       <!-- Approve modal -->
 
@@ -216,6 +218,23 @@
             sysndd:{{ status_info.entity_id }}
           </b-badge>
         </h4>
+      </template>
+
+      <template #modal-footer="{ ok, cancel }">
+        <div class="w-100">
+          <p class="float-left">
+            Status by: 
+            <b-icon icon="person-circle" font-scale="1.0"></b-icon> <b-badge variant="dark">  {{ status_info.status_user_name }} </b-badge> <b-badge variant="dark"> {{ status_info.status_user_role }} </b-badge>
+          </p>
+
+          <!-- Emulate built in modal footer ok and cancel button actions -->
+          <b-button variant="primary" class="float-right mr-2" @click="ok()">
+            Save status
+          </b-button>
+          <b-button variant="secondary" class="float-right mr-2" @click="cancel()">
+            Cancel
+          </b-button>
+        </div>
       </template>
 
       <b-overlay :show="loading_status_modal" rounded="sm">
@@ -250,6 +269,7 @@
             placeholder="Why should this entities status be changed."
           >
           </b-form-textarea>
+
         </b-form>
 
       </b-overlay>
@@ -323,7 +343,7 @@ export default {
         fields_details_StatusTable: [
             { key: 'status_id', label: 'Status ID', sortable: true, filterable: true, sortDirection: 'desc', class: 'text-left' },
             { key: 'status_date', label: 'Status date', sortable: true, filterable: true, class: 'text-left' },
-            { key: 'status_user_id', label: 'Status user ID', sortable: true, filterable: true, class: 'text-left' },
+            { key: 'status_user_name', label: 'Status user', sortable: true, filterable: true, class: 'text-left' },
             { key: 'is_active', label: 'Active', sortable: true, filterable: true, class: 'text-left' },
             { key: 'comment', label: 'Comment', sortable: true, filterable: true, class: 'text-left' }
         ],
@@ -392,7 +412,8 @@ export default {
             this.status_info = new this.Status(response.data[0].category_id, response.data[0].comment, response.data[0].problematic);
 
             this.status_info.status_id = response.data[0].status_id;
-            this.status_info.entity_id = response.data[0].entity_id;
+            this.status_info.status_user_name = response.data[0].status_user_name;
+            this.status_info.status_user_role = response.data[0].status_user_role;
 
           this.loading_status_modal = false;
 
