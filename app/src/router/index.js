@@ -308,6 +308,7 @@ const routes = [
   },
   {
     path: '/Ontology/:disease_term',
+    name: 'Ontology',
     component: () => import(/* webpackChunkName: "Pages" */ '@/views/pages/Ontology.vue')
   },
   { path: "*",

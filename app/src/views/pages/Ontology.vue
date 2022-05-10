@@ -366,7 +366,7 @@ export default {
       let response_entities_by_ontology = await this.axios.get(apiEntitiesByOntologyURL);
       let response_entities_by_name = await this.axios.get(apiEntitiesByNameURL);
 
-      if (response_ontology.data == 0 && response_name.data) {
+      if (response_ontology.data.length == 0 && response_name.data.length == 0) {
           this.$router.push('/PageNotFound');
       } else {
         if (response_ontology.data == 0) {
