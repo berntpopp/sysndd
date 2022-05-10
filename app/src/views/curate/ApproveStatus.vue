@@ -509,4 +509,9 @@ export default {
     line-height: .5;
     border-radius: .2rem;
   }
+
+  ::v-deep .vue-treeselect__menu{
+    outline:1px solid red;
+    color: blue;
+  }
 </style>
