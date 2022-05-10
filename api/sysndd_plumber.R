@@ -3410,8 +3410,8 @@ function(res,
 #* NDD phenotype by inheritance and assocation category
 #* @serializer json list(na="string")
 #' @get /api/statistics/genes
-function() {
- disease_genes_statistics <- generate_gene_stat_tibble_mem()
+function(sort = "category_id,-n") {
+ disease_genes_statistics <- generate_gene_stat_tibble_mem(sort)
 
  disease_genes_statistics
 }

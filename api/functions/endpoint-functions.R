@@ -334,10 +334,14 @@ generate_panels_list <- function(sort = "symbol",
   return(return_list)
 }
 
+
 # nest the gene statistics
-generate_gene_stat_tibble <- function() {
+generate_gene_stat_tibble <- function(sort = "category_id,-n") {
   # set start time
   start_time <- Sys.time()
+
+  # generate sort expression based on sort input
+  sort_exprs <- generate_sort_expressions(sort, unique_id = "category_id")
 
   sysndd_db_disease_genes <- pool %>%
     tbl("ndd_entity_view") %>%
@@ -345,7 +349,8 @@ generate_gene_stat_tibble <- function() {
     filter(ndd_phenotype == 1) %>%
     select(symbol,
       inheritance = hpo_mode_of_inheritance_term_name,
-      category) %>%
+      category,
+      category_id) %>%
     collect()
 
   disease_genes_group_cat_inh <- sysndd_db_disease_genes %>%
@@ -356,10 +361,10 @@ generate_gene_stat_tibble <- function() {
       str_detect(inheritance, "Autosomal recessive inheritance") ~ "Recessive",
       TRUE ~ "Other"
     )) %>%
-    group_by(category, inheritance) %>%
+    group_by(category, category_id, inheritance) %>%
     tally() %>%
     ungroup() %>%
-    arrange(desc(category), desc(n)) %>%
+    arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
     mutate(category_group = category) %>%
     group_by(category_group) %>%
     nest() %>%
@@ -369,17 +374,17 @@ generate_gene_stat_tibble <- function() {
   disease_genes_group_category <- sysndd_db_disease_genes %>%
     select(-inheritance) %>%
     unique() %>%
-    group_by(category) %>%
+    group_by(category, category_id) %>%
     tally() %>%
     ungroup() %>%
-    arrange(desc(category), desc(n)) %>%
+    arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
     group_by(category) %>%
     mutate(inheritance = "All")
 
   disease_genes_statistics <- disease_genes_group_category %>%
     left_join(disease_genes_group_cat_inh,
      by = c("category")) %>%
-    arrange(category)
+    select(-category_id)
 
   # get data for last entry from database as meta
   disease_entry_date_last <- pool %>%
