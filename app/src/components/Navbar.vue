@@ -276,7 +276,11 @@ watch: { // used to refresh navbar on login push
         localStorage.removeItem('user');
         localStorage.removeItem('token');
         this.user = null;
-        this.$router.push('/Login');
+
+        // based on https://stackoverflow.com/questions/57837758/navigationduplicated-navigating-to-current-location-search-is-not-allowed
+        // to avoid double nvigation
+        const path = `/`
+        if (this.$route.path !== path) this.$router.push(({ name: 'Home' }));
       }
     },
     updateDiffs() {
