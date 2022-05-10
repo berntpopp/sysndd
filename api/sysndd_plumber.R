@@ -4155,6 +4155,52 @@ function(req, res) {
 
 
 #* @tag user
+#* gets count statistics of all contributions of a user
+#' @get /api/user/<user_id>/contributions
+function(req, res, user_id) {
+
+  user_requested <- user_id
+  user <- req$user_id
+
+  # first check rights
+  if (length(user) == 0) {
+
+    res$status <- 401 # Unauthorized
+    return(list(error = "Please authenticate."))
+
+  } else if (req$user_role %in% c("Administrator", "Curator", "Reviewer")) {
+
+  active_user_reviews <- pool %>%
+    tbl("ndd_entity_review") %>%
+    filter(is_primary == 1) %>%
+    filter(review_user_id == user_requested) %>%
+    select(review_id) %>%
+    collect() %>%
+    tally() %>%
+    select(active_reviews = n)
+
+  active_user_status <- pool %>%
+    tbl("ndd_entity_status") %>%
+    filter(is_active == 1) %>%
+    filter(status_user_id == user_requested) %>%
+    select(status_id) %>%
+    collect() %>%
+    tally() %>%
+    select(active_status = n)
+
+  # generate object to return
+  list(user_id = user_requested,
+    active_status = active_user_status$active_status,
+    active_reviews = active_user_reviews$active_reviews)
+
+  } else {
+    res$status <- 403 # Forbidden
+    return(list(error = "Read access forbidden."))
+  }
+}
+
+
+#* @tag user
 #* manages user application approval
 #' @put /api/user/approval
 function(req, res, user_id = 0, status_approval = FALSE) {

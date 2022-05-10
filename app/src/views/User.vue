@@ -3,21 +3,24 @@
 
     <b-container>
       <b-row class="justify-content-md-center py-4">
-        <b-col md="8">
+        <b-col md="6">
 
         <b-card no-body class="overflow-hidden" style="max-width: 540px;">
           <b-row align-v="center">
             <b-col>
               <b-card-body>
                 <b-card-title>
-                  <b-avatar variant="primary" class="justify-content-md-center" size="4rem">
+                  <b-avatar variant="primary" class="justify-content-md-center" size="5rem" badge-variant="info" badge-offset="-12px" badge-bottom>
                     {{ user.abbreviation[0] }}
+                    <template #badge>
+                      {{ user.user_role[0] }}
+                    </template>
                   </b-avatar>
                 </b-card-title>
 
                 <b-list-group flush>
                   <b-list-group-item>Username: <b-badge variant="info">  {{ user.user_name[0] }} </b-badge> </b-list-group-item>
-                  <b-list-group-item>Role: <b-badge variant="info">  {{ user.user_role[0] }} </b-badge> </b-list-group-item>
+                  <b-list-group-item>Contributions: Reviews: <b-badge variant="info">  {{ user.active_reviews }} </b-badge>, Status: <b-badge variant="info">  {{ user.active_status }} </b-badge> </b-list-group-item>
                   <b-list-group-item>Account created: {{ user.user_created[0] }}</b-list-group-item>
                   <b-list-group-item>E-Mail: {{ user.email[0] }}</b-list-group-item>
                   <b-list-group-item> 
@@ -136,7 +139,9 @@ export default {
             "user_created": [],
             "abbreviation": [],
             "orcid": [],
-            "exp": []
+            "exp": [],
+            "active_reviews": 0,
+            "active_status": 0,
           },
           time_to_logout: 0,
           pass_change_visible: false,
@@ -148,11 +153,13 @@ export default {
   mounted() {
     if (localStorage.user) {
       this.user = JSON.parse(localStorage.user);
-    this.interval = setInterval(() => {
-      this.updateDiffs();
-    },1000);
-    this.updateDiffs();
 
+      this.interval = setInterval(() => {
+        this.updateDiffs();
+      },1000);
+
+      this.updateDiffs();
+      this.getUserContributions();
     }
   },
   methods: {
@@ -173,6 +180,23 @@ export default {
           this.doUserLogOut();
         }
       }
+    }, 
+    async getUserContributions() {
+      let apiContributionsURL = process.env.VUE_APP_API_URL + '/api/user/' + this.user.user_id[0] + '/contributions';
+
+      try {
+        let response_contributions = await this.axios.get(apiContributionsURL, {
+        headers: {
+          'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
+        });
+
+        this.user.active_reviews = response_contributions.data.active_reviews[0];
+        this.user.active_status = response_contributions.data.active_status[0];
+
+        } catch (e) {
+          this.makeToast(e, 'Error', 'danger');
+        }
     }, 
     async refreshWithJWT() {
       let apiAuthenticateURL = process.env.VUE_APP_API_URL + '/api/auth/refresh';
