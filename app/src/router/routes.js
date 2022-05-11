@@ -366,25 +366,27 @@ export const routes = [
     path: '/Entities/:entity_id',
     name: 'Entity',
     component: () => import(/* webpackChunkName: "Pages" */ '@/views/pages/Entity.vue'),
-    meta: { sitemap: { 
-      slugs: async () => {
-        let apiUrl = process.env.VUE_APP_API_URL + '/api/entity?sort=entity_id&fields=entity_id&page%5Bsize%5D=all';
-        const result = await axios.get(apiUrl);
-        return result.data.data;
-      },
-     } },
-  },
-  {
-    path: '/Genes/:symbol',
-    name: 'Gene',
-    component: () => import(/* webpackChunkName: "Pages" */ '@/views/pages/Gene.vue'),
-    meta: { sitemap: { 
+/*     meta: { sitemap: { 
       slugs: async () => {
         let apiUrl = process.env.VUE_APP_API_URL + '/api/gene?sort=symbol&fields=symbol&page%5Bafter%5D=0&page%5Bsize%5D=all';
         const result = await axios.get(apiUrl);
         return result.data.data;
       },
-     } },
+     } }, */
+     meta: { sitemap: { ignoreRoute: true } },
+  },
+  {
+    path: '/Genes/:symbol',
+    name: 'Gene',
+    component: () => import(/* webpackChunkName: "Pages" */ '@/views/pages/Gene.vue'),
+/*     meta: { sitemap: { 
+      slugs: async () => {
+        let apiUrl = process.env.VUE_APP_API_URL + '/api/gene?sort=symbol&fields=symbol&page%5Bafter%5D=0&page%5Bsize%5D=all';
+        const result = await axios.get(apiUrl);
+        return result.data.data;
+      },
+     } }, */
+    meta: { sitemap: { ignoreRoute: true } },
   },
   {
     path: '/Ontology/:disease_term',
