@@ -6,7 +6,7 @@
         <b-col col md="10">
           <h3>Entity: 
             <b-badge variant="primary">
-              sysndd:{{ $route.params.sysndd_id }}
+              sysndd:{{ $route.params.entity_id }}
             </b-badge>
           </h3>
 
@@ -266,7 +266,7 @@ export default {
   async loadEntity() {
     this.loading = true;
 
-    let apiEntityURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.$route.params.sysndd_id;
+    let apiEntityURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.$route.params.entity_id;
 
     try {
       let response_entity = await this.axios.get(apiEntityURL);
@@ -283,10 +283,10 @@ export default {
       }
   },
   async loadEntityInfo() {
-    let apiStatusURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.$route.params.sysndd_id + '/status';
-    let apiReviewURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.$route.params.sysndd_id + '/review';
-    let apiPublicationsURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.$route.params.sysndd_id + '/publications';
-    let apiPhenotypesURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.$route.params.sysndd_id + '/phenotypes';
+    let apiStatusURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.$route.params.entity_id + '/status';
+    let apiReviewURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.$route.params.entity_id + '/review';
+    let apiPublicationsURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.$route.params.entity_id + '/publications';
+    let apiPhenotypesURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.$route.params.entity_id + '/phenotypes';
 
     try {
       let response_status = await this.axios.get(apiStatusURL);

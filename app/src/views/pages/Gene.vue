@@ -7,7 +7,7 @@
 
           <h3>Gene: 
             <b-badge pill variant="success">
-              {{ $route.params.gene_id }}
+              {{ $route.params.symbol }}
             </b-badge>
           </h3>
 
@@ -66,14 +66,14 @@
                   </b-row>
               </template>
 
-              <template #cell(ensembl_gene_id)="data">
+              <template #cell(ensembl_symbol)="data">
                <b-row>
-                  <b-row v-for="id in data.item.ensembl_gene_id.split(';')" :key="id"> 
+                  <b-row v-for="id in data.item.ensembl_symbol.split(';')" :key="id"> 
                       <b-col>
                         <b-button 
                         class="btn-xs mx-2" 
                         variant="outline-primary"
-                        v-bind:src="data.item.ensembl_gene_id.split(';')" 
+                        v-bind:src="data.item.ensembl_symbol.split(';')" 
                         v-bind:href="'https://www.ensembl.org/Homo_sapiens/Gene/Summary?g='+ id" 
                         target="_blank" 
                         >
@@ -287,7 +287,7 @@ export default {
             { key: 'hgnc_id', label: 'HGNC ID', sortable: true, class: 'text-left' },
             { key: 'name', label: 'Gene Name', sortable: true, class: 'text-left' },
             { key: 'entrez_id', label: 'Entrez ID', sortable: true, class: 'text-left' },
-            { key: 'ensembl_gene_id', label: 'Ensembl ID', sortable: true, class: 'text-left' },
+            { key: 'ensembl_symbol', label: 'Ensembl ID', sortable: true, class: 'text-left' },
             { key: 'ucsc_id', label: 'UCSC ID', sortable: true, class: 'text-left' },
             { key: 'ccds_id', label: 'CCDS ID', sortable: true, class: 'text-left' },
             { key: 'uniprot_ids', label: 'UniProt ID', sortable: true, class: 'text-left' },
@@ -330,10 +330,10 @@ export default {
   methods: {
   async loadGeneInfo() {
     this.loading = true;
-    let apiGeneURL = process.env.VUE_APP_API_URL + '/api/gene/' + this.$route.params.gene_id;
-    let apiGeneSymbolURL = process.env.VUE_APP_API_URL + '/api/gene/symbol/' + this.$route.params.gene_id;
-    let apiEntitiesByGeneURL = process.env.VUE_APP_API_URL + '/api/gene/' + this.$route.params.gene_id + '/entities';
-    let apiEntitiesByGeneSymbolURL = process.env.VUE_APP_API_URL + '/api/gene/symbol/' + this.$route.params.gene_id + '/entities';
+    let apiGeneURL = process.env.VUE_APP_API_URL + '/api/gene/' + this.$route.params.symbol;
+    let apiGeneSymbolURL = process.env.VUE_APP_API_URL + '/api/gene/symbol/' + this.$route.params.symbol;
+    let apiEntitiesByGeneURL = process.env.VUE_APP_API_URL + '/api/gene/' + this.$route.params.symbol + '/entities';
+    let apiEntitiesByGeneSymbolURL = process.env.VUE_APP_API_URL + '/api/gene/symbol/' + this.$route.params.symbol + '/entities';
 
     try {
       let response_gene = await this.axios.get(apiGeneURL);
