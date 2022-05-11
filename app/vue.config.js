@@ -1,5 +1,9 @@
 const BootstrapVueLoader = require('bootstrap-vue-loader')
 
+// based on https://www.npmjs.com/package/vue-cli-plugin-sitemap#installation
+require = require('esm')(module);
+const { routes } = require('./src/router/routes.js');
+
 // transpileDependencies and devtool source-map based on https://stackoverflow.com/questions/59693708/how-can-i-activate-the-sourcemap-for-vue-cli-4
 // prefetch delete based on https://github.com/vuejs/vue-cli/issues/979
 // module in webpack fpr pinia import based on: https://github.com/vuejs/pinia/issues/675
@@ -15,6 +19,14 @@ module.exports = {
             }
           ] 
         }
+    },
+    pluginOptions: {
+      sitemap: {
+          baseURL: 'https://sysndd.dbmr.unibe.ch',
+          outputDir: './public',
+          pretty: true,
+          routes,
+      }
     },
     chainWebpack: (config) => {
       // A, remove the plugin

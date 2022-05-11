@@ -6,6 +6,7 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
+    "sitemap": "vue-cli-service sitemap",
     "start": "vue-cli-service serve --open"
   },
   "dependencies": {
@@ -16,6 +17,7 @@
     "bootstrap-vue": "^2.21.2",
     "core-js": "^3.6.5",
     "d3": "^7.4.2",
+    "esm": "^3.2.25",
     "pinia": "^2.0.14",
     "swagger-ui": "^4.10.3",
     "vee-validate": "^3.4.13",
@@ -43,6 +45,7 @@
     "sass-loader": "^8.0.2",
     "vue-cli-plugin-axios": "0.0.4",
     "vue-cli-plugin-mdb": "~2.1.0",
+    "vue-cli-plugin-sitemap": "~2.3.0",
     "vue-cli-plugin-tailwind": "~2.2.17",
     "vue-cli-plugin-webpack-bundle-analyzer": "~4.0.0",
     "vue-template-compiler": "^2.6.14",
