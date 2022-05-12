@@ -2217,7 +2217,8 @@ function(req, res, curate=FALSE) {
       select(-category_id, -category) %>%
       inner_join(ndd_entity_status_category, by = c("status_id")) %>%
       inner_join(ndd_entity_status_categories_list, by = c("category_id")) %>%
-      collect()
+      collect() %>%
+      arrange(entity_id)
 
     re_review_user_list
 
