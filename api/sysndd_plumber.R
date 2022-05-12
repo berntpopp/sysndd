@@ -1005,10 +1005,12 @@ function(req, res, `filter[review_approved]` = 0) {
 #* @serializer json list(na="string")
 #' @post /api/review/create
 #' @put /api/review/update
-function(req, res) {
+function(req, res, re_review = FALSE) {
 
   # first check rights
   if (req$user_role %in% c("Administrator", "Curator")) {
+    # make sure re_review input is logical
+    re_review <- as.logical(re_review)
 
     review_user_id <- req$user_id
     review_data <- req$argsBody$review_json
@@ -1088,7 +1090,8 @@ function(req, res) {
         # review to the database table and receive an review_id
         response_review <- PutPostDatabaseReview(
           req$REQUEST_METHOD,
-          sysnopsis_received)
+          sysnopsis_received,
+          re_review)
 
         # only submit publications if not empty
         if (length(compact(review_data$literature)) > 0) {
@@ -1161,7 +1164,8 @@ function(req, res) {
         # review to the database table and receive an review_id
         response_review <- PutPostDatabaseReview(
             req$REQUEST_METHOD,
-            sysnopsis_received)
+            sysnopsis_received,
+            re_review)
 
         # only submit publications if not empty
         if (length(compact(review_data$literature)) > 0) {

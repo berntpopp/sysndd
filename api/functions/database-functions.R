@@ -124,10 +124,15 @@ PutDatabaseEntityDeactivation <- function(entity_id,
 }
 
 PutPostDatabaseReview <- function(request_method,
-  review_data) {
+  review_data, re_review = FALSE) {
   ##-------------------------------------------------------------------##
   # convert review_received to tibble
   review_received <- as_tibble(review_data)
+  ##-------------------------------------------------------------------##
+
+  ##-------------------------------------------------------------------##
+  # make sure re_review input is logical
+  re_review <- as.logical(re_review)
   ##-------------------------------------------------------------------##
 
   if (("synopsis" %in% colnames(review_received)) &
@@ -159,6 +164,19 @@ PutPostDatabaseReview <- function(request_method,
           ) %>%
         tibble::as_tibble() %>%
         select(review_id = `LAST_INSERT_ID()`)
+
+      # execute update query for re_review_entity_connect
+      # saving status and status_id if re_review is TRUE
+      if (re_review) {
+        dbExecute(sysndd_db,
+          paste0("UPDATE re_review_entity_connect SET ",
+            "re_review_review_saved = 1, ",
+            "review_id=",
+            submitted_review_id$review_id,
+            " WHERE entity_id = ",
+            review_data$entity_id,
+            ";"))
+      }
 
       # disconnect from database
       dbDisconnect(sysndd_db)
