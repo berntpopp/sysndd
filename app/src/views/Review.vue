@@ -1168,4 +1168,9 @@ console.log(this.review_info);
   text-overflow: ellipsis;
   white-space:nowrap;
   }
+
+  ::v-deep .vue-treeselect__menu{
+    outline:1px solid red;
+    color: blue;
+  }
 </style>
