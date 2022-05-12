@@ -564,11 +564,16 @@ PutPostDatabaseVarOntCon <- function(request_method,
 
 
 PutPostDatabaseStatus <- function(request_method,
-  status_data) {
+  status_data, re_review = FALSE) {
     ##-------------------------------------------------------------------##
     # block to convert the entity components into tibble
     status_received <- purrr::compact(status_data) %>%
       tibble::as_tibble()
+    ##-------------------------------------------------------------------##
+
+    ##-------------------------------------------------------------------##
+    # make sure re_review input is logical
+    re_review <- as.logical(re_review)
     ##-------------------------------------------------------------------##
 
     if ("category_id" %in% colnames(status_received) |
@@ -599,12 +604,36 @@ PutPostDatabaseStatus <- function(request_method,
         # and get the id of the last insert for association
         # with other tables
         dbAppendTable(sysndd_db, "ndd_entity_status", status_received)
+
+        # get the id of the last insert
+        submitted_status_id <- dbGetQuery(sysndd_db,
+            "SELECT LAST_INSERT_ID();") %>%
+          tibble::as_tibble() %>%
+          select(status_id = `LAST_INSERT_ID()`)
+
+        # execute update query for re_review_entity_connect
+        # saving status and status_id if re_review is TRUE
+        if (re_review) {
+          dbExecute(sysndd_db,
+            paste0("UPDATE re_review_entity_connect SET ",
+              "re_review_status_saved = 1, ",
+              "status_id=",
+              submitted_status_id$status_id,
+              " WHERE entity_id = ",
+              status_data$entity_id,
+              ";"))
+        }
+
         # disconnect from database
         dbDisconnect(sysndd_db)
 
         # return OK
         return(list(status = 200,
-          message = "OK. Entry created."))
+          message = paste0("OK. Entry created (status_id: ",
+          submitted_status_id,
+          ").")
+          )
+        )
 
       } else if (request_method == "PUT" &
                 "status_id" %in% colnames(status_received)) {

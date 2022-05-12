@@ -3146,10 +3146,12 @@ function() {
 #* @serializer json list(na="string")
 #' @post /api/status/create
 #' @put /api/status/update
-function(req, res) {
+function(req, res, re_review = FALSE) {
 
   # first check rights
   if (req$user_role %in% c("Administrator", "Curator")) {
+    # make sure re_review input is logical
+    re_review <- as.logical(re_review)
 
     status_data <- req$argsBody$status_json
 
@@ -3157,7 +3159,8 @@ function(req, res) {
 
     response <- PutPostDatabaseStatus(
       req$REQUEST_METHOD,
-      status_data)
+      status_data,
+      re_review)
 
     res$status <- response$status
     return(response)
