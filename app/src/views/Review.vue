@@ -838,12 +838,12 @@ export default {
         },
         infoReview(item, index, button) {
           this.reviewModal.title = `sysndd:${item.entity_id}`;
-          this.loadReviewInfo(item.review_id);
+          this.loadReviewInfo(item.review_id, item.re_review_review_saved);
           this.$root.$emit('bv::show::modal', this.reviewModal.id, button);
         },
         infoStatus(item, index, button) {
           this.statusModal.title = `sysndd:${item.entity_id}`;
-          this.loadStatusInfo(item.status_id);
+          this.loadStatusInfo(item.status_id, item.re_review_status_saved);
           this.$root.$emit('bv::show::modal', this.statusModal.id, button);
         },
         infoSubmit(item, index, button) {
@@ -875,7 +875,7 @@ export default {
           }
           this.loading = false;
         },
-        async loadReviewInfo(review_id) {
+        async loadReviewInfo(review_id, re_review_review_saved) {
           this.loading_review_modal = true;
 
           let apiGetReviewURL = process.env.VUE_APP_API_URL + '/api/review/' + review_id;
@@ -933,6 +933,7 @@ export default {
             this.review_info.entity_id = response_review.data[0].entity_id;
             this.review_info.review_user_name = response_review.data[0].review_user_name;
             this.review_info.review_user_role = response_review.data[0].review_user_role;
+            this.review_info.re_review_review_saved = re_review_review_saved;
 
           this.loading_review_modal = false;
 
@@ -940,7 +941,7 @@ export default {
               this.makeToast(e, 'Error', 'danger');
             }
         },
-        async loadStatusInfo(status_id) {
+        async loadStatusInfo(status_id, re_review_status_saved) {
           this.loading_status_modal = true;
 
           let apiGetURL = process.env.VUE_APP_API_URL + '/api/status/' + status_id;
@@ -955,6 +956,7 @@ export default {
             this.status_info.entity_id = response.data[0].entity_id;
             this.status_info.status_user_name = response.data[0].status_user_name;
             this.status_info.status_user_role = response.data[0].status_user_role;
+            this.status_info.re_review_status_saved = re_review_status_saved;
 
           this.loading_status_modal = false;
 
@@ -964,41 +966,60 @@ export default {
         },
         async submitStatusChange() {
 
+          const status_saved = this.status_info.re_review_status_saved;
+
           // remove user info from status object
           // to do: handle this server side to make it more robust
           this.status_info.status_user_name = null;
           this.status_info.status_user_role = null;
+          this.status_info.re_review_status_saved = null;
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/status/create?re_review=true';
+          if (status_saved === 1) {
+            // perform update PUT request
+            try {
+              let apiUrl = process.env.VUE_APP_API_URL + '/api/status/update?re_review=true';
+              let response = await this.axios.put(apiUrl, {status_json: this.status_info}, {
+                headers: {
+                  'Authorization': 'Bearer ' + localStorage.getItem('token')
+                }
+              });
 
-console.log(this.status_info);
+              this.makeToast('The new status for this entity has been submitted ' + '(status ' + response.status + ' (' + response.statusText + ').', 'Success', 'success');
+              this.resetForm();
+              this.loadReReviewData();
 
-          // perform update PUT request
-          try {
-            let response = await this.axios.post(apiUrl, {status_json: this.status_info}, {
-               headers: {
-                 'Authorization': 'Bearer ' + localStorage.getItem('token')
-               }
-             });
+            } catch (e) {
+              this.makeToast(e, 'Error', 'danger');
+            }
+          } else {
+            let apiUrl = process.env.VUE_APP_API_URL + '/api/status/create?re_review=true';
+            // perform update POST request
+            try {
+              let response = await this.axios.post(apiUrl, {status_json: this.status_info}, {
+                headers: {
+                  'Authorization': 'Bearer ' + localStorage.getItem('token')
+                }
+              });
 
-            this.makeToast('The new status for this entity has been submitted ' + '(status ' + response.status + ' (' + response.statusText + ').', 'Success', 'success');
-            this.resetForm();
-            this.loadReReviewData();
+              this.makeToast('The new status for this entity has been submitted ' + '(status ' + response.status + ' (' + response.statusText + ').', 'Success', 'success');
+              this.resetForm();
+              this.loadReReviewData();
 
-          } catch (e) {
-            this.makeToast(e, 'Error', 'danger');
+            } catch (e) {
+              this.makeToast(e, 'Error', 'danger');
+            }
           }
-
         },
         async submitReviewChange() {
           this.isBusy = true;
+
+          const review_saved = this.review_info.re_review_review_saved;
 
           // remove user info from review object
           // to do: handle this server side to make it more robust
           this.review_info.review_user_name = null;
           this.review_info.review_user_role = null;
-
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/review/create?re_review=true';
+          this.review_info.re_review_review_saved = null;
 
           // define literature specific attributes as constants from inputs
           // first clean the arrays
@@ -1029,6 +1050,27 @@ console.log(this.status_info);
 
 console.log(this.review_info);
 
+      if (review_saved === 1) {
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/review/update?re_review=true';
+
+          // perform update POST request
+          try {
+            let response = await this.axios.put(apiUrl, {review_json: this.review_info}, {
+               headers: {
+                 'Authorization': 'Bearer ' + localStorage.getItem('token')
+               }
+             });
+
+            this.makeToast('The new review for this entity has been submitted ' + '(status ' + response.status + ' (' + response.statusText + ').', 'Success', 'success');
+            this.resetForm();
+            this.loadReReviewData();
+
+          } catch (e) {
+            this.makeToast(e, 'Error', 'danger');
+          }
+      } else {
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/review/create?re_review=true';
+
           // perform update POST request
           try {
             let response = await this.axios.post(apiUrl, {review_json: this.review_info}, {
@@ -1044,6 +1086,8 @@ console.log(this.review_info);
           } catch (e) {
             this.makeToast(e, 'Error', 'danger');
           }
+      }
+
 
         },
         resetForm() {
