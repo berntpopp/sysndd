@@ -62,6 +62,7 @@ Vue.config.productionTip = false
 Vue.use(VueAxios, axios)
 
 import { ToastPlugin } from 'bootstrap-vue'
+import './registerServiceWorker'
 Vue.use(ToastPlugin)
 
 // Install the BootstrapVue icon components plugin
