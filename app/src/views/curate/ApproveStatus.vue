@@ -36,12 +36,73 @@
           </b-form>
           <!-- button for approve all -->
 
+
+          <!-- Table Interface controls -->
+          <b-row>
+            <b-col class="my-1">
+              <b-form-group
+                class="mb-1"
+              >
+                <b-input-group
+                prepend="Search" 
+                size="sm">
+                  <b-form-input
+                    id="filter-input"
+                    v-model="filter"
+                    type="search"
+                    placeholder="any field by typing here"
+                    debounce="500"
+                  ></b-form-input>
+                </b-input-group>
+              </b-form-group>
+            </b-col>
+
+            <b-col class="my-1">
+            </b-col>
+
+            <b-col class="my-1">
+            </b-col>
+
+            <b-col class="my-1">
+              <b-input-group
+                prepend="Per page"
+                class="mb-1"
+                size="sm"
+              >
+                <b-form-select
+                  id="per-page-select"
+                  v-model="perPage"
+                  :options="pageOptions"
+                  size="sm"
+                ></b-form-select>
+              </b-input-group>
+
+              <b-pagination
+                v-model="currentPage"
+                :total-rows="totalRows"
+                :per-page="perPage"
+                align="fill"
+                size="sm"
+                class="my-0"
+                last-number
+              ></b-pagination>
+            </b-col>
+          </b-row>
+          <!-- Table Interface controls -->
+
           <!-- Main table -->
           <b-spinner label="Loading..." v-if="loading_status_approve" class="float-center m-5"></b-spinner>
           <b-table
             :items="items_StatusTable"
             :fields="fields_StatusTable"
             :busy="isBusy"
+            :current-page="currentPage"
+            :per-page="perPage"
+            :filter="filter"
+            :filter-included-fields="filterOn"
+            :sort-by.sync="sortBy"
+            :sort-desc.sync="sortDesc"
+            :sort-direction="sortDirection"
             stacked="md"
             head-variant="light"
             show-empty
@@ -51,6 +112,7 @@
             hover
             sort-icon-left
             v-else
+            @filtered="onFiltered"
           >
 
             <template #cell(entity_id)="data">
@@ -354,7 +416,15 @@ export default {
         },
         status_info: new this.Status(),
         status_options: [],
-        totalRows_StatusTable: 0,
+        totalRows: 0,
+        currentPage: 1,
+        perPage: 10,
+        pageOptions: [10, 25, 50, { value: 100, text: "Show a lot" }],
+        sortBy: '',
+        sortDesc: false,
+        sortDirection: 'asc',
+        filter: null,
+        filterOn: [],
         approveModal: {
           id: 'approve-modal',
           title: '',
@@ -393,7 +463,7 @@ export default {
               }
             });
             this.items_StatusTable = response.data;
-            this.totalRows_StatusTable = response.data.length;
+            this.totalRows = response.data.length;
           } catch (e) {
             this.makeToast(e, 'Error', 'danger');
           }
@@ -496,6 +566,11 @@ export default {
         },
         checkAllApprove() {
           this.$refs['approveAllModal'].show();
+        },
+        onFiltered(filteredItems) {
+          // Trigger pagination to update the number of buttons/pages due to filtering
+          this.totalRows = filteredItems.length;
+          this.currentPage = 1;
         },
     }
     };
