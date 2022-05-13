@@ -26,6 +26,11 @@ module.exports = {
           outputDir: './public',
           pretty: true,
           routes,
+      },
+    },
+    pwa: {
+      workboxOptions: {
+        importWorkboxFrom: 'local',
       }
     },
     chainWebpack: (config) => {
