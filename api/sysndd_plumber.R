@@ -1481,12 +1481,12 @@ function(req, res, review_id_requested, review_ok = FALSE) {
 ## {"re_review_entity_id":1, "re_review_submitted":1, "status_id":1, "review_id":1}
 #* @serializer json list(na="string")
 #' @put /api/re_review/submit
-function(req, res, submit_json) {
+function(req, res) {
   # first check rights
   if (req$user_role %in% c("Administrator", "Curator", "Reviewer")) {
 
     submit_user_id <- req$user_id
-    submit_data <- fromJSON(submit_json)
+    submit_data <- req$argsBody$submit_json
 
     update_query <- tibble::as_tibble(submit_data) %>%
       select(-re_review_entity_id) %>%

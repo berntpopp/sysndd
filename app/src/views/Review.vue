@@ -1108,10 +1108,9 @@ export default {
           re_review_submission.re_review_entity_id = this.entity[0].re_review_entity_id;
           re_review_submission.re_review_submitted = 1;
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/submit?submit_json=';
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/re_review/submit';
           try {
-            let submit_json = JSON.stringify(re_review_submission);
-            let response = await this.axios.put(apiUrl + submit_json, {}, {
+            let response = await this.axios.put(apiUrl, {submit_json: re_review_submission}, {
               headers: {
                 'Authorization': 'Bearer ' + localStorage.getItem('token')
               }
