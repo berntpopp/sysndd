@@ -283,7 +283,7 @@
 
               <span class="word">NDD comprise <mark>developmental delay</mark> (DD), <mark>intellectual disability</mark> (ID) and <mark>autism spectrum disorder</mark> (ASD). </span><br>
               <span class="word">This clinically and genetically extremely <mark>heterogeneous</mark> disease group affects <mark>about 2% of newborns</mark>. </span><br>
-              <span class="word">SysNDD aims to empower clinical diagnostics, counseling and research for NDDs though <mark>expert curation</mark>. </span><br>
+              <span class="word">SysNDD aims to empower clinical diagnostics, counseling and research for NDDs through <mark>expert curation</mark>. </span><br>
 
               <span class="word">We define “gene-inheritance-disease” units as “<mark>entities</mark>”. </span><br> 
               <span class="word">They are color coded throughout the website: <b-badge variant="primary">Entity:
