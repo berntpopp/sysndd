@@ -145,10 +145,44 @@
         
           <h3><b-badge variant="primary">Associated entities</b-badge></h3>
 
+          <!-- Table Interface controls -->
+          <b-row  v-if="totalRows >= 10">
+            <b-col class="my-1">
+              <b-input-group
+                prepend="Per page"
+                class="mb-1"
+                size="sm"
+              >
+                <b-form-select
+                  id="per-page-select"
+                  v-model="perPage"
+                  :options="pageOptions"
+                  size="sm"
+                ></b-form-select>
+              </b-input-group>
+
+              <b-pagination
+                v-model="currentPage"
+                :total-rows="totalRows"
+                :per-page="perPage"
+                align="fill"
+                size="sm"
+                class="my-0"
+                last-number
+              ></b-pagination>
+            </b-col>
+          </b-row>
+          <!-- Table Interface controls -->
+
           <!-- associated entities table element -->
           <b-table
             :items="entities_data"
             :fields="entities_data_fields"
+            :current-page="currentPage"
+            :per-page="perPage"
+            :sort-by.sync="sortBy"
+            :sort-desc.sync="sortDesc"
+            :sort-direction="sortDirection"
             stacked="md"
             head-variant="light"
             show-empty
@@ -261,7 +295,7 @@
             </template>
             
           </b-table>
-
+          <!-- associated entities table element -->
 
           </b-col>
         </b-row>
@@ -346,6 +380,13 @@ export default {
             { key: 'ndd_phenotype_word', label: 'NDD', sortable: true, class: 'text-left' },
             { key: 'actions', label: 'Actions' }
           ],
+          totalRows: 0,
+          currentPage: 1,
+          perPage: 10,
+          pageOptions: [10, 25, 50, { value: 100, text: "Show a lot" }],
+          sortBy: '',
+          sortDesc: false,
+          sortDirection: 'asc',
           loading: true
       }
   }, 
@@ -372,9 +413,11 @@ export default {
         if (response_ontology.data == 0) {
           this.ontology = response_name.data;
           this.entities_data = response_entities_by_name.data;
+          this.totalRows = response_entities_by_name.data.length;
         } else {
           this.ontology = response_ontology.data;
           this.entities_data = response_entities_by_ontology.data;
+          this.totalRows = response_entities_by_ontology.data.length;
         }
       }
 
