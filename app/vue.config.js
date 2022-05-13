@@ -29,10 +29,10 @@ module.exports = {
       },
     },
     pwa: {
+      name: "SysNDD",
+      themeColor: "#EAADBA",
       workboxOptions: {
         importWorkboxFrom: 'local',
-        name: "SysNDD",
-        themeColor: "#EAADBA"
       }
     },
     chainWebpack: (config) => {
