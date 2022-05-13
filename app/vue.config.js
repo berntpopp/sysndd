@@ -31,6 +31,8 @@ module.exports = {
     pwa: {
       workboxOptions: {
         importWorkboxFrom: 'local',
+        name: "SysNDD",
+        themeColor: "#EAADBA"
       }
     },
     chainWebpack: (config) => {
