@@ -27,7 +27,7 @@ services:
    SMTP_PASSWORD: ${SMTP_PASSWORD}
    API_CONFIG: ${API_CONFIG}
  alb:
-  image: haproxy:2.4.16-alpine
+  image: 'dockercloud/haproxy'
   links:
      - api
   volumes:
