@@ -1,4 +1,4 @@
-FROM node:16-alpine3.14 as builder
+FROM node:14-alpine3.14 as builder
 # make the 'app' folder the current working directory
 WORKDIR /app
 # copy both 'package.json' and 'package-lock.json' (if available)
