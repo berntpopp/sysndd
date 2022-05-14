@@ -25,8 +25,8 @@ services:
    MYSQL_HOST: mysql
    MYSQL_USER: ${MYSQL_USER}
    MYSQL_PASS: ${MYSQL_ROOT_PASSWORD}
-   MAX_BACKUPS: 30 
-   INIT_BACKUP: 0
+   MAX_BACKUPS: 60 
+   INIT_BACKUP: 1
    # Every day at 03:00
    CRON_TIME: 0 3 * * *
    # Make it small
