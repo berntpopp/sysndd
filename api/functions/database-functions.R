@@ -1,6 +1,6 @@
 ## database interaction functions
 
-PostDatabaseEntity <- function(entity_data) {
+post_db_entity <- function(entity_data) {
     ##-------------------------------------------------------------------##
     # block to convert the entity components into tibble
     entity_received <- as_tibble(entity_data)
@@ -81,7 +81,7 @@ PostDatabaseEntity <- function(entity_data) {
 
 # This function is used to deactivate an entity
 # and set it's replacement if applicable
-PutDatabaseEntityDeactivation <- function(entity_id,
+put_db_entity_deactivation <- function(entity_id,
   replacement = "NULL") {
   if (!is.null(entity_id)
     ) {
@@ -123,7 +123,7 @@ PutDatabaseEntityDeactivation <- function(entity_id,
   }
 }
 
-PutPostDatabaseReview <- function(request_method,
+put_post_db_review <- function(request_method,
   review_data, re_review = FALSE) {
   ##-------------------------------------------------------------------##
   # convert review_received to tibble
@@ -260,7 +260,7 @@ PutPostDatabaseReview <- function(request_method,
 }
 
 
-PutPostDatabasePubCon <- function(request_method,
+put_post_db_pub_con <- function(request_method,
   publication_data,
   entity_id,
   review_id) {
@@ -285,7 +285,7 @@ PutPostDatabasePubCon <- function(request_method,
   # for the PUT requst we check whether the submitted entity ID
   # matches the current one associated with the review id to
   # not allow changing this connection
-  ndd_review_publication_for_match <- (pool %>%
+  review_publication_for_match <- (pool %>%
     tbl("ndd_entity_review") %>%
     select(review_id, entity_id) %>%
     filter(review_id == {{review_id}}) %>%
@@ -293,7 +293,7 @@ PutPostDatabasePubCon <- function(request_method,
     unique()
     )$entity_id[1]
 
-  entity_id_match <- (ndd_review_publication_for_match == entity_id)
+  entity_id_match <- (review_publication_for_match == entity_id)
 
   if (publications_allowed) {
     if (request_method == "POST") {
@@ -366,7 +366,7 @@ PutPostDatabasePubCon <- function(request_method,
 }
 
 
-PutPostDatabasePhenCon <- function(request_method,
+put_post_db_phen_con <- function(request_method,
   phenotypes_data,
   entity_id,
   review_id) {
@@ -472,7 +472,7 @@ PutPostDatabasePhenCon <- function(request_method,
 }
 
 
-PutPostDatabaseVarOntCon <- function(request_method,
+put_post_db_var_ont_con <- function(request_method,
   variation_ontology_data,
   entity_id,
   review_id) {
@@ -581,7 +581,7 @@ PutPostDatabaseVarOntCon <- function(request_method,
 }
 
 
-PutPostDatabaseStatus <- function(request_method,
+put_post_db_status <- function(request_method,
   status_data, re_review = FALSE) {
     ##-------------------------------------------------------------------##
     # block to convert the entity components into tibble

@@ -39,7 +39,7 @@ dw <- config::get(Sys.getenv("API_CONFIG"))
 
 ##-------------------------------------------------------------------##
 if (nchar(Sys.getenv("SMTP_PASSWORD")) == 0) {
-  Sys.setenv("SMTP_PASSWORD"=toString(dw$mail_noreply_password))
+  Sys.setenv("SMTP_PASSWORD" = toString(dw$mail_noreply_password))
 }
 ##-------------------------------------------------------------------##
 
@@ -311,7 +311,6 @@ function(res,
 
 #* @tag entity
 #* creates a new entity
-## example data: create_json <- '{"entity": {"hgnc_id":"HGNC:21396", "disease_ontology_id_version":"OMIM:210600","hpo_mode_of_inheritance_term":"HP:0000007", "ndd_phenotype":"1"}, "review": {"synopsis": "activating, gain-of-function mutations: congenital hypertrichosis, neonatal macrosomia, distinct osteochondrodysplasia, cardiomegaly; activating mutations", "literature": {"additional_references": ["PMID:22608503", "PMID:22610116"], "gene_review": ["PMID:25275207"]}, "phenotypes": [ {"phenotype_id": "HP:0000256", "modifier_id": 1}, {"phenotype_id": "HP:0000924", "modifier_id": 1}, {"phenotype_id": "HP:0001256", "modifier_id": 1}, {"phenotype_id": "HP:0001574", "modifier_id": 1}, {"phenotype_id": "HP:0001627", "modifier_id": 1}, {"phenotype_id": "HP:0002342", "modifier_id": 1} ], "variation_ontology": [ {"vario_id": "VariO:0001", "modifier_id": 1} ], "comment": ""}, "status": {"category_id":1, "comment":"fsa", "problematic": true}}'
 #* @serializer json list(na="string")
 #' @post /api/entity/create
 function(req, res) {
@@ -329,7 +328,7 @@ function(req, res) {
 
     ##-------------------------------------------------------------------##
     # block to post new entity
-    response_entity <- PostDatabaseEntity(create_data$entity)
+    response_entity <- post_db_entity(create_data$entity)
     ##-------------------------------------------------------------------##
 
     if (response_entity$status == 200) {
@@ -398,14 +397,15 @@ function(req, res) {
       phenotypes_received <- tibble::as_tibble(create_data$review$phenotypes)
 
       # convert variation ontology to tibble
-      variation_ontology_received <- tibble::as_tibble(create_data$review$variation_ontology)
+      variation_ontology_received <- tibble::as_tibble(
+        create_data$review$variation_ontology)
 
       ##-------------------------------------------------------------------##
 
       ##-------------------------------------------------------------------##
-      # use the "PutPostDatabaseReview" function to add
+      # use the "put_post_db_review" function to add
       # the review to the database table and receive a review_id
-      response_review <- PutPostDatabaseReview(
+      response_review <- put_post_db_review(
         "POST",
         sysnopsis_received)
 
@@ -415,8 +415,8 @@ function(req, res) {
         response_publication <- new_publication(publications_received)
 
         # make the publictaion to review connections
-        # using the function "PutPostDatabasePubCon"
-        response_publication_conn <- PutPostDatabasePubCon(
+        # using the function "put_post_db_pub_con"
+        response_publication_conn <- put_post_db_pub_con(
           "POST",
           publications_received,
           as.integer(sysnopsis_received$entity_id),
@@ -432,7 +432,7 @@ function(req, res) {
       if (length(compact(create_data$review$phenotypes)) > 0) {
         # make the phenotype to review connections
         # using the function "response_phenotype_connections"
-        response_phenotype_connections <- PutPostDatabasePhenCon(
+        response_phenotype_connections <- put_post_db_phen_con(
           "POST",
           phenotypes_received,
           as.integer(sysnopsis_received$entity_id),
@@ -445,14 +445,14 @@ function(req, res) {
       # only submit variation ontology connections if not empty
       if (length(compact(create_data$review$variation_ontology)) > 0) {
         # make the variation ontology to review connections
-        # using the function "PutPostDatabaseVarOntCon"
-        response_variation_ontology_conn <- PutPostDatabaseVarOntCon(
+        # using the function "put_post_db_var_ont_con"
+        resp_variation_ontology_conn <- put_post_db_var_ont_con(
           "POST",
           variation_ontology_received,
           as.integer(sysnopsis_received$entity_id),
           as.integer(response_review$entry$review_id))
       } else {
-        response_variation_ontology_conn <- list(status = 200,
+        resp_variation_ontology_conn <- list(status = 200,
           message = "OK. Skipped.")
       }
 
@@ -461,7 +461,7 @@ function(req, res) {
         bind_rows(tibble::as_tibble(response_review)) %>%
         bind_rows(tibble::as_tibble(response_publication_conn)) %>%
         bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
-        bind_rows(tibble::as_tibble(response_variation_ontology_conn)) %>%
+        bind_rows(tibble::as_tibble(resp_variation_ontology_conn)) %>%
         select(status, message) %>%
         mutate(status = max(status)) %>%
         mutate(message = str_c(message, collapse = "; ")) %>%
@@ -491,11 +491,11 @@ function(req, res) {
       ##-------------------------------------------------------------------##
 
       ##-------------------------------------------------------------------##
-      # use the PutPostDatabaseStatus function to
+      # use the put_post_db_status function to
       # add the review to the database table
       create_data$status$status_user_id <- status_user_id
 
-      response_status_post <- PutPostDatabaseStatus("POST",
+      response_status_post <- put_post_db_status("POST",
         create_data$status)
       ##-------------------------------------------------------------------##
 
@@ -540,7 +540,6 @@ function(req, res) {
 
 #* @tag entity
 #* renames an entity
-## example data: rename_json <- '{"entity": {"entity_id":"2477", "hgnc_id":"HGNC:12766", "disease_ontology_id_version":"OMIM:619695", "hpo_mode_of_inheritance_term":"HP:0000006", "ndd_phenotype":"1"}}'
 #* @serializer json list(na="string")
 #' @post /api/entity/rename
 function(req, res) {
@@ -576,15 +575,15 @@ function(req, res) {
           ndd_entity_original$disease_ontology_id_version) {
 
         ##-------------------------------------------------------------------##
-        # block to post new entity using PostDatabaseEntity function
+        # block to post new entity using post_db_entity function
         # this returns the new entity_id
-        response_new_entity <- PostDatabaseEntity(ndd_entity_replaced)
+        response_new_entity <- post_db_entity(ndd_entity_replaced)
         ##-------------------------------------------------------------------##
 
         ##-------------------------------------------------------------------##
         # deactivate the old entity_id and set replacement using
-        # the PutDatabaseEntityDeactivation function
-        response_deactivate <- PutDatabaseEntityDeactivation(
+        # the put_db_entity_deactivation function
+        response_deactivate <- put_db_entity_deactivation(
           ndd_entity_original$entity_id,
           response_new_entity$entry$entity_id)
         ##-------------------------------------------------------------------##
@@ -603,13 +602,13 @@ function(req, res) {
           select(-review_id)
 
         # get all connections for review
-        ndd_review_publication_join_ori <- pool %>%
+        review_publication_join_ori <- pool %>%
             tbl("ndd_review_publication_join") %>%
             collect() %>%
             filter(review_id == ndd_entity_review_original$review_id) %>%
             select(publication_id, publication_type)
 
-        ndd_review_phenotype_connect_ori <- pool %>%
+        review_phenotype_connect_ori <- pool %>%
             tbl("ndd_review_phenotype_connect") %>%
             collect() %>%
             filter(review_id == ndd_entity_review_original$review_id) %>%
@@ -621,20 +620,20 @@ function(req, res) {
             filter(review_id == ndd_entity_review_original$review_id) %>%
             select(vario_id, modifier_id)
 
-        # use the "PutPostDatabaseReview" function to add the
+        # use the "put_post_db_review" function to add the
         # review to the database table with the new entity_id and receive
         # a review_id for subsequent connection settings
-        response_review <- PutPostDatabaseReview(
+        response_review <- put_post_db_review(
           "POST",
           ndd_entity_review_replaced)
 
         # only submit publication connections if not empty
-        if (length(compact(ndd_review_publication_join_ori)) > 0) {
+        if (length(compact(review_publication_join_ori)) > 0) {
           # make the publictaion to review connections
-          # using the function "PutPostDatabasePubCon"
-          response_publication_conn <- PutPostDatabasePubCon(
+          # using the function "put_post_db_pub_con"
+          response_publication_conn <- put_post_db_pub_con(
             "POST",
-            ndd_review_publication_join_ori,
+            review_publication_join_ori,
             as.integer(response_new_entity$entry$entity_id),
             as.integer(response_review$entry$review_id))
         } else {
@@ -643,12 +642,12 @@ function(req, res) {
         }
 
         # only submit phenotype connections if not empty
-        if (length(compact(ndd_review_phenotype_connect_ori)) > 0) {
+        if (length(compact(review_phenotype_connect_ori)) > 0) {
           # make the phenotype to review connections
           # using the function "response_phenotype_connections"
-          response_phenotype_connections <- PutPostDatabasePhenCon(
+          response_phenotype_connections <- put_post_db_phen_con(
             "POST",
-            ndd_review_phenotype_connect_ori,
+            review_phenotype_connect_ori,
             as.integer(response_new_entity$entry$entity_id),
             as.integer(response_review$entry$review_id))
         } else {
@@ -659,14 +658,14 @@ function(req, res) {
         # only submit variation ontology connections if not empty
         if (length(compact(ndd_review_variation_ontology_conn_ori)) > 0) {
           # make the variation ontology to review connections
-          # using the function "PutPostDatabaseVarOntCon"
-          response_variation_ontology_conn <- PutPostDatabaseVarOntCon(
+          # using the function "put_post_db_var_ont_con"
+          resp_variation_ontology_conn <- put_post_db_var_ont_con(
             "POST",
             ndd_review_variation_ontology_conn_ori,
             as.integer(response_new_entity$entry$entity_id),
             as.integer(response_review$entry$review_id))
         } else {
-          response_variation_ontology_conn <- list(status = 200,
+          resp_variation_ontology_conn <- list(status = 200,
             message = "OK. Skipped.")
         }
 
@@ -674,7 +673,7 @@ function(req, res) {
         response_review_post <- tibble::as_tibble(response_review) %>%
           bind_rows(tibble::as_tibble(response_publication_conn)) %>%
           bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
-          bind_rows(tibble::as_tibble(response_variation_ontology_conn)) %>%
+          bind_rows(tibble::as_tibble(resp_variation_ontology_conn)) %>%
           select(status, message) %>%
           unique() %>%
           mutate(status = max(status)) %>%
@@ -694,9 +693,9 @@ function(req, res) {
           mutate(entity_id = response_new_entity$entry$entity_id) %>%
           select(-status_id)
 
-        # use the PutPostDatabaseStatus function to
+        # use the put_post_db_status function to
         # add the status to the database table
-        response_status_post <- PutPostDatabaseStatus("POST",
+        response_status_post <- put_post_db_status("POST",
           ndd_entity_status_replaced)
         ##-------------------------------------------------------------------##
 
@@ -724,7 +723,10 @@ function(req, res) {
 
     } else {
       res$status <- 400 # Bad Request
-      return(list(error = "This endpoint only allows renaming the disease ontology of an entity."))
+      return(list(error = paste0("This endpoint only allows renaming",
+          " the disease ontology of an entity.")
+        )
+      )
     }
 
   } else {
@@ -736,7 +738,6 @@ function(req, res) {
 
 #* @tag entity
 #* deactivates an entity
-## example data: deactivate_json <- '{"entity": {"entity_id":"10", "hgnc_id":"HGNC:27288", "disease_ontology_id_version":"OMIM:614265", "hpo_mode_of_inheritance_term":"HP:0000007", "ndd_phenotype":"1", "is_active":"0", "replaced_by":"NULL"}}'
 #* @serializer json list(na="string")
 #' @post /api/entity/deactivate
 function(req, res) {
@@ -774,8 +775,8 @@ function(req, res) {
 
         ##-------------------------------------------------------------------##
         # block to deactivate the entity using
-        # PutDatabaseEntityDeactivation function
-        response_new_entity <- PutDatabaseEntityDeactivation(
+        # put_db_entity_deactivation function
+        response_new_entity <- put_db_entity_deactivation(
           deactivate_data$entity$entity_id,
           ndd_entity_replaced$replaced_by)
         ##-------------------------------------------------------------------##
@@ -937,7 +938,7 @@ function(sysndd_id) {
 function(sysndd_id) {
 
   # get data from database and filter
-  ndd_review_publication_join_coll <- pool %>%
+  review_publication_join_coll <- pool %>%
     tbl("ndd_review_publication_join") %>%
     filter(is_reviewed == 1) %>%
     collect()
@@ -948,7 +949,7 @@ function(sysndd_id) {
     collect()
 
   ndd_entity_publication_list <- ndd_entity_active %>%
-    left_join(ndd_review_publication_join_coll, by = c("entity_id")) %>%
+    left_join(review_publication_join_coll, by = c("entity_id")) %>%
     filter(entity_id == sysndd_id) %>%
     select(entity_id, publication_id, publication_type, is_reviewed) %>%
     arrange(publication_id) %>%
@@ -1001,7 +1002,6 @@ function(req, res, `filter[review_approved]` = 0) {
 
 #* @tag review
 #* posts or puts a new clinical synopsis for a entity_id
-## example data: {"review_id": 1, "entity_id": 1, "synopsis": "activating, gain-of-function mutations: congenital hypertrichosis, neonatal macrosomia, distinct osteochondrodysplasia, cardiomegaly; activating mutations", "literature": {"additional_references": ["PMID:22608503", "PMID:22610116"], "gene_review": ["PMID:25275207"]}, "phenotypes": {"phenotype_id": ["HP:0000256", "HP:0000924", "HP:0001256", "HP:0001574", "HP:0001627", "HP:0002342"], "modifier_id": [1,1,1,1,1,1]}, "comment": ""}
 #* @serializer json list(na="string")
 #' @post /api/review/create
 #' @put /api/review/update
@@ -1086,9 +1086,9 @@ function(req, res, re_review = FALSE) {
       # check request type and perform database update accordingly
       if (req$REQUEST_METHOD == "POST") {
         ##-------------------------------------------------------------------##
-        # use the "PutPostDatabaseReview" function to add the
+        # use the "put_post_db_review" function to add the
         # review to the database table and receive an review_id
-        response_review <- PutPostDatabaseReview(
+        response_review <- put_post_db_review(
           req$REQUEST_METHOD,
           sysnopsis_received,
           re_review)
@@ -1099,8 +1099,8 @@ function(req, res, re_review = FALSE) {
           response_publication <- new_publication(publications_received)
 
           # make the publictaion to review connections using the
-          # function "PutPostDatabasePubCon"
-          response_publication_conn <- PutPostDatabasePubCon(
+          # function "put_post_db_pub_con"
+          response_publication_conn <- put_post_db_pub_con(
             req$REQUEST_METHOD,
             publications_received,
             as.integer(sysnopsis_received$entity_id),
@@ -1115,7 +1115,7 @@ function(req, res, re_review = FALSE) {
         if (length(compact(phenotypes_received)) > 0) {
           # make the phenotype to review connections using the
           # function "response_phenotype_connections"
-          response_phenotype_connections <- PutPostDatabasePhenCon(
+          response_phenotype_connections <- put_post_db_phen_con(
             req$REQUEST_METHOD,
             phenotypes_received,
             as.integer(sysnopsis_received$entity_id),
@@ -1128,14 +1128,14 @@ function(req, res, re_review = FALSE) {
         # only submit variation ontology connections if not empty
         if (length(compact(variation_received)) > 0) {
           # make the variation ontology to review connections
-          # using the function "PutPostDatabaseVarOntCon"
-          response_variation_ontology_conn <- PutPostDatabaseVarOntCon(
+          # using the function "put_post_db_var_ont_con"
+          resp_variation_ontology_conn <- put_post_db_var_ont_con(
             req$REQUEST_METHOD,
             variation_received,
             as.integer(sysnopsis_received$entity_id),
             as.integer(response_review$entry$review_id))
         } else {
-          response_variation_ontology_conn <- list(status = 200,
+          resp_variation_ontology_conn <- list(status = 200,
             message = "OK. Skipped.")
         }
 
@@ -1144,7 +1144,7 @@ function(req, res, re_review = FALSE) {
           bind_rows(tibble::as_tibble(response_review)) %>%
           bind_rows(tibble::as_tibble(response_publication_conn)) %>%
           bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
-          bind_rows(tibble::as_tibble(response_variation_ontology_conn)) %>%
+          bind_rows(tibble::as_tibble(resp_variation_ontology_conn)) %>%
           select(status, message) %>%
           unique() %>%
           mutate(status = max(status)) %>%
@@ -1160,9 +1160,9 @@ function(req, res, re_review = FALSE) {
         # review_data to the sysnopsis_received tibble
         sysnopsis_received$review_id <- review_data$review_id
 
-        # then use the "PutPostDatabaseReview" function to add the
+        # then use the "put_post_db_review" function to add the
         # review to the database table and receive an review_id
-        response_review <- PutPostDatabaseReview(
+        response_review <- put_post_db_review(
             req$REQUEST_METHOD,
             sysnopsis_received,
             re_review)
@@ -1173,8 +1173,8 @@ function(req, res, re_review = FALSE) {
           response_publication <- new_publication(publications_received)
 
         # make the publictaion to review connections using
-        # the function "PutPostDatabasePubCon"
-        response_publication_conn <- PutPostDatabasePubCon(
+        # the function "put_post_db_pub_con"
+        response_publication_conn <- put_post_db_pub_con(
           req$REQUEST_METHOD,
           publications_received,
           sysnopsis_received$entity_id,
@@ -1189,7 +1189,7 @@ function(req, res, re_review = FALSE) {
         if (length(compact(phenotypes_received)) > 0) {
           # make the phenotype to review connections using
           # the function "response_phenotype_connections"
-          response_phenotype_connections <- PutPostDatabasePhenCon(
+          response_phenotype_connections <- put_post_db_phen_con(
             req$REQUEST_METHOD,
             phenotypes_received,
             as.integer(sysnopsis_received$entity_id),
@@ -1202,14 +1202,14 @@ function(req, res, re_review = FALSE) {
         # only submit variation ontology connections if not empty
         if (length(compact(variation_received)) > 0) {
           # make the variation ontology to review connections
-          # using the function "PutPostDatabaseVarOntCon"
-          response_variation_ontology_conn <- PutPostDatabaseVarOntCon(
+          # using the function "put_post_db_var_ont_con"
+          resp_variation_ontology_conn <- put_post_db_var_ont_con(
             req$REQUEST_METHOD,
             variation_received,
             as.integer(sysnopsis_received$entity_id),
             as.integer(review_data$review_id))
         } else {
-          response_variation_ontology_conn <- list(status = 200,
+          resp_variation_ontology_conn <- list(status = 200,
             message = "OK. Skipped.")
         }
 
@@ -1218,7 +1218,7 @@ function(req, res, re_review = FALSE) {
           bind_rows(tibble::as_tibble(response_review)) %>%
           bind_rows(tibble::as_tibble(response_publication_conn)) %>%
           bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
-          bind_rows(tibble::as_tibble(response_variation_ontology_conn)) %>%
+          bind_rows(tibble::as_tibble(resp_variation_ontology_conn)) %>%
           select(status, message) %>%
           unique() %>%
           mutate(status = max(status)) %>%
@@ -1353,7 +1353,7 @@ function(review_id_requested) {
     unique()
 
   # get data from database and filter
-  ndd_review_publication_join_coll <- pool %>%
+  review_publication_join_coll <- pool %>%
     tbl("ndd_review_publication_join") %>%
     collect()
 
@@ -1361,7 +1361,7 @@ function(review_id_requested) {
     tbl("publication") %>%
     collect()
 
-  ndd_entity_publication_list <- ndd_review_publication_join_coll %>%
+  ndd_entity_publication_list <- review_publication_join_coll %>%
     filter(review_id == review_id_requested) %>%
     arrange(publication_id)
 }
@@ -2717,7 +2717,7 @@ function(req, res, re_review = FALSE) {
 
     status_data$status_user_id <- req$user_id
 
-    response <- PutPostDatabaseStatus(
+    response <- put_post_db_status(
       req$REQUEST_METHOD,
       status_data,
       re_review)
@@ -3307,7 +3307,7 @@ function(searchterm, helper = TRUE) {
     mutate(searchdist = stringdist(str_to_lower(results),
       str_to_lower(searchterm),
       method = "jw",
-      p=0.1)) %>%
+      p = 0.1)) %>%
     arrange(searchdist, results) %>%
     mutate(link = case_when(
       search == "hgnc_id" ~ paste0("/Genes/", results),
@@ -3377,7 +3377,7 @@ function(searchterm, tree = FALSE) {
       str_to_lower(result),
       str_to_lower(searchterm),
       method = "jw",
-      p=0.1)) %>%
+      p = 0.1)) %>%
     arrange(searchdist, result)
 
   # compute filtered length with match < 0.1
@@ -3396,7 +3396,7 @@ function(searchterm, tree = FALSE) {
 
   # the "tree" option allows output data to be formated
   # as arrays for the treeselect library
-  # do = disease_ontology
+  # do stands for disease_ontology
   if (tree) {
     do_set_search_return_helper <- do_set_search_return %>%
       select(id = disease_ontology_id_version,
@@ -3433,7 +3433,7 @@ function(searchterm, tree = FALSE) {
     mutate(searchdist = stringdist(str_to_lower(result),
       str_to_lower(searchterm),
       method = "jw",
-      p=0.1)) %>%
+      p = 0.1)) %>%
     arrange(searchdist, result)
 
   # compute filtered length with match < 0.1
@@ -3484,7 +3484,7 @@ function(searchterm, tree = FALSE) {
     mutate(searchdist = stringdist(str_to_lower(result),
       str_to_lower(searchterm),
       method = "jw",
-      p=0.1)) %>%
+      p = 0.1)) %>%
     arrange(searchdist, sort)
 
   # compute filtered length with match < 0.1
@@ -4299,7 +4299,6 @@ function(req, res, new_pass_1 = "", new_pass_2 = "") {
 
 #* @tag authentication
 #* manages user signup
-## example data: {"user_name":"nextuser21", "first_name":"Mark", "family_name":"Sugar", "email":"bernt.popp.md2@gmail.com", "orcid":"0001-0002-3679-1081", "comment":"I love research", "terms_agreed":"accepted"}
 #* @serializer json list(na="string")
 #' @get /api/auth/signup
 function(signup_data) {
