@@ -1,7 +1,7 @@
 version: '3.8'
 services:
  mysql:
-  image: mysql:8
+  image: mysql:8.0.29
   container_name: mysql
   command: mysqld --default-authentication-plugin=mysql_native_password
   restart: always
@@ -27,7 +27,7 @@ services:
    SMTP_PASSWORD: ${SMTP_PASSWORD}
    API_CONFIG: ${API_CONFIG}
  alb:
-  image: 'dockercloud/haproxy'
+  image: haproxy:2.4.16-alpine
   links:
      - api
   volumes:

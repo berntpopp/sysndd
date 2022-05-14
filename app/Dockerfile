@@ -1,4 +1,4 @@
-FROM node:14-alpine3.13 as builder
+FROM node:16-alpine3.14 as builder
 # make the 'app' folder the current working directory
 WORKDIR /app
 # copy both 'package.json' and 'package-lock.json' (if available)
@@ -12,7 +12,7 @@ RUN npm run build
 RUN npm audit fix
 
 # nginx state for serving content
-FROM nginx:alpine
+FROM nginx:1.21.6-alpine
 RUN rm /etc/nginx/conf.d/default.conf
 COPY ./docker/nginx/prod.conf /etc/nginx/conf.d/
 COPY ./docker/nginx/nginx.conf /etc/nginx/

@@ -1,4 +1,4 @@
-FROM rocker/tidyverse:latest
+FROM rocker/tidyverse:4.2.0
 ## Install Java
 RUN apt-get update && apt-get install -y \
 default-jdk \
@@ -9,4 +9,4 @@ libbz2-dev \
 libicu-dev \
 liblzma-dev \
 libsodium-dev
-RUN install2.r Rcpp plumber DBI RMariaDB jsonlite config jose RCurl stringdist xlsx easyPubMed rvest lubridate pool memoise coop reshape2 blastula keyring future knitr rlang timetk xml2
+RUN Rscript -e 'install.packages(c("Rcpp", "plumber", "DBI", "RMariaDB", "jsonlite", "config", "jose", "RCurl", "stringdist", "xlsx", "easyPubMed", "rvest", "lubridate", "pool", "memoise", "coop", "reshape2", "blastula", "keyring", "future", "knitr", "rlang", "timetk", "xml2"), repos="https://cloud.r-project.org")'
