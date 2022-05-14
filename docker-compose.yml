@@ -23,7 +23,7 @@ services:
    - ../data/backup:/backup
   environment:
    MYSQL_HOST: mysql
-   MYSQL_USER: ${MYSQL_USER}
+   MYSQL_USER: root
    MYSQL_PASS: ${MYSQL_ROOT_PASSWORD}
    MAX_BACKUPS: 60 
    INIT_BACKUP: 1
