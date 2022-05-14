@@ -14,6 +14,24 @@ services:
    - "7654:3306"
   volumes:
    - ../data/mysql/:/var/lib/mysql/
+   - ../data/backup:/backup
+ mysql-cron-backup:
+  image: 'fradelg/mysql-cron-backup'
+  depends_on:
+   - mysql
+  volumes:
+   - ../data/backup:/backup
+  environment:
+   MYSQL_HOST: mysql
+   MYSQL_USER: ${MYSQL_USER}
+   MYSQL_PASS: ${MYSQL_ROOT_PASSWORD}
+   MAX_BACKUPS: 30 
+   INIT_BACKUP: 0
+   # Every day at 03:00
+   CRON_TIME: 0 3 * * *
+   # Make it small
+   GZIP_LEVEL: 9
+  restart: unless-stopped
  api:
   build: ./api/
   command: Rscript /sysndd_api_volume/start_sysndd_api.R
