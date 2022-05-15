@@ -370,6 +370,8 @@
   import UpSetJS, { extractSets, ISets, ISet } from '@upsetjs/vue';
   import * as d3 from 'd3';
 
+  import {createElement} from "@upsetjs/bundle";
+
   export default {
   name: 'CurationComparisons',
   mixins: [toastMixin],
@@ -526,6 +528,15 @@
       this.loadOptionsData();
     },
     methods: {
+        customStyleFactory(rules) {
+          return createElement(
+            'style',
+            {
+              extra: 'abc',
+            },
+            rules
+          );
+        },
         async loadOptionsData() {
           // have to add other options here and normalize the function both here and in the API
           this.loading = true;
