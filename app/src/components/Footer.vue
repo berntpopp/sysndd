@@ -34,9 +34,9 @@
 export default {
   name: 'Footer',
   data() {
-        return {
-          link: {'license': {"aria-label": "license-link"}, 'github': {"aria-label": "github-link"}, 'api': {"aria-label": "api-link"}, 'dfg': {"aria-label": "dfg-link"}, 'unibe': {"aria-label": "unibe-link"}, 'ern-ithaca': {"aria-label": "ern-ithaca-link"}}
-        }
+    return {
+      link: {'license': {"aria-label": "license-link"}, 'github': {"aria-label": "github-link"}, 'api': {"aria-label": "api-link"}, 'dfg': {"aria-label": "dfg-link"}, 'unibe': {"aria-label": "unibe-link"}, 'ern-ithaca': {"aria-label": "ern-ithaca-link"}}
+    }
   }
 }
 </script>

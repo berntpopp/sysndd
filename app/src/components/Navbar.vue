@@ -150,17 +150,17 @@ export default {
   name: 'Navbar',
   mixins: [toastMixin],
   data() {
-        return {
-          user: null,
-          review: false,
-          curate: false,
-          admin: false,
-          user_from_jwt: [],
-          time_to_logout: 0,
-          search_input: '',
-          search: [],
-          show_search: false
-        }
+    return {
+      user: null,
+      review: false,
+      curate: false,
+      admin: false,
+      user_from_jwt: [],
+      time_to_logout: 0,
+      search_input: '',
+      search: [],
+      show_search: false
+    }
   },
 watch: { // used to refresh navbar on login push
   $route(to, from) { 
