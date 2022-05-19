@@ -25,36 +25,17 @@
                   <b-row>
                     <!-- column 1 -->
                     <b-col class="my-1">
-                      <b-input-group
-                        prepend="Lists"
-                        class="mb-1"
-                        size="sm"
-                      >
-                        <b-form-select 
-                        @input="loadComparisonsUpsetData"
-                        input-id="columns-select"
-                        v-model="selected_columns" 
-                        :options="columns_list" 
-                        text-field="value"
-                        multiple
-                        :select-size="3"
-                        size="sm"
-                        >
-                        </b-form-select>
-                      </b-input-group>
+
+              <treeselect
+                id="columns-select"
+                :multiple="true"
+                :options="columns_list"
+                v-model="selected_columns"
+                :normalizer="normalizeLists"
+              />
+
                     </b-col>
 
-                    <!-- column 2 -->
-                    <b-col class="my-1">
-                    </b-col>
-
-                    <!-- column 3 -->
-                    <b-col class="my-1">
-                    </b-col>
-
-                    <!-- column 4 -->
-                    <b-col class="my-1">
-                    </b-col>
                   </b-row>
                 <!-- User Interface controls -->
 
@@ -372,7 +353,14 @@
 
   import {createElement} from "@upsetjs/bundle";
 
+  // import the Treeselect component
+  import Treeselect from '@riophae/vue-treeselect'
+  // import the Treeselect styles
+  import '@riophae/vue-treeselect/dist/vue-treeselect.css'
+
   export default {
+  // register the Treeselect component
+  components: {Treeselect, UpSetJS},
   name: 'CurationComparisons',
   mixins: [toastMixin],
   metaInfo: {
@@ -387,9 +375,6 @@
       { vmid: 'description', name: 'description', content: 'The Comparisions analysis can be used to compare different curation efforts for neurodevelopmental disorders (inlucing attention-deficit/hyperactivity disorder (ADHD), autism spectrum disorders (ASD), learning disabilities and intellectual disability) based on UpSet plots, similarity matrix or tabular views.' }
     ]
   },
-    components: {
-      UpSetJS,
-    },
     data() {
       return {
         yn_icon: {"no": "x", "yes": "check"},
@@ -408,7 +393,7 @@
         width: 1400,
         height: 600,
         columns_list: [],
-        selected_columns: [],
+        selected_columns: ['SysNDD', 'panelapp', 'gene2phenotype'],
         items: [],
         itemsMatrix: [],
         fields: [
@@ -509,15 +494,18 @@
           this.loadMatrixData();
         }
       },
-      sortBy(value) {
+      sortBy() {
         this.handleSortChange();
       },
-      perPage(value) {
+      perPage() {
         this.handlePerPageChange();
       },
-      sortDesc(value) {
+      sortDesc() {
         this.handleSortChange();
-      }
+      },
+      selected_columns() {
+        this.loadComparisonsUpsetData();
+      },
     },
     computed: {
       sets() {
@@ -545,11 +533,6 @@
           try {
             let response = await this.axios.get(apiUrl);
             this.columns_list = response.data.list;
-
-            var c = [];
-            for (var i = 0; i < response.data.list.length; i++ ) c.push(response.data.list[i].list);
-            this.columns_list = c;
-            this.selected_columns = c.slice(0, 4);
 
             this.loadComparisonsUpsetData();
 
@@ -603,10 +586,11 @@
         async loadComparisonsUpsetData() {
           this.loadingUpset = true;
           let apiUrl = process.env.VUE_APP_API_URL + '/api/comparisons/upset?fields=' + this.selected_columns.join();
-   
+
           try {
             let response = await this.axios.get(apiUrl);
             this.elems = response.data;
+
           } catch (e) {
             this.makeToast(e, 'Error', 'danger');
           }
@@ -635,6 +619,12 @@
 
           } catch (e) {
             this.makeToast(e, 'Error', 'danger');
+          }
+        },
+        normalizeLists(node) {
+          return {
+            id: node.list,
+            label: node.list,
           }
         },
         async requestExcel() {

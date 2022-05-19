@@ -100,10 +100,13 @@ source("functions/helper-functions.R", local = TRUE)
 # and set cache 100 MB limit
 cm <- cachem::cache_mem(max_age = 5 * 60,
   max_size = 100 * 1024 ^ 2)
+
 generate_gene_stat_tibble_mem <- memoise(generate_gene_stat_tibble,
   cache = cm)
+
 generate_gene_news_tibble_mem <- memoise(generate_gene_news_tibble,
   cache = cm)
+
 nest_gene_tibble_mem <- memoise(nest_gene_tibble,
   cache = cm)
 
@@ -3043,8 +3046,8 @@ function(res, aggregate = "entity_id", group = "category") {
     mutate(entry_date = strftime(entry_date, "%Y-%m-%d"))
 
   # generate object to return
-    sysndd_db_disease_nested <- sysndd_db_disease_collected %>%
-        nest_by(!!rlang::sym(group), .key = "values") %>%
+  sysndd_db_disease_nested <- sysndd_db_disease_collected %>%
+    nest_by(!!rlang::sym(group), .key = "values") %>%
     ungroup() %>%
     select("group" = !!rlang::sym(group), values)
 
@@ -3061,8 +3064,6 @@ function(res, aggregate = "entity_id", group = "category") {
     "max_cumulative_count" = max(sysndd_db_disease_collected$cumulative_count),
     "executionTime" = execution_time))
 
-  # generate object to return
-  sysndd_db_disease_nested
   # generate object to return
   list(meta = meta, data = sysndd_db_disease_nested)
 }
