@@ -16,8 +16,9 @@
           <template #header>
             <h6 class="mb-1 text-left font-weight-bold">Entities table <b-badge variant="primary" v-b-tooltip.hover.bottom v-bind:title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime">Entities: {{totalRows}} </b-badge></h6>
           </template>
+
           <b-row>
-            <b-col class="my-1">
+            <b-col class="my-1" sm="8">
               <b-form-group
                 class="mb-1"
               >
@@ -38,24 +39,7 @@
               </b-form-group>
             </b-col>
 
-            <b-col>
-              <b-row>
-                <b-col class="my-1">
-                  <b-button block v-on:click="removeFilters(); removeSearch();" size="sm">
-                    <b-icon icon="filter" class="mx-1"></b-icon>
-                    Reset
-                  </b-button>
-                </b-col>
-
-                <b-col class="my-1">
-                </b-col>
-              </b-row>
-            </b-col>
-
-            <b-col class="my-1">
-            </b-col>
-
-            <b-col class="my-1">
+            <b-col class="my-1" sm="4">
               <b-input-group
                 prepend="Per page"
                 class="mb-1"

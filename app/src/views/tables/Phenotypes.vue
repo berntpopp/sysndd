@@ -13,11 +13,13 @@
           header-class="p-1"
           border-variant="dark"
           >
+
           <template #header>
             <h6 class="mb-1 text-left font-weight-bold">Phenotypes search <b-badge variant="primary" v-b-tooltip.hover.bottom v-bind:title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime">Associated entities: {{totalRows}} </b-badge></h6>
          </template>
+
           <b-row>
-            <b-col class="my-1">
+            <b-col class="my-1" sm="6">
                 <treeselect 
                   id="phenotype_select"
                   @input="requestSelected"
@@ -28,7 +30,7 @@
                 />
             </b-col>
 
-            <b-col>
+            <b-col class="my-1" sm="2">
               <b-row>
                 <b-col class="my-1">
                   <b-form-checkbox 
@@ -52,10 +54,7 @@
               </b-row>
             </b-col>
 
-            <b-col class="my-1">
-            </b-col>
-
-            <b-col class="my-1">
+            <b-col class="my-1" sm="4">
               <b-input-group
                 prepend="Per page"
                 class="mb-1"

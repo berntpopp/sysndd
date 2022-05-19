@@ -1,5 +1,5 @@
 <template>
-  <div class="container-fluid">
+  <div class="container-fluid bg-gradient">
     <b-container fluid>
 
       <b-row class="justify-content-md-center py-2">
@@ -54,5 +54,10 @@
 
 
 <style scoped>
-
+.bg-gradient {
+  margin:0px;
+  height:100%;
+  min-height:calc(100vh - 100px);
+  background-image: linear-gradient(-225deg, #E3FDF5 0%, #FFE6FA 100%);
+}
 </style>

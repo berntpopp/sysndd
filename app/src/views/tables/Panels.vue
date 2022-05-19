@@ -18,9 +18,8 @@
           </template>
 
           <b-row>
-
             <!-- column 1 -->
-            <b-col class="my-1">
+            <b-col class="my-1" sm="6">
               <b-input-group
                 prepend="Category"
                 class="mb-1"
@@ -55,9 +54,9 @@
             </b-col>
 
             <!-- column 2 -->
-            <b-col class="my-1">
+            <b-col class="my-1" sm="6">
               <b-input-group
-                prepend="Request columns"
+                prepend="Columns"
                 class="mb-1"
                 size="sm"
               >
@@ -76,7 +75,7 @@
             </b-col>
 
             <!-- column 3 -->
-            <b-col class="my-1">
+            <b-col class="my-1" sm="6">
               <b-input-group
                 prepend="Sort"
                 class="mb-1"
@@ -92,24 +91,18 @@
                 >
                 </b-form-select>
               </b-input-group>
-              <b-row>
-                <b-col class="my-1">
-                  <b-button block v-on:click="requestExcel" size="sm">
-                    <b-icon icon="table" class="mx-1"></b-icon>
-                    <b-icon icon="download" v-if="!downloading"></b-icon>
-                    <b-spinner small v-if="downloading"></b-spinner>
-                    .xlsx
-                  </b-button>
-                </b-col>
 
-                <b-col class="my-1">
+              <b-button block v-on:click="requestExcel" size="sm">
+                <b-icon icon="table" class="mx-1"></b-icon>
+                <b-icon icon="download" v-if="!downloading"></b-icon>
+                <b-spinner small v-if="downloading"></b-spinner>
+                .xlsx
+              </b-button>
 
-                </b-col>
-              </b-row>
             </b-col>
 
             <!-- column 4 -->
-            <b-col class="my-1">
+            <b-col class="my-1" sm="6">
               <b-input-group
                 prepend="Per page"
                 class="mb-1"

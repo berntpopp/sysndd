@@ -18,7 +18,7 @@
           </template>
 
           <b-row>
-            <b-col class="my-1">
+            <b-col class="my-1" sm="8">
               <b-form-group
                 class="mb-1"
               >
@@ -33,18 +33,13 @@
                     debounce="500"
                     @click="removeFilters()"
                     @update="filtered()"
-                  ></b-form-input>
+                  >
+                  </b-form-input>
                 </b-input-group>
               </b-form-group>
             </b-col>
 
-            <b-col class="my-1">
-            </b-col>
-
-            <b-col class="my-1">
-            </b-col>
-
-            <b-col class="my-1">
+            <b-col class="my-1" sm="4">
               <b-input-group
                 prepend="Per page"
                 class="mb-1"

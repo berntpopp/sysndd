@@ -14,7 +14,7 @@
       </template>
 
     <b-row>
-      <b-col class="my-1">
+      <b-col class="my-1" sm="6">
         <b-form-group
           class="mb-1"
         >
@@ -35,7 +35,7 @@
         </b-form-group>
       </b-col>
 
-      <b-col>
+      <b-col class="my-1" sm="2">
         <b-row>
           <b-col class="my-1">
             <b-button block v-on:click="removeFilters(); removeSearch();" size="sm">
@@ -55,10 +55,7 @@
         </b-row>
       </b-col>
 
-      <b-col class="my-1">
-      </b-col>
-
-      <b-col class="my-1">
+      <b-col class="my-1" sm="4">
         <b-input-group
           prepend="Per page"
           class="mb-1"
