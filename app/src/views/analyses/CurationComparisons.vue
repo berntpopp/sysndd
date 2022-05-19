@@ -39,7 +39,6 @@
   import toastMixin from '@/assets/js/mixins/toastMixin.js'
 
   export default {
-  // register the Treeselect component
   components: {AnalysesCurationUpset,
     AnalysesCurationMatrixPlot,
     AnalysesCurationComparisonsTable
