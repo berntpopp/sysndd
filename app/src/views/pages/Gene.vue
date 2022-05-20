@@ -31,18 +31,18 @@
             >
                 <template #cell(symbol)="data">
                   <b-row>
-                    <b-row> 
+                    <b-row v-for="id in data.item.symbol" :key="id"> 
                         <b-col>
                           <div class="font-italic">
-                            <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
+                            <b-link v-bind:href="'/Genes/' + id"> 
                               <b-badge
                               pill
                               variant="success"
                               class="mx-2" 
                               v-b-tooltip.hover.leftbottom 
-                              v-bind:title="data.item.hgnc_id"
+                              v-bind:title="id"
                               >
-                              {{ data.item.symbol }}
+                              {{ id }}
                               </b-badge>
                             </b-link>
                           </div> 
@@ -50,12 +50,12 @@
                           <b-button 
                           class="btn-xs mx-2" 
                           variant="outline-primary"
-                          v-bind:src="data.item.symbol" 
-                          v-bind:href="'https://www.genenames.org/data/gene-symbol-report/#!/symbol/'+ data.item.symbol" 
+                          v-bind:src="id" 
+                          v-bind:href="'https://www.genenames.org/data/gene-symbol-report/#!/symbol/'+ id" 
                           target="_blank" 
                           >
                             <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                            <span class="font-italic"> {{ data.item.symbol }} ({{ data.item.hgnc_id }}) </span>
+                            <span class="font-italic"> {{ id }} </span>
                           </b-button>
                         </b-col>
                       </b-row>
@@ -64,9 +64,9 @@
 
                 <template #cell(name)="data">
                 <b-row>
-                    <b-row> 
+                    <b-row v-for="id in data.item.name" :key="id">
                         <b-col>
-                          <span class="font-italic mx-2"> {{ data.item.name }} </span>
+                          <span class="font-italic mx-2"> {{ id }} </span>
                         </b-col>
                       </b-row>
                     </b-row>
@@ -74,17 +74,18 @@
 
                 <template #cell(entrez_id)="data">
                 <b-row>
-                    <b-row> 
+                    <b-row v-for="id in data.item.entrez_id" :key="id">
                         <b-col>
                           <b-button 
                           class="btn-xs mx-2" 
                           variant="outline-primary"
-                          v-bind:src="data.item.entrez_id" 
-                          v-bind:href="'https://www.ncbi.nlm.nih.gov/gene/'+ data.item.entrez_id" 
+                          v-bind:src="id" 
+                          v-bind:href="'https://www.ncbi.nlm.nih.gov/gene/'+ id"
+                          v-if="id"
                           target="_blank" 
                           >
                             <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                            {{ data.item.entrez_id }}
+                            {{ id }}
                           </b-button>
                         </b-col>
                       </b-row>
@@ -93,17 +94,18 @@
 
                 <template #cell(ensembl_gene_id)="data">
                 <b-row>
-                    <b-row> 
+                    <b-row v-for="id in data.item.ensembl_gene_id" :key="id">
                         <b-col>
                           <b-button 
                           class="btn-xs mx-2" 
                           variant="outline-primary"
-                          v-bind:src="data.item.ensembl_gene_id" 
-                          v-bind:href="'https://www.ensembl.org/Homo_sapiens/Gene/Summary?g='+ data.item.ensembl_gene_id" 
+                          v-bind:src="id" 
+                          v-bind:href="'https://www.ensembl.org/Homo_sapiens/Gene/Summary?g='+ id"
+                          v-if="id"
                           target="_blank" 
                           >
                             <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                            {{ data.item.ensembl_gene_id }}
+                            {{ id }}
                           </b-button>
                         </b-col>
                       </b-row>
@@ -112,17 +114,18 @@
 
                 <template #cell(ucsc_id)="data">
                 <b-row>
-                    <b-row> 
+                    <b-row v-for="id in data.item.ucsc_id" :key="id">
                         <b-col>
                           <b-button 
                           class="btn-xs mx-2" 
                           variant="outline-primary"
-                          v-bind:src="data.item.ucsc_id" 
-                          v-bind:href="'https://genome-euro.ucsc.edu/cgi-bin/hgGene?hgg_gene='+ data.item.ucsc_id + '&db=hg38'" 
+                          v-bind:src="id" 
+                          v-bind:href="'https://genome-euro.ucsc.edu/cgi-bin/hgGene?hgg_gene='+ id + '&db=hg38'"
+                          v-if="id"
                           target="_blank" 
                           >
                             <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                            {{ data.item.ucsc_id }}
+                            {{ id }}
                           </b-button>
                         </b-col>
                       </b-row>
@@ -136,8 +139,9 @@
                           <b-button 
                           class="btn-xs mx-2" 
                           variant="outline-primary"
-                          v-bind:src="data.item.ccds_id" 
-                          v-bind:href="'https://www.ncbi.nlm.nih.gov/CCDS/CcdsBrowse.cgi?REQUEST=CCDS&DATA='+ id" 
+                          v-bind:src="id" 
+                          v-bind:href="'https://www.ncbi.nlm.nih.gov/CCDS/CcdsBrowse.cgi?REQUEST=CCDS&DATA='+ id"
+                          v-if="id"
                           target="_blank" 
                           >
                             <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
@@ -150,17 +154,18 @@
 
                 <template #cell(uniprot_ids)="data">
                   <b-row>
-                    <b-row> 
+                    <b-row v-for="id in data.item.uniprot_ids" :key="id"> 
                         <b-col>
                           <b-button 
                           class="btn-xs mx-2" 
                           variant="outline-primary"
-                          v-bind:src="data.item.uniprot_ids" 
-                          v-bind:href="'https://www.uniprot.org/uniprot/'+ data.item.uniprot_ids" 
+                          v-bind:src="id" 
+                          v-bind:href="'https://www.uniprot.org/uniprot/'+ id"
+                          v-if="id"
                           target="_blank" 
                           >
                             <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                            {{ data.item.uniprot_ids }}
+                            {{ id }}
                           </b-button>
                         </b-col>
                       </b-row>
@@ -169,17 +174,18 @@
 
                 <template #cell(omim_id)="data">
                   <b-row>
-                    <b-row> 
+                    <b-row v-for="id in data.item.omim_id" :key="id"> 
                         <b-col>
                           <b-button 
                           class="btn-xs mx-2" 
                           variant="outline-primary"
-                          v-bind:src="data.item.uniprot_ids" 
-                          v-bind:href="'https://www.omim.org/entry/'+ data.item.omim_id" 
+                          v-bind:src="id" 
+                          v-bind:href="'https://www.omim.org/entry/'+ id"
+                          v-if="id"
                           target="_blank" 
                           >
                             <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                            {{ data.item.omim_id }}
+                            *{{ id }}
                           </b-button>
                         </b-col>
                       </b-row>
@@ -188,17 +194,18 @@
 
                 <template #cell(mgd_id)="data">
                   <b-row>
-                    <b-row> 
+                    <b-row v-for="id in data.item.mgd_id" :key="id"> 
                         <b-col>
                           <b-button 
                           class="btn-xs mx-2" 
                           variant="outline-primary"
-                          v-bind:src="data.item.uniprot_ids" 
-                          v-bind:href="'http://www.informatics.jax.org/marker/'+ data.item.mgd_id" 
+                          v-bind:src="id" 
+                          v-bind:href="'http://www.informatics.jax.org/marker/'+ id"
+                          v-if="id"
                           target="_blank" 
                           >
                             <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                            {{ data.item.mgd_id }}
+                            {{ id }}
                           </b-button>
                         </b-col>
                       </b-row>
@@ -207,17 +214,18 @@
 
                 <template #cell(rgd_id)="data">
                   <b-row>
-                    <b-row> 
+                    <b-row v-for="id in data.item.rgd_id" :key="id"> 
                         <b-col>
                           <b-button 
                           class="btn-xs mx-2" 
                           variant="outline-primary"
-                          v-bind:src="data.item.uniprot_ids" 
-                          v-bind:href="'https://rgd.mcw.edu/rgdweb/report/gene/main.html?id='+ data.item.rgd_id" 
-                          target="_blank" 
+                          v-bind:src="id" 
+                          v-bind:href="'https://rgd.mcw.edu/rgdweb/report/gene/main.html?id='+ id"
+                          v-if="id"
+                          target="_blank"
                           >
                             <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                            {{ data.item.rgd_id }}
+                            {{ id }}
                           </b-button>
                         </b-col>
                       </b-row>
@@ -226,17 +234,18 @@
 
                 <template #cell(STRING_id)="data">
                   <b-row>
-                    <b-row> 
+                    <b-row v-for="id in data.item.STRING_id" :key="id"> 
                         <b-col>
                           <b-button 
                           class="btn-xs mx-2" 
                           variant="outline-primary"
-                          v-bind:src="data.item.uniprot_ids" 
-                          v-bind:href="'https://string-db.org/network/'+ data.item.STRING_id" 
+                          v-bind:src="id" 
+                          v-bind:href="'https://string-db.org/network/'+ id" 
+                          v-if="id"
                           target="_blank" 
                           >
                             <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                            {{ data.item.STRING_id }}
+                            {{ id }}
                           </b-button>
                         </b-col>
                       </b-row>
@@ -446,8 +455,8 @@ export default {
   methods: {
   async loadGeneInfo() {
     this.loading = true;
-    let apiGeneURL = process.env.VUE_APP_API_URL + '/api/gene/' + this.$route.params.symbol;
-    let apiGeneSymbolURL = process.env.VUE_APP_API_URL + '/api/gene/symbol/' + this.$route.params.symbol;
+    let apiGeneURL = process.env.VUE_APP_API_URL + '/api/gene/' + this.$route.params.symbol + '?input_type=hgnc';
+    let apiGeneSymbolURL = process.env.VUE_APP_API_URL + '/api/gene/' + this.$route.params.symbol + '?input_type=symbol';
     let apiEntitiesByGeneSymbolURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(symbol,' + this.$route.params.symbol + ')';
     let apiEntitiesByGeneURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(hgnc_id,' + this.$route.params.symbol + ')';
 

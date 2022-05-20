@@ -2158,18 +2158,31 @@ function(res,
 
 #* @tag gene
 #* gets infos for a single gene by hgnc_id
-#* @serializer json list(na="string")
-#' @get /api/gene/<hgnc>
-function(hgnc) {
+#* @serializer json list(na="null")
+#' @get /api/gene/<gene_input>
+function(gene_input, input_type = "hgnc") {
 
-  hgnc <- URLdecode(hgnc) %>%
-    str_replace_all("HGNC:", "")
-  hgnc <- paste0("HGNC:", hgnc)
+  # conditionally url decode and reformat input
+  if (input_type == "hgnc") {
+    gene_input <- URLdecode(gene_input) %>%
+      str_replace_all("HGNC:", "")
+    gene_input <- paste0("HGNC:", gene_input)
+  } else if (input_type == "symbol") {
+    gene_input <- URLdecode(gene_input) %>%
+      str_to_lower()
+  }
 
   # get data from database and filter
   non_alt_loci_set_collected <- pool %>%
     tbl("non_alt_loci_set") %>%
-    filter(hgnc_id == hgnc) %>%
+    {if(input_type == "hgnc")
+      filter(., hgnc_id == gene_input)
+     else .
+     } %>%
+    {if(input_type == "symbol")
+      filter(., str_to_lower(symbol) == gene_input)
+     else .
+     } %>%
     select(hgnc_id,
       symbol,
       name,
@@ -2185,74 +2198,9 @@ function(hgnc) {
       STRING_id) %>%
     arrange(hgnc_id) %>%
     collect() %>%
-    mutate(ccds_id = str_split(ccds_id, pattern = "\\|")) %>%
-    mutate(mane_select = str_split(mane_select, pattern = "\\|"))
+    mutate(across(everything(), ~str_split(., pattern = "\\|")))
 }
 
-
-#* @tag gene
-#* gets infos for a single gene by symbol
-#* @serializer json list(na="string")
-#' @get /api/gene/symbol/<symbol>
-function(symbol) {
-
-  symbol_input <- URLdecode(symbol) %>%
-    str_to_lower()
-
-  # get data from database and filter
-  non_alt_loci_set_collected <- pool %>%
-    tbl("non_alt_loci_set") %>%
-    filter(str_to_lower(symbol) == symbol_input) %>%
-    select(hgnc_id,
-      symbol,
-      name,
-      entrez_id,
-      ensembl_gene_id,
-      ucsc_id,
-      ccds_id,
-      uniprot_ids) %>%
-    arrange(hgnc_id) %>%
-    collect()
-}
-
-
-#* @tag gene
-#* gets all entities for a single gene by hgnc_id
-#* @serializer json list(na="string")
-#' @get /api/gene/<hgnc>/entities
-function(hgnc) {
-
-  hgnc <- URLdecode(hgnc) %>%
-    str_replace_all("[^0-9]+", "")
-  hgnc <- paste0("HGNC:", hgnc)
-
-  # get data from database and filter
-  entity_by_gene_list <- pool %>%
-    tbl("ndd_entity_view") %>%
-    filter(hgnc_id == hgnc) %>%
-    collect()
-
-  entity_by_gene_list
-}
-
-
-#* @tag gene
-#* gets all entities for a single gene by symbol
-#* @serializer json list(na="string")
-#' @get /api/gene/symbol/<symbol>/entities
-function(symbol) {
-
-  symbol_input <- URLdecode(symbol) %>%
-    str_to_lower()
-
-  # get data from database and filter
-  entity_by_gene_list <- pool %>%
-    tbl("ndd_entity_view") %>%
-    filter(str_to_lower(symbol) == symbol_input) %>%
-    collect()
-
-  entity_by_gene_list
-}
 ## Gene endpoints
 ##-------------------------------------------------------------------##
 

@@ -23,8 +23,6 @@
               </h3>
             </template>
 
-
-
             <b-table
                 :items="ontology"
                 :fields="ontology_fields"
@@ -98,6 +96,7 @@
                         size="1.3em"
                         v-b-tooltip.hover.leftbottom 
                         v-bind:title="id + ' (' + data.item.hpo_mode_of_inheritance_term + ')'"
+                        v-if="id"
                         >
                         {{ id }}
                         </b-badge>
@@ -115,7 +114,8 @@
                         class="btn-xs mx-2" 
                         variant="outline-primary"
                         v-bind:src="id" 
-                        v-bind:href="'https://disease-ontology.org/term/'+ id" 
+                        v-bind:href="'https://disease-ontology.org/term/'+ id"
+                        v-if="id"
                         target="_blank" 
                         >
                           <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
@@ -134,7 +134,8 @@
                         class="btn-xs mx-2" 
                         variant="outline-primary"
                         v-bind:src="id" 
-                        v-bind:href="'http://purl.obolibrary.org/obo/'+ id.replace(':', '_')" 
+                        v-bind:href="'http://purl.obolibrary.org/obo/'+ id.replace(':', '_')"
+                        v-if="id"
                         target="_blank" 
                         >
                           <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
@@ -153,7 +154,8 @@
                         class="btn-xs mx-2" 
                         variant="outline-primary"
                         v-bind:src="data.item.Orphanet" 
-                        v-bind:href="'https://www.orpha.net/consor/cgi-bin/OC_Exp.php?Expert='+ id.replace('Orphanet:', '') + '&lng=EN'" 
+                        v-bind:href="'https://www.orpha.net/consor/cgi-bin/OC_Exp.php?Expert='+ id.replace('Orphanet:', '') + '&lng=EN'"
+                        v-if="id"
                         target="_blank" 
                         >
                           <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
@@ -172,7 +174,8 @@
                         class="btn-xs mx-2" 
                         variant="outline-primary"
                         v-bind:src="id" 
-                        v-bind:href="'http://www.ebi.ac.uk/efo/'+ id" 
+                        v-bind:href="'http://www.ebi.ac.uk/efo/'+ id"
+                        v-if="id"
                         target="_blank" 
                         >
                           <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
