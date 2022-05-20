@@ -22,11 +22,10 @@
               <b-form-group
                 class="mb-1"
               >
-                <b-input-group
-                prepend="Search"
-                size="sm">
                   <b-form-input
                     id="filter-input"
+                    class="mb-1 border-dark"
+                    size="sm"
                     v-model="filter['any']"
                     type="search"
                     placeholder="any field by typing here"
@@ -35,7 +34,6 @@
                     @update="filtered()"
                   >
                   </b-form-input>
-                </b-input-group>
               </b-form-group>
             </b-col>
 
@@ -444,5 +442,9 @@ export default {
   }
   .input-group .input-group-text {
       width: 100%;
+  }
+  .border-dark {
+      border: 1;
+      border-color: #000;
   }
 </style>

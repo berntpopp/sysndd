@@ -9,6 +9,7 @@
           <!-- Entity overview card -->
           <b-card 
           header-tag="header"
+          class="my-3 text-left"
           body-class="p-0"
           header-class="p-1"
           border-variant="dark"

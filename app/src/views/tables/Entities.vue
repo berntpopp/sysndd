@@ -20,22 +20,20 @@
           <b-row>
             <b-col class="my-1" sm="8">
               <b-form-group
-                class="mb-1"
+                class="mb-1 border-dark"
               >
-                <b-input-group
-                prepend="Search"
-                size="sm">
                   <b-form-input
                     id="filter-input"
+                    class="mb-1 border-dark"
+                    size="sm"
                     v-model="filter['any']"
                     type="search"
-                    placeholder="any field by typing here"
+                    placeholder="Search any field by typing here"
                     debounce="500"
                     @click="removeFilters()"
                     @update="filtered()"
                   >
                   </b-form-input>
-                </b-input-group>
               </b-form-group>
             </b-col>
 
@@ -432,5 +430,8 @@ export default {
   text-overflow: ellipsis;
   white-space:nowrap;
   }
-
+  .border-dark {
+      border: 1;
+      border-color: #000;
+  }
 </style>
