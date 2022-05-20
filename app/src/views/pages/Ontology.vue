@@ -203,7 +203,6 @@
               <b-card>
                 <b-table
                   :items="[row.item]"
-                  :fields="fields_details"
                   stacked 
                   small
                 >

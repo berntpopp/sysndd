@@ -1,254 +1,283 @@
 <template>
-  <div class="container-fluid">
+  <div class="container-fluid centered">
+
   <b-spinner label="Loading..." v-if="loading" class="float-center m-5"></b-spinner>
     <b-container fluid v-else>
-      <b-row class="justify-content-md-center py-2">
-        <b-col col md="10">
+      <b-row class="justify-content-md-center py-2" align-v="center">
+        <b-col col md="12">
 
-          <h3>Gene: 
-            <b-badge pill variant="success">
-              {{ $route.params.symbol }}
-            </b-badge>
-          </h3>
 
-          <b-table
-              :items="gene"
-              :fields="gene_fields"
-              stacked
+          <!-- Gene overview card -->
+          <b-card 
+          header-tag="header"
+          body-class="p-0"
+          header-class="p-1"
+          border-variant="dark"
+          >
+
+            <template #header>
+              <h3 class="mb-1 text-left font-weight-bold">Gene: 
+                <b-badge pill variant="success">
+                  {{ $route.params.symbol }}
+                </b-badge>
+              </h3>
+            </template>
+
+            <b-table
+                :items="gene"
+                :fields="gene_fields"
+                stacked
+                small
+            >
+                <template #cell(symbol)="data">
+                  <b-row>
+                    <b-row> 
+                        <b-col>
+                          <div class="font-italic">
+                            <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
+                              <b-badge pill variant="success"
+                              v-b-tooltip.hover.leftbottom 
+                              v-bind:title="data.item.hgnc_id"
+                              >
+                              {{ data.item.symbol }}
+                              </b-badge>
+                            </b-link>
+                          </div> 
+
+                          <b-button 
+                          class="btn-xs mx-2" 
+                          variant="outline-primary"
+                          v-bind:src="data.item.symbol" 
+                          v-bind:href="'https://www.genenames.org/data/gene-symbol-report/#!/symbol/'+ data.item.symbol" 
+                          target="_blank" 
+                          >
+                            <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                            <span class="font-italic"> {{ data.item.symbol }} </span>
+                          </b-button>
+                        </b-col>
+                      </b-row>
+                    </b-row>
+                </template>
+
+                <template #cell(entrez_id)="data">
+                <b-row>
+                    <b-row> 
+                        <b-col>
+                          <b-button 
+                          class="btn-xs mx-2" 
+                          variant="outline-primary"
+                          v-bind:src="data.item.entrez_id" 
+                          v-bind:href="'https://www.ncbi.nlm.nih.gov/gene/'+ data.item.entrez_id" 
+                          target="_blank" 
+                          >
+                            <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                            {{ data.item.entrez_id }}
+                          </b-button>
+                        </b-col>
+                      </b-row>
+                    </b-row>
+                </template>
+
+                <template #cell(ensembl_gene_id)="data">
+                <b-row>
+                    <b-row> 
+                        <b-col>
+                          <b-button 
+                          class="btn-xs mx-2" 
+                          variant="outline-primary"
+                          v-bind:src="data.item.ensembl_gene_id" 
+                          v-bind:href="'https://www.ensembl.org/Homo_sapiens/Gene/Summary?g='+ data.item.ensembl_gene_id" 
+                          target="_blank" 
+                          >
+                            <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                            {{ data.item.ensembl_gene_id }}
+                          </b-button>
+                        </b-col>
+                      </b-row>
+                    </b-row>
+                </template>
+
+                <template #cell(ucsc_id)="data">
+                <b-row>
+                    <b-row> 
+                        <b-col>
+                          <b-button 
+                          class="btn-xs mx-2" 
+                          variant="outline-primary"
+                          v-bind:src="data.item.ucsc_id" 
+                          v-bind:href="'https://genome-euro.ucsc.edu/cgi-bin/hgGene?hgg_gene='+ data.item.ucsc_id + '&db=hg38'" 
+                          target="_blank" 
+                          >
+                            <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                            {{ data.item.ucsc_id }}
+                          </b-button>
+                        </b-col>
+                      </b-row>
+                    </b-row>
+                </template>
+
+                <template #cell(ccds_id)="data">
+                  <b-row>
+                    <b-row v-for="id in data.item.ccds_id.split('|')" :key="id"> 
+                        <b-col>
+                          <b-button 
+                          class="btn-xs mx-2" 
+                          variant="outline-primary"
+                          v-bind:src="data.item.ccds_id.split('|')" 
+                          v-bind:href="'https://www.ncbi.nlm.nih.gov/CCDS/CcdsBrowse.cgi?REQUEST=CCDS&DATA='+ id" 
+                          target="_blank" 
+                          >
+                            <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                            {{ id }}
+                          </b-button>
+                        </b-col>
+                      </b-row>
+                    </b-row>
+                </template>
+
+                <template #cell(uniprot_ids)="data">
+                  <b-row>
+                    <b-row> 
+                        <b-col>
+                          <b-button 
+                          class="btn-xs mx-2" 
+                          variant="outline-primary"
+                          v-bind:src="data.item.uniprot_ids" 
+                          v-bind:href="'https://www.uniprot.org/uniprot/'+ data.item.uniprot_ids" 
+                          target="_blank" 
+                          >
+                            <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                            {{ data.item.uniprot_ids }}
+                          </b-button>
+                        </b-col>
+                      </b-row>
+                    </b-row>
+                </template>
+
+            </b-table>          
+          </b-card>
+          <!-- Gene overview card -->
+
+
+          <!-- Associated entities card -->
+          <b-card 
+          header-tag="header"
+          body-class="p-0"
+          header-class="p-1"
+          border-variant="dark"
+          >
+
+            <template #header>
+              <h3 class="mb-1 text-left font-weight-bold">
+                <b-badge variant="primary">Associated entities</b-badge>
+              </h3>
+            </template>
+
+
+            <!-- associated entities table element -->
+            <b-table
+              :items="entities_data"
+              :fields="entities_data_fields"
+              stacked="md"
+              head-variant="light"
+              show-empty
               small
-          >
+              fixed
+              striped
+              hover
+              sort-icon-left
+            >
+
+              <template #cell(actions)="row">
+                <b-button class="btn-xs" @click="row.toggleDetails" variant="outline-primary">
+                  {{ row.detailsShowing ? 'Hide' : 'Show' }} Details
+                </b-button>
+              </template>
+
+              <template #row-details="row">
+                <b-card>
+                  <b-table
+                    :items="[row.item]"
+                    stacked 
+                    small
+                  >
+                  </b-table>
+                </b-card>
+              </template>
+
+
+              <template #cell(entity_id)="data">
+                <div>
+                  <b-link v-bind:href="'/Entities/' + data.item.entity_id">
+                    <b-badge 
+                    variant="primary"
+                    style="cursor:pointer"
+                    >
+                    sysndd:{{ data.item.entity_id }}
+                    </b-badge>
+                  </b-link>
+                </div>
+              </template>
+
               <template #cell(symbol)="data">
-                <b-row>
-                  <b-row> 
-                      <b-col>
-                        <div class="font-italic">
-                          <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
-                            <b-badge pill variant="success"
-                            v-b-tooltip.hover.leftbottom 
-                            v-bind:title="data.item.hgnc_id"
-                            >
-                            {{ data.item.symbol }}
-                            </b-badge>
-                          </b-link>
-                        </div> 
-
-                        <b-button 
-                        class="btn-xs mx-2" 
-                        variant="outline-primary"
-                        v-bind:src="data.item.symbol" 
-                        v-bind:href="'https://www.genenames.org/data/gene-symbol-report/#!/symbol/'+ data.item.symbol" 
-                        target="_blank" 
-                        >
-                          <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                          <span class="font-italic"> {{ data.item.symbol }} </span>
-                        </b-button>
-                      </b-col>
-                    </b-row>
-                  </b-row>
+                <div class="font-italic">
+                  <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
+                    <b-badge pill variant="success"
+                    v-b-tooltip.hover.leftbottom 
+                    v-bind:title="data.item.hgnc_id"
+                    >
+                    {{ data.item.symbol }}
+                    </b-badge>
+                  </b-link>
+                </div> 
               </template>
 
-              <template #cell(entrez_id)="data">
-               <b-row>
-                  <b-row> 
-                      <b-col>
-                        <b-button 
-                        class="btn-xs mx-2" 
-                        variant="outline-primary"
-                        v-bind:src="data.item.entrez_id" 
-                        v-bind:href="'https://www.ncbi.nlm.nih.gov/gene/'+ data.item.entrez_id" 
-                        target="_blank" 
-                        >
-                          <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                          {{ data.item.entrez_id }}
-                        </b-button>
-                      </b-col>
-                    </b-row>
-                  </b-row>
+              <template #cell(disease_ontology_name)="data">
+                <div class="overflow-hidden text-truncate">
+                  <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"> 
+                    <b-badge 
+                    pill 
+                    variant="secondary"
+                    v-b-tooltip.hover.leftbottom
+                    v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version"
+                    >
+                    {{ truncate(data.item.disease_ontology_name, 40) }}
+                    </b-badge>
+                  </b-link>
+                </div> 
               </template>
 
-              <template #cell(ensembl_gene_id)="data">
-               <b-row>
-                  <b-row> 
-                      <b-col>
-                        <b-button 
-                        class="btn-xs mx-2" 
-                        variant="outline-primary"
-                        v-bind:src="data.item.ensembl_gene_id" 
-                        v-bind:href="'https://www.ensembl.org/Homo_sapiens/Gene/Summary?g='+ data.item.ensembl_gene_id" 
-                        target="_blank" 
-                        >
-                          <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                          {{ data.item.ensembl_gene_id }}
-                        </b-button>
-                      </b-col>
-                    </b-row>
-                  </b-row>
-              </template>
-
-              <template #cell(ucsc_id)="data">
-               <b-row>
-                  <b-row> 
-                      <b-col>
-                        <b-button 
-                        class="btn-xs mx-2" 
-                        variant="outline-primary"
-                        v-bind:src="data.item.ucsc_id" 
-                        v-bind:href="'https://genome-euro.ucsc.edu/cgi-bin/hgGene?hgg_gene='+ data.item.ucsc_id + '&db=hg38'" 
-                        target="_blank" 
-                        >
-                          <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                          {{ data.item.ucsc_id }}
-                        </b-button>
-                      </b-col>
-                    </b-row>
-                  </b-row>
-              </template>
-
-              <template #cell(ccds_id)="data">
-                <b-row>
-                  <b-row v-for="id in data.item.ccds_id.split('|')" :key="id"> 
-                      <b-col>
-                        <b-button 
-                        class="btn-xs mx-2" 
-                        variant="outline-primary"
-                        v-bind:src="data.item.ccds_id.split('|')" 
-                        v-bind:href="'https://www.ncbi.nlm.nih.gov/CCDS/CcdsBrowse.cgi?REQUEST=CCDS&DATA='+ id" 
-                        target="_blank" 
-                        >
-                          <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                          {{ id }}
-                        </b-button>
-                      </b-col>
-                    </b-row>
-                  </b-row>
-              </template>
-
-              <template #cell(uniprot_ids)="data">
-                <b-row>
-                  <b-row> 
-                      <b-col>
-                        <b-button 
-                        class="btn-xs mx-2" 
-                        variant="outline-primary"
-                        v-bind:src="data.item.uniprot_ids" 
-                        v-bind:href="'https://www.uniprot.org/uniprot/'+ data.item.uniprot_ids" 
-                        target="_blank" 
-                        >
-                          <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                          {{ data.item.uniprot_ids }}
-                        </b-button>
-                      </b-col>
-                    </b-row>
-                  </b-row>
-              </template>
-
-          </b-table>
-        
-          <h3><b-badge variant="primary">Associated entities</b-badge></h3>
-
-          <!-- associated entities table element -->
-          <b-table
-            :items="entities_data"
-            :fields="entities_data_fields"
-            stacked="md"
-            head-variant="light"
-            show-empty
-            small
-            fixed
-            striped
-            hover
-            sort-icon-left
-          >
-
-            <template #cell(actions)="row">
-              <b-button class="btn-xs" @click="row.toggleDetails" variant="outline-primary">
-                {{ row.detailsShowing ? 'Hide' : 'Show' }} Details
-              </b-button>
-            </template>
-
-            <template #row-details="row">
-              <b-card>
-                <b-table
-                  :items="[row.item]"
-                  :fields="fields_details"
-                  stacked 
-                  small
-                >
-                </b-table>
-              </b-card>
-            </template>
-
-
-            <template #cell(entity_id)="data">
-              <div>
-                <b-link v-bind:href="'/Entities/' + data.item.entity_id">
-                  <b-badge 
-                  variant="primary"
-                  style="cursor:pointer"
-                  >
-                  sysndd:{{ data.item.entity_id }}
-                  </b-badge>
-                </b-link>
-              </div>
-            </template>
-
-            <template #cell(symbol)="data">
-              <div class="font-italic">
-                <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
-                  <b-badge pill variant="success"
-                  v-b-tooltip.hover.leftbottom 
-                  v-bind:title="data.item.hgnc_id"
-                  >
-                  {{ data.item.symbol }}
-                  </b-badge>
-                </b-link>
-              </div> 
-            </template>
-
-            <template #cell(disease_ontology_name)="data">
-              <div class="overflow-hidden text-truncate">
-                <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"> 
+              <template #cell(hpo_mode_of_inheritance_term_name)="data">
+                <div>
                   <b-badge 
                   pill 
-                  variant="secondary"
-                  v-b-tooltip.hover.leftbottom
-                  v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version"
+                  variant="info" 
+                  class="justify-content-md-center" 
+                  size="1.3em"
+                  v-b-tooltip.hover.leftbottom 
+                  v-bind:title="data.item.hpo_mode_of_inheritance_term_name + ' (' + data.item.hpo_mode_of_inheritance_term + ')'"
                   >
-                  {{ truncate(data.item.disease_ontology_name, 40) }}
+                  {{ inheritance_short_text[data.item.hpo_mode_of_inheritance_term_name] }}
                   </b-badge>
-                </b-link>
-              </div> 
-            </template>
+                </div>
+              </template>
 
-            <template #cell(hpo_mode_of_inheritance_term_name)="data">
-              <div>
-                <b-badge 
-                pill 
-                variant="info" 
-                class="justify-content-md-center" 
-                size="1.3em"
-                v-b-tooltip.hover.leftbottom 
-                v-bind:title="data.item.hpo_mode_of_inheritance_term_name + ' (' + data.item.hpo_mode_of_inheritance_term + ')'"
-                >
-                {{ inheritance_short_text[data.item.hpo_mode_of_inheritance_term_name] }}
-                </b-badge>
-              </div>
-            </template>
+              <template #cell(ndd_phenotype_word)="data">
+                <div>
+                  <b-avatar 
+                  size="1.4em" 
+                  :icon="ndd_icon[data.item.ndd_phenotype_word]"
+                  :variant="ndd_icon_style[data.item.ndd_phenotype_word]"
+                  v-b-tooltip.hover.left 
+                  v-bind:title="ndd_icon_text[data.item.ndd_phenotype_word]"
+                  >
+                  </b-avatar>
+                </div> 
+              </template>
 
-            <template #cell(ndd_phenotype_word)="data">
-              <div>
-                <b-avatar 
-                size="1.4em" 
-                :icon="ndd_icon[data.item.ndd_phenotype_word]"
-                :variant="ndd_icon_style[data.item.ndd_phenotype_word]"
-                v-b-tooltip.hover.left 
-                v-bind:title="ndd_icon_text[data.item.ndd_phenotype_word]"
-                >
-                </b-avatar>
-              </div> 
-            </template>
-
-          </b-table>
+            </b-table>
+          </b-card>
+          <!-- Associated entities card -->
 
           </b-col>
         </b-row>
@@ -344,12 +373,10 @@ export default {
           this.gene = response_symbol.data;
           this.entities_data = response_entities_by_symbol.data.data;
           this.totalRows = response_entities_by_symbol.data.data.length;
-console.log(this.entities_data);
         } else {
           this.gene = response_gene.data;
           this.entities_data = response_entities_by_gene.data.data;
           this.totalRows = response_entities_by_gene.data.data.length;
-console.log(this.entities_data);
         }
       }
 
