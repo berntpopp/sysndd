@@ -19,7 +19,7 @@
           >
               <template #cell(symbol)="data">
                 <b-row>
-                  <b-row v-for="id in data.item.symbol.split(';')" :key="id"> 
+                  <b-row> 
                       <b-col>
                         <div class="font-italic">
                           <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
@@ -35,12 +35,12 @@
                         <b-button 
                         class="btn-xs mx-2" 
                         variant="outline-primary"
-                        v-bind:src="data.item.symbol.split(';')" 
-                        v-bind:href="'https://www.genenames.org/data/gene-symbol-report/#!/symbol/'+ id" 
+                        v-bind:src="data.item.symbol" 
+                        v-bind:href="'https://www.genenames.org/data/gene-symbol-report/#!/symbol/'+ data.item.symbol" 
                         target="_blank" 
                         >
                           <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                          <span class="font-italic"> {{ id }} </span>
+                          <span class="font-italic"> {{ data.item.symbol }} </span>
                         </b-button>
                       </b-col>
                     </b-row>
@@ -49,36 +49,36 @@
 
               <template #cell(entrez_id)="data">
                <b-row>
-                  <b-row v-for="id in (data.item.entrez_id + '').split(';')" :key="id"> 
+                  <b-row> 
                       <b-col>
                         <b-button 
                         class="btn-xs mx-2" 
                         variant="outline-primary"
-                        v-bind:src=" (data.item.entrez_id + '').split(';')" 
-                        v-bind:href="'https://www.ncbi.nlm.nih.gov/gene/'+ id" 
+                        v-bind:src="data.item.entrez_id" 
+                        v-bind:href="'https://www.ncbi.nlm.nih.gov/gene/'+ data.item.entrez_id" 
                         target="_blank" 
                         >
                           <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                          {{ id }}
+                          {{ data.item.entrez_id }}
                         </b-button>
                       </b-col>
                     </b-row>
                   </b-row>
               </template>
 
-              <template #cell(ensembl_symbol)="data">
+              <template #cell(ensembl_gene_id)="data">
                <b-row>
-                  <b-row v-for="id in data.item.ensembl_symbol.split(';')" :key="id"> 
+                  <b-row> 
                       <b-col>
                         <b-button 
                         class="btn-xs mx-2" 
                         variant="outline-primary"
-                        v-bind:src="data.item.ensembl_symbol.split(';')" 
-                        v-bind:href="'https://www.ensembl.org/Homo_sapiens/Gene/Summary?g='+ id" 
+                        v-bind:src="data.item.ensembl_gene_id" 
+                        v-bind:href="'https://www.ensembl.org/Homo_sapiens/Gene/Summary?g='+ data.item.ensembl_gene_id" 
                         target="_blank" 
                         >
                           <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                          {{ id }}
+                          {{ data.item.ensembl_gene_id }}
                         </b-button>
                       </b-col>
                     </b-row>
@@ -87,17 +87,17 @@
 
               <template #cell(ucsc_id)="data">
                <b-row>
-                  <b-row v-for="id in data.item.ucsc_id.split(';')" :key="id"> 
+                  <b-row> 
                       <b-col>
                         <b-button 
                         class="btn-xs mx-2" 
                         variant="outline-primary"
-                        v-bind:src="data.item.ucsc_id.split(';')" 
-                        v-bind:href="'https://genome-euro.ucsc.edu/cgi-bin/hgGene?hgg_gene='+ id + '&db=hg38'" 
+                        v-bind:src="data.item.ucsc_id" 
+                        v-bind:href="'https://genome-euro.ucsc.edu/cgi-bin/hgGene?hgg_gene='+ data.item.ucsc_id + '&db=hg38'" 
                         target="_blank" 
                         >
                           <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                          {{ id }}
+                          {{ data.item.ucsc_id }}
                         </b-button>
                       </b-col>
                     </b-row>
@@ -125,17 +125,17 @@
 
               <template #cell(uniprot_ids)="data">
                 <b-row>
-                  <b-row v-for="id in data.item.uniprot_ids.split(';')" :key="id"> 
+                  <b-row> 
                       <b-col>
                         <b-button 
                         class="btn-xs mx-2" 
                         variant="outline-primary"
-                        v-bind:src="data.item.uniprot_ids.split(';')" 
-                        v-bind:href="'https://www.uniprot.org/uniprot/'+ id" 
+                        v-bind:src="data.item.uniprot_ids" 
+                        v-bind:href="'https://www.uniprot.org/uniprot/'+ data.item.uniprot_ids" 
                         target="_blank" 
                         >
                           <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                          {{ id }}
+                          {{ data.item.uniprot_ids }}
                         </b-button>
                       </b-col>
                     </b-row>
@@ -287,7 +287,7 @@ export default {
             { key: 'hgnc_id', label: 'HGNC ID', sortable: true, class: 'text-left' },
             { key: 'name', label: 'Gene Name', sortable: true, class: 'text-left' },
             { key: 'entrez_id', label: 'Entrez ID', sortable: true, class: 'text-left' },
-            { key: 'ensembl_symbol', label: 'Ensembl ID', sortable: true, class: 'text-left' },
+            { key: 'ensembl_gene_id', label: 'Ensembl ID', sortable: true, class: 'text-left' },
             { key: 'ucsc_id', label: 'UCSC ID', sortable: true, class: 'text-left' },
             { key: 'ccds_id', label: 'CCDS ID', sortable: true, class: 'text-left' },
             { key: 'uniprot_ids', label: 'UniProt ID', sortable: true, class: 'text-left' },
