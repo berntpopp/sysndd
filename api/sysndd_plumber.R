@@ -2177,9 +2177,16 @@ function(hgnc) {
       ensembl_gene_id,
       ucsc_id,
       ccds_id,
-      uniprot_ids) %>%
+      uniprot_ids,
+      omim_id,
+      mane_select,
+      mgd_id,
+      rgd_id,
+      STRING_id) %>%
     arrange(hgnc_id) %>%
-    collect()
+    collect() %>%
+    mutate(ccds_id = str_split(ccds_id, pattern = "\\|")) %>%
+    mutate(mane_select = str_split(mane_select, pattern = "\\|"))
 }
 
 

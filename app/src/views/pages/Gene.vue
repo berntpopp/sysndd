@@ -35,7 +35,10 @@
                         <b-col>
                           <div class="font-italic">
                             <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
-                              <b-badge pill variant="success"
+                              <b-badge
+                              pill
+                              variant="success"
+                              class="mx-2" 
                               v-b-tooltip.hover.leftbottom 
                               v-bind:title="data.item.hgnc_id"
                               >
@@ -52,8 +55,18 @@
                           target="_blank" 
                           >
                             <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                            <span class="font-italic"> {{ data.item.symbol }} </span>
+                            <span class="font-italic"> {{ data.item.symbol }} ({{ data.item.hgnc_id }}) </span>
                           </b-button>
+                        </b-col>
+                      </b-row>
+                    </b-row>
+                </template>
+
+                <template #cell(name)="data">
+                <b-row>
+                    <b-row> 
+                        <b-col>
+                          <span class="font-italic mx-2"> {{ data.item.name }} </span>
                         </b-col>
                       </b-row>
                     </b-row>
@@ -118,12 +131,12 @@
 
                 <template #cell(ccds_id)="data">
                   <b-row>
-                    <b-row v-for="id in data.item.ccds_id.split('|')" :key="id"> 
+                    <b-row v-for="id in data.item.ccds_id" :key="id"> 
                         <b-col>
                           <b-button 
                           class="btn-xs mx-2" 
                           variant="outline-primary"
-                          v-bind:src="data.item.ccds_id.split('|')" 
+                          v-bind:src="data.item.ccds_id" 
                           v-bind:href="'https://www.ncbi.nlm.nih.gov/CCDS/CcdsBrowse.cgi?REQUEST=CCDS&DATA='+ id" 
                           target="_blank" 
                           >
@@ -148,6 +161,82 @@
                           >
                             <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
                             {{ data.item.uniprot_ids }}
+                          </b-button>
+                        </b-col>
+                      </b-row>
+                    </b-row>
+                </template>
+
+                <template #cell(omim_id)="data">
+                  <b-row>
+                    <b-row> 
+                        <b-col>
+                          <b-button 
+                          class="btn-xs mx-2" 
+                          variant="outline-primary"
+                          v-bind:src="data.item.uniprot_ids" 
+                          v-bind:href="'https://www.omim.org/entry/'+ data.item.omim_id" 
+                          target="_blank" 
+                          >
+                            <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                            {{ data.item.omim_id }}
+                          </b-button>
+                        </b-col>
+                      </b-row>
+                    </b-row>
+                </template>
+
+                <template #cell(mgd_id)="data">
+                  <b-row>
+                    <b-row> 
+                        <b-col>
+                          <b-button 
+                          class="btn-xs mx-2" 
+                          variant="outline-primary"
+                          v-bind:src="data.item.uniprot_ids" 
+                          v-bind:href="'http://www.informatics.jax.org/marker/'+ data.item.mgd_id" 
+                          target="_blank" 
+                          >
+                            <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                            {{ data.item.mgd_id }}
+                          </b-button>
+                        </b-col>
+                      </b-row>
+                    </b-row>
+                </template>
+
+                <template #cell(rgd_id)="data">
+                  <b-row>
+                    <b-row> 
+                        <b-col>
+                          <b-button 
+                          class="btn-xs mx-2" 
+                          variant="outline-primary"
+                          v-bind:src="data.item.uniprot_ids" 
+                          v-bind:href="'https://rgd.mcw.edu/rgdweb/report/gene/main.html?id='+ data.item.rgd_id" 
+                          target="_blank" 
+                          >
+                            <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                            {{ data.item.rgd_id }}
+                          </b-button>
+                        </b-col>
+                      </b-row>
+                    </b-row>
+                </template>
+
+                <template #cell(STRING_id)="data">
+                  <b-row>
+                    <b-row> 
+                        <b-col>
+                          <b-button 
+                          class="btn-xs mx-2" 
+                          variant="outline-primary"
+                          v-bind:src="data.item.uniprot_ids" 
+                          v-bind:href="'https://string-db.org/network/'+ data.item.STRING_id" 
+                          target="_blank" 
+                          >
+                            <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                            {{ data.item.STRING_id }}
                           </b-button>
                         </b-col>
                       </b-row>
@@ -313,13 +402,16 @@ export default {
           gene: [],
           gene_fields: [
             { key: 'symbol', label: 'HGNC Symbol', sortable: true, class: 'text-left' },
-            { key: 'hgnc_id', label: 'HGNC ID', sortable: true, class: 'text-left' },
             { key: 'name', label: 'Gene Name', sortable: true, class: 'text-left' },
-            { key: 'entrez_id', label: 'Entrez ID', sortable: true, class: 'text-left' },
-            { key: 'ensembl_gene_id', label: 'Ensembl ID', sortable: true, class: 'text-left' },
-            { key: 'ucsc_id', label: 'UCSC ID', sortable: true, class: 'text-left' },
-            { key: 'ccds_id', label: 'CCDS ID', sortable: true, class: 'text-left' },
-            { key: 'uniprot_ids', label: 'UniProt ID', sortable: true, class: 'text-left' },
+            { key: 'entrez_id', label: 'Entrez', sortable: true, class: 'text-left' },
+            { key: 'ensembl_gene_id', label: 'Ensembl', sortable: true, class: 'text-left' },
+            { key: 'ucsc_id', label: 'UCSC', sortable: true, class: 'text-left' },
+            { key: 'ccds_id', label: 'CCDS', sortable: true, class: 'text-left' },
+            { key: 'uniprot_ids', label: 'UniProt', sortable: true, class: 'text-left' },
+            { key: 'omim_id', label: 'OMIM gene', sortable: true, class: 'text-left' },
+            { key: 'mgd_id', label: 'MGI', sortable: true, class: 'text-left' },
+            { key: 'rgd_id', label: 'RGD', sortable: true, class: 'text-left' },
+            { key: 'STRING_id', label: 'STRING', sortable: true, class: 'text-left' },
           ],
           entities_data: [],
           entities_data_fields: [
