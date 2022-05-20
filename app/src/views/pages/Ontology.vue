@@ -1,14 +1,28 @@
 <template>
-  <div class="container-fluid">
+  <div class="container-fluid bg-gradient">
+
   <b-spinner label="Loading..." v-if="loading" class="float-center m-5"></b-spinner>
     <b-container fluid v-else>
       <b-row class="justify-content-md-center py-2">
-        <b-col col md="10">
-          <h3>Disease: 
-            <b-badge pill variant="secondary">
-              {{ $route.params.disease_term }}
-            </b-badge>
-          </h3>
+        <b-col col md="12">
+
+          <!-- Ontology overview card -->
+          <b-card 
+          header-tag="header"
+          body-class="p-0"
+          header-class="p-1"
+          border-variant="dark"
+          >
+
+            <template #header>
+              <h3 class="mb-1 text-left font-weight-bold">Disease: 
+                <b-badge pill variant="secondary">
+                  {{ $route.params.disease_term }}
+                </b-badge>
+              </h3>
+            </template>
+
+
 
             <b-table
                 :items="ontology"
@@ -141,160 +155,177 @@
               </template>
 
             </b-table>
+  
+          </b-card>
+          <!-- Ontology overview card -->
 
-        
-          <h3><b-badge variant="primary">Associated entities</b-badge></h3>
 
-          <!-- Table Interface controls -->
-          <b-row  v-if="totalRows >= 10">
-            <b-col class="my-1">
-              <b-input-group
-                prepend="Per page"
-                class="mb-1"
-                size="sm"
-              >
-                <b-form-select
-                  id="per-page-select"
-                  v-model="perPage"
-                  :options="pageOptions"
-                  size="sm"
-                ></b-form-select>
-              </b-input-group>
-
-              <b-pagination
-                v-model="currentPage"
-                :total-rows="totalRows"
-                :per-page="perPage"
-                align="fill"
-                size="sm"
-                class="my-0"
-                last-number
-              ></b-pagination>
-            </b-col>
-          </b-row>
-          <!-- Table Interface controls -->
-
-          <!-- associated entities table element -->
-          <b-table
-            :items="entities_data"
-            :fields="entities_data_fields"
-            :current-page="currentPage"
-            :per-page="perPage"
-            :sort-by.sync="sortBy"
-            :sort-desc.sync="sortDesc"
-            :sort-direction="sortDirection"
-            stacked="md"
-            head-variant="light"
-            show-empty
-            small
-            fixed
-            striped
-            hover
-            sort-icon-left
+          <!-- Associated entities card -->
+          <b-card 
+          header-tag="header"
+          body-class="p-0"
+          header-class="p-1"
+          border-variant="dark"
           >
 
-            <template #cell(actions)="row">
-              <b-button class="btn-xs" @click="row.toggleDetails" variant="outline-primary">
-                {{ row.detailsShowing ? 'Hide' : 'Show' }} Details
-              </b-button>
+            <template #header>
+              <h3 class="mb-1 text-left font-weight-bold">
+                <b-badge variant="primary">Associated entities</b-badge>
+              </h3>
             </template>
 
-            <template #row-details="row">
-              <b-card>
-                <b-table
-                  :items="[row.item]"
-                  stacked 
-                  small
+
+            <!-- Table Interface controls -->
+            <b-row  v-if="totalRows >= 10">
+              <b-col class="my-1">
+                <b-input-group
+                  prepend="Per page"
+                  class="mb-1"
+                  size="sm"
                 >
-                </b-table>
-              </b-card>
-            </template>
+                  <b-form-select
+                    id="per-page-select"
+                    v-model="perPage"
+                    :options="pageOptions"
+                    size="sm"
+                  ></b-form-select>
+                </b-input-group>
 
+                <b-pagination
+                  v-model="currentPage"
+                  :total-rows="totalRows"
+                  :per-page="perPage"
+                  align="fill"
+                  size="sm"
+                  class="my-0"
+                  last-number
+                ></b-pagination>
+              </b-col>
+            </b-row>
+            <!-- Table Interface controls -->
 
-            <template #cell(entity_id)="data">
-              <div>
-                <b-link v-bind:href="'/Entities/' + data.item.entity_id">
-                  <b-badge 
-                  variant="primary"
-                  style="cursor:pointer"
+            <!-- associated entities table element -->
+            <b-table
+              :items="entities_data"
+              :fields="entities_data_fields"
+              :current-page="currentPage"
+              :per-page="perPage"
+              :sort-by.sync="sortBy"
+              :sort-desc.sync="sortDesc"
+              :sort-direction="sortDirection"
+              stacked="md"
+              head-variant="light"
+              show-empty
+              small
+              fixed
+              striped
+              hover
+              sort-icon-left
+            >
+
+              <template #cell(actions)="row">
+                <b-button class="btn-xs" @click="row.toggleDetails" variant="outline-primary">
+                  {{ row.detailsShowing ? 'Hide' : 'Show' }} Details
+                </b-button>
+              </template>
+
+              <template #row-details="row">
+                <b-card>
+                  <b-table
+                    :items="[row.item]"
+                    stacked 
+                    small
                   >
-                  sysndd:{{ data.item.entity_id }}
-                  </b-badge>
-                </b-link>
-              </div>
-            </template>
+                  </b-table>
+                </b-card>
+              </template>
 
-            <template #cell(symbol)="data">
-              <div class="font-italic">
-                <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
-                  <b-badge pill variant="success"
-                  v-b-tooltip.hover.leftbottom 
-                  v-bind:title="data.item.hgnc_id"
-                  >
-                  {{ data.item.symbol }}
-                  </b-badge>
-                </b-link>
-              </div> 
-            </template>
 
-            <template #cell(disease_ontology_name)="data">
-              <div class="overflow-hidden text-truncate">
-                <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"> 
+              <template #cell(entity_id)="data">
+                <div>
+                  <b-link v-bind:href="'/Entities/' + data.item.entity_id">
+                    <b-badge 
+                    variant="primary"
+                    style="cursor:pointer"
+                    >
+                    sysndd:{{ data.item.entity_id }}
+                    </b-badge>
+                  </b-link>
+                </div>
+              </template>
+
+              <template #cell(symbol)="data">
+                <div class="font-italic">
+                  <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
+                    <b-badge pill variant="success"
+                    v-b-tooltip.hover.leftbottom 
+                    v-bind:title="data.item.hgnc_id"
+                    >
+                    {{ data.item.symbol }}
+                    </b-badge>
+                  </b-link>
+                </div> 
+              </template>
+
+              <template #cell(disease_ontology_name)="data">
+                <div class="overflow-hidden text-truncate">
+                  <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"> 
+                    <b-badge 
+                    pill 
+                    variant="secondary"
+                    v-b-tooltip.hover.leftbottom
+                    v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version"
+                    >
+                    {{ truncate(data.item.disease_ontology_name, 40) }}
+                    </b-badge>
+                  </b-link>
+                </div> 
+              </template>
+
+              <template #cell(hpo_mode_of_inheritance_term_name)="data">
+                <div>
                   <b-badge 
                   pill 
-                  variant="secondary"
-                  v-b-tooltip.hover.leftbottom
-                  v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version"
+                  variant="info" 
+                  class="justify-content-md-center" 
+                  size="1.3em"
+                  v-b-tooltip.hover.leftbottom 
+                  v-bind:title="data.item.hpo_mode_of_inheritance_term_name + ' (' + data.item.hpo_mode_of_inheritance_term + ')'"
                   >
-                  {{ truncate(data.item.disease_ontology_name, 40) }}
+                  {{ inheritance_short_text[data.item.hpo_mode_of_inheritance_term_name] }}
                   </b-badge>
-                </b-link>
-              </div> 
-            </template>
+                </div>
+              </template>
 
-            <template #cell(hpo_mode_of_inheritance_term_name)="data">
-              <div>
-                <b-badge 
-                pill 
-                variant="info" 
-                class="justify-content-md-center" 
-                size="1.3em"
-                v-b-tooltip.hover.leftbottom 
-                v-bind:title="data.item.hpo_mode_of_inheritance_term_name + ' (' + data.item.hpo_mode_of_inheritance_term + ')'"
-                >
-                {{ inheritance_short_text[data.item.hpo_mode_of_inheritance_term_name] }}
-                </b-badge>
-              </div>
-            </template>
+              <template #cell(ndd_phenotype_word)="data">
+                <div>
+                  <b-avatar 
+                  size="1.4em" 
+                  :icon="ndd_icon[data.item.ndd_phenotype_word]"
+                  :variant="ndd_icon_style[data.item.ndd_phenotype_word]"
+                  v-b-tooltip.hover.left 
+                  v-bind:title="ndd_icon_text[data.item.ndd_phenotype_word]"
+                  >
+                  </b-avatar>
+                </div> 
+              </template>
 
-            <template #cell(ndd_phenotype_word)="data">
-              <div>
-                <b-avatar 
-                size="1.4em" 
-                :icon="ndd_icon[data.item.ndd_phenotype_word]"
-                :variant="ndd_icon_style[data.item.ndd_phenotype_word]"
-                v-b-tooltip.hover.left 
-                v-bind:title="ndd_icon_text[data.item.ndd_phenotype_word]"
-                >
-                </b-avatar>
-              </div> 
-            </template>
-
-            <template #cell(category)="data">
-              <div>
-                <b-avatar
-                size="1.4em"
-                icon="stoplights"
-                :variant="stoplights_style[data.item.category]"
-                v-b-tooltip.hover.left 
-                v-bind:title="data.item.category"
-                >
-                </b-avatar>
-              </div> 
-            </template>
-            
-          </b-table>
-          <!-- associated entities table element -->
+              <template #cell(category)="data">
+                <div>
+                  <b-avatar
+                  size="1.4em"
+                  icon="stoplights"
+                  :variant="stoplights_style[data.item.category]"
+                  v-b-tooltip.hover.left 
+                  v-bind:title="data.item.category"
+                  >
+                  </b-avatar>
+                </div> 
+              </template>
+              
+            </b-table>
+          </b-card>
+          <!-- Associated entities card -->
 
           </b-col>
         </b-row>
@@ -438,5 +469,11 @@ export default {
   font-size: .875rem;
   line-height: .5;
   border-radius: .2rem;
+}
+.bg-gradient {
+  margin:0px;
+  height:100%;
+  min-height:calc(100vh - 100px);
+  background-image: linear-gradient(-225deg, #E3FDF5 0%, #FFE6FA 100%);
 }
 </style>

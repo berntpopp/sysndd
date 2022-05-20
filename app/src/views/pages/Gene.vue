@@ -1,11 +1,10 @@
 <template>
-  <div class="container-fluid centered">
+  <div class="container-fluid bg-gradient">
 
   <b-spinner label="Loading..." v-if="loading" class="float-center m-5"></b-spinner>
     <b-container fluid v-else>
       <b-row class="justify-content-md-center py-2" align-v="center">
         <b-col col md="12">
-
 
           <!-- Gene overview card -->
           <b-card 
@@ -398,5 +397,11 @@ export default {
   font-size: .875rem;
   line-height: .5;
   border-radius: .2rem;
+}
+.bg-gradient {
+  margin:0px;
+  height:100%;
+  min-height:calc(100vh - 100px);
+  background-image: linear-gradient(-225deg, #E3FDF5 0%, #FFE6FA 100%);
 }
 </style>

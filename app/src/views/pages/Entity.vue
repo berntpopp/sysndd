@@ -1,195 +1,208 @@
 <template>
-  <div class="container-fluid">
+  <div class="container-fluid bg-gradient">
+
   <b-spinner label="Loading..." v-if="loading" class="float-center m-5"></b-spinner>
     <b-container fluid v-else>
       <b-row class="justify-content-md-center py-2">
-        <b-col col md="10">
-          <h3>Entity: 
-            <b-badge variant="primary">
-              sysndd:{{ $route.params.entity_id }}
-            </b-badge>
-          </h3>
+        <b-col col md="12">
 
-          <b-table
-              :items="entity"
-              :fields="entity_fields"
-              stacked
-              small
+          <!-- Entity overview card -->
+          <b-card 
+          header-tag="header"
+          body-class="p-0"
+          header-class="p-1"
+          border-variant="dark"
           >
-              <template #cell(symbol)="data">
-                <div class="font-italic">
-                  <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
-                    <b-badge pill variant="success"
-                    v-b-tooltip.hover.leftbottom 
-                    v-bind:title="data.item.hgnc_id"
-                    >
-                    {{ data.item.symbol }}
-                    </b-badge>
-                  </b-link>
-                </div> 
-              </template>
 
-              <template #cell(disease_ontology_name)="data">
-                <div>
-                  <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"> 
-                    <b-badge 
-                    pill 
-                    variant="secondary"
-                    v-b-tooltip.hover.leftbottom
-                    v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version"
-                    >
-                    {{ data.item.disease_ontology_name }}
-                    </b-badge>
-                  </b-link>
-                </div> 
-
-                <b-button 
-                v-if="data.item.disease_ontology_id_version.includes('OMIM')"
-                class="btn-xs mx-2" 
-                variant="outline-primary"
-                v-bind:src="data.item.publications" 
-                v-bind:href="'https://www.omim.org/entry/' + data.item.disease_ontology_id_version.replace('OMIM:', '').replace(/_.+/g, '')"
-                target="_blank"
-                >
-                  <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                  {{ data.item.disease_ontology_id_version.replace(/_.+/g, '') }}
-                </b-button>
-
-                <b-button 
-                v-if="data.item.disease_ontology_id_version.includes('MONDO')"
-                class="btn-xs mx-2" 
-                variant="outline-primary"
-                v-bind:src="data.item.publications" 
-                v-bind:href="'http://purl.obolibrary.org/obo/' + data.item.disease_ontology_id_version.replace(':', '_')"
-                target="_blank"
-                >
-                  <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                  {{ data.item.disease_ontology_id_version }}
-                </b-button>
-              </template>
-                
-              <template #cell(hpo_mode_of_inheritance_term_name)="data">
-                <div>
-                  <b-badge 
-                  pill 
-                  variant="info" 
-                  class="justify-content-md-center" 
-                  size="1.3em"
-                  v-b-tooltip.hover.leftbottom 
-                  v-bind:title="data.item.hpo_mode_of_inheritance_term_name + ' (' + data.item.hpo_mode_of_inheritance_term + ')'"
-                  >
-                  {{ inheritance_short_text[data.item.hpo_mode_of_inheritance_term_name] }}
-                  </b-badge>
-                </div>
-              </template>
-
-              <template #cell(ndd_phenotype_word)="data">
-                <div>
-                  <b-avatar 
-                  size="1.4em" 
-                  :icon="ndd_icon[data.item.ndd_phenotype_word]"
-                  :variant="ndd_icon_style[data.item.ndd_phenotype_word]"
-                  v-b-tooltip.hover.left 
-                  v-bind:title="ndd_icon_text[data.item.ndd_phenotype_word]"
-                  >
-                  </b-avatar>
-                </div> 
-              </template>
-
-            </b-table>
-
-
-            <b-table
-                :items="status"
-                :fields="status_fields"
-                stacked
-                small
-            >
-              <template #cell(category)="data">
-                <div>
-                  <b-avatar
-                  size="1.4em"
-                  icon="stoplights"
-                  :variant="stoplights_style[data.item.category]"
-                  v-b-tooltip.hover.left 
-                  v-bind:title="data.item.category"
-                  >
-                  </b-avatar>
-                </div> 
-              </template>
-            </b-table>
-
-
-            <b-table
-                :items="review"
-                :fields="review_fields"
-                stacked
-                small
-            >
-            <template #cell(synopsis)="data">
-              <b-card border-variant="dark" align="left">
-                <b-card-text>
-                  {{ data.item.synopsis }}
-                </b-card-text>
-              </b-card>
-
+            <template #header>
+              <h3 class="mb-1 text-left font-weight-bold">Entity: 
+                <b-badge variant="primary">
+                  sysndd:{{ $route.params.entity_id }}
+                </b-badge>
+              </h3>
             </template>
-            </b-table>
 
+              <b-table
+                  :items="entity"
+                  :fields="entity_fields"
+                  stacked
+                  small
+              >
+                  <template #cell(symbol)="data">
+                    <div class="font-italic">
+                      <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
+                        <b-badge pill variant="success"
+                        v-b-tooltip.hover.leftbottom 
+                        v-bind:title="data.item.hgnc_id"
+                        >
+                        {{ data.item.symbol }}
+                        </b-badge>
+                      </b-link>
+                    </div> 
+                  </template>
 
-            <b-table
-                :items="publications_table"
-                stacked
-                small
-            >
-              <template #cell(publications)="data">
-                <b-row>
-                  <b-row v-for="publication in publications" :key="publication.publication_id"> 
-                    <b-col>
-                      <b-button 
-                      class="btn-xs mx-2" 
-                      variant="outline-primary"
-                      v-bind:src="data.item.publications" 
-                      v-bind:href="'https://pubmed.ncbi.nlm.nih.gov/' + publication.publication_id.replace('PMID:', '')" 
-                      target="_blank" 
-                      v-b-tooltip.hover.bottom v-bind:title="publication.publication_status"
-                      >
-                        <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                        {{ publication.publication_id }}
-                      </b-button>
-                    </b-col>
-                  </b-row>
-                </b-row>
-              </template>
-            </b-table>
+                  <template #cell(disease_ontology_name)="data">
+                    <div>
+                      <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"> 
+                        <b-badge 
+                        pill 
+                        variant="secondary"
+                        v-b-tooltip.hover.leftbottom
+                        v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version"
+                        >
+                        {{ data.item.disease_ontology_name }}
+                        </b-badge>
+                      </b-link>
+                    </div> 
 
-            <b-table
-                :items="phenotypes_table"
-                stacked
-                small
-            >
-              <template #cell(phenotypes)="data">
-                <b-row>
-                  <b-row v-for="phenotype in phenotypes" :key="phenotype.phenotype_id"> 
-                    <b-col>
-                      <b-button 
-                      class="btn-xs mx-2"
-                      variant="outline-dark"
-                      v-bind:src="data.item.phenotypes" 
-                      v-bind:href="'https://hpo.jax.org/app/browse/term/' + phenotype.phenotype_id" 
-                      target="_blank" 
-                      v-b-tooltip.hover.bottom
-                      v-bind:title="phenotype.phenotype_id"
-                      >
+                    <b-button 
+                    v-if="data.item.disease_ontology_id_version.includes('OMIM')"
+                    class="btn-xs mx-2" 
+                    variant="outline-primary"
+                    v-bind:src="data.item.publications" 
+                    v-bind:href="'https://www.omim.org/entry/' + data.item.disease_ontology_id_version.replace('OMIM:', '').replace(/_.+/g, '')"
+                    target="_blank"
+                    >
                       <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                      {{ phenotype.HPO_term }}
-                      </b-button>
-                    </b-col>
-                  </b-row>
-                </b-row>
-              </template>
-            </b-table>
+                      {{ data.item.disease_ontology_id_version.replace(/_.+/g, '') }}
+                    </b-button>
 
+                    <b-button 
+                    v-if="data.item.disease_ontology_id_version.includes('MONDO')"
+                    class="btn-xs mx-2" 
+                    variant="outline-primary"
+                    v-bind:src="data.item.publications" 
+                    v-bind:href="'http://purl.obolibrary.org/obo/' + data.item.disease_ontology_id_version.replace(':', '_')"
+                    target="_blank"
+                    >
+                      <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                      {{ data.item.disease_ontology_id_version }}
+                    </b-button>
+                  </template>
+                    
+                  <template #cell(hpo_mode_of_inheritance_term_name)="data">
+                    <div>
+                      <b-badge 
+                      pill 
+                      variant="info" 
+                      class="justify-content-md-center" 
+                      size="1.3em"
+                      v-b-tooltip.hover.leftbottom 
+                      v-bind:title="data.item.hpo_mode_of_inheritance_term_name + ' (' + data.item.hpo_mode_of_inheritance_term + ')'"
+                      >
+                      {{ inheritance_short_text[data.item.hpo_mode_of_inheritance_term_name] }}
+                      </b-badge>
+                    </div>
+                  </template>
+
+                  <template #cell(ndd_phenotype_word)="data">
+                    <div>
+                      <b-avatar 
+                      size="1.4em" 
+                      :icon="ndd_icon[data.item.ndd_phenotype_word]"
+                      :variant="ndd_icon_style[data.item.ndd_phenotype_word]"
+                      v-b-tooltip.hover.left 
+                      v-bind:title="ndd_icon_text[data.item.ndd_phenotype_word]"
+                      >
+                      </b-avatar>
+                    </div> 
+                  </template>
+
+                </b-table>
+
+
+                <b-table
+                    :items="status"
+                    :fields="status_fields"
+                    stacked
+                    small
+                >
+                  <template #cell(category)="data">
+                    <div>
+                      <b-avatar
+                      size="1.4em"
+                      icon="stoplights"
+                      :variant="stoplights_style[data.item.category]"
+                      v-b-tooltip.hover.left 
+                      v-bind:title="data.item.category"
+                      >
+                      </b-avatar>
+                    </div> 
+                  </template>
+                </b-table>
+
+
+                <b-table
+                    :items="review"
+                    :fields="review_fields"
+                    stacked
+                    small
+                >
+                <template #cell(synopsis)="data">
+                  <b-card border-variant="dark" align="left">
+                    <b-card-text>
+                      {{ data.item.synopsis }}
+                    </b-card-text>
+                  </b-card>
+
+                </template>
+                </b-table>
+
+
+                <b-table
+                    :items="publications_table"
+                    stacked
+                    small
+                >
+                  <template #cell(publications)="data">
+                    <b-row>
+                      <b-row v-for="publication in publications" :key="publication.publication_id"> 
+                        <b-col>
+                          <b-button 
+                          class="btn-xs mx-2" 
+                          variant="outline-primary"
+                          v-bind:src="data.item.publications" 
+                          v-bind:href="'https://pubmed.ncbi.nlm.nih.gov/' + publication.publication_id.replace('PMID:', '')" 
+                          target="_blank" 
+                          v-b-tooltip.hover.bottom v-bind:title="publication.publication_status"
+                          >
+                            <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                            {{ publication.publication_id }}
+                          </b-button>
+                        </b-col>
+                      </b-row>
+                    </b-row>
+                  </template>
+                </b-table>
+
+                <b-table
+                    :items="phenotypes_table"
+                    stacked
+                    small
+                >
+                  <template #cell(phenotypes)="data">
+                    <b-row>
+                      <b-row v-for="phenotype in phenotypes" :key="phenotype.phenotype_id"> 
+                        <b-col>
+                          <b-button 
+                          class="btn-xs mx-2"
+                          variant="outline-dark"
+                          v-bind:src="data.item.phenotypes" 
+                          v-bind:href="'https://hpo.jax.org/app/browse/term/' + phenotype.phenotype_id" 
+                          target="_blank" 
+                          v-b-tooltip.hover.bottom
+                          v-bind:title="phenotype.phenotype_id"
+                          >
+                          <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
+                          {{ phenotype.HPO_term }}
+                          </b-button>
+                        </b-col>
+                      </b-row>
+                    </b-row>
+                  </template>
+                </b-table>
+          </b-card>
+          <!-- Entity overview card -->
 
           </b-col>
         </b-row>
@@ -316,5 +329,11 @@ export default {
   font-size: .875rem;
   line-height: .5;
   border-radius: .2rem;
+}
+.bg-gradient {
+  margin:0px;
+  height:100%;
+  min-height:calc(100vh - 100px);
+  background-image: linear-gradient(-225deg, #E3FDF5 0%, #FFE6FA 100%);
 }
 </style>
