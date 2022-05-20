@@ -2263,15 +2263,32 @@ function(symbol) {
 
 #* @tag ontology
 #* gets an ontology entry by disease_ontology_id_version
-#* @serializer json list(na="string")
-#' @get /api/ontology/<ontology_id>
-function(ontology_id) {
-  ontology_id <- URLdecode(ontology_id)
+#* @serializer json list(na="null")
+#' @get /api/ontology/<ontology_input>
+function(ontology_input, input_type = "ontology_id") {
+  # decode URL
+  ontology_input <- URLdecode(ontology_input)
+
+  # get data from database and filter
+  mode_of_inheritance_list_coll <- pool %>%
+    tbl("mode_of_inheritance_list") %>%
+    filter(is_active == 1) %>%
+    select(hpo_mode_of_inheritance_term,
+        hpo_mode_of_inheritance_term_name,
+        inheritance_filter) %>%
+    collect()
 
   # get data from database and filter
   disease_ontology_set_collected <- pool %>%
     tbl("disease_ontology_set") %>%
-    filter(disease_ontology_id == ontology_id) %>%
+    {if(input_type == "ontology_id")
+      filter(., disease_ontology_id == ontology_input)
+     else .
+     } %>%
+    {if(input_type == "ontology_name")
+      filter(., disease_ontology_name == ontology_input)
+     else .
+     } %>%
     select(disease_ontology_id_version,
       disease_ontology_id,
       disease_ontology_name,
@@ -2285,41 +2302,13 @@ function(ontology_id) {
       EFO) %>%
     arrange(disease_ontology_id_version) %>%
     collect() %>%
+    left_join(mode_of_inheritance_list_coll,
+        by = c("hpo_mode_of_inheritance_term")) %>%
     group_by(disease_ontology_id) %>%
     summarise_all(~paste(unique(.), collapse = ";")) %>%
     ungroup() %>%
-    mutate(across(everything(), ~replace(., . == "NULL", "")))
-}
-
-
-#* @tag ontology
-#* gets an ontology entry by disease_ontology_name
-#* @serializer json list(na="string")
-#' @get /api/ontology/name/<ontology_name>
-function(ontology_name) {
-  ontology_name <- URLdecode(ontology_name)
-
-  # get data from database and filter
-  disease_ontology_set_collected <- pool %>%
-    tbl("disease_ontology_set") %>%
-    filter(disease_ontology_name == ontology_name) %>%
-    select(disease_ontology_id_version,
-      disease_ontology_id,
-      disease_ontology_name,
-      disease_ontology_source,
-      disease_ontology_is_specific,
-      hgnc_id,
-      hpo_mode_of_inheritance_term,
-      DOID,
-      MONDO,
-      Orphanet,
-      EFO) %>%
-    arrange(disease_ontology_id_version) %>%
-    collect() %>%
-    group_by(disease_ontology_id) %>%
-    summarise_all(~paste(unique(.), collapse = ";")) %>%
-    ungroup() %>%
-    mutate(across(everything(), ~replace(., . == "NULL", "")))
+    mutate(across(everything(), ~replace(., . == "NA", NA))) %>%
+    mutate(across(everything(), ~str_split(., pattern = "\\;")))
 }
 
 

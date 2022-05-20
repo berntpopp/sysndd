@@ -34,12 +34,13 @@
 
               <template #cell(disease_ontology_id_version)="data">
                 <b-row>
-                  <b-row v-for="id in data.item.disease_ontology_id_version.split(';')" :key="id"> 
+                  <b-row v-for="id in data.item.disease_ontology_id_version" :key="id"> 
                       <b-col>
                       <div>
                           <b-link v-bind:href="'/Ontology/' + id.replace(/_.+/g, '')"> 
                             <b-badge 
-                            pill 
+                            pill
+                            class="mx-2" 
                             variant="secondary"
                             v-b-tooltip.hover.leftbottom
                             >
@@ -51,8 +52,8 @@
                         <b-button 
                         class="btn-xs mx-2" 
                         variant="outline-primary"
-                        v-bind:src="data.item.disease_ontology_id_version.split(';')" 
-                        v-bind:href="'https://www.omim.org/entry/'+ id.replace(/OMIM:/g,'')" 
+                        v-bind:src="data.item.disease_ontology_id_version" 
+                        v-bind:href="'https://www.omim.org/entry/'+ id.replace(/OMIM:/g,'').replace(/_.+/g, '')" 
                         target="_blank" 
                         >
                           <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
@@ -64,29 +65,56 @@
               </template>
 
               <template #cell(disease_ontology_name)="data">
-                <div>
-                  <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"> 
-                    <b-badge 
-                    pill 
-                    variant="secondary"
-                    v-b-tooltip.hover.leftbottom
-                    v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version"
-                    >
-                    {{ truncate(data.item.disease_ontology_name, 40) }}
-                    </b-badge>
-                  </b-link>
-                </div> 
+                <b-row>
+                  <b-row v-for="id in data.item.disease_ontology_name" :key="id"> 
+                      <b-col>
+
+                        <b-link v-bind:href="'/Ontology/' + id"> 
+                          <b-badge 
+                          pill
+                          class="mx-2" 
+                          variant="secondary"
+                          v-b-tooltip.hover.leftbottom
+                          v-bind:title="id"
+                          >
+                          {{ truncate(id, 40) }}
+                          </b-badge>
+                        </b-link>
+
+                      </b-col>
+                    </b-row>
+                  </b-row>
               </template>
 
+              <template #cell(hpo_mode_of_inheritance_term_name)="data">
+                <b-row>
+                  <b-row v-for="id in data.item.hpo_mode_of_inheritance_term_name" :key="id"> 
+                      <b-col>
+
+                        <b-badge 
+                        pill
+                        class="mx-2" 
+                        variant="info"
+                        size="1.3em"
+                        v-b-tooltip.hover.leftbottom 
+                        v-bind:title="id + ' (' + data.item.hpo_mode_of_inheritance_term + ')'"
+                        >
+                        {{ id }}
+                        </b-badge>
+
+                      </b-col>
+                    </b-row>
+                  </b-row>
+              </template>
 
               <template #cell(DOID)="data">
                 <b-row>
-                  <b-row v-for="id in data.item.DOID.split(';')" :key="id"> 
+                  <b-row v-for="id in data.item.DOID" :key="id">
                       <b-col>
                         <b-button 
                         class="btn-xs mx-2" 
                         variant="outline-primary"
-                        v-bind:src="data.item.DOID.split(';')" 
+                        v-bind:src="id" 
                         v-bind:href="'https://disease-ontology.org/term/'+ id" 
                         target="_blank" 
                         >
@@ -100,12 +128,12 @@
 
               <template #cell(MONDO)="data">
                 <b-row>
-                  <b-row v-for="id in data.item.MONDO.split(';')" :key="id"> 
-                      <b-col>
+                  <b-row v-for="id in data.item.MONDO" :key="id"> 
+                      <b-col> 
                         <b-button 
                         class="btn-xs mx-2" 
                         variant="outline-primary"
-                        v-bind:src="data.item.MONDO.split(';')" 
+                        v-bind:src="id" 
                         v-bind:href="'http://purl.obolibrary.org/obo/'+ id.replace(':', '_')" 
                         target="_blank" 
                         >
@@ -119,12 +147,12 @@
 
               <template #cell(Orphanet)="data">
                 <b-row>
-                  <b-row v-for="id in data.item.Orphanet.split(';')" :key="id"> 
+                  <b-row v-for="id in data.item.Orphanet" :key="id"> 
                       <b-col>
                         <b-button 
                         class="btn-xs mx-2" 
                         variant="outline-primary"
-                        v-bind:src="data.item.Orphanet.split(';')" 
+                        v-bind:src="data.item.Orphanet" 
                         v-bind:href="'https://www.orpha.net/consor/cgi-bin/OC_Exp.php?Expert='+ id.replace('Orphanet:', '') + '&lng=EN'" 
                         target="_blank" 
                         >
@@ -138,13 +166,13 @@
 
               <template #cell(EFO)="data">
                 <b-row>
-                  <b-row v-for="id in data.item.EFO.split(';')" :key="id"> 
+                  <b-row v-for="id in data.item.EFO" :key="id"> 
                       <b-col>
                         <b-button 
                         class="btn-xs mx-2" 
                         variant="outline-primary"
-                        v-bind:src="data.item.EFO.split(';')" 
-                        v-bind:href="'http://www.ebi.ac.uk/efo/'+ id.replace(':', '_')" 
+                        v-bind:src="id" 
+                        v-bind:href="'http://www.ebi.ac.uk/efo/'+ id" 
                         target="_blank" 
                         >
                           <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
@@ -376,7 +404,7 @@ export default {
               filterByFormatted: true
             },
             {
-              key: 'hpo_mode_of_inheritance_term',
+              key: 'hpo_mode_of_inheritance_term_name',
               label: 'Inheritance',
               sortable: true,
               class: 'text-left',
@@ -427,10 +455,11 @@ export default {
   methods: {
   async loadEntityInfo() {
     this.loading = true;
-    let apiDiseaseOntologyURL = process.env.VUE_APP_API_URL + '/api/ontology/' + this.$route.params.disease_term;
-    let apiDiseaseNameURL = process.env.VUE_APP_API_URL + '/api/ontology/name/' + this.$route.params.disease_term;
-    let apiEntitiesByOntologyURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(disease_ontology_id_version,' + this.$route.params.disease_term + ')';
+    let apiDiseaseOntologyURL = process.env.VUE_APP_API_URL + '/api/ontology/' + this.$route.params.disease_term + '?input_type=ontology_id';
+    let apiDiseaseNameURL = process.env.VUE_APP_API_URL + '/api/ontology/' + this.$route.params.disease_term + '?input_type=ontology_name';
+    let apiEntitiesByOntologyURL = process.env.VUE_APP_API_URL + '/api/entity?filter=contains(disease_ontology_id_version,' + this.$route.params.disease_term + ')';
     let apiEntitiesByNameURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(disease_ontology_name,' + this.$route.params.disease_term + ')';
+
 
     try {
       let response_ontology = await this.axios.get(apiDiseaseOntologyURL);
