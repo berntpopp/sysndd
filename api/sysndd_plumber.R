@@ -2311,42 +2311,6 @@ function(ontology_input, input_type = "ontology_id") {
     mutate(across(everything(), ~str_split(., pattern = "\\;")))
 }
 
-
-#* @tag ontology
-#* gets all entities for a single disease by ontology_id
-#* @serializer json list(na="string")
-#' @get /api/ontology/<ontology_id>/entities
-function(ontology_id) {
-
-  ontology_id <- URLdecode(ontology_id)
-
-  # get data from database and filter
-  entity_by_ontology_id_list <- pool %>%
-    tbl("ndd_entity_view") %>%
-    filter(disease_ontology_id_version == ontology_id) %>%
-    collect()
-
-  entity_by_ontology_id_list
-}
-
-
-#* @tag ontology
-#* gets all entities for a single disease by ontology_id
-#* @serializer json list(na="string")
-#' @get /api/ontology/name/<ontology_name>/entities
-function(ontology_name) {
-
-  ontology_name <- URLdecode(ontology_name)
-
-  # get data from database and filter
-  entity_by_ontology_name_list <- pool %>%
-    tbl("ndd_entity_view") %>%
-    filter(disease_ontology_name == ontology_name) %>%
-    collect()
-
-  entity_by_ontology_name_list
-}
-
 ## Ontology endpoints
 ##-------------------------------------------------------------------##
 
