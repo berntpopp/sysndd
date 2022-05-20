@@ -315,12 +315,7 @@ export default {
             { key: 'ndd_phenotype_word', label: 'NDD', sortable: true, class: 'text-left' },
             { key: 'actions', label: 'Actions' }
           ],
-          fields_details: [
-            { key: 'hgnc_id', label: 'HGNC ID', class: 'text-left' },
-            { key: 'disease_ontology_id_version', label: 'Ontology ID version', class: 'text-left' },
-            { key: 'disease_ontology_name', label: 'Disease ontology name', class: 'text-left' },
-            { key: 'entry_date', label: 'Entry date', class: 'text-left' },
-          ],
+          totalRows: 0,
           loading: true
       }
   }, 
@@ -332,8 +327,8 @@ export default {
     this.loading = true;
     let apiGeneURL = process.env.VUE_APP_API_URL + '/api/gene/' + this.$route.params.symbol;
     let apiGeneSymbolURL = process.env.VUE_APP_API_URL + '/api/gene/symbol/' + this.$route.params.symbol;
-    let apiEntitiesByGeneURL = process.env.VUE_APP_API_URL + '/api/gene/' + this.$route.params.symbol + '/entities';
-    let apiEntitiesByGeneSymbolURL = process.env.VUE_APP_API_URL + '/api/gene/symbol/' + this.$route.params.symbol + '/entities';
+    let apiEntitiesByGeneSymbolURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(symbol,' + this.$route.params.symbol + ')';
+    let apiEntitiesByGeneURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(hgnc_id,' + this.$route.params.symbol + ')';
 
     try {
       let response_gene = await this.axios.get(apiGeneURL);
@@ -341,15 +336,20 @@ export default {
       let response_entities_by_gene = await this.axios.get(apiEntitiesByGeneURL);
       let response_entities_by_symbol = await this.axios.get(apiEntitiesByGeneSymbolURL);
 
+
       if (response_gene.data.length == 0 && response_symbol.data.length == 0) {
           this.$router.push('/PageNotFound');
       } else {
         if (response_gene.data.length == 0) {
           this.gene = response_symbol.data;
-          this.entities_data = response_entities_by_symbol.data;
+          this.entities_data = response_entities_by_symbol.data.data;
+          this.totalRows = response_entities_by_symbol.data.data.length;
+console.log(this.entities_data);
         } else {
           this.gene = response_gene.data;
-          this.entities_data = response_entities_by_gene.data;
+          this.entities_data = response_entities_by_gene.data.data;
+          this.totalRows = response_entities_by_gene.data.data.length;
+console.log(this.entities_data);
         }
       }
 
