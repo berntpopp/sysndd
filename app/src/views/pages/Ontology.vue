@@ -398,8 +398,8 @@ export default {
     this.loading = true;
     let apiDiseaseOntologyURL = process.env.VUE_APP_API_URL + '/api/ontology/' + this.$route.params.disease_term;
     let apiDiseaseNameURL = process.env.VUE_APP_API_URL + '/api/ontology/name/' + this.$route.params.disease_term;
-    let apiEntitiesByOntologyURL = process.env.VUE_APP_API_URL + '/api/ontology/' + this.$route.params.disease_term + '/entities';
-    let apiEntitiesByNameURL = process.env.VUE_APP_API_URL + '/api/ontology/name/' + this.$route.params.disease_term + '/entities';
+    let apiEntitiesByOntologyURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(disease_ontology_id_version,' + this.$route.params.disease_term + ')';
+    let apiEntitiesByNameURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(disease_ontology_name,' + this.$route.params.disease_term + ')';
 
     try {
       let response_ontology = await this.axios.get(apiDiseaseOntologyURL);
@@ -412,12 +412,12 @@ export default {
       } else {
         if (response_ontology.data == 0) {
           this.ontology = response_name.data;
-          this.entities_data = response_entities_by_name.data;
-          this.totalRows = response_entities_by_name.data.length;
+          this.entities_data = response_entities_by_name.data.data;
+          this.totalRows = response_entities_by_name.data.data.length;
         } else {
           this.ontology = response_ontology.data;
-          this.entities_data = response_entities_by_ontology.data;
-          this.totalRows = response_entities_by_ontology.data.length;
+          this.entities_data = response_entities_by_ontology.data.data;
+          this.totalRows = response_entities_by_ontology.data.data.length;
         }
       }
 
