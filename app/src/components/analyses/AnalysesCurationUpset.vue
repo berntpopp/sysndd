@@ -22,7 +22,6 @@
             :options="columns_list"
             v-model="selected_columns"
             :normalizer="normalizeLists"
-            @input="loadComparisonsUpsetData"
           />
 
         </b-col>
@@ -41,7 +40,7 @@
   import toastMixin from '@/assets/js/mixins/toastMixin.js'
 
   // importUpSetJS
-  import UpSetJS, { extractSets, ISets, ISet } from '@upsetjs/vue';
+  import UpSetJS, { extractSets } from '@upsetjs/vue';
   import {createElement} from "@upsetjs/bundle";
 
   // import the Treeselect component
@@ -76,6 +75,12 @@
       };
     },
     watch: {
+      selected_columns() {
+        // fixes $ref error in treeselect based on https://github.com/riophae/vue-treeselect/issues/272
+        setTimeout(() => {
+          this.loadComparisonsUpsetData();
+        }, 0);
+      },
     },
     computed: {
       sets() {
@@ -113,6 +118,7 @@
         },
         async loadComparisonsUpsetData() {
           this.loadingUpset = true;
+          
           let apiUrl = process.env.VUE_APP_API_URL + '/api/comparisons/upset?fields=' + this.selected_columns.join();
 
           try {
