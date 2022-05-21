@@ -30,7 +30,7 @@
           text="Search"
           v-if="show_search"
           >
-          <b-nav-form style="width:220px" @submit.stop.prevent="keydown_handler()">
+          <b-nav-form style="width:220px" @submit.stop.prevent="keydown_handler">
               <b-input-group class="mb-2">
                 <b-form-input 
                 list="search-list" 
@@ -41,11 +41,12 @@
                 style="width:180px" 
                 v-model="search_input"
                 @input="loadSearchInfo"
+                @keydown.native="keydown_handler"
                 >
                 </b-form-input>
 
                 <b-form-datalist id="search-list" 
-                :options="search"
+                :options="search_keys"
                 >
                 </b-form-datalist>
 
@@ -54,7 +55,8 @@
                   variant="outline-primary"
                   size="sm"
                   :disabled="search_input.length < 2"
-                  v-bind:href="'/Search/' + search_input" 
+                  v-bind:href="'/Search/' + search_input"
+                  type="button"
                   >
                     <b-icon icon="search"></b-icon>
                   </b-button>
@@ -158,7 +160,8 @@ export default {
       user_from_jwt: [],
       time_to_logout: 0,
       search_input: '',
-      search: [],
+      search_keys: [],
+      search_object: {},
       show_search: false
     }
   },
@@ -253,24 +256,31 @@ watch: { // used to refresh navbar on login push
           this.makeToast(e, 'Error', 'danger');
         }
     }, 
-    async loadSearchInfo() {
-    let apiSearchURL = process.env.VUE_APP_API_URL + '/api/search/' + this.search_input;
-    try {
-      let response_search = await this.axios.get(apiSearchURL);
-      this.search = response_search.data;
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
+  async loadSearchInfo() {
+      if (this.search_input.length > 0) {
+        let apiSearchURL = process.env.VUE_APP_API_URL + '/api/search/' + this.search_input;
+        try {
+          let response_search = await this.axios.get(apiSearchURL);
+          this.search_object = response_search.data[0];
+          this.search_keys = Object.keys(response_search.data[0]);
+          } catch (e) {
+          this.makeToast(e, 'Error', 'danger');
+          }
+        if (this.search_keys[0] === this.search_input & !(this.search_object[this.search_input] == null)) {
+          this.$router.push(this.search_object[this.search_input][0].link);
+          this.search_input = '';
+        }
       }
-    if (this.search[0] === this.search_input & isNaN(this.search_input)) {
-      this.$router.push('/Search/' + this.search_input);
-    }
     },
-  keydown_handler(event) {
-     if (this.search_input.length > 1) {
-       console.log(this.search_input);
-        this.$router.push(({ name: 'Search', params: { search_term: this.search_input }}));
-     }
-    },
+    keydown_handler(event) {
+        if (event.which === 13 & this.search_input.length > 0 & !(this.search_object[this.search_input] == null)) {
+          this.$router.push(this.search_object[this.search_input][0].link);
+          this.search_input = '';
+        } else if (event.which === 13 & this.search_input.length > 0 & (this.search_object[this.search_input] == null)) {
+          this.$router.push('/Search/' + this.search_input);
+          this.search_input = '';
+        }
+      },
     doUserLogOut() {
       if (localStorage.user || localStorage.token) {
         localStorage.removeItem('user');

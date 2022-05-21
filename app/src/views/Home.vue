@@ -498,23 +498,31 @@ export default {
       }
     },
   async loadSearchInfo() {
-    let apiSearchURL = process.env.VUE_APP_API_URL + '/api/search/' + this.search_input + '?helper=true';
-    try {
-      let response_search = await this.axios.get(apiSearchURL);
-      this.search_object = response_search.data[0];
-      this.search_keys = Object.keys(response_search.data[0]);
-      } catch (e) {
-       this.makeToast(e, 'Error', 'danger');
+      if (this.search_input.length > 0) {
+        let apiSearchURL = process.env.VUE_APP_API_URL + '/api/search/' + this.search_input + '?helper=true';
+        try {
+          let response_search = await this.axios.get(apiSearchURL);
+          this.search_object = response_search.data[0];
+          this.search_keys = Object.keys(response_search.data[0]);
+          } catch (e) {
+          this.makeToast(e, 'Error', 'danger');
+          }
+        if (this.search_keys[0] === this.search_input & !(this.search_object[this.search_input] == null)) {
+          this.$router.push(this.search_object[this.search_input][0].link);
+          this.search_input = '';
+          this.search_keys = [];
+        }
       }
-    if (this.search_keys[0] === this.search_input & !(this.search_object[this.search_input] == null)) {
-      this.$router.push(this.search_object[this.search_input][0].link);
-    }
     },
   keydown_handler(event) {
       if (event.which === 13 & this.search_input.length > 0 & !(this.search_object[this.search_input] == null)) {
         this.$router.push(this.search_object[this.search_input][0].link);
+        this.search_input = '';
+        this.search_keys = [];
       } else if (event.which === 13 & this.search_input.length > 0 & (this.search_object[this.search_input] == null)) {
         this.$router.push('/Search/' + this.search_input);
+        this.search_input = '';
+        this.search_keys = [];
       }
     },
   truncate(str, n) {
