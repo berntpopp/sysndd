@@ -87,14 +87,14 @@
       },
       generateGraph() {
       // Graph dimension
-      const margin = {top: 20, right: 50, bottom: 200, left: 220},
-          width = 650 - margin.left - margin.right,
-          height = 620 - margin.top - margin.bottom;
+      const margin = {top: 0, right: 100, bottom: 100, left: 100},
+          width = 700 - margin.left - margin.right,
+          height = 600 - margin.top - margin.bottom;
 
       // Create the svg area
       const svg = d3.select("#matrix_dataviz")
         .append("svg")
-        .attr("viewBox", `0 0 700 700`)
+        .attr("viewBox", `0 0 700 600`)
         .attr("preserveAspectRatio", "xMinYMin meet")
         .append("g")
           .attr("transform", `translate(${margin.left},${margin.top})`);
@@ -117,7 +117,7 @@
         .selectAll("text")  
             .style("text-anchor", "end")
             .attr("dx", "-.8em")
-            .attr("dy", ".15em")
+            .attr("dy", ".5em")
             .attr("transform", "rotate(-90)" );
 
       // Build Y scales and axis:
