@@ -34,7 +34,7 @@
               </b-form-input>
               
               <b-form-datalist id="search-list" 
-              :options="search"
+              :options="search_keys"
               >
               </b-form-datalist>
 
@@ -372,7 +372,8 @@ export default {
           ndd_icon_text: {"No": "not associated with NDDs", "Yes": "associated with NDDs"},
           inheritance_short_text: {"Dominant": "AD", "Recessive": "AR", "X-linked": "X", "Other": "M/S"},
           search_input: '',
-          search: [],
+          search_keys: [],
+          search_object: {},
           genes_statistics:
           {
             meta: [
@@ -497,21 +498,24 @@ export default {
       }
     },
   async loadSearchInfo() {
-    let apiSearchURL = process.env.VUE_APP_API_URL + '/api/search/' + this.search_input;
+    let apiSearchURL = process.env.VUE_APP_API_URL + '/api/search/' + this.search_input + '?helper=true';
     try {
       let response_search = await this.axios.get(apiSearchURL);
-      this.search = response_search.data;
+      this.search_object = response_search.data[0];
+      this.search_keys = Object.keys(response_search.data[0]);
       } catch (e) {
        this.makeToast(e, 'Error', 'danger');
       }
-    if (this.search[0] === this.search_input & isNaN(this.search_input)) {
-      this.$router.push('/Search/' + this.search_input);
+    if (this.search_keys[0] === this.search_input & !(this.search_object[this.search_input] == null)) {
+      this.$router.push(this.search_object[this.search_input][0].link);
     }
     },
   keydown_handler(event) {
-     if (event.which === 13 & this.search_input.length > 1) {
+      if (event.which === 13 & this.search_input.length > 0 & !(this.search_object[this.search_input] == null)) {
+        this.$router.push(this.search_object[this.search_input][0].link);
+      } else if (event.which === 13 & this.search_input.length > 0 & (this.search_object[this.search_input] == null)) {
         this.$router.push('/Search/' + this.search_input);
-     }
+      }
     },
   truncate(str, n) {
     return (str.length > n) ? str.substr(0, n-1) + '...' : str;

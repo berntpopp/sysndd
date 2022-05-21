@@ -3226,18 +3226,8 @@ function(searchterm, helper = TRUE) {
       search == "entity_id" ~ paste0("/Entities/", results)
     ))
 
-  # change output by helper input to unique
-  # values (helper = TRUE) or entities (helper = FALSE)
-  if (helper) {
-    sysndd_db_entity_search_helper <- sysndd_db_entity_search %>%
-      select(-entity_id, -link) %>%
-      unique()
-  } else {
-    sysndd_db_entity_search_helper <- sysndd_db_entity_search
-  }
-
   # compute filtered length with match < 0.1
-  sysndd_db_entity_search_length <- sysndd_db_entity_search_helper %>%
+  sysndd_db_entity_search_length <- sysndd_db_entity_search %>%
     filter(searchdist < 0.1) %>%
     tally()
 
@@ -3250,22 +3240,26 @@ function(searchterm, helper = TRUE) {
   # check if perfect match exists
   if (sysndd_db_entity_search$searchdist[1] == 0 &
     is.na(suppressWarnings(as.integer(sysndd_db_entity_search$results[1])))) {
-    sysndd_db_entity_search_return <- sysndd_db_entity_search_helper %>%
+    sysndd_db_entity_search_return <- sysndd_db_entity_search %>%
       slice_head(n = 1)
   } else {
-    sysndd_db_entity_search_return <- sysndd_db_entity_search_helper %>%
+    sysndd_db_entity_search_return <- sysndd_db_entity_search %>%
       slice_head(n = return_count)
   }
 
   # change output by helper input to
   # unique values (helper = TRUE) or entities (helper = FALSE)
   if (helper) {
-    (sysndd_db_entity_search_return %>%
-        select(results) %>%
-        as.list())$results
+    sysndd_db_entity_search_return <- sysndd_db_entity_search_return %>%
+      nest_by(results, .key = "values") %>%
+      ungroup() %>%
+      pivot_wider(everything(), names_from = "results", values_from = "values")
   } else {
     sysndd_db_entity_search_return
   }
+
+  # return output
+  sysndd_db_entity_search_return
 }
 
 
@@ -3305,7 +3299,7 @@ function(searchterm, tree = FALSE) {
 
   # the "tree" option allows output data to be formated
   # as arrays for the treeselect library
-  # do stands for disease_ontology
+  # do here means disease_ontology
   if (tree) {
     do_set_search_return_helper <- do_set_search_return %>%
       select(id = disease_ontology_id_version,
