@@ -29,7 +29,17 @@
       </b-row>
     <!-- User Interface controls -->
 
-    <UpSetJS :sets="sets" :width="width" :height="height" @hover="hover" :selection="selection"></UpSetJS>
+    <UpSetJS
+      id="comparisons-upset"
+      :sets="sets"
+      :width="width"
+      :height="height"
+      @hover="hover"
+      :selection="selection"
+      theme="vega"
+    >
+
+    </UpSetJS>
 
     </b-card>
   </b-container>
@@ -41,7 +51,6 @@
 
   // importUpSetJS
   import UpSetJS, { extractSets } from '@upsetjs/vue';
-  import {createElement} from "@upsetjs/bundle";
 
   // import the Treeselect component
   import Treeselect from '@riophae/vue-treeselect'
@@ -91,15 +100,6 @@
       this.loadOptionsData();
     },
     methods: {
-        customStyleFactory(rules) {
-          return createElement(
-            'style',
-            {
-              extra: 'abc',
-            },
-            rules
-          );
-        },
         async loadOptionsData() {
           // have to add other options here and normalize the function both here and in the API
           this.loading = true;
