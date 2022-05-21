@@ -37,14 +37,8 @@
 
       <b-col class="my-1" sm="2">
         <b-row>
-          <b-col class="my-1">
-            <b-button block v-on:click="removeFilters(); removeSearch();" size="sm">
-              <b-icon icon="filter" class="mx-1"></b-icon>
-              Reset
-            </b-button>
-          </b-col>
 
-          <b-col class="my-1">
+          <b-col>
             <b-button block v-on:click="requestExcel" size="sm">
               <b-icon icon="table" class="mx-1"></b-icon>
               <b-icon icon="download" v-if="!downloading"></b-icon>
@@ -52,6 +46,7 @@
               .xlsx
             </b-button>
           </b-col>
+
         </b-row>
       </b-col>
 
