@@ -1,45 +1,62 @@
 <template>
-  <div class="container-fluid">
+  <div class="container-fluid bg-gradient">
+
   <b-spinner label="Loading..." v-if="loading" class="float-center m-5"></b-spinner>
     <b-container fluid v-else>
       <b-row class="justify-content-md-center py-2">
         <b-col col md="8">
 
-          <h3>Search term: {{ $route.params.search_term }}</h3>
-
-          <b-table
-              :items="search"
-              :fields="search_fields"
-              small
+          <!-- Gene overview card -->
+          <b-card 
+          header-tag="header"
+          class="my-3 text-left"
+          body-class="p-0"
+          header-class="p-1"
+          border-variant="dark"
           >
 
-            <template #cell(results)="data">
-              <b-link v-bind:href="data.item.link">
-                <div>
-                   <b-badge 
-                  :variant="result_variant[data.item.search]"
-                  style="cursor:pointer"
-                  >
-                  {{ data.item.results }}
-                  </b-badge>
-                </div>
-              </b-link>
+            <template #header>
+              <h3 class="mb-1 text-left font-weight-bold">Top results for your search term:
+                <b-badge variant="dark">
+                  {{ $route.params.search_term }}
+                </b-badge>
+              </h3>
             </template>
 
-            <template #cell(entity_id)="data">
-              <div>
-                <b-link v-bind:href="'/Entities/' + data.item.entity_id">
-                  <b-badge 
-                  variant="primary"
-                  style="cursor:pointer"
-                  >
-                  sysndd:{{ data.item.entity_id }}
-                  </b-badge>
+            <b-table
+                :items="search"
+                :fields="search_fields"
+                small
+            >
+
+              <template #cell(results)="data">
+                <b-link v-bind:href="data.item.link">
+                  <div>
+                    <b-badge 
+                    :variant="result_variant[data.item.search]"
+                    style="cursor:pointer"
+                    >
+                    {{ data.item.results }}
+                    </b-badge>
+                  </div>
                 </b-link>
-              </div>
-            </template>
+              </template>
 
-          </b-table>
+              <template #cell(entity_id)="data">
+                <div>
+                  <b-link v-bind:href="'/Entities/' + data.item.entity_id">
+                    <b-badge 
+                    variant="primary"
+                    style="cursor:pointer"
+                    >
+                    sysndd:{{ data.item.entity_id }}
+                    </b-badge>
+                  </b-link>
+                </div>
+              </template>
+
+            </b-table>
+          </b-card>
 
           </b-col>
         </b-row>
@@ -140,5 +157,11 @@ export default {
   font-size: .875rem;
   line-height: .5;
   border-radius: .2rem;
+}
+.bg-gradient {
+  margin:0px;
+  height:100%;
+  min-height:calc(100vh - 100px);
+  background-image: linear-gradient(-225deg, #E3FDF5 0%, #FFE6FA 100%);
 }
 </style>
