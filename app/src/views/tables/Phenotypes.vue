@@ -15,7 +15,7 @@
           >
 
           <template #header>
-            <h6 class="mb-1 text-left font-weight-bold">Phenotypes search <b-badge variant="primary" v-b-tooltip.hover.bottom v-bind:title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime">Associated entities: {{totalRows}} </b-badge></h6>
+            <h6 class="mb-1 text-left font-weight-bold">Phenotype search <b-badge variant="primary" v-b-tooltip.hover.bottom v-bind:title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime">Associated entities: {{totalRows}} </b-badge></h6>
          </template>
 
           <b-row>

@@ -161,7 +161,7 @@
                 border-variant="dark"
               >
                 <template #header>
-                  <h5 class="mb-0 font-weight-bold">Gene news</h5>
+                  <h5 class="mb-0 font-weight-bold">New entities</h5>
                 </template>
                 <b-card-text class="text-left">
 
@@ -291,7 +291,7 @@
                           <b-badge pill variant="info">Inheritance</b-badge> 
                           <b-badge pill variant="secondary">Disease</b-badge> 
                         </b-badge></span><br>
-                <span class="word">The SysNDD tool allows browsing and download of tabular views for curated NDD entity components in the <mark>Tables</mark> section. It offers multiple <mark>Analyses</mark> sections for genes, phenotypes and comparisions with other curation efforts. </span><br>
+                <span class="word">The SysNDD tool allows browsing and download of tabular views for curated NDD entity components in the <mark>Tables</mark> section. It offers multiple <mark>Analyses</mark> sections for genes, phenotypes and comparisons with other curation efforts. </span><br>
 
             </div>
           </b-col>
