@@ -308,7 +308,7 @@ export default {
           lastItemID: null,
           executionTime: 0,
           perPage: 10,
-          pageOptions: [10, 25, 50, { value: 100, text: "Show a lot" }],
+          pageOptions: [10, 25, 50, 200],
           sortBy: 'entity_id',
           sortDesc: false,
           filter: {any: '', entity_id: '', symbol: '', disease_ontology_name: '', disease_ontology_id_version: '', hpo_mode_of_inheritance_term_name: '', hpo_mode_of_inheritance_term: '', ndd_phenotype_word: '', category: ''}, 

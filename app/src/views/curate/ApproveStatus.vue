@@ -419,7 +419,7 @@ export default {
         totalRows: 0,
         currentPage: 1,
         perPage: 10,
-        pageOptions: [10, 25, 50, { value: 100, text: "Show a lot" }],
+        pageOptions: [10, 25, 50, 200],
         sortBy: '',
         sortDesc: false,
         sortDirection: 'asc',

@@ -292,7 +292,7 @@ export default {
           lastItemID: null,
           executionTime: 0,
           perPage: 10,
-          pageOptions: [10, 25, 50, { value: 100, text: "Show a lot" }],
+          pageOptions: [10, 25, 50, 200],
           sortBy: "entity_id",
           sortDesc: false,
           sortDirection: 'asc',
