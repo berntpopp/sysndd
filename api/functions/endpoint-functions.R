@@ -354,13 +354,13 @@ generate_gene_stat_tibble <- function(sort = "category_id,-n") {
     collect()
 
   disease_genes_group_cat_inh <- sysndd_db_disease_genes %>%
-    unique() %>%
     mutate(inheritance = case_when(
       str_detect(inheritance, "X-linked") ~ "X-linked",
       str_detect(inheritance, "Autosomal dominant inheritance") ~ "Dominant",
       str_detect(inheritance, "Autosomal recessive inheritance") ~ "Recessive",
       TRUE ~ "Other"
     )) %>%
+    unique() %>%
     group_by(category, category_id, inheritance) %>%
     tally() %>%
     ungroup() %>%
