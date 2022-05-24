@@ -97,6 +97,7 @@
                 debounce="500"
                 size="sm"
                 type="search"
+                autocomplete="off"
                 @click="removeSearch()"
                 @update="filtered()"
                 >
@@ -108,12 +109,11 @@
                   :options="field.selectOptions"
                   size="sm"
                   type="search"
-                  autocomplete="off"
                   @input="removeSearch()"
                   @change="filtered()"
                 >
                   <template #first>
-                    <b-form-select-option value=""> {{ truncate(field.label, 20) }} </b-form-select-option>
+                    <b-form-select-option value=""></b-form-select-option>
                   </template>
                 </b-form-select>
               </td>

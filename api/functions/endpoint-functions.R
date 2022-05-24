@@ -6,7 +6,8 @@ generate_comparisons_list <- function(sort = "symbol",
   filter = "",
   fields = "",
   `page[after]` = "0",
-  `page[size]` = "10") {
+  `page[size]` = "10",
+  fspec = "symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id") {
   # set start time
   start_time <- Sys.time()
 
@@ -31,6 +32,12 @@ generate_comparisons_list <- function(sort = "symbol",
     unique() %>%
     mutate(in_list = "yes") %>%
     pivot_wider(names_from = list, values_from = in_list, values_fill = "no")
+
+  # use the helper generate_tibble_fspec to
+  # generate fields specs from a tibble
+  comparison_view_fspec <- generate_tibble_fspec(
+    ndd_database_comparison_table,
+    fspec)
 
   # arrange and apply filters according to input
   ndd_database_comparison_table <- ndd_database_comparison_table %>%
@@ -63,6 +70,7 @@ generate_comparisons_list <- function(sort = "symbol",
     add_column(as_tibble(list("sort" = sort,
       "filter" = filter,
       "fields" = fields,
+      "fspec" = comparison_view_fspec,
       "executionTime" = execution_time)))
 
   # add host, port and other information to links from the link

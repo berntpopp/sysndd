@@ -3124,13 +3124,15 @@ function(
   filter = "",
   fields = "",
   `page[after]` = "0",
-  `page[size]` = "10") {
+  `page[size]` = "10",
+  fspec = "symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id") {
 # call the endpoint function generate_phenotype_entities
 comparisons_list <- generate_comparisons_list(sort,
   filter,
   fields,
   `page[after]`,
-  `page[size]`)
+  `page[size]`,
+  fspec)
 
 # return the list
 comparisons_list
