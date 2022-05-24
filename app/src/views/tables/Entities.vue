@@ -91,8 +91,9 @@
             <template slot="top-row" slot-scope="{ fields }">
               <td v-for="field in fields" :key="field.key">
                 <b-form-input 
+                v-if="field.filterable"
                 v-model="filter[field.key]" 
-                placeholder="..."
+                :placeholder="truncate(field.label, 20)"
                 debounce="500"
                 size="sm"
                 type="search"
@@ -100,6 +101,20 @@
                 @update="filtered()"
                 >
                 </b-form-input>
+
+                <b-form-select
+                  v-if="field.selectable"
+                  v-model="filter[field.key]"
+                  :options="field.selectOptions"
+                  size="sm"
+                  type="search"
+                  @input="removeSearch()"
+                  @change="filtered()"
+                >
+                  <template #first>
+                    <b-form-select-option value=""> {{ truncate(field.label, 20) }} </b-form-select-option>
+                  </template>
+                </b-form-select>
               </td>
             </template>
 
@@ -397,6 +412,7 @@ export default {
               this.nextItemID = response.data.meta[0].nextItemID;
               this.lastItemID = response.data.meta[0].lastItemID;
               this.executionTime = response.data.meta[0].executionTime;
+              this.fields = response.data.meta[0].fspec;
 
               this.isBusy = false;
 

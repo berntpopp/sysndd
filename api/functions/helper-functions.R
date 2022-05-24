@@ -379,15 +379,28 @@ generate_cursor_pag_inf <- function(pagination_tibble,
 
 
 # generate field specs from a tibble
-generate_tibble_fspec <- function(field_tibble) {
+generate_tibble_fspec <- function(field_tibble, fspec_input) {
+
+    # get column names from field_tibble
+    tibble_colnames <- colnames(field_tibble)
+
+    # check if fspec_input is empty string,
+    # if so assign tibble_colnames to it, else
+    # split the fields_requested input by comma
+    if (fspec_input != "") {
+      fspec_input <- str_split(str_replace_all(
+        fspec_input, fixed(" "), ""), ",")[[1]]
+    } else {
+      fspec_input <- tibble_colnames
+    }
+
     # generate fields object
   fields_values <- field_tibble %>%
-    slice_sample(n = 100) %>%
     mutate(across(everything(), as.character)) %>%
     pivot_longer(everything(),
       names_to = "key",
       values_to = "values",
-      values_ptypes = list(values=character())) %>%
+      values_ptypes = list(values = character())) %>%
     arrange(key, values) %>%
     unique() %>%
     group_by(key) %>%
@@ -409,7 +422,17 @@ generate_tibble_fspec <- function(field_tibble) {
     mutate(sortable = TRUE) %>%
     mutate(class = "text-left") %>%
     mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
-    select(-count)
+    select(-count) %>%
+    filter(key %in% fspec_input) %>%
+    arrange(factor(key, levels = fspec_input)) %>%
+    {if("actions" %in% fspec_input) add_row(., key = "actions",
+      selectOptions = NULL,
+      filterable = FALSE,
+      selectable = FALSE,
+      sortable = FALSE,
+      sortDirection = "asc",
+      class = "text-center",
+      label = "Actions") else .}
 
   # generate return list
   return_data <- list(fspec = fields_values)

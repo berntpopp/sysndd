@@ -96,9 +96,9 @@ source("functions/plot-functions.R", local = TRUE)
 source("functions/helper-functions.R", local = TRUE)
 
 # convert to memoise functions
-# Expire items in cache after 10 minutes
+# Expire items in cache after 60 minutes
 # and set cache 100 MB limit
-cm <- cachem::cache_mem(max_age = 5 * 60,
+cm <- cachem::cache_mem(max_age = 60 * 60,
   max_size = 100 * 1024 ^ 2)
 
 generate_gene_stat_tibble_mem <- memoise(generate_gene_stat_tibble,
@@ -108,6 +108,9 @@ generate_gene_news_tibble_mem <- memoise(generate_gene_news_tibble,
   cache = cm)
 
 nest_gene_tibble_mem <- memoise(nest_gene_tibble,
+  cache = cm)
+
+generate_tibble_fspec_mem <- memoise(generate_tibble_fspec,
   cache = cm)
 
 ##-------------------------------------------------------------------##
@@ -234,7 +237,8 @@ function(res,
   filter = "",
   fields = "",
   `page[after]` = 0,
-  `page[size]` = "10") {
+  `page[size]` = "10",
+  fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,actions") {
 
   start_time <- Sys.time()
 
@@ -258,7 +262,7 @@ function(res,
     tbl("ndd_entity_view") %>%
     left_join(ndd_entity_review, by = c("entity_id")) %>%
     collect()
-    
+
    sysndd_db_disease_table <- ndd_entity_view %>%
     arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
     filter(!!!rlang::parse_exprs(filter_exprs))
@@ -279,7 +283,7 @@ function(res,
 
   # use the helper generate_tibble_fspec to
   # generate fields specs from a tibble
-  disease_table_fspec <- generate_tibble_fspec(ndd_entity_view)
+  disease_table_fspec <- generate_tibble_fspec_mem(ndd_entity_view, fspec)
 
   # compute execution time
   end_time <- Sys.time()
