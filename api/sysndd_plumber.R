@@ -254,10 +254,12 @@ function(res,
   # '!!!' in filter needed to evaluate formula for any/ all
   # cases (see "https://stackoverflow.com/questions/
   # 66070864/operating-across-columns-rowwise-in-r-dbplyr")
-  sysndd_db_disease_table <- pool %>%
+  ndd_entity_view <- pool %>%
     tbl("ndd_entity_view") %>%
     left_join(ndd_entity_review, by = c("entity_id")) %>%
-    collect() %>%
+    collect()
+    
+   sysndd_db_disease_table <- ndd_entity_view %>%
     arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
     filter(!!!rlang::parse_exprs(filter_exprs))
 
@@ -275,6 +277,10 @@ function(res,
     `page[after]`,
     "entity_id")
 
+  # use the helper generate_tibble_fspec to
+  # generate fields specs from a tibble
+  disease_table_fspec <- generate_tibble_fspec(ndd_entity_view)
+
   # compute execution time
   end_time <- Sys.time()
   execution_time <- as.character(paste0(round(end_time - start_time, 2),
@@ -286,6 +292,7 @@ function(res,
     add_column(tibble::as_tibble(list("sort" = sort,
     "filter" = filter,
     "fields" = fields,
+    "fspec" = disease_table_fspec,
     "executionTime" = execution_time)))
 
   # add host, port and other information to links from

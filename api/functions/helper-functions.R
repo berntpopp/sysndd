@@ -376,3 +376,43 @@ generate_cursor_pag_inf <- function(pagination_tibble,
 
   return(return_data)
 }
+
+
+# generate field specs from a tibble
+generate_tibble_fspec <- function(field_tibble) {
+    # generate fields object
+  fields_values <- field_tibble %>%
+    slice_sample(n = 100) %>%
+    mutate(across(everything(), as.character)) %>%
+    pivot_longer(everything(),
+      names_to = "key",
+      values_to = "values",
+      values_ptypes = list(values=character())) %>%
+    arrange(key, values) %>%
+    unique() %>%
+    group_by(key) %>%
+    summarise(selectOptions = list(values)) %>%
+    mutate(count = lengths(selectOptions)) %>%
+    mutate(filterable = case_when(
+      count > 10 ~ TRUE,
+      count <= 10 ~ FALSE,
+    )) %>%
+    mutate(selectable = case_when(
+      count > 10 ~ FALSE,
+      count <= 10 ~ TRUE,
+    )) %>%
+    mutate(selectOptions = case_when(
+      count > 10 ~ list("null"),
+      count <= 10 ~ selectOptions,
+    )) %>%
+    mutate(sortDirection = "asc") %>%
+    mutate(sortable = TRUE) %>%
+    mutate(class = "text-left") %>%
+    mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
+    select(-count)
+
+  # generate return list
+  return_data <- list(fspec = fields_values)
+
+  return(return_data)
+}
