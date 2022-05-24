@@ -26,7 +26,7 @@
               type="search" 
               placeholder="Search the SysNDD-db by genes, entities and diseases using names or identifiers" 
               size="md"
-              autocomplete="off" 
+              autocomplete="off"
               v-model="search_input"
               @input="loadSearchInfo"
               @keydown.native="keydown_handler"
