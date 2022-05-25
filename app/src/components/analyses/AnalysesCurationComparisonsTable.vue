@@ -107,7 +107,7 @@
             <b-form-input 
             v-if="field.filterable"
             v-model="filter[field.key]" 
-            :placeholder="truncate(field.label, 20)"
+            :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
             debounce="500"
             size="sm"
             type="search"
@@ -126,8 +126,8 @@
               @input="removeSearch()"
               @change="filtered()"
             >
-              <template #first>
-                <b-form-select-option value=""></b-form-select-option>
+              <template v-slot:first>
+                <b-form-select-option value=""> .. {{ truncate(field.label, 20) }} .. </b-form-select-option>
               </template>
             </b-form-select>
 
@@ -349,7 +349,7 @@
         pageOptions: [10, 25, 50, 200],
         sortBy: 'symbol',
         sortDesc: false,
-        filter: {any: ''}, 
+        filter: {any: '', SysNDD: '', radboudumc_ID: '', gene2phenotype: '', panelapp: '', sfari: '', geisinger_DBD: '', omim_ndd: '', orphanet_id: ''}, 
         filter_string: '', 
         filterOn: [],
         selection: null,
