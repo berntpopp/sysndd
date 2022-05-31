@@ -10,7 +10,7 @@
       border-variant="dark"
     >
     <template #header>
-      <h6 class="mb-1 text-left font-weight-bold">Upset plot showing the overlap between different selected curation effors for neurodevelopmental disorders.</h6>
+      <h6 class="mb-1 text-left font-weight-bold"><mark v-b-tooltip.hover.leftbottom title="A visualization for set intersections used as alternative to Venn diagrams. Rows corresponds to a set and columns correspond to possible intersections represented by the connected dots.">Upset plot</mark> showing the overlap between different selected curation effors for neurodevelopmental disorders.</h6>
     </template>
       <b-row>
         <!-- column 1 -->
@@ -147,5 +147,11 @@
 
 
 <style scoped>
-
+  mark {
+    display: inline-block;
+    line-height: 0em;
+    padding-bottom: 0.5em;
+    font-weight: bold;
+    background-color: #EAADBA;
+  }
 </style>

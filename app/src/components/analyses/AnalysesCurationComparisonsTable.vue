@@ -9,7 +9,7 @@
       border-variant="dark"
     >
       <template #header>
-        <h6 class="mb-1 text-left font-weight-bold">Comparing the presence of a gene in different curation effors for neurodevelopmental disorders.</h6>
+        <h6 class="mb-1 text-left font-weight-bold">Comparing the presence of a gene in <mark v-b-tooltip.hover.leftbottom title="These have been reviewed to include lists which are regularly updated. Below table allows users to filter the presence of a gene (yes/ no) in the respective list overlaps.">different curation effors</mark> for neurodevelopmental disorders.</h6>
         <h6 class="mb-1 text-left font-weight-bold"><b-badge variant="success" v-b-tooltip.hover.bottom v-bind:title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime">Genes: {{totalRows}} </b-badge></h6>
       </template>
 
@@ -492,5 +492,12 @@
     font-size: .875rem;
     line-height: .5;
     border-radius: .2rem;
+  }
+  mark {
+    display: inline-block;
+    line-height: 0em;
+    padding-bottom: 0.5em;
+    font-weight: bold;
+    background-color: #EAADBA;
   }
 </style>

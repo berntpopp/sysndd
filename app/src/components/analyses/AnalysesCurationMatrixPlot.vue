@@ -9,7 +9,7 @@
       border-variant="dark"
     >
     <template #header>
-      <h6 class="mb-1 text-left font-weight-bold">Matrix plot of the cosine similarity between different curation effors for neurodevelopmental disorders.</h6>
+      <h6 class="mb-1 text-left font-weight-bold">Matrix plot of the <mark v-b-tooltip.hover.leftbottom title="This is a measure of similarity between two sequences of numbers used to quantify the similarity between two word lists.">cosine similarity</mark> between different curation effors for neurodevelopmental disorders.</h6>
     </template>
       <b-row>
         <!-- column 1 -->
@@ -87,14 +87,14 @@
       },
       generateGraph() {
       // Graph dimension
-      const margin = {top: 0, right: 100, bottom: 100, left: 100},
-          width = 700 - margin.left - margin.right,
+      const margin = {top: 0, right: 150, bottom: 120, left: 150},
+          width = 800 - margin.left - margin.right,
           height = 600 - margin.top - margin.bottom;
 
       // Create the svg area
       const svg = d3.select("#matrix_dataviz")
         .append("svg")
-        .attr("viewBox", `0 0 700 600`)
+        .attr("viewBox", `0 0 800 600`)
         .attr("preserveAspectRatio", "xMinYMin meet")
         .append("g")
           .attr("transform", `translate(${margin.left},${margin.top})`);
@@ -115,10 +115,11 @@
         .attr("transform", `translate(0, ${height})`)
         .call(d3.axisBottom(x))
         .selectAll("text")  
-            .style("text-anchor", "end")
-            .attr("dx", "-.8em")
-            .attr("dy", ".5em")
-            .attr("transform", "rotate(-90)" );
+          .style("text-anchor", "end")
+          .attr("dx", "-.4em")
+          .attr("dy", ".5em")
+          .attr("transform", "rotate(-45)")
+          .style("font-size", "16px");
 
       // Build Y scales and axis:
       const y = d3.scaleBand()
@@ -127,7 +128,8 @@
         .padding(0.01);
 
       svg.append("g")
-        .call(d3.axisLeft(y));
+        .call(d3.axisLeft(y))
+          .style("font-size", "16px");
 
       // Build color scale
       const myColor = d3.scaleLinear()
@@ -137,18 +139,19 @@
       // create a tooltip
       const tooltip = d3.select("#matrix_dataviz")
         .append("div")
-        .style("opacity", 0)
-        .attr("class", "tooltip")
-        .style("background-color", "white")
-        .style("border", "solid")
-        .style("border-width", "1px")
-        .style("border-radius", "5px")
-        .style("padding", "2px")
+          .style("opacity", 0)
+          .attr("class", "tooltip")
+          .style("background-color", "white")
+          .style("border", "solid")
+          .style("border-width", "1px")
+          .style("border-radius", "5px")
+          .style("padding", "2px");
 
       // Three function that change the tooltip when user hover / move / leave a cell
       const mouseover = function(event,d) {
         tooltip
-          .style("opacity", 1)
+          .style("opacity", 1);
+
         d3.select(this)
           .style("stroke", "black")
           .style("opacity", 1);
@@ -161,7 +164,8 @@
       }
       const mouseleave = function(event,d) {
         tooltip
-          .style("opacity", 0)
+          .style("opacity", 0);
+
         d3.select(this)
           .style("stroke", "none")
           .style("opacity", 0.8);
@@ -179,13 +183,8 @@
           .style("fill", function(d) { return myColor(d.value)} )
         .on("mouseover", mouseover)
         .on("mousemove", mousemove)
-        .on("mouseleave", mouseleave)
+        .on("mouseleave", mouseleave);
 
-      },
-      onFiltered(filteredItems) {
-        // Trigger pagination to update the number of buttons/pages due to filtering
-        this.totalRows = filteredItems.length
-        this.currentPage = 1
       }
       }
     };
@@ -200,11 +199,18 @@
     max-width: 600px;
     vertical-align: top;
     overflow: hidden;
-}
-.svg-content {
+  }
+  .svg-content {
+      display: inline-block;
+      position: absolute;
+      top: 0;
+      left: 0;
+  }
+  mark {
     display: inline-block;
-    position: absolute;
-    top: 0;
-    left: 0;
-}
+    line-height: 0em;
+    padding-bottom: 0.5em;
+    font-weight: bold;
+    background-color: #EAADBA;
+  }
 </style>
