@@ -21,6 +21,8 @@ if (process.env.NODE_ENV === 'production') {
     },
     updated () {
       console.log('New content is available; please refresh.')
+      // added acording to https://stackoverflow.com/questions/54145735/vue-pwa-not-getting-new-content-after-refresh
+      window.location.reload(true)
     },
     offline () {
       console.log('No internet connection found. App is running in offline mode.')
