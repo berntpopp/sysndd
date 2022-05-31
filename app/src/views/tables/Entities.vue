@@ -120,9 +120,9 @@
               </td>
             </template>
 
-            <template #cell(actions)="row">
+            <template #cell(details)="row">
               <b-button class="btn-xs" @click="row.toggleDetails" variant="outline-primary">
-                {{ row.detailsShowing ? 'Hide' : 'Show' }} Details
+                {{ row.detailsShowing ? 'Hide' : 'Show' }}
               </b-button>
             </template>
 
@@ -184,7 +184,7 @@
                 <b-badge 
                 pill 
                 variant="info" 
-                class="justify-content-md-center" 
+                class="justify-content-md-center px-1 mx-1" 
                 size="1.3em"
                 v-b-tooltip.hover.leftbottom 
                 v-bind:title="data.item.hpo_mode_of_inheritance_term_name + ' (' + data.item.hpo_mode_of_inheritance_term + ')'"
@@ -306,8 +306,8 @@ export default {
               class: 'text-left'
             },
             { 
-              key: 'actions', 
-              label: 'Actions'
+              key: 'details', 
+              label: 'Details'
             }
           ],
           fields_details: [

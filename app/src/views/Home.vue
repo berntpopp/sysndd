@@ -126,7 +126,7 @@
                               <b-badge 
                               pill 
                               variant="info" 
-                              class="justify-content-md-center" 
+                              class="justify-content-md-center px-1 mx-1" 
                               size="1.3em"
                               >
                               {{ inheritance_short_text[data.item.inheritance] }}
@@ -234,10 +234,10 @@
                           <b-badge 
                           pill 
                           variant="info" 
-                          class="justify-content-md-center" 
+                          class="justify-content-md-center px-1 mx-1" 
                           size="1.3em"
                           v-b-tooltip.hover.leftbottom 
-                          v-bind:title="data.item.inheritance_filter + ' (' + data.item.inheritance_filter + ')'"
+                          v-bind:title="data.item.inheritance_filter + ' (' + data.item.hpo_mode_of_inheritance_term + ')'"
                           >
                           {{ inheritance_short_text[data.item.inheritance_filter] }}
                           </b-badge>
@@ -370,7 +370,7 @@ export default {
           ndd_icon: {"No": "x", "Yes": "check"},
           ndd_icon_style: {"No": "warning", "Yes": "success"},
           ndd_icon_text: {"No": "not associated with NDDs", "Yes": "associated with NDDs"},
-          inheritance_short_text: {"Dominant": "AD", "Recessive": "AR", "X-linked": "X", "Other": "M/S"},
+          inheritance_short_text: {"Autosomal dominant": "AD", "Autosomal recessive": "AR", "X-linked": "X", "Other": "M/S"},
           search_input: '',
           search_keys: [],
           search_object: {},

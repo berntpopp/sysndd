@@ -395,44 +395,44 @@ generate_tibble_fspec <- function(field_tibble, fspec_input) {
     }
 
     # generate fields object
-  fields_values <- field_tibble %>%
-    mutate(across(everything(), as.character)) %>%
-    pivot_longer(everything(),
-      names_to = "key",
-      values_to = "values",
-      values_ptypes = list(values = character())) %>%
-    arrange(key, values) %>%
-    unique() %>%
-    group_by(key) %>%
-    summarise(selectOptions = list(values)) %>%
-    mutate(count = lengths(selectOptions)) %>%
-    mutate(filterable = case_when(
-      count > 10 ~ TRUE,
-      count <= 10 ~ FALSE,
-    )) %>%
-    mutate(selectable = case_when(
-      count > 10 ~ FALSE,
-      count <= 10 ~ TRUE,
-    )) %>%
-    mutate(selectOptions = case_when(
-      count > 10 ~ list("null"),
-      count <= 10 ~ selectOptions,
-    )) %>%
-    mutate(sortDirection = "asc") %>%
-    mutate(sortable = TRUE) %>%
-    mutate(class = "text-left") %>%
-    mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
-    select(-count) %>%
-    filter(key %in% fspec_input) %>%
-    arrange(factor(key, levels = fspec_input)) %>%
-    {if("actions" %in% fspec_input) add_row(., key = "actions",
-      selectOptions = NULL,
-      filterable = FALSE,
-      selectable = FALSE,
-      sortable = FALSE,
-      sortDirection = "asc",
-      class = "text-center",
-      label = "Actions") else .}
+    fields_values <- field_tibble %>%
+      mutate(across(everything(), as.character)) %>%
+      pivot_longer(everything(),
+        names_to = "key",
+        values_to = "values",
+        values_ptypes = list(values = character())) %>%
+      arrange(key, values) %>%
+      unique() %>%
+      group_by(key) %>%
+      summarise(selectOptions = list(values)) %>%
+      mutate(count = lengths(selectOptions)) %>%
+      mutate(filterable = case_when(
+        count > 10 ~ TRUE,
+        count <= 10 ~ FALSE,
+      )) %>%
+      mutate(selectable = case_when(
+        count > 10 ~ FALSE,
+        count <= 10 ~ TRUE,
+      )) %>%
+      mutate(selectOptions = case_when(
+        count > 10 ~ list("null"),
+        count <= 10 ~ selectOptions,
+      )) %>%
+      mutate(sortDirection = "asc") %>%
+      mutate(sortable = TRUE) %>%
+      mutate(class = "text-left") %>%
+      mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
+      select(-count) %>%
+      filter(key %in% fspec_input) %>%
+      arrange(factor(key, levels = fspec_input)) %>%
+      {if("details" %in% fspec_input) add_row(., key = "details",
+        selectOptions = NULL,
+        filterable = FALSE,
+        selectable = FALSE,
+        sortable = FALSE,
+        sortDirection = "asc",
+        class = "text-center",
+        label = "Details") else .}
 
   # generate return list
   return_data <- list(fspec = fields_values)

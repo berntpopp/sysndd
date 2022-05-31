@@ -199,7 +199,7 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
 
 # generate panels list
 generate_panels_list <- function(sort = "symbol",
-  filter = "equals(category,'Definitive'),any(inheritance_filter,'Dominant','Recessive','X-linked','Other')",
+  filter = "equals(category,'Definitive'),any(inheritance_filter,'Autosomal dominant','Autosomal recessive','X-linked','Other')",
   fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38",
   `page[after]` = 0,
   `page[size]` = "all") {
@@ -248,7 +248,7 @@ generate_panels_list <- function(sort = "symbol",
 
   # generate table with field information for display
   # to do: this has to be updated through some logic based
-  # on field types in MySQl table in a function
+  # on field types in MySQL table in a function
   fields_tibble <- as_tibble(str_split(fields, ",")[[1]]) %>%
     select(key = value) %>%
     mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
@@ -364,8 +364,10 @@ generate_gene_stat_tibble <- function(sort = "category_id,-n") {
   disease_genes_group_cat_inh <- sysndd_db_disease_genes %>%
     mutate(inheritance = case_when(
       str_detect(inheritance, "X-linked") ~ "X-linked",
-      str_detect(inheritance, "Autosomal dominant inheritance") ~ "Dominant",
-      str_detect(inheritance, "Autosomal recessive inheritance") ~ "Recessive",
+      str_detect(inheritance, "Autosomal dominant inheritance") ~
+        "Autosomal dominant",
+      str_detect(inheritance, "Autosomal recessive inheritance") ~
+        "Autosomal recessive",
       TRUE ~ "Other"
     )) %>%
     unique() %>%

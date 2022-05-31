@@ -62,8 +62,8 @@ pool <- dbPool(
 ##-------------------------------------------------------------------##
 ## global variables
 inheritance_input_allowed <- c("X-linked",
-  "Dominant",
-  "Recessive",
+  "Autosomal dominant",
+  "Autosomal recessive",
   "Other",
   "All")
 output_columns_allowed <- c("category",
@@ -238,7 +238,7 @@ function(res,
   fields = "",
   `page[after]` = 0,
   `page[size]` = "10",
-  fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,actions") {
+  fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details") {
 
   start_time <- Sys.time()
 
@@ -2094,7 +2094,8 @@ function(res,
   filter = "",
   fields = "",
   `page[after]` = "0",
-  `page[size]` = "10") {
+  `page[size]` = "10",
+  fspec = "symbol,category,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,details") {
 
   start_time <- Sys.time()
 
@@ -2110,10 +2111,17 @@ function(res,
     arrange(entity_id) %>%
     collect()
 
-  # arrange and apply filters according to input
-  sysndd_db_genes_nested <- nest_gene_tibble_mem(sysndd_db_genes_table) %>%
-    arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
+  # use the helper generate_tibble_fspec to
+  # generate fields specs from a tibble
+  genes_table_fspec <- generate_tibble_fspec_mem(sysndd_db_genes_table, fspec)
+
+  # apply filters according to input
+  sysndd_db_genes_table_filtered <- sysndd_db_genes_table %>%
     filter(!!!rlang::parse_exprs(filter_exprs))
+
+  # nest and arrange
+  sysndd_db_genes_nested <- nest_gene_tibble_mem(sysndd_db_genes_table_filtered) %>%
+    arrange(!!!rlang::parse_exprs(sort_exprs))
 
   # select fields from table based on
   # input using the helper function "select_tibble_fields"
@@ -2141,6 +2149,7 @@ function(res,
     add_column(tibble::as_tibble(list("sort" = sort,
       "filter" = filter,
       "fields" = fields,
+      "fspec" = genes_table_fspec,
       "executionTime" = execution_time)))
 
   # add host, port and other information to links from the link
@@ -2327,7 +2336,8 @@ function(res,
   filter = "",
   fields = "",
   `page[after]` = "0",
-  `page[size]` = "all") {
+  `page[size]` = "all",
+  fspec = "symbol,category,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,details") {
 # call the endpoint function generate_phenotype_entities
 phenotype_entities_list <- generate_phenotype_entities_list(sort,
   filter,
@@ -2807,7 +2817,7 @@ function() {
 #' @get /api/panels/browse
 function(res,
   sort = "symbol",
-  filter = "equals(category,'Definitive'),any(inheritance_filter,'Dominant','Recessive','X-linked','Other')",
+  filter = "equals(category,'Definitive'),any(inheritance_filter,'Autosomal dominant','Autosomal recessive','X-linked','Other')",
   fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38",
   `page[after]` = 0,
   `page[size]` = "all") {
@@ -2832,7 +2842,7 @@ function(res,
 #' @get /api/panels/excel
 function(res,
   sort = "symbol",
-  filter = "equals(category,'Definitive'),any(inheritance_filter,'Dominant','Recessive','X-linked','Other')",
+  filter = "equals(category,'Definitive'),any(inheritance_filter,'Autosomal dominant','Autosomal recessive','X-linked','Other')",
   fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38",
   `page[after]` = 0,
   `page[size]` = "all") {

@@ -86,9 +86,42 @@
             no-local-pagination
           >
 
-            <template #cell(actions)="row">
+            <!-- based on:  https://stackoverflow.com/questions/52959195/bootstrap-vue-b-table-with-filter-in-header -->
+            <template slot="top-row" slot-scope="{ fields }">
+              <td v-for="field in fields" :key="field.key">
+                <b-form-input 
+                v-if="field.filterable"
+                v-model="filter[field.key]" 
+                :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
+                debounce="500"
+                size="sm"
+                type="search"
+                autocomplete="off"
+                @click="removeSearch()"
+                @update="filtered()"
+                >
+                </b-form-input>
+
+                <b-form-select
+                  v-if="field.selectable"
+                  v-model="filter[field.key]"
+                  :options="field.selectOptions"
+                  size="sm"
+                  type="search"
+                  @input="removeSearch()"
+                  @change="filtered()"
+                >
+                  <template v-slot:first>
+                    <b-form-select-option value=""> .. {{ truncate(field.label, 20) }} .. </b-form-select-option>
+                  </template>
+                </b-form-select>
+
+              </td>
+            </template>
+
+            <template #cell(details)="row">
               <b-button class="btn-xs" @click="row.toggleDetails" variant="outline-primary">
-                {{ row.detailsShowing ? 'Hide' : 'Show' }} Details
+                {{ row.detailsShowing ? 'Hide' : 'Show' }}
               </b-button>
             </template>
 
@@ -165,7 +198,7 @@
                       <b-badge 
                       pill 
                       variant="info" 
-                      class="justify-content-md-center" 
+                      class="justify-content-md-center px-1 mx-1" 
                       size="1.3em"
                       v-b-tooltip.hover.leftbottom 
                       v-bind:title="data.item.hpo_mode_of_inheritance_term_name + ' (' + data.item.hpo_mode_of_inheritance_term + ')'"
@@ -198,7 +231,7 @@
                 pill 
                 size="1.3em" 
                 variant="info" 
-                class="justify-content-md-center mx-0"
+                class="justify-content-md-center px-1 mx-1"
                 v-for="item in data.item.entities" 
                 :key="item.hpo_mode_of_inheritance_term_name + item.entity_id" 
                 v-b-tooltip.hover.leftbottom 
@@ -214,12 +247,28 @@
                 <b-avatar
                 icon="stoplights"
                 size="1.4em"
-                class="mx-0"
+                class="px-0 mx-1"
                 v-for="item in data.item.entities" 
                 :key="item.category + item.entity_id"
                 :variant="stoplights_style[item.category]"
                 v-b-tooltip.hover.left 
                 v-bind:title="item.category"
+                >
+                </b-avatar>
+              </div> 
+            </template>
+
+            <template #cell(ndd_phenotype_word)="data">
+              <div>
+                <b-avatar 
+                  size="1.4em"
+                  class="px-0 mx-1"
+                  v-for="item in data.item.entities" 
+                  :icon="ndd_icon[item.ndd_phenotype_word]"
+                  :variant="ndd_icon_style[item.ndd_phenotype_word]"
+                  v-b-tooltip.hover.left 
+                  v-bind:title="ndd_icon_text[item.ndd_phenotype_word]"
+                  :key="item.ndd_phenotype_word + item.entity_id"
                 >
                 </b-avatar>
               </div> 
@@ -284,7 +333,18 @@ export default {
               sortByFormatted: true,
               filterByFormatted: true
             },
-            { key: 'actions', label: 'Actions' }
+            {
+              key: 'ndd_phenotype_word',
+              label: 'NDD',
+              sortable: false,
+              class: 'text-left',
+              sortByFormatted: true,
+              filterByFormatted: true
+            },
+            { 
+              key: 'details',
+              label: 'Details'
+            }
           ],
           entities_fields: [
             { key: 'entity_id', label: 'Entity', sortable: true, sortDirection: 'desc', class: 'text-left' },
@@ -416,6 +476,7 @@ export default {
               this.nextItemID = response.data.meta[0].nextItemID;
               this.lastItemID = response.data.meta[0].lastItemID;
               this.executionTime = response.data.meta[0].executionTime;
+              this.fields = response.data.meta[0].fspec;
 
               this.isBusy = false;
 
