@@ -2115,13 +2115,13 @@ function(res,
   # generate fields specs from a tibble
   genes_table_fspec <- generate_tibble_fspec_mem(sysndd_db_genes_table, fspec)
 
-  # apply filters according to input
+  # apply filters according to input and arrange
   sysndd_db_genes_table_filtered <- sysndd_db_genes_table %>%
-    filter(!!!rlang::parse_exprs(filter_exprs))
-
-  # nest and arrange
-  sysndd_db_genes_nested <- nest_gene_tibble_mem(sysndd_db_genes_table_filtered) %>%
+    filter(!!!rlang::parse_exprs(filter_exprs)) %>%
     arrange(!!!rlang::parse_exprs(sort_exprs))
+
+  # nest
+  sysndd_db_genes_nested <- nest_gene_tibble_mem(sysndd_db_genes_table_filtered)
 
   # select fields from table based on
   # input using the helper function "select_tibble_fields"
