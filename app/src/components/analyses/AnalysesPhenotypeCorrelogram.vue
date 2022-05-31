@@ -121,7 +121,8 @@
       // Three function that change the tooltip when user hover / move / leave a cell
       const mouseover = function(event,d) {
         tooltip
-          .style("opacity", 1)
+          .style("opacity", 1);
+
         d3.select(this)
           .style("stroke", "black")
           .style("opacity", 1);
@@ -134,10 +135,10 @@
       }
       const mouseleave = function(event,d) {
         tooltip
-          .style("opacity", 0)
+          .style("opacity", 0);
+
         d3.select(this)
-          .style("stroke", "none")
-          .style("opacity", 0.8);
+          .style("stroke", "none");
       }
 
       // add the squares
@@ -152,7 +153,7 @@
           .style("fill", function(d) { return myColor(d.value)} )
         .on("mouseover", mouseover)
         .on("mousemove", mousemove)
-        .on("mouseleave", mouseleave)
+        .on("mouseleave", mouseleave);
 
       },
     }

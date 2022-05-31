@@ -167,8 +167,7 @@
           .style("opacity", 0);
 
         d3.select(this)
-          .style("stroke", "none")
-          .style("opacity", 0.8);
+          .style("stroke", "none");
       }
 
       // add the squares

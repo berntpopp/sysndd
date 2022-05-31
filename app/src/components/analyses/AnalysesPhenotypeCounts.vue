@@ -72,8 +72,9 @@
         .append("g")
           .attr("transform", `translate(${margin.left},${margin.top})`);
 
-            // 
-            const data = this.itemsCount;
+      // prepare data
+      const data = this.itemsCount;
+console.log(data);
 
       // X axis
       var x = d3.scaleBand()
@@ -85,7 +86,8 @@
         .call(d3.axisBottom(x))
         .selectAll("text")
           .attr("transform", "translate(-10,0)rotate(-45)")
-          .style("text-anchor", "end");
+          .style("text-anchor", "end")
+          .style("font-size", "12px");
 
       // Add Y axis
       var y = d3.scaleLinear()
@@ -93,6 +95,39 @@
         .range([ height, 0]);
       svg.append("g")
         .call(d3.axisLeft(y));
+
+      // create a tooltip
+      const tooltip = d3.select("#count_dataviz")
+        .append("div")
+        .style("opacity", 0)
+        .attr("class", "tooltip")
+        .style("background-color", "white")
+        .style("border", "solid")
+        .style("border-width", "1px")
+        .style("border-radius", "5px")
+        .style("padding", "2px")
+
+      // Three function that change the tooltip when user hover / move / leave a cell
+      const mouseover = function(event,d) {
+        tooltip
+          .style("opacity", 1);
+
+        d3.select(this)
+          .style("stroke", "black")
+          .style("opacity", 1);
+      }
+      const mousemove = function(event,d) {
+        tooltip
+          .html("Count: " + d.count + "<br>(" + d.HPO_term + ")")
+          .style("left", `${event.layerX+20}px`)
+          .style("top", `${event.layerY+20}px`)
+      }
+      const mouseleave = function(event,d) {
+        tooltip
+          .style("opacity", 0)
+        d3.select(this)
+          .style("stroke", "none");
+      }
 
       // Bars
       svg.selectAll("mybar")
@@ -104,6 +139,9 @@
           .attr("width", x.bandwidth())
           .attr("height", function(d) { return height - y(d.count); })
           .attr("fill", "#69b3a2")
+        .on("mouseover", mouseover)
+        .on("mousemove", mousemove)
+        .on("mouseleave", mouseleave);
 
       }
     }
