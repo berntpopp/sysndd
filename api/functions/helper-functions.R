@@ -410,9 +410,13 @@ generate_tibble_fspec <- function(field_tibble, fspec_input) {
         count > 10 ~ TRUE,
         count <= 10 ~ FALSE,
       )) %>%
+      mutate(multi_selectable = case_when(
+        count <= 10 & count > 2 ~ TRUE,
+        TRUE ~ FALSE,
+      )) %>%
       mutate(selectable = case_when(
-        count > 10 ~ FALSE,
-        count <= 10 ~ TRUE,
+        count <= 2 ~ TRUE,
+        TRUE ~ FALSE,
       )) %>%
       mutate(selectOptions = case_when(
         count > 10 ~ list("null"),
@@ -429,6 +433,7 @@ generate_tibble_fspec <- function(field_tibble, fspec_input) {
         selectOptions = NULL,
         filterable = FALSE,
         selectable = FALSE,
+        multi_selectable = FALSE,
         sortable = FALSE,
         sortDirection = "asc",
         class = "text-center",

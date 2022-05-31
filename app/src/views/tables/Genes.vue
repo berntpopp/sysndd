@@ -94,7 +94,6 @@
                 v-model="filter[field.key]" 
                 :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
                 debounce="500"
-                size="sm"
                 type="search"
                 autocomplete="off"
                 @click="removeSearch()"
@@ -106,15 +105,25 @@
                   v-if="field.selectable"
                   v-model="filter[field.key]"
                   :options="field.selectOptions"
-                  size="sm"
                   type="search"
                   @input="removeSearch()"
-                  @change="filtered()"
                 >
                   <template v-slot:first>
-                    <b-form-select-option value=""> .. {{ truncate(field.label, 20) }} .. </b-form-select-option>
+                    <b-form-select-option value=null> .. {{ truncate(field.label, 20) }} .. </b-form-select-option>
                   </template>
                 </b-form-select>
+
+                <treeselect
+                  v-if="field.multi_selectable"
+                  size="small"
+                  :id="'select_' + field.key"
+                  v-model="filter[field.key]" 
+                  :multiple="true" 
+                  :options="field.selectOptions"
+                  :normalizer="normalizer"
+                  :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
+                  @input="removeSearch()"
+                />
 
               </td>
             </template>
@@ -286,9 +295,16 @@
 
 
 <script>
-import toastMixin from '@/assets/js/mixins/toastMixin.js'
+  import toastMixin from '@/assets/js/mixins/toastMixin.js'
+
+  // import the Treeselect component
+  import Treeselect from '@riophae/vue-treeselect'
+  // import the Treeselect styles
+  import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 
 export default {
+  // register the Treeselect component
+  components: { Treeselect },
   name: 'Genes',
   mixins: [toastMixin],
   metaInfo: {
@@ -388,7 +404,7 @@ export default {
           pageOptions: [10, 25, 50, 200],
           sortBy: 'symbol',
           sortDesc: false,
-          filter: {any: '', entity_id: '', symbol: '', disease_ontology_name: '', disease_ontology_id_version: '', hpo_mode_of_inheritance_term_name: '', hpo_mode_of_inheritance_term: '', ndd_phenotype_word: '', category: ''}, 
+          filter: {any: null, entity_id: null, symbol: null, disease_ontology_name: null, disease_ontology_id_version: null, hpo_mode_of_inheritance_term_name: null, hpo_mode_of_inheritance_term: null, ndd_phenotype_word: null, category: null}, 
           filter_string: '',
           filterOn: [],
           infoModal: {
@@ -441,10 +457,22 @@ export default {
           }
         },
         filtered() {
-          let filter_string_not_empty = Object.filter(this.filter, value => value !== '');
+          // filter the filter object to only contain non null values
+          const filter_string_not_empty = Object.filter(this.filter, value => (value !== null && value !== "null" && value !== '' && value.length !== 0));
 
-          if (Object.keys(filter_string_not_empty).length !== 0) {
-            this.filter_string = 'contains(' + Object.keys(filter_string_not_empty).map((key) => [key, this.filter[key]].join(',')).join('),contains(') + ')';
+          // iterate over the filtered non null expressions and join array with regex or "|"
+          const filter_string_not_empty_join = {};
+          Object.keys(filter_string_not_empty).forEach((key) => {
+            if(Array.isArray(filter_string_not_empty[key])) {
+              filter_string_not_empty_join[key] = filter_string_not_empty[key].join("|");
+            } else {
+              filter_string_not_empty_join[key] = filter_string_not_empty[key];
+            }
+          });
+
+          // compute the filter string by joining the filter object
+          if (Object.keys(filter_string_not_empty_join).length !== 0) {
+            this.filter_string = 'contains(' + Object.keys(filter_string_not_empty_join).map((key) => [key, filter_string_not_empty_join[key]].join(',')).join('),contains(') + ')';
             this.loadEntitiesData();
           } else {
             this.filter_string = '';
@@ -452,11 +480,11 @@ export default {
           }
         },
         removeFilters() {
-          this.filter = {any: '', entity_id: '', symbol: '', disease_ontology_name: '', disease_ontology_id_version: '', hpo_mode_of_inheritance_term_name: '', hpo_mode_of_inheritance_term: '', ndd_phenotype_word: '', category: ''};
+          this.filter = {any: null, entity_id: null, symbol: null, disease_ontology_name: null, disease_ontology_id_version: null, hpo_mode_of_inheritance_term_name: null, hpo_mode_of_inheritance_term: null, ndd_phenotype_word: null, category: null};
           this.filtered();
         },
         removeSearch() {
-          this.filter['any']  = '';
+          this.filter['any']  = null;
           this.filtered();
         },
         async loadEntitiesData() {
@@ -482,6 +510,12 @@ export default {
 
           } catch (e) {
             this.makeToast(e, 'Error', 'danger');
+          }
+        },
+        normalizer(node) {
+          return {
+            id: node,
+            label: node,
           }
         },
         truncate(str, n){
