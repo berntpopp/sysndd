@@ -2429,6 +2429,7 @@ function() {
   phenotype_list_tbl <- pool %>%
     tbl("phenotype_list") %>%
     collect()
+
   # needed to filter only active reviews
   ndd_entity_review <- pool %>%
     tbl("ndd_entity_review") %>%
@@ -2443,8 +2444,12 @@ function() {
     filter(ndd_phenotype == 1) %>%
     # needed to filter only active reviews
     filter(review_id %in% ndd_entity_review$review_id) %>%
+    # only phenotypes for definitive and modifier present currently
+    # to do: allow changing this behaviour with a parameter
     filter(category == "Definitive") %>%
     filter(modifier_name == "present") %>%
+    # remove the generall HP:0001249 term present in all definitive entities
+    filter(phenotype_id != "HP:0001249") %>%
     select(entity_id, phenotype_id, HPO_term)
 
   # compute correlation matrix
@@ -2490,6 +2495,7 @@ function() {
   phenotype_list_tbl <- pool %>%
     tbl("phenotype_list") %>%
     collect()
+
   # needed to filter only active reviews
   ndd_entity_review <- pool %>%
     tbl("ndd_entity_review") %>%
@@ -2502,10 +2508,13 @@ function() {
     left_join(modifier_list_tbl, by = c("modifier_id")) %>%
     left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
     filter(ndd_phenotype == 1) %>%
-    # needed to filter only active reviews
+    # only phenotypes for definitive and modifier present currently
+    # to do: allow changing this behaviour with a parameter
     filter(review_id %in% ndd_entity_review$review_id) %>%
     filter(category == "Definitive") %>%
     filter(modifier_name == "present") %>%
+    # remove the generall HP:0001249 term present in all definitive entities
+    filter(phenotype_id != "HP:0001249") %>%
     select(entity_id, phenotype_id, HPO_term)
 
   # compute counts
