@@ -263,7 +263,7 @@ function(res,
     left_join(ndd_entity_review, by = c("entity_id")) %>%
     collect()
 
-   sysndd_db_disease_table <- ndd_entity_view %>%
+  sysndd_db_disease_table <- ndd_entity_view %>%
     arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
     filter(!!!rlang::parse_exprs(filter_exprs))
 

@@ -426,7 +426,6 @@ generate_tibble_fspec <- function(field_tibble, fspec_input) {
       mutate(sortable = TRUE) %>%
       mutate(class = "text-left") %>%
       mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
-      select(-count) %>%
       filter(key %in% fspec_input) %>%
       arrange(factor(key, levels = fspec_input)) %>%
       {if("details" %in% fspec_input) add_row(., key = "details",
