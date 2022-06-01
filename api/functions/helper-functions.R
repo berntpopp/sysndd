@@ -5,7 +5,7 @@
 # 2018/12/05/Use-memoise-to-speed-up-your-R-plumber-API/
 nest_gene_tibble <- function(tibble) {
     nested_tibble <- tibble %>%
-        nest_by(symbol, hgnc_id, .key = "entities") %>%
+        nest_by(symbol, hgnc_id, entities_count, .key = "entities") %>%
     ungroup()
 
     return(nested_tibble)
@@ -242,14 +242,14 @@ select_tibble_fields <- function(selection_tibble,
     fields_requested <- tibble_colnames
   }
 
-    # check if unique_id variable is in the column names,
-    # if not prepend to the list for unique sorting
+  # check if unique_id variable is in the column names,
+  # if not prepend to the list for unique sorting
   if (!(unique_id %in% fields_requested)) {
     fields_requested <- purrr::prepend(fields_requested, unique_id)
     fields_requested <- Filter(function(x) !identical("", x), fields_requested)
   }
 
-    # check if requested column names exist in tibble, if error
+  # check if requested column names exist in tibble, if error
   if (all(fields_requested %in% tibble_colnames)) {
     selection_tibble <- selection_tibble %>%
     select(all_of(fields_requested))

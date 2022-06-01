@@ -2095,7 +2095,7 @@ function(res,
   fields = "",
   `page[after]` = "0",
   `page[size]` = "10",
-  fspec = "symbol,category,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,details") {
+  fspec = "symbol,category,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,entities_count,details") {
 
   start_time <- Sys.time()
 
@@ -2109,7 +2109,10 @@ function(res,
   sysndd_db_genes_table <- pool %>%
     tbl("ndd_entity_view") %>%
     arrange(entity_id) %>%
-    collect()
+    collect() %>%
+    group_by(symbol) %>%
+    mutate(entities_count = n()) %>%
+    ungroup()
 
   # use the helper generate_tibble_fspec to
   # generate fields specs from a tibble

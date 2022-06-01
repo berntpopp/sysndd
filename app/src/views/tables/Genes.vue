@@ -296,6 +296,16 @@
               </div> 
             </template>
 
+            <template #cell(entities_count)="data">
+                <b-avatar
+                icon="stoplights"
+                size="1.2em"
+                class="px-0 mx-1"
+                >
+                {{data.item.entities_count}}
+              </b-avatar> 
+            </template>
+
           </b-table>
           </b-card>
 
@@ -369,6 +379,10 @@ export default {
               class: 'text-left',
               sortByFormatted: true,
               filterByFormatted: true
+            },
+            { 
+              key: 'entities_count',
+              label: 'Entities count'
             },
             { 
               key: 'details',
