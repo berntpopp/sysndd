@@ -189,7 +189,20 @@
                 </b-avatar>
               </div> 
             </template>
-            
+
+            <template #cell(category)="data">
+              <div>
+                <b-avatar
+                size="1.4em"
+                icon="stoplights"
+                :variant="stoplights_style[data.item.category]"
+                v-b-tooltip.hover.left 
+                v-bind:title="data.item.category"
+                >
+                </b-avatar>
+              </div> 
+            </template>
+
           </b-table>
           </b-card>
 
@@ -232,7 +245,7 @@ export default {
           ndd_icon: {"No": "x", "Yes": "check"},
           ndd_icon_style: {"No": "warning", "Yes": "success"},
           ndd_icon_text: {"No": "not associated with NDDs", "Yes": "associated with NDDs"},
-          inheritance_short_text: {"Autosomal dominant inheritance": "AD", "Autosomal recessive inheritance": "AR", "X-linked inheritance": "X", "X-linked recessive inheritance": "XR", "X-linked dominant inheritance": "XD", "Mitochondrial inheritance": "M", "Somatic mutation": "S", "Semidominant mode of inheritance": "sD"},
+          inheritance_short_text: {"Autosomal dominant inheritance": "AD", "Autosomal recessive inheritance": "AR", "X-linked inheritance, other": "Xo", "X-linked recessive inheritance": "XR", "X-linked dominant inheritance": "XD", "Mitochondrial inheritance": "Mit", "Somatic mutation": "Som"},
           switch_text: {true: "OR", false: "AND"},
           value: ["HP:0001249"],
           phenotypes_options: [],
@@ -266,6 +279,13 @@ export default {
               class: 'text-left',
               sortByFormatted: true,
               filterByFormatted: true
+            },
+            { 
+              key: 'category', 
+              label: 'Category', 
+              sortable: true, 
+              filterable: true, 
+              class: 'text-left' 
             },
             { 
               key: 'ndd_phenotype_word', 
