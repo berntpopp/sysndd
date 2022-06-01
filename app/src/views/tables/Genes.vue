@@ -86,6 +86,19 @@
             no-local-pagination
           >
 
+            <!-- custom formatted header -->
+            <template v-slot:head()="data">
+                <div
+                  :data="data"
+                  v-b-tooltip.hover.top
+                  data-html="true"
+                  v-bind:title="data.label + 
+                    ' (unique values: ' + fields.filter(item => item.label == data.label).map(item => {return item.count })[0] + ')'"
+                >
+                  {{ truncate(data.label, 20) }}
+                </div>
+            </template>
+
             <!-- based on:  https://stackoverflow.com/questions/52959195/bootstrap-vue-b-table-with-filter-in-header -->
             <template slot="top-row" slot-scope="{ fields }">
               <td v-for="field in fields" :key="field.key">

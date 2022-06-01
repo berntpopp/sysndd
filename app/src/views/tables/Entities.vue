@@ -87,6 +87,19 @@
             no-local-pagination
           >
 
+            <!-- custom formatted header -->
+            <template v-slot:head()="data">
+                <div
+                  :data="data"
+                  v-b-tooltip.hover.top
+                  data-html="true"
+                  v-bind:title="data.label + 
+                    ' (unique values: ' + fields.filter(item => item.label == data.label).map(item => {return item.count })[0] + ')'"
+                >
+                  {{ truncate(data.label, 20) }}
+                </div>
+            </template>
+
             <!-- based on:  https://stackoverflow.com/questions/52959195/bootstrap-vue-b-table-with-filter-in-header -->
             <template slot="top-row" slot-scope="{ fields }">
               <td v-for="field in fields" :key="field.key">
@@ -408,6 +421,7 @@ export default {
               filter_string_not_empty_join[key] = filter_string_not_empty[key];
             }
           });
+          
 
           // compute the filter string by joining the filter object
           if (Object.keys(filter_string_not_empty_join).length !== 0) {
@@ -444,6 +458,12 @@ export default {
               this.executionTime = response.data.meta[0].executionTime;
               this.fields = response.data.meta[0].fspec;
 
+console.log(
+this.fields.filter(item => item.key == "symbol").map(item => {return item.count })[0]
+);
+console.log(
+this.fields
+);
               this.isBusy = false;
 
             } catch (e) {
