@@ -369,7 +369,7 @@ export default {
           stoplights_style: {"Definitive": "success", "Moderate": "primary", "Limited": "warning", "Refuted": "danger"},
           ndd_icon: {"No": "x", "Yes": "check"},
           ndd_icon_style: {"No": "warning", "Yes": "success"},
-          ndd_icon_text: {"No": "not associated with NDDs", "Yes": "associated with NDDs"},
+          ndd_icon_text: {"No": "NOT associated with NDD", "Yes": "associated with NDD"},
           inheritance_short_text: {"Autosomal dominant": "AD", "Autosomal recessive": "AR", "X-linked": "X", "Other": "M/S"},
           search_input: '',
           search_keys: [],
