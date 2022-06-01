@@ -26,7 +26,7 @@
                   v-model="value" 
                   :multiple="true" 
                   :options="phenotypes_options"
-                  :normalizer="normalizer"
+                  :normalizer="normalizerPhenotypes"
                 />
             </b-col>
 
@@ -102,6 +102,48 @@
             no-local-sorting
             no-local-pagination
           >
+
+            <!-- based on:  https://stackoverflow.com/questions/52959195/bootstrap-vue-b-table-with-filter-in-header -->
+            <template slot="top-row" slot-scope="{ fields }">
+              <td v-for="field in fields" :key="field.key">
+                <b-form-input 
+                v-if="field.filterable"
+                v-model="filter[field.key]" 
+                :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
+                debounce="500"
+                type="search"
+                autocomplete="off"
+                @click="removeSearch()"
+                @update="filtered()"
+                >
+                </b-form-input>
+
+                <b-form-select
+                  v-if="field.selectable"
+                  v-model="filter[field.key]"
+                  :options="field.selectOptions"
+                  type="search"
+                  @input="removeSearch()"
+                >
+                  <template v-slot:first>
+                    <b-form-select-option value=null> .. {{ truncate(field.label, 20) }} .. </b-form-select-option>
+                  </template>
+                </b-form-select>
+
+                <treeselect 
+                  v-if="field.multi_selectable"
+                  size="small"
+                  :id="'select_' + field.key"
+                  v-model="filter[field.key]" 
+                  :multiple="true" 
+                  :options="field.selectOptions"
+                  :normalizer="normalizer"
+                  :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
+                  @input="removeSearch()"
+                />
+
+              </td>
+            </template>
 
             <template #cell(details)="row">
               <b-button class="btn-xs" @click="row.toggleDetails" variant="outline-primary">
@@ -316,7 +358,8 @@ export default {
           sortBy: "entity_id",
           sortDesc: false,
           sortDirection: 'asc',
-          filter: null,
+          filter: {any: null, entity_id: null, symbol: null, disease_ontology_name: null, disease_ontology_id_version: null, hpo_mode_of_inheritance_term_name: null, hpo_mode_of_inheritance_term: null, ndd_phenotype_word: null, category: null}, 
+          filter_string: '',
           filterOn: [],
           checked: false,
           downloading: false,
@@ -365,10 +408,22 @@ export default {
           }
         },
         filtered() {
-          let filter_string_not_empty = Object.filter(this.filter, value => value !== '');
+          // filter the filter object to only contain non null values
+          const filter_string_not_empty = Object.filter(this.filter, value => (value !== null && value !== "null" && value !== '' && value.length !== 0));
 
-          if (Object.keys(filter_string_not_empty).length !== 0) {
-            this.filter_string = 'contains(' + Object.keys(filter_string_not_empty).map((key) => [key, this.filter[key]].join(',')).join('),contains(') + ')';
+          // iterate over the filtered non null expressions and join array with regex or "|"
+          const filter_string_not_empty_join = {};
+          Object.keys(filter_string_not_empty).forEach((key) => {
+            if(Array.isArray(filter_string_not_empty[key])) {
+              filter_string_not_empty_join[key] = filter_string_not_empty[key].join("|");
+            } else {
+              filter_string_not_empty_join[key] = filter_string_not_empty[key];
+            }
+          });
+
+          // compute the filter string by joining the filter object
+          if (Object.keys(filter_string_not_empty_join).length !== 0) {
+            this.filter_string = 'contains(' + Object.keys(filter_string_not_empty_join).map((key) => [key, filter_string_not_empty_join[key]].join(',')).join('),contains(') + ')';
             this.loadEntitiesFromPhenotypes();
           } else {
             this.filter_string = '';
@@ -376,11 +431,11 @@ export default {
           }
         },
         removeFilters() {
-          this.filter = {any: '', entity_id: '', symbol: '', disease_ontology_name: '', disease_ontology_id_version: '', hpo_mode_of_inheritance_term_name: '', hpo_mode_of_inheritance_term: '', ndd_phenotype_word: '', category: ''};
+          this.filter = {any: null, entity_id: null, symbol: null, disease_ontology_name: null, disease_ontology_id_version: null, hpo_mode_of_inheritance_term_name: null, hpo_mode_of_inheritance_term: null, ndd_phenotype_word: null, category: null};
           this.filtered();
         },
         removeSearch() {
-          this.filter['any']  = '';
+          this.filter['any']  = null;
           this.filtered();
         },
         async loadPhenotypesList() {
@@ -392,10 +447,16 @@ export default {
             this.makeToast(e, 'Error', 'danger');
           }
         },
-        normalizer(node) {
+        normalizerPhenotypes(node) {
           return {
             id: node.phenotype_id,
             label: node.HPO_term,
+          }
+        },
+        normalizer(node) {
+          return {
+            id: node,
+            label: node,
           }
         },
         async loadEntitiesFromPhenotypes() {
@@ -413,7 +474,15 @@ export default {
           break;
           }
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype/entities/browse?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + logical_operator + '(equals(' + this.value.join(',TRUE),equals(') + ',TRUE))' + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
+          // logic to compute the phenotype filter string if not empty
+          let phenotype_filter = '';
+
+          if (this.value.length !== 0) {
+            phenotype_filter = logical_operator + '(equals(' + this.value.join(',TRUE),equals(') + ',TRUE))' + ',';
+          }
+
+          // compose API url for browse request
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype/entities/browse?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + phenotype_filter + this.filter_string + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
 
           try {
             let response = await this.axios.get(apiUrl);
@@ -428,6 +497,7 @@ export default {
             this.nextItemID = response.data.meta[0].nextItemID;
             this.lastItemID = response.data.meta[0].lastItemID;
             this.executionTime = response.data.meta[0].executionTime;
+            this.fields = response.data.meta[0].fspec;
 
             this.isBusy = false;
           } catch (e) {
@@ -462,7 +532,15 @@ export default {
           break;
           }
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype/entities/excel?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + logical_operator + '(equals(' + this.value.join(',TRUE),equals(') + ',TRUE))' + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
+          // logic to compute the phenotype filter string if not empty
+          let phenotype_filter = '';
+
+          if (this.value.length !== 0) {
+            phenotype_filter = logical_operator + '(equals(' + this.value.join(',TRUE),equals(') + ',TRUE))' + ',';
+          }
+
+          // compose API url for excel request
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype/entities/excel?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + phenotype_filter + this.filter_string + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
 
           try {
             let response = await this.axios({

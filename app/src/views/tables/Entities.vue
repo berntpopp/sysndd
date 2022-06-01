@@ -423,7 +423,7 @@ export default {
           this.filtered();
         },
         removeSearch() {
-          this.filter['any']  = '';
+          this.filter['any']  = null;
           this.filtered();
         },
         async loadEntitiesData() {

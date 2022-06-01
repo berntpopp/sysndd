@@ -2336,14 +2336,15 @@ function(res,
   filter = "",
   fields = "",
   `page[after]` = "0",
-  `page[size]` = "all",
-  fspec = "symbol,category,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,details") {
+  `page[size]` = "10",
+  fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details") {
 # call the endpoint function generate_phenotype_entities
 phenotype_entities_list <- generate_phenotype_entities_list(sort,
   filter,
   fields,
   `page[after]`,
-  `page[size]`)
+  `page[size]`,
+  fspec)
 
 # return the list
 phenotype_entities_list
@@ -2380,7 +2381,7 @@ phenotype_entities_list <- generate_phenotype_entities_list(sort,
     sheetName = "data",
     append = FALSE)
 
-  write.xlsx(phenotype_entities_list$meta,
+  write.xlsx(phenotype_entities_list$meta %>% select(-fspec),
     filename,
     sheetName = "meta",
     append = TRUE)
@@ -2390,11 +2391,11 @@ phenotype_entities_list <- generate_phenotype_entities_list(sort,
     sheetName = "links",
     append = TRUE)
 
-  attachmentString <- paste0("attachment; filename=phenotype_panel.",
+  attachment_string <- paste0("attachment; filename=phenotype_panel.",
     creation_date,
     ".xlsx")
 
-  res$setHeader("Content-Disposition", attachmentString)
+  res$setHeader("Content-Disposition", attachment_string)
 
   # Read in the raw contents of the binary file
   bin <- readBin(filename, "raw", n = file.info(filename)$size)
@@ -2884,11 +2885,11 @@ function(res,
     sheetName = "links",
     append = TRUE)
 
-  attachmentString <- paste0("attachment; filename=sysndd_panel.",
+  attachment_string <- paste0("attachment; filename=sysndd_panel.",
     creation_date,
     ".xlsx")
 
-  res$setHeader("Content-Disposition", attachmentString)
+  res$setHeader("Content-Disposition", attachment_string)
 
   # Read in the raw contents of the binary file
   bin <- readBin(filename, "raw", n = file.info(filename)$size)
@@ -3200,11 +3201,11 @@ comparisons_list <- generate_comparisons_list(sort,
     sheetName = "links",
     append = TRUE)
 
-  attachmentString <- paste0("attachment; filename=curation_comparisons.",
+  attachment_string <- paste0("attachment; filename=curation_comparisons.",
     creation_date,
     ".xlsx")
 
-  res$setHeader("Content-Disposition", attachmentString)
+  res$setHeader("Content-Disposition", attachment_string)
 
   # Read in the raw contents of the binary file
   bin <- readBin(filename, "raw", n = file.info(filename)$size)
