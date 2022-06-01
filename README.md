@@ -5,13 +5,13 @@
 </p>
 
 <h3 align="center">
-SysNDD is the the expert curated database of gene disease relationships in <mark>neurodevelopmental</mark> <mark>disorders</mark> (NDD).
+SysNDD is the expert curated database of gene disease relationships in <mark>neurodevelopmental</mark> <mark>disorders</mark> (NDD).
 </h3>
 
 
 ## The SysNDD GitHub repository
 
-This repository is for development of our SysNDD web application (app), application programming interface (api) and relational database (db). Browse the subfoldes to view the respective readme files and source code.
+This repository is for development of our SysNDD web application (app), application programming interface (api) and relational database (db). Browse the sub-foldes to view the respective readme files and source code.
 
 ## Table of contents
 
@@ -24,14 +24,14 @@ This repository is for development of our SysNDD web application (app), applicat
 
 ## Quick start
 The SysNDD installation depends on docker and docker-compose.
-If tehse are insatlled the project can be installed locally using the privided shell script:
+If these are installed the project can be installed locally using the provided shell script:
 
 ```
 bash deployment.sh "<config.tar.gz>"
 ```
 
---> A dummy config file for local deployment will be provided in this repository. <--
---> Data and a script to populate the MySQl databse will be provided in this repository. <--
+- A dummy config file for local deployment will be provided in this repository.
+- Data and a script to populate the MySQL database will be provided in this repository.
 
 ## Contributing and community
 To contribute in curating novel entries to our database you can register for a new reviewer/ curator [account on the SysNDD page](https://sysndd.dbmr.unibe.ch/Register).
@@ -72,5 +72,5 @@ We would like to acknowledge Annette Schenck and Martijn Huynen and their groups
 
 
 ## Copyright and license
-All code from this project is licensed under the "MIT No Attribution" (MIT-0) License - see the LICENSE.md file for details.
-The project data, website and api usage are licensed under the "Attribution 4.0 Internationa" (CC BY 4.0) License - see the [https://creativecommons.org/licenses/by/4.0/](https://creativecommons.org/licenses/by/4.0/) for details.
+- All code from this project is licensed under the "MIT No Attribution" (MIT-0) License - see the LICENSE.md file for details.
+- The project data, website and api usage are licensed under the "Attribution 4.0 Internationa" (CC BY 4.0) License - see the [https://creativecommons.org/licenses/by/4.0/](https://creativecommons.org/licenses/by/4.0/) for details.
