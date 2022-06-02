@@ -553,7 +553,7 @@ export default {
           }
 
           // compose API url for excel request
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype/entities/excel?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + phenotype_filter + this.filter_string + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype/entities/excel?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + phenotype_filter + this.filter_string;
 
           try {
             let response = await this.axios({
