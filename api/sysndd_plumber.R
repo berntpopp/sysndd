@@ -283,7 +283,11 @@ function(res,
 
   # use the helper generate_tibble_fspec to
   # generate fields specs from a tibble
-  disease_table_fspec <- generate_tibble_fspec_mem(ndd_entity_view, fspec)
+  disease_table_fspec <- generate_tibble_fspec_mem(ndd_entity_view,
+    fspec)
+  sysndd_db_disease_table_fspec <- generate_tibble_fspec_mem(sysndd_db_disease_table,
+    fspec)
+  disease_table_fspec$fspec$count_filtered <- sysndd_db_disease_table_fspec$fspec$count
 
   # compute execution time
   end_time <- Sys.time()
@@ -2114,14 +2118,17 @@ function(res,
     mutate(entities_count = n()) %>%
     ungroup()
 
-  # use the helper generate_tibble_fspec to
-  # generate fields specs from a tibble
-  genes_table_fspec <- generate_tibble_fspec_mem(sysndd_db_genes_table, fspec)
-
   # apply filters according to input and arrange
   sysndd_db_genes_table_filtered <- sysndd_db_genes_table %>%
     filter(!!!rlang::parse_exprs(filter_exprs)) %>%
     arrange(!!!rlang::parse_exprs(sort_exprs))
+
+  # use the helper generate_tibble_fspec to
+  # generate fields specs from a tibble
+  sysndd_db_genes_table_fspec <- generate_tibble_fspec_mem(sysndd_db_genes_table, fspec)
+  sysndd_db_genes_table_filtered_fspec <- generate_tibble_fspec_mem(sysndd_db_genes_table_filtered,
+    fspec)
+  sysndd_db_genes_table_fspec$fspec$count_filtered <- sysndd_db_genes_table_filtered_fspec$fspec$count
 
   # nest
   sysndd_db_genes_nested <- nest_gene_tibble_mem(sysndd_db_genes_table_filtered)
@@ -2152,7 +2159,7 @@ function(res,
     add_column(tibble::as_tibble(list("sort" = sort,
       "filter" = filter,
       "fields" = fields,
-      "fspec" = genes_table_fspec,
+      "fspec" = sysndd_db_genes_table_fspec,
       "executionTime" = execution_time)))
 
   # add host, port and other information to links from the link

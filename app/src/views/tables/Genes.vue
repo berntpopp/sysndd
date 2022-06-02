@@ -93,7 +93,7 @@
                   v-b-tooltip.hover.top
                   data-html="true"
                   v-bind:title="data.label + 
-                    ' (unique values: ' + fields.filter(item => item.label == data.label).map(item => {return item.count })[0] + ')'"
+                    ' (unique filtered/total values: ' + fields.filter(item => item.label == data.label).map(item => {return item.count_filtered })[0] + '/' + fields.filter(item => item.label == data.label).map(item => {return item.count })[0] + ')'"
                 >
                   {{ truncate(data.label, 20) }}
                 </div>

@@ -147,6 +147,15 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
     select(-phenotype_present) %>%
     arrange(!!!rlang::parse_exprs(sort_exprs))
 
+  # use the helper generate_tibble_fspec to
+  # generate fields specs from a tibble
+  entity_phenotype_table_fspec <- generate_tibble_fspec_mem(
+    entity_phenotype_table,
+    fspec)
+  sysndd_db_entity_phenotype_table_fspec <- generate_tibble_fspec_mem(sysndd_db_entity_phenotype_table,
+    fspec)
+  entity_phenotype_table_fspec$fspec$count_filtered <- sysndd_db_entity_phenotype_table_fspec$fspec$count
+
   # select fields from table based on input
   # using the helper function "select_tibble_fields"
   sysndd_db_entity_phenotype_table <- select_tibble_fields(
@@ -161,11 +170,6 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
     `page[size]`, `page[after]`,
     "entity_id")
 
-  # use the helper generate_tibble_fspec to
-  # generate fields specs from a tibble
-  disease_table_fspec <- generate_tibble_fspec_mem(
-    entity_phenotype_table,
-    fspec)
 
   # compute execution time
   end_time <- Sys.time()
@@ -178,7 +182,7 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
     add_column(as_tibble(list("sort" = sort,
       "filter" = filter,
       "fields" = fields,
-      "fspec" = disease_table_fspec,
+      "fspec" = entity_phenotype_table_fspec,
       "executionTime" = execution_time)))
 
   # add host, port and other information to links from the link
