@@ -74,7 +74,6 @@
 
       // prepare data
       const data = this.itemsCount;
-console.log(data);
 
       // X axis
       var x = d3.scaleBand()

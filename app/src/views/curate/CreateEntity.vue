@@ -528,8 +528,6 @@ export default {
 
           try {
 
-console.log(this.entity_submission);
-
             let response = await this.axios.post(apiUrl, {create_json: this.entity_submission}, {
                headers: {
                  'Authorization': 'Bearer ' + localStorage.getItem('token')

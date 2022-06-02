@@ -458,12 +458,6 @@ export default {
               this.executionTime = response.data.meta[0].executionTime;
               this.fields = response.data.meta[0].fspec;
 
-console.log(
-this.fields.filter(item => item.key == "symbol").map(item => {return item.count })[0]
-);
-console.log(
-this.fields
-);
               this.isBusy = false;
 
             } catch (e) {

@@ -833,8 +833,6 @@ export default {
           this.review_info.phenotypes = replace_phenotype;
           this.review_info.variation_ontology = replace_variation_ontology;
 
-console.log(this.review_info);
-
           // perform update POST request
           try {
             let response = await this.axios.post(apiUrl, {review_json: this.review_info}, {
@@ -853,8 +851,6 @@ console.log(this.review_info);
         },
         async submitStatusChange() {
           let apiUrl = process.env.VUE_APP_API_URL + '/api/status/create';
-
-console.log(this.status_info);
 
           // perform update PUT request
           try {
