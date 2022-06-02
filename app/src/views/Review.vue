@@ -307,6 +307,22 @@
 
           <!-- Synopsis textarea -->
           <label class="mr-sm-2 font-weight-bold" for="review-textarea-synopsis">Synopsis</label>
+
+          <b-badge pill id="popover-badge-help-synopsis" href="#" variant="info">
+            <b-icon icon="question-circle-fill"></b-icon>
+          </b-badge>
+
+          <b-popover target="popover-badge-help-synopsis" variant="info" triggers="focus">
+          <template #title>Synopsis instructions</template>
+              Short summary for this disease entity. 
+              Please include information on: <br>
+              <strong>a)</strong> approximate number of patients described in literature, <br> 
+              <strong>b)</strong> nature of reported variants, <br>
+              <strong>c)</strong> severity of intellectual disability, <br>
+              <strong>d)</strong> further phenotypic aspects (if possible with frequencies), <br> 
+              <strong>e)</strong> any valuable further information (e.g. genotype-phenotype correlations).<br>
+          </b-popover>
+
           <b-form-textarea
             id="review-textarea-synopsis"
             rows="3"
@@ -318,6 +334,17 @@
 
           <!-- Phenotype select -->
           <label class="mr-sm-2 font-weight-bold" for="review-phenotype-select">Phenotypes</label>
+
+          <b-badge pill id="popover-badge-help-phenotypes" href="#" variant="info">
+            <b-icon icon="question-circle-fill"></b-icon>
+          </b-badge>
+
+          <b-popover target="popover-badge-help-phenotypes" variant="info" triggers="focus">
+          <template #title>Phenotypes instructions</template>
+            Add or remove associated phenotypes. 
+            Only phenotypes that occur in 20% or more of affected individuals should be included. 
+            Please also include information on severity of ID.
+          </b-popover>
 
             <treeselect 
               id="review-phenotype-select"
@@ -347,6 +374,19 @@
 
           <!-- publications tag form with links out -->
           <label class="mr-sm-2 font-weight-bold" for="review-publications-select">Publications</label>
+
+          <b-badge pill id="popover-badge-help-publications" href="#" variant="info">
+            <b-icon icon="question-circle-fill"></b-icon>
+          </b-badge>
+
+          <b-popover target="popover-badge-help-publications" variant="info" triggers="focus">
+          <template #title>Publications instructions</template>
+            No complete catalogue of entity-related literature required. <br>
+            If information in the clinical synopsis is not only based on OMIM entries,
+            please include PMID of the article(s) used as a source for the clinical synopsis. <br>
+            - Input is only valid when starting with <strong>"PMID:"</strong> followed by a number
+          </b-popover>
+
           <b-form-tags 
           input-id="review-literature-select"
           v-model="select_additional_references" 
@@ -403,6 +443,17 @@
 
           <!-- genereviews tag form with links out -->
           <label class="mr-sm-2 font-weight-bold" for="review-genereviews-select">Genereviews</label>
+
+          <b-badge pill id="popover-badge-help-genereviews" href="#" variant="info">
+            <b-icon icon="question-circle-fill"></b-icon>
+          </b-badge>
+
+          <b-popover target="popover-badge-help-genereviews" variant="info" triggers="focus">
+          <template #title>GeneReviews instructions</template>
+            Please add PMID for GeneReview article if available for this entity. <br>
+            - Input is only valid when starting with <strong>"PMID:"</strong> followed by a number
+          </b-popover>
+
           <b-form-tags 
           input-id="review-genereviews-select"
           v-model="select_gene_reviews" 
@@ -521,6 +572,18 @@
 
         <b-form ref="form" @submit.stop.prevent="submitStatusChange">
 
+          <!-- Status select -->
+          <label class="mr-sm-2 font-weight-bold" for="status-select">Status</label>
+
+          <b-badge pill id="popover-badge-help-status" href="#" variant="info">
+            <b-icon icon="question-circle-fill"></b-icon>
+          </b-badge>
+
+          <b-popover target="popover-badge-help-status" variant="info" triggers="focus">
+          <template #title>Status instructions</template>
+            Please refer to the curation manual for details on the categories.
+          </b-popover>
+
           <treeselect
             id="status-select" 
             :multiple="false"
@@ -528,6 +591,21 @@
             v-model="status_info.category_id"
             :normalizer="normalizeStatus"
           />
+          <!-- Status select -->
+
+          <!-- Suggest removal switch -->
+          <label class="mr-sm-2 font-weight-bold" for="removeSwitch">Removal</label>
+
+          <b-badge pill id="popover-badge-help-removal" href="#" variant="info">
+            <b-icon icon="question-circle-fill"></b-icon>
+          </b-badge>
+
+          <b-popover target="popover-badge-help-removal" variant="info" triggers="focus">
+          <template #title>Removal instructions</template>
+            SysnDD does not forget, meaning that entities will not be deleted but they can be deactivated.
+            Deactivated entities will not be displayed on the website.
+            Typically duplicate entities should be deactivated especially if there is a more specific disease name.
+          </b-popover>
 
           <div class="custom-control custom-switch">
           <input 
@@ -539,6 +617,7 @@
           >
           <label class="custom-control-label" for="removeSwitch">Suggest removal</label>
           </div>
+          <!-- Suggest removal switch -->
 
           <label class="mr-sm-2 font-weight-bold" for="status-textarea-comment">Comment</label>
           <b-form-textarea
