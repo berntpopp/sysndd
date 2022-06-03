@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+<head>
+
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>Chapter | 6 Re-review instructions | The SysNDD Documentation</title>
+  <meta name="description" content="This is the documentation for the SysnDD web app, api and database." />
+  <meta name="generator" content="bookdown 0.26 and GitBook 2.6.7" />
+
+  <meta property="og:title" content="Chapter | 6 Re-review instructions | The SysNDD Documentation" />
+  <meta property="og:type" content="book" />
+  
+  <meta property="og:description" content="This is the documentation for the SysnDD web app, api and database." />
+  <meta name="github-repo" content="berntpopp/sysndd" />
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Chapter | 6 Re-review instructions | The SysNDD Documentation" />
+  
+  <meta name="twitter:description" content="This is the documentation for the SysnDD web app, api and database." />
+  
+
+<meta name="author" content="Bernt Popp, Christiane Zweier" />
+
+
+<meta name="date" content="2022-06-03" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  
+  
+<link rel="prev" href="curation-criteria.html"/>
+
+<script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6/dist/fuse.min.js"></script>
+<link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-table.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-highlight.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-search.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-fontsettings.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-clipboard.css" rel="stylesheet" />
+
+
+
+
+
+
+
+
+<link href="libs/anchor-sections-1.1.0/anchor-sections.css" rel="stylesheet" />
+<link href="libs/anchor-sections-1.1.0/anchor-sections-hash.css" rel="stylesheet" />
+<script src="libs/anchor-sections-1.1.0/anchor-sections.js"></script>
+
+
+
+<style type="text/css">
+/* Used with Pandoc 2.11+ new --citeproc when CSL is used */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}
+</style>
+
+<link rel="stylesheet" href="style.css" type="text/css" />
+</head>
+
+<body>
+
+
+
+  <div class="book without-animation with-summary font-size-2 font-family-1" data-basepath=".">
+
+    <div class="book-summary">
+      <nav role="navigation">
+
+<ul class="summary">
+<li><a href="./">SysNDD Documentation</a></li>
+
+<li class="divider"></li>
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i>Preface</a>
+<ul>
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html#history-of-sysid-and-sysndd"><i class="fa fa-check"></i>History of SysID and SysNDD</a></li>
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html#the-sysndd-concept"><i class="fa fa-check"></i>The SysNDD concept</a></li>
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html#acknowledgments"><i class="fa fa-check"></i>Acknowledgments</a></li>
+</ul></li>
+<li class="chapter" data-level="1" data-path="curating-gene-disease-relationships.html"><a href="curating-gene-disease-relationships.html"><i class="fa fa-check"></i><b>1</b> Curating gene-disease relationships</a>
+<ul>
+<li class="chapter" data-level="1.1" data-path="curating-gene-disease-relationships.html"><a href="curating-gene-disease-relationships.html#neurodevelopmental-disorders"><i class="fa fa-check"></i><b>1.1</b> Neurodevelopmental disorders</a></li>
+<li class="chapter" data-level="1.2" data-path="curating-gene-disease-relationships.html"><a href="curating-gene-disease-relationships.html#genetic-heterogeneity"><i class="fa fa-check"></i><b>1.2</b> Genetic heterogeneity</a></li>
+<li class="chapter" data-level="1.3" data-path="curating-gene-disease-relationships.html"><a href="curating-gene-disease-relationships.html#expert-curation"><i class="fa fa-check"></i><b>1.3</b> Expert curation</a></li>
+<li class="chapter" data-level="1.4" data-path="curating-gene-disease-relationships.html"><a href="curating-gene-disease-relationships.html#technical-concepts"><i class="fa fa-check"></i><b>1.4</b> Technical concepts</a></li>
+<li class="chapter" data-level="1.5" data-path="curating-gene-disease-relationships.html"><a href="curating-gene-disease-relationships.html#outlook"><i class="fa fa-check"></i><b>1.5</b> Outlook</a></li>
+</ul></li>
+<li class="chapter" data-level="2" data-path="web-tool.html"><a href="web-tool.html"><i class="fa fa-check"></i><b>2</b> Web tool</a></li>
+<li class="chapter" data-level="3" data-path="api.html"><a href="api.html"><i class="fa fa-check"></i><b>3</b> API</a></li>
+<li class="chapter" data-level="4" data-path="database-structure.html"><a href="database-structure.html"><i class="fa fa-check"></i><b>4</b> Database structure</a></li>
+<li class="chapter" data-level="5" data-path="curation-criteria.html"><a href="curation-criteria.html"><i class="fa fa-check"></i><b>5</b> Curation criteria</a>
+<ul>
+<li class="chapter" data-level="5.1" data-path="curation-criteria.html"><a href="curation-criteria.html#definitions"><i class="fa fa-check"></i><b>5.1</b> Definitions</a></li>
+<li class="chapter" data-level="5.2" data-path="curation-criteria.html"><a href="curation-criteria.html#ndd-definitive-entities"><i class="fa fa-check"></i><b>5.2</b> NDD Definitive entities</a>
+<ul>
+<li class="chapter" data-level="5.2.1" data-path="curation-criteria.html"><a href="curation-criteria.html#strong-criteria"><i class="fa fa-check"></i><b>5.2.1</b> Strong criteria</a></li>
+<li class="chapter" data-level="5.2.2" data-path="curation-criteria.html"><a href="curation-criteria.html#moderate-criteria"><i class="fa fa-check"></i><b>5.2.2</b> Moderate criteria</a></li>
+<li class="chapter" data-level="5.2.3" data-path="curation-criteria.html"><a href="curation-criteria.html#possible-negative-criteria"><i class="fa fa-check"></i><b>5.2.3</b> Possible negative criteria</a></li>
+</ul></li>
+<li class="chapter" data-level="5.3" data-path="curation-criteria.html"><a href="curation-criteria.html#ndd-moderate-and-limited-entities"><i class="fa fa-check"></i><b>5.3</b> NDD Moderate and Limited entities</a>
+<ul>
+<li class="chapter" data-level="5.3.1" data-path="curation-criteria.html"><a href="curation-criteria.html#exclusion-criteria"><i class="fa fa-check"></i><b>5.3.1</b> Exclusion criteria</a></li>
+<li class="chapter" data-level="5.3.2" data-path="curation-criteria.html"><a href="curation-criteria.html#when-to-choose-category-2-moderate"><i class="fa fa-check"></i><b>5.3.2</b> When to choose category 2 (“Moderate”)?</a></li>
+</ul></li>
+</ul></li>
+<li class="chapter" data-level="6" data-path="re-review-instructions.html"><a href="re-review-instructions.html"><i class="fa fa-check"></i><b>6</b> Re-review instructions</a>
+<ul>
+<li class="chapter" data-level="6.1" data-path="re-review-instructions.html"><a href="re-review-instructions.html#re-review-tool-usage"><i class="fa fa-check"></i><b>6.1</b> Re-review tool usage</a>
+<ul>
+<li class="chapter" data-level="6.1.1" data-path="re-review-instructions.html"><a href="re-review-instructions.html#login"><i class="fa fa-check"></i><b>6.1.1</b> Login</a></li>
+<li class="chapter" data-level="6.1.2" data-path="re-review-instructions.html"><a href="re-review-instructions.html#review-page"><i class="fa fa-check"></i><b>6.1.2</b> Review page</a></li>
+<li class="chapter" data-level="6.1.3" data-path="re-review-instructions.html"><a href="re-review-instructions.html#new-review-edit"><i class="fa fa-check"></i><b>6.1.3</b> New Review edit</a></li>
+<li class="chapter" data-level="6.1.4" data-path="re-review-instructions.html"><a href="re-review-instructions.html#new-status-edit"><i class="fa fa-check"></i><b>6.1.4</b> New Status edit</a></li>
+<li class="chapter" data-level="6.1.5" data-path="re-review-instructions.html"><a href="re-review-instructions.html#submit-re-review"><i class="fa fa-check"></i><b>6.1.5</b> Submit Re-review</a></li>
+</ul></li>
+<li class="chapter" data-level="6.2" data-path="re-review-instructions.html"><a href="re-review-instructions.html#re-review-curation"><i class="fa fa-check"></i><b>6.2</b> Re-review curation</a>
+<ul>
+<li class="chapter" data-level="6.2.1" data-path="re-review-instructions.html"><a href="re-review-instructions.html#definitive-association-status"><i class="fa fa-check"></i><b>6.2.1</b> Definitive association status</a></li>
+<li class="chapter" data-level="6.2.2" data-path="re-review-instructions.html"><a href="re-review-instructions.html#moderate-and-limited-association-status"><i class="fa fa-check"></i><b>6.2.2</b> Moderate and Limited association status</a></li>
+<li class="chapter" data-level="6.2.3" data-path="re-review-instructions.html"><a href="re-review-instructions.html#refuted-association-status"><i class="fa fa-check"></i><b>6.2.3</b> Refuted association status</a></li>
+</ul></li>
+</ul></li>
+</ul>
+
+      </nav>
+    </div>
+
+    <div class="book-body">
+      <div class="body-inner">
+        <div class="book-header" role="navigation">
+          <h1>
+            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./">The SysNDD Documentation</a>
+          </h1>
+        </div>
+
+        <div class="page-wrapper" tabindex="-1" role="main">
+          <div class="page-inner">
+
+            <section class="normal" id="section-">
+<div id="re-review-instructions" class="section level1 hasAnchor" number="6">
+<h1><span class="header-section-number">Chapter | 6</span> Re-review instructions<a href="re-review-instructions.html#re-review-instructions" class="anchor-section" aria-label="Anchor link to header"></a></h1>
+<hr />
+<p>The goal of the SysNDD “Re-Review” effort is to update and standardize the SysID entities collected during the past years to enable better integration into and interoperability international with gene curations.</p>
+<div id="re-review-tool-usage" class="section level2 hasAnchor" number="6.1">
+<h2><span class="header-section-number">6.1</span> Re-review tool usage<a href="re-review-instructions.html#re-review-tool-usage" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>We created Reviewer status accounts for participating scientists.</p>
+<div id="login" class="section level3 hasAnchor" number="6.1.1">
+<h3><span class="header-section-number">6.1.1</span> Login<a href="re-review-instructions.html#login" class="anchor-section" aria-label="Anchor link to header"></a></h3>
+<p>You can log into your account by pointing your browser to <a href="https://sysndd.dbmr.unibe.ch/" class="uri">https://sysndd.dbmr.unibe.ch/</a> and then clicking the “Login“ link on the right side of the menu:</p>
+<p><img src="static/img/sysndd_login.png" alt="Login menu" width="800"/></p>
+<p><br/>
+On the Login page enter your credentials and press the Login button:</p>
+<p><img src="static/img/sysndd_login_page.png" alt="Login page" width="400"/></p>
+<p><br/>
+After successful login, you will be redirected to the start page and the navigation bar will show new links depending on your account privileges:</p>
+<p><img src="static/img/sysndd_refresh_token.png" alt="Login token menu" width="400"/></p>
+<p>Your login token (JWT; JSON Web Token) is valid for 1 hour, after which you will be logged out. You can however always refresh the time by clicking the link in the user menu. The website will warn you at 5, 3 and 1 minutes before log out.</p>
+</div>
+<div id="review-page" class="section level3 hasAnchor" number="6.1.2">
+<h3><span class="header-section-number">6.1.2</span> Review page<a href="re-review-instructions.html#review-page" class="anchor-section" aria-label="Anchor link to header"></a></h3>
+<p>Click the “Review” link to your personal “Re-Review” site:</p>
+<p><img src="static/img/sysndd_review_page_menu.png" alt="Review page menu" width="1000"/></p>
+<p><br/>
+The “Re-Review” page is structured as a table enriched with information and controls.</p>
+<p><img src="static/img/sysndd_review_page.png" alt="Review page" width="1000"/></p>
+<p><br/>
+These show you the number of entities assigned to your account</p>
+<p>     <strong>(1)</strong> your account information status specific controls (e.g. switching to “Curator” mode, applying for a new batch of entities)</p>
+<p>     <strong>(2)</strong> menu items to filter/ navigate the table</p>
+<p>     <strong>(3)</strong> and finally the table with the entity information and</p>
+<p>     <strong>(4)</strong> controls to review and change the information:</p>
+<p><br/>
+By clicking the action buttons, you can open 3 different windows to change the entities review:</p>
+<p>     <strong>(1)</strong> entities review (<img src="static/img/edit_review_button.png" alt="Login token menu" width="50"/>)</p>
+<p>     <strong>(2)</strong> the status (<img src="static/img/edit_status_button.png" alt="Login token menu" width="50"/>)</p>
+<p>     <strong>(3)</strong> and to submit your work (<img src="static/img/submit_re-review_button.png" alt="Login token menu" width="50"/>)</p>
+</div>
+<div id="new-review-edit" class="section level3 hasAnchor" number="6.1.3">
+<h3><span class="header-section-number">6.1.3</span> New Review edit<a href="re-review-instructions.html#new-review-edit" class="anchor-section" aria-label="Anchor link to header"></a></h3>
+<p>In this window you have
+- the possibility to change/adapt or completely rewrite the current synopsis <strong>(1)</strong>,
+- add, or remove phenotype associations <strong>(2)</strong>,
+- add or remove publications from the review by PMID <strong>(3)</strong>
+- and add/ edit fitting GeneReviews articles by PMID <strong>(4)</strong>.
+- Finally, you can add a comment to your review for the Curator later approving this entities changes <strong>(5)</strong> and
+- save your review <strong>(6)</strong>.</p>
+<p>By clicking on the little question marks you can show help messages for each item:
+<img src="static/img/modal_modify_review.png" alt="Review page" width="1000"/></p>
+<p><br/>
+These help instructions are:</p>
+<p><strong>Synopsis</strong>: Short summary for this disease entity. Please include information on: a) approximate number of patients described in literature, b) nature of reported variants, b) severity of intellectual disability, c) further phenotypic aspects (if possible with frequencies) d) any valuable further information (e.g. genotype-phenotype correlations).</p>
+<p>     Examples:</p>
+<blockquote>
+<p>de novo truncating or missense variants in &gt; 20 individuals: variable ID (mild to severe), 50% short stature and microcephaly, 30% seizures, non-specific facial dysmorphism, variable cardiac and renal anomalies in some</p>
+</blockquote>
+<blockquote>
+<p>bi-allelic truncating variants in 7 individuals from 3 families: severe ID, microcephaly, seizures in 3/7, MRI anomalies</p>
+</blockquote>
+<p><strong>Phenotypes</strong>: Add or remove associated phenotypes. Only phenotypes that occur in 20% or more of affected individuals should be included. Please also include information on severity of ID.</p>
+<p><strong>Publications</strong>: No complete catalogue of entity-related literature required! If information in the clinical synopsis is not only based on OMIM entries, please include PMID of the article(s) used as a source for the clinical synopsis.</p>
+<p><strong>GeneReviews</strong>: Please add PMID for GeneReview article if available for this entity.</p>
+<p><strong>Comment</strong>: Additionally add information about your review potentially helpful to the curator approving the entity later.</p>
+</div>
+<div id="new-status-edit" class="section level3 hasAnchor" number="6.1.4">
+<h3><span class="header-section-number">6.1.4</span> New Status edit<a href="re-review-instructions.html#new-status-edit" class="anchor-section" aria-label="Anchor link to header"></a></h3>
+<p>In this window you can propose</p>
+<ul>
+<li>to change the entities association confidence category <strong>(1)</strong>,</li>
+<li>suggest it’s overall removal <strong>(2)</strong>,</li>
+<li>add a comment for your change suggestions for the Curators to better understand the proposal <strong>(3)</strong> and</li>
+<li>save your work <strong>(4)</strong>:</li>
+</ul>
+<p><img src="static/img/modal_modify_status.png" alt="Submit re-review modal" width="800"/></p>
+</div>
+<div id="submit-re-review" class="section level3 hasAnchor" number="6.1.5">
+<h3><span class="header-section-number">6.1.5</span> Submit Re-review<a href="re-review-instructions.html#submit-re-review" class="anchor-section" aria-label="Anchor link to header"></a></h3>
+<p>The last action window is just to confirm that you are satisfied with your work and would like to submit it for curation:</p>
+<p><img src="static/img/modal_submit_re-review.png" alt="Submit re-review modal" width="400"/></p>
+<p>After clicking this button, the entity will disappear from your list. And you can proceed with the remaining entries until no entity is left in your list.</p>
+<p><br/></p>
+</div>
+</div>
+<div id="re-review-curation" class="section level2 hasAnchor" number="6.2">
+<h2><span class="header-section-number">6.2</span> Re-review curation<a href="re-review-instructions.html#re-review-curation" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<div id="definitive-association-status" class="section level3 hasAnchor" number="6.2.1">
+<h3><span class="header-section-number">6.2.1</span> Definitive association status<a href="re-review-instructions.html#definitive-association-status" class="anchor-section" aria-label="Anchor link to header"></a></h3>
+<ol style="list-style-type: decimal">
+<li>Check if category 1 (“Definitive”) is correct or shift status to category 2 (“Moderate”) or 3 (“Limited”), where appropriate</li>
+<li>Check and revise gene-related entities regarding diseases/inheritance patterns (ID and non-ID disorders)</li>
+<li>Check and revise associated phenotypes: select HPO terms from the list, only use HPO term if this specific aspect is present in approximately &gt;= 20% of patients. Please also check and revise severity of ID using HPO terms. If ID is very variable, select all appropriate ID terms (e.g. severe, moderate, mild, borderline)</li>
+<li>Check references (OMIM, PMID, GeneReviews). References do not have to be complete but should be sufficient to give a good impression on the mutational and clinical spectrum. Add references where it would add to the picture.</li>
+<li>Check and revise clinical synopsis: it does not have to contain everything that is known but should give a short and comprehensive picture on:</li>
+</ol>
+<ul>
+<li>which data the gene and disease category was chosen and</li>
+<li>the molecular and clinical picture.</li>
+</ul>
+<p>Please include information on:</p>
+<ol style="list-style-type: lower-alpha">
+<li>approximate number of patients described in literature,</li>
+<li>nature of reported variants, b) severity of intellectual disability,</li>
+<li>further phenotypic aspects (if possible with frequencies),</li>
+<li>any valuable further information (e.g. genotype-phenotype correlations)</li>
+</ol>
+<p>Examples:</p>
+<blockquote>
+<p>de novo truncating or missense variants in &gt; 20 individuals: variable ID (mild to severe), 50% short stature and microcephaly, 30% seizures, non-specific facial dysmorphism, variable cardiac and renal anomalies in some</p>
+</blockquote>
+<blockquote>
+<p>bi-allelic truncating variants in 7 individuals from 3 families: severe ID, microcephaly, seizures in 3/7, MRI anomalies</p>
+</blockquote>
+</div>
+<div id="moderate-and-limited-association-status" class="section level3 hasAnchor" number="6.2.2">
+<h3><span class="header-section-number">6.2.2</span> Moderate and Limited association status<a href="re-review-instructions.html#moderate-and-limited-association-status" class="anchor-section" aria-label="Anchor link to header"></a></h3>
+<ul>
+<li>Check if inclusion criteria for candidate genes are still fulfilled or if it should be deleted from the list (“Refuted”)</li>
+<li>Check if candidate status is still correct and sort it into Category 2 (“Moderate”) and 3 (“Limited”) (or reclassify to 1 (“Definitive”), if applicable)</li>
+<li>Check, if associated phenotype still fits</li>
+<li>Check, if references are correct, if there is any new published information and modify clinical synopsis where appropriate</li>
+<li>Clinical synopsis can be very short for candidate genes</li>
+<li>no associated phenotypes (HPO terms) and frequencies are needed for candidate genes, but could be helpful</li>
+</ul>
+<p>Examples:</p>
+<blockquote>
+<p>de novo missense variants in 2 individuals: autism, ID in 1/2</p>
+</blockquote>
+<blockquote>
+<p>bi-allelic missense variant in 2 affected individuals from 1 family: moderate ID, MRI anomalies</p>
+</blockquote>
+</div>
+<div id="refuted-association-status" class="section level3 hasAnchor" number="6.2.3">
+<h3><span class="header-section-number">6.2.3</span> Refuted association status<a href="re-review-instructions.html#refuted-association-status" class="anchor-section" aria-label="Anchor link to header"></a></h3>
+<ul>
+<li>Check if there is current evidence against this gene association (e.g. few truncating variants described in old publications before gnomAD constrain scores and the gene now has a pLI of 0; genes reported in a family with later report of another cause etc.)</li>
+</ul>
+
+<div id="refs" class="references csl-bib-body hanging-indent">
+<div class="csl-entry">
+Kochinke, Korinna, Christiane Zweier, Bonnie Nijhof, Michaela Fenckova, Pavel Cizek, Frank Honti, Shivakumar Keerthikumar, et al. 2016. <span>“Systematic <span>Phenomics</span> <span>Analysis</span> <span>Deconvolutes</span> <span>Genes</span> <span>Mutated</span> in <span>Intellectual</span> <span>Disability</span> into <span>Biologically</span> <span>Coherent</span> <span>Modules</span>.”</span> <em>American Journal of Human Genetics</em> 98 (1): 149–64. <a href="https://doi.org/10.1016/j.ajhg.2015.11.024">https://doi.org/10.1016/j.ajhg.2015.11.024</a>.
+</div>
+</div>
+</div>
+</div>
+</div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+<a href="curation-criteria.html" class="navigation navigation-prev navigation-unique" aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+
+    </div>
+  </div>
+<script src="libs/gitbook-2.6.7/js/app.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/clipboard.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-search.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-sharing.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-fontsettings.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-bookdown.js"></script>
+<script src="libs/gitbook-2.6.7/js/jquery.highlight.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-clipboard.js"></script>
+<script>
+gitbook.require(["gitbook"], function(gitbook) {
+gitbook.start({
+"sharing": {
+"github": false,
+"facebook": true,
+"twitter": true,
+"linkedin": false,
+"weibo": false,
+"instapaper": false,
+"vk": false,
+"whatsapp": false,
+"all": ["facebook", "twitter", "linkedin", "weibo", "instapaper"]
+},
+"fontsettings": {
+"theme": "white",
+"family": "sans",
+"size": 2
+},
+"edit": {
+"link": "https://github.com/USERNAME/REPO/edit/BRANCH/06-re-review-instructions.Rmd",
+"text": "Edit"
+},
+"history": {
+"link": null,
+"text": null
+},
+"view": {
+"link": null,
+"text": null
+},
+"download": ["_main.pdf", "_main.epub"],
+"search": {
+"engine": "fuse",
+"options": null
+},
+"toc": {
+"collapse": "subsection"
+}
+});
+});
+</script>
+
+</body>
+
+</html>

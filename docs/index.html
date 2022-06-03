@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+<head>
+
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>The SysNDD Documentation</title>
+  <meta name="description" content="This is the documentation for the SysnDD web app, api and database." />
+  <meta name="generator" content="bookdown 0.26 and GitBook 2.6.7" />
+
+  <meta property="og:title" content="The SysNDD Documentation" />
+  <meta property="og:type" content="book" />
+  
+  <meta property="og:description" content="This is the documentation for the SysnDD web app, api and database." />
+  <meta name="github-repo" content="berntpopp/sysndd" />
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="The SysNDD Documentation" />
+  
+  <meta name="twitter:description" content="This is the documentation for the SysnDD web app, api and database." />
+  
+
+<meta name="author" content="Bernt Popp, Christiane Zweier" />
+
+
+<meta name="date" content="2022-06-03" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  
+  
+
+<link rel="next" href="curating-gene-disease-relationships.html"/>
+<script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6/dist/fuse.min.js"></script>
+<link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-table.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-highlight.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-search.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-fontsettings.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-clipboard.css" rel="stylesheet" />
+
+
+
+
+
+
+
+
+<link href="libs/anchor-sections-1.1.0/anchor-sections.css" rel="stylesheet" />
+<link href="libs/anchor-sections-1.1.0/anchor-sections-hash.css" rel="stylesheet" />
+<script src="libs/anchor-sections-1.1.0/anchor-sections.js"></script>
+
+
+
+<style type="text/css">
+/* Used with Pandoc 2.11+ new --citeproc when CSL is used */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}
+</style>
+
+<link rel="stylesheet" href="style.css" type="text/css" />
+</head>
+
+<body>
+
+
+
+  <div class="book without-animation with-summary font-size-2 font-family-1" data-basepath=".">
+
+    <div class="book-summary">
+      <nav role="navigation">
+
+<ul class="summary">
+<li><a href="./">SysNDD Documentation</a></li>
+
+<li class="divider"></li>
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i>Preface</a>
+<ul>
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html#history-of-sysid-and-sysndd"><i class="fa fa-check"></i>History of SysID and SysNDD</a></li>
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html#the-sysndd-concept"><i class="fa fa-check"></i>The SysNDD concept</a></li>
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html#acknowledgments"><i class="fa fa-check"></i>Acknowledgments</a></li>
+</ul></li>
+<li class="chapter" data-level="1" data-path="curating-gene-disease-relationships.html"><a href="curating-gene-disease-relationships.html"><i class="fa fa-check"></i><b>1</b> Curating gene-disease relationships</a>
+<ul>
+<li class="chapter" data-level="1.1" data-path="curating-gene-disease-relationships.html"><a href="curating-gene-disease-relationships.html#neurodevelopmental-disorders"><i class="fa fa-check"></i><b>1.1</b> Neurodevelopmental disorders</a></li>
+<li class="chapter" data-level="1.2" data-path="curating-gene-disease-relationships.html"><a href="curating-gene-disease-relationships.html#genetic-heterogeneity"><i class="fa fa-check"></i><b>1.2</b> Genetic heterogeneity</a></li>
+<li class="chapter" data-level="1.3" data-path="curating-gene-disease-relationships.html"><a href="curating-gene-disease-relationships.html#expert-curation"><i class="fa fa-check"></i><b>1.3</b> Expert curation</a></li>
+<li class="chapter" data-level="1.4" data-path="curating-gene-disease-relationships.html"><a href="curating-gene-disease-relationships.html#technical-concepts"><i class="fa fa-check"></i><b>1.4</b> Technical concepts</a></li>
+<li class="chapter" data-level="1.5" data-path="curating-gene-disease-relationships.html"><a href="curating-gene-disease-relationships.html#outlook"><i class="fa fa-check"></i><b>1.5</b> Outlook</a></li>
+</ul></li>
+<li class="chapter" data-level="2" data-path="web-tool.html"><a href="web-tool.html"><i class="fa fa-check"></i><b>2</b> Web tool</a></li>
+<li class="chapter" data-level="3" data-path="api.html"><a href="api.html"><i class="fa fa-check"></i><b>3</b> API</a></li>
+<li class="chapter" data-level="4" data-path="database-structure.html"><a href="database-structure.html"><i class="fa fa-check"></i><b>4</b> Database structure</a></li>
+<li class="chapter" data-level="5" data-path="curation-criteria.html"><a href="curation-criteria.html"><i class="fa fa-check"></i><b>5</b> Curation criteria</a>
+<ul>
+<li class="chapter" data-level="5.1" data-path="curation-criteria.html"><a href="curation-criteria.html#definitions"><i class="fa fa-check"></i><b>5.1</b> Definitions</a></li>
+<li class="chapter" data-level="5.2" data-path="curation-criteria.html"><a href="curation-criteria.html#ndd-definitive-entities"><i class="fa fa-check"></i><b>5.2</b> NDD Definitive entities</a>
+<ul>
+<li class="chapter" data-level="5.2.1" data-path="curation-criteria.html"><a href="curation-criteria.html#strong-criteria"><i class="fa fa-check"></i><b>5.2.1</b> Strong criteria</a></li>
+<li class="chapter" data-level="5.2.2" data-path="curation-criteria.html"><a href="curation-criteria.html#moderate-criteria"><i class="fa fa-check"></i><b>5.2.2</b> Moderate criteria</a></li>
+<li class="chapter" data-level="5.2.3" data-path="curation-criteria.html"><a href="curation-criteria.html#possible-negative-criteria"><i class="fa fa-check"></i><b>5.2.3</b> Possible negative criteria</a></li>
+</ul></li>
+<li class="chapter" data-level="5.3" data-path="curation-criteria.html"><a href="curation-criteria.html#ndd-moderate-and-limited-entities"><i class="fa fa-check"></i><b>5.3</b> NDD Moderate and Limited entities</a>
+<ul>
+<li class="chapter" data-level="5.3.1" data-path="curation-criteria.html"><a href="curation-criteria.html#exclusion-criteria"><i class="fa fa-check"></i><b>5.3.1</b> Exclusion criteria</a></li>
+<li class="chapter" data-level="5.3.2" data-path="curation-criteria.html"><a href="curation-criteria.html#when-to-choose-category-2-moderate"><i class="fa fa-check"></i><b>5.3.2</b> When to choose category 2 (“Moderate”)?</a></li>
+</ul></li>
+</ul></li>
+<li class="chapter" data-level="6" data-path="re-review-instructions.html"><a href="re-review-instructions.html"><i class="fa fa-check"></i><b>6</b> Re-review instructions</a>
+<ul>
+<li class="chapter" data-level="6.1" data-path="re-review-instructions.html"><a href="re-review-instructions.html#re-review-tool-usage"><i class="fa fa-check"></i><b>6.1</b> Re-review tool usage</a>
+<ul>
+<li class="chapter" data-level="6.1.1" data-path="re-review-instructions.html"><a href="re-review-instructions.html#login"><i class="fa fa-check"></i><b>6.1.1</b> Login</a></li>
+<li class="chapter" data-level="6.1.2" data-path="re-review-instructions.html"><a href="re-review-instructions.html#review-page"><i class="fa fa-check"></i><b>6.1.2</b> Review page</a></li>
+<li class="chapter" data-level="6.1.3" data-path="re-review-instructions.html"><a href="re-review-instructions.html#new-review-edit"><i class="fa fa-check"></i><b>6.1.3</b> New Review edit</a></li>
+<li class="chapter" data-level="6.1.4" data-path="re-review-instructions.html"><a href="re-review-instructions.html#new-status-edit"><i class="fa fa-check"></i><b>6.1.4</b> New Status edit</a></li>
+<li class="chapter" data-level="6.1.5" data-path="re-review-instructions.html"><a href="re-review-instructions.html#submit-re-review"><i class="fa fa-check"></i><b>6.1.5</b> Submit Re-review</a></li>
+</ul></li>
+<li class="chapter" data-level="6.2" data-path="re-review-instructions.html"><a href="re-review-instructions.html#re-review-curation"><i class="fa fa-check"></i><b>6.2</b> Re-review curation</a>
+<ul>
+<li class="chapter" data-level="6.2.1" data-path="re-review-instructions.html"><a href="re-review-instructions.html#definitive-association-status"><i class="fa fa-check"></i><b>6.2.1</b> Definitive association status</a></li>
+<li class="chapter" data-level="6.2.2" data-path="re-review-instructions.html"><a href="re-review-instructions.html#moderate-and-limited-association-status"><i class="fa fa-check"></i><b>6.2.2</b> Moderate and Limited association status</a></li>
+<li class="chapter" data-level="6.2.3" data-path="re-review-instructions.html"><a href="re-review-instructions.html#refuted-association-status"><i class="fa fa-check"></i><b>6.2.3</b> Refuted association status</a></li>
+</ul></li>
+</ul></li>
+</ul>
+
+      </nav>
+    </div>
+
+    <div class="book-body">
+      <div class="body-inner">
+        <div class="book-header" role="navigation">
+          <h1>
+            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./">The SysNDD Documentation</a>
+          </h1>
+        </div>
+
+        <div class="page-wrapper" tabindex="-1" role="main">
+          <div class="page-inner">
+
+            <section class="normal" id="section-">
+<div id="header">
+<h1 class="title">The SysNDD Documentation</h1>
+<p class="author"><em>Bernt Popp, Christiane Zweier</em></p>
+<p class="date"><em>2022-06-03</em></p>
+</div>
+<div id="preface" class="section level1 unnumbered hasAnchor">
+<h1>Preface<a href="index.html#preface" class="anchor-section" aria-label="Anchor link to header"></a></h1>
+<hr />
+<p>This documentation is intended to describe the SysNDD project and provide instructions for regular usershow to use the too and for curator status users how to perform reviews and enter data.</p>
+<div id="history-of-sysid-and-sysndd" class="section level2 unnumbered hasAnchor">
+<h2>History of SysID and SysNDD<a href="index.html#history-of-sysid-and-sysndd" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>SysNDD is based on its predecessor SysID (<a href="https://www.sysid.dbmr.unibe.ch/" class="uri">https://www.sysid.dbmr.unibe.ch/</a>) which had been published in 2016 (<span class="citation">(<a href="#ref-kochinke_systematic_2016" role="doc-biblioref">Kochinke et al. 2016</a>)</span>). Christiane Zweier has been involved in establishing and updating SysID from its start in 2009. She has since performed and coordinated curation and regular updates.</p>
+<p>The PHP based SysID web tool (Yii 2 framework) was however not further developed and maintained besides necessary bugfixes. After the maintenance agreement for the original server at the CMBI at Radboud University in Nijmegen ran out the installation was moved to a virtual server at the Department for BioMedical Research (DBMR) at the University Bern. The former link from the initial publication is re-directed so it still works. The legacy code base was updated to allow installation and security fixes and uploaded to a <a href="https://github.com/berntpopp/SysID">GitHub</a> repository.</p>
+<p>In 2019 the chance arose to integrate the SysID curation effort into the Orphanet resource. In the process of aligning the curation and naming conventions for genes, diseases and phenotypes we decided to redesign the database and web tool.</p>
+</div>
+<div id="the-sysndd-concept" class="section level2 unnumbered hasAnchor">
+<h2>The SysNDD concept<a href="index.html#the-sysndd-concept" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>SysNDD now conatins a manually curated catalogue of published gene-disease-associations implicated in neurodevelopmental disorders (NDD).</p>
+<p>To allow interoperability and mapping between gene-, phenotype- or disease-oriented databases, we center our approach around curated gene-inheritance-disease units, so called entities. These entities are classified into different confidence status (categories: “Definitive”, “Moderate”, “Limited”, “Refuted”) according to the degree of underlying scientific evidence. Furthermore, manually curated information on associated diseases and phenotypes is provided.</p>
+<p>The entries in SysNDD are currently updated every 3-4 months and can be utilized for a broad spectrum of tasks from both research and diagnostics.</p>
+<p>One of our long-term goals is to incorporate the SysNDD data into other gene/ disease-relationship databases like the Orphanet ontology.</p>
+<p>Bernt Popp (scientist at the Institute of Human Genetics at the University Hospital Leipzig, Germany) developed and programmed the SysNDD tools and will be integrating further functionality including variants associated with entities in future updates.</p>
+</div>
+<div id="acknowledgments" class="section level2 unnumbered hasAnchor">
+<h2>Acknowledgments<a href="index.html#acknowledgments" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>The current SysNDD database development is supported by:</p>
+<ul>
+<li>DFG (Deutsche Forschungsgemeinschaft) grant PO2366/2-1 to <a href="https://orcid.org/0000-0002-3679-1081">Bernt Popp</a>.</li>
+<li>DFG (Deutsche Forschungsgemeinschaft) grant ZW184/6-1 to <a href="https://orcid.org/0000-0001-8002-2020">Christiane Zweier</a>.</li>
+<li>ITHACA ERN through <a href="https://orcid.org/0000-0003-4819-0264">Alain Verloes</a>.</li>
+</ul>
+<p>The previous SysID database and data curation was supported by:</p>
+<ul>
+<li>The European Union’s FP7 large scale integrated network GenCoDys (HEALTH-241995) to C Webber, MA Huynen and Annette Schenck.</li>
+<li>VIDI and TOP grants (917-96-346, 912-12-109) from The Netherlands Organisation for Scientific Research (NWO) to Annette Schenck.</li>
+<li>DFG (Deutsche Forschungsgemeinschaft) grants ZW184/1-1 and -2 to <a href="https://orcid.org/0000-0001-8002-2020">Christiane Zweier</a>.</li>
+<li>the IZKF (Interdisziplinäres Zentrum für Klinische Forschung) Erlangen to <a href="https://orcid.org/0000-0001-8002-2020">Christiane Zweier</a>.</li>
+<li>ZonMw grant (NWO, 907-00-365) to Tjitske Kleefstra.</li>
+</ul>
+
+</div>
+</div>
+<h3>References</h3>
+<div id="refs" class="references csl-bib-body hanging-indent">
+<div id="ref-kochinke_systematic_2016" class="csl-entry">
+Kochinke, Korinna, Christiane Zweier, Bonnie Nijhof, Michaela Fenckova, Pavel Cizek, Frank Honti, Shivakumar Keerthikumar, et al. 2016. <span>“Systematic <span>Phenomics</span> <span>Analysis</span> <span>Deconvolutes</span> <span>Genes</span> <span>Mutated</span> in <span>Intellectual</span> <span>Disability</span> into <span>Biologically</span> <span>Coherent</span> <span>Modules</span>.”</span> <em>American Journal of Human Genetics</em> 98 (1): 149–64. <a href="https://doi.org/10.1016/j.ajhg.2015.11.024">https://doi.org/10.1016/j.ajhg.2015.11.024</a>.
+</div>
+</div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+
+<a href="curating-gene-disease-relationships.html" class="navigation navigation-next navigation-unique" aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+    </div>
+  </div>
+<script src="libs/gitbook-2.6.7/js/app.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/clipboard.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-search.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-sharing.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-fontsettings.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-bookdown.js"></script>
+<script src="libs/gitbook-2.6.7/js/jquery.highlight.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-clipboard.js"></script>
+<script>
+gitbook.require(["gitbook"], function(gitbook) {
+gitbook.start({
+"sharing": {
+"github": false,
+"facebook": true,
+"twitter": true,
+"linkedin": false,
+"weibo": false,
+"instapaper": false,
+"vk": false,
+"whatsapp": false,
+"all": ["facebook", "twitter", "linkedin", "weibo", "instapaper"]
+},
+"fontsettings": {
+"theme": "white",
+"family": "sans",
+"size": 2
+},
+"edit": {
+"link": "https://github.com/USERNAME/REPO/edit/BRANCH/index.Rmd",
+"text": "Edit"
+},
+"history": {
+"link": null,
+"text": null
+},
+"view": {
+"link": null,
+"text": null
+},
+"download": ["_main.pdf", "_main.epub"],
+"search": {
+"engine": "fuse",
+"options": null
+},
+"toc": {
+"collapse": "subsection"
+}
+});
+});
+</script>
+
+</body>
+
+</html>
