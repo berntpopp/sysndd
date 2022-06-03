@@ -33,6 +33,11 @@ bash deployment.sh "<config.tar.gz>"
 - A dummy config file for local deployment will be provided in this repository.
 - Data and a script to populate the MySQL database will be provided in this repository.
 
+
+## Documentation
+Please explore [The SysNDD Documentation](https://berntpopp.github.io/sysndd/) hosted on GitHub pages and build with bookdown.
+
+
 ## Contributing and community
 To contribute in curating novel entries to our database you can register for a new reviewer/ curator [account on the SysNDD page](https://sysndd.dbmr.unibe.ch/Register).
 
