@@ -16,6 +16,7 @@ This repository is for development of our SysNDD web application (app), applicat
 ## Table of contents
 
 - [Quick start](#quick-start)
+- [Documentation](#documentation)
 - [Contributing and community](#contributing-and-community)
 - [Bugs and feature requests](#bugs-and-feature-requests)
 - [Creators](#creators)
