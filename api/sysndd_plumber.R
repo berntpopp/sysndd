@@ -125,9 +125,9 @@ generate_tibble_fspec_mem <- memoise(generate_tibble_fspec,
 #* @apiDescription This is the API powering the SysNDD website
 #* and allowing programmatic access to the database contents.
 #* @apiVersion 0.1.0
-#* @apiTOS http://www.sysndd.org/terms/
+#* @apiTOS https://sysndd.dbmr.unibe.ch/About
 #* @apiContact list(name = "API Support",
-#* url = "http://www.sysndd.org/support",
+#* url = "https://berntpopp.github.io/sysndd/api.html",
 #* email = "support@sysndd.org")
 #* @apiLicense list(name = "CC BY 4.0",
 #* url = "https://creativecommons.org/licenses/by/4.0/")
@@ -226,11 +226,14 @@ function(req, res) {
 #* @tag entity
 #* allows filtering and field selection from all entities
 #* @serializer json list(na="string")
-#* @param sort:str
-#* @param filter:str
-#* @param fields:str
-#* @param page[after]:str
-#* @param page[size]:str
+#* @param sort:str  Output column to arrange output on.
+#* @param filter:str Comma separated list of filters to apply.
+#* @param fields:str Comma separated list of output columns.
+#* @param page[after]:str Cursor after which to show entries in cursor pagination.
+#* @param page[size]:str Page size in cursor pagination.
+#* @param fspec:str Fields for which to generate the fied specification in the meta data response.
+#* @response 200  A cursor pagination object with links, meta information and entity objects in the data field.
+#* @response 500  Internal server error.
 #' @get /api/entity
 function(res,
   sort = "entity_id",
@@ -1199,8 +1202,10 @@ function(req, res, re_review = FALSE) {
           review_data$review_id)
 
         } else {
-          response_publication <- list(status = 200, message = "OK. Skipped.")
-          response_publication_conn <- list(status = 200, message = "OK. Skipped.")
+          response_publication <- list(status = 200,
+            message = "OK. Skipped.")
+          response_publication_conn <- list(status = 200,
+            message = "OK. Skipped.")
         }
 
         # only submit phenotype connections if not empty
@@ -2092,6 +2097,12 @@ function(req, res, pmid) {
 #* @tag gene
 #* allows filtering and field selection from all genes and associated entities
 #* @serializer json list(na="string")
+#* @param sort:str  Output column to arrange output on.
+#* @param filter:str Comma separated list of filters to apply.
+#* @param fields:str Comma separated list of output columns.
+#* @param page[after]:str Cursor after which to show entries in cursor pagination.
+#* @param page[size]:str Page size in cursor pagination.
+#* @param fspec:str Fields for which to generate the fied specification in the meta data response.
 #' @get /api/gene
 function(res,
   sort = "symbol",
@@ -2340,6 +2351,12 @@ function() {
 #* @tag phenotype
 #* gets a list of entities associated with a list of phenotypes
 #* @serializer json list(na="string")
+#* @param sort:str  Output column to arrange output on.
+#* @param filter:str Comma separated list of filters to apply.
+#* @param fields:str Comma separated list of output columns.
+#* @param page[after]:str Cursor after which to show entries in cursor pagination.
+#* @param page[size]:str Page size in cursor pagination.
+#* @param fspec:str Fields for which to generate the fied specification in the meta data response.
 #' @get /api/phenotype/entities/browse
 function(res,
   sort = "entity_id",
@@ -3147,6 +3164,12 @@ function() {
 #* returns a table showing the presence of
 #* NDD associated genes in different databases
 #* @serializer json list(na="string")
+#* @param sort:str  Output column to arrange output on.
+#* @param filter:str Comma separated list of filters to apply.
+#* @param fields:str Comma separated list of output columns.
+#* @param page[after]:str Cursor after which to show entries in cursor pagination.
+#* @param page[size]:str Page size in cursor pagination.
+#* @param fspec:str Fields for which to generate the fied specification in the meta data response.
 #' @get /api/comparisons/browse
 function(
   res,
