@@ -23,7 +23,7 @@
 <meta name="author" content="Bernt Popp, Christiane Zweier" />
 
 
-<meta name="date" content="2022-06-03" />
+<meta name="date" content="2022-06-06" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -124,6 +124,7 @@ div.csl-indent {
 <ul>
 <li class="chapter" data-level="5.3.1" data-path="curation-criteria.html"><a href="curation-criteria.html#exclusion-criteria"><i class="fa fa-check"></i><b>5.3.1</b> Exclusion criteria</a></li>
 <li class="chapter" data-level="5.3.2" data-path="curation-criteria.html"><a href="curation-criteria.html#when-to-choose-category-2-moderate"><i class="fa fa-check"></i><b>5.3.2</b> When to choose category 2 (“Moderate”)?</a></li>
+<li class="chapter" data-level="5.3.3" data-path="curation-criteria.html"><a href="curation-criteria.html#special-case-non-ndd-entities"><i class="fa fa-check"></i><b>5.3.3</b> Special case: non-NDD entities</a></li>
 </ul></li>
 </ul></li>
 <li class="chapter" data-level="6" data-path="re-review-instructions.html"><a href="re-review-instructions.html"><i class="fa fa-check"></i><b>6</b> Re-review instructions</a>
@@ -163,25 +164,25 @@ div.csl-indent {
 <div id="header">
 <h1 class="title">The SysNDD Documentation</h1>
 <p class="author"><em>Bernt Popp, Christiane Zweier</em></p>
-<p class="date"><em>2022-06-03</em></p>
+<p class="date"><em>2022-06-06</em></p>
 </div>
 <div id="preface" class="section level1 unnumbered hasAnchor">
 <h1>Preface<a href="index.html#preface" class="anchor-section" aria-label="Anchor link to header"></a></h1>
 <hr />
-<p>This documentation is intended to describe the SysNDD project and provide instructions for regular usershow to use the too and for curator status users how to perform reviews and enter data.</p>
+<p>This documentation is intended to describe the SysNDD project and provide instructions for regular usershow to use the too and for curator status users how to perform reviews and how to enter data.</p>
 <div id="history-of-sysid-and-sysndd" class="section level2 unnumbered hasAnchor">
 <h2>History of SysID and SysNDD<a href="index.html#history-of-sysid-and-sysndd" class="anchor-section" aria-label="Anchor link to header"></a></h2>
-<p>SysNDD is based on its predecessor SysID (<a href="https://www.sysid.dbmr.unibe.ch/" class="uri">https://www.sysid.dbmr.unibe.ch/</a>) which had been published in 2016 (<span class="citation">(<a href="#ref-kochinke_systematic_2016" role="doc-biblioref">Kochinke et al. 2016</a>)</span>). Christiane Zweier has been involved in establishing and updating SysID from its start in 2009. She has since performed and coordinated curation and regular updates.</p>
-<p>The PHP based SysID web tool (Yii 2 framework) was however not further developed and maintained besides necessary bugfixes. After the maintenance agreement for the original server at the CMBI at Radboud University in Nijmegen ran out the installation was moved to a virtual server at the Department for BioMedical Research (DBMR) at the University Bern. The former link from the initial publication is re-directed so it still works. The legacy code base was updated to allow installation and security fixes and uploaded to a <a href="https://github.com/berntpopp/SysID">GitHub</a> repository.</p>
-<p>In 2019 the chance arose to integrate the SysID curation effort into the Orphanet resource. In the process of aligning the curation and naming conventions for genes, diseases and phenotypes we decided to redesign the database and web tool.</p>
+<p>SysNDD is based on its predecessor SysID (<a href="https://www.sysid.dbmr.unibe.ch/" class="uri">https://www.sysid.dbmr.unibe.ch/</a>) which had been published in 2016 <span class="citation">(<a href="#ref-kochinke_systematic_2016" role="doc-biblioref">Kochinke et al. 2016</a>)</span>. Christiane Zweier has been involved in establishing and updating SysID from its start in 2009. She has since performed and coordinated curation and regular updates.</p>
+<p>The PHP based SysID web tool (Yii 2 framework) was however not further developed and maintained besides necessary bugfixes. After the maintenance agreement for the original server at the CMBI at Radboud University in Nijmegen ran out, the installation was moved to a virtual server at the Department for BioMedical Research (DBMR) at the University Bern. The former link from the initial publication is re-directed so it still works. The legacy code base was updated to allow installation and security fixes and to be uploaded to a <a href="https://github.com/berntpopp/SysID">GitHub</a> repository.</p>
+<p>In 2019 the chance arose to integrate the SysID curation effort with the Orphanet resource, supported by ERN ITHACA. In the process of aligning the curation and naming conventions for genes, diseases and phenotypes we decided to redesign the database and web tool.</p>
 </div>
 <div id="the-sysndd-concept" class="section level2 unnumbered hasAnchor">
 <h2>The SysNDD concept<a href="index.html#the-sysndd-concept" class="anchor-section" aria-label="Anchor link to header"></a></h2>
-<p>SysNDD now conatins a manually curated catalogue of published gene-disease-associations implicated in neurodevelopmental disorders (NDD).</p>
-<p>To allow interoperability and mapping between gene-, phenotype- or disease-oriented databases, we center our approach around curated gene-inheritance-disease units, so called entities. These entities are classified into different confidence status (categories: “Definitive”, “Moderate”, “Limited”, “Refuted”) according to the degree of underlying scientific evidence. Furthermore, manually curated information on associated diseases and phenotypes is provided.</p>
+<p>SysNDD contains a manually curated catalogue of published gene-disease-associations implicated in neurodevelopmental disorders (NDD).</p>
+<p>To allow interoperability and mapping between gene-, phenotype- or disease-oriented databases, we center our approach around curated gene-inheritance-disease units, so called entities. These entities are classified into different confidence status (categories: “Definitive”, “Moderate”, “Limited”, “Refuted”) according to the degree of underlying scientific evidence. Furthermore, manually curated information on associated phenotypes is provided.</p>
 <p>The entries in SysNDD are currently updated every 3-4 months and can be utilized for a broad spectrum of tasks from both research and diagnostics.</p>
-<p>One of our long-term goals is to incorporate the SysNDD data into other gene/ disease-relationship databases like the Orphanet ontology.</p>
-<p>Bernt Popp (scientist at the Institute of Human Genetics at the University Hospital Leipzig, Germany) developed and programmed the SysNDD tools and will be integrating further functionality including variants associated with entities in future updates.</p>
+<p>One of our goals is to incorporate the <a href="https://sysndd.dbmr.unibe.ch/">SysNDD</a> data into other gene/ disease-relationship databases like the Orphanet ontology (first results: <a href="https://id-genes.orphanet.app/ithaca/%5D">id-genes.orphanet.app</a>.</p>
+<p>Bernt Popp (scientist at the Institute of Human Genetics at the University Hospital Leipzig, Germany) developed and programmed the SysNDD tool and will be integrating further functionality including variants associated with entities in future updates.</p>
 </div>
 <div id="acknowledgments" class="section level2 unnumbered hasAnchor">
 <h2>Acknowledgments<a href="index.html#acknowledgments" class="anchor-section" aria-label="Anchor link to header"></a></h2>
@@ -189,11 +190,11 @@ div.csl-indent {
 <ul>
 <li>DFG (Deutsche Forschungsgemeinschaft) grant PO2366/2-1 to <a href="https://orcid.org/0000-0002-3679-1081">Bernt Popp</a>.</li>
 <li>DFG (Deutsche Forschungsgemeinschaft) grant ZW184/6-1 to <a href="https://orcid.org/0000-0001-8002-2020">Christiane Zweier</a>.</li>
-<li>ITHACA ERN through <a href="https://orcid.org/0000-0003-4819-0264">Alain Verloes</a>.</li>
+<li><a href="https://ern-ithaca.eu/">ERN ITHACA</a> through <a href="https://orcid.org/0000-0003-4819-0264">Alain Verloes</a>.</li>
 </ul>
 <p>The previous SysID database and data curation was supported by:</p>
 <ul>
-<li>The European Union’s FP7 large scale integrated network GenCoDys (HEALTH-241995) to C Webber, MA Huynen and Annette Schenck.</li>
+<li>The European Union’s FP7 large scale integrated network GenCoDys (HEALTH-241995) to MA Huynen and Annette Schenck.</li>
 <li>VIDI and TOP grants (917-96-346, 912-12-109) from The Netherlands Organisation for Scientific Research (NWO) to Annette Schenck.</li>
 <li>DFG (Deutsche Forschungsgemeinschaft) grants ZW184/1-1 and -2 to <a href="https://orcid.org/0000-0001-8002-2020">Christiane Zweier</a>.</li>
 <li>the IZKF (Interdisziplinäres Zentrum für Klinische Forschung) Erlangen to <a href="https://orcid.org/0000-0001-8002-2020">Christiane Zweier</a>.</li>
