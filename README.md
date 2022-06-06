@@ -42,6 +42,8 @@ Please explore [The SysNDD Documentation](https://berntpopp.github.io/sysndd/) h
 ## Contributing and community
 To contribute in curating novel entries to our database you can register for a new reviewer/ curator [account on the SysNDD page](https://sysndd.dbmr.unibe.ch/Register).
 
+Ask questions, report bigs and chat about SysNDD in general using our [Github discussions](https://github.com/berntpopp/sysndd/discussions) page.
+
 
 ## Bugs and feature requests
 If you have technical problems using SysNDD or requests regarding the data or functionality, please contact us at support [at] sysndd.org.
@@ -54,12 +56,12 @@ If you have technical problems using SysNDD or requests regarding the data or fu
 - <https://twitter.com/berntpopp>
 - <https://github.com/berntpopp>
 - <https://orcid.org/0000-0002-3679-1081>
-- <https://scholar.google.com/citations?user=Uvhu3t0AAAAJ&hl>
+- <https://scholar.google.com/citations?user=Uvhu3t0AAAAJ>
 
 **Christiane Zweier**
 
 - <https://orcid.org/0000-0001-8002-2020>
-- <https://scholar.google.com/citations?user=KE0N1r8AAAAJ&hl>
+- <https://scholar.google.com/citations?user=KE0N1r8AAAAJ>
 
 
 ## Thanks and acknowledgments
