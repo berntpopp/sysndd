@@ -108,7 +108,26 @@ div.csl-indent {
 <li class="chapter" data-level="1.4" data-path="curating-gene-disease-relationships.html"><a href="curating-gene-disease-relationships.html#technical-concepts"><i class="fa fa-check"></i><b>1.4</b> Technical concepts</a></li>
 <li class="chapter" data-level="1.5" data-path="curating-gene-disease-relationships.html"><a href="curating-gene-disease-relationships.html#outlook"><i class="fa fa-check"></i><b>1.5</b> Outlook</a></li>
 </ul></li>
-<li class="chapter" data-level="2" data-path="web-tool.html"><a href="web-tool.html"><i class="fa fa-check"></i><b>2</b> Web tool</a></li>
+<li class="chapter" data-level="2" data-path="web-tool.html"><a href="web-tool.html"><i class="fa fa-check"></i><b>2</b> Web tool</a>
+<ul>
+<li class="chapter" data-level="2.1" data-path="web-tool.html"><a href="web-tool.html#landing-page"><i class="fa fa-check"></i><b>2.1</b> Landing page</a></li>
+<li class="chapter" data-level="2.2" data-path="web-tool.html"><a href="web-tool.html#main-navigation"><i class="fa fa-check"></i><b>2.2</b> Main navigation</a></li>
+<li class="chapter" data-level="2.3" data-path="web-tool.html"><a href="web-tool.html#footer-navigation"><i class="fa fa-check"></i><b>2.3</b> Footer navigation</a></li>
+<li class="chapter" data-level="2.4" data-path="web-tool.html"><a href="web-tool.html#table-views"><i class="fa fa-check"></i><b>2.4</b> Table views</a>
+<ul>
+<li class="chapter" data-level="2.4.1" data-path="web-tool.html"><a href="web-tool.html#entities-table"><i class="fa fa-check"></i><b>2.4.1</b> Entities table</a></li>
+<li class="chapter" data-level="2.4.2" data-path="web-tool.html"><a href="web-tool.html#genes-table"><i class="fa fa-check"></i><b>2.4.2</b> Genes table</a></li>
+<li class="chapter" data-level="2.4.3" data-path="web-tool.html"><a href="web-tool.html#phenotypes-table"><i class="fa fa-check"></i><b>2.4.3</b> Phenotypes table</a></li>
+<li class="chapter" data-level="2.4.4" data-path="web-tool.html"><a href="web-tool.html#panels-table"><i class="fa fa-check"></i><b>2.4.4</b> Panels table</a></li>
+</ul></li>
+<li class="chapter" data-level="2.5" data-path="web-tool.html"><a href="web-tool.html#analyses-views"><i class="fa fa-check"></i><b>2.5</b> Analyses views</a></li>
+<li class="chapter" data-level="2.6" data-path="web-tool.html"><a href="web-tool.html#about-page"><i class="fa fa-check"></i><b>2.6</b> About page</a></li>
+<li class="chapter" data-level="2.7" data-path="web-tool.html"><a href="web-tool.html#login-page"><i class="fa fa-check"></i><b>2.7</b> Login page</a>
+<ul>
+<li class="chapter" data-level="2.7.1" data-path="web-tool.html"><a href="web-tool.html#register-user-page"><i class="fa fa-check"></i><b>2.7.1</b> Register user page</a></li>
+<li class="chapter" data-level="2.7.2" data-path="web-tool.html"><a href="web-tool.html#reset-password-page"><i class="fa fa-check"></i><b>2.7.2</b> Reset password page</a></li>
+</ul></li>
+</ul></li>
 <li class="chapter" data-level="3" data-path="api.html"><a href="api.html"><i class="fa fa-check"></i><b>3</b> API</a></li>
 <li class="chapter" data-level="4" data-path="database-structure.html"><a href="database-structure.html"><i class="fa fa-check"></i><b>4</b> Database structure</a></li>
 <li class="chapter" data-level="5" data-path="curation-criteria.html"><a href="curation-criteria.html"><i class="fa fa-check"></i><b>5</b> Curation criteria</a>
@@ -173,19 +192,19 @@ div.csl-indent {
 <h3><span class="header-section-number">6.1.1</span> Login<a href="re-review-instructions.html#login" class="anchor-section" aria-label="Anchor link to header"></a></h3>
 <p>You can log into your account by pointing your browser to <a href="https://sysndd.dbmr.unibe.ch/" class="uri">https://sysndd.dbmr.unibe.ch/</a> and then clicking the “Login“ link on the right side of the menu:</p>
 <div class="figure">
-<img src="static/img/sysndd_login.png" width="800" alt="" />
+<img src="static/img/sysndd_login.png" max-width="800px" alt="" />
 <p class="caption">Login menu</p>
 </div>
 <p><br/>
 On the Login page enter your credentials and press the Login button:</p>
 <div class="figure">
-<img src="static/img/sysndd_login_page.png" width="400" alt="" />
+<img src="static/img/sysndd_login_page.png" max-width="400px" alt="" />
 <p class="caption">Login page</p>
 </div>
 <p><br/>
 After successful login, you will be redirected to the start page and the navigation bar will show new links depending on your account privileges:</p>
 <div class="figure">
-<img src="static/img/sysndd_refresh_token.png" width="400" alt="" />
+<img src="static/img/sysndd_refresh_token.png" max-width="300px" alt="" />
 <p class="caption">Login token menu</p>
 </div>
 <p>Your login token (JWT; JSON Web Token) is valid for 1 hour, after which you will be logged out. You can however always refresh the time by clicking the link in the user menu. The website will warn you at 5, 3 and 1 minutes before log out.</p>
@@ -194,13 +213,13 @@ After successful login, you will be redirected to the start page and the navigat
 <h3><span class="header-section-number">6.1.2</span> Review page<a href="re-review-instructions.html#review-page" class="anchor-section" aria-label="Anchor link to header"></a></h3>
 <p>Click the “Review” link to your personal “Re-Review” site:</p>
 <div class="figure">
-<img src="static/img/sysndd_review_page_menu.png" width="1000" alt="" />
+<img src="static/img/sysndd_review_page_menu.png" max-width="1000px" alt="" />
 <p class="caption">Review page menu</p>
 </div>
 <p><br/>
 The “Re-Review” page is structured as a table enriched with information and controls.</p>
 <div class="figure">
-<img src="static/img/sysndd_review_page.png" width="1000" alt="" />
+<img src="static/img/sysndd_review_page.png" max-width="1000px" alt="" />
 <p class="caption">Review page</p>
 </div>
 <p><br/>
@@ -211,21 +230,26 @@ These show you the number of entities assigned to your account</p>
 <p>     <strong>(4)</strong> controls to review and change the information:</p>
 <p><br/>
 By clicking the action buttons, you can open 3 different windows to change the entities review:</p>
-<p>     <strong>(1)</strong> entities review (<img src="static/img/edit_review_button.png" width="50" alt="Edit review menu" />)</p>
-<p>     <strong>(2)</strong> the status (<img src="static/img/edit_status_button.png" width="50" alt="Edit status menu" />)</p>
-<p>     <strong>(3)</strong> and to submit your work (<img src="static/img/submit_re-review_button.png" width="50" alt="Submit re-review status menu" />)</p>
+<p>     <strong>(1)</strong> entities review (<img src="static/img/edit_review_button.png" max-width="50px" alt="Edit review menu" />)</p>
+<p>     <strong>(2)</strong> the status (<img src="static/img/edit_status_button.png" max-width="50px" alt="Edit status menu" />)</p>
+<p>     <strong>(3)</strong> and to submit your work (<img src="static/img/submit_re-review_button.png" max-width="50px" alt="Submit re-review status menu" />)</p>
 </div>
 <div id="new-review-edit" class="section level3 hasAnchor" number="6.1.3">
 <h3><span class="header-section-number">6.1.3</span> New Review edit<a href="re-review-instructions.html#new-review-edit" class="anchor-section" aria-label="Anchor link to header"></a></h3>
-<p>In this window you have
-- the possibility to change/adapt or completely rewrite the current synopsis <strong>(1)</strong>,
-- add, or remove phenotype associations <strong>(2)</strong>,
-- add or remove publications from the review by PMID <strong>(3)</strong>
-- and add/ edit fitting GeneReviews articles by PMID <strong>(4)</strong>.
-- Finally, you can add a comment to your review for the Curator later approving this entities changes <strong>(5)</strong> and
-- save your review <strong>(6)</strong>.</p>
-<p>By clicking on the little question marks you can show help messages for each item:
-<img src="static/img/modal_modify_review.png" alt="Review page" width="1000"/></p>
+<p>In this window you have:</p>
+<ul>
+<li>the possibility to change/adapt or completely rewrite the current synopsis <strong>(1)</strong>,</li>
+<li>add, or remove phenotype associations <strong>(2)</strong>,</li>
+<li>add or remove publications from the review by PMID <strong>(3)</strong></li>
+<li>and add/ edit fitting GeneReviews articles by PMID <strong>(4)</strong>.</li>
+<li>Finally, you can add a comment to your review for the Curator later approving this entities changes <strong>(5)</strong> and</li>
+<li>save your review <strong>(6)</strong>.</li>
+</ul>
+<p>By clicking on the little question marks you can show help messages for each item:</p>
+<div class="figure">
+<img src="static/img/modal_modify_review.png" max-width="1000px" alt="" />
+<p class="caption">Review page</p>
+</div>
 <p><br/>
 These help instructions are:</p>
 <p><strong>Synopsis</strong>: Short summary for this disease entity. Please include information on: a) approximate number of patients described in literature, b) nature of reported variants, b) severity of intellectual disability, c) further phenotypic aspects (if possible with frequencies) d) any valuable further information (e.g. genotype-phenotype correlations).</p>
@@ -251,7 +275,7 @@ These help instructions are:</p>
 <li>save your work <strong>(4)</strong>:</li>
 </ul>
 <div class="figure">
-<img src="static/img/modal_modify_status.png" width="800" alt="" />
+<img src="static/img/modal_modify_status.png" max-width="800px" alt="" />
 <p class="caption">Submit re-review modal</p>
 </div>
 </div>
@@ -259,11 +283,12 @@ These help instructions are:</p>
 <h3><span class="header-section-number">6.1.5</span> Submit Re-review<a href="re-review-instructions.html#submit-re-review" class="anchor-section" aria-label="Anchor link to header"></a></h3>
 <p>The last action window is just to confirm that you are satisfied with your work and would like to submit it for curation:</p>
 <div class="figure">
-<img src="static/img/modal_submit_re-review.png" width="400" alt="" />
+<img src="static/img/modal_submit_re-review.png" max-width="400px" alt="" />
 <p class="caption">Submit re-review modal</p>
 </div>
 <p>After clicking this button, the entity will disappear from your list. And you can proceed with the remaining entries until no entity is left in your list.</p>
-<p><br/></p>
+<p><br/>
+<br/></p>
 </div>
 </div>
 <div id="re-review-curation" class="section level2 hasAnchor" number="6.2">

@@ -15,18 +15,18 @@ We created Reviewer status accounts for participating scientists.
 ### Login
 You can log into your account by pointing your browser to https://sysndd.dbmr.unibe.ch/ and then clicking the “Login“ link on the right side of the menu:
 
-![Login menu](./static/img/sysndd_login.png){width=800px}
+![Login menu](./static/img/sysndd_login.png){max-width=800px}
 
 <br/>
 On the Login page enter your credentials and press the Login button:
 
-![Login page](./static/img/sysndd_login_page.png){width=400px}
+![Login page](./static/img/sysndd_login_page.png){max-width=400px}
 
 
 <br/>
 After successful login, you will be redirected to the start page and the navigation bar will show new links depending on your account privileges:
 
-![Login token menu](./static/img/sysndd_refresh_token.png){width=400px}
+![Login token menu](./static/img/sysndd_refresh_token.png){max-width=300px}
 
 Your login token (JWT; JSON Web Token) is valid for 1 hour, after which you will be logged out. You can however always refresh the time by clicking the link in the user menu. The website will warn you at 5, 3 and 1 minutes before log out.
 
@@ -36,12 +36,12 @@ Your login token (JWT; JSON Web Token) is valid for 1 hour, after which you will
 
 Click the “Review” link to your personal “Re-Review” site:
 
-![Review page menu](./static/img/sysndd_review_page_menu.png){width=1000px}
+![Review page menu](./static/img/sysndd_review_page_menu.png){max-width=1000px}
 
 <br/>
 The “Re-Review” page is structured as a table enriched with information and controls.
 
-![Review page](./static/img/sysndd_review_page.png){width=1000px}
+![Review page](./static/img/sysndd_review_page.png){max-width=1000px}
 
 
 <br/>
@@ -59,17 +59,18 @@ These show you the number of entities assigned to your account
 <br/>
 By clicking the action buttons, you can open 3 different windows to change the entities review:
 
-&nbsp;&nbsp;&nbsp;&nbsp; **(1)** entities review (![Edit review menu](./static/img/edit_review_button.png){width=50px})
+&nbsp;&nbsp;&nbsp;&nbsp; **(1)** entities review (![Edit review menu](./static/img/edit_review_button.png){max-width=50px})
 
-&nbsp;&nbsp;&nbsp;&nbsp; **(2)** the status (![Edit status menu](./static/img/edit_status_button.png){width=50px})
+&nbsp;&nbsp;&nbsp;&nbsp; **(2)** the status (![Edit status menu](./static/img/edit_status_button.png){max-width=50px})
 
-&nbsp;&nbsp;&nbsp;&nbsp; **(3)** and to submit your work (![Submit re-review status menu](./static/img/submit_re-review_button.png){width=50px})
+&nbsp;&nbsp;&nbsp;&nbsp; **(3)** and to submit your work (![Submit re-review status menu](./static/img/submit_re-review_button.png){max-width=50px})
 
 
 
 ### New Review edit
 
-In this window you have
+In this window you have:
+
 - the possibility to change/adapt or completely rewrite the current synopsis **(1)**,
 - add, or remove phenotype associations **(2)**,
 - add or remove publications from the review by PMID **(3)**
@@ -78,7 +79,8 @@ In this window you have
 - save your review **(6)**. 
 
 By clicking on the little question marks you can show help messages for each item:
-<img src="./static/img/modal_modify_review.png" alt="Review page" width="1000"/>
+
+![Review page](./static/img/modal_modify_review.png){max-width=1000px}
 
 <br/>
 These help instructions are: 
@@ -114,7 +116,7 @@ In this window you can propose
 - add a comment for your change suggestions for the Curators to better understand the proposal **(3)** and
 - save your work **(4)**:
 
-![Submit re-review modal](./static/img/modal_modify_status.png){width=800px}
+![Submit re-review modal](./static/img/modal_modify_status.png){max-width=800px}
 
 
 
@@ -122,11 +124,11 @@ In this window you can propose
 
 The last action window is just to confirm that you are satisfied with your work and would like to submit it for curation:
 
-![Submit re-review modal](./static/img/modal_submit_re-review.png){width=400px}
-
+![Submit re-review modal](./static/img/modal_submit_re-review.png){max-width=400px}
 
 After clicking this button, the entity will disappear from your list. And you can proceed with the remaining entries until no entity is left in your list.
 
+<br/>
 <br/>
 
 ## Re-review curation
