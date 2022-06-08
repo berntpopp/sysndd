@@ -186,7 +186,7 @@ Upon submission the E-mail account will receive a message with a one-time link a
 
 
 
-### Mobile website
+## Mobile website
 
 The Vue.js framework enables native cross platform development. Together with the Bootstrap CSS library this enables the SysNDD web app to seamlessly integrate on smaller mobile screens.
 
@@ -212,7 +212,7 @@ The analyses pages on mobile pages are best viewed in landscape mode:
 
 
 
-### Progressive Web App (PWA)
+## Progressive Web App (PWA)
 
 The SysNDD web app can also be installed on mobile devices using the Progressive Web App ([PWA](https://en.wikipedia.org/wiki/Progressive_web_application)) technology.
 This is supported in all Chromium-based modern browsers (Chrome, Edge, Opera, etc.) on all common operating systems (Windows, Linux, maxOS and Android).
@@ -248,7 +248,7 @@ To install the PWA on Android devices follow these steps:
 
 
 
-### Performance
+## Performance
 
 Modern Javascript frameworks like Vue.js, which we use for the SysNDD website, offer rich user experience. The generated single-page applications can be slower then server side rendered pages.
 
@@ -260,7 +260,7 @@ A quick overview on the current website performance can be obtained on PageSpeed
 
 
 
-### Security
+## Security
 
 SysNDD is engaged to offer highest security standards for all web tools.
 We use HTTPS with Transport Layer Security (TLS) and follow the mozilla recommendations for web server settings. 

@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999994 (TeX Live 2022) (preloaded format=xelatex 2022.6.8)  8 JUN 2022 12:25
+This is XeTeX, Version 3.141592653-2.6-0.999994 (TeX Live 2022) (preloaded format=xelatex 2022.6.8)  8 JUN 2022 12:30
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -755,7 +755,6 @@ LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
 [2] [3] [4]
 File: ./static/img/02_01-landing-page.png Graphic file (type bmp)
 <./static/img/02_01-landing-page.png>
-[5]
 File: ./static/img/02_02-navigation-menu-tables.png Graphic file (type bmp)
 <./static/img/02_02-navigation-menu-tables.png>
 File: ./static/img/02_03-navigation-menu-analyses.png Graphic file (type bmp)
@@ -764,7 +763,7 @@ File: ./static/img/02_04-navigation-menu-search.png Graphic file (type bmp)
 <./static/img/02_04-navigation-menu-search.png>
 File: ./static/img/02_05-navigation-menu-login.png Graphic file (type bmp)
 <./static/img/02_05-navigation-menu-login.png>
-[6]
+[5] [6]
 File: ./static/img/02_06-footer-menu.png Graphic file (type bmp)
 <./static/img/02_06-footer-menu.png>
 File: ./static/img/02_07-sysndd.dbmr.unibe.ch_Entities.png Graphic file (type bmp)
@@ -773,21 +772,23 @@ File: ./static/img/02_08-sysndd.dbmr.unibe.ch_Genes.png Graphic file (type bmp)
 <./static/img/02_08-sysndd.dbmr.unibe.ch_Genes.png>
 File: ./static/img/02_09-sysndd.dbmr.unibe.ch_Phenotypes.png Graphic file (type bmp)
 <./static/img/02_09-sysndd.dbmr.unibe.ch_Phenotypes.png>
+[7] [8]
 File: ./static/img/02_10-sysndd.dbmr.unibe.ch_Panels.png Graphic file (type bmp)
 <./static/img/02_10-sysndd.dbmr.unibe.ch_Panels.png>
-[7] [8] [9]
+[9]
 File: ./static/img/02_16-login-modal.png Graphic file (type bmp)
 <./static/img/02_16-login-modal.png>
+[10]
 File: ./static/img/02_17-register-modal.png Graphic file (type bmp)
 <./static/img/02_17-register-modal.png>
 File: ./static/img/02_18-password-reset-modal.png Graphic file (type bmp)
 <./static/img/02_18-password-reset-modal.png>
+[11] [12]
 File: ./static/img/02_19-mobile-site.png Graphic file (type bmp)
 <./static/img/02_19-mobile-site.png>
 
 LaTeX Warning: Float too large for page by 24.0874pt on input line 518.
 
-[10] [11] [12]
 File: ./static/img/02_20-mobile-navbar.png Graphic file (type bmp)
 <./static/img/02_20-mobile-navbar.png>
 
@@ -810,6 +811,7 @@ File: ./static/img/02_24-PWA-install-a.png Graphic file (type bmp)
 
 LaTeX Warning: Float too large for page by 24.0637pt on input line 569.
 
+[13] [14] [15] [16] [17]
 File: ./static/img/02_25-PWA-install-b.png Graphic file (type bmp)
 <./static/img/02_25-PWA-install-b.png>
 File: ./static/img/02_26-PWA-install-c.png Graphic file (type bmp)
@@ -821,7 +823,7 @@ File: ./static/img/02_28-PWA-install-e.png Graphic file (type bmp)
 
 LaTeX Warning: Float too large for page by 24.04294pt on input line 601.
 
-[13] [14] [15] [16] [17] [18] [19] [20] [21] [22]
+[18] [19] [20] [21] [22]
 File: ./static/img/03_01-api-authenticate.png Graphic file (type bmp)
 <./static/img/03_01-api-authenticate.png>
 File: ./static/img/03_02-JWT-token.png Graphic file (type bmp)
@@ -832,12 +834,12 @@ File: ./static/img/03_04-api-authorize-b.png Graphic file (type bmp)
 <./static/img/03_04-api-authorize-b.png>
 File: ./static/img/03_05-api-authorize-c.png Graphic file (type bmp)
 <./static/img/03_05-api-authorize-c.png>
-[23] [24]
 File: ./static/img/03_06-api-authorize-d.png Graphic file (type bmp)
 <./static/img/03_06-api-authorize-d.png>
+[23] [24] [25]
 File: ./static/img/04_01-design-db-schema.png Graphic file (type bmp)
 <./static/img/04_01-design-db-schema.png>
-[25] [26] [27] [28] [29]
+[26] [27] [28] [29]
 File: ./static/img/sysndd_login.png Graphic file (type bmp)
 <./static/img/sysndd_login.png>
 File: ./static/img/sysndd_login_page.png Graphic file (type bmp)
@@ -848,9 +850,9 @@ File: ./static/img/sysndd_review_page_menu.png Graphic file (type bmp)
 <./static/img/sysndd_review_page_menu.png>
 File: ./static/img/sysndd_review_page.png Graphic file (type bmp)
 <./static/img/sysndd_review_page.png>
-[30] [31] [32]
 File: ./static/img/edit_review_button.png Graphic file (type bmp)
 <./static/img/edit_review_button.png>
+[30] [31] [32]
 File: ./static/img/edit_status_button.png Graphic file (type bmp)
 <./static/img/edit_status_button.png>
 File: ./static/img/submit_re-review_button.png Graphic file (type bmp)
@@ -865,12 +867,12 @@ File: ./static/img/modal_submit_re-review.png Graphic file (type bmp)
 <./static/img/modal_submit_re-review.png>
 [36] [37] (./SysNDD_documentation.bbl [38]) [39] (./SysNDD_documentation.aux)
 Package rerunfilecheck Info: File `SysNDD_documentation.out' has not changed.
-(rerunfilecheck)             Checksum: 7BA55F2A1D3A683336FC358AD9E82D40;4022.
+(rerunfilecheck)             Checksum: 713B48DFC77C1572AE9D815266398608;4565.
  ) 
 Here is how much of TeX's memory you used:
  18238 strings out of 478126
  342922 string characters out of 5851685
- 804337 words of memory out of 5000000
+ 806315 words of memory out of 5000000
  38630 multiletter control sequences out of 15000+600000
  475694 words of font info for 79 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
