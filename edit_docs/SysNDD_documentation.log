@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999994 (TeX Live 2022) (preloaded format=xelatex 2022.6.8)  8 JUN 2022 12:08
+This is XeTeX, Version 3.141592653-2.6-0.999994 (TeX Live 2022) (preloaded format=xelatex 2022.6.8)  8 JUN 2022 12:25
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -832,12 +832,12 @@ File: ./static/img/03_04-api-authorize-b.png Graphic file (type bmp)
 <./static/img/03_04-api-authorize-b.png>
 File: ./static/img/03_05-api-authorize-c.png Graphic file (type bmp)
 <./static/img/03_05-api-authorize-c.png>
+[23] [24]
 File: ./static/img/03_06-api-authorize-d.png Graphic file (type bmp)
 <./static/img/03_06-api-authorize-d.png>
-[23] [24] [25]
 File: ./static/img/04_01-design-db-schema.png Graphic file (type bmp)
 <./static/img/04_01-design-db-schema.png>
-[26] [27] [28] [29]
+[25] [26] [27] [28] [29]
 File: ./static/img/sysndd_login.png Graphic file (type bmp)
 <./static/img/sysndd_login.png>
 File: ./static/img/sysndd_login_page.png Graphic file (type bmp)
@@ -848,9 +848,9 @@ File: ./static/img/sysndd_review_page_menu.png Graphic file (type bmp)
 <./static/img/sysndd_review_page_menu.png>
 File: ./static/img/sysndd_review_page.png Graphic file (type bmp)
 <./static/img/sysndd_review_page.png>
+[30] [31] [32]
 File: ./static/img/edit_review_button.png Graphic file (type bmp)
 <./static/img/edit_review_button.png>
-[30] [31] [32]
 File: ./static/img/edit_status_button.png Graphic file (type bmp)
 <./static/img/edit_status_button.png>
 File: ./static/img/submit_re-review_button.png Graphic file (type bmp)

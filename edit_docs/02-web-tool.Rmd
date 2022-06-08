@@ -250,7 +250,21 @@ To install the PWA on Android devices follow these steps:
 
 ### Performance
 
+Modern Javascript frameworks like Vue.js, which we use for the SysNDD website, offer rich user experience. The generated single-page applications can be slower then server side rendered pages.
+
+With SysNDD we are engaged to provide a fast user experience by reducing component and request sizes and applying techniques like lazy loading and code splitting in the frontend with parallelisation in the api.
+
+A quick overview on the current website performance can be obtained on PageSpeed Insights (or "Lighthouse" in the chrome development console):
+
+[https://pagespeed.web.dev/report?url=https%3A%2F%2Fsysndd.dbmr.unibe.ch%2F](https://pagespeed.web.dev/report?url=https%3A%2F%2Fsysndd.dbmr.unibe.ch%2F&form_factor=desktop)
+
 
 
 ### Security
 
+SysNDD is engaged to offer highest security standards for all web tools.
+We use HTTPS with Transport Layer Security (TLS) and follow the mozilla recommendations for web server settings. 
+
+A quick overview for our security settings for the SysNDD website can be obtained on Mozilla Oservatory:
+
+[https://observatory.mozilla.org/analyze/sysndd.dbmr.unibe.ch](https://observatory.mozilla.org/analyze/sysndd.dbmr.unibe.ch)
