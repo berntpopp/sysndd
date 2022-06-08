@@ -27,7 +27,7 @@ This repository is for development of our SysNDD web application (app), applicat
 
 
 
-## [Quick start](#quick-start) 🏁
+## Quick start {quick-start} 🏁
 The SysNDD installation depends on docker and docker-compose.
 If these are installed the project can be installed locally using the provided shell script:
 
