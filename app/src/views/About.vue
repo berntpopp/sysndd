@@ -86,7 +86,7 @@
                       <b-col md="12">The previous SysID database and data curation was supported by:</b-col>
                     </b-row>
                     <b-row>
-                      <b-col md="12">- The European Union’s FP7 large scale integrated network GenCoDys (HEALTH-241995) to C Webber, MA Huynen and <b-link href="https://orcid.org/0000-0002-6918-3314" target="_blank">Annette Schenck</b-link>.</b-col>
+                      <b-col md="12">- The European Union’s FP7 large scale integrated network GenCoDys (HEALTH-241995) to MA Huynen and <b-link href="https://orcid.org/0000-0002-6918-3314" target="_blank">Annette Schenck</b-link>.</b-col>
                     </b-row>
                     <b-row>
                       <b-col md="12">- VIDI and TOP grants (917-96-346, 912-12-109) from The Netherlands Organisation for Scientific Research (NWO) to <b-link href="https://orcid.org/0000-0002-6918-3314" target="_blank">Annette Schenck</b-link>.</b-col>

@@ -70,7 +70,7 @@ The current SysNDD database development is supported by:
 - DFG (Deutsche Forschungsgemeinschaft) grant ZW184/6-1 to Christiane Zweier.
 - ITHACA ERN through Alain Verloes.
 The previous SysID database and data curation was supported by:
-- The European Union’s FP7 large scale integrated network GenCoDys (HEALTH-241995) to C Webber, MA Huynen and Annette Schenck.
+- The European Union’s FP7 large scale integrated network GenCoDys (HEALTH-241995) to MA Huynen and Annette Schenck.
 - VIDI and TOP grants (917-96-346, 912-12-109) from The Netherlands Organisation for Scientific Research (NWO) to Annette Schenck.
 - DFG (Deutsche Forschungsgemeinschaft) grants ZW184/1-1 and -2 to Christiane Zweier.
 - the IZKF (Interdisziplinäres Zentrum für Klinische Forschung) Erlangen to Christiane Zweier.
