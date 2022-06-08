@@ -19,6 +19,9 @@ login-page
 register-user-page
 reset-password-page
 api
+endpoints
+usage-policy
+authentication-and-authorization
 database-structure
 curation-criteria
 definitions

@@ -3,6 +3,7 @@
 ---
 
 The SysNDD web tool is available from [https://sysndd.dbmr.unibe.ch/](https://sysndd.dbmr.unibe.ch/) on a server hosted at the Department for BioMedical Research ([DBMR](https://www.dbmr.unibe.ch/)) (University of Bern) and the web address [https://sysndd.org/](https://sysndd.org/) redirects to this server.
+
 The web tool uses the [Vue.js](https://vuejs.org/) (v2.6) JavaScript framework with BootstrapVue to generate a Bootstrap v4 website frontend.
 
 

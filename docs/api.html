@@ -23,7 +23,7 @@
 <meta name="author" content="Bernt Popp, Christiane Zweier" />
 
 
-<meta name="date" content="2022-06-07" />
+<meta name="date" content="2022-06-08" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -128,7 +128,12 @@ div.csl-indent {
 <li class="chapter" data-level="2.7.2" data-path="web-tool.html"><a href="web-tool.html#reset-password-page"><i class="fa fa-check"></i><b>2.7.2</b> Reset password page</a></li>
 </ul></li>
 </ul></li>
-<li class="chapter" data-level="3" data-path="api.html"><a href="api.html"><i class="fa fa-check"></i><b>3</b> API</a></li>
+<li class="chapter" data-level="3" data-path="api.html"><a href="api.html"><i class="fa fa-check"></i><b>3</b> API</a>
+<ul>
+<li class="chapter" data-level="3.0.1" data-path="api.html"><a href="api.html#endpoints"><i class="fa fa-check"></i><b>3.0.1</b> Endpoints</a></li>
+<li class="chapter" data-level="3.0.2" data-path="api.html"><a href="api.html#usage-policy"><i class="fa fa-check"></i><b>3.0.2</b> Usage policy</a></li>
+<li class="chapter" data-level="3.0.3" data-path="api.html"><a href="api.html#authentication-and-authorization"><i class="fa fa-check"></i><b>3.0.3</b> Authentication and authorization</a></li>
+</ul></li>
 <li class="chapter" data-level="4" data-path="database-structure.html"><a href="database-structure.html"><i class="fa fa-check"></i><b>4</b> Database structure</a></li>
 <li class="chapter" data-level="5" data-path="curation-criteria.html"><a href="curation-criteria.html"><i class="fa fa-check"></i><b>5</b> Curation criteria</a>
 <ul>
@@ -184,7 +189,84 @@ div.csl-indent {
 <div id="api" class="section level1 hasAnchor" number="3">
 <h1><span class="header-section-number">Chapter | 3</span> API<a href="api.html#api" class="anchor-section" aria-label="Anchor link to header"></a></h1>
 <hr />
+<p>The SysNDD api (application programming interface) is available from <a href="https://sysndd.dbmr.unibe.ch/API">https://sysndd.dbmr.unibe.ch/API</a>.</p>
+<p>The api is written in R using the <a href="https://www.rplumber.io/">plumber package</a>.</p>
+<p>We intend to follow the <a href="https://swagger.io/specification/">Swagger/ OpenAPI</a> and <a href="https://jsonapi.org/">JSON:API</a> specifications.</p>
+<p>The api scripts run in a Docker container using the official “rocker/tidyverse” image (version 4.2.0).</p>
+<p>As R is single threaded, we deploy multiple instances of the api container. These are bundled together using <a href="http://www.haproxy.org/">HAProxy</a> load balancer.</p>
+<p>The api is rate limited through our <a href="https://www.nginx.com/">NGINX</a> web server configuration with a rate limit of 10 requests per second (10r/s; equals 1 request every 100 milliseconds) per requesting ip. The configuration allows bursts of up to 30r/s but introduces a delay after 10 requests to enforce the rate limit.</p>
+<div id="endpoints" class="section level3 hasAnchor" number="3.0.1">
+<h3><span class="header-section-number">3.0.1</span> Endpoints<a href="api.html#endpoints" class="anchor-section" aria-label="Anchor link to header"></a></h3>
+<p>The SysNDD api currently contains all endpoints for externala nd internal usage in one api script. This may change with future releases.</p>
+<p>The api is structured into different components based on the SysND concept:</p>
+<ul>
+<li>entity: Entity related endpoints</li>
+<li>review: Reviews related endpoints</li>
+<li>status: Status related endpoints</li>
+<li>re_review: Re-review related endpoints</li>
+<li>publication: Publication related endpoints</li>
+<li>gene: Gene related endpoints</li>
+<li>ontology: Ontology related endpoints</li>
+<li>inheritance: Inheritance related endpoints</li>
+<li>phenotype: Phenoptype related endpoints</li>
+<li>panels: Gene panel related endpoints</li>
+<li>comparisons: NDD gene list comparisons related endpoints</li>
+<li>search: Database search related endpoints</li>
+<li>list: Database list related endpoints</li>
+<li>statistics: Database statistics</li>
+<li>user: User account related endpoints</li>
+<li>authentication: Authentication related endpoints</li>
+</ul>
+<p>The endpoints are documented and can be tested using the Swagger/ OpenAPI user interface at <a href="https://sysndd.dbmr.unibe.ch/API">https://sysndd.dbmr.unibe.ch/API</a>.
+Here one can generate cURL requests to use in external software.</p>
+</div>
+<div id="usage-policy" class="section level3 hasAnchor" number="3.0.2">
+<h3><span class="header-section-number">3.0.2</span> Usage policy<a href="api.html#usage-policy" class="anchor-section" aria-label="Anchor link to header"></a></h3>
+<p>The SysNDD api powers the web tool for everyday users. We also provide the SysNDD api free to allow users to use the SysNDD data and build on it by creating software or services that connect to our platform.</p>
+<p>Usage requirements:
+- optimize your requests to stay in the above described limits
+- be sensible about re-using data (e.g., store your requests until data is updated on our server)
+- use pagination where possible instead of requesting large data chunks (e.g., restrict usage of “all” option in large, potentially blocking list endpoints like “entity” and “gene”)
+- if you require more api ressources please get in contact</p>
+<p>Updates and disclaimer:
+- We provide the SysNDD api as-is.
+- Due to the current development status (version 0.X.Y) we may update or modify the api any time. These changes may affect your use of the api or the way your integration interacts with the api.</p>
+</div>
+<div id="authentication-and-authorization" class="section level3 hasAnchor" number="3.0.3">
+<h3><span class="header-section-number">3.0.3</span> Authentication and authorization<a href="api.html#authentication-and-authorization" class="anchor-section" aria-label="Anchor link to header"></a></h3>
+<p>The SysNDD api uses JSON Web Tokens (<a href="https://jwt.io/">JWT</a>) to implement stateless authentication and authorization.</p>
+<p>The api user can manually (test purposes) request a token by entering their login credentials in the ionput form provided at the “api/auth/authenticate” endpoint:</p>
+<div class="figure">
+<img src="static/img/03_01-api-authenticate.png" max-width="1000px" alt="" />
+<p class="caption">Authenticate endpoint</p>
+</div>
+<p>This endpoint will generate and respond with and JWT token:</p>
+<div class="figure">
+<img src="static/img/03_02-JWT-token.png" max-width="1000px" alt="" />
+<p class="caption">JWT token</p>
+</div>
+<p>This Bearer token can then be copied and entered in the OpenAPI/ Swagger authorize modal which opens after clicking the “Authorize” modal button at the upper right corner:</p>
+<div class="figure">
+<img src="static/img/03_03-api-authorize-a.png" max-width="1000px" alt="" />
+<p class="caption">Authorize button</p>
+</div>
+<div class="figure">
+<img src="static/img/03_04-api-authorize-b.png" max-width="1000px" alt="" />
+<p class="caption">Authorize modal prompt</p>
+</div>
+<p>After entereing the token in the respective field (1) and cklicking the “Authorize” submission button the modal will change and show the login status. This field can be closed now:</p>
+<div class="figure">
+<img src="static/img/03_05-api-authorize-c.png" max-width="1000px" alt="" />
+<p class="caption">Authorize modal logged in</p>
+</div>
+<p>The user is now fully authenticated and can access the endpoints requiring user rights:</p>
+<div class="figure">
+<img src="static/img/03_06-api-authorize-d.png" max-width="1000px" alt="" />
+<p class="caption">API logged in</p>
+</div>
+<p>The token is valid for 60 minutes. It can be refreshed using the endpoint “api/auth/refresh”.</p>
 
+</div>
 </div>
             </section>
 
