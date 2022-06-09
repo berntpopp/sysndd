@@ -9,7 +9,26 @@
       border-variant="dark"
     >
       <template #header>
-        <h6 class="mb-1 text-left font-weight-bold">Comparing the presence of a gene in <mark v-b-tooltip.hover.leftbottom title="These have been reviewed to include lists which are regularly updated. Below table allows users to filter the presence of a gene (yes/ no) in the respective list overlaps.">different curation effors</mark> for neurodevelopmental disorders.</h6>
+        <h6 class="mb-1 text-left font-weight-bold">Comparing the presence of a gene in <mark v-b-tooltip.hover.leftbottom title="These have been reviewed to include lists which are regularly updated. Below table allows users to filter the presence of a gene (yes/ no) in the respective list overlaps.">different curation effors</mark> for neurodevelopmental disorders.
+
+          <b-badge pill id="popover-badge-help-comparisons" href="#" variant="info">
+            <b-icon icon="question-circle-fill"></b-icon>
+          </b-badge>
+
+          <b-popover target="popover-badge-help-comparisons" variant="info" triggers="focus">
+          <template #title>Comparisons selection</template>
+              The NDD databases and lists for the comparison with SysNDD are: <br>
+              <strong>1) radboudumc ID,</strong> downloaded and normalized from https://order.radboudumc.nl/en/LabProduct/Pdf/30240, <br>
+              <strong>2) gene2phenotype ID</strong> downloaded and normalized from https://www.ebi.ac.uk/gene2phenotype/downloads/DDG2P.csv.gz, <br>
+              <strong>3) panelapp ID</strong> downloaded and normalized from https://panelapp.genomicsengland.co.uk/panels/285/download/01234/, <br>
+              <strong>4) sfari</strong> downloaded and normalized from https://gene.sfari.org//wp-content/themes/sfari-gene/utilities/download-csv.php?api-endpoint=genes, <br>
+              <strong>5) geisinger DBD</strong> downloaded and normalized from https://dbd.geisingeradmi.org/downloads/DBD-Genes-Full-Data.csv, <br>
+              <strong>6) orphanet ID</strong> downloaded and normalized from https://id-genes.orphanet.app/es/index/sysid_index_1, <br>
+              <strong>7) OMIM NDD</strong> downloaded and normalized from http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt and https://data.omim.org/downloads/VVpx0Ng3TneJyOfawPWFcg/genemap2.txt, <br>
+          </b-popover>
+
+        </h6>
+
         <h6 class="mb-1 text-left font-weight-bold"><b-badge variant="success" v-b-tooltip.hover.bottom v-bind:title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime">Genes: {{totalRows}} </b-badge></h6>
       </template>
 
