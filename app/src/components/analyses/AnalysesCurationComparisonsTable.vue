@@ -24,7 +24,7 @@
               <strong>4) sfari</strong> downloaded and normalized from https://gene.sfari.org//wp-content/themes/sfari-gene/utilities/download-csv.php?api-endpoint=genes, <br>
               <strong>5) geisinger DBD</strong> downloaded and normalized from https://dbd.geisingeradmi.org/downloads/DBD-Genes-Full-Data.csv, <br>
               <strong>6) orphanet ID</strong> downloaded and normalized from https://id-genes.orphanet.app/es/index/sysid_index_1, <br>
-              <strong>7) OMIM NDD</strong> downloaded and normalized from http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt and https://data.omim.org/downloads/VVpx0Ng3TneJyOfawPWFcg/genemap2.txt, <br>
+              <strong>7) OMIM NDD</strong> filtered OMIM for the HPO term "Neurodevelopmental abnormality" (HP:0012759) and all its child terms using the files phenotype_to_genes (http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt) and genemap2 (https://data.omim.org/downloads/VVpx0Ng3TneJyOfawPWFcg/genemap2.txt), <br>
           </b-popover>
 
         </h6>
