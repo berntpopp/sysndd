@@ -27,7 +27,7 @@ generate_cluster_object <- function(hgnc_list,
     string_db <- STRINGdb$new(version = "11.5",
       species = 9606,
       score_threshold = 200,
-      input_directory = "data/")
+      input_directory = "data")
 
     sysndd_db_string_id_table <- pool %>% 
       tbl("non_alt_loci_set") %>%

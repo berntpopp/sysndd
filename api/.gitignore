@@ -3,8 +3,8 @@ config.yml
 # R files
 .Rhistory
 
-# Ignore the results directory in api folde
-results/**
+# Ignore the results directory in api folder
+results/*.json
 
 # Ignore the data directory in api folder
-data/**
+data/*.gz
