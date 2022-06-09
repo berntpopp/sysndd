@@ -9,7 +9,5 @@ libbz2-dev \
 libicu-dev \
 liblzma-dev \
 libsodium-dev
-RUN Rscript -e 'install.packages(c("Rcpp", "plumber", "DBI", "RMariaDB", "jsonlite", "config", "jose", "RCurl", "stringdist", "xlsx", "easyPubMed", "rvest", "lubridate", "pool", "memoise", "coop", "reshape2", "blastula", "keyring", "future", "knitr", "rlang", "timetk", "xml2"), repos="https://cloud.r-project.org")'
-RUN Rscript -e 'requireNamespace("BiocManager"); BiocManager::install();' \
-&& Rscript -e 'requireNamespace("BiocManager"); BiocManager::install("igraph")' \
-&& Rscript -e 'requireNamespace("BiocManager"); BiocManager::install("STRINGdb")' 
+RUN Rscript -e 'install.packages(c("Rcpp", "plumber", "DBI", "RMariaDB", "jsonlite", "config", "jose", "RCurl", "stringdist", "xlsx", "easyPubMed", "rvest", "lubridate", "pool", "memoise", "coop", "reshape2", "blastula", "keyring", "future", "knitr", "rlang", "timetk", "xml2", "igraph", "BiocManager"), repos="https://cloud.r-project.org")'
+RUN Rscript -e 'BiocManager::install(c("STRINGdb"))'
