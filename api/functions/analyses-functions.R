@@ -18,7 +18,7 @@ generate_cluster_object <- function(hgnc_list,
 
   if (file.exists(filename_results)) {
 
-    clusters_tibble <- fromJSON("results/output.json") %>%
+    clusters_tibble <- fromJSON(filename_results) %>%
       tibble()
 
   } else {
