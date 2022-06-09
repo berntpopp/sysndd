@@ -2,7 +2,16 @@
   <div class="container-fluid">
     <b-container fluid>
 
-      Content coming
+      <b-row class="justify-content-md-center py-2">
+        <b-col col md="12">
+          <div>
+            <b-tab title="Functional clusters" active>
+              <AnalyseGeneClusters />
+            </b-tab>
+          </div>
+          
+        </b-col>
+      </b-row>
 
     </b-container>
   </div>
@@ -10,8 +19,15 @@
 
 
 <script>
+  import AnalyseGeneClusters from '@/components/analyses/AnalyseGeneClusters.vue';
+
+  import toastMixin from '@/assets/js/mixins/toastMixin.js'
+
   export default {
+  components: {AnalyseGeneClusters,
+    },
   name: 'GeneNetworks',
+  mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
     title: 'Gene networks',

@@ -5,3 +5,6 @@ config.yml
 
 # Ignore the results directory in api folde
 results/**
+
+# Ignore the data directory in api folder
+data/**
