@@ -443,3 +443,45 @@ generate_tibble_fspec <- function(field_tibble, fspec_input) {
 
   return(return_data)
 }
+
+
+# generate a hash for a hgnc gene list
+generate_panel_hash <- function(hgnc_list) {
+
+  # remove hgnc pre-attachment, sort, concatenate and compute sha256 hash
+  list_hash <- hgnc_list %>%
+    str_remove("HGNC:") %>%
+    sort() %>%
+    str_c(collapse = ",") %>%
+    sha256()
+
+  # return result
+  return(list_hash)
+}
+
+
+# generate a hash for a json object
+generate_json_hash <- function(json_input) {
+
+  # compute sha256 hash
+  json_hash <- json_input %>%
+    sha256()
+
+  # return result
+  return(json_hash)
+
+}
+
+
+# generate a hash for a function
+generate_function_hash <- function(function_input) {
+
+  # deparse function, compute sha256 hash
+  function_hash <- function_input %>%
+    deparse1 %>%
+	sha256()
+
+  # return result
+  return(function_hash)
+
+}

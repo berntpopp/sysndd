@@ -293,7 +293,8 @@ function(res,
   # generate fields specs from a tibble
   disease_table_fspec <- generate_tibble_fspec_mem(ndd_entity_view,
     fspec)
-  sysndd_db_disease_table_fspec <- generate_tibble_fspec_mem(sysndd_db_disease_table,
+  sysndd_db_disease_table_fspec <- generate_tibble_fspec_mem(
+    sysndd_db_disease_table,
     fspec)
   disease_table_fspec$fspec$count_filtered <- sysndd_db_disease_table_fspec$fspec$count
 
