@@ -27,6 +27,7 @@ library(future)
 library(knitr)
 library(rlang)
 library(timetk)
+library(STRINGdb)
 ##-------------------------------------------------------------------##
 
 
@@ -92,7 +93,7 @@ options("plumber.apiURL" = dw$base_url)
 source("functions/database-functions.R", local = TRUE)
 source("functions/endpoint-functions.R", local = TRUE)
 source("functions/publication-functions.R", local = TRUE)
-source("functions/plot-functions.R", local = TRUE)
+source("functions/analyses-functions.R", local = TRUE)
 source("functions/helper-functions.R", local = TRUE)
 
 # convert to memoise functions
@@ -111,6 +112,9 @@ nest_gene_tibble_mem <- memoise(nest_gene_tibble,
   cache = cm)
 
 generate_tibble_fspec_mem <- memoise(generate_tibble_fspec,
+  cache = cm)
+
+generate_cluster_object_mem <- memoise(generate_cluster_object,
   cache = cm)
 
 ##-------------------------------------------------------------------##
@@ -143,6 +147,7 @@ generate_tibble_fspec_mem <- memoise(generate_tibble_fspec,
 #* @apiTag phenotype Phenoptype related endpoints
 #* @apiTag panels Gene panel related endpoints
 #* @apiTag comparisons NDD gene list comparisons related endpoints
+#* @apiTag analysis Analyses related endpoints
 #* @apiTag search Database search related endpoints
 #* @apiTag list Database list related endpoints
 #* @apiTag statistics Database statistics
@@ -3250,6 +3255,33 @@ comparisons_list <- generate_comparisons_list(sort,
 
   #Return the binary contents
   bin
+}
+##-------------------------------------------------------------------##
+
+
+
+##-------------------------------------------------------------------##
+## Analyses endpoints
+
+#* @tag analysis
+#* generates gene clusters using stringdb
+#* @serializer json list(na="string")
+#' @get /api/analysis/cluster
+function() {
+
+  # get data from database
+  genes_from_entity_table <- pool %>% 
+    tbl("ndd_entity_view") %>%
+    arrange(entity_id) %>%
+    filter(ndd_phenotype == 1) %>%
+    select(hgnc_id) %>%
+    collect() %>%
+    unique()
+
+  clusters <- generate_cluster_object_mem(genes_from_entity_table$hgnc_id)
+
+  # return output
+  clusters
 }
 ##-------------------------------------------------------------------##
 
