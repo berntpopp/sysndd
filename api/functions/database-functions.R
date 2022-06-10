@@ -435,12 +435,16 @@ put_post_db_phen_con <- function(request_method,
         port = dw$port
         )
 
-      # delete old phenotype connections for review_id first
+      # used to delete the delete old phenotype connections for review_id here (until 2022-06-10)
+      # changed to inactivation
       dbExecute(sysndd_db,
-        paste0("DELETE FROM ndd_review_phenotype_connect WHERE review_id = ",
-        review_id,
-        ";")
+        paste0("UPDATE ndd_review_phenotype_connect SET ",
+          "is_active = 0, ",
+          " WHERE review_id = ",
+          review_id,
+          ";")
         )
+
 
       # submit phenotypes from new review to database
       dbAppendTable(sysndd_db,

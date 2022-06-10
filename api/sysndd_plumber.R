@@ -2454,12 +2454,16 @@ function() {
   ndd_entity_view_tbl <- pool %>%
     tbl("ndd_entity_view") %>%
     collect()
+
   ndd_review_phenotype_connect_tbl <- pool %>%
     tbl("ndd_review_phenotype_connect") %>%
+    filter(is_active == 1) %>%
     collect()
+
   modifier_list_tbl <- pool %>%
     tbl("modifier_list") %>%
     collect()
+
   phenotype_list_tbl <- pool %>%
     tbl("phenotype_list") %>%
     collect()
@@ -2520,12 +2524,16 @@ function() {
   ndd_entity_view_tbl <- pool %>%
     tbl("ndd_entity_view") %>%
     collect()
+
   ndd_review_phenotype_connect_tbl <- pool %>%
     tbl("ndd_review_phenotype_connect") %>%
+    filter(is_active == 1) %>%
     collect()
+
   modifier_list_tbl <- pool %>%
     tbl("modifier_list") %>%
     collect()
+
   phenotype_list_tbl <- pool %>%
     tbl("phenotype_list") %>%
     collect()
