@@ -496,8 +496,4 @@ export default {
   text-overflow: ellipsis;
   white-space:nowrap;
   }
-  .border-dark {
-      border: 1;
-      border-color: #000;
-  }
 </style>

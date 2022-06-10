@@ -533,46 +533,17 @@ export default {
 </script>
 
 <style scoped>
-  .btn-group-xs > .btn, .btn-xs {
-    padding: .25rem .4rem;
-    font-size: .875rem;
-    line-height: .5;
-    border-radius: .2rem;
-  }
-.truncated {
-    display: block;
-    white-space: nowrap; /* forces text to single line */
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.bg-gradient {
-  margin:0px;
-  height:100%;
-  min-height:calc(100vh - 100px);
-  background-image: linear-gradient(-225deg, #E3FDF5 0%, #FFE6FA 100%);
-}
-.border-dark {
-    border: 1;
-    border-color: #000;
-}
-.word {
-  font-size: 1.25em;
+.btn-group-xs > .btn, .btn-xs {
+  padding: .25rem .4rem;
+  font-size: .875rem;
+  line-height: .5;
+  border-radius: .2rem;
 }
 mark {
-  display: inline-block;
-  line-height: 0em;
-  padding-bottom: 0.5em;
-  font-weight: bold;
-  background-color: #EAADBA;
-}
-.circle {
-  height: 150px;
-  width: 150px;
-  border-radius: 20%;
-  background-color: #FFF;
-  margin: 0 5px 5px 0;
-  float: left;
-  -webkit-shape-outside: circle();
-  shape-outside: circle();
+display: inline-block;
+line-height: 0em;
+padding-bottom: 0.5em;
+font-weight: bold;
+background-color: #EAADBA;
 }
 </style>

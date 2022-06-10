@@ -565,8 +565,4 @@ export default {
   .input-group .input-group-text {
       width: 100%;
   }
-  .border-dark {
-      border: 1;
-      border-color: #000;
-  }
 </style>

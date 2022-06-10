@@ -54,10 +54,5 @@
 
 
 <style scoped>
-.bg-gradient {
-  margin:0px;
-  height:100%;
-  min-height:calc(100vh - 100px);
-  background-image: linear-gradient(-225deg, #E3FDF5 0%, #FFE6FA 100%);
-}
+
 </style>
