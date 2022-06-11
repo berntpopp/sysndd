@@ -15,8 +15,32 @@
           >
 
           <template #header>
-            <h6 class="mb-1 text-left font-weight-bold">Phenotype search <b-badge variant="primary" v-b-tooltip.hover.bottom v-bind:title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime">Associated entities: {{totalRows}} </b-badge></h6>
-         </template>
+
+          <b-row>
+            <b-col>
+
+            <h6 class="mb-1 text-left font-weight-bold">
+              Phenotype search <b-badge variant="primary" v-b-tooltip.hover.bottom v-bind:title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime">Associated entities: {{totalRows}} </b-badge>
+            </h6>
+
+            </b-col>
+            <b-col>
+            
+            <h6 class="mb-1 text-right font-weight-bold">
+                <b-button
+                size="sm"
+                v-b-tooltip.hover.bottom
+                v-bind:title="'The table is ' + (filter_string === '' ? 'not' : '') + ' filtered.' +  (filter_string === '' ? '' : ' Click to remove all filters.')"
+                :variant="filter_string === '' ? 'info' : 'warning'"
+                @click="removeFilters()"
+                >
+                  <b-icon icon="filter" font-scale="1.0"></b-icon>
+                </b-button>
+            </h6>
+
+            </b-col>
+          </b-row>
+          </template>
 
           <b-row>
             <b-col class="my-1" sm="6">

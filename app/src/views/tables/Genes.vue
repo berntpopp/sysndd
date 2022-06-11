@@ -13,8 +13,33 @@
           header-class="p-1"
           border-variant="dark"
           >
+
           <template #header>
-            <h6 class="mb-1 text-left font-weight-bold">Genes table <b-badge variant="success" v-b-tooltip.hover.bottom v-bind:title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime">Genes: {{totalRows}} </b-badge></h6>
+
+          <b-row>
+            <b-col>
+
+            <h6 class="mb-1 text-left font-weight-bold">
+              Genes table <b-badge variant="success" v-b-tooltip.hover.bottom v-bind:title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime">Genes: {{totalRows}} </b-badge>
+            </h6>
+
+            </b-col>
+            <b-col>
+            
+            <h6 class="mb-1 text-right font-weight-bold">
+                <b-button
+                size="sm"
+                v-b-tooltip.hover.bottom
+                v-bind:title="'The table is ' + (filter_string === '' ? 'not' : '') + ' filtered.' +  (filter_string === '' ? '' : ' Click to remove all filters.')"
+                :variant="filter_string === '' ? 'info' : 'warning'"
+                @click="removeFilters()"
+                >
+                  <b-icon icon="filter" font-scale="1.0"></b-icon>
+                </b-button>
+            </h6>
+
+            </b-col>
+          </b-row>
           </template>
 
           <b-row>
