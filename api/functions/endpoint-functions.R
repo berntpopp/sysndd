@@ -262,7 +262,7 @@ generate_panels_list <- function(sort = "symbol",
   filter_exprs <- generate_filter_expressions(filter)
 
   # generate table with field information for display
-  # to do: this has to be updated through some logic based
+  # TODO: this has to be updated through some logic based
   # on field types in MySQL table in a function
   fields_tibble <- as_tibble(str_split(fields, ",")[[1]]) %>%
     select(key = value) %>%

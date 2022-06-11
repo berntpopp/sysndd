@@ -1051,7 +1051,7 @@ export default {
           const status_saved = this.status_info.re_review_status_saved;
 
           // remove user info from status object
-          // to do: handle this server side to make it more robust
+          // TODO: handle this server side to make it more robust
           this.status_info.status_user_name = null;
           this.status_info.status_user_role = null;
           this.status_info.re_review_status_saved = null;
@@ -1098,7 +1098,7 @@ export default {
           const review_saved = this.review_info.re_review_review_saved;
 
           // remove user info from review object
-          // to do: handle this server side to make it more robust
+          // TODO: handle this server side to make it more robust
           this.review_info.review_user_name = null;
           this.review_info.review_user_role = null;
           this.review_info.re_review_review_saved = null;
@@ -1258,7 +1258,7 @@ export default {
           return !isNaN(Number(tag.replaceAll('PMID:', ''))) && tag.includes('PMID:') && tag.replace('PMID:', '').length > 4 && tag.replace('PMID:', '').length < 9;
         },
         saved(any_id) {
-          // to do: implemet this server side and with real logic :D
+          // TODO: implemet this server side and with real logic :D
           // check if id is new
           let number_return = 0;
           if (any_id <= 3650) {

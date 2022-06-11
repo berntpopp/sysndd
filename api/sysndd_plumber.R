@@ -2449,7 +2449,7 @@ phenotype_entities_list <- generate_phenotype_entities_list(sort,
 #' @get /api/phenotype/correlation
 function() {
 
-  # to do: this should be a view instead in SQL
+  # TODO: this should be a view instead in SQL
   # get data from database, filter and restructure
   ndd_entity_view_tbl <- pool %>%
     tbl("ndd_entity_view") %>%
@@ -2483,7 +2483,7 @@ function() {
     # needed to filter only active reviews
     filter(review_id %in% ndd_entity_review$review_id) %>%
     # only phenotypes for definitive and modifier present currently
-    # to do: allow changing this behaviour with a parameter
+    # TODO: allow changing this behaviour with a parameter
     filter(category == "Definitive") %>%
     filter(modifier_name == "present") %>%
     # remove the generall HP:0001249 term present in all definitive entities
@@ -2519,7 +2519,7 @@ function() {
 #' @get /api/phenotype/count
 function() {
 
-  # to do: this should be a view instead in SQL
+  # TODO: this should be a view instead in SQL
   # get data from database, filter and restructure
   ndd_entity_view_tbl <- pool %>%
     tbl("ndd_entity_view") %>%
@@ -2551,7 +2551,7 @@ function() {
     left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
     filter(ndd_phenotype == 1) %>%
     # only phenotypes for definitive and modifier present currently
-    # to do: allow changing this behaviour with a parameter
+    # TODO: allow changing this behaviour with a parameter
     filter(review_id %in% ndd_entity_review$review_id) %>%
     filter(category == "Definitive") %>%
     filter(modifier_name == "present") %>%
@@ -2836,6 +2836,7 @@ function() {
     tbl("ndd_entity_status_categories_list") %>%
     select(category) %>%
     collect() %>%
+    filter(category != "not applicable") %>%
     add_row(category = "All") %>%
     arrange(category)
 

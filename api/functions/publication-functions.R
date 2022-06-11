@@ -269,7 +269,7 @@ info_from_genereviews_pmid <- function(pmid_input) {
 }
 
 
-## to do: find a faster implementation of the check
+## TODO: find a faster implementation of the check
 genereviews_from_pmid <- function(pmid_input, check = FALSE) {
   pmid_input <- str_replace_all(pmid_input, "PMID:", "")
 
