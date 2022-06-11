@@ -217,7 +217,8 @@ generate_panels_list <- function(sort = "symbol",
   filter = "equals(category,'Definitive'),any(inheritance_filter,'Autosomal dominant','Autosomal recessive','X-linked','Other')",
   fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38",
   `page[after]` = 0,
-  `page[size]` = "all") {
+  `page[size]` = "all",
+  max_category = TRUE) {
 
   # set start time
   start_time <- Sys.time()
@@ -235,6 +236,13 @@ generate_panels_list <- function(sort = "symbol",
     select(inheritance_filter) %>%
     collect() %>%
         unique()
+
+  # if max_category is true replace category in filter
+  if (max_category) {
+  filter <- str_replace(filter,
+    "category",
+    "max_category")
+  }
 
   # replace "All" with respective allowed values
   filter <- str_replace(filter,
@@ -272,6 +280,12 @@ generate_panels_list <- function(sort = "symbol",
     mutate(sortByFormatted = "true") %>%
     mutate(filterByFormatted = "true")
 
+  # get the category table to compute the max category term
+  status_categories_list <- pool %>%
+    tbl("ndd_entity_status_categories_list") %>%
+    collect() %>%
+    select(category_id, max_category = category)
+
   # join entity_view and non_alt_loci_set tables
   sysndd_db_ndd_entity_view <- pool %>%
     tbl("ndd_entity_view") %>%
@@ -279,21 +293,33 @@ generate_panels_list <- function(sort = "symbol",
     select(hgnc_id,
       symbol,
       inheritance = hpo_mode_of_inheritance_term_name,
-      inheritance_filter, category)
+      inheritance_filter,
+      category,
+      category_id) %>%
+    collect() %>%
+    # following section computes the max category for a gene
+    group_by(symbol) %>%
+    mutate(category_id = min(category_id)) %>%
+    ungroup() %>%
+    left_join(status_categories_list, by = c("category_id")) %>%
+    select(-category_id)
 
   sysndd_db_non_alt_loci_set <- pool %>%
     tbl("non_alt_loci_set") %>%
-    select(hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38)
+    select(hgnc_id, entrez_id, ensembl_gene_id, ucsc_id, bed_hg19, bed_hg38) %>%
+    collect()
 
   sysndd_db_disease_genes <- sysndd_db_ndd_entity_view %>%
-    left_join(sysndd_db_non_alt_loci_set, by = c("hgnc_id")) %>%
-    collect() %>%
+    left_join(sysndd_db_non_alt_loci_set, by = c("hgnc_id"))
+
+  disease_genes_filter <- sysndd_db_disease_genes %>%
     filter(!!!rlang::parse_exprs(filter_exprs)) %>%
         select(-inheritance_filter) %>%
     unique() %>%
-        arrange(symbol, inheritance) %>%
+        arrange(symbol, category, inheritance) %>%
         group_by(symbol) %>%
         mutate(inheritance = str_c(unique(inheritance), collapse = "; ")) %>%
+        mutate(category = str_c(unique(category), collapse = "; ")) %>%
         ungroup() %>%
         unique() %>%
     arrange(!!!rlang::parse_exprs(sort_exprs))
@@ -301,7 +327,7 @@ generate_panels_list <- function(sort = "symbol",
   # select fields from table based on input using
   # the helper function "select_tibble_fields"
   sysndd_db_disease_genes_panel <- select_tibble_fields(
-    sysndd_db_disease_genes,
+    disease_genes_filter,
     fields,
     "symbol")
 

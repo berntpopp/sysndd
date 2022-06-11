@@ -2872,13 +2872,15 @@ function(res,
   filter = "equals(category,'Definitive'),any(inheritance_filter,'Autosomal dominant','Autosomal recessive','X-linked','Other')",
   fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38",
   `page[after]` = 0,
-  `page[size]` = "all") {
+  `page[size]` = "all",
+  max_category = TRUE) {
   # call the endpoint function generate_panels_list
   panels_list <- generate_panels_list(sort,
     filter,
     fields,
     `page[after]`,
-    `page[size]`)
+    `page[size]`,
+    max_category)
 
   # return the list
   panels_list
@@ -2897,13 +2899,15 @@ function(res,
   filter = "equals(category,'Definitive'),any(inheritance_filter,'Autosomal dominant','Autosomal recessive','X-linked','Other')",
   fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38",
   `page[after]` = 0,
-  `page[size]` = "all") {
+  `page[size]` = "all",
+  max_category = TRUE) {
   # call the endpoint function generate_panels_list
   panels_list <- generate_panels_list(sort,
     filter,
     fields,
     `page[after]`,
-    `page[size]`)
+    `page[size]`,
+    max_category)
 
   # generate creation date statistic for output
   creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"),
