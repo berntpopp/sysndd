@@ -14,7 +14,22 @@
           border-variant="dark"
           >
           <template #header>
-            <h6 class="mb-1 text-left font-weight-bold">Panel compilation and download <b-badge variant="primary" v-b-tooltip.hover.bottom v-bind:title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime">Genes: {{totalRows}} </b-badge></h6>
+            <h6 class="mb-1 text-left font-weight-bold">
+              
+              Panel compilation and download <b-badge variant="primary" v-b-tooltip.hover.bottom v-bind:title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime">Genes: {{totalRows}} </b-badge>
+
+              <b-badge class="m-1" pill id="popover-badge-help-comparisons" href="#" variant="info">
+                <b-icon icon="question-circle-fill"></b-icon>
+              </b-badge>
+
+              <b-popover target="popover-badge-help-comparisons" variant="info" triggers="focus">
+              <template #title>Gene categories</template>
+                A gene is assigned to the highest category of all entities it is associated with. <br>
+                E.g. if there are two entities for a gene with "Definitive" and "Limited" category, respectively, the gene is assigned to the Definitive panel.
+              </b-popover>
+
+            </h6>
+
           </template>
 
           <b-row>
