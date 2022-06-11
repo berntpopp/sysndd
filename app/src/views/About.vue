@@ -230,7 +230,33 @@
                     </b-row>
                     <b-row>
                       <b-col md="12">
-                        SysID/SysNDD is one of the few NDD-related databases that contains not only information on genes but also on associated diseases, inheritance patterns and phenotypes, all organized in entities. It is manually curated by a single or a limited number of experts thus ensuring high confidence of the data.
+                        SysNDD is one of the few NDD-related databases that contains not only information on genes but also on associated diseases, inheritance patterns and phenotypes, all organized in entities. It is manually curated by a single or a limited number of experts thus ensuring high confidence of the data.<br><br>
+                      </b-col>
+                    </b-row>
+
+                    <b-row>
+                      <b-col md="12">
+                        <span class="font-weight-bold">
+                        7. Where can I find information on how to use SysNDD and its concepts?
+                        </span>
+                      </b-col>
+                    </b-row>
+                    <b-row>
+                      <b-col md="12">
+                        The SysNDD documentation is generated usign bookdown and hosted on our GitHub docs page at <b-link href="https://berntpopp.github.io/sysndd/" target="_blank">https://berntpopp.github.io/sysndd/</b-link>. You can browse the webpage, download the content in different formats (PDF, DOCS, EPUB) and even help improve the documentation by editing it on GitHub.<br><br>
+                      </b-col>
+                    </b-row>
+
+                    <b-row>
+                      <b-col md="12">
+                        <span class="font-weight-bold">
+                        8. You found a bug, have a problem with the site or data or want to help improve the service?
+                        </span>
+                      </b-col>
+                    </b-row>
+                    <b-row>
+                      <b-col md="12">
+                        Ask questions, report bugs and chat about SysNDD in general using our <b-link href="https://github.com/berntpopp/sysndd/discussions" target="_blank">Github discussions page</b-link>.<br><br>
                       </b-col>
                     </b-row>
 

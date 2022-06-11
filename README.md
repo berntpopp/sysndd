@@ -17,7 +17,7 @@ This repository is for development of our SysNDD web application (app), applicat
 
 ## Table of contents
 
-- [Quick start](#quick-start) 📝
+- [Quick start](#quick-start) 🏁
 - [Documentation](#documentation) 📝
 - [Contributing and community](#contributing-and-community) 👥
 - [Bugs and feature requests](#bugs-and-feature-requests) 🪲 & 🌟
@@ -47,7 +47,7 @@ Please explore [The SysNDD Documentation](https://berntpopp.github.io/sysndd/) h
 ## Contributing and community
 To contribute in curating novel entries to our database you can register for a new reviewer/ curator [account on the SysNDD page](https://sysndd.dbmr.unibe.ch/Register).
 
-Ask questions, report bigs and chat about SysNDD in general using our [Github discussions](https://github.com/berntpopp/sysndd/discussions) page.
+Ask questions, report bugs and chat about SysNDD in general using our [Github discussions](https://github.com/berntpopp/sysndd/discussions) page.
 
 
 ## Bugs and feature requests
