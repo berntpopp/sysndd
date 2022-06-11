@@ -385,7 +385,8 @@ generate_panels_list <- function(sort = "symbol",
 
 
 # nest the gene statistics
-generate_gene_stat_tibble <- function(sort = "category_id,-n") {
+generate_gene_stat_tibble <- function(sort = "category_id,-n",
+  max_category = TRUE) {
   # set start time
   start_time <- Sys.time()
 
@@ -401,6 +402,23 @@ generate_gene_stat_tibble <- function(sort = "category_id,-n") {
       category,
       category_id) %>%
     collect()
+
+  # if max_category is true replace category in filter
+  if (max_category) {
+    # get the category table to compute the max category term
+    status_categories_list <- pool %>%
+      tbl("ndd_entity_status_categories_list") %>%
+      collect() %>%
+      select(category_id, category)
+
+    sysndd_db_disease_genes <- sysndd_db_disease_genes %>%
+      # following section computes the max category for a gene
+      group_by(symbol) %>%
+      mutate(category_id = min(category_id)) %>%
+      ungroup() %>%
+      select(-category) %>%
+      left_join(status_categories_list, by = c("category_id"))
+  }
 
   disease_genes_group_cat_inh <- sysndd_db_disease_genes %>%
     mutate(inheritance = case_when(

@@ -4,7 +4,10 @@ import VueMeta from 'vue-meta'
 
 import { createPinia, PiniaVuePlugin } from 'pinia'
 
-import './assets/css/custom.css';
+// import custom css
+import(/* webpackPreload: true */ './assets/css/custom.css');
+
+// import custom js
 import './assets/js/functions.js';
 
 import { BIconPersonCircle, 
@@ -37,11 +40,9 @@ import { BIconPersonCircle,
 
 // based on https://stackoverflow.com/questions/54829710/how-to-override-bootstrap-variables-in-vue-workflow-vanilla-bootstrap
 // import 'bootstrap/dist/css/bootstrap.css'
+
 import '../src/assets/scss/custom.scss';
 import 'bootstrap-vue/dist/bootstrap-vue.css'
-
-// import custom css
-import '../src/assets/css/custom.css';
 
 // import axios
 import VueAxios from 'vue-axios'
