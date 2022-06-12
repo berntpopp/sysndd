@@ -3,7 +3,8 @@
 ## generate the clusters object
 generate_cluster_object <- function(hgnc_list,
   min_size = 10,
-  subcluster = TRUE) {
+  subcluster = TRUE,
+  parent = NA) {
 
   # compute hashes for input
   panel_hash <- generate_panel_hash(hgnc_list)
@@ -53,7 +54,8 @@ generate_cluster_object <- function(hgnc_list,
       mutate(cluster_size = nrow(identifiers)) %>%
       filter(cluster_size >= min_size) %>%
       select(cluster, cluster_size, identifiers) %>%
-      {if(subcluster) mutate(., subclusters = list(generate_cluster_object(identifiers$hgnc_id, subcluster = FALSE))) else .} %>%
+      {if(!is.na(parent)) mutate(., parent_cluster = parent) else .} %>%
+      {if(subcluster) mutate(., subclusters = list(generate_cluster_object(identifiers$hgnc_id, subcluster = FALSE, parent = cluster))) else .} %>%
       ungroup()
 
     # save computation result

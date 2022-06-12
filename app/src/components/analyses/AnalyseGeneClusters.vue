@@ -59,9 +59,9 @@
       },
       generateClusterGraph() {
       // Graph dimension
-      const margin = {top: 50, right: 50, bottom: 50, left: 50},
-          width = 600 - margin.left - margin.right,
-          height = 600 - margin.top - margin.bottom;
+      const margin = {top: 10, right: 10, bottom: 10, left: 10},
+          width = 400 - margin.left - margin.right,
+          height = 400 - margin.top - margin.bottom;
 
       // Create the svg area
       const svg = d3.select("#cluster_dataviz")
@@ -70,14 +70,17 @@
           .attr("height", height)
 
       // 
-      const data = this.itemsCluster;
+      const data = this.itemsCluster
+        .map(({subclusters}) => {
+          return subclusters })
+        .flat();
 
-      // Color palette for continents?
+      // Color palette for clusters
       const color = d3.scaleOrdinal()
         .domain([1, 2, 3, 4, 5, 6])
         .range(d3.schemeSet1);
 
-      // Size scale for countries
+      // Size scale for clusters
       const size = d3.scaleLinear()
         .domain([0, 1000])
         .range([7,55])  // circle will be between 7 and 55 px wide
@@ -103,7 +106,7 @@
 
   const mousemove = function(event, d) {
     Tooltip
-      .html('<u>Cluster: ' + d.cluster + '</u>' + "<br>" + d.cluster_size + " genes")
+      .html('<u>Cluster: ' + d.parent_cluster + "." + d.cluster + '</u>' + "<br>" + d.cluster_size + " genes")
           .style("left", `${event.layerX+20}px`)
           .style("top", `${event.layerY+20}px`);
   }
@@ -125,7 +128,7 @@
       .attr("r", d => size(d.cluster_size))
       .attr("cx", width / 2)
       .attr("cy", height / 2)
-      .style("fill", d => color(d.cluster))
+      .style("fill", d => color(d.parent_cluster))
       .style("fill-opacity", 0.8)
       .attr("stroke", "black")
       .style("stroke-width", 1)
