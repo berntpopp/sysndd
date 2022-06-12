@@ -60,8 +60,8 @@
       generateClusterGraph() {
       // Graph dimension
       const margin = {top: 10, right: 10, bottom: 10, left: 10},
-          width = 400 - margin.left - margin.right,
-          height = 400 - margin.top - margin.bottom;
+          width = 300 - margin.left - margin.right,
+          height = 300 - margin.top - margin.bottom;
 
       // Create the svg area
       const svg = d3.select("#cluster_dataviz")
@@ -83,7 +83,20 @@
       // Size scale for clusters
       const size = d3.scaleLinear()
         .domain([0, 1000])
-        .range([7,55])  // circle will be between 7 and 55 px wide
+        .range([7, 55])  // circle will be between 7 and 55 px wide
+
+      // get unique parent cluster ids as array
+      const unique = (value, index, self) => {
+        return self.indexOf(value) === index
+      };
+
+      const unique_parent_cluster = data.map(({parent_cluster}) => {
+        return parent_cluster }).filter(unique);
+
+// A scale that gives a X target position for each parent_cluster
+const x = d3.scaleOrdinal()
+  .domain(unique_parent_cluster)
+  .range(unique_parent_cluster.map(function(x) { return x * 30; }))
 
   // create a tooltip
   const Tooltip = d3.select("#cluster_dataviz")
@@ -145,6 +158,8 @@
       .force("center", d3.forceCenter().x(width / 2).y(height / 2)) // Attraction to the center of the svg area
       .force("charge", d3.forceManyBody().strength(.1)) // Nodes are attracted one each other of value is > 0
       .force("collide", d3.forceCollide().strength(.2).radius(function(d){ return (size(d.cluster_size) + 3) }).iterations(1)) // Force that avoids circle overlapping
+        .force("forceX", d3.forceX().strength(0.5).x(d => x(d.parent_cluster)))
+        .force("forceY", d3.forceY().strength(.1).y(height * .5));
 
   // Apply these forces to the nodes and update their positions.
   // Once the force algorithm is happy with positions ('alpha' value is low enough), simulations will stop.
