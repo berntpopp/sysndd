@@ -278,9 +278,11 @@
 
       <template #modal-title>
         <h4>Modify review for entity: 
-          <b-badge variant="primary">
-            sysndd:{{ review_info.entity_id }}
-          </b-badge>
+          <b-link v-bind:href="'/Entities/' + review_info.entity_id" target="_blank">
+            <b-badge variant="primary">
+              sysndd:{{ review_info.entity_id }}
+            </b-badge>
+          </b-link>
         </h4>
       </template>
 
@@ -1010,7 +1012,7 @@ export default {
             new_variation,
             response_review.data[0].comment
             );
-
+            console.log(this.review_info)
             this.review_info.review_id = response_review.data[0].review_id;
             this.review_info.entity_id = response_review.data[0].entity_id;
             this.review_info.review_user_name = response_review.data[0].review_user_name;
