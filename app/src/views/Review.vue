@@ -38,6 +38,7 @@
               </b-col>
             </b-row>
           </template>
+
           <b-row>
             <b-col class="my-1">
               <b-form-group
@@ -547,9 +548,11 @@
 
       <template #modal-title>
         <h4>Modify status for entity: 
-          <b-badge variant="primary">
-            sysndd:{{ status_info.entity_id }}
-          </b-badge>
+          <b-link v-bind:href="'/Entities/' + status_info.entity_id" target="_blank">
+            <b-badge variant="primary">
+              sysndd:{{ status_info.entity_id }}
+            </b-badge>
+          </b-link>
         </h4>
       </template>
 
