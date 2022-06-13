@@ -3637,9 +3637,10 @@ function(tree = FALSE) {
     variation_ontology_list_coll <- pool %>%
       tbl("variation_ontology_list") %>%
       filter(is_active) %>%
-      select(vario_id, vario_name, definition) %>%
-      arrange(vario_id) %>%
+      select(vario_id, vario_name, definition, sort) %>%
+      arrange(`sort`) %>%
       collect() %>%
+      select(-`sort`) %>%
       mutate(children = list(modifier_list_collected)) %>%
       unnest(children) %>%
       filter(modifier_id != 1) %>%
@@ -3653,9 +3654,10 @@ function(tree = FALSE) {
   } else {
     variation_ontology_list_coll <- pool %>%
       tbl("variation_ontology_list") %>%
-      select(vario_id, vario_name, definition) %>%
-      arrange(vario_id) %>%
-      collect()
+      select(vario_id, vario_name, definition, sort) %>%
+      arrange(`sort`) %>%
+      collect() %>%
+      select(-`sort`)
   }
 
   # return output
