@@ -1035,7 +1035,7 @@ function(req, res, `filter[review_approved]` = 0) {
 function(req, res, re_review = FALSE) {
 
   # first check rights
-  if (req$user_role %in% c("Administrator", "Curator")) {
+  if (req$user_role %in% c("Administrator", "Curator", "Reviewer")) {
     # make sure re_review input is logical
     re_review <- as.logical(re_review)
 
@@ -2692,7 +2692,7 @@ function() {
 function(req, res, re_review = FALSE) {
 
   # first check rights
-  if (req$user_role %in% c("Administrator", "Curator")) {
+  if (req$user_role %in% c("Administrator", "Curator", "Reviewer")) {
     # make sure re_review input is logical
     re_review <- as.logical(re_review)
 
