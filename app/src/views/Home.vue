@@ -507,11 +507,6 @@ export default {
           } catch (e) {
           this.makeToast(e, 'Error', 'danger');
           }
-        if (this.search_keys[0] === this.search_input & !(this.search_object[this.search_input] == null)) {
-          this.$router.push(this.search_object[this.search_input][0].link);
-          this.search_input = '';
-          this.search_keys = [];
-        }
       }
     },
   keydown_handler(event) {
