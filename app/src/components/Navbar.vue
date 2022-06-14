@@ -63,9 +63,7 @@
                   variant="outline-primary"
                   size="sm"
                   :disabled="search_input.length < 2"
-                  v-bind:href="'/Search/' + search_input"
-                  type="button"
-                  >
+                  @click="keydown_handler" >
                     <b-icon icon="search"></b-icon>
                   </b-button>
                 </b-input-group-append>
@@ -279,10 +277,10 @@ watch: { // used to refresh navbar on login push
       }
     },
     keydown_handler(event) {
-        if (event.which === 13 & this.search_input.length > 0 & !(this.search_object[this.search_input] == null)) {
+        if ((event.which === 13 | event.which === 1) & this.search_input.length > 0 & !(this.search_object[this.search_input] == null)) {
           this.$router.push(this.search_object[this.search_input][0].link);
           this.search_input = '';
-        } else if (event.which === 13 & this.search_input.length > 0 & (this.search_object[this.search_input] == null)) {
+        } else if ((event.which === 13 | event.which === 1) & this.search_input.length > 0 & (this.search_object[this.search_input] == null)) {
           this.$router.push('/Search/' + this.search_input);
           this.search_input = '';
         }
