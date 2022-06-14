@@ -1,7 +1,9 @@
 <template>
   <div>
-    <b-navbar toggleable="md" type="dark" variant="dark" class="py-0 bg-navbar">
-      <b-navbar-brand href="/"><img src="../../public/brain-neurodevelopmental-disorders-sysndd-logo.png" height="40" width="40" alt="SysNDD Logo" rel="preload"> SysNDD</b-navbar-brand>
+    <b-navbar toggleable="lg" type="dark" variant="dark" class="py-0 bg-navbar">
+      <b-navbar-brand href="/">
+        <img src="../../public/brain-neurodevelopmental-disorders-sysndd-logo.png" height="40" width="40" alt="SysNDD Logo" rel="preload"> SysNDD
+      </b-navbar-brand>
 
       <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
 
@@ -26,11 +28,17 @@
 
           <b-nav-item href="/About">About</b-nav-item>
 
-          <b-nav-item-dropdown 
-          text="Search"
-          v-if="show_search"
+        </b-navbar-nav>
+
+        <b-navbar-nav class="mx-auto">
+
+        <b-row class="navbar-search">
+          <b-col>
+
+          <b-nav-form
+            v-if="show_search"
+            @submit.stop.prevent="keydown_handler"
           >
-          <b-nav-form style="width:220px" @submit.stop.prevent="keydown_handler">
               <b-input-group class="mb-2">
                 <b-form-input 
                 list="search-list" 
@@ -38,7 +46,7 @@
                 placeholder="..." 
                 size="sm"
                 autocomplete="off" 
-                style="width:180px" 
+                class="navbar-search"
                 v-model="search_input"
                 @input="loadSearchInfo"
                 @keydown.native="keydown_handler"
@@ -63,8 +71,10 @@
                 </b-input-group-append>
               </b-input-group>
           </b-nav-form>
-          </b-nav-item-dropdown>
-          
+
+          </b-col>
+        </b-row>
+
         </b-navbar-nav>
 
         <!-- Right aligned nav items -->
@@ -344,5 +354,8 @@ width: 220px;
 }
 .bg-navbar {
   background-image: linear-gradient(to right, #434343 0%, black 100%);
+}
+.navbar-search {
+  width: 400px;
 }
 </style>
