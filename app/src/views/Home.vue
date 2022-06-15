@@ -43,7 +43,8 @@
                 variant="outline-dark"
                 size="md"
                 :disabled="search_input.length < 2"
-                @click="keydown_handler" >
+                @click="keydown_handler"
+              >
                   <b-icon icon="search"></b-icon>
                 </b-button>
               </b-input-group-append>

@@ -3,12 +3,16 @@
     <div id="navbar" class="sticky-top"> <Navbar/> </div>
     <div id="content" class="position-relative" style="min-height:calc(100vh - 100px)"> <router-view :key="$route.fullPath"></router-view> </div>
     <div id="footer" class="sticky-bottom"> <Footer/> </div>
+
+    <HelperBadge />
+
   </div>
 </template>
 
 <script>
 import Navbar from './components/Navbar.vue'
 import Footer from './components/Footer.vue'
+import HelperBadge from '@/components/HelperBadge.vue';
 
 export default {
   name: 'SysNDD',
@@ -26,7 +30,8 @@ export default {
   },
   components: {
     Navbar,
-    Footer
+    Footer,
+    HelperBadge
   }
 }
 </script>

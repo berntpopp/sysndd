@@ -313,10 +313,12 @@
         </b-col>
       </b-row>
     </b-container>
+
   </div>
 </template>
 
 <script>
+  
 export default {
   name: 'About',
   metaInfo: {
@@ -347,4 +349,5 @@ export default {
     line-height: .5;
     border-radius: .2rem;
   }
+
 </style>
