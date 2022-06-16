@@ -2921,7 +2921,7 @@ function(res,
     sheetName = "data",
     append = FALSE)
 
-  write.xlsx(panels_list$meta,
+  write.xlsx(panels_list$meta %>% select(-fspec),
     filename,
     sheetName = "meta",
     append = TRUE)
@@ -3243,7 +3243,7 @@ comparisons_list <- generate_comparisons_list(sort,
     sheetName = "data",
     append = FALSE)
 
-  write.xlsx(comparisons_list$meta,
+  write.xlsx(comparisons_list$meta %>% select(-fspec),
     filename,
     sheetName = "meta",
     append = TRUE)

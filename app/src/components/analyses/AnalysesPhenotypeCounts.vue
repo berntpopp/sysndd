@@ -123,7 +123,8 @@
       }
       const mouseleave = function(event,d) {
         tooltip
-          .style("opacity", 0)
+          .style("opacity", 0);
+
         d3.select(this)
           .style("stroke", "none");
       }
