@@ -2921,7 +2921,7 @@ function(res,
     sheetName = "data",
     append = FALSE)
 
-  write.xlsx(panels_list$meta %>% select(-fspec),
+  write.xlsx(panels_list$meta,
     filename,
     sheetName = "meta",
     append = TRUE)
