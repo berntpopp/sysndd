@@ -460,8 +460,8 @@ export default {
     this.loading = true;
     let apiDiseaseOntologyURL = process.env.VUE_APP_API_URL + '/api/ontology/' + this.$route.params.disease_term + '?input_type=ontology_id';
     let apiDiseaseNameURL = process.env.VUE_APP_API_URL + '/api/ontology/' + this.$route.params.disease_term + '?input_type=ontology_name';
-    let apiEntitiesByOntologyURL = process.env.VUE_APP_API_URL + '/api/entity?filter=contains(disease_ontology_id_version,' + this.$route.params.disease_term + ')';
-    let apiEntitiesByNameURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(disease_ontology_name,' + this.$route.params.disease_term + ')';
+    let apiEntitiesByOntologyURL = process.env.VUE_APP_API_URL + '/api/entity?filter=contains(disease_ontology_id_version,' + this.$route.params.disease_term + ')&page[size]=all';
+    let apiEntitiesByNameURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(disease_ontology_name,' + this.$route.params.disease_term + ')&page[size]=all';
 
 
     try {

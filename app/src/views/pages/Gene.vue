@@ -457,8 +457,8 @@ export default {
     this.loading = true;
     let apiGeneURL = process.env.VUE_APP_API_URL + '/api/gene/' + this.$route.params.symbol + '?input_type=hgnc';
     let apiGeneSymbolURL = process.env.VUE_APP_API_URL + '/api/gene/' + this.$route.params.symbol + '?input_type=symbol';
-    let apiEntitiesByGeneSymbolURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(symbol,' + this.$route.params.symbol + ')';
-    let apiEntitiesByGeneURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(hgnc_id,' + this.$route.params.symbol + ')';
+    let apiEntitiesByGeneSymbolURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(symbol,' + this.$route.params.symbol + ')&page[size]=all';
+    let apiEntitiesByGeneURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(hgnc_id,' + this.$route.params.symbol + ')&page[size]=all';
 
     try {
       let response_gene = await this.axios.get(apiGeneURL);
