@@ -1,14 +1,16 @@
 <template>
   <div class="container-fluid">
 
-    <TablesEntities />
+    <TablesEntities
+    >
+    </TablesEntities>
 
   </div>
 </template>
 
 
 <script>
-  import TablesEntities from '@/components/tables/TablesEntities.vue';
+import TablesEntities from '@/components/tables/TablesEntities.vue';
 
 export default {
   components: {TablesEntities,

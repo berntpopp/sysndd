@@ -257,125 +257,17 @@
           <!-- Gene overview card -->
 
 
-          <!-- Associated entities card -->
-          <b-card 
-          header-tag="header"
-          body-class="p-0"
-          header-class="p-1"
-          border-variant="dark"
+          <!-- Associated entities table -->
+
+          <TablesEntities
+          :show_filter_controls="false"
+          :show_pagination_controls="false"
+          header_label="Associated "
+          :filter_input="{symbol: this.gene[0].symbol}"
           >
+          </TablesEntities>
 
-            <template #header>
-              <h3 class="mb-1 text-left font-weight-bold">
-                <b-badge variant="primary">Associated entities</b-badge>
-              </h3>
-            </template>
-
-
-            <!-- associated entities table element -->
-            <b-table
-              :items="entities_data"
-              :fields="entities_data_fields"
-              stacked="md"
-              head-variant="light"
-              show-empty
-              small
-              fixed
-              striped
-              hover
-              sort-icon-left
-            >
-
-              <template #cell(actions)="row">
-                <b-button class="btn-xs" @click="row.toggleDetails" variant="outline-primary">
-                  {{ row.detailsShowing ? 'Hide' : 'Show' }} Details
-                </b-button>
-              </template>
-
-              <template #row-details="row">
-                <b-card>
-                  <b-table
-                    :items="[row.item]"
-                    stacked 
-                    small
-                  >
-                  </b-table>
-                </b-card>
-              </template>
-
-
-              <template #cell(entity_id)="data">
-                <div>
-                  <b-link v-bind:href="'/Entities/' + data.item.entity_id">
-                    <b-badge 
-                    variant="primary"
-                    style="cursor:pointer"
-                    >
-                    sysndd:{{ data.item.entity_id }}
-                    </b-badge>
-                  </b-link>
-                </div>
-              </template>
-
-              <template #cell(symbol)="data">
-                <div class="font-italic">
-                  <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
-                    <b-badge pill variant="success"
-                    v-b-tooltip.hover.leftbottom 
-                    v-bind:title="data.item.hgnc_id"
-                    >
-                    {{ data.item.symbol }}
-                    </b-badge>
-                  </b-link>
-                </div> 
-              </template>
-
-              <template #cell(disease_ontology_name)="data">
-                <div class="overflow-hidden text-truncate">
-                  <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"> 
-                    <b-badge 
-                    pill 
-                    variant="secondary"
-                    v-b-tooltip.hover.leftbottom
-                    v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version"
-                    >
-                    {{ truncate(data.item.disease_ontology_name, 40) }}
-                    </b-badge>
-                  </b-link>
-                </div> 
-              </template>
-
-              <template #cell(hpo_mode_of_inheritance_term_name)="data">
-                <div>
-                  <b-badge 
-                  pill 
-                  variant="info" 
-                  class="justify-content-md-center" 
-                  size="1.3em"
-                  v-b-tooltip.hover.leftbottom 
-                  v-bind:title="data.item.hpo_mode_of_inheritance_term_name + ' (' + data.item.hpo_mode_of_inheritance_term + ')'"
-                  >
-                  {{ inheritance_short_text[data.item.hpo_mode_of_inheritance_term_name] }}
-                  </b-badge>
-                </div>
-              </template>
-
-              <template #cell(ndd_phenotype_word)="data">
-                <div>
-                  <b-avatar 
-                  size="1.4em" 
-                  :icon="ndd_icon[data.item.ndd_phenotype_word]"
-                  :variant="ndd_icon_style[data.item.ndd_phenotype_word]"
-                  v-b-tooltip.hover.left 
-                  v-bind:title="ndd_icon_text[data.item.ndd_phenotype_word]"
-                  >
-                  </b-avatar>
-                </div> 
-              </template>
-
-            </b-table>
-          </b-card>
-          <!-- Associated entities card -->
+          <!-- Associated entities table -->
 
           </b-col>
         </b-row>
@@ -384,9 +276,12 @@
 </template>
 
 <script>
+import TablesEntities from '@/components/tables/TablesEntities.vue';
 import toastMixin from '@/assets/js/mixins/toastMixin.js'
 
 export default {
+  components: {TablesEntities,
+    },
   name: 'Gene',
   mixins: [toastMixin],
   metaInfo: {
@@ -457,27 +352,18 @@ export default {
     this.loading = true;
     let apiGeneURL = process.env.VUE_APP_API_URL + '/api/gene/' + this.$route.params.symbol + '?input_type=hgnc';
     let apiGeneSymbolURL = process.env.VUE_APP_API_URL + '/api/gene/' + this.$route.params.symbol + '?input_type=symbol';
-    let apiEntitiesByGeneSymbolURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(symbol,' + this.$route.params.symbol + ')&page[size]=all';
-    let apiEntitiesByGeneURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(hgnc_id,' + this.$route.params.symbol + ')&page[size]=all';
 
     try {
       let response_gene = await this.axios.get(apiGeneURL);
       let response_symbol = await this.axios.get(apiGeneSymbolURL);
-      let response_entities_by_gene = await this.axios.get(apiEntitiesByGeneURL);
-      let response_entities_by_symbol = await this.axios.get(apiEntitiesByGeneSymbolURL);
-
 
       if (response_gene.data.length == 0 && response_symbol.data.length == 0) {
           this.$router.push('/PageNotFound');
       } else {
         if (response_gene.data.length == 0) {
           this.gene = response_symbol.data;
-          this.entities_data = response_entities_by_symbol.data.data;
-          this.totalRows = response_entities_by_symbol.data.data.length;
         } else {
           this.gene = response_gene.data;
-          this.entities_data = response_entities_by_gene.data.data;
-          this.totalRows = response_entities_by_gene.data.data.length;
         }
       }
 

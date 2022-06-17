@@ -68,29 +68,33 @@
             </b-col>
 
             <b-col class="my-1" sm="4">
-              <b-input-group
-                prepend="Per page"
-                class="mb-1"
-                size="sm"
+              <b-container
+                v-if="(totalRows > perPage) || show_pagination_controls"
               >
-                <b-form-select
-                  id="per-page-select"
-                  v-model="perPage"
-                  :options="pageOptions"
+                <b-input-group
+                  prepend="Per page"
+                  class="mb-1"
                   size="sm"
-                ></b-form-select>
-              </b-input-group>
+                >
+                  <b-form-select
+                    id="per-page-select"
+                    v-model="perPage"
+                    :options="pageOptions"
+                    size="sm"
+                  ></b-form-select>
+                </b-input-group>
 
-              <b-pagination
-                @change="handlePageChange"
-                v-model="currentPage"
-                :total-rows="totalRows"
-                :per-page="perPage"
-                align="fill"
-                size="sm"
-                class="my-0"
-                limit=2
-              ></b-pagination>
+                <b-pagination
+                  @change="handlePageChange"
+                  v-model="currentPage"
+                  :total-rows="totalRows"
+                  :per-page="perPage"
+                  align="fill"
+                  size="sm"
+                  class="my-0"
+                  limit=2
+                ></b-pagination>
+              </b-container>
             </b-col>
           </b-row>
           <!-- User Interface controls -->
@@ -299,6 +303,7 @@ export default {
   name: 'TablesEntities',
   props: {
     show_filter_controls:  {type: Boolean,  default: true},
+    show_pagination_controls:  {type: Boolean,  default: true},
     header_label: {type: String,  default: 'Entities table'},
     perPage_input:  {type: Number,  default: 10},
     sortBy_input: {type: String,  default: 'entity_id'},
@@ -407,7 +412,6 @@ export default {
       mounted() {
         this.filtered();
         setTimeout(() => {this.loading = false}, 500);
-        console.log(this.filter);
       },
       watch: {
         sortBy(value) {
