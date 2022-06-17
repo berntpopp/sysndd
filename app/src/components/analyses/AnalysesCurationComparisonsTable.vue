@@ -14,7 +14,7 @@
       <b-row>
         <b-col>
 
-        <h6 class="mb-1 text-left font-weight-bold">Comparing the presence of a gene in <mark v-b-tooltip.hover.leftbottom title="These have been reviewed to include lists which are regularly updated. Below table allows users to filter the presence of a gene (yes/ no) in the respective list overlaps.">different curation effors</mark> for neurodevelopmental disorders.
+        <h6 class="mb-1 text-left font-weight-bold">Comparing the presence of a gene in different <mark v-b-tooltip.hover.leftbottom title="These have been reviewed to include lists which are regularly updated. Below table allows users to filter the presence of a gene (yes/ no) in the respective list overlaps.">curation effors</mark> for neurodevelopmental disorders.
 
           <b-badge pill id="popover-badge-help-comparisons" href="#" variant="info">
             <b-icon icon="question-circle-fill"></b-icon>

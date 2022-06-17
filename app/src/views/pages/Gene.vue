@@ -214,7 +214,7 @@
 
                 <template #cell(rgd_id)="data">
                   <b-row>
-                    <b-row v-for="id in data.item.rgd_id" :key="id"> 
+                    <b-row v-for="id in data.item.rgd_id" :key="id">
                         <b-col>
                           <b-button 
                           class="btn-xs mx-2" 
