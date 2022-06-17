@@ -260,10 +260,10 @@
           <!-- Associated entities table -->
 
           <TablesEntities
-          :show_filter_controls="false"
-          :show_pagination_controls="false"
-          header_label="Associated "
-          :filter_input="{symbol: this.gene[0].symbol}"
+            :show_filter_controls="false"
+            :show_pagination_controls="false"
+            header_label="Associated "
+            :filter_input="{symbol: this.gene[0].symbol}"
           >
           </TablesEntities>
 
@@ -317,29 +317,6 @@ export default {
             { key: 'rgd_id', label: 'RGD', sortable: true, class: 'text-left' },
             { key: 'STRING_id', label: 'STRING', sortable: true, class: 'text-left' },
           ],
-          entities_data: [],
-          entities_data_fields: [
-            { key: 'entity_id', label: 'Entity', sortable: true, sortDirection: 'desc', class: 'text-left' },
-            { key: 'symbol', label: 'Gene Symbol', sortable: true, class: 'text-left' },
-            {
-              key: 'disease_ontology_name',
-              label: 'Disease',
-              sortable: true,
-              class: 'text-left',
-              sortByFormatted: true,
-              filterByFormatted: true
-            },
-            {
-              key: 'hpo_mode_of_inheritance_term_name',
-              label: 'Inheritance',
-              sortable: true,
-              class: 'text-left',
-              sortByFormatted: true,
-              filterByFormatted: true
-            },
-            { key: 'ndd_phenotype_word', label: 'NDD', sortable: true, class: 'text-left' },
-            { key: 'actions', label: 'Actions' }
-          ],
           totalRows: 0,
           loading: true
       }
@@ -379,6 +356,7 @@ export default {
 }
 </script>
 
+
 <style scoped>
 .btn-group-xs > .btn, .btn-xs {
   padding: .25rem .4rem;
@@ -386,5 +364,4 @@ export default {
   line-height: .5;
   border-radius: .2rem;
 }
-
 </style>

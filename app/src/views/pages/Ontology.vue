@@ -193,170 +193,15 @@
 
 
           <!-- Associated entities card -->
-          <b-card 
-          header-tag="header"
-          body-class="p-0"
-          header-class="p-1"
-          border-variant="dark"
+
+          <TablesEntities
+          :show_filter_controls="false"
+          :show_pagination_controls="false"
+          header_label="Associated "
+          :filter_input="{disease_ontology_id_version: this.ontology[0].disease_ontology_id_version}"
           >
+          </TablesEntities>
 
-            <template #header>
-              <h3 class="mb-1 text-left font-weight-bold">
-                <b-badge variant="primary">Associated entities</b-badge>
-              </h3>
-            </template>
-
-
-            <!-- Table Interface controls -->
-            <b-row  v-if="totalRows >= 10">
-              <b-col class="my-1">
-                <b-input-group
-                  prepend="Per page"
-                  class="mb-1"
-                  size="sm"
-                >
-                  <b-form-select
-                    id="per-page-select"
-                    v-model="perPage"
-                    :options="pageOptions"
-                    size="sm"
-                  ></b-form-select>
-                </b-input-group>
-
-                <b-pagination
-                  v-model="currentPage"
-                  :total-rows="totalRows"
-                  :per-page="perPage"
-                  align="fill"
-                  size="sm"
-                  class="my-0"
-                  last-number
-                ></b-pagination>
-              </b-col>
-            </b-row>
-            <!-- Table Interface controls -->
-
-            <!-- associated entities table element -->
-            <b-table
-              :items="entities_data"
-              :fields="entities_data_fields"
-              :current-page="currentPage"
-              :per-page="perPage"
-              :sort-by.sync="sortBy"
-              :sort-desc.sync="sortDesc"
-              :sort-direction="sortDirection"
-              stacked="md"
-              head-variant="light"
-              show-empty
-              small
-              fixed
-              striped
-              hover
-              sort-icon-left
-            >
-
-              <template #cell(actions)="row">
-                <b-button class="btn-xs" @click="row.toggleDetails" variant="outline-primary">
-                  {{ row.detailsShowing ? 'Hide' : 'Show' }} Details
-                </b-button>
-              </template>
-
-              <template #row-details="row">
-                <b-card>
-                  <b-table
-                    :items="[row.item]"
-                    stacked 
-                    small
-                  >
-                  </b-table>
-                </b-card>
-              </template>
-
-
-              <template #cell(entity_id)="data">
-                <div>
-                  <b-link v-bind:href="'/Entities/' + data.item.entity_id">
-                    <b-badge 
-                    variant="primary"
-                    style="cursor:pointer"
-                    >
-                    sysndd:{{ data.item.entity_id }}
-                    </b-badge>
-                  </b-link>
-                </div>
-              </template>
-
-              <template #cell(symbol)="data">
-                <div class="font-italic">
-                  <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
-                    <b-badge pill variant="success"
-                    v-b-tooltip.hover.leftbottom 
-                    v-bind:title="data.item.hgnc_id"
-                    >
-                    {{ data.item.symbol }}
-                    </b-badge>
-                  </b-link>
-                </div> 
-              </template>
-
-              <template #cell(disease_ontology_name)="data">
-                <div class="overflow-hidden text-truncate">
-                  <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"> 
-                    <b-badge 
-                    pill 
-                    variant="secondary"
-                    v-b-tooltip.hover.leftbottom
-                    v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version"
-                    >
-                    {{ truncate(data.item.disease_ontology_name, 40) }}
-                    </b-badge>
-                  </b-link>
-                </div> 
-              </template>
-
-              <template #cell(hpo_mode_of_inheritance_term_name)="data">
-                <div>
-                  <b-badge 
-                  pill 
-                  variant="info" 
-                  class="justify-content-md-center" 
-                  size="1.3em"
-                  v-b-tooltip.hover.leftbottom 
-                  v-bind:title="data.item.hpo_mode_of_inheritance_term_name + ' (' + data.item.hpo_mode_of_inheritance_term + ')'"
-                  >
-                  {{ inheritance_short_text[data.item.hpo_mode_of_inheritance_term_name] }}
-                  </b-badge>
-                </div>
-              </template>
-
-              <template #cell(ndd_phenotype_word)="data">
-                <div>
-                  <b-avatar 
-                  size="1.4em" 
-                  :icon="ndd_icon[data.item.ndd_phenotype_word]"
-                  :variant="ndd_icon_style[data.item.ndd_phenotype_word]"
-                  v-b-tooltip.hover.left 
-                  v-bind:title="ndd_icon_text[data.item.ndd_phenotype_word]"
-                  >
-                  </b-avatar>
-                </div> 
-              </template>
-
-              <template #cell(category)="data">
-                <div>
-                  <b-avatar
-                  size="1.4em"
-                  icon="stoplights"
-                  :variant="stoplights_style[data.item.category]"
-                  v-b-tooltip.hover.left 
-                  v-bind:title="data.item.category"
-                  >
-                  </b-avatar>
-                </div> 
-              </template>
-              
-            </b-table>
-          </b-card>
           <!-- Associated entities card -->
 
           </b-col>
@@ -366,9 +211,12 @@
 </template>
 
 <script>
+import TablesEntities from '@/components/tables/TablesEntities.vue';
 import toastMixin from '@/assets/js/mixins/toastMixin.js'
 
 export default {
+  components: {TablesEntities,
+    },
   name: 'Ontology',
   mixins: [toastMixin],
   metaInfo: {
@@ -419,29 +267,6 @@ export default {
             { key: 'Orphanet', label: 'Orphanet', sortable: true, class: 'text-left' },
             { key: 'EFO', label: 'EFO', sortable: true, class: 'text-left' }
           ],
-          entities_data: [],
-          entities_data_fields: [
-            { key: 'entity_id', label: 'Entity', sortable: true, sortDirection: 'desc', class: 'text-left' },
-            { key: 'symbol', label: 'Gene Symbol', sortable: true, class: 'text-left' },
-            {
-              key: 'disease_ontology_name',
-              label: 'Disease',
-              sortable: true,
-              class: 'text-left',
-              sortByFormatted: true,
-              filterByFormatted: true
-            },
-            {
-              key: 'hpo_mode_of_inheritance_term_name',
-              label: 'Inheritance',
-              sortable: true,
-              class: 'text-left',
-              sortByFormatted: true,
-              filterByFormatted: true
-            },
-            { key: 'ndd_phenotype_word', label: 'NDD', sortable: true, class: 'text-left' },
-            { key: 'actions', label: 'Actions' }
-          ],
           totalRows: 0,
           currentPage: 1,
           perPage: 10,
@@ -460,27 +285,18 @@ export default {
     this.loading = true;
     let apiDiseaseOntologyURL = process.env.VUE_APP_API_URL + '/api/ontology/' + this.$route.params.disease_term + '?input_type=ontology_id';
     let apiDiseaseNameURL = process.env.VUE_APP_API_URL + '/api/ontology/' + this.$route.params.disease_term + '?input_type=ontology_name';
-    let apiEntitiesByOntologyURL = process.env.VUE_APP_API_URL + '/api/entity?filter=contains(disease_ontology_id_version,' + this.$route.params.disease_term + ')&page[size]=all';
-    let apiEntitiesByNameURL = process.env.VUE_APP_API_URL + '/api/entity?filter=equals(disease_ontology_name,' + this.$route.params.disease_term + ')&page[size]=all';
-
 
     try {
       let response_ontology = await this.axios.get(apiDiseaseOntologyURL);
       let response_name = await this.axios.get(apiDiseaseNameURL);
-      let response_entities_by_ontology = await this.axios.get(apiEntitiesByOntologyURL);
-      let response_entities_by_name = await this.axios.get(apiEntitiesByNameURL);
 
       if (response_ontology.data.length == 0 && response_name.data.length == 0) {
           this.$router.push('/PageNotFound');
       } else {
         if (response_ontology.data == 0) {
           this.ontology = response_name.data;
-          this.entities_data = response_entities_by_name.data.data;
-          this.totalRows = response_entities_by_name.data.data.length;
         } else {
           this.ontology = response_ontology.data;
-          this.entities_data = response_entities_by_ontology.data.data;
-          this.totalRows = response_entities_by_ontology.data.data.length;
         }
       }
 
@@ -496,6 +312,7 @@ export default {
 }
 </script>
 
+
 <style scoped>
 .btn-group-xs > .btn, .btn-xs {
   padding: .25rem .4rem;
@@ -503,5 +320,4 @@ export default {
   line-height: .5;
   border-radius: .2rem;
 }
-
 </style>
