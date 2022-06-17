@@ -1,9 +1,11 @@
 <template>
   <div class="container-fluid">
 
+  <!-- Load Entities table component element -->
     <TablesEntities
     >
     </TablesEntities>
+  <!-- Load Entities table component element -->
 
   </div>
 </template>
