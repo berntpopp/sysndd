@@ -5,8 +5,8 @@
 generate_comparisons_list <- function(sort = "symbol",
   filter = "",
   fields = "",
-  `page[after]` = "0",
-  `page[size]` = "10",
+  `page_after` = "0",
+  `page_size` = "10",
   fspec = "symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id") {
   # set start time
   start_time <- Sys.time()
@@ -55,8 +55,8 @@ generate_comparisons_list <- function(sort = "symbol",
   # to generate cursor pagination information from a tibble
   ndd_database_comp_table_info <- generate_cursor_pag_inf(
     ndd_database_comparison_table,
-    `page[size]`,
-    `page[after]`,
+    `page_size`,
+    `page_after`,
     "symbol")
 
   # compute execution time
@@ -104,8 +104,8 @@ generate_comparisons_list <- function(sort = "symbol",
 generate_phenotype_entities_list <- function(sort = "entity_id",
   filter = "",
   fields = "",
-  `page[after]` = "0",
-  `page[size]` = "all",
+  `page_after` = "0",
+  `page_size` = "all",
   fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details") {
   # set start time
   start_time <- Sys.time()
@@ -167,7 +167,7 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
   # to generate cursor pagination information from a tibble
   entity_phenotype_table_pag_info <- generate_cursor_pag_inf(
     sysndd_db_entity_phenotype_table,
-    `page[size]`, `page[after]`,
+    `page_size`, `page_after`,
     "entity_id")
 
 
@@ -216,8 +216,8 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
 generate_panels_list <- function(sort = "symbol",
   filter = "equals(category,'Definitive'),any(inheritance_filter,'Autosomal dominant','Autosomal recessive','X-linked','Other')",
   fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38",
-  `page[after]` = 0,
-  `page[size]` = "all",
+  `page_after` = 0,
+  `page_size` = "all",
   max_category = TRUE) {
 
   # set start time
@@ -335,8 +335,8 @@ generate_panels_list <- function(sort = "symbol",
   # generate cursor pagination information from a tibble
   disease_genes_panel_pag_inf <- generate_cursor_pag_inf(
     sysndd_db_disease_genes_panel,
-    `page[size]`,
-    `page[after]`,
+    `page_size`,
+    `page_after`,
     "symbol")
 
   # compute execution time

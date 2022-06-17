@@ -4,9 +4,17 @@
 # based on https://xiaolianglin.com/
 # 2018/12/05/Use-memoise-to-speed-up-your-R-plumber-API/
 nest_gene_tibble <- function(tibble) {
+
+  # remember the initial sorting
+  initial_sort <- tibble %>% 
+    select(symbol, hgnc_id, entities_count) %>%
+    unique()
+
+  # nest then re-apply the sorting
     nested_tibble <- tibble %>%
         nest_by(symbol, hgnc_id, entities_count, .key = "entities") %>%
-    ungroup()
+        ungroup() %>%
+        arrange(factor(symbol, levels = initial_sort$symbol))
 
     return(nested_tibble)
 }

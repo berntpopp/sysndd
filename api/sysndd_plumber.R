@@ -234,8 +234,8 @@ function(req, res) {
 #* @param sort:str  Output column to arrange output on.
 #* @param filter:str Comma separated list of filters to apply.
 #* @param fields:str Comma separated list of output columns.
-#* @param page[after]:str Cursor after which to show entries in cursor pagination.
-#* @param page[size]:str Page size in cursor pagination.
+#* @param page_after:str Cursor after which to show entries in cursor pagination.
+#* @param page_size:str Page size in cursor pagination.
 #* @param fspec:str Fields for which to generate the fied specification in the meta data response.
 #* @response 200  A cursor pagination object with links, meta information and entity objects in the data field.
 #* @response 500  Internal server error.
@@ -244,8 +244,8 @@ function(res,
   sort = "entity_id",
   filter = "",
   fields = "",
-  `page[after]` = 0,
-  `page[size]` = "10",
+  `page_after` = 0,
+  `page_size` = "10",
   fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details") {
 
   start_time <- Sys.time()
@@ -285,8 +285,8 @@ function(res,
   # generate cursor pagination information from a tibble
   disease_table_pagination_info <- generate_cursor_pag_inf(
     sysndd_db_disease_table,
-    `page[size]`,
-    `page[after]`,
+    `page_size`,
+    `page_after`,
     "entity_id")
 
   # use the helper generate_tibble_fspec to
@@ -2106,16 +2106,16 @@ function(req, res, pmid) {
 #* @param sort:str  Output column to arrange output on.
 #* @param filter:str Comma separated list of filters to apply.
 #* @param fields:str Comma separated list of output columns.
-#* @param page[after]:str Cursor after which to show entries in cursor pagination.
-#* @param page[size]:str Page size in cursor pagination.
+#* @param page_after:str Cursor after which to show entries in cursor pagination.
+#* @param page_size:str Page size in cursor pagination.
 #* @param fspec:str Fields for which to generate the fied specification in the meta data response.
 #' @get /api/gene
 function(res,
   sort = "symbol",
   filter = "",
   fields = "",
-  `page[after]` = "0",
-  `page[size]` = "10",
+  `page_after` = "0",
+  `page_size` = "10",
   fspec = "symbol,category,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,entities_count,details") {
 
   start_time <- Sys.time()
@@ -2161,8 +2161,8 @@ function(res,
   # info to generate cursor pagination information from a tibble
   sysndd_db_genes_nested_pagination_info <- generate_cursor_pag_inf(
     sysndd_db_genes_nested,
-    `page[size]`,
-    `page[after]`,
+    `page_size`,
+    `page_after`,
     "symbol")
 
   # compute execution time
@@ -2360,23 +2360,23 @@ function() {
 #* @param sort:str  Output column to arrange output on.
 #* @param filter:str Comma separated list of filters to apply.
 #* @param fields:str Comma separated list of output columns.
-#* @param page[after]:str Cursor after which to show entries in cursor pagination.
-#* @param page[size]:str Page size in cursor pagination.
+#* @param page_after:str Cursor after which to show entries in cursor pagination.
+#* @param page_size:str Page size in cursor pagination.
 #* @param fspec:str Fields for which to generate the fied specification in the meta data response.
 #' @get /api/phenotype/entities/browse
 function(res,
   sort = "entity_id",
   filter = "",
   fields = "",
-  `page[after]` = "0",
-  `page[size]` = "10",
+  `page_after` = "0",
+  `page_size` = "10",
   fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details") {
 # call the endpoint function generate_phenotype_entities
 phenotype_entities_list <- generate_phenotype_entities_list(sort,
   filter,
   fields,
-  `page[after]`,
-  `page[size]`,
+  `page_after`,
+  `page_size`,
   fspec)
 
 # return the list
@@ -2393,14 +2393,14 @@ function(res,
   sort = "entity_id",
   filter = "",
   fields = "",
-  `page[after]` = "0",
-  `page[size]` = "all") {
+  `page_after` = "0",
+  `page_size` = "all") {
 # call the endpoint function generate_phenotype_entities
 phenotype_entities_list <- generate_phenotype_entities_list(sort,
   filter,
   fields,
-  `page[after]`,
-  `page[size]`)
+  `page_after`,
+  `page_size`)
 
   # generate creation date statistic for output
   creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"),
@@ -2871,15 +2871,15 @@ function(res,
   sort = "symbol",
   filter = "equals(category,'Definitive'),any(inheritance_filter,'Autosomal dominant','Autosomal recessive','X-linked','Other')",
   fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38",
-  `page[after]` = 0,
-  `page[size]` = "all",
+  `page_after` = 0,
+  `page_size` = "all",
   max_category = TRUE) {
   # call the endpoint function generate_panels_list
   panels_list <- generate_panels_list(sort,
     filter,
     fields,
-    `page[after]`,
-    `page[size]`,
+    `page_after`,
+    `page_size`,
     max_category)
 
   # return the list
@@ -2898,15 +2898,15 @@ function(res,
   sort = "symbol",
   filter = "equals(category,'Definitive'),any(inheritance_filter,'Autosomal dominant','Autosomal recessive','X-linked','Other')",
   fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38",
-  `page[after]` = 0,
-  `page[size]` = "all",
+  `page_after` = 0,
+  `page_size` = "all",
   max_category = TRUE) {
   # call the endpoint function generate_panels_list
   panels_list <- generate_panels_list(sort,
     filter,
     fields,
-    `page[after]`,
-    `page[size]`,
+    `page_after`,
+    `page_size`,
     max_category)
 
   # generate creation date statistic for output
@@ -3186,8 +3186,8 @@ function() {
 #* @param sort:str  Output column to arrange output on.
 #* @param filter:str Comma separated list of filters to apply.
 #* @param fields:str Comma separated list of output columns.
-#* @param page[after]:str Cursor after which to show entries in cursor pagination.
-#* @param page[size]:str Page size in cursor pagination.
+#* @param page_after:str Cursor after which to show entries in cursor pagination.
+#* @param page_size:str Page size in cursor pagination.
 #* @param fspec:str Fields for which to generate the fied specification in the meta data response.
 #' @get /api/comparisons/browse
 function(
@@ -3195,15 +3195,15 @@ function(
   sort = "symbol",
   filter = "",
   fields = "",
-  `page[after]` = "0",
-  `page[size]` = "10",
+  `page_after` = "0",
+  `page_size` = "10",
   fspec = "symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id") {
 # call the endpoint function generate_phenotype_entities
 comparisons_list <- generate_comparisons_list(sort,
   filter,
   fields,
-  `page[after]`,
-  `page[size]`,
+  `page_after`,
+  `page_size`,
   fspec)
 
 # return the list
@@ -3222,14 +3222,14 @@ function(
   sort = "symbol",
   filter = "",
   fields = "",
-  `page[after]` = "0",
-  `page[size]` = "all") {
+  `page_after` = "0",
+  `page_size` = "all") {
 # call the endpoint function generate_phenotype_entities
 comparisons_list <- generate_comparisons_list(sort,
   filter,
   fields,
-  `page[after]`,
-  `page[size]`)
+  `page_after`,
+  `page_size`)
 
   # generate creation date statistic for output
   creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"),
