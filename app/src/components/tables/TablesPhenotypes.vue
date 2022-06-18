@@ -320,7 +320,7 @@ export default {
     show_filter_controls:  {type: Boolean,  default: true},
     show_pagination_controls:  {type: Boolean,  default: true},
     header_label: {type: String,  default: 'Phenotype search'},
-    perPage_input:  {type: Number,  default: 10},
+    perPage_input:  {type: String,  default: "10"},
     sortBy_input: {type: String,  default: 'entity_id'},
     sortDesc_input: {type: Boolean,  default: true},
     filter_input: {
@@ -406,7 +406,7 @@ export default {
           lastItemID: null,
           executionTime: 0,
           perPage: this.perPage_input,
-          pageOptions: [10, 25, 50, 200],
+          pageOptions: ["10", "25", "50", "200"],
           sortBy: this.sortBy_input,
           sortDesc: this.sortDesc_input,
           filter: this.filter_input,
@@ -533,7 +533,7 @@ export default {
           }
 
           // compose API url for browse request
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype/entities/browse?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + phenotype_filter + this.filter_string + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/phenotype/entities/browse?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + phenotype_filter + this.filter_string + '&page_after=' + this.currentItemID + '&page_size=' + this.perPage;
 
           try {
             let response = await this.axios.get(apiUrl);

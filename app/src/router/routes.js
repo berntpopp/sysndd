@@ -31,6 +31,16 @@ export const routes = [
     path: '/Genes',
     name: 'Genes',
     component: () => import(/* webpackChunkName: "Tables" */ '@/views/tables/Genes.vue'),
+    props: route => (
+      { 
+        sort: route.query.sort,
+        filter: route.query.filter,
+        fields: route.query.fields,
+        page_after: route.query.page_after,
+        page_size: route.query.page_size,
+        fspec: route.query.fspec
+      }
+    ),
     meta: { sitemap: {
       priority:    0.9,
       changefreq: 'monthly',

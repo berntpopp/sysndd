@@ -389,8 +389,8 @@
         nextItemID: null,
         lastItemID: null,
         executionTime: 0,
-        perPage: 10,
-        pageOptions: [10, 25, 50, 200],
+        perPage: "10",
+        pageOptions: ["10", "25", "50", "200"],
         sortBy: 'symbol',
         sortDesc: false,
         filter: {any: '', SysNDD: '', radboudumc_ID: '', gene2phenotype: '', panelapp: '', sfari: '', geisinger_DBD: '', omim_ndd: '', orphanet_id: ''}, 
@@ -425,7 +425,7 @@
     methods: {
         async loadTableData() {
           this.isBusy = true;
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/comparisons/browse?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + this.filter_string + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/comparisons/browse?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + this.filter_string + '&page_after=' + this.currentItemID + '&page_size=' + this.perPage;
           
           try {
             let response = await this.axios.get(apiUrl);

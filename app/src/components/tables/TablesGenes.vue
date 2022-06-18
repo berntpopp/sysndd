@@ -31,6 +31,18 @@
               v-if="show_filter_controls"
             >
                 <b-button
+                class="mx-1"
+                size="sm"
+                v-b-tooltip.hover.bottom
+                title="Copy link to this page."
+                variant="success"
+                @click="copyLinkToClipboard()"
+                >
+                  <b-icon icon="link" font-scale="1.0"></b-icon>
+                </b-button>
+
+                <b-button
+                class="mx-1"
                 size="sm"
                 v-b-tooltip.hover.bottom
                 v-bind:title="'The table is ' + (filter_string === '' ? 'not' : '') + ' filtered.' +  (filter_string === '' ? '' : ' Click to remove all filters.')"
@@ -353,6 +365,7 @@
 
 <script>
   import toastMixin from '@/assets/js/mixins/toastMixin.js'
+  import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin.js'
 
   // import the Treeselect component
   import Treeselect from '@riophae/vue-treeselect'
@@ -365,19 +378,16 @@ export default {
     show_filter_controls:  {type: Boolean,  default: true},
     show_pagination_controls:  {type: Boolean,  default: true},
     header_label: {type: String,  default: 'Genes table'},
-    perPage_input:  {type: Number,  default: 10},
-    sortBy_input: {type: String,  default: 'symbol'},
-    sortDesc_input: {type: Boolean,  default: true},
-    filter_input: {
-      type: Object,
-      default(rawProps) {
-        return {any: null, entity_id: null, symbol: null, disease_ontology_name: null, disease_ontology_id_version: null, hpo_mode_of_inheritance_term_name: null, hpo_mode_of_inheritance_term: null, ndd_phenotype_word: null, category: null}
-      }
-    },
+    sort_input: {type: String,  default: '+symbol'},
+    filter_input: {type: String,  default: null},
+    fields_input: {type: String,  default: null},
+    page_after_input: {type: String,  default: ''},
+    page_size_input:  {type: String,  default: "10"},
+    fspec_input: {type: String,  default: "symbol,category,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,entities_count,details"},
   },
   // register the Treeselect component
   components: { Treeselect },
-  mixins: [toastMixin],
+  mixins: [toastMixin, urlParsingMixin],
   data() {
         return {
           stoplights_style: {"Definitive": "success", "Moderate": "primary", "Limited": "warning", "Refuted": "danger"},
@@ -458,16 +468,17 @@ export default {
           ],
           totalRows: 0,
           currentPage: 1,
-          currentItemID: 0,
+          currentItemID: this.page_after_input,
           prevItemID: null,
           nextItemID: null,
           lastItemID: null,
           executionTime: 0,
-          perPage: this.perPage_input,
-          pageOptions: [10, 25, 50, 200],
-          sortBy: this.sortBy_input,
-          sortDesc: this.sortDesc_input,
-          filter: this.filter_input,
+          perPage: this.page_size_input,
+          pageOptions: ["10", "25", "50", "200"],
+          sortBy: 'symbol',
+          sortDesc: true,
+          sort: this.sort_input,
+          filter: {any: null, entity_id: null, symbol: null, disease_ontology_name: null, disease_ontology_id_version: null, hpo_mode_of_inheritance_term_name: null, hpo_mode_of_inheritance_term: null, ndd_phenotype_word: null, category: null},
           filter_string: '',
           filterOn: [],
           infoModal: {
@@ -480,67 +491,61 @@ export default {
         }
       },
       mounted() {
-        // Set the initial number of items
-        this.loadEntitiesData();
+        // transform input filter string from params to object and assign
+        this.filter = this.filterStringToObject(this.filter_input);
+
+        // transform input sort string to object and assign
+        let sort_object = this.sortStringToVariables(this.sort_input);
+        this.sortBy = sort_object.sortBy;
+        this.sortDesc = sort_object.sortDesc;
+
+        this.filtered();
+
         setTimeout(() => {this.loading = false}, 500);
       },
       watch: {
         sortBy(value) {
-          this.handleSortChange();
+          this.handleSortByOrDescChange();
+        },
+        sortDesc(value) {
+          this.handleSortByOrDescChange();
         },
         perPage(value) {
           this.handlePerPageChange();
-        },
-        sortDesc(value) {
-          this.handleSortChange();
         }
       },
       methods: {
-        handleSortChange() {
+        copyLinkToClipboard() {
+          let urlParam = 'sort=' + this.sort + '&filter=' + this.filter_string + '&page_after=' + this.currentItemID + '&page_size=' + this.perPage;
+          navigator.clipboard.writeText(process.env.VUE_APP_URL + this.$route.path + '?' + urlParam);
+        },
+        handleSortByOrDescChange() {
           this.currentItemID = 0;
-          this.loadEntitiesData();
+          this.sort = ((!this.sortDesc) ? '-' : '+') + this.sortBy;
+          this.filtered();
         },
         handlePerPageChange() {
           this.currentItemID = 0;
-          this.loadEntitiesData();
+          this.filtered();
         },
         handlePageChange(value) {
           if (value == 1) {
             this.currentItemID = 0;
-            this.loadEntitiesData();
+            this.filtered();
           } else if (value == this.totalPages) {
             this.currentItemID = this.lastItemID;
-            this.loadEntitiesData();
+            this.filtered();
           } else if (value > this.currentPage) {
             this.currentItemID = this.nextItemID;
-            this.loadEntitiesData();
+            this.filtered();
           } else if (value < this.currentPage) {
             this.currentItemID = this.prevItemID;
-            this.loadEntitiesData();
+            this.filtered();
           }
         },
         filtered() {
-          // filter the filter object to only contain non null values
-          const filter_string_not_empty = Object.filter(this.filter, value => (value !== null && value !== "null" && value !== '' && value.length !== 0));
-
-          // iterate over the filtered non null expressions and join array with regex or "|"
-          const filter_string_not_empty_join = {};
-          Object.keys(filter_string_not_empty).forEach((key) => {
-            if(Array.isArray(filter_string_not_empty[key])) {
-              filter_string_not_empty_join[key] = filter_string_not_empty[key].join("|");
-            } else {
-              filter_string_not_empty_join[key] = filter_string_not_empty[key];
-            }
-          });
-
-          // compute the filter string by joining the filter object
-          if (Object.keys(filter_string_not_empty_join).length !== 0) {
-            this.filter_string = 'contains(' + Object.keys(filter_string_not_empty_join).map((key) => [key, filter_string_not_empty_join[key]].join(',')).join('),contains(') + ')';
-            this.loadEntitiesData();
-          } else {
-            this.filter_string = '';
-            this.loadEntitiesData();
-          }
+          this.filter_string = this.filterObjectToString(this.filter);
+          this.loadGenesData();
         },
         removeFilters() {
           this.filter = {any: null, entity_id: null, symbol: null, disease_ontology_name: null, disease_ontology_id_version: null, hpo_mode_of_inheritance_term_name: null, hpo_mode_of_inheritance_term: null, ndd_phenotype_word: null, category: null};
@@ -550,10 +555,13 @@ export default {
           this.filter['any']  = null;
           this.filtered();
         },
-        async loadEntitiesData() {
+        async loadGenesData() {
           this.isBusy = true;
 
-          let apiUrl = process.env.VUE_APP_API_URL + '/api/gene?sort=' + ((this.sortDesc) ? '-' : '+') + this.sortBy + '&filter=' + this.filter_string + '&page[after]=' + this.currentItemID + '&page[size]=' + this.perPage;
+          let urlParam = 'sort=' + this.sort + '&filter=' + this.filter_string + '&page_after=' + this.currentItemID + '&page_size=' + this.perPage;
+          let apiUrl = process.env.VUE_APP_API_URL + '/api/gene?' + urlParam;
+
+          let curParam = new URLSearchParams(this.$route.query).toString();
 
           try {
             let response = await this.axios.get(apiUrl);
@@ -587,6 +595,7 @@ export default {
       }
   }
 </script>
+
 
 <style scoped>
   .btn-group-xs > .btn, .btn-xs {
