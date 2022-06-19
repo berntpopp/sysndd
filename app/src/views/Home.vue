@@ -1,62 +1,60 @@
 <template>
   <div class="bg-gradient">
-
     <b-container fluid>
-
-        <b-row class="justify-content-md-center">
-          <b-col md="12">
-
-        <b-row class="justify-content-md-center">
-          <b-col md="8">
-            <b-container fluid="lg" class="py-3">
-              <h3 class="text-center font-weight-bold">
-                Welcome to SysNDD, 
-              </h3>
-
-              <h4 class="text-center">
-                the expert curated database of gene disease relationships in <mark>neurodevelopmental</mark> <mark>disorders</mark> (NDD).
-              </h4>
-            </b-container>
-
-            <b-input-group class="mb-2 p-2">
-              <b-form-input 
-              autofocus
-              class="border-dark"
-              list="search-list" 
-              type="search" 
-              placeholder="Search the SysNDD-db by genes, entities and diseases using names or identifiers" 
-              size="md"
-              autocomplete="off"
-              v-model="search_input"
-              @input="loadSearchInfo"
-              @keydown.native="keydown_handler"
+      <b-row class="justify-content-md-center">
+        <b-col md="12">
+          <b-row class="justify-content-md-center">
+            <b-col md="8">
+              <b-container
+                fluid="lg"
+                class="py-3"
               >
-              </b-form-input>
-              
-              <b-form-datalist id="search-list" 
-              :options="search_keys"
-              >
-              </b-form-datalist>
+                <h3 class="text-center font-weight-bold">
+                  Welcome to SysNDD,
+                </h3>
 
-              <b-input-group-append>
-                <b-button
-                variant="outline-dark"
-                size="md"
-                :disabled="search_input.length < 2"
-                @click="keydown_handler"
-              >
-                  <b-icon icon="search"></b-icon>
-                </b-button>
-              </b-input-group-append>
-            </b-input-group>
+                <h4 class="text-center">
+                  the expert curated database of gene disease relationships in
+                  <mark>neurodevelopmental</mark> <mark>disorders</mark> (NDD).
+                </h4>
+              </b-container>
 
-          </b-col>
-        </b-row>
+              <b-input-group class="mb-2 p-2">
+                <b-form-input
+                  v-model="search_input"
+                  autofocus
+                  class="border-dark"
+                  list="search-list"
+                  type="search"
+                  placeholder="Search the SysNDD-db by genes, entities and diseases using names or identifiers"
+                  size="md"
+                  autocomplete="off"
+                  @input="loadSearchInfo"
+                  @keydown.native="keydown_handler"
+                />
 
-        <b-row>
-          <b-col md="6">
+                <b-form-datalist
+                  id="search-list"
+                  :options="search_keys"
+                />
 
-              <b-card 
+                <b-input-group-append>
+                  <b-button
+                    variant="outline-dark"
+                    size="md"
+                    :disabled="search_input.length < 2"
+                    @click="keydown_handler"
+                  >
+                    <b-icon icon="search" />
+                  </b-button>
+                </b-input-group-append>
+              </b-input-group>
+            </b-col>
+          </b-row>
+
+          <b-row>
+            <b-col md="6">
+              <b-card
                 header-tag="header"
                 class="my-3 text-left"
                 body-class="p-0"
@@ -64,97 +62,121 @@
                 border-variant="dark"
               >
                 <template #header>
-                  <h5 class="mb-0 font-weight-bold">Current gene statistics (last update: {{ last_update }})</h5>
+                  <h5 class="mb-0 font-weight-bold">
+                    Current gene statistics (last update: {{ last_update }})
+                  </h5>
                 </template>
                 <b-card-text class="text-left">
-
-                <b-skeleton-wrapper :loading="loading_statistics">
-                  <template #loading>
-                    <b-skeleton-table
-                      :rows="2"
-                      :columns="3"
-                      :table-props="{ bordered: false, striped: false, small: true}"
-                    ></b-skeleton-table>
-                  </template>
+                  <b-skeleton-wrapper :loading="loading_statistics">
+                    <template #loading>
+                      <b-skeleton-table
+                        :rows="2"
+                        :columns="3"
+                        :table-props="{
+                          bordered: false,
+                          striped: false,
+                          small: true,
+                        }"
+                      />
+                    </template>
 
                     <b-table
-                        :items="genes_statistics.data"
-                        :fields="genes_statistics_fields"
-                        stacked="lg"
-                        head-variant="light"
-                        show-empty
-                        small
+                      :items="genes_statistics.data"
+                      :fields="genes_statistics_fields"
+                      stacked="lg"
+                      head-variant="light"
+                      show-empty
+                      small
                     >
+                      <template #cell(category)="data">
+                        <div>
+                          <b-avatar
+                            size="1.4em"
+                            icon="stoplights"
+                            :variant="stoplights_style[data.item.category]"
+                          />
+                          {{ data.item.category }}
+                        </div>
+                      </template>
 
-                    <template #cell(category)="data">
-                      <div>
-                        <b-avatar
-                        size="1.4em"
-                        icon="stoplights"
-                        :variant="stoplights_style[data.item.category]"
+                      <template #cell(n)="data">
+                        <b-link
+                          :href="
+                            '/Panels/' +
+                              data.item.category +
+                              '/' +
+                              data.item.inheritance
+                          "
                         >
-                        </b-avatar> {{ data.item.category }}
-                      </div> 
-                    </template>
+                          <div style="cursor: pointer">
+                            {{ data.item.n }}
+                          </div>
+                        </b-link>
+                      </template>
 
-                    <template #cell(n)="data">
-                      <b-link v-bind:href="'/Panels/' + data.item.category + '/' + data.item.inheritance ">
-                        <div style="cursor:pointer">{{ data.item.n }}</div>
-                      </b-link>
-                    </template>
-
-                    <template #cell(actions)="row">
-                      <b-button class="btn-xs" @click="row.toggleDetails" variant="outline-primary">
-                        {{ row.detailsShowing ? 'hide' : 'show' }}
-                      </b-button>
-                    </template>
-
-                    <template #row-details="row">
-                      <b-card>
-                        <b-table
-                          :items="row.item.groups"
-                          :fields="genes_statistics_details_fields"
-                          head-variant="light"
-                          show-empty
-                          small
-                          fixed
-                          striped
-                          sort-icon-left
+                      <template #cell(actions)="row">
+                        <b-button
+                          class="btn-xs"
+                          variant="outline-primary"
+                          @click="row.toggleDetails"
                         >
+                          {{ row.detailsShowing ? "hide" : "show" }}
+                        </b-button>
+                      </template>
 
-                          <template #cell(inheritance)="data">
-                            <div>
-                              <b-badge 
-                              pill 
-                              variant="info" 
-                              class="justify-content-md-center px-1 mx-1" 
-                              size="1.3em"
+                      <template #row-details="row">
+                        <b-card>
+                          <b-table
+                            :items="row.item.groups"
+                            :fields="genes_statistics_details_fields"
+                            head-variant="light"
+                            show-empty
+                            small
+                            fixed
+                            striped
+                            sort-icon-left
+                          >
+                            <template #cell(inheritance)="data">
+                              <div>
+                                <b-badge
+                                  pill
+                                  variant="info"
+                                  class="justify-content-md-center px-1 mx-1"
+                                  size="1.3em"
+                                >
+                                  {{
+                                    inheritance_short_text[
+                                      data.item.inheritance
+                                    ]
+                                  }}
+                                </b-badge>
+                                {{ data.item.inheritance }}
+                              </div>
+                            </template>
+
+                            <template #cell(n)="data">
+                              <b-link
+                                :href="
+                                  '/Panels/' +
+                                    data.item.category +
+                                    '/' +
+                                    data.item.inheritance
+                                "
                               >
-                              {{ inheritance_short_text[data.item.inheritance] }}
-                              </b-badge> {{ data.item.inheritance }}
-                            </div>
-                          </template>
-
-                          <template #cell(n)="data">
-                            <b-link v-bind:href="'/Panels/' + data.item.category + '/' + data.item.inheritance ">
-                              <div style="cursor:pointer">{{ data.item.n }}</div>
-                            </b-link>
-                          </template>
-
-                        </b-table>
-
-                      </b-card>
-                    </template>
-
+                                <div style="cursor: pointer">
+                                  {{ data.item.n }}
+                                </div>
+                              </b-link>
+                            </template>
+                          </b-table>
+                        </b-card>
+                      </template>
                     </b-table>
-
-                </b-skeleton-wrapper>
-
+                  </b-skeleton-wrapper>
                 </b-card-text>
               </b-card>
 
-
-              <b-card 
+              <b-card
                 header-tag="header"
                 class="my-3 text-left"
                 body-class="p-0"
@@ -162,18 +184,23 @@
                 border-variant="dark"
               >
                 <template #header>
-                  <h5 class="mb-0 font-weight-bold">New entities</h5>
+                  <h5 class="mb-0 font-weight-bold">
+                    New entities
+                  </h5>
                 </template>
                 <b-card-text class="text-left">
-
-                <b-skeleton-wrapper :loading="loading_statistics">
-                  <template #loading>
-                    <b-skeleton-table
-                      :rows="3"
-                      :columns="2"
-                      :table-props="{ bordered: false, striped: false, small: true }"
-                    ></b-skeleton-table>
-                  </template>
+                  <b-skeleton-wrapper :loading="loading_statistics">
+                    <template #loading>
+                      <b-skeleton-table
+                        :rows="3"
+                        :columns="2"
+                        :table-props="{
+                          bordered: false,
+                          striped: false,
+                          small: true,
+                        }"
+                      />
+                    </template>
 
                     <b-table
                       :items="news"
@@ -183,9 +210,8 @@
                       show-empty
                       small
                       fixed
-                      style="width: 100%; white-space: nowrap;"
+                      style="width: 100%; white-space: nowrap"
                     >
-                      
                       <template #table-colgroup="scope">
                         <col
                           v-for="field in scope.fields"
@@ -196,14 +222,14 @@
 
                       <template #cell(entity_id)="data">
                         <div>
-                          <b-link v-bind:href="'/Entities/' + data.item.entity_id">
-                            <b-badge 
-                            variant="primary"
-                            style="cursor:pointer"
-                             v-b-tooltip.hover.rightbottom
-                             v-bind:title="'Entry date: ' + data.item.entry_date"
+                          <b-link :href="'/Entities/' + data.item.entity_id">
+                            <b-badge
+                              v-b-tooltip.hover.rightbottom
+                              variant="primary"
+                              style="cursor: pointer"
+                              :title="'Entry date: ' + data.item.entry_date"
                             >
-                            sysndd:{{ data.item.entity_id }}
+                              sysndd:{{ data.item.entity_id }}
                             </b-badge>
                           </b-link>
                         </div>
@@ -211,20 +237,40 @@
 
                       <template #cell(symbol)="data">
                         <div class="overflow-hidden text-truncate font-italic">
-                          <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
-                            <b-badge pill variant="success" v-b-tooltip.hover.leftbottom v-bind:title="data.item.hgnc_id">{{ data.item.symbol }}</b-badge>
+                          <b-link :href="'/Genes/' + data.item.hgnc_id">
+                            <b-badge
+                              v-b-tooltip.hover.leftbottom
+                              pill
+                              variant="success"
+                              :title="data.item.hgnc_id"
+                            >
+                              {{ data.item.symbol }}
+                            </b-badge>
                           </b-link>
                         </div>
                       </template>
 
                       <template #cell(disease_ontology_name)="data">
                         <div class="overflow-hidden text-truncate">
-                          <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version"> 
-                            <b-badge pill variant="secondary" 
-                            v-b-tooltip.hover.leftbottom 
-                            v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version"
+                          <b-link
+                            :href="
+                              '/Ontology/' +
+                                data.item.disease_ontology_id_version
+                            "
+                          >
+                            <b-badge
+                              v-b-tooltip.hover.leftbottom
+                              pill
+                              variant="secondary"
+                              :title="
+                                data.item.disease_ontology_name +
+                                  '; ' +
+                                  data.item.disease_ontology_id_version
+                              "
                             >
-                            {{ truncate(data.item.disease_ontology_name, 40) }}
+                              {{
+                                truncate(data.item.disease_ontology_name, 40)
+                              }}
                             </b-badge>
                           </b-link>
                         </div>
@@ -232,15 +278,24 @@
 
                       <template #cell(inheritance_filter)="data">
                         <div>
-                          <b-badge 
-                          pill 
-                          variant="info" 
-                          class="justify-content-md-center px-1 mx-1" 
-                          size="1.3em"
-                          v-b-tooltip.hover.leftbottom 
-                          v-bind:title="data.item.inheritance_filter + ' (' + data.item.hpo_mode_of_inheritance_term + ')'"
+                          <b-badge
+                            v-b-tooltip.hover.leftbottom
+                            pill
+                            variant="info"
+                            class="justify-content-md-center px-1 mx-1"
+                            size="1.3em"
+                            :title="
+                              data.item.inheritance_filter +
+                                ' (' +
+                                data.item.hpo_mode_of_inheritance_term +
+                                ')'
+                            "
                           >
-                          {{ inheritance_short_text[data.item.inheritance_filter] }}
+                            {{
+                              inheritance_short_text[
+                                data.item.inheritance_filter
+                              ]
+                            }}
                           </b-badge>
                         </div>
                       </template>
@@ -248,85 +303,127 @@
                       <template #cell(category)="data">
                         <div>
                           <b-avatar
-                          size="1.4em"
-                          icon="stoplights"
-                          :variant="stoplights_style[data.item.category]"
-                          v-b-tooltip.hover.left 
-                          v-bind:title="data.item.category"
-                          >
-                          </b-avatar>
-                        </div> 
+                            v-b-tooltip.hover.left
+                            size="1.4em"
+                            icon="stoplights"
+                            :variant="stoplights_style[data.item.category]"
+                            :title="data.item.category"
+                          />
+                        </div>
                       </template>
 
                       <template #cell(ndd_phenotype_word)="data">
                         <div>
-                          <b-avatar 
-                          size="1.4em" 
-                          :icon="ndd_icon[data.item.ndd_phenotype_word]"
-                          :variant="ndd_icon_style[data.item.ndd_phenotype_word]"
-                          v-b-tooltip.hover.left 
-                          v-bind:title="ndd_icon_text[data.item.ndd_phenotype_word]"
-                          >
-                          </b-avatar>
-                        </div> 
+                          <b-avatar
+                            v-b-tooltip.hover.left
+                            size="1.4em"
+                            :icon="ndd_icon[data.item.ndd_phenotype_word]"
+                            :variant="
+                              ndd_icon_style[data.item.ndd_phenotype_word]
+                            "
+                            :title="ndd_icon_text[data.item.ndd_phenotype_word]"
+                          />
+                        </div>
                       </template>
-
                     </b-table>
-
-                </b-skeleton-wrapper>
-
+                  </b-skeleton-wrapper>
                 </b-card-text>
               </b-card>
-          </b-col>
+            </b-col>
 
-          <b-col md="6">
-            <div class="container-fluid text-left py-2 my-3">
+            <b-col md="6">
+              <div class="container-fluid text-left py-2 my-3">
+                <span
+                  class="word"
+                >NDD comprise <mark>developmental delay</mark> (DD),
+                  <mark>intellectual disability</mark> (ID) and
+                  <mark>autism spectrum disorder</mark> (ASD). </span><br>
+                <span
+                  class="word"
+                >This clinically and genetically extremely
+                  <mark>heterogeneous</mark> disease group affects
+                  <mark>about 2% of newborns</mark>. </span><br>
+                <span
+                  class="word"
+                >SysNDD aims to empower clinical diagnostics, counseling and
+                  research for NDDs through <mark>expert curation</mark>. </span><br>
 
-              <span class="word">NDD comprise <mark>developmental delay</mark> (DD), <mark>intellectual disability</mark> (ID) and <mark>autism spectrum disorder</mark> (ASD). </span><br>
-              <span class="word">This clinically and genetically extremely <mark>heterogeneous</mark> disease group affects <mark>about 2% of newborns</mark>. </span><br>
-              <span class="word">SysNDD aims to empower clinical diagnostics, counseling and research for NDDs through <mark>expert curation</mark>. </span><br>
-
-              <span class="word">We define “gene-inheritance-disease” units as “<mark>entities</mark>”. </span><br> 
-              <span class="word">They are color coded throughout the website: <b-badge variant="primary">Entity:
-                          <b-badge pill variant="success">Gene</b-badge> 
-                          <b-badge pill variant="info">Inheritance</b-badge> 
-                          <b-badge pill variant="secondary">Disease</b-badge> 
-                        </b-badge></span><br>
-                <span class="word">The SysNDD tool allows browsing and download of tabular views for curated NDD entity components in the <mark>Tables</mark> section. It offers multiple <mark>Analyses</mark> sections for genes, phenotypes and comparisons with other curation efforts. </span><br>
-
-            </div>
-          </b-col>
-
-        </b-row>
-          </b-col>
-        </b-row>
-
+                <span
+                  class="word"
+                >We define “gene-inheritance-disease” units as
+                  “<mark>entities</mark>”. </span><br>
+                <span
+                  class="word"
+                >They are color coded throughout the website:
+                  <b-badge
+                    variant="primary"
+                  >Entity:
+                    <b-badge
+                      pill
+                      variant="success"
+                    >Gene</b-badge>
+                    <b-badge
+                      pill
+                      variant="info"
+                    >Inheritance</b-badge>
+                    <b-badge
+                      pill
+                      variant="secondary"
+                    >Disease</b-badge>
+                  </b-badge></span><br>
+                <span
+                  class="word"
+                >The SysNDD tool allows browsing and download of tabular views
+                  for curated NDD entity components in the
+                  <mark>Tables</mark> section. It offers multiple
+                  <mark>Analyses</mark> sections for genes, phenotypes and
+                  comparisons with other curation efforts. </span><br>
+              </div>
+            </b-col>
+          </b-row>
+        </b-col>
+      </b-row>
     </b-container>
 
     <b-alert
       class="position-fixed fixed-bottom m-0 rounded-0 text-left"
-      style="z-index: 2000; font-size: 0.8rem;"
+      style="z-index: 2000; font-size: 0.8rem"
       variant="danger"
       :show="!banner_acknowledged"
     >
       <b-row>
-         <b-col md="1">
-          <b-icon 
-          icon="exclamation-triangle"
-          font-scale="2.0"
-          >
-          </b-icon>
+        <b-col md="1">
+          <b-icon
+            icon="exclamation-triangle"
+            font-scale="2.0"
+          />
         </b-col>
         <b-col md="10">
-          <h6 class="alert-heading">Usage policy</h6>
-          The information on this website is not intended for direct diagnostic use or medical decision-making without review by a genetics professional.
-          Individuals should not change their health behavior on the basis of information contained on this website. SysNDD does not independently verify the information gathered from external sources.
-          If you have questions about specific gene-disease claims, please contact the respective primary sources. If you have questions about the representation of the data on this website, please contact support [at] sysndd.org.<br><br>
+          <h6 class="alert-heading">
+            Usage policy
+          </h6>
+          The information on this website is not intended for direct diagnostic
+          use or medical decision-making without review by a genetics
+          professional. Individuals should not change their health behavior on
+          the basis of information contained on this website. SysNDD does not
+          independently verify the information gathered from external sources.
+          If you have questions about specific gene-disease claims, please
+          contact the respective primary sources. If you have questions about
+          the representation of the data on this website, please contact support
+          [at] sysndd.org.<br><br>
 
-          <h6 class="alert-heading">Data privacy</h6>
-          The SysNDD website does not use cookies and tries to be completely stateless for regular users. 
-          Our parent domain unibe.ch uses cookies which we do not control (<b-link href="https://www.unibe.ch/legal_notice/index_eng.html" target="_blank">see legal notice here</b-link>).
-          Server side programs keep error logs to improve SysNDD. These are deleted regularly.
+          <h6 class="alert-heading">
+            Data privacy
+          </h6>
+          The SysNDD website does not use cookies and tries to be completely
+          stateless for regular users. Our parent domain unibe.ch uses cookies
+          which we do not control (<b-link
+            href="https://www.unibe.ch/legal_notice/index_eng.html"
+            target="_blank"
+          >
+            see legal notice here
+          </b-link>). Server side programs keep error logs to improve SysNDD. These are
+          deleted regularly.
         </b-col>
         <b-col md="1">
           <b-button
@@ -338,111 +435,131 @@
           </b-button>
         </b-col>
       </b-row>
-
     </b-alert>
-
   </div>
-  
 </template>
 
 <script>
-import toastMixin from '@/assets/js/mixins/toastMixin.js'
+import toastMixin from "@/assets/js/mixins/toastMixin.js";
 
 export default {
-  name: 'Home',
+  name: "Home",
   mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
-    title: 'Home',
+    title: "Home",
     // all titles will be injected into this template
-    titleTemplate: '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
+    titleTemplate:
+      "%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
     htmlAttrs: {
-      lang: 'en'
+      lang: "en",
     },
     meta: [
-      { vmid: 'description', name: 'description', content: 'The Home view shows current information about NDD (attention-deficit/hyperactivity disorder (ADHD), autism, learning disabilities, intellectual disability) entities .' },
-      { vmid: 'keywords', name: 'keywords', content: 'neurodevelopmental disorders, NDD, autism, ASD, learning disabilities, intellectual disability, ID, attention-deficit/hyperactivity disorder, ADHD' },
-      { vmid: 'author', name: 'author', content: 'SysNDD database' }
-    ]
+      {
+        vmid: "description",
+        name: "description",
+        content:
+          "The Home view shows current information about NDD (attention-deficit/hyperactivity disorder (ADHD), autism, learning disabilities, intellectual disability) entities .",
+      },
+      {
+        vmid: "keywords",
+        name: "keywords",
+        content:
+          "neurodevelopmental disorders, NDD, autism, ASD, learning disabilities, intellectual disability, ID, attention-deficit/hyperactivity disorder, ADHD",
+      },
+      { vmid: "author", name: "author", content: "SysNDD database" },
+    ],
   },
   data() {
-        return {
-          stoplights_style: {"Definitive": "success", "Moderate": "primary", "Limited": "warning", "Refuted": "danger"},
-          ndd_icon: {"No": "x", "Yes": "check"},
-          ndd_icon_style: {"No": "warning", "Yes": "success"},
-          ndd_icon_text: {"No": "NOT associated with NDD", "Yes": "associated with NDD"},
-          inheritance_short_text: {"Autosomal dominant": "AD", "Autosomal recessive": "AR", "X-linked": "X", "Other": "M/S"},
-          search_input: '',
-          search_keys: [],
-          search_object: {},
-          genes_statistics:
+    return {
+      stoplights_style: {
+        Definitive: "success",
+        Moderate: "primary",
+        Limited: "warning",
+        Refuted: "danger",
+      },
+      ndd_icon: { No: "x", Yes: "check" },
+      ndd_icon_style: { No: "warning", Yes: "success" },
+      ndd_icon_text: {
+        No: "NOT associated with NDD",
+        Yes: "associated with NDD",
+      },
+      inheritance_short_text: {
+        "Autosomal dominant": "AD",
+        "Autosomal recessive": "AR",
+        "X-linked": "X",
+        Other: "M/S",
+      },
+      search_input: "",
+      search_keys: [],
+      search_object: {},
+      genes_statistics: {
+        meta: [
           {
-            meta: [
-              {
-                last_update: null,
-                executionTime: null,
-              }
-              ],
-            data: [],
+            last_update: null,
+            executionTime: null,
           },
-          genes_statistics_fields: [
-            { key: 'category', label: 'Category', class: 'text-left' },
-            { key: 'n', label: 'Count', class: 'text-left' },
-            { key: 'actions', label: 'Details' }
-          ],
-          genes_statistics_details_fields: [
-            { key: 'inheritance', label: 'Inheritance' },
-            { key: 'n', label: 'Count', class: 'text-left' }
-          ],
-          last_update: null,
-          news: [],
-          news_fields: [
-            {
-              key: 'entity_id',
-              label: 'Entity',
-              class: 'text-left',
-              width: "20%"
-            },
-            { 
-              key: 'symbol',
-              label: 'Symbol',
-              class: 'text-left',
-              width: "15%"
-              },
-            {
-              key: 'disease_ontology_name',
-              label: 'Disease',
-              class: 'text-left',
-              width: "30%"
-            },
-            {
-              key: 'inheritance_filter',
-              label: 'Inh.',
-              class: 'text-left',
-              width: "10%"
-            },
-            { 
-              key: 'category', 
-              label: 'Category', 
-              class: 'text-left',
-              width: "15%"
-            },
-            {
-              key: 'ndd_phenotype_word',
-              label: 'NDD',
-              class: 'text-left',
-              width: "10%"
-            }
-          ],
-          loading: false,
-          loading_statistics: true,
-          loading_news: true,
-          banner_acknowledged: false,
-      }
-  }, 
+        ],
+        data: [],
+      },
+      genes_statistics_fields: [
+        { key: "category", label: "Category", class: "text-left" },
+        { key: "n", label: "Count", class: "text-left" },
+        { key: "actions", label: "Details" },
+      ],
+      genes_statistics_details_fields: [
+        { key: "inheritance", label: "Inheritance" },
+        { key: "n", label: "Count", class: "text-left" },
+      ],
+      last_update: null,
+      news: [],
+      news_fields: [
+        {
+          key: "entity_id",
+          label: "Entity",
+          class: "text-left",
+          width: "20%",
+        },
+        {
+          key: "symbol",
+          label: "Symbol",
+          class: "text-left",
+          width: "15%",
+        },
+        {
+          key: "disease_ontology_name",
+          label: "Disease",
+          class: "text-left",
+          width: "30%",
+        },
+        {
+          key: "inheritance_filter",
+          label: "Inh.",
+          class: "text-left",
+          width: "10%",
+        },
+        {
+          key: "category",
+          label: "Category",
+          class: "text-left",
+          width: "15%",
+        },
+        {
+          key: "ndd_phenotype_word",
+          label: "NDD",
+          class: "text-left",
+          width: "10%",
+        },
+      ],
+      loading: false,
+      loading_statistics: true,
+      loading_news: true,
+      banner_acknowledged: false,
+    };
+  },
   mounted() {
-      this.checkBanner();
-    },
+    this.checkBanner();
+  },
   created() {
     // watch the params of the route to fetch the data again
     this.$watch(
@@ -454,92 +571,108 @@ export default {
       // fetch the data when the view is created and the data is
       // already being observed
       { immediate: true }
-    )
+    );
   },
   methods: {
-  checkBanner() {
-    this.banner_acknowledged = localStorage.getItem('banner_acknowledged');
-  },
-  acknowledgeBanner() {
-    localStorage.setItem('banner_acknowledged', true);
-    this.banner_acknowledged = localStorage.getItem('banner_acknowledged');
-  },
-  async loadStatistics() {
-    this.loading_statistics = true;
+    checkBanner() {
+      this.banner_acknowledged = localStorage.getItem("banner_acknowledged");
+    },
+    acknowledgeBanner() {
+      localStorage.setItem("banner_acknowledged", true);
+      this.banner_acknowledged = localStorage.getItem("banner_acknowledged");
+    },
+    async loadStatistics() {
+      this.loading_statistics = true;
 
-    let apiStatisticsGenesURL = process.env.VUE_APP_API_URL + '/api/statistics/genes';
+      let apiStatisticsGenesURL =
+        process.env.VUE_APP_API_URL + "/api/statistics/genes";
 
-    try {
-      let response_statistics_genes = await this.axios.get(apiStatisticsGenesURL);
+      try {
+        let response_statistics_genes = await this.axios.get(
+          apiStatisticsGenesURL
+        );
 
-      this.genes_statistics = response_statistics_genes.data;
-      const date_last_update = new Date(response_statistics_genes.data.meta[0].last_update);
-      this.last_update = date_last_update.toLocaleDateString();
+        this.genes_statistics = response_statistics_genes.data;
+        const date_last_update = new Date(
+          response_statistics_genes.data.meta[0].last_update
+        );
+        this.last_update = date_last_update.toLocaleDateString();
 
-      this.loading_statistics = false;
-
+        this.loading_statistics = false;
       } catch (e) {
-       this.makeToast(e, 'Error', 'danger');
+        this.makeToast(e, "Error", "danger");
       }
     },
-  async loadNews() {
-    this.loading_news = true;
+    async loadNews() {
+      this.loading_news = true;
 
-    let apiNewsURL = process.env.VUE_APP_API_URL + '/api/statistics/news?n=5';
+      let apiNewsURL = process.env.VUE_APP_API_URL + "/api/statistics/news?n=5";
 
-    try {
-      let response_news = await this.axios.get(apiNewsURL);
+      try {
+        let response_news = await this.axios.get(apiNewsURL);
 
-      this.news = response_news.data;
+        this.news = response_news.data;
 
-      this.loading_news = false;
-
+        this.loading_news = false;
       } catch (e) {
-       this.makeToast(e, 'Error', 'danger');
+        this.makeToast(e, "Error", "danger");
       }
     },
-  async loadSearchInfo() {
+    async loadSearchInfo() {
       if (this.search_input.length > 0) {
-        let apiSearchURL = process.env.VUE_APP_API_URL + '/api/search/' + this.search_input + '?helper=true';
+        let apiSearchURL =
+          process.env.VUE_APP_API_URL +
+          "/api/search/" +
+          this.search_input +
+          "?helper=true";
         try {
           let response_search = await this.axios.get(apiSearchURL);
           this.search_object = response_search.data[0];
           this.search_keys = Object.keys(response_search.data[0]);
-          } catch (e) {
-          this.makeToast(e, 'Error', 'danger');
-          }
+        } catch (e) {
+          this.makeToast(e, "Error", "danger");
+        }
       }
     },
-  keydown_handler(event) {
-      if ((event.which === 13 | event.which === 1) & this.search_input.length > 0 & !(this.search_object[this.search_input] == null)) {
+    keydown_handler(event) {
+      if (
+        ((event.which === 13) | (event.which === 1)) &
+        (this.search_input.length > 0) &
+        !(this.search_object[this.search_input] == null)
+      ) {
         this.$router.push(this.search_object[this.search_input][0].link);
-        this.search_input = '';
+        this.search_input = "";
         this.search_keys = [];
-      } else if ((event.which === 13 | event.which === 1) & this.search_input.length > 0 & (this.search_object[this.search_input] == null)) {
-        this.$router.push('/Search/' + this.search_input);
-        this.search_input = '';
+      } else if (
+        ((event.which === 13) | (event.which === 1)) &
+        (this.search_input.length > 0) &
+        (this.search_object[this.search_input] == null)
+      ) {
+        this.$router.push("/Search/" + this.search_input);
+        this.search_input = "";
         this.search_keys = [];
       }
     },
-  truncate(str, n) {
-    return (str.length > n) ? str.substr(0, n-1) + '...' : str;
-  }
-  }
-}
+    truncate(str, n) {
+      return str.length > n ? str.substr(0, n - 1) + "..." : str;
+    },
+  },
+};
 </script>
 
 <style scoped>
-.btn-group-xs > .btn, .btn-xs {
-  padding: .25rem .4rem;
-  font-size: .875rem;
-  line-height: .5;
-  border-radius: .2rem;
+.btn-group-xs > .btn,
+.btn-xs {
+  padding: 0.25rem 0.4rem;
+  font-size: 0.875rem;
+  line-height: 0.5;
+  border-radius: 0.2rem;
 }
 mark {
-display: inline-block;
-line-height: 0em;
-padding-bottom: 0.5em;
-font-weight: bold;
-background-color: #EAADBA;
+  display: inline-block;
+  line-height: 0em;
+  padding-bottom: 0.5em;
+  font-weight: bold;
+  background-color: #eaadba;
 }
 </style>

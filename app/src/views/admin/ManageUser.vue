@@ -1,11 +1,19 @@
 <template>
   <div class="container-fluid">
-  <b-spinner label="Loading..." v-if="loading" class="float-center m-5"></b-spinner>
-    <b-container fluid v-else>
-
+    <b-spinner
+      v-if="loading"
+      label="Loading..."
+      class="float-center m-5"
+    />
+    <b-container
+      v-else
+      fluid
+    >
       <b-row class="justify-content-md-center py-2">
-        <b-col col md="10">
-
+        <b-col
+          col
+          md="10"
+        >
           <h3>Manage users</h3>
         </b-col>
       </b-row>

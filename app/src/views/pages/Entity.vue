@@ -1,335 +1,440 @@
 <template>
   <div class="container-fluid bg-gradient">
-
-  <b-spinner label="Loading..." v-if="loading" class="float-center m-5"></b-spinner>
-    <b-container fluid v-else>
+    <b-spinner
+      v-if="loading"
+      label="Loading..."
+      class="float-center m-5"
+    />
+    <b-container
+      v-else
+      fluid
+    >
       <b-row class="justify-content-md-center py-2">
-        <b-col col md="12">
-
+        <b-col
+          col
+          md="12"
+        >
           <!-- Entity overview card -->
-          <b-card 
-          header-tag="header"
-          class="my-3 text-left"
-          body-class="p-0"
-          header-class="p-1"
-          border-variant="dark"
+          <b-card
+            header-tag="header"
+            class="my-3 text-left"
+            body-class="p-0"
+            header-class="p-1"
+            border-variant="dark"
           >
-
             <template #header>
-              <h3 class="mb-1 text-left font-weight-bold">Entity: 
+              <h3 class="mb-1 text-left font-weight-bold">
+                Entity:
                 <b-badge variant="primary">
                   sysndd:{{ $route.params.entity_id }}
                 </b-badge>
               </h3>
             </template>
 
-              <b-table
-                  :items="entity"
-                  :fields="entity_fields"
-                  stacked
-                  small
-              >
-                  <template #cell(symbol)="data">
-                    <div class="font-italic">
-                      <b-link v-bind:href="'/Genes/' + data.item.hgnc_id"> 
-                        <b-badge pill variant="success"
-                        v-b-tooltip.hover.leftbottom 
-                        v-bind:title="data.item.hgnc_id"
-                        >
-                        {{ data.item.symbol }}
-                        </b-badge>
-                      </b-link>
-                    </div> 
-                  </template>
-
-                  <template #cell(disease_ontology_name)="data">
-                    <div>
-                      <b-link v-bind:href="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"> 
-                        <b-badge 
-                        pill 
-                        variant="secondary"
-                        v-b-tooltip.hover.leftbottom
-                        v-bind:title="data.item.disease_ontology_name + '; ' + data.item.disease_ontology_id_version"
-                        >
-                        {{ data.item.disease_ontology_name }}
-                        </b-badge>
-                      </b-link>
-                    </div> 
-
-                    <b-button 
-                    v-if="data.item.disease_ontology_id_version.includes('OMIM')"
-                    class="btn-xs mx-2" 
-                    variant="outline-primary"
-                    v-bind:src="data.item.publications" 
-                    v-bind:href="'https://www.omim.org/entry/' + data.item.disease_ontology_id_version.replace('OMIM:', '').replace(/_.+/g, '')"
-                    target="_blank"
+            <b-table
+              :items="entity"
+              :fields="entity_fields"
+              stacked
+              small
+            >
+              <template #cell(symbol)="data">
+                <div class="font-italic">
+                  <b-link :href="'/Genes/' + data.item.hgnc_id">
+                    <b-badge
+                      v-b-tooltip.hover.leftbottom
+                      pill
+                      variant="success"
+                      :title="data.item.hgnc_id"
                     >
-                      <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                      {{ data.item.disease_ontology_id_version.replace(/_.+/g, '') }}
-                    </b-button>
+                      {{ data.item.symbol }}
+                    </b-badge>
+                  </b-link>
+                </div>
+              </template>
 
-                    <b-button 
-                    v-if="data.item.disease_ontology_id_version.includes('MONDO')"
-                    class="btn-xs mx-2" 
-                    variant="outline-primary"
-                    v-bind:src="data.item.publications" 
-                    v-bind:href="'http://purl.obolibrary.org/obo/' + data.item.disease_ontology_id_version.replace(':', '_')"
-                    target="_blank"
+              <template #cell(disease_ontology_name)="data">
+                <div>
+                  <b-link
+                    :href="
+                      '/Ontology/' +
+                        data.item.disease_ontology_id_version.replace(/_.+/g, '')
+                    "
+                  >
+                    <b-badge
+                      v-b-tooltip.hover.leftbottom
+                      pill
+                      variant="secondary"
+                      :title="
+                        data.item.disease_ontology_name +
+                          '; ' +
+                          data.item.disease_ontology_id_version
+                      "
                     >
-                      <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                      {{ data.item.disease_ontology_id_version }}
-                    </b-button>
-                  </template>
-                    
-                  <template #cell(hpo_mode_of_inheritance_term_name)="data">
-                    <div>
-                      <b-badge 
-                      pill 
-                      variant="info" 
-                      class="justify-content-md-center" 
-                      size="1.3em"
-                      v-b-tooltip.hover.leftbottom 
-                      v-bind:title="data.item.hpo_mode_of_inheritance_term_name + ' (' + data.item.hpo_mode_of_inheritance_term + ')'"
+                      {{ data.item.disease_ontology_name }}
+                    </b-badge>
+                  </b-link>
+                </div>
+
+                <b-button
+                  v-if="data.item.disease_ontology_id_version.includes('OMIM')"
+                  class="btn-xs mx-2"
+                  variant="outline-primary"
+                  :src="data.item.publications"
+                  :href="
+                    'https://www.omim.org/entry/' +
+                      data.item.disease_ontology_id_version
+                        .replace('OMIM:', '')
+                        .replace(/_.+/g, '')
+                  "
+                  target="_blank"
+                >
+                  <b-icon
+                    icon="box-arrow-up-right"
+                    font-scale="0.8"
+                  />
+                  {{
+                    data.item.disease_ontology_id_version.replace(/_.+/g, "")
+                  }}
+                </b-button>
+
+                <b-button
+                  v-if="data.item.disease_ontology_id_version.includes('MONDO')"
+                  class="btn-xs mx-2"
+                  variant="outline-primary"
+                  :src="data.item.publications"
+                  :href="
+                    'http://purl.obolibrary.org/obo/' +
+                      data.item.disease_ontology_id_version.replace(':', '_')
+                  "
+                  target="_blank"
+                >
+                  <b-icon
+                    icon="box-arrow-up-right"
+                    font-scale="0.8"
+                  />
+                  {{ data.item.disease_ontology_id_version }}
+                </b-button>
+              </template>
+
+              <template #cell(hpo_mode_of_inheritance_term_name)="data">
+                <div>
+                  <b-badge
+                    v-b-tooltip.hover.leftbottom
+                    pill
+                    variant="info"
+                    class="justify-content-md-center"
+                    size="1.3em"
+                    :title="
+                      data.item.hpo_mode_of_inheritance_term_name +
+                        ' (' +
+                        data.item.hpo_mode_of_inheritance_term +
+                        ')'
+                    "
+                  >
+                    {{
+                      inheritance_short_text[
+                        data.item.hpo_mode_of_inheritance_term_name
+                      ]
+                    }}
+                  </b-badge>
+                </div>
+              </template>
+
+              <template #cell(ndd_phenotype_word)="data">
+                <div>
+                  <b-avatar
+                    v-b-tooltip.hover.left
+                    size="1.4em"
+                    :icon="ndd_icon[data.item.ndd_phenotype_word]"
+                    :variant="ndd_icon_style[data.item.ndd_phenotype_word]"
+                    :title="ndd_icon_text[data.item.ndd_phenotype_word]"
+                  />
+                </div>
+              </template>
+            </b-table>
+
+            <b-table
+              :items="status"
+              :fields="status_fields"
+              stacked
+              small
+            >
+              <template #cell(category)="data">
+                <div>
+                  <b-avatar
+                    v-b-tooltip.hover.left
+                    size="1.4em"
+                    icon="stoplights"
+                    :variant="stoplights_style[data.item.category]"
+                    :title="data.item.category"
+                  />
+                </div>
+              </template>
+            </b-table>
+
+            <b-table
+              :items="review"
+              :fields="review_fields"
+              stacked
+              small
+            >
+              <template #cell(synopsis)="data">
+                <b-card
+                  border-variant="dark"
+                  align="left"
+                >
+                  <b-card-text>
+                    {{ data.item.synopsis }}
+                  </b-card-text>
+                </b-card>
+              </template>
+            </b-table>
+
+            <b-table
+              :items="publications_table"
+              stacked
+              small
+            >
+              <template #cell(publications)="data">
+                <b-row>
+                  <b-row
+                    v-for="publication in publications"
+                    :key="publication.publication_id"
+                  >
+                    <b-col>
+                      <b-button
+                        v-b-tooltip.hover.bottom
+                        class="btn-xs mx-2"
+                        variant="outline-primary"
+                        :src="data.item.publications"
+                        :href="
+                          'https://pubmed.ncbi.nlm.nih.gov/' +
+                            publication.publication_id.replace('PMID:', '')
+                        "
+                        target="_blank"
+                        :title="publication.publication_status"
                       >
-                      {{ inheritance_short_text[data.item.hpo_mode_of_inheritance_term_name] }}
-                      </b-badge>
-                    </div>
-                  </template>
+                        <b-icon
+                          icon="box-arrow-up-right"
+                          font-scale="0.8"
+                        />
+                        {{ publication.publication_id }}
+                      </b-button>
+                    </b-col>
+                  </b-row>
+                </b-row>
+              </template>
+            </b-table>
 
-                  <template #cell(ndd_phenotype_word)="data">
-                    <div>
-                      <b-avatar 
-                      size="1.4em" 
-                      :icon="ndd_icon[data.item.ndd_phenotype_word]"
-                      :variant="ndd_icon_style[data.item.ndd_phenotype_word]"
-                      v-b-tooltip.hover.left 
-                      v-bind:title="ndd_icon_text[data.item.ndd_phenotype_word]"
+            <b-table
+              :items="phenotypes_table"
+              stacked
+              small
+            >
+              <template #cell(phenotypes)="data">
+                <b-row>
+                  <b-row
+                    v-for="phenotype in phenotypes"
+                    :key="phenotype.phenotype_id"
+                  >
+                    <b-col>
+                      <b-button
+                        v-b-tooltip.hover.bottom
+                        class="btn-xs mx-2"
+                        variant="outline-dark"
+                        :src="data.item.phenotypes"
+                        :href="
+                          'https://hpo.jax.org/app/browse/term/' +
+                            phenotype.phenotype_id
+                        "
+                        target="_blank"
+                        :title="phenotype.phenotype_id"
                       >
-                      </b-avatar>
-                    </div> 
-                  </template>
-
-                </b-table>
-
-
-                <b-table
-                    :items="status"
-                    :fields="status_fields"
-                    stacked
-                    small
-                >
-                  <template #cell(category)="data">
-                    <div>
-                      <b-avatar
-                      size="1.4em"
-                      icon="stoplights"
-                      :variant="stoplights_style[data.item.category]"
-                      v-b-tooltip.hover.left 
-                      v-bind:title="data.item.category"
-                      >
-                      </b-avatar>
-                    </div> 
-                  </template>
-                </b-table>
-
-
-                <b-table
-                    :items="review"
-                    :fields="review_fields"
-                    stacked
-                    small
-                >
-                <template #cell(synopsis)="data">
-                  <b-card border-variant="dark" align="left">
-                    <b-card-text>
-                      {{ data.item.synopsis }}
-                    </b-card-text>
-                  </b-card>
-
-                </template>
-                </b-table>
-
-
-                <b-table
-                    :items="publications_table"
-                    stacked
-                    small
-                >
-                  <template #cell(publications)="data">
-                    <b-row>
-                      <b-row v-for="publication in publications" :key="publication.publication_id"> 
-                        <b-col>
-                          <b-button 
-                          class="btn-xs mx-2" 
-                          variant="outline-primary"
-                          v-bind:src="data.item.publications" 
-                          v-bind:href="'https://pubmed.ncbi.nlm.nih.gov/' + publication.publication_id.replace('PMID:', '')" 
-                          target="_blank" 
-                          v-b-tooltip.hover.bottom v-bind:title="publication.publication_status"
-                          >
-                            <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                            {{ publication.publication_id }}
-                          </b-button>
-                        </b-col>
-                      </b-row>
-                    </b-row>
-                  </template>
-                </b-table>
-
-                <b-table
-                    :items="phenotypes_table"
-                    stacked
-                    small
-                >
-                  <template #cell(phenotypes)="data">
-                    <b-row>
-                      <b-row v-for="phenotype in phenotypes" :key="phenotype.phenotype_id"> 
-                        <b-col>
-                          <b-button 
-                          class="btn-xs mx-2"
-                          variant="outline-dark"
-                          v-bind:src="data.item.phenotypes" 
-                          v-bind:href="'https://hpo.jax.org/app/browse/term/' + phenotype.phenotype_id" 
-                          target="_blank" 
-                          v-b-tooltip.hover.bottom
-                          v-bind:title="phenotype.phenotype_id"
-                          >
-                          <b-icon icon="box-arrow-up-right" font-scale="0.8"></b-icon>
-                          {{ phenotype.HPO_term }}
-                          </b-button>
-                        </b-col>
-                      </b-row>
-                    </b-row>
-                  </template>
-                </b-table>
+                        <b-icon
+                          icon="box-arrow-up-right"
+                          font-scale="0.8"
+                        />
+                        {{ phenotype.HPO_term }}
+                      </b-button>
+                    </b-col>
+                  </b-row>
+                </b-row>
+              </template>
+            </b-table>
           </b-card>
           <!-- Entity overview card -->
-
-          </b-col>
-        </b-row>
+        </b-col>
+      </b-row>
     </b-container>
   </div>
 </template>
 
 <script>
-import toastMixin from '@/assets/js/mixins/toastMixin.js'
+import toastMixin from "@/assets/js/mixins/toastMixin.js";
 
 export default {
-  name: 'Entity',
+  name: "Entity",
   mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
-    title: 'Entity',
+    title: "Entity",
     // all titles will be injected into this template
-    titleTemplate: '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
+    titleTemplate:
+      "%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
     htmlAttrs: {
-      lang: 'en'
+      lang: "en",
     },
     meta: [
-      { vmid: 'description', name: 'description', content: 'This Entity view shows specific information for an entity.' }
-    ]
+      {
+        vmid: "description",
+        name: "description",
+        content: "This Entity view shows specific information for an entity.",
+      },
+    ],
   },
   data() {
-        return {
-          stoplights_style: {"Definitive": "success", "Moderate": "primary", "Limited": "warning", "Refuted": "danger"},
-          ndd_icon: {"No": "x", "Yes": "check"},
-          ndd_icon_style: {"No": "warning", "Yes": "success"},
-          ndd_icon_text: {"No": "NOT associated with NDD", "Yes": "associated with NDD"},
-          inheritance_short_text: {"Autosomal dominant inheritance": "AD", "Autosomal recessive inheritance": "AR", "X-linked inheritance, other": "Xo", "X-linked recessive inheritance": "XR", "X-linked dominant inheritance": "XD", "Mitochondrial inheritance": "Mit", "Somatic mutation": "Som"},
-          entity: [],
-          entity_fields: [
-            { key: 'symbol', label: 'Gene Symbol', sortable: true, class: 'text-left' },
-            {
-              key: 'disease_ontology_name',
-              label: 'Disease',
-              sortable: true,
-              class: 'text-left',
-              sortByFormatted: true,
-              filterByFormatted: true
-            },
-            {
-              key: 'hpo_mode_of_inheritance_term_name',
-              label: 'Inheritance',
-              sortable: true,
-              class: 'text-left',
-              sortByFormatted: true,
-              filterByFormatted: true
-            },
-            { key: 'ndd_phenotype_word', label: 'NDD', sortable: true, class: 'text-left' }
-          ],
-          status: [],
-          status_fields: [
-            { key: 'category', label: 'Association Category', class: 'text-left' },
-          ],
-          review: [],
-          review_fields: [
-            { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-left' },
-          ],
-          publications: [],
-          publications_table: [{ publications: ""}],
-          phenotypes: [],
-          phenotypes_table: [{ phenotypes: ""}],
-          loading: true
-      }
-  }, 
+    return {
+      stoplights_style: {
+        Definitive: "success",
+        Moderate: "primary",
+        Limited: "warning",
+        Refuted: "danger",
+      },
+      ndd_icon: { No: "x", Yes: "check" },
+      ndd_icon_style: { No: "warning", Yes: "success" },
+      ndd_icon_text: {
+        No: "NOT associated with NDD",
+        Yes: "associated with NDD",
+      },
+      inheritance_short_text: {
+        "Autosomal dominant inheritance": "AD",
+        "Autosomal recessive inheritance": "AR",
+        "X-linked inheritance, other": "Xo",
+        "X-linked recessive inheritance": "XR",
+        "X-linked dominant inheritance": "XD",
+        "Mitochondrial inheritance": "Mit",
+        "Somatic mutation": "Som",
+      },
+      entity: [],
+      entity_fields: [
+        {
+          key: "symbol",
+          label: "Gene Symbol",
+          sortable: true,
+          class: "text-left",
+        },
+        {
+          key: "disease_ontology_name",
+          label: "Disease",
+          sortable: true,
+          class: "text-left",
+          sortByFormatted: true,
+          filterByFormatted: true,
+        },
+        {
+          key: "hpo_mode_of_inheritance_term_name",
+          label: "Inheritance",
+          sortable: true,
+          class: "text-left",
+          sortByFormatted: true,
+          filterByFormatted: true,
+        },
+        {
+          key: "ndd_phenotype_word",
+          label: "NDD",
+          sortable: true,
+          class: "text-left",
+        },
+      ],
+      status: [],
+      status_fields: [
+        { key: "category", label: "Association Category", class: "text-left" },
+      ],
+      review: [],
+      review_fields: [
+        { key: "synopsis", label: "Clinical Synopsis", class: "text-left" },
+      ],
+      publications: [],
+      publications_table: [{ publications: "" }],
+      phenotypes: [],
+      phenotypes_table: [{ phenotypes: "" }],
+      loading: true,
+    };
+  },
   mounted() {
     this.loadEntity();
-    },
+  },
   methods: {
+    async loadEntity() {
+      this.loading = true;
 
-  async loadEntity() {
-    this.loading = true;
+      let apiEntityURL =
+        process.env.VUE_APP_API_URL +
+        "/api/entity/" +
+        this.$route.params.entity_id;
 
-    let apiEntityURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.$route.params.entity_id;
-
-    try {
-      let response_entity = await this.axios.get(apiEntityURL);
-      this.entity = response_entity.data;
+      try {
+        let response_entity = await this.axios.get(apiEntityURL);
+        this.entity = response_entity.data;
 
         if (this.entity.length === 0) {
-          this.$router.push('/PageNotFound');
+          this.$router.push("/PageNotFound");
         } else {
           this.loadEntityInfo();
         }
-
       } catch (e) {
-       this.makeToast(e, 'Error', 'danger');
+        this.makeToast(e, "Error", "danger");
       }
+    },
+    async loadEntityInfo() {
+      let apiStatusURL =
+        process.env.VUE_APP_API_URL +
+        "/api/entity/" +
+        this.$route.params.entity_id +
+        "/status";
+      let apiReviewURL =
+        process.env.VUE_APP_API_URL +
+        "/api/entity/" +
+        this.$route.params.entity_id +
+        "/review";
+      let apiPublicationsURL =
+        process.env.VUE_APP_API_URL +
+        "/api/entity/" +
+        this.$route.params.entity_id +
+        "/publications";
+      let apiPhenotypesURL =
+        process.env.VUE_APP_API_URL +
+        "/api/entity/" +
+        this.$route.params.entity_id +
+        "/phenotypes";
+
+      try {
+        let response_status = await this.axios.get(apiStatusURL);
+        let response_review = await this.axios.get(apiReviewURL);
+        let response_publications = await this.axios.get(apiPublicationsURL);
+        let response_phenotypes = await this.axios.get(apiPhenotypesURL);
+
+        this.status = response_status.data;
+        this.review = response_review.data;
+        this.publications = response_publications.data;
+        this.phenotypes = response_phenotypes.data;
+      } catch (e) {
+        this.makeToast(e, "Error", "danger");
+      }
+
+      this.loading = false;
+    },
   },
-  async loadEntityInfo() {
-    let apiStatusURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.$route.params.entity_id + '/status';
-    let apiReviewURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.$route.params.entity_id + '/review';
-    let apiPublicationsURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.$route.params.entity_id + '/publications';
-    let apiPhenotypesURL = process.env.VUE_APP_API_URL + '/api/entity/' + this.$route.params.entity_id + '/phenotypes';
-
-    try {
-      let response_status = await this.axios.get(apiStatusURL);
-      let response_review = await this.axios.get(apiReviewURL);
-      let response_publications = await this.axios.get(apiPublicationsURL);
-      let response_phenotypes = await this.axios.get(apiPhenotypesURL);
-
-      this.status = response_status.data;
-      this.review = response_review.data;
-      this.publications = response_publications.data;
-      this.phenotypes = response_phenotypes.data;
-      } catch (e) {
-       this.makeToast(e, 'Error', 'danger');
-      }
-
-    this.loading = false;
-
-    }
-  }
-}
+};
 </script>
 
 
 <style scoped>
-.btn-group-xs > .btn, .btn-xs {
-  padding: .25rem .4rem;
-  font-size: .875rem;
-  line-height: .5;
-  border-radius: .2rem;
+.btn-group-xs > .btn,
+.btn-xs {
+  padding: 0.25rem 0.4rem;
+  font-size: 0.875rem;
+  line-height: 0.5;
+  border-radius: 0.2rem;
 }
-
 </style>

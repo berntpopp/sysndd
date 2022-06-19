@@ -1,39 +1,38 @@
 <template>
   <div class="container-fluid">
-
-  <!-- Load Entities table component element -->
-    <TablesEntities
-    >
-    </TablesEntities>
-  <!-- Load Entities table component element -->
-
+    <!-- Load Entities table component element -->
+    <TablesEntities />
+    <!-- Load Entities table component element -->
   </div>
 </template>
 
 
 <script>
-import TablesEntities from '@/components/tables/TablesEntities.vue';
+import TablesEntities from "@/components/tables/TablesEntities.vue";
 
 export default {
-  components: {TablesEntities,
-    },
-  name: 'Entities',
+  name: "Entities",
+  components: { TablesEntities },
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
-    title: 'Entities',
+    title: "Entities",
     // all titles will be injected into this template
-    titleTemplate: '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
+    titleTemplate:
+      "%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
     htmlAttrs: {
-      lang: 'en'
+      lang: "en",
     },
     meta: [
-      { vmid: 'description', name: 'description', content: 'An expert curated resource of neurodevelopmental disorders.' }
-    ]
+      {
+        vmid: "description",
+        name: "description",
+        content: "An expert curated resource of neurodevelopmental disorders.",
+      },
+    ],
   },
-  }
+};
 </script>
 
 
 <style scoped>
-
 </style>

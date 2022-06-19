@@ -63,7 +63,7 @@
       "node": true
     },
     "extends": [
-      "plugin:vue/essential",
+      "plugin:vue/recommended",
       "eslint:recommended"
     ],
     "parserOptions": {
@@ -71,7 +71,8 @@
     },
     "rules": {
       "no-console": "off",
-      "no-unused-vars": "off"
+      "no-unused-vars": "off",
+      "no-global-assign": ["error", {"exceptions": ["require"]}]
     }
   },
   "browserslist": [

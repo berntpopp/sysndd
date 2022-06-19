@@ -1,75 +1,77 @@
 <template>
   <div class="container-fluid bg-gradient">
     <b-container fluid>
-
       <b-row class="justify-content-md-center py-2">
-        <b-col col md="12">
-
+        <b-col
+          col
+          md="12"
+        >
           <div>
-          <b-tabs content-class="mt-3" v-model="tabIndex">
+            <b-tabs
+              v-model="tabIndex"
+              content-class="mt-3"
+            >
+              <b-tab
+                title="Phenotype correlogram"
+                active
+              >
+                <AnalysesPhenotypeCorrelogram />
+              </b-tab>
 
-            <b-tab title="Phenotype correlogram" active>
-              <AnalysesPhenotypeCorrelogram />
-            </b-tab>
+              <b-tab title="Phenotype counts">
+                <AnalysesPhenotypeCounts />
+              </b-tab>
 
-            <b-tab title="Phenotype counts">
-              <AnalysesPhenotypeCounts />
-            </b-tab>
-
-            <b-tab title="MCA phenotypes & inheritance">
-
-            </b-tab>
-
-          </b-tabs>
+              <b-tab title="MCA phenotypes & inheritance" />
+            </b-tabs>
           </div>
-          
         </b-col>
       </b-row>
-
     </b-container>
   </div>
 </template>
 
 
 <script>
-  import AnalysesPhenotypeCorrelogram from '@/components/analyses/AnalysesPhenotypeCorrelogram.vue';
-  import AnalysesPhenotypeCounts from '@/components/analyses/AnalysesPhenotypeCounts.vue';
+import AnalysesPhenotypeCorrelogram from "@/components/analyses/AnalysesPhenotypeCorrelogram.vue";
+import AnalysesPhenotypeCounts from "@/components/analyses/AnalysesPhenotypeCounts.vue";
 
-  import toastMixin from '@/assets/js/mixins/toastMixin.js'
+import toastMixin from "@/assets/js/mixins/toastMixin.js";
 
-  import * as d3 from 'd3';
+import * as d3 from "d3";
 
-  export default {
-  components: {AnalysesPhenotypeCorrelogram,
-    AnalysesPhenotypeCounts
-    },
-  name: 'PhenotypeCorrelations',
+export default {
+  name: "PhenotypeCorrelations",
+  components: { AnalysesPhenotypeCorrelogram, AnalysesPhenotypeCounts },
   mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
-    title: 'Phenotype correlations',
+    title: "Phenotype correlations",
     // all titles will be injected into this template
-    titleTemplate: '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
+    titleTemplate:
+      "%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
     htmlAttrs: {
-      lang: 'en'
+      lang: "en",
     },
     meta: [
-      { vmid: 'description', name: 'description', content: 'The Phenotype analysis can be used to compare the correltations between phenotypes and with their associated inheritance patterns in neurodevelopmental disorders (inlucing attention-deficit/hyperactivity disorder (ADHD), autism spectrum disorders (ASD), learning disabilities and intellectual disability).' }
-    ]
+      {
+        vmid: "description",
+        name: "description",
+        content:
+          "The Phenotype analysis can be used to compare the correltations between phenotypes and with their associated inheritance patterns in neurodevelopmental disorders (inlucing attention-deficit/hyperactivity disorder (ADHD), autism spectrum disorders (ASD), learning disabilities and intellectual disability).",
+      },
+    ],
   },
   data() {
     return {
       tabIndex: 0,
-      };
-    },
-    mounted() {
-    },
-    methods: {
-    }
-  };
+    };
+  },
+  mounted() {},
+  methods: {},
+};
 </script>
 
 
 <style scoped>
-
 </style>
