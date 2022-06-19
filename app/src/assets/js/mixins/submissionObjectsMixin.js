@@ -41,5 +41,5 @@ export default {
                   this.gene_review = gene_review;
             },
             // submission object constructor functions
-    },
+      },
 }

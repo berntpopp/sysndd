@@ -1,113 +1,111 @@
 /* badges styles */
 .badge {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 3px 6px;
-    border: 1px solid transparent;
-    min-width: 10px;
-    line-height: 1;
-    color: #000000;
-    text-align: center;
-    white-space: nowrap;
-    vertical-align: middle;
-    border-radius: 99999px
-  }
-  
-  .badge.badge-default {
-    border-color: #888888;
-    color: #000000;
-    background-color: #B0BEC5;
-  }
-  
-  .badge.badge-primary {
-    border-color: #888888;
-    color: #000000;
-    background-color: #beaed4;
-  }
-  
-  .badge.badge-secondary {
-    border-color: #888888;
-    color: #000000;
-    background-color: #7fc97f;
-  }
-  
-  .badge.badge-success {
-    border-color: #666666;
-    color: #000000;
-    background-color: #fdc086;
-  }
-  
-  .badge.badge-warning {
-    border-color: #888888;
-    color: #000000;
-    background-color: #ffff99;
-  }
-  
-  .badge.badge-info {
-    border-color: #888888;
-    color: #000000;
-    background-color: #29B6F6;
-  }
-  
-  .badge.badge-danger {
-    border-color: #888888;
-    color: #000000;
-    background-color: #ef1c1c;
-  }
-  
-  .badge.badge-dark {
-    border-color: #888888;
-    color: #ffffff;
-    background-color: #000000;
-  }
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 6px;
+  border: 1px solid transparent;
+  min-width: 10px;
+  line-height: 1;
+  color: #000000;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  border-radius: 99999px;
+}
 
-  .badge.badge-outlined {
-    background-color: transparent
-  }
-  
-  .badge.badge-outlined.badge-default {
-    border-color: #B0BEC5;
-    color: #B0BEC5
-  }
-  
-  .badge.badge-outlined.badge-primary {
-    border-color: #beaed4;
-    color: #beaed4
-  }
-  
-  .badge.badge-outlined.badge-secondary {
-    border-color: #7fc97f;
-    color: #7fc97f
-  }
-  
-  .badge.badge-outlined.badge-success {
-    border-color: #fdc086;
-    color: #fdc086
-  }
-  
-  .badge.badge-outlined.badge-warning {
-    border-color: #ffff99;
-    color: #ffff99
-  }
-  
-  .badge.badge-outlined.badge-info {
-    border-color: #29B6F6;
-    color: #29B6F6
-  }
-  
-  .badge.badge-outlined.badge-danger {
-    border-color: #ef1c1c;
-    color: #ef1c1c
-  }
-  
-  .badge.badge-outlined.badge-dark {
-    border-color: #000000;
-    color: #000000
-  }
+.badge.badge-default {
+  border-color: #888888;
+  color: #000000;
+  background-color: #b0bec5;
+}
+
+.badge.badge-primary {
+  border-color: #888888;
+  color: #000000;
+  background-color: #beaed4;
+}
+
+.badge.badge-secondary {
+  border-color: #888888;
+  color: #000000;
+  background-color: #7fc97f;
+}
+
+.badge.badge-success {
+  border-color: #666666;
+  color: #000000;
+  background-color: #fdc086;
+}
+
+.badge.badge-warning {
+  border-color: #888888;
+  color: #000000;
+  background-color: #ffff99;
+}
+
+.badge.badge-info {
+  border-color: #888888;
+  color: #000000;
+  background-color: #29b6f6;
+}
+
+.badge.badge-danger {
+  border-color: #888888;
+  color: #000000;
+  background-color: #ef1c1c;
+}
+
+.badge.badge-dark {
+  border-color: #888888;
+  color: #ffffff;
+  background-color: #000000;
+}
+
+.badge.badge-outlined {
+  background-color: transparent;
+}
+
+.badge.badge-outlined.badge-default {
+  border-color: #b0bec5;
+  color: #b0bec5;
+}
+
+.badge.badge-outlined.badge-primary {
+  border-color: #beaed4;
+  color: #beaed4;
+}
+
+.badge.badge-outlined.badge-secondary {
+  border-color: #7fc97f;
+  color: #7fc97f;
+}
+
+.badge.badge-outlined.badge-success {
+  border-color: #fdc086;
+  color: #fdc086;
+}
+
+.badge.badge-outlined.badge-warning {
+  border-color: #ffff99;
+  color: #ffff99;
+}
+
+.badge.badge-outlined.badge-info {
+  border-color: #29b6f6;
+  color: #29b6f6;
+}
+
+.badge.badge-outlined.badge-danger {
+  border-color: #ef1c1c;
+  color: #ef1c1c;
+}
+
+.badge.badge-outlined.badge-dark {
+  border-color: #000000;
+  color: #000000;
+}
 /* badges styles */
-
-
 
 .truncated {
   display: block;
@@ -116,15 +114,15 @@
   text-overflow: ellipsis;
 }
 .bg-gradient {
-margin:0px;
-height:100%;
-min-height:calc(100vh - 100px);
-background-image: linear-gradient(-225deg, #E3FDF5 0%, #FFE6FA 100%);
+  margin: 0px;
+  height: 100%;
+  min-height: calc(100vh - 100px);
+  background-image: linear-gradient(-225deg, #e3fdf5 0%, #ffe6fa 100%);
 }
 .border-dark {
   border: 1;
   border-color: #000;
 }
 .word {
-font-size: 1.25em;
+  font-size: 1.25em;
 }

@@ -7,8 +7,8 @@ export default {
       let filter_obj = {};
 
       // check if empty and handle
-      if(filter_string === '' || filter_string === null) {
-        filter_obj = {any: null, entity_id: null, symbol: null, disease_ontology_name: null, disease_ontology_id_version: null, hpo_mode_of_inheritance_term_name: null, hpo_mode_of_inheritance_term: null, ndd_phenotype_word: null, category: null};
+      if (filter_string === '' || filter_string === null) {
+        filter_obj = { any: null, entity_id: null, symbol: null, disease_ontology_name: null, disease_ontology_id_version: null, hpo_mode_of_inheritance_term_name: null, hpo_mode_of_inheritance_term: null, ndd_phenotype_word: null, category: null };
       } else {
         // replace string to have JSON string
         const filter_replace = decodeURI(filter_string)
@@ -25,13 +25,13 @@ export default {
 
         // split arrays
         Object.keys(filter_obj).forEach((key) => {
-            if(filter_obj[key].includes("|")) {
-              filter_obj[key] = filter_obj[key].split("|");
-            }
-            if(as_array.split(",").includes(key)) {
-              filter_obj[key] = [].concat(filter_obj[key]);
-            }
-          });
+          if (filter_obj[key].includes("|")) {
+            filter_obj[key] = filter_obj[key].split("|");
+          }
+          if (as_array.split(",").includes(key)) {
+            filter_obj[key] = [].concat(filter_obj[key]);
+          }
+        });
       }
 
       // return the object
@@ -44,7 +44,7 @@ export default {
       // iterate over the filtered non null expressions and join array with regex or "|"
       const filter_string_not_empty_join = {};
       Object.keys(filter_string_not_empty).forEach((key) => {
-        if(Array.isArray(filter_string_not_empty[key])) {
+        if (Array.isArray(filter_string_not_empty[key])) {
           filter_string_not_empty_join[key] = filter_string_not_empty[key].join(join_char);
         } else {
           filter_string_not_empty_join[key] = filter_string_not_empty[key];
@@ -67,5 +67,5 @@ export default {
       }
       return return_object;
     },
-},
+  },
 }
