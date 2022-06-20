@@ -47,22 +47,51 @@
                     fluid="sm"
                     class="text-left py-2"
                   >
-                    The SysNDD database is based on its predecessor database,
-                    SysID (https://www.sysid.dbmr.unibe.ch/). It contains a
+                    The SysNDD database is based on thesome content of its
+                    predecessor database, SysID (
+                    <b-link
+                      href="http://sysid.cmbi.umcn.nl/"
+                      target="_blank"
+                    >
+                      http://sysid.cmbi.umcn.nl/
+                    </b-link>
+                    , more recently
+                    <b-link
+                      href="https://www.sysid.dbmr.unibe.ch/"
+                      target="_blank"
+                    >
+                      https://www.sysid.dbmr.unibe.ch/
+                    </b-link>
+                    ). The concept for a curated gene collection and database
+                    with the goal to facilitate research and diagnostics into
+                    NDDs has been conceived by Annette Schenck (Radboud
+                    university medical center, Nijmegen, the Netherlands) and
+                    Christiane Zweier (previously: Institute of Human Genetics,
+                    University Hospital, FAU Erlangen, Germany; now: Human
+                    Genetics at the University/ University Hospital Bern,
+                    Switzerland). In 2009, they established SysID with a
                     manually curated catalogue of published genes implicated in
-                    neurodevelopmental disorders (NDDs) and classified into
-                    primary and candidate genes according to the degree of
-                    underlying evidence. Furthermore, manually curated
-                    information on associated diseases and phenotypes is
-                    provided. To allow interoperability and mapping between
-                    gene-, phenotype- or disease-oriented databases, we center
-                    our approach around curated gene-inheritance-disease units,
-                    so called entities. SysNDD is updated every 3-4 months and
-                    can be utilized for a broad spectrum of tasks from both
-                    research and diagnostics. One of our long-term goals is to
-                    incorporate the SysID/SysNDD data into other
-                    gene/disease-relationship databases like the Orphanet
-                    ontology.
+                    neurodevelopmental disorders (NDDs), classified into primary
+                    and candidate genes according to the degree of underlying
+                    evidence. Furthermore, expert curated information on
+                    associated diseases and phenotypes was provided. Christiane
+                    Zweier has been updating SysID from its start in 2009.
+                    Together with her, Bernt Popp (senior physician at the
+                    Berlin Institute of Health (BIH) at Charité Berlin, Germany
+                    and scientist at the Institute of Human Genetics at the
+                    University Hospital Leipzig, Germany) has now developed and
+                    programmed the new SysNDD database. To allow
+                    interoperability and mapping between gene-, phenotype- or
+                    disease-oriented databases, SysNDD is centered around
+                    curated gene-inheritance-disease units, so called entities,
+                    which are classified based on three evidence categories.
+                    This can account for the increased complexity of NDDs and
+                    allows to address a broader spectrum of diagnostic and
+                    research questions. Future functionality will be expanded to
+                    annotation of variant and network analyses. Another goal is
+                    to incorporate the SysID/SysNDD data into other
+                    gene/disease-relationship databases like the Orphanet Rare
+                    Disease ontology database.
                   </b-container>
                   <b-container
                     fluid="sm"
@@ -115,15 +144,6 @@
                   >
                     <b-row>
                       <b-col md="12">
-                        We are currently working on manuscripts describing (1)
-                        the development of SysID through the last years and (2)
-                        the new SysNDD database. Until then please cite the
-                        publication below if you use SysID or data from SysID in
-                        your work.
-                      </b-col>
-                    </b-row>
-                    <b-row>
-                      <b-col md="12">
                         <span class="font-weight-bold">1.</span>
                         <b-link
                           href="https://pubmed.ncbi.nlm.nih.gov/26748517/"
@@ -138,6 +158,15 @@
                           10.1016/j.ajhg.2015.11.024. PMID: 26748517; PMCID:
                           PMC4716705.
                         </b-link>
+                      </b-col>
+                    </b-row>
+                    <b-row>
+                      <b-col md="12">
+                        <br>
+                        Please cite above publication. We are currently working
+                        on a new manuscript reporting SysNDD and the development
+                        of the NDD landscape over the past years. A link will be
+                        provided here upon publication.
                       </b-col>
                     </b-row>
                   </b-container>
@@ -226,7 +255,13 @@
                   <b-row>
                     <b-col md="12">
                       - The European Union’s FP7 large scale integrated network
-                      GenCoDys (HEALTH-241995) to MA Huynen and
+                      GenCoDys (HEALTH-241995)
+                      <b-link
+                        href="https://orcid.org/0000-0001-6189-5491"
+                        target="_blank"
+                      >
+                        Martijn A Huynen
+                      </b-link>. and
                       <b-link
                         href="https://orcid.org/0000-0002-6918-3314"
                         target="_blank"
@@ -369,17 +404,17 @@
                     fluid="sm"
                     class="text-left py-2"
                   >
-                    We would like to acknowledge Annette Schenck and Martijn
-                    Huynen and their groups from Radboud University Medical
-                    Center Nijmegen, The Netherlands, who initially brought
-                    SysID into life and maintained and supported it for many
-                    years. We would also like to thank all users for using SysID
-                    and for positive feedbacks, thus making the sometimes
-                    tedious updates and the re-organization into the new SysNDD
-                    database worth it. Since recently, Alain Verloes and ERN
-                    ITHACA provide valuable encouragement and support by
-                    initiating and supporting the data integration with Orphanet
-                    and helping with the recruitment of expert curators.
+                    We acknowledge Martijn Huynen and members of the Huynen and
+                    Schenck groups at the Radboud University Medical Center
+                    Nijmegen, The Netherlands, for building SysID and supporting
+                    it for many years. We would also like to thank all past
+                    users for using SysID and for constructive feedback, thus
+                    making the sometimes tedious updates and re-organization
+                    into the new SysNDD database worthwhile. Since recently,
+                    Alain Verloes and ERN ITHACA provide valuable encouragement
+                    and support by initiating and supporting the data
+                    integration with Orphanet and helping with the recruitment
+                    of expert curators.
                   </b-container>
                 </b-card-body>
               </b-collapse>
