@@ -827,8 +827,6 @@ export default {
       this.review_info.phenotypes = replace_phenotype;
       this.review_info.variation_ontology = replace_variation_ontology;
 
-      console.log(this.review_info);
-
       // perform update PUT request
       try {
         let response = await this.axios.put(

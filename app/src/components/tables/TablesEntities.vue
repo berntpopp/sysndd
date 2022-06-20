@@ -49,6 +49,20 @@
                   >
                     <b-button
                       v-b-tooltip.hover.bottom
+                      class="mx-1"
+                      size="sm"
+                      title="Copy link to this page."
+                      variant="success"
+                      @click="copyLinkToClipboard()"
+                    >
+                      <b-icon
+                        icon="link"
+                        font-scale="1.0"
+                      />
+                    </b-button>
+
+                    <b-button
+                      v-b-tooltip.hover.bottom
                       size="sm"
                       :title="
                         'The table is ' +
@@ -353,6 +367,7 @@
 
 <script>
 import toastMixin from "@/assets/js/mixins/toastMixin.js";
+import urlParsingMixin from "@/assets/js/mixins/urlParsingMixin.js";
 
 // import the Treeselect component
 import Treeselect from "@riophae/vue-treeselect";
@@ -363,29 +378,20 @@ export default {
   name: "TablesEntities",
   // register the Treeselect component
   components: { Treeselect },
-  mixins: [toastMixin],
+  mixins: [toastMixin, urlParsingMixin],
   props: {
     showFilterControls: { type: Boolean, default: true },
     showPaginationControls: { type: Boolean, default: true },
     headerLabel: { type: String, default: "Entities table" },
-    perPageInput: { type: String, default: "10" },
-    sortByInput: { type: String, default: "entity_id" },
-    sortDescInput: { type: Boolean, default: true },
-    filterInput: {
-      type: Object,
-      default(rawProps) {
-        return {
-          any: null,
-          entity_id: null,
-          symbol: null,
-          disease_ontology_name: null,
-          disease_ontology_id_version: null,
-          hpo_mode_of_inheritance_term_name: null,
-          hpo_mode_of_inheritance_term: null,
-          ndd_phenotype_word: null,
-          category: null,
-        };
-      },
+    sortInput: { type: String, default: "+entity_id" },
+    filterInput: { type: String, default: null },
+    fieldsInput: { type: String, default: null },
+    pageAfterInput: { type: String, default: "" },
+    pageSizeInput: { type: String, default: "10" },
+    fspecInput: {
+      type: String,
+      default:
+        "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details",
     },
   },
   data() {
@@ -483,16 +489,27 @@ export default {
       ],
       totalRows: 0,
       currentPage: 1,
-      currentItemID: 0,
+      currentItemID: this.pageAfterInput,
       prevItemID: null,
       nextItemID: null,
       lastItemID: null,
       executionTime: 0,
-      perPage: this.perPageInput,
+      perPage: this.pageSizeInput,
       pageOptions: ["10", "25", "50", "200"],
-      sortBy: this.sortByInput,
-      sortDesc: this.sortDescInput,
-      filter: this.filterInput,
+      sortBy: "entity_id",
+      sortDesc: true,
+      sort: this.sortInput,
+      filter: {
+        any: null,
+        entity_id: null,
+        symbol: null,
+        disease_ontology_name: null,
+        disease_ontology_id_version: null,
+        hpo_mode_of_inheritance_term_name: null,
+        hpo_mode_of_inheritance_term: null,
+        ndd_phenotype_word: null,
+        category: null,
+      },
       filter_string: "",
       filterOn: [],
       infoModal: {
@@ -506,80 +523,75 @@ export default {
   },
   watch: {
     sortBy(value) {
-      this.handleSortChange();
+      this.handleSortByOrDescChange();
+    },
+    sortDesc(value) {
+      this.handleSortByOrDescChange();
     },
     perPage(value) {
       this.handlePerPageChange();
     },
-    sortDesc(value) {
-      this.handleSortChange();
-    },
   },
   mounted() {
+    // transform input filter string from params to object and assign
+    this.filter = this.filterStringToObject(this.filterInput,
+      '|', 
+      'contains',
+      'category,hpo_mode_of_inheritance_term,hpo_mode_of_inheritance_term_name');
+
+    // transform input sort string to object and assign
+    let sort_object = this.sortStringToVariables(this.sortInput);
+    this.sortBy = sort_object.sortBy;
+    this.sortDesc = sort_object.sortDesc;
+
     this.filtered();
+
     setTimeout(() => {
       this.loading = false;
     }, 500);
   },
   methods: {
-    handleSortChange() {
+    copyLinkToClipboard() {
+      let urlParam =
+        "sort=" +
+        this.sort +
+        "&filter=" +
+        this.filter_string +
+        "&page_after=" +
+        this.currentItemID +
+        "&page_size=" +
+        this.perPage;
+      navigator.clipboard.writeText(
+        process.env.VUE_APP_URL + this.$route.path + "?" + urlParam
+      );
+    },
+    handleSortByOrDescChange() {
       this.currentItemID = 0;
-      this.loadEntitiesData();
+      this.sort = (!this.sortDesc ? "-" : "+") + this.sortBy;
+      this.filtered();
     },
     handlePerPageChange() {
       this.currentItemID = 0;
-      this.loadEntitiesData();
+      this.filtered();
     },
     handlePageChange(value) {
       if (value == 1) {
         this.currentItemID = 0;
-        this.loadEntitiesData();
+        this.filtered();
       } else if (value == this.totalPages) {
         this.currentItemID = this.lastItemID;
-        this.loadEntitiesData();
+        this.filtered();
       } else if (value > this.currentPage) {
         this.currentItemID = this.nextItemID;
-        this.loadEntitiesData();
+        this.filtered();
       } else if (value < this.currentPage) {
         this.currentItemID = this.prevItemID;
-        this.loadEntitiesData();
+        this.filtered();
       }
     },
     filtered() {
-      // filter the filter object to only contain non null values
-      const filter_string_not_empty = Object.filter(
-        this.filter,
-        (value) =>
-          value !== null &&
-          value !== "null" &&
-          value !== "" &&
-          value.length !== 0
-      );
-
-      // iterate over the filtered non null expressions and join array with regex or "|"
-      const filter_string_not_empty_join = {};
-      Object.keys(filter_string_not_empty).forEach((key) => {
-        if (Array.isArray(filter_string_not_empty[key])) {
-          filter_string_not_empty_join[key] =
-            filter_string_not_empty[key].join("|");
-        } else {
-          filter_string_not_empty_join[key] = filter_string_not_empty[key];
-        }
-      });
-
-      // compute the filter string by joining the filter object
-      if (Object.keys(filter_string_not_empty_join).length !== 0) {
-        this.filter_string =
-          "contains(" +
-          Object.keys(filter_string_not_empty_join)
-            .map((key) => [key, filter_string_not_empty_join[key]].join(","))
-            .join("),contains(") +
-          ")";
-        this.loadEntitiesData();
-      } else {
-        this.filter_string = "";
-        this.loadEntitiesData();
-      }
+      this.filter_string = this.filterObjectToString(this.filter);
+      this.loadEntitiesData();
     },
     removeFilters() {
       this.filter = {
@@ -601,17 +613,20 @@ export default {
     },
     async loadEntitiesData() {
       this.isBusy = true;
-      let apiUrl =
-        process.env.VUE_APP_API_URL +
-        "/api/entity?sort=" +
-        (this.sortDesc ? "-" : "+") +
-        this.sortBy +
+
+      const urlParam =
+        "sort=" +
+        this.sort +
         "&filter=" +
         this.filter_string +
         "&page_after=" +
         this.currentItemID +
         "&page_size=" +
         this.perPage;
+
+      const apiUrl = process.env.VUE_APP_API_URL + 
+        "/api/entity?" +
+        urlParam;
 
       try {
         let response = await this.axios.get(apiUrl);

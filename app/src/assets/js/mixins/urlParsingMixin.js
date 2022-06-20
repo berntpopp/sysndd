@@ -1,21 +1,21 @@
 // assets/js/mixins/urlParsingMixin.js
 export default {
   methods: {
-    filterStringToObject(filter_string, join_char = '|', operator = 'contains', as_array = 'any,category,hpo_mode_of_inheritance_term,hpo_mode_of_inheritance_term_name,entities_count') {
+    filterStringToObject(filter_string, join_char = '|', operator = 'contains', as_array = 'any,category,hpo_mode_of_inheritance_term,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,entities_count') {
       // this function converts a filter string from a URL to a filter object
       // define the filter object
       let filter_obj = {};
 
       // check if empty and handle
       if (filter_string === '' || filter_string === null) {
-        filter_obj = { any: null, entity_id: null, symbol: null, disease_ontology_name: null, disease_ontology_id_version: null, hpo_mode_of_inheritance_term_name: null, hpo_mode_of_inheritance_term: null, ndd_phenotype_word: null, category: null };
+        filter_obj = { };
       } else {
         // replace string to have JSON string
         const filter_replace = decodeURI(filter_string)
-          .split('contains(').join('{"')
+          .split((operator + '(')).join('{"')
           .split(')').join('"}')
           .split('},{').join(';')
-          .split(', ').join('#') // this handels comma-sapce in string
+          .split(', ').join('#') // this handels comma-space in string
           .split(',').join('":"')
           .split(';').join(',')
           .split('#').join(', ');
@@ -25,8 +25,8 @@ export default {
 
         // split arrays
         Object.keys(filter_obj).forEach((key) => {
-          if (filter_obj[key].includes("|")) {
-            filter_obj[key] = filter_obj[key].split("|");
+          if (filter_obj[key].includes(join_char)) {
+            filter_obj[key] = filter_obj[key].split(join_char);
           }
           if (as_array.split(",").includes(key)) {
             filter_obj[key] = [].concat(filter_obj[key]);

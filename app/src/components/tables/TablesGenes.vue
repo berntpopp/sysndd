@@ -596,6 +596,7 @@ export default {
         hpo_mode_of_inheritance_term: null,
         ndd_phenotype_word: null,
         category: null,
+        entities_count: null,
       },
       filter_string: "",
       filterOn: [],
@@ -621,7 +622,10 @@ export default {
   },
   mounted() {
     // transform input filter string from params to object and assign
-    this.filter = this.filterStringToObject(this.filterInput);
+    this.filter = this.filterStringToObject(this.filterInput,
+      '|', 
+      'contains',
+      'category,hpo_mode_of_inheritance_term,hpo_mode_of_inheritance_term_name,entities_count');
 
     // transform input sort string to object and assign
     let sort_object = this.sortStringToVariables(this.sortInput);
@@ -688,6 +692,7 @@ export default {
         hpo_mode_of_inheritance_term: null,
         ndd_phenotype_word: null,
         category: null,
+        entities_count: null,
       };
       this.filtered();
     },
@@ -698,7 +703,7 @@ export default {
     async loadGenesData() {
       this.isBusy = true;
 
-      let urlParam =
+      const urlParam =
         "sort=" +
         this.sort +
         "&filter=" +
@@ -707,9 +712,10 @@ export default {
         this.currentItemID +
         "&page_size=" +
         this.perPage;
-      let apiUrl = process.env.VUE_APP_API_URL + "/api/gene?" + urlParam;
 
-      let curParam = new URLSearchParams(this.$route.query).toString();
+      const apiUrl = process.env.VUE_APP_API_URL + 
+        "/api/gene?" +
+        urlParam;
 
       try {
         let response = await this.axios.get(apiUrl);
@@ -757,5 +763,11 @@ export default {
 }
 .input-group .input-group-text {
   width: 100%;
+}
+.badge-container .badge {
+  width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

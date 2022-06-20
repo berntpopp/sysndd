@@ -1286,7 +1286,7 @@ export default {
           new_variation,
           response_review.data[0].comment
         );
-        console.log(this.review_info);
+
         this.review_info.review_id = response_review.data[0].review_id;
         this.review_info.entity_id = response_review.data[0].entity_id;
         this.review_info.review_user_name =
