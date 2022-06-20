@@ -100,6 +100,7 @@ generate_comparisons_list <- function(sort = "symbol",
   return(return_list)
   }
 
+
 # generate phenotype entities list
 generate_phenotype_entities_list <- function(sort = "entity_id",
   filter = "",
@@ -110,8 +111,7 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
   # set start time
   start_time <- Sys.time()
 
-  filter <- URLdecode(filter) %>%
-    str_replace_all("HP:", "HP_")
+  filter <- URLdecode(filter)
 
   # generate sort expression based on sort input
   sort_exprs <- generate_sort_expressions(sort, unique_id = "entity_id")
@@ -120,31 +120,27 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
   filter_exprs <- generate_filter_expressions(filter)
 
   # load the wide phenotype view
-  ndd_review_phenotype_connect_w <- pool %>%
-    tbl("ndd_review_phenotype_connect_wide_view")
+  ndd_review_phenotype_connect <- pool %>%
+    tbl("ndd_review_phenotype_connect_view") %>%
+    collect() %>%
+    select(entity_id, modifier_phenotype_id) %>%
+    group_by(entity_id) %>%
+    arrange(entity_id, modifier_phenotype_id) %>%
+    mutate(modifier_phenotype_id = paste0(modifier_phenotype_id,
+      collapse = ",")) %>%
+    ungroup() %>%
+    unique()
 
   # collect view from database
   entity_phenotype_table <- pool %>%
     tbl("ndd_entity_view") %>%
-    left_join(ndd_review_phenotype_connect_w, by = c("entity_id")) %>%
-    collect()
+    collect() %>%
+    left_join(ndd_review_phenotype_connect, by = c("entity_id")) %>%
+    filter(!is.na(modifier_phenotype_id))
 
   # apply filters
   sysndd_db_entity_phenotype_table <- entity_phenotype_table %>%
     filter(!!!rlang::parse_exprs(filter_exprs)) %>%
-    pivot_longer(
-      cols = starts_with("HP_"),
-      names_to = "phenotype_id",
-      values_to = "phenotype_present"
-    ) %>%
-    filter(phenotype_present == TRUE) %>%
-    mutate(phenotype_id = str_replace_all(phenotype_id, "_", ":")) %>%
-    group_by(entity_id) %>%
-    arrange(entity_id, phenotype_id) %>%
-    mutate(phenotype_id = paste0(phenotype_id, collapse = ",")) %>%
-    ungroup() %>%
-    unique() %>%
-    select(-phenotype_present) %>%
     arrange(!!!rlang::parse_exprs(sort_exprs))
 
   # use the helper generate_tibble_fspec to
@@ -152,9 +148,11 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
   entity_phenotype_table_fspec <- generate_tibble_fspec_mem(
     entity_phenotype_table,
     fspec)
-  sysndd_db_entity_phenotype_table_fspec <- generate_tibble_fspec_mem(sysndd_db_entity_phenotype_table,
+  sysndd_db_entity_phenotype_table_fspec <- generate_tibble_fspec_mem(
+    sysndd_db_entity_phenotype_table,
     fspec)
-  entity_phenotype_table_fspec$fspec$count_filtered <- sysndd_db_entity_phenotype_table_fspec$fspec$count
+  entity_phenotype_table_fspec$fspec$count_filtered <-
+    sysndd_db_entity_phenotype_table_fspec$fspec$count
 
   # select fields from table based on input
   # using the helper function "select_tibble_fields"
@@ -169,7 +167,6 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
     sysndd_db_entity_phenotype_table,
     `page_size`, `page_after`,
     "entity_id")
-
 
   # compute execution time
   end_time <- Sys.time()
