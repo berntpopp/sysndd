@@ -261,7 +261,7 @@
                         target="_blank"
                       >
                         Martijn A Huynen
-                      </b-link>. and
+                      </b-link> and
                       <b-link
                         href="https://orcid.org/0000-0002-6918-3314"
                         target="_blank"

@@ -5,10 +5,10 @@ date: "`r Sys.Date()`"
 site: bookdown::bookdown_site
 output: bookdown::gitbook
 bibliography: [sysndd.bib]
-biblio-style: apalike
+csl: apa.csl
 link-citations: yes
 colorlinks: yes
-description: "This documentation is intended to describe the SysNDDproject and provide instructions for regular usershow to use the too and for curator status users how to perform reviews and how to enter data"
+description: "This documentation is intended to describe the SysNDDproject and provide instructions for regular usershow to use the tool and for curator status users how to perform reviews and how to enter data"
 graphics: yes
 github-repo: berntpopp/sysndd
 url: https://berntpopp.github.io/sysndd/
@@ -18,15 +18,15 @@ url: https://berntpopp.github.io/sysndd/
 
 ---------------------------------------
 
-This documentation is intended to describe the [SysNDD](https://sysndd.dbmr.unibe.ch/) project and provide instructions for regular usershow to use the too and for curator status users how to perform reviews and how to enter data.
+This documentation is intended to describe the [SysNDD](https://sysndd.dbmr.unibe.ch/) project and provide instructions for regular usershow to use the tool and for curator status users how to perform reviews and how to enter data.
 
 
 
 ## History of SysID and SysNDD {-}
 
-SysNDD is based on its predecessor [SysID](https://www.sysid.dbmr.unibe.ch/) which had been published in 2016 [@kochinke_systematic_2016]. Christiane Zweier has been involved in establishing and updating SysID from its start in 2009. She has since performed and coordinated curation and regular updates.
+SysNDD is based on its predecessor [SysID](https://www.sysid.dbmr.unibe.ch/), conceived by Annette Schenck and Christiane Zweier in 2009 and published in 2016 [@kochinke_systematic_2016]. Christiane Zweier has been involved in establishing and updating SysID from its start. She has since performed and coordinated curation and regular updates.
 
-The PHP based SysID web tool (Yii 2 framework) was however not further developed and maintained besides necessary bugfixes. After the maintenance agreement for the original server at the CMBI at Radboud University in Nijmegen ran out, the installation was moved to a virtual server at the Department for BioMedical Research (DBMR) at the University Bern. The former link from the initial publication is re-directed so it still works. The legacy code base was updated to allow installation and security fixes and to be uploaded to a [GitHub repository (SysID)](https://github.com/berntpopp/SysID).
+The PHP based SysID web tool (Yii 2 framework) was however not further developed and maintained besides necessary bugfixes. After the maintenance agreement for the original server at the CMBI at Radboud University in Nijmegen ran out, the installation was moved to a virtual server at the Department for BioMedical Research (DBMR) at the University Bern. The former link from the initial publication is re-directed so it still works. The legacy code base was updated to allow installation and security fixes and to be uploaded to a [GitHub repository (SysID)](https://github.com/berntpopp/SysID). After the first SysNDD native updates to the curated entities, we display a warning popup on the SysID page to show that the content is not curated any more.
 
 In 2019 the chance arose to integrate the SysID curation effort with the Orphanet resource, supported by ERN ITHACA. In the process of aligning the curation and naming conventions for genes, diseases and phenotypes we decided to redesign the database and web tool.
 
@@ -34,19 +34,19 @@ In 2019 the chance arose to integrate the SysID curation effort with the Orphane
 
 ## The SysNDD concept {-}
 
-SysNDD contains a manually curated catalogue of published gene-disease-associations implicated in neurodevelopmental disorders (NDD).
+SysNDD contains our latest update of the manually curated catalogue of published gene-disease-associations implicated in neurodevelopmental disorders (NDD).
 
 To allow interoperability and mapping between gene-, phenotype- or disease-oriented databases, we center our approach around curated gene-inheritance-disease units, so called entities. These entities are classified into different confidence status (categories: “Definitive”, “Moderate”, “Limited”, “Refuted”) according to the degree of underlying scientific evidence. Furthermore, manually curated information on associated phenotypes is provided.
 
 The entries in SysNDD are currently updated every 3-4 months and can be utilized for a broad spectrum of tasks from both research and diagnostics.
 
-One of our goals is to incorporate the [SysNDD data](https://sysndd.dbmr.unibe.ch/) into other gene/ disease-relationship databases like the Orphanet ontology (first results: [id-genes.orphanet.app](https://id-genes.orphanet.app/ithaca/)).
+One of our goals is to incorporate the SysID/ [SysNDD data](https://sysndd.dbmr.unibe.ch/) into other gene/ disease-relationship databases like the Orphanet ontology (first results: [id-genes.orphanet.app](https://id-genes.orphanet.app/ithaca/)).
 
 Bernt Popp (scientist at the Institute of Human Genetics at the University Hospital Leipzig, Germany) developed and programmed the SysNDD tool and will be integrating further functionality including variants associated with entities in future updates.
 
 
 
-## Acknowledgments {-}
+## Support and Funding {-}
 The current SysNDD database development is supported by:
 
 - DFG (Deutsche Forschungsgemeinschaft) grant PO2366/2-1 to [Bernt Popp](https://orcid.org/0000-0002-3679-1081).
@@ -56,8 +56,8 @@ The current SysNDD database development is supported by:
 
 The previous SysID database and data curation was supported by:
 
-- The European Union’s FP7 large scale integrated network GenCoDys (HEALTH-241995) to MA Huynen and Annette Schenck.
-- VIDI and TOP grants (917-96-346, 912-12-109) from The Netherlands Organisation for Scientific Research (NWO) to Annette Schenck.
+- The European Union’s FP7 large scale integrated network GenCoDys (HEALTH-241995) to [Martijn A Huynen](https://orcid.org/0000-0001-6189-5491) and [Annette Schenck](https://orcid.org/0000-0002-6918-3314).
+- VIDI and TOP grants (917-96-346, 912-12-109) from The Netherlands Organisation for Scientific Research (NWO) to [Annette Schenck](https://orcid.org/0000-0002-6918-3314).
 - DFG (Deutsche Forschungsgemeinschaft) grants ZW184/1-1 and -2 to [Christiane Zweier](https://orcid.org/0000-0001-8002-2020).
 - the IZKF (Interdisziplinäres Zentrum für Klinische Forschung) Erlangen to [Christiane Zweier](https://orcid.org/0000-0001-8002-2020).
 - ZonMw grant (NWO, 907-00-365) to Tjitske Kleefstra.
