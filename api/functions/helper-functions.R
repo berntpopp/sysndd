@@ -387,19 +387,19 @@ generate_cursor_pag_inf <- function(pagination_tibble,
 
 
 # generate field specs from a tibble
-generate_tibble_fspec <- function(field_tibble, fspec_input) {
+generate_tibble_fspec <- function(field_tibble, fspecInput) {
 
     # get column names from field_tibble
     tibble_colnames <- colnames(field_tibble)
 
-    # check if fspec_input is empty string,
+    # check if fspecInput is empty string,
     # if so assign tibble_colnames to it, else
     # split the fields_requested input by comma
-    if (fspec_input != "") {
-      fspec_input <- str_split(str_replace_all(
-        fspec_input, fixed(" "), ""), ",")[[1]]
+    if (fspecInput != "") {
+      fspecInput <- str_split(str_replace_all(
+        fspecInput, fixed(" "), ""), ",")[[1]]
     } else {
-      fspec_input <- tibble_colnames
+      fspecInput <- tibble_colnames
     }
 
     # generate fields object
@@ -434,9 +434,9 @@ generate_tibble_fspec <- function(field_tibble, fspec_input) {
       mutate(sortable = TRUE) %>%
       mutate(class = "text-left") %>%
       mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
-      filter(key %in% fspec_input) %>%
-      arrange(factor(key, levels = fspec_input)) %>%
-      {if("details" %in% fspec_input) add_row(., key = "details",
+      filter(key %in% fspecInput) %>%
+      arrange(factor(key, levels = fspecInput)) %>%
+      {if("details" %in% fspecInput) add_row(., key = "details",
         selectOptions = NULL,
         filterable = FALSE,
         selectable = FALSE,

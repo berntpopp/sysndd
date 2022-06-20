@@ -44,7 +44,7 @@
                 </b-col>
                 <b-col>
                   <h6
-                    v-if="show_filter_controls"
+                    v-if="showFilterControls"
                     class="mb-1 text-right font-weight-bold"
                   >
                     <b-button
@@ -77,7 +77,7 @@
                 sm="6"
               >
                 <treeselect
-                  v-if="show_filter_controls"
+                  v-if="showFilterControls"
                   id="phenotype_select"
                   v-model="value"
                   :multiple="true"
@@ -132,7 +132,7 @@
                 sm="4"
               >
                 <b-container
-                  v-if="totalRows > perPage || show_pagination_controls"
+                  v-if="totalRows > perPage || showPaginationControls"
                 >
                   <b-input-group
                     prepend="Per page"
@@ -211,7 +211,7 @@
 
               <!-- based on:  https://stackoverflow.com/questions/52959195/bootstrap-vue-b-table-with-filter-in-header -->
               <template
-                v-if="show_filter_controls"
+                v-if="showFilterControls"
                 slot="top-row"
               >
                 <td
@@ -400,13 +400,13 @@ export default {
   components: { Treeselect },
   mixins: [toastMixin],
   props: {
-    show_filter_controls: { type: Boolean, default: true },
-    show_pagination_controls: { type: Boolean, default: true },
-    header_label: { type: String, default: "Phenotype search" },
-    perPage_input: { type: String, default: "10" },
-    sortBy_input: { type: String, default: "entity_id" },
-    sortDesc_input: { type: Boolean, default: true },
-    filter_input: {
+    showFilterControls: { type: Boolean, default: true },
+    showPaginationControls: { type: Boolean, default: true },
+    headerLabel: { type: String, default: "Phenotype search" },
+    perPageInput: { type: String, default: "10" },
+    sortByInput: { type: String, default: "entity_id" },
+    sortDescInput: { type: Boolean, default: true },
+    filterInput: {
       type: Object,
       default(rawProps) {
         return {
@@ -519,11 +519,11 @@ export default {
       nextItemID: null,
       lastItemID: null,
       executionTime: 0,
-      perPage: this.perPage_input,
+      perPage: this.perPageInput,
       pageOptions: ["10", "25", "50", "200"],
-      sortBy: this.sortBy_input,
-      sortDesc: this.sortDesc_input,
-      filter: this.filter_input,
+      sortBy: this.sortByInput,
+      sortDesc: this.sortDescInput,
+      filter: this.filterInput,
       filter_string: "",
       filterOn: [],
       checked: false,

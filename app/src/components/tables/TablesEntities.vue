@@ -25,7 +25,7 @@
               <b-row>
                 <b-col>
                   <h6 class="mb-1 text-left font-weight-bold">
-                    {{ header_label }}
+                    {{ headerLabel }}
                     <b-badge
                       v-b-tooltip.hover.bottom
                       variant="primary"
@@ -44,7 +44,7 @@
                 </b-col>
                 <b-col>
                   <h6
-                    v-if="show_filter_controls"
+                    v-if="showFilterControls"
                     class="mb-1 text-right font-weight-bold"
                   >
                     <b-button
@@ -78,7 +78,7 @@
               >
                 <b-form-group class="mb-1 border-dark">
                   <b-form-input
-                    v-if="show_filter_controls"
+                    v-if="showFilterControls"
                     id="filter-input"
                     v-model="filter['any']"
                     class="mb-1 border-dark"
@@ -97,7 +97,7 @@
                 sm="4"
               >
                 <b-container
-                  v-if="totalRows > perPage || show_pagination_controls"
+                  v-if="totalRows > perPage || showPaginationControls"
                 >
                   <b-input-group
                     prepend="Per page"
@@ -176,7 +176,7 @@
 
               <!-- based on:  https://stackoverflow.com/questions/52959195/bootstrap-vue-b-table-with-filter-in-header -->
               <template
-                v-if="show_filter_controls"
+                v-if="showFilterControls"
                 slot="top-row"
               >
                 <td
@@ -365,13 +365,13 @@ export default {
   components: { Treeselect },
   mixins: [toastMixin],
   props: {
-    show_filter_controls: { type: Boolean, default: true },
-    show_pagination_controls: { type: Boolean, default: true },
-    header_label: { type: String, default: "Entities table" },
-    perPage_input: { type: String, default: "10" },
-    sortBy_input: { type: String, default: "entity_id" },
-    sortDesc_input: { type: Boolean, default: true },
-    filter_input: {
+    showFilterControls: { type: Boolean, default: true },
+    showPaginationControls: { type: Boolean, default: true },
+    headerLabel: { type: String, default: "Entities table" },
+    perPageInput: { type: String, default: "10" },
+    sortByInput: { type: String, default: "entity_id" },
+    sortDescInput: { type: Boolean, default: true },
+    filterInput: {
       type: Object,
       default(rawProps) {
         return {
@@ -488,11 +488,11 @@ export default {
       nextItemID: null,
       lastItemID: null,
       executionTime: 0,
-      perPage: this.perPage_input,
+      perPage: this.perPageInput,
       pageOptions: ["10", "25", "50", "200"],
-      sortBy: this.sortBy_input,
-      sortDesc: this.sortDesc_input,
-      filter: this.filter_input,
+      sortBy: this.sortByInput,
+      sortDesc: this.sortDescInput,
+      filter: this.filterInput,
       filter_string: "",
       filterOn: [],
       infoModal: {

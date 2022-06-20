@@ -249,10 +249,10 @@
           <!-- Associated entities card -->
 
           <TablesEntities
-            :show_filter_controls="false"
-            :show_pagination_controls="false"
-            header_label="Associated "
-            :filter_input="{
+            :show-filter-controls="false"
+            :show-pagination-controls="false"
+            header-label="Associated "
+            :filter-input="{
               disease_ontology_id_version:
                 ontology[0].disease_ontology_id_version,
             }"

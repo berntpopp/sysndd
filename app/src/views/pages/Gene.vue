@@ -351,10 +351,10 @@
           <!-- Associated entities table -->
 
           <TablesEntities
-            :show_filter_controls="false"
-            :show_pagination_controls="false"
-            header_label="Associated "
-            :filter_input="{ symbol: gene[0].symbol }"
+            :show-filter-controls="false"
+            :show-pagination-controls="false"
+            header-label="Associated "
+            :filter-input="{ symbol: gene[0].symbol }"
           />
 
           <!-- Associated entities table -->

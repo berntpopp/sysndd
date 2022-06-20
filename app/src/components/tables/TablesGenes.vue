@@ -44,7 +44,7 @@
                 </b-col>
                 <b-col>
                   <h6
-                    v-if="show_filter_controls"
+                    v-if="showFilterControls"
                     class="mb-1 text-right font-weight-bold"
                   >
                     <b-button
@@ -93,7 +93,7 @@
               >
                 <b-form-group class="mb-1">
                   <b-form-input
-                    v-if="show_filter_controls"
+                    v-if="showFilterControls"
                     id="filter-input"
                     v-model="filter['any']"
                     class="mb-1 border-dark"
@@ -112,7 +112,7 @@
                 sm="4"
               >
                 <b-container
-                  v-if="totalRows > perPage || show_pagination_controls"
+                  v-if="totalRows > perPage || showPaginationControls"
                 >
                   <b-input-group
                     prepend="Per page"
@@ -458,15 +458,15 @@ export default {
   components: { Treeselect },
   mixins: [toastMixin, urlParsingMixin],
   props: {
-    show_filter_controls: { type: Boolean, default: true },
-    show_pagination_controls: { type: Boolean, default: true },
-    header_label: { type: String, default: "Genes table" },
-    sort_input: { type: String, default: "+symbol" },
-    filter_input: { type: String, default: null },
-    fields_input: { type: String, default: null },
-    page_after_input: { type: String, default: "" },
-    page_size_input: { type: String, default: "10" },
-    fspec_input: {
+    showFilterControls: { type: Boolean, default: true },
+    showPaginationControls: { type: Boolean, default: true },
+    headerLabel: { type: String, default: "Genes table" },
+    sortInput: { type: String, default: "+symbol" },
+    filterInput: { type: String, default: null },
+    fieldsInput: { type: String, default: null },
+    pageAfterInput: { type: String, default: "" },
+    pageSizeInput: { type: String, default: "10" },
+    fspecInput: {
       type: String,
       default:
         "symbol,category,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,entities_count,details",
@@ -576,16 +576,16 @@ export default {
       ],
       totalRows: 0,
       currentPage: 1,
-      currentItemID: this.page_after_input,
+      currentItemID: this.pageAfterInput,
       prevItemID: null,
       nextItemID: null,
       lastItemID: null,
       executionTime: 0,
-      perPage: this.page_size_input,
+      perPage: this.pageSizeInput,
       pageOptions: ["10", "25", "50", "200"],
       sortBy: "symbol",
       sortDesc: true,
-      sort: this.sort_input,
+      sort: this.sortInput,
       filter: {
         any: null,
         entity_id: null,
@@ -621,10 +621,10 @@ export default {
   },
   mounted() {
     // transform input filter string from params to object and assign
-    this.filter = this.filterStringToObject(this.filter_input);
+    this.filter = this.filterStringToObject(this.filterInput);
 
     // transform input sort string to object and assign
-    let sort_object = this.sortStringToVariables(this.sort_input);
+    let sort_object = this.sortStringToVariables(this.sortInput);
     this.sortBy = sort_object.sortBy;
     this.sortDesc = sort_object.sortDesc;
 
