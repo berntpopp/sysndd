@@ -469,7 +469,7 @@ export default {
     fspecInput: {
       type: String,
       default:
-        "symbol,category,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,entities_count",
+        "symbol,category,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,entities_count,details",
     },
   },
   data() {

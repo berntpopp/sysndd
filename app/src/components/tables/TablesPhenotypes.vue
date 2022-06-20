@@ -570,7 +570,7 @@ export default {
     this.filter = this.filterStringToObject(this.filterInput,
       '|', 
       'contains',
-      'hpo_mode_of_inheritance_term,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,category');
+      'hpo_mode_of_inheritance_term,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,category,details');
 
     // transform input sort string to object and assign
     let sort_object = this.sortStringToVariables(this.sortInput);

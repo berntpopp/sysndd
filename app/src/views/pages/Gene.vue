@@ -354,7 +354,7 @@
             :show-filter-controls="false"
             :show-pagination-controls="false"
             header-label="Associated "
-            :filter-input="{ symbol: gene[0].symbol }"
+            :filter-input="'contains(symbol,' + gene[0].symbol + ')'"
           />
 
           <!-- Associated entities table -->

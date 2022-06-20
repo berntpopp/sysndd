@@ -252,10 +252,7 @@
             :show-filter-controls="false"
             :show-pagination-controls="false"
             header-label="Associated "
-            :filter-input="{
-              disease_ontology_id_version:
-                ontology[0].disease_ontology_id_version,
-            }"
+            :filter-input="'contains(disease_ontology_id_version,' + ontology[0].disease_ontology_id_version + ')'"
           />
 
           <!-- Associated entities card -->
