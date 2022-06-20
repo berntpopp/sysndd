@@ -391,7 +391,7 @@
                   variant="info"
                   class="text-left"
                 >
-                  Credits
+                  Credits and acknowledgement
                 </b-button>
               </b-card-header>
               <b-collapse
