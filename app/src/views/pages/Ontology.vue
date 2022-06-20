@@ -39,6 +39,8 @@
               :fields="ontology_fields"
               stacked
               small
+              fixed
+              style="width: 100%; white-space: nowrap"
             >
               <template #cell(disease_ontology_id_version)="data">
                 <b-row>
@@ -47,7 +49,7 @@
                     :key="id"
                   >
                     <b-col>
-                      <div>
+                      <div class="overflow-hidden text-truncate font-italic">
                         <b-link :href="'/Ontology/' + id.replace(/_.+/g, '')">
                           <b-badge
                             v-b-tooltip.hover.leftbottom

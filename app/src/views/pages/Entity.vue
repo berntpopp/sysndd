@@ -36,9 +36,11 @@
               :fields="entity_fields"
               stacked
               small
+              fixed
+              style="width: 100%; white-space: nowrap"
             >
               <template #cell(symbol)="data">
-                <div class="font-italic">
+                <div class="overflow-hidden text-truncate font-italic">
                   <b-link :href="'/Genes/' + data.item.hgnc_id">
                     <b-badge
                       v-b-tooltip.hover.leftbottom
@@ -53,7 +55,7 @@
               </template>
 
               <template #cell(disease_ontology_name)="data">
-                <div>
+                <div class="overflow-hidden text-truncate">
                   <b-link
                     :href="
                       '/Ontology/' +
@@ -117,7 +119,7 @@
               </template>
 
               <template #cell(hpo_mode_of_inheritance_term_name)="data">
-                <div>
+                <div class="overflow-hidden text-truncate">
                   <b-badge
                     v-b-tooltip.hover.leftbottom
                     pill
