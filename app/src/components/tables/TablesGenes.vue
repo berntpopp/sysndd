@@ -469,7 +469,7 @@ export default {
     fspecInput: {
       type: String,
       default:
-        "symbol,category,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,entities_count,details",
+        "symbol,category,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,entities_count",
     },
   },
   data() {
@@ -583,7 +583,7 @@ export default {
       executionTime: 0,
       perPage: this.pageSizeInput,
       pageOptions: ["10", "25", "50", "200"],
-      sortBy: "symbol",
+      sortBy: "entity_id",
       sortDesc: true,
       sort: this.sortInput,
       filter: {
