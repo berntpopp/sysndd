@@ -21,7 +21,7 @@ export default {
   name: "Genes",
   components: { TablesGenes },
   props: {
-    sort: { type: String, default: "symbol" },
+    sort: { type: String, default: "+symbol" },
     filter: { type: String, default: null },
     fields: { type: String, default: null },
     pageAfter: { type: String, default: "0" },

@@ -65,43 +65,40 @@
         </b-navbar-nav>
 
         <b-navbar-nav class="mx-auto">
+          <b-nav-form
+            v-if="show_search"
+            @submit.stop.prevent="keydown_handler"
+          >
+            <b-input-group class="mb-2">
+              <b-form-input
+                v-model="search_input"
+                list="search-list"
+                type="search"
+                placeholder="..."
+                size="sm"
+                autocomplete="off"
+                class="navbar-search"
+                @input="loadSearchInfo"
+                @keydown.native="keydown_handler"
+              />
 
-              <b-nav-form
-                v-if="show_search"
-                @submit.stop.prevent="keydown_handler"
-              >
-                <b-input-group class="mb-2">
-                  <b-form-input
-                    v-model="search_input"
-                    list="search-list"
-                    type="search"
-                    placeholder="..."
-                    size="sm"
-                    autocomplete="off"
-                    class="navbar-search"
-                    @input="loadSearchInfo"
-                    @keydown.native="keydown_handler"
-                  />
+              <b-form-datalist
+                id="search-list"
+                :options="search_keys"
+              />
 
-                  <b-form-datalist
-                    id="search-list"
-                    :options="search_keys"
-                  >
-                  </b-form-datalist>
-
-                  <b-input-group-append>
-                    <b-button
-                      variant="outline-primary"
-                      size="sm"
-                      :disabled="search_input.length < 2"
-                      @click="keydown_handler"
-                    >
-                      <b-icon icon="search" />
-                    </b-button>
-                  </b-input-group-append>
-                </b-input-group>
-              </b-nav-form>
-
+              <b-input-group-append>
+                <b-button
+                  variant="outline-primary"
+                  size="sm"
+                  :disabled="search_input.length < 2"
+                  @click="keydown_handler"
+                >
+                  <b-icon icon="search" />
+                </b-button>
+              </b-input-group-append>
+            </b-input-group>
+          </b-nav-form>
         </b-navbar-nav>
 
         <!-- Right aligned nav items -->

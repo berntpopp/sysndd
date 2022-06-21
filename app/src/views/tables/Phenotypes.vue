@@ -22,7 +22,7 @@ export default {
   components: { TablesPhenotypes },
   props: {
     sort: { type: String, default: "entity_id" },
-    filter: { type: String, default: null },
+    filter: { type: String, default: "all(modifier_phenotype_id,HP:0001249)" },
     fields: { type: String, default: null },
     pageAfter: { type: String, default: "0" },
     pageSize: { type: String, default: "10" },

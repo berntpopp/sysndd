@@ -95,7 +95,7 @@
                   <b-form-input
                     v-if="showFilterControls"
                     id="filter-input"
-                    v-model="filter['any']"
+                    v-model="filter['any'].content"
                     class="mb-1 border-dark"
                     size="sm"
                     type="search"
@@ -199,7 +199,7 @@
                 >
                   <b-form-input
                     v-if="field.filterable"
-                    v-model="filter[field.key]"
+                    v-model="filter[field.key].content"
                     :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
                     debounce="500"
                     type="search"
@@ -210,7 +210,7 @@
 
                   <b-form-select
                     v-if="field.selectable"
-                    v-model="filter[field.key]"
+                    v-model="filter[field.key].content"
                     :options="field.selectOptions"
                     type="search"
                     @input="removeSearch()"
@@ -225,7 +225,7 @@
                   <treeselect
                     v-if="field.multi_selectable"
                     :id="'select_' + field.key"
-                    v-model="filter[field.key]"
+                    v-model="filter[field.key].content"
                     size="small"
                     :multiple="true"
                     :options="field.selectOptions"
@@ -515,16 +515,12 @@ export default {
           label: "Inheritance",
           sortable: false,
           class: "text-left",
-          sortByFormatted: true,
-          filterByFormatted: true,
         },
         {
           key: "ndd_phenotype_word",
           label: "NDD",
           sortable: false,
           class: "text-left",
-          sortByFormatted: true,
-          filterByFormatted: true,
         },
         {
           key: "entities_count",
@@ -548,23 +544,17 @@ export default {
           label: "Disease",
           sortable: true,
           class: "text-left",
-          sortByFormatted: true,
-          filterByFormatted: true,
         },
         {
           key: "hpo_mode_of_inheritance_term_name",
           label: "Inheritance",
           sortable: false,
-          filterable: true,
           class: "text-left",
-          sortByFormatted: true,
-          filterByFormatted: true,
         },
         {
           key: "category",
           label: "Category",
           sortable: false,
-          filterable: true,
           class: "text-left",
         },
         {
@@ -583,20 +573,20 @@ export default {
       executionTime: 0,
       perPage: this.pageSizeInput,
       pageOptions: ["10", "25", "50", "200"],
-      sortBy: "entity_id",
+      sortBy: "symbol",
       sortDesc: true,
       sort: this.sortInput,
       filter: {
-        any: null,
-        entity_id: null,
-        symbol: null,
-        disease_ontology_name: null,
-        disease_ontology_id_version: null,
-        hpo_mode_of_inheritance_term_name: null,
-        hpo_mode_of_inheritance_term: null,
-        ndd_phenotype_word: null,
-        category: null,
-        entities_count: null,
+        any: {content: null, join_char: null, operator: 'contains'},
+        entity_id: {content: null, join_char: null, operator: 'contains'},
+        symbol: {content: null, join_char: null, operator: 'contains'},
+        disease_ontology_name: {content: null, join_char: null, operator: 'contains'},
+        disease_ontology_id_version: {content: null, join_char: null, operator: 'contains'},
+        hpo_mode_of_inheritance_term_name: {content: null, join_char: ',', operator: 'any'},
+        hpo_mode_of_inheritance_term: {content: null, join_char: ',', operator: 'any'},
+        ndd_phenotype_word: {content: null, join_char: null, operator: 'contains'},
+        category: {content: null, join_char: ',', operator: 'any'},
+        entities_count: {content: null, join_char: ',', operator: 'any'},
       },
       filter_string: "",
       filterOn: [],
@@ -610,6 +600,9 @@ export default {
     };
   },
   watch: {
+    filter(value) {
+      this.filtered();
+    },
     sortBy(value) {
       this.handleSortByOrDescChange();
     },
@@ -620,13 +613,11 @@ export default {
       this.handlePerPageChange();
     },
   },
-  mounted() {
+  created() {
     // transform input filter string from params to object and assign
-    this.filter = this.filterStringToObject(this.filterInput,
-      '|', 
-      'contains',
-      'category,hpo_mode_of_inheritance_term,hpo_mode_of_inheritance_term_name,entities_count');
-
+    this.filter = this.filterStrToObj(this.filterInput, this.filter);
+  },
+  mounted() {
     // transform input sort string to object and assign
     let sort_object = this.sortStringToVariables(this.sortInput);
     this.sortBy = sort_object.sortBy;
@@ -678,26 +669,26 @@ export default {
       }
     },
     filtered() {
-      this.filter_string = this.filterObjectToString(this.filter);
+      this.filter_string = this.filterObjToStr(this.filter);
       this.loadGenesData();
     },
     removeFilters() {
       this.filter = {
-        any: null,
-        entity_id: null,
-        symbol: null,
-        disease_ontology_name: null,
-        disease_ontology_id_version: null,
-        hpo_mode_of_inheritance_term_name: null,
-        hpo_mode_of_inheritance_term: null,
-        ndd_phenotype_word: null,
-        category: null,
-        entities_count: null,
+        any: {content: null, join_char: null, operator: 'contains'},
+        entity_id: {content: null, join_char: null, operator: 'contains'},
+        symbol: {content: null, join_char: null, operator: 'contains'},
+        disease_ontology_name: {content: null, join_char: null, operator: 'contains'},
+        disease_ontology_id_version: {content: null, join_char: null, operator: 'contains'},
+        hpo_mode_of_inheritance_term_name: {content: null, join_char: ',', operator: 'any'},
+        hpo_mode_of_inheritance_term: {content: null, join_char: ',', operator: 'any'},
+        ndd_phenotype_word: {content: null, join_char: null, operator: 'contains'},
+        category: {content: null, join_char: ',', operator: 'any'},
+        entities_count: {content: null, join_char: ',', operator: 'any'},
       };
       this.filtered();
     },
     removeSearch() {
-      this.filter["any"] = null;
+      this.filter["any"].content = null;
       this.filtered();
     },
     async loadGenesData() {

@@ -93,11 +93,11 @@
                 <treeselect
                   v-if="showFilterControls"
                   id="phenotype_select"
-                  v-model="phenotype_filter.modifier_phenotype_id"
+                  v-model="filter.modifier_phenotype_id.content"
                   :multiple="true"
                   :options="phenotypes_options"
                   :normalizer="normalizerPhenotypes"
-                  @input="requestSelected"
+                  @input="filtered"
                 />
               </b-col>
 
@@ -111,7 +111,7 @@
                       v-model="checked"
                       switch
                       name="check-button"
-                      @input="requestSelected"
+                      @input="filtered"
                     >
                       <b>{{ switch_text[checked] }}</b>
                     </b-form-checkbox>
@@ -234,7 +234,7 @@
                 >
                   <b-form-input
                     v-if="field.filterable"
-                    v-model="filter[field.key]"
+                    v-model="filter[field.key].content"
                     :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
                     debounce="500"
                     type="search"
@@ -245,7 +245,7 @@
 
                   <b-form-select
                     v-if="field.selectable"
-                    v-model="filter[field.key]"
+                    v-model="filter[field.key].content"
                     :options="field.selectOptions"
                     type="search"
                     @input="removeSearch()"
@@ -260,7 +260,7 @@
                   <treeselect
                     v-if="field.multi_selectable"
                     :id="'select_' + field.key"
-                    v-model="filter[field.key]"
+                    v-model="filter[field.key].content"
                     size="small"
                     :multiple="true"
                     :options="field.selectOptions"
@@ -419,7 +419,7 @@ export default {
     showPaginationControls: { type: Boolean, default: true },
     headerLabel: { type: String, default: "Phenotype table" },
     sortInput: { type: String, default: "entity_id" },
-    filterInput: { type: String, default: null },
+    filterInput: { type: String, default: "all(modifier_phenotype_id,HP:0001249)" },
     fieldsInput: { type: String, default: null },
     pageAfterInput: { type: String, default: "" },
     pageSizeInput: { type: String, default: "10" },
@@ -453,9 +453,6 @@ export default {
         "Somatic mutation": "Som",
       },
       switch_text: { true: "OR", false: "AND" },
-      phenotype_filter: {
-        modifier_phenotype_id: ["HP:0001249"]
-      },
       phenotypes_options: [],
       items: [],
       fields: [
@@ -477,22 +474,17 @@ export default {
           label: "Disease",
           sortable: true,
           class: "text-left",
-          sortByFormatted: true,
-          filterByFormatted: true,
         },
         {
           key: "hpo_mode_of_inheritance_term_name",
           label: "Inheritance",
           sortable: true,
           class: "text-left",
-          sortByFormatted: true,
-          filterByFormatted: true,
         },
         {
           key: "category",
           label: "Category",
           sortable: true,
-          filterable: true,
           class: "text-left",
         },
         {
@@ -533,15 +525,16 @@ export default {
       sortDesc: true,
       sort: this.sortInput,
       filter: {
-        any: null,
-        entity_id: null,
-        symbol: null,
-        disease_ontology_name: null,
-        disease_ontology_id_version: null,
-        hpo_mode_of_inheritance_term_name: null,
-        hpo_mode_of_inheritance_term: null,
-        ndd_phenotype_word: null,
-        category: null,
+        modifier_phenotype_id: {content: ["HP:0001249"], join_char: ',', operator: 'all'},
+        any: {content: null, join_char: null, operator: 'contains'},
+        entity_id: {content: null, join_char: null, operator: 'contains'},
+        symbol: {content: null, join_char: null, operator: 'contains'},
+        disease_ontology_name: {content: null, join_char: null, operator: 'contains'},
+        disease_ontology_id_version: {content: null, join_char: null, operator: 'contains'},
+        hpo_mode_of_inheritance_term_name: {content: null, join_char: ',', operator: 'any'},
+        hpo_mode_of_inheritance_term: {content: null, join_char: ',', operator: 'any'},
+        ndd_phenotype_word: {content: null, join_char: null, operator: 'contains'},
+        category: {content: null, join_char: ',', operator: 'any'},
       },
       filter_string: "",
       filterOn: [],
@@ -552,6 +545,9 @@ export default {
     };
   },
   watch: {
+    filter(value) {
+      this.filtered();
+    },
     sortBy(value) {
       this.handleSortByOrDescChange();
     },
@@ -562,15 +558,14 @@ export default {
       this.handlePerPageChange();
     },
   },
-  mounted() {
+  created() {
     // load phenotypes list
     this.loadPhenotypesList();
 
     // transform input filter string from params to object and assign
-    this.filter = this.filterStringToObject(this.filterInput,
-      '|', 
-      'contains',
-      'hpo_mode_of_inheritance_term,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,category,details');
+    this.filter = this.filterStrToObj(this.filterInput, this.filter);
+  },
+  mounted() {
 
     // transform input sort string to object and assign
     let sort_object = this.sortStringToVariables(this.sortInput);
@@ -585,45 +580,13 @@ export default {
   },
   methods: {
     copyLinkToClipboard() {
-      let logical_operator = "";
-
-      switch (this.checked) {
-        case true:
-          logical_operator = "any";
-          break;
-        case false:
-          logical_operator = "all";
-          break;
-      }
-
-      // TODO: this should be a function if needed at all later
-      // logic to compute the phenotype filter string
-      let phenotype_filter = "";
-      if(Array.isArray(this.phenotype_filter.modifier_phenotype_id)) {
-        phenotype_filter = this.filterObjectToString(this.phenotype_filter, ',', logical_operator);
-      } else 
-      {
-        phenotype_filter = '';
-      }
-
-      let filter_string = "";
-
-      if(phenotype_filter !== "" && this.filter_string !== "") {
-        filter_string = phenotype_filter + ',' + this.filter_string;
-      } else if (phenotype_filter !== "") {
-        filter_string = phenotype_filter;
-      } else if (this.filter_string !== "") {
-        filter_string = this.filter_string;
-      } else  {
-        filter_string = "";
-      }
 
       // compose URL param
       const urlParam =
         "sort=" +
         this.sort +
         "&filter=" +
-        filter_string +
+        this.filter_string +
         "&page_after=" +
         this.currentItemID +
         "&page_size=" +
@@ -658,28 +621,37 @@ export default {
       }
     },
     filtered() {
-      this.filter_string = this.filterObjectToString(this.filter);
+      let logical_operator = "";
+
+      switch (this.checked) {
+        case true:
+          this.filter.modifier_phenotype_id.operator = "any";
+          break;
+        case false:
+          this.filter.modifier_phenotype_id.operator = "all";
+          break;
+      }
+
+      this.filter_string = this.filterObjToStr(this.filter);
       this.requestSelected();
     },
     removeFilters() {
-      this.phenotype_filter = {
-        modifier_phenotype_id: ["HP:0001249"]
-      };
       this.filter = {
-        any: null,
-        entity_id: null,
-        symbol: null,
-        disease_ontology_name: null,
-        disease_ontology_id_version: null,
-        hpo_mode_of_inheritance_term_name: null,
-        hpo_mode_of_inheritance_term: null,
-        ndd_phenotype_word: null,
-        category: null,
+        modifier_phenotype_id: {content: ["HP:0001249"], join_char: ',', operator: 'all'},
+        any: {content: null, join_char: null, operator: 'contains'},
+        entity_id: {content: null, join_char: null, operator: 'contains'},
+        symbol: {content: null, join_char: null, operator: 'contains'},
+        disease_ontology_name: {content: null, join_char: null, operator: 'contains'},
+        disease_ontology_id_version: {content: null, join_char: null, operator: 'contains'},
+        hpo_mode_of_inheritance_term_name: {content: null, join_char: ',', operator: 'any'},
+        hpo_mode_of_inheritance_term: {content: null, join_char: ',', operator: 'any'},
+        ndd_phenotype_word: {content: null, join_char: null, operator: 'contains'},
+        category: {content: null, join_char: ',', operator: 'any'},
       };
       this.filtered();
     },
     removeSearch() {
-      this.filter["any"] = null;
+      this.filter["any"].content = null;
       this.filtered();
     },
     async loadPhenotypesList() {
@@ -706,45 +678,12 @@ export default {
     async loadEntitiesFromPhenotypes() {
       this.isBusy = true;
 
-      let logical_operator = "";
-
-      switch (this.checked) {
-        case true:
-          logical_operator = "any";
-          break;
-        case false:
-          logical_operator = "all";
-          break;
-      }
-
-      // TODO: this should be a function if needed at all later
-      // logic to compute the phenotype filter string
-      let phenotype_filter = "";
-      if(Array.isArray(this.phenotype_filter.modifier_phenotype_id)) {
-        phenotype_filter = this.filterObjectToString(this.phenotype_filter, ',', logical_operator);
-      } else 
-      {
-        phenotype_filter = '';
-      }
-
-      let filter_string = "";
-
-      if(phenotype_filter !== "" && this.filter_string !== "") {
-        filter_string = phenotype_filter + ',' + this.filter_string;
-      } else if (phenotype_filter !== "") {
-        filter_string = phenotype_filter;
-      } else if (this.filter_string !== "") {
-        filter_string = this.filter_string;
-      } else  {
-        filter_string = "";
-      }
-
       // compose URL param
       const urlParam =
         "sort=" +
         this.sort +
         "&filter=" +
-        filter_string +
+        this.filter_string +
         "&page_after=" +
         this.currentItemID +
         "&page_size=" +
@@ -757,6 +696,7 @@ export default {
       try {
         let response = await this.axios.get(apiUrl);
 
+        this.fields = response.data.meta[0].fspec;
         this.items = response.data.data;
 
         this.totalRows = response.data.meta[0].totalItems;
@@ -767,7 +707,6 @@ export default {
         this.nextItemID = response.data.meta[0].nextItemID;
         this.lastItemID = response.data.meta[0].lastItemID;
         this.executionTime = response.data.meta[0].executionTime;
-        this.fields = response.data.meta[0].fspec;
 
         this.isBusy = false;
       } catch (e) {
@@ -775,7 +714,7 @@ export default {
       }
     },
     requestSelected() {
-      if (this.phenotype_filter.modifier_phenotype_id.length > 0) {
+      if (this.filter.modifier_phenotype_id.content.length > 0) {
         this.loadEntitiesFromPhenotypes();
       } else {
         this.items = [];
@@ -783,52 +722,19 @@ export default {
       }
     },
     requestSelectedExcel() {
-      if (this.phenotype_filter.modifier_phenotype_id.length > 0) {
+      if (this.filter.modifier_phenotype_id.content.length > 0) {
         this.requestExcel();
       }
     },
     async requestExcel() {
       this.downloading = true;
 
-      let logical_operator = "";
-
-      switch (this.checked) {
-        case true:
-          logical_operator = "any";
-          break;
-        case false:
-          logical_operator = "all";
-          break;
-      }
-
-      // TODO: this should be a function if needed at all later
-      // logic to compute the phenotype filter string
-      let phenotype_filter = "";
-      if(Array.isArray(this.phenotype_filter.modifier_phenotype_id)) {
-        phenotype_filter = this.filterObjectToString(this.phenotype_filter, ',', logical_operator);
-      } else 
-      {
-        phenotype_filter = '';
-      }
-
-      let filter_string = "";
-
-      if(phenotype_filter !== "" && this.filter_string !== "") {
-        filter_string = phenotype_filter + ',' + this.filter_string;
-      } else if (phenotype_filter !== "") {
-        filter_string = phenotype_filter;
-      } else if (this.filter_string !== "") {
-        filter_string = this.filter_string;
-      } else  {
-        filter_string = "";
-      }
-
       // compose URL param
       const urlParam =
         "sort=" +
         this.sort +
         "&filter=" +
-        filter_string +
+        this.filter_string +
         "&page_after=" +
         this.currentItemID +
         "&page_size=" +

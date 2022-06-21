@@ -1,66 +1,87 @@
 // assets/js/mixins/urlParsingMixin.js
 export default {
   methods: {
-    filterStringToObject(filter_string, join_char = '|', operator = 'contains', as_array = 'any,category,hpo_mode_of_inheritance_term,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,entities_count') {
-      // this function converts a filter string from a URL to a filter object
-      // define the filter object
-      let filter_obj = {};
-
-      // check if empty and handle
-      if (filter_string === '' || filter_string === null) {
-        filter_obj = { };
-      } else {
-        // replace string to have JSON string
-        const filter_replace = decodeURI(filter_string)
-          .split((operator + '(')).join('{"')
-          .split(')').join('"}')
-          .split('},{').join(';')
-          .split(', ').join('#') // this handels comma-space in string
-          .split(',').join('":"')
-          .split(';').join(',')
-          .split('#').join(', ');
-
-        // parse the JSON string to a JSON object
-        filter_obj = JSON.parse(filter_replace);
-
-        // split arrays
-        Object.keys(filter_obj).forEach((key) => {
-          if (filter_obj[key].includes(join_char)) {
-            filter_obj[key] = filter_obj[key].split(join_char);
-          }
-          if (as_array.split(",").includes(key)) {
-            filter_obj[key] = [].concat(filter_obj[key]);
-          }
-        });
+    // this function takes a filter object and joins it into one filter string
+    filterObjToStr(filter_object) {
+      // this function checks if a paramater is a valid object
+      const isObject = function(obj) {
+        return obj === Object(obj);
       }
 
-      // return the object
-      return filter_obj;
-    },
-    filterObjectToString(filter_object, join_char = '|', operator = 'contains') {
       // filter the filter object to only contain non null values
-      const filter_string_not_empty = Object.filter(filter_object, value => (value !== null && value !== "null" && value !== '' && value.length !== 0));
+      // based on https://stackabuse.com/how-to-filter-an-object-by-key-in-javascript/
+      // uses the self defined function "isObject"
+      const filter_string_not_empty = Object.keys(filter_object)
+        .filter((key) => isObject(filter_object[key]))
+        .filter((key) => filter_object[key].content !== null) //<-- remove null values
+        .filter((key) => filter_object[key].content !== '') //<-- remove empty values
+        .reduce((obj, key) => {
+          return Object.assign(obj, {
+            [key]: filter_object[key]
+          });
+        }, {});
 
-      // iterate over the filtered non null expressions and join array with regex or "|"
-      const filter_string_not_empty_join = {};
-      Object.keys(filter_string_not_empty).forEach((key) => {
-        if (Array.isArray(filter_string_not_empty[key])) {
-          filter_string_not_empty_join[key] = filter_string_not_empty[key].join(join_char);
-        } else {
-          filter_string_not_empty_join[key] = filter_string_not_empty[key];
-        }
-      });
+      // join all subobjects to filter string array
+      const filter_string_join = Object.keys(filter_string_not_empty).map((key) => filter_string_not_empty[key].operator + "(" + key + "," + [].concat(filter_string_not_empty[key].content).join(filter_string_not_empty[key].join_char) + ")")
 
-      // compute the filter string by joining the filter object
-      let filter_string = ''
-      if (Object.keys(filter_string_not_empty_join).length !== 0) {
-        filter_string = operator + '(' + Object.keys(filter_string_not_empty_join).map((key) => [key, filter_string_not_empty_join[key]].join(',')).join('),' + operator + '(') + ')';
-      }
+      // join filter string array into one string
+      const filter_string = filter_string_join.join(",")
 
-      // return string
+      // return filter string
       return filter_string;
     },
+    filterStrToObj(filter_string, standard_object, split_content = [",(?! )"], join_char_allow = [","]) {
+      // convert input split_content to regex object
+      const split_content_regex = new RegExp(split_content.join("|"))
+
+      // check if imput is empty/ null
+      if (filter_string !== null && filter_string !== "null" && filter_string !== '') {
+
+        // split input by closing bracket and comma
+        const filter_array = filter_string.split("),")
+
+        // define function to check array length
+        const arrayLengthOverOne = function(input_array, input_operator) {
+          input_array = input_array.filter(Boolean);
+          if (input_array.length > 0 && (input_operator === "any" || input_operator === "all")) {
+            return input_array;
+          } else if (input_array.length === 0) {
+            return null;
+          } else {
+            return input_array.join("");
+          }
+        }
+
+        // define function to assign join_char
+        const assignJoinChar = function(input_string, input_operator, allowed_join_char) {
+          if (input_operator === "any" || input_operator === "all") {
+            return ",";
+          } else {
+            return null;
+          }
+        }
+
+        let filter_object = filter_array.reduce(function (obj, str, index) {
+          const [firstPart, secondPart, ...restPart] = str.replace(')', '').split(/\(|,(?! )/g); //<-- replace any trailing brackets and split using regex into object components
+          if (firstPart && secondPart && restPart) { //<-- Make sure the key & value are not undefined
+            obj[secondPart.replace(/\s+/g, '')] = {
+              content: arrayLengthOverOne(restPart, firstPart.trim()),
+              operator: firstPart.trim(),
+              join_char: assignJoinChar(restPart, firstPart.trim(), join_char_allow)
+            };
+          }
+          return obj;
+        }, {});
+
+        // return filter object
+        const return_object = Object.assign({}, standard_object, filter_object);
+        return return_object;
+      } else {
+        return standard_object;
+      }
+    },
     sortStringToVariables(sort_string) {
+      sort_string = sort_string.trim()
       let return_object = {
         sortDesc: (sort_string.substr(0, 1) !== '-'),
         sortBy: sort_string.replace('+', '').replace('-', ''),
