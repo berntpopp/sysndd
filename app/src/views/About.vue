@@ -93,23 +93,6 @@
                     gene/disease-relationship databases like the Orphanet Rare
                     Disease ontology database.
                   </b-container>
-                  <b-container
-                    fluid="sm"
-                    class="text-left py-2"
-                  >
-                    SysNDD has been built and is maintained by Christiane Zweier
-                    (Head of the Department of Human Genetics at the University/
-                    University Hospital Bern, Switzerland) and Bernt Popp
-                    (senior physician at the Institute for Clinical Genetics,
-                    University Hospital TU Dresden, Germany and scientist at the
-                    Institute of Human Genetics at the University Hospital
-                    Leipzig, Germany). CZ has been involved in establishing and
-                    updating SysID from its start in 2009. She is performing and
-                    coordinating curation and updates. BP developed and
-                    programmed the new SysNDD database and will be integrating
-                    further functionality including associated variants and
-                    network analyses in future updates.
-                  </b-container>
                 </b-card-body>
               </b-collapse>
             </b-card>
