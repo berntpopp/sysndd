@@ -65,8 +65,7 @@
         </b-navbar-nav>
 
         <b-navbar-nav class="mx-auto">
-          <b-row class="navbar-search">
-            <b-col>
+
               <b-nav-form
                 v-if="show_search"
                 @submit.stop.prevent="keydown_handler"
@@ -87,7 +86,8 @@
                   <b-form-datalist
                     id="search-list"
                     :options="search_keys"
-                  />
+                  >
+                  </b-form-datalist>
 
                   <b-input-group-append>
                     <b-button
@@ -101,8 +101,7 @@
                   </b-input-group-append>
                 </b-input-group>
               </b-nav-form>
-            </b-col>
-          </b-row>
+
         </b-navbar-nav>
 
         <!-- Right aligned nav items -->
