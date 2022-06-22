@@ -102,7 +102,7 @@ source("functions/helper-functions.R", local = TRUE)
 cm <- cachem::cache_mem(max_age = 60 * 60,
   max_size = 100 * 1024 ^ 2)
 
-generate_gene_stat_tibble_mem <- memoise(generate_gene_stat_tibble,
+generate_stat_tibble_mem <- memoise(generate_stat_tibble,
   cache = cm)
 
 generate_gene_news_tibble_mem <- memoise(generate_gene_news_tibble,
@@ -2970,9 +2970,10 @@ function(res,
 #* gets statistics for all genes assoicated with a
 #* NDD phenotype by inheritance and assocation category
 #* @serializer json list(na="string")
-#' @get /api/statistics/genes
-function(sort = "category_id,-n") {
- disease_genes_statistics <- generate_gene_stat_tibble_mem(sort)
+#' @get /api/statistics/category_count
+function(sort = "category_id,-n",
+  type = "gene") {
+ disease_genes_statistics <- generate_stat_tibble_mem(sort, type)
 
  disease_genes_statistics
 }

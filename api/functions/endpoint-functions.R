@@ -381,8 +381,9 @@ generate_panels_list <- function(sort = "symbol",
 }
 
 
-# nest the gene statistics
-generate_gene_stat_tibble <- function(sort = "category_id,-n",
+# nest the tibble for statistics
+generate_stat_tibble <- function(sort = "category_id,-n",
+  type = "gene",
   max_category = TRUE) {
   # set start time
   start_time <- Sys.time()
@@ -390,15 +391,26 @@ generate_gene_stat_tibble <- function(sort = "category_id,-n",
   # generate sort expression based on sort input
   sort_exprs <- generate_sort_expressions(sort, unique_id = "category_id")
 
-  sysndd_db_disease_genes <- pool %>%
+  # conditionally select columns to based on input
+  sysndd_db_disease_types <- pool %>%
     tbl("ndd_entity_view") %>%
     arrange(entity_id) %>%
     filter(ndd_phenotype == 1) %>%
-    select(symbol,
-      inheritance = hpo_mode_of_inheritance_term_name,
-      category,
-      category_id) %>%
-    collect()
+    collect() %>%
+    {if(type == "gene")
+      select(., symbol,
+        inheritance = hpo_mode_of_inheritance_term_name,
+        category,
+        category_id)
+     else .
+     } %>%
+    {if(type == "entity")
+      select(., entity_id,
+        inheritance = hpo_mode_of_inheritance_term_name,
+        category,
+        category_id)
+     else .
+     }
 
   # if max_category is true replace category in filter
   if (max_category) {
@@ -408,16 +420,23 @@ generate_gene_stat_tibble <- function(sort = "category_id,-n",
       collect() %>%
       select(category_id, category)
 
-    sysndd_db_disease_genes <- sysndd_db_disease_genes %>%
+    sysndd_db_disease_types <- sysndd_db_disease_types %>%
       # following section computes the max category for a gene
-      group_by(symbol) %>%
+        {if(type == "gene")
+        group_by(., symbol)
+        else .
+        } %>%
+        {if(type == "entity")
+        group_by(., entity_id)
+        else .
+        } %>%
       mutate(category_id = min(category_id)) %>%
       ungroup() %>%
       select(-category) %>%
       left_join(status_categories_list, by = c("category_id"))
   }
 
-  disease_genes_group_cat_inh <- sysndd_db_disease_genes %>%
+  disease_types_group_cat_inh <- sysndd_db_disease_types %>%
     mutate(inheritance = case_when(
       str_detect(inheritance, "X-linked") ~ "X-linked",
       str_detect(inheritance, "Autosomal dominant inheritance") ~
@@ -437,7 +456,7 @@ generate_gene_stat_tibble <- function(sort = "category_id,-n",
     ungroup() %>%
     select(category = category_group, groups = data)
 
-  disease_genes_group_category <- sysndd_db_disease_genes %>%
+  disease_types_group_category <- sysndd_db_disease_types %>%
     select(-inheritance) %>%
     unique() %>%
     group_by(category, category_id) %>%
@@ -447,8 +466,8 @@ generate_gene_stat_tibble <- function(sort = "category_id,-n",
     group_by(category) %>%
     mutate(inheritance = "All")
 
-  disease_genes_statistics <- disease_genes_group_category %>%
-    left_join(disease_genes_group_cat_inh,
+  disease_types_statistics <- disease_types_group_category %>%
+    left_join(disease_types_group_cat_inh,
      by = c("category")) %>%
     select(-category_id)
 
@@ -475,7 +494,7 @@ generate_gene_stat_tibble <- function(sort = "category_id,-n",
   # generate object to return
   return_list <- list(
     meta = meta,
-    data = disease_genes_statistics)
+    data = disease_types_statistics)
 
   # return the list
   return(return_list)

@@ -63,9 +63,14 @@
               >
                 <template #header>
                   <h5 class="mb-0 font-weight-bold">
-                    Current gene statistics (last update: {{ last_update }})
+                    Current database statistics (last update: {{ last_update }})
                   </h5>
                 </template>
+
+                <!-- first statistics table for genes -->
+                <h5 class="mb-0 font-weight-bold mx-2">
+                  <mark>Entities</mark>
+                </h5>
                 <b-card-text class="text-left">
                   <b-skeleton-wrapper :loading="loading_statistics">
                     <template #loading>
@@ -81,8 +86,122 @@
                     </template>
 
                     <b-table
-                      :items="genes_statistics.data"
-                      :fields="genes_statistics_fields"
+                      :items="entity_statistics.data"
+                      :fields="statistics_fields"
+                      stacked="lg"
+                      head-variant="light"
+                      show-empty
+                      small
+                    >
+                      <template #cell(category)="data">
+                        <div>
+                          <b-avatar
+                            size="1.4em"
+                            icon="stoplights"
+                            :variant="stoplights_style[data.item.category]"
+                          />
+                          {{ data.item.category }}
+                        </div>
+                      </template>
+
+                      <template #cell(n)="data">
+                        <b-link
+                          :href="
+                            '/Entities?filter=any(category,' +
+                              data.item.category +
+                              ')'
+                          "
+                        >
+                          <div style="cursor: pointer">
+                            {{ data.item.n }}
+                          </div>
+                        </b-link>
+                      </template>
+
+                      <template #cell(actions)="row">
+                        <b-button
+                          class="btn-xs"
+                          variant="outline-primary"
+                          @click="row.toggleDetails"
+                        >
+                          {{ row.detailsShowing ? "hide" : "show" }}
+                        </b-button>
+                      </template>
+
+                      <template #row-details="row">
+                        <b-card>
+                          <b-table
+                            :items="row.item.groups"
+                            :fields="statistics_details_fields"
+                            head-variant="light"
+                            show-empty
+                            small
+                            fixed
+                            striped
+                            sort-icon-left
+                          >
+                            <template #cell(inheritance)="data">
+                              <div>
+                                <b-badge
+                                  pill
+                                  variant="info"
+                                  class="justify-content-md-center px-1 mx-1"
+                                  size="1.3em"
+                                >
+                                  {{
+                                    inheritance_short_text[
+                                      data.item.inheritance
+                                    ]
+                                  }}
+                                </b-badge>
+                                {{ data.item.inheritance }}
+                              </div>
+                            </template>
+
+                            <template #cell(n)="data">
+                              <b-link
+                                :href="
+                                  '/Entities?filter=any(category,' +
+                                    data.item.category +
+                                    '),any(hpo_mode_of_inheritance_term_name,' +
+                                    inheritance_link[data.item.inheritance].join(',') +
+                                    ')'
+                                "
+                              >
+                                <div style="cursor: pointer">
+                                  {{ data.item.n }}
+                                </div>
+                              </b-link>
+                            </template>
+                          </b-table>
+                        </b-card>
+                      </template>
+                    </b-table>
+                  </b-skeleton-wrapper>
+                </b-card-text>
+                <!-- first statistics table for genes -->
+
+                <!-- second statistics table for genes -->
+                <h5 class="mb-0 font-weight-bold mx-2">
+                  <mark>Genes</mark>
+                </h5>
+                <b-card-text class="text-left">
+                  <b-skeleton-wrapper :loading="loading_statistics">
+                    <template #loading>
+                      <b-skeleton-table
+                        :rows="2"
+                        :columns="3"
+                        :table-props="{
+                          bordered: false,
+                          striped: false,
+                          small: true,
+                        }"
+                      />
+                    </template>
+
+                    <b-table
+                      :items="gene_statistics.data"
+                      :fields="statistics_fields"
                       stacked="lg"
                       head-variant="light"
                       show-empty
@@ -128,7 +247,7 @@
                         <b-card>
                           <b-table
                             :items="row.item.groups"
-                            :fields="genes_statistics_details_fields"
+                            :fields="statistics_details_fields"
                             head-variant="light"
                             show-empty
                             small
@@ -174,6 +293,7 @@
                     </b-table>
                   </b-skeleton-wrapper>
                 </b-card-text>
+                <!-- second statistics table for genes -->
               </b-card>
 
               <b-card
@@ -537,12 +657,18 @@ export default {
         "Autosomal dominant": "AD",
         "Autosomal recessive": "AR",
         "X-linked": "X",
-        Other: "M/S",
+        "Other": "M/S",
+      },
+      inheritance_link: {
+        "Autosomal dominant": ["Autosomal dominant inheritance"],
+        "Autosomal recessive": ["Autosomal recessive inheritance"],
+        "X-linked": ["X-linked other inheritance", "X-linked recessive inheritance", "X-linked dominant inheritance"],
+        "Other": ["Mitochondrial inheritance", "Somatic mutation"],
       },
       search_input: "",
       search_keys: [],
       search_object: {},
-      genes_statistics: {
+      entity_statistics: {
         meta: [
           {
             last_update: null,
@@ -551,12 +677,21 @@ export default {
         ],
         data: [],
       },
-      genes_statistics_fields: [
+      gene_statistics: {
+        meta: [
+          {
+            last_update: null,
+            executionTime: null,
+          },
+        ],
+        data: [],
+      },
+      statistics_fields: [
         { key: "category", label: "Category", class: "text-left" },
         { key: "n", label: "Count", class: "text-left" },
         { key: "actions", label: "Details" },
       ],
-      genes_statistics_details_fields: [
+      statistics_details_fields: [
         { key: "inheritance", label: "Inheritance" },
         { key: "n", label: "Count", class: "text-left" },
       ],
@@ -634,16 +769,26 @@ export default {
       this.loading_statistics = true;
 
       let apiStatisticsGenesURL =
-        process.env.VUE_APP_API_URL + "/api/statistics/genes";
+        process.env.VUE_APP_API_URL + "/api/statistics/category_count?type=gene";
+
+      let apiStatisticsEntityURL =
+        process.env.VUE_APP_API_URL + "/api/statistics/category_count?type=entity";
 
       try {
-        let response_statistics_genes = await this.axios.get(
+        let response_statistics_gene = await this.axios.get(
           apiStatisticsGenesURL
         );
 
-        this.genes_statistics = response_statistics_genes.data;
+        let response_statistics_entity = await this.axios.get(
+          apiStatisticsEntityURL
+        );
+
+        this.gene_statistics = response_statistics_gene.data;
+
+        this.entity_statistics = response_statistics_entity.data;
+
         const date_last_update = new Date(
-          response_statistics_genes.data.meta[0].last_update
+          response_statistics_gene.data.meta[0].last_update
         );
         this.last_update = date_last_update.toLocaleDateString();
 
