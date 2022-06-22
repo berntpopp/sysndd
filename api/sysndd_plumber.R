@@ -2507,8 +2507,18 @@ function() {
   sysndd_db_phenotypes_corr_melted <- melt(sysndd_db_phenotypes_corr) %>%
       select(x = Var1, y = Var2, value)
 
-  # generate object to return
-  sysndd_db_phenotypes_corr_melted
+  # join with HPO ids
+  phenotype_list_join <- phenotype_list_tbl %>%
+    select(phenotype_id, HPO_term)
+
+  sysndd_db_phenotypes_corr_melted_ids <- sysndd_db_phenotypes_corr_melted %>%
+    left_join(phenotype_list_join, by = c("x" = "HPO_term")) %>%
+    select(x, y, value, x_id = phenotype_id) %>%
+    left_join(phenotype_list_join, by = c("y" = "HPO_term")) %>%
+    select(x, x_id, y, y_id = phenotype_id, value)
+
+  # return the object
+  sysndd_db_phenotypes_corr_melted_ids
 
 }
 
@@ -2560,12 +2570,12 @@ function() {
     select(entity_id, phenotype_id, HPO_term)
 
   # compute counts
-    sysndd_db_phenotypes_count <- sysndd_db_phenotypes %>%
-        group_by(HPO_term) %>%
-        tally() %>%
-        arrange(desc(n)) %>%
-        ungroup() %>%
-        select(HPO_term, count = n)
+  sysndd_db_phenotypes_count <- sysndd_db_phenotypes %>%
+      group_by(HPO_term, phenotype_id) %>%
+      tally() %>%
+      arrange(desc(n)) %>%
+      ungroup() %>%
+      select(HPO_term, phenotype_id, count = n)
 
   # generate object to return
   sysndd_db_phenotypes_count

@@ -216,7 +216,7 @@
                     @input="removeSearch()"
                   >
                     <template v-slot:first>
-                      <b-form-select-option value=null>
+                      <b-form-select-option value="null">
                         .. {{ truncate(field.label, 20) }} ..
                       </b-form-select-option>
                     </template>

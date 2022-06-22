@@ -143,6 +143,8 @@ export default {
           return d.x + ":" + d.y;
         })
         .enter()
+        .append("a")
+        .attr("xlink:href", function(d) { return "/Phenotypes/?sort=entity_id&filter=all(modifier_phenotype_id," + d.x_id + "," + d.y_id + ")&page_after=0&page_size=10"; }) // <- add links to the filtered phenotype table to the rects
         .append("rect")
         .attr("x", function (d) {
           return x(d.x);

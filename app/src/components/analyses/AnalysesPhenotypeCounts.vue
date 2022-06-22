@@ -83,6 +83,7 @@ export default {
           })
         )
         .padding(0.2);
+
       svg
         .append("g")
         .attr("transform", "translate(0," + height + ")")
@@ -131,6 +132,8 @@ export default {
         .selectAll("mybar")
         .data(data)
         .enter()
+        .append("a")
+        .attr("xlink:href", function(d) { return "/Phenotypes/?sort=entity_id&filter=all(modifier_phenotype_id," + d.phenotype_id + ")&page_after=0&page_size=10"; }) // <- add links to the filtered phenotype table to the bars
         .append("rect")
         .attr("x", function (d) {
           return x(d.HPO_term);
