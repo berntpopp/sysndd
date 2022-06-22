@@ -982,7 +982,7 @@ export default {
       inheritance_short_text: {
         "Autosomal dominant inheritance": "AD",
         "Autosomal recessive inheritance": "AR",
-        "X-linked inheritance, other": "Xo",
+        "X-linked other inheritance": "Xo",
         "X-linked recessive inheritance": "XR",
         "X-linked dominant inheritance": "XD",
         "Mitochondrial inheritance": "Mit",
