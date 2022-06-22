@@ -181,11 +181,11 @@
                 </b-card-text>
                 <!-- first statistics table for genes -->
 
-<hr class="dashed">
+                <hr class="dashed">
 
                 <!-- second statistics table for genes -->
                 <h5 class="mb-0 font-weight-bold mx-2">
-                  <mark>Genes</mark>
+                  <mark>Genes</mark> (links to Panels)
                 </h5>
                 <b-card-text class="text-left">
                   <b-skeleton-wrapper :loading="loading_statistics">
