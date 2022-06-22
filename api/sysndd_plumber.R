@@ -641,7 +641,7 @@ function(req, res) {
             filter(review_id == ndd_entity_review_original$review_id) %>%
             select(phenotype_id, modifier_id)
 
-        ndd_review_variation_ontology_conn_ori <- pool %>%
+        review_variation_ontology_conn_ori <- pool %>%
             tbl("ndd_review_variation_ontology_connect") %>%
             collect() %>%
             filter(review_id == ndd_entity_review_original$review_id) %>%
@@ -683,12 +683,12 @@ function(req, res) {
         }
 
         # only submit variation ontology connections if not empty
-        if (length(compact(ndd_review_variation_ontology_conn_ori)) > 0) {
+        if (length(compact(review_variation_ontology_conn_ori)) > 0) {
           # make the variation ontology to review connections
           # using the function "put_post_db_var_ont_con"
           resp_variation_ontology_conn <- put_post_db_var_ont_con(
             "POST",
-            ndd_review_variation_ontology_conn_ori,
+            review_variation_ontology_conn_ori,
             as.integer(response_new_entity$entry$entity_id),
             as.integer(response_review$entry$review_id))
         } else {
@@ -2447,47 +2447,27 @@ phenotype_entities_list <- generate_phenotype_entities_list(sort,
 #* gets correlation between phenotypes
 #* @serializer json list(na="string")
 #' @get /api/phenotype/correlation
-function() {
+function(res,
+  filter = "contains(ndd_phenotype_word,Yes),any(category,Definitive)") {
 
-  # TODO: this should be a view instead in SQL
+  # TODO: add option to called function to immediadetly return long format
+  # call the endpoint function generate_phenotype_entities
+  phenotype_entities_data <- generate_phenotype_entities_list(
+    filter = filter)$data %>%
+    separate_rows(modifier_phenotype_id, sep = ",")
+
   # get data from database, filter and restructure
-  ndd_entity_view_tbl <- pool %>%
-    tbl("ndd_entity_view") %>%
-    collect()
-
-  ndd_review_phenotype_connect_tbl <- pool %>%
-    tbl("ndd_review_phenotype_connect") %>%
-    filter(is_active == 1) %>%
-    collect()
-
-  modifier_list_tbl <- pool %>%
-    tbl("modifier_list") %>%
-    collect()
-
   phenotype_list_tbl <- pool %>%
     tbl("phenotype_list") %>%
     collect()
 
-  # needed to filter only active reviews
-  ndd_entity_review <- pool %>%
-    tbl("ndd_entity_review") %>%
-    collect() %>%
-    filter(is_primary == 1) %>%
-    select(review_id)
-
-  sysndd_db_phenotypes  <- ndd_entity_view_tbl %>%
-    left_join(ndd_review_phenotype_connect_tbl, by = c("entity_id")) %>%
-    left_join(modifier_list_tbl, by = c("modifier_id")) %>%
-    left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
-    filter(ndd_phenotype == 1) %>%
-    # needed to filter only active reviews
-    filter(review_id %in% ndd_entity_review$review_id) %>%
-    # only phenotypes for definitive and modifier present currently
-    # TODO: allow changing this behaviour with a parameter
-    filter(category == "Definitive") %>%
-    filter(modifier_name == "present") %>%
+  # compose table
+  sysndd_db_phenotypes <- phenotype_entities_data %>%
+    filter(str_detect(modifier_phenotype_id, "1-")) %>%
+    mutate(phenotype_id = str_remove(modifier_phenotype_id, "1-")) %>%
     # remove the generall HP:0001249 term present in all definitive entities
     filter(phenotype_id != "HP:0001249") %>%
+    left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
     select(entity_id, phenotype_id, HPO_term)
 
   # compute correlation matrix
@@ -2527,46 +2507,27 @@ function() {
 #* gets counts of phenotypes in annotated entities
 #* @serializer json list(na="string")
 #' @get /api/phenotype/count
-function() {
+function(res,
+  filter = "contains(ndd_phenotype_word,Yes),any(category,Definitive)") {
 
-  # TODO: this should be a view instead in SQL
+  # TODO: add option to called function to immediadetly return long format
+  # call the endpoint function generate_phenotype_entities
+  phenotype_entities_data <- generate_phenotype_entities_list(
+    filter = filter)$data %>%
+    separate_rows(modifier_phenotype_id, sep = ",") %>%
+    unique()
+
   # get data from database, filter and restructure
-  ndd_entity_view_tbl <- pool %>%
-    tbl("ndd_entity_view") %>%
-    collect()
-
-  ndd_review_phenotype_connect_tbl <- pool %>%
-    tbl("ndd_review_phenotype_connect") %>%
-    filter(is_active == 1) %>%
-    collect()
-
-  modifier_list_tbl <- pool %>%
-    tbl("modifier_list") %>%
-    collect()
-
   phenotype_list_tbl <- pool %>%
     tbl("phenotype_list") %>%
     collect()
 
-  # needed to filter only active reviews
-  ndd_entity_review <- pool %>%
-    tbl("ndd_entity_review") %>%
-    collect() %>%
-    filter(is_primary == 1) %>%
-    select(review_id)
-
-  sysndd_db_phenotypes  <- ndd_entity_view_tbl %>%
-    left_join(ndd_review_phenotype_connect_tbl, by = c("entity_id")) %>%
-    left_join(modifier_list_tbl, by = c("modifier_id")) %>%
-    left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
-    filter(ndd_phenotype == 1) %>%
-    # only phenotypes for definitive and modifier present currently
-    # TODO: allow changing this behaviour with a parameter
-    filter(review_id %in% ndd_entity_review$review_id) %>%
-    filter(category == "Definitive") %>%
-    filter(modifier_name == "present") %>%
-    # remove the generall HP:0001249 term present in all definitive entities
+  # compose table
+  sysndd_db_phenotypes <- phenotype_entities_data %>%
+    mutate(phenotype_id = str_remove(modifier_phenotype_id, "1-")) %>%
+    # remove the general HP:0001249 term present in all definitive entities
     filter(phenotype_id != "HP:0001249") %>%
+    left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
     select(entity_id, phenotype_id, HPO_term)
 
   # compute counts
@@ -3132,7 +3093,7 @@ function(res, fields = "") {
     collect()
 
   # split the fields input by comma
-  if (fields != ""){
+  if (fields != "") {
     fields <- str_split(str_replace_all(fields, fixed(" "), ""), ",")[[1]]
   } else {
     fields <- (ndd_database_comp_gene_list %>%
@@ -3295,7 +3256,7 @@ comparisons_list <- generate_comparisons_list(sort,
 function() {
 
   # get data from database
-  genes_from_entity_table <- pool %>% 
+  genes_from_entity_table <- pool %>%
     tbl("ndd_entity_view") %>%
     arrange(entity_id) %>%
     filter(ndd_phenotype == 1) %>%
@@ -4117,7 +4078,7 @@ function(
     res$status <- 409 # Conflict
     return(list(error = "Password input problem."))
 
-  }  else if (
+  } else if (
     (req$user_role %in% c("Administrator") || user == user_id_pass_change) &&
     user_id_pass_change_exists &&
     user_id_pass_change_approved &&

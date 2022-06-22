@@ -119,7 +119,7 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
   # generate filter expression based on filter input
   filter_exprs <- generate_filter_expressions(filter)
 
-  # load the wide phenotype view
+  # load the phenotype view
   ndd_review_phenotype_connect <- pool %>%
     tbl("ndd_review_phenotype_connect_view") %>%
     collect() %>%
