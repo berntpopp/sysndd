@@ -1,12 +1,32 @@
 <template>
   <div class="container-fluid">
-    <b-spinner v-if="loading" label="Loading..." class="float-center m-5" />
-    <b-container v-else fluid>
+    <b-spinner
+      v-if="loading"
+      label="Loading..."
+      class="float-center m-5"
+    />
+    <b-container
+      v-else
+      fluid
+    >
       <b-row class="justify-content-md-center py-2">
-        <b-col col md="8">
-          <div class="accordion" role="tablist">
-            <b-card no-body class="mb-1">
-              <b-card-header header-tag="header" class="p-1" role="tab">
+        <b-col
+          col
+          md="8"
+        >
+          <div
+            class="accordion"
+            role="tablist"
+          >
+            <b-card
+              no-body
+              class="mb-1"
+            >
+              <b-card-header
+                header-tag="header"
+                class="p-1"
+                role="tab"
+              >
                 <b-button
                   v-b-toggle.accordion-1
                   block
@@ -23,10 +43,16 @@
                 role="tabpanel"
               >
                 <b-card-body>
-                  <b-container fluid="sm" class="text-left py-2">
+                  <b-container
+                    fluid="sm"
+                    class="text-left py-2"
+                  >
                     The SysNDD database is based on some content of its
                     predecessor database, SysID (
-                    <b-link href="http://sysid.cmbi.umcn.nl/" target="_blank">
+                    <b-link
+                      href="http://sysid.cmbi.umcn.nl/"
+                      target="_blank"
+                    >
                       http://sysid.cmbi.umcn.nl/
                     </b-link>
                     , more recently
@@ -45,11 +71,11 @@
                     and candidate genes according to the degree of underlying
                     evidence. Furthermore, expert curated information on
                     associated diseases and phenotypes was provided.
-                    <br /><br />
+                    <br><br>
                     Christiane Zweier has been updating SysID from its start in
                     2009. Together with her, Bernt Popp has now developed and
                     programmed the new SysNDD database.
-                    <br /><br />
+                    <br><br>
                     To allow interoperability and mapping between gene-,
                     phenotype- or disease-oriented databases, SysNDD is centered
                     around curated gene-inheritance-disease units, so called
@@ -57,12 +83,12 @@
                     categories. This can account for the increased complexity of
                     NDDs and allows to address a broader spectrum of diagnostic
                     and research questions.
-                    <br /><br />
+                    <br><br>
                     Future functionality will be expanded to annotation of
                     variant and network analyses. Another goal is to incorporate
                     the SysID/SysNDD data into other gene/disease-relationship
                     databases like the Orphanet Rare Disease ontology database.
-                    <br /><br />
+                    <br><br>
                     <h6>Affiliations:</h6>
                     <ul>
                       <li>
@@ -87,8 +113,15 @@
               </b-collapse>
             </b-card>
 
-            <b-card no-body class="mb-1">
-              <b-card-header header-tag="header" class="p-1" role="tab">
+            <b-card
+              no-body
+              class="mb-1"
+            >
+              <b-card-header
+                header-tag="header"
+                class="p-1"
+                role="tab"
+              >
                 <b-button
                   v-b-toggle.accordion-2
                   block
@@ -104,7 +137,10 @@
                 role="tabpanel"
               >
                 <b-card-body>
-                  <b-container fluid="sm" class="text-left py-2">
+                  <b-container
+                    fluid="sm"
+                    class="text-left py-2"
+                  >
                     <b-row>
                       <b-col md="12">
                         <span class="font-weight-bold">1.</span>
@@ -125,7 +161,7 @@
                     </b-row>
                     <b-row>
                       <b-col md="12">
-                        <br />
+                        <br>
                         Please cite above publication. We are currently working
                         on a new manuscript reporting SysNDD and the development
                         of the NDD landscape over the past years. A link will be
@@ -137,8 +173,15 @@
               </b-collapse>
             </b-card>
 
-            <b-card no-body class="mb-1">
-              <b-card-header header-tag="header" class="p-1" role="tab">
+            <b-card
+              no-body
+              class="mb-1"
+            >
+              <b-card-header
+                header-tag="header"
+                class="p-1"
+                role="tab"
+              >
                 <b-button
                   v-b-toggle.accordion-3
                   block
@@ -153,7 +196,10 @@
                 accordion="my-accordion"
                 role="tabpanel"
               >
-                <b-container fluid="sm" class="text-left py-2">
+                <b-container
+                  fluid="sm"
+                  class="text-left py-2"
+                >
                   <b-row>
                     <b-col md="12">
                       The current SysNDD database development is supported by:
@@ -167,8 +213,8 @@
                         href="https://orcid.org/0000-0002-3679-1081"
                         target="_blank"
                       >
-                        Bernt Popp </b-link
-                      >.
+                        Bernt Popp
+                      </b-link>.
                     </b-col>
                   </b-row>
                   <b-row>
@@ -178,8 +224,8 @@
                         href="https://orcid.org/0000-0001-8002-2020"
                         target="_blank"
                       >
-                        Christiane Zweier </b-link
-                      >.
+                        Christiane Zweier
+                      </b-link>.
                     </b-col>
                   </b-row>
                   <b-row>
@@ -189,13 +235,16 @@
                         href="https://orcid.org/0000-0003-4819-0264"
                         target="_blank"
                       >
-                        Alain Verloes </b-link
-                      >.
+                        Alain Verloes
+                      </b-link>.
                     </b-col>
                   </b-row>
                 </b-container>
 
-                <b-container fluid="sm" class="text-left py-2">
+                <b-container
+                  fluid="sm"
+                  class="text-left py-2"
+                >
                   <b-row>
                     <b-col md="12">
                       The previous SysID database and data curation was
@@ -217,8 +266,8 @@
                         href="https://orcid.org/0000-0002-6918-3314"
                         target="_blank"
                       >
-                        Annette Schenck </b-link
-                      >.
+                        Annette Schenck
+                      </b-link>.
                     </b-col>
                   </b-row>
                   <b-row>
@@ -229,8 +278,8 @@
                         href="https://orcid.org/0000-0002-6918-3314"
                         target="_blank"
                       >
-                        Annette Schenck </b-link
-                      >.
+                        Annette Schenck
+                      </b-link>.
                     </b-col>
                   </b-row>
                   <b-row>
@@ -241,8 +290,8 @@
                         href="https://orcid.org/0000-0001-8002-2020"
                         target="_blank"
                       >
-                        Christiane Zweier </b-link
-                      >.
+                        Christiane Zweier
+                      </b-link>.
                     </b-col>
                   </b-row>
                   <b-row>
@@ -253,8 +302,8 @@
                         href="https://orcid.org/0000-0001-8002-2020"
                         target="_blank"
                       >
-                        Christiane Zweier </b-link
-                      >.
+                        Christiane Zweier
+                      </b-link>.
                     </b-col>
                   </b-row>
                   <b-row>
@@ -264,16 +313,23 @@
                         href="https://orcid.org/0000-0002-0956-0237"
                         target="_blank"
                       >
-                        Tjitske Kleefstra </b-link
-                      >.
+                        Tjitske Kleefstra
+                      </b-link>.
                     </b-col>
                   </b-row>
                 </b-container>
               </b-collapse>
             </b-card>
 
-            <b-card no-body class="mb-1">
-              <b-card-header header-tag="header" class="p-1" role="tab">
+            <b-card
+              no-body
+              class="mb-1"
+            >
+              <b-card-header
+                header-tag="header"
+                class="p-1"
+                role="tab"
+              >
                 <b-button
                   v-b-toggle.accordion-4
                   block
@@ -289,7 +345,10 @@
                 role="tabpanel"
               >
                 <b-card-body>
-                  <b-container fluid="sm" class="text-left py-2">
+                  <b-container
+                    fluid="sm"
+                    class="text-left py-2"
+                  >
                     <b-card-text class="text-left">
                       <span class="font-weight-bold">2022-05-07:</span> First
                       SysNDD native data update. depricating SysID. SysNDD now
@@ -317,8 +376,15 @@
               </b-collapse>
             </b-card>
 
-            <b-card no-body class="mb-1">
-              <b-card-header header-tag="header" class="p-1" role="tab">
+            <b-card
+              no-body
+              class="mb-1"
+            >
+              <b-card-header
+                header-tag="header"
+                class="p-1"
+                role="tab"
+              >
                 <b-button
                   v-b-toggle.accordion-5
                   block
@@ -334,7 +400,10 @@
                 role="tabpanel"
               >
                 <b-card-body>
-                  <b-container fluid="sm" class="text-left py-2">
+                  <b-container
+                    fluid="sm"
+                    class="text-left py-2"
+                  >
                     We acknowledge Martijn Huynen and members of the Huynen and
                     Schenck groups at the Radboud University Medical Center
                     Nijmegen, The Netherlands, for building SysID and supporting
@@ -351,8 +420,15 @@
               </b-collapse>
             </b-card>
 
-            <b-card no-body class="mb-1">
-              <b-card-header header-tag="header" class="p-1" role="tab">
+            <b-card
+              no-body
+              class="mb-1"
+            >
+              <b-card-header
+                header-tag="header"
+                class="p-1"
+                role="tab"
+              >
                 <b-button
                   v-b-toggle.accordion-6
                   block
@@ -368,7 +444,10 @@
                 role="tabpanel"
               >
                 <b-card-body>
-                  <b-container fluid="sm" class="text-left py-2">
+                  <b-container
+                    fluid="sm"
+                    class="text-left py-2"
+                  >
                     <b-row>
                       <b-col md="12">
                         <span class="font-weight-bold">
@@ -386,7 +465,7 @@
                         entries can be searched and looked up either starting
                         from a gene or from a disease. Also lists and summaries
                         on genes associated with a disease or diseases
-                        associated with a particular gene can be retrieved.<br /><br />
+                        associated with a particular gene can be retrieved.<br><br>
                       </b-col>
                     </b-row>
 
@@ -404,7 +483,7 @@
                         un-published data from meetings/conferences, personal
                         communication or in-house databases. This means that for
                         all information contained in SysNDD the primary source
-                        can be retrieved.<br /><br />
+                        can be retrieved.<br><br>
                       </b-col>
                     </b-row>
 
@@ -419,13 +498,26 @@
                       <b-col md="12">
                         The core principle of SysNDD are immutable
                         “gene-inheritance-disease” units, so called “entities”.
-                        <br />
+                        <br>
                         <h2>
                           <b-badge variant="primary">
                             Entity:
-                            <b-badge pill variant="success"> Gene </b-badge>
-                            <b-badge pill variant="info"> Inheritance </b-badge>
-                            <b-badge pill variant="secondary">
+                            <b-badge
+                              pill
+                              variant="success"
+                            >
+                              Gene
+                            </b-badge>
+                            <b-badge
+                              pill
+                              variant="info"
+                            >
+                              Inheritance
+                            </b-badge>
+                            <b-badge
+                              pill
+                              variant="secondary"
+                            >
                               Disease
                             </b-badge>
                           </b-badge>
@@ -435,7 +527,7 @@
                         terms (HGNC identifier for genes, OMIM or MONDO for
                         disease and inheritance from HPO). The mutational
                         consequence is currently not active but will be
-                        implemented with the next updates.<br /><br />
+                        implemented with the next updates.<br><br>
                       </b-col>
                     </b-row>
 
@@ -451,7 +543,7 @@
                         Genes and phenotypes contained in SysID/SysNDD have been
                         updated and curated by CZ since 2009. In future, experts
                         from ERN ITHACA will be involved the curation and
-                        updating process.<br /><br />
+                        updating process.<br><br>
                       </b-col>
                     </b-row>
 
@@ -465,7 +557,7 @@
                     </b-row>
                     <b-row>
                       <b-col md="12">
-                        No, this information is not (yet) provided in SysNDD.<br /><br />
+                        No, this information is not (yet) provided in SysNDD.<br><br>
                       </b-col>
                     </b-row>
 
@@ -484,7 +576,7 @@
                         associated diseases, inheritance patterns and
                         phenotypes, all organized in entities. It is manually
                         curated by a single or a limited number of experts thus
-                        ensuring high confidence of the data.<br /><br />
+                        ensuring high confidence of the data.<br><br>
                       </b-col>
                     </b-row>
 
@@ -504,10 +596,10 @@
                           href="https://berntpopp.github.io/sysndd/"
                           target="_blank"
                         >
-                          https://berntpopp.github.io/sysndd/ </b-link
-                        >. You can browse the webpage, download the content in
+                          https://berntpopp.github.io/sysndd/
+                        </b-link>. You can browse the webpage, download the content in
                         different formats (PDF, DOCS, EPUB) and even help
-                        improve the documentation by editing it on GitHub.<br /><br />
+                        improve the documentation by editing it on GitHub.<br><br>
                       </b-col>
                     </b-row>
 
@@ -527,8 +619,8 @@
                           href="https://github.com/berntpopp/sysndd/discussions"
                           target="_blank"
                         >
-                          Github discussions page </b-link
-                        >.<br /><br />
+                          Github discussions page
+                        </b-link>.<br><br>
                       </b-col>
                     </b-row>
                   </b-container>
@@ -536,8 +628,15 @@
               </b-collapse>
             </b-card>
 
-            <b-card no-body class="mb-1">
-              <b-card-header header-tag="header" class="p-1" role="tab">
+            <b-card
+              no-body
+              class="mb-1"
+            >
+              <b-card-header
+                header-tag="header"
+                class="p-1"
+                role="tab"
+              >
                 <b-button
                   v-b-toggle.accordion-7
                   block
@@ -553,7 +652,10 @@
                 role="tabpanel"
               >
                 <b-card-body>
-                  <b-container fluid="sm" class="text-left py-2">
+                  <b-container
+                    fluid="sm"
+                    class="text-left py-2"
+                  >
                     The Department of Human Genetics (University Hospital,
                     University Bern, Bern, Switzerland) makes no representation
                     about the suitability or accuracy of this software or data
@@ -562,19 +664,28 @@
                     will not infringe any third party patents, copyrights,
                     trademarks or other rights.
                   </b-container>
-                  <b-container fluid="sm" class="text-left py-2">
-                    <span class="font-weight-bold"
-                      >Responsible for this website:</span
-                    >
+                  <b-container
+                    fluid="sm"
+                    class="text-left py-2"
+                  >
+                    <span
+                      class="font-weight-bold"
+                    >Responsible for this website:</span>
                     Bernt Popp (admin [at] sysndd.org)
                   </b-container>
-                  <b-container fluid="sm" class="text-left py-2">
-                    <span class="font-weight-bold"
-                      >Responsible for this project:</span
-                    >
+                  <b-container
+                    fluid="sm"
+                    class="text-left py-2"
+                  >
+                    <span
+                      class="font-weight-bold"
+                    >Responsible for this project:</span>
                     Christiane Zweier (curator [at] sysndd.org)
                   </b-container>
-                  <b-container fluid="sm" class="text-left py-2">
+                  <b-container
+                    fluid="sm"
+                    class="text-left py-2"
+                  >
                     <span class="font-weight-bold">Address:</span>
                     Universitätsklinik für Humangenetik, Inselspital,
                     Universitätsspital Bern, Freiburgstrasse 15, 3010 Bern,
@@ -584,8 +695,15 @@
               </b-collapse>
             </b-card>
 
-            <b-card no-body class="mb-1">
-              <b-card-header header-tag="header" class="p-1" role="tab">
+            <b-card
+              no-body
+              class="mb-1"
+            >
+              <b-card-header
+                header-tag="header"
+                class="p-1"
+                role="tab"
+              >
                 <b-button
                   v-b-toggle.accordion-8
                   block
@@ -601,7 +719,10 @@
                 role="tabpanel"
               >
                 <b-card-body>
-                  <b-container fluid="sm" class="text-left py-2">
+                  <b-container
+                    fluid="sm"
+                    class="text-left py-2"
+                  >
                     If you have technical problems using SysNDD or requests
                     regarding the data or functionality, please contact us at
                     support [at] sysndd.org.

@@ -337,24 +337,29 @@
                   class="word"
                 >NDD comprise <mark>developmental delay</mark> (DD),
                   <mark>intellectual disability</mark> (ID) and
-                  <mark>autism spectrum disorder</mark> (ASD). </span><br>
+                  <mark>autism spectrum disorder</mark> (ASD).
+                </span><br><br>
+
                 <span
                   class="word"
                 >This clinically and genetically extremely
                   <mark>heterogeneous</mark> disease group affects
-                  <mark>about 2% of newborns</mark>. </span><br>
+                  <mark>about 2% of newborns</mark>.
+                </span><br><br>
+
                 <span
                   class="word"
                 >SysNDD aims to empower clinical diagnostics, counseling and
-                  research for NDDs through <mark>expert curation</mark>. </span><br>
+                  research for NDDs through <mark>expert curation</mark>.
+                </span><br><br>
 
                 <span
                   class="word"
                 >We define “gene-inheritance-disease” units as
-                  “<mark>entities</mark>”. </span><br>
+                  “<mark>entities</mark>”, </span><br>
                 <span
                   class="word"
-                >They are color coded throughout the website:
+                >which are color coded throughout the website:
                   <b-badge
                     variant="primary"
                   >Entity:
@@ -370,7 +375,53 @@
                       pill
                       variant="secondary"
                     >Disease</b-badge>
-                  </b-badge></span><br>
+                  </b-badge>
+                </span><br><br>
+
+                <span
+                  class="word"
+                >The clinical entities are devided into different 
+                  “<mark>Categories</mark>”, bases on the strength of their association with NDD phenotypes. They are represented using these differnetly colored stoplight symbols:
+                </span><br>
+                <span
+                  class="word"
+                >
+                  Definitive: 
+                  <b-avatar
+                    size="1.4em"
+                    icon="stoplights"
+                    :variant="stoplights_style['Definitive']"
+                  />
+                  , Moderate: 
+                  <b-avatar
+                    size="1.4em"
+                    icon="stoplights"
+                    :variant="stoplights_style['Moderate']"
+                  />
+                  , Limited: 
+                  <b-avatar
+                    size="1.4em"
+                    icon="stoplights"
+                    :variant="stoplights_style['Limited']"
+                  />
+                  , Refuted: 
+                  <b-avatar
+                    size="1.4em"
+                    icon="stoplights"
+                    :variant="stoplights_style['Refuted']"
+                  />
+                </span><br>
+                <span
+                  class="word"
+                >The classification criteria used for the categories are detailed in our 
+                  <b-link
+                    href="https://berntpopp.github.io/sysndd/curation-criteria.html"
+                    target="_blank"
+                  >
+                    Documentation
+                  </b-link> on GitHub.
+                </span><br><br>
+
                 <span
                   class="word"
                 >The SysNDD tool allows browsing and download of tabular views
