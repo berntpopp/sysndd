@@ -181,6 +181,8 @@
                 </b-card-text>
                 <!-- first statistics table for genes -->
 
+<hr class="dashed">
+
                 <!-- second statistics table for genes -->
                 <h5 class="mb-0 font-weight-bold mx-2">
                   <mark>Genes</mark>
@@ -868,5 +870,8 @@ mark {
   padding-bottom: 0.5em;
   font-weight: bold;
   background-color: #eaadba;
+}
+hr.dashed {
+    border-top: 2px dashed #999;
 }
 </style>
