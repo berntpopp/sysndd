@@ -254,7 +254,7 @@
             :show-filter-controls="false"
             :show-pagination-controls="false"
             header-label="Associated "
-            :filter-input="'contains(disease_ontology_id_version,' + ontology[0].disease_ontology_id_version + ')'"
+            :filter-input="'any(disease_ontology_id_version,' + ontology[0].disease_ontology_id_version.join(',') + ')'"
           />
 
           <!-- Associated entities card -->
@@ -357,10 +357,10 @@ export default {
     };
   },
   mounted() {
-    this.loadEntityInfo();
+    this.loadOntologyInfo();
   },
   methods: {
-    async loadEntityInfo() {
+    async loadOntologyInfo() {
       this.loading = true;
       let apiDiseaseOntologyURL =
         process.env.VUE_APP_API_URL +
