@@ -337,21 +337,18 @@
                   class="word"
                 >NDD comprise <mark>developmental delay</mark> (DD),
                   <mark>intellectual disability</mark> (ID) and
-                  <mark>autism spectrum disorder</mark> (ASD).
-                </span><br><br>
+                  <mark>autism spectrum disorder</mark> (ASD). </span><br><br>
 
                 <span
                   class="word"
                 >This clinically and genetically extremely
                   <mark>heterogeneous</mark> disease group affects
-                  <mark>about 2% of newborns</mark>.
-                </span><br><br>
+                  <mark>about 2% of newborns</mark>. </span><br><br>
 
                 <span
                   class="word"
                 >SysNDD aims to empower clinical diagnostics, counseling and
-                  research for NDDs through <mark>expert curation</mark>.
-                </span><br><br>
+                  research for NDDs through <mark>expert curation</mark>. </span><br><br>
 
                 <span
                   class="word"
@@ -375,52 +372,53 @@
                       pill
                       variant="secondary"
                     >Disease</b-badge>
-                  </b-badge>
-                </span><br><br>
+                  </b-badge> </span><br><br>
 
                 <span
                   class="word"
-                >The clinical entities are devided into different 
-                  “<mark>Categories</mark>”, bases on the strength of their association with NDD phenotypes. They are represented using these differnetly colored stoplight symbols:
-                </span><br>
-                <span
-                  class="word"
-                >
-                  Definitive: 
+                >The clinical entities are devided into different
+                  “<mark>Categories</mark>”, bases on the strength of their
+                  association with NDD phenotypes. They are represented using
+                  these differnetly colored stoplight symbols: </span><br>
+                <span class="word">
+                  Definitive:
                   <b-avatar
                     size="1.4em"
                     icon="stoplights"
                     :variant="stoplights_style['Definitive']"
                   />
-                  , Moderate: 
+                  , Moderate:
                   <b-avatar
                     size="1.4em"
                     icon="stoplights"
                     :variant="stoplights_style['Moderate']"
                   />
-                  , Limited: 
+                  , Limited:
                   <b-avatar
                     size="1.4em"
                     icon="stoplights"
                     :variant="stoplights_style['Limited']"
                   />
-                  , Refuted: 
+                  , Refuted:
                   <b-avatar
                     size="1.4em"
                     icon="stoplights"
                     :variant="stoplights_style['Refuted']"
-                  />
-                </span><br>
+                  /> </span><br>
                 <span
                   class="word"
-                >The classification criteria used for the categories are detailed in our 
+                >The classification criteria used for the categories are
+                  detailed in our
                   <b-link
                     href="https://berntpopp.github.io/sysndd/curation-criteria.html"
                     target="_blank"
                   >
                     Documentation
-                  </b-link> on GitHub.
-                </span><br><br>
+                  </b-link>
+                  on GitHub.<br>
+                  In the <mark>Panel</mark> views, which are aggregated by gene,
+                  we assign the highest category of associated entities to the
+                  gene. </span><br><br>
 
                 <span
                   class="word"
