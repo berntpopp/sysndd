@@ -22,7 +22,7 @@ export default {
   components: { TablesEntities },
   props: {
     sort: { type: String, default: "entity_id" },
-    filter: { type: String, default: null },
+    filter: { type: String, default: "filter=" },
     fields: { type: String, default: null },
     pageAfter: { type: String, default: "0" },
     pageSize: { type: String, default: "10" },

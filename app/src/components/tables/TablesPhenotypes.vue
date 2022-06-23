@@ -572,8 +572,6 @@ export default {
     this.sortBy = sort_object.sortBy;
     this.sortDesc = sort_object.sortDesc;
 
-    this.filtered();
-
     setTimeout(() => {
       this.loading = false;
     }, 500);

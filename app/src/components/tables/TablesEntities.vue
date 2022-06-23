@@ -384,7 +384,7 @@ export default {
     showPaginationControls: { type: Boolean, default: true },
     headerLabel: { type: String, default: "Entities table" },
     sortInput: { type: String, default: "+entity_id" },
-    filterInput: { type: String, default: null },
+    filterInput: { type: String, default: "filter=" },
     fieldsInput: { type: String, default: null },
     pageAfterInput: { type: String, default: "" },
     pageSizeInput: { type: String, default: "10" },
@@ -534,8 +534,6 @@ export default {
     let sort_object = this.sortStringToVariables(this.sortInput);
     this.sortBy = sort_object.sortBy;
     this.sortDesc = sort_object.sortDesc;
-
-    this.filtered();
 
     setTimeout(() => {
       this.loading = false;
