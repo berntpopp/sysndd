@@ -126,6 +126,7 @@ export default {
           group: item.group,
           values: item.values.map((value) => {
             return {
+              group: item.group,
               cumulative_count: value.cumulative_count,
               entry_date_text: value.entry_date,
               entry_date: d3.timeParse("%Y-%m-%d")(value.entry_date),
@@ -133,6 +134,8 @@ export default {
           }),
         };
       });
+
+console.log(data)
 
       // generate array of all categories
       const allCategories = this.items.map((item) => item.group);
@@ -149,20 +152,28 @@ export default {
         .scaleTime()
         .domain(d3.extent(data[0].values, (d) => d.entry_date))
         .range([0, width]);
+
       svg
         .append("g")
         .attr("transform", `translate(0,${height})`)
         .call(d3.axisBottom(x));
 
       // Add Y axis
-      const y = d3.scaleLinear().domain([0, maxCount]).range([height, 0]);
-      svg.append("g").call(d3.axisLeft(y));
+      const y = d3.
+        scaleLinear().
+        domain([0, maxCount]).
+        range([height, 0]);
+
+      svg.
+        append("g").
+        call(d3.axisLeft(y));
 
       // Add the lines
       const line = d3
         .line()
         .x((d) => x(+d.entry_date))
         .y((d) => y(+d.cumulative_count));
+
       svg
         .selectAll("myLines")
         .data(data)
@@ -189,7 +200,10 @@ export default {
       // layerX/Y replaced by clientX/Y
       const mouseover = function (event, d) {
         tooltip.style("opacity", 1);
+
+        d3.select(this).style("stroke", "black");
       };
+
       const mousemove = function (event, d) {
         tooltip
           .html(
@@ -198,8 +212,11 @@ export default {
           .style("left", `${event.layerX + 20}px`)
           .style("top", `${event.layerY + 20}px`);
       };
+
       const mouseleave = function (event, d) {
         tooltip.style("opacity", 0);
+
+        d3.select(this).style("stroke", "white");
       };
 
       // Add the points
@@ -207,17 +224,20 @@ export default {
         // First we need to enter in a group
         .selectAll("myDots")
         .data(data)
-        .join("g")
+        .enter().append("g")
         .style("fill", (d) => myColor(d.group))
-        .attr("class", (d) => d.group)
         // Second we need to enter in the 'values' part of this group
         .selectAll("myPoints")
         .data((d) => d.values)
-        .join("circle")
+        .enter()
+        .append("a")
+        .attr("xlink:href", function(d) { return "/Entities/?sort=entity_id&filter=lessOrEqual(entry_date," + d.entry_date_text + "),any(category," + d.group  + ")"; }) // <- add links to the filtered phenotype table to the bars
+        .append("circle")
         .attr("cx", (d) => x(d.entry_date))
         .attr("cy", (d) => y(d.cumulative_count))
         .attr("r", 5)
         .attr("stroke", "white")
+        .style("fill", (d) => myColor(d.group))
         .on("mouseover", mouseover)
         .on("mousemove", mousemove)
         .on("mouseleave", mouseleave);

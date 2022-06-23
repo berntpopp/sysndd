@@ -127,6 +127,7 @@ generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
 # TODO: need to implement error handling
 # TODO: nneed to implement whether the respective columns exist
 # TODO: nneed to implement allowed Operations as input argument
+# TODO: nneed to implement column type handling
 generate_filter_expressions <- function(filter_string,
     operations_allowed = "equals,contains,any,all,lessThan,greaterThan,lessOrEqual,greaterOrEqual") {
 
