@@ -124,13 +124,14 @@ generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
 # generate filter expressions to parse
 # semantics according to https://www.jsonapi.net/usage/reading/filtering.html
 # currently only implemented "Equality" and "Contains text"
-# need to implement error handling
-# need to implement whether the respective columns exist
-# need to implement allowed Operations as input argument
+# TODO: need to implement error handling
+# TODO: nneed to implement whether the respective columns exist
+# TODO: nneed to implement allowed Operations as input argument
 generate_filter_expressions <- function(filter_string,
-    operations_allowed = "equals,contains,any,all") {
+    operations_allowed = "equals,contains,any,all,lessThan,greaterThan,lessOrEqual,greaterOrEqual") {
+
   # define supported operations
-  operations_supported <- "equals,contains,any,all,and,or,not" %>%
+  operations_supported <- "equals,contains,any,all,lessThan,greaterThan,lessOrEqual,greaterOrEqual,and,or,not" %>%
     str_split(pattern = ",", simplify = TRUE) %>%
     str_replace_all(" ", "") %>%
     unique()
@@ -164,6 +165,7 @@ generate_filter_expressions <- function(filter_string,
     # check if requested operations are supported, if not through error
   if (all(operations_allowed %in% operations_supported)) {
     if (filter_string != "") {
+
       # compute filter expressions
       filter_tibble <- as_tibble(str_split(str_squish(filter_string),
           "\\),")[[1]]) %>%
@@ -173,7 +175,7 @@ generate_filter_expressions <- function(filter_string,
           extra = "merge") %>%
         mutate(filter_value = str_remove_all(filter_value, "'|\\)")) %>%
         mutate(exprs = case_when(
-## logic for contains based on regex
+      ## logic for contains based on regex
           column == "any" & logic == "contains" ~
             paste0("if_any(everything(), ~str_detect(.x, '",
               filter_value, "'))"),
@@ -182,7 +184,7 @@ generate_filter_expressions <- function(filter_string,
               filter_value, "'))"),
           !(column %in% c("all", "any")) & logic == "contains" ~
             paste0("str_detect(", column, ", '", filter_value, "')"),
-## logic for equals based on regex
+      ## logic for equals based on regex
           column == "any" & logic == "equals" ~
             paste0("if_any(everything(), ~str_detect(.x, '^",
               filter_value, "$'))"),
@@ -191,7 +193,7 @@ generate_filter_expressions <- function(filter_string,
               filter_value, "$'))"),
           !(column %in% c("all", "any")) & logic == "equals" ~
             paste0("str_detect(", column, ", '^", filter_value, "$')"),
-## logic for any based on regex
+      ## logic for any based on regex
           column == "any" & logic == "any" ~
             paste0("if_any(everything(), ~str_detect(.x, ",
               str_replace_all(paste0("'", filter_value, "')"),
@@ -208,7 +210,7 @@ generate_filter_expressions <- function(filter_string,
                 filter_value, "')"),
                 pattern = "\\,",
                 replacement = "|")),
-## logic for all based on regex
+      ## logic for all based on regex
           column == "any" & logic == "all" ~
             paste0("if_any(everything(), ~str_detect(.x, ",
               str_replace_all(paste0("'(?=.*", filter_value, ")')"),
@@ -225,11 +227,40 @@ generate_filter_expressions <- function(filter_string,
                 filter_value, ")')"),
                 pattern = "\\,",
                 replacement = ")(?=.*")),
+      ## logic for Less than
+          column == "any" & logic == "lessThan" ~
+            paste0("if_any(everything(), .x < '", filter_value, "'"),
+          column == "all" & logic == "lessThan" ~
+            paste0("if_any(everything(), .x < '", filter_value, "'"),
+          !(column %in% c("all", "any")) & logic == "lessThan" ~
+            paste0(column, " < '", filter_value, "'"),
+      ## logic for Greater than
+          column == "any" & logic == "greaterThan" ~
+            paste0("if_any(everything(), .x > '", filter_value, "'"),
+          column == "all" & logic == "greaterThan" ~
+            paste0("if_any(everything(), .x > '", filter_value, "'"),
+          !(column %in% c("all", "any")) & logic == "greaterThan" ~
+            paste0(column, " > '", filter_value, "'"),
+      ## logic for Less than or equal to
+          column == "any" & logic == "lessOrEqual" ~
+            paste0("if_any(everything(), .x <= '", filter_value, "'"),
+          column == "all" & logic == "lessOrEqual" ~
+            paste0("if_any(everything(), .x <= '", filter_value, "'"),
+          !(column %in% c("all", "any")) & logic == "lessOrEqual" ~
+            paste0(column, " <= '", filter_value, "'"),
+      ## logic for Greater than or equal to
+          column == "any" & logic == "greaterOrEqual" ~
+            paste0("if_any(everything(), .x => '", filter_value, "'"),
+          column == "all" & logic == "greaterOrEqual" ~
+            paste0("if_any(everything(), .x => '", filter_value, "'"),
+          !(column %in% c("all", "any")) & logic == "greaterOrEqual" ~
+            paste0(column, " => '", filter_value, "'"),
         )) %>%
-## remove non fitting values
+      ## remove non fitting values
         filter(logic %in% operations_allowed) %>%
         filter(!is.na(exprs))
 
+      ## remove non fitting values
       filter_list <- filter_tibble$exprs
 
       # compute filter string based on input logic
@@ -508,7 +539,7 @@ generate_function_hash <- function(function_input) {
   # deparse function, compute sha256 hash
   function_hash <- function_input %>%
     deparse1 %>%
-	sha256()
+    sha256()
 
   # return result
   return(function_hash)
