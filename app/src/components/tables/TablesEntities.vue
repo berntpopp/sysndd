@@ -214,6 +214,7 @@
                     :options="field.selectOptions"
                     type="search"
                     @input="removeSearch()"
+                    @change="filtered()"
                   >
                     <template v-slot:first>
                       <b-form-select-option value="null">
@@ -231,7 +232,7 @@
                     :options="field.selectOptions"
                     :normalizer="normalizer"
                     :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
-                    @input="removeSearch()"
+                    @input="removeSearch();filtered();"
                   />
                 </td>
               </template>
@@ -557,7 +558,6 @@ export default {
     handleSortByOrDescChange() {
       this.currentItemID = 0;
       this.sort = (!this.sortDesc ? "-" : "+") + this.sortBy;
-      this.filtered();
     },
     handlePerPageChange() {
       this.currentItemID = 0;
@@ -594,11 +594,9 @@ export default {
         ndd_phenotype_word: {content: null, join_char: null, operator: 'contains'},
         category: {content: null, join_char: ',', operator: 'any'},
       };
-      this.filtered();
     },
     removeSearch() {
       this.filter["any"].content = null;
-      this.filtered();
     },
     async loadEntitiesData() {
       this.isBusy = true;

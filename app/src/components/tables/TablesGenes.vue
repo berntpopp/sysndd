@@ -214,6 +214,7 @@
                     :options="field.selectOptions"
                     type="search"
                     @input="removeSearch()"
+                    @change="filtered()"
                   >
                     <template v-slot:first>
                       <b-form-select-option value="null">
@@ -231,7 +232,7 @@
                     :options="field.selectOptions"
                     :normalizer="normalizer"
                     :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
-                    @input="removeSearch()"
+                    @input="removeSearch();filtered();"
                   />
                 </td>
               </template>
@@ -685,11 +686,9 @@ export default {
         category: {content: null, join_char: ',', operator: 'any'},
         entities_count: {content: null, join_char: ',', operator: 'any'},
       };
-      this.filtered();
     },
     removeSearch() {
       this.filter["any"].content = null;
-      this.filtered();
     },
     async loadGenesData() {
       this.isBusy = true;
