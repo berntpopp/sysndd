@@ -186,9 +186,9 @@ function(req, res) {
   # load secret and convert to raw
   key <- charToRaw(dw$secret)
 
-  if (req$REQUEST_METHOD == "GET" & is.null(req$HTTP_AUTHORIZATION)) {
+  if (req$REQUEST_METHOD == "GET" && is.null(req$HTTP_AUTHORIZATION)) {
     plumber::forward()
-  } else if (req$REQUEST_METHOD == "GET" & !is.null(req$HTTP_AUTHORIZATION)) {
+  } else if (req$REQUEST_METHOD == "GET" && !is.null(req$HTTP_AUTHORIZATION)) {
     # load jwt from header
     jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
     # decode jwt
@@ -197,6 +197,10 @@ function(req, res) {
     # add user_id and user_role as value to request
     req$user_id <- as.integer(user$user_id)
     req$user_role <- user$user_role
+    # and forward request
+    plumber::forward()
+  } else if (req$REQUEST_METHOD == "POST" &&
+      req$PATH_INFO == "/api/gene/hash") {
     # and forward request
     plumber::forward()
   } else {
@@ -317,9 +321,8 @@ function(res,
   links <- disease_table_pagination_info$links %>%
       pivot_longer(everything(), names_to = "type", values_to = "link") %>%
     mutate(link = case_when(
-      link != "null" ~ paste0("http://", dw$host,
-        ":",
-        dw$port_self,
+      link != "null" ~ paste0(
+        dw$base_url,
         "/api/entity?sort=",
         sort,
         ifelse(filter != "", paste0("&filter=", filter), ""),
@@ -502,7 +505,7 @@ function(req, res) {
     }
 
 
-    if (response_entity$status == 200 & response_review_post$status == 200) {
+    if (response_entity$status == 200 && response_review_post$status == 200) {
     ##-------------------------------------------------------------------##
     # block to post new status for posted entity
       ##-------------------------------------------------------------------##
@@ -540,8 +543,8 @@ function(req, res) {
         message = response_entity_review_post$message))
     }
 
-    if (response_entity$status == 200 &
-      response_review_post$status == 200 &
+    if (response_entity$status == 200 &&
+      response_review_post$status == 200 &&
       response_status_post$status == 200) {
       res$status <- response_entity$status
       return(response_entity)
@@ -728,8 +731,8 @@ function(req, res) {
 
         ##-------------------------------------------------------------------##
         # block to compute response
-        if (response_new_entity$status == 200 &
-        response_review_post$status == 200 &
+        if (response_new_entity$status == 200 &&
+        response_review_post$status == 200 &&
         response_status_post$status == 200) {
         res$status <- response_new_entity$status
         return(response_new_entity)
@@ -995,9 +998,9 @@ function(sysndd_id) {
 #* gets review list
 #* @serializer json list(na="null")
 #' @get /api/review
-function(req, res, `filter[review_approved]` = 0) {
+function(req, res, filter_review_approved = 0) {
 
-  filter_review_approved <- as.integer(`filter[review_approved]`)
+  filter_review_approved <- as.integer(filter_review_approved)
 
   # get data from database and filter
   user_table <- pool %>%
@@ -1042,8 +1045,8 @@ function(req, res, re_review = FALSE) {
     review_user_id <- req$user_id
     review_data <- req$argsBody$review_json
 
-    if (!is.null(review_data$synopsis) &
-      !is.null(review_data$entity_id) &
+    if (!is.null(review_data$synopsis) &&
+      !is.null(review_data$entity_id) &&
       nchar(review_data$synopsis) > 0) {
 
       ##-------------------------------------------------------------------##
@@ -1770,8 +1773,8 @@ function(req, res, curate=FALSE) {
     return(list(error = "Please authenticate."))
 
   } else if (
-    (req$user_role %in% c("Administrator", "Curator", "Reviewer") & !curate) |
-    (req$user_role %in% c("Administrator", "Curator") & curate)) {
+    (req$user_role %in% c("Administrator", "Curator", "Reviewer") && !curate) ||
+    (req$user_role %in% c("Administrator", "Curator") && curate)) {
 
     user <- req$user_id
 
@@ -1902,12 +1905,12 @@ function(req, res, user_id) {
     res$status <- 401 # Unauthorized
     return(list(error = "Please authenticate."))
 
-  } else if (req$user_role %in% c("Administrator", "Curator") & !user_id_assign_exists) {
+  } else if (req$user_role %in% c("Administrator", "Curator") && !user_id_assign_exists) {
 
     res$status <- 409 # Conflict
     return(list(error = "User account does not exist."))
 
-  } else if (req$user_role %in% c("Administrator", "Curator") & user_id_assign_exists) {
+  } else if (req$user_role %in% c("Administrator", "Curator") && user_id_assign_exists) {
 
     # connect to database, append assignment table then disconnect
     sysndd_db <- dbConnect(RMariaDB::MariaDB(),
@@ -1953,14 +1956,14 @@ function(req, res, re_review_batch) {
     return(list(error = "Please authenticate."))
 
   } else if (
-    req$user_role %in% c("Administrator", "Curator") &
+    req$user_role %in% c("Administrator", "Curator") &&
     !re_review_batch_unassign_exists) {
 
     res$status <- 409 # Conflict
     return(list(error = "Batch does not exist."))
 
   } else if (
-    req$user_role %in% c("Administrator", "Curator") &
+    req$user_role %in% c("Administrator", "Curator") &&
     re_review_batch_unassign_exists) {
 
     # connect to database, delete assignment then disconnect
@@ -2184,9 +2187,8 @@ function(res,
   links <- sysndd_db_genes_nested_pagination_info$links %>%
       pivot_longer(everything(), names_to = "type", values_to = "link") %>%
     mutate(link = case_when(
-      link != "null" ~ paste0("http://",
-        dw$host, ":",
-        dw$port_self,
+      link != "null" ~ paste0(
+        dw$base_url,
         "/api/gene?sort=",
         sort,
         ifelse(filter != "", paste0("&filter=", filter), ""),
@@ -2959,7 +2961,7 @@ function(res, aggregate = "entity_id", group = "category") {
 
   start_time <- Sys.time()
 
-  if (!(aggregate %in% c("entity_id", "symbol")) |
+  if (!(aggregate %in% c("entity_id", "symbol")) ||
       !(group %in% c("category", "inheritance_filter"))) {
     res$status <- 400
     res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
@@ -3322,7 +3324,7 @@ function(searchterm, helper = TRUE) {
   }
 
   # check if perfect match exists
-  if (sysndd_db_entity_search$searchdist[1] == 0 &
+  if (sysndd_db_entity_search$searchdist[1] == 0 &&
     is.na(suppressWarnings(as.integer(sysndd_db_entity_search$results[1])))) {
     sysndd_db_entity_search_return <- sysndd_db_entity_search %>%
       slice_head(n = 1)
@@ -3777,21 +3779,21 @@ function(req, res, user_id = 0, status_approval = FALSE) {
     res$status <- 401 # Unauthorized
     return(list(error = "Please authenticate."))
 
-  } else if (req$user_role %in% c("Administrator", "Curator") &
+  } else if (req$user_role %in% c("Administrator", "Curator") &&
       !user_id_approval_exists) {
 
     res$status <- 409 # Conflict
     return(list(error = "User account does not exist."))
 
-  } else if (req$user_role %in% c("Administrator", "Curator") &
-      user_id_approval_exists &
+  } else if (req$user_role %in% c("Administrator", "Curator") &&
+      user_id_approval_exists &&
       user_id_approval_approved) {
 
     res$status <- 409 # Conflict
     return(list(error = "User account already active."))
 
-  } else if (req$user_role %in% c("Administrator", "Curator") &
-      user_id_approval_exists &
+  } else if (req$user_role %in% c("Administrator", "Curator") &&
+      user_id_approval_exists &&
       !user_id_approval_approved) {
 
     if (status_approval) {
@@ -3894,7 +3896,7 @@ function(req, res, user_id, role_assigned = "Viewer") {
 
     dbDisconnect(sysndd_db)
 
-  } else if (req$user_role %in% c("Curator") &
+  } else if (req$user_role %in% c("Curator") &&
       role_assigned %in% c("Curator", "Reviewer", "Viewer")) {
     # connect to database and perform update query then disconnect
     sysndd_db <- dbConnect(RMariaDB::MariaDB(),
@@ -3914,7 +3916,7 @@ function(req, res, user_id, role_assigned = "Viewer") {
 
     dbDisconnect(sysndd_db)
 
-  } else if (req$user_role %in% c("Curator") &
+  } else if (req$user_role %in% c("Curator") &&
       role_assigned %in% c("Administrator")) {
     res$status <- 403 # Forbidden
     return(list(error = "Insufficiant rights."))

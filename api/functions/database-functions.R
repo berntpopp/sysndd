@@ -1,5 +1,7 @@
 ## database interaction functions
 
+
+## This function posts entities
 post_db_entity <- function(entity_data) {
     ##-------------------------------------------------------------------##
     # block to convert the entity components into tibble
@@ -123,6 +125,8 @@ put_db_entity_deactivation <- function(entity_id,
   }
 }
 
+
+## This function posts or puts reviews
 put_post_db_review <- function(request_method,
   review_data, re_review = FALSE) {
   ##-------------------------------------------------------------------##
@@ -260,6 +264,7 @@ put_post_db_review <- function(request_method,
 }
 
 
+## This function posts or puts the variant publication connections
 put_post_db_pub_con <- function(request_method,
   publication_data,
   entity_id,
@@ -366,6 +371,7 @@ put_post_db_pub_con <- function(request_method,
 }
 
 
+## This function posts or puts the variant phenotype connections
 put_post_db_phen_con <- function(request_method,
   phenotypes_data,
   entity_id,
@@ -435,7 +441,8 @@ put_post_db_phen_con <- function(request_method,
         port = dw$port
         )
 
-      # used to delete the old phenotype connections for review_id here (until 2022-06-10)
+      # used to delete the old phenotype
+      # connections for review_id here (until 2022-06-10)
       # changed to inactivation
       dbExecute(sysndd_db,
         paste0("UPDATE ndd_review_phenotype_connect SET ",
@@ -444,7 +451,6 @@ put_post_db_phen_con <- function(request_method,
           review_id,
           ";")
         )
-
 
       # submit phenotypes from new review to database
       dbAppendTable(sysndd_db,
@@ -476,6 +482,7 @@ put_post_db_phen_con <- function(request_method,
 }
 
 
+## This function posts or puts the variant ontology connections
 put_post_db_var_ont_con <- function(request_method,
   variation_ontology_data,
   entity_id,
@@ -585,6 +592,7 @@ put_post_db_var_ont_con <- function(request_method,
 }
 
 
+## This function posts or puts a status to the database
 put_post_db_status <- function(request_method,
   status_data, re_review = FALSE) {
     ##-------------------------------------------------------------------##

@@ -78,9 +78,8 @@ generate_comparisons_list <- function(sort = "symbol",
   links <- ndd_database_comp_table_info$links %>%
       pivot_longer(everything(), names_to = "type", values_to = "link") %>%
     mutate(link = case_when(
-      link != "null" ~ paste0("http://",
-        dw$host, ":",
-        dw$port_self,
+      link != "null" ~ paste0(
+        dw$base_url,
         "/api/comparisons/table?sort=",
         sort, ifelse(filter != "",
         paste0("&filter=", filter),
@@ -187,9 +186,8 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
   links <- entity_phenotype_table_pag_info$links %>%
       pivot_longer(everything(), names_to = "type", values_to = "link") %>%
     mutate(link = case_when(
-      link != "null" ~ paste0("http://",
-        dw$host, ":",
-        dw$port_self,
+      link != "null" ~ paste0(
+        dw$base_url,
         "/api/phenotype/entities/browse?sort=",
         sort,
         ifelse(filter != "", paste0("&filter=", filter), ""),
@@ -354,9 +352,8 @@ generate_panels_list <- function(sort = "symbol",
   links <- disease_genes_panel_pag_inf$links %>%
       pivot_longer(everything(), names_to = "type", values_to = "link") %>%
     mutate(link = case_when(
-      link != "null" ~ paste0("http://",
-        dw$host, ":",
-        dw$port_self,
+      link != "null" ~ paste0(
+        dw$base_url,
         "/api/panels/browse?sort=",
         sort,
         ifelse(filter != "",
