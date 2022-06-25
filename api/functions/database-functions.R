@@ -738,9 +738,10 @@ post_db_hash <- function(json_data,
     # then sort it
     # check if the column name is in the alloed identifier list
     # then convert back to josn and hash it
+    # '!!!' in arrange needed to evaluate the external variable as column name
     json_tibble <- as_tibble(json_data)
     json_tibble <- json_tibble %>%
-        arrange((json_tibble %>% colnames())[1])
+        arrange(!!!rlang::parse_exprs((json_tibble %>% colnames())[1]))
 
     colnames_allowed <- all((json_tibble %>% colnames()) %in%
         allowed_col_list)
