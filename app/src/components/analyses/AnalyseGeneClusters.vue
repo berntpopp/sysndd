@@ -75,6 +75,8 @@ export default {
         })
         .flat();
 
+console.log(data)
+
       // Color palette for clusters
       const color = d3
         .scaleOrdinal()
@@ -82,7 +84,10 @@ export default {
         .range(d3.schemeSet1);
 
       // Size scale for clusters
-      const size = d3.scaleLinear().domain([0, 1000]).range([7, 55]); // circle will be between 7 and 55 px wide
+      const size = d3
+        .scaleLinear()
+        .domain([0, 1000])
+        .range([7, 55]); // circle will be between 7 and 55 px wide
 
       // get unique parent cluster ids as array
       const unique = (value, index, self) => {
@@ -149,7 +154,10 @@ export default {
         .append("g")
         .selectAll("circle")
         .data(data)
-        .join("circle")
+        .enter()
+        .append("a")
+        .attr("xlink:href", function(d) { return "/Genes/?filter=" + d.hash_filter; }) // <- add links to the filtered gene table to the circles
+        .append("circle")
         .attr("class", "node")
         .attr("r", (d) => size(d.cluster_size))
         .attr("cx", width / 2)
