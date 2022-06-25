@@ -6,7 +6,7 @@
 nest_gene_tibble <- function(tibble) {
 
   # remember the initial sorting
-  initial_sort <- tibble %>% 
+  initial_sort <- tibble %>%
     select(symbol, hgnc_id, entities_count) %>%
     unique()
 
@@ -112,7 +112,7 @@ generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
 
     # and check if entity_id is in the resulting list,
     # if not append to the list for unique sorting
-    if (!(unique_id %in% sort_list |
+    if (!(unique_id %in% sort_list ||
         paste0("desc(", unique_id, ")") %in% sort_list)) {
       sort_list <- append(sort_list, unique_id)
     }
@@ -521,7 +521,7 @@ generate_tibble_fspec <- function(field_tibble, fspecInput) {
       mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
       filter(key %in% fspecInput) %>%
       arrange(factor(key, levels = fspecInput)) %>%
-      {if("details" %in% fspecInput) add_row(., key = "details",
+      {if ("details" %in% fspecInput) add_row(., key = "details",
         selectOptions = NULL,
         filterable = FALSE,
         selectable = FALSE,

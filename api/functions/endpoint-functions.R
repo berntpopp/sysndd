@@ -1,4 +1,4 @@
-## endpoint functions
+#### This file holds endpoint functions
 
 
 # generate comparisons list
@@ -394,14 +394,14 @@ generate_stat_tibble <- function(sort = "category_id,-n",
     arrange(entity_id) %>%
     filter(ndd_phenotype == 1) %>%
     collect() %>%
-    {if(type == "gene")
+    {if (type == "gene")
       select(., symbol,
         inheritance = hpo_mode_of_inheritance_term_name,
         category,
         category_id)
      else .
      } %>%
-    {if(type == "entity")
+    {if (type == "entity")
       select(., entity_id,
         inheritance = hpo_mode_of_inheritance_term_name,
         category,
@@ -419,11 +419,11 @@ generate_stat_tibble <- function(sort = "category_id,-n",
 
     sysndd_db_disease_types <- sysndd_db_disease_types %>%
       # following section computes the max category for a gene
-        {if(type == "gene")
+        {if (type == "gene")
         group_by(., symbol)
         else .
         } %>%
-        {if(type == "entity")
+        {if (type == "entity")
         group_by(., entity_id)
         else .
         } %>%

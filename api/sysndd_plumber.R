@@ -1055,8 +1055,10 @@ function(req, res, re_review = FALSE) {
       # convert publications to tibble
       if (length(compact(review_data$literature)) > 0) {
         publications_received <- bind_rows(
-            tibble::as_tibble(compact(review_data$literature$additional_references)),
-            tibble::as_tibble(compact(review_data$literature$gene_review)),
+            tibble::as_tibble(
+              compact(review_data$literature$additional_references)),
+            tibble::as_tibble(
+              compact(review_data$literature$gene_review)),
             .id = "publication_type") %>%
           select(publication_id = value, publication_type) %>%
           mutate(publication_type = case_when(
@@ -1765,7 +1767,7 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
 #* gets the re-review overview table for the user logged in
 #* @serializer json list(na="string")
 #' @get /api/re_review_table
-function(req, res, curate=FALSE) {
+function(req, res, curate = FALSE) {
   curate <- as.logical(curate)
 
   # first check rights

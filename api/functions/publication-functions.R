@@ -110,14 +110,14 @@ doi3 <- pmid_xml %>%
   xml_find_all("//ArticleId[@IdType='doi']") %>%
   xml_text()
 
-if (length(doi) == 0 & length(doi2) != 0) {
+if (length(doi) == 0 && length(doi2) != 0) {
     doi <- doi2
-} else if (length(doi) == 0 &
-  length(doi2) == 0 &
+} else if (length(doi) == 0 &&
+  length(doi2) == 0 &&
   length(doi3) != 0) {
     doi <- doi3
-} else if (length(doi) == 0 &
-  length(doi2) == 0 &
+} else if (length(doi) == 0 &&
+  length(doi2) == 0 &&
   length(doi3) == 0) {
     doi <- ""
 }
@@ -171,15 +171,15 @@ collective <- pmid_xml %>%
   xml_find_all("//AuthorList/Author[1]/CollectiveName") %>%
   xml_text()
 
-if ((length(firstname) == 0 |
-  length(firstname) == 0) &
+if ((length(firstname) == 0 ||
+  length(firstname) == 0) &&
   length(collective) != 0) {
     lastname <- collective
     firstname <- collective
 }
 
-if (length(year) == 0 |
-  length(month) == 0 |
+if (length(year) == 0 ||
+  length(month) == 0 ||
   length(day) == 0)  {
     year <- format(Sys.time(), "%Y")
     month <- format(Sys.time(), "%m")
@@ -209,6 +209,7 @@ return_tibble <- as_tibble(
   )
 
 return(return_tibble)
+
 }
 
 

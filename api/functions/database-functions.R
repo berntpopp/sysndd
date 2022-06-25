@@ -8,10 +8,10 @@ post_db_entity <- function(entity_data) {
     entity_received <- as_tibble(entity_data)
     ##-------------------------------------------------------------------##
 
-  if ("hgnc_id" %in% colnames(entity_received) &
-      "hpo_mode_of_inheritance_term" %in% colnames(entity_received) &
-      "disease_ontology_id_version" %in% colnames(entity_received) &
-      "ndd_phenotype" %in% colnames(entity_received) &
+  if ("hgnc_id" %in% colnames(entity_received) &&
+      "hpo_mode_of_inheritance_term" %in% colnames(entity_received) &&
+      "disease_ontology_id_version" %in% colnames(entity_received) &&
+      "ndd_phenotype" %in% colnames(entity_received) &&
       "entry_user_id" %in% colnames(entity_received)
     ) {
 
@@ -139,13 +139,13 @@ put_post_db_review <- function(request_method,
   re_review <- as.logical(re_review)
   ##-------------------------------------------------------------------##
 
-  if (("synopsis" %in% colnames(review_received)) &
-      ("entity_id" %in% colnames(review_received)) &
+  if (("synopsis" %in% colnames(review_received)) &&
+      ("entity_id" %in% colnames(review_received)) &&
       nchar(review_received$synopsis) > 0) {
 
     ##-------------------------------------------------------------------##
     # check request type and perform database update accordingly
-    if (request_method == "POST" &
+    if (request_method == "POST" &&
         !("review_id" %in% colnames(review_received))) {
       ##-------------------------------------------------------------------##
       ## for the post request we connect
@@ -191,7 +191,7 @@ put_post_db_review <- function(request_method,
         entry = submitted_review_id)
         )
       ##-------------------------------------------------------------------##
-    } else if (request_method == "PUT" &
+    } else if (request_method == "PUT" &&
                ("review_id" %in% colnames(review_received))) {
       ##-------------------------------------------------------------------##
       ## for the put request we update the review and set it's status to 0
@@ -325,7 +325,7 @@ put_post_db_pub_con <- function(request_method,
       return(list(status = 200,
         message = "OK. Entry created.")
         )
-    } else if (request_method == "PUT" & entity_id_match) {
+    } else if (request_method == "PUT" && entity_id_match) {
       # connect to database
       sysndd_db <- dbConnect(RMariaDB::MariaDB(),
         dbname = dw$dbname,
@@ -430,7 +430,7 @@ put_post_db_phen_con <- function(request_method,
 
       # return OK
       return(list(status = 200, message = "OK. Entry created."))
-    } else if (request_method == "PUT" & entity_id_match) {
+    } else if (request_method == "PUT" && entity_id_match) {
       # connect to database
       sysndd_db <- dbConnect(RMariaDB::MariaDB(),
         dbname = dw$dbname,
@@ -542,7 +542,7 @@ put_post_db_var_ont_con <- function(request_method,
 
       # return OK
       return(list(status = 200, message = "OK. Entry created."))
-    } else if (request_method == "PUT" & entity_id_match) {
+    } else if (request_method == "PUT" && entity_id_match) {
       # connect to database
       sysndd_db <- dbConnect(RMariaDB::MariaDB(),
         dbname = dw$dbname,
@@ -606,11 +606,11 @@ put_post_db_status <- function(request_method,
     re_review <- as.logical(re_review)
     ##-------------------------------------------------------------------##
 
-    if ("category_id" %in% colnames(status_received) |
+    if ("category_id" %in% colnames(status_received) ||
         "problematic" %in% colnames(status_received)) {
 
       # check request type and perform database update accoringly
-      if (request_method == "POST" &
+      if (request_method == "POST" &&
           "entity_id" %in% colnames(status_received)) {
         # remove status_id if provided as input
         status_received <- tryCatch({
@@ -665,7 +665,7 @@ put_post_db_status <- function(request_method,
           )
         )
 
-      } else if (request_method == "PUT" &
+      } else if (request_method == "PUT" &&
                 "status_id" %in% colnames(status_received)) {
         # remove entity_id if provided from status_received and
         # remove status_id to prepare update query
@@ -725,7 +725,7 @@ put_post_db_status <- function(request_method,
 
 
 # this function calculates and posts a hash for a series of column values
-post_db_hash <- function(json_data, 
+post_db_hash <- function(json_data,
     allowed_columns = "symbol,hgnc_id,entity_id",
     endpoint = "/api/gene") {
 

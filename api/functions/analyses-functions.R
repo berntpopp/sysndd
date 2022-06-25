@@ -1,6 +1,14 @@
-# analyses functions
+#### This file holds analyses functions
 
-## generate the clusters object
+#' A recursive function generating a gene clusters object
+#'
+#' @param hgnc_list A comma separated list as concatenated text
+#' @param min_size A number defining the minimal cluster size to return
+#' @param subcluster Boolean value indicateting whether to perform subclustering
+#' @param parent the parent cluster name used in the generation of subclusters
+#'
+#' @return The clusters tibble
+#' @export
 generate_cluster_object <- function(hgnc_list,
   min_size = 10,
   subcluster = TRUE,
@@ -19,18 +27,18 @@ generate_cluster_object <- function(hgnc_list,
 
   if (file.exists(filename_results)) {
 
-    clusters_tibble <- fromJSON(filename_results) %>%
-      tibble()
+    clusters_tibble <- jsonlite::fromJSON(filename_results) %>%
+      tibble::tibble()
 
   } else {
 
     # load/ download STRING database files
-    string_db <- STRINGdb$new(version = "11.5",
+    string_db <- STRINGdb::STRINGdb$new(version = "11.5",
       species = 9606,
       score_threshold = 200,
       input_directory = "data")
 
-    sysndd_db_string_id_table <- pool %>% 
+    sysndd_db_string_id_table <- pool %>%
       tbl("non_alt_loci_set") %>%
       filter(!is.na(STRING_id)) %>%
       select(symbol, hgnc_id, STRING_id) %>%
@@ -54,8 +62,17 @@ generate_cluster_object <- function(hgnc_list,
       mutate(cluster_size = nrow(identifiers)) %>%
       filter(cluster_size >= min_size) %>%
       select(cluster, cluster_size, identifiers) %>%
-      {if(!is.na(parent)) mutate(., parent_cluster = parent) else .} %>%
-      {if(subcluster) mutate(., subclusters = list(generate_cluster_object(identifiers$hgnc_id, subcluster = FALSE, parent = cluster))) else .} %>%
+      {if (!is.na(parent))
+        mutate(., parent_cluster = parent)
+      else .
+      } %>%
+      {if (subcluster)
+        mutate(., subclusters = list(generate_cluster_object(
+          identifiers$hgnc_id,
+          subcluster = FALSE,
+          parent = cluster)))
+      else .
+      } %>%
       ungroup()
 
     # save computation result
