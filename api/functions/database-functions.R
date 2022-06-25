@@ -722,3 +722,103 @@ put_post_db_status <- function(request_method,
         error = "Submitted data can not be null."))
     }
 }
+
+
+# this function calculates and posts a hash for a series of column values
+post_db_hash <- function(json_data, 
+    allowed_columns = "symbol,hgnc_id,entity_id",
+    endpoint = "/api/gene") {
+
+    # generate list of allowed term from input
+    allowed_col_list <- (allowed_columns %>%
+        str_split(pattern = ","))[[1]]
+
+    ##-------------------------------------------------------------------##
+    # block to convert the json list into tibble
+    # then sort it
+    # check if the column name is in the alloed identifier list
+    # then convert back to josn and hash it
+    json_tibble <- as_tibble(json_data)
+    json_tibble <- json_tibble %>%
+        arrange((json_tibble %>% colnames())[1])
+
+    colnames_allowed <- all((json_tibble %>% colnames()) %in%
+        allowed_col_list)
+
+    json_sort <- toJSON(json_tibble)
+    ##-------------------------------------------------------------------##
+
+
+    ##-------------------------------------------------------------------##
+    # block to generate hash and check if present in data
+    json_sort_hash <- as.character(generate_json_hash(json_sort))
+
+    # get data from database and filter
+    table_hash <- pool %>%
+      tbl("table_hash") %>%
+      filter(hash_256 == json_sort_hash) %>%
+      collect()
+    ##-------------------------------------------------------------------##
+
+
+    if (colnames_allowed) {
+
+      if (nrow(table_hash) == 0) {
+
+        hash_tibble <- tibble::tibble(hash_256 = json_sort_hash,
+          json_text = as.character(json_sort),
+          target_endpoint = endpoint)
+
+        # connect to database
+        sysndd_db <- dbConnect(RMariaDB::MariaDB(),
+          dbname = dw$dbname,
+          user = dw$user,
+          password = dw$password,
+          server = dw$server,
+          host = dw$host,
+          port = dw$port
+          )
+
+        # submit json string and hast to database
+        db_response <- dbAppendTable(sysndd_db,
+          "table_hash",
+          hash_tibble
+          )
+
+        # disconnect from database
+        dbDisconnect(sysndd_db)
+
+        # generate links object
+        links <- as_tibble(list("hash" =
+          paste0("?filter=equals(hash,", json_sort_hash, ")")))
+
+        # generate object to return
+        return(list(links = links,
+          status = 200,
+          message = "OK. Hash created.",
+          data = json_sort_hash))
+
+      } else {
+
+        # generate links object
+        links <- as_tibble(list("hash" =
+          paste0("?filter=equals(hash,", json_sort_hash, ")")))
+
+        # generate object to return
+        return(list(links = links,
+          status = 200,
+          message = "OK. Hash already present.",
+          data = json_sort_hash))
+
+      }
+
+    } else {
+    # return Bad Request
+    return(list(status = 400,
+      message = paste0("The submitted column names are",
+      "not in the allowed allowed_columns list."
+                )
+            )
+        )
+    }
+}

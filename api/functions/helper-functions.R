@@ -110,12 +110,12 @@ generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
 
     sort_list <- sort_tibble$exprs
 
-    # and check if entity_idis in the resulting list,
+    # and check if entity_id is in the resulting list,
     # if not append to the list for unique sorting
-  if (!(unique_id %in% sort_list |
-      paste0("desc(", unique_id, ")") %in% sort_list)) {
-    sort_list <- append(sort_list, unique_id)
-  }
+    if (!(unique_id %in% sort_list |
+        paste0("desc(", unique_id, ")") %in% sort_list)) {
+      sort_list <- append(sort_list, unique_id)
+    }
 
     return(sort_list)
 }
@@ -125,9 +125,9 @@ generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
 # semantics according to https://www.jsonapi.net/usage/reading/filtering.html
 # currently only implemented "Equality" and "Contains text"
 # TODO: need to implement error handling
-# TODO: nneed to implement whether the respective columns exist
-# TODO: nneed to implement allowed Operations as input argument
-# TODO: nneed to implement column type handling
+# TODO: need to implement whether the respective columns exist
+# TODO: need to implement allowed Operations as input argument
+# TODO: need to implement column type handling
 generate_filter_expressions <- function(filter_string,
     operations_allowed = "equals,contains,any,all,lessThan,greaterThan,lessOrEqual,greaterOrEqual") {
 
@@ -167,14 +167,45 @@ generate_filter_expressions <- function(filter_string,
   if (all(operations_allowed %in% operations_supported)) {
     if (filter_string != "") {
 
-      # compute filter expressions
-      filter_tibble <- as_tibble(str_split(str_squish(filter_string),
+      # generate tibble from expressions
+      filter_string_tibble <- as_tibble(str_split(str_squish(filter_string),
           "\\),")[[1]]) %>%
         separate(value, c("logic", "column_value"), sep = "\\(") %>%
         separate(column_value, c("column", "filter_value"),
           sep = "\\,",
           extra = "merge") %>%
-        mutate(filter_value = str_remove_all(filter_value, "'|\\)")) %>%
+        mutate(filter_value = str_remove_all(filter_value, "'|\\)"))
+
+      # check if hash is in filter expression
+      filter_string_hash <- filter_string_tibble %>%
+        filter(str_detect(column, "hash"))
+
+      filter_string_has_hash <- (nrow(filter_string_hash) >= 1)
+
+      # check if hash is present in database
+      table_hash_filter <- pool %>%
+        tbl("table_hash") %>%
+        collect() %>%
+        filter(hash_256 == filter_string_hash$filter_value[1])
+
+      hash_found <- (nrow(table_hash_filter) == 1)
+
+      # compute filter expressions if hash keyword IS found
+      if (filter_string_has_hash && hash_found) {
+        table_hash_filter_value <- fromJSON(table_hash_filter$json_text)
+
+        filter_list <- paste0(
+          colnames(table_hash_filter_value),
+          " %in% c('",
+          str_c(as.list(table_hash_filter_value)[[1]], collapse = "','"),
+          "')")
+
+      } else if (filter_string_has_hash && !hash_found) {
+        stop("Hash not found.")
+      }  else {
+      # compute filter expressions if hash keyword NOT found
+      filter_tibble <- filter_string_tibble %>%
+        filter(!str_detect(column, "hash"))  %>%
         mutate(exprs = case_when(
       ## logic for contains based on regex
           column == "any" & logic == "contains" ~
@@ -261,8 +292,9 @@ generate_filter_expressions <- function(filter_string,
         filter(logic %in% operations_allowed) %>%
         filter(!is.na(exprs))
 
-      ## remove non fitting values
+      ## generate a list of filters
       filter_list <- filter_tibble$exprs
+      }
 
       # compute filter string based on input logic
       if (logical_operator == "and") {

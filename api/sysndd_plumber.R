@@ -2145,9 +2145,14 @@ function(res,
 
   # use the helper generate_tibble_fspec to
   # generate fields specs from a tibble
-  sysndd_db_genes_table_fspec <- generate_tibble_fspec_mem(sysndd_db_genes_table, fspec)
-  sysndd_db_genes_table_filtered_fspec <- generate_tibble_fspec_mem(sysndd_db_genes_table_filtered,
+  sysndd_db_genes_table_fspec <- generate_tibble_fspec_mem(
+    sysndd_db_genes_table,
     fspec)
+
+  sysndd_db_genes_table_filtered_fspec <- generate_tibble_fspec_mem(
+    sysndd_db_genes_table_filtered,
+    fspec)
+
   sysndd_db_genes_table_fspec$fspec$count_filtered <- sysndd_db_genes_table_filtered_fspec$fspec$count
 
   # nest
@@ -2202,6 +2207,36 @@ function(res,
   list(links = links,
     meta = meta,
     data = sysndd_db_genes_nested_pagination_info$data)
+}
+
+
+#* @tag gene
+#* takes a list of gene identifiers, sorts, hashes and safes this, then returns the hash link
+#* @serializer json list(na="string")
+#' @post /api/gene/hash
+function(req, res) {
+
+  # get data from POST body
+  json_data <- req$argsBody$json_data
+
+  if (is.null(json_data)) {
+    res$status <- 400
+    res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
+    status = 400,
+    message = paste0("Required 'json_data' ",
+      "parameter not provided.")
+    ))
+    return(res)
+  } else {
+    # block to generate and post the hash
+    response_hash <- post_db_hash(json_data,
+      "symbol,hgnc_id",
+      "/api/gene")
+
+    # return response
+    return(response_hash)
+  }
+
 }
 
 
