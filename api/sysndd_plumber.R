@@ -148,6 +148,7 @@ generate_cluster_object_mem <- memoise(generate_cluster_object,
 #* @apiTag panels Gene panel related endpoints
 #* @apiTag comparisons NDD gene list comparisons related endpoints
 #* @apiTag analysis Analyses related endpoints
+#* @apiTag hash Database list hashing endpoints for reproducable long requests
 #* @apiTag search Database search related endpoints
 #* @apiTag list Database list related endpoints
 #* @apiTag statistics Database statistics
@@ -200,7 +201,8 @@ function(req, res) {
     # and forward request
     plumber::forward()
   } else if (req$REQUEST_METHOD == "POST" &&
-      req$PATH_INFO == "/api/gene/hash") {
+      (req$PATH_INFO == "/api/gene/hash" ||
+      req$PATH_INFO == "/api/entity/hash")) {
     # and forward request
     plumber::forward()
   } else {
@@ -2211,36 +2213,6 @@ function(res,
 
 
 #* @tag gene
-#* takes a list of gene identifiers, sorts, hashes and safes this, then returns the hash link
-#* @serializer json list(na="string")
-#' @post /api/gene/hash
-function(req, res) {
-
-  # get data from POST body
-  json_data <- req$argsBody$json_data
-
-  if (is.null(json_data)) {
-    res$status <- 400
-    res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
-    status = 400,
-    message = paste0("Required 'json_data' ",
-      "parameter not provided.")
-    ))
-    return(res)
-  } else {
-    # block to generate and post the hash
-    response_hash <- post_db_hash(json_data,
-      "symbol,hgnc_id",
-      "/api/gene")
-
-    # return response
-    return(response_hash)
-  }
-
-}
-
-
-#* @tag gene
 #* gets infos for a single gene by hgnc_id
 #* @serializer json list(na="null")
 #' @get /api/gene/<gene_input>
@@ -3305,6 +3277,40 @@ function() {
 
   # return output
   clusters
+}
+##-------------------------------------------------------------------##
+
+
+
+##-------------------------------------------------------------------##
+## Hash endpoints
+#* @tag hash
+#* takes a list of identifiers, sorts, hashes and safes this, then returns the hash link
+#* @serializer json list(na="string")
+#' @post /api/hash
+function(req, res, endpoint = "/api/gene") {
+
+  # get data from POST body
+  json_data <- req$argsBody$json_data
+
+  if (is.null(json_data)) {
+    res$status <- 400
+    res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
+    status = 400,
+    message = paste0("Required 'json_data' ",
+      "parameter not provided.")
+    ))
+    return(res)
+  } else {
+    # block to generate and post the hash
+    response_hash <- post_db_hash(json_data,
+     "symbol,hgnc_id,entity_id",
+      endpoint)
+
+    # return response
+    return(response_hash)
+  }
+
 }
 ##-------------------------------------------------------------------##
 
