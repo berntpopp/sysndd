@@ -1,4 +1,4 @@
-## pubmed and genereviews functions
+#### This file holds pubmed and genereviews functions
 
 # this function checks whether all PMIDs in a list are valid
 # and can be found in pubmed, returns true if all are and

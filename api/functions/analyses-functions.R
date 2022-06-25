@@ -57,11 +57,15 @@ generate_cluster_object <- function(hgnc_list,
       unnest_longer(col = "STRING_id") %>%
       left_join(sysndd_db_string_id_table, by = c("STRING_id")) %>%
       nest_by(cluster, .key = "identifiers") %>%
+      mutate(hash_filter = list(
+        post_db_hash(identifiers %>% select(symbol)))
+      ) %>%
+      mutate(hash_filter = hash_filter$links$hash) %>%
       ungroup() %>%
       rowwise() %>%
       mutate(cluster_size = nrow(identifiers)) %>%
       filter(cluster_size >= min_size) %>%
-      select(cluster, cluster_size, identifiers) %>%
+      select(cluster, cluster_size, identifiers, hash_filter) %>%
       {if (!is.na(parent))
         mutate(., parent_cluster = parent)
       else .

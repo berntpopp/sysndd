@@ -417,14 +417,14 @@ generate_stat_tibble <- function(sort = "category_id,-n",
       collect() %>%
       select(category_id, category)
 
+    # following section computes the max category for a gene
     sysndd_db_disease_types <- sysndd_db_disease_types %>%
-      # following section computes the max category for a gene
         {if (type == "gene")
-        group_by(., symbol)
+          group_by(., symbol)
         else .
         } %>%
         {if (type == "entity")
-        group_by(., entity_id)
+          group_by(., entity_id)
         else .
         } %>%
       mutate(category_id = min(category_id)) %>%

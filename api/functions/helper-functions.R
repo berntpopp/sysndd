@@ -1,4 +1,4 @@
-## helper functions
+#### This file holds helper functions
 
 # nest the gene tibble
 # based on https://xiaolianglin.com/
@@ -132,7 +132,8 @@ generate_filter_expressions <- function(filter_string,
     operations_allowed = "equals,contains,any,all,lessThan,greaterThan,lessOrEqual,greaterOrEqual") {
 
   # define supported operations
-  operations_supported <- "equals,contains,any,all,lessThan,greaterThan,lessOrEqual,greaterOrEqual,and,or,not" %>%
+  operations_supported <- paste0("equals,contains,any,all,",
+      "lessThan,greaterThan,lessOrEqual,greaterOrEqual,and,or,not") %>%
     str_split(pattern = ",", simplify = TRUE) %>%
     str_replace_all(" ", "") %>%
     unique()
@@ -521,15 +522,18 @@ generate_tibble_fspec <- function(field_tibble, fspecInput) {
       mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
       filter(key %in% fspecInput) %>%
       arrange(factor(key, levels = fspecInput)) %>%
-      {if ("details" %in% fspecInput) add_row(., key = "details",
-        selectOptions = NULL,
-        filterable = FALSE,
-        selectable = FALSE,
-        multi_selectable = FALSE,
-        sortable = FALSE,
-        sortDirection = "asc",
-        class = "text-center",
-        label = "Details") else .}
+      {if ("details" %in% fspecInput)
+        add_row(., key = "details",
+          selectOptions = NULL,
+          filterable = FALSE,
+          selectable = FALSE,
+          multi_selectable = FALSE,
+          sortable = FALSE,
+          sortDirection = "asc",
+          class = "text-center",
+          label = "Details")
+      else .
+      }
 
   # generate return list
   return_data <- list(fspec = fields_values)

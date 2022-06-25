@@ -1,4 +1,4 @@
-## database interaction functions
+#### This file holds database interaction functions
 
 
 ## This function posts entities
@@ -791,7 +791,7 @@ post_db_hash <- function(json_data,
 
         # generate links object
         links <- as_tibble(list("hash" =
-          paste0("?filter=equals(hash,", json_sort_hash, ")")))
+          paste0("equals(hash,", json_sort_hash, ")")))
 
         # generate object to return
         return(list(links = links,
@@ -803,7 +803,7 @@ post_db_hash <- function(json_data,
 
         # generate links object
         links <- as_tibble(list("hash" =
-          paste0("?filter=equals(hash,", json_sort_hash, ")")))
+          paste0("equals(hash,", json_sort_hash, ")")))
 
         # generate object to return
         return(list(links = links,

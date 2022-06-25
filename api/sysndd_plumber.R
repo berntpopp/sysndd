@@ -1786,10 +1786,17 @@ function(req, res, curate = FALSE) {
     re_review_entity_connect <- pool %>%
       tbl("re_review_entity_connect") %>%
       filter(re_review_approved == 0) %>%
-      {if(curate) filter(., re_review_submitted == 1) else filter(., re_review_submitted == 0)}
+      {if (curate) 
+        filter(., re_review_submitted == 1) 
+      else 
+        filter(., re_review_submitted == 0)
+      }
     re_review_assignment <- pool %>%
       tbl("re_review_assignment") %>%
-      {if(!curate) filter(., user_id == user) else .}
+      {if (!curate)
+        filter(., user_id == user)
+      else .
+      }
     ndd_entity_view <- pool %>%
       tbl("ndd_entity_view")
     ndd_entity_status_category <- pool %>%
@@ -2233,11 +2240,11 @@ function(gene_input, input_type = "hgnc") {
   # get data from database and filter
   non_alt_loci_set_collected <- pool %>%
     tbl("non_alt_loci_set") %>%
-    {if(input_type == "hgnc")
+    {if (input_type == "hgnc")
       filter(., hgnc_id == gene_input)
      else .
      } %>%
-    {if(input_type == "symbol")
+    {if (input_type == "symbol")
       filter(., str_to_lower(symbol) == gene_input)
      else .
      } %>%
@@ -2287,11 +2294,11 @@ function(ontology_input, input_type = "ontology_id") {
   # get data from database and filter
   disease_ontology_set_collected <- pool %>%
     tbl("disease_ontology_set") %>%
-    {if(input_type == "ontology_id")
+    {if (input_type == "ontology_id")
       filter(., disease_ontology_id == ontology_input)
      else .
      } %>%
-    {if(input_type == "ontology_name")
+    {if (input_type == "ontology_name")
       filter(., disease_ontology_name == ontology_input)
      else .
      } %>%
@@ -2993,7 +3000,7 @@ function(res, aggregate = "entity_id", group = "category") {
     filter(ndd_phenotype == 1) %>%
     # conditional pipe to remove duplicate genes
     # with multiple entries and same inheritance
-    {if(aggregate == "symbol")
+    {if (aggregate == "symbol")
       group_by(., symbol) %>%
       mutate(., entry_date = min(entry_date)) %>%
       ungroup(.) %>%
