@@ -40,6 +40,8 @@ root <- pr("sysndd_plumber.R") %>%
             "{convert_empty(req$HTTP_HOST)} ",
             "{convert_empty(req$REQUEST_METHOD)} ",
             "{convert_empty(req$PATH_INFO)} ",
+            "{convert_empty(req$QUERY_STRING)} ",
+            "{convert_empty(req$postBody)} ",
             "{convert_empty(res$status)} ",
             "{round(end$toc - end$tic, digits = getOption('digits', 5))}")
             )
