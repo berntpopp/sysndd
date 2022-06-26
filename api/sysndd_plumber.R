@@ -1072,7 +1072,10 @@ function(req, res, re_review = FALSE) {
             "\\s",
             "")) %>%
           rowwise() %>%
-          mutate(gr_check = genereviews_from_pmid(publication_id, check = TRUE)) %>%
+          mutate(gr_check =
+            genereviews_from_pmid(publication_id,
+              check = TRUE)
+          ) %>%
           ungroup() %>%
           mutate(publication_type = case_when(
             publication_type == "additional_references" & gr_check ~
@@ -2710,6 +2713,7 @@ function(req, res, re_review = FALSE) {
 #* @serializer json list(na="string")
 #' @put /api/status/approve/<status_id_requested>
 function(req, res, status_id_requested, status_ok = FALSE) {
+  # make sure status_ok input is logical
   status_ok <- as.logical(status_ok)
 
   # first check rights
@@ -2863,6 +2867,9 @@ function(res,
   `page_after` = 0,
   `page_size` = "all",
   max_category = TRUE) {
+  # make sure max_category input is logical
+  max_category <- as.logical(max_category)
+
   # call the endpoint function generate_panels_list
   panels_list <- generate_panels_list(sort,
     filter,
@@ -2890,6 +2897,9 @@ function(res,
   `page_after` = 0,
   `page_size` = "all",
   max_category = TRUE) {
+  # make sure max_category input is logical
+  max_category <- as.logical(max_category)
+
   # call the endpoint function generate_panels_list
   panels_list <- generate_panels_list(sort,
     filter,
@@ -3334,6 +3344,9 @@ function(req, res, endpoint = "/api/gene") {
 #* @serializer json list(na="string")
 #' @get /api/search/<searchterm>
 function(searchterm, helper = TRUE) {
+  # make sure helper input is logical
+  helper <- as.logical(helper)
+
   searchterm <- URLdecode(searchterm) %>%
     str_squish()
 
@@ -3405,6 +3418,9 @@ function(searchterm, helper = TRUE) {
 #* @serializer json list(na="string")
 #' @get /api/search/ontology/<searchterm>
 function(searchterm, tree = FALSE) {
+  # make sure tree input is logical
+  tree <- as.logical(tree)
+
   searchterm <- URLdecode(searchterm) %>%
     str_squish()
 
@@ -3462,6 +3478,9 @@ function(searchterm, tree = FALSE) {
 #* @serializer json list(na="string")
 #' @get /api/search/gene/<searchterm>
 function(searchterm, tree = FALSE) {
+  # make sure tree input is logical
+  tree <- as.logical(tree)
+
   searchterm <- URLdecode(searchterm) %>%
     str_squish()
 
@@ -3512,6 +3531,9 @@ function(searchterm, tree = FALSE) {
 #* @serializer json list(na="string")
 #' @get /api/search/inheritance/<searchterm>
 function(searchterm, tree = FALSE) {
+  # make sure tree input is logical
+  tree <- as.logical(tree)
+
   searchterm <- URLdecode(searchterm) %>%
     str_squish()
 
@@ -3572,6 +3594,9 @@ function(searchterm, tree = FALSE) {
 #* @serializer json list(na="string")
 #' @get /api/list/status
 function(tree = FALSE) {
+  # make sure tree input is logical
+  tree <- as.logical(tree)
+
   status_list_collected <- pool %>%
     tbl("ndd_entity_status_categories_list") %>%
     arrange(category_id) %>%
@@ -3599,6 +3624,8 @@ function(tree = FALSE) {
 #* @serializer json list(na="string")
 #' @get /api/list/phenotype
 function(tree = FALSE) {
+  # make sure tree input is logical
+  tree <- as.logical(tree)
 
   # the "tree" option allows output data to be formated as
   # arrays for the treeselect library
@@ -3645,6 +3672,8 @@ function(tree = FALSE) {
 #* @serializer json list(na="string")
 #' @get /api/list/variation_ontology
 function(tree = FALSE) {
+  # make sure tree input is logical
+  tree <- as.logical(tree)
 
   # the "tree" option allows output data to be formated as
   # arrays for the treeselect library
@@ -3810,8 +3839,11 @@ function(req, res, user_id) {
 function(req, res, user_id = 0, status_approval = FALSE) {
 
   user <- req$user_id
+
+  # make sure user_id_approval input is integer
   user_id_approval <- as.integer(user_id)
 
+  # make sure status_approval input is logical
   status_approval <- as.logical(status_approval)
 
   #check if user_id_approval exists and is not allready approved
