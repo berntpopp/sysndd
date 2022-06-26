@@ -1,8 +1,13 @@
 #### This file holds pubmed and genereviews functions
 
-# this function checks whether all PMIDs in a list are valid
-# and can be found in pubmed, returns true if all are and
-# false if one is invalid
+#' A function that checks whether all PMIDs in a list are valid
+#' and can be found in pubmed, returns true if all are and
+#' false if one is invalid
+#'
+#' @param pmid_input A list of PMIDs
+#'
+#' @return Boolean value representing if all PMIDs were found
+#' @export
 check_pmid <- function(pmid_input) {
   input_tibble <- as_tibble(pmid_input) %>%
     mutate(publication_id = as.character(value)) %>%
@@ -20,8 +25,13 @@ check_pmid <- function(pmid_input) {
 }
 
 
-# this function takes a tibble of publication_ids and
-# publication_types and adds them to the database if they are new
+#' A function that takes a tibble of publication_ids and
+#' publication_types and adds them to the database if they are new
+#'
+#' @param publications_received tibble with publication_id and publication_type
+#'
+#' @return list with http status amessage
+#' @export
 new_publication <- function(publications_received) {
   # check if all received PMIDs are valid
   if (check_pmid(publications_received$publication_id)) {
@@ -87,8 +97,13 @@ new_publication <- function(publications_received) {
 }
 
 
-## this custom function replaces "table_articles_byAuth" from
-## easypubmed because that function is buggy
+#' This custom function replaces "table_articles_byAuth" from
+#' easypubmed because that function is buggy
+#'
+#' @param pubmed_xml_data A XML strinng from Pubmed API
+#'
+#' @return tibble with article information columns
+#' @export
 table_articles_from_xml <- function(pubmed_xml_data) {
 # convert to xml
 pmid_xml <- read_xml(pubmed_xml_data)
@@ -213,6 +228,13 @@ return(return_tibble)
 }
 
 
+#' Splits requests for PMID information in chunkcs for the API
+#'
+#' @param pmid_value A list of PMIDs
+#' @param request_max a number used to partition the requests in chunks
+#'
+#' @return tibble with article information columns
+#' @export
 info_from_pmid <- function(pmid_value, request_max = 200) {
   pmid_value <- str_replace_all(pmid_value, "PMID:", "")
 
@@ -260,6 +282,13 @@ info_from_pmid <- function(pmid_value, request_max = 200) {
 }
 
 
+#' This function takes a PMID id and generates Bookshelf_IDs
+#' which are used to get the GeneReview information
+#'
+#' @param pmid_input A list of PMIDs
+#'
+#' @return tibble Genereviews article information
+#' @export
 info_from_genereviews_pmid <- function(pmid_input) {
   pmid_input <- str_replace_all(pmid_input, "PMID:", "")
 
@@ -270,9 +299,18 @@ info_from_genereviews_pmid <- function(pmid_input) {
 }
 
 
-## TODO: find a faster implementation of the check
+#' This function takes a PMID id and generates Bookshelf_IDs
+#' or returns a boolean value representing if the article exists
+#'
+#' @param pmid_input A PMID id
+#' @param check A boolean indicator value
+#'
+#' @return tibble Genereviews article information or boolean value
+#' @export
 genereviews_from_pmid <- function(pmid_input, check = FALSE) {
   pmid_input <- str_replace_all(pmid_input, "PMID:", "")
+
+## TODO: find a faster implementation of the check
 
   url <- paste0("https://www.ncbi.nlm.nih.gov/books/NBK1116/?term=",
     pmid_input,
@@ -302,6 +340,13 @@ genereviews_from_pmid <- function(pmid_input, check = FALSE) {
 }
 
 
+#' This function takes a Bookshelf_ID and returns
+#' a tibble with GeneReview information
+#'
+#' @param Bookshelf_ID A NCBI Bookshelf id
+#'
+#' @return tibble with Genereviews article information
+#' @export
 info_from_genereviews <- function(Bookshelf_ID) {
   url <- paste0("https://www.ncbi.nlm.nih.gov/books/", Bookshelf_ID)
   genereviews_url <- url(url, "rb")
@@ -356,7 +401,7 @@ info_from_genereviews <- function(Bookshelf_ID) {
     html_attr("content") %>%
     str_c(collapse = "; ")
 
-## TO DO: some error here with title now having multiple matches,
+## TODO: some error here with title now having multiple matches,
 ## seems to work in the inport script check solution there
 
   return_tibble <- as_tibble_row(c("publication_id" = pmid,
