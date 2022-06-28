@@ -135,8 +135,6 @@ export default {
         };
       });
 
-console.log(data)
-
       // generate array of all categories
       const allCategories = this.items.map((item) => item.group);
       const maxCount = this.itemsMeta[0].max_cumulative_count;
@@ -226,6 +224,7 @@ console.log(data)
         .data(data)
         .enter().append("g")
         .style("fill", (d) => myColor(d.group))
+        .attr("class", (d) => d.group)
         // Second we need to enter in the 'values' part of this group
         .selectAll("myPoints")
         .data((d) => d.values)
