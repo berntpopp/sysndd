@@ -300,7 +300,7 @@ export default {
     async changePassword() {
       let apiChangePasswordURL =
         process.env.VUE_APP_API_URL +
-        "/api/user/password/change?user_id_pass_change=" +
+        "/api/user/password/update?user_id_pass_change=" +
         this.user.user_id[0] +
         "&old_pass=" +
         this.current_password +

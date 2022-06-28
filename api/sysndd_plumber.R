@@ -3298,7 +3298,7 @@ function() {
 #* @tag hash
 #* takes a list of identifiers, sorts, hashes and safes this, then returns the hash link
 #* @serializer json list(na="string")
-#' @post /api/hash
+#' @post /api/hash/create
 function(req, res, endpoint = "/api/gene") {
 
   # get data from POST body
@@ -4082,7 +4082,7 @@ function(req, res, roles = "Viewer") {
 
 #* @tag user
 #* changes the user password
-#' @put /api/user/password/change
+#' @put /api/user/password/update
 function(
   req,
   res,
