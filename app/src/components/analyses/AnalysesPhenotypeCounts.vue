@@ -133,7 +133,7 @@ export default {
         .data(data)
         .enter()
         .append("a")
-        .attr("xlink:href", function(d) { return "/Phenotypes/?sort=entity_id&filter=all(modifier_phenotype_id," + d.phenotype_id + ")&page_after=0&page_size=10"; }) // <- add links to the filtered phenotype table to the bars
+        .attr("xlink:href", function(d) { return "/Phenotypes/?sort=entity_id&filter=any(category,Definitive),all(modifier_phenotype_id," + d.phenotype_id + ")&page_after=0&page_size=10"; }) // <- add links to the filtered phenotype table to the bars
         .append("rect")
         .attr("x", function (d) {
           return x(d.HPO_term);

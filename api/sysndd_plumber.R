@@ -2468,7 +2468,8 @@ function(res,
   # call the endpoint function generate_phenotype_entities
   phenotype_entities_data <- generate_phenotype_entities_list(
     filter = filter)$data %>%
-    separate_rows(modifier_phenotype_id, sep = ",")
+    separate_rows(modifier_phenotype_id, sep = ",") %>%
+    unique()
 
   # get data from database, filter and restructure
   phenotype_list_tbl <- pool %>%
@@ -2478,7 +2479,8 @@ function(res,
   # compose table
   sysndd_db_phenotypes <- phenotype_entities_data %>%
     filter(str_detect(modifier_phenotype_id, "1-")) %>%
-    mutate(phenotype_id = str_remove(modifier_phenotype_id, "1-")) %>%
+    # remove the modifier
+    mutate(phenotype_id = str_remove(modifier_phenotype_id, "[1-4]-")) %>%
     # remove the generall HP:0001249 term present in all definitive entities
     filter(phenotype_id != "HP:0001249") %>%
     left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
@@ -2538,7 +2540,8 @@ function(res,
 
   # compose table
   sysndd_db_phenotypes <- phenotype_entities_data %>%
-    mutate(phenotype_id = str_remove(modifier_phenotype_id, "1-")) %>%
+    # remove the modifier
+    mutate(phenotype_id = str_remove(modifier_phenotype_id, "[1-4]-")) %>%
     # remove the general HP:0001249 term present in all definitive entities
     filter(phenotype_id != "HP:0001249") %>%
     left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
