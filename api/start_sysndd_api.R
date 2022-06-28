@@ -3,6 +3,7 @@
 library(plumber)
 library(logger)
 library(tictoc)
+library(fs)
 ##-------------------------------------------------------------------##
 
 
@@ -31,8 +32,10 @@ convert_empty <- function(string) {
 ##-------------------------------------------------------------------##
 # start the API
 root <- pr("sysndd_plumber.R") %>%
-    pr_hook("preroute", function() { tictoc::tic() }) %>%
-    pr_hook("postroute", function(req, res) { 
+    pr_hook("preroute", function() {
+      tictoc::tic()
+    }) %>%
+    pr_hook("postroute", function(req, res) {
             end <- tictoc::toc(quiet = TRUE)
              # Log details about the request and the response
             log_info(paste0("{convert_empty(req$REMOTE_ADDR)} ",
