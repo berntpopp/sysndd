@@ -165,7 +165,7 @@ generate_cluster_object_mem <- memoise(generate_cluster_object,
 function(pr) {
 
   pr %>%
-    plumber::pr_hook("exit", function(){
+    plumber::pr_hook("exit", function() {
       pool::poolClose(pool)
       message("Disconnected")
     })
@@ -254,11 +254,11 @@ function(req, res) {
 #* @param sort:str  Output column to arrange output on.
 #* @param filter:str Comma separated list of filters to apply.
 #* @param fields:str Comma separated list of output columns.
-#* @param page_after:str Cursor after which to show entries in cursor pagination.
+#* @param page_after:str Cursor after which entries are shown.
 #* @param page_size:str Page size in cursor pagination.
-#* @param fspec:str Fields for which to generate the fied specification in the meta data response.
-#* @response 200  A cursor pagination object with links, meta information and entity objects in the data field.
-#* @response 500  Internal server error.
+#* @param fspec:str Fields to generate fied specification for.
+#* @response 200 A cursor pagination object with links, meta information and entity objects in the data field.
+#* @response 500 Internal server error.
 #' @get /api/entity
 function(res,
   sort = "entity_id",
@@ -1295,7 +1295,7 @@ function(review_id_requested) {
     tbl("user") %>%
     select(user_id, user_name, user_role)
 
-  sysndd_db_review_table_collected <- sysndd_db_review_table %>%
+  review_table_collected <- sysndd_db_review_table %>%
     filter(review_id == review_id_requested) %>%
     left_join(user_table, by = c("review_user_id" = "user_id")) %>%
     left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
@@ -1312,7 +1312,7 @@ function(review_id_requested) {
       approving_user_role = user_role.y,
       comment)
 
-  sysndd_db_review_table_collected
+  review_table_collected
 }
 
 
@@ -1952,6 +1952,7 @@ function(req, res, re_review_batch) {
     select(re_review_batch) %>%
     filter(re_review_batch == re_review_batch_unassign) %>%
     collect()
+
   re_review_batch_unassign_exists <- as.logical(
     length(re_review_assignment_table$re_review_batch))
 
@@ -2173,7 +2174,7 @@ function(res,
 
   # use the helper generate_cursor_pagination
   # info to generate cursor pagination information from a tibble
-  sysndd_db_genes_nested_pagination_info <- generate_cursor_pag_inf(
+  genes_nested_pag_info <- generate_cursor_pag_inf(
     sysndd_db_genes_nested,
     `page_size`,
     `page_after`,
@@ -2186,7 +2187,7 @@ function(res,
 
   # add columns to the meta information from
   # generate_cursor_pag_inf function return
-  meta <- sysndd_db_genes_nested_pagination_info$meta %>%
+  meta <- genes_nested_pag_info$meta %>%
     add_column(tibble::as_tibble(list("sort" = sort,
       "filter" = filter,
       "fields" = fields,
@@ -2195,7 +2196,7 @@ function(res,
 
   # add host, port and other information to links from the link
   # information from generate_cursor_pag_inf function return
-  links <- sysndd_db_genes_nested_pagination_info$links %>%
+  links <- genes_nested_pag_info$links %>%
       pivot_longer(everything(), names_to = "type", values_to = "link") %>%
     mutate(link = case_when(
       link != "null" ~ paste0(
@@ -2212,7 +2213,7 @@ function(res,
   # generate object to return
   list(links = links,
     meta = meta,
-    data = sysndd_db_genes_nested_pagination_info$data)
+    data = genes_nested_pag_info$data)
 }
 
 
@@ -2497,21 +2498,21 @@ function(res,
 
   # compute correlation matrix
   sysndd_db_phenotypes_corr <- round(cor(sysndd_db_phenotypes_matrix), 2)
-  sysndd_db_phenotypes_corr_melted <- melt(sysndd_db_phenotypes_corr) %>%
+  phenotypes_corr_melted <- melt(sysndd_db_phenotypes_corr) %>%
       select(x = Var1, y = Var2, value)
 
   # join with HPO ids
   phenotype_list_join <- phenotype_list_tbl %>%
     select(phenotype_id, HPO_term)
 
-  sysndd_db_phenotypes_corr_melted_ids <- sysndd_db_phenotypes_corr_melted %>%
+  phenotypes_corr_melted_ids <- phenotypes_corr_melted %>%
     left_join(phenotype_list_join, by = c("x" = "HPO_term")) %>%
     select(x, y, value, x_id = phenotype_id) %>%
     left_join(phenotype_list_join, by = c("y" = "HPO_term")) %>%
     select(x, x_id, y, y_id = phenotype_id, value)
 
   # return the object
-  sysndd_db_phenotypes_corr_melted_ids
+  phenotypes_corr_melted_ids
 
 }
 
@@ -2567,9 +2568,9 @@ function(res,
 #* gets the status list
 #* @serializer json list(na="null")
 #' @get /api/status
-function(req, res, `filter[status_approved]` = 0) {
+function(req, res, filter_status_approved = 0) {
 
-  filter_status_approved <- as.integer(`filter[status_approved]`)
+  filter_status_approved <- as.integer(filter_status_approved)
 
   # get data from database and filter
   sysndd_db_status_table <- pool %>%
@@ -2583,7 +2584,7 @@ function(req, res, `filter[status_approved]` = 0) {
   entity_status_categories_coll <- pool %>%
     tbl("ndd_entity_status_categories_list")
 
-  sysndd_db_status_table_collected <- sysndd_db_status_table %>%
+  status_table_collected <- sysndd_db_status_table %>%
     inner_join(entity_status_categories_coll, by = c("category_id")) %>%
     left_join(user_table, by = c("status_user_id" = "user_id")) %>%
     left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
@@ -2604,7 +2605,7 @@ function(req, res, `filter[status_approved]` = 0) {
       problematic) %>%
     arrange(status_date)
 
-  sysndd_db_status_table_collected
+  status_table_collected
 }
 
 
@@ -2630,7 +2631,7 @@ function(status_id_requested) {
   entity_status_categories_coll <- pool %>%
     tbl("ndd_entity_status_categories_list")
 
-  sysndd_db_status_table_collected <- sysndd_db_status_table %>%
+  status_table_collected <- sysndd_db_status_table %>%
     filter(status_id == status_id_requested) %>%
     inner_join(entity_status_categories_coll, by = c("category_id")) %>%
     left_join(user_table, by = c("status_user_id" = "user_id")) %>%
@@ -2651,7 +2652,7 @@ function(status_id_requested) {
       problematic) %>%
     arrange(status_date)
 
-  sysndd_db_status_table_collected
+  status_table_collected
 }
 
 #* @tag status
@@ -2991,6 +2992,8 @@ function(res, aggregate = "entity_id", group = "category") {
   }
 
   # get data from database and filter
+  # has conditional pipe to remove duplicate genes
+  # with multiple entries and same inheritance
   sysndd_db_disease_collected  <- pool %>%
     tbl("ndd_entity_view") %>%
     arrange(!!rlang::sym(aggregate)) %>%
@@ -3000,15 +3003,13 @@ function(res, aggregate = "entity_id", group = "category") {
       entry_date) %>%
     collect() %>%
     filter(ndd_phenotype == 1) %>%
-    # conditional pipe to remove duplicate genes
-    # with multiple entries and same inheritance
     {if (aggregate == "symbol")
-      group_by(., symbol) %>%
-      mutate(., entry_date = min(entry_date)) %>%
-      ungroup(.) %>%
-      unique(.)
-     else .
-     } %>%
+        group_by(., symbol) %>%
+        mutate(., entry_date = min(entry_date)) %>%
+        ungroup(.) %>%
+        unique(.)
+      else .
+    } %>%
     mutate(count = 1) %>%
     arrange(entry_date) %>%
     group_by(!!rlang::sym(group)) %>%
@@ -3529,7 +3530,7 @@ function(searchterm, tree = FALSE) {
   searchterm <- URLdecode(searchterm) %>%
     str_squish()
 
-  mode_of_inheritance_list_search <- pool %>%
+  moi_list_search <- pool %>%
     tbl("search_mode_of_inheritance_list_view") %>%
     filter(result %like% paste0("%", searchterm, "%")) %>%
     filter(result %like% paste0("%", searchterm, "%")) %>%
@@ -3541,7 +3542,7 @@ function(searchterm, tree = FALSE) {
     arrange(searchdist, sort)
 
   # compute filtered length with match < 0.1
-  moi_list_search_length <- mode_of_inheritance_list_search %>%
+  moi_list_search_length <- moi_list_search %>%
     filter(searchdist < 0.1) %>%
     tally()
 
@@ -3551,7 +3552,7 @@ function(searchterm, tree = FALSE) {
     return_count <- 10
   }
 
-  moi_list_search_return <- mode_of_inheritance_list_search %>%
+  moi_list_search_return <- moi_list_search %>%
     slice_head(n = return_count)
 
   # the "tree" option allows output data to be

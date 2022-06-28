@@ -77,11 +77,11 @@
             </h6>
           </b-col>
           <b-col>
-              <h6
-                v-if="showFilterControls"
-                class="mb-1 text-right font-weight-bold"
-              >
-<!--               <b-button
+            <h6
+              v-if="showFilterControls"
+              class="mb-1 text-right font-weight-bold"
+            >
+              <!--               <b-button
                 v-b-tooltip.hover.bottom
                 class="mx-1"
                 size="sm"
