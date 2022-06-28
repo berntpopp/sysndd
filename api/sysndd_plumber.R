@@ -3019,6 +3019,7 @@ function(res, aggregate = "entity_id", group = "category") {
     summarise_by_time(
       .date_var = entry_date,
       .by       = "month", # Setup for monthly aggregation
+      .type = "ceiling", # this is the upper bound for filtering
       # Summarization
       count  = sum(count)
     ) %>%
