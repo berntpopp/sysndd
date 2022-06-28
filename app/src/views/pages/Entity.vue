@@ -372,12 +372,13 @@ export default {
 
       let apiEntityURL =
         process.env.VUE_APP_API_URL +
-        "/api/entity/" +
-        this.$route.params.entity_id;
+        "/api/entity?filter=equals(entity_id," +
+        this.$route.params.entity_id +
+        ")";
 
       try {
         let response_entity = await this.axios.get(apiEntityURL);
-        this.entity = response_entity.data;
+        this.entity = response_entity.data.data;
 
         if (this.entity.length === 0) {
           this.$router.push("/PageNotFound");

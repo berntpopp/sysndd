@@ -848,29 +848,6 @@ function(req, res) {
 
 
 #* @tag entity
-#* gets a single entity
-#* @serializer json list(na="string")
-#' @get /api/entity/<sysndd_id>
-function(sysndd_id) {
-  # remove spaces from list
-  sysndd_id <- URLdecode(sysndd_id) %>%
-    str_split(pattern = ",", simplify = TRUE) %>%
-    str_replace_all(" ", "") %>%
-    unique()
-
-  # get data from database and filter
-  sysndd_db_disease_table <- pool %>%
-    tbl("ndd_entity_view")
-
-  sysndd_db_disease_collected <- sysndd_db_disease_table %>%
-    filter(entity_id %in% sysndd_id) %>%
-    collect()
-
-  sysndd_db_disease_collected
-}
-
-
-#* @tag entity
 #* gets all phenotypes for a entity_id
 #* @serializer json list(na="string")
 #' @get /api/entity/<sysndd_id>/phenotypes
