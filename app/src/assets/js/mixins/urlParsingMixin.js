@@ -14,6 +14,7 @@ export default {
       const filter_string_not_empty = Object.keys(filter_object)
         .filter((key) => isObject(filter_object[key]))
         .filter((key) => filter_object[key].content !== null) //<-- remove null values
+        .filter((key) => filter_object[key].content !== "null") //<-- remove null values
         .filter((key) => filter_object[key].content !== '') //<-- remove empty values
         .reduce((obj, key) => {
           return Object.assign(obj, {
