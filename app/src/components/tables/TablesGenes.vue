@@ -185,7 +185,7 @@
                       ')'
                   "
                 >
-                  {{ truncate(data.label, 20) }}
+                  {{ truncate(data.label.replace(/( word)|( name)/g, ""), 20) }}
                 </div>
               </template>
 
