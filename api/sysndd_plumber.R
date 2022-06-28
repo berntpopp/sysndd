@@ -991,16 +991,17 @@ function(sysndd_id) {
 #* gets review list
 #* @serializer json list(na="null")
 #' @get /api/review
-function(req, res, filter_review_approved = 0) {
+function(req, res, filter_review_approved = FALSE) {
 
-  filter_review_approved <- as.integer(filter_review_approved)
+  # make sure filter_review_approved input is logical
+  filter_review_approved <- as.logical(filter_review_approved)
 
   # get data from database and filter
   user_table <- pool %>%
     tbl("user") %>%
     select(user_id, user_name, user_role)
 
-  sysndd_db_review_table_collected <- pool %>%
+  review_table_collected <- pool %>%
     tbl("ndd_entity_review") %>%
     left_join(user_table, by = c("review_user_id" = "user_id")) %>%
     left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
@@ -1019,7 +1020,7 @@ function(req, res, filter_review_approved = 0) {
       approving_user_id,
       comment)
 
-  sysndd_db_review_table_collected
+  review_table_collected
 }
 
 
@@ -1780,9 +1781,9 @@ function(req, res, curate = FALSE) {
     re_review_entity_connect <- pool %>%
       tbl("re_review_entity_connect") %>%
       filter(re_review_approved == 0) %>%
-      {if (curate) 
-        filter(., re_review_submitted == 1) 
-      else 
+      {if (curate)
+        filter(., re_review_submitted == 1)
+      else
         filter(., re_review_submitted == 0)
       }
     re_review_assignment <- pool %>%
