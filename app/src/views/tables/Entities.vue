@@ -21,7 +21,7 @@ export default {
   name: "Entities",
   components: { TablesEntities },
   props: {
-    sort: { type: String, default: "entity_id" },
+    sort: { type: String, default: "+entity_id" },
     filter: { type: String, default: "filter=" },
     fields: { type: String, default: null },
     pageAfter: { type: String, default: "0" },

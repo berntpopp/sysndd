@@ -23,7 +23,14 @@
               </b-tab>
 
               <b-tab title="Table">
-                <AnalysesCurationComparisonsTable />
+                <AnalysesCurationComparisonsTable
+                  :sort-input="sort"
+                  :filter-input="filter"
+                  :fields-input="fields"
+                  :page-after-input="pageAfter"
+                  :page-size-input="pageSize"
+                  :fspec-input="fspec"
+                />
               </b-tab>
             </b-tabs>
           </div>
@@ -49,6 +56,18 @@ export default {
     AnalysesCurationComparisonsTable,
   },
   mixins: [toastMixin],
+  props: {
+    sort: { type: String, default: "+symbol" },
+    filter: { type: String, default: "filter=" },
+    fields: { type: String, default: null },
+    pageAfter: { type: String, default: "0" },
+    pageSize: { type: String, default: "10" },
+    fspec: {
+      type: String,
+      default:
+        "symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id",
+    },
+  },
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
     title: "Curation comparisons",

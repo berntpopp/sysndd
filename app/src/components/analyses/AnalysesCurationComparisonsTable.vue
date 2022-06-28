@@ -77,7 +77,24 @@
             </h6>
           </b-col>
           <b-col>
-            <h6 class="mb-1 text-right font-weight-bold">
+              <h6
+                v-if="showFilterControls"
+                class="mb-1 text-right font-weight-bold"
+              >
+<!--               <b-button
+                v-b-tooltip.hover.bottom
+                class="mx-1"
+                size="sm"
+                title="Copy link to this page."
+                variant="success"
+                @click="copyLinkToClipboard()"
+              >
+                <b-icon
+                  icon="link"
+                  font-scale="1.0"
+                />
+              </b-button> -->
+
               <b-button
                 v-b-tooltip.hover.bottom
                 size="sm"
@@ -105,21 +122,19 @@
           class="my-1"
           sm="6"
         >
-          <b-form-group class="mb-1">
-            <b-input-group
-              prepend="Search"
+          <b-form-group class="mb-1 border-dark">
+            <b-form-input
+              v-if="showFilterControls"
+              id="filter-input"
+              v-model="filter['any'].content"
+              class="mb-1 border-dark"
               size="sm"
-            >
-              <b-form-input
-                id="filter-input"
-                v-model="filter['any']"
-                type="search"
-                placeholder="any field by typing here"
-                debounce="500"
-                @click="removeFilters()"
-                @update="filtered()"
-              />
-            </b-input-group>
+              type="search"
+              placeholder="Search any field by typing here"
+              debounce="500"
+              @click="removeFilters()"
+              @update="filtered()"
+            />
           </b-form-group>
         </b-col>
 
@@ -156,29 +171,33 @@
           class="my-1"
           sm="4"
         >
-          <b-input-group
-            prepend="Per page"
-            class="mb-1"
-            size="sm"
+          <b-container
+            v-if="totalRows > perPage || showPaginationControls"
           >
-            <b-form-select
-              id="per-page-select"
-              v-model="perPage"
-              :options="pageOptions"
+            <b-input-group
+              prepend="Per page"
+              class="mb-1"
               size="sm"
-            />
-          </b-input-group>
+            >
+              <b-form-select
+                id="per-page-select"
+                v-model="perPage"
+                :options="pageOptions"
+                size="sm"
+              />
+            </b-input-group>
 
-          <b-pagination
-            v-model="currentPage"
-            :total-rows="totalRows"
-            :per-page="perPage"
-            align="fill"
-            size="sm"
-            class="my-0"
-            limit="2"
-            @change="handlePageChange"
-          />
+            <b-pagination
+              v-model="currentPage"
+              :total-rows="totalRows"
+              :per-page="perPage"
+              align="fill"
+              size="sm"
+              class="my-0"
+              limit="2"
+              @change="handlePageChange"
+            />
+          </b-container>
         </b-col>
       </b-row>
       <!-- User Interface controls -->
@@ -204,14 +223,17 @@
         no-local-pagination
       >
         <!-- based on:  https://stackoverflow.com/questions/52959195/bootstrap-vue-b-table-with-filter-in-header -->
-        <template slot="top-row">
+        <template
+          v-if="showFilterControls"
+          slot="top-row"
+        >
           <td
             v-for="field in fields"
             :key="field.key"
           >
             <b-form-input
               v-if="field.filterable"
-              v-model="filter[field.key]"
+              v-model="filter[field.key].content"
               :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
               debounce="500"
               size="sm"
@@ -223,7 +245,7 @@
 
             <b-form-select
               v-if="field.selectable"
-              v-model="filter[field.key]"
+              v-model="filter[field.key].content"
               :options="field.selectOptions"
               size="sm"
               type="search"
@@ -231,7 +253,7 @@
               @change="filtered()"
             >
               <template v-slot:first>
-                <b-form-select-option value="">
+                <b-form-select-option value="null">
                   .. {{ truncate(field.label, 20) }} ..
                 </b-form-select-option>
               </template>
@@ -357,12 +379,27 @@
 
 <script>
 import toastMixin from "@/assets/js/mixins/toastMixin.js";
+import urlParsingMixin from "@/assets/js/mixins/urlParsingMixin.js";
 
 export default {
   name: "AnalysesCurationComparisonsTable",
   // register the Treeselect component
   components: {},
-  mixins: [toastMixin],
+  mixins: [toastMixin, urlParsingMixin],
+  props: {
+    showFilterControls: { type: Boolean, default: true },
+    showPaginationControls: { type: Boolean, default: true },
+    sortInput: { type: String, default: "+symbol" },
+    filterInput: { type: String, default: "filter=" },
+    fieldsInput: { type: String, default: null },
+    pageAfterInput: { type: String, default: "" },
+    pageSizeInput: { type: String, default: "10" },
+    fspecInput: {
+      type: String,
+      default:
+        "symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id",
+    },
+  },
   data() {
     return {
       yn_icon: { no: "x", yes: "check" },
@@ -435,30 +472,31 @@ export default {
       ],
       totalRows: 0,
       currentPage: 1,
-      currentItemID: 0,
+      currentItemID: this.pageAfterInput,
       prevItemID: null,
       nextItemID: null,
       lastItemID: null,
       executionTime: 0,
-      perPage: "10",
+      perPage: this.pageSizeInput,
       pageOptions: ["10", "25", "50", "200"],
       sortBy: "symbol",
       sortDesc: false,
+      sort: this.sortInput,
       filter: {
-        any: "",
-        SysNDD: "",
-        radboudumc_ID: "",
-        gene2phenotype: "",
-        panelapp: "",
-        sfari: "",
-        geisinger_DBD: "",
-        omim_ndd: "",
-        orphanet_id: "",
+        any: {content: null, join_char: null, operator: 'contains'},
+        symbol: {content: null, join_char: null, operator: 'contains'},
+        SysNDD: {content: null, join_char: null, operator: 'contains'},
+        radboudumc_ID: {content: null, join_char: null, operator: 'contains'},
+        gene2phenotype: {content: null, join_char: null, operator: 'contains'},
+        panelapp: {content: null, join_char: null, operator: 'contains'},
+        sfari: {content: null, join_char: null, operator: 'contains'},
+        geisinger_DBD: {content: null, join_char: null, operator: 'contains'},
+        omim_ndd: {content: null, join_char: null, operator: 'contains'},
+        orphanet_id: {content: null, join_char: null, operator: 'contains'},
       },
       filter_string: "",
       filterOn: [],
       selection: null,
-      image: "",
       loadingUpset: true,
       loadingMatrix: true,
       loadingTable: true,
@@ -469,33 +507,64 @@ export default {
   },
   computed: {},
   watch: {
+    filter(value) {
+      this.filtered();
+    },
     sortBy() {
-      this.handleSortChange();
+      this.handleSortByOrDescChange();
+    },
+    sortDesc() {
+      this.handleSortByOrDescChange();
     },
     perPage() {
       this.handlePerPageChange();
     },
-    sortDesc() {
-      this.handleSortChange();
-    },
+  },
+  created() {
+    // transform input filter string from params to object and assign
+    this.filter = this.filterStrToObj(this.filterInput, this.filter);
   },
   mounted() {
-    this.loadTableData();
+    // transform input sort string to object and assign
+    let sort_object = this.sortStringToVariables(this.sortInput);
+    this.sortBy = sort_object.sortBy;
+    this.sortDesc = sort_object.sortDesc;
+
+    setTimeout(() => {
+      this.loading = false;
+    }, 500);
   },
   methods: {
-    async loadTableData() {
-      this.isBusy = true;
-      let apiUrl =
-        process.env.VUE_APP_API_URL +
-        "/api/comparisons/browse?sort=" +
-        (this.sortDesc ? "-" : "+") +
-        this.sortBy +
+    copyLinkToClipboard() {
+      let urlParam =
+        "sort=" +
+        this.sort +
         "&filter=" +
         this.filter_string +
         "&page_after=" +
         this.currentItemID +
         "&page_size=" +
         this.perPage;
+      navigator.clipboard.writeText(
+        process.env.VUE_APP_URL + this.$route.path + "?" + urlParam
+      );
+    },
+    async loadTableData() {
+      this.isBusy = true;
+
+      const urlParam =
+        "sort=" +
+        this.sort +
+        "&filter=" +
+        this.filter_string +
+        "&page_after=" +
+        this.currentItemID +
+        "&page_size=" +
+        this.perPage;
+
+      const apiUrl = process.env.VUE_APP_API_URL + 
+        "/api/comparisons/browse?" +
+        urlParam;
 
       try {
         let response = await this.axios.get(apiUrl);
@@ -519,13 +588,19 @@ export default {
     async requestExcel() {
       this.downloading = true;
 
-      let apiUrl =
-        process.env.VUE_APP_API_URL +
-        "/api/comparisons/excel?sort=" +
-        (this.sortDesc ? "-" : "+") +
-        this.sortBy +
+      const urlParam =
+        "sort=" +
+        this.sort +
         "&filter=" +
-        this.filter_string;
+        this.filter_string +
+        "&page_after=" +
+        this.currentItemID +
+        "&page_size=" +
+        this.perPage;
+
+      const apiUrl = process.env.VUE_APP_API_URL + 
+        "/api/comparisons/browse?" +
+        urlParam;
 
       try {
         let response = await this.axios({
@@ -548,70 +623,50 @@ export default {
 
       this.downloading = false;
     },
-    handleSortChange() {
+    handleSortByOrDescChange() {
       this.currentItemID = 0;
-      this.loadTableData();
+      this.sort = (!this.sortDesc ? "-" : "+") + this.sortBy;
+      this.filtered();
     },
     handlePerPageChange() {
       this.currentItemID = 0;
-      this.loadTableData();
+      this.filtered();
     },
     handlePageChange(value) {
       if (value == 1) {
         this.currentItemID = 0;
-        this.loadTableData();
+        this.filtered();
       } else if (value == this.totalPages) {
         this.currentItemID = this.lastItemID;
-        this.loadTableData();
+        this.filtered();
       } else if (value > this.currentPage) {
         this.currentItemID = this.nextItemID;
-        this.loadTableData();
+        this.filtered();
       } else if (value < this.currentPage) {
         this.currentItemID = this.prevItemID;
-        this.loadTableData();
+        this.filtered();
       }
     },
     filtered() {
-      let filter_string_not_empty = Object.filter(
-        this.filter,
-        (value) => value !== ""
-      );
-
-      if (Object.keys(filter_string_not_empty).length !== 0) {
-        this.filter_string =
-          "contains(" +
-          Object.keys(filter_string_not_empty)
-            .map((key) => [key, this.filter[key]].join(","))
-            .join("),contains(") +
-          ")";
-        this.loadTableData();
-      } else {
-        this.filter_string = "";
-        this.loadTableData();
-      }
+      this.filter_string = this.filterObjToStr(this.filter);
+      this.loadTableData();
     },
     removeFilters() {
       this.filter = {
-        any: "",
-        entity_id: "",
-        symbol: "",
-        disease_ontology_name: "",
-        disease_ontology_id_version: "",
-        hpo_mode_of_inheritance_term_name: "",
-        hpo_mode_of_inheritance_term: "",
-        ndd_phenotype: "",
-        category: "",
+        any: {content: null, join_char: null, operator: 'contains'},
+        symbol: {content: null, join_char: null, operator: 'contains'},
+        SysNDD: {content: null, join_char: null, operator: 'contains'},
+        radboudumc_ID: {content: null, join_char: null, operator: 'contains'},
+        gene2phenotype: {content: null, join_char: null, operator: 'contains'},
+        panelapp: {content: null, join_char: null, operator: 'contains'},
+        sfari: {content: null, join_char: null, operator: 'contains'},
+        geisinger_DBD: {content: null, join_char: null, operator: 'contains'},
+        omim_ndd: {content: null, join_char: null, operator: 'contains'},
+        orphanet_id: {content: null, join_char: null, operator: 'contains'},
       };
-      this.filtered();
     },
     removeSearch() {
-      this.filter["any"] = "";
-      this.filtered();
-    },
-    onFiltered(filteredItems) {
-      // Trigger pagination to update the number of buttons/pages due to filtering
-      this.totalRows = filteredItems.length;
-      this.currentPage = 1;
+      this.filter["any"].content = null;
     },
     truncate(str, n) {
       return str.length > n ? str.substr(0, n - 1) + "..." : str;

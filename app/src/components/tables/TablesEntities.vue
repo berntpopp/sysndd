@@ -488,7 +488,7 @@ export default {
       perPage: this.pageSizeInput,
       pageOptions: ["10", "25", "50", "200"],
       sortBy: "entity_id",
-      sortDesc: true,
+      sortDesc: false,
       sort: this.sortInput,
       filter: {
         any: {content: null, join_char: null, operator: 'contains'},
@@ -558,6 +558,7 @@ export default {
     handleSortByOrDescChange() {
       this.currentItemID = 0;
       this.sort = (!this.sortDesc ? "-" : "+") + this.sortBy;
+      this.filtered();
     },
     handlePerPageChange() {
       this.currentItemID = 0;
