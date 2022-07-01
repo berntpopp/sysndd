@@ -594,12 +594,12 @@ export default {
         "&filter=" +
         this.filter_string +
         "&page_after=" +
-        this.currentItemID +
+        "0" +
         "&page_size=" +
-        this.perPage;
+        "all";
 
       const apiUrl = process.env.VUE_APP_API_URL + 
-        "/api/comparisons/browse?" +
+        "/api/comparisons/excel?" +
         urlParam;
 
       try {
