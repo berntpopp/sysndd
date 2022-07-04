@@ -70,7 +70,7 @@ export default {
     return {
       aggregate_list: ["entity_id", "symbol"],
       selected_aggregate: "entity_id",
-      group_list: ["category", "inheritance_filter"],
+      group_list: ["category", "inheritance_filter", "inheritance_multiple"],
       selected_group: "category",
       items: [],
       itemsMeta: [],

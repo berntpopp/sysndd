@@ -2987,13 +2987,27 @@ function(res,
 
   start_time <- Sys.time()
 
+  # check input
   if (!(aggregate %in% c("entity_id", "symbol")) ||
-      !(group %in% c("category", "inheritance_filter", "inheritance_multiple"))) {
+      !(group %in% c("category",
+        "inheritance_filter",
+        "inheritance_multiple"))) {
     res$status <- 400
     res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
     status = 400,
     message = paste0("Required 'aggregate' or 'group' ",
       "parameter not in categories list.")
+    ))
+    return(res)
+  }
+
+  if (aggregate == "entity_id" &&
+      group == "inheritance_multiple") {
+    res$status <- 400
+    res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
+    status = 400,
+    message = paste0("Multiple inheritance only ",
+      "sensible when grouping by gene symbol.")
     ))
     return(res)
   }
@@ -3005,20 +3019,22 @@ function(res,
   entity_view_coll <- pool %>%
     tbl("ndd_entity_view") %>%
     collect() %>%
-    arrange(entry_date, entity_id) %>%
-    ## <-- arrange by entry_date 
-    group_by(symbol) %>%
-    ## <-- group by symbol
-    mutate(entities_count = n()) %>%
-    ## <-- generate entities count
-    mutate(inheritance_filter_count = n_distinct(inheritance_filter)) %>%
-    ## <-- generate inheritance_filter count
-    mutate(inheritance_multiple = str_c(
-      inheritance_filter %>% unique (),
-      collapse = " | ")
-    ) %>%
-    ## <-- concatenate inheritance_filter
-    ungroup()
+    arrange(entry_date, entity_id) %>% ## <-- arrange by entry_date
+      { if (aggregate == "symbol")
+        group_by(., symbol) %>%
+        ## <-- group by symbol
+        mutate(., entities_count = n()) %>%
+        ## <-- generate entities count
+        mutate(., inheritance_filter_count = n_distinct(inheritance_filter)) %>%
+        ## <-- generate inheritance_filter count
+        mutate(., inheritance_multiple = str_c(
+          inheritance_filter %>% unique(),
+          collapse = " | ")
+        ) %>%
+        ## <-- concatenate inheritance_filter
+        ungroup(.)
+      else .
+      }
 
   # apply filters according to input
   entity_view_filtered <- entity_view_coll %>%
@@ -3028,15 +3044,15 @@ function(res,
     select(!!rlang::sym(aggregate),
       !!rlang::sym(group),
       entry_date) %>%
-   # <-- conditional pipe to remove duplicate genes
-   # <-- with multiple entries and same inheritance
-    {if (aggregate == "symbol")
+      { if (aggregate == "symbol")
+        ## <-- conditional pipe to remove duplicate
         group_by(., symbol) %>%
+        ## genes with multiple entries and same inheritance
         mutate(., entry_date = min(entry_date)) %>%
         ungroup(.) %>%
         unique(.)
       else .
-    }
+      }
 
   # calculate summary statistics by date
   entity_view_cumsum <- entity_view_filtered %>%
