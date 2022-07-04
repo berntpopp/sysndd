@@ -2979,12 +2979,16 @@ function(n = 5) {
 #* gets database entry development over time
 #* @serializer json list(na="string")
 #' @get /api/statistics/entities_over_time
-function(res, aggregate = "entity_id", group = "category") {
+function(res,
+  aggregate = "entity_id",
+  group = "category",
+  summarise = "month",
+  filter = "") {
 
   start_time <- Sys.time()
 
   if (!(aggregate %in% c("entity_id", "symbol")) ||
-      !(group %in% c("category", "inheritance_filter"))) {
+      !(group %in% c("category", "inheritance_filter", "inheritance_multiple"))) {
     res$status <- 400
     res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
     status = 400,
@@ -2994,32 +2998,55 @@ function(res, aggregate = "entity_id", group = "category") {
     return(res)
   }
 
+  # generate filter expression based on filter input
+  filter_exprs <- generate_filter_expressions(filter)
+
   # get data from database and filter
-  # has conditional pipe to remove duplicate genes
-  # with multiple entries and same inheritance
-  sysndd_db_disease_collected  <- pool %>%
+  entity_view_coll <- pool %>%
     tbl("ndd_entity_view") %>%
+    collect() %>%
+    arrange(entry_date, entity_id) %>%
+    ## <-- arrange by entry_date 
+    group_by(symbol) %>%
+    ## <-- group by symbol
+    mutate(entities_count = n()) %>%
+    ## <-- generate entities count
+    mutate(inheritance_filter_count = n_distinct(inheritance_filter)) %>%
+    ## <-- generate inheritance_filter count
+    mutate(inheritance_multiple = str_c(
+      inheritance_filter %>% unique (),
+      collapse = " | ")
+    ) %>%
+    ## <-- concatenate inheritance_filter
+    ungroup()
+
+  # apply filters according to input
+  entity_view_filtered <- entity_view_coll %>%
+    filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+    ## <-- arrange according aggregate parameter
     arrange(!!rlang::sym(aggregate)) %>%
     select(!!rlang::sym(aggregate),
-      ndd_phenotype,
       !!rlang::sym(group),
       entry_date) %>%
-    collect() %>%
-    filter(ndd_phenotype == 1) %>%
+   # <-- conditional pipe to remove duplicate genes
+   # <-- with multiple entries and same inheritance
     {if (aggregate == "symbol")
         group_by(., symbol) %>%
         mutate(., entry_date = min(entry_date)) %>%
         ungroup(.) %>%
         unique(.)
       else .
-    } %>%
+    }
+
+  # calculate summary statistics by date
+  entity_view_cumsum <- entity_view_filtered %>%
     mutate(count = 1) %>%
     arrange(entry_date) %>%
     group_by(!!rlang::sym(group)) %>%
     summarise_by_time(
       .date_var = entry_date,
-      .by       = "month", # Setup for monthly aggregation
-      .type = "ceiling", # this is the upper bound for filtering
+      .by       = rlang::sym(summarise), # <-- Setup for monthly aggregation
+      .type = "ceiling", # <-- this is the upper bound for filtering
       # Summarization
       count  = sum(count)
     ) %>%
@@ -3028,7 +3055,7 @@ function(res, aggregate = "entity_id", group = "category") {
     mutate(entry_date = strftime(entry_date, "%Y-%m-%d"))
 
   # generate object to return
-  sysndd_db_disease_nested <- sysndd_db_disease_collected %>%
+  entity_view_nested <- entity_view_cumsum %>%
     nest_by(!!rlang::sym(group), .key = "values") %>%
     ungroup() %>%
     select("group" = !!rlang::sym(group), values)
@@ -3042,12 +3069,14 @@ function(res, aggregate = "entity_id", group = "category") {
   # generate_cursor_pag_inf function return
   meta <- tibble::as_tibble(list("aggregate" = aggregate,
     "group" = group,
-    "max_count" = max(sysndd_db_disease_collected$count),
-    "max_cumulative_count" = max(sysndd_db_disease_collected$cumulative_count),
+    "summarise" = summarise,
+    "filter" = filter,
+    "max_count" = max(entity_view_cumsum$count),
+    "max_cumulative_count" = max(entity_view_cumsum$cumulative_count),
     "executionTime" = execution_time))
 
   # generate object to return
-  list(meta = meta, data = sysndd_db_disease_nested)
+  list(meta = meta, data = entity_view_nested)
 }
 
 ## Statistics endpoints
