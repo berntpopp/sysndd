@@ -72,7 +72,14 @@
     "rules": {
       "no-console": "off",
       "no-unused-vars": "off",
-      "no-global-assign": ["error", {"exceptions": ["require"]}]
+      "no-global-assign": [
+        "error",
+        {
+          "exceptions": [
+            "require"
+          ]
+        }
+      ]
     }
   },
   "browserslist": [
