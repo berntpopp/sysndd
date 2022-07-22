@@ -82,6 +82,7 @@ send_noreply_email <- function(email_body,
     return("Request mail send!")
 }
 
+
 # generate sort expressions to parse
 generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
 
