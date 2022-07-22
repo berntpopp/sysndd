@@ -171,13 +171,13 @@
                     data.label +
                       ' (unique filtered/total values: ' +
                       fields
-                        .filter((item) => item.label == data.label)
+                        .filter((item) => item.label === data.label)
                         .map((item) => {
                           return item.count_filtered;
                         })[0] +
                       '/' +
                       fields
-                        .filter((item) => item.label == data.label)
+                        .filter((item) => item.label === data.label)
                         .map((item) => {
                           return item.count;
                         })[0] +
@@ -365,118 +365,117 @@
   </div>
 </template>
 
-
 <script>
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
-import urlParsingMixin from "@/assets/js/mixins/urlParsingMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
+import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
 
 // import the Treeselect component
-import Treeselect from "@riophae/vue-treeselect";
+import Treeselect from '@riophae/vue-treeselect';
 // import the Treeselect styles
-import "@riophae/vue-treeselect/dist/vue-treeselect.css";
+import '@riophae/vue-treeselect/dist/vue-treeselect.css';
 
 export default {
-  name: "TablesEntities",
+  name: 'TablesEntities',
   // register the Treeselect component
   components: { Treeselect },
   mixins: [toastMixin, urlParsingMixin],
   props: {
     showFilterControls: { type: Boolean, default: true },
     showPaginationControls: { type: Boolean, default: true },
-    headerLabel: { type: String, default: "Entities table" },
-    sortInput: { type: String, default: "+entity_id" },
-    filterInput: { type: String, default: "filter=" },
+    headerLabel: { type: String, default: 'Entities table' },
+    sortInput: { type: String, default: '+entity_id' },
+    filterInput: { type: String, default: 'filter=' },
     fieldsInput: { type: String, default: null },
-    pageAfterInput: { type: String, default: "" },
-    pageSizeInput: { type: String, default: "10" },
+    pageAfterInput: { type: String, default: '' },
+    pageSizeInput: { type: String, default: '10' },
     fspecInput: {
       type: String,
       default:
-        "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details",
+        'entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details',
     },
   },
   data() {
     return {
       stoplights_style: {
-        Definitive: "success",
-        Moderate: "primary",
-        Limited: "warning",
-        Refuted: "danger",
+        Definitive: 'success',
+        Moderate: 'primary',
+        Limited: 'warning',
+        Refuted: 'danger',
       },
-      ndd_icon: { No: "x", Yes: "check" },
-      ndd_icon_style: { No: "warning", Yes: "success" },
+      ndd_icon: { No: 'x', Yes: 'check' },
+      ndd_icon_style: { No: 'warning', Yes: 'success' },
       ndd_icon_text: {
-        No: "NOT associated with NDD",
-        Yes: "associated with NDD",
+        No: 'NOT associated with NDD',
+        Yes: 'associated with NDD',
       },
       inheritance_short_text: {
-        "Autosomal dominant inheritance": "AD",
-        "Autosomal recessive inheritance": "AR",
-        "Semidominant inheritance": "SD",
-        "X-linked other inheritance": "Xo",
-        "X-linked recessive inheritance": "XR",
-        "X-linked dominant inheritance": "XD",
-        "Mitochondrial inheritance": "Mit",
-        "Somatic mutation": "Som",
+        'Autosomal dominant inheritance': 'AD',
+        'Autosomal recessive inheritance': 'AR',
+        'Semidominant inheritance': 'SD',
+        'X-linked other inheritance': 'Xo',
+        'X-linked recessive inheritance': 'XR',
+        'X-linked dominant inheritance': 'XD',
+        'Mitochondrial inheritance': 'Mit',
+        'Somatic mutation': 'Som',
       },
       items: [],
       fields: [
         {
-          key: "entity_id",
-          label: "Entity",
+          key: 'entity_id',
+          label: 'Entity',
           sortable: true,
-          sortDirection: "asc",
-          class: "text-left",
+          sortDirection: 'asc',
+          class: 'text-left',
         },
         {
-          key: "symbol",
-          label: "Symbol",
+          key: 'symbol',
+          label: 'Symbol',
           sortable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "disease_ontology_name",
-          label: "Disease",
+          key: 'disease_ontology_name',
+          label: 'Disease',
           sortable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "hpo_mode_of_inheritance_term_name",
-          label: "Inheritance",
+          key: 'hpo_mode_of_inheritance_term_name',
+          label: 'Inheritance',
           sortable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "category",
-          label: "Category",
+          key: 'category',
+          label: 'Category',
           sortable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "ndd_phenotype_word",
-          label: "NDD",
+          key: 'ndd_phenotype_word',
+          label: 'NDD',
           sortable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "details",
-          label: "Details",
+          key: 'details',
+          label: 'Details',
         },
       ],
       fields_details: [
-        { key: "hgnc_id", label: "HGNC ID", class: "text-left" },
+        { key: 'hgnc_id', label: 'HGNC ID', class: 'text-left' },
         {
-          key: "disease_ontology_id_version",
-          label: "Ontology ID version",
-          class: "text-left",
+          key: 'disease_ontology_id_version',
+          label: 'Ontology ID version',
+          class: 'text-left',
         },
         {
-          key: "disease_ontology_name",
-          label: "Disease ontology name",
-          class: "text-left",
+          key: 'disease_ontology_name',
+          label: 'Disease ontology name',
+          class: 'text-left',
         },
-        { key: "entry_date", label: "Entry date", class: "text-left" },
-        { key: "synopsis", label: "Clinical Synopsis", class: "text-left" },
+        { key: 'entry_date', label: 'Entry date', class: 'text-left' },
+        { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-left' },
       ],
       totalRows: 0,
       currentPage: 1,
@@ -486,27 +485,27 @@ export default {
       lastItemID: null,
       executionTime: 0,
       perPage: this.pageSizeInput,
-      pageOptions: ["10", "25", "50", "200"],
-      sortBy: "entity_id",
+      pageOptions: ['10', '25', '50', '200'],
+      sortBy: 'entity_id',
       sortDesc: false,
       sort: this.sortInput,
       filter: {
-        any: {content: null, join_char: null, operator: 'contains'},
-        entity_id: {content: null, join_char: null, operator: 'contains'},
-        symbol: {content: null, join_char: null, operator: 'contains'},
-        disease_ontology_name: {content: null, join_char: null, operator: 'contains'},
-        disease_ontology_id_version: {content: null, join_char: null, operator: 'contains'},
-        hpo_mode_of_inheritance_term_name: {content: null, join_char: ',', operator: 'any'},
-        hpo_mode_of_inheritance_term: {content: null, join_char: ',', operator: 'any'},
-        ndd_phenotype_word: {content: null, join_char: null, operator: 'contains'},
-        category: {content: null, join_char: ',', operator: 'any'},
+        any: { content: null, join_char: null, operator: 'contains' },
+        entity_id: { content: null, join_char: null, operator: 'contains' },
+        symbol: { content: null, join_char: null, operator: 'contains' },
+        disease_ontology_name: { content: null, join_char: null, operator: 'contains' },
+        disease_ontology_id_version: { content: null, join_char: null, operator: 'contains' },
+        hpo_mode_of_inheritance_term_name: { content: null, join_char: ',', operator: 'any' },
+        hpo_mode_of_inheritance_term: { content: null, join_char: ',', operator: 'any' },
+        ndd_phenotype_word: { content: null, join_char: null, operator: 'contains' },
+        category: { content: null, join_char: ',', operator: 'any' },
       },
-      filter_string: "",
+      filter_string: '',
       filterOn: [],
       infoModal: {
-        id: "info-modal",
-        title: "",
-        content: "",
+        id: 'info-modal',
+        title: '',
+        content: '',
       },
       loading: true,
       isBusy: true,
@@ -532,7 +531,7 @@ export default {
   },
   mounted() {
     // transform input sort string to object and assign
-    let sort_object = this.sortStringToVariables(this.sortInput);
+    const sort_object = this.sortStringToVariables(this.sortInput);
     this.sortBy = sort_object.sortBy;
     this.sortDesc = sort_object.sortDesc;
 
@@ -542,22 +541,21 @@ export default {
   },
   methods: {
     copyLinkToClipboard() {
-      let urlParam =
-        "sort=" +
-        this.sort +
-        "&filter=" +
-        this.filter_string +
-        "&page_after=" +
-        this.currentItemID +
-        "&page_size=" +
-        this.perPage;
+      const urlParam = `sort=${
+        this.sort
+      }&filter=${
+        this.filter_string
+      }&page_after=${
+        this.currentItemID
+      }&page_size=${
+        this.perPage}`;
       navigator.clipboard.writeText(
-        process.env.VUE_APP_URL + this.$route.path + "?" + urlParam
+        `${process.env.VUE_APP_URL + this.$route.path}?${urlParam}`,
       );
     },
     handleSortByOrDescChange() {
       this.currentItemID = 0;
-      this.sort = (!this.sortDesc ? "-" : "+") + this.sortBy;
+      this.sort = (!this.sortDesc ? '-' : '+') + this.sortBy;
       this.filtered();
     },
     handlePerPageChange() {
@@ -565,10 +563,10 @@ export default {
       this.filtered();
     },
     handlePageChange(value) {
-      if (value == 1) {
+      if (value === 1) {
         this.currentItemID = 0;
         this.filtered();
-      } else if (value == this.totalPages) {
+      } else if (value === this.totalPages) {
         this.currentItemID = this.lastItemID;
         this.filtered();
       } else if (value > this.currentPage) {
@@ -585,39 +583,38 @@ export default {
     },
     removeFilters() {
       this.filter = {
-        any: {content: null, join_char: null, operator: 'contains'},
-        entity_id: {content: null, join_char: null, operator: 'contains'},
-        symbol: {content: null, join_char: null, operator: 'contains'},
-        disease_ontology_name: {content: null, join_char: null, operator: 'contains'},
-        disease_ontology_id_version: {content: null, join_char: null, operator: 'contains'},
-        hpo_mode_of_inheritance_term_name: {content: null, join_char: ',', operator: 'any'},
-        hpo_mode_of_inheritance_term: {content: null, join_char: ',', operator: 'any'},
-        ndd_phenotype_word: {content: null, join_char: null, operator: 'contains'},
-        category: {content: null, join_char: ',', operator: 'any'},
+        any: { content: null, join_char: null, operator: 'contains' },
+        entity_id: { content: null, join_char: null, operator: 'contains' },
+        symbol: { content: null, join_char: null, operator: 'contains' },
+        disease_ontology_name: { content: null, join_char: null, operator: 'contains' },
+        disease_ontology_id_version: { content: null, join_char: null, operator: 'contains' },
+        hpo_mode_of_inheritance_term_name: { content: null, join_char: ',', operator: 'any' },
+        hpo_mode_of_inheritance_term: { content: null, join_char: ',', operator: 'any' },
+        ndd_phenotype_word: { content: null, join_char: null, operator: 'contains' },
+        category: { content: null, join_char: ',', operator: 'any' },
       };
     },
     removeSearch() {
-      this.filter["any"].content = null;
+      this.filter.any.content = null;
     },
     async loadEntitiesData() {
       this.isBusy = true;
 
-      const urlParam =
-        "sort=" +
-        this.sort +
-        "&filter=" +
-        this.filter_string +
-        "&page_after=" +
-        this.currentItemID +
-        "&page_size=" +
-        this.perPage;
+      const urlParam = `sort=${
+        this.sort
+      }&filter=${
+        this.filter_string
+      }&page_after=${
+        this.currentItemID
+      }&page_size=${
+        this.perPage}`;
 
-      const apiUrl = process.env.VUE_APP_API_URL + 
-        "/api/entity?" +
-        urlParam;
+      const apiUrl = `${process.env.VUE_APP_API_URL
+      }/api/entity?${
+        urlParam}`;
 
       try {
-        let response = await this.axios.get(apiUrl);
+        const response = await this.axios.get(apiUrl);
         this.items = response.data.data;
 
         this.totalRows = response.data.meta[0].totalItems;
@@ -632,7 +629,7 @@ export default {
 
         this.isBusy = false;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     normalizer(node) {
@@ -642,12 +639,11 @@ export default {
       };
     },
     truncate(str, n) {
-      return str.length > n ? str.substr(0, n - 1) + "..." : str;
+      return str.length > n ? `${str.substr(0, n - 1)}...` : str;
     },
   },
 };
 </script>
-
 
 <style scoped>
 .btn-group-xs > .btn,

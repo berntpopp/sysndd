@@ -26,7 +26,7 @@
                   class="border-dark"
                   list="search-list"
                   type="search"
-                  placeholder="Search the SysNDD-db by genes, entities and diseases using names or identifiers"
+                  placeholder="Search by genes, entities and diseases using names or identifiers"
                   size="md"
                   autocomplete="off"
                   @input="loadSearchInfo"
@@ -611,63 +611,63 @@
 </template>
 
 <script>
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
-  name: "Home",
+  name: 'Home',
   mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
-    title: "Home",
+    title: 'Home',
     // all titles will be injected into this template
     titleTemplate:
-      "%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
     htmlAttrs: {
-      lang: "en",
+      lang: 'en',
     },
     meta: [
       {
-        vmid: "description",
-        name: "description",
+        vmid: 'description',
+        name: 'description',
         content:
-          "The Home view shows current information about NDD (attention-deficit/hyperactivity disorder (ADHD), autism, learning disabilities, intellectual disability) entities .",
+          'The Home view shows current information about NDD (attention-deficit/hyperactivity disorder (ADHD), autism, learning disabilities, intellectual disability) entities .',
       },
       {
-        vmid: "keywords",
-        name: "keywords",
+        vmid: 'keywords',
+        name: 'keywords',
         content:
-          "neurodevelopmental disorders, NDD, autism, ASD, learning disabilities, intellectual disability, ID, attention-deficit/hyperactivity disorder, ADHD",
+          'neurodevelopmental disorders, NDD, autism, ASD, learning disabilities, intellectual disability, ID, attention-deficit/hyperactivity disorder, ADHD',
       },
-      { vmid: "author", name: "author", content: "SysNDD database" },
+      { vmid: 'author', name: 'author', content: 'SysNDD database' },
     ],
   },
   data() {
     return {
       stoplights_style: {
-        Definitive: "success",
-        Moderate: "primary",
-        Limited: "warning",
-        Refuted: "danger",
+        Definitive: 'success',
+        Moderate: 'primary',
+        Limited: 'warning',
+        Refuted: 'danger',
       },
-      ndd_icon: { No: "x", Yes: "check" },
-      ndd_icon_style: { No: "warning", Yes: "success" },
+      ndd_icon: { No: 'x', Yes: 'check' },
+      ndd_icon_style: { No: 'warning', Yes: 'success' },
       ndd_icon_text: {
-        No: "NOT associated with NDD",
-        Yes: "associated with NDD",
+        No: 'NOT associated with NDD',
+        Yes: 'associated with NDD',
       },
       inheritance_short_text: {
-        "Autosomal dominant": "AD",
-        "Autosomal recessive": "AR",
-        "X-linked": "X",
-        "Other": "M/S",
+        'Autosomal dominant': 'AD',
+        'Autosomal recessive': 'AR',
+        'X-linked': 'X',
+        Other: 'M/S',
       },
       inheritance_link: {
-        "Autosomal dominant": ["Autosomal dominant inheritance"],
-        "Autosomal recessive": ["Autosomal recessive inheritance"],
-        "X-linked": ["X-linked other inheritance", "X-linked recessive inheritance", "X-linked dominant inheritance"],
-        "Other": ["Mitochondrial inheritance", "Somatic mutation"],
+        'Autosomal dominant': ['Autosomal dominant inheritance'],
+        'Autosomal recessive': ['Autosomal recessive inheritance'],
+        'X-linked': ['X-linked other inheritance', 'X-linked recessive inheritance', 'X-linked dominant inheritance'],
+        Other: ['Mitochondrial inheritance', 'Somatic mutation'],
       },
-      search_input: "",
+      search_input: '',
       search_keys: [],
       search_object: {},
       entity_statistics: {
@@ -689,52 +689,52 @@ export default {
         data: [],
       },
       statistics_fields: [
-        { key: "category", label: "Category", class: "text-left" },
-        { key: "n", label: "Count", class: "text-left" },
-        { key: "actions", label: "Details" },
+        { key: 'category', label: 'Category', class: 'text-left' },
+        { key: 'n', label: 'Count', class: 'text-left' },
+        { key: 'actions', label: 'Details' },
       ],
       statistics_details_fields: [
-        { key: "inheritance", label: "Inheritance" },
-        { key: "n", label: "Count", class: "text-left" },
+        { key: 'inheritance', label: 'Inheritance' },
+        { key: 'n', label: 'Count', class: 'text-left' },
       ],
       last_update: null,
       news: [],
       news_fields: [
         {
-          key: "entity_id",
-          label: "Entity",
-          class: "text-left",
-          width: "20%",
+          key: 'entity_id',
+          label: 'Entity',
+          class: 'text-left',
+          width: '20%',
         },
         {
-          key: "symbol",
-          label: "Symbol",
-          class: "text-left",
-          width: "15%",
+          key: 'symbol',
+          label: 'Symbol',
+          class: 'text-left',
+          width: '15%',
         },
         {
-          key: "disease_ontology_name",
-          label: "Disease",
-          class: "text-left",
-          width: "30%",
+          key: 'disease_ontology_name',
+          label: 'Disease',
+          class: 'text-left',
+          width: '30%',
         },
         {
-          key: "inheritance_filter",
-          label: "Inh.",
-          class: "text-left",
-          width: "10%",
+          key: 'inheritance_filter',
+          label: 'Inh.',
+          class: 'text-left',
+          width: '10%',
         },
         {
-          key: "category",
-          label: "Category",
-          class: "text-left",
-          width: "15%",
+          key: 'category',
+          label: 'Category',
+          class: 'text-left',
+          width: '15%',
         },
         {
-          key: "ndd_phenotype_word",
-          label: "NDD",
-          class: "text-left",
-          width: "10%",
+          key: 'ndd_phenotype_word',
+          label: 'NDD',
+          class: 'text-left',
+          width: '10%',
         },
       ],
       loading: false,
@@ -756,33 +756,31 @@ export default {
       },
       // fetch the data when the view is created and the data is
       // already being observed
-      { immediate: true }
+      { immediate: true },
     );
   },
   methods: {
     checkBanner() {
-      this.banner_acknowledged = localStorage.getItem("banner_acknowledged");
+      this.banner_acknowledged = localStorage.getItem('banner_acknowledged');
     },
     acknowledgeBanner() {
-      localStorage.setItem("banner_acknowledged", true);
-      this.banner_acknowledged = localStorage.getItem("banner_acknowledged");
+      localStorage.setItem('banner_acknowledged', true);
+      this.banner_acknowledged = localStorage.getItem('banner_acknowledged');
     },
     async loadStatistics() {
       this.loading_statistics = true;
 
-      let apiStatisticsGenesURL =
-        process.env.VUE_APP_API_URL + "/api/statistics/category_count?type=gene";
+      const apiStatisticsGenesURL = `${process.env.VUE_APP_API_URL}/api/statistics/category_count?type=gene`;
 
-      let apiStatisticsEntityURL =
-        process.env.VUE_APP_API_URL + "/api/statistics/category_count?type=entity";
+      const apiStatisticsEntityURL = `${process.env.VUE_APP_API_URL}/api/statistics/category_count?type=entity`;
 
       try {
-        let response_statistics_gene = await this.axios.get(
-          apiStatisticsGenesURL
+        const response_statistics_gene = await this.axios.get(
+          apiStatisticsGenesURL,
         );
 
-        let response_statistics_entity = await this.axios.get(
-          apiStatisticsEntityURL
+        const response_statistics_entity = await this.axios.get(
+          apiStatisticsEntityURL,
         );
 
         this.gene_statistics = response_statistics_gene.data;
@@ -790,67 +788,67 @@ export default {
         this.entity_statistics = response_statistics_entity.data;
 
         const date_last_update = new Date(
-          response_statistics_gene.data.meta[0].last_update
+          response_statistics_gene.data.meta[0].last_update,
         );
         this.last_update = date_last_update.toLocaleDateString();
 
         this.loading_statistics = false;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async loadNews() {
       this.loading_news = true;
 
-      let apiNewsURL = process.env.VUE_APP_API_URL + "/api/statistics/news?n=5";
+      const apiNewsURL = `${process.env.VUE_APP_API_URL}/api/statistics/news?n=5`;
 
       try {
-        let response_news = await this.axios.get(apiNewsURL);
+        const response_news = await this.axios.get(apiNewsURL);
 
         this.news = response_news.data;
 
         this.loading_news = false;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async loadSearchInfo() {
       if (this.search_input.length > 0) {
-        let apiSearchURL =
-          process.env.VUE_APP_API_URL +
-          "/api/search/" +
-          this.search_input +
-          "?helper=true";
+        const apiSearchURL = `${process.env.VUE_APP_API_URL
+        }/api/search/${
+          this.search_input
+        }?helper=true`;
         try {
-          let response_search = await this.axios.get(apiSearchURL);
-          this.search_object = response_search.data[0];
+          const response_search = await this.axios.get(apiSearchURL);
+          let rest;
+          [this.search_object, ...rest] = response_search.data;
           this.search_keys = Object.keys(response_search.data[0]);
         } catch (e) {
-          this.makeToast(e, "Error", "danger");
+          this.makeToast(e, 'Error', 'danger');
         }
       }
     },
     keydown_handler(event) {
       if (
-        ((event.which === 13) | (event.which === 1)) &
-        (this.search_input.length > 0) &
-        !(this.search_object[this.search_input] == null)
+        ((event.which === 13) || (event.which === 1))
+        && (this.search_input.length > 0)
+        && !(this.search_object[this.search_input] === undefined)
       ) {
         this.$router.push(this.search_object[this.search_input][0].link);
-        this.search_input = "";
+        this.search_input = '';
         this.search_keys = [];
       } else if (
-        ((event.which === 13) | (event.which === 1)) &
-        (this.search_input.length > 0) &
-        (this.search_object[this.search_input] == null)
+        ((event.which === 13) || (event.which === 1))
+        && (this.search_input.length > 0)
+        && (this.search_object[this.search_input] === undefined)
       ) {
-        this.$router.push("/Search/" + this.search_input);
-        this.search_input = "";
+        this.$router.push(`/Search/${this.search_input}`);
+        this.search_input = '';
         this.search_keys = [];
       }
     },
     truncate(str, n) {
-      return str.length > n ? str.substr(0, n - 1) + "..." : str;
+      return str.length > n ? `${str.substr(0, n - 1)}...` : str;
     },
   },
 };

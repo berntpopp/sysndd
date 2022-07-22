@@ -376,98 +376,97 @@
   </b-container>
 </template>
 
-
 <script>
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
-import urlParsingMixin from "@/assets/js/mixins/urlParsingMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
+import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
 
 export default {
-  name: "AnalysesCurationComparisonsTable",
+  name: 'AnalysesCurationComparisonsTable',
   // register the Treeselect component
   components: {},
   mixins: [toastMixin, urlParsingMixin],
   props: {
     showFilterControls: { type: Boolean, default: true },
     showPaginationControls: { type: Boolean, default: true },
-    sortInput: { type: String, default: "+symbol" },
-    filterInput: { type: String, default: "filter=" },
+    sortInput: { type: String, default: '+symbol' },
+    filterInput: { type: String, default: 'filter=' },
     fieldsInput: { type: String, default: null },
-    pageAfterInput: { type: String, default: "" },
-    pageSizeInput: { type: String, default: "10" },
+    pageAfterInput: { type: String, default: '' },
+    pageSizeInput: { type: String, default: '10' },
     fspecInput: {
       type: String,
       default:
-        "symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id",
+        'symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id',
     },
   },
   data() {
     return {
-      yn_icon: { no: "x", yes: "check" },
-      yn_icon_style: { no: "warning", yes: "success" },
+      yn_icon: { no: 'x', yes: 'check' },
+      yn_icon_style: { no: 'warning', yes: 'success' },
       items: [],
       fields: [
         {
-          key: "symbol",
-          label: "Symbol",
+          key: 'symbol',
+          label: 'Symbol',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "SysNDD",
-          label: "SysNDD",
+          key: 'SysNDD',
+          label: 'SysNDD',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "radboudumc_ID",
-          label: "Radboud UMC ID",
+          key: 'radboudumc_ID',
+          label: 'Radboud UMC ID',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "gene2phenotype",
-          label: "gene2phenotype",
+          key: 'gene2phenotype',
+          label: 'gene2phenotype',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "panelapp",
-          label: "PanelApp",
+          key: 'panelapp',
+          label: 'PanelApp',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "sfari",
-          label: "SFARI",
+          key: 'sfari',
+          label: 'SFARI',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "geisinger_DBD",
-          label: "Geisinger DBD",
+          key: 'geisinger_DBD',
+          label: 'Geisinger DBD',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "omim_ndd",
-          label: "OMIM NDD",
+          key: 'omim_ndd',
+          label: 'OMIM NDD',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "orphanet_id",
-          label: "Orphanet ID",
+          key: 'orphanet_id',
+          label: 'Orphanet ID',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
       ],
       totalRows: 0,
@@ -478,23 +477,23 @@ export default {
       lastItemID: null,
       executionTime: 0,
       perPage: this.pageSizeInput,
-      pageOptions: ["10", "25", "50", "200"],
-      sortBy: "symbol",
+      pageOptions: ['10', '25', '50', '200'],
+      sortBy: 'symbol',
       sortDesc: false,
       sort: this.sortInput,
       filter: {
-        any: {content: null, join_char: null, operator: 'contains'},
-        symbol: {content: null, join_char: null, operator: 'contains'},
-        SysNDD: {content: null, join_char: null, operator: 'contains'},
-        radboudumc_ID: {content: null, join_char: null, operator: 'contains'},
-        gene2phenotype: {content: null, join_char: null, operator: 'contains'},
-        panelapp: {content: null, join_char: null, operator: 'contains'},
-        sfari: {content: null, join_char: null, operator: 'contains'},
-        geisinger_DBD: {content: null, join_char: null, operator: 'contains'},
-        omim_ndd: {content: null, join_char: null, operator: 'contains'},
-        orphanet_id: {content: null, join_char: null, operator: 'contains'},
+        any: { content: null, join_char: null, operator: 'contains' },
+        symbol: { content: null, join_char: null, operator: 'contains' },
+        SysNDD: { content: null, join_char: null, operator: 'contains' },
+        radboudumc_ID: { content: null, join_char: null, operator: 'contains' },
+        gene2phenotype: { content: null, join_char: null, operator: 'contains' },
+        panelapp: { content: null, join_char: null, operator: 'contains' },
+        sfari: { content: null, join_char: null, operator: 'contains' },
+        geisinger_DBD: { content: null, join_char: null, operator: 'contains' },
+        omim_ndd: { content: null, join_char: null, operator: 'contains' },
+        orphanet_id: { content: null, join_char: null, operator: 'contains' },
       },
-      filter_string: "",
+      filter_string: '',
       filterOn: [],
       selection: null,
       loadingUpset: true,
@@ -526,7 +525,7 @@ export default {
   },
   mounted() {
     // transform input sort string to object and assign
-    let sort_object = this.sortStringToVariables(this.sortInput);
+    const sort_object = this.sortStringToVariables(this.sortInput);
     this.sortBy = sort_object.sortBy;
     this.sortDesc = sort_object.sortDesc;
 
@@ -536,38 +535,36 @@ export default {
   },
   methods: {
     copyLinkToClipboard() {
-      let urlParam =
-        "sort=" +
-        this.sort +
-        "&filter=" +
-        this.filter_string +
-        "&page_after=" +
-        this.currentItemID +
-        "&page_size=" +
-        this.perPage;
+      const urlParam = `sort=${
+        this.sort
+      }&filter=${
+        this.filter_string
+      }&page_after=${
+        this.currentItemID
+      }&page_size=${
+        this.perPage}`;
       navigator.clipboard.writeText(
-        process.env.VUE_APP_URL + this.$route.path + "?" + urlParam
+        `${process.env.VUE_APP_URL + this.$route.path}?${urlParam}`,
       );
     },
     async loadTableData() {
       this.isBusy = true;
 
-      const urlParam =
-        "sort=" +
-        this.sort +
-        "&filter=" +
-        this.filter_string +
-        "&page_after=" +
-        this.currentItemID +
-        "&page_size=" +
-        this.perPage;
+      const urlParam = `sort=${
+        this.sort
+      }&filter=${
+        this.filter_string
+      }&page_after=${
+        this.currentItemID
+      }&page_size=${
+        this.perPage}`;
 
-      const apiUrl = process.env.VUE_APP_API_URL + 
-        "/api/comparisons/browse?" +
-        urlParam;
+      const apiUrl = `${process.env.VUE_APP_API_URL
+      }/api/comparisons/browse?${
+        urlParam}`;
 
       try {
-        let response = await this.axios.get(apiUrl);
+        const response = await this.axios.get(apiUrl);
         this.items = response.data.data;
 
         this.totalRows = response.data.meta[0].totalItems;
@@ -582,50 +579,49 @@ export default {
 
         this.isBusy = false;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async requestExcel() {
       this.downloading = true;
 
-      const urlParam =
-        "sort=" +
-        this.sort +
-        "&filter=" +
-        this.filter_string +
-        "&page_after=" +
-        "0" +
-        "&page_size=" +
-        "all";
+      const urlParam = `sort=${
+        this.sort
+      }&filter=${
+        this.filter_string
+      }&page_after=`
+        + '0'
+        + '&page_size='
+        + 'all';
 
-      const apiUrl = process.env.VUE_APP_API_URL + 
-        "/api/comparisons/excel?" +
-        urlParam;
+      const apiUrl = `${process.env.VUE_APP_API_URL
+      }/api/comparisons/excel?${
+        urlParam}`;
 
       try {
-        let response = await this.axios({
+        const response = await this.axios({
           url: apiUrl,
-          method: "GET",
-          responseType: "blob",
-        }).then((response) => {
-          var fileURL = window.URL.createObjectURL(new Blob([response.data]));
-          var fileLink = document.createElement("a");
-
-          fileLink.href = fileURL;
-          fileLink.setAttribute("download", "curation_comparisons.xlsx");
-          document.body.appendChild(fileLink);
-
-          fileLink.click();
+          method: 'GET',
+          responseType: 'blob',
         });
+
+        const fileURL = window.URL.createObjectURL(new Blob([response.data]));
+        const fileLink = document.createElement('a');
+
+        fileLink.href = fileURL;
+        fileLink.setAttribute('download', 'curation_comparisons.xlsx');
+        document.body.appendChild(fileLink);
+
+        fileLink.click();
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
 
       this.downloading = false;
     },
     handleSortByOrDescChange() {
       this.currentItemID = 0;
-      this.sort = (!this.sortDesc ? "-" : "+") + this.sortBy;
+      this.sort = (!this.sortDesc ? '-' : '+') + this.sortBy;
       this.filtered();
     },
     handlePerPageChange() {
@@ -633,10 +629,10 @@ export default {
       this.filtered();
     },
     handlePageChange(value) {
-      if (value == 1) {
+      if (value === 1) {
         this.currentItemID = 0;
         this.filtered();
-      } else if (value == this.totalPages) {
+      } else if (value === this.totalPages) {
         this.currentItemID = this.lastItemID;
         this.filtered();
       } else if (value > this.currentPage) {
@@ -653,28 +649,27 @@ export default {
     },
     removeFilters() {
       this.filter = {
-        any: {content: null, join_char: null, operator: 'contains'},
-        symbol: {content: null, join_char: null, operator: 'contains'},
-        SysNDD: {content: null, join_char: null, operator: 'contains'},
-        radboudumc_ID: {content: null, join_char: null, operator: 'contains'},
-        gene2phenotype: {content: null, join_char: null, operator: 'contains'},
-        panelapp: {content: null, join_char: null, operator: 'contains'},
-        sfari: {content: null, join_char: null, operator: 'contains'},
-        geisinger_DBD: {content: null, join_char: null, operator: 'contains'},
-        omim_ndd: {content: null, join_char: null, operator: 'contains'},
-        orphanet_id: {content: null, join_char: null, operator: 'contains'},
+        any: { content: null, join_char: null, operator: 'contains' },
+        symbol: { content: null, join_char: null, operator: 'contains' },
+        SysNDD: { content: null, join_char: null, operator: 'contains' },
+        radboudumc_ID: { content: null, join_char: null, operator: 'contains' },
+        gene2phenotype: { content: null, join_char: null, operator: 'contains' },
+        panelapp: { content: null, join_char: null, operator: 'contains' },
+        sfari: { content: null, join_char: null, operator: 'contains' },
+        geisinger_DBD: { content: null, join_char: null, operator: 'contains' },
+        omim_ndd: { content: null, join_char: null, operator: 'contains' },
+        orphanet_id: { content: null, join_char: null, operator: 'contains' },
       };
     },
     removeSearch() {
-      this.filter["any"].content = null;
+      this.filter.any.content = null;
     },
     truncate(str, n) {
-      return str.length > n ? str.substr(0, n - 1) + "..." : str;
+      return str.length > n ? `${str.substr(0, n - 1)}...` : str;
     },
   },
 };
 </script>
-
 
 <style scoped>
 .btn-group-xs > .btn,

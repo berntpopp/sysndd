@@ -75,14 +75,13 @@
   </b-container>
 </template>
 
-
 <script>
 export default {
-  name: "HelperBadge",
+  name: 'HelperBadge',
   data() {
     return {
-      name: "HelperBadge",
-      path: "",
+      name: 'HelperBadge',
+      path: '',
     };
   },
   watch: {
@@ -103,7 +102,6 @@ export default {
 };
 </script>
 
-
 <style scoped>
 .float {
   position: fixed;
@@ -117,13 +115,13 @@ export default {
   text-align: center;
   box-shadow: 2px 2px 3px #999;
 }
-::v-deep .dropdown-menu {
+:deep(.dropdown-menu) {
   background-color: transparent !important;
   min-width: 50px;
   border: 0px;
   outline: 0px;
 }
-::v-deep .dropdown-item:hover {
+:deep(.dropdown-item:hover) {
   background-color: #fff !important;
   color: #000 !important;
 }

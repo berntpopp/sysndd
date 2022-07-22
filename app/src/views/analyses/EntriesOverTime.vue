@@ -20,31 +20,30 @@
   </div>
 </template>
 
-
 <script>
-import AnalysesTimePlot from "@/components/analyses/AnalysesTimePlot.vue";
+import AnalysesTimePlot from '@/components/analyses/AnalysesTimePlot.vue';
 
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
-  name: "EntriesOverTime",
+  name: 'EntriesOverTime',
   components: { AnalysesTimePlot },
   mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
-    title: "Entries over time",
+    title: 'Entries over time',
     // all titles will be injected into this template
     titleTemplate:
-      "%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
     htmlAttrs: {
-      lang: "en",
+      lang: 'en',
     },
     meta: [
       {
-        vmid: "description",
-        name: "description",
+        vmid: 'description',
+        name: 'description',
         content:
-          "This analysis shows the development of database entries over time for neurodevelopmental disorders curated in SysNDD.",
+          'This analysis shows the development of database entries over time for neurodevelopmental disorders curated in SysNDD.',
       },
     ],
   },
@@ -57,7 +56,6 @@ export default {
   methods: {},
 };
 </script>
-
 
 <style scoped>
 </style>

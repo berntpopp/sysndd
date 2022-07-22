@@ -1,4 +1,4 @@
-FROM node:14.19.3-bullseye as builder
+FROM node:16.16.0-bullseye as builder
 # make the 'app' folder the current working directory
 WORKDIR /app
 # copy both 'package.json' and 'package-lock.json' (if available)

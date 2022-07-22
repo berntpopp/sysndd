@@ -272,94 +272,94 @@
 </template>
 
 <script>
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
-  name: "Entity",
+  name: 'Entity',
   mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
-    title: "Entity",
+    title: 'Entity',
     // all titles will be injected into this template
     titleTemplate:
-      "%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
     htmlAttrs: {
-      lang: "en",
+      lang: 'en',
     },
     meta: [
       {
-        vmid: "description",
-        name: "description",
-        content: "This Entity view shows specific information for an entity.",
+        vmid: 'description',
+        name: 'description',
+        content: 'This Entity view shows specific information for an entity.',
       },
     ],
   },
   data() {
     return {
       stoplights_style: {
-        Definitive: "success",
-        Moderate: "primary",
-        Limited: "warning",
-        Refuted: "danger",
+        Definitive: 'success',
+        Moderate: 'primary',
+        Limited: 'warning',
+        Refuted: 'danger',
       },
-      ndd_icon: { No: "x", Yes: "check" },
-      ndd_icon_style: { No: "warning", Yes: "success" },
+      ndd_icon: { No: 'x', Yes: 'check' },
+      ndd_icon_style: { No: 'warning', Yes: 'success' },
       ndd_icon_text: {
-        No: "NOT associated with NDD",
-        Yes: "associated with NDD",
+        No: 'NOT associated with NDD',
+        Yes: 'associated with NDD',
       },
       inheritance_short_text: {
-        "Autosomal dominant inheritance": "AD",
-        "Autosomal recessive inheritance": "AR",
-        "X-linked other inheritance": "Xo",
-        "X-linked recessive inheritance": "XR",
-        "X-linked dominant inheritance": "XD",
-        "Mitochondrial inheritance": "Mit",
-        "Somatic mutation": "Som",
+        'Autosomal dominant inheritance': 'AD',
+        'Autosomal recessive inheritance': 'AR',
+        'X-linked other inheritance': 'Xo',
+        'X-linked recessive inheritance': 'XR',
+        'X-linked dominant inheritance': 'XD',
+        'Mitochondrial inheritance': 'Mit',
+        'Somatic mutation': 'Som',
       },
       entity: [],
       entity_fields: [
         {
-          key: "symbol",
-          label: "Gene Symbol",
+          key: 'symbol',
+          label: 'Gene Symbol',
           sortable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "disease_ontology_name",
-          label: "Disease",
+          key: 'disease_ontology_name',
+          label: 'Disease',
           sortable: true,
-          class: "text-left",
+          class: 'text-left',
           sortByFormatted: true,
           filterByFormatted: true,
         },
         {
-          key: "hpo_mode_of_inheritance_term_name",
-          label: "Inheritance",
+          key: 'hpo_mode_of_inheritance_term_name',
+          label: 'Inheritance',
           sortable: true,
-          class: "text-left",
+          class: 'text-left',
           sortByFormatted: true,
           filterByFormatted: true,
         },
         {
-          key: "ndd_phenotype_word",
-          label: "NDD",
+          key: 'ndd_phenotype_word',
+          label: 'NDD',
           sortable: true,
-          class: "text-left",
+          class: 'text-left',
         },
       ],
       status: [],
       status_fields: [
-        { key: "category", label: "Association Category", class: "text-left" },
+        { key: 'category', label: 'Association Category', class: 'text-left' },
       ],
       review: [],
       review_fields: [
-        { key: "synopsis", label: "Clinical Synopsis", class: "text-left" },
+        { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-left' },
       ],
       publications: [],
-      publications_table: [{ publications: "" }],
+      publications_table: [{ publications: '' }],
       phenotypes: [],
-      phenotypes_table: [{ phenotypes: "" }],
+      phenotypes_table: [{ phenotypes: '' }],
       loading: true,
     };
   },
@@ -370,59 +370,54 @@ export default {
     async loadEntity() {
       this.loading = true;
 
-      let apiEntityURL =
-        process.env.VUE_APP_API_URL +
-        "/api/entity?filter=equals(entity_id," +
-        this.$route.params.entity_id +
-        ")";
+      const apiEntityURL = `${process.env.VUE_APP_API_URL
+      }/api/entity?filter=equals(entity_id,${
+        this.$route.params.entity_id
+      })`;
 
       try {
-        let response_entity = await this.axios.get(apiEntityURL);
+        const response_entity = await this.axios.get(apiEntityURL);
         this.entity = response_entity.data.data;
 
         if (this.entity.length === 0) {
-          this.$router.push("/PageNotFound");
+          this.$router.push('/PageNotFound');
         } else {
           this.loadEntityInfo();
         }
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async loadEntityInfo() {
-      let apiStatusURL =
-        process.env.VUE_APP_API_URL +
-        "/api/entity/" +
-        this.$route.params.entity_id +
-        "/status";
-      let apiReviewURL =
-        process.env.VUE_APP_API_URL +
-        "/api/entity/" +
-        this.$route.params.entity_id +
-        "/review";
-      let apiPublicationsURL =
-        process.env.VUE_APP_API_URL +
-        "/api/entity/" +
-        this.$route.params.entity_id +
-        "/publications";
-      let apiPhenotypesURL =
-        process.env.VUE_APP_API_URL +
-        "/api/entity/" +
-        this.$route.params.entity_id +
-        "/phenotypes";
+      const apiStatusURL = `${process.env.VUE_APP_API_URL
+      }/api/entity/${
+        this.$route.params.entity_id
+      }/status`;
+      const apiReviewURL = `${process.env.VUE_APP_API_URL
+      }/api/entity/${
+        this.$route.params.entity_id
+      }/review`;
+      const apiPublicationsURL = `${process.env.VUE_APP_API_URL
+      }/api/entity/${
+        this.$route.params.entity_id
+      }/publications`;
+      const apiPhenotypesURL = `${process.env.VUE_APP_API_URL
+      }/api/entity/${
+        this.$route.params.entity_id
+      }/phenotypes`;
 
       try {
-        let response_status = await this.axios.get(apiStatusURL);
-        let response_review = await this.axios.get(apiReviewURL);
-        let response_publications = await this.axios.get(apiPublicationsURL);
-        let response_phenotypes = await this.axios.get(apiPhenotypesURL);
+        const response_status = await this.axios.get(apiStatusURL);
+        const response_review = await this.axios.get(apiReviewURL);
+        const response_publications = await this.axios.get(apiPublicationsURL);
+        const response_phenotypes = await this.axios.get(apiPhenotypesURL);
 
         this.status = response_status.data;
         this.review = response_review.data;
         this.publications = response_publications.data;
         this.phenotypes = response_phenotypes.data;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
 
       this.loading = false;
@@ -430,7 +425,6 @@ export default {
   },
 };
 </script>
-
 
 <style scoped>
 .btn-group-xs > .btn,

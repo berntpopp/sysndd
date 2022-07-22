@@ -391,129 +391,131 @@
   </div>
 </template>
 
-
 <script>
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
-import submissionObjectsMixin from "@/assets/js/mixins/submissionObjectsMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
+
+import {
+  Status,
+} from '@/assets/js/mixins/submissionObjectsMixin';
 
 // import the Treeselect component
-import Treeselect from "@riophae/vue-treeselect";
+import Treeselect from '@riophae/vue-treeselect';
 // import the Treeselect styles
-import "@riophae/vue-treeselect/dist/vue-treeselect.css";
+import '@riophae/vue-treeselect/dist/vue-treeselect.css';
 
 export default {
-  name: "ApproveStatus",
+  name: 'ApproveStatus',
   // register the Treeselect component
   components: { Treeselect },
-  mixins: [toastMixin, submissionObjectsMixin],
+  mixins: [toastMixin],
   data() {
     return {
       stoplights_style: {
-        Definitive: "success",
-        Moderate: "primary",
-        Limited: "warning",
-        Refuted: "danger",
+        Definitive: 'success',
+        Moderate: 'primary',
+        Limited: 'warning',
+        Refuted: 'danger',
       },
-      problematic_style: { 0: "success", 1: "danger" },
-      problematic_symbol: { 0: "check-square", 1: "question-square" },
+      problematic_style: { 0: 'success', 1: 'danger' },
+      problematic_symbol: { 0: 'check-square', 1: 'question-square' },
       problematic_text: {
-        0: "No problems",
-        1: "Entitiy status marked problematic",
+        0: 'No problems',
+        1: 'Entitiy status marked problematic',
       },
       items_StatusTable: [],
       fields_StatusTable: [
         {
-          key: "entity_id",
-          label: "Entity",
+          key: 'entity_id',
+          label: 'Entity',
           sortable: true,
           filterable: true,
-          sortDirection: "desc",
-          class: "text-left",
+          sortDirection: 'desc',
+          class: 'text-left',
         },
         {
-          key: "category",
-          label: "Category",
+          key: 'category',
+          label: 'Category',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "comment",
-          label: "Comment",
+          key: 'comment',
+          label: 'Comment',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "problematic",
-          label: "Problematic",
+          key: 'problematic',
+          label: 'Problematic',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
-        { key: "actions", label: "Actions" },
+        { key: 'actions', label: 'Actions' },
       ],
       fields_details_StatusTable: [
         {
-          key: "status_id",
-          label: "Status ID",
+          key: 'status_id',
+          label: 'Status ID',
           sortable: true,
           filterable: true,
-          sortDirection: "desc",
-          class: "text-left",
+          sortDirection: 'desc',
+          class: 'text-left',
         },
         {
-          key: "status_date",
-          label: "Status date",
+          key: 'status_date',
+          label: 'Status date',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "status_user_name",
-          label: "Status user",
+          key: 'status_user_name',
+          label: 'Status user',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "is_active",
-          label: "Active",
+          key: 'is_active',
+          label: 'Active',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "comment",
-          label: "Comment",
+          key: 'comment',
+          label: 'Comment',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
       ],
       statusModal: {
-        id: "status-modal",
-        title: "",
+        id: 'status-modal',
+        title: '',
         content: [],
       },
-      status_info: new this.Status(),
+      status_info: new Status(),
       status_options: [],
       totalRows: 0,
       currentPage: 1,
-      perPage: "10",
-      pageOptions: ["10", "25", "50", "200"],
-      sortBy: "",
+      perPage: '10',
+      pageOptions: ['10', '25', '50', '200'],
+      sortBy: '',
       sortDesc: false,
-      sortDirection: "asc",
+      sortDirection: 'asc',
       filter: null,
       filterOn: [],
       approveModal: {
-        id: "approve-modal",
-        title: "",
+        id: 'approve-modal',
+        title: '',
         content: [],
       },
       approve_all_selected: false,
-      switch_approve_text: { true: "Yes", false: "No" },
+      switch_approve_text: { true: 'Yes', false: 'No' },
       loading_status_approve: true,
       loading_status_modal: true,
       isBusy: true,
@@ -525,29 +527,29 @@ export default {
   methods: {
     async loadStatusList() {
       this.loading_status_approve = true;
-      let apiUrl = process.env.VUE_APP_API_URL + "/api/list/status?tree=true";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/status?tree=true`;
       try {
-        let response = await this.axios.get(apiUrl);
+        const response = await this.axios.get(apiUrl);
         this.status_options = response.data;
 
         this.loadStatusTableData();
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async loadStatusTableData() {
       this.isBusy = true;
-      let apiUrl = process.env.VUE_APP_API_URL + "/api/status";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/status`;
       try {
-        let response = await this.axios.get(apiUrl, {
+        const response = await this.axios.get(apiUrl, {
           headers: {
-            Authorization: "Bearer " + localStorage.getItem("token"),
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
         this.items_StatusTable = response.data;
         this.totalRows = response.data.length;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
       this.isBusy = false;
       this.loading_status_approve = false;
@@ -555,16 +557,16 @@ export default {
     async loadStatusInfo(status_id) {
       this.loading_status_modal = true;
 
-      let apiGetURL = process.env.VUE_APP_API_URL + "/api/status/" + status_id;
+      const apiGetURL = `${process.env.VUE_APP_API_URL}/api/status/${status_id}`;
 
       try {
-        let response = await this.axios.get(apiGetURL);
+        const response = await this.axios.get(apiGetURL);
 
         // compose entity
-        this.status_info = new this.Status(
+        this.status_info = new Status(
           response.data[0].category_id,
           response.data[0].comment,
-          response.data[0].problematic
+          response.data[0].problematic,
         );
 
         this.status_info.status_id = response.data[0].status_id;
@@ -573,95 +575,93 @@ export default {
 
         this.loading_status_modal = false;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async submitStatusChange() {
-      let apiUrl = process.env.VUE_APP_API_URL + "/api/status/update";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/status/update`;
 
       // perform update PUT request
       try {
-        let response = await this.axios.put(
+        const response = await this.axios.put(
           apiUrl,
           { status_json: this.status_info },
           {
             headers: {
-              Authorization: "Bearer " + localStorage.getItem("token"),
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          }
+          },
         );
 
         this.makeToast(
-          "The new status for this entity has been submitted " +
-            "(status " +
-            response.status +
-            " (" +
-            response.statusText +
-            ").",
-          "Success",
-          "success"
+          `${'The new status for this entity has been submitted '
+            + '(status '}${
+            response.status
+          } (${
+            response.statusText
+          }).`,
+          'Success',
+          'success',
         );
         this.resetForm();
         this.loadStatusTableData();
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     resetForm() {
-      this.status_info = new this.Status();
+      this.status_info = new Status();
     },
     infoApproveStatus(item, index, button) {
       this.approveModal.title = `sysndd:${item.entity_id}`;
       this.loadStatusInfo(item.status_id);
-      this.$root.$emit("bv::show::modal", this.approveModal.id, button);
+      this.$root.$emit('bv::show::modal', this.approveModal.id, button);
     },
     infoStatus(item, index, button) {
       this.statusModal.title = `sysndd:${item.entity_id}`;
       this.loadStatusInfo(item.status_id);
-      this.$root.$emit("bv::show::modal", this.statusModal.id, button);
+      this.$root.$emit('bv::show::modal', this.statusModal.id, button);
     },
     async handleStatusOk(bvModalEvt) {
-      let apiUrl =
-        process.env.VUE_APP_API_URL +
-        "/api/status/approve/" +
-        this.status_info.status_id +
-        "?status_ok=true";
+      const apiUrl = `${process.env.VUE_APP_API_URL
+      }/api/status/approve/${
+        this.status_info.status_id
+      }?status_ok=true`;
 
       try {
-        let response = await this.axios.put(
+        const response = await this.axios.put(
           apiUrl,
           {},
           {
             headers: {
-              Authorization: "Bearer " + localStorage.getItem("token"),
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          }
+          },
         );
 
         this.loadStatusTableData();
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async handleAllStatusOk() {
       if (this.approve_all_selected) {
-        let apiUrl =
-          process.env.VUE_APP_API_URL +
-          "/api/status/approve/all?status_ok=true";
+        const apiUrl = `${process.env.VUE_APP_API_URL
+        }/api/status/approve/all?status_ok=true`;
         try {
-          let response = this.axios.put(
+          const response = this.axios.put(
             apiUrl,
             {},
             {
               headers: {
-                Authorization: "Bearer " + localStorage.getItem("token"),
+                Authorization: `Bearer ${localStorage.getItem('token')}`,
               },
-            }
+            },
           );
 
           this.loadStatusTableData();
         } catch (e) {
-          this.makeToast(e, "Error", "danger");
+          this.makeToast(e, 'Error', 'danger');
         }
       }
     },
@@ -672,7 +672,7 @@ export default {
       };
     },
     checkAllApprove() {
-      this.$refs["approveAllModal"].show();
+      this.$refs.approveAllModal.show();
     },
     onFiltered(filteredItems) {
       // Trigger pagination to update the number of buttons/pages due to filtering
@@ -683,7 +683,6 @@ export default {
 };
 </script>
 
-
 <style scoped>
 .btn-group-xs > .btn,
 .btn-xs {
@@ -693,7 +692,7 @@ export default {
   border-radius: 0.2rem;
 }
 
-::v-deep .vue-treeselect__menu {
+:deep(.vue-treeselect__menu) {
   outline: 1px solid red;
   color: blue;
 }

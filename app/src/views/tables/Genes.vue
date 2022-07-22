@@ -13,47 +13,45 @@
   </div>
 </template>
 
-
 <script>
-import TablesGenes from "@/components/tables/TablesGenes.vue";
+import TablesGenes from '@/components/tables/TablesGenes.vue';
 
 export default {
-  name: "Genes",
+  name: 'Genes',
   components: { TablesGenes },
   props: {
-    sort: { type: String, default: "+symbol" },
+    sort: { type: String, default: '+symbol' },
     filter: { type: String, default: null },
     fields: { type: String, default: null },
-    pageAfter: { type: String, default: "0" },
-    pageSize: { type: String, default: "10" },
+    pageAfter: { type: String, default: '0' },
+    pageSize: { type: String, default: '10' },
     fspec: {
       type: String,
       default:
-        "symbol,category,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,entities_count,details",
+        'symbol,category,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,entities_count,details',
     },
   },
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
-    title: "Genes",
+    title: 'Genes',
     // all titles will be injected into this template
     titleTemplate:
-      "%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
     htmlAttrs: {
-      lang: "en",
+      lang: 'en',
     },
     meta: [
       {
-        vmid: "description",
-        name: "description",
+        vmid: 'description',
+        name: 'description',
         content:
-          "The Genes table view allows browsing NDD associations by gene.",
+          'The Genes table view allows browsing NDD associations by gene.',
       },
     ],
   },
   mounted() {},
 };
 </script>
-
 
 <style scoped>
 </style>

@@ -14,13 +14,11 @@
   </div>
 </template>
 
-
 <script>
 export default {
-  name: "PageNotFound",
+  name: 'PageNotFound',
 };
 </script>
-
 
 <style scoped>
 .btn-group-xs > .btn,

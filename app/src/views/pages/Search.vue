@@ -70,44 +70,44 @@
 </template>
 
 <script>
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
-  name: "Search",
+  name: 'Search',
   mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
-    title: "Search",
+    title: 'Search',
     // all titles will be injected into this template
     titleTemplate:
-      "%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
     htmlAttrs: {
-      lang: "en",
+      lang: 'en',
     },
     meta: [
       {
-        vmid: "description",
-        name: "description",
+        vmid: 'description',
+        name: 'description',
         content:
-          "The Search table shows results of database searches and their similarity when no exact terms was identified.",
+          'The Search table shows results of database searches and their similarity when no exact terms was identified.',
       },
-      { vmid: "robots", name: "robots", content: "noindex" },
+      { vmid: 'robots', name: 'robots', content: 'noindex' },
     ],
   },
   data() {
     return {
       result_variant: {
-        entity_id: "primary",
-        symbol: "success",
-        disease_ontology_id_version: "secondary",
-        disease_ontology_name: "secondary",
+        entity_id: 'primary',
+        symbol: 'success',
+        disease_ontology_id_version: 'secondary',
+        disease_ontology_name: 'secondary',
       },
       search: [],
       search_fields: [
-        { key: "results", label: "Results", class: "text-left" },
-        { key: "search", label: "Search", class: "text-left" },
-        { key: "entity_id", label: "Entity", class: "text-left" },
-        { key: "searchdist", label: "Searchdist", class: "text-left" },
+        { key: 'results', label: 'Results', class: 'text-left' },
+        { key: 'search', label: 'Search', class: 'text-left' },
+        { key: 'entity_id', label: 'Entity', class: 'text-left' },
+        { key: 'searchdist', label: 'Searchdist', class: 'text-left' },
       ],
       loading: true,
     };
@@ -124,26 +124,25 @@ export default {
       },
       // fetch the data when the view is created and the data is
       // already being observed
-      { immediate: true }
+      { immediate: true },
     );
   },
   methods: {
     async loadSearchInfo() {
       this.loading = true;
-      let apiSearchURL =
-        process.env.VUE_APP_API_URL +
-        "/api/search/" +
-        this.$route.params.search_term +
-        "?helper=false";
+      const apiSearchURL = `${process.env.VUE_APP_API_URL
+      }/api/search/${
+        this.$route.params.search_term
+      }?helper=false`;
       try {
-        let response_search = await this.axios.get(apiSearchURL);
+        const response_search = await this.axios.get(apiSearchURL);
 
         this.search = response_search.data;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
 
-      if (this.search.length == 1) {
+      if (this.search.length === 1) {
         this.$router.push(this.search[0].link);
       } else {
         this.loading = false;
@@ -159,12 +158,11 @@ export default {
     },
     getVariant(searchdist) {
       if (searchdist <= 0.05) {
-        return "success";
-      } else if (searchdist < 0.1) {
-        return "warning";
-      } else if (searchdist >= 0.1) {
-        return "danger";
+        return 'success';
+      } if (searchdist < 0.1) {
+        return 'warning';
       }
+      return 'danger';
     },
   },
 };

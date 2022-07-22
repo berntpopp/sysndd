@@ -942,127 +942,135 @@
   </div>
 </template>
 
-
 <script>
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
-import submissionObjectsMixin from "@/assets/js/mixins/submissionObjectsMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
+
+import {
+  Review,
+  Status,
+  Phenotype,
+  Variation,
+  Literature,
+} from '@/assets/js/mixins/submissionObjectsMixin';
 
 // import the Treeselect component
-import Treeselect from "@riophae/vue-treeselect";
+import Treeselect from '@riophae/vue-treeselect';
 // import the Treeselect styles
-import "@riophae/vue-treeselect/dist/vue-treeselect.css";
+import '@riophae/vue-treeselect/dist/vue-treeselect.css';
 
 export default {
-  name: "Review",
+  name: 'Review',
   // register the Treeselect component
   components: { Treeselect },
-  mixins: [toastMixin, submissionObjectsMixin],
+  mixins: [toastMixin],
   data() {
     return {
       stoplights_style: {
-        1: "success",
-        2: "primary",
-        3: "warning",
-        4: "danger",
-        Definitive: "success",
-        Moderate: "primary",
-        Limited: "warning",
-        Refuted: "danger",
+        1: 'success',
+        2: 'primary',
+        3: 'warning',
+        4: 'danger',
+        Definitive: 'success',
+        Moderate: 'primary',
+        Limited: 'warning',
+        Refuted: 'danger',
       },
-      saved_style: { 0: "secondary", 1: "info" },
-      review_style: { 0: "light", 1: "dark" },
-      status_style: { 0: "light", 1: "dark" },
-      header_style: { false: "light", true: "danger" },
-      ndd_icon: { No: "x", Yes: "check" },
-      ndd_icon_style: { No: "warning", Yes: "success" },
+      saved_style: { 0: 'secondary', 1: 'info' },
+      review_style: { 0: 'light', 1: 'dark' },
+      status_style: { 0: 'light', 1: 'dark' },
+      header_style: { false: 'light', true: 'danger' },
+      ndd_icon: { No: 'x', Yes: 'check' },
+      ndd_icon_style: { No: 'warning', Yes: 'success' },
       ndd_icon_text: {
-        No: "NOT associated with NDD",
-        Yes: "associated with NDD",
+        No: 'NOT associated with NDD',
+        Yes: 'associated with NDD',
       },
       inheritance_short_text: {
-        "Autosomal dominant inheritance": "AD",
-        "Autosomal recessive inheritance": "AR",
-        "X-linked other inheritance": "Xo",
-        "X-linked recessive inheritance": "XR",
-        "X-linked dominant inheritance": "XD",
-        "Mitochondrial inheritance": "Mit",
-        "Somatic mutation": "Som",
+        'Autosomal dominant inheritance': 'AD',
+        'Autosomal recessive inheritance': 'AR',
+        'X-linked other inheritance': 'Xo',
+        'X-linked recessive inheritance': 'XR',
+        'X-linked dominant inheritance': 'XD',
+        'Mitochondrial inheritance': 'Mit',
+        'Somatic mutation': 'Som',
       },
       empty_table_text: {
-        false: "Apply for a new batch of entities.",
-        true: "Nothing to review.",
+        false: 'Apply for a new batch of entities.',
+        true: 'Nothing to review.',
       },
       items: [],
       fields: [
         {
-          key: "entity_id",
-          label: "Entity",
+          key: 'entity_id',
+          label: 'Entity',
           sortable: true,
-          sortDirection: "desc",
-          class: "text-left",
+          sortDirection: 'desc',
+          class: 'text-left',
         },
-        { key: "symbol", label: "Gene", sortable: true, class: "text-left" },
         {
-          key: "disease_ontology_name",
-          label: "Disease",
+          key: 'symbol', label: 'Gene', sortable: true, class: 'text-left',
+        },
+        {
+          key: 'disease_ontology_name',
+          label: 'Disease',
           sortable: true,
-          class: "text-left",
+          class: 'text-left',
           sortByFormatted: true,
           filterByFormatted: true,
         },
         {
-          key: "hpo_mode_of_inheritance_term_name",
-          label: "Inheritance",
+          key: 'hpo_mode_of_inheritance_term_name',
+          label: 'Inheritance',
           sortable: true,
-          class: "text-left",
+          class: 'text-left',
           sortByFormatted: true,
           filterByFormatted: true,
         },
         {
-          key: "ndd_phenotype_word",
-          label: "NDD",
+          key: 'ndd_phenotype_word',
+          label: 'NDD',
           sortable: true,
-          class: "text-left",
+          class: 'text-left',
         },
-        { key: "actions", label: "Actions" },
+        { key: 'actions', label: 'Actions' },
       ],
       totalRows: 1,
       currentPage: 1,
-      perPage: "10",
-      pageOptions: ["10", "25", "50", "200"],
-      sortBy: "",
+      perPage: '10',
+      pageOptions: ['10', '25', '50', '200'],
+      sortBy: '',
       sortDesc: false,
-      sortDirection: "asc",
+      sortDirection: 'asc',
       filter: null,
       filterOn: [],
       reviewModal: {
-        id: "review-modal",
-        title: "",
+        id: 'review-modal',
+        title: '',
         content: [],
       },
       statusModal: {
-        id: "status-modal",
-        title: "",
+        id: 'status-modal',
+        title: '',
         content: [],
       },
       submitModal: {
-        id: "submit-modal",
-        title: "",
+        id: 'submit-modal',
+        title: '',
         content: [],
       },
       approveModal: {
-        id: "approve-modal",
-        title: "",
+        id: 'approve-modal',
+        title: '',
         content: [],
       },
-      review: [{ synopsis: "" }],
+      review: [{ synopsis: '' }],
       review_fields: [
-        { key: "synopsis", label: "Clinical Synopsis", class: "text-left" },
+        { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-left' },
       ],
       status_options: [],
-      status_info: new this.Status(),
+      status_info: new Status(),
       loading_status_modal: true,
-      review_info: new this.Review(),
+      review_info: new Review(),
       select_phenotype: [],
       select_variation: [],
       phenotypes_options: [],
@@ -1093,14 +1101,12 @@ export default {
       // Create an options list from our fields
       return this.fields
         .filter((f) => f.sortable)
-        .map((f) => {
-          return { text: f.label, value: f.key };
-        });
+        .map((f) => ({ text: f.label, value: f.key }));
     },
   },
   watch: {
     // used to reload table when switching curator mode
-    curation_selected: function (newVal, oldVal) {
+    curation_selected(newVal, oldVal) {
       // watch it
       this.loadReReviewData();
     },
@@ -1108,9 +1114,8 @@ export default {
   mounted() {
     if (localStorage.user) {
       this.user = JSON.parse(localStorage.user);
-      this.curator_mode =
-        (this.user.user_role[0] === "Admin") |
-        (this.user.user_role[0] === "Curator");
+      this.curator_mode = (this.user.user_role[0] === 'Admin')
+        || (this.user.user_role[0] === 'Curator');
     }
     this.loadReReviewData();
     this.loadPhenotypesList();
@@ -1119,32 +1124,30 @@ export default {
   },
   methods: {
     async loadPhenotypesList() {
-      let apiUrl =
-        process.env.VUE_APP_API_URL + "/api/list/phenotype?tree=true";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/phenotype?tree=true`;
       try {
-        let response = await this.axios.get(apiUrl);
+        const response = await this.axios.get(apiUrl);
         this.phenotypes_options = response.data;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async loadVariationOntologyList() {
-      let apiUrl =
-        process.env.VUE_APP_API_URL + "/api/list/variation_ontology?tree=true";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/variation_ontology?tree=true`;
       try {
-        let response = await this.axios.get(apiUrl);
+        const response = await this.axios.get(apiUrl);
         this.variation_ontology_options = response.data;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async loadStatusList() {
-      let apiUrl = process.env.VUE_APP_API_URL + "/api/list/status?tree=true";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/status?tree=true`;
       try {
-        let response = await this.axios.get(apiUrl);
+        const response = await this.axios.get(apiUrl);
         this.status_options = response.data;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     normalizePhenotypes(node) {
@@ -1177,42 +1180,41 @@ export default {
     infoReview(item, index, button) {
       this.reviewModal.title = `sysndd:${item.entity_id}`;
       this.loadReviewInfo(item.review_id, item.re_review_review_saved);
-      this.$root.$emit("bv::show::modal", this.reviewModal.id, button);
+      this.$root.$emit('bv::show::modal', this.reviewModal.id, button);
     },
     infoStatus(item, index, button) {
       this.statusModal.title = `sysndd:${item.entity_id}`;
       this.loadStatusInfo(item.status_id, item.re_review_status_saved);
-      this.$root.$emit("bv::show::modal", this.statusModal.id, button);
+      this.$root.$emit('bv::show::modal', this.statusModal.id, button);
     },
     infoSubmit(item, index, button) {
       this.submitModal.title = `sysndd:${item.entity_id}`;
       this.entity = [];
       this.entity.push(item);
-      this.$root.$emit("bv::show::modal", this.submitModal.id, button);
+      this.$root.$emit('bv::show::modal', this.submitModal.id, button);
     },
     infoApprove(item, index, button) {
       this.approveModal.title = `sysndd:${item.entity_id}`;
       this.entity = [];
       this.entity.push(item);
-      this.$root.$emit("bv::show::modal", this.approveModal.id, button);
+      this.$root.$emit('bv::show::modal', this.approveModal.id, button);
     },
     async loadReReviewData() {
       this.isBusy = true;
-      let apiUrl =
-        process.env.VUE_APP_API_URL +
-        "/api/re_review_table?curate=" +
-        this.curation_selected;
+      const apiUrl = `${process.env.VUE_APP_API_URL
+      }/api/re_review_table?curate=${
+        this.curation_selected}`;
       try {
-        let response = await this.axios.get(apiUrl, {
+        const response = await this.axios.get(apiUrl, {
           headers: {
-            Authorization: "Bearer " + localStorage.getItem("token"),
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
 
         this.items = response.data;
         this.totalRows = response.data.length;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
       this.isBusy = false;
       this.loading = false;
@@ -1220,99 +1222,81 @@ export default {
     async loadReviewInfo(review_id, re_review_review_saved) {
       this.loading_review_modal = true;
 
-      let apiGetReviewURL =
-        process.env.VUE_APP_API_URL + "/api/review/" + review_id;
-      let apiGetPhenotypesURL =
-        process.env.VUE_APP_API_URL +
-        "/api/review/" +
-        review_id +
-        "/phenotypes";
-      let apiGetVariationURL =
-        process.env.VUE_APP_API_URL + "/api/review/" + review_id + "/variation";
-      let apiGetPublicationsURL =
-        process.env.VUE_APP_API_URL +
-        "/api/review/" +
-        review_id +
-        "/publications";
+      const apiGetReviewURL = `${process.env.VUE_APP_API_URL}/api/review/${review_id}`;
+      const apiGetPhenotypesURL = `${process.env.VUE_APP_API_URL
+      }/api/review/${
+        review_id
+      }/phenotypes`;
+      const apiGetVariationURL = `${process.env.VUE_APP_API_URL}/api/review/${review_id}/variation`;
+      const apiGetPublicationsURL = `${process.env.VUE_APP_API_URL
+      }/api/review/${
+        review_id
+      }/publications`;
 
       try {
-        let response_review = await this.axios.get(apiGetReviewURL);
-        let response_phenotypes = await this.axios.get(apiGetPhenotypesURL);
-        let response_variation = await this.axios.get(apiGetVariationURL);
-        let response_publications = await this.axios.get(apiGetPublicationsURL);
+        const response_review = await this.axios.get(apiGetReviewURL);
+        const response_phenotypes = await this.axios.get(apiGetPhenotypesURL);
+        const response_variation = await this.axios.get(apiGetVariationURL);
+        const response_publications = await this.axios.get(apiGetPublicationsURL);
 
         // define phenotype specific attributes as constants from response
-        const new_phenotype = response_phenotypes.data.map((item) => {
-          return new this.Phenotype(item.phenotype_id, item.modifier_id);
-        });
-        this.select_phenotype = response_phenotypes.data.map((item) => {
-          return item.modifier_id + "-" + item.phenotype_id;
-        });
+        const new_phenotype = response_phenotypes.data.map((item) => new Phenotype(item.phenotype_id, item.modifier_id));
+        this.select_phenotype = response_phenotypes.data.map((item) => `${item.modifier_id}-${item.phenotype_id}`);
 
         // define variation specific attributes as constants from response
-        const new_variation = response_variation.data.map((item) => {
-          return new this.Variation(item.vario_id, item.modifier_id);
-        });
-        this.select_variation = response_variation.data.map((item) => {
-          return item.modifier_id + "-" + item.vario_id;
-        });
+        const new_variation = response_variation.data.map((item) => new Variation(item.vario_id, item.modifier_id));
+        this.select_variation = response_variation.data.map((item) => `${item.modifier_id}-${item.vario_id}`);
 
         // define publication specific attributes as constants from response
         const literature_gene_reviews = response_publications.data
-          .filter((item) => item.publication_type == "gene_review")
-          .map((item) => {
-            return item.publication_id;
-          });
+          .filter((item) => item.publication_type === 'gene_review')
+          .map((item) => item.publication_id);
 
         const literature_additional_references = response_publications.data
-          .filter((item) => item.publication_type == "additional_references")
-          .map((item) => {
-            return item.publication_id;
-          });
+          .filter((item) => item.publication_type === 'additional_references')
+          .map((item) => item.publication_id);
 
         this.select_additional_references = literature_additional_references;
         this.select_gene_reviews = literature_gene_reviews;
 
-        const new_literature = new this.Literature(
+        const new_literature = new Literature(
           literature_additional_references,
-          literature_gene_reviews
+          literature_gene_reviews,
         );
 
         // compose review
-        this.review_info = new this.Review(
+        this.review_info = new Review(
           response_review.data[0].synopsis,
           new_literature,
           new_phenotype,
           new_variation,
-          response_review.data[0].comment
+          response_review.data[0].comment,
         );
 
         this.review_info.review_id = response_review.data[0].review_id;
         this.review_info.entity_id = response_review.data[0].entity_id;
-        this.review_info.review_user_name =
-          response_review.data[0].review_user_name;
-        this.review_info.review_user_role =
-          response_review.data[0].review_user_role;
+        this.review_info.review_user_name = response_review.data[0].review_user_name;
+        this.review_info.review_user_role = response_review.data[0].review_user_role;
         this.review_info.re_review_review_saved = re_review_review_saved;
 
         this.loading_review_modal = false;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async loadStatusInfo(status_id, re_review_status_saved) {
       this.loading_status_modal = true;
 
-      let apiGetURL = process.env.VUE_APP_API_URL + "/api/status/" + status_id;
+      const apiGetURL = `${process.env.VUE_APP_API_URL}/api/status/${status_id}`;
 
       try {
-        let response = await this.axios.get(apiGetURL);
+        const response = await this.axios.get(apiGetURL);
 
         // compose entity
-        this.status_info = new this.Status(
+        this.status_info = new Status(
           response.data[0].category_id,
           response.data[0].comment,
-          response.data[0].problematic
+          response.data[0].problematic,
         );
 
         this.status_info.status_id = response.data[0].status_id;
@@ -1323,7 +1307,7 @@ export default {
 
         this.loading_status_modal = false;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async submitStatusChange() {
@@ -1338,62 +1322,60 @@ export default {
       if (status_saved === 1) {
         // perform update PUT request
         try {
-          let apiUrl =
-            process.env.VUE_APP_API_URL + "/api/status/update?re_review=true";
-          let response = await this.axios.put(
+          const apiUrl = `${process.env.VUE_APP_API_URL}/api/status/update?re_review=true`;
+          const response = await this.axios.put(
             apiUrl,
             { status_json: this.status_info },
             {
               headers: {
-                Authorization: "Bearer " + localStorage.getItem("token"),
+                Authorization: `Bearer ${localStorage.getItem('token')}`,
               },
-            }
+            },
           );
 
           this.makeToast(
-            "The new status for this entity has been submitted " +
-              "(status " +
-              response.status +
-              " (" +
-              response.statusText +
-              ").",
-            "Success",
-            "success"
+            `${'The new status for this entity has been submitted '
+              + '(status '}${
+              response.status
+            } (${
+              response.statusText
+            }).`,
+            'Success',
+            'success',
           );
           this.resetForm();
           this.loadReReviewData();
         } catch (e) {
-          this.makeToast(e, "Error", "danger");
+          this.makeToast(e, 'Error', 'danger');
         }
       } else {
-        let apiUrl =
-          process.env.VUE_APP_API_URL + "/api/status/create?re_review=true";
+        const apiUrl = `${process.env.VUE_APP_API_URL}/api/status/create?re_review=true`;
         // perform update POST request
         try {
-          let response = await this.axios.post(
+          const response = await this.axios.post(
             apiUrl,
             { status_json: this.status_info },
             {
               headers: {
-                Authorization: "Bearer " + localStorage.getItem("token"),
+                Authorization: `Bearer ${localStorage.getItem('token')}`,
               },
-            }
+            },
           );
 
           this.makeToast(
-            "The new status for this entity has been submitted " +
-              "(status " +
-              response.status +
-              " (" +
-              response.statusText +
-              ").",
-            "Success",
-            "success"
+            `${'The new status for this entity has been submitted '
+              + '(status '}${
+              response.status
+            } (${
+              response.statusText
+            }).`,
+            'Success',
+            'success',
           );
           this.resetForm();
           this.loadReReviewData();
         } catch (e) {
-          this.makeToast(e, "Error", "danger");
+          this.makeToast(e, 'Error', 'danger');
         }
       }
     },
@@ -1410,31 +1392,22 @@ export default {
 
       // define literature specific attributes as constants from inputs
       // first clean the arrays
-      const select_additional_references_clean =
-        this.select_additional_references.map((element) => {
-          return element.replace(/\s+/g, "");
-        });
+      const select_additional_references_clean = this.select_additional_references.map((element) => element.replace(/\s+/g, ''));
 
       const select_gene_reviews_clean = this.select_gene_reviews.map(
-        (element) => {
-          return element.replace(/\s+/g, "");
-        }
+        (element) => element.replace(/\s+/g, ''),
       );
 
-      const replace_literature = new this.Literature(
+      const replace_literature = new Literature(
         select_additional_references_clean,
-        select_gene_reviews_clean
+        select_gene_reviews_clean,
       );
 
       // compose phenotype specific attributes as constants from inputs
-      const replace_phenotype = this.select_phenotype.map((item) => {
-        return new this.Phenotype(item.split("-")[1], item.split("-")[0]);
-      });
+      const replace_phenotype = this.select_phenotype.map((item) => new Phenotype(item.split('-')[1], item.split('-')[0]));
 
       // compose variation ontology specific attributes as constants from inputs
-      const replace_variation_ontology = this.select_variation.map((item) => {
-        return new this.Variation(item.split("-")[1], item.split("-")[0]);
-      });
+      const replace_variation_ontology = this.select_variation.map((item) => new Variation(item.split('-')[1], item.split('-')[0]));
 
       // assign to object
       this.review_info.literature = replace_literature;
@@ -1442,176 +1415,171 @@ export default {
       this.review_info.variation_ontology = replace_variation_ontology;
 
       if (review_saved === 1) {
-        let apiUrl =
-          process.env.VUE_APP_API_URL + "/api/review/update?re_review=true";
+        const apiUrl = `${process.env.VUE_APP_API_URL}/api/review/update?re_review=true`;
 
         // perform update POST request
         try {
-          let response = await this.axios.put(
+          const response = await this.axios.put(
             apiUrl,
             { review_json: this.review_info },
             {
               headers: {
-                Authorization: "Bearer " + localStorage.getItem("token"),
+                Authorization: `Bearer ${localStorage.getItem('token')}`,
               },
-            }
+            },
           );
 
           this.makeToast(
-            "The new review for this entity has been submitted " +
-              "(status " +
-              response.status +
-              " (" +
-              response.statusText +
-              ").",
-            "Success",
-            "success"
+            `${'The new review for this entity has been submitted '
+              + '(status '}${
+              response.status
+            } (${
+              response.statusText
+            }).`,
+            'Success',
+            'success',
           );
           this.resetForm();
           this.loadReReviewData();
         } catch (e) {
-          this.makeToast(e, "Error", "danger");
+          this.makeToast(e, 'Error', 'danger');
         }
       } else {
-        let apiUrl =
-          process.env.VUE_APP_API_URL + "/api/review/create?re_review=true";
+        const apiUrl = `${process.env.VUE_APP_API_URL}/api/review/create?re_review=true`;
 
         // perform update POST request
         try {
-          let response = await this.axios.post(
+          const response = await this.axios.post(
             apiUrl,
             { review_json: this.review_info },
             {
               headers: {
-                Authorization: "Bearer " + localStorage.getItem("token"),
+                Authorization: `Bearer ${localStorage.getItem('token')}`,
               },
-            }
+            },
           );
 
           this.makeToast(
-            "The new review for this entity has been submitted " +
-              "(status " +
-              response.status +
-              " (" +
-              response.statusText +
-              ").",
-            "Success",
-            "success"
+            `${'The new review for this entity has been submitted '
+              + '(status '}${
+              response.status
+            } (${
+              response.statusText
+            }).`,
+            'Success',
+            'success',
           );
           this.resetForm();
           this.loadReReviewData();
         } catch (e) {
-          this.makeToast(e, "Error", "danger");
+          this.makeToast(e, 'Error', 'danger');
         }
       }
     },
     resetForm() {
       // status
-      this.status_info = new this.Status();
+      this.status_info = new Status();
 
       // review
       this.select_phenotype = [];
       this.select_variation = [];
       this.select_additional_references = [];
       this.select_gene_reviews = [];
-      this.review_info = new this.Review();
+      this.review_info = new Review();
     },
     async handleSubmitOk(bvModalEvt) {
-      let re_review_submission = {};
+      const re_review_submission = {};
 
-      re_review_submission.re_review_entity_id =
-        this.entity[0].re_review_entity_id;
+      re_review_submission.re_review_entity_id = this.entity[0].re_review_entity_id;
       re_review_submission.re_review_submitted = 1;
 
-      let apiUrl = process.env.VUE_APP_API_URL + "/api/re_review/submit";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/re_review/submit`;
       try {
-        let response = await this.axios.put(
+        const response = await this.axios.put(
           apiUrl,
           { submit_json: re_review_submission },
           {
             headers: {
-              Authorization: "Bearer " + localStorage.getItem("token"),
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          }
+          },
         );
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
 
       this.loadReReviewData();
     },
     async handleApproveOk(bvModalEvt) {
-      let apiUrl =
-        process.env.VUE_APP_API_URL +
-        "/api/re_review/approve/" +
-        this.entity[0].re_review_entity_id +
-        "?status_ok=" +
-        this.status_approved +
-        "&review_ok=" +
-        this.review_approved;
+      const apiUrl = `${process.env.VUE_APP_API_URL
+      }/api/re_review/approve/${
+        this.entity[0].re_review_entity_id
+      }?status_ok=${
+        this.status_approved
+      }&review_ok=${
+        this.review_approved}`;
 
       try {
-        let response = await this.axios.put(
+        const response = await this.axios.put(
           apiUrl,
           {},
           {
             headers: {
-              Authorization: "Bearer " + localStorage.getItem("token"),
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          }
+          },
         );
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
 
       this.resetApproveModal();
       this.loadReReviewData();
     },
     async handleUnsetSubmission(bvModalEvt) {
-      let apiUrl =
-        process.env.VUE_APP_API_URL +
-        "/api/re_review/unsubmit/" +
-        this.entity[0].re_review_entity_id;
+      const apiUrl = `${process.env.VUE_APP_API_URL
+      }/api/re_review/unsubmit/${
+        this.entity[0].re_review_entity_id}`;
 
       try {
-        let response = await this.axios.put(
+        const response = await this.axios.put(
           apiUrl,
           {},
           {
             headers: {
-              Authorization: "Bearer " + localStorage.getItem("token"),
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          }
+          },
         );
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
 
       this.resetApproveModal();
       this.loadReReviewData();
     },
     async newBatchApplication() {
-      let apiUrl = process.env.VUE_APP_API_URL + "/api/re_review/batch/apply";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/re_review/batch/apply`;
 
       try {
-        let response = await this.axios.get(apiUrl, {
+        const response = await this.axios.get(apiUrl, {
           headers: {
-            Authorization: "Bearer " + localStorage.getItem("token"),
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        this.makeToast("Application send.", "Success", "success");
+        this.makeToast('Application send.', 'Success', 'success');
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     tagValidatorPMID(tag) {
       // Individual PMID tag validator function
-      tag = tag.replace(/\s+/g, "");
+      const tag_copy = tag.replace(/\s+/g, '');
       return (
-        !isNaN(Number(tag.replaceAll("PMID:", ""))) &&
-        tag.includes("PMID:") &&
-        tag.replace("PMID:", "").length > 4 &&
-        tag.replace("PMID:", "").length < 9
+        !Number.isNaN(Number(tag_copy.replaceAll('PMID:', '')))
+        && tag_copy.includes('PMID:')
+        && tag_copy.replace('PMID:', '').length > 4
+        && tag_copy.replace('PMID:', '').length < 9
       );
     },
     saved(any_id) {
@@ -1626,12 +1594,11 @@ export default {
       return number_return;
     },
     truncate(str, n) {
-      return str.length > n ? str.substr(0, n - 1) + "..." : str;
+      return str.length > n ? `${str.substr(0, n - 1)}...` : str;
     },
   },
 };
 </script>
-
 
 <style scoped>
 .btn-group-xs > .btn,
@@ -1648,7 +1615,7 @@ export default {
   white-space: nowrap;
 }
 
-::v-deep .vue-treeselect__menu {
+:deep(.vue-treeselect__menu) {
   outline: 1px solid red;
   color: blue;
 }

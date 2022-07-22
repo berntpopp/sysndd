@@ -40,16 +40,15 @@
   </div>
 </template>
 
-
 <script>
-import AnalysesCurationUpset from "@/components/analyses/AnalysesCurationUpset.vue";
-import AnalysesCurationMatrixPlot from "@/components/analyses/AnalysesCurationMatrixPlot.vue";
-import AnalysesCurationComparisonsTable from "@/components/analyses/AnalysesCurationComparisonsTable.vue";
+import AnalysesCurationUpset from '@/components/analyses/AnalysesCurationUpset.vue';
+import AnalysesCurationMatrixPlot from '@/components/analyses/AnalysesCurationMatrixPlot.vue';
+import AnalysesCurationComparisonsTable from '@/components/analyses/AnalysesCurationComparisonsTable.vue';
 
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
-  name: "CurationComparisons",
+  name: 'CurationComparisons',
   components: {
     AnalysesCurationUpset,
     AnalysesCurationMatrixPlot,
@@ -57,32 +56,32 @@ export default {
   },
   mixins: [toastMixin],
   props: {
-    sort: { type: String, default: "+symbol" },
-    filter: { type: String, default: "filter=" },
+    sort: { type: String, default: '+symbol' },
+    filter: { type: String, default: 'filter=' },
     fields: { type: String, default: null },
-    pageAfter: { type: String, default: "0" },
-    pageSize: { type: String, default: "10" },
+    pageAfter: { type: String, default: '0' },
+    pageSize: { type: String, default: '10' },
     fspec: {
       type: String,
       default:
-        "symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id",
+        'symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id',
     },
   },
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
-    title: "Curation comparisons",
+    title: 'Curation comparisons',
     // all titles will be injected into this template
     titleTemplate:
-      "%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
     htmlAttrs: {
-      lang: "en",
+      lang: 'en',
     },
     meta: [
       {
-        vmid: "description",
-        name: "description",
+        vmid: 'description',
+        name: 'description',
         content:
-          "The Comparisions analysis can be used to compare different curation efforts for neurodevelopmental disorders (inlucing attention-deficit/hyperactivity disorder (ADHD), autism spectrum disorders (ASD), learning disabilities and intellectual disability) based on UpSet plots, similarity matrix or tabular views.",
+          'The Comparisions analysis can be used to compare different curation efforts for neurodevelopmental disorders (inlucing attention-deficit/hyperactivity disorder (ADHD), autism spectrum disorders (ASD), learning disabilities and intellectual disability) based on UpSet plots, similarity matrix or tabular views.',
       },
     ],
   },
@@ -97,7 +96,6 @@ export default {
   methods: {},
 };
 </script>
-
 
 <style scoped>
 </style>

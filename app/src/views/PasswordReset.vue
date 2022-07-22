@@ -115,18 +115,18 @@
 </template>
 
 <script>
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
-  name: "PasswordReset",
+  name: 'PasswordReset',
   mixins: [toastMixin],
   data() {
     return {
       show_change_container: false,
       show_request_container: true,
-      email_entry: "",
-      new_password_entry: "",
-      new_password_repeat: "",
+      email_entry: '',
+      new_password_entry: '',
+      new_password_repeat: '',
       loading: true,
     };
   },
@@ -140,15 +140,15 @@ export default {
     async checkURLParameter() {
       this.loading = true;
 
-      let decode_jwt = this.parseJwt(this.$route.params.request_jwt);
-      let timestamp = Math.floor(new Date().getTime() / 1000);
+      const decode_jwt = this.parseJwt(this.$route.params.request_jwt);
+      const timestamp = Math.floor(new Date().getTime() / 1000);
 
-      if (decode_jwt == null) {
+      if (decode_jwt === null) {
         this.show_change_container = false;
         this.show_request_container = true;
       } else if (decode_jwt.exp < timestamp) {
         setTimeout(() => {
-          this.$router.push("/");
+          this.$router.push('/');
         }, 1000);
       } else {
         this.show_change_container = true;
@@ -159,66 +159,64 @@ export default {
     parseJwt(token) {
       // based on https://stackoverflow.com/questions/51292406/check-if-token-expired-using-this-jwt-library
       try {
-        return JSON.parse(atob(token.split(".")[1]));
+        return JSON.parse(atob(token.split('.')[1]));
       } catch (e) {
         return null;
       }
     },
     async requestPasswordReset() {
-      let apiPasswordResetRequest =
-        process.env.VUE_APP_API_URL +
-        "/api/user/password/reset/request?email_request=" +
-        this.email_entry;
+      const apiPasswordResetRequest = `${process.env.VUE_APP_API_URL
+      }/api/user/password/reset/request?email_request=${
+        this.email_entry}`;
 
       try {
-        let response_reset_request = await this.axios.get(
+        const response_reset_request = await this.axios.get(
           apiPasswordResetRequest,
-          {}
+          {},
         );
         this.makeToast(
-          "If the mail exists your request has been send " +
-            "(status " +
-            response_reset_request.status +
-            " (" +
-            response_reset_request.statusText +
-            ").",
-          "Success",
-          "success"
+          `${'If the mail exists your request has been send '
+            + '(status '}${
+            response_reset_request.status
+          } (${
+            response_reset_request.statusText
+          }).`,
+          'Success',
+          'success',
         );
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
       this.resetRequestForm();
     },
     resetRequestForm() {
-      this.email_entry = "";
+      this.email_entry = '';
       setTimeout(() => {
-        this.$router.push("/");
+        this.$router.push('/');
       }, 1000);
     },
     async doPasswordChange() {
-      let apiUrl =
-        process.env.VUE_APP_API_URL +
-        "/api/user/password/reset/change?new_pass_1=" +
-        this.new_password_entry +
-        "&new_pass_2=" +
-        this.new_password_repeat;
+      const apiUrl = `${process.env.VUE_APP_API_URL
+      }/api/user/password/reset/change?new_pass_1=${
+        this.new_password_entry
+      }&new_pass_2=${
+        this.new_password_repeat}`;
       try {
-        let response = await this.axios.get(apiUrl, {
+        const response = await this.axios.get(apiUrl, {
           headers: {
-            Authorization: "Bearer " + this.$route.params.request_jwt,
+            Authorization: `Bearer ${this.$route.params.request_jwt}`,
           },
         });
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
       this.resetChangeForm();
     },
     resetChangeForm() {
-      this.new_password_entry = "";
-      this.new_password_repeat = "";
+      this.new_password_entry = '';
+      this.new_password_repeat = '';
       setTimeout(() => {
-        this.$router.push("/");
+        this.$router.push('/');
       }, 1000);
     },
   },

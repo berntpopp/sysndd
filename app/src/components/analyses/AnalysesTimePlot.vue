@@ -59,19 +59,19 @@
 </template>
 
 <script>
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
 
-import * as d3 from "d3";
+import * as d3 from 'd3';
 
 export default {
-  name: "AnalysesTimePlot",
+  name: 'AnalysesTimePlot',
   mixins: [toastMixin],
   data() {
     return {
-      aggregate_list: ["entity_id", "symbol"],
-      selected_aggregate: "entity_id",
-      group_list: ["category", "inheritance_filter", "inheritance_multiple"],
-      selected_group: "category",
+      aggregate_list: ['entity_id', 'symbol'],
+      selected_aggregate: 'entity_id',
+      group_list: ['category', 'inheritance_filter', 'inheritance_multiple'],
+      selected_group: 'category',
       items: [],
       itemsMeta: [],
     };
@@ -81,22 +81,21 @@ export default {
   },
   methods: {
     async loadData() {
-      let apiUrl =
-        process.env.VUE_APP_API_URL +
-        "/api/statistics/entities_over_time?aggregate=" +
-        this.selected_aggregate +
-        "&group=" +
-        this.selected_group;
+      const apiUrl = `${process.env.VUE_APP_API_URL
+      }/api/statistics/entities_over_time?aggregate=${
+        this.selected_aggregate
+      }&group=${
+        this.selected_group}`;
 
       try {
-        let response = await this.axios.get(apiUrl);
+        const response = await this.axios.get(apiUrl);
 
         this.items = response.data.data;
         this.itemsMeta = response.data.meta;
 
         this.generateGraph();
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     generateGraph() {
@@ -104,36 +103,34 @@ export default {
       // resposnsive styling based on https://chartio.com/resources/tutorials/how-to-resize-an-svg-when-the-window-is-resized-in-d3-js/
 
       // set the dimensions and margins of the graph
-      const margin = { top: 50, right: 50, bottom: 50, left: 50 },
-        width = 600 - margin.left - margin.right,
-        height = 400 - margin.top - margin.bottom;
+      const margin = {
+        top: 50, right: 50, bottom: 50, left: 50,
+      };
+      const width = 600 - margin.left - margin.right;
+      const height = 400 - margin.top - margin.bottom;
 
       // first remove svg
-      d3.select("#my_dataviz").select("svg").remove();
+      d3.select('#my_dataviz').select('svg').remove();
 
       // append the svg object to the body of the page
       const svg = d3
-        .select("#my_dataviz")
-        .append("svg")
-        .attr("viewBox", `0 0 600 400`)
-        .attr("preserveAspectRatio", "xMinYMin meet")
-        .classed("svg-content", true)
-        .append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+        .select('#my_dataviz')
+        .append('svg')
+        .attr('viewBox', '0 0 600 400')
+        .attr('preserveAspectRatio', 'xMinYMin meet')
+        .classed('svg-content', true)
+        .append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
 
-      const data = this.items.map((item) => {
-        return {
+      const data = this.items.map((item) => ({
+        group: item.group,
+        values: item.values.map((value) => ({
           group: item.group,
-          values: item.values.map((value) => {
-            return {
-              group: item.group,
-              cumulative_count: value.cumulative_count,
-              entry_date_text: value.entry_date,
-              entry_date: d3.timeParse("%Y-%m-%d")(value.entry_date),
-            };
-          }),
-        };
-      });
+          cumulative_count: value.cumulative_count,
+          entry_date_text: value.entry_date,
+          entry_date: d3.timeParse('%Y-%m-%d')(value.entry_date),
+        })),
+      }));
 
       // generate array of all categories
       const allCategories = this.items.map((item) => item.group);
@@ -152,19 +149,19 @@ export default {
         .range([0, width]);
 
       svg
-        .append("g")
-        .attr("transform", `translate(0,${height})`)
+        .append('g')
+        .attr('transform', `translate(0,${height})`)
         .call(d3.axisBottom(x));
 
       // Add Y axis
-      const y = d3.
-        scaleLinear().
-        domain([0, maxCount]).
-        range([height, 0]);
+      const y = d3
+        .scaleLinear()
+        .domain([0, maxCount])
+        .range([height, 0]);
 
-      svg.
-        append("g").
-        call(d3.axisLeft(y));
+      svg
+        .append('g')
+        .call(d3.axisLeft(y));
 
       // Add the lines
       const line = d3
@@ -173,92 +170,92 @@ export default {
         .y((d) => y(+d.cumulative_count));
 
       svg
-        .selectAll("myLines")
+        .selectAll('myLines')
         .data(data)
-        .join("path")
-        .attr("class", (d) => d.group)
-        .attr("d", (d) => line(d.values))
-        .attr("stroke", (d) => myColor(d.group))
-        .style("stroke-width", 4)
-        .style("fill", "none");
+        .join('path')
+        .attr('class', (d) => d.group)
+        .attr('d', (d) => line(d.values))
+        .attr('stroke', (d) => myColor(d.group))
+        .style('stroke-width', 4)
+        .style('fill', 'none');
 
       // create a tooltip
       const tooltip = d3
-        .select("#my_dataviz")
-        .append("div")
-        .style("opacity", 0)
-        .attr("class", "tooltip")
-        .style("background-color", "white")
-        .style("border", "solid")
-        .style("border-width", "1px")
-        .style("border-radius", "5px")
-        .style("padding", "2px");
+        .select('#my_dataviz')
+        .append('div')
+        .style('opacity', 0)
+        .attr('class', 'tooltip')
+        .style('background-color', 'white')
+        .style('border', 'solid')
+        .style('border-width', '1px')
+        .style('border-radius', '5px')
+        .style('padding', '2px');
 
       // Three function that change the tooltip when user hover / move / leave a cell
       // layerX/Y replaced by clientX/Y
       const mouseover = function (event, d) {
-        tooltip.style("opacity", 1);
+        tooltip.style('opacity', 1);
 
-        d3.select(this).style("stroke", "black");
+        d3.select(this).style('stroke', 'black');
       };
 
       const mousemove = function (event, d) {
         tooltip
           .html(
-            "Count: " + d.cumulative_count + "<br>Date: " + d.entry_date_text
+            `Count: ${d.cumulative_count}<br>Date: ${d.entry_date_text}`,
           )
-          .style("left", `${event.layerX + 20}px`)
-          .style("top", `${event.layerY + 20}px`);
+          .style('left', `${event.layerX + 20}px`)
+          .style('top', `${event.layerY + 20}px`);
       };
 
       const mouseleave = function (event, d) {
-        tooltip.style("opacity", 0);
+        tooltip.style('opacity', 0);
 
-        d3.select(this).style("stroke", "white");
+        d3.select(this).style('stroke', 'white');
       };
 
       // Add the points
       svg
         // First we need to enter in a group
-        .selectAll("myDots")
+        .selectAll('myDots')
         .data(data)
-        .enter().append("g")
-        .style("fill", (d) => myColor(d.group))
-        .attr("class", (d) => d.group)
+        .enter().append('g')
+        .style('fill', (d) => myColor(d.group))
+        .attr('class', (d) => d.group)
         // Second we need to enter in the 'values' part of this group
-        .selectAll("myPoints")
+        .selectAll('myPoints')
         .data((d) => d.values)
         .enter()
-        .append("a")
-        .attr("xlink:href", function(d) { return "/Entities/?sort=entity_id&filter=lessOrEqual(entry_date," + d.entry_date_text + "),any(category," + d.group  + ")"; }) // <- add links to the filtered phenotype table to the bars
-        .append("circle")
-        .attr("cx", (d) => x(d.entry_date))
-        .attr("cy", (d) => y(d.cumulative_count))
-        .attr("r", 5)
-        .attr("stroke", "white")
-        .style("fill", (d) => myColor(d.group))
-        .on("mouseover", mouseover)
-        .on("mousemove", mousemove)
-        .on("mouseleave", mouseleave);
+        .append('a')
+        .attr('xlink:href', (d) => `/Entities/?sort=entity_id&filter=lessOrEqual(entry_date,${d.entry_date_text}),any(category,${d.group})`) // <- add links to the filtered phenotype table to the bars
+        .append('circle')
+        .attr('cx', (d) => x(d.entry_date))
+        .attr('cy', (d) => y(d.cumulative_count))
+        .attr('r', 5)
+        .attr('stroke', 'white')
+        .style('fill', (d) => myColor(d.group))
+        .on('mouseover', mouseover)
+        .on('mousemove', mousemove)
+        .on('mouseleave', mouseleave);
 
       // Add a legend (interactive)
       svg
-        .selectAll("myLegend")
+        .selectAll('myLegend')
         .data(data)
-        .join("g")
-        .append("text")
-        .attr("x", 30)
-        .attr("y", (d, i) => 30 + i * 20)
+        .join('g')
+        .append('text')
+        .attr('x', 30)
+        .attr('y', (d, i) => 30 + i * 20)
         .text((d) => d.group)
-        .style("fill", (d) => myColor(d.group))
-        .style("font-size", 15)
-        .on("click", function (event, d) {
+        .style('fill', (d) => myColor(d.group))
+        .style('font-size', 15)
+        .on('click', (event, d) => {
           // is the element currently visible ?
-          const currentOpacity = d3.selectAll("." + d.group).style("opacity");
+          const currentOpacity = d3.selectAll(`.${d.group}`).style('opacity');
           // Change the opacity: from 0 to 1 or from 1 to 0
-          d3.selectAll("." + d.group)
+          d3.selectAll(`.${d.group}`)
             .transition()
-            .style("opacity", currentOpacity == 1 ? 0 : 1);
+            .style('opacity', currentOpacity === 1 ? 0 : 1);
         });
     },
   },

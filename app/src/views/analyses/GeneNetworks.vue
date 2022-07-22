@@ -20,31 +20,30 @@
   </div>
 </template>
 
-
 <script>
-import AnalyseGeneClusters from "@/components/analyses/AnalyseGeneClusters.vue";
+import AnalyseGeneClusters from '@/components/analyses/AnalyseGeneClusters.vue';
 
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
-  name: "GeneNetworks",
+  name: 'GeneNetworks',
   components: { AnalyseGeneClusters },
   mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
-    title: "Gene networks",
+    title: 'Gene networks',
     // all titles will be injected into this template
     titleTemplate:
-      "%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
     htmlAttrs: {
-      lang: "en",
+      lang: 'en',
     },
     meta: [
       {
-        vmid: "description",
-        name: "description",
+        vmid: 'description',
+        name: 'description',
         content:
-          "The Gene Networks analysis shows the interactions between genes associated with neurodevelopmental disorders and curated in SysNDD.",
+          'The Gene Networks analysis shows the interactions between genes associated with neurodevelopmental disorders and curated in SysNDD.',
       },
     ],
   },

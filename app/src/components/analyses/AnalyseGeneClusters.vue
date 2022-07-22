@@ -24,14 +24,13 @@
   </b-container>
 </template>
 
-
 <script>
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
 
-import * as d3 from "d3";
+import * as d3 from 'd3';
 
 export default {
-  name: "AnalyseGeneClusters",
+  name: 'AnalyseGeneClusters',
   mixins: [toastMixin],
   data() {
     return {
@@ -43,39 +42,37 @@ export default {
   },
   methods: {
     async loadClusterData() {
-      let apiUrl = process.env.VUE_APP_API_URL + "/api/analysis/cluster";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/analysis/cluster`;
 
       try {
-        let response = await this.axios.get(apiUrl);
+        const response = await this.axios.get(apiUrl);
 
         this.itemsCluster = response.data;
 
         this.generateClusterGraph();
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     generateClusterGraph() {
       // Graph dimension
-      const margin = { top: 10, right: 10, bottom: 10, left: 10 },
-        width = 300 - margin.left - margin.right,
-        height = 300 - margin.top - margin.bottom;
+      const margin = {
+        top: 10, right: 10, bottom: 10, left: 10,
+      };
+      const width = 300 - margin.left - margin.right;
+      const height = 300 - margin.top - margin.bottom;
 
       // Create the svg area
       const svg = d3
-        .select("#cluster_dataviz")
-        .append("svg")
-        .attr("width", width)
-        .attr("height", height);
+        .select('#cluster_dataviz')
+        .append('svg')
+        .attr('width', width)
+        .attr('height', height);
 
       //
       const data = this.itemsCluster
-        .map(({ subclusters }) => {
-          return subclusters;
-        })
+        .map(({ subclusters }) => subclusters)
         .flat();
-
-console.log(data)
 
       // Color palette for clusters
       const color = d3
@@ -90,14 +87,10 @@ console.log(data)
         .range([7, 55]); // circle will be between 7 and 55 px wide
 
       // get unique parent cluster ids as array
-      const unique = (value, index, self) => {
-        return self.indexOf(value) === index;
-      };
+      const unique = (value, index, self) => self.indexOf(value) === index;
 
       const unique_parent_cluster = data
-        .map(({ parent_cluster }) => {
-          return parent_cluster;
-        })
+        .map(({ parent_cluster }) => parent_cluster)
         .filter(unique);
 
       // A scale that gives a X target position for each parent_cluster
@@ -105,119 +98,81 @@ console.log(data)
         .scaleOrdinal()
         .domain(unique_parent_cluster)
         .range(
-          unique_parent_cluster.map(function (x) {
-            return x * 30;
-          })
+          unique_parent_cluster.map((x) => x * 30),
         );
 
       // create a tooltip
       const Tooltip = d3
-        .select("#cluster_dataviz")
-        .append("div")
-        .style("opacity", 0)
-        .attr("class", "tooltip")
-        .style("background-color", "white")
-        .style("border", "solid")
-        .style("border-width", "2px")
-        .style("border-radius", "5px")
-        .style("padding", "5px");
+        .select('#cluster_dataviz')
+        .append('div')
+        .style('opacity', 0)
+        .attr('class', 'tooltip')
+        .style('background-color', 'white')
+        .style('border', 'solid')
+        .style('border-width', '2px')
+        .style('border-radius', '5px')
+        .style('padding', '5px');
 
       const mouseover = function (event, d) {
-        Tooltip.style("opacity", 1);
+        Tooltip.style('opacity', 1);
 
-        d3.select(this).style("stroke-width", 3);
+        d3.select(this).style('stroke-width', 3);
       };
 
       const mousemove = function (event, d) {
         Tooltip.html(
-          "<u>Cluster: " +
-            d.parent_cluster +
-            "." +
-            d.cluster +
-            "</u>" +
-            "<br>" +
-            d.cluster_size +
-            " genes"
+          `<u>Cluster: ${
+            d.parent_cluster
+          }.${
+            d.cluster
+          }</u>`
+            + `<br>${
+              d.cluster_size
+            } genes`,
         )
-          .style("left", `${event.layerX + 20}px`)
-          .style("top", `${event.layerY + 20}px`);
+          .style('left', `${event.layerX + 20}px`)
+          .style('top', `${event.layerY + 20}px`);
       };
 
-      var mouseleave = function (event, d) {
-        Tooltip.style("opacity", 0);
+      const mouseleave = function (event, d) {
+        Tooltip.style('opacity', 0);
 
-        d3.select(this).style("stroke-width", 1);
+        d3.select(this).style('stroke-width', 1);
       };
-
-      // Initialize the circle: all located at the center of the svg area
-      var node = svg
-        .append("g")
-        .selectAll("circle")
-        .data(data)
-        .enter()
-        .append("a")
-        .attr("xlink:href", function(d) { return "/Genes/?filter=" + d.hash_filter; }) // <- add links to the filtered gene table to the circles
-        .append("circle")
-        .attr("class", "node")
-        .attr("r", (d) => size(d.cluster_size))
-        .attr("cx", width / 2)
-        .attr("cy", height / 2)
-        .style("fill", (d) => color(d.parent_cluster))
-        .style("fill-opacity", 0.8)
-        .attr("stroke", "black")
-        .style("stroke-width", 1)
-        .on("mouseover", mouseover) // What to do when hovered
-        .on("mousemove", mousemove)
-        .on("mouseleave", mouseleave)
-        .call(
-          d3
-            .drag() // call specific function when circle is dragged
-            .on("start", dragstarted)
-            .on("drag", dragged)
-            .on("end", dragended)
-        );
 
       // Features of the forces applied to the nodes:
       const simulation = d3
         .forceSimulation()
         .force(
-          "center",
+          'center',
           d3
             .forceCenter()
             .x(width / 2)
-            .y(height / 2)
+            .y(height / 2),
         ) // Attraction to the center of the svg area
-        .force("charge", d3.forceManyBody().strength(0.1)) // Nodes are attracted one each other of value is > 0
+        .force('charge', d3.forceManyBody().strength(0.1)) // Nodes are attracted one each other of value is > 0
         .force(
-          "collide",
+          'collide',
           d3
             .forceCollide()
             .strength(0.2)
-            .radius(function (d) {
-              return size(d.cluster_size) + 3;
-            })
-            .iterations(1)
+            .radius((d) => size(d.cluster_size) + 3)
+            .iterations(1),
         ) // Force that avoids circle overlapping
         .force(
-          "forceX",
+          'forceX',
           d3
             .forceX()
             .strength(0.5)
-            .x((d) => x(d.parent_cluster))
+            .x((d) => x(d.parent_cluster)),
         )
         .force(
-          "forceY",
+          'forceY',
           d3
             .forceY()
             .strength(0.1)
-            .y(height * 0.5)
+            .y(height * 0.5),
         );
-
-      // Apply these forces to the nodes and update their positions.
-      // Once the force algorithm is happy with positions ('alpha' value is low enough), simulations will stop.
-      simulation.nodes(data).on("tick", function (d) {
-        node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
-      });
 
       // What happens when a circle is dragged?
       function dragstarted(event, d) {
@@ -234,6 +189,40 @@ console.log(data)
         d.fx = null;
         d.fy = null;
       }
+
+      // Initialize the circle: all located at the center of the svg area
+      const node = svg
+        .append('g')
+        .selectAll('circle')
+        .data(data)
+        .enter()
+        .append('a')
+        .attr('xlink:href', (d) => `/Genes/?filter=${d.hash_filter}`) // <- add links to the filtered gene table to the circles
+        .append('circle')
+        .attr('class', 'node')
+        .attr('r', (d) => size(d.cluster_size))
+        .attr('cx', width / 2)
+        .attr('cy', height / 2)
+        .style('fill', (d) => color(d.parent_cluster))
+        .style('fill-opacity', 0.8)
+        .attr('stroke', 'black')
+        .style('stroke-width', 1)
+        .on('mouseover', mouseover) // What to do when hovered
+        .on('mousemove', mousemove)
+        .on('mouseleave', mouseleave)
+        .call(
+          d3
+            .drag() // call specific function when circle is dragged
+            .on('start', dragstarted)
+            .on('drag', dragged)
+            .on('end', dragended),
+        );
+
+      // Apply these forces to the nodes and update their positions.
+      // Once the force algorithm is happy with positions ('alpha' value is low enough), simulations will stop.
+      simulation.nodes(data).on('tick', (d) => {
+        node.attr('cx', () => d.x).attr('cy', () => d.y);
+      });
     },
   },
 };

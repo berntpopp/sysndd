@@ -53,18 +53,18 @@
 </template>
 
 <script>
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
 
 // importUpSetJS
-import UpSetJS, { extractSets } from "@upsetjs/vue";
+import UpSetJS, { extractSets } from '@upsetjs/vue';
 
 // import the Treeselect component
-import Treeselect from "@riophae/vue-treeselect";
+import Treeselect from '@riophae/vue-treeselect';
 // import the Treeselect styles
-import "@riophae/vue-treeselect/dist/vue-treeselect.css";
+import '@riophae/vue-treeselect/dist/vue-treeselect.css';
 
 export default {
-  name: "AnalysesCurationUpset",
+  name: 'AnalysesCurationUpset',
   // register the Treeselect component
   components: { Treeselect, UpSetJS },
   mixins: [toastMixin],
@@ -72,21 +72,21 @@ export default {
     return {
       elems: [
         {
-          name: "AAAS",
+          name: 'AAAS',
           sets: [
-            "SysNDD",
-            "radboudumc_ID",
-            "sfari",
-            "gene2phenotype",
-            "panelapp",
-            "geisinger_DBD",
+            'SysNDD',
+            'radboudumc_ID',
+            'sfari',
+            'gene2phenotype',
+            'panelapp',
+            'geisinger_DBD',
           ],
         },
       ],
       width: 1400,
       height: 600,
       columns_list: [],
-      selected_columns: ["SysNDD", "panelapp", "gene2phenotype"],
+      selected_columns: ['SysNDD', 'panelapp', 'gene2phenotype'],
       selection: null,
       loadingUpset: true,
     };
@@ -112,29 +112,28 @@ export default {
       // have to add other options here and normalize the function both here and in the API
       this.loading = true;
 
-      let apiUrl = process.env.VUE_APP_API_URL + "/api/comparisons/options";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/comparisons/options`;
       try {
-        let response = await this.axios.get(apiUrl);
+        const response = await this.axios.get(apiUrl);
         this.columns_list = response.data.list;
 
         this.loadComparisonsUpsetData();
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async loadComparisonsUpsetData() {
       this.loadingUpset = true;
 
-      let apiUrl =
-        process.env.VUE_APP_API_URL +
-        "/api/comparisons/upset?fields=" +
-        this.selected_columns.join();
+      const apiUrl = `${process.env.VUE_APP_API_URL
+      }/api/comparisons/upset?fields=${
+        this.selected_columns.join()}`;
 
       try {
-        let response = await this.axios.get(apiUrl);
+        const response = await this.axios.get(apiUrl);
         this.elems = response.data;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
 
       this.loadingUpset = false;

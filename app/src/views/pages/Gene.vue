@@ -365,95 +365,105 @@
 </template>
 
 <script>
-import TablesEntities from "@/components/tables/TablesEntities.vue";
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
+import TablesEntities from '@/components/tables/TablesEntities.vue';
+import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
-  name: "Gene",
+  name: 'Gene',
   components: { TablesEntities },
   mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
-    title: "Gene",
+    title: 'Gene',
     // all titles will be injected into this template
     titleTemplate:
-      "%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
     htmlAttrs: {
-      lang: "en",
+      lang: 'en',
     },
     meta: [
       {
-        vmid: "description",
-        name: "description",
-        content: "This Gene view shows specific information for a gene.",
+        vmid: 'description',
+        name: 'description',
+        content: 'This Gene view shows specific information for a gene.',
       },
     ],
   },
   data() {
     return {
       stoplights_style: {
-        Definitive: "success",
-        Moderate: "primary",
-        Limited: "warning",
-        Refuted: "danger",
+        Definitive: 'success',
+        Moderate: 'primary',
+        Limited: 'warning',
+        Refuted: 'danger',
       },
-      ndd_icon: { No: "x", Yes: "check" },
-      ndd_icon_style: { No: "warning", Yes: "success" },
+      ndd_icon: { No: 'x', Yes: 'check' },
+      ndd_icon_style: { No: 'warning', Yes: 'success' },
       ndd_icon_text: {
-        No: "NOT associated with NDD",
-        Yes: "associated with NDD",
+        No: 'NOT associated with NDD',
+        Yes: 'associated with NDD',
       },
       inheritance_short_text: {
-        "Autosomal dominant inheritance": "AD",
-        "Autosomal recessive inheritance": "AR",
-        "X-linked other inheritance": "Xo",
-        "X-linked recessive inheritance": "XR",
-        "X-linked dominant inheritance": "XD",
-        "Mitochondrial inheritance": "Mit",
-        "Somatic mutation": "Som",
+        'Autosomal dominant inheritance': 'AD',
+        'Autosomal recessive inheritance': 'AR',
+        'X-linked other inheritance': 'Xo',
+        'X-linked recessive inheritance': 'XR',
+        'X-linked dominant inheritance': 'XD',
+        'Mitochondrial inheritance': 'Mit',
+        'Somatic mutation': 'Som',
       },
       gene: [],
       gene_fields: [
         {
-          key: "symbol",
-          label: "HGNC Symbol",
+          key: 'symbol',
+          label: 'HGNC Symbol',
           sortable: true,
-          class: "text-left",
-        },
-        { key: "name", label: "Gene Name", sortable: true, class: "text-left" },
-        {
-          key: "entrez_id",
-          label: "Entrez",
-          sortable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "ensembl_gene_id",
-          label: "Ensembl",
-          sortable: true,
-          class: "text-left",
-        },
-        { key: "ucsc_id", label: "UCSC", sortable: true, class: "text-left" },
-        { key: "ccds_id", label: "CCDS", sortable: true, class: "text-left" },
-        {
-          key: "uniprot_ids",
-          label: "UniProt",
-          sortable: true,
-          class: "text-left",
+          key: 'name', label: 'Gene Name', sortable: true, class: 'text-left',
         },
         {
-          key: "omim_id",
-          label: "OMIM gene",
+          key: 'entrez_id',
+          label: 'Entrez',
           sortable: true,
-          class: "text-left",
+          class: 'text-left',
         },
-        { key: "mgd_id", label: "MGI", sortable: true, class: "text-left" },
-        { key: "rgd_id", label: "RGD", sortable: true, class: "text-left" },
         {
-          key: "STRING_id",
-          label: "STRING",
+          key: 'ensembl_gene_id',
+          label: 'Ensembl',
           sortable: true,
-          class: "text-left",
+          class: 'text-left',
+        },
+        {
+          key: 'ucsc_id', label: 'UCSC', sortable: true, class: 'text-left',
+        },
+        {
+          key: 'ccds_id', label: 'CCDS', sortable: true, class: 'text-left',
+        },
+        {
+          key: 'uniprot_ids',
+          label: 'UniProt',
+          sortable: true,
+          class: 'text-left',
+        },
+        {
+          key: 'omim_id',
+          label: 'OMIM gene',
+          sortable: true,
+          class: 'text-left',
+        },
+        {
+          key: 'mgd_id', label: 'MGI', sortable: true, class: 'text-left',
+        },
+        {
+          key: 'rgd_id', label: 'RGD', sortable: true, class: 'text-left',
+        },
+        {
+          key: 'STRING_id',
+          label: 'STRING',
+          sortable: true,
+          class: 'text-left',
         },
       ],
       totalRows: 0,
@@ -466,45 +476,40 @@ export default {
   methods: {
     async loadGeneInfo() {
       this.loading = true;
-      let apiGeneURL =
-        process.env.VUE_APP_API_URL +
-        "/api/gene/" +
-        this.$route.params.symbol +
-        "?input_type=hgnc";
-      let apiGeneSymbolURL =
-        process.env.VUE_APP_API_URL +
-        "/api/gene/" +
-        this.$route.params.symbol +
-        "?input_type=symbol";
+      const apiGeneURL = `${process.env.VUE_APP_API_URL
+      }/api/gene/${
+        this.$route.params.symbol
+      }?input_type=hgnc`;
+      const apiGeneSymbolURL = `${process.env.VUE_APP_API_URL
+      }/api/gene/${
+        this.$route.params.symbol
+      }?input_type=symbol`;
 
       try {
-        let response_gene = await this.axios.get(apiGeneURL);
-        let response_symbol = await this.axios.get(apiGeneSymbolURL);
+        const response_gene = await this.axios.get(apiGeneURL);
+        const response_symbol = await this.axios.get(apiGeneSymbolURL);
 
         if (
-          response_gene.data.length == 0 &&
-          response_symbol.data.length == 0
+          response_gene.data.length === 0
+          && response_symbol.data.length === 0
         ) {
-          this.$router.push("/PageNotFound");
+          this.$router.push('/PageNotFound');
+        } else if (response_gene.data.length === 0) {
+          this.gene = response_symbol.data;
         } else {
-          if (response_gene.data.length == 0) {
-            this.gene = response_symbol.data;
-          } else {
-            this.gene = response_gene.data;
-          }
+          this.gene = response_gene.data;
         }
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
       this.loading = false;
     },
     truncate(str, n) {
-      return str.length > n ? str.substr(0, n - 1) + "..." : str;
+      return str.length > n ? `${str.substr(0, n - 1)}...` : str;
     },
   },
 };
 </script>
-
 
 <style scoped>
 .btn-group-xs > .btn,
