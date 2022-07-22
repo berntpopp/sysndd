@@ -100,7 +100,6 @@ export default {
         .range(
           unique_parent_cluster.map((x) => x * 30),
         );
-      console.log(x);
 
       // create a tooltip
       const Tooltip = d3

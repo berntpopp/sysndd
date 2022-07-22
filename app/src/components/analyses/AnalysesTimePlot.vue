@@ -238,6 +238,17 @@ export default {
         .on('mousemove', mousemove)
         .on('mouseleave', mouseleave);
 
+      // function for clickable legend
+      const clicklegend = function clicklegend(event, d) {
+        // is the element currently visible ?
+        const currentOpacity = d3.selectAll(`.${d.group}`).style('opacity');
+
+        // Change the opacity: from 0 to 1 or from 1 to 0
+        d3.selectAll(`.${d.group}`)
+          .transition()
+          .style('opacity', currentOpacity === '1' ? '0' : '1');
+      };
+
       // Add a legend (interactive)
       svg
         .selectAll('myLegend')
@@ -249,14 +260,8 @@ export default {
         .text((d) => d.group)
         .style('fill', (d) => myColor(d.group))
         .style('font-size', 15)
-        .on('click', (event, d) => {
-          // is the element currently visible ?
-          const currentOpacity = d3.selectAll(`.${d.group}`).style('opacity');
-          // Change the opacity: from 0 to 1 or from 1 to 0
-          d3.selectAll(`.${d.group}`)
-            .transition()
-            .style('opacity', currentOpacity === 1 ? 0 : 1);
-        });
+        .style('cursor', 'pointer')
+        .on('click', clicklegend);
     },
   },
 };
