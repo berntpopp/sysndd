@@ -124,6 +124,7 @@ export default {
 
       const data = this.items.map((item) => ({
         group: item.group,
+        class: item.group.replace(/[ |]/g, '_'),
         values: item.values.map((value) => ({
           group: item.group,
           cumulative_count: value.cumulative_count,
@@ -173,7 +174,7 @@ export default {
         .selectAll('myLines')
         .data(data)
         .join('path')
-        .attr('class', (d) => d.group)
+        .attr('class', (d) => d.class)
         .attr('d', (d) => line(d.values))
         .attr('stroke', (d) => myColor(d.group))
         .style('stroke-width', 4)
@@ -221,7 +222,7 @@ export default {
         .data(data)
         .enter().append('g')
         .style('fill', (d) => myColor(d.group))
-        .attr('class', (d) => d.group)
+        .attr('class', (d) => d.class)
         // Second we need to enter in the 'values' part of this group
         .selectAll('myPoints')
         .data((d) => d.values)
@@ -241,10 +242,10 @@ export default {
       // function for clickable legend
       const clicklegend = function clicklegend(event, d) {
         // is the element currently visible ?
-        const currentOpacity = d3.selectAll(`.${d.group}`).style('opacity');
+        const currentOpacity = d3.selectAll(`.${d.class}`).style('opacity');
 
         // Change the opacity: from 0 to 1 or from 1 to 0
-        d3.selectAll(`.${d.group}`)
+        d3.selectAll(`.${d.class}`)
           .transition()
           .style('opacity', currentOpacity === '1' ? '0' : '1');
       };
