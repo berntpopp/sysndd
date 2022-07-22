@@ -114,13 +114,13 @@ export default {
         .style('border-radius', '5px')
         .style('padding', '5px');
 
-      const mouseover = (event, d) => {
+      const mouseover = function mouseover(event, d) {
         Tooltip.style('opacity', 1);
 
         d3.select(this).style('stroke-width', 3);
       };
 
-      const mousemove = (event, d) => {
+      const mousemove = function mousemove(event, d) {
         Tooltip.html(
           `<u>Cluster: ${
             d.parent_cluster
@@ -135,7 +135,7 @@ export default {
           .style('top', `${event.layerY + 20}px`);
       };
 
-      const mouseleave = (event, d) => {
+      const mouseleave = function mouseleave(event, d) {
         Tooltip.style('opacity', 0);
 
         d3.select(this).style('stroke-width', 1);

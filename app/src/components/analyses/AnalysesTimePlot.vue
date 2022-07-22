@@ -193,13 +193,13 @@ export default {
 
       // Three function that change the tooltip when user hover / move / leave a cell
       // layerX/Y replaced by clientX/Y
-      const mouseover = (event, d) => {
+      const mouseover = function mouseover(event, d) {
         tooltip.style('opacity', 1);
 
         d3.select(this).style('stroke', 'black');
       };
 
-      const mousemove = (event, d) => {
+      const mousemove = function mousemove(event, d) {
         tooltip
           .html(
             `Count: ${d.cumulative_count}<br>Date: ${d.entry_date_text}`,
@@ -208,7 +208,7 @@ export default {
           .style('top', `${event.layerY + 20}px`);
       };
 
-      const mouseleave = (event, d) => {
+      const mouseleave = function mouseleave(event, d) {
         tooltip.style('opacity', 0);
 
         d3.select(this).style('stroke', 'white');

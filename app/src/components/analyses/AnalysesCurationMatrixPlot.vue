@@ -147,20 +147,20 @@ export default {
         .style('padding', '2px');
 
       // Three function that change the tooltip when user hover / move / leave a cell
-      const mouseover = (event, d) => {
+      const mouseover = function mouseover(event, d) {
         tooltip.style('opacity', 1);
 
         d3.select(this).style('stroke', 'black').style('opacity', 1);
       };
 
-      const mousemove = (event, d) => {
+      const mousemove = function mousemove(event, d) {
         tooltip
           .html(`S(c): ${d.value}<br>(${d.x} &<br>${d.y})`)
           .style('left', `${event.layerX + 20}px`)
           .style('top', `${event.layerY + 20}px`);
       };
 
-      const mouseleave = (event, d) => {
+      const mouseleave = function mouseleave(event, d) {
         tooltip.style('opacity', 0);
 
         d3.select(this).style('stroke', 'none');
