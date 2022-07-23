@@ -28,7 +28,7 @@ module.exports = {
       routes,
     },
     webpackBundleAnalyzer: {
-      openAnalyzer: false
+      openAnalyzer: false,
     },
   },
   pwa: {
