@@ -27,7 +27,7 @@ _axios.interceptors.response.use(
 
 );
 
-Plugin.install = function (Vue, options) {
+const plugin = function install(Vue, options) {
   Vue.axios = _axios;
   window.axios = _axios;
   Object.defineProperties(Vue.prototype, {
@@ -44,6 +44,6 @@ Plugin.install = function (Vue, options) {
   });
 };
 
-Vue.use(Plugin);
+Vue.use(plugin);
 
-export default Plugin;
+export default plugin;
