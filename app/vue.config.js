@@ -39,6 +39,9 @@ module.exports = {
       skipWaiting: true,
     },
   },
+  devServer: {
+    host: 'localhost',
+  },
   chainWebpack: (config) => {
     // A, remove the plugin
     config.plugins.delete('prefetch');
