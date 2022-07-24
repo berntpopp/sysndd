@@ -21,13 +21,10 @@
 </template>
 
 <script>
-import AnalyseGeneClusters from '@/components/analyses/AnalyseGeneClusters.vue';
-
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
   name: 'GeneNetworks',
-  components: { AnalyseGeneClusters },
   mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used

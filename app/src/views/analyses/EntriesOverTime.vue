@@ -21,13 +21,10 @@
 </template>
 
 <script>
-import AnalysesTimePlot from '@/components/analyses/AnalysesTimePlot.vue';
-
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
   name: 'EntriesOverTime',
-  components: { AnalysesTimePlot },
   mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used

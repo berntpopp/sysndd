@@ -14,11 +14,8 @@
 </template>
 
 <script>
-import TablesPhenotypes from '@/components/tables/TablesPhenotypes.vue';
-
 export default {
   name: 'Phenotypes',
-  components: { TablesPhenotypes },
   props: {
     sort: { type: String, default: 'entity_id' },
     filter: { type: String, default: 'all(modifier_phenotype_id,HP:0001249)' },

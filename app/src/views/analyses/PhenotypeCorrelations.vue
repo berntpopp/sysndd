@@ -32,16 +32,12 @@
 </template>
 
 <script>
-import AnalysesPhenotypeCorrelogram from '@/components/analyses/AnalysesPhenotypeCorrelogram.vue';
-import AnalysesPhenotypeCounts from '@/components/analyses/AnalysesPhenotypeCounts.vue';
-
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
 import * as d3 from 'd3';
 
 export default {
   name: 'PhenotypeCorrelations',
-  components: { AnalysesPhenotypeCorrelogram, AnalysesPhenotypeCounts },
   mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used

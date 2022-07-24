@@ -266,12 +266,10 @@
 </template>
 
 <script>
-import TablesEntities from '@/components/tables/TablesEntities.vue';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
   name: 'Ontology',
-  components: { TablesEntities },
   mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used

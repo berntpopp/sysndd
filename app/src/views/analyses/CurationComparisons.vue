@@ -41,19 +41,10 @@
 </template>
 
 <script>
-import AnalysesCurationUpset from '@/components/analyses/AnalysesCurationUpset.vue';
-import AnalysesCurationMatrixPlot from '@/components/analyses/AnalysesCurationMatrixPlot.vue';
-import AnalysesCurationComparisonsTable from '@/components/analyses/AnalysesCurationComparisonsTable.vue';
-
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
   name: 'CurationComparisons',
-  components: {
-    AnalysesCurationUpset,
-    AnalysesCurationMatrixPlot,
-    AnalysesCurationComparisonsTable,
-  },
   mixins: [toastMixin],
   props: {
     sort: { type: String, default: '+symbol' },

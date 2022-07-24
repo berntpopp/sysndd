@@ -6,6 +6,10 @@ import { createPinia, PiniaVuePlugin } from 'pinia';
 // import custom js
 import './assets/js/functions';
 
+// import global components
+import './global-components';
+
+// import b-vue icons
 import {
   BIconPersonCircle,
   BIconStoplights,
