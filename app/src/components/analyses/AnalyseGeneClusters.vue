@@ -220,9 +220,13 @@ export default {
 
       // Apply these forces to the nodes and update their positions.
       // Once the force algorithm is happy with positions ('alpha' value is low enough), simulations will stop.
-      simulation.nodes(data).on('tick', (d) => {
-        node.attr('cx', () => d.x).attr('cy', () => d.y);
-      });
+      simulation
+        .nodes(data)
+        .on('tick', (d) => {
+          node
+            .attr('cx', (d) => d.x)
+            .attr('cy', (d) => d.y);
+        });
     },
   },
 };
