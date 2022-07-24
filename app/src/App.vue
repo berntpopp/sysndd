@@ -27,10 +27,6 @@
 </template>
 
 <script>
-import HelperBadge from '@/components/HelperBadge.vue';
-import Navbar from '@/components/Navbar.vue';
-import Footer from '@/components/Footer.vue';
-
 export default {
   name: 'SysNDD',
   metaInfo: {
@@ -50,11 +46,6 @@ export default {
           'SysNDD contains a manually curated catalogue of published genes implicated in neurodevelopmental disorders (NDDs) and classified into primary and candidate genes according to the degree of underlying evidence.',
       },
     ],
-  },
-  components: {
-    Navbar,
-    Footer,
-    HelperBadge,
   },
 };
 </script>

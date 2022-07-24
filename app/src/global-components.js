@@ -11,6 +11,9 @@ const components = {
   AnalysesPhenotypeCorrelogram: () => import(/* webpackChunkName: "AnalysesComponentsPhenotype" */ '@/components/analyses/AnalysesPhenotypeCorrelogram.vue'),
   AnalysesPhenotypeCounts: () => import(/* webpackChunkName: "AnalysesComponentsPhenotype" */ '@/components/analyses/AnalysesPhenotypeCounts.vue'),
   AnalysesTimePlot: () => import(/* webpackChunkName: "AnalysesComponentsTime" */ '@/components/analyses/AnalysesTimePlot.vue'),
+  HelperBadge: () => import(/* webpackChunkName: "Helper" */ '@/components/HelperBadge.vue'),
+  Navbar: () => import(/* webpackChunkName: "Navigation" */ '@/components/Navbar.vue'),
+  Footer: () => import(/* webpackChunkName: "Navigation" */ '@/components/Footer.vue'),
 };
 
 Object.entries(components).forEach(([name, component]) => Vue.component(name, component));
