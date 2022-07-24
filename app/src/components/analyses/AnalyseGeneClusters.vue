@@ -59,8 +59,8 @@ export default {
       const margin = {
         top: 10, right: 10, bottom: 10, left: 10,
       };
-      const width = 300 - margin.left - margin.right;
-      const height = 300 - margin.top - margin.bottom;
+      const width = 600 - margin.left - margin.right;
+      const height = 400 - margin.top - margin.bottom;
 
       // Create the svg area
       const svg = d3
@@ -198,6 +198,7 @@ export default {
         .enter()
         .append('a')
         .attr('xlink:href', (d) => `/Genes/?filter=${d.hash_filter}`) // <- add links to the filtered gene table to the circles
+        .attr('aria-label', (d) => `Link to gene table for cluster, ${d.parent_cluster}.${d.cluster}`)
         .append('circle')
         .attr('class', 'node')
         .attr('r', (d) => size(d.cluster_size))

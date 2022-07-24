@@ -136,6 +136,7 @@ export default {
         .enter()
         .append('a')
         .attr('xlink:href', (d) => `/Phenotypes/?sort=entity_id&filter=any(category,Definitive),all(modifier_phenotype_id,${d.phenotype_id})&page_after=0&page_size=10`) // <- add links to the filtered phenotype table to the bars
+        .attr('aria-label', (d) => `Link to phenotypes table for ${d.phenotype_id}`)
         .append('rect')
         .attr('x', (d) => x(d.HPO_term))
         .attr('y', (d) => y(d.count))

@@ -229,6 +229,7 @@ export default {
         .enter()
         .append('a')
         .attr('xlink:href', (d) => `/Entities/?sort=entity_id&filter=lessOrEqual(entry_date,${d.entry_date_text}),any(category,${d.group})`) // <- add links to the filtered phenotype table to the bars
+        .attr('aria-label', (d) => `Link to entities filtered before entry date ${d.entry_date_text}`)
         .append('circle')
         .attr('cx', (d) => x(d.entry_date))
         .attr('cy', (d) => y(d.cumulative_count))

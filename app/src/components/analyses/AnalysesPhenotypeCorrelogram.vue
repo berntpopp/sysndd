@@ -145,6 +145,7 @@ export default {
         .enter()
         .append('a')
         .attr('xlink:href', (d) => `/Phenotypes/?sort=entity_id&filter=all(modifier_phenotype_id,${d.x_id},${d.y_id})&page_after=0&page_size=10`) // <- add links to the filtered phenotype table to the rects
+        .attr('aria-label', (d) => `Link to phenotypes table for combination ${d.x_id} and ${d.y_id}`)
         .append('rect')
         .attr('x', (d) => x(d.x))
         .attr('y', (d) => y(d.y))
