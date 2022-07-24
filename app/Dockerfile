@@ -13,7 +13,7 @@ COPY . .
 RUN npm run build
 
 # nginx state for serving content
-FROM nginx:1.23.0
+FROM nginx:1.23.1
 RUN rm /etc/nginx/conf.d/default.conf
 COPY ./docker/nginx/prod.conf /etc/nginx/conf.d/
 COPY ./docker/nginx/nginx.conf /etc/nginx/
