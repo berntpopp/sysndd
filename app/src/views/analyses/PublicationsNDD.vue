@@ -6,25 +6,24 @@
   </div>
 </template>
 
-
 <script>
 export default {
-  name: "PublicationsNDD",
+  name: 'PublicationsNDD',
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
-    title: "NDD publications",
+    title: 'NDD publications',
     // all titles will be injected into this template
     titleTemplate:
-      "%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
     htmlAttrs: {
-      lang: "en",
+      lang: 'en',
     },
     meta: [
       {
-        vmid: "description",
-        name: "description",
+        vmid: 'description',
+        name: 'description',
         content:
-          "The NDD Publications analysis shows conent of publicatins reviewed in the SysNDD database.",
+          'The NDD Publications analysis shows conent of publicatins reviewed in the SysNDD database.',
       },
     ],
   },

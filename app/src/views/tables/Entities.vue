@@ -13,45 +13,40 @@
   </div>
 </template>
 
-
 <script>
-import TablesEntities from "@/components/tables/TablesEntities.vue";
-
 export default {
-  name: "Entities",
-  components: { TablesEntities },
+  name: 'Entities',
   props: {
-    sort: { type: String, default: "+entity_id" },
-    filter: { type: String, default: "filter=" },
+    sort: { type: String, default: '+entity_id' },
+    filter: { type: String, default: 'filter=' },
     fields: { type: String, default: null },
-    pageAfter: { type: String, default: "0" },
-    pageSize: { type: String, default: "10" },
+    pageAfter: { type: String, default: '0' },
+    pageSize: { type: String, default: '10' },
     fspec: {
       type: String,
       default:
-        "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details",
+        'entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details',
     },
   },
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
-    title: "Entities",
+    title: 'Entities',
     // all titles will be injected into this template
     titleTemplate:
-      "%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
     htmlAttrs: {
-      lang: "en",
+      lang: 'en',
     },
     meta: [
       {
-        vmid: "description",
-        name: "description",
-        content: "An expert curated resource of neurodevelopmental disorders.",
+        vmid: 'description',
+        name: 'description',
+        content: 'An expert curated resource of neurodevelopmental disorders.',
       },
     ],
   },
 };
 </script>
-
 
 <style scoped>
 </style>

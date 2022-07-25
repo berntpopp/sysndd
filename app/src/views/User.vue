@@ -187,10 +187,10 @@
 </template>
 
 <script>
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
-  name: "User",
+  name: 'User',
   mixins: [toastMixin],
   data() {
     return {
@@ -208,9 +208,9 @@ export default {
       },
       time_to_logout: 0,
       pass_change_visible: false,
-      current_password: "",
-      new_password_entry: "",
-      new_password_repeat: "",
+      current_password: '',
+      new_password_entry: '',
+      new_password_repeat: '',
     };
   },
   mounted() {
@@ -231,13 +231,13 @@ export default {
     },
     updateDiffs() {
       if (localStorage.token) {
-        let expires = JSON.parse(localStorage.user).exp;
-        let timestamp = Math.floor(new Date().getTime() / 1000);
+        const expires = JSON.parse(localStorage.user).exp;
+        const timestamp = Math.floor(new Date().getTime() / 1000);
 
         if (expires > timestamp) {
           this.time_to_logout = ((expires - timestamp) / 60).toFixed(2);
-          if (expires - timestamp == 60) {
-            this.makeToast("Refresh token.", "Logout in 60 seconds", "danger");
+          if (expires - timestamp === 60) {
+            this.makeToast('Refresh token.', 'Logout in 60 seconds', 'danger');
           }
         } else {
           this.doUserLogOut();
@@ -245,98 +245,94 @@ export default {
       }
     },
     async getUserContributions() {
-      let apiContributionsURL =
-        process.env.VUE_APP_API_URL +
-        "/api/user/" +
-        this.user.user_id[0] +
-        "/contributions";
+      const apiContributionsURL = `${process.env.VUE_APP_API_URL
+      }/api/user/${
+        this.user.user_id[0]
+      }/contributions`;
 
       try {
-        let response_contributions = await this.axios.get(apiContributionsURL, {
+        const response_contributions = await this.axios.get(apiContributionsURL, {
           headers: {
-            Authorization: "Bearer " + localStorage.getItem("token"),
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-
-        this.user.active_reviews =
-          response_contributions.data.active_reviews[0];
-        this.user.active_status = response_contributions.data.active_status[0];
+        let rest;
+        [this.user.active_reviews, ...rest] = response_contributions.data.active_reviews;
+        [this.user.active_status, ...rest] = response_contributions.data.active_status;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async refreshWithJWT() {
-      let apiAuthenticateURL =
-        process.env.VUE_APP_API_URL + "/api/auth/refresh";
+      const apiAuthenticateURL = `${process.env.VUE_APP_API_URL}/api/auth/refresh`;
 
       try {
-        let response_refresh = await this.axios.get(apiAuthenticateURL, {
+        const response_refresh = await this.axios.get(apiAuthenticateURL, {
           headers: {
-            Authorization: "Bearer " + localStorage.getItem("token"),
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
 
-        localStorage.setItem("token", response_refresh.data[0]);
+        localStorage.setItem('token', response_refresh.data[0]);
         this.signinWithJWT();
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async signinWithJWT() {
-      let apiAuthenticateURL = process.env.VUE_APP_API_URL + "/api/auth/signin";
+      const apiAuthenticateURL = `${process.env.VUE_APP_API_URL}/api/auth/signin`;
 
       try {
-        let response_signin = await this.axios.get(apiAuthenticateURL, {
+        const response_signin = await this.axios.get(apiAuthenticateURL, {
           headers: {
-            Authorization: "Bearer " + localStorage.getItem("token"),
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
 
-        localStorage.setItem("user", JSON.stringify(response_signin.data));
+        localStorage.setItem('user', JSON.stringify(response_signin.data));
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async changePassword() {
-      let apiChangePasswordURL =
-        process.env.VUE_APP_API_URL +
-        "/api/user/password/update?user_id_pass_change=" +
-        this.user.user_id[0] +
-        "&old_pass=" +
-        this.current_password +
-        "&new_pass_1=" +
-        this.new_password_entry +
-        "&new_pass_2=" +
-        this.new_password_repeat;
+      const apiChangePasswordURL = `${process.env.VUE_APP_API_URL
+      }/api/user/password/update?user_id_pass_change=${
+        this.user.user_id[0]
+      }&old_pass=${
+        this.current_password
+      }&new_pass_1=${
+        this.new_password_entry
+      }&new_pass_2=${
+        this.new_password_repeat}`;
       try {
-        let response_password_change = await this.axios.put(
+        const response_password_change = await this.axios.put(
           apiChangePasswordURL,
           {},
           {
             headers: {
-              Authorization: "Bearer " + localStorage.getItem("token"),
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          }
+          },
         );
         this.makeToast(
-          response_password_change.data.message +
-            " (status " +
-            response_password_change.status +
-            ")",
-          "Success",
-          "success"
+          `${response_password_change.data.message
+          } (status ${
+            response_password_change.status
+          })`,
+          'Success',
+          'success',
         );
         this.pass_change_visible = false;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
         this.pass_change_visible = false;
       }
       this.resetPasswordForm();
     },
     resetPasswordForm() {
-      this.current_password = "";
-      this.new_password_entry = "";
-      this.new_password_repeat = "";
+      this.current_password = '';
+      this.new_password_entry = '';
+      this.new_password_repeat = '';
     },
   },
 };

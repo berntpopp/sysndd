@@ -8,21 +8,21 @@
 </template>
 
 <script>
-import SwaggerUI from "swagger-ui";
-import "swagger-ui/dist/swagger-ui.css";
+import SwaggerUI from 'swagger-ui';
+import 'swagger-ui/dist/swagger-ui.css';
 
 export default {
-  name: "Swagger",
+  name: 'Swagger',
   mounted() {
     this.loadAPIInfo();
   },
   methods: {
     async loadAPIInfo() {
-      let apiURL = process.env.VUE_APP_API_URL + "/openapi.json";
+      const apiURL = `${process.env.VUE_APP_API_URL}/openapi.json`;
       SwaggerUI({
-        dom_id: "#swagger",
+        dom_id: '#swagger',
         url: apiURL,
-        docExpansion: "none",
+        docExpansion: 'none',
       });
     },
   },
@@ -30,4 +30,7 @@ export default {
 </script>
 
 <style scoped>
-</style> 
+:deep(.version) {
+  color: #000 !important;
+}
+</style>

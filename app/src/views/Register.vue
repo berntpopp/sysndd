@@ -175,38 +175,38 @@
 </template>
 
 <script>
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
-  name: "Register",
+  name: 'Register',
   mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
-    title: "Register",
+    title: 'Register',
     // all titles will be injected into this template
     titleTemplate:
-      "%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
     htmlAttrs: {
-      lang: "en",
+      lang: 'en',
     },
     meta: [
       {
-        vmid: "description",
-        name: "description",
-        content: "The Register view allows to appy for a new SysNDD account.",
+        vmid: 'description',
+        name: 'description',
+        content: 'The Register view allows to appy for a new SysNDD account.',
       },
     ],
   },
   data() {
     return {
       registration_form: {
-        user_name: "",
-        email: "",
-        orcid: "",
-        first_name: "",
-        family_name: "",
-        comment: "",
-        terms_agreed: "not_accepted",
+        user_name: '',
+        email: '',
+        orcid: '',
+        first_name: '',
+        family_name: '',
+        comment: '',
+        terms_agreed: 'not_accepted',
       },
       animated: false,
       show_overlay: false,
@@ -224,31 +224,30 @@ export default {
       return dirty || validated ? valid : null;
     },
     async sendRegistration() {
-      let apiUrl =
-        process.env.VUE_APP_API_URL + "/api/auth/signup?signup_data=";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/auth/signup?signup_data=`;
 
       try {
-        let submission_json = JSON.stringify(this.registration_form);
-        let response = await this.axios.get(apiUrl + submission_json, {});
+        const submission_json = JSON.stringify(this.registration_form);
+        const response = await this.axios.get(apiUrl + submission_json, {});
         this.makeToast(
-          "Your registration request has been send " +
-            "(status " +
-            response.status +
-            " (" +
-            response.statusText +
-            ").",
-          "Success",
-          "success"
+          `${'Your registration request has been send '
+            + '(status '}${
+            response.status
+          } (${
+            response.statusText
+          }).`,
+          'Success',
+          'success',
         );
         this.successfulRegistration();
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     successfulRegistration() {
       this.show_overlay = true;
       setTimeout(() => {
-        this.$router.push("/");
+        this.$router.push('/');
       }, 2000);
     },
     onSubmit(event) {
@@ -263,10 +262,10 @@ export default {
     },
     doUserLogOut() {
       if (localStorage.user || localStorage.token) {
-        localStorage.removeItem("user");
-        localStorage.removeItem("token");
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
         this.user = null;
-        this.$router.push("/");
+        this.$router.push('/');
       }
     },
   },

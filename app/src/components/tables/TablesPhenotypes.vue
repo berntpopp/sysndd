@@ -24,7 +24,7 @@
             <template #header>
               <b-row>
                 <b-col>
-                  <h6 class="mb-1 text-left font-weight-bold">
+                  <h4 class="mb-1 text-left font-weight-bold">
                     Phenotype search
                     <b-badge
                       v-b-tooltip.hover.bottom
@@ -40,10 +40,10 @@
                     >
                       Associated entities: {{ totalRows }}
                     </b-badge>
-                  </h6>
+                  </h4>
                 </b-col>
                 <b-col>
-                  <h6
+                  <h5
                     v-if="showFilterControls"
                     class="mb-1 text-right font-weight-bold"
                   >
@@ -80,7 +80,7 @@
                         font-scale="1.0"
                       />
                     </b-button>
-                  </h6>
+                  </h5>
                 </b-col>
               </b-row>
             </template>
@@ -90,15 +90,20 @@
                 class="my-1"
                 sm="6"
               >
-                <treeselect
-                  v-if="showFilterControls"
-                  id="phenotype_select"
-                  v-model="filter.modifier_phenotype_id.content"
-                  :multiple="true"
-                  :options="phenotypes_options"
-                  :normalizer="normalizerPhenotypes"
-                  @input="filtered"
-                />
+                <label
+                  for="phenotype_select"
+                  aria-label="Phenotype select"
+                >
+                  <treeselect
+                    v-if="showFilterControls"
+                    id="phenotype_select"
+                    v-model="filter.modifier_phenotype_id.content"
+                    :multiple="true"
+                    :options="phenotypes_options"
+                    :normalizer="normalizerPhenotypes"
+                    @input="filtered"
+                  />
+                </label>
               </b-col>
 
               <b-col
@@ -206,13 +211,13 @@
                     data.label +
                       ' (unique filtered/total values: ' +
                       fields
-                        .filter((item) => item.label == data.label)
+                        .filter((item) => item.label === data.label)
                         .map((item) => {
                           return item.count_filtered;
                         })[0] +
                       '/' +
                       fields
-                        .filter((item) => item.label == data.label)
+                        .filter((item) => item.label === data.label)
                         .map((item) => {
                           return item.count;
                         })[0] +
@@ -258,17 +263,23 @@
                     </template>
                   </b-form-select>
 
-                  <treeselect
+                  <label
                     v-if="field.multi_selectable"
-                    :id="'select_' + field.key"
-                    v-model="filter[field.key].content"
-                    size="small"
-                    :multiple="true"
-                    :options="field.selectOptions"
-                    :normalizer="normalizer"
-                    :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
-                    @input="removeSearch();filtered();"
-                  />
+                    :for="'select_' + field.key"
+                    :aria-label="field.label"
+                  >
+                    <treeselect
+                      v-if="field.multi_selectable"
+                      :id="'select_' + field.key"
+                      v-model="filter[field.key].content"
+                      size="small"
+                      :multiple="true"
+                      :options="field.selectOptions"
+                      :normalizer="normalizer"
+                      :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
+                      @input="removeSearch();filtered();"
+                    />
+                  </label>
                 </td>
               </template>
 
@@ -400,118 +411,117 @@
   </div>
 </template>
 
-
 <script>
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
-import urlParsingMixin from "@/assets/js/mixins/urlParsingMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
+import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
 
 // import the Treeselect component
-import Treeselect from "@riophae/vue-treeselect";
+import Treeselect from '@riophae/vue-treeselect';
 // import the Treeselect styles
-import "@riophae/vue-treeselect/dist/vue-treeselect.css";
+import '@riophae/vue-treeselect/dist/vue-treeselect.css';
 
 export default {
-  name: "TablesPhenotypes",
+  name: 'TablesPhenotypes',
   // register the Treeselect component
   components: { Treeselect },
   mixins: [toastMixin, urlParsingMixin],
   props: {
     showFilterControls: { type: Boolean, default: true },
     showPaginationControls: { type: Boolean, default: true },
-    headerLabel: { type: String, default: "Phenotype table" },
-    sortInput: { type: String, default: "entity_id" },
-    filterInput: { type: String, default: "all(modifier_phenotype_id,HP:0001249)" },
+    headerLabel: { type: String, default: 'Phenotype table' },
+    sortInput: { type: String, default: 'entity_id' },
+    filterInput: { type: String, default: 'all(modifier_phenotype_id,HP:0001249)' },
     fieldsInput: { type: String, default: null },
-    pageAfterInput: { type: String, default: "" },
-    pageSizeInput: { type: String, default: "10" },
+    pageAfterInput: { type: String, default: '' },
+    pageSizeInput: { type: String, default: '10' },
     fspecInput: {
       type: String,
       default:
-        "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,modifier_phenotype_id",
+        'entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,modifier_phenotype_id',
     },
   },
   data() {
     return {
       stoplights_style: {
-        Definitive: "success",
-        Moderate: "primary",
-        Limited: "warning",
-        Refuted: "danger",
+        Definitive: 'success',
+        Moderate: 'primary',
+        Limited: 'warning',
+        Refuted: 'danger',
       },
-      ndd_icon: { No: "x", Yes: "check" },
-      ndd_icon_style: { No: "warning", Yes: "success" },
+      ndd_icon: { No: 'x', Yes: 'check' },
+      ndd_icon_style: { No: 'warning', Yes: 'success' },
       ndd_icon_text: {
-        No: "NOT associated with NDD",
-        Yes: "associated with NDD",
+        No: 'NOT associated with NDD',
+        Yes: 'associated with NDD',
       },
       inheritance_short_text: {
-        "Autosomal dominant inheritance": "AD",
-        "Autosomal recessive inheritance": "AR",
-        "X-linked other inheritance": "Xo",
-        "X-linked recessive inheritance": "XR",
-        "X-linked dominant inheritance": "XD",
-        "Mitochondrial inheritance": "Mit",
-        "Somatic mutation": "Som",
+        'Autosomal dominant inheritance': 'AD',
+        'Autosomal recessive inheritance': 'AR',
+        'X-linked other inheritance': 'Xo',
+        'X-linked recessive inheritance': 'XR',
+        'X-linked dominant inheritance': 'XD',
+        'Mitochondrial inheritance': 'Mit',
+        'Somatic mutation': 'Som',
       },
-      switch_text: { true: "OR", false: "AND" },
+      switch_text: { true: 'OR', false: 'AND' },
       phenotypes_options: [],
       items: [],
       fields: [
         {
-          key: "entity_id",
-          label: "Entity",
+          key: 'entity_id',
+          label: 'Entity',
           sortable: true,
-          sortDirection: "desc",
-          class: "text-left",
+          sortDirection: 'desc',
+          class: 'text-left',
         },
         {
-          key: "symbol",
-          label: "Gene Symbol",
+          key: 'symbol',
+          label: 'Gene Symbol',
           sortable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "disease_ontology_name",
-          label: "Disease",
+          key: 'disease_ontology_name',
+          label: 'Disease',
           sortable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "hpo_mode_of_inheritance_term_name",
-          label: "Inheritance",
+          key: 'hpo_mode_of_inheritance_term_name',
+          label: 'Inheritance',
           sortable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "category",
-          label: "Category",
+          key: 'category',
+          label: 'Category',
           sortable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "ndd_phenotype_word",
-          label: "NDD",
+          key: 'ndd_phenotype_word',
+          label: 'NDD',
           sortable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "details",
-          label: "Details",
+          key: 'details',
+          label: 'Details',
         },
       ],
       fields_details: [
-        { key: "hgnc_id", label: "HGNC ID", class: "text-left" },
+        { key: 'hgnc_id', label: 'HGNC ID', class: 'text-left' },
         {
-          key: "disease_ontology_id_version",
-          label: "Ontology ID version",
-          class: "text-left",
+          key: 'disease_ontology_id_version',
+          label: 'Ontology ID version',
+          class: 'text-left',
         },
         {
-          key: "disease_ontology_name",
-          label: "Disease ontology name",
-          class: "text-left",
+          key: 'disease_ontology_name',
+          label: 'Disease ontology name',
+          class: 'text-left',
         },
-        { key: "entry_date", label: "Entry date", class: "text-left" },
+        { key: 'entry_date', label: 'Entry date', class: 'text-left' },
       ],
       totalRows: 0,
       currentPage: 1,
@@ -521,23 +531,23 @@ export default {
       lastItemID: null,
       executionTime: 0,
       perPage: this.pageSizeInput,
-      pageOptions: ["10", "25", "50", "200"],
-      sortBy: "entity_id",
+      pageOptions: ['10', '25', '50', '200'],
+      sortBy: 'entity_id',
       sortDesc: true,
       sort: this.sortInput,
       filter: {
-        modifier_phenotype_id: {content: ["HP:0001249"], join_char: ',', operator: 'all'},
-        any: {content: null, join_char: null, operator: 'contains'},
-        entity_id: {content: null, join_char: null, operator: 'contains'},
-        symbol: {content: null, join_char: null, operator: 'contains'},
-        disease_ontology_name: {content: null, join_char: null, operator: 'contains'},
-        disease_ontology_id_version: {content: null, join_char: null, operator: 'contains'},
-        hpo_mode_of_inheritance_term_name: {content: null, join_char: ',', operator: 'any'},
-        hpo_mode_of_inheritance_term: {content: null, join_char: ',', operator: 'any'},
-        ndd_phenotype_word: {content: null, join_char: null, operator: 'contains'},
-        category: {content: null, join_char: ',', operator: 'any'},
+        modifier_phenotype_id: { content: ['HP:0001249'], join_char: ',', operator: 'all' },
+        any: { content: null, join_char: null, operator: 'contains' },
+        entity_id: { content: null, join_char: null, operator: 'contains' },
+        symbol: { content: null, join_char: null, operator: 'contains' },
+        disease_ontology_name: { content: null, join_char: null, operator: 'contains' },
+        disease_ontology_id_version: { content: null, join_char: null, operator: 'contains' },
+        hpo_mode_of_inheritance_term_name: { content: null, join_char: ',', operator: 'any' },
+        hpo_mode_of_inheritance_term: { content: null, join_char: ',', operator: 'any' },
+        ndd_phenotype_word: { content: null, join_char: null, operator: 'contains' },
+        category: { content: null, join_char: ',', operator: 'any' },
       },
-      filter_string: "",
+      filter_string: '',
       filterOn: [],
       checked: false,
       downloading: false,
@@ -567,9 +577,8 @@ export default {
     this.filter = this.filterStrToObj(this.filterInput, this.filter);
   },
   mounted() {
-
     // transform input sort string to object and assign
-    let sort_object = this.sortStringToVariables(this.sortInput);
+    const sort_object = this.sortStringToVariables(this.sortInput);
     this.sortBy = sort_object.sortBy;
     this.sortDesc = sort_object.sortDesc;
 
@@ -579,25 +588,23 @@ export default {
   },
   methods: {
     copyLinkToClipboard() {
-
       // compose URL param
-      const urlParam =
-        "sort=" +
-        this.sort +
-        "&filter=" +
-        this.filter_string +
-        "&page_after=" +
-        this.currentItemID +
-        "&page_size=" +
-        this.perPage;
+      const urlParam = `sort=${
+        this.sort
+      }&filter=${
+        this.filter_string
+      }&page_after=${
+        this.currentItemID
+      }&page_size=${
+        this.perPage}`;
 
       navigator.clipboard.writeText(
-        process.env.VUE_APP_URL + this.$route.path + "?" + urlParam
+        `${process.env.VUE_APP_URL + this.$route.path}?${urlParam}`,
       );
     },
     handleSortByOrDescChange() {
       this.currentItemID = 0;
-      this.sort = (!this.sortDesc ? "-" : "+") + this.sortBy;
+      this.sort = (!this.sortDesc ? '-' : '+') + this.sortBy;
       this.filtered();
     },
     handlePerPageChange() {
@@ -605,10 +612,10 @@ export default {
       this.filtered();
     },
     handlePageChange(value) {
-      if (value == 1) {
+      if (value === 1) {
         this.currentItemID = 0;
         this.filtered();
-      } else if (value == this.totalPages) {
+      } else if (value === this.totalPages) {
         this.currentItemID = this.lastItemID;
         this.filtered();
       } else if (value > this.currentPage) {
@@ -620,15 +627,17 @@ export default {
       }
     },
     filtered() {
-      let logical_operator = "";
+      const logical_operator = '';
 
       switch (this.checked) {
         case true:
-          this.filter.modifier_phenotype_id.operator = "any";
+          this.filter.modifier_phenotype_id.operator = 'any';
           break;
         case false:
-          this.filter.modifier_phenotype_id.operator = "all";
+          this.filter.modifier_phenotype_id.operator = 'all';
           break;
+        default:
+          this.filter.modifier_phenotype_id.operator = 'all';
       }
 
       this.filter_string = this.filterObjToStr(this.filter);
@@ -636,28 +645,28 @@ export default {
     },
     removeFilters() {
       this.filter = {
-        modifier_phenotype_id: {content: ["HP:0001249"], join_char: ',', operator: 'all'},
-        any: {content: null, join_char: null, operator: 'contains'},
-        entity_id: {content: null, join_char: null, operator: 'contains'},
-        symbol: {content: null, join_char: null, operator: 'contains'},
-        disease_ontology_name: {content: null, join_char: null, operator: 'contains'},
-        disease_ontology_id_version: {content: null, join_char: null, operator: 'contains'},
-        hpo_mode_of_inheritance_term_name: {content: null, join_char: ',', operator: 'any'},
-        hpo_mode_of_inheritance_term: {content: null, join_char: ',', operator: 'any'},
-        ndd_phenotype_word: {content: null, join_char: null, operator: 'contains'},
-        category: {content: null, join_char: ',', operator: 'any'},
+        modifier_phenotype_id: { content: ['HP:0001249'], join_char: ',', operator: 'all' },
+        any: { content: null, join_char: null, operator: 'contains' },
+        entity_id: { content: null, join_char: null, operator: 'contains' },
+        symbol: { content: null, join_char: null, operator: 'contains' },
+        disease_ontology_name: { content: null, join_char: null, operator: 'contains' },
+        disease_ontology_id_version: { content: null, join_char: null, operator: 'contains' },
+        hpo_mode_of_inheritance_term_name: { content: null, join_char: ',', operator: 'any' },
+        hpo_mode_of_inheritance_term: { content: null, join_char: ',', operator: 'any' },
+        ndd_phenotype_word: { content: null, join_char: null, operator: 'contains' },
+        category: { content: null, join_char: ',', operator: 'any' },
       };
     },
     removeSearch() {
-      this.filter["any"].content = null;
+      this.filter.any.content = null;
     },
     async loadPhenotypesList() {
-      let apiUrl = process.env.VUE_APP_API_URL + "/api/list/phenotype";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/phenotype`;
       try {
-        let response = await this.axios.get(apiUrl);
+        const response = await this.axios.get(apiUrl);
         this.phenotypes_options = response.data;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     normalizerPhenotypes(node) {
@@ -676,22 +685,21 @@ export default {
       this.isBusy = true;
 
       // compose URL param
-      const urlParam =
-        "sort=" +
-        this.sort +
-        "&filter=" +
-        this.filter_string +
-        "&page_after=" +
-        this.currentItemID +
-        "&page_size=" +
-        this.perPage;
+      const urlParam = `sort=${
+        this.sort
+      }&filter=${
+        this.filter_string
+      }&page_after=${
+        this.currentItemID
+      }&page_size=${
+        this.perPage}`;
 
-      const apiUrl = process.env.VUE_APP_API_URL + 
-        "/api/phenotype/entities/browse?" +
-        urlParam;
+      const apiUrl = `${process.env.VUE_APP_API_URL
+      }/api/phenotype/entities/browse?${
+        urlParam}`;
 
       try {
-        let response = await this.axios.get(apiUrl);
+        const response = await this.axios.get(apiUrl);
 
         this.fields = response.data.meta[0].fspec;
         this.items = response.data.data;
@@ -707,7 +715,7 @@ export default {
 
         this.isBusy = false;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     requestSelected() {
@@ -727,43 +735,42 @@ export default {
       this.downloading = true;
 
       // compose URL param
-      const urlParam =
-        "sort=" +
-        this.sort +
-        "&filter=" +
-        this.filter_string +
-        "&page_after=" +
-        this.currentItemID +
-        "&page_size=" +
-        this.perPage;
+      const urlParam = `sort=${
+        this.sort
+      }&filter=${
+        this.filter_string
+      }&page_after=`
+        + '0'
+        + '&page_size='
+        + 'all';
 
-      const apiUrl = process.env.VUE_APP_API_URL + 
-        "/api/phenotype/entities/excel?" +
-        urlParam;
+      const apiUrl = `${process.env.VUE_APP_API_URL
+      }/api/phenotype/entities/excel?${
+        urlParam}`;
 
       try {
-        let response = await this.axios({
+        const response = await this.axios({
           url: apiUrl,
-          method: "GET",
-          responseType: "blob",
-        }).then((response) => {
-          var fileURL = window.URL.createObjectURL(new Blob([response.data]));
-          var fileLink = document.createElement("a");
-
-          fileLink.href = fileURL;
-          fileLink.setAttribute("download", "phenotype_panel.xlsx");
-          document.body.appendChild(fileLink);
-
-          fileLink.click();
+          method: 'GET',
+          responseType: 'blob',
         });
+
+        const fileURL = window.URL.createObjectURL(new Blob([response.data]));
+        const fileLink = document.createElement('a');
+
+        fileLink.href = fileURL;
+        fileLink.setAttribute('download', 'curation_comparisons.xlsx');
+        document.body.appendChild(fileLink);
+
+        fileLink.click();
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
 
       this.downloading = false;
     },
     truncate(str, n) {
-      return str.length > n ? str.substr(0, n - 1) + "..." : str;
+      return str.length > n ? `${str.substr(0, n - 1)}...` : str;
     },
   },
 };
@@ -782,5 +789,14 @@ export default {
 }
 .input-group .input-group-text {
   width: 100%;
+}
+:deep(.vue-treeselect__placeholder) {
+  color: #6C757D !important;
+}
+:deep(.vue-treeselect__control) {
+  color: #6C757D !important;
+}
+:deep(.vue-treeselect__multi-value-label) {
+  color: #000 !important;
 }
 </style>

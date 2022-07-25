@@ -118,28 +118,27 @@
   </div>
 </template>
 
-
 <script>
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
-  name: "ApproveStatus",
+  name: 'ApproveStatus',
   mixins: [toastMixin],
   data() {
     return {
       role_options: [],
       user_options: [],
       switch_user_approval_text: {
-        true: "Approve user",
-        false: "Delete application",
+        true: 'Approve user',
+        false: 'Delete application',
       },
-      user_approval_style: { 0: "danger", 1: "primary" },
+      user_approval_style: { 0: 'danger', 1: 'primary' },
       items_UsersTable: [],
       totalRows_UsersTable: 0,
       loadingUsersApprove: true,
       approveUserModal: {
-        id: "approve-usermodal",
-        title: "",
+        id: 'approve-usermodal',
+        title: '',
         content: [],
       },
       user_approved: false,
@@ -153,120 +152,112 @@ export default {
   methods: {
     async loadUserTableData() {
       this.loadingUsersApprove = true;
-      let apiUrl = process.env.VUE_APP_API_URL + "/api/user/table";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/table`;
       try {
-        let response = await this.axios.get(apiUrl, {
+        const response = await this.axios.get(apiUrl, {
           headers: {
-            Authorization: "Bearer " + localStorage.getItem("token"),
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
         this.items_UsersTable = response.data;
         this.totalRows_UsersTable = response.data.length;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
       this.loadingUsersApprove = false;
     },
     async loadRoleList() {
-      let apiUrl = process.env.VUE_APP_API_URL + "/api/user/role_list";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/role_list`;
       try {
-        let response = await this.axios.get(apiUrl, {
+        const response = await this.axios.get(apiUrl, {
           headers: {
-            Authorization: "Bearer " + localStorage.getItem("token"),
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        this.role_options = response.data.map((item) => {
-          return { value: item.role, text: item.role };
-        });
+        this.role_options = response.data.map((item) => ({ value: item.role, text: item.role }));
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async loadUserList() {
-      let apiUrl =
-        process.env.VUE_APP_API_URL + "/api/user/list?roles=Curator,Reviewer";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/list?roles=Curator,Reviewer`;
       try {
-        let response = await this.axios.get(apiUrl, {
+        const response = await this.axios.get(apiUrl, {
           headers: {
-            Authorization: "Bearer " + localStorage.getItem("token"),
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        this.user_options = response.data.map((item) => {
-          return {
-            value: item.user_id,
-            text: item.user_name,
-            role: item.user_role,
-          };
-        });
+        this.user_options = response.data.map((item) => ({
+          value: item.user_id,
+          text: item.user_name,
+          role: item.user_role,
+        }));
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     infoApproveUser(item, index, button) {
       this.approveUserModal.title = `${item.user_name}`;
       this.approve_user = [];
       this.approve_user.push(item);
-      this.$root.$emit("bv::show::modal", this.approveUserModal.id, button);
+      this.$root.$emit('bv::show::modal', this.approveUserModal.id, button);
     },
     resetUserApproveModal() {
       this.approveUserModal = {
-        id: "approve-usermodal",
-        title: "",
+        id: 'approve-usermodal',
+        title: '',
         content: [],
       };
       this.approve_user = [];
       this.user_approved = false;
     },
     async handleUserApproveOk(bvModalEvt) {
-      let apiUrl =
-        process.env.VUE_APP_API_URL +
-        "/api/user/approval?user_id=" +
-        this.approve_user[0].user_id +
-        "&status_approval=" +
-        this.user_approved;
+      const apiUrl = `${process.env.VUE_APP_API_URL
+      }/api/user/approval?user_id=${
+        this.approve_user[0].user_id
+      }&status_approval=${
+        this.user_approved}`;
 
       try {
-        let response = await this.axios.put(
+        const response = await this.axios.put(
           apiUrl,
           {},
           {
             headers: {
-              Authorization: "Bearer " + localStorage.getItem("token"),
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          }
+          },
         );
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
       this.resetUserApproveModal();
       this.loadUserTableData();
     },
     async handleUserChangeRole(user_id, user_role) {
-      let apiUrl =
-        process.env.VUE_APP_API_URL +
-        "/api/user/change_role?user_id=" +
-        user_id +
-        "&role_assigned=" +
-        user_role;
+      const apiUrl = `${process.env.VUE_APP_API_URL
+      }/api/user/change_role?user_id=${
+        user_id
+      }&role_assigned=${
+        user_role}`;
 
       try {
-        let response = await this.axios.put(
+        const response = await this.axios.put(
           apiUrl,
           {},
           {
             headers: {
-              Authorization: "Bearer " + localStorage.getItem("token"),
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          }
+          },
         );
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
   },
 };
 </script>
-
 
 <style scoped>
 .btn-group-xs > .btn,

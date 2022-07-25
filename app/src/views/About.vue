@@ -739,28 +739,28 @@
 
 <script>
 export default {
-  name: "About",
+  name: 'About',
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
-    title: "About",
+    title: 'About',
     // all titles will be injected into this template
     titleTemplate:
-      "%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
     htmlAttrs: {
-      lang: "en",
+      lang: 'en',
     },
     meta: [
       {
-        vmid: "description",
-        name: "description",
+        vmid: 'description',
+        name: 'description',
         content:
-          "The About view contains information abouit the SysNDD curation effort and website.",
+          'The About view contains information abouit the SysNDD curation effort and website.',
       },
     ],
   },
   data() {
     return {
-      name: "About",
+      name: 'About',
       loading: false,
     };
   },

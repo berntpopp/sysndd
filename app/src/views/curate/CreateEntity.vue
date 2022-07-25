@@ -393,21 +393,27 @@
   </div>
 </template>
 
-
 <script>
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
-import submissionObjectsMixin from "@/assets/js/mixins/submissionObjectsMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
 
 // import the Treeselect component
-import Treeselect from "@riophae/vue-treeselect";
+import Treeselect from '@riophae/vue-treeselect';
 // import the Treeselect styles
-import "@riophae/vue-treeselect/dist/vue-treeselect.css";
+import '@riophae/vue-treeselect/dist/vue-treeselect.css';
+
+import Submission from '@/assets/js/classes/submission/submissionSubmission';
+import Entity from '@/assets/js/classes/submission/submissionEntity';
+import Review from '@/assets/js/classes/submission/submissionReview';
+import Status from '@/assets/js/classes/submission/submissionStatus';
+import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
+import Variation from '@/assets/js/classes/submission/submissionVariation';
+import Literature from '@/assets/js/classes/submission/submissionLiterature';
 
 export default {
-  name: "CreateEntity",
+  name: 'CreateEntity',
   // register the Treeselect component
   components: { Treeselect },
-  mixins: [toastMixin, submissionObjectsMixin],
+  mixins: [toastMixin],
   data() {
     return {
       entity_submission: {},
@@ -418,15 +424,15 @@ export default {
       phenotypes_review: [],
       variation_ontology_options: [],
       variation_ontology_review: [],
-      synopsis_review: "",
+      synopsis_review: '',
       literature_review: [],
       genereviews_review: [],
-      review_comment: "",
+      review_comment: '',
       status_options: [],
       status_selected: null,
       NDD_options: {
-        Yes: [{ boolean_id: 1, logical: "TRUE" }],
-        No: [{ boolean_id: 0, logical: "FALSE" }],
+        Yes: [{ boolean_id: 1, logical: 'TRUE' }],
+        No: [{ boolean_id: 0, logical: 'FALSE' }],
       },
       NDD_selected: null,
       checking_entity: false,
@@ -442,13 +448,12 @@ export default {
       return dirty || validated ? valid : null;
     },
     async loadPhenotypesList() {
-      let apiUrl =
-        process.env.VUE_APP_API_URL + "/api/list/phenotype?tree=true";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/phenotype?tree=true`;
       try {
-        let response = await this.axios.get(apiUrl);
+        const response = await this.axios.get(apiUrl);
         this.phenotypes_options = response.data;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     normalizePhenotypes(node) {
@@ -458,13 +463,12 @@ export default {
       };
     },
     async loadVariationOntologyList() {
-      let apiUrl =
-        process.env.VUE_APP_API_URL + "/api/list/variation_ontology?tree=true";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/variation_ontology?tree=true`;
       try {
-        let response = await this.axios.get(apiUrl);
+        const response = await this.axios.get(apiUrl);
         this.variation_ontology_options = response.data;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     normalizeVariationOntology(node) {
@@ -474,62 +478,60 @@ export default {
       };
     },
     async loadStatusList() {
-      let apiUrl = process.env.VUE_APP_API_URL + "/api/list/status?tree=true";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/status?tree=true`;
       try {
-        let response = await this.axios.get(apiUrl);
+        const response = await this.axios.get(apiUrl);
         this.status_options = response.data;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     tagValidatorPMID(tag) {
       // Individual PMID tag validator function
-      tag = tag.replace(/\s+/g, "");
+      const tag_copy = tag.replace(/\s+/g, '');
       return (
-        !isNaN(Number(tag.replaceAll("PMID:", ""))) &&
-        tag.includes("PMID:") &&
-        tag.replace("PMID:", "").length > 4 &&
-        tag.replace("PMID:", "").length < 9
+        !Number.isNaN(Number(tag_copy.replaceAll('PMID:', '')))
+        && tag_copy.includes('PMID:')
+        && tag_copy.replace('PMID:', '').length > 4
+        && tag_copy.replace('PMID:', '').length < 9
       );
     },
     async loadGeneInfoTree({ searchQuery, callback }) {
-      let apiSearchURL =
-        process.env.VUE_APP_API_URL +
-        "/api/search/gene/" +
-        searchQuery +
-        "?tree=true";
+      const apiSearchURL = `${process.env.VUE_APP_API_URL
+      }/api/search/gene/${
+        searchQuery
+      }?tree=true`;
 
       try {
-        let response_search = await this.axios.get(apiSearchURL);
+        const response_search = await this.axios.get(apiSearchURL);
         callback(null, response_search.data);
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async loadOntologyInfoTree({ searchQuery, callback }) {
-      let apiSearchURL =
-        process.env.VUE_APP_API_URL +
-        "/api/search/ontology/" +
-        searchQuery +
-        "?tree=true";
+      const apiSearchURL = `${process.env.VUE_APP_API_URL
+      }/api/search/ontology/${
+        searchQuery
+      }?tree=true`;
 
       try {
-        let response_search = await this.axios.get(apiSearchURL);
+        const response_search = await this.axios.get(apiSearchURL);
         callback(null, response_search.data);
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     normalizerOntologySearch(node) {
       return {
         id: node.id,
-        label: node.id + " (" + node.disease_ontology_name + ")",
+        label: `${node.id} (${node.disease_ontology_name})`,
       };
     },
     normalizerGeneSearch(node) {
       return {
         id: node.id,
-        label: node.id + " (" + node.symbol + "; " + node.name + ")",
+        label: `${node.id} (${node.symbol}; ${node.name})`,
       };
     },
     normalizeStatus(node) {
@@ -539,17 +541,16 @@ export default {
       };
     },
     async loadInheritanceInfoTree({ searchQuery, callback }) {
-      let apiSearchURL =
-        process.env.VUE_APP_API_URL +
-        "/api/search/inheritance/" +
-        searchQuery +
-        "?tree=true";
+      const apiSearchURL = `${process.env.VUE_APP_API_URL
+      }/api/search/inheritance/${
+        searchQuery
+      }?tree=true`;
 
       try {
-        let response_search = await this.axios.get(apiSearchURL);
+        const response_search = await this.axios.get(apiSearchURL);
         callback(null, response_search.data);
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     infoEntity() {
@@ -557,95 +558,86 @@ export default {
       const entity_hgnc_id = this.gene_input;
       const entity_disease_ontology_id_version = this.ontology_input;
       const entity_hpo_mode_of_inheritance_term = this.inheritance_input;
-      const entity_ndd_phenotype =
-        this.NDD_options[this.NDD_selected][0].boolean_id;
+      const entity_ndd_phenotype = this.NDD_options[this.NDD_selected][0].boolean_id;
 
       // define literature specific attributes as constants from inputs
       // first clean the arrays
-      const literature_review_clean = this.literature_review.map((element) => {
-        return element.replace(/\s+/g, "");
-      });
+      const literature_review_clean = this.literature_review.map((element) => element.replace(/\s+/g, ''));
 
       const genereviews_review_clean = this.genereviews_review.map(
-        (element) => {
-          return element.replace(/\s+/g, "");
-        }
+        (element) => element.replace(/\s+/g, ''),
       );
 
-      const new_literature = new this.Literature(
+      const new_literature = new Literature(
         literature_review_clean,
-        genereviews_review_clean
+        genereviews_review_clean,
       );
 
       // define phenotype specific attributes as constants from inputs
-      const new_phenotype = this.phenotypes_review.map((item) => {
-        return new this.Phenotype(item.split("-")[1], item.split("-")[0]);
-      });
+      const new_phenotype = this.phenotypes_review.map((item) => new Phenotype(item.split('-')[1], item.split('-')[0]));
 
       // define variation ontology specific attributes as constants from inputs
       const new_variation_ontology = this.variation_ontology_review.map(
-        (item) => {
-          return new this.Variation(item.split("-")[1], item.split("-")[0]);
-        }
+        (item) => new Variation(item.split('-')[1], item.split('-')[0]),
       );
 
       // define review specific attributes as constants from inputs
       const review_synopsis = this.synopsis_review;
-      const review_comment = this.review_comment;
-      const new_review = new this.Review(
+      const { review_comment } = this;
+      const new_review = new Review(
         review_synopsis,
         new_literature,
         new_phenotype,
         new_variation_ontology,
-        review_comment
+        review_comment,
       );
 
       // define status specific attributes as constants from inputs
-      const new_status = new this.Status(this.status_selected, "", 0);
+      const new_status = new Status(this.status_selected, '', 0);
 
       // compose entity
-      const new_entity = new this.Entity(
+      const new_entity = new Entity(
         entity_hgnc_id,
         entity_disease_ontology_id_version,
         entity_hpo_mode_of_inheritance_term,
-        entity_ndd_phenotype
+        entity_ndd_phenotype,
       );
 
       // compose submission
-      const new_submission = new this.Submission(
+      const new_submission = new Submission(
         new_entity,
         new_review,
-        new_status
+        new_status,
       );
 
       this.entity_submission = new_submission;
     },
     async submitEntity() {
-      let apiUrl = process.env.VUE_APP_API_URL + "/api/entity/create";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/entity/create`;
 
       try {
-        let response = await this.axios.post(
+        const response = await this.axios.post(
           apiUrl,
           { create_json: this.entity_submission },
           {
             headers: {
-              Authorization: "Bearer " + localStorage.getItem("token"),
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          }
+          },
         );
 
         this.makeToast(
-          "The new entity has been submitted " +
-            "(status " +
-            response.status +
-            " (" +
-            response.statusText +
-            ").",
-          "Success",
-          "success"
+          `${'The new entity has been submitted '
+            + '(status '}${
+            response.status
+          } (${
+            response.statusText
+          }).`,
+          'Success',
+          'success',
         );
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       } finally {
         this.resetForm();
         this.checking_entity = false;
@@ -653,7 +645,7 @@ export default {
     },
     checkSubmission() {
       this.checking_entity = true;
-      this.$refs["submissionModal"].show();
+      this.$refs.submissionModal.show();
       this.infoEntity();
     },
     resetForm() {
@@ -661,11 +653,12 @@ export default {
       this.gene_input = null;
       this.ontology_input = null;
       this.inheritance_input = null;
-      (this.phenotypes_review = []), (this.variation_ontology_review = []);
-      this.synopsis_review = "";
+      this.phenotypes_review = [];
+      this.variation_ontology_review = [];
+      this.synopsis_review = '';
       this.literature_review = [];
       this.genereviews_review = [];
-      this.review_comment = "";
+      this.review_comment = '';
       this.status_selected = null;
       this.NDD_selected = null;
 
@@ -679,7 +672,6 @@ export default {
   },
 };
 </script>
-
 
 <style scoped>
 .btn-group-xs > .btn,

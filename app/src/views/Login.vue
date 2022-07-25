@@ -87,34 +87,34 @@
 </template>
 
 <script>
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
-  name: "Login",
+  name: 'Login',
   mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
-    title: "Login",
+    title: 'Login',
     // all titles will be injected into this template
     titleTemplate:
-      "%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
     htmlAttrs: {
-      lang: "en",
+      lang: 'en',
     },
     meta: [
       {
-        vmid: "description",
-        name: "description",
+        vmid: 'description',
+        name: 'description',
         content:
-          "The Login view allows users and curators to log into their SysNDD account.",
+          'The Login view allows users and curators to log into their SysNDD account.',
       },
     ],
   },
   data() {
     return {
-      user_name: "",
-      password: "",
-      ywt: "",
+      user_name: '',
+      password: '',
+      ywt: '',
       user: [],
       loading: true,
       animated: false,
@@ -131,49 +131,48 @@ export default {
       return dirty || validated ? valid : null;
     },
     async loadJWT() {
-      let apiAuthenticateURL =
-        process.env.VUE_APP_API_URL +
-        "/api/auth/authenticate?user_name=" +
-        this.user_name +
-        "&password=" +
-        this.password;
+      const apiAuthenticateURL = `${process.env.VUE_APP_API_URL
+      }/api/auth/authenticate?user_name=${
+        this.user_name
+      }&password=${
+        this.password}`;
       try {
-        let response_authenticate = await this.axios.get(apiAuthenticateURL);
-        localStorage.setItem("token", response_authenticate.data[0]);
+        const response_authenticate = await this.axios.get(apiAuthenticateURL);
+        localStorage.setItem('token', response_authenticate.data[0]);
         this.makeToast(
-          "You have logged in  " +
-            "(status " +
-            response_authenticate.status +
-            " (" +
-            response_authenticate.statusText +
-            ").",
-          "Success",
-          "success"
+          `${'You have logged in  '
+            + '(status '}${
+            response_authenticate.status
+          } (${
+            response_authenticate.statusText
+          }).`,
+          'Success',
+          'success',
         );
         this.signinWithJWT();
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async signinWithJWT() {
-      let apiAuthenticateURL = process.env.VUE_APP_API_URL + "/api/auth/signin";
+      const apiAuthenticateURL = `${process.env.VUE_APP_API_URL}/api/auth/signin`;
 
       try {
-        let response_signin = await this.axios.get(apiAuthenticateURL, {
+        const response_signin = await this.axios.get(apiAuthenticateURL, {
           headers: {
-            Authorization: "Bearer " + localStorage.getItem("token"),
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
         this.user = response_signin.data;
-        localStorage.setItem("user", JSON.stringify(response_signin.data));
-        this.$router.push("/");
+        localStorage.setItem('user', JSON.stringify(response_signin.data));
+        this.$router.push('/');
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     resetForm() {
-      this.user_name = "";
-      this.password = "";
+      this.user_name = '';
+      this.password = '';
 
       this.$nextTick(() => {
         this.$refs.observer.reset();
@@ -184,10 +183,10 @@ export default {
     },
     doUserLogOut() {
       if (localStorage.user || localStorage.token) {
-        localStorage.removeItem("user");
-        localStorage.removeItem("token");
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
         this.user = null;
-        this.$router.push("/");
+        this.$router.push('/');
       }
     },
     clickHandler() {

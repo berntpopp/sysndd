@@ -254,7 +254,8 @@
             :show-filter-controls="false"
             :show-pagination-controls="false"
             header-label="Associated "
-            :filter-input="'any(disease_ontology_id_version,' + ontology[0].disease_ontology_id_version.join(',') + ')'"
+            :filter-input="'any(disease_ontology_id_version,' +
+              ontology[0].disease_ontology_id_version.join(',') + ')'"
           />
 
           <!-- Associated entities card -->
@@ -265,94 +266,98 @@
 </template>
 
 <script>
-import TablesEntities from "@/components/tables/TablesEntities.vue";
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
-  name: "Ontology",
-  components: { TablesEntities },
+  name: 'Ontology',
   mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
-    title: "Ontology",
+    title: 'Ontology',
     // all titles will be injected into this template
     titleTemplate:
-      "%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
     htmlAttrs: {
-      lang: "en",
+      lang: 'en',
     },
     meta: [
       {
-        vmid: "description",
-        name: "description",
-        content: "This Ontology view shows specific information for a disease.",
+        vmid: 'description',
+        name: 'description',
+        content: 'This Ontology view shows specific information for a disease.',
       },
     ],
   },
   data() {
     return {
       stoplights_style: {
-        Definitive: "success",
-        Moderate: "primary",
-        Limited: "warning",
-        Refuted: "danger",
+        Definitive: 'success',
+        Moderate: 'primary',
+        Limited: 'warning',
+        Refuted: 'danger',
       },
-      ndd_icon: { No: "x", Yes: "check" },
-      ndd_icon_style: { No: "warning", Yes: "success" },
+      ndd_icon: { No: 'x', Yes: 'check' },
+      ndd_icon_style: { No: 'warning', Yes: 'success' },
       ndd_icon_text: {
-        No: "NOT associated with NDD",
-        Yes: "associated with NDD",
+        No: 'NOT associated with NDD',
+        Yes: 'associated with NDD',
       },
       inheritance_short_text: {
-        "Autosomal dominant inheritance": "AD",
-        "Autosomal recessive inheritance": "AR",
-        "X-linked other inheritance": "Xo",
-        "X-linked recessive inheritance": "XR",
-        "X-linked dominant inheritance": "XD",
-        "Mitochondrial inheritance": "Mit",
-        "Somatic mutation": "Som",
+        'Autosomal dominant inheritance': 'AD',
+        'Autosomal recessive inheritance': 'AR',
+        'X-linked other inheritance': 'Xo',
+        'X-linked recessive inheritance': 'XR',
+        'X-linked dominant inheritance': 'XD',
+        'Mitochondrial inheritance': 'Mit',
+        'Somatic mutation': 'Som',
       },
       ontology: [],
       ontology_fields: [
         {
-          key: "disease_ontology_id_version",
-          label: "Versions",
+          key: 'disease_ontology_id_version',
+          label: 'Versions',
           sortable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "disease_ontology_name",
-          label: "Disease",
+          key: 'disease_ontology_name',
+          label: 'Disease',
           sortable: true,
-          class: "text-left",
+          class: 'text-left',
           sortByFormatted: true,
           filterByFormatted: true,
         },
         {
-          key: "hpo_mode_of_inheritance_term_name",
-          label: "Inheritance",
+          key: 'hpo_mode_of_inheritance_term_name',
+          label: 'Inheritance',
           sortable: true,
-          class: "text-left",
+          class: 'text-left',
           sortByFormatted: true,
           filterByFormatted: true,
         },
-        { key: "DOID", label: "DOID", sortable: true, class: "text-left" },
-        { key: "MONDO", label: "MONDO", sortable: true, class: "text-left" },
         {
-          key: "Orphanet",
-          label: "Orphanet",
-          sortable: true,
-          class: "text-left",
+          key: 'DOID', label: 'DOID', sortable: true, class: 'text-left',
         },
-        { key: "EFO", label: "EFO", sortable: true, class: "text-left" },
+        {
+          key: 'MONDO', label: 'MONDO', sortable: true, class: 'text-left',
+        },
+        {
+          key: 'Orphanet',
+          label: 'Orphanet',
+          sortable: true,
+          class: 'text-left',
+        },
+        {
+          key: 'EFO', label: 'EFO', sortable: true, class: 'text-left',
+        },
       ],
       totalRows: 0,
       currentPage: 1,
-      perPage: "10",
-      pageOptions: ["10", "25", "50", "200"],
-      sortBy: "",
+      perPage: '10',
+      pageOptions: ['10', '25', '50', '200'],
+      sortBy: '',
       sortDesc: false,
-      sortDirection: "asc",
+      sortDirection: 'asc',
       loading: true,
     };
   },
@@ -362,45 +367,40 @@ export default {
   methods: {
     async loadOntologyInfo() {
       this.loading = true;
-      let apiDiseaseOntologyURL =
-        process.env.VUE_APP_API_URL +
-        "/api/ontology/" +
-        this.$route.params.disease_term +
-        "?input_type=ontology_id";
-      let apiDiseaseNameURL =
-        process.env.VUE_APP_API_URL +
-        "/api/ontology/" +
-        this.$route.params.disease_term +
-        "?input_type=ontology_name";
+      const apiDiseaseOntologyURL = `${process.env.VUE_APP_API_URL
+      }/api/ontology/${
+        this.$route.params.disease_term
+      }?input_type=ontology_id`;
+      const apiDiseaseNameURL = `${process.env.VUE_APP_API_URL
+      }/api/ontology/${
+        this.$route.params.disease_term
+      }?input_type=ontology_name`;
 
       try {
-        let response_ontology = await this.axios.get(apiDiseaseOntologyURL);
-        let response_name = await this.axios.get(apiDiseaseNameURL);
+        const response_ontology = await this.axios.get(apiDiseaseOntologyURL);
+        const response_name = await this.axios.get(apiDiseaseNameURL);
 
         if (
-          response_ontology.data.length == 0 &&
-          response_name.data.length == 0
+          response_ontology.data.length === 0
+          && response_name.data.length === 0
         ) {
-          this.$router.push("/PageNotFound");
+          this.$router.push('/PageNotFound');
+        } else if (response_ontology.data === 0) {
+          this.ontology = response_name.data;
         } else {
-          if (response_ontology.data == 0) {
-            this.ontology = response_name.data;
-          } else {
-            this.ontology = response_ontology.data;
-          }
+          this.ontology = response_ontology.data;
         }
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
       this.loading = false;
     },
     truncate(str, n) {
-      return str.length > n ? str.substr(0, n - 1) + "..." : str;
+      return str.length > n ? `${str.substr(0, n - 1)}...` : str;
     },
   },
 };
 </script>
-
 
 <style scoped>
 .btn-group-xs > .btn,

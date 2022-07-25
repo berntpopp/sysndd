@@ -97,12 +97,11 @@
   </div>
 </template>
 
-
 <script>
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
-  name: "ApproveStatus",
+  name: 'ApproveStatus',
   mixins: [toastMixin],
   data() {
     return {
@@ -111,56 +110,56 @@ export default {
       items_ReReviewTable: [],
       fields_ReReviewTable: [
         {
-          key: "user_name",
-          label: "Username",
+          key: 'user_name',
+          label: 'Username',
           sortable: true,
           filterable: true,
-          sortDirection: "desc",
-          class: "text-left",
+          sortDirection: 'desc',
+          class: 'text-left',
         },
         {
-          key: "re_review_batch",
-          label: "Re-review batch ID",
+          key: 're_review_batch',
+          label: 'Re-review batch ID',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "re_review_review_saved",
-          label: "Review saved count",
+          key: 're_review_review_saved',
+          label: 'Review saved count',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "re_review_status_saved",
-          label: "Status saved count",
+          key: 're_review_status_saved',
+          label: 'Status saved count',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "re_review_submitted",
-          label: "Re-review submitted count",
+          key: 're_review_submitted',
+          label: 'Re-review submitted count',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "re_review_approved",
-          label: "Re-review approved count",
+          key: 're_review_approved',
+          label: 'Re-review approved count',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "entity_count",
-          label: "Total entities in batch",
+          key: 'entity_count',
+          label: 'Total entities in batch',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
-        { key: "actions", label: "Actions" },
+        { key: 'actions', label: 'Actions' },
       ],
     };
   },
@@ -170,84 +169,77 @@ export default {
   },
   methods: {
     async loadUserList() {
-      let apiUrl =
-        process.env.VUE_APP_API_URL + "/api/user/list?roles=Curator,Reviewer";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/list?roles=Curator,Reviewer`;
       try {
-        let response = await this.axios.get(apiUrl, {
+        const response = await this.axios.get(apiUrl, {
           headers: {
-            Authorization: "Bearer " + localStorage.getItem("token"),
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        this.user_options = response.data.map((item) => {
-          return {
-            value: item.user_id,
-            text: item.user_name,
-            role: item.user_role,
-          };
-        });
+        this.user_options = response.data.map((item) => ({
+          value: item.user_id,
+          text: item.user_name,
+          role: item.user_role,
+        }));
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async loadReReviewTableData() {
       this.loadingReReviewManagment = true;
-      let apiUrl =
-        process.env.VUE_APP_API_URL + "/api/re_review/assignment_table";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/re_review/assignment_table`;
       try {
-        let response = await this.axios.get(apiUrl, {
+        const response = await this.axios.get(apiUrl, {
           headers: {
-            Authorization: "Bearer " + localStorage.getItem("token"),
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
         this.items_ReReviewTable = response.data;
         this.totalRows_ReReviewTable = response.data.length;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
       this.loadingReReviewManagment = false;
     },
     async handleNewBatchAssignment() {
-      let apiUrl =
-        process.env.VUE_APP_API_URL +
-        "/api/re_review/batch/assign?user_id=" +
-        this.user_id_assignment;
+      const apiUrl = `${process.env.VUE_APP_API_URL
+      }/api/re_review/batch/assign?user_id=${
+        this.user_id_assignment}`;
 
       try {
-        let response = await this.axios.put(
+        const response = await this.axios.put(
           apiUrl,
           {},
           {
             headers: {
-              Authorization: "Bearer " + localStorage.getItem("token"),
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          }
+          },
         );
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
       this.loadReReviewTableData();
     },
     async handleBatchUnAssignment(batch_id) {
-      let apiUrl =
-        process.env.VUE_APP_API_URL +
-        "/api/re_review/batch/unassign?re_review_batch=" +
-        batch_id;
+      const apiUrl = `${process.env.VUE_APP_API_URL
+      }/api/re_review/batch/unassign?re_review_batch=${
+        batch_id}`;
 
       try {
-        let response = await this.axios.delete(apiUrl, {
+        const response = await this.axios.delete(apiUrl, {
           headers: {
-            Authorization: "Bearer " + localStorage.getItem("token"),
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
       this.loadReReviewTableData();
     },
   },
 };
 </script>
-
 
 <style scoped>
 .btn-group-xs > .btn,

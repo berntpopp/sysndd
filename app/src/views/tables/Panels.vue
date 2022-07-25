@@ -315,28 +315,27 @@
   </div>
 </template>
 
-
 <script>
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
-  name: "Panels",
+  name: 'Panels',
   mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
-    title: "Panels",
+    title: 'Panels',
     // all titles will be injected into this template
     titleTemplate:
-      "%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
     htmlAttrs: {
-      lang: "en",
+      lang: 'en',
     },
     meta: [
       {
-        vmid: "description",
-        name: "description",
+        vmid: 'description',
+        name: 'description',
         content:
-          "The Panels table view allows composing panels of genes associated with NDD which can be sued for filtering in sequencing studies.",
+          'The Panels table view allows composing panels of genes associated with NDD which can be sued for filtering in sequencing studies.',
       },
     ],
   },
@@ -358,11 +357,11 @@ export default {
       nextItemID: null,
       lastItemID: null,
       executionTime: 0,
-      perPage: "10",
-      pageOptions: ["10", "25", "50", "200"],
-      sortBy: "symbol",
+      perPage: '10',
+      pageOptions: ['10', '25', '50', '200'],
+      sortBy: 'symbol',
       sortDesc: false,
-      sortDirection: "asc",
+      sortDirection: 'asc',
       filter: null,
       filterOn: [],
       loading: true,
@@ -398,10 +397,10 @@ export default {
       this.requestSelected();
     },
     handlePageChange(value) {
-      if (value == 1) {
+      if (value === 1) {
         this.currentItemID = 0;
         this.requestSelected();
-      } else if (value == this.totalPages) {
+      } else if (value === this.totalPages) {
         this.currentItemID = this.lastItemID;
         this.requestSelected();
       } else if (value > this.currentPage) {
@@ -413,38 +412,37 @@ export default {
       }
     },
     filtered() {
-      let filter_string_not_empty = Object.filter(
+      const filter_string_not_empty = Object.filter(
         this.filter,
-        (value) => value !== ""
+        (value) => value !== '',
       );
 
       if (Object.keys(filter_string_not_empty).length !== 0) {
-        this.filter_string =
-          "contains(" +
+        this.filter_string = `contains(${
           Object.keys(filter_string_not_empty)
-            .map((key) => [key, this.filter[key]].join(","))
-            .join("),contains(") +
-          ")";
+            .map((key) => [key, this.filter[key]].join(','))
+            .join('),contains(')
+        })`;
         this.requestSelected();
       } else {
-        this.filter_string = "";
+        this.filter_string = '';
         this.requestSelected();
       }
     },
     removeFilters() {
-      this.filter = { any: "" };
+      this.filter = { any: '' };
       this.filtered();
     },
     removeSearch() {
-      this.filter["any"] = "";
+      this.filter.any = '';
       this.filtered();
     },
     async loadOptionsData() {
       this.loading = true;
 
-      let apiUrl = process.env.VUE_APP_API_URL + "/api/panels/options";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/panels/options`;
       try {
-        let response = await this.axios.get(apiUrl);
+        const response = await this.axios.get(apiUrl);
         this.categories_list = response.data[0].options;
         this.inheritance_list = response.data[1].options;
         this.columns_list = response.data[2].options;
@@ -454,38 +452,39 @@ export default {
         this.selected_columns = response.data[2].options;
         this.sort_list = response.data[2].options;
 
-        var c = [];
-        for (var key in response.data[2].options)
-          c.push(response.data[2].options[key].value);
+        const c = [];
+        for (let i = 0; i < response.data[2].options.length; i += 1) {
+          c.push(response.data[2].options[i].value);
+        }
+
         this.selected_columns = c;
 
         this.requestSelected();
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async requestSelected() {
       this.isBusy = true;
 
-      let apiUrl =
-        process.env.VUE_APP_API_URL +
-        "/api/panels/browse?sort=" +
-        (this.sortDesc ? "-" : "+") +
-        this.sortBy +
-        "&filter=any(category," +
-        this.selected_category +
-        "),any(inheritance_filter," +
-        this.selected_inheritance +
-        ")" +
-        "&fields=" +
-        this.selected_columns.join() +
-        "&page_after=" +
-        this.currentItemID +
-        "&page_size=" +
-        this.perPage;
+      const apiUrl = `${process.env.VUE_APP_API_URL
+      }/api/panels/browse?sort=${
+        this.sortDesc ? '-' : '+'
+      }${this.sortBy
+      }&filter=any(category,${
+        this.selected_category
+      }),any(inheritance_filter,${
+        this.selected_inheritance
+      })`
+        + `&fields=${
+          this.selected_columns.join()
+        }&page_after=${
+          this.currentItemID
+        }&page_size=${
+          this.perPage}`;
 
       try {
-        let response = await this.axios.get(apiUrl);
+        const response = await this.axios.get(apiUrl);
 
         this.items = response.data.data;
         this.fields = response.data.fields;
@@ -501,7 +500,7 @@ export default {
 
         this.isBusy = false;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
 
       this.loading = false;
@@ -509,36 +508,35 @@ export default {
     async requestExcel() {
       this.downloading = true;
 
-      let apiUrl =
-        process.env.VUE_APP_API_URL +
-        "/api/panels/excel?sort=" +
-        (this.sortDesc ? "-" : "+") +
-        this.sortBy +
-        "&filter=any(category," +
-        this.selected_category +
-        "),any(inheritance_filter," +
-        this.selected_inheritance +
-        ")" +
-        "&fields=" +
-        this.selected_columns.join();
+      const apiUrl = `${process.env.VUE_APP_API_URL
+      }/api/panels/excel?sort=${
+        this.sortDesc ? '-' : '+'
+      }${this.sortBy
+      }&filter=any(category,${
+        this.selected_category
+      }),any(inheritance_filter,${
+        this.selected_inheritance
+      })`
+        + `&fields=${
+          this.selected_columns.join()}`;
 
       try {
-        let response = await this.axios({
+        const response = await this.axios({
           url: apiUrl,
-          method: "GET",
-          responseType: "blob",
-        }).then((response) => {
-          var fileURL = window.URL.createObjectURL(new Blob([response.data]));
-          var fileLink = document.createElement("a");
-
-          fileLink.href = fileURL;
-          fileLink.setAttribute("download", "panel.xlsx");
-          document.body.appendChild(fileLink);
-
-          fileLink.click();
+          method: 'GET',
+          responseType: 'blob',
         });
+
+        const fileURL = window.URL.createObjectURL(new Blob([response.data]));
+        const fileLink = document.createElement('a');
+
+        fileLink.href = fileURL;
+        fileLink.setAttribute('download', 'curation_comparisons.xlsx');
+        document.body.appendChild(fileLink);
+
+        fileLink.click();
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
 
       this.downloading = false;
@@ -546,7 +544,6 @@ export default {
   },
 };
 </script>
-
 
 <style scoped>
 .btn-group-xs > .btn,

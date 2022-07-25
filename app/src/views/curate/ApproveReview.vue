@@ -139,6 +139,7 @@
                     size="sm"
                     rows="1"
                     :value="data.item.synopsis"
+                    :aria-label="'Synopsis for ' + data.item.entity_id"
                   />
                 </div>
               </template>
@@ -150,6 +151,7 @@
                     size="sm"
                     rows="1"
                     :value="data.item.comment"
+                    :aria-label="'Comment for ' + data.item.entity_id"
                   />
                 </div>
               </template>
@@ -537,21 +539,25 @@
   </div>
 </template>
 
-
 <script>
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
-import submissionObjectsMixin from "@/assets/js/mixins/submissionObjectsMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
 
 // import the Treeselect component
-import Treeselect from "@riophae/vue-treeselect";
+import Treeselect from '@riophae/vue-treeselect';
 // import the Treeselect styles
-import "@riophae/vue-treeselect/dist/vue-treeselect.css";
+import '@riophae/vue-treeselect/dist/vue-treeselect.css';
+
+import Entity from '@/assets/js/classes/submission/submissionEntity';
+import Review from '@/assets/js/classes/submission/submissionReview';
+import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
+import Variation from '@/assets/js/classes/submission/submissionVariation';
+import Literature from '@/assets/js/classes/submission/submissionLiterature';
 
 export default {
-  name: "ApproveReview",
+  name: 'ApproveReview',
   // register the Treeselect component
   components: { Treeselect },
-  mixins: [toastMixin, submissionObjectsMixin],
+  mixins: [toastMixin],
   data() {
     return {
       phenotypes_options: [],
@@ -559,95 +565,95 @@ export default {
       items_ReviewTable: [],
       fields_ReviewTable: [
         {
-          key: "entity_id",
-          label: "Entity",
+          key: 'entity_id',
+          label: 'Entity',
           sortable: true,
           filterable: true,
-          sortDirection: "desc",
-          class: "text-left",
+          sortDirection: 'desc',
+          class: 'text-left',
         },
         {
-          key: "synopsis",
-          label: "Clinical synopsis",
+          key: 'synopsis',
+          label: 'Clinical synopsis',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "comment",
-          label: "Comment",
+          key: 'comment',
+          label: 'Comment',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
-        { key: "actions", label: "Actions" },
+        { key: 'actions', label: 'Actions' },
       ],
       fields_details_ReviewTable: [
         {
-          key: "review_id",
-          label: "Review ID",
+          key: 'review_id',
+          label: 'Review ID',
           sortable: true,
           filterable: true,
-          sortDirection: "desc",
-          class: "text-left",
+          sortDirection: 'desc',
+          class: 'text-left',
         },
         {
-          key: "review_date",
-          label: "Review date",
+          key: 'review_date',
+          label: 'Review date',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "review_user_name",
-          label: "Review user",
+          key: 'review_user_name',
+          label: 'Review user',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "is_primary",
-          label: "Primary",
+          key: 'is_primary',
+          label: 'Primary',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
         {
-          key: "synopsis",
-          label: "Clinical synopsis",
+          key: 'synopsis',
+          label: 'Clinical synopsis',
           sortable: true,
           filterable: true,
-          class: "text-left",
+          class: 'text-left',
         },
       ],
       totalRows: 0,
       currentPage: 1,
-      perPage: "10",
-      pageOptions: ["10", "25", "50", "200"],
-      sortBy: "",
+      perPage: '10',
+      pageOptions: ['10', '25', '50', '200'],
+      sortBy: '',
       sortDesc: false,
-      sortDirection: "asc",
+      sortDirection: 'asc',
       filter: null,
       filterOn: [],
       entity: [],
       approveModal: {
-        id: "approve-modal",
-        title: "",
+        id: 'approve-modal',
+        title: '',
         content: [],
       },
       reviewModal: {
-        id: "review-modal",
-        title: "",
+        id: 'review-modal',
+        title: '',
         content: [],
       },
-      entity_info: new this.Entity(),
-      review_info: new this.Review(),
+      entity_info: new Entity(),
+      review_info: new Review(),
       select_phenotype: [],
       select_variation: [],
       select_additional_references: [],
       select_gene_reviews: [],
       approve_all_selected: false,
-      switch_approve_text: { true: "Yes", false: "No" },
+      switch_approve_text: { true: 'Yes', false: 'No' },
       loading_review_approve: true,
       loading_review_modal: true,
       isBusy: true,
@@ -660,23 +666,21 @@ export default {
   },
   methods: {
     async loadPhenotypesList() {
-      let apiUrl =
-        process.env.VUE_APP_API_URL + "/api/list/phenotype?tree=true";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/phenotype?tree=true`;
       try {
-        let response = await this.axios.get(apiUrl);
+        const response = await this.axios.get(apiUrl);
         this.phenotypes_options = response.data;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async loadVariationOntologyList() {
-      let apiUrl =
-        process.env.VUE_APP_API_URL + "/api/list/variation_ontology?tree=true";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/variation_ontology?tree=true`;
       try {
-        let response = await this.axios.get(apiUrl);
+        const response = await this.axios.get(apiUrl);
         this.variation_ontology_options = response.data;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     normalizePhenotypes(node) {
@@ -693,17 +697,17 @@ export default {
     },
     async loadReviewTableData() {
       this.isBusy = true;
-      let apiUrl = process.env.VUE_APP_API_URL + "/api/review";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/review`;
       try {
-        let response = await this.axios.get(apiUrl, {
+        const response = await this.axios.get(apiUrl, {
           headers: {
-            Authorization: "Bearer " + localStorage.getItem("token"),
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
         this.items_ReviewTable = response.data;
         this.totalRows = response.data.length;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
       this.isBusy = false;
       this.loading_review_approve = false;
@@ -711,116 +715,89 @@ export default {
     async loadReviewInfo(review_id) {
       this.loading_review_modal = true;
 
-      let apiGetReviewURL =
-        process.env.VUE_APP_API_URL + "/api/review/" + review_id;
-      let apiGetPhenotypesURL =
-        process.env.VUE_APP_API_URL +
-        "/api/review/" +
-        review_id +
-        "/phenotypes";
-      let apiGetVariationURL =
-        process.env.VUE_APP_API_URL + "/api/review/" + review_id + "/variation";
-      let apiGetPublicationsURL =
-        process.env.VUE_APP_API_URL +
-        "/api/review/" +
-        review_id +
-        "/publications";
+      const apiGetReviewURL = `${process.env.VUE_APP_API_URL}/api/review/${review_id}`;
+      const apiGetPhenotypesURL = `${process.env.VUE_APP_API_URL
+      }/api/review/${
+        review_id
+      }/phenotypes`;
+      const apiGetVariationURL = `${process.env.VUE_APP_API_URL}/api/review/${review_id}/variation`;
+      const apiGetPublicationsURL = `${process.env.VUE_APP_API_URL
+      }/api/review/${
+        review_id
+      }/publications`;
 
       try {
-        let response_review = await this.axios.get(apiGetReviewURL);
-        let response_phenotypes = await this.axios.get(apiGetPhenotypesURL);
-        let response_variation = await this.axios.get(apiGetVariationURL);
-        let response_publications = await this.axios.get(apiGetPublicationsURL);
+        const response_review = await this.axios.get(apiGetReviewURL);
+        const response_phenotypes = await this.axios.get(apiGetPhenotypesURL);
+        const response_variation = await this.axios.get(apiGetVariationURL);
+        const response_publications = await this.axios.get(apiGetPublicationsURL);
 
         // define phenotype specific attributes as constants from response
-        const new_phenotype = response_phenotypes.data.map((item) => {
-          return new this.Phenotype(item.phenotype_id, item.modifier_id);
-        });
-        this.select_phenotype = response_phenotypes.data.map((item) => {
-          return item.modifier_id + "-" + item.phenotype_id;
-        });
+        const new_phenotype = response_phenotypes.data.map((item) => new Phenotype(item.phenotype_id, item.modifier_id));
+        this.select_phenotype = response_phenotypes.data.map((item) => `${item.modifier_id}-${item.phenotype_id}`);
 
         // define variation specific attributes as constants from response
-        const new_variation = response_variation.data.map((item) => {
-          return new this.Variation(item.vario_id, item.modifier_id);
-        });
-        this.select_variation = response_variation.data.map((item) => {
-          return item.modifier_id + "-" + item.vario_id;
-        });
+        const new_variation = response_variation.data.map((item) => new Variation(item.vario_id, item.modifier_id));
+        this.select_variation = response_variation.data.map((item) => `${item.modifier_id}-${item.vario_id}`);
 
         // define publication specific attributes as constants from response
         const literature_gene_reviews = response_publications.data
-          .filter((item) => item.publication_type == "gene_review")
-          .map((item) => {
-            return item.publication_id;
-          });
+          .filter((item) => item.publication_type === 'gene_review')
+          .map((item) => item.publication_id);
 
         const literature_additional_references = response_publications.data
-          .filter((item) => item.publication_type == "additional_references")
-          .map((item) => {
-            return item.publication_id;
-          });
+          .filter((item) => item.publication_type === 'additional_references')
+          .map((item) => item.publication_id);
 
         this.select_additional_references = literature_additional_references;
         this.select_gene_reviews = literature_gene_reviews;
 
-        const new_literature = new this.Literature(
+        const new_literature = new Literature(
           literature_additional_references,
-          literature_gene_reviews
+          literature_gene_reviews,
         );
 
         // compose review
-        this.review_info = new this.Review(
+        this.review_info = new Review(
           response_review.data[0].synopsis,
           new_literature,
           new_phenotype,
           new_variation,
-          response_review.data[0].comment
+          response_review.data[0].comment,
         );
 
         this.review_info.review_id = response_review.data[0].review_id;
         this.review_info.entity_id = response_review.data[0].entity_id;
-        this.review_info.review_user_name =
-          response_review.data[0].review_user_name;
-        this.review_info.review_user_role =
-          response_review.data[0].review_user_role;
+        this.review_info.review_user_name = response_review.data[0].review_user_name;
+        this.review_info.review_user_role = response_review.data[0].review_user_role;
 
         this.loading_review_modal = false;
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async submitReviewChange() {
       this.isBusy = true;
-      let apiUrl = process.env.VUE_APP_API_URL + "/api/review/update";
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/review/update`;
 
       // define literature specific attributes as constants from inputs
       // first clean the arrays
-      const select_additional_references_clean =
-        this.select_additional_references.map((element) => {
-          return element.replace(/\s+/g, "");
-        });
+      const select_additional_references_clean = this.select_additional_references.map((element) => element.replace(/\s+/g, ''));
 
       const select_gene_reviews_clean = this.select_gene_reviews.map(
-        (element) => {
-          return element.replace(/\s+/g, "");
-        }
+        (element) => element.replace(/\s+/g, ''),
       );
 
-      const replace_literature = new this.Literature(
+      const replace_literature = new Literature(
         select_additional_references_clean,
-        select_gene_reviews_clean
+        select_gene_reviews_clean,
       );
 
       // compose phenotype specific attributes as constants from inputs
-      const replace_phenotype = this.select_phenotype.map((item) => {
-        return new this.Phenotype(item.split("-")[1], item.split("-")[0]);
-      });
+      const replace_phenotype = this.select_phenotype.map((item) => new Phenotype(item.split('-')[1], item.split('-')[0]));
 
       // compose variation ontology specific attributes as constants from inputs
-      const replace_variation_ontology = this.select_variation.map((item) => {
-        return new this.Variation(item.split("-")[1], item.split("-")[0]);
-      });
+      const replace_variation_ontology = this.select_variation.map((item) => new Variation(item.split('-')[1], item.split('-')[0]));
 
       // assign to object
       this.review_info.literature = replace_literature;
@@ -829,95 +806,93 @@ export default {
 
       // perform update PUT request
       try {
-        let response = await this.axios.put(
+        const response = await this.axios.put(
           apiUrl,
           { review_json: this.review_info },
           {
             headers: {
-              Authorization: "Bearer " + localStorage.getItem("token"),
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          }
+          },
         );
 
         this.makeToast(
-          "The new review for this entity has been submitted " +
-            "(status " +
-            response.status +
-            " (" +
-            response.statusText +
-            ").",
-          "Success",
-          "success"
+          `${'The new review for this entity has been submitted '
+            + '(status '}${
+            response.status
+          } (${
+            response.statusText
+          }).`,
+          'Success',
+          'success',
         );
         this.resetForm();
         this.loadReviewTableData();
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     infoReview(item, index, button) {
       this.reviewModal.title = `sysndd:${item.entity_id}`;
 
       this.loadReviewInfo(item.review_id);
-      this.$root.$emit("bv::show::modal", this.reviewModal.id, button);
+      this.$root.$emit('bv::show::modal', this.reviewModal.id, button);
     },
     infoApproveReview(item, index, button) {
       this.approveModal.title = `sysndd:${item.entity_id}`;
       this.entity = [];
       this.entity.push(item);
-      this.$root.$emit("bv::show::modal", this.approveModal.id, button);
+      this.$root.$emit('bv::show::modal', this.approveModal.id, button);
     },
     async handleApproveOk(bvModalEvt) {
-      let apiUrl =
-        process.env.VUE_APP_API_URL +
-        "/api/review/approve/" +
-        this.entity[0].review_id +
-        "?review_ok=true";
+      const apiUrl = `${process.env.VUE_APP_API_URL
+      }/api/review/approve/${
+        this.entity[0].review_id
+      }?review_ok=true`;
 
       try {
-        let response = await this.axios.put(
+        const response = await this.axios.put(
           apiUrl,
           {},
           {
             headers: {
-              Authorization: "Bearer " + localStorage.getItem("token"),
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          }
+          },
         );
 
         this.loadReviewTableData();
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async handleAllReviewsOk() {
       if (this.approve_all_selected) {
-        let apiUrl =
-          process.env.VUE_APP_API_URL +
-          "/api/review/approve/all?review_ok=true";
+        const apiUrl = `${process.env.VUE_APP_API_URL
+        }/api/review/approve/all?review_ok=true`;
         try {
-          let response = this.axios.put(
+          const response = this.axios.put(
             apiUrl,
             {},
             {
               headers: {
-                Authorization: "Bearer " + localStorage.getItem("token"),
+                Authorization: `Bearer ${localStorage.getItem('token')}`,
               },
-            }
+            },
           );
 
           this.loadReviewTableData();
         } catch (e) {
-          this.makeToast(e, "Error", "danger");
+          this.makeToast(e, 'Error', 'danger');
         }
       }
     },
     checkAllApprove() {
-      this.$refs["approveAllModal"].show();
+      this.$refs.approveAllModal.show();
     },
     resetForm() {
-      this.entity_info = new this.Entity();
-      this.review_info = new this.Review();
+      this.entity_info = new Entity();
+      this.review_info = new Review();
       this.select_phenotype = [];
       this.select_variation = [];
       this.select_additional_references = [];
@@ -925,12 +900,12 @@ export default {
     },
     tagValidatorPMID(tag) {
       // Individual PMID tag validator function
-      tag = tag.replace(/\s+/g, "");
+      const tag_copy = tag.replace(/\s+/g, '');
       return (
-        !isNaN(Number(tag.replaceAll("PMID:", ""))) &&
-        tag.includes("PMID:") &&
-        tag.replace("PMID:", "").length > 4 &&
-        tag.replace("PMID:", "").length < 9
+        !Number.isNaN(Number(tag_copy.replaceAll('PMID:', '')))
+        && tag_copy.includes('PMID:')
+        && tag_copy.replace('PMID:', '').length > 4
+        && tag_copy.replace('PMID:', '').length < 9
       );
     },
     onFiltered(filteredItems) {
@@ -942,7 +917,6 @@ export default {
 };
 </script>
 
-
 <style scoped>
 .btn-group-xs > .btn,
 .btn-xs {
@@ -952,7 +926,7 @@ export default {
   border-radius: 0.2rem;
 }
 
-::v-deep .vue-treeselect__menu {
+:deep(.vue-treeselect__menu) {
   outline: 1px solid red;
   color: blue;
 }

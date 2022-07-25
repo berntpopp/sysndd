@@ -273,10 +273,10 @@
 </template>
 
 <script>
-import toastMixin from "@/assets/js/mixins/toastMixin.js";
+import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
-  name: "Navbar",
+  name: 'Navbar',
   mixins: [toastMixin],
   data() {
     return {
@@ -286,7 +286,7 @@ export default {
       admin: false,
       user_from_jwt: [],
       time_to_logout: 0,
-      search_input: "",
+      search_input: '',
       search_keys: [],
       search_object: {},
       show_search: false,
@@ -299,7 +299,7 @@ export default {
         this.isUserLoggedIn();
       }
       this.$router.onReady(
-        () => (this.show_search = this.$route.name !== "Home")
+        () => { (this.show_search = this.$route.name !== 'Home'); },
       );
     },
   },
@@ -316,136 +316,135 @@ export default {
       if (localStorage.user && localStorage.token) {
         this.checkSigninWithJWT();
       } else {
-        localStorage.removeItem("user");
-        localStorage.removeItem("token");
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
       }
     },
     async checkSigninWithJWT() {
-      let apiAuthenticateURL = process.env.VUE_APP_API_URL + "/api/auth/signin";
+      const apiAuthenticateURL = `${process.env.VUE_APP_API_URL}/api/auth/signin`;
 
       try {
-        let response_signin = await this.axios.get(apiAuthenticateURL, {
+        const response_signin = await this.axios.get(apiAuthenticateURL, {
           headers: {
-            Authorization: "Bearer " + localStorage.getItem("token"),
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
 
         this.user_from_jwt = response_signin.data;
 
         if (
-          this.user_from_jwt.user_name[0] ==
-          JSON.parse(localStorage.user).user_name[0]
+          this.user_from_jwt.user_name[0]
+          === JSON.parse(localStorage.user).user_name[0]
         ) {
-          const allowed_roles = ["Administrator", "Curator", "Reviewer"];
+          const allowed_roles = ['Administrator', 'Curator', 'Reviewer'];
           const allowence_navigation = [
-            ["Admin", "Curate", "Review"],
-            ["Curate", "Review"],
-            ["Review"],
+            ['Admin', 'Curate', 'Review'],
+            ['Curate', 'Review'],
+            ['Review'],
           ];
 
-          this.user = JSON.parse(localStorage.user).user_name[0];
+          let rest;
+          [this.user, ...rest] = JSON.parse(localStorage.user).user_name;
 
-          let user_role = JSON.parse(localStorage.user).user_role[0];
-          let allowence =
-            allowence_navigation[allowed_roles.indexOf(user_role)];
+          const user_role = JSON.parse(localStorage.user).user_role[0];
+          const allowence = allowence_navigation[allowed_roles.indexOf(user_role)];
 
-          this.review = allowence.includes("Review");
-          this.curate = allowence.includes("Curate");
-          this.admin = allowence.includes("Admin");
+          this.review = allowence.includes('Review');
+          this.curate = allowence.includes('Curate');
+          this.admin = allowence.includes('Admin');
         } else {
-          localStorage.removeItem("user");
-          localStorage.removeItem("token");
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
         }
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async refreshWithJWT() {
-      let apiAuthenticateURL =
-        process.env.VUE_APP_API_URL + "/api/auth/refresh";
+      const apiAuthenticateURL = `${process.env.VUE_APP_API_URL}/api/auth/refresh`;
 
       try {
-        let response_refresh = await this.axios.get(apiAuthenticateURL, {
+        const response_refresh = await this.axios.get(apiAuthenticateURL, {
           headers: {
-            Authorization: "Bearer " + localStorage.getItem("token"),
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
 
-        localStorage.setItem("token", response_refresh.data[0]);
+        localStorage.setItem('token', response_refresh.data[0]);
         this.signinWithJWT();
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async signinWithJWT() {
-      let apiAuthenticateURL = process.env.VUE_APP_API_URL + "/api/auth/signin";
+      const apiAuthenticateURL = `${process.env.VUE_APP_API_URL}/api/auth/signin`;
 
       try {
-        let response_signin = await this.axios.get(apiAuthenticateURL, {
+        const response_signin = await this.axios.get(apiAuthenticateURL, {
           headers: {
-            Authorization: "Bearer " + localStorage.getItem("token"),
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
 
-        localStorage.setItem("user", JSON.stringify(response_signin.data));
+        localStorage.setItem('user', JSON.stringify(response_signin.data));
       } catch (e) {
-        this.makeToast(e, "Error", "danger");
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async loadSearchInfo() {
       if (this.search_input.length > 0) {
-        let apiSearchURL =
-          process.env.VUE_APP_API_URL + "/api/search/" + this.search_input;
+        const apiSearchURL = `${process.env.VUE_APP_API_URL}/api/search/${this.search_input}`;
         try {
-          let response_search = await this.axios.get(apiSearchURL);
-          this.search_object = response_search.data[0];
+          const response_search = await this.axios.get(apiSearchURL);
+          let rest;
+          [this.search_object, ...rest] = response_search.data;
           this.search_keys = Object.keys(response_search.data[0]);
         } catch (e) {
-          this.makeToast(e, "Error", "danger");
+          this.makeToast(e, 'Error', 'danger');
         }
       }
     },
     keydown_handler(event) {
       if (
-        ((event.which === 13) | (event.which === 1)) &
-        (this.search_input.length > 0) &
-        !(this.search_object[this.search_input] == null)
+        ((event.which === 13) || (event.which === 1))
+        && (this.search_input.length > 0)
+        && !(this.search_object[this.search_input] === undefined)
       ) {
         this.$router.push(this.search_object[this.search_input][0].link);
-        this.search_input = "";
+        this.search_input = '';
       } else if (
-        ((event.which === 13) | (event.which === 1)) &
-        (this.search_input.length > 0) &
-        (this.search_object[this.search_input] == null)
+        ((event.which === 13) || (event.which === 1))
+        && (this.search_input.length > 0)
+        && (this.search_object[this.search_input] === undefined)
       ) {
-        this.$router.push("/Search/" + this.search_input);
-        this.search_input = "";
+        this.$router.push(`/Search/${this.search_input}`);
+        this.search_input = '';
       }
     },
     doUserLogOut() {
       if (localStorage.user || localStorage.token) {
-        localStorage.removeItem("user");
-        localStorage.removeItem("token");
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
         this.user = null;
 
         // based on https://stackoverflow.com/questions/57837758/navigationduplicated-navigating-to-current-location-search-is-not-allowed
         // to avoid double nvigation
-        const path = `/`;
-        if (this.$route.path !== path) this.$router.push({ name: "Home" });
+        const path = '/';
+        if (this.$route.path !== path) this.$router.push({ name: 'Home' });
       }
     },
     updateDiffs() {
       if (localStorage.token) {
-        let expires = JSON.parse(localStorage.user).exp;
-        let timestamp = Math.floor(new Date().getTime() / 1000);
+        const expires = JSON.parse(localStorage.user).exp;
+        const timestamp = Math.floor(new Date().getTime() / 1000);
 
         if (expires > timestamp) {
           this.time_to_logout = ((expires - timestamp) / 60).toFixed(2);
           if ([60, 180, 300].includes(expires - timestamp)) {
             this.makeToast(
-              "Refresh token.",
-              "Logout in " + (expires - timestamp) + " seconds",
-              "danger"
+              'Refresh token.',
+              `Logout in ${expires - timestamp} seconds`,
+              'danger',
             );
           }
         } else {
@@ -473,21 +472,21 @@ li {
 a {
   color: #42b983;
 }
-::v-deep .nav-link {
+:deep(.nav-link) {
   color: #fff !important;
 }
-::v-deep .nav-link:hover {
+:deep(.nav-link:hover) {
   color: #bbb !important;
 }
-::v-deep .dropdown-menu {
+:deep(.dropdown-menu) {
   background-color: #343a40 !important;
   color: #fff !important;
 }
-::v-deep .dropdown-item {
+:deep(.dropdown-item) {
   color: #fff !important;
   width: 220px;
 }
-::v-deep .dropdown-item:hover {
+:deep(.dropdown-item:hover) {
   background-color: #999 !important;
   color: #000 !important;
 }

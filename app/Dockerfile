@@ -1,18 +1,19 @@
-FROM node:14.19.3-bullseye as builder
+FROM node:16.16.0-bullseye as builder
 # make the 'app' folder the current working directory
 WORKDIR /app
 # copy both 'package.json' and 'package-lock.json' (if available)
 COPY package*.json ./
+# update npm
+RUN npm install -g npm@8.15.0
 # install project dependencies
-RUN npm install
+RUN npm install --legacy-peer-deps
 # copy project files and folders to the current working directory (i.e. 'app' folder)
 COPY . .
 # build app for production with minification
 RUN npm run build
-RUN npm audit fix
 
 # nginx state for serving content
-FROM nginx:1.23.0
+FROM nginx:1.23.1
 RUN rm /etc/nginx/conf.d/default.conf
 COPY ./docker/nginx/prod.conf /etc/nginx/conf.d/
 COPY ./docker/nginx/nginx.conf /etc/nginx/

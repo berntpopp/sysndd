@@ -108,9 +108,9 @@
 
 <script>
 export default {
-  name: "HelloWorld",
+  name: 'HelloWorld',
   props: {
-    msg: { type: String, default: "Hello World!" },
+    msg: { type: String, default: 'Hello World!' },
   },
 };
 </script>

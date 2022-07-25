@@ -1,12 +1,6 @@
 <template>
   <div class="container-fluid">
-    <b-spinner
-      v-if="loading"
-      label="Loading..."
-      class="float-center m-5"
-    />
     <b-container
-      v-else
       fluid
     >
       <b-row class="justify-content-md-center py-2">
@@ -21,13 +15,11 @@
   </div>
 </template>
 
-
 <script>
 export default {
   name: 'ManageAbout',
-  }
+};
 </script>
-
 
 <style scoped>
   .btn-group-xs > .btn, .btn-xs {
