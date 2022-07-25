@@ -223,17 +223,23 @@
                     </template>
                   </b-form-select>
 
-                  <treeselect
+                  <label
                     v-if="field.multi_selectable"
-                    :id="'select_' + field.key"
-                    v-model="filter[field.key].content"
-                    size="small"
-                    :multiple="true"
-                    :options="field.selectOptions"
-                    :normalizer="normalizer"
-                    :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
-                    @input="removeSearch();filtered();"
-                  />
+                    :for="'select_' + field.key"
+                    :aria-label="field.label"
+                  >
+                    <treeselect
+                      v-if="field.multi_selectable"
+                      :id="'select_' + field.key"
+                      v-model="filter[field.key].content"
+                      size="small"
+                      :multiple="true"
+                      :options="field.selectOptions"
+                      :normalizer="normalizer"
+                      :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
+                      @input="removeSearch();filtered();"
+                    />
+                  </label>
                 </td>
               </template>
 
@@ -755,5 +761,11 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+:deep(.vue-treeselect__placeholder) {
+  color: #6C757D !important;
+}
+:deep(.vue-treeselect__control) {
+  color: #6C757D !important;
 }
 </style>

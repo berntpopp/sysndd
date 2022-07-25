@@ -90,15 +90,20 @@
                 class="my-1"
                 sm="6"
               >
-                <treeselect
-                  v-if="showFilterControls"
-                  id="phenotype_select"
-                  v-model="filter.modifier_phenotype_id.content"
-                  :multiple="true"
-                  :options="phenotypes_options"
-                  :normalizer="normalizerPhenotypes"
-                  @input="filtered"
-                />
+                <label
+                  for="phenotype_select"
+                  aria-label="Phenotype select"
+                >
+                  <treeselect
+                    v-if="showFilterControls"
+                    id="phenotype_select"
+                    v-model="filter.modifier_phenotype_id.content"
+                    :multiple="true"
+                    :options="phenotypes_options"
+                    :normalizer="normalizerPhenotypes"
+                    @input="filtered"
+                  />
+                </label>
               </b-col>
 
               <b-col
@@ -258,17 +263,23 @@
                     </template>
                   </b-form-select>
 
-                  <treeselect
+                  <label
                     v-if="field.multi_selectable"
-                    :id="'select_' + field.key"
-                    v-model="filter[field.key].content"
-                    size="small"
-                    :multiple="true"
-                    :options="field.selectOptions"
-                    :normalizer="normalizer"
-                    :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
-                    @input="removeSearch();filtered();"
-                  />
+                    :for="'select_' + field.key"
+                    :aria-label="field.label"
+                  >
+                    <treeselect
+                      v-if="field.multi_selectable"
+                      :id="'select_' + field.key"
+                      v-model="filter[field.key].content"
+                      size="small"
+                      :multiple="true"
+                      :options="field.selectOptions"
+                      :normalizer="normalizer"
+                      :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
+                      @input="removeSearch();filtered();"
+                    />
+                  </label>
                 </td>
               </template>
 
@@ -778,5 +789,14 @@ export default {
 }
 .input-group .input-group-text {
   width: 100%;
+}
+:deep(.vue-treeselect__placeholder) {
+  color: #6C757D !important;
+}
+:deep(.vue-treeselect__control) {
+  color: #6C757D !important;
+}
+:deep(.vue-treeselect__multi-value-label) {
+  color: #000 !important;
 }
 </style>
