@@ -396,6 +396,11 @@
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
+// import the Treeselect component
+import Treeselect from '@riophae/vue-treeselect';
+// import the Treeselect styles
+import '@riophae/vue-treeselect/dist/vue-treeselect.css';
+
 import {
   Submission,
   Entity,
@@ -404,12 +409,7 @@ import {
   Phenotype,
   Variation,
   Literature,
-} from '@/assets/js/mixins/submissionObjectsMixin';
-
-// import the Treeselect component
-import Treeselect from '@riophae/vue-treeselect';
-// import the Treeselect styles
-import '@riophae/vue-treeselect/dist/vue-treeselect.css';
+} from '@/assets/js/classes/submissionClasses';
 
 export default {
   name: 'CreateEntity',

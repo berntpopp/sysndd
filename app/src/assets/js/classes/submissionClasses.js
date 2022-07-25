@@ -1,4 +1,4 @@
-// assets/js/mixins/submissionObjectsMixin.js
+// assets/js/classes/submissionClasses.js
 
 // submission object constructor functions
 class Submission {

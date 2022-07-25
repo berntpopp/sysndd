@@ -394,14 +394,14 @@
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
-import {
-  Status,
-} from '@/assets/js/mixins/submissionObjectsMixin';
-
 // import the Treeselect component
 import Treeselect from '@riophae/vue-treeselect';
 // import the Treeselect styles
 import '@riophae/vue-treeselect/dist/vue-treeselect.css';
+
+import {
+  Status,
+} from '@/assets/js/classes/submissionClasses';
 
 export default {
   name: 'ApproveStatus',
