@@ -60,45 +60,6 @@
     "webpack-bundle-analyzer": "^4.5.0",
     "webpack-cli": "^4.10.0"
   },
-  "eslintConfig": {
-    "root": true,
-    "env": {
-      "node": true
-    },
-    "extends": [
-      "plugin:vue/recommended",
-      "eslint:recommended",
-      "plugin:vue/essential",
-      "@vue/airbnb"
-    ],
-    "parserOptions": {
-      "parser": "babel-eslint"
-    },
-    "rules": {
-      "no-unused-vars": "off",
-      "camelcase": "off",
-      "max-len": "off",
-      "no-param-reassign": "off",
-      "no-underscore-dangle": "off",
-      "no-shadow": "off",
-      "max-classes-per-file": "off",
-      "no-console": "off",
-      "import/no-extraneous-dependencies": [
-        "error",
-        {
-          "devDependencies": true
-        }
-      ],
-      "no-global-assign": [
-        "error",
-        {
-          "exceptions": [
-            "require"
-          ]
-        }
-      ]
-    }
-  },
   "browserslist": [
     "> 1%",
     "last 2 versions",
