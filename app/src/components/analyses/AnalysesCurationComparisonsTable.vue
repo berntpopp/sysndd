@@ -686,10 +686,4 @@ mark {
   font-weight: bold;
   background-color: #eaadba;
 }
-:deep(.vue-treeselect__placeholder) {
-  color: #6C757D !important;
-}
-:deep(.vue-treeselect__control) {
-  color: #6C757D !important;
-}
 </style>

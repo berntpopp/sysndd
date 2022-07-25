@@ -24,7 +24,7 @@
             <template #header>
               <b-row>
                 <b-col>
-                  <h6 class="mb-1 text-left font-weight-bold">
+                  <h4 class="mb-1 text-left font-weight-bold">
                     Genes table
                     <b-badge
                       v-b-tooltip.hover.bottom
@@ -40,10 +40,10 @@
                     >
                       Genes: {{ totalRows }}
                     </b-badge>
-                  </h6>
+                  </h4>
                 </b-col>
                 <b-col>
-                  <h6
+                  <h5
                     v-if="showFilterControls"
                     class="mb-1 text-right font-weight-bold"
                   >
@@ -81,7 +81,7 @@
                         font-scale="1.0"
                       />
                     </b-button>
-                  </h6>
+                  </h5>
                 </b-col>
               </b-row>
             </template>
