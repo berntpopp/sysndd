@@ -91,7 +91,6 @@ export default {
         content:
           'The Search table shows results of database searches and their similarity when no exact terms was identified.',
       },
-      { vmid: 'robots', name: 'robots', content: 'noindex' },
     ],
   },
   data() {

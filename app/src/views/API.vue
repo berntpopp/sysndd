@@ -30,4 +30,7 @@ export default {
 </script>
 
 <style scoped>
+:deep(.version) {
+  color: #000 !important;
+}
 </style>
