@@ -139,6 +139,7 @@
                     size="sm"
                     rows="1"
                     :value="data.item.synopsis"
+                    :aria-label="'Synopsis for ' + data.item.entity_id"
                   />
                 </div>
               </template>
@@ -150,6 +151,7 @@
                     size="sm"
                     rows="1"
                     :value="data.item.comment"
+                    :aria-label="'Comment for ' + data.item.entity_id"
                   />
                 </div>
               </template>
