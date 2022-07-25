@@ -401,15 +401,13 @@ import Treeselect from '@riophae/vue-treeselect';
 // import the Treeselect styles
 import '@riophae/vue-treeselect/dist/vue-treeselect.css';
 
-import {
-  Submission,
-  Entity,
-  Review,
-  Status,
-  Phenotype,
-  Variation,
-  Literature,
-} from '@/assets/js/classes/submissionClasses';
+import Submission from '@/assets/js/classes/submission/submissionSubmission';
+import Entity from '@/assets/js/classes/submission/submissionEntity';
+import Review from '@/assets/js/classes/submission/submissionReview';
+import Status from '@/assets/js/classes/submission/submissionStatus';
+import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
+import Variation from '@/assets/js/classes/submission/submissionVariation';
+import Literature from '@/assets/js/classes/submission/submissionLiterature';
 
 export default {
   name: 'CreateEntity',

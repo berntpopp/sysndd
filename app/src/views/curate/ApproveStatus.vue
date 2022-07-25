@@ -399,9 +399,7 @@ import Treeselect from '@riophae/vue-treeselect';
 // import the Treeselect styles
 import '@riophae/vue-treeselect/dist/vue-treeselect.css';
 
-import {
-  Status,
-} from '@/assets/js/classes/submissionClasses';
+import Status from '@/assets/js/classes/submission/submissionStatus';
 
 export default {
   name: 'ApproveStatus',
