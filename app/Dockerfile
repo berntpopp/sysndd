@@ -81,8 +81,8 @@ ARG nginx_version
 ENV TIME_ZONE=Europe/Berlin
 RUN ln -snf /usr/share/zoneinfo/$TIME_ZONE /etc/localtime && echo $TIME_ZONE > /etc/timezone
 # copy brotli module files from brotli_builder
-COPY --from=builder /root/nginx-${nginx_version}/objs/ngx_http_brotli_filter_module.so /usr/lib/nginx/modules/
-COPY --from=builder /root/nginx-${nginx_version}/objs/ngx_http_brotli_static_module.so /usr/lib/nginx/modules/
+COPY --from=brotli_builder /root/nginx-${nginx_version}/objs/ngx_http_brotli_filter_module.so /usr/lib/nginx/modules/
+COPY --from=brotli_builder /root/nginx-${nginx_version}/objs/ngx_http_brotli_static_module.so /usr/lib/nginx/modules/
 # remove and add new configs
 RUN rm /etc/nginx/conf.d/default.conf
 COPY ./docker/nginx/prod.conf /etc/nginx/conf.d/
