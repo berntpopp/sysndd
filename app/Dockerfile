@@ -28,13 +28,14 @@ RUN apt-get update \
     && cd ngx_brotli \
     && git submodule update --init --recursive \
     && wget https://github.com/openresty/set-misc-nginx-module/archive/refs/tags/v0.33.tar.gz \
-    && tar zxf set-misc-nginx-module-0.33.tar.gz \
+    && tar zxf v0.33.tar.gz \
     && wget https://github.com/vision5/ngx_devel_kit/archive/refs/tags/v0.3.1.tar.gz \
-    && tar zxf ngx_devel_kit-0.3.1.tar.gz \
+    && tar zxf v0.3.1.tar.gz \
     && cd ../nginx-${nginx_version} \
     && ./configure \
     --add-dynamic-module=../ngx_brotli \
     --add-dynamic-module=../set-misc-nginx-module-0.33 \
+    --add-dynamic-module=../ngx_devel_kit-0.3.1 \
     --prefix=/etc/nginx \
     --sbin-path=/usr/sbin/nginx \
     --modules-path=/usr/lib/nginx/modules \
