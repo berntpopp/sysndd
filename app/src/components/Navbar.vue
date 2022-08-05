@@ -6,11 +6,14 @@
       variant="dark"
       class="py-0 bg-navbar"
     >
-      <b-navbar-brand href="/">
+      <b-navbar-brand
+        href="/"
+        class="py-0"
+      >
         <img
-          src="../../public/brain-neurodevelopmental-disorders-sysndd-logo.png"
-          height="40"
-          width="40"
+          src="../../public/SysNDD_brain-dna-magnifying-glass_dall-e_logo.webp"
+          height="68"
+          width="68"
           alt="SysNDD Logo"
           rel="preload"
         >
