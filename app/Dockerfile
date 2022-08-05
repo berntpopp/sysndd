@@ -17,7 +17,7 @@ RUN npm run build
 
 
 # nginx builder for brotli module
-FROM nginx:${nginx_version} AS brotli_builder
+FROM nginx:${nginx_version} AS brotli_nonce_builder
 ARG nginx_version
 WORKDIR /root/
 RUN apt-get update \
@@ -27,9 +27,14 @@ RUN apt-get update \
     && git clone https://github.com/google/ngx_brotli.git \
     && cd ngx_brotli \
     && git submodule update --init --recursive \
+    && wget https://github.com/openresty/set-misc-nginx-module/archive/refs/tags/v0.33.tar.gz \
+    && tar zxf set-misc-nginx-module-0.33.tar.gz \
+    && wget https://github.com/vision5/ngx_devel_kit/archive/refs/tags/v0.3.1.tar.gz \
+    && tar zxf ngx_devel_kit-0.3.1.tar.gz \
     && cd ../nginx-${nginx_version} \
     && ./configure \
     --add-dynamic-module=../ngx_brotli \
+    --add-dynamic-module=../set-misc-nginx-module-0.33 \
     --prefix=/etc/nginx \
     --sbin-path=/usr/sbin/nginx \
     --modules-path=/usr/lib/nginx/modules \
@@ -80,9 +85,11 @@ ARG nginx_version
 # add time zone
 ENV TIME_ZONE=Europe/Berlin
 RUN ln -snf /usr/share/zoneinfo/$TIME_ZONE /etc/localtime && echo $TIME_ZONE > /etc/timezone
-# copy brotli module files from brotli_builder
-COPY --from=brotli_builder /root/nginx-${nginx_version}/objs/ngx_http_brotli_filter_module.so /usr/lib/nginx/modules/
-COPY --from=brotli_builder /root/nginx-${nginx_version}/objs/ngx_http_brotli_static_module.so /usr/lib/nginx/modules/
+# copy brotli module files from brotli_nonce_builder
+COPY --from=brotli_nonce_builder /root/nginx-${nginx_version}/objs/ngx_http_brotli_filter_module.so /usr/lib/nginx/modules/
+COPY --from=brotli_nonce_builder /root/nginx-${nginx_version}/objs/ngx_http_brotli_static_module.so /usr/lib/nginx/modules/
+COPY --from=brotli_nonce_builder /root/nginx-${nginx_version}/objs/ndk_http_module.so /usr/lib/nginx/modules/
+COPY --from=brotli_nonce_builder /root/nginx-${nginx_version}/objs/ngx_http_set_misc_module.so /usr/lib/nginx/modules/
 # remove and add new configs
 RUN rm /etc/nginx/conf.d/default.conf
 COPY ./docker/nginx/prod.conf /etc/nginx/conf.d/
