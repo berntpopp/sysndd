@@ -7,7 +7,7 @@ WORKDIR /app
 # copy both 'package.json' and 'package-lock.json' (if available)
 COPY package*.json ./
 # update npm
-RUN npm install -g npm@8.15.0
+RUN npm install -g npm@8.16.0
 # install project dependencies
 RUN npm install --legacy-peer-deps
 # copy project files and folders to the current working directory (i.e. 'app' folder)
@@ -20,8 +20,7 @@ RUN npm run build
 FROM nginx:${nginx_version} AS brotli_builder
 ARG nginx_version
 WORKDIR /root/
-RUN apk add --update --no-cache build-base git pcre-dev openssl-dev zlib-dev linux-headers \
-    && wget http://nginx.org/download/nginx-${nginx_version}.tar.gz \
+RUN wget http://nginx.org/download/nginx-${nginx_version}.tar.gz \
     && tar zxf nginx-${nginx_version}.tar.gz \
     && git clone https://github.com/google/ngx_brotli.git \
     && cd ngx_brotli \
