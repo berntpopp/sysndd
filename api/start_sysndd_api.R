@@ -54,6 +54,52 @@ root <- pr("sysndd_plumber.R") %>%
       spec$components$securitySchemes$bearerAuth$scheme <- "bearer"
       spec$components$securitySchemes$bearerAuth$bearerFormat <- "JWT"
       spec$security[[1]]$bearerAuth <- ""
+
+      ## set examples in OpenAPI spec
+      # for EP entity/create
+      spec$paths$`/api/entity/create`$post$requestBody$content$`application/json`$schema$properties$create_json$example <-
+       list(
+        entity =
+          list(
+            hgnc_id = "HGNC:1511",
+            disease_ontology_id_version = "MONDO:0002254",
+            hpo_mode_of_inheritance_term = "HP:0000007",
+            ndd_phenotype = 1
+          ),
+        review = list(
+            synopsis = "Synopsis: Short summary for this disease entity.",
+            literature = list(
+                additional_references = list(),
+                gene_review = list()
+              ),
+            phenotypes = list(
+              list(
+                phenotype_id = "HP:0001249",
+                modifier_id = "1"
+              ),
+              list(
+                phenotype_id = "HP:0000478",
+                modifier_id = "1"
+              ),
+              list(
+                phenotype_id = "HP:0000077",
+                modifier_id = "1"
+              )
+            ),
+            variation_ontology = list(
+                vario_id = "VariO:0001",
+                modifier_id = "1"
+              ),
+            comment = ""
+          ),
+        status = list(
+            category_id = 1,
+            comment = "",
+            problematic = 0
+          )
+        )
+
+      ## return spec
       spec
     }) %>%
         pr_run(host = "0.0.0.0", port = 7777)
