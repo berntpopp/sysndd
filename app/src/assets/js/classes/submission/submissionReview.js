@@ -1,6 +1,6 @@
 // assets/js/classes/submission/submissionReview.js
 
-class Review {
+export default class Review {
   constructor(synopsis, literature, phenotypes, variation_ontology, comment) {
     this.synopsis = synopsis;
     this.literature = literature;
@@ -9,7 +9,3 @@ class Review {
     this.comment = comment;
   }
 }
-
-export default {
-  Review,
-};

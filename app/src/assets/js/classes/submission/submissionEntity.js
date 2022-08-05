@@ -1,6 +1,6 @@
 // assets/js/classes/submission/submissionEntity.js
 
-class Entity {
+export default class Entity {
   constructor(
     hgnc_id,
     disease_ontology_id_version,
@@ -19,7 +19,3 @@ class Entity {
     this.replaced_by = replaced_by;
   }
 }
-
-export default {
-  Entity,
-};
