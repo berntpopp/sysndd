@@ -34,8 +34,8 @@ RUN apt-get update \
     && cd ../nginx-${nginx_version} \
     && ./configure \
     --add-dynamic-module=../ngx_brotli \
-    --add-dynamic-module=../set-misc-nginx-module-0.33 \
     --add-dynamic-module=../ngx_devel_kit-0.3.1 \
+    --add-dynamic-module=../set-misc-nginx-module-0.33 \
     --prefix=/etc/nginx \
     --sbin-path=/usr/sbin/nginx \
     --modules-path=/usr/lib/nginx/modules \
