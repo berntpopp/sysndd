@@ -21,7 +21,7 @@ FROM nginx:${nginx_version} AS brotli_builder
 ARG nginx_version
 WORKDIR /root/
 RUN apt-get update \
-    && apt-get install -y build-essential git wget libpcre3 libpcre3-dev \
+    && apt-get install -y build-essential git wget libpcre3 libpcre3-dev libssl-dev \
     && wget http://nginx.org/download/nginx-${nginx_version}.tar.gz \
     && tar zxf nginx-${nginx_version}.tar.gz \
     && git clone https://github.com/google/ngx_brotli.git \
