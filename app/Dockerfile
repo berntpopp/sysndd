@@ -20,7 +20,9 @@ RUN npm run build
 FROM nginx:${nginx_version} AS brotli_builder
 ARG nginx_version
 WORKDIR /root/
-RUN wget http://nginx.org/download/nginx-${nginx_version}.tar.gz \
+RUN apt-get update \
+    && apt-get install build-essential git wget \
+    && wget http://nginx.org/download/nginx-${nginx_version}.tar.gz \
     && tar zxf nginx-${nginx_version}.tar.gz \
     && git clone https://github.com/google/ngx_brotli.git \
     && cd ngx_brotli \
