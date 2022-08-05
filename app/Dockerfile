@@ -16,7 +16,7 @@ COPY . .
 RUN npm run build
 
 
-# nginx builder for brotli module
+# nginx builder for brotli module and modules needed for nonce generation
 FROM nginx:${nginx_version} AS brotli_nonce_builder
 ARG nginx_version
 WORKDIR /root/
@@ -24,13 +24,13 @@ RUN apt-get update \
     && apt-get install -y build-essential git wget libpcre3 libpcre3-dev libssl-dev zlib1g-dev \
     && wget http://nginx.org/download/nginx-${nginx_version}.tar.gz \
     && tar zxf nginx-${nginx_version}.tar.gz \
-    && git clone https://github.com/google/ngx_brotli.git \
-    && cd ngx_brotli \
-    && git submodule update --init --recursive \
     && wget https://github.com/openresty/set-misc-nginx-module/archive/refs/tags/v0.33.tar.gz \
     && tar zxf v0.33.tar.gz \
     && wget https://github.com/vision5/ngx_devel_kit/archive/refs/tags/v0.3.1.tar.gz \
     && tar zxf v0.3.1.tar.gz \
+    && git clone https://github.com/google/ngx_brotli.git \
+    && cd ngx_brotli \
+    && git submodule update --init --recursive \
     && cd ../nginx-${nginx_version} \
     && ./configure \
     --add-dynamic-module=../ngx_brotli \
