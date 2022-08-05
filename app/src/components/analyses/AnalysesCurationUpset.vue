@@ -45,6 +45,7 @@
         :width="width"
         :height="height"
         :selection="selection"
+        :style-factory="customStyleFactory"
         theme="vega"
         @hover="hover"
       />
@@ -56,7 +57,7 @@
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
 // importUpSetJS
-import UpSetJS, { extractSets } from '@upsetjs/vue';
+import UpSetJS, { extractSets, createElement } from '@upsetjs/vue';
 
 // import the Treeselect component
 import Treeselect from '@riophae/vue-treeselect';
@@ -137,6 +138,17 @@ export default {
       }
 
       this.loadingUpset = false;
+    },
+    // add nonce
+    // based on https://github.com/upsetjs/upsetjs/pull/98/commits/ac1272b4c7687cbff7363193d3e9464c386db343#:~:text=renderUpSet(rootElement,%7D)%3B
+    customStyleFactory(rules) {
+      return createElement(
+        'style',
+        {
+          nonce: '**CSP_NONCE**',
+        },
+        rules,
+      );
     },
     normalizeLists(node) {
       return {

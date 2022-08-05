@@ -3768,7 +3768,7 @@ function(tree = FALSE) {
 ## User endpoint section
 
 #* @tag user
-#* gets a summary table of currently assigned re-review batches
+#* gets a summary table of users
 #* @serializer json list(na="string")
 #' @get /api/user/table
 function(req, res) {
