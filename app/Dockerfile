@@ -80,6 +80,7 @@ RUN apt-get update \
     --with-ld-opt=-Wl,--as-needed,-O1,--sort-common \
     && make modules
 
+
 # nginx state for serving content
 FROM nginx:${nginx_version}
 ARG nginx_version

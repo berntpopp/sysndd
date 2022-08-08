@@ -145,7 +145,7 @@ export default {
       return createElement(
         'style',
         {
-          nonce: 'CSP_NONCE',
+          nonce: '3oyp38ny90lxgbgw9g3o4sumkiim4pww',
         },
         rules,
       );
