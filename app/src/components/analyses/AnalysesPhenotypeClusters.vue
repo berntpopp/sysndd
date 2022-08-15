@@ -9,7 +9,7 @@
     >
       <template #header>
         <h6 class="mb-1 text-left font-weight-bold">
-          Functionally enriched gene clusters.
+          Entities clustered using phenotype annotation.
         </h6>
       </template>
 
@@ -30,7 +30,7 @@ import toastMixin from '@/assets/js/mixins/toastMixin';
 import * as d3 from 'd3';
 
 export default {
-  name: 'AnalyseGeneClusters',
+  name: 'AnalysesPhenotypeClusters',
   mixins: [toastMixin],
   data() {
     return {
@@ -42,7 +42,7 @@ export default {
   },
   methods: {
     async loadClusterData() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/analysis/functional_clustering`;
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/analysis/phenotype_clustering`;
 
       try {
         const response = await this.axios.get(apiUrl);
@@ -70,9 +70,7 @@ export default {
         .attr('height', height);
 
       // define data from API call object
-      const data = this.itemsCluster
-        .map(({ subclusters }) => subclusters)
-        .flat();
+      const data = this.itemsCluster;
 
       // Color palette for clusters
       const color = d3
@@ -86,19 +84,19 @@ export default {
         .domain([0, 1000])
         .range([7, 55]); // circle will be between 7 and 55 px wide
 
-      // get unique parent cluster ids as array
+      // get unique cluster ids as array
       const unique = (value, index, self) => self.indexOf(value) === index;
 
-      const unique_parent_cluster = data
-        .map(({ parent_cluster }) => parent_cluster)
+      const unique_cluster = data
+        .map(({ cluster }) => cluster)
         .filter(unique);
 
-      // A scale that gives a X target position for each parent_cluster
+      // A scale that gives a X target position for each cluster
       const x = d3
         .scaleOrdinal()
-        .domain(unique_parent_cluster)
+        .domain(unique_cluster)
         .range(
-          unique_parent_cluster.map((x) => x * 30),
+          unique_cluster.map((x) => x * 30),
         );
 
       // create a tooltip
@@ -122,13 +120,11 @@ export default {
       const mousemove = function mousemove(event, d) {
         Tooltip.html(
           `<u>Cluster: ${
-            d.parent_cluster
-          }.${
             d.cluster
           }</u>`
             + `<br>${
               d.cluster_size
-            } genes`,
+            } entities`,
         )
           .style('left', `${event.layerX + 20}px`)
           .style('top', `${event.layerY + 20}px`);
@@ -164,7 +160,7 @@ export default {
           d3
             .forceX()
             .strength(0.5)
-            .x((d) => x(d.parent_cluster)),
+            .x((d) => x(d.cluster)),
         )
         .force(
           'forceY',
@@ -197,14 +193,14 @@ export default {
         .data(data)
         .enter()
         .append('a')
-        .attr('xlink:href', (d) => `/Genes/?filter=${d.hash_filter}`) // <- add links to the filtered gene table to the circles
-        .attr('aria-label', (d) => `Link to gene table for cluster, ${d.parent_cluster}.${d.cluster}`)
+        .attr('xlink:href', (d) => `/Entities/?filter=${d.hash_filter}`) // <- add links to the filtered gene table to the circles
+        .attr('aria-label', (d) => `Link to entity table for cluster, ${d.cluster}`)
         .append('circle')
         .attr('class', 'node')
         .attr('r', (d) => size(d.cluster_size))
         .attr('cx', width / 2)
         .attr('cy', height / 2)
-        .style('fill', (d) => color(d.parent_cluster))
+        .style('fill', (d) => color(d.cluster))
         .style('fill-opacity', 0.8)
         .attr('stroke', 'black')
         .style('stroke-width', 1)

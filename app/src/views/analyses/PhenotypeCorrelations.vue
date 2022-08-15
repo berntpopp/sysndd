@@ -22,7 +22,10 @@
                 <AnalysesPhenotypeCounts />
               </b-tab>
 
-              <b-tab title="MCA phenotypes & inheritance" />
+              <b-tab title="Phenotype clustering">
+                <AnalysesPhenotypeClusters />
+              </b-tab>
+
             </b-tabs>
           </div>
         </b-col>
