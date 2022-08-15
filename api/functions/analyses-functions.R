@@ -114,7 +114,7 @@ gen_mca_clust_obj <- function(wide_phenotypes_df,
   # generate result output filename
   filename_results <- paste0("results/",
     panel_hash, ".",
-    function_hash, ".",".json")
+    function_hash, ".", ".json")
 
   if (file.exists(filename_results)) {
 
@@ -135,10 +135,10 @@ gen_mca_clust_obj <- function(wide_phenotypes_df,
     mca_hcpc <- HCPC(mca_phenoytpes,
             nb.clust = cutpoint,
             kk = Inf,
-            min=3,
-            max=25,
-            consol=TRUE,
-            graph=FALSE
+            mi = 3,
+            max = 25,
+            consol = TRUE,
+            graph = FALSE
         )
 
     # add entity_id back as column

@@ -15,6 +15,7 @@
                 title="Phenotype correlogram"
                 active
               >
+                <!-- TODO: make these components lazy loading -->
                 <AnalysesPhenotypeCorrelogram />
               </b-tab>
 
@@ -25,7 +26,6 @@
               <b-tab title="Phenotype clustering">
                 <AnalysesPhenotypeClusters />
               </b-tab>
-
             </b-tabs>
           </div>
         </b-col>
