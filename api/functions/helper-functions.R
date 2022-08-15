@@ -543,11 +543,12 @@ generate_tibble_fspec <- function(field_tibble, fspecInput) {
 }
 
 
-# generate a hash for a hgnc gene list
-generate_panel_hash <- function(hgnc_list) {
+# generate a hash for a hgnc gene or entity list
+generate_panel_hash <- function(identifier_list) {
 
-  # remove hgnc pre-attachment, sort, concatenate and compute sha256 hash
-  list_hash <- hgnc_list %>%
+  # remove hgnc pre-attachment if present,
+  # sort, concatenate and compute sha256 hash
+  list_hash <- identifier_list %>%
     str_remove("HGNC:") %>%
     sort() %>%
     str_c(collapse = ",") %>%

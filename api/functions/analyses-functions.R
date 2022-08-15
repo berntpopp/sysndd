@@ -9,14 +9,14 @@
 #'
 #' @return The clusters tibble
 #' @export
-generate_string_cluster_object <- function(hgnc_list,
+gen_string_clust_obj <- function(hgnc_list,
   min_size = 10,
   subcluster = TRUE,
   parent = NA) {
 
   # compute hashes for input
   panel_hash <- generate_panel_hash(hgnc_list)
-  function_hash <- generate_function_hash(generate_string_cluster_object)
+  function_hash <- generate_function_hash(gen_string_clust_obj)
 
   # generate result output filename
   filename_results <- paste0("results/",
@@ -71,12 +71,118 @@ generate_string_cluster_object <- function(hgnc_list,
       else .
       } %>%
       {if (subcluster)
-        mutate(., subclusters = list(generate_string_cluster_object(
+        mutate(., subclusters = list(gen_string_clust_obj(
           identifiers$hgnc_id,
           subcluster = FALSE,
           parent = cluster)))
       else .
       } %>%
+      ungroup()
+
+    # save computation result
+    clusters_json <- toJSON(clusters_tibble)
+    write(clusters_json, filename_results)
+
+  }
+
+  # return result
+  return(clusters_tibble)
+
+}
+
+
+#' A function clustering entities based on their phenotype annotations
+#'
+#' @param wide_phenotypes_df data frame of variables to be used for MCA
+#' @param min_size number defining the minimal cluster size to return
+#' @param quali_sup_var vector of qualitative supplementary variables
+#' @param quanti_sup_var vector of quantitative supplementary variables
+#' @param cutpoint cutpoint for hierarchical clustering
+#'
+#' @return The clusters tibble
+#' @export
+gen_mca_clust_obj <- function(wide_phenotypes_df,
+  min_size = 10,
+  quali_sup_var = 1:1,
+  quanti_sup_var = 2:4,
+  cutpoint = 5) {
+
+  # compute hashes for input
+  panel_hash <- generate_panel_hash(row.names(wide_phenotypes_df))
+  function_hash <- generate_function_hash(gen_mca_clust_obj)
+
+  # generate result output filename
+  filename_results <- paste0("results/",
+    panel_hash, ".",
+    function_hash, ".",".json")
+
+  if (file.exists(filename_results)) {
+
+    clusters_tibble <- jsonlite::fromJSON(filename_results) %>%
+      tibble::tibble()
+
+  } else {
+
+    # compute MCA
+    # TODO: add logic to find ncp with >70% information
+    mca_phenoytpes <- MCA(wide_phenotypes_df,
+        ncp = 15,
+        quali.sup = quali_sup_var,
+        quanti.sup = quanti_sup_var,
+        graph = FALSE)
+
+    # compute hierarchical clustering
+    mca_hcpc <- HCPC(mca_phenoytpes,
+            nb.clust = cutpoint,
+            kk = Inf,
+            min=3,
+            max=25,
+            consol=TRUE,
+            graph=FALSE
+        )
+
+    # add entity_id back as column
+    mca_hcpc$data.clust$entity_id <- row.names(mca_hcpc$data.clust)
+
+    # generate cluster tibble
+    clusters_tibble <- tibble(mca_hcpc$data.clust) %>%
+      select(entity_id, cluster = clust) %>%
+      nest_by(cluster, .key = "identifiers") %>%
+      mutate(hash_filter = list(
+        post_db_hash(identifiers %>%
+          select(entity_id), "entity_id", "/api/entity"))
+      ) %>%
+      mutate(hash_filter = hash_filter$links$hash) %>%
+      ungroup() %>%
+      rowwise() %>%
+      mutate(cluster_size = nrow(identifiers)) %>%
+      mutate(quali_inp_var = list(tibble::as_tibble(
+        mca_hcpc$desc.var$category[[cluster]],
+        rownames = "variable",
+        .name_repair = ~ vctrs::vec_as_names(...,
+          repair = "universal", quiet = TRUE)) %>%
+        filter(!str_detect(variable, "NA")) %>%
+        filter(!str_detect(variable, "hpo")) %>%
+        mutate(variable = str_remove_all(variable, "^.+=|_yes")) %>%
+        select(variable, p.value, v.test)
+      )) %>%
+      mutate(quali_sup_var = list(tibble::as_tibble(
+        mca_hcpc$desc.var$category[[cluster]],
+        rownames = "variable",
+        .name_repair = ~ vctrs::vec_as_names(...,
+          repair = "universal", quiet = TRUE)) %>%
+        filter(!str_detect(variable, "NA")) %>%
+        filter(str_detect(variable, "hpo")) %>%
+        mutate(variable = str_remove_all(variable, "^.+=|_yes")) %>%
+        select(variable, p.value, v.test)
+      )) %>%
+      mutate(quanti_sup_var = list(tibble::as_tibble(
+        mca_hcpc$desc.var$quanti[[cluster]],
+        rownames = "variable",
+        .name_repair = ~ vctrs::vec_as_names(...,
+          repair = "universal", quiet = TRUE)) %>%
+        select(variable, p.value, v.test)
+      )) %>%
       ungroup()
 
     # save computation result

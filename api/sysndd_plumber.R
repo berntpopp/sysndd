@@ -30,6 +30,7 @@ library(timetk)
 library(STRINGdb)
 library(factoextra)
 library(FactoMineR)
+library(vctrs)
 ##-------------------------------------------------------------------##
 
 
@@ -116,7 +117,10 @@ nest_gene_tibble_mem <- memoise(nest_gene_tibble,
 generate_tibble_fspec_mem <- memoise(generate_tibble_fspec,
   cache = cm)
 
-generate_string_cluster_object_mem <- memoise(generate_string_cluster_object,
+gen_string_clust_obj_mem <- memoise(gen_string_clust_obj,
+  cache = cm)
+
+gen_mca_clust_obj_mem <- memoise(gen_mca_clust_obj,
   cache = cm)
 
 ##-------------------------------------------------------------------##
@@ -3322,7 +3326,7 @@ comparisons_list <- generate_comparisons_list(sort,
 ## Analyses endpoints
 
 #* @tag analysis
-#* generates gene clusters using stringdb
+#* gene clusters using stringdb
 #* @serializer json list(na="string")
 #' @get /api/analysis/functional_clustering
 function() {
@@ -3336,8 +3340,99 @@ function() {
     collect() %>%
     unique()
 
-  clusters <- generate_string_cluster_object_mem(
+  clusters <- gen_string_clust_obj_mem(
     genes_from_entity_table$hgnc_id)
+
+  # return output
+  clusters
+}
+
+#* @tag analysis
+#* entity clusters from phenotypes using MCA and HC
+#* @serializer json list(na="string")
+#' @get /api/analysis/phenotype_clustering
+function() {
+  # define constants for filtering
+  id_phenotype_ids <- c("HP:0001249",
+    "HP:0001256",
+    "HP:0002187",
+    "HP:0002342",
+    "HP:0006889",
+    "HP:0010864")
+
+  categories <- c("Definitive")
+
+  # get data from database
+  ndd_entity_view_tbl <- pool %>%
+    tbl("ndd_entity_view") %>%
+    collect()
+
+  ndd_entity_review_tbl <- pool %>%
+    tbl("ndd_entity_review") %>%
+    collect() %>%
+    filter(is_primary == 1) %>%
+    select(review_id)
+
+  ndd_review_phenotype_connect_tbl <- pool %>%
+    tbl("ndd_review_phenotype_connect") %>%
+    collect()
+
+  modifier_list_tbl <- pool %>%
+    tbl("modifier_list") %>%
+    collect()
+
+  phenotype_list_tbl <- pool %>%
+    tbl("phenotype_list") %>%
+    collect()
+
+  # join tables and filter
+  sysndd_db_phenotypes <- ndd_entity_view_tbl %>%
+    left_join(ndd_review_phenotype_connect_tbl, by = c("entity_id")) %>%
+    left_join(modifier_list_tbl, by = c("modifier_id")) %>%
+    left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
+    mutate(ndd_phenotype = case_when(
+      ndd_phenotype == 1 ~ "Yes",
+      ndd_phenotype == 0 ~ "No"
+    )) %>%
+    filter(ndd_phenotype == "Yes") %>%
+    filter(category %in% categories) %>%
+    filter(modifier_name == "present") %>%
+    filter(review_id %in% ndd_entity_review_tbl$review_id) %>%
+    select(entity_id,
+      hpo_mode_of_inheritance_term_name,
+      phenotype_id,
+      HPO_term,
+      hgnc_id) %>%
+    group_by(entity_id) %>%
+    mutate(phenotype_non_id_count =
+      sum(!(phenotype_id %in% id_phenotype_ids))) %>%
+    mutate(phenotype_id_count = sum(phenotype_id %in% id_phenotype_ids)) %>%
+    ungroup() %>%
+    unique()
+
+  # convert to wide format
+  sysndd_db_phenotypes_wider <- sysndd_db_phenotypes %>%
+    mutate(present = "yes") %>%
+    select(-phenotype_id) %>%
+    pivot_wider(names_from = HPO_term, values_from = present) %>%
+    group_by(hgnc_id) %>%
+    mutate(gene_entity_count = n()) %>%
+    ungroup() %>%
+    relocate(gene_entity_count, .after = phenotype_id_count) %>%
+    select(-hgnc_id)
+
+  # convert to data frame
+  sysndd_db_phenotypes_wider_df <- sysndd_db_phenotypes_wider %>%
+    select(-entity_id) %>%
+    as.data.frame()
+
+  # transfor rownames to entity_id
+  row.names(sysndd_db_phenotypes_wider_df) <-
+    sysndd_db_phenotypes_wider$entity_id
+
+  # call cluster analysis function
+  clusters <- gen_mca_clust_obj_mem(
+    sysndd_db_phenotypes_wider_df)
 
   # return output
   clusters
