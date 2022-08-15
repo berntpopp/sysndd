@@ -28,6 +28,8 @@ library(knitr)
 library(rlang)
 library(timetk)
 library(STRINGdb)
+library(factoextra)
+library(FactoMineR)
 ##-------------------------------------------------------------------##
 
 
