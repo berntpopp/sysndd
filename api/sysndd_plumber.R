@@ -3322,7 +3322,7 @@ comparisons_list <- generate_comparisons_list(sort,
 #* @tag analysis
 #* generates gene clusters using stringdb
 #* @serializer json list(na="string")
-#' @get /api/analysis/cluster
+#' @get /api/analysis/functional_clustering
 function() {
 
   # get data from database
@@ -3334,7 +3334,8 @@ function() {
     collect() %>%
     unique()
 
-  clusters <- generate_string_cluster_object_mem(genes_from_entity_table$hgnc_id)
+  clusters <- generate_string_cluster_object_mem(
+    genes_from_entity_table$hgnc_id)
 
   # return output
   clusters

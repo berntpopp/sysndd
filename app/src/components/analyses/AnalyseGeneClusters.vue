@@ -42,7 +42,7 @@ export default {
   },
   methods: {
     async loadClusterData() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/analysis/cluster`;
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/analysis/functional_clustering`;
 
       try {
         const response = await this.axios.get(apiUrl);
