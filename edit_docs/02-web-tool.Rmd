@@ -46,7 +46,7 @@ The "Analyses" button triggers a dropwdown menu with links to:
 - "Correlate phenotypes" view
 - "Entries over time" view
 - "NDD Publications" view
-- "Gene networks" view
+- "Functional clusters" view
 
 ![Navigation menu analyses](./static/img/02_03-navigation-menu-analyses.png){max-width=1000px}
 
@@ -139,7 +139,7 @@ These files can then be used as "virtual panels" to filter genetic variants deri
 
 ### NDD Publications
 
-### Gene networks
+### Functional clusters
 
 
 

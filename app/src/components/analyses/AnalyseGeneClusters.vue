@@ -9,7 +9,7 @@
     >
       <template #header>
         <h6 class="mb-1 text-left font-weight-bold">
-          Clusters of NDD genes.
+          Functionally enriched gene clusters.
         </h6>
       </template>
 

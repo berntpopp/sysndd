@@ -22,7 +22,7 @@ compare-curations
 correlate-phenotypes
 entries-over-time
 ndd-publications
-gene-networks
+functional-clusters
 about-page
 login-page
 register-user-page

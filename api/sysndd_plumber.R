@@ -114,7 +114,7 @@ nest_gene_tibble_mem <- memoise(nest_gene_tibble,
 generate_tibble_fspec_mem <- memoise(generate_tibble_fspec,
   cache = cm)
 
-generate_cluster_object_mem <- memoise(generate_cluster_object,
+generate_string_cluster_object_mem <- memoise(generate_string_cluster_object,
   cache = cm)
 
 ##-------------------------------------------------------------------##
@@ -3334,7 +3334,7 @@ function() {
     collect() %>%
     unique()
 
-  clusters <- generate_cluster_object_mem(genes_from_entity_table$hgnc_id)
+  clusters <- generate_string_cluster_object_mem(genes_from_entity_table$hgnc_id)
 
   # return output
   clusters

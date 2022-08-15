@@ -9,14 +9,14 @@
 #'
 #' @return The clusters tibble
 #' @export
-generate_cluster_object <- function(hgnc_list,
+generate_string_cluster_object <- function(hgnc_list,
   min_size = 10,
   subcluster = TRUE,
   parent = NA) {
 
   # compute hashes for input
   panel_hash <- generate_panel_hash(hgnc_list)
-  function_hash <- generate_function_hash(generate_cluster_object)
+  function_hash <- generate_function_hash(generate_string_cluster_object)
 
   # generate result output filename
   filename_results <- paste0("results/",
@@ -71,7 +71,7 @@ generate_cluster_object <- function(hgnc_list,
       else .
       } %>%
       {if (subcluster)
-        mutate(., subclusters = list(generate_cluster_object(
+        mutate(., subclusters = list(generate_string_cluster_object(
           identifiers$hgnc_id,
           subcluster = FALSE,
           parent = cluster)))

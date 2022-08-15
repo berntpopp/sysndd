@@ -58,7 +58,7 @@
               NDD Publications
             </b-dropdown-item>
             <b-dropdown-item href="/GeneNetworks">
-              Gene networks
+              Functional clusters
             </b-dropdown-item>
           </b-nav-item-dropdown>
 

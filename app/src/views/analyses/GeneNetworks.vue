@@ -28,7 +28,7 @@ export default {
   mixins: [toastMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
-    title: 'Gene networks',
+    title: 'Functional clusters',
     // all titles will be injected into this template
     titleTemplate:
       '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
