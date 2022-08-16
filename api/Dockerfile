@@ -1,7 +1,7 @@
 FROM rocker/tidyverse:4.2.1
 ## Install Java
 RUN apt-get update && apt-get install -y \
-default-jdk \
+default-jdk build-essential git wget libpcre3 libpcre3-dev libssl-dev zlib1g-dev cmake \
 ## used for keyring package
 libsecret-1-dev \
 ## used to build rJava and other packages

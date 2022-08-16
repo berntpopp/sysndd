@@ -7,7 +7,7 @@ WORKDIR /app
 # copy both 'package.json' and 'package-lock.json' (if available)
 COPY package*.json ./
 # update npm
-RUN npm install -g npm@8.16.0
+RUN npm install -g npm@8.17.0
 # install project dependencies
 RUN npm install --legacy-peer-deps
 # copy project files and folders to the current working directory (i.e. 'app' folder)

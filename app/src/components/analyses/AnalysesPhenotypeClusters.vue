@@ -69,9 +69,11 @@
                 :current-page="currentPage"
               />
               <b-row class="justify-content-md-center">
-                <b-col>
-                </b-col>
-                <b-col cols="12" md="auto">
+                <b-col />
+                <b-col
+                  cols="12"
+                  md="auto"
+                >
                   <b-pagination
                     v-model="currentPage"
                     :total-rows="totalRows"
@@ -79,8 +81,7 @@
                     aria-controls="my-table"
                   />
                 </b-col>
-                <b-col>
-                </b-col>
+                <b-col />
               </b-row>
             </b-card-text>
           </b-card>
