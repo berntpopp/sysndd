@@ -42,9 +42,15 @@ dw <- config::get(Sys.getenv("API_CONFIG"))
 
 
 ##-------------------------------------------------------------------##
+## global variables
+
+# smtp password if not set
 if (nchar(Sys.getenv("SMTP_PASSWORD")) == 0) {
   Sys.setenv("SMTP_PASSWORD" = toString(dw$mail_noreply_password))
 }
+
+# time as GMT
+Sys.setenv(TZ='GMT')
 ##-------------------------------------------------------------------##
 
 
@@ -4371,6 +4377,8 @@ function(req, res, email_request = "") {
 
     # request time
     timestamp_request <- Sys.time()
+
+    # convert to timestamp
     timestamp_iat <- as.integer(timestamp_request)
     timestamp_exp <- as.integer(timestamp_request) + dw$refresh
 
@@ -4401,6 +4409,7 @@ function(req, res, email_request = "") {
       hash = user_table$hash,
       iat = timestamp_iat,
       exp = timestamp_exp)
+
     jwt <- jwt_encode_hmac(claim, secret = key)
     reset_url <- paste0(dw$base_url, "/PasswordReset/", jwt)
 
@@ -4444,8 +4453,8 @@ function(req, res, new_pass_1 = "", new_pass_2 = "") {
       collect() %>%
       filter(user_id == user_jwt$user_id) %>%
       mutate(hash = toString(md5(paste0(dw$salt, password)))) %>%
-      mutate(timestamp_iat = as.integer(password_reset_date) - dw$refresh) %>%
-      mutate(timestamp_exp = as.integer(password_reset_date)) %>%
+      mutate(timestamp_iat = as.integer(password_reset_date)) %>%
+      mutate(timestamp_exp = as.integer(password_reset_date) + dw$refresh) %>%
       select(user_id, user_name, hash, email, timestamp_iat, timestamp_exp)
 
     # compute JWT check
@@ -4471,13 +4480,13 @@ function(req, res, new_pass_1 = "", new_pass_2 = "") {
     # if criteria fullfilled, remove time to invalidate JWT
     if (jwt_match && new_pass_match_and_valid) {
       # connect to database, put approval for user application then disconnect
-    sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-      dbname = dw$dbname,
-      user = dw$user,
-      password = dw$password,
-      server = dw$server,
-      host = dw$host,
-      port = dw$port)
+      sysndd_db <- dbConnect(RMariaDB::MariaDB(),
+        dbname = dw$dbname,
+        user = dw$user,
+        password = dw$password,
+        server = dw$server,
+        host = dw$host,
+        port = dw$port)
 
       dbExecute(sysndd_db,
         paste0("UPDATE user SET password = '",
