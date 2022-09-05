@@ -499,7 +499,7 @@
                 <span
                   class="word"
                 >The clinical entities are devided into different
-                  “<mark>Categories</mark>”, bases on the strength of their
+                  “<mark>Categories</mark>”, based on the strength of their
                   association with NDD phenotypes. They are represented using
                   these differnetly colored stoplight symbols: </span><br>
                 <span class="word">
