@@ -90,7 +90,7 @@ user_status_allowed <- c("Administrator",
 ##-------------------------------------------------------------------##
 ##-------------------------------------------------------------------##
 # Global API functions
-options("plumber.apiURL" = dw$base_url)
+options("plumber.apiURL" = dw$api_base_url)
 
 # load source files
 source("functions/database-functions.R", local = TRUE)
@@ -344,7 +344,7 @@ function(res,
       pivot_longer(everything(), names_to = "type", values_to = "link") %>%
     mutate(link = case_when(
       link != "null" ~ paste0(
-        dw$base_url,
+        dw$api_base_url,
         "/api/entity?sort=",
         sort,
         ifelse(filter != "", paste0("&filter=", filter), ""),
@@ -2206,7 +2206,7 @@ function(res,
       pivot_longer(everything(), names_to = "type", values_to = "link") %>%
     mutate(link = case_when(
       link != "null" ~ paste0(
-        dw$base_url,
+        dw$api_base_url,
         "/api/gene?sort=",
         sort,
         ifelse(filter != "", paste0("&filter=", filter), ""),
@@ -4402,7 +4402,7 @@ function(req, res, email_request = "") {
       iat = timestamp_iat,
       exp = timestamp_exp)
     jwt <- jwt_encode_hmac(claim, secret = key)
-    reset_url <- paste0(dw$base_url, "PasswordReset/", jwt)
+    reset_url <- paste0(dw$base_url, "/PasswordReset/", jwt)
 
     # send mail
     res$status <- 200 # OK

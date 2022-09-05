@@ -79,7 +79,7 @@ generate_comparisons_list <- function(sort = "symbol",
       pivot_longer(everything(), names_to = "type", values_to = "link") %>%
     mutate(link = case_when(
       link != "null" ~ paste0(
-        dw$base_url,
+        dw$api_base_url,
         "/api/comparisons/table?sort=",
         sort, ifelse(filter != "",
         paste0("&filter=", filter),
@@ -187,7 +187,7 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
       pivot_longer(everything(), names_to = "type", values_to = "link") %>%
     mutate(link = case_when(
       link != "null" ~ paste0(
-        dw$base_url,
+        dw$api_base_url,
         "/api/phenotype/entities/browse?sort=",
         sort,
         ifelse(filter != "", paste0("&filter=", filter), ""),
@@ -353,7 +353,7 @@ generate_panels_list <- function(sort = "symbol",
       pivot_longer(everything(), names_to = "type", values_to = "link") %>%
     mutate(link = case_when(
       link != "null" ~ paste0(
-        dw$base_url,
+        dw$api_base_url,
         "/api/panels/browse?sort=",
         sort,
         ifelse(filter != "",
