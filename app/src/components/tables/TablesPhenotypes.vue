@@ -547,7 +547,7 @@ export default {
         ndd_phenotype_word: { content: null, join_char: null, operator: 'contains' },
         category: { content: null, join_char: ',', operator: 'any' },
       },
-      filter_string: '',
+      filter_string: null,
       filterOn: [],
       checked: false,
       downloading: false,
@@ -640,7 +640,11 @@ export default {
           this.filter.modifier_phenotype_id.operator = 'all';
       }
 
-      this.filter_string = this.filterObjToStr(this.filter);
+      const filter_string_loc = this.filterObjToStr(this.filter);
+      if (filter_string_loc !== this.filter_string) {
+        this.filter_string = this.filterObjToStr(this.filter);
+      }
+
       this.requestSelected();
     },
     removeFilters() {
@@ -659,6 +663,10 @@ export default {
     },
     removeSearch() {
       this.filter.any.content = null;
+
+      if (this.filter.any.content !== null) {
+        this.filter.any.content = null;
+      }
     },
     async loadPhenotypesList() {
       const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/phenotype`;

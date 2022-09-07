@@ -390,7 +390,7 @@ export default {
     showPaginationControls: { type: Boolean, default: true },
     headerLabel: { type: String, default: 'Entities table' },
     sortInput: { type: String, default: '+entity_id' },
-    filterInput: { type: String, default: 'filter=' },
+    filterInput: { type: String, default: null },
     fieldsInput: { type: String, default: null },
     pageAfterInput: { type: String, default: '' },
     pageSizeInput: { type: String, default: '10' },
@@ -506,7 +506,7 @@ export default {
         ndd_phenotype_word: { content: null, join_char: null, operator: 'contains' },
         category: { content: null, join_char: ',', operator: 'any' },
       },
-      filter_string: '',
+      filter_string: null,
       filterOn: [],
       infoModal: {
         id: 'info-modal',
@@ -584,7 +584,12 @@ export default {
       }
     },
     filtered() {
-      this.filter_string = this.filterObjToStr(this.filter);
+      const filter_string_loc = this.filterObjToStr(this.filter);
+
+      if (filter_string_loc !== this.filter_string) {
+        this.filter_string = this.filterObjToStr(this.filter);
+      }
+
       this.loadEntitiesData();
     },
     removeFilters() {
@@ -602,6 +607,10 @@ export default {
     },
     removeSearch() {
       this.filter.any.content = null;
+
+      if (this.filter.any.content !== null) {
+        this.filter.any.content = null;
+      }
     },
     async loadEntitiesData() {
       this.isBusy = true;

@@ -63,7 +63,6 @@
 
                     <b-button
                       v-b-tooltip.hover.bottom
-                      class="mx-1"
                       size="sm"
                       :title="
                         'The table is ' +
@@ -594,7 +593,7 @@ export default {
         category: { content: null, join_char: ',', operator: 'any' },
         entities_count: { content: null, join_char: ',', operator: 'any' },
       },
-      filter_string: '',
+      filter_string: null,
       filterOn: [],
       infoModal: {
         id: 'info-modal',
@@ -674,7 +673,12 @@ export default {
       }
     },
     filtered() {
-      this.filter_string = this.filterObjToStr(this.filter);
+      const filter_string_loc = this.filterObjToStr(this.filter);
+
+      if (filter_string_loc !== this.filter_string) {
+        this.filter_string = this.filterObjToStr(this.filter);
+      }
+
       this.loadGenesData();
     },
     removeFilters() {
@@ -693,6 +697,10 @@ export default {
     },
     removeSearch() {
       this.filter.any.content = null;
+
+      if (this.filter.any.content !== null) {
+        this.filter.any.content = null;
+      }
     },
     async loadGenesData() {
       this.isBusy = true;
