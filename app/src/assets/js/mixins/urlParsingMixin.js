@@ -14,6 +14,7 @@ export default {
         .filter((key) => filter_object[key].content !== null) // <-- remove null values
         .filter((key) => filter_object[key].content !== 'null') // <-- remove null values
         .filter((key) => filter_object[key].content !== '') // <-- remove empty values
+        .filter((key) => filter_object[key].content.length !== 0) // <-- remove empty array values
         .reduce((obj, key) => Object.assign(obj, {
           [key]: filter_object[key],
         }), {});
