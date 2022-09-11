@@ -52,13 +52,18 @@
           >
             <template #header>
               <h6 class="mb-0 font-weight-bold">
-                Categorical input variables (phenotypes)
+                <b-form-select
+                  v-model="tableType"
+                  :options="tableOptions"
+                  type="search"
+                  size="sm"
+                />
               </h6>
             </template>
             <b-card-text class="text-left">
               <b-table
                 id="my-table"
-                :items="selectedCluster.quali_inp_var"
+                :items="selectedCluster[tableType]"
                 :fields="selectedClusterFields"
                 stacked="lg"
                 head-variant="light"
@@ -115,6 +120,12 @@ export default {
         { key: 'p.value', label: 'p-value', class: 'text-left' },
         { key: 'v.test', label: 'v-test', class: 'text-left' },
       ],
+      tableOptions: [
+        { value: 'quali_inp_var', text: 'Qualitative input variables (phenotypes)' },
+        { value: 'quali_sup_var', text: 'Qualitative supplementary variables (inheritance)' },
+        { value: 'quanti_sup_var', text: 'Quantitative supplementary variables (phenotype counts)' },
+      ],
+      tableType: 'quali_inp_var',
       activeCluster: '1',
       perPage: 10,
       totalRows: 1,
@@ -126,6 +137,9 @@ export default {
       this.setActiveCluster();
       // TODO: do not redraw the svg, instead just set border in function
       this.generateClusterGraph();
+    },
+    tableType(value) {
+      this.totalRows = this.selectedCluster[this.tableType].length;
     },
   },
   mounted() {
@@ -149,7 +163,7 @@ export default {
     setActiveCluster() {
       let rest;
       [this.selectedCluster, ...rest] = this.itemsCluster.filter((item) => item.cluster === this.activeCluster);
-      this.totalRows = this.selectedCluster.quali_inp_var.length;
+      this.totalRows = this.selectedCluster[this.tableType].length;
     },
     generateClusterGraph() {
       // Graph dimension
