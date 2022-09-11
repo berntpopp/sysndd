@@ -91,4 +91,4 @@ We would also like to thank all past users for using SysID and for constructive 
 ## Copyright and license
 
 - All code from this project is licensed under the "MIT No Attribution" (MIT-0) License - see the LICENSE.md file for details.
-- The project data, website and api usage are licensed under the "Attribution 4.0 Internationa" (CC BY 4.0) License - see the [https://creativecommons.org/licenses/by/4.0/](https://creativecommons.org/licenses/by/4.0/) for details.
+- The project data, website and api usage are licensed under the "Attribution 4.0 International" (CC BY 4.0) License - see the [https://creativecommons.org/licenses/by/4.0/](https://creativecommons.org/licenses/by/4.0/) for details.
