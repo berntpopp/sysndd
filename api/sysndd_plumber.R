@@ -50,7 +50,7 @@ if (nchar(Sys.getenv("SMTP_PASSWORD")) == 0) {
 }
 
 # time as GMT
-Sys.setenv(TZ='GMT')
+Sys.setenv(TZ = "GMT")
 ##-------------------------------------------------------------------##
 
 

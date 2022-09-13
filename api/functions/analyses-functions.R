@@ -12,7 +12,8 @@
 gen_string_clust_obj <- function(hgnc_list,
   min_size = 10,
   subcluster = TRUE,
-  parent = NA) {
+  parent = NA,
+  enrichment = TRUE) {
 
   # compute hashes for input
   panel_hash <- generate_panel_hash(hgnc_list)
@@ -26,18 +27,16 @@ gen_string_clust_obj <- function(hgnc_list,
     subcluster, ".json")
 
   if (file.exists(filename_results)) {
-
     clusters_tibble <- jsonlite::fromJSON(filename_results) %>%
       tibble::tibble()
-
   } else {
-
     # load/ download STRING database files
     string_db <- STRINGdb::STRINGdb$new(version = "11.5",
       species = 9606,
       score_threshold = 200,
       input_directory = "data")
 
+    # load gene table from databse and filter to input HGNC list
     sysndd_db_string_id_table <- pool %>%
       tbl("non_alt_loci_set") %>%
       filter(!is.na(STRING_id)) %>%
@@ -45,9 +44,12 @@ gen_string_clust_obj <- function(hgnc_list,
       collect() %>%
       filter(hgnc_id %in% hgnc_list)
 
+    # convert to dataframe
     sysndd_db_string_id_df <- sysndd_db_string_id_table %>%
       as.data.frame()
 
+    # perform clustering using the get_clusters function
+    # and walktrap algorithm from the stringdb package
     clusters_list <- string_db$get_clusters(sysndd_db_string_id_df$STRING_id,
       algorithm = "walktrap")
 
@@ -70,6 +72,12 @@ gen_string_clust_obj <- function(hgnc_list,
         mutate(., parent_cluster = parent)
       else .
       } %>%
+      {if (enrichment)
+        mutate(., term_enrichment =
+          list(gen_string_enrich_tib(identifiers$hgnc_id))
+        )
+      else .
+      } %>%
       {if (subcluster)
         mutate(., subclusters = list(gen_string_clust_obj(
           identifiers$hgnc_id,
@@ -88,6 +96,29 @@ gen_string_clust_obj <- function(hgnc_list,
   # return result
   return(clusters_tibble)
 
+}
+
+
+#' A function to compute  enrichment with string-db and a HGNC list
+#'
+#' @param hgnc_list A comma separated list as concatenated text
+#'
+#' @return The enrichment tibble
+#' @export
+gen_string_enrich_tib <- function(hgnc_list) {
+
+  # load/ download STRING database files
+  string_db <- STRINGdb$new(version = "11.5",
+    species = 9606,
+    score_threshold = 200,
+    input_directory = "data/")
+
+  # compute enrichment and convert to tibble
+  enrichment_tibble <- string_db$get_enrichment(hgnc_list) %>%
+    tibble()
+
+  # return result
+  return(enrichment_tibble)
 }
 
 
