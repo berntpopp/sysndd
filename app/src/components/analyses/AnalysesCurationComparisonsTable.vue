@@ -15,7 +15,7 @@
               <mark
                 v-b-tooltip.hover.leftbottom
                 title="These have been reviewed to include lists which are regularly updated. Below table allows users to filter the presence of a gene (yes/ no) in the respective list overlaps."
-              >curation effors</mark>
+              >curation efforts</mark>
               for neurodevelopmental disorders.
 
               <b-badge

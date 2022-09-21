@@ -21,7 +21,7 @@
             v-b-tooltip.hover.leftbottom
             title="A visualization for set intersections used as alternative to Venn diagrams. Rows corresponds to a set and columns correspond to possible intersections represented by the connected dots."
           >Upset plot</mark>
-          showing the overlap between different selected curation effors for
+          showing the overlap between different selected curation efforts for
           neurodevelopmental disorders.
         </h6>
       </template>

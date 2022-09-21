@@ -14,7 +14,7 @@
             v-b-tooltip.hover.leftbottom
             title="This is a measure of similarity between two sequences of numbers used to quantify the similarity between two word lists."
           >cosine similarity</mark>
-          between different curation effors for neurodevelopmental disorders.
+          between different curation efforts for neurodevelopmental disorders.
         </h6>
       </template>
       <b-row>
