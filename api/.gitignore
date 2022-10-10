@@ -11,3 +11,6 @@ data/*.gz
 
 # Ignore the log files in logs directory in api folder
 logs/*.log
+
+# ignore the development start script
+*_development.R
