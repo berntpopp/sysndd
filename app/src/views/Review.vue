@@ -355,6 +355,9 @@
               <b-badge variant="dark">
                 {{ review_info.review_user_role }}
               </b-badge>
+              <b-badge variant="dark">
+                {{ review_info.review_date }}
+              </b-badge>
             </p>
 
             <!-- Emulate built in modal footer ok and cancel button actions -->
@@ -1275,6 +1278,7 @@ export default {
         this.review_info.entity_id = response_review.data[0].entity_id;
         this.review_info.review_user_name = response_review.data[0].review_user_name;
         this.review_info.review_user_role = response_review.data[0].review_user_role;
+        this.review_info.review_date = response_review.data[0].review_date;
         this.review_info.re_review_review_saved = re_review_review_saved;
 
         this.loading_review_modal = false;
