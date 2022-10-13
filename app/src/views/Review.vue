@@ -728,6 +728,9 @@
               <b-badge variant="dark">
                 {{ status_info.status_user_role }}
               </b-badge>
+              <b-badge variant="dark">
+                {{ status_info.status_date }}
+              </b-badge>
             </p>
 
             <!-- Emulate built in modal footer ok and cancel button actions -->
@@ -1305,6 +1308,7 @@ export default {
         this.status_info.entity_id = response.data[0].entity_id;
         this.status_info.status_user_name = response.data[0].status_user_name;
         this.status_info.status_user_role = response.data[0].status_user_role;
+        this.status_info.status_date = response.data[0].status_date;
         this.status_info.re_review_status_saved = re_review_status_saved;
 
         this.loading_status_modal = false;
