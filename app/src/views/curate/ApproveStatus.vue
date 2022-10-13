@@ -167,6 +167,22 @@
                 </div>
               </template>
 
+              <template #cell(status_user_name)="data">
+                <div>
+                  <b-icon
+                    icon="person-circle"
+                    font-scale="1.0"
+                  />
+                  <b-badge
+                    variant="dark"
+                    v-b-tooltip.hover.right
+                    :title="data.item.status_user_role"
+                  >
+                    {{ data.item.status_user_name }}
+                  </b-badge>
+                </div>
+              </template>
+
               <template #cell(actions)="row">
                 <b-button
                   size="sm"
@@ -447,6 +463,20 @@ export default {
         {
           key: 'problematic',
           label: 'Problematic',
+          sortable: true,
+          filterable: true,
+          class: 'text-left',
+        },
+        {
+          key: 'status_date',
+          label: 'Status date',
+          sortable: true,
+          filterable: true,
+          class: 'text-left',
+        },
+        {
+          key: 'status_user_name',
+          label: 'User',
           sortable: true,
           filterable: true,
           class: 'text-left',
