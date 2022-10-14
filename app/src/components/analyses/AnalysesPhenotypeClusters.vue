@@ -92,7 +92,6 @@
           </b-card>
         </b-col>
       </b-row>
-
       <!-- Content -->
     </b-card>
     <!-- User Interface controls -->
