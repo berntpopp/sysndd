@@ -780,7 +780,7 @@ post_db_hash <- function(json_data,
           port = dw$port
           )
 
-        # submit json string and hast to database
+        # submit json string and hash to database
         db_response <- dbAppendTable(sysndd_db,
           "table_hash",
           hash_tibble

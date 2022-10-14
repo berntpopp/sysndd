@@ -115,7 +115,8 @@ gen_string_enrich_tib <- function(hgnc_list) {
 
   # compute enrichment and convert to tibble
   enrichment_tibble <- string_db$get_enrichment(hgnc_list) %>%
-    tibble()
+    tibble() %>%
+    select(-ncbiTaxonId, -inputGenes, -preferredNames)
 
   # return result
   return(enrichment_tibble)
