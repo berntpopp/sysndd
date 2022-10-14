@@ -174,8 +174,8 @@
                     font-scale="1.0"
                   />
                   <b-badge
-                    variant="dark"
                     v-b-tooltip.hover.right
+                    variant="dark"
                     :title="data.item.status_user_role"
                   >
                     {{ data.item.status_user_name }}
