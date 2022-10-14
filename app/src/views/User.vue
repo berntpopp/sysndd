@@ -130,11 +130,17 @@
 
                             <validation-provider
                               v-slot="validationContext"
-                              name="password"
-                              :rules="{ required: true, min: 7, max: 50 }"
+                              vid="newPassword"
+                              :rules="{ required: true,
+                                        min: 8,
+                                        max: 50,
+                                        regex: /(?=.*[!@#$%^&*])(?=.*[A-Z])(?=.*[a-z])(?=.*[\d])/,
+                              }"
                             >
                               <b-form-group
+                                v-b-tooltip.hover.right
                                 description="Enter your new password"
+                                title="Rules: >7 characters, at least one upper character, one lower character, one decimal number and one special character (!@#$%^&*)."
                               >
                                 <b-form-input
                                   v-model="new_password_entry"
@@ -147,11 +153,18 @@
 
                             <validation-provider
                               v-slot="validationContext"
-                              name="password"
-                              :rules="{ required: true, min: 7, max: 50 }"
+                              vid="confirmPassword"
+                              :rules="{ required: true,
+                                        min: 8,
+                                        max: 50,
+                                        regex: /(?=.*[!@#$%^&*])(?=.*[A-Z])(?=.*[a-z])(?=.*[\d])/,
+                                        confirmed: 'newPassword',
+                              }"
                             >
                               <b-form-group
+                                v-b-tooltip.hover.right
                                 description="Repeat your new password"
+                                title="Rules: must match first input."
                               >
                                 <b-form-input
                                   v-model="new_password_repeat"
