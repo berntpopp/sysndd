@@ -132,6 +132,21 @@
                 </div>
               </template>
 
+              <template #cell(symbol)="data">
+                <div class="font-italic">
+                  <b-link :href="'/Genes/' + data.item.hgnc_id">
+                    <b-badge
+                      v-b-tooltip.hover.leftbottom
+                      pill
+                      variant="success"
+                      :title="data.item.hgnc_id"
+                    >
+                      {{ data.item.symbol }}
+                    </b-badge>
+                  </b-link>
+                </div>
+              </template>
+
               <template #cell(synopsis)="data">
                 <div>
                   <b-form-textarea
@@ -589,6 +604,14 @@ export default {
           class: 'text-left',
         },
         {
+          key: 'symbol',
+          label: 'Symbol',
+          sortable: true,
+          filterable: true,
+          sortDirection: 'desc',
+          class: 'text-left',
+        },
+        {
           key: 'synopsis',
           label: 'Clinical synopsis',
           sortable: true,
@@ -630,6 +653,27 @@ export default {
         {
           key: 'review_date',
           label: 'Review date',
+          sortable: true,
+          filterable: true,
+          class: 'text-left',
+        },
+        {
+          key: 'disease_ontology_id_version',
+          label: 'Ontology ID version',
+          sortable: true,
+          filterable: true,
+          class: 'text-left',
+        },
+        {
+          key: 'disease_ontology_name',
+          label: 'Disease ontology name',
+          sortable: true,
+          filterable: true,
+          class: 'text-left',
+        },
+        {
+          key: 'hpo_mode_of_inheritance_term_name',
+          label: 'Inheritance',
           sortable: true,
           filterable: true,
           class: 'text-left',
