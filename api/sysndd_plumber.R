@@ -1005,22 +1005,72 @@ function(sysndd_id) {
 #' @get /api/review
 function(req, res, filter_review_approved = FALSE) {
 
+  # TODO: maybe this endpoint should be authenticated
   # make sure filter_review_approved input is logical
   filter_review_approved <- as.logical(filter_review_approved)
 
   # get data from database and filter
+  # user information from user table
   user_table <- pool %>%
     tbl("user") %>%
     select(user_id, user_name, user_role)
+  non_alt_loci_set <- pool %>%
+    tbl("non_alt_loci_set") %>%
+    select(hgnc_id, symbol)
+  disease_ontology_set <- pool %>%
+    tbl("disease_ontology_set") %>%
+    select(disease_ontology_id, disease_ontology_id_version, disease_ontology_name)
+  mode_of_inheritance_list <- pool %>%
+    tbl("mode_of_inheritance_list") %>%
+    select(-is_active, -sort)
+  ndd_entity_status_approved_view <- pool %>%
+    tbl("ndd_entity_status_approved_view") %>%
+    select(entity_id, status_approved, category_id)
+  ndd_entity_status_categories_list <- pool %>%
+    tbl("ndd_entity_status_categories_list")
+  boolean_list <- pool %>%
+    tbl("boolean_list")
 
+  # generate entity table with human readable information
+  # TODO replace with entity_view (then filterd in other EPs)
+  ndd_entity_tbl <- pool %>%
+    tbl("ndd_entity") %>%
+    left_join(non_alt_loci_set,
+      by = c("hgnc_id")) %>%
+    left_join(disease_ontology_set,
+      by = c("disease_ontology_id_version")) %>%
+    left_join(mode_of_inheritance_list,
+      by = c("hpo_mode_of_inheritance_term")) %>%
+    left_join(ndd_entity_status_approved_view,
+      by = c("entity_id")) %>%
+    left_join(ndd_entity_status_categories_list,
+      by = c("category_id")) %>%
+    left_join(boolean_list,
+      by = c("ndd_phenotype" = "logical")) %>%
+    select(entity_id,
+      hgnc_id,
+      symbol,
+      disease_ontology_id_version,
+      disease_ontology_name,
+      hpo_mode_of_inheritance_term,
+      hpo_mode_of_inheritance_term_name)
+
+  # join the table and apply filters
   review_table_collected <- pool %>%
     tbl("ndd_entity_review") %>%
     left_join(user_table, by = c("review_user_id" = "user_id")) %>%
     left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
+    left_join(ndd_entity_tbl, by = c("entity_id")) %>%
     filter(review_approved == filter_review_approved) %>%
     collect() %>%
     select(review_id,
       entity_id,
+      hgnc_id,
+      symbol,
+      disease_ontology_id_version,
+      disease_ontology_name,
+      hpo_mode_of_inheritance_term,
+      hpo_mode_of_inheritance_term_name,
       synopsis,
       is_primary,
       review_date,
