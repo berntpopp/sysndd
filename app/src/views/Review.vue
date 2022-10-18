@@ -612,7 +612,7 @@
               input-id="review-genereviews-select"
               no-outer-focus
               class="my-0"
-              separator=" ,;"
+              separator=",;"
               :tag-validator="tagValidatorPMID"
               remove-on-delete
             >
