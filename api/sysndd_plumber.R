@@ -1205,7 +1205,7 @@ function(req, res, re_review = FALSE) {
         # only submit phenotype connections if not empty
         if (length(compact(phenotypes_received)) > 0) {
           # make the phenotype to review connections using the
-          # function "response_phenotype_connections"
+          # function "put_post_db_phen_con"
           response_phenotype_connections <- put_post_db_phen_con(
             req$REQUEST_METHOD,
             phenotypes_received,
