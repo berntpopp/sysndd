@@ -1399,7 +1399,7 @@ function(review_id_requested) {
     collect()
 
   phenotype_list <- ndd_review_phenotype_conn_coll %>%
-    filter(review_id == review_id_requested) %>%
+    filter(review_id == review_id_requested & is_active) %>%
     inner_join(phenotype_list_collected, by = c("phenotype_id")) %>%
     select(review_id, entity_id, phenotype_id, HPO_term, modifier_id) %>%
     arrange(phenotype_id)
@@ -1427,7 +1427,7 @@ function(review_id_requested) {
     collect()
 
   variation_list <- review_variation_ontology_con %>%
-    filter(review_id == review_id_requested) %>%
+    filter(review_id == review_id_requested & is_active) %>%
     inner_join(variation_ontology_list_col, by = c("vario_id")) %>%
     select(review_id, entity_id, vario_id, vario_name, modifier_id) %>%
     arrange(vario_id)
