@@ -1014,20 +1014,28 @@ function(req, res, filter_review_approved = FALSE) {
   user_table <- pool %>%
     tbl("user") %>%
     select(user_id, user_name, user_role)
+  # gene information from non_alt_loci_set table
   non_alt_loci_set <- pool %>%
     tbl("non_alt_loci_set") %>%
     select(hgnc_id, symbol)
+  # disease information from disease_ontology_set table
   disease_ontology_set <- pool %>%
     tbl("disease_ontology_set") %>%
-    select(disease_ontology_id, disease_ontology_id_version, disease_ontology_name)
+    select(disease_ontology_id,
+      disease_ontology_id_version,
+      disease_ontology_name)
+  # moi information from mode_of_inheritance_list table
   mode_of_inheritance_list <- pool %>%
     tbl("mode_of_inheritance_list") %>%
     select(-is_active, -sort)
+  # approved status from ndd_entity_status_approved_view view
   ndd_entity_status_approved_view <- pool %>%
     tbl("ndd_entity_status_approved_view") %>%
     select(entity_id, status_approved, category_id)
+  # categories status from ndd_entity_status_categories_list table
   ndd_entity_status_categories_list <- pool %>%
     tbl("ndd_entity_status_categories_list")
+  # boolean values from boolean_list table
   boolean_list <- pool %>%
     tbl("boolean_list")
 
@@ -1862,6 +1870,31 @@ function(req, res, curate = FALSE) {
     ndd_entity_status_categories_list <- pool %>%
       tbl("ndd_entity_status_categories_list")
 
+  # user information from user table
+  user_table <- pool %>%
+    tbl("user") %>%
+    select(user_id, user_name, user_role)
+  # join with ndd_entity_review to get review user info
+  review_user_collected <- pool %>%
+    tbl("ndd_entity_review") %>%
+    left_join(user_table, by = c("review_user_id" = "user_id")) %>%
+    select(review_id,
+      review_date,
+      review_user_id,
+      review_user_name = user_name,
+      review_user_role = user_role,
+      review_approving_user_id = approving_user_id)
+  # join with ndd_entity_status to get status user info
+  status_user_collected <- pool %>%
+    tbl("ndd_entity_status") %>%
+    left_join(user_table, by = c("status_user_id" = "user_id")) %>%
+    select(status_id,
+      status_date,
+      status_user_id,
+      status_user_name = user_name,
+      status_user_role = user_role,
+      status_approving_user_id = approving_user_id)
+
     # join and collect
     re_review_user_list <- re_review_entity_connect %>%
       inner_join(re_review_assignment, by = c("re_review_batch")) %>%
@@ -1875,7 +1908,8 @@ function(req, res, curate = FALSE) {
       inner_join(ndd_entity_view, by = c("entity_id")) %>%
       select(-category_id, -category) %>%
       inner_join(ndd_entity_status_category, by = c("status_id")) %>%
-      inner_join(ndd_entity_status_categories_list, by = c("category_id")) %>%
+      inner_join(review_user_collected, by = c("review_id")) %>%
+      inner_join(status_user_collected, by = c("status_id")) %>%
       collect() %>%
       arrange(entity_id)
 
