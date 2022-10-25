@@ -171,6 +171,22 @@
                 </div>
               </template>
 
+              <template #cell(review_date)="data">
+                <div>
+                  <b-icon
+                    icon="pen"
+                    font-scale="0.7"
+                  />
+                  <b-badge
+                    v-b-tooltip.hover.right
+                    variant="light"
+                    :title="data.item.review_date"
+                  >
+                    {{ data.item.review_date.substring(0,10) }}
+                  </b-badge>
+                </div>
+              </template>
+
               <template #cell(review_user_name)="data">
                 <div>
                   <b-icon

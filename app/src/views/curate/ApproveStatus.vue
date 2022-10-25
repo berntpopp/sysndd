@@ -167,6 +167,22 @@
                 </div>
               </template>
 
+              <template #cell(status_date)="data">
+                <div>
+                  <b-icon
+                    icon="stoplights"
+                    font-scale="0.7"
+                  />
+                  <b-badge
+                    v-b-tooltip.hover.right
+                    variant="light"
+                    :title="data.item.status_date"
+                  >
+                    {{ data.item.status_date.substring(0,10) }}
+                  </b-badge>
+                </div>
+              </template>
+
               <template #cell(status_user_name)="data">
                 <div>
                   <b-icon
@@ -205,7 +221,7 @@
                   @click="infoStatus(row.item, row.index, $event.target)"
                 >
                   <b-icon
-                    icon="pen"
+                    icon="stoplights"
                     font-scale="0.9"
                   />
                 </b-button>

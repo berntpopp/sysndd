@@ -308,6 +308,38 @@
                   />
                 </div>
               </template>
+
+              <template #cell(review_date)="data">
+                <div>
+                  <b-icon
+                    icon="pen"
+                    font-scale="0.7"
+                  />
+                  <b-badge
+                    v-b-tooltip.hover.right
+                    variant="light"
+                    :title="data.item.review_date"
+                  >
+                    {{ data.item.review_date.substring(0,10) }}
+                  </b-badge>
+                </div>
+              </template>
+
+              <template #cell(review_user_name)="data">
+                <div>
+                  <b-icon
+                    icon="person-circle"
+                    font-scale="1.0"
+                  />
+                  <b-badge
+                    v-b-tooltip.hover.right
+                    variant="dark"
+                    :title="data.item.review_user_role"
+                  >
+                    {{ data.item.review_user_name }}
+                  </b-badge>
+                </div>
+              </template>
             </b-table>
           </b-card>
         </b-col>
@@ -1034,6 +1066,20 @@ export default {
           key: 'ndd_phenotype_word',
           label: 'NDD',
           sortable: true,
+          class: 'text-left',
+        },
+        {
+          key: 'review_date',
+          label: 'Review date',
+          sortable: true,
+          filterable: true,
+          class: 'text-left',
+        },
+        {
+          key: 'review_user_name',
+          label: 'User',
+          sortable: true,
+          filterable: true,
           class: 'text-left',
         },
         { key: 'actions', label: 'Actions' },
