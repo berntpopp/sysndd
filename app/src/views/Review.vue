@@ -370,6 +370,58 @@
                 sysndd:{{ review_info.entity_id }}
               </b-badge>
             </b-link>
+            <b-link
+              :href="'/Genes/' + entity_info.symbol"
+              target="_blank"
+            >
+              <b-badge
+                v-b-tooltip.hover.leftbottom
+                pill
+                variant="success"
+                :title="entity_info.hgnc_id"
+              >
+                {{ entity_info.symbol }}
+              </b-badge>
+            </b-link>
+            <b-link
+              :href="
+                '/Ontology/' +
+                  entity_info.disease_ontology_id_version.replace(/_.+/g, '')
+              "
+              target="_blank"
+            >
+              <b-badge
+                v-b-tooltip.hover.leftbottom
+                pill
+                variant="secondary"
+                :title="
+                  entity_info.disease_ontology_name +
+                    '; ' +
+                    entity_info.disease_ontology_id_version
+                "
+              >
+                {{ truncate(entity_info.disease_ontology_name, 40) }}
+              </b-badge>
+            </b-link>
+            <b-badge
+              v-b-tooltip.hover.leftbottom
+              pill
+              variant="info"
+              class="justify-content-md-center"
+              size="1.3em"
+              :title="
+                entity_info.hpo_mode_of_inheritance_term_name +
+                  ' (' +
+                  entity_info.hpo_mode_of_inheritance_term +
+                  ')'
+              "
+            >
+              {{
+                inheritance_short_text[
+                  entity_info.hpo_mode_of_inheritance_term_name
+                ]
+              }}
+            </b-badge>
           </h4>
         </template>
 
@@ -1120,6 +1172,15 @@ export default {
       status_options: [],
       status_info: new Status(),
       loading_status_modal: true,
+      entity_info: {
+        entity_id: 0,
+        symbol: '',
+        hgnc_id: '',
+        disease_ontology_id_version: '',
+        disease_ontology_name: '',
+        hpo_mode_of_inheritance_term_name: '',
+        hpo_mode_of_inheritance_term: '',
+      },
       review_info: new Review(),
       select_phenotype: [],
       select_variation: [],
@@ -1229,6 +1290,7 @@ export default {
     },
     infoReview(item, index, button) {
       this.reviewModal.title = `sysndd:${item.entity_id}`;
+      this.getEntity(item.entity_id);
       this.loadReviewInfo(item.review_id, item.re_review_review_saved);
       this.$root.$emit('bv::show::modal', this.reviewModal.id, button);
     },
@@ -1268,6 +1330,20 @@ export default {
       }
       this.isBusy = false;
       this.loading = false;
+    },
+    async getEntity(entity_input) {
+      const apiGetURL = `${process.env.VUE_APP_API_URL
+      }/api/entity?filter=equals(entity_id,${
+        entity_input
+      })`;
+
+      try {
+        const response = await this.axios.get(apiGetURL);
+        // assign to local variable
+        [this.entity_info] = response.data.data;
+      } catch (e) {
+        this.makeToast(e, 'Error', 'danger');
+      }
     },
     async loadReviewInfo(review_id, re_review_review_saved) {
       this.loading_review_modal = true;
@@ -1537,6 +1613,15 @@ export default {
       this.select_variation = [];
       this.select_additional_references = [];
       this.select_gene_reviews = [];
+      this.entity_info = {
+        entity_id: 0,
+        symbol: '',
+        hgnc_id: '',
+        disease_ontology_id_version: '',
+        disease_ontology_name: '',
+        hpo_mode_of_inheritance_term_name: '',
+        hpo_mode_of_inheritance_term: '',
+      };
       this.review_info = new Review();
     },
     async handleSubmitOk(bvModalEvt) {
