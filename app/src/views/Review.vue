@@ -795,6 +795,58 @@
                 sysndd:{{ status_info.entity_id }}
               </b-badge>
             </b-link>
+            <b-link
+              :href="'/Genes/' + entity_info.symbol"
+              target="_blank"
+            >
+              <b-badge
+                v-b-tooltip.hover.leftbottom
+                pill
+                variant="success"
+                :title="entity_info.hgnc_id"
+              >
+                {{ entity_info.symbol }}
+              </b-badge>
+            </b-link>
+            <b-link
+              :href="
+                '/Ontology/' +
+                  entity_info.disease_ontology_id_version.replace(/_.+/g, '')
+              "
+              target="_blank"
+            >
+              <b-badge
+                v-b-tooltip.hover.leftbottom
+                pill
+                variant="secondary"
+                :title="
+                  entity_info.disease_ontology_name +
+                    '; ' +
+                    entity_info.disease_ontology_id_version
+                "
+              >
+                {{ truncate(entity_info.disease_ontology_name, 40) }}
+              </b-badge>
+            </b-link>
+            <b-badge
+              v-b-tooltip.hover.leftbottom
+              pill
+              variant="info"
+              class="justify-content-md-center"
+              size="1.3em"
+              :title="
+                entity_info.hpo_mode_of_inheritance_term_name +
+                  ' (' +
+                  entity_info.hpo_mode_of_inheritance_term +
+                  ')'
+              "
+            >
+              {{
+                inheritance_short_text[
+                  entity_info.hpo_mode_of_inheritance_term_name
+                ]
+              }}
+            </b-badge>
           </h4>
         </template>
 
@@ -1296,6 +1348,7 @@ export default {
     },
     infoStatus(item, index, button) {
       this.statusModal.title = `sysndd:${item.entity_id}`;
+      this.getEntity(item.entity_id);
       this.loadStatusInfo(item.status_id, item.re_review_status_saved);
       this.$root.$emit('bv::show::modal', this.statusModal.id, button);
     },
