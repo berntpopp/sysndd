@@ -325,7 +325,8 @@ put_post_db_pub_con <- function(request_method,
       return(list(status = 200,
         message = "OK. Entry created.")
         )
-    } else if (request_method == "PUT" && entity_id_match) {
+    } else if (request_method == "PUT" &&
+        (entity_id_match || is.na(entity_id_match))) {
       # connect to database
       sysndd_db <- dbConnect(RMariaDB::MariaDB(),
         dbname = dw$dbname,
@@ -430,7 +431,8 @@ put_post_db_phen_con <- function(request_method,
 
       # return OK
       return(list(status = 200, message = "OK. Entry created."))
-    } else if (request_method == "PUT" && entity_id_match) {
+    } else if (request_method == "PUT" &&
+        (entity_id_match || is.na(entity_id_match))) {
       # connect to database
       sysndd_db <- dbConnect(RMariaDB::MariaDB(),
         dbname = dw$dbname,
@@ -541,7 +543,8 @@ put_post_db_var_ont_con <- function(request_method,
 
       # return OK
       return(list(status = 200, message = "OK. Entry created."))
-    } else if (request_method == "PUT" && entity_id_match) {
+    } else if (request_method == "PUT" &&
+        (entity_id_match || is.na(entity_id_match))) {
       # connect to database
       sysndd_db <- dbConnect(RMariaDB::MariaDB(),
         dbname = dw$dbname,
