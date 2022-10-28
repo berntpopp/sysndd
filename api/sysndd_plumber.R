@@ -1831,8 +1831,14 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
 #* gets the re-review overview table for the user logged in
 #* @serializer json list(na="string")
 #' @get /api/re_review_table
-function(req, res, curate = FALSE) {
+function(req,
+  res,
+  filter = "or(lessOrEqual(review_date,2020-01-01),equals(re_review_review_saved,1)",
+  curate = FALSE) {
   curate <- as.logical(curate)
+
+  # generate filter expression based on filter input
+  filter_exprs <- generate_filter_expressions(filter)
 
   # first check rights
   if (length(req$user_id) == 0) {
@@ -1910,7 +1916,8 @@ function(req, res, curate = FALSE) {
       inner_join(review_user_collected, by = c("review_id")) %>%
       inner_join(status_user_collected, by = c("status_id")) %>%
       collect() %>%
-      arrange(entity_id)
+      arrange(entity_id) %>%
+      filter(!!!rlang::parse_exprs(filter_exprs))
 
     re_review_user_list
 
