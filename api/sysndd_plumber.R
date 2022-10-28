@@ -155,7 +155,6 @@ gen_mca_clust_obj_mem <- memoise(gen_mca_clust_obj,
 #* @apiTag publication Publication related endpoints
 #* @apiTag gene Gene related endpoints
 #* @apiTag ontology Ontology related endpoints
-#* @apiTag inheritance Inheritance related endpoints
 #* @apiTag phenotype Phenoptype related endpoints
 #* @apiTag panels Gene panel related endpoints
 #* @apiTag comparisons NDD gene list comparisons related endpoints
@@ -2422,46 +2421,6 @@ function(ontology_input, input_type = "ontology_id") {
 
 
 ##-------------------------------------------------------------------##
-## Inheritance endpoints
-
-#* @tag inheritance
-#* gets a inheritance by hpo_id
-#* @serializer json list(na="string")
-#' @get /api/inheritance/<hpo>
-function(hpo) {
-  hpo <- URLdecode(hpo) %>%
-    str_replace_all("[^0-9]+", "")
-  hpo <- paste0("HP:", hpo)
-
-  # get data from database and filter
-  mode_of_inheritance_list_coll <- pool %>%
-    tbl("mode_of_inheritance_list") %>%
-    filter(hpo_mode_of_inheritance_term == hpo) %>%
-    select(hpo_mode_of_inheritance_term, hpo_mode_of_inheritance_term_name) %>%
-    arrange(hpo_mode_of_inheritance_term) %>%
-    collect()
-}
-
-
-#* @tag inheritance
-#* gets list of all inheritance terms
-#* @serializer json list(na="string")
-#' @get /api/inheritance_list
-function() {
-  status_list_collected <- pool %>%
-    tbl("mode_of_inheritance_list") %>%
-    arrange(hpo_mode_of_inheritance_term) %>%
-    collect() %>%
-    filter(is_active == 1) %>%
-    select(-is_active, -update_date)
-}
-
-## Inheritance endpoints
-##-------------------------------------------------------------------##
-
-
-
-##-------------------------------------------------------------------##
 ## Phenotype endpoints
 
 #* @tag phenotype
@@ -3767,9 +3726,13 @@ function(searchterm, tree = FALSE) {
   searchterm <- URLdecode(searchterm) %>%
     str_squish()
 
+  moi_list <- pool %>%
+    tbl("search_mode_of_inheritance_list_view") %>%
+    collect() %>%
+    mutate(searchdist = 1)
+
   moi_list_search <- pool %>%
     tbl("search_mode_of_inheritance_list_view") %>%
-    filter(result %like% paste0("%", searchterm, "%")) %>%
     filter(result %like% paste0("%", searchterm, "%")) %>%
     collect() %>%
     mutate(searchdist = stringdist(str_to_lower(result),
@@ -3894,6 +3857,39 @@ function(tree = FALSE) {
 
   # return output
   phenotype_list_collected
+}
+
+
+#* @tag list
+#* gets a list of all inheritance terms
+#* @serializer json list(na="string")
+#' @get /api/list/inheritance
+function(tree = FALSE) {
+  # make sure tree input is logical
+  tree <- as.logical(tree)
+
+  moi_list_collected <- pool %>%
+    tbl("mode_of_inheritance_list") %>%
+    arrange(hpo_mode_of_inheritance_term) %>%
+    collect() %>%
+    filter(is_active == 1) %>%
+    select(-is_active, -update_date)
+
+  # the "tree" option allows output data to be formated
+  # as arrays for the treeselect library
+  # moi short for mode of inheritance
+  if (tree) {
+    moi_list_return_helper <- moi_list_collected %>%
+      select(id = hpo_mode_of_inheritance_term, label = hpo_mode_of_inheritance_term_name)
+  } else {
+    moi_list_return_helper <- moi_list_collected %>%
+      nest_by(hpo_mode_of_inheritance_term, .key = "values") %>%
+      ungroup() %>%
+      pivot_wider(everything(), names_from = "hpo_mode_of_inheritance_term", values_from = "values")
+  }
+
+  # return output
+  moi_list_return_helper
 }
 
 

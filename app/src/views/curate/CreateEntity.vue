@@ -120,8 +120,7 @@
                           id="inheritance-select"
                           v-model="inheritance_input"
                           :multiple="false"
-                          :async="true"
-                          :load-options="loadInheritanceInfoTree"
+                          :options="inheritance_options"
                           required
                         />
                       </b-col>
@@ -419,6 +418,7 @@ export default {
       entity_submission: {},
       gene_input: null,
       ontology_input: null,
+      inheritance_options: [],
       inheritance_input: null,
       phenotypes_options: [],
       phenotypes_review: [],
@@ -442,6 +442,7 @@ export default {
     this.loadPhenotypesList();
     this.loadVariationOntologyList();
     this.loadStatusList();
+    this.loadInheritanceList();
   },
   methods: {
     getValidationState({ dirty, validated, valid = null }) {
@@ -482,6 +483,15 @@ export default {
       try {
         const response = await this.axios.get(apiUrl);
         this.status_options = response.data;
+      } catch (e) {
+        this.makeToast(e, 'Error', 'danger');
+      }
+    },
+    async loadInheritanceList() {
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/inheritance?tree=true`;
+      try {
+        const response = await this.axios.get(apiUrl);
+        this.inheritance_options = response.data;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
@@ -539,19 +549,6 @@ export default {
         id: node.category_id,
         label: node.category,
       };
-    },
-    async loadInheritanceInfoTree({ searchQuery, callback }) {
-      const apiSearchURL = `${process.env.VUE_APP_API_URL
-      }/api/search/inheritance/${
-        searchQuery
-      }?tree=true`;
-
-      try {
-        const response_search = await this.axios.get(apiSearchURL);
-        callback(null, response_search.data);
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-      }
     },
     infoEntity() {
       // define entity specific attributes as constants from inputs
