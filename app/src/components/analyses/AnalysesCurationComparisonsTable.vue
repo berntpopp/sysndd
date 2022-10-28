@@ -379,12 +379,13 @@
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
+import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 
 export default {
   name: 'AnalysesCurationComparisonsTable',
   // register the Treeselect component
   components: {},
-  mixins: [toastMixin, urlParsingMixin],
+  mixins: [toastMixin, urlParsingMixin, colorAndSymbolsMixin],
   props: {
     showFilterControls: { type: Boolean, default: true },
     showPaginationControls: { type: Boolean, default: true },
@@ -401,8 +402,6 @@ export default {
   },
   data() {
     return {
-      yn_icon: { no: 'x', yes: 'check' },
-      yn_icon_style: { no: 'warning', yes: 'success' },
       items: [],
       fields: [
         {

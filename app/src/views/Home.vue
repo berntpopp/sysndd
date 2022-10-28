@@ -612,10 +612,11 @@
 
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
+import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 
 export default {
   name: 'Home',
-  mixins: [toastMixin],
+  mixins: [toastMixin, colorAndSymbolsMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
     title: 'Home',
@@ -643,18 +644,6 @@ export default {
   },
   data() {
     return {
-      stoplights_style: {
-        Definitive: 'success',
-        Moderate: 'primary',
-        Limited: 'warning',
-        Refuted: 'danger',
-      },
-      ndd_icon: { No: 'x', Yes: 'check' },
-      ndd_icon_style: { No: 'warning', Yes: 'success' },
-      ndd_icon_text: {
-        No: 'NOT associated with NDD',
-        Yes: 'associated with NDD',
-      },
       inheritance_short_text: {
         'Autosomal dominant': 'AD',
         'Autosomal recessive': 'AR',

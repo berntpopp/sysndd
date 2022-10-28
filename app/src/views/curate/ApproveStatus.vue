@@ -425,6 +425,7 @@
 
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
+import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 
 // import the Treeselect component
 import Treeselect from '@riophae/vue-treeselect';
@@ -437,17 +438,9 @@ export default {
   name: 'ApproveStatus',
   // register the Treeselect component
   components: { Treeselect },
-  mixins: [toastMixin],
+  mixins: [toastMixin, colorAndSymbolsMixin],
   data() {
     return {
-      stoplights_style: {
-        Definitive: 'success',
-        Moderate: 'primary',
-        Limited: 'warning',
-        Refuted: 'danger',
-      },
-      problematic_style: { 0: 'success', 1: 'danger' },
-      problematic_symbol: { 0: 'check-square', 1: 'question-square' },
       problematic_text: {
         0: 'No problems',
         1: 'Entitiy status marked problematic',

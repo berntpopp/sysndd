@@ -120,10 +120,11 @@
 
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
+import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 
 export default {
   name: 'ApproveStatus',
-  mixins: [toastMixin],
+  mixins: [toastMixin, colorAndSymbolsMixin],
   data() {
     return {
       role_options: [],
@@ -132,7 +133,6 @@ export default {
         true: 'Approve user',
         false: 'Delete application',
       },
-      user_approval_style: { 0: 'danger', 1: 'primary' },
       items_UsersTable: [],
       totalRows_UsersTable: 0,
       loadingUsersApprove: true,
