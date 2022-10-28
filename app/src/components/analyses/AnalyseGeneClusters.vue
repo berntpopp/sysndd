@@ -14,10 +14,88 @@
       </template>
 
       <!-- Content -->
-      <div
-        id="cluster_dataviz"
-        class="svg-container"
-      />
+      <b-row>
+        <b-col md="4">
+          <b-card
+            header-tag="header"
+            class="my-3 mx-2 text-left"
+            body-class="p-0"
+            header-class="p-1"
+            footer-class="p-1"
+            border-variant="dark"
+          >
+            <template #header>
+              <h6 class="mb-0 font-weight-bold">
+                Selected cluster {{ selectedCluster.cluster }} with {{ selectedCluster.cluster_size }} entities
+              </h6>
+            </template>
+
+            <div
+              id="cluster_dataviz"
+              class="svg-container"
+            />
+
+            <template #footer>
+              <b-link :href="'/Entities/?filter=' + selectedCluster.hash_filter">
+                Genes for cluster {{ selectedCluster.cluster }}
+              </b-link>
+            </template>
+          </b-card>
+        </b-col>
+        <b-col md="8">
+          <b-card
+            header-tag="header"
+            class="my-3 mx-2 text-left"
+            body-class="p-0"
+            header-class="p-1"
+            border-variant="dark"
+          >
+            <template #header>
+              <h6 class="mb-0 font-weight-bold">
+                <b-form-select
+                  v-model="tableType"
+                  :options="tableOptions"
+                  type="search"
+                  size="sm"
+                />
+              </h6>
+            </template>
+            <b-card-text class="text-left">
+              <b-table
+                id="my-table"
+                :items="selectedCluster[tableType]"
+                :fields="selectedClusterFields"
+                stacked="lg"
+                head-variant="light"
+                show-empty
+                small
+                fixed
+                striped
+                hover
+                sort-icon-left
+                style="width: 100%; white-space: nowrap"
+                :per-page="perPage"
+                :current-page="currentPage"
+              />
+              <b-row class="justify-content-md-center">
+                <b-col />
+                <b-col
+                  cols="12"
+                  md="auto"
+                >
+                  <b-pagination
+                    v-model="currentPage"
+                    :total-rows="totalRows"
+                    :per-page="perPage"
+                    aria-controls="my-table"
+                  />
+                </b-col>
+                <b-col />
+              </b-row>
+            </b-card-text>
+          </b-card>
+        </b-col>
+      </b-row>
       <!-- Content -->
     </b-card>
     <!-- User Interface controls -->
@@ -35,7 +113,62 @@ export default {
   data() {
     return {
       itemsCluster: [],
+      selectedCluster: {
+        term_enrichment: [],
+      },
+      selectedClusterFields: [
+        {
+          key: 'category',
+          label: 'Category',
+          class: 'text-left',
+          sortable: true,
+        },
+        {
+          key: 'term',
+          label: 'Term',
+          class: 'text-left',
+          sortable: true,
+        },
+        {
+          key: 'number_of_genes',
+          label: '#Genes',
+          class: 'text-left',
+          sortable: true,
+        },
+        {
+          key: 'fdr',
+          label: 'FDR',
+          class: 'text-left',
+          sortable: true,
+        },
+        {
+          key: 'description',
+          label: 'Description',
+          class: 'text-left',
+          sortable: true,
+        },
+      ],
+      tableOptions: [
+        { value: 'quali_inp_var', text: 'Qualitative input variables (phenotypes)' },
+        { value: 'quali_sup_var', text: 'Qualitative supplementary variables (inheritance)' },
+        { value: 'quanti_sup_var', text: 'Quantitative supplementary variables (phenotype counts)' },
+      ],
+      tableType: 'term_enrichment',
+      activeCluster: 1,
+      perPage: 10,
+      totalRows: 1,
+      currentPage: 1,
     };
+  },
+  watch: {
+    activeCluster(value) {
+      this.setActiveCluster();
+      // TODO: do not redraw the svg, instead just set border in function
+      this.generateClusterGraph();
+    },
+    tableType(value) {
+      this.totalRows = this.selectedCluster[this.tableType].length;
+    },
   },
   mounted() {
     this.loadClusterData();
@@ -48,11 +181,17 @@ export default {
         const response = await this.axios.get(apiUrl);
 
         this.itemsCluster = response.data;
+        this.setActiveCluster();
 
         this.generateClusterGraph();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
+    },
+    setActiveCluster() {
+      let rest;
+      [this.selectedCluster, ...rest] = this.itemsCluster.filter((item) => item.cluster === this.activeCluster);
+      this.totalRows = this.selectedCluster[this.tableType].length;
     },
     generateClusterGraph() {
       // Graph dimension
@@ -61,6 +200,10 @@ export default {
       };
       const width = 400 - margin.left - margin.right;
       const height = 400 - margin.top - margin.bottom;
+
+      // first remove svg
+      d3.select('#cluster_dataviz').select('svg').remove();
+      d3.select('#cluster_dataviz').select('div').remove();
 
       // Create the svg area
       const svg = d3
@@ -197,8 +340,8 @@ export default {
         .data(data)
         .enter()
         .append('a')
-        .attr('xlink:href', (d) => `/Genes/?filter=${d.hash_filter}`) // <- add links to the filtered gene table to the circles
-        .attr('aria-label', (d) => `Link to gene table for cluster, ${d.parent_cluster}.${d.cluster}`)
+        // .attr('xlink:href', (d) => `/Entities/?filter=${d.hash_filter}`) // <- add links to the filtered gene table to the circles
+        // .attr('aria-label', (d) => `Link to entity table for cluster, ${d.cluster}`)
         .append('circle')
         .attr('class', 'node')
         .attr('r', (d) => size(d.cluster_size))
@@ -206,11 +349,19 @@ export default {
         .attr('cy', height / 2)
         .style('fill', (d) => color(d.parent_cluster))
         .style('fill-opacity', 0.8)
-        .attr('stroke', 'black')
-        .style('stroke-width', 1)
+        .attr('stroke', '#696969')
+        .style('stroke-width', (d) => {
+          if (d.cluster === this.activeCluster) {
+            return 4;
+          }
+          return 1;
+        })
         .on('mouseover', mouseover) // What to do when hovered
         .on('mousemove', mousemove)
         .on('mouseleave', mouseleave)
+        .on('click', (e, d) => {
+          this.activeCluster = d.cluster;
+        })
         .call(
           d3
             .drag() // call specific function when circle is dragged
