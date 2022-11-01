@@ -1107,19 +1107,6 @@ export default {
   mixins: [toastMixin, colorAndSymbolsMixin, textMixin],
   data() {
     return {
-      inheritance_short_text: {
-        'Autosomal dominant inheritance': 'AD',
-        'Autosomal recessive inheritance': 'AR',
-        'X-linked other inheritance': 'Xo',
-        'X-linked recessive inheritance': 'XR',
-        'X-linked dominant inheritance': 'XD',
-        'Mitochondrial inheritance': 'Mit',
-        'Somatic mutation': 'Som',
-      },
-      empty_table_text: {
-        false: 'Apply for a new batch of entities.',
-        true: 'Nothing to review.',
-      },
       items: [],
       fields: [
         {

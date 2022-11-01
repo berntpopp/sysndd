@@ -18,6 +18,19 @@ export default {
         4: 'rare',
         5: 'absent',
       },
+      inheritance_short_text: {
+        'Autosomal dominant inheritance': 'AD',
+        'Autosomal recessive inheritance': 'AR',
+        'X-linked other inheritance': 'Xo',
+        'X-linked recessive inheritance': 'XR',
+        'X-linked dominant inheritance': 'XD',
+        'Mitochondrial inheritance': 'Mit',
+        'Somatic mutation': 'Som',
+      },
+      empty_table_text: {
+        false: 'Apply for a new batch of entities.',
+        true: 'Nothing to review.',
+      },
     };
   },
 };
