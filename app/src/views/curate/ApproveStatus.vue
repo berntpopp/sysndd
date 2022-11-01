@@ -304,9 +304,9 @@
               :href="'/Entities/' + status_info.entity_id"
               target="_blank"
             >
-            <b-badge variant="primary">
-              sysndd:{{ status_info.entity_id }}
-            </b-badge>
+              <b-badge variant="primary">
+                sysndd:{{ status_info.entity_id }}
+              </b-badge>
             </b-link>
             <b-link
               :href="'/Genes/' + entity_info.symbol"

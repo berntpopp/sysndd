@@ -226,6 +226,41 @@
             </b-table>
 
             <b-table
+              :items="genereviews_table"
+              stacked
+              small
+            >
+              <template #cell(genereviews)>
+                <b-row>
+                  <b-row
+                    v-for="publication in genereviews"
+                    :key="publication.publication_id"
+                  >
+                    <b-col>
+                      <b-button
+                        v-b-tooltip.hover.bottom
+                        class="btn-xs mx-2"
+                        :variant="publication_style[publication.publication_type]"
+                        :href="
+                          'https://pubmed.ncbi.nlm.nih.gov/' +
+                            publication.publication_id.replace('PMID:', '')
+                        "
+                        target="_blank"
+                        :title="publication_hover_text[publication.publication_type]"
+                      >
+                        <b-icon
+                          icon="box-arrow-up-right"
+                          font-scale="0.8"
+                        />
+                        {{ publication.publication_id }}
+                      </b-button>
+                    </b-col>
+                  </b-row>
+                </b-row>
+              </template>
+            </b-table>
+
+            <b-table
               :items="phenotypes_table"
               stacked
               small
@@ -335,6 +370,8 @@ export default {
       ],
       publications: [],
       publications_table: [{ publications: '' }],
+      genereviews: [],
+      genereviews_table: [{ genereviews: '' }],
       phenotypes: [],
       phenotypes_table: [{ phenotypes: '' }],
       loading: true,
@@ -391,7 +428,8 @@ export default {
 
         this.status = response_status.data;
         this.review = response_review.data;
-        this.publications = response_publications.data;
+        this.publications = response_publications.data.filter((publication) => publication.publication_type === 'additional_references');
+        this.genereviews = response_publications.data.filter((publication) => publication.publication_type === 'gene_review');
         this.phenotypes = response_phenotypes.data;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
