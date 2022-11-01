@@ -304,9 +304,14 @@
         <template #modal-title>
           <h4>
             Modify review for entity:
-            <b-badge variant="primary">
-              sysndd:{{ review_info.entity_id }}
-            </b-badge>
+            <b-link
+              :href="'/Entities/' + review_info.entity_id"
+              target="_blank"
+            >
+              <b-badge variant="primary">
+                sysndd:{{ review_info.entity_id }}
+              </b-badge>
+            </b-link>
             <b-link
               :href="'/Genes/' + entity_info.symbol"
               target="_blank"

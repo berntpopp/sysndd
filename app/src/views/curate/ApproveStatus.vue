@@ -300,8 +300,65 @@
         <template #modal-title>
           <h4>
             Modify status for entity:
+            <b-link
+              :href="'/Entities/' + status_info.entity_id"
+              target="_blank"
+            >
             <b-badge variant="primary">
               sysndd:{{ status_info.entity_id }}
+            </b-badge>
+            </b-link>
+            <b-link
+              :href="'/Genes/' + entity_info.symbol"
+              target="_blank"
+            >
+              <b-badge
+                v-b-tooltip.hover.leftbottom
+                pill
+                variant="success"
+                :title="entity_info.hgnc_id"
+              >
+                {{ entity_info.symbol }}
+              </b-badge>
+            </b-link>
+            <b-link
+              :href="
+                '/Ontology/' +
+                  entity_info.disease_ontology_id_version.replace(/_.+/g, '')
+              "
+              target="_blank"
+            >
+              <b-badge
+                v-b-tooltip.hover.leftbottom
+                pill
+                variant="secondary"
+                :title="
+                  entity_info.disease_ontology_name +
+                    '; ' +
+                    entity_info.disease_ontology_id_version
+                "
+              >
+                {{ truncate(entity_info.disease_ontology_name, 40) }}
+              </b-badge>
+            </b-link>
+            <b-badge
+              v-b-tooltip.hover.leftbottom
+              pill
+              variant="info"
+              class="justify-content-md-center"
+              size="1.3em"
+              :title="
+                entity_info.hpo_mode_of_inheritance_term_name +
+                  ' (' +
+                  entity_info.hpo_mode_of_inheritance_term +
+                  ')'
+              "
+            >
+              {{
+                inheritance_short_text[
+                  entity_info.hpo_mode_of_inheritance_term_name
+                ]
+              }}
             </b-badge>
           </h4>
         </template>
@@ -426,6 +483,7 @@
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
+import textMixin from '@/assets/js/mixins/textMixin';
 
 // import the Treeselect component
 import Treeselect from '@riophae/vue-treeselect';
@@ -438,7 +496,7 @@ export default {
   name: 'ApproveStatus',
   // register the Treeselect component
   components: { Treeselect },
-  mixins: [toastMixin, colorAndSymbolsMixin],
+  mixins: [toastMixin, colorAndSymbolsMixin, textMixin],
   data() {
     return {
       problematic_text: {
@@ -535,6 +593,15 @@ export default {
         title: '',
         content: [],
       },
+      entity_info: {
+        entity_id: 0,
+        symbol: '',
+        hgnc_id: '',
+        disease_ontology_id_version: '',
+        disease_ontology_name: '',
+        hpo_mode_of_inheritance_term_name: '',
+        hpo_mode_of_inheritance_term: '',
+      },
       status_info: new Status(),
       status_options: [],
       totalRows: 0,
@@ -616,6 +683,20 @@ export default {
         this.makeToast(e, 'Error', 'danger');
       }
     },
+    async getEntity(entity_input) {
+      const apiGetURL = `${process.env.VUE_APP_API_URL
+      }/api/entity?filter=equals(entity_id,${
+        entity_input
+      })`;
+
+      try {
+        const response = await this.axios.get(apiGetURL);
+        // assign to local variable
+        [this.entity_info] = response.data.data;
+      } catch (e) {
+        this.makeToast(e, 'Error', 'danger');
+      }
+    },
     async submitStatusChange() {
       const apiUrl = `${process.env.VUE_APP_API_URL}/api/status/update`;
 
@@ -654,6 +735,15 @@ export default {
       }
     },
     resetForm() {
+      this.entity_info = {
+        entity_id: 0,
+        symbol: '',
+        hgnc_id: '',
+        disease_ontology_id_version: '',
+        disease_ontology_name: '',
+        hpo_mode_of_inheritance_term_name: '',
+        hpo_mode_of_inheritance_term: '',
+      };
       this.status_info = new Status();
     },
     infoApproveStatus(item, index, button) {
@@ -663,6 +753,7 @@ export default {
     },
     infoStatus(item, index, button) {
       this.statusModal.title = `sysndd:${item.entity_id}`;
+      this.getEntity(item.entity_id);
       this.loadStatusInfo(item.status_id);
       this.$root.$emit('bv::show::modal', this.statusModal.id, button);
     },
@@ -722,6 +813,9 @@ export default {
       // Trigger pagination to update the number of buttons/pages due to filtering
       this.totalRows = filteredItems.length;
       this.currentPage = 1;
+    },
+    truncate(str, n) {
+      return str.length > n ? `${str.substr(0, n - 1)}...` : str;
     },
   },
 };
