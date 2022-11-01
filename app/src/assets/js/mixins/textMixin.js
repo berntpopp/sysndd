@@ -27,6 +27,18 @@ export default {
         'Mitochondrial inheritance': 'Mit',
         'Somatic mutation': 'Som',
       },
+      inheritance_overview_text: {
+        'Autosomal dominant': 'AD',
+        'Autosomal recessive': 'AR',
+        'X-linked': 'X',
+        Other: 'M/S',
+      },
+      inheritance_link: {
+        'Autosomal dominant': ['Autosomal dominant inheritance'],
+        'Autosomal recessive': ['Autosomal recessive inheritance'],
+        'X-linked': ['X-linked other inheritance', 'X-linked recessive inheritance', 'X-linked dominant inheritance'],
+        Other: ['Mitochondrial inheritance', 'Somatic mutation'],
+      },
       empty_table_text: {
         false: 'Apply for a new batch of entities.',
         true: 'Nothing to review.',

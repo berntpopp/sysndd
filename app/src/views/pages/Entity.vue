@@ -294,15 +294,6 @@ export default {
   },
   data() {
     return {
-      inheritance_short_text: {
-        'Autosomal dominant inheritance': 'AD',
-        'Autosomal recessive inheritance': 'AR',
-        'X-linked other inheritance': 'Xo',
-        'X-linked recessive inheritance': 'XR',
-        'X-linked dominant inheritance': 'XD',
-        'Mitochondrial inheritance': 'Mit',
-        'Somatic mutation': 'Som',
-      },
       entity: [],
       entity_fields: [
         {

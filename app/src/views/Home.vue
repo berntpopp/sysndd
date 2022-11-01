@@ -149,7 +149,7 @@
                                   size="1.3em"
                                 >
                                   {{
-                                    inheritance_short_text[
+                                    inheritance_overview_text[
                                       data.item.inheritance
                                     ]
                                   }}
@@ -266,7 +266,7 @@
                                   size="1.3em"
                                 >
                                   {{
-                                    inheritance_short_text[
+                                    inheritance_overview_text[
                                       data.item.inheritance
                                     ]
                                   }}
@@ -414,7 +414,7 @@
                             "
                           >
                             {{
-                              inheritance_short_text[
+                              inheritance_overview_text[
                                 data.item.inheritance_filter
                               ]
                             }}
@@ -645,18 +645,6 @@ export default {
   },
   data() {
     return {
-      inheritance_short_text: {
-        'Autosomal dominant': 'AD',
-        'Autosomal recessive': 'AR',
-        'X-linked': 'X',
-        Other: 'M/S',
-      },
-      inheritance_link: {
-        'Autosomal dominant': ['Autosomal dominant inheritance'],
-        'Autosomal recessive': ['Autosomal recessive inheritance'],
-        'X-linked': ['X-linked other inheritance', 'X-linked recessive inheritance', 'X-linked dominant inheritance'],
-        Other: ['Mitochondrial inheritance', 'Somatic mutation'],
-      },
       search_input: '',
       search_keys: [],
       search_object: {},
