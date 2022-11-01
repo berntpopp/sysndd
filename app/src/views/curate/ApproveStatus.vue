@@ -607,8 +607,9 @@ export default {
         );
 
         this.status_info.status_id = response.data[0].status_id;
-        this.status_info.status_user_name = response.data[0].status_user_name;
         this.status_info.status_user_role = response.data[0].status_user_role;
+        this.status_info.status_user_name = response.data[0].status_user_name;
+        this.status_info.entity_id = response.data[0].entity_id;
 
         this.loading_status_modal = false;
       } catch (e) {
@@ -617,6 +618,12 @@ export default {
     },
     async submitStatusChange() {
       const apiUrl = `${process.env.VUE_APP_API_URL}/api/status/update`;
+
+      // remove additional data before submission
+      // TODO: replace this workaround
+      this.status_info.status_user_name = null;
+      this.status_info.status_user_role = null;
+      this.status_info.entity_id = null;
 
       // perform update PUT request
       try {

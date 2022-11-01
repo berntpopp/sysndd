@@ -246,7 +246,7 @@
                             phenotype.phenotype_id
                         "
                         target="_blank"
-                        :title="modifier_text[phenotype.modifier_id] + '; ' +  phenotype.phenotype_id"
+                        :title="modifier_text[phenotype.modifier_id] + '; ' + phenotype.phenotype_id"
                       >
                         <b-icon
                           icon="box-arrow-up-right"
