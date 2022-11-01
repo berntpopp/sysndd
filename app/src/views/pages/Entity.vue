@@ -81,7 +81,6 @@
                   v-if="data.item.disease_ontology_id_version.includes('OMIM')"
                   class="btn-xs mx-2"
                   variant="outline-primary"
-                  :src="data.item.publications"
                   :href="
                     'https://www.omim.org/entry/' +
                       data.item.disease_ontology_id_version
@@ -103,7 +102,6 @@
                   v-if="data.item.disease_ontology_id_version.includes('MONDO')"
                   class="btn-xs mx-2"
                   variant="outline-primary"
-                  :src="data.item.publications"
                   :href="
                     'http://purl.obolibrary.org/obo/' +
                       data.item.disease_ontology_id_version.replace(':', '_')
@@ -197,7 +195,7 @@
               stacked
               small
             >
-              <template #cell(publications)="data">
+              <template #cell(publications)>
                 <b-row>
                   <b-row
                     v-for="publication in publications"
@@ -207,14 +205,13 @@
                       <b-button
                         v-b-tooltip.hover.bottom
                         class="btn-xs mx-2"
-                        variant="outline-primary"
-                        :src="data.item.publications"
+                        :variant="publication_style[publication.publication_type]"
                         :href="
                           'https://pubmed.ncbi.nlm.nih.gov/' +
                             publication.publication_id.replace('PMID:', '')
                         "
                         target="_blank"
-                        :title="publication.publication_status"
+                        :title="publication_hover_text[publication.publication_type]"
                       >
                         <b-icon
                           icon="box-arrow-up-right"
@@ -233,7 +230,7 @@
               stacked
               small
             >
-              <template #cell(phenotypes)="data">
+              <template #cell(phenotypes)>
                 <b-row>
                   <b-row
                     v-for="phenotype in phenotypes"
@@ -243,14 +240,13 @@
                       <b-button
                         v-b-tooltip.hover.bottom
                         class="btn-xs mx-2"
-                        variant="outline-dark"
-                        :src="data.item.phenotypes"
+                        :variant="modifier_style[phenotype.modifier_id]"
                         :href="
                           'https://hpo.jax.org/app/browse/term/' +
                             phenotype.phenotype_id
                         "
                         target="_blank"
-                        :title="phenotype.phenotype_id"
+                        :title="modifier_text[phenotype.modifier_id] + '; ' +  phenotype.phenotype_id"
                       >
                         <b-icon
                           icon="box-arrow-up-right"
@@ -274,10 +270,11 @@
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
+import textMixin from '@/assets/js/mixins/textMixin';
 
 export default {
   name: 'Entity',
-  mixins: [toastMixin, colorAndSymbolsMixin],
+  mixins: [toastMixin, colorAndSymbolsMixin, textMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
     title: 'Entity',

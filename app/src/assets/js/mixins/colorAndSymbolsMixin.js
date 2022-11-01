@@ -37,10 +37,6 @@ export default {
         No: 'warning',
         Yes: 'success',
       },
-      ndd_icon_text: {
-        No: 'NOT associated with NDD',
-        Yes: 'associated with NDD',
-      },
       problematic_style: {
         0: 'success',
         1: 'danger',
@@ -60,6 +56,17 @@ export default {
       yn_icon_style: {
         no: 'warning',
         yes: 'success',
+      },
+      publication_style: {
+        additional_references: 'info',
+        gene_review: 'primary',
+      },
+      modifier_style: {
+        1: 'primary',
+        2: 'warning',
+        3: 'secondary',
+        4: 'light',
+        5: 'danger',
       },
     };
   },

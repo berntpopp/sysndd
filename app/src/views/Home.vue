@@ -613,10 +613,11 @@
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
+import textMixin from '@/assets/js/mixins/textMixin';
 
 export default {
   name: 'Home',
-  mixins: [toastMixin, colorAndSymbolsMixin],
+  mixins: [toastMixin, colorAndSymbolsMixin, textMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
     title: 'Home',

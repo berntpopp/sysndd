@@ -452,6 +452,7 @@
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
+import textMixin from '@/assets/js/mixins/textMixin';
 
 // import the Treeselect component
 import Treeselect from '@riophae/vue-treeselect';
@@ -462,7 +463,7 @@ export default {
   name: 'TablesGenes',
   // register the Treeselect component
   components: { Treeselect },
-  mixins: [toastMixin, urlParsingMixin, colorAndSymbolsMixin],
+  mixins: [toastMixin, urlParsingMixin, colorAndSymbolsMixin, textMixin],
   props: {
     showFilterControls: { type: Boolean, default: true },
     showPaginationControls: { type: Boolean, default: true },

@@ -1087,6 +1087,7 @@
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
+import textMixin from '@/assets/js/mixins/textMixin';
 
 // import the Treeselect component
 import Treeselect from '@riophae/vue-treeselect';
@@ -1103,7 +1104,7 @@ export default {
   name: 'Review',
   // register the Treeselect component
   components: { Treeselect },
-  mixins: [toastMixin, colorAndSymbolsMixin],
+  mixins: [toastMixin, colorAndSymbolsMixin, textMixin],
   data() {
     return {
       inheritance_short_text: {
