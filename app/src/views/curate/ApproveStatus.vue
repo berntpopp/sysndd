@@ -132,6 +132,70 @@
                 </div>
               </template>
 
+              <template #cell(symbol)="data">
+                <div class="font-italic">
+                  <b-link :href="'/Genes/' + data.item.hgnc_id">
+                    <b-badge
+                      v-b-tooltip.hover.leftbottom
+                      pill
+                      variant="success"
+                      :title="data.item.hgnc_id"
+                    >
+                      {{ data.item.symbol }}
+                    </b-badge>
+                  </b-link>
+                </div>
+              </template>
+
+              <template #cell(disease_ontology_name)="data">
+                <div class="overflow-hidden text-truncate">
+                  <b-link
+                    :href="
+                      '/Ontology/' +
+                        data.item.disease_ontology_id_version.replace(/_.+/g, '')
+                    "
+                    target="_blank"
+                  >
+                    <b-badge
+                      v-b-tooltip.hover.leftbottom
+                      pill
+                      variant="secondary"
+                      :title="
+                        data.item.disease_ontology_name +
+                          '; ' +
+                          data.item.disease_ontology_id_version
+                      "
+                    >
+                      {{ truncate(data.item.disease_ontology_name, 40) }}
+                    </b-badge>
+                  </b-link>
+                </div>
+              </template>
+
+              <template #cell(hpo_mode_of_inheritance_term_name)="data">
+                <div class="overflow-hidden text-truncate">
+                  <b-badge
+                    v-b-tooltip.hover.leftbottom
+                    pill
+                    variant="info"
+                    class="justify-content-md-center"
+                    size="1.3em"
+                    :title="
+                      data.item.hpo_mode_of_inheritance_term_name +
+                        ' (' +
+                        data.item.hpo_mode_of_inheritance_term +
+                        ')'
+                    "
+                  >
+                    {{
+                      inheritance_short_text[
+                        data.item.hpo_mode_of_inheritance_term_name
+                      ]
+                    }}
+                  </b-badge>
+                </div>
+              </template>
+
               <template #cell(category)="data">
                 <div>
                   <b-avatar
@@ -163,6 +227,8 @@
                     size="sm"
                     rows="1"
                     :value="data.item.comment"
+                    v-b-tooltip.hover.leftbottom
+                    :title="data.item.comment"
                   />
                 </div>
               </template>
@@ -512,6 +578,30 @@ export default {
           filterable: true,
           sortDirection: 'desc',
           class: 'text-left',
+        },
+        {
+          key: 'symbol',
+          label: 'Gene',
+          sortable: true,
+          filterable: true,
+          sortDirection: 'desc',
+          class: 'text-left',
+        },
+        {
+          key: 'disease_ontology_name',
+          label: 'Disease',
+          sortable: true,
+          class: 'text-left',
+          sortByFormatted: true,
+          filterByFormatted: true,
+        },
+        {
+          key: 'hpo_mode_of_inheritance_term_name',
+          label: 'Inheritance',
+          sortable: true,
+          class: 'text-left',
+          sortByFormatted: true,
+          filterByFormatted: true,
         },
         {
           key: 'category',
