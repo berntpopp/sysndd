@@ -1117,7 +1117,12 @@ export default {
           class: 'text-left',
         },
         {
-          key: 'symbol', label: 'Gene', sortable: true, class: 'text-left',
+          key: 'symbol',
+          label: 'Gene',
+          sortable: true,
+          filterable: true,
+          sortDirection: 'desc',
+          class: 'text-left',
         },
         {
           key: 'disease_ontology_name',
