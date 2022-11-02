@@ -1087,7 +1087,8 @@ function(req, res, filter_review_approved = FALSE) {
       approving_user_name = user_name.y,
       approving_user_role = user_role.y,
       approving_user_id,
-      comment)
+      comment) %>%
+    arrange(entity_id, review_date)
 
   review_table_collected
 }
@@ -2635,27 +2636,83 @@ function(res,
 #' @get /api/status
 function(req, res, filter_status_approved = 0) {
 
+  # TODO: maybe this endpoint should be authenticated
+  # make sure filter_status_approved input is logical
   filter_status_approved <- as.integer(filter_status_approved)
 
   # get data from database and filter
-  sysndd_db_status_table <- pool %>%
-    tbl("ndd_entity_status") %>%
-    filter(status_approved == filter_status_approved)
-
+  entity_status_categories_coll <- pool %>%
+    tbl("ndd_entity_status_categories_list")
+  # user information from user table
   user_table <- pool %>%
     tbl("user") %>%
     select(user_id, user_name, user_role)
-
-  entity_status_categories_coll <- pool %>%
+  # gene information from non_alt_loci_set table
+  non_alt_loci_set <- pool %>%
+    tbl("non_alt_loci_set") %>%
+    select(hgnc_id, symbol)
+  # disease information from disease_ontology_set table
+  disease_ontology_set <- pool %>%
+    tbl("disease_ontology_set") %>%
+    select(disease_ontology_id,
+      disease_ontology_id_version,
+      disease_ontology_name)
+  # moi information from mode_of_inheritance_list table
+  mode_of_inheritance_list <- pool %>%
+    tbl("mode_of_inheritance_list") %>%
+    select(-is_active, -sort)
+  # approved status from ndd_entity_status_approved_view view
+  ndd_entity_status_approved_view <- pool %>%
+    tbl("ndd_entity_status_approved_view") %>%
+    select(entity_id, status_approved, category_id)
+  # categories status from ndd_entity_status_categories_list table
+  ndd_entity_status_categories_list <- pool %>%
     tbl("ndd_entity_status_categories_list")
+  # boolean values from boolean_list table
+  boolean_list <- pool %>%
+    tbl("boolean_list")
 
-  status_table_collected <- sysndd_db_status_table %>%
+  # generate entity table with human readable information
+  # TODO: replace with entity_view (then filterd in other EPs)
+  ndd_entity_tbl <- pool %>%
+    tbl("ndd_entity") %>%
+    left_join(non_alt_loci_set,
+      by = c("hgnc_id")) %>%
+    left_join(disease_ontology_set,
+      by = c("disease_ontology_id_version")) %>%
+    left_join(mode_of_inheritance_list,
+      by = c("hpo_mode_of_inheritance_term")) %>%
+    left_join(ndd_entity_status_approved_view,
+      by = c("entity_id")) %>%
+    left_join(ndd_entity_status_categories_list,
+      by = c("category_id")) %>%
+    left_join(boolean_list,
+      by = c("ndd_phenotype" = "logical")) %>%
+    select(entity_id,
+      hgnc_id,
+      symbol,
+      disease_ontology_id_version,
+      disease_ontology_name,
+      hpo_mode_of_inheritance_term,
+      hpo_mode_of_inheritance_term_name)
+
+  # join the table and apply filters
+  status_table_collected <- pool %>%
+    tbl("ndd_entity_status") %>%
     inner_join(entity_status_categories_coll, by = c("category_id")) %>%
     left_join(user_table, by = c("status_user_id" = "user_id")) %>%
     left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
+    left_join(ndd_entity_tbl, by = c("entity_id")) %>%
+    filter(status_approved == filter_status_approved) %>%
     collect() %>%
     select(status_id,
       entity_id,
+      hgnc_id,
+      symbol,
+      disease_ontology_id_version,
+      disease_ontology_name,
+      hpo_mode_of_inheritance_term,
+      hpo_mode_of_inheritance_term_name,
       category,
       category_id,
       is_active,
@@ -2668,7 +2725,7 @@ function(req, res, filter_status_approved = 0) {
       approving_user_id,
       comment,
       problematic) %>%
-    arrange(status_date)
+    arrange(entity_id, status_date)
 
   status_table_collected
 }
