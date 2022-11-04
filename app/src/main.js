@@ -12,6 +12,9 @@ import './global-components';
 // import b-vue icons
 import {
   BIconPersonCircle,
+  BIconEmojiSmile,
+  BIconEmojiHeartEyes,
+  BIconEmojiSunglasses,
   BIconStoplights,
   BIconFilter,
   BIconSearch,
@@ -38,7 +41,6 @@ import {
   BIconLink,
   BIconGear,
   BIconExclamationTriangle,
-  BIconEmojiSmile,
   BIconBookFill,
   ToastPlugin,
 } from 'bootstrap-vue';
@@ -83,6 +85,9 @@ Vue.use(ToastPlugin);
 
 // Install the BootstrapVue icon components plugin
 Vue.component('BIconPersonCircle', BIconPersonCircle);
+Vue.component('BIconEmojiSmile', BIconEmojiSmile);
+Vue.component('BIconEmojiHeartEyes', BIconEmojiHeartEyes);
+Vue.component('BIconEmojiSunglasses', BIconEmojiSunglasses);
 Vue.component('BIconStoplights', BIconStoplights);
 Vue.component('BIconFilter', BIconFilter);
 Vue.component('BIconSearch', BIconSearch);
@@ -109,7 +114,6 @@ Vue.component('BIconFileEarmarkMinus', BIconFileEarmarkMinus);
 Vue.component('BIconLink', BIconLink);
 Vue.component('BIconGear', BIconGear);
 Vue.component('BIconExclamationTriangle', BIconExclamationTriangle);
-Vue.component('BIconEmojiSmile', BIconEmojiSmile);
 Vue.component('BIconBookFill', BIconBookFill);
 
 // register vue-meta globally

@@ -35,13 +35,20 @@
                 <b-col>
                   <h6 class="mb-1 text-righ font-weight-bold">
                     <b-icon
-                      icon="person-circle"
+                      :icon="user_icon[user.user_role[0]]"
+                      :variant="user_stlye[user.user_role[0]]"
                       font-scale="1.0"
                     />
-                    <b-badge variant="dark">
+                    <b-badge
+                      :variant="user_stlye[user.user_role[0]]"
+                      class="ml-1"
+                    >
                       {{ user.user_name[0] }}
                     </b-badge>
-                    <b-badge variant="dark">
+                    <b-badge
+                      :variant="user_stlye[user.user_role[0]]"
+                      class="ml-1"
+                    >
                       {{ user.user_role[0] }}
                     </b-badge>
                     <b-badge
@@ -328,13 +335,15 @@
               <template #cell(review_user_name)="data">
                 <div>
                   <b-icon
-                    icon="person-circle"
+                    :icon="user_icon[data.item.review_user_role]"
+                    :variant="user_stlye[data.item.review_user_role]"
                     font-scale="1.0"
                   />
                   <b-badge
                     v-b-tooltip.hover.right
-                    variant="dark"
+                    :variant="user_stlye[data.item.review_user_role]"
                     :title="data.item.review_user_role"
+                    class="ml-1"
                   >
                     {{ data.item.review_user_name }}
                   </b-badge>
@@ -430,16 +439,26 @@
             <p class="float-left">
               Review by:
               <b-icon
-                icon="person-circle"
+                :icon="user_icon[review_info.review_user_role]"
+                :variant="user_stlye[review_info.review_user_role]"
                 font-scale="1.0"
               />
-              <b-badge variant="dark">
+              <b-badge
+                :variant="user_stlye[review_info.review_user_role]"
+                class="ml-1"
+              >
                 {{ review_info.review_user_name }}
               </b-badge>
-              <b-badge variant="dark">
+              <b-badge
+                :variant="user_stlye[review_info.review_user_role]"
+                class="ml-1"
+              >
                 {{ review_info.review_user_role }}
               </b-badge>
-              <b-badge variant="dark">
+              <b-badge
+                variant="dark"
+                class="ml-1"
+              >
                 {{ review_info.review_date }}
               </b-badge>
             </p>
@@ -855,16 +874,26 @@
             <p class="float-left">
               Status by:
               <b-icon
-                icon="person-circle"
+                :icon="user_icon[status_info.status_user_role]"
+                :variant="user_stlye[status_info.status_user_role]"
                 font-scale="1.0"
               />
-              <b-badge variant="dark">
+              <b-badge
+                :variant="user_stlye[status_info.status_user_role]"
+                class="ml-1"
+              >
                 {{ status_info.status_user_name }}
               </b-badge>
-              <b-badge variant="dark">
+              <b-badge
+                :variant="user_stlye[status_info.status_user_role]"
+                class="ml-1"
+              >
                 {{ status_info.status_user_role }}
               </b-badge>
-              <b-badge variant="dark">
+              <b-badge
+                variant="dark"
+                class="ml-1"
+              >
                 {{ status_info.status_date }}
               </b-badge>
             </p>

@@ -68,6 +68,18 @@ export default {
         4: 'light',
         5: 'danger',
       },
+      user_icon: {
+        Viewer: 'person-circle',
+        Reviewer: 'emoji-smile',
+        Curator: 'emoji-heart-eyes',
+        Administrator: 'emoji-sunglasses',
+      },
+      user_stlye: {
+        Viewer: 'secondary',
+        Reviewer: 'primary',
+        Curator: 'dark',
+        Administrator: 'danger',
+      },
     };
   },
 };

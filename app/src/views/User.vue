@@ -13,13 +13,18 @@
                 <b-card-body>
                   <b-card-title>
                     <b-avatar
-                      variant="primary"
+                      :variant="user_stlye[user.user_role[0]]"
+                      :badge-variant="user_stlye[user.user_role[0]]"
                       class="justify-content-md-center"
                       size="5rem"
-                      badge-variant="info"
                       badge-offset="-12px"
                       badge-bottom
                     >
+                      <b-icon
+                        :icon="user_icon[user.user_role[0]]"
+                        font-scale="1.0"
+                        class="mr-1"
+                      />
                       {{ user.abbreviation[0] }}
                       <template #badge>
                         {{ user.user_role[0] }}
@@ -30,7 +35,9 @@
                   <b-list-group flush>
                     <b-list-group-item>
                       Username:
-                      <b-badge variant="info">
+                      <b-badge
+                        :variant="user_stlye[user.user_role[0]]"
+                      >
                         {{ user.user_name[0] }}
                       </b-badge>
                     </b-list-group-item>
@@ -201,10 +208,11 @@
 
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
+import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 
 export default {
   name: 'User',
-  mixins: [toastMixin],
+  mixins: [toastMixin, colorAndSymbolsMixin],
   data() {
     return {
       user: {
