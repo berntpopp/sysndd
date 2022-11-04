@@ -324,8 +324,8 @@
                   />
                   <b-badge
                     v-b-tooltip.hover.right
-                    variant="light"
-                    :title="data.item.review_date"
+                    :variant="data_age_style[dateYearAge(data.item.review_date, 3)]"
+                    :title="data_age_text[dateYearAge(data.item.review_date, 3)]"
                   >
                     {{ data.item.review_date.substring(0,10) }}
                   </b-badge>
@@ -1788,6 +1788,11 @@ export default {
     },
     truncate(str, n) {
       return str.length > n ? `${str.substr(0, n - 1)}...` : str;
+    },
+    dateYearAge(date, rounding) {
+      // calculate the age based on the difference from current date
+      // round to nearest input argument "rounding"
+      return Math.round((Date.now() - Date.parse(date)) / 1000 / 60 / 60 / 24 / 365 / rounding) * rounding;
     },
   },
 };

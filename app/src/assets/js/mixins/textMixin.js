@@ -43,6 +43,14 @@ export default {
         false: 'Apply for a new batch of entities.',
         true: 'Nothing to review.',
       },
+      data_age_text: {
+        0: 'new entry, no priority for new review',
+        3: 'relatively new entry, no priority for new review',
+        6: 'semi old entry, medium priority for new review',
+        9: 'old entry, high priority for new review',
+        12: 'very old entry, highest priority for new review',
+        15: 'very old entry, highest priority for new review',
+      },
     };
   },
 };

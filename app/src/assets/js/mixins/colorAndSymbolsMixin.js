@@ -80,6 +80,14 @@ export default {
         Curator: 'dark',
         Administrator: 'danger',
       },
+      data_age_style: {
+        0: 'success',
+        3: 'success',
+        6: 'warning',
+        9: 'danger',
+        12: 'danger',
+        15: 'danger',
+      },
     };
   },
 };
