@@ -199,12 +199,12 @@
               <template #cell(synopsis)="data">
                 <div>
                   <b-form-textarea
+                    v-b-tooltip.hover.leftbottom
                     plaintext
                     size="sm"
                     rows="1"
                     :value="data.item.synopsis"
                     :aria-label="'Synopsis for ' + data.item.entity_id"
-                    v-b-tooltip.hover.leftbottom
                     :title="data.item.synopsis"
                   />
                 </div>
@@ -213,12 +213,12 @@
               <template #cell(comment)="data">
                 <div>
                   <b-form-textarea
+                    v-b-tooltip.hover.leftbottom
                     plaintext
                     size="sm"
                     rows="1"
                     :value="data.item.comment"
                     :aria-label="'Comment for ' + data.item.entity_id"
-                    v-b-tooltip.hover.leftbottom
                     :title="data.item.comment"
                   />
                 </div>

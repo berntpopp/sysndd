@@ -223,11 +223,11 @@
               <template #cell(comment)="data">
                 <div>
                   <b-form-textarea
+                    v-b-tooltip.hover.leftbottom
                     plaintext
                     size="sm"
                     rows="1"
                     :value="data.item.comment"
-                    v-b-tooltip.hover.leftbottom
                     :title="data.item.comment"
                   />
                 </div>
