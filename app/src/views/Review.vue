@@ -326,6 +326,7 @@
                     v-b-tooltip.hover.right
                     :variant="data_age_style[dateYearAge(data.item.review_date, 3)]"
                     :title="data_age_text[dateYearAge(data.item.review_date, 3)]"
+                    class="ml-1"
                   >
                     {{ data.item.review_date.substring(0,10) }}
                   </b-badge>
@@ -1189,7 +1190,11 @@ export default {
           filterable: true,
           class: 'text-left',
         },
-        { key: 'actions', label: 'Actions' },
+        {
+          key: 'actions',
+          label: 'Actions',
+          class: 'text-left',
+        },
       ],
       totalRows: 1,
       currentPage: 1,

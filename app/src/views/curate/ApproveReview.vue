@@ -234,6 +234,7 @@
                     v-b-tooltip.hover.right
                     variant="light"
                     :title="data.item.review_date"
+                    class="ml-1"
                   >
                     {{ data.item.review_date.substring(0,10) }}
                   </b-badge>
@@ -295,6 +296,19 @@
                 >
                   <b-icon
                     icon="check2-circle"
+                    font-scale="0.9"
+                  />
+                </b-button>
+                <b-button
+                  v-if="row.item.duplicate==='yes'"
+                  v-b-tooltip.hover.right
+                  variant="danger"
+                  title="Multiple unapproved reviews for this entity"
+                  size="sm"
+                  class="mr-1 btn-xs"
+                >
+                  <b-icon
+                    icon="exclamation-triangle-fill"
                     font-scale="0.9"
                   />
                 </b-button>
@@ -792,7 +806,11 @@ export default {
           filterable: true,
           class: 'text-left',
         },
-        { key: 'actions', label: 'Actions' },
+        {
+          key: 'actions',
+          label: 'Actions',
+          class: 'text-left',
+        },
       ],
       fields_details_ReviewTable: [
         {

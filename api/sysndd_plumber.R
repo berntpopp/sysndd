@@ -1088,7 +1088,15 @@ function(req, res, filter_review_approved = FALSE) {
       approving_user_role = user_role.y,
       approving_user_id,
       comment) %>%
-    arrange(entity_id, review_date)
+    arrange(entity_id, review_date) %>%
+    # check if duplicate values exist
+    group_by(entity_id) %>%
+    mutate(duplicate = n()) %>%
+    mutate(duplicate = case_when(
+      duplicate == 1 ~ "no",
+      TRUE ~ "yes"
+    )) %>%
+    ungroup()
 
   review_table_collected
 }
@@ -2634,11 +2642,11 @@ function(res,
 #* gets the status list
 #* @serializer json list(na="null")
 #' @get /api/status
-function(req, res, filter_status_approved = 0) {
+function(req, res, filter_status_approved = FALSE) {
 
   # TODO: maybe this endpoint should be authenticated
   # make sure filter_status_approved input is logical
-  filter_status_approved <- as.integer(filter_status_approved)
+  filter_status_approved <- as.logical(filter_status_approved)
 
   # get data from database and filter
   entity_status_categories_coll <- pool %>%
@@ -2725,7 +2733,15 @@ function(req, res, filter_status_approved = 0) {
       approving_user_id,
       comment,
       problematic) %>%
-    arrange(entity_id, status_date)
+    arrange(entity_id, status_date) %>%
+    # check if duplicate values exist
+    group_by(entity_id) %>%
+    mutate(duplicate = n()) %>%
+    mutate(duplicate = case_when(
+      duplicate == 1 ~ "no",
+      TRUE ~ "yes"
+    )) %>%
+    ungroup()
 
   status_table_collected
 }

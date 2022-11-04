@@ -243,6 +243,7 @@
                     v-b-tooltip.hover.right
                     variant="light"
                     :title="data.item.status_date"
+                    class="ml-1"
                   >
                     {{ data.item.status_date.substring(0,10) }}
                   </b-badge>
@@ -647,7 +648,11 @@ export default {
           filterable: true,
           class: 'text-left',
         },
-        { key: 'actions', label: 'Actions' },
+        {
+          key: 'actions',
+          label: 'Actions',
+          class: 'text-left',
+        },
       ],
       fields_details_StatusTable: [
         {
