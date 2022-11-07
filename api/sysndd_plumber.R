@@ -575,7 +575,7 @@ function(req, res, direct_approval = FALSE) {
       # put_db_review_approve function with the review id
       if (direct_approval) {
         response_status_approve <- put_db_status_approve(
-            response_status_post$entry$status_id,
+            response_status_post$entry,
             status_user_id,
             TRUE)
       }

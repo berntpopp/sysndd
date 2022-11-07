@@ -841,7 +841,7 @@ put_db_review_approve <- function(review_id_requested,
         !is.null(submit_user_id)) {
 
       # set review_id depending on request is all or one
-      if (review_id_requested == "all") {
+      if (as.character(review_id_requested) == "all") {
         # get data from database and filter
         review_id_requested_tibble <- pool %>%
           tbl("ndd_entity_review") %>%
@@ -944,7 +944,7 @@ put_db_status_approve <- function(status_id_requested,
         !is.null(submit_user_id)) {
 
       # set status_id depending on request is all or one
-      if (status_id_requested == "all") {
+      if (as.character(status_id_requested) == "all") {
         # get data from database and filter
         sysndd_db_status_table <- pool %>%
           tbl("ndd_entity_status") %>%
