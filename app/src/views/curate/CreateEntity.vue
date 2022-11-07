@@ -59,6 +59,7 @@
                       no-close-on-esc
                       no-close-on-backdrop
                       header-bg-variant="dark"
+                      :footer-bg-variant="header_style[direct_approval]"
                       header-text-variant="light"
                       title="Check entity submission"
                       @hide="hideSubmitEntityModal"
@@ -67,6 +68,53 @@
                       <p class="my-4">
                         Are you sure you want to submit this entity?
                       </p>
+
+                      <template #modal-footer="{ ok, cancel }">
+                        <div class="w-100">
+                          <!-- Emulate built in modal footer ok and cancel button actions -->
+                          <p class="float-right">
+                            <b-button
+                              variant="primary"
+                              class="float-right mr-2"
+                              @click="ok()"
+                            >
+                              Submit
+                            </b-button>
+                          </p>
+                          <p class="float-right">
+                            <b-button
+                              variant="secondary"
+                              class="float-right mr-2"
+                              @click="cancel()"
+                            >
+                              Cancel
+                            </b-button>
+                          </p>
+                          <!-- Emulate built in modal footer ok and cancel button actions -->
+                          <p class="float-right">
+                            <b-button
+                              v-b-tooltip.hover.top
+                              title="It is not recommended to skip double review and should be performed only by very experienced curators."
+                              variant="outline-warning"
+                              class="float-right mr-2"
+                            >
+                              <div class="custom-control custom-switch">
+                                <input
+                                  id="directApprovalSwitch"
+                                  v-model="direct_approval"
+                                  type="checkbox"
+                                  button-variant="info"
+                                  class="custom-control-input"
+                                >
+                                <label
+                                  class="custom-control-label"
+                                  for="directApprovalSwitch"
+                                >Direct approval</label>
+                              </div>
+                            </b-button>
+                          </p>
+                        </div>
+                      </template>
                     </b-modal>
                     <!-- Submission check modal -->
 
@@ -394,6 +442,8 @@
 
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
+import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
+import textMixin from '@/assets/js/mixins/textMixin';
 
 // import the Treeselect component
 import Treeselect from '@riophae/vue-treeselect';
@@ -412,7 +462,7 @@ export default {
   name: 'CreateEntity',
   // register the Treeselect component
   components: { Treeselect },
-  mixins: [toastMixin],
+  mixins: [toastMixin, colorAndSymbolsMixin, textMixin],
   data() {
     return {
       entity_submission: {},
@@ -436,6 +486,7 @@ export default {
       },
       NDD_selected: null,
       checking_entity: false,
+      direct_approval: false,
     };
   },
   mounted() {
@@ -610,7 +661,9 @@ export default {
       this.entity_submission = new_submission;
     },
     async submitEntity() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/entity/create`;
+      const apiUrl = `${process.env.VUE_APP_API_URL
+      }/api/entity/create?direct_approval=${
+        this.direct_approval}`;
 
       try {
         const response = await this.axios.post(
@@ -658,6 +711,7 @@ export default {
       this.review_comment = '';
       this.status_selected = null;
       this.NDD_selected = null;
+      this.direct_approval = false;
 
       this.$nextTick(() => {
         this.$refs.observer.reset();
