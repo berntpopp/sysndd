@@ -661,10 +661,8 @@ put_post_db_status <- function(request_method,
 
         # return OK
         return(list(status = 200,
-          message = paste0("OK. Entry created (status_id: ",
-          submitted_status_id,
-          ").")
-          )
+          message = "OK. Entry created.",
+          entry = submitted_status_id$status_id)
         )
 
       } else if (request_method == "PUT" &&
@@ -711,7 +709,9 @@ put_post_db_status <- function(request_method,
 
         # return OK
         return(list(status = 200,
-          message = "OK. Entry updated."))
+          message = "OK. Entry updated.",
+          entry = status_received$status_id)
+        )
       } else {
       # return Method Not Allowed
       return(list(status = 405,
@@ -823,5 +823,213 @@ post_db_hash <- function(json_data,
                 )
             )
         )
+    }
+}
+
+
+## This function puts a review approval to the database
+put_db_review_approve <- function(review_id_requested,
+  submit_user_id,
+  review_ok = FALSE) {
+
+    ##-------------------------------------------------------------------##
+    # make sure review_ok input is logical
+    review_ok <- as.logical(review_ok)
+    ##-------------------------------------------------------------------##
+
+    if (!is.null(review_id_requested) &&
+        !is.null(submit_user_id)) {
+
+      # set review_id depending on request is all or one
+      if (review_id_requested == "all") {
+        # get data from database and filter
+        review_id_requested_tibble <- pool %>%
+          tbl("ndd_entity_review") %>%
+          filter(review_approved == 0) %>%
+          collect() %>%
+          select(review_id)
+
+        review_id_requested <- review_id_requested_tibble$review_id
+      } else {
+        review_id_requested <- as.integer(review_id_requested)
+      }
+
+      # get table data from database
+      ndd_entity_review_data <- pool %>%
+        tbl("ndd_entity_review") %>%
+        filter(review_id %in% review_id_requested) %>%
+        collect()
+
+      # connect to database
+      sysndd_db <- dbConnect(RMariaDB::MariaDB(),
+        dbname = dw$dbname,
+        user = dw$user,
+        password = dw$password,
+        server = dw$server,
+        host = dw$host,
+        port = dw$port)
+
+      # set review if confirmed
+      if (review_ok) {
+        # reset all reviews in ndd_entity_review to not primary
+        dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review ",
+          "SET is_primary = 0 ",
+          "WHERE entity_id IN (",
+          str_c(ndd_entity_review_data$entity_id, collapse = ", "),
+          ");"))
+
+        # set the review from ndd_entity_review_data to primary,
+        # add approving_user_id and set review_approved status to approved
+        dbExecute(sysndd_db,
+          paste0("UPDATE ndd_entity_review SET is_primary = 1 ",
+            "WHERE review_id IN (",
+            str_c(ndd_entity_review_data$review_id, collapse = ", "),
+            ");"))
+        dbExecute(sysndd_db,
+          paste0("UPDATE ndd_entity_review SET approving_user_id = ",
+            submit_user_id,
+            " WHERE review_id IN (",
+            str_c(ndd_entity_review_data$review_id, collapse = ", "),
+            ");"))
+        dbExecute(sysndd_db,
+          paste0("UPDATE ndd_entity_review ",
+          "SET review_approved = 1 ",
+          "WHERE review_id IN (",
+          str_c(ndd_entity_review_data$review_id, collapse = ", "),
+          ");"))
+      } else {
+        # add approving_user_id and set review_approved status to unapproved
+        dbExecute(sysndd_db,
+          paste0("UPDATE ndd_entity_review ",
+            "SET approving_user_id = ",
+            submit_user_id,
+            " WHERE review_id IN (",
+            str_c(ndd_entity_review_data$review_id, collapse = ", "),
+            ");"))
+        dbExecute(sysndd_db,
+          paste0("UPDATE ndd_entity_review ",
+            "SET review_approved = 0 ",
+            "WHERE review_id IN (",
+            str_c(ndd_entity_review_data$review_id, collapse = ", "),
+            ");"))
+      }
+
+      # disconnect from database
+      dbDisconnect(sysndd_db)
+
+      # return OK
+      return(list(status = 200,
+        message = "OK. Review approved.",
+        entry = review_id_requested))
+
+    } else {
+      # return error
+      return(list(status = 400,
+        error = "Submitted data can not be null."))
+    }
+}
+
+
+## This function puts a status approval to the database
+put_db_status_approve <- function(status_id_requested,
+  submit_user_id,
+  status_ok = FALSE) {
+
+    ##-------------------------------------------------------------------##
+    # make sure status_ok input is logical
+    status_ok <- as.logical(status_ok)
+    ##-------------------------------------------------------------------##
+
+    if (!is.null(status_id_requested) &&
+        !is.null(submit_user_id)) {
+
+      # set status_id depending on request is all or one
+      if (status_id_requested == "all") {
+        # get data from database and filter
+        sysndd_db_status_table <- pool %>%
+          tbl("ndd_entity_status") %>%
+          filter(status_approved == 0) %>%
+          collect() %>%
+          select(status_id)
+
+        status_id_requested <- sysndd_db_status_table$status_id
+      } else {
+        status_id_requested <- as.integer(status_id_requested)
+      }
+
+      # get table data from database
+      ndd_entity_status_data <- pool %>%
+        tbl("ndd_entity_status") %>%
+        filter(status_id %in% status_id_requested) %>%
+        collect()
+
+      # connect to database
+      sysndd_db <- dbConnect(RMariaDB::MariaDB(),
+        dbname = dw$dbname,
+        user = dw$user,
+        password = dw$password,
+        server = dw$server,
+        host = dw$host,
+        port = dw$port)
+
+      # set status if confirmed
+      if (status_ok) {
+        # reset all stati in ndd_entity_status to inactive
+        dbExecute(sysndd_db,
+          paste0("UPDATE ndd_entity_status SET is_active = 0 ",
+            "WHERE entity_id IN (",
+            str_c(ndd_entity_status_data$entity_id, collapse = ", "),
+            ");"))
+
+        # set status of the new status from ndd_entity_status_data to active,
+        # add approving_user_id and set approved status to approved
+        dbExecute(sysndd_db,
+          paste0("UPDATE ndd_entity_status SET is_active = 1 ",
+          "WHERE status_id IN (",
+            str_c(ndd_entity_status_data$status_id, collapse = ", "),
+            ");"))
+
+        dbExecute(sysndd_db,
+          paste0("UPDATE ndd_entity_status SET approving_user_id = ",
+            submit_user_id,
+            " WHERE status_id IN (",
+            str_c(ndd_entity_status_data$status_id, collapse = ", "),
+            ");"))
+
+        dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status ",
+          "SET status_approved = 1 ",
+          "WHERE status_id IN (",
+            str_c(ndd_entity_status_data$status_id, collapse = ", "),
+            ");"))
+
+      } else {
+        # add approving_user_id and set approved status to unapproved
+        dbExecute(sysndd_db,
+          paste0("UPDATE ndd_entity_status SET approving_user_id = ",
+            submit_user_id,
+            " WHERE status_id IN (",
+            str_c(ndd_entity_status_data$status_id, collapse = ", "),
+            ");"))
+
+        dbExecute(sysndd_db,
+          paste0("UPDATE ndd_entity_status ",
+            "SET status_approved = 0 ",
+            "WHERE status_id IN (",
+            str_c(ndd_entity_status_data$status_id, collapse = ", "),
+            ");"))
+      }
+
+      # disconnect from database
+      dbDisconnect(sysndd_db)
+
+      # return OK
+      return(list(status = 200,
+        message = "OK. Status approved.",
+        entry = status_id_requested))
+
+    } else {
+      # return error
+      return(list(status = 400,
+        error = "Submitted data can not be null."))
     }
 }

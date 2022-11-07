@@ -370,13 +370,18 @@ function(res,
 #* creates a new entity
 #* @serializer json list(na="string")
 #' @post /api/entity/create
-function(req, res) {
+function(req, res, direct_approval = FALSE) {
 
+  # make sure direct_approval input is logical
+  direct_approval <- as.logical(direct_approval)
+
+  # assign request JSON to variable
   create_data <- req$argsBody$create_json
 
   # first check rights
   if (req$user_role %in% c("Administrator", "Curator")) {
 
+    # define user variables
     entry_user_id <- req$user_id
     review_user_id <- req$user_id
     status_user_id <- req$user_id
@@ -513,6 +518,15 @@ function(req, res) {
           message = "OK. Skipped.")
       }
 
+      # im a direct approval is requested call the
+      # put_db_review_approve function with the review id
+      if (direct_approval) {
+        response_review_approve <- put_db_review_approve(
+            response_review$entry$review_id,
+            review_user_id,
+            TRUE)
+      }
+
       # compute aggregated review response
       response_review_post <- tibble::as_tibble(response_publication) %>%
         bind_rows(tibble::as_tibble(response_review)) %>%
@@ -554,6 +568,17 @@ function(req, res) {
 
       response_status_post <- put_post_db_status("POST",
         create_data$status)
+      ##-------------------------------------------------------------------##
+
+      ##-------------------------------------------------------------------##
+      # im a direct approval is requested call the
+      # put_db_review_approve function with the review id
+      if (direct_approval) {
+        response_status_approve <- put_db_status_approve(
+            response_status_post$entry$status_id,
+            status_user_id,
+            TRUE)
+      }
       ##-------------------------------------------------------------------##
 
     ##-------------------------------------------------------------------##
@@ -1493,82 +1518,15 @@ function(req, res, review_id_requested, review_ok = FALSE) {
 
     submit_user_id <- req$user_id
 
-    # set review_id depending on request is all or one
-    if (review_id_requested == "all") {
-      # get data from database and filter
-      review_id_requested_tibble <- pool %>%
-        tbl("ndd_entity_review") %>%
-        filter(review_approved == 0) %>%
-        collect() %>%
-        select(review_id)
+    # use the "put_db_review_approve" function to add the
+    # approval to the database table
+    response_review_approve <- put_db_review_approve(
+        review_id_requested,
+        submit_user_id,
+        review_ok)
 
-      review_id_requested <- review_id_requested_tibble$review_id
-    } else {
-      review_id_requested <- as.integer(review_id_requested)
-    }
-
-    # get table data from database
-    ndd_entity_review_data <- pool %>%
-      tbl("ndd_entity_review") %>%
-      filter(review_id %in% review_id_requested) %>%
-      collect()
-
-    # connect to database
-    sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-      dbname = dw$dbname,
-      user = dw$user,
-      password = dw$password,
-      server = dw$server,
-      host = dw$host,
-      port = dw$port)
-
-    # set review if confirmed
-    if (review_ok) {
-      # reset all reviews in ndd_entity_review to not primary
-      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review ",
-        "SET is_primary = 0 ",
-        "WHERE entity_id IN (",
-        str_c(ndd_entity_review_data$entity_id, collapse = ", "),
-        ");"))
-
-      # set the review from ndd_entity_review_data to primary,
-      # add approving_user_id and set review_approved status to approved
-      dbExecute(sysndd_db,
-        paste0("UPDATE ndd_entity_review SET is_primary = 1 ",
-           "WHERE review_id IN (",
-          str_c(ndd_entity_review_data$review_id, collapse = ", "),
-          ");"))
-      dbExecute(sysndd_db,
-        paste0("UPDATE ndd_entity_review SET approving_user_id = ",
-          submit_user_id,
-          " WHERE review_id IN (",
-          str_c(ndd_entity_review_data$review_id, collapse = ", "),
-          ");"))
-      dbExecute(sysndd_db,
-        paste0("UPDATE ndd_entity_review ",
-        "SET review_approved = 1 ",
-        "WHERE review_id IN (",
-        str_c(ndd_entity_review_data$review_id, collapse = ", "),
-        ");"))
-    } else {
-      # add approving_user_id and set review_approved status to unapproved
-      dbExecute(sysndd_db,
-        paste0("UPDATE ndd_entity_review ",
-          "SET approving_user_id = ",
-          submit_user_id,
-          " WHERE review_id IN (",
-          str_c(ndd_entity_review_data$review_id, collapse = ", "),
-          ");"))
-      dbExecute(sysndd_db,
-        paste0("UPDATE ndd_entity_review ",
-          "SET review_approved = 0 ",
-          "WHERE review_id IN (",
-          str_c(ndd_entity_review_data$review_id, collapse = ", "),
-          ");"))
-    }
-
-    # disconnect from database
-    dbDisconnect(sysndd_db)
+    # emit response
+    response_review_approve
 
   } else {
     res$status <- 403 # Forbidden
@@ -2862,84 +2820,15 @@ function(req, res, status_id_requested, status_ok = FALSE) {
 
     submit_user_id <- req$user_id
 
-    # set status_id depending on request is all or one
-    if (status_id_requested == "all") {
-      # get data from database and filter
-      sysndd_db_status_table <- pool %>%
-        tbl("ndd_entity_status") %>%
-        filter(status_approved == 0) %>%
-        collect() %>%
-        select(status_id)
+    # use the "put_db_status_approve" function to add the
+    # approval to the database table
+    response_status_approve <- put_db_status_approve(
+        status_id_requested,
+        submit_user_id,
+        status_ok)
 
-      status_id_requested <- sysndd_db_status_table$status_id
-    } else {
-      status_id_requested <- as.integer(status_id_requested)
-    }
-
-    # get table data from database
-    ndd_entity_status_data <- pool %>%
-      tbl("ndd_entity_status") %>%
-      filter(status_id %in% status_id_requested) %>%
-      collect()
-
-    # connect to database
-    sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-      dbname = dw$dbname,
-      user = dw$user,
-      password = dw$password,
-      server = dw$server,
-      host = dw$host,
-      port = dw$port)
-
-    # set status if confirmed
-    if (status_ok) {
-      # reset all stati in ndd_entity_status to inactive
-      dbExecute(sysndd_db,
-        paste0("UPDATE ndd_entity_status SET is_active = 0 ",
-          "WHERE entity_id IN (",
-          str_c(ndd_entity_status_data$entity_id, collapse = ", "),
-          ");"))
-
-      # set status of the new status from ndd_entity_status_data to active,
-      # add approving_user_id and set approved status to approved
-      dbExecute(sysndd_db,
-        paste0("UPDATE ndd_entity_status SET is_active = 1 ",
-        "WHERE status_id IN (",
-          str_c(ndd_entity_status_data$status_id, collapse = ", "),
-          ");"))
-
-      dbExecute(sysndd_db,
-        paste0("UPDATE ndd_entity_status SET approving_user_id = ",
-          submit_user_id,
-          " WHERE status_id IN (",
-          str_c(ndd_entity_status_data$status_id, collapse = ", "),
-          ");"))
-
-      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status ",
-        "SET status_approved = 1 ",
-        "WHERE status_id IN (",
-          str_c(ndd_entity_status_data$status_id, collapse = ", "),
-          ");"))
-
-    } else {
-      # add approving_user_id and set approved status to unapproved
-      dbExecute(sysndd_db,
-        paste0("UPDATE ndd_entity_status SET approving_user_id = ",
-          submit_user_id,
-          " WHERE status_id IN (",
-          str_c(ndd_entity_status_data$status_id, collapse = ", "),
-          ");"))
-
-      dbExecute(sysndd_db,
-        paste0("UPDATE ndd_entity_status ",
-          "SET status_approved = 0 ",
-          "WHERE status_id IN (",
-          str_c(ndd_entity_status_data$status_id, collapse = ", "),
-          ");"))
-    }
-
-    # disconnect from database
-    dbDisconnect(sysndd_db)
+    # emit response
+    response_status_approve
 
   } else {
     res$status <- 403 # Forbidden
