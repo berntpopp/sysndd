@@ -2399,16 +2399,20 @@ function(ontology_input, input_type = "ontology_id") {
     collect()
 
   # get data from database and filter
-  disease_ontology_set_collected <- pool %>%
+  disease_ontology_set <- pool %>%
     tbl("disease_ontology_set") %>%
-    {if (input_type == "ontology_id")
-      filter(., disease_ontology_id == ontology_input)
-     else .
-     } %>%
-    {if (input_type == "ontology_name")
-      filter(., disease_ontology_name == ontology_input)
-     else .
-     } %>%
+    collect()
+
+  # TODO: review this whole pipe and the EP (seems duplicated with search)
+  disease_ontology_set_collected <- disease_ontology_set %>%
+    mutate(disease_ontology_id_search = disease_ontology_id) %>%
+    mutate(disease_ontology_name_search = disease_ontology_name) %>%
+    pivot_longer(
+      cols = disease_ontology_id_search:disease_ontology_name_search,
+      names_to = "type",
+      values_to = "search"
+    ) %>%
+    filter(search == ontology_input) %>%
     select(disease_ontology_id_version,
       disease_ontology_id,
       disease_ontology_name,
@@ -2421,7 +2425,6 @@ function(ontology_input, input_type = "ontology_id") {
       Orphanet,
       EFO) %>%
     arrange(disease_ontology_id_version) %>%
-    collect() %>%
     left_join(mode_of_inheritance_list_coll,
         by = c("hpo_mode_of_inheritance_term")) %>%
     group_by(disease_ontology_id) %>%
@@ -2429,6 +2432,8 @@ function(ontology_input, input_type = "ontology_id") {
     ungroup() %>%
     mutate(across(everything(), ~replace(., . == "NA", NA))) %>%
     mutate(across(everything(), ~str_split(., pattern = "\\;")))
+
+    disease_ontology_set_collected
 }
 
 ## Ontology endpoints
