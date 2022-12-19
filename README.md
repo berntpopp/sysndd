@@ -49,7 +49,7 @@ Ask questions, report bugs and chat about SysNDD in general using our [Github di
 
 If you have technical problems using SysNDD or requests regarding the data or functionality, please contact us at support [at] sysndd.org.
 
-## Creators
+## Creators and 
 
 **Bernt Popp** (SysNDD)
 
