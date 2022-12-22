@@ -49,7 +49,7 @@ Ask questions, report bugs and chat about SysNDD in general using our [Github di
 
 If you have technical problems using SysNDD or requests regarding the data or functionality, please contact us at support [at] sysndd.org.
 
-## Creators and 
+## Creators and contributors
 
 **Bernt Popp** (SysNDD)
 
@@ -68,6 +68,13 @@ If you have technical problems using SysNDD or requests regarding the data or fu
 - <https://twitter.com/annette_schenck>
 - <https://orcid.org/0000-0002-6918-3314>
 - <https://www.schencklab.com>
+
+**Melek Firat Altay** (SysNDD)
+
+- <https://twitter.com/firataltay>
+- <https://github.com/altay-epfl>
+- <https://orcid.org/0000-0002-8174-5631>
+- <https://linkedin.com/in/melek-firat-altay>
 
 ## Support and Funding
 
