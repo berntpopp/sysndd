@@ -1,6 +1,6 @@
 --- 
 title: "The SysNDD Documentation"
-author: "Bernt Popp, Christiane Zweier"
+author: "Bernt Popp, Melek Firat Altay, Christiane Zweier"
 date: "`r Sys.Date()`"
 site: bookdown::bookdown_site
 output: bookdown::gitbook
@@ -18,7 +18,7 @@ url: https://berntpopp.github.io/sysndd/
 
 ---------------------------------------
 
-This documentation is intended to describe the [SysNDD](https://sysndd.dbmr.unibe.ch/) project and provide instructions for regular usershow to use the tool and for curator status users how to perform reviews and how to enter data.
+This documentation is intended to describe the [SysNDD](https://sysndd.dbmr.unibe.ch/) project and provide instructions for regular user show to use the tool and for curator status users how to perform reviews and how to enter data.
 
 
 
