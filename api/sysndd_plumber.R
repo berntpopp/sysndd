@@ -31,6 +31,7 @@ library(STRINGdb)
 library(factoextra)
 library(FactoMineR)
 library(vctrs)
+library(httr)
 ##-------------------------------------------------------------------##
 
 
@@ -104,6 +105,7 @@ source("functions/endpoint-functions.R", local = TRUE)
 source("functions/publication-functions.R", local = TRUE)
 source("functions/analyses-functions.R", local = TRUE)
 source("functions/helper-functions.R", local = TRUE)
+source("functions/external-functions.R", local = TRUE)
 
 # convert to memoise functions
 # Expire items in cache after 60 minutes
@@ -163,6 +165,7 @@ gen_mca_clust_obj_mem <- memoise(gen_mca_clust_obj,
 #* @apiTag search Database search related endpoints
 #* @apiTag list Database list related endpoints
 #* @apiTag statistics Database statistics
+#* @apiTag external Interaction with external resources
 #* @apiTag user User account related endpoints
 #* @apiTag authentication Authentication related endpoints
 ##-------------------------------------------------------------------##
@@ -3918,6 +3921,38 @@ function(tree = FALSE) {
 }
 
 ## List endpoints
+##-------------------------------------------------------------------##
+
+
+
+##-------------------------------------------------------------------##
+## External endpoints
+#* @tag external
+#* takes a sysndd URl and submits it to archive.org
+#* @serializer json list(na="string")
+#' @get /api/external/internet_archive
+function(req, res, parameter_url, capture_screenshot = "on") {
+
+  # check if provided URL is valid
+  url_valid <- str_detect(parameter_url, dw$archive_base_url)
+
+  if (!url_valid) {
+    res$status <- 400
+    res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
+    status = 400,
+    message = paste0("Required 'url' ",
+      "parameter not provided or not valid.")
+    ))
+    return(res)
+  } else {
+    # block to generate and post the external archive request
+    response_archive <- post_url_archive(parameter_url,
+      capture_screenshot)
+
+    # return response
+    return(response_archive)
+  }
+}
 ##-------------------------------------------------------------------##
 
 
