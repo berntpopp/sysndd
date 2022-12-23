@@ -43,6 +43,7 @@ import {
   BIconExclamationTriangle,
   BIconBookFill,
   BIconExclamationTriangleFill,
+  BIconChatLeftQuoteFill,
   ToastPlugin,
 } from 'bootstrap-vue';
 
@@ -117,6 +118,7 @@ Vue.component('BIconGear', BIconGear);
 Vue.component('BIconExclamationTriangle', BIconExclamationTriangle);
 Vue.component('BIconBookFill', BIconBookFill);
 Vue.component('BIconExclamationTriangleFill', BIconExclamationTriangleFill);
+Vue.component('BIconChatLeftQuoteFill', BIconChatLeftQuoteFill);
 
 // register vue-meta globally
 Vue.use(VueMeta, {

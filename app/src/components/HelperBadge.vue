@@ -20,6 +20,17 @@
 
       <b-dropdown-item
         v-b-tooltip.hover.left
+        title="Cite this page."
+        @click="copyURLCitation(path)"
+      >
+        <b-icon
+          icon="chat-left-quote-fill"
+          scale="1"
+        />
+      </b-dropdown-item>
+
+      <b-dropdown-item
+        v-b-tooltip.hover.left
         title="Fill out our form and tell us why you like this entry."
         :href="
           'https://docs.google.com/forms/d/e/1FAIpQLSdhfXPurTlJxIpocAasi7av-OoN-49QPt3gQac2HQhV49BXxA/viewform?usp=pp_url&entry.2050768323=' +
@@ -76,8 +87,11 @@
 </template>
 
 <script>
+import toastMixin from '@/assets/js/mixins/toastMixin';
+
 export default {
   name: 'HelperBadge',
+  mixins: [toastMixin],
   data() {
     return {
       name: 'HelperBadge',
@@ -97,6 +111,26 @@ export default {
   methods: {
     getParentPageInfo() {
       this.path = this.$route.path;
+    },
+    // based on https://stackoverflow.com/questions/58733960/copy-url-to-clipboard-via-button-click-in-a-vuejs-component
+    async copyURLCitation(path) {
+      try {
+        // first compose date
+        // based on https://stackoverflow.com/questions/1531093/how-do-i-get-the-current-date-in-javascript
+        let today = new Date();
+        const dd = String(today.getDate()).padStart(2, '0');
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const yyyy = today.getFullYear();
+        today = `${yyyy}-${mm}-${dd}`;
+
+        // compose citation string
+        const citation = `SysNDD, the expert curated database of gene disease relationships in neurodevelopmental disorders; https://sysndd.dbmr.unibe.ch${path} (accessed ${today}).`;
+
+        await navigator.clipboard.writeText(citation);
+        this.makeToast('Thank you!', 'Citation coppied.', 'success');
+      } catch (e) {
+        this.makeToast(e, 'Cannot copy', 'danger');
+      }
     },
   },
 };
