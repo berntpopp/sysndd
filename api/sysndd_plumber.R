@@ -159,7 +159,7 @@ gen_mca_clust_obj_mem <- memoise(gen_mca_clust_obj,
 #* @apiTag panels Gene panel related endpoints
 #* @apiTag comparisons NDD gene list comparisons related endpoints
 #* @apiTag analysis Analyses related endpoints
-#* @apiTag hash Database list hashing endpoints for reproducable long requests
+#* @apiTag hash Database list hashing endpoints for reproducible long requests
 #* @apiTag search Database search related endpoints
 #* @apiTag list Database list related endpoints
 #* @apiTag statistics Database statistics
