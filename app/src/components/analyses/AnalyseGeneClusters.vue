@@ -414,7 +414,7 @@ export default {
         .style('fill-opacity', 0.8)
         .attr('stroke', '#696969')
         .style('stroke-width', (d) => {
-          if (d.cluster === this.activeCluster) {
+          if (d.parent_cluster === this.activeCluster) {
             return 4;
           }
           return 1;
@@ -423,7 +423,7 @@ export default {
         .on('mousemove', mousemove)
         .on('mouseleave', mouseleave)
         .on('click', (e, d) => {
-          this.activeCluster = d.cluster;
+          this.activeCluster = d.parent_cluster;
         })
         .call(
           d3
