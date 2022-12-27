@@ -82,7 +82,43 @@
                 style="width: 100%; white-space: nowrap"
                 :per-page="perPage"
                 :current-page="currentPage"
-              />
+              >
+
+                <template #cell(symbol)="data">
+                  <div class="font-italic">
+                    <b-link :href="'/Genes/' + data.item.hgnc_id">
+                      <b-badge
+                        v-b-tooltip.hover.leftbottom
+                        pill
+                        variant="success"
+                        :title="data.item.hgnc_id"
+                      >
+                        {{ data.item.symbol }}
+                      </b-badge>
+                    </b-link>
+                  </div>
+                </template>
+
+                <template #cell(STRING_id)="data">
+                  <div>
+                    <b-button
+                      class="btn-xs mx-2"
+                      variant="outline-primary"
+                      :src="data.item.STRING_id"
+                      :href="'https://string-db.org/network/' + data.item.STRING_id"
+                      target="_blank"
+                    >
+                      <b-icon
+                        icon="box-arrow-up-right"
+                        font-scale="0.8"
+                      />
+                      {{ data.item.STRING_id }}
+                    </b-button>
+                  </div>
+                </template>
+
+              </b-table>
+
               <b-row class="justify-content-md-center">
                 <b-col />
                 <b-col
@@ -236,20 +272,14 @@ export default {
       } else if (this.tableType === 'identifiers') {
         this.selectedClusterFields = [
           {
-            key: 'STRING_id',
-            label: 'STRING ID',
-            class: 'text-left',
-            sortable: true,
-          },
-          {
-            key: 'hgnc_id',
-            label: 'HGNC ID',
-            class: 'text-left',
-            sortable: true,
-          },
-          {
             key: 'symbol',
             label: 'Symbol',
+            class: 'text-left',
+            sortable: true,
+          },
+          {
+            key: 'STRING_id',
+            label: 'STRING ID',
             class: 'text-left',
             sortable: true,
           },
@@ -461,5 +491,12 @@ export default {
   position: absolute;
   top: 0;
   left: 0;
+}
+.btn-group-xs > .btn,
+.btn-xs {
+  padding: 0.25rem 0.4rem;
+  font-size: 0.875rem;
+  line-height: 0.5;
+  border-radius: 0.2rem;
 }
 </style>
