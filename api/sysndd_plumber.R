@@ -3369,8 +3369,22 @@ function() {
   clusters <- gen_string_clust_obj_mem(
     genes_from_entity_table$hgnc_id)
 
-  # return output
-  clusters
+  categories <- clusters %>%
+    select(term_enrichment) %>%
+    unnest(cols = c(term_enrichment)) %>%
+    select(category) %>%
+    unique() %>%
+    arrange(category) %>%
+    mutate(text = case_when(
+      nchar(category) <= 5 ~ category,
+      nchar(category) > 5 ~ str_to_sentence(category)
+    )) %>%
+    select(value = category, text)
+
+  # generate object to return
+  list(clusters = clusters,
+    categories = categories)
+
 }
 
 #* @tag analysis

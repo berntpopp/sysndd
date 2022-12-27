@@ -52,12 +52,18 @@
           >
             <template #header>
               <h6 class="mb-0 font-weight-bold">
-                <b-form-select
-                  v-model="tableType"
-                  :options="tableOptions"
-                  type="search"
+                <b-input-group
+                  prepend="Table type"
+                  class="mb-1"
                   size="sm"
-                />
+                >
+                  <b-form-select
+                    v-model="tableType"
+                    :options="tableOptions"
+                    type="search"
+                    size="sm"
+                  />
+                </b-input-group>
               </h6>
             </template>
             <b-card-text class="text-left">
@@ -149,9 +155,8 @@ export default {
         },
       ],
       tableOptions: [
-        { value: 'quali_inp_var', text: 'Qualitative input variables (phenotypes)' },
-        { value: 'quali_sup_var', text: 'Qualitative supplementary variables (inheritance)' },
-        { value: 'quanti_sup_var', text: 'Quantitative supplementary variables (phenotype counts)' },
+        { value: 'term_enrichment', text: 'Term enrichment' },
+        { value: 'identifiers', text: 'Identifiers' },
       ],
       tableType: 'term_enrichment',
       activeCluster: 1,
@@ -168,6 +173,7 @@ export default {
     },
     tableType(value) {
       this.totalRows = this.selectedCluster[this.tableType].length;
+      this.setTableType();
     },
   },
   mounted() {
@@ -180,7 +186,7 @@ export default {
       try {
         const response = await this.axios.get(apiUrl);
 
-        this.itemsCluster = response.data;
+        this.itemsCluster = response.data.clusters;
         this.setActiveCluster();
 
         this.generateClusterGraph();
@@ -192,6 +198,63 @@ export default {
       let rest;
       [this.selectedCluster, ...rest] = this.itemsCluster.filter((item) => item.cluster === this.activeCluster);
       this.totalRows = this.selectedCluster[this.tableType].length;
+    },
+    setTableType() {
+      if (this.tableType === 'term_enrichment') {
+        this.selectedClusterFields = [
+          {
+            key: 'category',
+            label: 'Category',
+            class: 'text-left',
+            sortable: true,
+          },
+          {
+            key: 'term',
+            label: 'Term',
+            class: 'text-left',
+            sortable: true,
+          },
+          {
+            key: 'number_of_genes',
+            label: '#Genes',
+            class: 'text-left',
+            sortable: true,
+          },
+          {
+            key: 'fdr',
+            label: 'FDR',
+            class: 'text-left',
+            sortable: true,
+          },
+          {
+            key: 'description',
+            label: 'Description',
+            class: 'text-left',
+            sortable: true,
+          },
+        ];
+      } else if (this.tableType === 'identifiers') {
+        this.selectedClusterFields = [
+          {
+            key: 'STRING_id',
+            label: 'STRING ID',
+            class: 'text-left',
+            sortable: true,
+          },
+          {
+            key: 'hgnc_id',
+            label: 'HGNC ID',
+            class: 'text-left',
+            sortable: true,
+          },
+          {
+            key: 'symbol',
+            label: 'Symbol',
+            class: 'text-left',
+            sortable: true,
+          },
+        ];
+      }
     },
     generateClusterGraph() {
       // Graph dimension
