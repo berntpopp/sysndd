@@ -123,14 +123,36 @@ export default {
         const yyyy = today.getFullYear();
         today = `${yyyy}-${mm}-${dd}`;
 
-        // compose citation string
-        const citation = `SysNDD, the expert curated database of gene disease relationships in neurodevelopmental disorders; https://sysndd.dbmr.unibe.ch${path} (accessed ${today}).`;
+        // compose URL
+        const url = `https://sysndd.dbmr.unibe.ch${path}`;
 
+        // compose citation string
+        const citation = `SysNDD, the expert curated database of gene disease relationships in neurodevelopmental disorders; ${url} (accessed ${today}).`;
+
+        // make the snapshot
+        const snapshotResponse = await this.createInternetArchiveSnaphot(url);
+
+        // copy to clipboard
         await navigator.clipboard.writeText(citation);
-        this.makeToast('Thank you!', 'Citation coppied.', 'success');
+        this.makeToast(`Thank you! Internet archive message: ${snapshotResponse.message}`, 'Citation coppied', 'success');
       } catch (e) {
         this.makeToast(e, 'Cannot copy', 'danger');
       }
+    },
+    async createInternetArchiveSnaphot(url) {
+      try {
+        // compose API URL
+        const apiUrl = `${process.env.VUE_APP_API_URL}/api/external/internet_archive?parameter_url=${url}`;
+
+        // make the API call
+        const response = await this.axios.get(apiUrl);
+
+        // return respone
+        return response.data;
+      } catch (e) {
+        this.makeToast(e, 'Cannot copy', 'danger');
+      }
+      return null;
     },
   },
 };
