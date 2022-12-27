@@ -52,12 +52,18 @@
           >
             <template #header>
               <h6 class="mb-0 font-weight-bold">
-                <b-form-select
+                <b-input-group
+                  prepend="Table type"
+                  class="mb-1"
+                  size="sm"
+                >
+                  <b-form-select
                   v-model="tableType"
                   :options="tableOptions"
                   type="search"
                   size="sm"
-                />
+                  />
+                </b-input-group>
               </h6>
             </template>
             <b-card-text class="text-left">
