@@ -58,10 +58,10 @@
                   size="sm"
                 >
                   <b-form-select
-                  v-model="tableType"
-                  :options="tableOptions"
-                  type="search"
-                  size="sm"
+                    v-model="tableType"
+                    :options="tableOptions"
+                    type="search"
+                    size="sm"
                   />
                 </b-input-group>
               </h6>

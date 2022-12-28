@@ -3357,6 +3357,43 @@ comparisons_list <- generate_comparisons_list(sort,
 #' @get /api/analysis/functional_clustering
 function() {
 
+  # define link sources
+  value <- c("COMPARTMENTS",
+    "Component",
+    "DISEASES",
+    "Function",
+    "HPO",
+    "InterPro",
+    "KEGG",
+    "Keyword",
+    "NetworkNeighborAL",
+    "Pfam",
+    "PMID",
+    "Process",
+    "RCTM",
+    "SMART",
+    "TISSUES",
+    "WikiPathways")
+
+  link <- c("https://www.ebi.ac.uk/QuickGO/term/",
+    "https://www.ebi.ac.uk/QuickGO/term/",
+    "https://disease-ontology.org/term/",
+    "https://www.ebi.ac.uk/QuickGO/term/",
+    "https://hpo.jax.org/app/browse/term/",
+    "http://www.ebi.ac.uk/interpro/entry/InterPro/",
+    "https://www.genome.jp/dbget-bin/www_bget?",
+    "https://www.uniprot.org/keywords/",
+    "https://string-db.org/cgi/network?input_query_species=9606&network_cluster_id=",
+    "https://www.ebi.ac.uk/interpro/entry/pfam/",
+    "https://www.ncbi.nlm.nih.gov/search/all/?",
+    "https://www.ebi.ac.uk/QuickGO/term/",
+    "https://reactome.org/content/detail/R-",
+    "http://www.ebi.ac.uk/interpro/entry/smart/",
+    "https://ontobee.org/ontology/BTO?iri=http://purl.obolibrary.org/obo/",
+    "https://www.wikipathways.org/index.php/Pathway:")
+
+  links <- tibble(value, link)
+
   # get data from database
   genes_from_entity_table <- pool %>%
     tbl("ndd_entity_view") %>%

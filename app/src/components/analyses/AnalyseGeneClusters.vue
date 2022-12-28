@@ -83,7 +83,6 @@
                 :per-page="perPage"
                 :current-page="currentPage"
               >
-
                 <template #cell(symbol)="data">
                   <div class="font-italic">
                     <b-link :href="'/Genes/' + data.item.hgnc_id">
@@ -116,7 +115,6 @@
                     </b-button>
                   </div>
                 </template>
-
               </b-table>
 
               <b-row class="justify-content-md-center">
