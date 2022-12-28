@@ -3385,7 +3385,7 @@ function() {
     "https://www.uniprot.org/keywords/",
     "https://string-db.org/cgi/network?input_query_species=9606&network_cluster_id=",
     "https://www.ebi.ac.uk/interpro/entry/pfam/",
-    "https://www.ncbi.nlm.nih.gov/search/all/?",
+    "https://www.ncbi.nlm.nih.gov/search/all/?term=",
     "https://www.ebi.ac.uk/QuickGO/term/",
     "https://reactome.org/content/detail/R-",
     "http://www.ebi.ac.uk/interpro/entry/smart/",
@@ -3416,11 +3416,12 @@ function() {
       nchar(category) <= 5 ~ category,
       nchar(category) > 5 ~ str_to_sentence(category)
     )) %>%
-    select(value = category, text)
+    select(value = category, text) %>%
+    left_join(links, by = c("value"))
 
   # generate object to return
-  list(clusters = clusters,
-    categories = categories)
+  list(categories = categories,
+    clusters = clusters)
 
 }
 
