@@ -83,6 +83,52 @@
                 :per-page="perPage"
                 :current-page="currentPage"
               >
+                <!-- templates for term_enrichment table -->
+                <template #cell(category)="data">
+                  <div class="overflow-hidden text-truncate">
+                    <b-badge
+                      v-b-tooltip.hover.rightbottom
+                      variant="light"
+                      :style="'border-color: ' + category_style[data.item.category] + '!important; border-width: medium;'"
+                      :title="data.item.category"
+                    >
+                      {{ valueCategories.filter((item) => item.value === data.item.category)[0].text }}
+                    </b-badge>
+                  </div>
+                </template>
+
+                <template #cell(fdr)="data">
+                  <div
+                    v-b-tooltip.hover.leftbottom
+                    class="overflow-hidden text-truncate"
+                    :title="Number(data.item.fdr).toFixed(10)"
+                  >
+                    {{ data.item.fdr }}
+                  </div>
+                </template>
+
+                <template #cell(description)="data">
+                  <div class="overflow-hidden text-truncate">
+                    <b-button
+                      v-b-tooltip.hover.leftbottom
+                      class="btn-xs mx-2"
+                      variant="outline-primary"
+                      :src="data.item.term"
+                      :href="valueCategories.filter((item) => item.value === data.item.category)[0].link + data.item.term"
+                      :title="data.item.term"
+                      target="_blank"
+                    >
+                      <b-icon
+                        icon="box-arrow-up-right"
+                        font-scale="0.8"
+                      />
+                      {{ data.item.description }}
+                    </b-button>
+                  </div>
+                </template>
+                <!-- templates for term_enrichment table -->
+
+                <!-- templates for identifiers table -->
                 <template #cell(symbol)="data">
                   <div class="font-italic">
                     <b-link :href="'/Genes/' + data.item.hgnc_id">
@@ -99,7 +145,7 @@
                 </template>
 
                 <template #cell(STRING_id)="data">
-                  <div>
+                  <div class="overflow-hidden text-truncate">
                     <b-button
                       class="btn-xs mx-2"
                       variant="outline-primary"
@@ -115,6 +161,7 @@
                     </b-button>
                   </div>
                 </template>
+                <!-- templates for identifiers table -->
               </b-table>
 
               <b-row class="justify-content-md-center">
@@ -144,15 +191,17 @@
 
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
+import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 
 import * as d3 from 'd3';
 
 export default {
   name: 'AnalyseGeneClusters',
-  mixins: [toastMixin],
+  mixins: [toastMixin, colorAndSymbolsMixin],
   data() {
     return {
       itemsCluster: [],
+      valueCategories: [],
       selectedCluster: {
         term_enrichment: [],
       },
@@ -160,12 +209,6 @@ export default {
         {
           key: 'category',
           label: 'Category',
-          class: 'text-left',
-          sortable: true,
-        },
-        {
-          key: 'term',
-          label: 'Term',
           class: 'text-left',
           sortable: true,
         },
@@ -221,6 +264,7 @@ export default {
         const response = await this.axios.get(apiUrl);
 
         this.itemsCluster = response.data.clusters;
+        this.valueCategories = response.data.categories;
         this.setActiveCluster();
 
         this.generateClusterGraph();
@@ -239,12 +283,6 @@ export default {
           {
             key: 'category',
             label: 'Category',
-            class: 'text-left',
-            sortable: true,
-          },
-          {
-            key: 'term',
-            label: 'Term',
             class: 'text-left',
             sortable: true,
           },
