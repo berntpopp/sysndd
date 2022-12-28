@@ -74,7 +74,8 @@ gen_string_clust_obj <- function(hgnc_list,
       } %>%
       {if (enrichment)
         mutate(., term_enrichment =
-          list(gen_string_enrich_tib(identifiers$hgnc_id))
+          list(gen_string_enrich_tib(identifiers$hgnc_id) %>%
+            mutate(term = str_replace(term, "GOCC", "GO")))
         )
       else .
       } %>%
