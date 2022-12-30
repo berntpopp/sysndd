@@ -26,7 +26,12 @@
           >
             <template #header>
               <h6 class="mb-0 font-weight-bold">
-                Selected cluster {{ selectedCluster.cluster }} with {{ selectedCluster.cluster_size }} entities
+                Selected cluster {{ selectedCluster.cluster }} with
+                <b-badge
+                  variant="primary"
+                >
+                  {{ selectedCluster.cluster_size }} entities
+                </b-badge>
               </h6>
             </template>
 

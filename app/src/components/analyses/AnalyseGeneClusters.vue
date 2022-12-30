@@ -25,9 +25,32 @@
             border-variant="dark"
           >
             <template #header>
-              <h6 class="mb-0 font-weight-bold">
-                Selected cluster {{ selectedCluster.cluster }} with {{ selectedCluster.cluster_size }} entities
-              </h6>
+              <b-row>
+                <b-col>
+                  <h6 class="mb-0 font-weight-bold">
+                    Selected {{selectType === 'clusters' ? 'cluster' : 'subcluster'}} {{ selectType === 'clusters' ? selectedCluster.cluster : selectedCluster.parent_cluster + '.' + selectedCluster.cluster }} with
+                    <b-badge
+                      variant="success"
+                    >
+                      {{ selectedCluster.cluster_size }} genes
+                    </b-badge>
+                  </h6>
+                </b-col>
+                <b-col>
+                  <b-input-group
+                    prepend="Select"
+                    class="mb-1text-right"
+                    size="sm"
+                  >
+                    <b-form-select
+                      v-model="selectType"
+                      :options="selectOptions"
+                      type="search"
+                      size="sm"
+                    />
+                  </b-input-group>
+                </b-col>
+              </b-row>
             </template>
 
             <div
@@ -236,21 +259,39 @@ export default {
         { value: 'identifiers', text: 'Identifiers' },
       ],
       tableType: 'term_enrichment',
-      activeCluster: 1,
+      selectOptions: [
+        { value: 'clusters', text: 'Clusters' },
+        { value: 'subclusters', text: 'Subclusters' },
+      ],
+      selectType: 'clusters',
+      activeParentCluster: 1,
+      activeSubCluster: 1,
       perPage: 10,
       totalRows: 1,
       currentPage: 1,
     };
   },
   watch: {
-    activeCluster(value) {
-      this.setActiveCluster();
-      // TODO: do not redraw the svg, instead just set border in function
-      this.generateClusterGraph();
+    activeParentCluster(value) {
+      if (this.selectType === 'clusters') {
+        this.setActiveCluster();
+        // TODO: do not redraw the svg, instead just set border in function
+        this.generateClusterGraph();
+      }
+    },
+    activeSubCluster(value) {
+      if (this.selectType === 'subclusters') {
+        this.setActiveCluster();
+        // TODO: do not redraw the svg, instead just set border in function
+        this.generateClusterGraph();
+      }
     },
     tableType(value) {
       this.totalRows = this.selectedCluster[this.tableType].length;
       this.setTableType();
+    },
+    selectType(value) {
+      this.resetCluster();
     },
   },
   mounted() {
@@ -274,7 +315,13 @@ export default {
     },
     setActiveCluster() {
       let rest;
-      [this.selectedCluster, ...rest] = this.itemsCluster.filter((item) => item.cluster === this.activeCluster);
+      let subClusters;
+      if (this.selectType === 'clusters') {
+        [this.selectedCluster, ...rest] = this.itemsCluster.filter((item) => item.cluster === this.activeParentCluster);
+      } else if (this.selectType === 'subclusters') {
+        [subClusters, ...rest] = this.itemsCluster.filter((item) => item.cluster === this.activeParentCluster);
+        [this.selectedCluster, ...rest] = subClusters.subclusters.filter((item) => item.cluster === this.activeSubCluster);
+      }
       this.totalRows = this.selectedCluster[this.tableType].length;
     },
     setTableType() {
@@ -321,6 +368,10 @@ export default {
           },
         ];
       }
+    },
+    resetCluster() {
+      this.activeParentCluster = 1;
+      this.activeSubCluster = 1;
     },
     generateClusterGraph() {
       // Graph dimension
@@ -480,7 +531,10 @@ export default {
         .style('fill-opacity', 0.8)
         .attr('stroke', '#696969')
         .style('stroke-width', (d) => {
-          if (d.parent_cluster === this.activeCluster) {
+          if (this.selectType === 'clusters' && d.parent_cluster === this.activeParentCluster) {
+            return 4;
+          }
+          if (this.selectType === 'subclusters' && d.parent_cluster === this.activeParentCluster && d.cluster === this.activeSubCluster) {
             return 4;
           }
           return 1;
@@ -489,7 +543,8 @@ export default {
         .on('mousemove', mousemove)
         .on('mouseleave', mouseleave)
         .on('click', (e, d) => {
-          this.activeCluster = d.parent_cluster;
+          this.activeParentCluster = d.parent_cluster;
+          this.activeSubCluster = d.cluster;
         })
         .call(
           d3
