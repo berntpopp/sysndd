@@ -20,7 +20,7 @@ Screenshot of the landing page with elements marked:
 ![Landing page](./static/img/02_01-landing-page.png){max-width=1000px}
 
 
-The landing page content displays different elemnts to give a quick overview and allow fast navigation:
+The landing page content displays different elements to give a quick overview and allow fast navigation:
 
 - a centered search input at the top,
 - a box (left side top) with current gene statistics divided by association category and inheritance patterns (Details),
