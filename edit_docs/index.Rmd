@@ -8,7 +8,7 @@ bibliography: [sysndd.bib]
 csl: apa.csl
 link-citations: yes
 colorlinks: yes
-description: "This documentation is intended to describe the SysNDDproject and provide instructions for regular usershow to use the tool and for curator status users how to perform reviews and how to enter data"
+description: "This documentation is intended to describe the SysNDD project and provide instructions for regular users how to use the tool and for curator status users how to perform reviews and how to enter data"
 graphics: yes
 github-repo: berntpopp/sysndd
 url: https://berntpopp.github.io/sysndd/
