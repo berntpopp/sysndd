@@ -2,7 +2,14 @@
 
 The repository subfolder for the SysNDD documentation.
 
-Build the documentation:
+First change the work directory:
+
+```
+## workfolder <- "path/to/the/edit_docs/"
+setwd(workfolder)
+```
+
+Then build the documentation:
 
 ```
 bookdown::render_book("index.Rmd", "all")
