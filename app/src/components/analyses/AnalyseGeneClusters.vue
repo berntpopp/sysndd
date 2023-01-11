@@ -28,7 +28,7 @@
               <b-row>
                 <b-col>
                   <h6 class="mb-0 font-weight-bold">
-                    Selected {{selectType === 'clusters' ? 'cluster' : 'subcluster'}} {{ selectType === 'clusters' ? selectedCluster.cluster : selectedCluster.parent_cluster + '.' + selectedCluster.cluster }} with
+                    Selected {{ selectType === 'clusters' ? 'cluster' : 'subcluster' }} {{ selectType === 'clusters' ? selectedCluster.cluster : selectedCluster.parent_cluster + '.' + selectedCluster.cluster }} with
                     <b-badge
                       variant="success"
                     >
