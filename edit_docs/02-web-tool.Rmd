@@ -23,8 +23,8 @@ Screenshot of the landing page with elements marked:
 The landing page content displays different elements to give a quick overview and allow fast navigation:
 
 - a centered search input at the top,
-- a box (left side top) with current gene statistics divided by association category and inheritance patterns (Details),
-- a box (left side bottom) showing a table of the 5 last entities entered into the database,
+- a box (left side top) with current gene statistics divided by association category and inheritance patterns (*Details*),
+- a box (left side bottom) showing a table of the five last entities entered into the database,
 - an explanatory text  on the right.
 
 
@@ -32,40 +32,50 @@ The landing page content displays different elements to give a quick overview an
 
 The main navigation allows quick access to all subpages.
 
-The "Tables" button triggers a dropdown menu with links to:
-- "Entities" table view
-- "Genes" table view
-- "Phenotypes" table view
-- "Panels table" view
+The *Tables* button triggers a dropdown menu with links to:
 
-![Navigation menu tables](./static/img/02_02-navigation-menu-tables.png){max-width=1000px}
+- *Entities* table view
+- *Genes* table view
+- *Phenotypes* table view
+- *Panels* table view
 
-
-The "Analyses" button triggers a dropdown menu with links to:
-- "Compare curations" view
-- "Correlate phenotypes" view
-- "Entries over time" view
-- "NDD Publications" view
-- "Functional clusters" view
-
-![Navigation menu analyses](./static/img/02_03-navigation-menu-analyses.png){max-width=1000px}
+![Navigation menu: Tables](./static/img/02_02-navigation-menu-tables.png){max-width=1000px}
 
 
-If not on the landing page, the navigation bar also contains a "Search" button which can show a search field on any page.
+The *Analyses* button triggers a dropdown menu with links to:
 
-![Navigation menu search](./static/img/02_04-navigation-menu-search.png){max-width=1000px}
+- *Compare curations* view
+- *Correlate phenotypes* view
+- *Entries over time* view
+- *NDD Publications* view
+- *Functional clusters* view
+
+![Navigation menu: Analyses](./static/img/02_03-navigation-menu-analyses.png){max-width=1000px}
+
+The *About* button directs you to further information on: 
+
+- SysNDD and its creators
+- Citation Policy
+- Support and Funding
+- News and Updates 
+- Credits and acknowledgement
+- Help and FAQ
+- Disclaimer 
+- Contact
+
+![Navigation menu: About](./static/img/02_04-navigation-menu-about.png){max-width=1000px}
 
 
-If not logged in the right side of the menu shows a button which directs to the Login page.
+If not logged in, the right side of the menu shows a button which directs you to the *Login* page.
 When logged in as a registered user the menu shows your username and additional links to page views depending on your user rights:
 
-![Navigation menu login](./static/img/02_05-navigation-menu-login.png){max-width=1000px}
+![Navigation menu: Login](./static/img/02_05-navigation-menu-login.png){max-width=1000px}
 
 
 
 ## Footer navigation menu
 
-The footer navigation shows pictures/ logos with links to:
+The footer navigation shows logos with links to:
 
 1) the license applied to SysNDD
 2) our GitHub repository
