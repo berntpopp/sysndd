@@ -166,17 +166,71 @@ The *Ontology* page aims to provide further information on 1) the inheritance pa
 
 ## Analyses views
 
+*Analyses* views are aimed at allowing the use to have a more global picture on comparisons of SysNDD with other curations, phenotype correlations, SysNDD entries over time, NDD publications and functional gene clusters. 
+
+
 ### Compare curations
+
+*Compare curations* view is composed of three tabs: 
+
+1) *Overlap*
+2) *Similarity*
+3) *Table*
+
+
+The *Overlap* tab includes an upset plot to show the overlap between SysNDD and other selected NDD curation efforts.  
+
+![Compare curations view: *Overlap* tab](./static/img/02_15-sysndd.dbmr.unibe.ch_CompareCurations1-overlap.png){max-width=1000px}
+
+
+The *Similarity* tab includes a matrix plot of the cosine similarity between different curation efforts for neurodevelopmental disorders.
+
+![Compare curations view: *Similarity* tab](./static/img/02_15-sysndd.dbmr.unibe.ch_CompareCurations2-similarity.png){max-width=1000px}
+
+
+The *Table* tab displays a table format to compare the presence of a gene in different curation efforts for neurodevelopmental disorders. This tab has an additional feature that allows the comparison table to be downloaded as an Excel file. The filter removal button is located at the top right corner.
+
+![Compare curations view: *Table* tab](./static/img/02_15-sysndd.dbmr.unibe.ch_CompareCurations3-table.png){max-width=1000px}
+
+
 
 ### Correlate phenotypes
 
+*Correlate phenotypes* view is composed of three tabs: 
+
+1) *Phenotype correlogram*
+2) *Phenotype counts*
+3) *Phenotype clustering*
+
+
+The *Phenotype correlogram* tab displays a matrix of correlations of different phenotypes.
+
+![Correlate phenotypes view: *Phenotype correlogram* tab](./static/img/02_16-sysndd.dbmr.unibe.ch_CorrelatePhenotypes1-PhenotypeCorrelogram.png){max-width=1000px}
+
+
+The *Phenotype counts* tab shows a bar plot of phenotype counts.  
+
+![Correlate phenotypes view: *Phenotype counts* tab](./static/img/02_16-sysndd.dbmr.unibe.ch_CorrelatePhenotypes2-PhenotypeCounts.png){max-width=1000px}
+
+
+The *Phenotype clustering* tab shows clusters of entities based on phenotype annotations.  
+
+![Correlate phenotypes view: *Phenotype clustering* tab](./static/img/02_16-sysndd.dbmr.unibe.ch_CorrelatePhenotypes3-PhenotypeClustering.png){max-width=1000px}
+
 ### Entries over time
+
+*Entries over time* view shows the changes in the NDD entity numbers since 2011. 
+
+![Entries over time view](./static/img/02_17-sysndd.dbmr.unibe.ch_EntriesOverTime.png){max-width=1000px}
 
 ### NDD Publications
 
+
 ### Functional clusters
 
+*Functional clusters* view shows the functionally enriched gene clusters.
 
+![Functional clusters view](./static/img/02_19-sysndd.dbmr.unibe.ch_FunctionalClusters.png){max-width=1000px}
 
 ## About page
 
@@ -190,7 +244,7 @@ The About page contains general information about the project, its creators, fun
 
 The Login page shows a simple form with inputs for the **(1)**  user name and their **(2)**  password,  **(3)** buttons to reset the form and  **(4)** links to registration and password reset.
 
-![Login modal](./static/img/02_16-login-modal.png){max-width=400px}
+![Login modal](./static/img/02_20-login-modal.png){max-width=400px}
 
 
 ### Register user page
@@ -208,7 +262,7 @@ and **(7)** accepting the terms of use.
 
 The **(8)** buttons allow resetting or submitting the form.
 
-![Register modal](./static/img/02_17-register-modal.png){max-width=400px}
+![Register modal](./static/img/02_21-register-modal.png){max-width=400px}
 
 Upon submission the curator status users will receive a mail to review your application. After your application has been confirmed you will receive a mail with your login information and instructions.
 
@@ -217,7 +271,7 @@ Upon submission the curator status users will receive a mail to review your appl
 
 The form on this page allows users who forgot their password to reset this by enetering the E-mail tehy registered with.
 
-![Reset modal](./static/img/02_18-password-reset-modal.png){max-width=400px}
+![Reset modal](./static/img/02_22-password-reset-modal.png){max-width=400px}
 
 Upon submission the E-mail account will receive a message with a one-time link allowing the user to enter a new password.
 
@@ -227,25 +281,25 @@ Upon submission the E-mail account will receive a message with a one-time link a
 
 The Vue.js framework enables native cross platform development. Together with the Bootstrap CSS library this enables the SysNDD web app to seamlessly integrate on smaller mobile screens.
 
-![Mobile site](./static/img/02_19-mobile-site.png){max-width=400px}
+![Mobile site](./static/img/02_23-mobile-site.png){max-width=400px}
 
 The layout breaks to mobile view at 768 pixels width and minimizes the navigation and footer menus:
 
-![Mobile navbar](./static/img/02_20-mobile-navbar.png){max-width=400px}
+![Mobile navbar](./static/img/02_24-mobile-navbar.png){max-width=400px}
 
-![Mobile footer](./static/img/02_21-mobile-footer.png){max-width=400px}
+![Mobile footer](./static/img/02_25-mobile-footer.png){max-width=400px}
 
 
 All tables in mobile views break to a stacked view (column names becoem first column in a cell and values second column) to best use display space:
 
-![Stacked table](./static/img/02_22-mobile-stacked-table.png){max-width=400px}
+![Stacked table](./static/img/02_26-mobile-stacked-table.png){max-width=400px}
 
 The table controls and search inputs are further dispalyed at the top in this view.
 
 
 The analyses pages on mobile pages are best viewed in landscape mode:
 
-![Landscape mode](./static/img/02_23-mobile-analyses-landscape.png){max-width=400px}
+![Landscape mode](./static/img/02_27-mobile-analyses-landscape.png){max-width=400px}
 
 
 
@@ -261,27 +315,27 @@ To install the PWA on Android devices follow these steps:
 
 **1)** Visit the SysNDD website at [https://sysndd.dbmr.unibe.ch/](https://sysndd.dbmr.unibe.ch/). You will see a message offering to add the PWA to your home screen:
 
-![PWA add](./static/img/02_24-PWA-install-a.png){max-width=300px}
+![PWA add](./static/img/02_28-PWA-install-a.png){max-width=300px}
 
 
 **2)** After clicking the previous message, confirm the installation by clicking "Install" in the following prompt:
 
-![PWA install](./static/img/02_25-PWA-install-b.png){max-width=300px}
+![PWA install](./static/img/02_29-PWA-install-b.png){max-width=300px}
 
 
 **3)** A message will confirm the installation:
 
-![PWA added](./static/img/02_26-PWA-install-c.png){max-width=300px}
+![PWA added](./static/img/02_30-PWA-install-c.png){max-width=300px}
 
 
 **4)** Following app symbol will be available on one of your screens:
 
-![App symbol](./static/img/02_27-PWA-install-d.png){max-width=300px}
+![App symbol](./static/img/02_31-PWA-install-d.png){max-width=300px}
 
 
 **5)** Clicking this will open SysNDD in PWA mode (no browser adress bar, instead custom colored top bar):
 
-![PWA screenshot](./static/img/02_28-PWA-install-e.png){max-width=300px}
+![PWA screenshot](./static/img/02_32-PWA-install-e.png){max-width=300px}
 
 
 
