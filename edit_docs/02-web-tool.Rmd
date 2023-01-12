@@ -244,7 +244,7 @@ The About page contains general information about the project, its creators, fun
 
 The Login page shows a simple form with inputs for the **(1)**  user name and their **(2)**  password,  **(3)** buttons to reset the form and  **(4)** links to registration and password reset.
 
-![Login modal](./static/img/02_20-login-modal.png){max-width=400px}
+![Login modal](./static/img/02_20-sysndd.dbmr.unibe.ch_login-modal.png){max-width=400px}
 
 
 ### Register user page
