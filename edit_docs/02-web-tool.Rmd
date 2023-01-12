@@ -141,13 +141,28 @@ The *Panels* table is intended for users to be able to create lists of NDD-assoc
 
 ## Single entry pages
 
+Single entry pages refer to the directed pages associated with each entity, gene or disease ontology. These are accessed clicking on the entity (purple), gene (orange) or disease (green) buttons associated with each entry.   
+
+![Single entry pages](./static/img/02_11-sysndd.dbmr.unibe.ch_SingleEntryPages.png){max-width=1000px}
+
 ### Entity
+
+The *Entity* page aims to provide information on the gene, disease (with the OMIM link), inheritance pattern and NDD status associated with a particular entity. The synopsis and phenotypes of the disease as well as the relevant links to publications (including GeneReviews if available) are also provided.    
+
+![Entity page](./static/img/02_12-sysndd.dbmr.unibe.ch_Entity.png){max-width=1000px}
+
 
 ### Gene
 
+The *Gene* page aims to provide further information on 1) the gene of interest with links to other platforms such as Entrez, Ensembl, UCSC, CCDS, UniProt, OMIM gene, MGI, RGD and STRING,  and 2) the entities associated with the gene in a table format.
+
+![Gene page](./static/img/02_13-sysndd.dbmr.unibe.ch_Gene.png){max-width=1000px}
+
 ### Ontology
 
+The *Ontology* page aims to provide further information on 1) the inheritance pattern of a disease as well as links to other platforms such as OMIM, DOID, MONDO and Orphanet, and 2) the entities associated with it in a table format. 
 
+![Ontology page](./static/img/02_14-sysndd.dbmr.unibe.ch_Ontology.png){max-width=1000px}
 
 ## Analyses views
 
