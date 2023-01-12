@@ -57,3 +57,4 @@ re-review-curation
 definitive-association-status
 moderate-and-limited-association-status
 refuted-association-status
+help-feedback
