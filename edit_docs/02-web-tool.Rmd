@@ -30,7 +30,7 @@ The landing page content displays different elements to give a quick overview an
 
 ## Main navigation menu
 
-The main navigation allows quick access to all subpages.
+The main navigation allows quick access to all sub-pages.
 
 The *Tables* button triggers a dropdown menu with links to:
 
@@ -64,6 +64,11 @@ The *About* button directs you to further information on:
 - Contact
 
 ![Navigation menu: About](./static/img/02_04-navigation-menu-about.png){max-width=1000px}
+
+
+If not on the landing page, a search bar also appears on the navigation menu.
+
+![Navigation menu: search bar](./static/img/02_04-navigation-menu2-search.png){max-width=1000px}
 
 
 If not logged in, the right side of the menu shows a button which directs you to the *Login* page.
@@ -118,10 +123,17 @@ The 'AND/ OR' switch allows the user to change the logic how phenotype combinati
 - AND: only entities having all selected phenotypes annotated are shown
 - OR: all entities having any of the selected phenotypes annotated are shown
 
+The *Entities*, *Genes* and *Phenotypes* tables all have the additional two features (top right corner): 
+
+1) Green icon that allows the user to copy the link to the page
+2) Yellow icon that allows the use to remove all filters on the table (icon turns blue when all filters are off)
+
+![*Entities*, *Genes* and *Phenotypes* tables - additional features](./static/img/02_09-sysndd.dbmr.unibe.ch2_AdditionalFeatures.png){max-width=1000px}
+
 
 ### Panels table
 
-The *Panels* table is intended for users to be able to create lists of NDD-associated genes. Additionally, the columns in the lists can be configured. Finally, the configuration can be downloaded as Excel file with information on the exact query in the meta sheet and the requested information in the data sheet. These files can then be used as 'virtual panels' to filter genetic variants derived from high-throughput sequencing in external analysis tools.
+The *Panels* table is intended for users to be able to create lists of NDD-associated genes. Additionally, the columns in the lists can be configured. Finally, the configuration can be downloaded as an Excel file with information on the exact query in the meta sheet and the requested information in the data sheet. These files can then be used as 'virtual panels' to filter genetic variants derived from high-throughput sequencing in external analysis tools.
 
 ![Panels view](./static/img/02_10-sysndd.dbmr.unibe.ch_Panels.png){max-width=1000px}
 
