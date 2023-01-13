@@ -225,6 +225,7 @@ The *Phenotype clustering* tab shows clusters of entities based on phenotype ann
 
 ### NDD Publications
 
+*-content coming soon-*
 
 ### Functional clusters
 
@@ -237,7 +238,18 @@ The *Phenotype clustering* tab shows clusters of entities based on phenotype ann
 The About page contains general information about the project, its creators, funding, updates, and how to find help.
 
 
-## Help & feedback
+## Help & Feedback
+
+A smiley face button (in blue, bottom right) is present on every page of SysNDD, and directs the users to the following help and feedback functions:
+
+- Button **1** allows the user to cite the page (quotation mark icon)
+- Button **2** directs the user to a form for positive feedback (thumbs up icon)
+- Button **3** directs the user to a form for improvement suggestions (thumbs down icon)
+- Button **4** directs the user to the SysNDD documentation (book icon)
+- Button **5** directs the user to the SysNDD GitHub discussions page for questions and help (question mark icon)
+
+![Help & Feedback](./static/img/02_19-sysndd.dbmr.unibe.ch2_HelpFeedback.png){max-width=400px}
+
 
 
 ## Login page
