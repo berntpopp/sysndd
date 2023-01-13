@@ -261,13 +261,13 @@ The Login page shows a simple form with inputs for the **(1)**  user name and th
 
 ### Register user page
 
-This page can be used to apply for a SysNDD account by entering following information:
+This page can be used to apply for a SysNDD account by entering the following information:
 
 1) desired username
-2) institutional E-mail
+2) institutional e-mail
 3) ORCID identifier
-4) First name
-5) Family name
+4) first name
+5) family name
 6) description of your interest in SysNDD and why you want to participate in the curation effort
 
 and **(7)** accepting the terms of use.
@@ -276,40 +276,43 @@ The **(8)** buttons allow resetting or submitting the form.
 
 ![Register modal](./static/img/02_21-register-modal.png){max-width=400px}
 
-Upon submission the curator status users will receive a mail to review your application. After your application has been confirmed you will receive a mail with your login information and instructions.
+Upon submission the curators will receive an e-mail to review your application. After your application has been confirmed you will receive an e-mail with your login information and instructions.
 
 
 ### Reset password page
 
-The form on this page allows users who forgot their password to reset this by enetering the E-mail tehy registered with.
+The form on this page allows users who forgot their password to reset it by entering the e-mail they registered with.
 
 ![Reset modal](./static/img/02_22-password-reset-modal.png){max-width=400px}
 
-Upon submission the E-mail account will receive a message with a one-time link allowing the user to enter a new password.
+Upon submission the e-mail account will receive a message with a one-time link allowing the user to enter a new password.
 
 
 
 ## Mobile website
 
-The Vue.js framework enables native cross platform development. Together with the Bootstrap CSS library this enables the SysNDD web app to seamlessly integrate on smaller mobile screens.
+The Vue.js framework enables native cross platform development. Together with the Bootstrap CSS library, this enables the SysNDD web app to integrate seamlessly on smaller mobile screens.
 
 ![Mobile site](./static/img/02_23-mobile-site.png){max-width=400px}
 
-The layout breaks to mobile view at 768 pixels width and minimizes the navigation and footer menus:
+
+The layout breaks to mobile view at 768 pixels width and minimises the navigation and footer menus:
 
 ![Mobile navbar](./static/img/02_24-mobile-navbar.png){max-width=400px}
+
 
 ![Mobile footer](./static/img/02_25-mobile-footer.png){max-width=400px}
 
 
-All tables in mobile views break to a stacked view (column names becoem first column in a cell and values second column) to best use display space:
+All tables in mobile views break to a stacked view (column names become the first column in a cell and values the second column) to best use display space:
 
 ![Stacked table](./static/img/02_26-mobile-stacked-table.png){max-width=400px}
 
-The table controls and search inputs are further dispalyed at the top in this view.
+
+The table controls and search inputs are further displayed at the top in this view.
 
 
-The analyses pages on mobile pages are best viewed in landscape mode:
+The *Analyses* pages on mobile are best viewed in landscape mode:
 
 ![Landscape mode](./static/img/02_27-mobile-analyses-landscape.png){max-width=400px}
 
@@ -318,8 +321,7 @@ The analyses pages on mobile pages are best viewed in landscape mode:
 ## Progressive Web App (PWA)
 
 The SysNDD web app can also be installed on mobile devices using the Progressive Web App ([PWA](https://en.wikipedia.org/wiki/Progressive_web_application)) technology.
-This is supported in all Chromium-based modern browsers (Chrome, Edge, Opera, etc.) on all common operating systems (Windows, Linux, maxOS and Android).
-Additionally new Safari versions on iOS show some support for PWA.
+This is supported in all Chromium-based modern browsers (Chrome, Edge, Opera, etc.) on all common operating systems (Windows, Linux, maxOS and Android). Additionally new Safari versions on iOS show some support for PWA.
 
 PWAs are faster because they cache files. They offer more screen space for the app. Future integrations of this feature in SysNDD will enable offline use. 
 
@@ -345,7 +347,7 @@ To install the PWA on Android devices follow these steps:
 ![App symbol](./static/img/02_31-PWA-install-d.png){max-width=300px}
 
 
-**5)** Clicking this will open SysNDD in PWA mode (no browser adress bar, instead custom colored top bar):
+**5)** Clicking this will open SysNDD in PWA mode (no browser address bar, instead custom coloured top bar):
 
 ![PWA screenshot](./static/img/02_32-PWA-install-e.png){max-width=300px}
 
@@ -353,7 +355,7 @@ To install the PWA on Android devices follow these steps:
 
 ## Performance
 
-Modern Javascript frameworks like Vue.js, which we use for the SysNDD website, offer rich user experience. The generated single-page applications can be slower then server side rendered pages.
+Modern Javascript frameworks like Vue.js, which we use for the SysNDD website, offer rich user experience. The generated single-page applications can be slower than server side rendered pages.
 
 With SysNDD we are engaged to provide a fast user experience by reducing component and request sizes and applying techniques like lazy loading and code splitting in the frontend with parallelisation in the api.
 
@@ -366,8 +368,9 @@ A quick overview on the current website performance can be obtained on PageSpeed
 ## Security
 
 SysNDD is engaged to offer highest security standards for all web tools.
-We use HTTPS with Transport Layer Security (TLS) and follow the mozilla recommendations for web server settings. 
+We use HTTPS with Transport Layer Security (TLS) and follow the Mozilla recommendations for web server settings. 
 
-A quick overview for our security settings for the SysNDD website can be obtained on Mozilla Oservatory:
+A quick overview for our security settings for the SysNDD website can be obtained on Mozilla Observatory:
 
 [https://observatory.mozilla.org/analyze/sysndd.dbmr.unibe.ch](https://observatory.mozilla.org/analyze/sysndd.dbmr.unibe.ch)
+
