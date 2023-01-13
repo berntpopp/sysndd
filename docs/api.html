@@ -6,7 +6,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <title>Chapter | 3 API | The SysNDD Documentation</title>
   <meta name="description" content="This documentation is intended to describe the SysNDD project and provide instructions for regular users how to use the tool and for curator status users how to perform reviews and how to enter data" />
-  <meta name="generator" content="bookdown 0.31 and GitBook 2.6.7" />
+  <meta name="generator" content="bookdown 0.27 and GitBook 2.6.7" />
 
   <meta property="og:title" content="Chapter | 3 API | The SysNDD Documentation" />
   <meta property="og:type" content="book" />
@@ -124,7 +124,7 @@ div.csl-indent {
 <ul>
 <li class="chapter" data-level="2.5.1" data-path="web-tool.html"><a href="web-tool.html#entity"><i class="fa fa-check"></i><b>2.5.1</b> Entity</a></li>
 <li class="chapter" data-level="2.5.2" data-path="web-tool.html"><a href="web-tool.html#gene"><i class="fa fa-check"></i><b>2.5.2</b> Gene</a></li>
-<li class="chapter" data-level="2.5.3" data-path="web-tool.html"><a href="web-tool.html#ontology"><i class="fa fa-check"></i><b>2.5.3</b> Ontology</a></li>
+<li class="chapter" data-level="2.5.3" data-path="web-tool.html"><a href="web-tool.html#disease-ontology"><i class="fa fa-check"></i><b>2.5.3</b> Disease ontology</a></li>
 </ul></li>
 <li class="chapter" data-level="2.6" data-path="web-tool.html"><a href="web-tool.html#analyses-views"><i class="fa fa-check"></i><b>2.6</b> Analyses views</a>
 <ul>
@@ -241,19 +241,23 @@ Here one can generate cURL requests to use in external software.</p>
 <div id="usage-policy" class="section level3 hasAnchor" number="3.0.2">
 <h3><span class="header-section-number">3.0.2</span> Usage policy<a href="api.html#usage-policy" class="anchor-section" aria-label="Anchor link to header"></a></h3>
 <p>The SysNDD api powers the web tool for everyday users. We also provide the SysNDD api free to allow users to use the SysNDD data and build on it by creating software or services that connect to our platform.</p>
-<p>Usage requirements:
-- optimize your requests to stay in the above described limits
-- be sensible about re-using data (e.g., store your requests until data is updated on our server)
-- use pagination where possible instead of requesting large data chunks (e.g., restrict usage of “all” option in large, potentially blocking list endpoints like “entity” and “gene”)
-- if you require more api ressources please get in contact</p>
-<p>Updates and disclaimer:
-- We provide the SysNDD api as-is.
-- Due to the current development status (version 0.X.Y) we may update or modify the api any time. These changes may affect your use of the api or the way your integration interacts with the api.</p>
+<p>Usage requirements:</p>
+<ul>
+<li>optimize your requests to stay in the above described limits</li>
+<li>be sensible about re-using data (e.g., store your requests until data is updated on our server)</li>
+<li>use pagination where possible instead of requesting large data chunks (e.g., restrict usage of “all” option in large, potentially blocking list endpoints like “entity” and “gene”)</li>
+<li>if you require more api ressources please get in contact</li>
+</ul>
+<p>Updates and disclaimer:</p>
+<ul>
+<li>We provide the SysNDD api as is.</li>
+<li>Due to the current development status (version 0.X.Y) we may update or modify the api any time. These changes may affect your use of the api or the way your integration interacts with the api.</li>
+</ul>
 </div>
 <div id="authentication-and-authorization" class="section level3 hasAnchor" number="3.0.3">
 <h3><span class="header-section-number">3.0.3</span> Authentication and authorization<a href="api.html#authentication-and-authorization" class="anchor-section" aria-label="Anchor link to header"></a></h3>
 <p>The SysNDD api uses JSON Web Tokens (<a href="https://jwt.io/">JWT</a>) to implement stateless authentication and authorization.</p>
-<p>The api user can manually (test purposes) request a token by entering their login credentials in the ionput form provided at the “api/auth/authenticate” endpoint:</p>
+<p>The api user can manually (test purposes) request a token by entering their login credentials in the input form provided at the “api/auth/authenticate” endpoint:</p>
 <div class="figure">
 <img src="static/img/03_01-api-authenticate.png" max-width="1000px" alt="" />
 <p class="caption">Authenticate endpoint</p>
@@ -263,7 +267,7 @@ Here one can generate cURL requests to use in external software.</p>
 <img src="static/img/03_02-JWT-token.png" max-width="1000px" alt="" />
 <p class="caption">JWT token</p>
 </div>
-<p>This Bearer token can then be copied and entered in the OpenAPI/ Swagger authorize modal which opens after clicking the “Authorize” modal button at the upper right corner:</p>
+<p>This Bearer token can then be copied and entered in the OpenAPI/ Swagger authorize modal, which opens after clicking the “Authorize” modal button at the upper right corner:</p>
 <div class="figure">
 <img src="static/img/03_03-api-authorize-a.png" max-width="1000px" alt="" />
 <p class="caption">Authorize button</p>
@@ -272,7 +276,7 @@ Here one can generate cURL requests to use in external software.</p>
 <img src="static/img/03_04-api-authorize-b.png" max-width="1000px" alt="" />
 <p class="caption">Authorize modal prompt</p>
 </div>
-<p>After entereing the token in the respective field (1) and cklicking the “Authorize” submission button the modal will change and show the login status. This field can be closed now:</p>
+<p>After entering the token in the respective field (1) and clicking the “Authorize” submission button the modal will change and show the login status. This field can be closed now:</p>
 <div class="figure">
 <img src="static/img/03_05-api-authorize-c.png" max-width="1000px" alt="" />
 <p class="caption">Authorize modal logged in</p>

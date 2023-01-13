@@ -6,7 +6,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <title>Chapter | 2 Web tool | The SysNDD Documentation</title>
   <meta name="description" content="This documentation is intended to describe the SysNDD project and provide instructions for regular users how to use the tool and for curator status users how to perform reviews and how to enter data" />
-  <meta name="generator" content="bookdown 0.31 and GitBook 2.6.7" />
+  <meta name="generator" content="bookdown 0.27 and GitBook 2.6.7" />
 
   <meta property="og:title" content="Chapter | 2 Web tool | The SysNDD Documentation" />
   <meta property="og:type" content="book" />
@@ -124,7 +124,7 @@ div.csl-indent {
 <ul>
 <li class="chapter" data-level="2.5.1" data-path="web-tool.html"><a href="web-tool.html#entity"><i class="fa fa-check"></i><b>2.5.1</b> Entity</a></li>
 <li class="chapter" data-level="2.5.2" data-path="web-tool.html"><a href="web-tool.html#gene"><i class="fa fa-check"></i><b>2.5.2</b> Gene</a></li>
-<li class="chapter" data-level="2.5.3" data-path="web-tool.html"><a href="web-tool.html#ontology"><i class="fa fa-check"></i><b>2.5.3</b> Ontology</a></li>
+<li class="chapter" data-level="2.5.3" data-path="web-tool.html"><a href="web-tool.html#disease-ontology"><i class="fa fa-check"></i><b>2.5.3</b> Disease ontology</a></li>
 </ul></li>
 <li class="chapter" data-level="2.6" data-path="web-tool.html"><a href="web-tool.html#analyses-views"><i class="fa fa-check"></i><b>2.6</b> Analyses views</a>
 <ul>
@@ -372,8 +372,8 @@ When logged in as a registered user the menu shows your username and additional 
 <p class="caption">Gene page</p>
 </div>
 </div>
-<div id="ontology" class="section level3 hasAnchor" number="2.5.3">
-<h3><span class="header-section-number">2.5.3</span> Ontology<a href="web-tool.html#ontology" class="anchor-section" aria-label="Anchor link to header"></a></h3>
+<div id="disease-ontology" class="section level3 hasAnchor" number="2.5.3">
+<h3><span class="header-section-number">2.5.3</span> Disease ontology<a href="web-tool.html#disease-ontology" class="anchor-section" aria-label="Anchor link to header"></a></h3>
 <p>The <em>Ontology</em> page aims to provide further information on 1) the inheritance pattern of a disease as well as links to other platforms such as OMIM, DOID, MONDO and Orphanet, and 2) the entities associated with it in a table format.</p>
 <div class="figure">
 <img src="static/img/02_14-sysndd.dbmr.unibe.ch_Ontology.png" max-width="1000px" alt="" />
@@ -383,16 +383,16 @@ When logged in as a registered user the menu shows your username and additional 
 </div>
 <div id="analyses-views" class="section level2 hasAnchor" number="2.6">
 <h2><span class="header-section-number">2.6</span> Analyses views<a href="web-tool.html#analyses-views" class="anchor-section" aria-label="Anchor link to header"></a></h2>
-<p><em>Analyses</em> views are aimed at allowing the use to have a more global picture on comparisons of SysNDD with other curations, phenotype correlations, SysNDD entries over time, NDD publications and functional gene clusters.</p>
+<p>The <em>Analysis</em> views are intended to provide the user with a more comprehensive picture of SysNDD comparisons with other curations, phenotype correlations, SysNDD entries over time, NDD publications, and functional gene clusters.</p>
 <div id="compare-curations" class="section level3 hasAnchor" number="2.6.1">
 <h3><span class="header-section-number">2.6.1</span> Compare curations<a href="web-tool.html#compare-curations" class="anchor-section" aria-label="Anchor link to header"></a></h3>
-<p><em>Compare curations</em> view is composed of three tabs:</p>
+<p>The <em>Compare curations</em> view is composed of three tabs:</p>
 <ol style="list-style-type: decimal">
 <li><em>Overlap</em></li>
 <li><em>Similarity</em></li>
 <li><em>Table</em></li>
 </ol>
-<p>The <em>Overlap</em> tab includes an upset plot to show the overlap between SysNDD and other selected NDD curation efforts.</p>
+<p>The <em>Overlap</em> tab includes an upset plot (alternative for venn diagrams, please compare: <a href="https://upset.app/">upset.app</a>) to show the overlap between SysNDD and other selected NDD curation efforts.</p>
 <div class="figure">
 <img src="static/img/02_15-sysndd.dbmr.unibe.ch_CompareCurations1-overlap.png" max-width="1000px" alt="" />
 <p class="caption">Compare curations view: <em>Overlap</em> tab</p>
@@ -402,7 +402,7 @@ When logged in as a registered user the menu shows your username and additional 
 <img src="static/img/02_15-sysndd.dbmr.unibe.ch_CompareCurations2-similarity.png" max-width="1000px" alt="" />
 <p class="caption">Compare curations view: <em>Similarity</em> tab</p>
 </div>
-<p>The <em>Table</em> tab displays a table format to compare the presence of a gene in different curation efforts for neurodevelopmental disorders. This tab has an additional feature that allows the comparison table to be downloaded as an Excel file. The filter removal button is located at the top right corner.</p>
+<p>The <em>Table</em> tab displays a table format for comparing the presence of a gene in different neurodevelopmental disorder curation efforts. This tab also includes the option to download the comparison table as an Excel file. The filter removal button is in the upper right corner.</p>
 <div class="figure">
 <img src="static/img/02_15-sysndd.dbmr.unibe.ch_CompareCurations3-table.png" max-width="1000px" alt="" />
 <p class="caption">Compare curations view: <em>Table</em> tab</p>
@@ -426,7 +426,10 @@ When logged in as a registered user the menu shows your username and additional 
 <img src="static/img/02_16-sysndd.dbmr.unibe.ch_CorrelatePhenotypes2-PhenotypeCounts.png" max-width="1000px" alt="" />
 <p class="caption">Correlate phenotypes view: <em>Phenotype counts</em> tab</p>
 </div>
-<p>The <em>Phenotype clustering</em> tab shows clusters of entities based on phenotype annotations.</p>
+<p>The <em>Phenotype clustering</em> tab shows clusters of entities based on the manually curated phenotype annotations from SysNDD.
+Multiple correspondence analysis (MCA) is performed utilizing the “MCA” function from the <a href="http://factominer.free.fr/">FactoMineR</a> R package, with the number of dimensions retained set to 15, the qualitative supplementary variables set to inheritance terms, and the quantitative supplementary variables set to phenotype counts divided into ID-related and non-ID-related phenotypes (indicator of “syndromicity”). Then, hierarchical clustering is performed using the “HCPC” function from the FactoMineR package.
+By clicking on the different colored bubbles on the panel to the left, the user can select the respective clusters. When clicking a cluster the entity count is displayed in the upper part along the cluster name. The link in this panel’s lower section leads to a view of the Entity table that is restricted to the entities in the selected cluster.
+The right-hand panel displays a table containing either (1) the <em>Qualitative input variables</em> representing the phenotypes, (2) the <em>Qualitative supplementary variables</em> (independent) representing inheritance patterns, or (3) the <em>Quantitative supplementary variables</em> (independent) representing the count of phenotypes, all with variable name, p-values, and v-test values.</p>
 <div class="figure">
 <img src="static/img/02_16-sysndd.dbmr.unibe.ch_CorrelatePhenotypes3-PhenotypeClustering.png" max-width="1000px" alt="" />
 <p class="caption">Correlate phenotypes view: <em>Phenotype clustering</em> tab</p>
@@ -434,7 +437,7 @@ When logged in as a registered user the menu shows your username and additional 
 </div>
 <div id="entries-over-time" class="section level3 hasAnchor" number="2.6.3">
 <h3><span class="header-section-number">2.6.3</span> Entries over time<a href="web-tool.html#entries-over-time" class="anchor-section" aria-label="Anchor link to header"></a></h3>
-<p><em>Entries over time</em> view shows the changes in the NDD entity numbers since 2011.</p>
+<p>The <em>Entries over time</em> view displays the changes in NDD entity numbers since curation began. The plot can be aggregated by either genes or entities and categorized according to inheritance or category.</p>
 <div class="figure">
 <img src="static/img/02_17-sysndd.dbmr.unibe.ch_EntriesOverTime.png" max-width="1000px" alt="" />
 <p class="caption">Entries over time view</p>
@@ -446,7 +449,9 @@ When logged in as a registered user the menu shows your username and additional 
 </div>
 <div id="functional-clusters" class="section level3 hasAnchor" number="2.6.5">
 <h3><span class="header-section-number">2.6.5</span> Functional clusters<a href="web-tool.html#functional-clusters" class="anchor-section" aria-label="Anchor link to header"></a></h3>
-<p><em>Functional clusters</em> view shows the functionally enriched gene clusters.</p>
+<p>The <em>Functional clusters</em> view displays gene clusters of functionally enriched interacting proteins, along with their corresponding ontology annotations. Using the “get_clusters” function from the <a href="https://rdrr.io/bioc/STRINGdb">STRINGdb</a> R package and the “walktrap” clustering algorithm from the <a href="https://igraph.org/">igraph</a> R package, we perform clustering.
+By clicking on the different colored bubbles on the panel to the left, the user can select the respective main- or sub-clusters. When clicking a cluster the gene count is displayed in the upper part along the cluster name. The link in this panel’s lower section leads to a view of the Gene table that is restricted to the genes in the selected cluster.
+The right-hand panel displays a table with either (1) the <em>Term enrichment</em> including the ontology annotations, the number of enriched genes, the FDR-corrected p-value, and a link to the corresponding ontology term or (2) the gene <em>Identifiers</em> with links to the respective single entry page and to the <a href="https://string-db.org/">STRING</a> website of the protein.</p>
 <div class="figure">
 <img src="static/img/02_19-sysndd.dbmr.unibe.ch_FunctionalClusters.png" max-width="1000px" alt="" />
 <p class="caption">Functional clusters view</p>
@@ -455,13 +460,13 @@ When logged in as a registered user the menu shows your username and additional 
 </div>
 <div id="about-page" class="section level2 hasAnchor" number="2.7">
 <h2><span class="header-section-number">2.7</span> About page<a href="web-tool.html#about-page" class="anchor-section" aria-label="Anchor link to header"></a></h2>
-<p>The About page contains general information about the project, its creators, funding, updates, and how to find help.</p>
+<p>The website’s About page provides general information about the project, such as its creators, funding sources, the status of updates, and how to get help.</p>
 </div>
 <div id="help-feedback" class="section level2 hasAnchor" number="2.8">
 <h2><span class="header-section-number">2.8</span> Help &amp; Feedback<a href="web-tool.html#help-feedback" class="anchor-section" aria-label="Anchor link to header"></a></h2>
-<p>A smiley face button (in blue, bottom right) is present on every page of SysNDD, and directs the users to the following help and feedback functions:</p>
+<p>A smiley face button (in blue, bottom right) is present on every page of SysNDD and directs users to the following assistance and feedback functions:</p>
 <ul>
-<li>Button <strong>1</strong> allows the user to cite the page (quotation mark icon)</li>
+<li>Button <strong>1</strong> allows the user to cite the page (quotation mark icon), copies the recommended citation text to the clipboard and automatically creates a snapshot of teh website in the internet archive for reproducibility (<a href="https://archive.org/web/">Wayback Machine - Internet Archive</a>)</li>
 <li>Button <strong>2</strong> directs the user to a form for positive feedback (thumbs up icon)</li>
 <li>Button <strong>3</strong> directs the user to a form for improvement suggestions (thumbs down icon)</li>
 <li>Button <strong>4</strong> directs the user to the SysNDD documentation (book icon)</li>
@@ -496,11 +501,11 @@ When logged in as a registered user the menu shows your username and additional 
 <img src="static/img/02_21-register-modal.png" max-width="400px" alt="" />
 <p class="caption">Register modal</p>
 </div>
-<p>Upon submission the curators will receive an e-mail to review your application. After your application has been confirmed you will receive an e-mail with your login information and instructions.</p>
+<p>After submitting your application, the curators will receive an email to review it. You will receive an e-mail with your login information and instructions after your application has been confirmed.</p>
 </div>
 <div id="reset-password-page" class="section level3 hasAnchor" number="2.9.2">
 <h3><span class="header-section-number">2.9.2</span> Reset password page<a href="web-tool.html#reset-password-page" class="anchor-section" aria-label="Anchor link to header"></a></h3>
-<p>The form on this page allows users who forgot their password to reset it by entering the e-mail they registered with.</p>
+<p>Users who have forgotten their password can reset it by entering the e-mail address they registered with on this page.</p>
 <div class="figure">
 <img src="static/img/02_22-password-reset-modal.png" max-width="400px" alt="" />
 <p class="caption">Reset modal</p>

@@ -16,7 +16,7 @@ panels-table
 single-entry-pages
 entity
 gene
-ontology
+disease-ontology
 analyses-views
 compare-curations
 correlate-phenotypes
