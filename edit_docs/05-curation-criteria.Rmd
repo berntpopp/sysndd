@@ -4,7 +4,7 @@
 
 ## Definitions
 
-Intellectual disability (ID) and neurodevelopmental disorders (NDD) are defined in the scope of SysNDD as follows:
+Intellectual disability (ID) and neurodevelopmental disorders (NDDs) are defined in the scope of SysNDD as follows:
 
 -	Early onset neurodevelopmental delay and cognitive impairment (severe ID to learning difficulties)
 -	Regression/ neurodegeneration in the first years of life with or without prior developmental delay
@@ -125,7 +125,7 @@ These categories include the previous category of "candidate genes" and are now 
 
 **c.** Limited combined genetic and clinical evidence
 
--	Gene enriched for de novo or rare deleterious variants in large NDD cohorts or meta-studies, no further details
+-	Gene enriched for *de novo* or rare deleterious variants in large NDD cohorts or meta-studies, no further details
 
 
 

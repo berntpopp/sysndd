@@ -3,7 +3,7 @@
 
 ---
 
-The goal of the SysNDD “Re-Review” effort is to update and standardize the SysID entities collected during the past years to enable better integration into and interoperability international with gene curations.
+The goal of the SysNDD “Re-Review” effort is to update and standardize the SysID entities collected during the past years to enable better integration into and inter-operability international with gene curations.
 
 
 
@@ -112,8 +112,8 @@ These help instructions are:
 In this window you can propose
 
 - to change the entities association confidence category **(1)**,
-- suggest it’s overall removal **(2)**,
-- add a comment for your change suggestions for the Curators to better understand the proposal **(3)** and
+- suggest its overall removal **(2)**,
+- add a comment for your change suggestions for the curators to better understand the proposal **(3)** and
 - save your work **(4)**:
 
 ![Submit re-review modal](./static/img/modal_modify_status.png){max-width=800px}

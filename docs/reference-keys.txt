@@ -24,6 +24,7 @@ entries-over-time
 ndd-publications
 functional-clusters
 about-page
+help-feedback
 login-page
 register-user-page
 reset-password-page
@@ -57,4 +58,3 @@ re-review-curation
 definitive-association-status
 moderate-and-limited-association-status
 refuted-association-status
-help-feedback
