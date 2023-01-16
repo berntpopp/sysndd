@@ -101,7 +101,7 @@
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
-This documentation is intended to describe the \href{https://sysndd.dbmr.unibe.ch/}{SysNDD} project and provide instructions for regular user show to use the tool and for curator status users how to perform reviews and how to enter data.
+This documentation is intended to describe the \href{https://sysndd.dbmr.unibe.ch/}{SysNDD} project and provide instructions for regular users how to use the tool and for curator status users how to perform reviews and how to enter data.
 
 \hypertarget{history-of-sysid-and-sysndd}{%
 \subsection*{History of SysID and SysNDD}\label{history-of-sysid-and-sysndd}}
@@ -109,7 +109,7 @@ This documentation is intended to describe the \href{https://sysndd.dbmr.unibe.c
 
 SysNDD is based on its predecessor \href{https://www.sysid.dbmr.unibe.ch/}{SysID}, conceived by Annette Schenck and Christiane Zweier in 2009 and published in 2016 \citep{kochinke_systematic_2016}. Christiane Zweier has been involved in establishing and updating SysID from its start. She has since performed and coordinated curation and regular updates.
 
-The PHP based SysID web tool (Yii 2 framework) was however not further developed and maintained besides necessary bugfixes. After the maintenance agreement for the original server at the CMBI at Radboud University in Nijmegen ran out, the installation was moved to a virtual server at the Department for BioMedical Research (DBMR) at the University Bern. The former link from the initial publication is re-directed so it still works. The legacy code base was updated to allow installation and security fixes and to be uploaded to a \href{https://github.com/berntpopp/SysID}{GitHub repository (SysID)}. After the first SysNDD native updates to the curated entities, we display a warning popup on the SysID page to show that the content is not curated any more.
+The PHP based SysID web tool (Yii 2 framework) was however not further developed and maintained besides necessary bugfixes. After the maintenance agreement for the original server at the CMBI at Radboud University in Nijmegen ran out, the installation was moved to a virtual server at the Department for BioMedical Research (DBMR) at the University Bern. The former link from the initial publication is redirected so it still works. The legacy code base was updated to allow installation and security fixes and to be uploaded to a \href{https://github.com/berntpopp/SysID}{GitHub repository (SysID)}. After the first SysNDD native updates to the curated entities, we display a warning popup on the SysID page to show that the content is not curated any more.
 
 In 2019 the chance arose to integrate the SysID curation effort with the Orphanet resource, supported by ERN ITHACA. In the process of aligning the curation and naming conventions for genes, diseases and phenotypes we decided to redesign the database and web tool.
 
@@ -117,7 +117,7 @@ In 2019 the chance arose to integrate the SysID curation effort with the Orphane
 \subsection*{The SysNDD concept}\label{the-sysndd-concept}}
 \addcontentsline{toc}{subsection}{The SysNDD concept}
 
-SysNDD contains our latest update of the manually curated catalogue of published gene-disease-associations implicated in neurodevelopmental disorders (NDD).
+SysNDD contains our latest update of the manually curated catalog of published gene-disease-associations implicated in neurodevelopmental disorders (NDD).
 
 To allow interoperability and mapping between gene-, phenotype- or disease-oriented databases, we center our approach around curated gene-inheritance-disease units, so called entities. These entities are classified into different confidence status (categories: ``Definitive'', ``Moderate'', ``Limited'', ``Refuted'') according to the degree of underlying scientific evidence. Furthermore, manually curated information on associated phenotypes is provided.
 
@@ -188,10 +188,10 @@ How can we keep track of this fast development and have the information at hand 
 While the answer to this question is easy:
 
 \begin{quote}
-We need curated databases to catalogue and summarize the wealth of published information.
+We need curated databases to catalog and summarize the wealth of published information.
 \end{quote}
 
-The task at hand is not only laborious but also requires expertise and consistence.
+The task at hand is not only laborious but also requires expertise and consistency.
 
 \hypertarget{expert-curation}{%
 \subsection{Expert curation}\label{expert-curation}}
@@ -664,7 +664,7 @@ The api is structured into different components based on the SysND concept:
 \item
   inheritance: Inheritance related endpoints
 \item
-  phenotype: Phenoptype related endpoints
+  phenotype: Phenotype related endpoints
 \item
   panels: Gene panel related endpoints
 \item
@@ -691,7 +691,7 @@ The SysNDD api powers the web tool for everyday users. We also provide the SysND
 
 Usage requirements:
 - optimize your requests to stay in the above described limits
-- be sensible about re-using data (e.g., store your requests until data is updated on our server)
+- be sensible about reusing data (e.g., store your requests until data is updated on our server)
 - use pagination where possible instead of requesting large data chunks (e.g., restrict usage of ``all'' option in large, potentially blocking list endpoints like ``entity'' and ``gene'')
 - if you require more api ressources please get in contact
 
@@ -1144,7 +1144,7 @@ bi-allelic truncating variants in 7 individuals from 3 families: severe ID, micr
 
 \textbf{Phenotypes}: Add or remove associated phenotypes. Only phenotypes that occur in 20\% or more of affected individuals should be included. Please also include information on severity of ID where available and applicable.
 
-\textbf{Publications}: No complete catalogue of entity-related literature required! If information in the clinical synopsis is not only based on OMIM entries, please include PMID of the article(s) used as a source for the clinical synopsis.
+\textbf{Publications}: No complete catalog of entity-related literature required! If information in the clinical synopsis is not only based on OMIM entries, please include PMID of the article(s) used as a source for the clinical synopsis.
 
 \textbf{GeneReviews}: Please add PMID for GeneReview article if available for this entity.
 

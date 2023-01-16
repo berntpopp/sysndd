@@ -30,7 +30,7 @@ The api is structured into different components based on the SysND concept:
 - gene: Gene related endpoints
 - ontology: Ontology related endpoints
 - inheritance: Inheritance related endpoints
-- phenotype: Phenoptype related endpoints
+- phenotype: Phenotype related endpoints
 - panels: Gene panel related endpoints
 - comparisons: NDD gene list comparisons related endpoints
 - search: Database search related endpoints
@@ -50,7 +50,7 @@ The SysNDD api powers the web tool for everyday users. We also provide the SysND
 Usage requirements:
 
 - optimize your requests to stay in the above described limits
-- be sensible about re-using data (e.g., store your requests until data is updated on our server)
+- be sensible about reusing data (e.g., store your requests until data is updated on our server)
 - use pagination where possible instead of requesting large data chunks (e.g., restrict usage of "all" option in large, potentially blocking list endpoints like "entity" and "gene")
 - if you require more api ressources please get in contact
 

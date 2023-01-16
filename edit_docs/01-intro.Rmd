@@ -17,17 +17,17 @@ Rare diseases often have a <mark>genetic cause</mark>, making <mark>high-through
 
 ## Genetic heterogeneity
 
-The huge <mark>genetic heterogeneity</mark> is evident when looking at the published gene-disease associations over time.
+Looking at published gene-disease associations over time reveals significant <mark>genetic heterogeneity</mark>.
 
 Thus the question arises:
 
-> How can we keep track of this fast development and have the information at hand when we need it in the clinic or when analysing sequencing data?
+> How can we keep track of this fast development and have the information at hand when we need it in the clinic or when analyzing sequencing data?
 
 While the answer to this question is easy: 
 
-> We need curated databases to catalogue and summarise the wealth of published information.
+> We need curated databases to catalog and summarize the wealth of published information.
 
-The task at hand is not only laborious but also requires expertise and consistence.
+The task at hand is not only laborious but also requires expertise and consistency.
 
 
 
@@ -47,7 +47,7 @@ Additionally, we are able to recruit expert curators from [ERN ITHACA](https://e
 
 In addition to a pool of experts, the right tools are needed.
 
-We defined “gene-inheritance-disease” units as “entities” which represent the central curation effort. The components of these entities are normalized using widely used and standardized ontology terms (e.g. HGNC identifier for genes, OMIM or MONDO for disease and inheritance from HPO). This allows inter-operability and linking to other data sources.
+We defined “gene-inheritance-disease” units as “entities” which represent the central curation effort. The components of these entities are normalized using widely used and standardized ontology terms (e.g. HGNC identifier for genes, OMIM or MONDO for disease and inheritance from HPO). This allows interoperability and linking to other data sources.
 
 Based on this concept we developed a new database scheme, which allows entities to be systematically and reproducibly cataloged. 
 The database is abstracted into a JSON API, which allows structured programmatic access to the underlying data.

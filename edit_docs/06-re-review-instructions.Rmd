@@ -3,7 +3,7 @@
 
 ---
 
-The goal of the SysNDD “Re-Review” effort is to update and standardize the SysID entities collected during the past years to enable better integration into and inter-operability international with gene curations.
+The goal of the SysNDD “Re-Review” effort is to update and standardize the SysID entities collected during the past years to enable better integration into and interoperability international with gene curations.
 
 
 
@@ -109,7 +109,7 @@ These help instructions are:
 **Phenotypes**: Add or remove associated phenotypes. Only phenotypes that occur in 20% or more of affected individuals should be included. Please also include information on severity of ID where available and applicable.
 
 
-**Publications**: No complete catalogue of entity-related literature required! If information in the clinical synopsis is not only based on OMIM entries, please include PMID of the article(s) used as a source for the clinical synopsis.
+**Publications**: No complete catalog of entity-related literature required! If information in the clinical synopsis is not only based on OMIM entries, please include PMID of the article(s) used as a source for the clinical synopsis.
 
 
 **GeneReviews**: Please add PMID for GeneReview article if available for this entity.
