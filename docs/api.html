@@ -23,7 +23,7 @@
 <meta name="author" content="Bernt Popp, Melek Firat Altay, Christiane Zweier" />
 
 
-<meta name="date" content="2023-01-13" />
+<meta name="date" content="2023-01-16" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -258,33 +258,45 @@ Here one can generate cURL requests to use in external software.</p>
 <h3><span class="header-section-number">3.0.3</span> Authentication and authorization<a href="api.html#authentication-and-authorization" class="anchor-section" aria-label="Anchor link to header"></a></h3>
 <p>The SysNDD api uses JSON Web Tokens (<a href="https://jwt.io/">JWT</a>) to implement stateless authentication and authorization.</p>
 <p>The api user can manually (test purposes) request a token by entering their login credentials in the input form provided at the “api/auth/authenticate” endpoint:</p>
+<div style="max-width:1000px;">
 <div class="figure">
-<img src="static/img/03_01-api-authenticate.png" max-width="1000px" alt="" />
+<img src="static/img/03_01-api-authenticate.png" alt="" />
 <p class="caption">Authenticate endpoint</p>
 </div>
+</div>
 <p>This endpoint will generate and respond with and JWT token:</p>
+<div style="max-width:1000px;">
 <div class="figure">
-<img src="static/img/03_02-JWT-token.png" max-width="1000px" alt="" />
+<img src="static/img/03_02-JWT-token.png" alt="" />
 <p class="caption">JWT token</p>
 </div>
+</div>
 <p>This Bearer token can then be copied and entered in the OpenAPI/ Swagger authorize modal, which opens after clicking the “Authorize” modal button at the upper right corner:</p>
+<div style="max-width:1000px;">
 <div class="figure">
-<img src="static/img/03_03-api-authorize-a.png" max-width="1000px" alt="" />
+<img src="static/img/03_03-api-authorize-a.png" alt="" />
 <p class="caption">Authorize button</p>
 </div>
+</div>
+<div style="max-width:1000px;">
 <div class="figure">
-<img src="static/img/03_04-api-authorize-b.png" max-width="1000px" alt="" />
+<img src="static/img/03_04-api-authorize-b.png" alt="" />
 <p class="caption">Authorize modal prompt</p>
 </div>
+</div>
 <p>After entering the token in the respective field (1) and clicking the “Authorize” submission button the modal will change and show the login status. This field can be closed now:</p>
+<div style="max-width:1000px;">
 <div class="figure">
-<img src="static/img/03_05-api-authorize-c.png" max-width="1000px" alt="" />
+<img src="static/img/03_05-api-authorize-c.png" alt="" />
 <p class="caption">Authorize modal logged in</p>
 </div>
+</div>
 <p>The user is now fully authenticated and can access the endpoints requiring user rights:</p>
+<div style="max-width:1000px;">
 <div class="figure">
-<img src="static/img/03_06-api-authorize-d.png" max-width="1000px" alt="" />
+<img src="static/img/03_06-api-authorize-d.png" alt="" />
 <p class="caption">API logged in</p>
+</div>
 </div>
 <p>The token is valid for 60 minutes. It can be refreshed using the endpoint “api/auth/refresh”.</p>
 
