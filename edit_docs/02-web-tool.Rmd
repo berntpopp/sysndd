@@ -307,6 +307,23 @@ On each page of SysNDD, a smiley face button (in blue, bottom right) points user
 </div>
 
 
+## Reporting bugs, problems and making feature requests
+
+If you have technical problems using SysNDD or requests regarding the data or functionality, please contact us at support [at] sysndd.org.
+
+When reporting bugs and problems please describe in detail on which page you encountered the issue and what input you gave. Provide screenshots including the error message (upper right corner).
+
+<div style="max-width:1000px;">
+![Error message](./static/img/02_33-error-message.png)
+</div>
+
+You can also save the console logs to aid us in identifying the problem and send the log file in your mail:
+
+<div style="max-width:1000px;">
+![Save console logs](./static/img/02_34-save-console-logs.png)
+</div>
+
+
 ## Login page
 
 The Login page shows a simple form with inputs for the **(1)**  user name and their **(2)**  password,  **(3)** buttons to reset the form and  **(4)** links to registration and password reset.
