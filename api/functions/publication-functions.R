@@ -228,7 +228,7 @@ return(return_tibble)
 }
 
 
-#' Splits requests for PMID information in chunkcs for the API
+#' Splits requests for PMID information in chunks for the API
 #'
 #' @param pmid_value A list of PMIDs
 #' @param request_max a number used to partition the requests in chunks

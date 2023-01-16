@@ -1,8 +1,29 @@
 #### This file holds helper functions
 
-# nest the gene tibble
-# based on https://xiaolianglin.com/
-# 2018/12/05/Use-memoise-to-speed-up-your-R-plumber-API/
+#' Nest the gene tibble
+#'
+#' @description
+#' This function is useful for organizing data in a tibble into nested groups,
+#' making it easier to analyze or manipulate the data.
+#'
+#' The function performs the following operations on the input tibble:
+#' 1. Saves the initial sorting of the tibble by selecting the columns 'symbol',
+#' 'hgnc_id', and 'entities_count' and retaining only the unique rows.'
+#'
+#' 2. Nests the tibble by the columns 'symbol', 'hgnc_id', and 'entities_count'
+#' and assigns the key "entities" to the nested data frame.
+#'
+#' 3. Removes grouping and arranges the nested tibble by the 'symbol' column,
+#' using the initial sorting determined in step 1 as the level order.
+#'
+#' 4. Returns the nested tibble as the output.
+#'
+#' based on https://xiaolianglin.com/
+#'
+#' @param tibble A tibble to be nested
+#'
+#' @return The nested tibble
+#' @export
 nest_gene_tibble <- function(tibble) {
 
   # remember the initial sorting
@@ -20,21 +41,49 @@ nest_gene_tibble <- function(tibble) {
 }
 
 
-# generate a random password
-# based on "https://stackoverflow.com/
-# questions/22219035/function-to-generate-a-random-password"
+#' Generate a random password
+#'
+#' @description
+#'
+#' The random_password function generates a random password of length 12 by
+#' using a vector of possible characters that includes digits,
+#' lowercase letters, uppercase letters, exclamation mark and dollar sign.
+#' Here's how the function works:
+#' 1. A vector named possible_characters is created,
+#' which includes digits (0-9), lowercase letters, uppercase letters,
+#' exclamation mark and dollar sign.
+#'
+#' 2. The sample() function is used to randomly select 12 characters
+#' from the possible_characters vector, and the paste() function is
+#' used to combine these selected characters into a single string.
+#'
+#' 3. The collapse = "" argument is used in the paste() function to prevent any
+#' separator characters from being added between the selected characters.
+#'
+#' 4. The password is returned as the output of the function.
+#'
+#' based on "https://stackoverflow.com/
+#' questions/22219035/function-to-generate-a-random-password"
+#'
+#' @return The random password generated
+#' @export
 random_password <- function() {
-  samp <- c(0:9, letters, LETTERS, "!", "$")
-  password <- paste(sample(samp, 12), collapse = "")
+  # create a vector of possible characters
+  possible_characters <- c(0:9, letters, LETTERS, "!", "$")
+
+  # use paste and sample to generate a random password of length 12
+  password <- paste(sample(possible_characters, 12), collapse = "")
+
+  # return password
   return(password)
 }
 
 
 # validate email
 # based on https://www.r-bloggers.com/2012/07/validating-email-adresses-in-r/
-is_valid_email <- function(x) {
+is_valid_email <- function(email_address) {
     grepl("\\<[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\>",
-      as.character(x),
+      as.character(email_address),
       ignore.case = TRUE
       )
 }
