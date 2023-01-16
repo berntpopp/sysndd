@@ -5,6 +5,7 @@
 # load libraries
 library(plumber)
 library(tidyverse)
+library(stringr)
 library(DBI)
 library(RMariaDB)
 library(jsonlite)
