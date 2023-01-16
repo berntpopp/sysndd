@@ -205,7 +205,7 @@ put_post_db_review <- function(request_method,
         pivot_longer(-row) %>%
         mutate(query = paste0(name, "='", value, "'")) %>%
         select(query) %>%
-        summarise(query = str_c(query, collapse = ", "))
+        summarize(query = str_c(query, collapse = ", "))
 
       # connect to database
       sysndd_db <- dbConnect(RMariaDB::MariaDB(),
@@ -684,7 +684,7 @@ put_post_db_status <- function(request_method,
           pivot_longer(-row) %>%
           mutate(query = paste0(name, "='", value, "'")) %>%
           select(query) %>%
-          summarise(query = str_c(query, collapse = ", "))
+          summarize(query = str_c(query, collapse = ", "))
 
         # connect to database
         sysndd_db <- dbConnect(RMariaDB::MariaDB(),

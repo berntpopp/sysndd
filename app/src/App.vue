@@ -43,7 +43,7 @@ export default {
         vmid: 'description',
         name: 'description',
         content:
-          'SysNDD contains a manually curated catalogue of published genes implicated in neurodevelopmental disorders (NDDs) and classified into primary and candidate genes according to the degree of underlying evidence.',
+          'SysNDD contains a manually curated catalog of published genes implicated in neurodevelopmental disorders (NDDs) and classified into primary and candidate genes according to the degree of underlying evidence.',
       },
     ],
   },

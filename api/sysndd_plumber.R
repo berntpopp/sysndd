@@ -157,7 +157,7 @@ gen_mca_clust_obj_mem <- memoise(gen_mca_clust_obj,
 #* @apiTag publication Publication related endpoints
 #* @apiTag gene Gene related endpoints
 #* @apiTag ontology Ontology related endpoints
-#* @apiTag phenotype Phenoptype related endpoints
+#* @apiTag phenotype Phenotype related endpoints
 #* @apiTag panels Gene panel related endpoints
 #* @apiTag comparisons NDD gene list comparisons related endpoints
 #* @apiTag analysis Analyses related endpoints
@@ -1564,7 +1564,7 @@ function(req, res) {
       pivot_longer(-row) %>%
       mutate(query = paste0(name, "='", value, "'")) %>%
       select(query) %>%
-      summarise(query = str_c(query, collapse = ", "))
+      summarize(query = str_c(query, collapse = ", "))
 
     # connect to database
     sysndd_db <- dbConnect(RMariaDB::MariaDB(),
@@ -1970,7 +1970,7 @@ function(req, res, user_id) {
     anti_join(re_review_assignment, by = c("re_review_batch")) %>%
     collect() %>%
     unique() %>%
-    summarise(re_review_batch = min(re_review_batch))
+    summarize(re_review_batch = min(re_review_batch))
   re_review_batch_next <- re_review_entity_connect$re_review_batch
 
   # make tibble to append
@@ -2094,7 +2094,7 @@ function(req, res) {
       group_by(re_review_batch) %>%
       collect() %>%
       mutate(entity_count = 1) %>%
-      summarise_at(vars(re_review_review_saved:entity_count), sum)
+      summarize_at(vars(re_review_review_saved:entity_count), sum)
 
     re_review_assignment_table <- pool %>%
       tbl("re_review_assignment")
@@ -2389,7 +2389,7 @@ function(ontology_input, input_type = "ontology_id") {
     left_join(mode_of_inheritance_list_coll,
         by = c("hpo_mode_of_inheritance_term")) %>%
     group_by(disease_ontology_id) %>%
-    summarise_all(~paste(unique(.), collapse = ";")) %>%
+    summarize_all(~paste(unique(.), collapse = ";")) %>%
     ungroup() %>%
     mutate(across(everything(), ~replace(., . == "NA", NA))) %>%
     mutate(across(everything(), ~str_split(., pattern = "\\;")))
@@ -3014,7 +3014,7 @@ function(n = 5) {
 function(res,
   aggregate = "entity_id",
   group = "category",
-  summarise = "month",
+  summarize = "month",
   filter = "") {
 
   start_time <- Sys.time()
@@ -3091,9 +3091,9 @@ function(res,
     mutate(count = 1) %>%
     arrange(entry_date) %>%
     group_by(!!rlang::sym(group)) %>%
-    summarise_by_time(
+    summarize_by_time(
       .date_var = entry_date,
-      .by       = rlang::sym(summarise), # <-- Setup for monthly aggregation
+      .by       = rlang::sym(summarize), # <-- Setup for monthly aggregation
       .type = "ceiling", # <-- this is the upper bound for filtering
       # Summarization
       count  = sum(count)
@@ -3117,7 +3117,7 @@ function(res,
   # generate_cursor_pag_inf function return
   meta <- tibble::as_tibble(list("aggregate" = aggregate,
     "group" = group,
-    "summarise" = summarise,
+    "summarize" = summarize,
     "filter" = filter,
     "max_count" = max(entity_view_cumsum$count),
     "max_cumulative_count" = max(entity_view_cumsum$cumulative_count),
@@ -4692,7 +4692,7 @@ function(signup_data) {
       mutate(all = "1") %>%
       select(all, valid) %>%
       group_by(all) %>%
-      summarise(valid = as.logical(prod(valid))) %>%
+      summarize(valid = as.logical(prod(valid))) %>%
       ungroup() %>%
       select(valid)
 

@@ -363,7 +363,7 @@ generate_cursor_pag_inf <- function(pagination_tibble,
 
   # get number of rows in filtered ndd_entity_view
   pagination_tibble_rows <- (pagination_tibble %>%
-    summarise(n = n()))$n
+    summarize(n = n()))$n
 
   # check if page_size is either "all" or
   # a valid integer and convert or assign values accordingly
@@ -499,7 +499,7 @@ generate_tibble_fspec <- function(field_tibble, fspecInput) {
       arrange(key, values) %>%
       unique() %>%
       group_by(key) %>%
-      summarise(selectOptions = list(values)) %>%
+      summarize(selectOptions = list(values)) %>%
       mutate(count = lengths(selectOptions)) %>%
       mutate(filterable = case_when(
         count > 10 ~ TRUE,

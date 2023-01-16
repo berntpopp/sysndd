@@ -612,7 +612,7 @@
               <template #title>
                 Publications instructions
               </template>
-              No complete catalogue of entity-related literature required.
+              No complete catalog of entity-related literature required.
               <br>
               If information in the clinical synopsis is not only based on OMIM
               entries, please include PMID of the article(s) used as a source

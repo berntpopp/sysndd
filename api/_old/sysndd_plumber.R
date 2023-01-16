@@ -115,7 +115,7 @@ function(sysndd_id, entity_data) {
 	pivot_longer(-row) %>% 
 	mutate(query = paste0(name, "='", value, "'")) %>% 
 	select(query) %>% 
-	summarise(query = str_c(query, collapse = ", "))
+	summarize(query = str_c(query, collapse = ", "))
 	
 	# connect to database
 	sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = dw$dbname, user = dw$user, password = dw$password)

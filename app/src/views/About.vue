@@ -66,7 +66,7 @@
                     with the goal to facilitate research and diagnostics into
                     NDDs has been conceived by Annette Schenck and Christiane
                     Zweier. In 2009, they established SysID with a manually
-                    curated catalogue of published genes implicated in
+                    curated catalog of published genes implicated in
                     neurodevelopmental disorders (NDDs), classified into primary
                     and candidate genes according to the degree of underlying
                     evidence. Furthermore, expert curated information on
