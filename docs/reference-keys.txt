@@ -25,6 +25,7 @@ ndd-publications
 functional-clusters
 about-page
 help-feedback
+reporting-bugs-problems-and-making-feature-requests
 login-page
 register-user-page
 reset-password-page
