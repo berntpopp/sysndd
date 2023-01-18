@@ -4,18 +4,18 @@
 
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <title>Chapter | 3 API | The SysNDD Documentation</title>
+  <title>Chapter | 7 Tutorial videos | The SysNDD Documentation</title>
   <meta name="description" content="This documentation is intended to describe the SysNDD project and provide instructions for regular users how to use the tool and for curator status users how to perform reviews and how to enter data" />
   <meta name="generator" content="bookdown 0.27 and GitBook 2.6.7" />
 
-  <meta property="og:title" content="Chapter | 3 API | The SysNDD Documentation" />
+  <meta property="og:title" content="Chapter | 7 Tutorial videos | The SysNDD Documentation" />
   <meta property="og:type" content="book" />
   
   <meta property="og:description" content="This documentation is intended to describe the SysNDD project and provide instructions for regular users how to use the tool and for curator status users how to perform reviews and how to enter data" />
   <meta name="github-repo" content="berntpopp/sysndd" />
 
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Chapter | 3 API | The SysNDD Documentation" />
+  <meta name="twitter:title" content="Chapter | 7 Tutorial videos | The SysNDD Documentation" />
   
   <meta name="twitter:description" content="This documentation is intended to describe the SysNDD project and provide instructions for regular users how to use the tool and for curator status users how to perform reviews and how to enter data" />
   
@@ -30,8 +30,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   
   
-<link rel="prev" href="web-tool.html"/>
-<link rel="next" href="database-structure.html"/>
+<link rel="prev" href="re-review-instructions.html"/>
+<link rel="next" href="references.html"/>
 <script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6/dist/fuse.min.js"></script>
 <link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
@@ -209,101 +209,15 @@ div.csl-indent {
           <div class="page-inner">
 
             <section class="normal" id="section-">
-<div id="api" class="section level1 hasAnchor" number="3">
-<h1><span class="header-section-number">Chapter | 3</span> API<a href="api.html#api" class="anchor-section" aria-label="Anchor link to header"></a></h1>
+<div id="tutorial-videos" class="section level1 hasAnchor" number="7">
+<h1><span class="header-section-number">Chapter | 7</span> Tutorial videos<a href="tutorial-videos.html#tutorial-videos" class="anchor-section" aria-label="Anchor link to header"></a></h1>
 <hr />
-<p>The SysNDD api (application programming interface) is available from <a href="https://sysndd.dbmr.unibe.ch/API">https://sysndd.dbmr.unibe.ch/API</a>.</p>
-<p>The api is written in R using the <a href="https://www.rplumber.io/">plumber package</a>.</p>
-<p>We intend to follow the <a href="https://swagger.io/specification/">Swagger/ OpenAPI</a> and <a href="https://jsonapi.org/">JSON:API</a> specifications.</p>
-<p>The api scripts run in a Docker container using the official “rocker/tidyverse” image (version 4.2.0).</p>
-<p>As R is single threaded, we deploy multiple instances of the api container. These are bundled together using <a href="http://www.haproxy.org/">HAProxy</a> load balancer.</p>
-<p>The api is rate limited through our <a href="https://www.nginx.com/">NGINX</a> web server configuration with a rate limit of 10 requests per second (10r/s; equals 1 request every 100 milliseconds) per requesting ip. The configuration allows bursts of up to 30r/s but introduces a delay after 10 requests to enforce the rate limit.</p>
-<div id="endpoints" class="section level3 hasAnchor" number="3.0.1">
-<h3><span class="header-section-number">3.0.1</span> Endpoints<a href="api.html#endpoints" class="anchor-section" aria-label="Anchor link to header"></a></h3>
-<p>The SysNDD api currently contains all endpoints for externala nd internal usage in one api script. This may change with future releases.</p>
-<p>The api is structured into different components based on the SysND concept:</p>
-<ul>
-<li>entity: Entity related endpoints</li>
-<li>review: Reviews related endpoints</li>
-<li>status: Status related endpoints</li>
-<li>re_review: Re-review related endpoints</li>
-<li>publication: Publication related endpoints</li>
-<li>gene: Gene related endpoints</li>
-<li>ontology: Ontology related endpoints</li>
-<li>inheritance: Inheritance related endpoints</li>
-<li>phenotype: Phenotype related endpoints</li>
-<li>panels: Gene panel related endpoints</li>
-<li>comparisons: NDD gene list comparisons related endpoints</li>
-<li>search: Database search related endpoints</li>
-<li>list: Database list related endpoints</li>
-<li>statistics: Database statistics</li>
-<li>user: User account related endpoints</li>
-<li>authentication: Authentication related endpoints</li>
-</ul>
-<p>The endpoints are documented and can be tested using the Swagger/ OpenAPI user interface at <a href="https://sysndd.dbmr.unibe.ch/API">https://sysndd.dbmr.unibe.ch/API</a>.
-Here one can generate cURL requests to use in external software.</p>
-</div>
-<div id="usage-policy" class="section level3 hasAnchor" number="3.0.2">
-<h3><span class="header-section-number">3.0.2</span> Usage policy<a href="api.html#usage-policy" class="anchor-section" aria-label="Anchor link to header"></a></h3>
-<p>The SysNDD api powers the web tool for everyday users. We also provide the SysNDD api free to allow users to use the SysNDD data and build on it by creating software or services that connect to our platform.</p>
-<p>Usage requirements:</p>
-<ul>
-<li>optimize your requests to stay in the above described limits</li>
-<li>be sensible about reusing data (e.g., store your requests until data is updated on our server)</li>
-<li>use pagination where possible instead of requesting large data chunks (e.g., restrict usage of “all” option in large, potentially blocking list endpoints like “entity” and “gene”)</li>
-<li>if you require more api ressources please get in contact</li>
-</ul>
-<p>Updates and disclaimer:</p>
-<ul>
-<li>We provide the SysNDD api as is.</li>
-<li>Due to the current development status (version 0.X.Y) we may update or modify the api any time. These changes may affect your use of the api or the way your integration interacts with the api.</li>
-</ul>
-</div>
-<div id="authentication-and-authorization" class="section level3 hasAnchor" number="3.0.3">
-<h3><span class="header-section-number">3.0.3</span> Authentication and authorization<a href="api.html#authentication-and-authorization" class="anchor-section" aria-label="Anchor link to header"></a></h3>
-<p>The SysNDD api uses JSON Web Tokens (<a href="https://jwt.io/">JWT</a>) to implement stateless authentication and authorization.</p>
-<p>The api user can manually (test purposes) request a token by entering their login credentials in the input form provided at the “api/auth/authenticate” endpoint:</p>
-<div style="max-width:1000px;">
-<div class="figure">
-<img src="static/img/03_01-api-authenticate.png" alt="" />
-<p class="caption">Authenticate endpoint</p>
-</div>
-</div>
-<p>This endpoint will generate and respond with and JWT token:</p>
-<div style="max-width:1000px;">
-<div class="figure">
-<img src="static/img/03_02-JWT-token.png" alt="" />
-<p class="caption">JWT token</p>
-</div>
-</div>
-<p>This Bearer token can then be copied and entered in the OpenAPI/ Swagger authorize modal, which opens after clicking the “Authorize” modal button at the upper right corner:</p>
-<div style="max-width:1000px;">
-<div class="figure">
-<img src="static/img/03_03-api-authorize-a.png" alt="" />
-<p class="caption">Authorize button</p>
-</div>
-</div>
-<div style="max-width:1000px;">
-<div class="figure">
-<img src="static/img/03_04-api-authorize-b.png" alt="" />
-<p class="caption">Authorize modal prompt</p>
-</div>
-</div>
-<p>After entering the token in the respective field (1) and clicking the “Authorize” submission button the modal will change and show the login status. This field can be closed now:</p>
-<div style="max-width:1000px;">
-<div class="figure">
-<img src="static/img/03_05-api-authorize-c.png" alt="" />
-<p class="caption">Authorize modal logged in</p>
-</div>
-</div>
-<p>The user is now fully authenticated and can access the endpoints requiring user rights:</p>
-<div style="max-width:1000px;">
-<div class="figure">
-<img src="static/img/03_06-api-authorize-d.png" alt="" />
-<p class="caption">API logged in</p>
-</div>
-</div>
-<p>The token is valid for 60 minutes. It can be refreshed using the endpoint “api/auth/refresh”.</p>
+<p>To help you get the most out of the SysNDD website, we’ve put together this series of video tutorials.</p>
+<div id="reviewer-tutorial" class="section level2 hasAnchor" number="7.1">
+<h2><span class="header-section-number">7.1</span> Reviewer Tutorial<a href="tutorial-videos.html#reviewer-tutorial" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>This video explains how to review and edit entries on the SysNDD website. Changing information on the SysNDD website requires logging in, going to the “Review” section, clicking “edit review,” changing information under headings like “Synopsis” and “Phenotypes,” and then submitting the changes for approval. In addition, we explain how to change an entry’s NDD status.</p>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/kRDhtepStbs" frameborder="0" allowfullscreen>
+</iframe>
 
 </div>
 </div>
@@ -312,8 +226,8 @@ Here one can generate cURL requests to use in external software.</p>
           </div>
         </div>
       </div>
-<a href="web-tool.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
-<a href="database-structure.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+<a href="re-review-instructions.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+<a href="references.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
     </div>
   </div>
 <script src="libs/gitbook-2.6.7/js/app.min.js"></script>
@@ -344,7 +258,7 @@ gitbook.start({
 "size": 2
 },
 "edit": {
-"link": "https://github.com/berntpopp/sysndd/tree/master/edit_docs/03-api.Rmd",
+"link": "https://github.com/berntpopp/sysndd/tree/master/edit_docs/07-tutorial-videos.Rmd",
 "text": "Edit"
 },
 "history": {
@@ -352,7 +266,7 @@ gitbook.start({
 "text": null
 },
 "view": {
-"link": "https://github.com/berntpopp/sysndd/tree/master/docs/03-api.Rmd",
+"link": "https://github.com/berntpopp/sysndd/tree/master/docs/07-tutorial-videos.Rmd",
 "text": null
 },
 "download": [["SysNDD_documentation.pdf", "PDF"], ["SysNDD_documentation.epub", "EPUB"], ["SysNDD_documentation.docx", "DOCX"]],
