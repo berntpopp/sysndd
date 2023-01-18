@@ -39,6 +39,8 @@ bash deployment.sh "<config.tar.gz>"
 
 Please explore [The SysNDD Documentation](https://berntpopp.github.io/sysndd/) hosted on GitHub pages and build with bookdown.
 
+To help you get the most out of the SysNDD website, we are putting together a series of [video tutorials](https://berntpopp.github.io/sysndd/tutorial-videos.html).
+
 ## Contributing and community
 
 To contribute in curating novel entries to our database you can register for a new reviewer/ curator [account on the SysNDD page](https://sysndd.dbmr.unibe.ch/Register).
