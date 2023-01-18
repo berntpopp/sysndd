@@ -1,6 +1,5 @@
 # Re-review instructions
 
-
 ---
 
 The goal of the SysNDD “Re-Review” effort is to update and standardize the SysID entities collected during the past years to enable better integration into and interoperability international with gene curations.

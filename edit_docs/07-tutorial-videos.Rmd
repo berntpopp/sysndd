@@ -1,0 +1,12 @@
+# Tutorial videos
+
+---
+
+To help you get the most out of the SysNDD website, we've put together this series of video tutorials.
+
+
+## Reviewer Tutorial
+
+This video explains how to review and edit entries on the SysNDD website. Changing information on the SysNDD website requires logging in, going to the "Review" section, clicking "edit review," changing information under headings like "Synopsis" and "Phenotypes," and then submitting the changes for approval. In addition, we explain how to change an entry's NDD status.
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/kRDhtepStbs" frameborder="0" allowfullscreen></iframe>

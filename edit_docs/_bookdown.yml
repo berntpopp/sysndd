@@ -9,6 +9,7 @@ rmd_files:
     - "04-database-structure.Rmd"
     - "05-curation-criteria.Rmd"
     - "06-re-review-instructions.Rmd"
+    - "07-tutorial-videos.Rmd"
     - "references.Rmd"
 delete_merged_file: true
 language:
