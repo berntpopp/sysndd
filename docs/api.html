@@ -23,7 +23,7 @@
 <meta name="author" content="Bernt Popp, Melek Firat Altay, Christiane Zweier" />
 
 
-<meta name="date" content="2023-01-18" />
+<meta name="date" content="2023-01-27" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -52,6 +52,18 @@
 <link href="libs/anchor-sections-1.1.0/anchor-sections.css" rel="stylesheet" />
 <link href="libs/anchor-sections-1.1.0/anchor-sections-hash.css" rel="stylesheet" />
 <script src="libs/anchor-sections-1.1.0/anchor-sections.js"></script>
+<script src="libs/htmlwidgets-1.5.4/htmlwidgets.js"></script>
+<link href="libs/datatables-css-0.0.0/datatables-crosstalk.css" rel="stylesheet" />
+<script src="libs/datatables-binding-0.26/datatables.js"></script>
+<link href="libs/dt-core-1.12.1/css/jquery.dataTables.min.css" rel="stylesheet" />
+<link href="libs/dt-core-1.12.1/css/jquery.dataTables.extra.css" rel="stylesheet" />
+<script src="libs/dt-core-1.12.1/js/jquery.dataTables.min.js"></script>
+<link href="libs/nouislider-7.0.10/jquery.nouislider.min.css" rel="stylesheet" />
+<script src="libs/nouislider-7.0.10/jquery.nouislider.min.js"></script>
+<link href="libs/selectize-0.12.0/selectize.bootstrap3.css" rel="stylesheet" />
+<script src="libs/selectize-0.12.0/selectize.min.js"></script>
+<link href="libs/crosstalk-1.2.0/css/crosstalk.min.css" rel="stylesheet" />
+<script src="libs/crosstalk-1.2.0/js/crosstalk.min.js"></script>
 
 
 
@@ -149,11 +161,16 @@ div.csl-indent {
 </ul></li>
 <li class="chapter" data-level="3" data-path="api.html"><a href="api.html"><i class="fa fa-check"></i><b>3</b> API</a>
 <ul>
-<li class="chapter" data-level="3.0.1" data-path="api.html"><a href="api.html#endpoints"><i class="fa fa-check"></i><b>3.0.1</b> Endpoints</a></li>
-<li class="chapter" data-level="3.0.2" data-path="api.html"><a href="api.html#usage-policy"><i class="fa fa-check"></i><b>3.0.2</b> Usage policy</a></li>
-<li class="chapter" data-level="3.0.3" data-path="api.html"><a href="api.html#authentication-and-authorization"><i class="fa fa-check"></i><b>3.0.3</b> Authentication and authorization</a></li>
+<li class="chapter" data-level="3.1" data-path="api.html"><a href="api.html#endpoints"><i class="fa fa-check"></i><b>3.1</b> Endpoints</a></li>
+<li class="chapter" data-level="3.2" data-path="api.html"><a href="api.html#usage-policy"><i class="fa fa-check"></i><b>3.2</b> Usage policy</a></li>
+<li class="chapter" data-level="3.3" data-path="api.html"><a href="api.html#authentication-and-authorization"><i class="fa fa-check"></i><b>3.3</b> Authentication and authorization</a></li>
 </ul></li>
-<li class="chapter" data-level="4" data-path="database-structure.html"><a href="database-structure.html"><i class="fa fa-check"></i><b>4</b> Database structure</a></li>
+<li class="chapter" data-level="4" data-path="database-structure.html"><a href="database-structure.html"><i class="fa fa-check"></i><b>4</b> Database and data sources</a>
+<ul>
+<li class="chapter" data-level="4.1" data-path="database-structure.html"><a href="database-structure.html#database-software"><i class="fa fa-check"></i><b>4.1</b> Database software</a></li>
+<li class="chapter" data-level="4.2" data-path="database-structure.html"><a href="database-structure.html#database-schema"><i class="fa fa-check"></i><b>4.2</b> Database schema</a></li>
+<li class="chapter" data-level="4.3" data-path="database-structure.html"><a href="database-structure.html#variant-ontology"><i class="fa fa-check"></i><b>4.3</b> Variant ontology</a></li>
+</ul></li>
 <li class="chapter" data-level="5" data-path="curation-criteria.html"><a href="curation-criteria.html"><i class="fa fa-check"></i><b>5</b> Curation criteria</a>
 <ul>
 <li class="chapter" data-level="5.1" data-path="curation-criteria.html"><a href="curation-criteria.html#definitions"><i class="fa fa-check"></i><b>5.1</b> Definitions</a></li>
@@ -218,8 +235,8 @@ div.csl-indent {
 <p>The api scripts run in a Docker container using the official “rocker/tidyverse” image (version 4.2.0).</p>
 <p>As R is single threaded, we deploy multiple instances of the api container. These are bundled together using <a href="http://www.haproxy.org/">HAProxy</a> load balancer.</p>
 <p>The api is rate limited through our <a href="https://www.nginx.com/">NGINX</a> web server configuration with a rate limit of 10 requests per second (10r/s; equals 1 request every 100 milliseconds) per requesting ip. The configuration allows bursts of up to 30r/s but introduces a delay after 10 requests to enforce the rate limit.</p>
-<div id="endpoints" class="section level3 hasAnchor" number="3.0.1">
-<h3><span class="header-section-number">3.0.1</span> Endpoints<a href="api.html#endpoints" class="anchor-section" aria-label="Anchor link to header"></a></h3>
+<div id="endpoints" class="section level2 hasAnchor" number="3.1">
+<h2><span class="header-section-number">3.1</span> Endpoints<a href="api.html#endpoints" class="anchor-section" aria-label="Anchor link to header"></a></h2>
 <p>The SysNDD api currently contains all endpoints for externala nd internal usage in one api script. This may change with future releases.</p>
 <p>The api is structured into different components based on the SysND concept:</p>
 <ul>
@@ -243,8 +260,8 @@ div.csl-indent {
 <p>The endpoints are documented and can be tested using the Swagger/ OpenAPI user interface at <a href="https://sysndd.dbmr.unibe.ch/API">https://sysndd.dbmr.unibe.ch/API</a>.
 Here one can generate cURL requests to use in external software.</p>
 </div>
-<div id="usage-policy" class="section level3 hasAnchor" number="3.0.2">
-<h3><span class="header-section-number">3.0.2</span> Usage policy<a href="api.html#usage-policy" class="anchor-section" aria-label="Anchor link to header"></a></h3>
+<div id="usage-policy" class="section level2 hasAnchor" number="3.2">
+<h2><span class="header-section-number">3.2</span> Usage policy<a href="api.html#usage-policy" class="anchor-section" aria-label="Anchor link to header"></a></h2>
 <p>The SysNDD api powers the web tool for everyday users. We also provide the SysNDD api free to allow users to use the SysNDD data and build on it by creating software or services that connect to our platform.</p>
 <p>Usage requirements:</p>
 <ul>
@@ -259,8 +276,8 @@ Here one can generate cURL requests to use in external software.</p>
 <li>Due to the current development status (version 0.X.Y) we may update or modify the api any time. These changes may affect your use of the api or the way your integration interacts with the api.</li>
 </ul>
 </div>
-<div id="authentication-and-authorization" class="section level3 hasAnchor" number="3.0.3">
-<h3><span class="header-section-number">3.0.3</span> Authentication and authorization<a href="api.html#authentication-and-authorization" class="anchor-section" aria-label="Anchor link to header"></a></h3>
+<div id="authentication-and-authorization" class="section level2 hasAnchor" number="3.3">
+<h2><span class="header-section-number">3.3</span> Authentication and authorization<a href="api.html#authentication-and-authorization" class="anchor-section" aria-label="Anchor link to header"></a></h2>
 <p>The SysNDD api uses JSON Web Tokens (<a href="https://jwt.io/">JWT</a>) to implement stateless authentication and authorization.</p>
 <p>The api user can manually (test purposes) request a token by entering their login credentials in the input form provided at the “api/auth/authenticate” endpoint:</p>
 <div style="max-width:1000px;">

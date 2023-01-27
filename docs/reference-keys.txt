@@ -38,6 +38,9 @@ endpoints
 usage-policy
 authentication-and-authorization
 database-structure
+database-software
+database-schema
+variant-ontology
 curation-criteria
 definitions
 ndd-definitive-entities
