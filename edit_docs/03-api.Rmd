@@ -16,7 +16,7 @@ The api is rate limited through our [NGINX](https://www.nginx.com/) web server c
 
 
 
-### Endpoints
+## Endpoints
 
 The SysNDD api currently contains all endpoints for externala nd internal usage in one api script. This may change with future releases.
 
@@ -43,7 +43,7 @@ The endpoints are documented and can be tested using the Swagger/ OpenAPI user i
 Here one can generate cURL requests to use in external software.
 
 
-### Usage policy
+## Usage policy
 
 The SysNDD api powers the web tool for everyday users. We also provide the SysNDD api free to allow users to use the SysNDD data and build on it by creating software or services that connect to our platform.
 
@@ -61,7 +61,7 @@ Updates and disclaimer:
 
 
 
-### Authentication and authorization
+## Authentication and authorization
 
 The SysNDD api uses JSON Web Tokens ([JWT](https://jwt.io/)) to implement stateless authentication and authorization.
 
