@@ -480,7 +480,7 @@ function(req, res, direct_approval = FALSE) {
         # use the "new_publication function" to update the publications table
         response_publication <- new_publication(publications_received)
 
-        # make the publictaion to review connections
+        # make the publication to review connections
         # using the function "put_post_db_pub_con"
         response_publication_conn <- put_post_db_pub_con(
           "POST",
@@ -715,7 +715,7 @@ function(req, res) {
 
         # only submit publication connections if not empty
         if (length(compact(review_publication_join_ori)) > 0) {
-          # make the publictaion to review connections
+          # make the publication to review connections
           # using the function "put_post_db_pub_con"
           response_publication_conn <- put_post_db_pub_con(
             "POST",
@@ -1234,7 +1234,7 @@ function(req, res, re_review = FALSE) {
           # use the "new_publication function" to update the publications table
           response_publication <- new_publication(publications_received)
 
-          # make the publictaion to review connections using the
+          # make the publication to review connections using the
           # function "put_post_db_pub_con"
           response_publication_conn <- put_post_db_pub_con(
             req$REQUEST_METHOD,
@@ -1308,7 +1308,7 @@ function(req, res, re_review = FALSE) {
           # use the "new_publication function" to update the publications table
           response_publication <- new_publication(publications_received)
 
-        # make the publictaion to review connections using
+        # make the publication to review connections using
         # the function "put_post_db_pub_con"
         response_publication_conn <- put_post_db_pub_con(
           req$REQUEST_METHOD,
@@ -1549,7 +1549,6 @@ function(req, res, review_id_requested, review_ok = FALSE) {
 #* @tag re_review
 #* puts the re-review submission
 ## example data:
-## {"re_review_entity_id":1, "re_review_submitted":1, "status_id":1, "review_id":1}
 #* @serializer json list(na="string")
 #' @put /api/re_review/submit
 function(req, res) {

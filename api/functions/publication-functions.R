@@ -30,7 +30,7 @@ check_pmid <- function(pmid_input) {
 #'
 #' @param publications_received tibble with publication_id and publication_type
 #'
-#' @return list with http status amessage
+#' @return list with http status message
 #' @export
 new_publication <- function(publications_received) {
   # check if all received PMIDs are valid
@@ -68,7 +68,7 @@ new_publication <- function(publications_received) {
         unnest(info)
     }
 
-    # bin tghe two tibbles if they exist
+    # bind the two tibbles if they exist
     publications_list_collected_info <- bind_rows(get0("pub_list_coll_gr_info"),
       get0("pub_list_coll_other_info"))
 
@@ -113,16 +113,18 @@ pmid <- pmid_xml %>%
   xml_find_all("//PMID") %>%
   xml_text()
 
-doi <- pmid_xml %>%
+doi <- (pmid_xml %>%
   xml_find_all("//ELocationID[@EIdType='doi']") %>%
-  xml_text()
+  xml_text())
 
 doi2 <- pmid_xml %>%
   xml_find_all("//ArticleId[@EIdType='doi']") %>%
   xml_text()
 
 doi3 <- pmid_xml %>%
-  xml_find_all("//ArticleId[@IdType='doi']") %>%
+  xml_find_all("//ArticleId[@IdType='doi' and
+    not(ancestor::ReferenceList)]") %>%
+    # this removes possible citations from the DOI list
   xml_text()
 
 if (length(doi) == 0 && length(doi2) != 0) {
