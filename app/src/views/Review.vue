@@ -587,7 +587,7 @@
               :normalizer="normalizeVariationOntology"
               required
             />
-            <!-- Variation ontolog select -->
+            <!-- Variation ontology select -->
 
             <!-- publications tag form with links out -->
             <label
@@ -664,7 +664,7 @@
                       <b-link
                         :href="
                           'https://pubmed.ncbi.nlm.nih.gov/' +
-                            tag.replace('PMID:', '')
+                            tag.replace('PMID:', '').replaceAll(' ', '')
                         "
                         target="_blank"
                         class="text-light"
@@ -754,7 +754,7 @@
                       <b-link
                         :href="
                           'https://pubmed.ncbi.nlm.nih.gov/' +
-                            tag.replace('PMID:', '')
+                            tag.replace('PMID:', '').replaceAll(' ', '')
                         "
                         target="_blank"
                         class="text-light"
@@ -983,7 +983,7 @@
               <template #title>
                 Removal instructions
               </template>
-              SysnDD does not forget, meaning that entities will not be deleted
+              SysNDD does not forget, meaning that entities will not be deleted
               but they can be deactivated. Deactivated entities will not be
               displayed on the website. Typically duplicate entities should be
               deactivated especially if there is a more specific disease name.
@@ -1774,7 +1774,7 @@ export default {
       // Individual PMID tag validator function
       const tag_copy = tag.replace(/\s+/g, '');
       return (
-        !Number.isNaN(Number(tag_copy.replaceAll('PMID:', '')))
+        !Number.isNaN(Number(tag_copy.replaceAll('PMID:', '').replaceAll(' ', '')))
         && tag_copy.includes('PMID:')
         && tag_copy.replace('PMID:', '').length > 4
         && tag_copy.replace('PMID:', '').length < 9
