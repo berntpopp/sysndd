@@ -578,6 +578,33 @@
               for="review-variation-select"
             >Variation ontology</label>
 
+            <b-badge
+              id="popover-badge-help-variation"
+              pill
+              href="#"
+              variant="info"
+            >
+              <b-icon icon="question-circle-fill" />
+            </b-badge>
+
+            <b-popover
+              target="popover-badge-help-variation"
+              variant="info"
+              triggers="focus"
+            >
+              <template #title>
+                Variation instructions
+              </template>
+              Please select or deselect the types of variation associated with the disease entity.
+              <br>
+              Minimum information should include <strong>“protein truncating variation”</strong> and/or
+              <strong>“non-synonymous variation”</strong>.
+              <br>
+              If known, please also select the functional impact of these variations,
+              i.e. if there is a protein <strong>"loss-of-function"</strong> or <strong>"gain-of-function"</strong>.
+              <br>
+            </b-popover>
+
             <treeselect
               id="review-variation-select"
               v-model="select_variation"
