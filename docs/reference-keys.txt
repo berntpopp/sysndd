@@ -41,6 +41,7 @@ database-structure
 database-software
 database-schema
 variant-ontology
+mode-of-inheritance-ontology
 curation-criteria
 definitions
 ndd-definitive-entities
