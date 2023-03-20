@@ -67,3 +67,19 @@ datatable(variation_ontology_list_filtered,
 We use the "Human Phenotype Ontology" as ontology for the mode of inheritance.
 Currently active terms are represented in following table.
 
+```{r, echo=FALSE}
+
+mode_of_inheritance_list_filtered <- mode_of_inheritance_list %>%
+  filter(use == TRUE) %>%
+    mutate(hpo_mode_of_inheritance_term = paste0('<a href="http://purl.obolibrary.org/obo/',
+                           str_replace_all(hpo_mode_of_inheritance_term, "\\:", "\\_"),
+                           '" target="_blank" >',
+                           hpo_mode_of_inheritance_term,
+                           '</a>')) %>%
+  arrange(sort, hpo_mode_of_inheritance_term) %>%
+  select(-use, -sort)
+
+datatable(mode_of_inheritance_list_filtered,
+          filter = 'top', # this argument positions the filtering input at the top of the table
+          escape = FALSE) # this argument renders the links as HTML
+```
