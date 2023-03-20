@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999994 (TeX Live 2022) (preloaded format=xelatex 2022.6.8)  31 JAN 2023 16:14
+This is XeTeX, Version 3.141592653-2.6-0.999994 (TeX Live 2022) (preloaded format=xelatex 2022.6.8)  20 MAR 2023 16:58
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -882,44 +882,45 @@ File: ./static/img/04_01-design-db-schema.png Graphic file (type bmp)
 [35]
 File: SysNDD_documentation_files/figure-latex/unnamed-chunk-2-1.pdf Graphic file (type pdf)
 <use SysNDD_documentation_files/figure-latex/unnamed-chunk-2-1.pdf>
-[36] [37] [38]
+File: SysNDD_documentation_files/figure-latex/unnamed-chunk-3-1.pdf Graphic file (type pdf)
+<use SysNDD_documentation_files/figure-latex/unnamed-chunk-3-1.pdf>
+[36] [37] [38] [39]
 File: ./static/img/sysndd_login.png Graphic file (type bmp)
 <./static/img/sysndd_login.png>
 File: ./static/img/sysndd_login_page.png Graphic file (type bmp)
 <./static/img/sysndd_login_page.png>
-[39] [40]
 File: ./static/img/sysndd_refresh_token.png Graphic file (type bmp)
 <./static/img/sysndd_refresh_token.png>
 File: ./static/img/sysndd_review_page_menu.png Graphic file (type bmp)
 <./static/img/sysndd_review_page_menu.png>
 File: ./static/img/sysndd_review_page.png Graphic file (type bmp)
 <./static/img/sysndd_review_page.png>
-[41]
+[40] [41] [42]
 File: ./static/img/edit_review_button.png Graphic file (type bmp)
 <./static/img/edit_review_button.png>
 File: ./static/img/edit_status_button.png Graphic file (type bmp)
 <./static/img/edit_status_button.png>
-[42]
 File: ./static/img/submit_re-review_button.png Graphic file (type bmp)
 <./static/img/submit_re-review_button.png>
+[43]
 File: ./static/img/modal_modify_review.png Graphic file (type bmp)
 <./static/img/modal_modify_review.png>
-[43] [44]
+[44] [45]
 File: ./static/img/modal_modify_status.png Graphic file (type bmp)
 <./static/img/modal_modify_status.png>
 File: ./static/img/modal_submit_re-review.png Graphic file (type bmp)
 <./static/img/modal_submit_re-review.png>
-[45] [46] [47] (./SysNDD_documentation.bbl) [48] (./SysNDD_documentation.aux)
+[46] [47] [48] (./SysNDD_documentation.bbl) [49] (./SysNDD_documentation.aux)
 Package rerunfilecheck Info: File `SysNDD_documentation.out' has not changed.
 (rerunfilecheck)             Checksum: AEC3783B61FC8143603264625EBD19B5;6458.
  ) 
 Here is how much of TeX's memory you used:
- 18397 strings out of 478126
- 352492 string characters out of 5851685
+ 18405 strings out of 478126
+ 352991 string characters out of 5851685
  812007 words of memory out of 5000000
- 38770 multiletter control sequences out of 15000+600000
+ 38777 multiletter control sequences out of 15000+600000
  475694 words of font info for 79 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
  86i,8n,121p,819b,561s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on SysNDD_documentation.pdf (48 pages).
+Output written on SysNDD_documentation.pdf (49 pages).

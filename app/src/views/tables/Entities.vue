@@ -5,8 +5,8 @@
       :sort-input="sort"
       :filter-input="filter"
       :fields-input="fields"
-      :page-after-input="pageAfter"
-      :page-size-input="pageSize"
+      :page-after-input="page_after"
+      :page-size-input="page_size"
       :fspec-input="fspec"
     />
     <!-- Load Entities table component element -->
@@ -20,8 +20,8 @@ export default {
     sort: { type: String, default: '+entity_id' },
     filter: { type: String, default: null },
     fields: { type: String, default: null },
-    pageAfter: { type: String, default: '0' },
-    pageSize: { type: String, default: '10' },
+    page_after: { type: String, default: '0' },
+    page_size: { type: String, default: '10' },
     fspec: {
       type: String,
       default:

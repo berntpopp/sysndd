@@ -394,7 +394,7 @@ export default {
     sortInput: { type: String, default: '+entity_id' },
     filterInput: { type: String, default: null },
     fieldsInput: { type: String, default: null },
-    pageAfterInput: { type: String, default: '' },
+    pageAfterInput: { type: String, default: '0' },
     pageSizeInput: { type: String, default: '10' },
     fspecInput: {
       type: String,
@@ -473,7 +473,7 @@ export default {
       perPage: this.pageSizeInput,
       pageOptions: ['10', '25', '50', '200'],
       sortBy: 'entity_id',
-      sortDesc: false,
+      sortDesc: true,
       sort: this.sortInput,
       filter: {
         any: { content: null, join_char: null, operator: 'contains' },
@@ -520,6 +520,9 @@ export default {
     const sort_object = this.sortStringToVariables(this.sortInput);
     this.sortBy = sort_object.sortBy;
     this.sortDesc = sort_object.sortDesc;
+
+    // initiate first data load
+    this.loadEntitiesData();
 
     setTimeout(() => {
       this.loading = false;
