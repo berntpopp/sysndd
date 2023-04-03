@@ -73,6 +73,7 @@ pool <- dbPool(
 
 ##-------------------------------------------------------------------##
 ## global variables
+# TODO: This needs to go into the database as helper
 inheritance_input_allowed <- c("X-linked",
   "Autosomal dominant",
   "Autosomal recessive",

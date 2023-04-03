@@ -2,10 +2,6 @@
 node_modules
 /dist
 
-# Ignore the results directory in api folde
-api/results/
-
-
 # local env files
 .env.local
 .env.*.local
