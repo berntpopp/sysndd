@@ -393,6 +393,8 @@ generate_stat_tibble <- function(sort = "category_id,-n",
     tbl("ndd_entity_view") %>%
     arrange(entity_id) %>%
     filter(ndd_phenotype == 1) %>%
+    # this is a fix to remove "not applicable" entries
+    filter(category_id != 5) %>% 
     collect() %>%
     {if (type == "gene")
       select(., symbol,

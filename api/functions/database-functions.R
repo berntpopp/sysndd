@@ -196,7 +196,7 @@ put_post_db_review <- function(request_method,
       ##-------------------------------------------------------------------##
       ## for the put request we update the review and set it's status to 0
       # generate update query, we remove entity_id
-      # to not allow canging the review entity connection
+      # to not allow changing the review entity connection
       update_query <- review_received %>%
         select(-entity_id) %>%
         mutate(row = row_number()) %>%
