@@ -391,11 +391,11 @@ generate_stat_tibble <- function(sort = "category_id,-n",
   # conditionally select columns to based on input
   sysndd_db_disease_types <- pool %>%
     tbl("ndd_entity_view") %>%
-    arrange(entity_id) %>%
     filter(ndd_phenotype == 1) %>%
     # this is a fix to remove "not applicable" entries
     filter(category_id != 5) %>% 
     collect() %>%
+    arrange(entity_id) %>%
     {if (type == "gene")
       select(., symbol,
         inheritance = hpo_mode_of_inheritance_term_name,
