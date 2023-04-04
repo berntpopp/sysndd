@@ -873,9 +873,9 @@ export default {
       ],
       totalRows: 0,
       currentPage: 1,
-      perPage: '10',
+      perPage: '200',
       pageOptions: ['10', '25', '50', '200'],
-      sortBy: '',
+      sortBy: 'review_user_name',
       sortDesc: false,
       sortDirection: 'asc',
       filter: null,
@@ -949,6 +949,9 @@ export default {
       };
     },
     async loadReviewTableData() {
+      // TODO: currently we show 200 entries sorted by user
+      // TODO: need to replace with server side pagination
+      // TODO: implement saved user settings for table configs
       this.isBusy = true;
       const apiUrl = `${process.env.VUE_APP_API_URL}/api/review`;
       try {

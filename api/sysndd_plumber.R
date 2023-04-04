@@ -1035,6 +1035,7 @@ function(sysndd_id) {
 function(req, res, filter_review_approved = FALSE) {
 
   # TODO: maybe this endpoint should be authenticated
+  # TODO: implement server side pagination, sorting etc.
   # make sure filter_review_approved input is logical
   filter_review_approved <- as.logical(filter_review_approved)
 
