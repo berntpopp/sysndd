@@ -66,13 +66,13 @@
                       size="sm"
                       :title="
                         'The table is ' +
-                          (filter_string === '' ? 'not' : '') +
+                          ((filter_string === '' || filter_string === null || filter_string === 'null') ? 'not' : '') +
                           ' filtered.' +
-                          (filter_string === ''
+                          ((filter_string === '' || filter_string === null || filter_string === 'null')
                             ? ''
                             : ' Click to remove all filters.')
                       "
-                      :variant="filter_string === '' ? 'info' : 'warning'"
+                      :variant="(filter_string === '' || filter_string === null || filter_string === 'null') ? 'info' : 'warning'"
                       @click="removeFilters()"
                     >
                       <b-icon
@@ -573,6 +573,9 @@ export default {
     },
     filtered() {
       const filter_string_loc = this.filterObjToStr(this.filter);
+
+      console.log(filter_string_loc);
+      console.log(this.filter_string);
 
       if (filter_string_loc !== this.filter_string) {
         this.filter_string = this.filterObjToStr(this.filter);

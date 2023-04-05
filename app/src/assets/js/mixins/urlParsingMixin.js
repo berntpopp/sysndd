@@ -32,7 +32,7 @@ export default {
       // convert input split_content to regex object
       const split_content_regex = new RegExp(split_content.join('|'));
 
-      // check if imput is empty/ null
+      // check if input is empty/ null
       if (filter_string !== null && filter_string !== 'null' && filter_string !== '') {
         // split input by closing bracket and comma
         const filter_array = filter_string.split('),');
