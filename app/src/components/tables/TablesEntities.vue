@@ -574,9 +574,6 @@ export default {
     filtered() {
       const filter_string_loc = this.filterObjToStr(this.filter);
 
-      console.log(filter_string_loc);
-      console.log(this.filter_string);
-
       if (filter_string_loc !== this.filter_string) {
         this.filter_string = this.filterObjToStr(this.filter);
       }

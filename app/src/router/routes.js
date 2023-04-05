@@ -29,8 +29,8 @@ export const routes = [
       sort: route.query.sort,
       filter: route.query.filter,
       fields: route.query.fields,
-      page_after: route.query.page_after,
-      page_size: route.query.page_size,
+      pageAfter: route.query.page_after,
+      pageSize: route.query.page_size,
       fspec: route.query.fspec,
     }),
     meta: {
@@ -48,8 +48,8 @@ export const routes = [
       sort: route.query.sort,
       filter: route.query.filter,
       fields: route.query.fields,
-      page_after: route.query.page_after,
-      page_size: route.query.page_size,
+      pageAfter: route.query.page_after,
+      pageSize: route.query.page_size,
       fspec: route.query.fspec,
     }),
     meta: {
@@ -67,8 +67,8 @@ export const routes = [
       sort: route.query.sort,
       filter: route.query.filter,
       fields: route.query.fields,
-      page_after: route.query.page_after,
-      page_size: route.query.page_size,
+      pageAfter: route.query.page_after,
+      pageSize: route.query.page_size,
       fspec: route.query.fspec,
     }),
     meta: {
