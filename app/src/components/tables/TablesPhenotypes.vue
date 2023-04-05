@@ -562,7 +562,7 @@ export default {
 
     // conditionally perform data load based on filter input
     // fixes double loading and update bugs
-    if (this.filterInput !== null) {
+    if (this.filterInput !== null && this.filterInput !== 'null' && this.filterInput !== '') {
       // transform input filter string from params to object and assign
       this.filter = this.filterStrToObj(this.filterInput, this.filter);
     } else {
