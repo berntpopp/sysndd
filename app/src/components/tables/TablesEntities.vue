@@ -512,8 +512,6 @@ export default {
     },
   },
   created() {
-    // transform input filter string from params to object and assign
-    this.filter = this.filterStrToObj(this.filterInput, this.filter);
   },
   mounted() {
     // transform input sort string to object and assign
@@ -521,8 +519,15 @@ export default {
     this.sortBy = sort_object.sortBy;
     this.sortDesc = sort_object.sortDesc;
 
-    // initiate first data load
-    this.loadEntitiesData();
+    // conditionally perform data load based on filter input
+    // fixes double loading and update bugs
+    if (this.filterInput !== null) {
+      // transform input filter string from params to object and assign
+      this.filter = this.filterStrToObj(this.filterInput, this.filter);
+    } else {
+      // initiate first data load
+      this.loadEntitiesData();
+    }
 
     setTimeout(() => {
       this.loading = false;

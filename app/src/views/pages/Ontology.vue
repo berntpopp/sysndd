@@ -251,6 +251,7 @@
           <!-- Associated entities card -->
 
           <TablesEntities
+            v-if="ontology.length !== 0"
             :show-filter-controls="false"
             :show-pagination-controls="false"
             header-label="Associated "

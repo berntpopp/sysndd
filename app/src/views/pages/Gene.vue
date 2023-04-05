@@ -351,6 +351,7 @@
           <!-- Associated entities table -->
 
           <TablesEntities
+            v-if="gene.length !== 0"
             :show-filter-controls="false"
             :show-pagination-controls="false"
             header-label="Associated "
