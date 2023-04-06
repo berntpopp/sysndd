@@ -287,6 +287,31 @@
                 </b-button>
 
                 <b-button
+                  v-b-tooltip.hover.top
+                  size="sm"
+                  class="mr-1 btn-xs"
+                  :variant="stoplights_style[row.item.active_category]"
+                  :title="row.item.status_change ? 'edit new status' : 'edit status'"
+                  @click="infoStatus(row.item, row.index, $event.target)"
+                >
+                  <b-iconstack
+                    font-scale="0.9"
+                  >
+                    <b-icon
+                      icon="stoplights"
+                    />
+                    <b-icon
+                      v-if="row.item.status_change"
+                      icon="exclamation-triangle-fill"
+                      shift-h="8"
+                      shift-v="8"
+                      variant="dark"
+                      scale="0.8"
+                    />
+                  </b-iconstack>
+                </b-button>
+
+                <b-button
                   v-b-tooltip.hover.right
                   size="sm"
                   class="mr-1 btn-xs"
@@ -330,7 +355,7 @@
         </b-col>
       </b-row>
 
-      <!-- Approve modal -->
+      <!-- 1) Approve modal -->
       <b-modal
         :id="approveModal.id"
         size="sm"
@@ -353,10 +378,32 @@
 
         You have finished checking this review and
         <span class="font-weight-bold">want to submit it</span>?
-      </b-modal>
-      <!-- Approve modal -->
 
-      <!-- Modify review modal -->
+        <div
+          v-if="entity.status_change"
+        >
+          <div>
+            Also approve new status?
+          </div>
+
+          <div class="custom-control custom-switch">
+            <input
+              id="approveStatusSwitch"
+              v-model="status_approved"
+              type="checkbox"
+              button-variant="info"
+              class="custom-control-input"
+            >
+            <label
+              class="custom-control-label"
+              for="approveStatusSwitch"
+            >Status</label>
+          </div>
+        </div>
+      </b-modal>
+      <!-- 1) Approve modal -->
+
+      <!-- 2) Modify review modal -->
       <b-modal
         :id="reviewModal.id"
         :ref="reviewModal.id"
@@ -680,9 +727,239 @@
           </b-form>
         </b-overlay>
       </b-modal>
-      <!-- Modify review modal -->
+      <!-- 2) Modify review modal -->
 
-      <!-- Check approve all modal -->
+      <!-- 3) Status modal -->
+      <b-modal
+        :id="statusModal.id"
+        :ref="statusModal.id"
+        size="lg"
+        centered
+        ok-title="Submit"
+        no-close-on-esc
+        no-close-on-backdrop
+        header-bg-variant="dark"
+        header-text-variant="light"
+        :busy="loading_status_modal"
+        @ok="submitStatusChange"
+      >
+        <template #modal-title>
+          <h4>
+            Modify status for entity:
+            <b-link
+              :href="'/Entities/' + status_info.entity_id"
+              target="_blank"
+            >
+              <b-badge variant="primary">
+                sysndd:{{ status_info.entity_id }}
+              </b-badge>
+            </b-link>
+            <b-link
+              :href="'/Genes/' + entity_info.symbol"
+              target="_blank"
+            >
+              <b-badge
+                v-b-tooltip.hover.leftbottom
+                pill
+                variant="success"
+                :title="entity_info.hgnc_id"
+              >
+                {{ entity_info.symbol }}
+              </b-badge>
+            </b-link>
+            <b-link
+              :href="
+                '/Ontology/' +
+                  entity_info.disease_ontology_id_version.replace(/_.+/g, '')
+              "
+              target="_blank"
+            >
+              <b-badge
+                v-b-tooltip.hover.leftbottom
+                pill
+                variant="secondary"
+                :title="
+                  entity_info.disease_ontology_name +
+                    '; ' +
+                    entity_info.disease_ontology_id_version
+                "
+              >
+                {{ truncate(entity_info.disease_ontology_name, 40) }}
+              </b-badge>
+            </b-link>
+            <b-badge
+              v-b-tooltip.hover.leftbottom
+              pill
+              variant="info"
+              class="justify-content-md-center"
+              size="1.3em"
+              :title="
+                entity_info.hpo_mode_of_inheritance_term_name +
+                  ' (' +
+                  entity_info.hpo_mode_of_inheritance_term +
+                  ')'
+              "
+            >
+              {{
+                inheritance_short_text[
+                  entity_info.hpo_mode_of_inheritance_term_name
+                ]
+              }}
+            </b-badge>
+          </h4>
+        </template>
+
+        <template #modal-footer="{ ok, cancel }">
+          <div class="w-100">
+            <p class="float-left">
+              Status by:
+              <b-icon
+                :icon="user_icon[status_info.status_user_role]"
+                :variant="user_stlye[status_info.status_user_role]"
+                font-scale="1.0"
+              />
+              <b-badge
+                :variant="user_stlye[status_info.status_user_role]"
+                class="ml-1"
+              >
+                {{ status_info.status_user_name }}
+              </b-badge>
+              <b-badge
+                :variant="user_stlye[status_info.status_user_role]"
+                class="ml-1"
+              >
+                {{ status_info.status_user_role }}
+              </b-badge>
+              <b-badge
+                variant="dark"
+                class="ml-1"
+              >
+                {{ status_info.status_date }}
+              </b-badge>
+            </p>
+
+            <!-- Emulate built in modal footer ok and cancel button actions -->
+            <b-button
+              variant="primary"
+              class="float-right mr-2"
+              @click="ok()"
+            >
+              Save status
+            </b-button>
+            <b-button
+              variant="secondary"
+              class="float-right mr-2"
+              @click="cancel()"
+            >
+              Cancel
+            </b-button>
+          </div>
+        </template>
+
+        <b-overlay
+          :show="loading_status_modal"
+          rounded="sm"
+        >
+          <b-form
+            ref="form"
+            @submit.stop.prevent="submitStatusChange"
+          >
+            <!-- Status select -->
+            <label
+              class="mr-sm-2 font-weight-bold"
+              for="status-select"
+            >Status</label>
+
+            <b-badge
+              id="popover-badge-help-status"
+              pill
+              href="#"
+              variant="info"
+            >
+              <b-icon icon="question-circle-fill" />
+            </b-badge>
+
+            <b-popover
+              target="popover-badge-help-status"
+              variant="info"
+              triggers="focus"
+            >
+              <template #title>
+                Status instructions
+              </template>
+              Please refer to the curation manual for details on the categories.
+            </b-popover>
+
+            <treeselect
+              id="status-select"
+              v-model="status_info.category_id"
+              :multiple="false"
+              :options="status_options"
+              :normalizer="normalizeStatus"
+            />
+            <!-- Status select -->
+
+            <!-- Suggest removal switch -->
+            <label
+              class="mr-sm-2 font-weight-bold"
+              for="removeSwitch"
+            >Removal</label>
+
+            <b-badge
+              id="popover-badge-help-removal"
+              pill
+              href="#"
+              variant="info"
+            >
+              <b-icon icon="question-circle-fill" />
+            </b-badge>
+
+            <b-popover
+              target="popover-badge-help-removal"
+              variant="info"
+              triggers="focus"
+            >
+              <template #title>
+                Removal instructions
+              </template>
+              SysNDD does not forget, meaning that entities will not be deleted
+              but they can be deactivated. Deactivated entities will not be
+              displayed on the website. Typically duplicate entities should be
+              deactivated especially if there is a more specific disease name.
+            </b-popover>
+
+            <div class="custom-control custom-switch">
+              <input
+                id="removeSwitch"
+                v-model="status_info.problematic"
+                type="checkbox"
+                button-variant="info"
+                class="custom-control-input"
+              >
+              <label
+                class="custom-control-label"
+                for="removeSwitch"
+              >Suggest removal</label>
+            </div>
+            <!-- Suggest removal switch -->
+
+            <label
+              class="mr-sm-2 font-weight-bold"
+              for="status-textarea-comment"
+            >Comment</label>
+            <b-form-textarea
+              id="status-textarea-comment"
+              v-model="status_info.comment"
+              rows="2"
+              size="sm"
+              placeholder="Why should this entities status be changed."
+            />
+          </b-form>
+        </b-overlay>
+      </b-modal>
+      <!-- 3) Status modal -->
+
+      <!-- 4) Check approve all modal -->
       <b-modal
         id="approveAllModal"
         ref="approveAllModal"
@@ -714,7 +991,7 @@
           ><b>{{ switch_approve_text[approve_all_selected] }}</b></label>
         </div>
       </b-modal>
-      <!-- Check approve all modal -->
+      <!-- 4) Check approve all modal -->
     </b-container>
   </div>
 </template>
@@ -731,6 +1008,7 @@ import '@riophae/vue-treeselect/dist/vue-treeselect.css';
 
 import Entity from '@/assets/js/classes/submission/submissionEntity';
 import Review from '@/assets/js/classes/submission/submissionReview';
+import Status from '@/assets/js/classes/submission/submissionStatus';
 import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
 import Variation from '@/assets/js/classes/submission/submissionVariation';
 import Literature from '@/assets/js/classes/submission/submissionLiterature';
@@ -880,7 +1158,7 @@ export default {
       sortDirection: 'asc',
       filter: null,
       filterOn: [],
-      entity: [],
+      entity: {},
       approveModal: {
         id: 'approve-modal',
         title: '',
@@ -891,6 +1169,14 @@ export default {
         title: '',
         content: [],
       },
+      statusModal: {
+        id: 'status-modal',
+        title: '',
+        content: [],
+      },
+      status_options: [],
+      status_info: new Status(),
+      loading_status_modal: true,
       entity_info: {
         entity_id: 0,
         symbol: '',
@@ -909,15 +1195,27 @@ export default {
       switch_approve_text: { true: 'Yes', false: 'No' },
       loading_review_approve: true,
       loading_review_modal: true,
+      status_approved: false,
       isBusy: true,
     };
   },
   mounted() {
+    this.loadStatusList();
     this.loadPhenotypesList();
     this.loadVariationOntologyList();
     this.loadReviewTableData();
   },
   methods: {
+    async loadStatusList() {
+      this.loading_status_approve = true;
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/status?tree=true`;
+      try {
+        const response = await this.axios.get(apiUrl);
+        this.status_options = response.data;
+      } catch (e) {
+        this.makeToast(e, 'Error', 'danger');
+      }
+    },
     async loadPhenotypesList() {
       const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/phenotype?tree=true`;
       try {
@@ -1032,6 +1330,32 @@ export default {
         this.makeToast(e, 'Error', 'danger');
       }
     },
+    async loadStatusInfo(status_id) {
+      this.loading_status_modal = true;
+
+      const apiGetURL = `${process.env.VUE_APP_API_URL}/api/status/${status_id}`;
+
+      try {
+        const response = await this.axios.get(apiGetURL);
+
+        // compose entity
+        this.status_info = new Status(
+          response.data[0].category_id,
+          response.data[0].comment,
+          response.data[0].problematic,
+        );
+
+        this.status_info.status_id = response.data[0].status_id;
+        this.status_info.entity_id = response.data[0].entity_id;
+        this.status_info.status_user_role = response.data[0].status_user_role;
+        this.status_info.status_user_name = response.data[0].status_user_name;
+        this.status_info.status_date = response.data[0].status_date;
+
+        this.loading_status_modal = false;
+      } catch (e) {
+        this.makeToast(e, 'Error', 'danger');
+      }
+    },
     async getEntity(entity_input) {
       const apiGetURL = `${process.env.VUE_APP_API_URL
       }/api/entity?filter=equals(entity_id,${
@@ -1102,6 +1426,43 @@ export default {
         this.makeToast(e, 'Error', 'danger');
       }
     },
+    async submitStatusChange() {
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/status/update`;
+
+      // remove additional data before submission
+      // TODO: replace this workaround
+      this.status_info.status_user_name = null;
+      this.status_info.status_user_role = null;
+      this.status_info.entity_id = null;
+
+      // perform update PUT request
+      try {
+        const response = await this.axios.put(
+          apiUrl,
+          { status_json: this.status_info },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          },
+        );
+
+        this.makeToast(
+          `${'The new status for this entity has been submitted '
+            + '(status '}${
+            response.status
+          } (${
+            response.statusText
+          }).`,
+          'Success',
+          'success',
+        );
+        this.resetForm();
+        this.loadReviewTableData();
+      } catch (e) {
+        this.makeToast(e, 'Error', 'danger');
+      }
+    },
     infoReview(item, index, button) {
       this.reviewModal.title = `sysndd:${item.entity_id}`;
       this.getEntity(item.entity_id);
@@ -1110,19 +1471,19 @@ export default {
     },
     infoApproveReview(item, index, button) {
       this.approveModal.title = `sysndd:${item.entity_id}`;
-      this.entity = [];
-      this.entity.push(item);
+      this.entity = {};
+      this.entity = item;
       this.$root.$emit('bv::show::modal', this.approveModal.id, button);
     },
     async handleApproveOk(bvModalEvt) {
-      const apiUrl = `${process.env.VUE_APP_API_URL
+      const apiUrlReview = `${process.env.VUE_APP_API_URL
       }/api/review/approve/${
-        this.entity[0].review_id
+        this.entity.review_id
       }?review_ok=true`;
 
       try {
         const response = await this.axios.put(
-          apiUrl,
+          apiUrlReview,
           {},
           {
             headers: {
@@ -1130,11 +1491,34 @@ export default {
             },
           },
         );
-
-        this.loadReviewTableData();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
+
+      // only call status EP if status should be approved too
+      if (this.status_approved === true && this.entity.status_change === 1) {
+        const apiUrlStatus = `${process.env.VUE_APP_API_URL
+        }/api/status/approve/${
+          this.entity.newest_status
+        }?status_ok=true`;
+
+        try {
+          const response = await this.axios.put(
+            apiUrlStatus,
+            {},
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}`,
+              },
+            },
+          );
+        } catch (e) {
+          this.makeToast(e, 'Error', 'danger');
+        }
+      }
+
+      this.resetApproveModal();
+      this.loadReviewTableData();
     },
     async handleAllReviewsOk() {
       if (this.approve_all_selected) {
@@ -1157,6 +1541,12 @@ export default {
         }
       }
     },
+    normalizeStatus(node) {
+      return {
+        id: node.category_id,
+        label: node.category,
+      };
+    },
     checkAllApprove() {
       this.$refs.approveAllModal.show();
     },
@@ -1175,6 +1565,15 @@ export default {
       this.select_variation = [];
       this.select_additional_references = [];
       this.select_gene_reviews = [];
+    },
+    infoStatus(item, index, button) {
+      this.statusModal.title = `sysndd:${item.entity_id}`;
+      this.getEntity(item.entity_id);
+      this.loadStatusInfo(item.newest_status);
+      this.$root.$emit('bv::show::modal', this.statusModal.id, button);
+    },
+    resetApproveModal() {
+      this.status_approved = false;
     },
     tagValidatorPMID(tag) {
       // Individual PMID tag validator function
