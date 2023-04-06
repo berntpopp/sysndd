@@ -1127,7 +1127,7 @@
           <b-button
             size="sm"
             variant="warning"
-            @click="handleUnsetSubmission()"
+            @click="handleUnsetSubmission(), hideModal(approveModal.id)"
           >
             <b-icon
               icon="unlock"
@@ -1825,6 +1825,9 @@ export default {
       // calculate the age based on the difference from current date
       // round to nearest input argument "rounding"
       return Math.round((Date.now() - Date.parse(date)) / 1000 / 60 / 60 / 24 / 365 / rounding) * rounding;
+    },
+    hideModal(id) {
+      this.$root.$emit('bv::hide::modal', id);
     },
   },
 };
