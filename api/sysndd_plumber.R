@@ -1070,7 +1070,7 @@ function(req, res, filter_review_approved = FALSE) {
     tbl("boolean_list")
 
   # generate entity table with human readable information
-  # TODO replace with entity_view (then filterd in other EPs)
+  # TODO replace with entity_view (then filtered in other EPs)
   ndd_entity_tbl <- pool %>%
     tbl("ndd_entity") %>%
     left_join(non_alt_loci_set,
@@ -1128,6 +1128,44 @@ function(req, res, filter_review_approved = FALSE) {
       TRUE ~ "yes"
     )) %>%
     ungroup()
+
+  # compute status table
+  status_table <- pool %>%
+      tbl("ndd_entity_status") %>%
+      collect() %>%
+      filter(entity_id %in% review_table_collected$entity_id) %>%
+      select(entity_id, status_id, category_id, is_active, status_date) %>%
+      arrange(entity_id) %>%
+      group_by(entity_id) %>%
+      mutate(active_status = case_when(
+              is_active == max(is_active) ~ status_id
+          ), active_category = case_when(
+              is_active == max(is_active) ~ category_id
+          )
+      ) %>%
+      mutate(newest_status = case_when(
+              status_date == max(status_date) ~ status_id
+          ), newest_category = case_when(
+              status_date == max(status_date) ~ category_id
+          )
+      ) %>%
+      select(entity_id,
+        active_status,
+        active_category,
+        newest_status,
+        newest_category) %>%
+      mutate(active_status = max(active_status, na.rm = TRUE),
+          active_category = max(active_category, na.rm = TRUE),
+          newest_status = max(newest_status, na.rm = TRUE),
+          newest_category = max(newest_category, na.rm = TRUE),
+      ) %>%
+      ungroup() %>%
+      unique() %>%
+      mutate(status_change = as.numeric(!(active_status == newest_status)))
+
+  review_table_collected <- review_table_collected %>%
+    left_join(status_table, by = c("entity_id"))
+
 
   review_table_collected
 }
@@ -2649,7 +2687,7 @@ function(req, res, filter_status_approved = FALSE) {
     tbl("boolean_list")
 
   # generate entity table with human readable information
-  # TODO: replace with entity_view (then filterd in other EPs)
+  # TODO: replace with entity_view (then filtered in other EPs)
   ndd_entity_tbl <- pool %>%
     tbl("ndd_entity") %>%
     left_join(non_alt_loci_set,
@@ -2710,6 +2748,35 @@ function(req, res, filter_status_approved = FALSE) {
       TRUE ~ "yes"
     )) %>%
     ungroup()
+
+  # compute review table
+  review_table <- pool %>%
+      tbl("ndd_entity_review") %>%
+      collect() %>%
+      filter(entity_id %in% status_table_collected$entity_id) %>%
+      select(entity_id, review_id, is_primary, review_date) %>%
+      arrange(entity_id) %>%
+      group_by(entity_id) %>%
+      mutate(active_review = case_when(
+              is_primary == max(is_primary) ~ review_id
+          )
+      ) %>%
+      mutate(newest_review = case_when(
+              review_date == max(review_date) ~ review_id
+          )
+      ) %>%
+      select(entity_id,
+        active_review,
+        newest_review) %>%
+      mutate(active_review = max(active_review, na.rm = TRUE),
+          newest_review = max(newest_review, na.rm = TRUE),
+      ) %>%
+      ungroup() %>%
+      unique() %>%
+      mutate(review_change = as.numeric(!(active_review == newest_review)))
+
+  status_table_collected <- status_table_collected %>%
+    left_join(review_table, by = c("entity_id"))
 
   status_table_collected
 }
