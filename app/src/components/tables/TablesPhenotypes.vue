@@ -701,7 +701,11 @@ export default {
         this.items = response.data.data;
 
         this.totalRows = response.data.meta[0].totalItems;
-        this.currentPage = response.data.meta[0].currentPage;
+        // this solves an update issue in b-pagination component
+        // based on https://github.com/bootstrap-vue/bootstrap-vue/issues/3541
+        this.$nextTick(() => {
+          this.currentPage = response.data.meta[0].currentPage;
+        });
         this.totalPages = response.data.meta[0].totalPages;
         this.prevItemID = response.data.meta[0].prevItemID;
         this.currentItemID = response.data.meta[0].currentItemID;
