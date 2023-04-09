@@ -3053,8 +3053,8 @@ function(res,
 ## Statistics endpoints
 
 #* @tag statistics
-#* gets statistics for all genes assoicated with a
-#* NDD phenotype by inheritance and assocation category
+#* gets statistics for all genes associated with a
+#* NDD phenotype by inheritance and association category
 #* @serializer json list(na="string")
 #' @get /api/statistics/category_count
 function(sort = "category_id,-n",
