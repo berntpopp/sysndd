@@ -245,12 +245,12 @@
                 <div>
                   <b-icon
                     :icon="user_icon[data.item.review_user_role]"
-                    :variant="user_stlye[data.item.review_user_role]"
+                    :variant="user_style[data.item.review_user_role]"
                     font-scale="1.0"
                   />
                   <b-badge
                     v-b-tooltip.hover.right
-                    :variant="user_stlye[data.item.review_user_role]"
+                    :variant="user_style[data.item.review_user_role]"
                     :title="data.item.review_user_role"
                     class="ml-1"
                   >
@@ -489,21 +489,32 @@
               Review by:
               <b-icon
                 :icon="user_icon[review_info.review_user_role]"
-                :variant="user_stlye[review_info.review_user_role]"
+                :variant="user_style[review_info.review_user_role]"
                 font-scale="1.0"
               />
               <b-badge
-                :variant="user_stlye[review_info.review_user_role]"
+                :variant="user_style[review_info.review_user_role]"
                 class="ml-1"
               >
                 {{ review_info.review_user_name }}
               </b-badge>
               <b-badge
-                :variant="user_stlye[review_info.review_user_role]"
+                :variant="user_style[review_info.review_user_role]"
                 class="ml-1"
               >
                 {{ review_info.review_user_role }}
               </b-badge>
+            </p>
+
+            <p class="float-left px-1">
+              Current status:
+              <b-avatar
+                v-b-tooltip.hover.top
+                size="1.4em"
+                icon="stoplights"
+                :variant="stoplights_style[entity_info.category_id]"
+                :title="entity_info.category"
+              />
             </p>
 
             <!-- Emulate built in modal footer ok and cancel button actions -->
@@ -815,17 +826,17 @@
               Status by:
               <b-icon
                 :icon="user_icon[status_info.status_user_role]"
-                :variant="user_stlye[status_info.status_user_role]"
+                :variant="user_style[status_info.status_user_role]"
                 font-scale="1.0"
               />
               <b-badge
-                :variant="user_stlye[status_info.status_user_role]"
+                :variant="user_style[status_info.status_user_role]"
                 class="ml-1"
               >
                 {{ status_info.status_user_name }}
               </b-badge>
               <b-badge
-                :variant="user_stlye[status_info.status_user_role]"
+                :variant="user_style[status_info.status_user_role]"
                 class="ml-1"
               >
                 {{ status_info.status_user_role }}

@@ -254,12 +254,12 @@
                 <div>
                   <b-icon
                     :icon="user_icon[data.item.status_user_role]"
-                    :variant="user_stlye[data.item.status_user_role]"
+                    :variant="user_style[data.item.status_user_role]"
                     font-scale="1.0"
                   />
                   <b-badge
                     v-b-tooltip.hover.right
-                    :variant="user_stlye[data.item.status_user_role]"
+                    :variant="user_style[data.item.status_user_role]"
                     :title="data.item.status_user_role"
                     class="ml-1"
                   >
@@ -438,17 +438,17 @@
               Status by:
               <b-icon
                 :icon="user_icon[status_info.status_user_role]"
-                :variant="user_stlye[status_info.status_user_role]"
+                :variant="user_style[status_info.status_user_role]"
                 font-scale="1.0"
               />
               <b-badge
-                :variant="user_stlye[status_info.status_user_role]"
+                :variant="user_style[status_info.status_user_role]"
                 class="ml-1"
               >
                 {{ status_info.status_user_name }}
               </b-badge>
               <b-badge
-                :variant="user_stlye[status_info.status_user_role]"
+                :variant="user_style[status_info.status_user_role]"
                 class="ml-1"
               >
                 {{ status_info.status_user_role }}

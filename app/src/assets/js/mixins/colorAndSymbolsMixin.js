@@ -74,7 +74,7 @@ export default {
         Curator: 'emoji-heart-eyes',
         Administrator: 'emoji-sunglasses',
       },
-      user_stlye: {
+      user_style: {
         Viewer: 'secondary',
         Reviewer: 'primary',
         Curator: 'dark',

@@ -13,8 +13,8 @@
                 <b-card-body>
                   <b-card-title>
                     <b-avatar
-                      :variant="user_stlye[user.user_role[0]]"
-                      :badge-variant="user_stlye[user.user_role[0]]"
+                      :variant="user_style[user.user_role[0]]"
+                      :badge-variant="user_style[user.user_role[0]]"
                       class="justify-content-md-center"
                       size="5rem"
                       badge-offset="-12px"
@@ -36,7 +36,7 @@
                     <b-list-group-item>
                       Username:
                       <b-badge
-                        :variant="user_stlye[user.user_role[0]]"
+                        :variant="user_style[user.user_role[0]]"
                       >
                         {{ user.user_name[0] }}
                       </b-badge>
