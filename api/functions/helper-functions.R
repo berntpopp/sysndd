@@ -79,8 +79,36 @@ random_password <- function() {
 }
 
 
-# validate email
+#' validate email
+#'
+#' @description
+#'
+#' The is_valid_email function is an R function that takes a single argument,
+#' email_address, which is a character string representing an email address.
+#' The function uses regular expressions and the grepl function to determine
+#' if the email address is valid. The regular expression pattern used in the
+#' function checks if the email address has the following format:
+#' - Starts with a word boundary (\\<)
+#' - Followed by one or more uppercase letters, digits, dots, underscores,
+#' percent signs, plus signs or hyphens ([A-Z0-9._%+-]+)
+#' - Followed by the at symbol (@)
+#' - Followed by one or more uppercase letters, digits, dots,
+#' or hyphens ([A-Z0-9.-]+)
+#' - Followed by a dot (.)
+#' - Followed by two or more uppercase letters ([A-Z]{2,})
+#' - Ends with a word boundary (\\>)
+#' If the email address matches this pattern, the grepl function returns TRUE,
+#' indicating that the email address is valid. If the email address does not
+#' match the pattern, grepl returns FALSE, indicating that the email address
+#' is not valid.
+#'
+#' The ignore.case = TRUE argument in grepl makes the function case-insensitive,
+#' allowing it to match email addresses regardless of the case of the
+#' letters in the address.
+#'
 # based on https://www.r-bloggers.com/2012/07/validating-email-adresses-in-r/
+#' @return Boolean value
+#' @export
 is_valid_email <- function(email_address) {
     grepl("\\<[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\>",
       as.character(email_address),
@@ -179,7 +207,8 @@ generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
 # TODO: need to implement allowed Operations as input argument
 # TODO: need to implement column type handling
 generate_filter_expressions <- function(filter_string,
-    operations_allowed = "equals,contains,any,all,lessThan,greaterThan,lessOrEqual,greaterOrEqual") {
+    operations_allowed =
+    "equals,contains,any,all,lessThan,greaterThan,lessOrEqual,greaterOrEqual") {
 
   # define supported operations
   operations_supported <- paste0("equals,contains,any,all,",

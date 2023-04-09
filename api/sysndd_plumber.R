@@ -1634,7 +1634,7 @@ function(req, res) {
 
 
 #* @tag re_review
-#* puts a re-review submission back into unsubmitted mode
+#* puts a re-review submission back into un-submitted mode
 #* (only Administrator and Curator status users)
 #* @serializer json list(na="string")
 #' @put /api/re_review/unsubmit/<re_review_id>
@@ -1714,7 +1714,7 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
 
     # set status if confirmed
     if (status_ok) {
-      # reset all stati in ndd_entity_status to inactive
+      # reset all status in ndd_entity_status to inactive
       dbExecute(sysndd_db,
         paste0("UPDATE ndd_entity_status SET is_active = 0 WHERE entity_id = ",
         re_review_entity_connect_data$entity_id,
@@ -2541,7 +2541,7 @@ phenotype_entities_list <- generate_phenotype_entities_list(sort,
 function(res,
   filter = "contains(ndd_phenotype_word,Yes),any(category,Definitive)") {
 
-  # TODO: add option to called function to immediadetly return long format
+  # TODO: add option to called function to immediately return long format
   # call the endpoint function generate_phenotype_entities
   phenotype_entities_data <- generate_phenotype_entities_list(
     filter = filter)$data %>%
@@ -2558,7 +2558,7 @@ function(res,
     filter(str_detect(modifier_phenotype_id, "1-")) %>%
     # remove the modifier
     mutate(phenotype_id = str_remove(modifier_phenotype_id, "[1-4]-")) %>%
-    # remove the generall HP:0001249 term present in all definitive entities
+    # remove the general HP:0001249 term present in all definitive entities
     filter(phenotype_id != "HP:0001249") %>%
     left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
     select(entity_id, phenotype_id, HPO_term)
@@ -2603,7 +2603,7 @@ function(res,
 function(res,
   filter = "contains(ndd_phenotype_word,Yes),any(category,Definitive)") {
 
-  # TODO: add option to called function to immediadetly return long format
+  # TODO: add option to called function to immediately return long format
   # call the endpoint function generate_phenotype_entities
   phenotype_entities_data <- generate_phenotype_entities_list(
     filter = filter)$data %>%
@@ -2843,7 +2843,7 @@ function() {
 #* @tag status
 #* posts a new status for a entity_id or put an update to a certain status_id
 ## example data: '{"status_id":3,"entity_id":3,"category_id":1,"comment":"fsa","problematic": true}'
-## (provide status_id for put and entity_id for post reqests)
+## (provide status_id for put and entity_id for post requests)
 #* @serializer json list(na="string")
 #' @post /api/status/create
 #' @put /api/status/update
@@ -3573,7 +3573,7 @@ function() {
     select(-entity_id) %>%
     as.data.frame()
 
-  # transfor rownames to entity_id
+  # transform rownames to entity_id
   row.names(sysndd_db_phenotypes_wider_df) <-
     sysndd_db_phenotypes_wider$entity_id
 
@@ -3736,7 +3736,7 @@ function(searchterm, tree = FALSE) {
   do_set_search_return <- do_set_search %>%
     slice_head(n = return_count)
 
-  # the "tree" option allows output data to be formated
+  # the "tree" option allows output data to be formatted
   # as arrays for the treeselect library
   # do here means disease_ontology
   if (tree) {
@@ -3795,7 +3795,7 @@ function(searchterm, tree = FALSE) {
   non_alt_loci_set_search_return <- non_alt_loci_set_search %>%
     slice_head(n = return_count)
 
-  # the "tree" option allows output data to be formated
+  # the "tree" option allows output data to be formatted
   # as arrays for the treeselect library
   if (tree) {
     nal_set_search_return_helper <- non_alt_loci_set_search_return %>%
@@ -3854,7 +3854,7 @@ function(searchterm, tree = FALSE) {
     slice_head(n = return_count)
 
   # the "tree" option allows output data to be
-  # formated as arrays for the treeselect library
+  # formatted as arrays for the treeselect library
   if (tree) {
     moi_list_search_return_helper <- moi_list_search_return %>%
       select(id = hpo_mode_of_inheritance_term,
@@ -3893,7 +3893,7 @@ function(tree = FALSE) {
     arrange(category_id) %>%
     collect()
 
-  # the "tree" option allows output data to be formated
+  # the "tree" option allows output data to be formatted
   # as arrays for the treeselect library
   # do short for disease_ontology
   if (tree) {
@@ -3918,7 +3918,7 @@ function(tree = FALSE) {
   # make sure tree input is logical
   tree <- as.logical(tree)
 
-  # the "tree" option allows output data to be formated as
+  # the "tree" option allows output data to be formatted as
   # arrays for the treeselect library
   # change output by tree input to simple table (tree = FALSE)
   # or treeselect compatible output with modifiers (tree = TRUE)
@@ -3973,7 +3973,7 @@ function(tree = FALSE) {
     filter(is_active == 1) %>%
     select(-is_active, -update_date)
 
-  # the "tree" option allows output data to be formated
+  # the "tree" option allows output data to be formatted
   # as arrays for the treeselect library
   # moi short for mode of inheritance
   if (tree) {
@@ -3999,7 +3999,7 @@ function(tree = FALSE) {
   # make sure tree input is logical
   tree <- as.logical(tree)
 
-  # the "tree" option allows output data to be formated as
+  # the "tree" option allows output data to be formatted as
   # arrays for the treeselect library
   # change output by tree input to simple table (tree = FALSE)
   # or treeselect compatible output with modifiers (tree = TRUE)
@@ -4202,7 +4202,7 @@ function(req, res, user_id = 0, status_approval = FALSE) {
   # make sure status_approval input is logical
   status_approval <- as.logical(status_approval)
 
-  #check if user_id_approval exists and is not allready approved
+  #check if user_id_approval exists and is not already approved
   user_table <- pool %>%
     tbl("user") %>%
     select(user_id, approved, first_name, family_name, email) %>%
@@ -4357,7 +4357,7 @@ function(req, res, user_id, role_assigned = "Viewer") {
   } else if (req$user_role %in% c("Curator") &&
       role_assigned %in% c("Administrator")) {
     res$status <- 403 # Forbidden
-    return(list(error = "Insufficiant rights."))
+    return(list(error = "Insufficient rights."))
   } else {
     res$status <- 403 # Forbidden
     return(list(error = "Write access forbidden."))
