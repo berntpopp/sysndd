@@ -1361,6 +1361,7 @@ export default {
         this.status_info.status_user_role = response.data[0].status_user_role;
         this.status_info.status_user_name = response.data[0].status_user_name;
         this.status_info.status_date = response.data[0].status_date;
+        this.status_info.status_approved = response.data[0].status_approved;
 
         this.loading_status_modal = false;
       } catch (e) {
@@ -1438,40 +1439,81 @@ export default {
       }
     },
     async submitStatusChange() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/status/update`;
+      if (this.status_info.status_approved === 0) {
+        // PUT to update if not approved
+        const apiUrl = `${process.env.VUE_APP_API_URL}/api/status/update`;
 
-      // remove additional data before submission
-      // TODO: replace this workaround
-      this.status_info.status_user_name = null;
-      this.status_info.status_user_role = null;
-      this.status_info.entity_id = null;
+        // remove additional data before submission
+        // TODO: replace this workaround
+        this.status_info.status_user_name = null;
+        this.status_info.status_user_role = null;
+        this.status_info.entity_id = null;
+        this.status_info.status_approved = null;
 
-      // perform update PUT request
-      try {
-        const response = await this.axios.put(
-          apiUrl,
-          { status_json: this.status_info },
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
+        // perform update PUT request
+        try {
+          const response = await this.axios.put(
+            apiUrl,
+            { status_json: this.status_info },
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}`,
+              },
             },
-          },
-        );
+          );
 
-        this.makeToast(
-          `${'The new status for this entity has been submitted '
-            + '(status '}${
-            response.status
-          } (${
-            response.statusText
-          }).`,
-          'Success',
-          'success',
-        );
-        this.resetForm();
-        this.loadReviewTableData();
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
+          this.makeToast(
+            `${'The new status for this entity has been submitted '
+              + '(status '}${
+              response.status
+            } (${
+              response.statusText
+            }).`,
+            'Success',
+            'success',
+          );
+          this.resetForm();
+          this.loadReviewTableData();
+        } catch (e) {
+          this.makeToast(e, 'Error', 'danger');
+        }
+      } else if (this.status_info.status_approved === 1) {
+        // POST to create new status if approved
+        const apiUrl = `${process.env.VUE_APP_API_URL}/api/status/create`;
+
+        // remove additional data before submission
+        // TODO: replace this workaround
+        this.status_info.status_user_name = null;
+        this.status_info.status_user_role = null;
+        this.status_info.status_approved = null;
+
+        // perform update PUT request
+        try {
+          const response = await this.axios.post(
+            apiUrl,
+            { status_json: this.status_info },
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}`,
+              },
+            },
+          );
+
+          this.makeToast(
+            `${'The new status for this entity has been submitted '
+              + '(status '}${
+              response.status
+            } (${
+              response.statusText
+            }).`,
+            'Success',
+            'success',
+          );
+          this.resetForm();
+          this.loadReviewTableData();
+        } catch (e) {
+          this.makeToast(e, 'Error', 'danger');
+        }
       }
     },
     infoReview(item, index, button) {

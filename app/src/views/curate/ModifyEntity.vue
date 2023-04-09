@@ -993,7 +993,7 @@ export default {
     async submitStatusChange() {
       const apiUrl = `${process.env.VUE_APP_API_URL}/api/status/create`;
 
-      // perform update PUT request
+      // perform update POST request
       try {
         const response = await this.axios.post(
           apiUrl,
