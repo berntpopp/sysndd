@@ -196,8 +196,7 @@ gen_mca_clust_obj <- function(wide_phenotypes_df,
           repair = "universal", quiet = TRUE)) %>%
         filter(!str_detect(variable, "NA")) %>%
         filter(!str_detect(variable, "hpo")) %>%
-        mutate(variable = str_remove_all(variable, "^.+=|_yes")) %>%
-        select(variable, p.value, v.test)
+        mutate(variable = str_remove_all(variable, "^.+=|_yes"))
       )) %>%
       mutate(quali_sup_var = list(tibble::as_tibble(
         mca_hcpc$desc.var$category[[cluster]],
@@ -206,15 +205,13 @@ gen_mca_clust_obj <- function(wide_phenotypes_df,
           repair = "universal", quiet = TRUE)) %>%
         filter(!str_detect(variable, "NA")) %>%
         filter(str_detect(variable, "hpo")) %>%
-        mutate(variable = str_remove_all(variable, "^.+=|_yes")) %>%
-        select(variable, p.value, v.test)
+        mutate(variable = str_remove_all(variable, "^.+=|_yes"))
       )) %>%
       mutate(quanti_sup_var = list(tibble::as_tibble(
         mca_hcpc$desc.var$quanti[[cluster]],
         rownames = "variable",
         .name_repair = ~ vctrs::vec_as_names(...,
-          repair = "universal", quiet = TRUE)) %>%
-        select(variable, p.value, v.test)
+          repair = "universal", quiet = TRUE))
       )) %>%
       ungroup()
 
