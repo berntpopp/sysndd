@@ -3472,10 +3472,10 @@ function() {
     collect() %>%
     unique()
 
-  clusters <- gen_string_clust_obj_mem(
+  functional_clusters <- gen_string_clust_obj_mem(
     genes_from_entity_table$hgnc_id)
 
-  categories <- clusters %>%
+  categories <- functional_clusters %>%
     select(term_enrichment) %>%
     unnest(cols = c(term_enrichment)) %>%
     select(category) %>%
@@ -3490,7 +3490,7 @@ function() {
 
   # generate object to return
   list(categories = categories,
-    clusters = clusters)
+    clusters = functional_clusters)
 
 }
 
@@ -3578,11 +3578,21 @@ function() {
     sysndd_db_phenotypes_wider$entity_id
 
   # call cluster analysis function
-  clusters <- gen_mca_clust_obj_mem(
+  phenotype_clusters <- gen_mca_clust_obj_mem(
     sysndd_db_phenotypes_wider_df)
 
+  # add back gene identifiers
+  ndd_entity_view_tbl_sub <- ndd_entity_view_tbl %>%
+    select(entity_id, hgnc_id, symbol)
+
+  phenotype_clusters_identifiers <- phenotype_clusters %>%
+  unnest(identifiers) %>%
+  mutate(entity_id = as.integer(entity_id)) %>%
+  left_join(ndd_entity_view_tbl_sub, by = c("entity_id")) %>%
+  nest(identifiers = c(entity_id, hgnc_id, symbol))
+
   # return output
-  clusters
+  phenotype_clusters_identifiers
 }
 ##-------------------------------------------------------------------##
 
