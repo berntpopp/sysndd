@@ -219,31 +219,6 @@
                 </b-row>
               </template>
 
-              <template #cell(EFO)="data">
-                <b-row>
-                  <b-row
-                    v-for="id in data.item.EFO"
-                    :key="id"
-                  >
-                    <b-col>
-                      <b-button
-                        v-if="id"
-                        class="btn-xs mx-2"
-                        variant="outline-primary"
-                        :src="id"
-                        :href="'http://www.ebi.ac.uk/efo/' + id"
-                        target="_blank"
-                      >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
-                        {{ id }}
-                      </b-button>
-                    </b-col>
-                  </b-row>
-                </b-row>
-              </template>
             </b-table>
           </b-card>
           <!-- Ontology overview card -->
@@ -327,9 +302,6 @@ export default {
           label: 'Orphanet',
           sortable: true,
           class: 'text-left',
-        },
-        {
-          key: 'EFO', label: 'EFO', sortable: true, class: 'text-left',
         },
       ],
       totalRows: 0,
