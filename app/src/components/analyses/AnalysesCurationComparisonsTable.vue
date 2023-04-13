@@ -33,7 +33,8 @@
                 triggers="focus"
               >
                 <template #title>
-                  Comparisons selection
+                  <!-- TODO: last update is a mock, replace with EP data -->
+                  Comparisons selection [last update 2023-04-13]
                 </template>
                 The NDD databases and lists for the comparison with SysNDD are:
                 <br>

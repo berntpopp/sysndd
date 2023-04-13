@@ -218,7 +218,6 @@
                   </b-row>
                 </b-row>
               </template>
-
             </b-table>
           </b-card>
           <!-- Ontology overview card -->
