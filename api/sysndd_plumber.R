@@ -2615,10 +2615,12 @@ function(res,
     tbl("phenotype_list") %>%
     collect()
 
+  # TODO: change endpoint to also present modifier information
   # compose table
   sysndd_db_phenotypes <- phenotype_entities_data %>%
     # remove the modifier
-    mutate(phenotype_id = str_remove(modifier_phenotype_id, "[1-4]-")) %>%
+    # added 5: "absent"
+    mutate(phenotype_id = str_remove(modifier_phenotype_id, "[1-5]-")) %>%
     # remove the general HP:0001249 term present in all definitive entities
     filter(phenotype_id != "HP:0001249") %>%
     left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
