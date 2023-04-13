@@ -14,7 +14,7 @@
               Comparing the presence of a gene in different
               <mark
                 v-b-tooltip.hover.leftbottom
-                title="These have been reviewed to include lists which are regularly updated. Below table allows users to filter the presence of a gene (yes/ no) in the respective list overlaps."
+                title="These have been reviewed to include lists which are regularly updated. Below table allows users to filter the presence of a gene (normalized category/ not listed) in the respective list overlaps."
               >curation efforts</mark>
               for neurodevelopmental disorders.
 
