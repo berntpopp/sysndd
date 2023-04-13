@@ -25,13 +25,49 @@ generate_comparisons_list <- function(sort = "symbol",
     tbl("non_alt_loci_set") %>%
     select(hgnc_id, symbol)
 
-  ndd_database_comparison_table  <- ndd_database_comparison_view %>%
+  ndd_database_comparison_table_col <- ndd_database_comparison_view %>%
     left_join(sysndd_db_non_alt_loci_set, by = c("hgnc_id")) %>%
+    collect()
+
+  # get the category table to compute the max category term
+  status_categories_list <- pool %>%
+    tbl("ndd_entity_status_categories_list") %>%
     collect() %>%
-    select(symbol, hgnc_id, list) %>%
+    select(category_id, max_category = category)
+
+  # normalize categories
+  ndd_database_comparison_table_norm <- ndd_database_comparison_table_col %>%
+    mutate(category = case_when(
+      list == "gene2phenotype" & category == "strong" ~ "Definitive",
+      list == "gene2phenotype" & category == "definitive" ~ "Definitive",
+      list == "gene2phenotype" & category == "limited" ~ "Limited",
+      list == "gene2phenotype" & category == "moderate" ~ "Moderate",
+      list == "gene2phenotype" & category == "both RD and IF" ~ "Definitive",
+      list == "panelapp" & category == "3" ~ "Definitive",
+      list == "panelapp" & category == "2" ~ "Limited",
+      list == "panelapp" & category == "1" ~ "Refuted",
+      list == "sfari" & category == "1" ~ "Definitive",
+      list == "sfari" & category == "2" ~ "Moderate",
+      list == "sfari" & category == "3" ~ "Limited",
+      list == "sfari" & is.na(category) ~ "Definitive",
+      list == "geisinger_DBD" ~ "Definitive",
+      TRUE ~ category
+    )) %>%
+    left_join(status_categories_list, by = c("category" = "max_category")) %>%
+    # following section computes the max category for a gene %>%
+    group_by(symbol) %>%
+    mutate(category_id = min(category_id)) %>%
+    ungroup() %>%
+    select(-category) %>%
+    left_join(status_categories_list, by = c("category_id"))
+
+  # TODO: change this to represent the category instead of "yes"
+  ndd_database_comparison_table <- ndd_database_comparison_table_norm %>%
+    select(symbol, hgnc_id, list, category = max_category) %>%
     unique() %>%
-    mutate(in_list = "yes") %>%
-    pivot_wider(names_from = list, values_from = in_list, values_fill = "no")
+    pivot_wider(names_from = list,
+      values_from = category,
+      values_fill = "not listed")
 
   # use the helper generate_tibble_fspec to
   # generate fields specs from a tibble

@@ -57,7 +57,7 @@
                 <strong>7) OMIM NDD</strong> filtered OMIM for the HPO term
                 "Neurodevelopmental abnormality" (HP:0012759) and all its child
                 terms using the files phenotype_to_genes
-                (http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt)
+                (http://purl.obolibrary.org/obo/hp/hpoa/phenotype.hpoa)
                 and genemap2
                 (https://data.omim.org/downloads/VVpx0Ng3TneJyOfawPWFcg/genemap2.txt),
                 <br>
@@ -247,7 +247,6 @@
               v-if="field.selectable"
               v-model="filter[field.key].content"
               :options="field.selectOptions"
-              size="sm"
               type="search"
               @input="removeSearch()"
               @change="filtered()"
@@ -258,6 +257,24 @@
                 </b-form-select-option>
               </template>
             </b-form-select>
+
+            <label
+              v-if="field.multi_selectable"
+              :for="'select_' + field.key"
+              :aria-label="field.label"
+            >
+              <treeselect
+                v-if="field.multi_selectable"
+                :id="'select_' + field.key"
+                v-model="filter[field.key].content"
+                size="small"
+                :multiple="true"
+                :options="field.selectOptions"
+                :normalizer="normalizer"
+                :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
+                @input="removeSearch();filtered();"
+              />
+            </label>
           </td>
         </template>
 
@@ -281,8 +298,8 @@
             <b-avatar
               v-b-tooltip.hover.left
               size="1.4em"
-              :icon="yn_icon[data.item.SysNDD]"
-              :variant="yn_icon_style[data.item.SysNDD]"
+              icon="stoplights"
+              :variant="stoplights_style[data.item.SysNDD]"
               :title="data.item.SysNDD"
             />
           </div>
@@ -293,8 +310,8 @@
             <b-avatar
               v-b-tooltip.hover.left
               size="1.4em"
-              :icon="yn_icon[data.item.radboudumc_ID]"
-              :variant="yn_icon_style[data.item.radboudumc_ID]"
+              icon="stoplights"
+              :variant="stoplights_style[data.item.radboudumc_ID]"
               :title="data.item.radboudumc_ID"
             />
           </div>
@@ -305,8 +322,8 @@
             <b-avatar
               v-b-tooltip.hover.left
               size="1.4em"
-              :icon="yn_icon[data.item.gene2phenotype]"
-              :variant="yn_icon_style[data.item.gene2phenotype]"
+              icon="stoplights"
+              :variant="stoplights_style[data.item.gene2phenotype]"
               :title="data.item.gene2phenotype"
             />
           </div>
@@ -317,8 +334,8 @@
             <b-avatar
               v-b-tooltip.hover.left
               size="1.4em"
-              :icon="yn_icon[data.item.panelapp]"
-              :variant="yn_icon_style[data.item.panelapp]"
+              icon="stoplights"
+              :variant="stoplights_style[data.item.panelapp]"
               :title="data.item.panelapp"
             />
           </div>
@@ -329,8 +346,8 @@
             <b-avatar
               v-b-tooltip.hover.left
               size="1.4em"
-              :icon="yn_icon[data.item.sfari]"
-              :variant="yn_icon_style[data.item.sfari]"
+              icon="stoplights"
+              :variant="stoplights_style[data.item.sfari]"
               :title="data.item.sfari"
             />
           </div>
@@ -341,8 +358,8 @@
             <b-avatar
               v-b-tooltip.hover.left
               size="1.4em"
-              :icon="yn_icon[data.item.geisinger_DBD]"
-              :variant="yn_icon_style[data.item.geisinger_DBD]"
+              icon="stoplights"
+              :variant="stoplights_style[data.item.geisinger_DBD]"
               :title="data.item.geisinger_DBD"
             />
           </div>
@@ -353,8 +370,8 @@
             <b-avatar
               v-b-tooltip.hover.left
               size="1.4em"
-              :icon="yn_icon[data.item.omim_ndd]"
-              :variant="yn_icon_style[data.item.omim_ndd]"
+              icon="stoplights"
+              :variant="stoplights_style[data.item.omim_ndd]"
               :title="data.item.omim_ndd"
             />
           </div>
@@ -365,8 +382,8 @@
             <b-avatar
               v-b-tooltip.hover.left
               size="1.4em"
-              :icon="yn_icon[data.item.orphanet_id]"
-              :variant="yn_icon_style[data.item.orphanet_id]"
+              icon="stoplights"
+              :variant="stoplights_style[data.item.orphanet_id]"
               :title="data.item.orphanet_id"
             />
           </div>
@@ -381,10 +398,15 @@ import toastMixin from '@/assets/js/mixins/toastMixin';
 import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 
+// import the Treeselect component
+import Treeselect from '@riophae/vue-treeselect';
+// import the Treeselect styles
+import '@riophae/vue-treeselect/dist/vue-treeselect.css';
+
 export default {
   name: 'AnalysesCurationComparisonsTable',
   // register the Treeselect component
-  components: {},
+  components: { Treeselect },
   mixins: [toastMixin, urlParsingMixin, colorAndSymbolsMixin],
   props: {
     showFilterControls: { type: Boolean, default: true },
@@ -483,11 +505,11 @@ export default {
       filter: {
         any: { content: null, join_char: null, operator: 'contains' },
         symbol: { content: null, join_char: null, operator: 'contains' },
-        SysNDD: { content: null, join_char: null, operator: 'contains' },
+        SysNDD: { content: null, join_char: ',', operator: 'any' },
         radboudumc_ID: { content: null, join_char: null, operator: 'contains' },
-        gene2phenotype: { content: null, join_char: null, operator: 'contains' },
-        panelapp: { content: null, join_char: null, operator: 'contains' },
-        sfari: { content: null, join_char: null, operator: 'contains' },
+        gene2phenotype: { content: null, join_char: ',', operator: 'any' },
+        panelapp: { content: null, join_char: ',', operator: 'any' },
+        sfari: { content: null, join_char: ',', operator: 'any' },
         geisinger_DBD: { content: null, join_char: null, operator: 'contains' },
         omim_ndd: { content: null, join_char: null, operator: 'contains' },
         orphanet_id: { content: null, join_char: null, operator: 'contains' },
@@ -647,18 +669,23 @@ export default {
       }
     },
     filtered() {
-      this.filter_string = this.filterObjToStr(this.filter);
+      const filter_string_loc = this.filterObjToStr(this.filter);
+
+      if (filter_string_loc !== this.filter_string) {
+        this.filter_string = this.filterObjToStr(this.filter);
+      }
+
       this.loadTableData();
     },
     removeFilters() {
       this.filter = {
         any: { content: null, join_char: null, operator: 'contains' },
         symbol: { content: null, join_char: null, operator: 'contains' },
-        SysNDD: { content: null, join_char: null, operator: 'contains' },
+        SysNDD: { content: null, join_char: ',', operator: 'any' },
         radboudumc_ID: { content: null, join_char: null, operator: 'contains' },
-        gene2phenotype: { content: null, join_char: null, operator: 'contains' },
-        panelapp: { content: null, join_char: null, operator: 'contains' },
-        sfari: { content: null, join_char: null, operator: 'contains' },
+        gene2phenotype: { content: null, join_char: ',', operator: 'any' },
+        panelapp: { content: null, join_char: ',', operator: 'any' },
+        sfari: { content: null, join_char: ',', operator: 'any' },
         geisinger_DBD: { content: null, join_char: null, operator: 'contains' },
         omim_ndd: { content: null, join_char: null, operator: 'contains' },
         orphanet_id: { content: null, join_char: null, operator: 'contains' },
@@ -666,6 +693,12 @@ export default {
     },
     removeSearch() {
       this.filter.any.content = null;
+    },
+    normalizer(node) {
+      return {
+        id: node,
+        label: node,
+      };
     },
     truncate(str, n) {
       return str.length > n ? `${str.substr(0, n - 1)}...` : str;
