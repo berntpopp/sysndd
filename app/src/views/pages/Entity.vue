@@ -294,6 +294,41 @@
                 </b-row>
               </template>
             </b-table>
+
+            <b-table
+              :items="variation_table"
+              stacked
+              small
+            >
+              <template #cell(variation)>
+                <b-row>
+                  <b-row
+                    v-for="variant in variation"
+                    :key="variant.vario_id"
+                  >
+                    <b-col>
+                      <b-button
+                        v-b-tooltip.hover.bottom
+                        class="btn-xs mx-2"
+                        :variant="modifier_style[variant.modifier_id]"
+                        :href="
+                          'https://www.ebi.ac.uk/ols/ontologies/vario/terms?iri=http://purl.obolibrary.org/obo/' +
+                            variant.vario_id.replace(':', '_')
+                        "
+                        target="_blank"
+                        :title="modifier_text[variant.modifier_id] + '; ' + variant.vario_id"
+                      >
+                        <b-icon
+                          icon="box-arrow-up-right"
+                          font-scale="0.8"
+                        />
+                        {{ variant.vario_name }}
+                      </b-button>
+                    </b-col>
+                  </b-row>
+                </b-row>
+              </template>
+            </b-table>
           </b-card>
           <!-- Entity overview card -->
         </b-col>
@@ -374,6 +409,8 @@ export default {
       genereviews_table: [{ genereviews: '' }],
       phenotypes: [],
       phenotypes_table: [{ phenotypes: '' }],
+      variation: [],
+      variation_table: [{ variation: '' }],
       loading: true,
     };
   },
@@ -407,30 +444,40 @@ export default {
       }/api/entity/${
         this.$route.params.entity_id
       }/status`;
+
       const apiReviewURL = `${process.env.VUE_APP_API_URL
       }/api/entity/${
         this.$route.params.entity_id
       }/review`;
+
       const apiPublicationsURL = `${process.env.VUE_APP_API_URL
       }/api/entity/${
         this.$route.params.entity_id
       }/publications`;
+
       const apiPhenotypesURL = `${process.env.VUE_APP_API_URL
       }/api/entity/${
         this.$route.params.entity_id
       }/phenotypes`;
+
+      const apiVariationURL = `${process.env.VUE_APP_API_URL
+      }/api/entity/${
+        this.$route.params.entity_id
+      }/variation`;
 
       try {
         const response_status = await this.axios.get(apiStatusURL);
         const response_review = await this.axios.get(apiReviewURL);
         const response_publications = await this.axios.get(apiPublicationsURL);
         const response_phenotypes = await this.axios.get(apiPhenotypesURL);
+        const response_variation = await this.axios.get(apiVariationURL);
 
         this.status = response_status.data;
         this.review = response_review.data;
         this.publications = response_publications.data.filter((publication) => publication.publication_type === 'additional_references');
         this.genereviews = response_publications.data.filter((publication) => publication.publication_type === 'gene_review');
         this.phenotypes = response_phenotypes.data;
+        this.variation = response_variation.data;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
