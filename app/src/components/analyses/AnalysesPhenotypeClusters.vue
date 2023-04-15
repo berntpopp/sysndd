@@ -126,9 +126,15 @@ export default {
         quanti_sup_var: [],
       },
       selectedClusterFields: [
-        { key: 'variable', label: 'Variable', class: 'text-left' },
-        { key: 'p.value', label: 'p-value', class: 'text-left' },
-        { key: 'v.test', label: 'v-test', class: 'text-left' },
+        {
+          key: 'variable', label: 'Variable', class: 'text-left', sortable: true,
+        },
+        {
+          key: 'p.value', label: 'p-value', class: 'text-left', sortable: true,
+        },
+        {
+          key: 'v.test', label: 'v-test', class: 'text-left', sortable: true,
+        },
       ],
       tableOptions: [
         { value: 'quali_inp_var', text: 'Qualitative input variables (phenotypes)' },
