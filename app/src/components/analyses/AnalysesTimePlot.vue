@@ -9,7 +9,7 @@
     >
       <template #header>
         <h6 class="mb-1 text-left font-weight-bold">
-          NDD entities since the SysID publication.
+          NDD entities and genes over time.
         </h6>
       </template>
       <b-row>
