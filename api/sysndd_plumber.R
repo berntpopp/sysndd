@@ -1730,7 +1730,7 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
           ";"))
 
       dbExecute(sysndd_db,
-        paste0("UPDATE ndd_entity_status",
+        paste0("UPDATE ndd_entity_status ",
           "SET approving_user_id = ",
           submit_user_id,
           " WHERE status_id = ",
@@ -1738,8 +1738,8 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
           ";"))
 
       dbExecute(sysndd_db,
-        paste0("UPDATE ndd_entity_status",
-          "SET status_approved = 1",
+        paste0("UPDATE ndd_entity_status ",
+          "SET status_approved = 1 ",
           "WHERE status_id = ",
           re_review_entity_connect_data$status_id,
           ";"))
