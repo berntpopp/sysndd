@@ -72,6 +72,7 @@ export default {
       selected_aggregate: 'entity_id',
       group_list: ['category', 'inheritance_filter', 'inheritance_multiple'],
       selected_group: 'category',
+      filter_string: 'contains(ndd_phenotype_word,Yes),any(inheritance_filter,Autosomal dominant,Autosomal recessive,X-linked)',
       items: [],
       itemsMeta: [],
     };
@@ -85,7 +86,9 @@ export default {
       }/api/statistics/entities_over_time?aggregate=${
         this.selected_aggregate
       }&group=${
-        this.selected_group}`;
+        this.selected_group
+      }&filter=${
+        this.filter_string}`;
 
       try {
         const response = await this.axios.get(apiUrl);
@@ -100,7 +103,7 @@ export default {
     },
     generateGraph() {
       // based on https://d3-graph-gallery.com/graph/connectedscatter_legend.html and https://d3-graph-gallery.com/graph/connectedscatter_tooltip.html
-      // resposnsive styling based on https://chartio.com/resources/tutorials/how-to-resize-an-svg-when-the-window-is-resized-in-d3-js/
+      // responsive styling based on https://chartio.com/resources/tutorials/how-to-resize-an-svg-when-the-window-is-resized-in-d3-js/
 
       // set the dimensions and margins of the graph
       const margin = {
