@@ -3086,7 +3086,7 @@ function(res,
   aggregate = "entity_id",
   group = "category",
   summarize = "month",
-  filter = "") {
+  filter = "contains(ndd_phenotype_word,Yes),any(inheritance_filter,Autosomal dominant,Autosomal recessive,X-linked)") {
 
   start_time <- Sys.time()
 
@@ -3121,7 +3121,11 @@ function(res,
   # get data from database and filter
   entity_view_coll <- pool %>%
     tbl("ndd_entity_view") %>%
-    collect() %>%
+    collect()
+
+  # apply filters according to input
+  entity_view_filtered <- entity_view_coll %>%
+    filter(!!!rlang::parse_exprs(filter_exprs)) %>%
     arrange(entry_date, entity_id) %>% ## <-- arrange by entry_date
       { if (aggregate == "symbol")
         group_by(., symbol) %>%
@@ -3137,11 +3141,12 @@ function(res,
         ## <-- concatenate inheritance_filter
         ungroup(.)
       else .
-      }
-
-  # apply filters according to input
-  entity_view_filtered <- entity_view_coll %>%
-    filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+      } %>%
+      { if (group == "inheritance_multiple")
+        ## <-- conditional pipe to remove entries with one inh. pat.
+        filter(., inheritance_filter_count > 1)
+      else .
+      } %>%
     ## <-- arrange according aggregate parameter
     arrange(!!rlang::sym(aggregate)) %>%
     select(!!rlang::sym(aggregate),
