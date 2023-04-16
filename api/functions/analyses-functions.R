@@ -4,7 +4,7 @@
 #'
 #' @param hgnc_list A comma separated list as concatenated text
 #' @param min_size A number defining the minimal cluster size to return
-#' @param subcluster Boolean value indicateting whether to perform subclustering
+#' @param subcluster Boolean value indicating whether to perform subclustering
 #' @param parent the parent cluster name used in the generation of subclusters
 #'
 #' @return The clusters tibble
@@ -36,7 +36,7 @@ gen_string_clust_obj <- function(hgnc_list,
       score_threshold = 200,
       input_directory = "data")
 
-    # load gene table from databse and filter to input HGNC list
+    # load gene table from database and filter to input HGNC list
     sysndd_db_string_id_table <- pool %>%
       tbl("non_alt_loci_set") %>%
       filter(!is.na(STRING_id)) %>%

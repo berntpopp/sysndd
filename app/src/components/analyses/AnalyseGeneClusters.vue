@@ -400,7 +400,7 @@ export default {
       // Color palette for clusters
       const color = d3
         .scaleOrdinal()
-        .domain([1, 2, 3, 4, 5, 6])
+        .domain([1, 2, 3, 4, 5, 6, 7])
         .range(d3.schemeSet1);
 
       // Size scale for clusters
