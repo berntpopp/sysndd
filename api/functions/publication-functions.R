@@ -100,7 +100,7 @@ new_publication <- function(publications_received) {
 #' This custom function replaces "table_articles_byAuth" from
 #' easypubmed because that function is buggy
 #'
-#' @param pubmed_xml_data A XML strinng from Pubmed API
+#' @param pubmed_xml_data A XML string from Pubmed API
 #'
 #' @return tibble with article information columns
 #' @export
@@ -275,12 +275,12 @@ info_from_pmid <- function(pmid_value, request_max = 200) {
       Lastname = lastname,
       Firstname = firstname)
 
-  ouput_tibble <- input_tibble %>%
+  output_tibble <- input_tibble %>%
     left_join(input_tibble_request, by = "publication_id") %>%
     select(-publication_id) %>%
     mutate(across(everything(), ~replace_na(.x, "")))
 
-  return(ouput_tibble)
+  return(output_tibble)
 }
 
 
@@ -295,9 +295,9 @@ info_from_genereviews_pmid <- function(pmid_input) {
   pmid_input <- str_replace_all(pmid_input, "PMID:", "")
 
   Bookshelf_IDs <- genereviews_from_pmid(pmid_input)
-  ouput_tibble <- info_from_genereviews(Bookshelf_IDs)
+  output_tibble <- info_from_genereviews(Bookshelf_IDs)
 
-  return(ouput_tibble)
+  return(output_tibble)
 }
 
 
@@ -404,7 +404,7 @@ info_from_genereviews <- function(Bookshelf_ID) {
     str_c(collapse = "; ")
 
 ## TODO: some error here with title now having multiple matches,
-## seems to work in the inport script check solution there
+## seems to work in the import script check solution there
 
   return_tibble <- as_tibble_row(c("publication_id" = pmid,
       "Bookshelf_ID" = Bookshelf_ID,

@@ -287,7 +287,7 @@ put_post_db_pub_con <- function(request_method,
     add_column(entity_id) %>%
     select(review_id, entity_id, publication_id, publication_type)
 
-  # for the PUT requst we check whether the submitted entity ID
+  # for the PUT request we check whether the submitted entity ID
   # matches the current one associated with the review id to
   # not allow changing this connection
   review_publication_for_match <- (pool %>%
@@ -385,8 +385,8 @@ put_post_db_phen_con <- function(request_method,
     arrange(HPO_term) %>%
     collect()
 
-  # check if received phenoytpes are in allowed phenotypes
-  phenoytpes_allowed <- all(phenotypes_data$phenotype_id %in%
+  # check if received phenotypes are in allowed phenotypes
+  phenotypes_allowed <- all(phenotypes_data$phenotype_id %in%
     phenotype_list_collected$phenotype_id)
 
   # prepare phenotype tibble for submission
@@ -408,7 +408,7 @@ put_post_db_phen_con <- function(request_method,
 
   entity_id_match <- (ndd_review_phenotype_for_match == entity_id)
 
-  if (phenoytpes_allowed) {
+  if (phenotypes_allowed) {
     if (request_method == "POST") {
       # connect to database
       sysndd_db <- dbConnect(RMariaDB::MariaDB(),
@@ -611,7 +611,7 @@ put_post_db_status <- function(request_method,
     if ("category_id" %in% colnames(status_received) ||
         "problematic" %in% colnames(status_received)) {
 
-      # check request type and perform database update accoringly
+      # check request type and perform database update accordingly
       if (request_method == "POST" &&
           "entity_id" %in% colnames(status_received)) {
         # remove status_id if provided as input
@@ -738,8 +738,8 @@ post_db_hash <- function(json_data,
     ##-------------------------------------------------------------------##
     # block to convert the json list into tibble
     # then sort it
-    # check if the column name is in the alloed identifier list
-    # then convert back to josn and hash it
+    # check if the column name is in the allowed identifier list
+    # then convert back to JSON and hash it
     # '!!!' in arrange needed to evaluate the external variable as column name
     json_tibble <- as_tibble(json_data)
     json_tibble <- json_tibble %>%
@@ -974,7 +974,7 @@ put_db_status_approve <- function(status_id_requested,
 
       # set status if confirmed
       if (status_ok) {
-        # reset all stati in ndd_entity_status to inactive
+        # reset all status in ndd_entity_status to inactive
         dbExecute(sysndd_db,
           paste0("UPDATE ndd_entity_status SET is_active = 0 ",
             "WHERE entity_id IN (",

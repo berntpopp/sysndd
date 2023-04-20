@@ -158,15 +158,18 @@ gen_mca_clust_obj <- function(wide_phenotypes_df,
 
     # compute MCA
     # TODO: add logic to find ncp with >70% information
-    # TODO: ideas: http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/117-hcpc-hierarchical-clustering-on-principal-components-essentials/#case-3-clustering-on-mixed-data
-    mca_phenoytpes <- MCA(wide_phenotypes_df,
+    # TODO: ideas: http://www.sthda.com/english/articles/
+    # TODO: 31-principal-component-methods-in-r-practical-guide/
+    # TODO: 117-hcpc-hierarchical-clustering-on-principal-components-essentials/
+    # TODO: #case-3-clustering-on-mixed-data
+    mca_phenotypes <- MCA(wide_phenotypes_df,
         ncp = 15,
         quali.sup = quali_sup_var,
         quanti.sup = quanti_sup_var,
         graph = FALSE)
 
     # compute hierarchical clustering
-    mca_hcpc <- HCPC(mca_phenoytpes,
+    mca_hcpc <- HCPC(mca_phenotypes,
             nb.clust = cutpoint,
             kk = Inf,
             mi = 3,
