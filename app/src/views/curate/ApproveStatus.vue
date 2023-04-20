@@ -577,7 +577,7 @@ export default {
     return {
       problematic_text: {
         0: 'No problems',
-        1: 'Entitiy status marked problematic',
+        1: 'Entity status marked problematic',
       },
       items_StatusTable: [],
       fields_StatusTable: [

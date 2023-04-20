@@ -148,7 +148,7 @@ export default {
         // make the API call
         const response = await this.axios.get(apiUrl);
 
-        // return respone
+        // return response
         return response.data;
       } catch (e) {
         this.makeToast(e, 'Cannot copy', 'danger');

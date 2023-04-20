@@ -23,7 +23,7 @@ export default {
         vmid: 'description',
         name: 'description',
         content:
-          'The NDD Publications analysis shows conent of publicatins reviewed in the SysNDD database.',
+          'The NDD Publications analysis shows content of publications reviewed in the SysNDD database.',
       },
     ],
   },

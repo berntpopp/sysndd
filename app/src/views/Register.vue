@@ -30,7 +30,7 @@
                       :rules="{ required: true, min: 5, max: 20 }"
                     >
                       <b-form-group
-                        description="Enter your prefered user name (min 5 chars)"
+                        description="Enter your preferred user name (min 5 chars)"
                       >
                         <b-form-input
                           v-model="registration_form.user_name"
@@ -193,7 +193,7 @@ export default {
       {
         vmid: 'description',
         name: 'description',
-        content: 'The Register view allows to appy for a new SysNDD account.',
+        content: 'The Register view allows to apply for a new SysNDD account.',
       },
     ],
   },

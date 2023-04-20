@@ -573,7 +573,7 @@
             />
             <!-- Phenotype select -->
 
-            <!-- Variation ontolog select -->
+            <!-- Variation y select -->
             <label
               class="mr-sm-2 font-weight-bold"
               for="review-variation-select"
@@ -588,7 +588,7 @@
               :normalizer="normalizeVariationOntology"
               required
             />
-            <!-- Variation ontolog select -->
+            <!-- Variation ontology select -->
 
             <!-- publications tag form with links out -->
             <label

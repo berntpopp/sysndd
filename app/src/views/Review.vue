@@ -33,7 +33,7 @@
                   </h6>
                 </b-col>
                 <b-col>
-                  <h6 class="mb-1 text-righ font-weight-bold">
+                  <h6 class="mb-1 text-right font-weight-bold">
                     <b-icon
                       :icon="user_icon[user.user_role[0]]"
                       :variant="user_style[user.user_role[0]]"
@@ -572,7 +572,7 @@
             />
             <!-- Phenotype select -->
 
-            <!-- Variation ontolog select -->
+            <!-- Variation ontology select -->
             <label
               class="mr-sm-2 font-weight-bold"
               for="review-variation-select"

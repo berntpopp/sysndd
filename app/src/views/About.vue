@@ -754,7 +754,7 @@ export default {
         vmid: 'description',
         name: 'description',
         content:
-          'The About view contains information abouit the SysNDD curation effort and website.',
+          'The About view contains information about the SysNDD curation effort and website.',
       },
     ],
   },

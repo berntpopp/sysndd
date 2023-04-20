@@ -431,7 +431,7 @@ export default {
         this.user = null;
 
         // based on https://stackoverflow.com/questions/57837758/navigationduplicated-navigating-to-current-location-search-is-not-allowed
-        // to avoid double nvigation
+        // to avoid double navigation
         const path = '/';
         if (this.$route.path !== path) this.$router.push({ name: 'Home' });
       }

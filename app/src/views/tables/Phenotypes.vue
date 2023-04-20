@@ -42,7 +42,7 @@ export default {
         vmid: 'description',
         name: 'description',
         content:
-          'The Phenotypes table view allows browsing NDD associated entities by pehnotype and filtering with download possibility.',
+          'The Phenotypes table view allows browsing NDD associated entities by phenotype and filtering with download possibility.',
       },
     ],
   },
