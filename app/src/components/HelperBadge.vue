@@ -130,16 +130,17 @@ export default {
         const citation = `SysNDD, the expert curated database of gene disease relationships in neurodevelopmental disorders; ${url} (accessed ${today}).`;
 
         // make the snapshot
-        const snapshotResponse = await this.createInternetArchiveSnaphot(url);
+        const snapshotResponse = await this.createInternetArchiveSnapshot(url);
 
         // copy to clipboard
+        // TODO: update with job_id success info when in API response
         await navigator.clipboard.writeText(citation);
-        this.makeToast(`Thank you! Internet archive message: ${snapshotResponse.message}`, 'Citation coppied', 'success');
+        this.makeToast(`Thank you! Internet archive job_id: ${snapshotResponse.job_id}`, 'Citation copied', 'success');
       } catch (e) {
         this.makeToast(e, 'Cannot copy', 'danger');
       }
     },
-    async createInternetArchiveSnaphot(url) {
+    async createInternetArchiveSnapshot(url) {
       try {
         // compose API URL
         const apiUrl = `${process.env.VUE_APP_API_URL}/api/external/internet_archive?parameter_url=${url}`;
