@@ -487,31 +487,31 @@ generate_cursor_pag_inf <- function(pagination_tibble,
       (row_number() <= page_after_row + page_size))
 
   # generate links for self, next and prev pages
-  self <- paste0("&page[after]=", page_after, "&page[size]=", page_size)
+  self <- paste0("&page_after=", page_after, "&page_size=", page_size)
   if (length(page_after_row_prev) == 0) {
     prev <- "null"
   } else {
-    prev <- paste0("&page[after]=",
+    prev <- paste0("&page_after=",
       page_after_row_prev,
-      "&page[size]=",
+      "&page_size=",
       page_size)
   }
 
   if (length(page_after_row_next) == 0) {
     `next` <- "null"
   } else {
-    `next` <- paste0("&page[after]=",
+    `next` <- paste0("&page_after=",
       page_after_row_next,
-      "&page[size]=",
+      "&page_size=",
       page_size)
   }
 
   if (length(page_after_row_last) == 0) {
     last <- "null"
   } else {
-    last <- paste0("&page[after]=",
+    last <- paste0("&page_after=",
       page_after_row_last,
-      "&page[size]=",
+      "&page_size=",
       page_size)
   }
 
@@ -661,4 +661,17 @@ generate_function_hash <- function(function_input) {
   # return result
   return(function_hash)
 
+}
+
+# based on https://community.rstudio.com/t/switching-plumber-serialization-type-based-on-url-arguments/98535/6
+# Routes with `dynamic` serializer should return the result of this function
+dynamic_ser <- function(value, type, ...) {
+  structure(
+    class = "serializer_dynamic_payload",
+    list(
+      value = value,
+      type = type,
+      args = list(...)
+    )
+  )
 }
