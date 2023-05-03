@@ -2484,6 +2484,7 @@ phenotype_entities_list
 #* @tag phenotype
 #* gets a list of entities associated with a list of phenotypes for
 #* download as Excel file
+#* @serializer contentType list(type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 #' @get /api/phenotype/entities/excel
 function(req,
   res,
@@ -2503,38 +2504,20 @@ phenotype_entities_list <- generate_phenotype_entities_list(sort,
   creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"),
     "%Y-%m-%d_T%H-%M-%S")
 
-  # generate excel file output
+  # generate base filename from api name
+  base_filename <- str_replace_all(req$PATH_INFO, "\\/", "_") %>%
+      str_replace_all("_api_", "")
+
   filename <- file.path(tempdir(),
-    paste0(str_replace_all(req$PATH_INFO, "\\/", "_") %>%
-      str_replace_all("_api_", ""),
+    paste0(base_filename,
     "_",
     creation_date,
     ".xlsx"))
 
-  write.xlsx(phenotype_entities_list$data,
-    filename,
-    sheetName = "data",
-    append = FALSE)
+  # generate xlsx bin using helper function
+  bin <- generate_xlsx_bin(phenotype_entities_list, base_filename)
 
-  write.xlsx(phenotype_entities_list$meta %>% select(-fspec),
-    filename,
-    sheetName = "meta",
-    append = TRUE)
-
-  write.xlsx(phenotype_entities_list$links,
-    filename,
-    sheetName = "links",
-    append = TRUE)
-
-  # Read in the raw contents of the binary file
-  bin <- readBin(filename, "raw", n = file.info(filename)$size)
-
-  # Check file existence and delete
-  if (file.exists(filename)) {
-    file.remove(filename)
-  }
-
-  #Return the binary contents
+  # Return the binary contents
   as_attachment(bin, filename)
 }
 
@@ -2994,7 +2977,8 @@ function(res,
 #* @param filter Comma separated list of filters to apply.
 #* @param fields Comma separated list of output columns.
 #' @get /api/panels/excel
-function(res,
+function(req,
+  res,
   sort = "symbol",
   filter = "equals(category,'Definitive'),any(inheritance_filter,'Autosomal dominant','Autosomal recessive','X-linked','Other')",
   fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38",
@@ -3016,18 +3000,21 @@ function(res,
   creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"),
     "%Y-%m-%d_T%H-%M-%S")
 
-  # generate attachment string adn set response header
-  attachment_string <- paste0("attachment; filename=sysndd_panel.",
-    creation_date,
-    ".xlsx")
+  # generate base filename from api name
+  base_filename <- str_replace_all(req$PATH_INFO, "\\/", "_") %>%
+      str_replace_all("_api_", "")
 
-  res$setHeader("Content-Disposition", attachment_string)
+  filename <- file.path(tempdir(),
+    paste0(base_filename,
+    "_",
+    creation_date,
+    ".xlsx"))
 
   # generate xlsx bin using helper function
-  bin <- generate_xlsx_bin(panels_list, "sysndd_panel")
+  bin <- generate_xlsx_bin(panels_list, base_filename)
 
   # Return the binary contents
-  bin
+  as_attachment(bin, filename)
 }
 ## Panels endpoints
 ##-------------------------------------------------------------------##
@@ -3349,7 +3336,7 @@ comparisons_list
 #* genes in different databases for download as Excel file
 #* @serializer contentType list(type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 #' @get /api/comparisons/excel
-function(
+function(req,
   res,
   sort = "symbol",
   filter = "",
@@ -3367,18 +3354,21 @@ comparisons_list <- generate_comparisons_list(sort,
   creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"),
     "%Y-%m-%d_T%H-%M-%S")
 
-  # generate attachment string adn set response header
-  attachment_string <- paste0("attachment; filename=curation_comparisons.",
-    creation_date,
-    ".xlsx")
+  # generate base filename from api name
+  base_filename <- str_replace_all(req$PATH_INFO, "\\/", "_") %>%
+      str_replace_all("_api_", "")
 
-  res$setHeader("Content-Disposition", attachment_string)
+  filename <- file.path(tempdir(),
+    paste0(base_filename,
+    "_",
+    creation_date,
+    ".xlsx"))
 
   # generate xlsx bin using helper function
-  bin <- generate_xlsx_bin(comparisons_list, "curation_comparisons")
+  bin <- generate_xlsx_bin(comparisons_list, base_filename)
 
   # Return the binary contents
-  bin
+  as_attachment(bin, filename)
 }
 ##-------------------------------------------------------------------##
 

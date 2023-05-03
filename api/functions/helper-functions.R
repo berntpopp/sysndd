@@ -677,6 +677,8 @@ generate_xlsx_bin <- function(data_object, file_base_name) {
 
   # here we unselect the nested column fspec
   # based on https://stackoverflow.com/questions/43786883/how-do-i-select-columns-that-may-or-may-not-exist
+  # TODO: instead of unselecting
+  # we could transform to string for all nested
   write.xlsx(data_object$meta %>%
       select(-any_of(c("fspec"))),
     xlsx_file,
