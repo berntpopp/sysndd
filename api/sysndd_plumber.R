@@ -33,11 +33,13 @@ library(factoextra)
 library(FactoMineR)
 library(vctrs)
 library(httr)
+library(ellipsis)
 ##-------------------------------------------------------------------##
 
 
 
 ##-------------------------------------------------------------------##
+# load config
 dw <- config::get(Sys.getenv("API_CONFIG"))
 ##-------------------------------------------------------------------##
 
@@ -58,6 +60,7 @@ Sys.setenv(TZ = "GMT")
 
 
 ##-------------------------------------------------------------------##
+# generate a pool of connections to the database
 pool <- dbPool(
   drv = RMariaDB::MariaDB(),
   dbname = dw$dbname,
@@ -260,6 +263,44 @@ function(req, res) {
 ##-------------------------------------------------------------------##
 
 
+##-------------------------------------------------------------------##
+## Register serializers
+# based on https://community.rstudio.com/t/switching-plumber-serialization-type-based-on-url-arguments/98535/6
+
+register_serializer(
+  "dynamic",
+  function(...) {
+    ellipsis::check_dots_empty()
+
+    function(val, req, res, error_handler) {
+      if (!inherits(val, "serializer_dynamic_payload")) {
+        stop("Value returned from route did not return the result of `dynamic_ser(value, type)`")
+      }
+
+      # extract info
+      value <- val$value
+      type <- val$type
+      args <- val$args
+
+      # If this was submitted as a PR,
+      #this value is available within the plumber package
+      ser_factory <- plumber:::.globals$serializers[[type]]
+      if (!is.function(ser_factory)) {
+        stop("Dynamic serializer of type ",
+          type,
+          " not found. See `registered_serializers()` for known types.")
+      }
+
+      # generate serializer
+      ser <- do.call(ser_factory, args)
+
+      # serialize
+      ser(value, req, res, error_handler)
+    }
+  }
+)
+##-------------------------------------------------------------------##
+
 
 ##-------------------------------------------------------------------##
 ## Entity endpoints
@@ -327,12 +368,16 @@ function(res,
 
   # use the helper generate_tibble_fspec to
   # generate fields specs from a tibble
+  # first for the unfiltered and not subset table
   disease_table_fspec <- generate_tibble_fspec_mem(ndd_entity_view,
     fspec)
+  # then for the filtered/ subset one
   sysndd_db_disease_table_fspec <- generate_tibble_fspec_mem(
     sysndd_db_disease_table,
     fspec)
-  disease_table_fspec$fspec$count_filtered <- sysndd_db_disease_table_fspec$fspec$count
+  # assign the second to the first as filtered
+  disease_table_fspec$fspec$count_filtered <-
+    sysndd_db_disease_table_fspec$fspec$count
 
   # compute execution time
   end_time <- Sys.time()
@@ -2478,9 +2523,9 @@ phenotype_entities_list
 #* @tag phenotype
 #* gets a list of entities associated with a list of phenotypes for
 #* download as Excel file
-#* @serializer contentType list(type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 #' @get /api/phenotype/entities/excel
-function(res,
+function(req,
+  res,
   sort = "entity_id",
   filter = "",
   fields = "",
@@ -2495,10 +2540,15 @@ phenotype_entities_list <- generate_phenotype_entities_list(sort,
 
   # generate creation date statistic for output
   creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"),
-    "%Y-%m-%dT %H:%M:%S")
+    "%Y-%m-%d_T%H-%M-%S")
 
   # generate excel file output
-  filename <- file.path(tempdir(), "phenotype_panel.xlsx")
+  filename <- file.path(tempdir(),
+    paste0(str_replace_all(req$PATH_INFO, "\\/", "_") %>%
+      str_replace_all("_api_", ""),
+    "_",
+    creation_date,
+    ".xlsx"))
 
   write.xlsx(phenotype_entities_list$data,
     filename,
@@ -2515,22 +2565,16 @@ phenotype_entities_list <- generate_phenotype_entities_list(sort,
     sheetName = "links",
     append = TRUE)
 
-  attachment_string <- paste0("attachment; filename=phenotype_panel.",
-    creation_date,
-    ".xlsx")
-
-  res$setHeader("Content-Disposition", attachment_string)
-
   # Read in the raw contents of the binary file
   bin <- readBin(filename, "raw", n = file.info(filename)$size)
 
-  #Check file existence and delete
+  # Check file existence and delete
   if (file.exists(filename)) {
     file.remove(filename)
   }
 
   #Return the binary contents
-  bin
+  as_attachment(bin, filename)
 }
 
 
@@ -3009,41 +3053,19 @@ function(res,
 
   # generate creation date statistic for output
   creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"),
-    "%Y-%m-%dT %H:%M:%S")
+    "%Y-%m-%d_T%H-%M-%S")
 
-  # generate excel file output
-  filename <- file.path(tempdir(), "sysndd_panel.xlsx")
-
-  write.xlsx(panels_list$data,
-    filename,
-    sheetName = "data",
-    append = FALSE)
-
-  write.xlsx(panels_list$meta,
-    filename,
-    sheetName = "meta",
-    append = TRUE)
-
-  write.xlsx(panels_list$links,
-    filename,
-    sheetName = "links",
-    append = TRUE)
-
+  # generate attachment string adn set response header
   attachment_string <- paste0("attachment; filename=sysndd_panel.",
     creation_date,
     ".xlsx")
 
   res$setHeader("Content-Disposition", attachment_string)
 
-  # Read in the raw contents of the binary file
-  bin <- readBin(filename, "raw", n = file.info(filename)$size)
+  # generate xlsx bin using helper function
+  bin <- generate_xlsx_bin(panels_list, "sysndd_panel")
 
-  #Check file existence and delete
-  if (file.exists(filename)) {
-    file.remove(filename)
-  }
-
-  #Return the binary contents
+  # Return the binary contents
   bin
 }
 ## Panels endpoints
@@ -3364,7 +3386,6 @@ comparisons_list
 #* @tag comparisons
 #* returns a table showing the presence of NDD associated
 #* genes in different databases for download as Excel file
-## download as Excel file
 #* @serializer contentType list(type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 #' @get /api/comparisons/excel
 function(
@@ -3383,41 +3404,19 @@ comparisons_list <- generate_comparisons_list(sort,
 
   # generate creation date statistic for output
   creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"),
-    "%Y-%m-%dT %H:%M:%S")
+    "%Y-%m-%d_T%H-%M-%S")
 
-  # generate excel file output
-  filename <- file.path(tempdir(), "curation_comparisons.xlsx")
-
-  write.xlsx(comparisons_list$data,
-    filename,
-    sheetName = "data",
-    append = FALSE)
-
-  write.xlsx(comparisons_list$meta %>% select(-fspec),
-    filename,
-    sheetName = "meta",
-    append = TRUE)
-
-  write.xlsx(comparisons_list$links,
-    filename,
-    sheetName = "links",
-    append = TRUE)
-
+  # generate attachment string adn set response header
   attachment_string <- paste0("attachment; filename=curation_comparisons.",
     creation_date,
     ".xlsx")
 
   res$setHeader("Content-Disposition", attachment_string)
 
-  # Read in the raw contents of the binary file
-  bin <- readBin(filename, "raw", n = file.info(filename)$size)
+  # generate xlsx bin using helper function
+  bin <- generate_xlsx_bin(comparisons_list, "curation_comparisons")
 
-  #Check file existence and delete
-  if (file.exists(filename)) {
-    file.remove(filename)
-  }
-
-  #Return the binary contents
+  # Return the binary contents
   bin
 }
 ##-------------------------------------------------------------------##

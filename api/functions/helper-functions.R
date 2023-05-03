@@ -663,6 +663,43 @@ generate_function_hash <- function(function_input) {
 
 }
 
+# generate an xlsx file and return its binary info
+generate_xlsx_bin <- function(data_object, file_base_name) {
+
+  # generate excel file output
+  xlsx_file <- file.path(tempdir(),
+    paste0(file_base_name, ".xlsx"))
+
+  write.xlsx(data_object$data,
+    xlsx_file,
+    sheetName = "data",
+    append = FALSE)
+
+  # here we unselect the nested column fspec
+  # based on https://stackoverflow.com/questions/43786883/how-do-i-select-columns-that-may-or-may-not-exist
+  write.xlsx(data_object$meta %>%
+      select(-any_of(c("fspec"))),
+    xlsx_file,
+    sheetName = "meta",
+    append = TRUE)
+
+  write.xlsx(data_object$links,
+    xlsx_file,
+    sheetName = "links",
+    append = TRUE)
+
+  # Read in the raw contents of the binary file
+  bin <- readBin(xlsx_file, "raw", n = file.info(xlsx_file)$size)
+
+  # Check file existence and delete
+  if (file.exists(xlsx_file)) {
+    file.remove(xlsx_file)
+  }
+
+  # return the binary contents
+  return(bin)
+}
+
 # based on https://community.rstudio.com/t/switching-plumber-serialization-type-based-on-url-arguments/98535/6
 # Routes with `dynamic` serializer should return the result of this function
 dynamic_ser <- function(value, type, ...) {
