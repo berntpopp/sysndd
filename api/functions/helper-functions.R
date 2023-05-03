@@ -699,16 +699,3 @@ generate_xlsx_bin <- function(data_object, file_base_name) {
   # return the binary contents
   return(bin)
 }
-
-# based on https://community.rstudio.com/t/switching-plumber-serialization-type-based-on-url-arguments/98535/6
-# Routes with `dynamic` serializer should return the result of this function
-dynamic_ser <- function(value, type, ...) {
-  structure(
-    class = "serializer_dynamic_payload",
-    list(
-      value = value,
-      type = type,
-      args = list(...)
-    )
-  )
-}

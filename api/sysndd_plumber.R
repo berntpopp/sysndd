@@ -264,45 +264,6 @@ function(req, res) {
 
 
 ##-------------------------------------------------------------------##
-## Register serializers
-# based on https://community.rstudio.com/t/switching-plumber-serialization-type-based-on-url-arguments/98535/6
-
-register_serializer(
-  "dynamic",
-  function(...) {
-    ellipsis::check_dots_empty()
-
-    function(val, req, res, error_handler) {
-      if (!inherits(val, "serializer_dynamic_payload")) {
-        stop("Value returned from route did not return the result of `dynamic_ser(value, type)`")
-      }
-
-      # extract info
-      value <- val$value
-      type <- val$type
-      args <- val$args
-
-      # If this was submitted as a PR,
-      #this value is available within the plumber package
-      ser_factory <- plumber:::.globals$serializers[[type]]
-      if (!is.function(ser_factory)) {
-        stop("Dynamic serializer of type ",
-          type,
-          " not found. See `registered_serializers()` for known types.")
-      }
-
-      # generate serializer
-      ser <- do.call(ser_factory, args)
-
-      # serialize
-      ser(value, req, res, error_handler)
-    }
-  }
-)
-##-------------------------------------------------------------------##
-
-
-##-------------------------------------------------------------------##
 ## Entity endpoints
 
 #* @tag entity
