@@ -49,7 +49,29 @@
                   >
                     <b-button
                       v-b-tooltip.hover.bottom
-                      class="mx-1"
+                      class="mr-1"
+                      size="sm"
+                      title="Download data as Excel file."
+                      @click="requestSelectedExcel()"
+                    >
+                      <b-icon
+                        icon="table"
+                        class="mx-1"
+                      />
+                      <b-icon
+                        v-if="!downloading"
+                        icon="download"
+                      />
+                      <b-spinner
+                        v-if="downloading"
+                        small
+                      />
+                      .xlsx
+                    </b-button>
+
+                    <b-button
+                      v-b-tooltip.hover.bottom
+                      class="mr-1"
                       size="sm"
                       title="Copy link to this page."
                       variant="success"
@@ -64,6 +86,7 @@
                     <b-button
                       v-b-tooltip.hover.bottom
                       size="sm"
+                      class="mr-1"
                       :title="
                         'The table is ' +
                           ((filter_string === '' || filter_string === null || filter_string === 'null') ? 'not' : '') +
@@ -120,28 +143,6 @@
                     >
                       <b>{{ switch_text[checked] }}</b>
                     </b-form-checkbox>
-                  </b-col>
-
-                  <b-col class="my-1">
-                    <b-button
-                      block
-                      size="sm"
-                      @click="requestSelectedExcel"
-                    >
-                      <b-icon
-                        icon="table"
-                        class="mx-1"
-                      />
-                      <b-icon
-                        v-if="!downloading"
-                        icon="download"
-                      />
-                      <b-spinner
-                        v-if="downloading"
-                        small
-                      />
-                      .xlsx
-                    </b-button>
                   </b-col>
                 </b-row>
               </b-col>

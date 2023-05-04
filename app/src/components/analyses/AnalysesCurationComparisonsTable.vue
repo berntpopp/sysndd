@@ -78,10 +78,31 @@
             </h6>
           </b-col>
           <b-col>
-            <h6
+            <h5
               v-if="showFilterControls"
               class="mb-1 text-right font-weight-bold"
             >
+              <b-button
+                v-b-tooltip.hover.bottom
+                class="mr-1"
+                size="sm"
+                title="Download data as Excel file."
+                @click="requestExcel()"
+              >
+                <b-icon
+                  icon="table"
+                  class="mx-1"
+                />
+                <b-icon
+                  v-if="!downloading"
+                  icon="download"
+                />
+                <b-spinner
+                  v-if="downloading"
+                  small
+                />
+                .xlsx
+              </b-button>
               <!--               <b-button
                 v-b-tooltip.hover.bottom
                 class="mx-1"
@@ -113,7 +134,7 @@
                   font-scale="1.0"
                 />
               </b-button>
-            </h6>
+            </h5>
           </b-col>
         </b-row>
       </template>
@@ -137,35 +158,6 @@
               @update="filtered()"
             />
           </b-form-group>
-        </b-col>
-
-        <b-col
-          class="my-1"
-          sm="2"
-        >
-          <b-row>
-            <b-col>
-              <b-button
-                block
-                size="sm"
-                @click="requestExcel"
-              >
-                <b-icon
-                  icon="table"
-                  class="mx-1"
-                />
-                <b-icon
-                  v-if="!downloading"
-                  icon="download"
-                />
-                <b-spinner
-                  v-if="downloading"
-                  small
-                />
-                .xlsx
-              </b-button>
-            </b-col>
-          </b-row>
         </b-col>
 
         <b-col
