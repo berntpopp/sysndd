@@ -742,10 +742,11 @@ export default {
       }&page_after=`
         + '0'
         + '&page_size='
-        + 'all';
+        + 'all'
+        + '&format=xlsx';
 
       const apiUrl = `${process.env.VUE_APP_API_URL
-      }/api/phenotype/entities/excel?${
+      }/api/phenotype/entities/browse?${
         urlParam}`;
 
       try {

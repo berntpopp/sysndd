@@ -76,12 +76,19 @@ pool <- dbPool(
 
 ##-------------------------------------------------------------------##
 ## global variables
+serializers <- list(
+  "json" = serializer_json(),
+  "xlsx" = serializer_content_type(type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+)
+
 # TODO: This needs to go into the database as helper
 inheritance_input_allowed <- c("X-linked",
   "Autosomal dominant",
   "Autosomal recessive",
   "Other",
   "All")
+
+# TODO: This needs to go into the database as helper
 output_columns_allowed <- c("category",
   "inheritance",
   "symbol",
@@ -91,6 +98,8 @@ output_columns_allowed <- c("category",
   "ucsc_id",
   "bed_hg19",
   "bed_hg38")
+
+# TODO: This needs to go into the database as helper
 user_status_allowed <- c("Administrator",
   "Curator",
   "Reviewer",
@@ -2071,7 +2080,7 @@ function(req, res, re_review_batch) {
     filter(re_review_batch == re_review_batch_unassign) %>%
     collect()
 
-  re_review_batch_unassign_exists <- as.logical(
+  re_review_batch_unassign_ex <- as.logical(
     length(re_review_assignment_table$re_review_batch))
 
   # first check rights
@@ -2082,14 +2091,14 @@ function(req, res, re_review_batch) {
 
   } else if (
     req$user_role %in% c("Administrator", "Curator") &&
-    !re_review_batch_unassign_exists) {
+    !re_review_batch_unassign_ex) {
 
     res$status <- 409 # Conflict
     return(list(error = "Batch does not exist."))
 
   } else if (
     req$user_role %in% c("Administrator", "Curator") &&
-    re_review_batch_unassign_exists) {
+    re_review_batch_unassign_ex) {
 
     # connect to database, delete assignment then disconnect
     sysndd_db <- dbConnect(RMariaDB::MariaDB(),
@@ -2149,7 +2158,7 @@ function(req, res) {
       tbl("user") %>%
       select(user_id, user_name)
 
-    re_review_assignment_table_user <- re_review_assignment_table %>%
+    re_review_assign_table_user <- re_review_assignment_table %>%
       left_join(user_table, by = c("user_id")) %>%
       collect() %>%
       left_join(re_review_entity_connect_table, by = c("re_review_batch")) %>%
@@ -2165,7 +2174,7 @@ function(req, res) {
       arrange(user_id)
 
     # return tibble
-    re_review_assignment_table_user
+    re_review_assign_table_user
   } else {
     res$status <- 403 # Forbidden
     return(list(error = "Read access forbidden."))
@@ -2461,26 +2470,55 @@ function(ontology_input, input_type = "ontology_id") {
 #* @param page_size:str Page size in cursor pagination.
 #* @param fspec:str Fields for which to generate the fied specification in the meta data response.
 #' @get /api/phenotype/entities/browse
-function(res,
+function(req,
+  res,
   sort = "entity_id",
   filter = "",
   fields = "",
   `page_after` = "0",
   `page_size` = "10",
-  fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details") {
-# call the endpoint function generate_phenotype_entities
-phenotype_entities_list <- generate_phenotype_entities_list(sort,
-  filter,
-  fields,
-  `page_after`,
-  `page_size`,
-  fspec)
+  fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details",
+  format = "json") {
+  # set serializers
+  res$serializer <- serializers[[format]]
 
-# return the list
-phenotype_entities_list
+  # call the endpoint function generate_phenotype_entities
+  phenotype_entities_list <- generate_phenotype_entities_list(sort,
+    filter,
+    fields,
+    `page_after`,
+    `page_size`,
+    fspec)
+
+  # if xlsx requested compute this and return
+  if (format == "xlsx") {
+    # generate creation date statistic for output
+    creation_date <- strftime(as.POSIXlt(Sys.time(),
+      "UTC",
+      "%Y-%m-%dT%H:%M:%S"),
+      "%Y-%m-%d_T%H-%M-%S")
+
+    # generate base filename from api name
+    base_filename <- str_replace_all(req$PATH_INFO, "\\/", "_") %>%
+        str_replace_all("_api_", "")
+
+    filename <- file.path(paste0(base_filename,
+      "_",
+      creation_date,
+      ".xlsx"))
+
+    # generate xlsx bin using helper function
+    bin <- generate_xlsx_bin(phenotype_entities_list, base_filename)
+
+    # Return the binary contents
+    as_attachment(bin, filename)
+  } else {
+    phenotype_entities_list
+  }
 }
 
 
+# TODO: remove endpoint
 #* @tag phenotype
 #* gets a list of entities associated with a list of phenotypes for
 #* download as Excel file
@@ -2493,23 +2531,24 @@ function(req,
   fields = "",
   `page_after` = "0",
   `page_size` = "all") {
-# call the endpoint function generate_phenotype_entities
-phenotype_entities_list <- generate_phenotype_entities_list(sort,
-  filter,
-  fields,
-  `page_after`,
-  `page_size`)
+  # call the endpoint function generate_phenotype_entities
+  phenotype_entities_list <- generate_phenotype_entities_list(sort,
+    filter,
+    fields,
+    `page_after`,
+    `page_size`)
 
   # generate creation date statistic for output
-  creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"),
+  creation_date <- strftime(as.POSIXlt(Sys.time(),
+    "UTC",
+    "%Y-%m-%dT%H:%M:%S"),
     "%Y-%m-%d_T%H-%M-%S")
 
   # generate base filename from api name
   base_filename <- str_replace_all(req$PATH_INFO, "\\/", "_") %>%
       str_replace_all("_api_", "")
 
-  filename <- file.path(tempdir(),
-    paste0(base_filename,
+  filename <- file.path(paste0(base_filename,
     "_",
     creation_date,
     ".xlsx"))
@@ -2947,13 +2986,18 @@ function() {
 #* @param filter Comma separated list of filters to apply.
 #* @param fields Comma separated list of output columns.
 #' @get /api/panels/browse
-function(res,
+function(req,
+  res,
   sort = "symbol",
   filter = "equals(category,'Definitive'),any(inheritance_filter,'Autosomal dominant','Autosomal recessive','X-linked','Other')",
   fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38",
   `page_after` = 0,
   `page_size` = "all",
-  max_category = TRUE) {
+  max_category = TRUE,
+  format = "json") {
+  # set serializers
+  res$serializer <- serializers[[format]]
+
   # make sure max_category input is logical
   max_category <- as.logical(max_category)
 
@@ -2965,11 +3009,35 @@ function(res,
     `page_size`,
     max_category)
 
-  # return the list
-  panels_list
+  # if xlsx requested compute this and return
+  if (format == "xlsx") {
+    # generate creation date statistic for output
+    creation_date <- strftime(as.POSIXlt(Sys.time(),
+      "UTC",
+      "%Y-%m-%dT%H:%M:%S"),
+      "%Y-%m-%d_T%H-%M-%S")
+
+    # generate base filename from api name
+    base_filename <- str_replace_all(req$PATH_INFO, "\\/", "_") %>%
+        str_replace_all("_api_", "")
+
+    filename <- file.path(paste0(base_filename,
+      "_",
+      creation_date,
+      ".xlsx"))
+
+    # generate xlsx bin using helper function
+    bin <- generate_xlsx_bin(panels_list, base_filename)
+
+    # Return the binary contents
+    as_attachment(bin, filename)
+  } else {
+    panels_list
+  }
 }
 
 
+# TODO: remove endpoint
 #* @tag panels
 #* gets panel data by category and inheritance terms for download as Excel file
 #* @serializer contentType list(type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
@@ -2997,15 +3065,16 @@ function(req,
     max_category)
 
   # generate creation date statistic for output
-  creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"),
+  creation_date <- strftime(as.POSIXlt(Sys.time(),
+    "UTC",
+    "%Y-%m-%dT%H:%M:%S"),
     "%Y-%m-%d_T%H-%M-%S")
 
   # generate base filename from api name
   base_filename <- str_replace_all(req$PATH_INFO, "\\/", "_") %>%
       str_replace_all("_api_", "")
 
-  filename <- file.path(tempdir(),
-    paste0(base_filename,
+  filename <- file.path(paste0(base_filename,
     "_",
     creation_date,
     ".xlsx"))
@@ -3310,31 +3379,58 @@ function() {
 #* @param page_size:str Page size in cursor pagination.
 #* @param fspec:str Fields for which to generate the fied specification in the meta data response.
 #' @get /api/comparisons/browse
-function(
+function(req,
   res,
   sort = "symbol",
   filter = "",
   fields = "",
   `page_after` = "0",
   `page_size` = "10",
-  fspec = "symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id") {
-# call the endpoint function generate_phenotype_entities
-comparisons_list <- generate_comparisons_list(sort,
-  filter,
-  fields,
-  `page_after`,
-  `page_size`,
-  fspec)
+  fspec = "symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id",
+  format = "json") {
+  # set serializers
+  res$serializer <- serializers[[format]]
 
-# return the list
-comparisons_list
+  # call the endpoint function generate_phenotype_entities
+  comparisons_list <- generate_comparisons_list(sort,
+    filter,
+    fields,
+    `page_after`,
+    `page_size`,
+    fspec)
+
+  # if xlsx requested compute this and return
+  if (format == "xlsx") {
+    # generate creation date statistic for output
+    creation_date <- strftime(as.POSIXlt(Sys.time(),
+      "UTC",
+      "%Y-%m-%dT%H:%M:%S"),
+      "%Y-%m-%d_T%H-%M-%S")
+
+    # generate base filename from api name
+    base_filename <- str_replace_all(req$PATH_INFO, "\\/", "_") %>%
+        str_replace_all("_api_", "")
+
+    filename <- file.path(paste0(base_filename,
+      "_",
+      creation_date,
+      ".xlsx"))
+
+    # generate xlsx bin using helper function
+    bin <- generate_xlsx_bin(comparisons_list, base_filename)
+
+    # Return the binary contents
+    as_attachment(bin, filename)
+  } else {
+    comparisons_list
+  }
 }
 
 
+# TODO: remove endpoint
 #* @tag comparisons
 #* returns a table showing the presence of NDD associated
 #* genes in different databases for download as Excel file
-#* @serializer contentType list(type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 #' @get /api/comparisons/excel
 function(req,
   res,
@@ -3342,33 +3438,41 @@ function(req,
   filter = "",
   fields = "",
   `page_after` = "0",
-  `page_size` = "all") {
-# call the endpoint function generate_phenotype_entities
-comparisons_list <- generate_comparisons_list(sort,
-  filter,
-  fields,
-  `page_after`,
-  `page_size`)
+  `page_size` = "all",
+  format = "xlsx") {
+  # set serializers
+  res$serializer <- serializers[[format]]
 
-  # generate creation date statistic for output
-  creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"),
-    "%Y-%m-%d_T%H-%M-%S")
+  # call the endpoint function generate_phenotype_entities
+  comparisons_list <- generate_comparisons_list(sort,
+    filter,
+    fields,
+    `page_after`,
+    `page_size`)
 
-  # generate base filename from api name
-  base_filename <- str_replace_all(req$PATH_INFO, "\\/", "_") %>%
-      str_replace_all("_api_", "")
+  # if xlsx requested compute this and return
+  if (format == "xlsx") {
+    # generate creation date statistic for output
+    creation_date <- strftime(as.POSIXlt(Sys.time(),
+      "UTC",
+      "%Y-%m-%dT%H:%M:%S"),
+      "%Y-%m-%d_T%H-%M-%S")
 
-  filename <- file.path(tempdir(),
-    paste0(base_filename,
-    "_",
-    creation_date,
-    ".xlsx"))
+    # generate base filename from api name
+    base_filename <- str_replace_all(req$PATH_INFO, "\\/", "_") %>%
+        str_replace_all("_api_", "")
 
-  # generate xlsx bin using helper function
-  bin <- generate_xlsx_bin(comparisons_list, base_filename)
+    filename <- file.path(paste0(base_filename,
+      "_",
+      creation_date,
+      ".xlsx"))
 
-  # Return the binary contents
-  as_attachment(bin, filename)
+    # generate xlsx bin using helper function
+    bin <- generate_xlsx_bin(comparisons_list, base_filename)
+
+    # Return the binary contents
+    as_attachment(bin, filename)
+  }
 }
 ##-------------------------------------------------------------------##
 

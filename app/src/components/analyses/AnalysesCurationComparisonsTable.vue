@@ -618,10 +618,11 @@ export default {
       }&page_after=`
         + '0'
         + '&page_size='
-        + 'all';
+        + 'all'
+        + '&format=xlsx';
 
       const apiUrl = `${process.env.VUE_APP_API_URL
-      }/api/comparisons/excel?${
+      }/api/comparisons/browse?${
         urlParam}`;
 
       try {
