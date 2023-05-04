@@ -2518,49 +2518,6 @@ function(req,
 }
 
 
-# TODO: remove endpoint
-#* @tag phenotype
-#* gets a list of entities associated with a list of phenotypes for
-#* download as Excel file
-#* @serializer contentType list(type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-#' @get /api/phenotype/entities/excel
-function(req,
-  res,
-  sort = "entity_id",
-  filter = "",
-  fields = "",
-  `page_after` = "0",
-  `page_size` = "all") {
-  # call the endpoint function generate_phenotype_entities
-  phenotype_entities_list <- generate_phenotype_entities_list(sort,
-    filter,
-    fields,
-    `page_after`,
-    `page_size`)
-
-  # generate creation date statistic for output
-  creation_date <- strftime(as.POSIXlt(Sys.time(),
-    "UTC",
-    "%Y-%m-%dT%H:%M:%S"),
-    "%Y-%m-%d_T%H-%M-%S")
-
-  # generate base filename from api name
-  base_filename <- str_replace_all(req$PATH_INFO, "\\/", "_") %>%
-      str_replace_all("_api_", "")
-
-  filename <- file.path(paste0(base_filename,
-    "_",
-    creation_date,
-    ".xlsx"))
-
-  # generate xlsx bin using helper function
-  bin <- generate_xlsx_bin(phenotype_entities_list, base_filename)
-
-  # Return the binary contents
-  as_attachment(bin, filename)
-}
-
-
 #* @tag phenotype
 #* gets correlation between phenotypes
 #* @serializer json list(na="string")
@@ -3035,56 +2992,6 @@ function(req,
     panels_list
   }
 }
-
-
-# TODO: remove endpoint
-#* @tag panels
-#* gets panel data by category and inheritance terms for download as Excel file
-#* @serializer contentType list(type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-#* @param sort Output column to arrange output on.
-#* @param filter Comma separated list of filters to apply.
-#* @param fields Comma separated list of output columns.
-#' @get /api/panels/excel
-function(req,
-  res,
-  sort = "symbol",
-  filter = "equals(category,'Definitive'),any(inheritance_filter,'Autosomal dominant','Autosomal recessive','X-linked','Other')",
-  fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38",
-  `page_after` = 0,
-  `page_size` = "all",
-  max_category = TRUE) {
-  # make sure max_category input is logical
-  max_category <- as.logical(max_category)
-
-  # call the endpoint function generate_panels_list
-  panels_list <- generate_panels_list(sort,
-    filter,
-    fields,
-    `page_after`,
-    `page_size`,
-    max_category)
-
-  # generate creation date statistic for output
-  creation_date <- strftime(as.POSIXlt(Sys.time(),
-    "UTC",
-    "%Y-%m-%dT%H:%M:%S"),
-    "%Y-%m-%d_T%H-%M-%S")
-
-  # generate base filename from api name
-  base_filename <- str_replace_all(req$PATH_INFO, "\\/", "_") %>%
-      str_replace_all("_api_", "")
-
-  filename <- file.path(paste0(base_filename,
-    "_",
-    creation_date,
-    ".xlsx"))
-
-  # generate xlsx bin using helper function
-  bin <- generate_xlsx_bin(panels_list, base_filename)
-
-  # Return the binary contents
-  as_attachment(bin, filename)
-}
 ## Panels endpoints
 ##-------------------------------------------------------------------##
 
@@ -3423,55 +3330,6 @@ function(req,
     as_attachment(bin, filename)
   } else {
     comparisons_list
-  }
-}
-
-
-# TODO: remove endpoint
-#* @tag comparisons
-#* returns a table showing the presence of NDD associated
-#* genes in different databases for download as Excel file
-#' @get /api/comparisons/excel
-function(req,
-  res,
-  sort = "symbol",
-  filter = "",
-  fields = "",
-  `page_after` = "0",
-  `page_size` = "all",
-  format = "xlsx") {
-  # set serializers
-  res$serializer <- serializers[[format]]
-
-  # call the endpoint function generate_phenotype_entities
-  comparisons_list <- generate_comparisons_list(sort,
-    filter,
-    fields,
-    `page_after`,
-    `page_size`)
-
-  # if xlsx requested compute this and return
-  if (format == "xlsx") {
-    # generate creation date statistic for output
-    creation_date <- strftime(as.POSIXlt(Sys.time(),
-      "UTC",
-      "%Y-%m-%dT%H:%M:%S"),
-      "%Y-%m-%d_T%H-%M-%S")
-
-    # generate base filename from api name
-    base_filename <- str_replace_all(req$PATH_INFO, "\\/", "_") %>%
-        str_replace_all("_api_", "")
-
-    filename <- file.path(paste0(base_filename,
-      "_",
-      creation_date,
-      ".xlsx"))
-
-    # generate xlsx bin using helper function
-    bin <- generate_xlsx_bin(comparisons_list, base_filename)
-
-    # Return the binary contents
-    as_attachment(bin, filename)
   }
 }
 ##-------------------------------------------------------------------##

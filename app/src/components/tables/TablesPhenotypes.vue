@@ -760,7 +760,7 @@ export default {
         const fileLink = document.createElement('a');
 
         fileLink.href = fileURL;
-        fileLink.setAttribute('download', 'curation_comparisons.xlsx');
+        fileLink.setAttribute('download', 'phenotype_search.xlsx');
         document.body.appendChild(fileLink);
 
         fileLink.click();
