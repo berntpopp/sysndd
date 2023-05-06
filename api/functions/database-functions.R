@@ -1,7 +1,25 @@
 #### This file holds database interaction functions
 
 
-## This function posts entities
+#' Post DB Entity
+#'
+#' This function adds a new entity to the database, if all required columns are
+#' present in the provided entity data. The entity data is first converted to a
+#' tibble, and then filtered to include only the required columns. The function
+#' then connects to the database, adds the new entity, and disconnects from the
+#' database. Finally, the function returns a status message with information on
+#' whether the entity was successfully added or not.
+#'
+#' @param entity_data A data frame containing the entity data to be added to the
+#' database.
+#' @return A list with information on the status of the entity addition process,
+#' including a status code, a message, and the entity ID if the entity was
+#' successfully added.
+#' @export
+#' @seealso See 'as_tibble', 'dbConnect', 'dbAppendTable', 'dbGetQuery',
+#' and 'dbDisconnect' for more information on the functions used.
+#' @examples
+#' post_db_entity(entity_data)
 post_db_entity <- function(entity_data) {
     ##-------------------------------------------------------------------##
     # block to convert the entity components into tibble
@@ -81,8 +99,25 @@ post_db_entity <- function(entity_data) {
 }
 
 
-# This function is used to deactivate an entity
-# and set it's replacement if applicable
+#' Post DB Entity
+#'
+#' This function adds a new entity to the database, if all required columns are
+#' present in the provided entity data. The entity data is first converted to a
+#' tibble, and then filtered to include only the required columns. The function
+#' then connects to the database, adds the new entity, and disconnects from the
+#' database. Finally, the function returns a status message with information on
+#' whether the entity was successfully added or not.
+#'
+#' @param entity_data A data frame containing the entity data to be added to the
+#' database.
+#' @return A list with information on the status of the entity addition process,
+#' including a status code, a message, and the entity ID if the entity was
+#' successfully added.
+#' @export
+#' @seealso See 'as_tibble', 'dbConnect', 'dbAppendTable', 'dbGetQuery',
+#' and 'dbDisconnect' for more information on the functions used.
+#' @examples
+#' post_db_entity(entity_data)
 put_db_entity_deactivation <- function(entity_id,
   replacement = "NULL") {
   if (!is.null(entity_id)
@@ -126,7 +161,30 @@ put_db_entity_deactivation <- function(entity_id,
 }
 
 
-## This function posts or puts reviews
+#' Put Post DB Review
+#'
+#' This function is used to post or update reviews in the database. If the review
+#' data is complete and valid, the function either adds a new review to the
+#' database or updates an existing review. The function connects to the database,
+#' performs the appropriate action, and then disconnects from the database. The
+#' function returns a status message indicating whether the action was successful
+#' or not.
+#'
+#' @param request_method A character vector indicating the type of request to be
+#' made. Must be either "POST" or "PUT".
+#' @param review_data A data frame containing the review data to be added or
+#' updated in the database.
+#' @param re_review A logical value indicating whether this is a re-review. If
+#' TRUE, the function executes a query to update the status and status ID of the
+#' re-review entity connection.
+#' @return A list with information on the status of the review addition or
+#' update process, including a status code, a message, and the review ID if
+#' the review was successfully added or updated.
+#' @export
+#' @seealso See 'as_tibble', 'dbConnect', 'dbAppendTable', 'dbGetQuery',
+#' and 'dbDisconnect' for more information on the functions used.
+#' @examples
+#' put_post_db_review(request_method, review_data, re_review = FALSE)
 put_post_db_review <- function(request_method,
   review_data, re_review = FALSE) {
   ##-------------------------------------------------------------------##
@@ -264,7 +322,29 @@ put_post_db_review <- function(request_method,
 }
 
 
-## This function posts or puts the variant publication connections
+#' Post or Put DB Publication Connection
+#'
+#' This function is used to add or update variant publication connections in the
+#' database. The function checks if the submitted publications are allowed by
+#' comparing them to a list of available publications. If the publications are
+#' allowed, the function checks if it is a POST or PUT request and either
+#' creates new connections or updates existing connections accordingly.
+#'
+#' @param request_method A string indicating the request method, which can be
+#' either "POST" or "PUT".
+#' @param publication_data A data frame containing the publication data to be
+#' added or updated.
+#' @param entity_id The ID of the entity to which the publications are being
+#' connected.
+#' @param review_id The ID of the review to which the publications are being
+#' connected.
+#' @return A list with information on the status of the connection addition or
+#' update process, including a status code and message.
+#' @export
+#' @seealso See dbConnect, dbAppendTable, dbExecute, and dbDisconnect
+#' for more information on the functions used.
+#' @examples
+#' put_post_db_pub_con("POST", publication_data, entity_id, review_id)
 put_post_db_pub_con <- function(request_method,
   publication_data,
   entity_id,
@@ -372,7 +452,24 @@ put_post_db_pub_con <- function(request_method,
 }
 
 
-## This function posts or puts the variant phenotype connections
+#' Posts or puts the variant phenotype connections
+#'
+#' This function posts or puts the variant phenotype connections.
+#' It takes a request method, phenotype data, entity id, and review id as inputs.
+#'
+#' @param request_method A character string indicating the type of HTTP request
+#' to be made ("POST" or "PUT").
+#' @param phenotypes_data A data frame containing the phenotype information
+#' for submission.
+#' @param entity_id An integer value indicating the entity ID.
+#' @param review_id An integer value indicating the review ID.
+#'
+#' @return A list containing status and message indicating the success or
+#' failure of the operation.
+#' @export
+#'
+#' @examples
+#' put_post_db_phen_con("POST", phenotypes_data, entity_id, review_id)
 put_post_db_phen_con <- function(request_method,
   phenotypes_data,
   entity_id,
@@ -483,7 +580,24 @@ put_post_db_phen_con <- function(request_method,
 }
 
 
-## This function posts or puts the variant ontology connections
+#' Posts or puts the variant ontology connections
+#'
+#' This function posts or puts the variant ontology connections.
+#' It takes a request method, variation ontology data, entity id, and review id as inputs.
+#'
+#' @param request_method A character string indicating the type of HTTP request
+#' to be made ("POST" or "PUT").
+#' @param variation_ontology_data A data frame containing the variation ontology
+#' information for submission.
+#' @param entity_id An integer value indicating the entity ID.
+#' @param review_id An integer value indicating the review ID.
+#'
+#' @return A list containing status and message indicating the success or
+#' failure of the operation.
+#' @export
+#'
+#' @examples
+#' put_post_db_var_ont_con("POST", variation_ontology_data, entity_id, review_id)
 put_post_db_var_ont_con <- function(request_method,
   variation_ontology_data,
   entity_id,
@@ -594,7 +708,22 @@ put_post_db_var_ont_con <- function(request_method,
 }
 
 
-## This function posts or puts a status to the database
+#' Posts or puts a status to the database
+#'
+#' @param request_method A string specifying the HTTP request method
+#' @param status_data A tibble containing status data to be submitted
+#' @param re_review A logical indicating whether the status is associated with
+#' an entity in a re-review process
+#'
+#' @return A list with the status, message, and the ID of the submitted/updated status
+#' @export
+#'
+#' @examples
+#' put_post_db_status("POST", tibble::tibble(entity_id = 1, category_id = 2))
+#' put_post_db_status("PUT", tibble::tibble(status_id = 1, problematic = TRUE))
+#'
+#' @seealso https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol_status_code
+#' @seealso https://cran.r-project.org/web/packages/RMariaDB/vignettes/RMariaDB-intro.html
 put_post_db_status <- function(request_method,
   status_data, re_review = FALSE) {
     ##-------------------------------------------------------------------##
@@ -726,7 +855,27 @@ put_post_db_status <- function(request_method,
 }
 
 
-# this function calculates and posts a hash for a series of column values
+#' Calculate and post a hash for a series of column values
+#'
+#' This function calculates and posts a hash for a series of column values
+#' given as a JSON input. The column names in the JSON input can be
+#' controlled with the 'allowed_columns' parameter. The resulting hash is
+#' stored in the 'table_hash' table in the database.
+#'
+#' @param json_data JSON input containing the data to hash
+#' @param allowed_columns comma-separated list of column names to allow
+#' in the JSON input, defaults to "symbol,hgnc_id,entity_id"
+#' @param endpoint endpoint to hash, defaults to "/api/gene"
+#'
+#' @return A list object with the following components:
+#' \item{links}{a tibble with a link to the stored hash in the format
+#' "equals(hash, hash_value)"}
+#' \item{status}{HTTP status code}
+#' \item{message}{message related to the request status}
+#' \item{data}{the resulting hash value}
+#'
+#' @export
+#' @seealso generate_json_hash()
 post_db_hash <- function(json_data,
     allowed_columns = "symbol,hgnc_id,entity_id",
     endpoint = "/api/gene") {
@@ -827,7 +976,20 @@ post_db_hash <- function(json_data,
 }
 
 
-## This function puts a review approval to the database
+#' Put a review approval to the database
+#'
+#' This function updates the review approval status in the database
+#'
+#' @param review_id_requested (integer|character) The id of the review to be updated.
+#' If "all", all non-approved reviews will be updated.
+#' @param submit_user_id (integer) The user ID of the user who approves the review.
+#' @param review_ok (logical) Whether the review is approved or not.
+#'
+#' @return (list) A list containing the status code, message, and the entry's review id
+#' @export
+#' @examples
+#' put_db_review_approve(1, 2, TRUE)
+#' put_db_review_approve("all", 2, FALSE)
 put_db_review_approve <- function(review_id_requested,
   submit_user_id,
   review_ok = FALSE) {
@@ -930,7 +1092,25 @@ put_db_review_approve <- function(review_id_requested,
 }
 
 
-## This function puts a status approval to the database
+#' This function puts a status approval to the database
+#'
+#' This function updates the status of a database entry to active or inactive depending on the status approval confirmation
+#'
+#' @param status_id_requested An integer or "all" to indicate the status(es) to update
+#' @param submit_user_id An integer identifying the user that submits the request
+#' @param status_ok A logical value indicating if the status should be set to active (TRUE) or inactive (FALSE)
+#'
+#' @return A list with the status, message, and entry
+#'
+#' @export
+#'
+#' @examples
+#' put_db_status_approve(1, 10, TRUE)
+#' put_db_status_approve("all", 10, TRUE)
+#' put_db_status_approve(5, 15, FALSE)
+#'
+#' @seealso
+#' \code{\link{put_db_review_approve}}
 put_db_status_approve <- function(status_id_requested,
   submit_user_id,
   status_ok = FALSE) {

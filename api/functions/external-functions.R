@@ -1,6 +1,28 @@
 #### This file holds function for interaction with external resources
 
-# this function posts a url to the internet archive using their SPN2 API
+#' Post URL to the Internet Archive using their SPN2 API
+#'
+#' @description
+#' This function posts a URL to the Internet Archive using their SPN2 API. It
+#' takes a URL and an optional parameter to capture a screenshot. The function
+#' checks if the provided URL is valid and returns the response from the API.
+#'
+#' @param parameter_url A character string representing the URL to be posted to
+#'   the Internet Archive.
+#' @param parameter_capture_screenshot An optional character string with the
+#'   default value "on". If set to "on", a screenshot will be captured.
+#'   Otherwise, no screenshot will be taken.
+#'
+#' @return
+#' If the provided URL is valid, the function returns the response from the API
+#' as a list. If the URL is not valid, it returns a list with a status code of
+#' 400 and an error message.
+#'
+#' @examples
+#' post_url_archive("https://example.com")
+#' post_url_archive("https://example.com", parameter_capture_screenshot = "off")
+#'
+#' @export
 post_url_archive <- function(parameter_url,
     parameter_capture_screenshot = "on") {
 

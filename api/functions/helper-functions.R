@@ -3,26 +3,35 @@
 #' Nest the gene tibble
 #'
 #' @description
-#' This function is useful for organizing data in a tibble into nested groups,
-#' making it easier to analyze or manipulate the data.
-#'
-#' The function performs the following operations on the input tibble:
-#' 1. Saves the initial sorting of the tibble by selecting the columns 'symbol',
-#' 'hgnc_id', and 'entities_count' and retaining only the unique rows.'
-#'
-#' 2. Nests the tibble by the columns 'symbol', 'hgnc_id', and 'entities_count'
-#' and assigns the key "entities" to the nested data frame.
-#'
+#' This function organizes data in a tibble by nesting it into groups, making it
+#' easier to analyze or manipulate the data.
+#' It performs the following operations:
+#' 1. Remembers the initial sorting of the tibble by selecting columns 'symbol',
+#'    'hgnc_id', and 'entities_count', retaining only unique rows.
+#' 2. Nests the tibble by columns 'symbol', 'hgnc_id', and 'entities_count',
+#'    assigning the key "entities" to the nested data frame.
 #' 3. Removes grouping and arranges the nested tibble by the 'symbol' column,
-#' using the initial sorting determined in step 1 as the level order.
+#'    using the initial sorting as the level order.
+#' 4. Returns the nested tibble.
 #'
-#' 4. Returns the nested tibble as the output.
+#' @param tibble A tibble to be nested.
 #'
-#' based on https://xiaolianglin.com/
+#' @return A nested tibble.
 #'
-#' @param tibble A tibble to be nested
+#' @examples
+#' # Prepare example tibble
+#' example_tibble <- tibble(
+#'   symbol = c("A", "B", "C"),
+#'   hgnc_id = c(1, 2, 3),
+#'   entities_count = c(5, 3, 2)
+#' )
 #'
-#' @return The nested tibble
+#' # Nest the example tibble
+#' nest_gene_tibble(example_tibble)
+#'
+#' @seealso
+#' Based on: \url{https://xiaolianglin.com/}
+#'
 #' @export
 nest_gene_tibble <- function(tibble) {
 
@@ -44,28 +53,27 @@ nest_gene_tibble <- function(tibble) {
 #' Generate a random password
 #'
 #' @description
+#' This function generates a random password of length 12
+#' by selecting characters from a vector of possible characters
+#' that includes digits, lowercase letters, #' uppercase letters,
+#' exclamation mark, and dollar sign. The steps are as follows:
+#' 1. Create a vector named 'possible_characters' containing digits, lowercase
+#'    letters, uppercase letters, exclamation mark, and dollar sign.
+#' 2. Use the 'sample()' function to randomly select 12 characters from the
+#'    'possible_characters' vector and 'paste()' to combine them into a string.
+#' 3. Use 'collapse = ""' argument in the 'paste()' function to prevent any
+#'    separators between the selected characters.
+#' 4. Return the generated password.
 #'
-#' The random_password function generates a random password of length 12 by
-#' using a vector of possible characters that includes digits,
-#' lowercase letters, uppercase letters, exclamation mark and dollar sign.
-#' Here's how the function works:
-#' 1. A vector named possible_characters is created,
-#' which includes digits (0-9), lowercase letters, uppercase letters,
-#' exclamation mark and dollar sign.
+#' @return A randomly generated password.
 #'
-#' 2. The sample() function is used to randomly select 12 characters
-#' from the possible_characters vector, and the paste() function is
-#' used to combine these selected characters into a single string.
+#' @examples
+#' # Generate a random password
+#' random_password()
 #'
-#' 3. The collapse = "" argument is used in the paste() function to prevent any
-#' separator characters from being added between the selected characters.
+#' @seealso
+#' Based on: \url{https://stackoverflow.com/questions/22219035/function-to-generate-a-random-password}
 #'
-#' 4. The password is returned as the output of the function.
-#'
-#' based on "https://stackoverflow.com/
-#' questions/22219035/function-to-generate-a-random-password"
-#'
-#' @return The random password generated
 #' @export
 random_password <- function() {
   # create a vector of possible characters
@@ -79,35 +87,36 @@ random_password <- function() {
 }
 
 
-#' validate email
+#' Validate email address
 #'
 #' @description
+#' This function checks whether a given email address is valid by using regular
+#' expressions and the 'grepl()' function. The email address is considered valid
+#' if it matches the following pattern:
+#' 1. Starts with a word boundary (\<).
+#' 2. Followed by one or more uppercase letters, digits, dots, underscores,
+#'    percent signs, plus signs, or hyphens ([A-Z0-9._%+-]+).
+#' 3. Followed by the at symbol (@).
+#' 4. Followed by one or more uppercase letters, digits, dots, or hyphens
+#'    ([A-Z0-9.-]+).
+#' 5. Followed by a dot (.).
+#' 6. Followed by two or more uppercase letters ([A-Z]{2,}).
+#' 7. Ends with a word boundary (\>).
+#' The 'ignore.case = TRUE' argument in 'grepl()' makes the function
+#' case-insensitive, allowing it to match email addresses regardless of the
+#' letter case.
 #'
-#' The is_valid_email function is an R function that takes a single argument,
-#' email_address, which is a character string representing an email address.
-#' The function uses regular expressions and the grepl function to determine
-#' if the email address is valid. The regular expression pattern used in the
-#' function checks if the email address has the following format:
-#' - Starts with a word boundary (\\<)
-#' - Followed by one or more uppercase letters, digits, dots, underscores,
-#' percent signs, plus signs or hyphens ([A-Z0-9._%+-]+)
-#' - Followed by the at symbol (@)
-#' - Followed by one or more uppercase letters, digits, dots,
-#' or hyphens ([A-Z0-9.-]+)
-#' - Followed by a dot (.)
-#' - Followed by two or more uppercase letters ([A-Z]{2,})
-#' - Ends with a word boundary (\\>)
-#' If the email address matches this pattern, the grepl function returns TRUE,
-#' indicating that the email address is valid. If the email address does not
-#' match the pattern, grepl returns FALSE, indicating that the email address
-#' is not valid.
+#' @param email_address A character string representing an email address.
 #'
-#' The ignore.case = TRUE argument in grepl makes the function case-insensitive,
-#' allowing it to match email addresses regardless of the case of the
-#' letters in the address.
+#' @return A boolean value indicating whether the email address is valid.
 #'
-# based on https://www.r-bloggers.com/2012/07/validating-email-adresses-in-r/
-#' @return Boolean value
+#' @examples
+#' # Validate an email address
+#' is_valid_email("test@example.com")
+#'
+#' @seealso
+#' Based on: \url{https://www.r-bloggers.com/2012/07/validating-email-adresses-in-r/}
+#'
 #' @export
 is_valid_email <- function(email_address) {
     grepl("\\<[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\>",
@@ -117,8 +126,25 @@ is_valid_email <- function(email_address) {
 }
 
 
-# generate initials for avatar from full name based on
-# https://stackoverflow.com/questions/24833566/get-initials-from-string-of-words
+#' This function generates initials for an avatar based on the provided
+#' first name and family name. The initials are created by taking the first
+#' character of each name.
+#'
+#' @param first_name A character string representing the first name.
+#' @param family_name A character string representing the family name.
+#'
+#' @return
+#' A character string containing the initials, created by taking the first
+#' character of the first name and the first character of the family name.
+#'
+#' @examples
+#' generate_initials("John", "Doe")
+#' generate_initials("Ada", "Lovelace")
+#'
+#' @seealso
+#' \url{https://stackoverflow.com/questions/24833566/get-initials-from-string-of-words}
+#' for the Stack Overflow question that inspired this function.
+#' @export
 generate_initials <- function(first_name, family_name) {
     initials <- paste(substr(strsplit(paste0(first_name,
           " ",
@@ -131,7 +157,29 @@ generate_initials <- function(first_name, family_name) {
 }
 
 
-# send noreply mail
+#' Send a no-reply email
+#'
+#' @description
+#' This function sends a no-reply email with a specified email body, subject,
+#' and recipient. It allows for an optional blind copy recipient.
+#'
+#' @param email_body A character string representing the body of the email.
+#' @param email_subject A character string representing the subject of the email.
+#' @param email_recipient A character string representing the recipient's email
+#'   address.
+#' @param email_blind_copy A character string representing the blind copy
+#'   recipient's email address, with a default value of "noreply@sysndd.org".
+#'
+#' @return
+#' A character string indicating that the email has been sent.
+#'
+#' @examples
+#' send_noreply_email(
+#'   email_body = "Hello, this is a test email.",
+#'   email_subject = "Test Email",
+#'   email_recipient = "example@example.com"
+#' )
+#' @export
 send_noreply_email <- function(email_body,
   email_subject,
   email_recipient,
@@ -160,7 +208,34 @@ send_noreply_email <- function(email_body,
 }
 
 
-# generate sort expressions to parse
+#' Generate sort expressions to parse
+#'
+#' @description
+#' This function generates sort expressions based on a provided sort string.
+#' The sort string should contain column names separated by commas, with an
+#' optional "+" or "-" prefix indicating ascending or descending order,
+#' respectively. The function returns a list of expressions for sorting.
+#'
+#' @param sort_string A character string containing the column names to sort by,
+#'   separated by commas. Prefix column names with "+" for ascending order or
+#'   "-" for descending order.
+#' @param unique_id A character string representing the unique ID column name,
+#'   with a default value of "entity_id".
+#'
+#' @return
+#' A character vector containing sort expressions based on the input sort
+#' string and the unique ID column.
+#'
+#' @examples
+#' generate_sort_expressions("+name,-age")
+#' generate_sort_expressions("name,-age", unique_id = "id")
+#'
+#' @export
+#' @seealso
+#' For more information on how the sort string is parsed, see the following
+#' resources:
+#' \url{https://dplyr.tidyverse.org/reference/desc.html} for details on how
+#' the "desc()" function is used to sort in descending order.
 generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
 
   # split the sort input by comma and compute
@@ -199,13 +274,37 @@ generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
 }
 
 
-# generate filter expressions to parse
-# semantics according to https://www.jsonapi.net/usage/reading/filtering.html
-# currently only implemented "Equality" and "Contains text"
-# TODO: need to implement error handling
-# TODO: need to implement whether the respective columns exist
-# TODO: need to implement allowed Operations as input argument
-# TODO: need to implement column type handling
+#' Generate filter expressions to parse
+#'
+#' @description
+#' This function generates filter expressions based on a provided filter string.
+#' The filter string should follow the semantics defined by
+#' https://www.jsonapi.net/usage/reading/filtering.html. Currently, only the
+#' "Equality" and "Contains text" operations are implemented.
+#'
+#' @param filter_string A character string containing the filter conditions.
+#' @param operations_allowed A character string containing the allowed
+#'   operations, separated by commas (default:
+#'   "equals,contains,any,all,lessThan,greaterThan,lessOrEqual,greaterOrEqual").
+#'
+#' @return
+#' A character string containing the filter expression based on the input
+#' filter string and the allowed operations.
+#'
+#' @examples
+#' generate_filter_expressions("and(name, contains, 'John')")
+#' generate_filter_expressions("or(age, equals, '30')")
+#'
+#' @export
+#' @seealso
+#' For more information on the filtering semantics, see the following resource:
+#' \url{https://www.jsonapi.net/usage/reading/filtering.html}
+#'
+#' @note
+#' TODO: Implement error handling.
+#' TODO: Implement checking if the respective columns exist.
+#' TODO: Implement allowed operations as input argument.
+#' TODO: Implement column type handling.
 generate_filter_expressions <- function(filter_string,
     operations_allowed =
     "equals,contains,any,all,lessThan,greaterThan,lessOrEqual,greaterOrEqual") {
@@ -397,7 +496,32 @@ generate_filter_expressions <- function(filter_string,
 }
 
 
-# select requested fields from tibble
+#' Select requested fields from a tibble
+#'
+#' @description
+#' This function selects the requested fields from a given tibble. It ensures
+#' that the unique_id column is included in the output, even if it was not
+#' explicitly requested.
+#'
+#' @param selection_tibble A tibble containing the data to be filtered.
+#' @param fields_requested A character string containing the fields to be
+#'   selected, separated by commas. If an empty string is provided, all fields
+#'   will be selected.
+#' @param unique_id A character string specifying the unique identifier column
+#'   name (default: "entity_id").
+#'
+#' @return
+#' A tibble containing only the requested fields.
+#'
+#' @examples
+#' data <- tibble(a = 1:5, b = letters[1:5], entity_id = 101:105)
+#' select_tibble_fields(data, "a,b")
+#' select_tibble_fields(data, "")
+#'
+#' @export
+#' @seealso
+#' For more information on working with tibbles in R, see the following resource:
+#' \url{https://tibble.tidyverse.org/}
 select_tibble_fields <- function(selection_tibble,
   fields_requested,
   unique_id = "entity_id") {
@@ -433,7 +557,38 @@ select_tibble_fields <- function(selection_tibble,
 }
 
 
-# generate cursor pagination information from a tibble
+#' Generate cursor pagination information from a tibble
+#'
+#' @description
+#' This function generates cursor-based pagination information from a tibble,
+#' providing the requested page and pagination links. It also includes metadata
+#' about the pagination state.
+#'
+#' @param pagination_tibble A tibble containing the data to be paginated.
+#' @param page_size A character or numeric value specifying the number of rows
+#'   per page. Use "all" for all rows in a single page (default: "all").
+#' @param page_after A numeric value indicating the item to start the page
+#'   after (default: 0).
+#' @param pagination_identifier A character string specifying the unique
+#'   identifier column name (default: "entity_id").
+#'
+#' @return
+#' A list containing three elements:
+#' - links: a tibble with URLs for the previous, self, next, and last pages.
+#' - meta: a tibble with pagination metadata, including the page size, current
+#'   page number, total pages, previous, current, and next item IDs, and total
+#'   items.
+#' - data: a tibble containing the requested page data.
+#'
+#' @examples
+#' data <- tibble(a = 1:10, b = letters[1:10], entity_id = 101:110)
+#' generate_cursor_pag_inf(data, 5)
+#' generate_cursor_pag_inf(data, 3, 104)
+#'
+#' @export
+#' @seealso
+#' For more information on cursor-based pagination, see the following resource:
+#' \url{https://www.sitepoint.com/paginating-real-time-data-cursor-based-pagination/}
 generate_cursor_pag_inf <- function(pagination_tibble,
   page_size = "all",
   page_after = 0,
@@ -551,7 +706,27 @@ generate_cursor_pag_inf <- function(pagination_tibble,
 }
 
 
-# generate field specs from a tibble
+#' Generate field specifications from a tibble
+#'
+#' @description
+#' This function generates field specifications from a tibble,
+#' based on the given input. It includes information about the fields,
+#' such as whether they are filterable, selectable, multi-selectable,
+#' sortable, and their display labels.
+#'
+#' @param field_tibble A tibble containing the data for generating field specs.
+#' @param fspecInput A character string specifying the fields to include in the
+#'   output. If empty, all fields in the tibble are included (default: "").
+#'
+#' @return
+#' A list containing one element:
+#' - fspec: a tibble containing the generated field specifications.
+#'
+#' @examples
+#' data <- tibble(a = 1:10, b = letters[1:10], entity_id = 101:110)
+#' generate_tibble_fspec(data, "a,entity_id")
+#'
+#' @export
 generate_tibble_fspec <- function(field_tibble, fspecInput) {
 
     # get column names from field_tibble
@@ -621,9 +796,25 @@ generate_tibble_fspec <- function(field_tibble, fspecInput) {
 }
 
 
-# generate a hash for a hgnc gene or entity list
+#' Generate a hash for a HGNC gene or entity list
+#'
+#' @description
+#' This function generates a hash for a list of HGNC gene or entity identifiers.
+#' It removes the "HGNC:" prefix if present, sorts the identifiers, concatenates
+#' them, and computes the SHA-256 hash.
+#'
+#' @param identifier_list A character vector containing the HGNC gene or entity
+#'   identifiers for which to generate the hash.
+#'
+#' @return
+#' A character string containing the computed SHA-256 hash.
+#'
+#' @examples
+#' genes <- c("HGNC:12345", "HGNC:67890")
+#' generate_panel_hash(genes)
+#'
+#' @export
 generate_panel_hash <- function(identifier_list) {
-
   # remove hgnc pre-attachment if present,
   # sort, concatenate and compute sha256 hash
   list_hash <- identifier_list %>%
@@ -637,22 +828,50 @@ generate_panel_hash <- function(identifier_list) {
 }
 
 
-# generate a hash for a json object
+#' Generate a hash for a JSON object
+#'
+#' @description
+#' This function generates a hash for a JSON object. It computes the SHA-256
+#' hash for the given JSON input.
+#'
+#' @param json_input A character string containing the JSON object for which
+#'   to generate the hash.
+#'
+#' @return
+#' A character string containing the computed SHA-256 hash.
+#'
+#' @examples
+#' json_string <- '{"key": "value"}'
+#' generate_json_hash(json_string)
+#'
+#' @export
 generate_json_hash <- function(json_input) {
-
   # compute sha256 hash
   json_hash <- json_input %>%
     sha256()
 
   # return result
   return(json_hash)
-
 }
 
 
-# generate a hash for a function
+#' Generate a hash for a function
+#'
+#' @description
+#' This function generates a hash for a given function. It deparses the function
+#' input and computes the SHA-256 hash.
+#'
+#' @param function_input A function object for which to generate the hash.
+#'
+#' @return
+#' A character string containing the computed SHA-256 hash.
+#'
+#' @examples
+#' sample_function <- function(x) { x + 1 }
+#' generate_function_hash(sample_function)
+#'
+#' @export
 generate_function_hash <- function(function_input) {
-
   # deparse function, compute sha256 hash
   function_hash <- function_input %>%
     deparse1 %>%
@@ -660,5 +879,4 @@ generate_function_hash <- function(function_input) {
 
   # return result
   return(function_hash)
-
 }

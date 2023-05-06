@@ -1,7 +1,26 @@
 #### This file holds endpoint functions
 
 
-# generate comparisons list
+#' Generate comparisons list
+#'
+#' @description
+#' This function generates a comparisons list based on the input parameters. It
+#' retrieves data from the database, filters and restructures it, computes the
+#' max category term, normalizes categories, arranges and applies filters
+#' according to input, and selects fields from the table based on input. It also
+#' computes cursor pagination information and execution time.
+#'
+#' @param sort Character string specifying the sorting order.
+#' @param filter Character string specifying the filter to apply.
+#' @param fields Character string specifying the fields to select.
+#' @param page_after Character string indicating the cursor position.
+#' @param page_size Character string specifying the number of items per page.
+#' @param fspec Character string specifying fields to generate from a tibble.
+#'
+#' @return A list containing links, meta, and data related to the comparisons
+#' list generated.
+#'
+#' @export
 generate_comparisons_list <- function(sort = "symbol",
   filter = "",
   fields = "",
@@ -136,7 +155,24 @@ generate_comparisons_list <- function(sort = "symbol",
   }
 
 
-# generate phenotype entities list
+#' Generate phenotype entities list
+#'
+#' @description
+#' This function generates a phenotype entities list based on the input
+#' parameters. It retrieves data from the database, filters and restructures it,
+#' computes cursor pagination information, and execution time.
+#'
+#' @param sort Character string specifying the sorting order.
+#' @param filter Character string specifying the filter to apply.
+#' @param fields Character string specifying the fields to select.
+#' @param page_after Character string indicating the cursor position.
+#' @param page_size Character string specifying the number of items per page.
+#' @param fspec Character string specifying fields to generate from a tibble.
+#'
+#' @return A list containing links, meta, and data related to the phenotype
+#' entities list generated.
+#'
+#' @export
 generate_phenotype_entities_list <- function(sort = "entity_id",
   filter = "",
   fields = "",
@@ -243,7 +279,24 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
 }
 
 
-# generate panels list
+#' Generate panels list
+#'
+#' @description
+#' This function generates a panels list based on the input parameters. It
+#' retrieves data from the database, filters and restructures it, computes
+#' cursor pagination information, and execution time.
+#'
+#' @param sort Character string specifying the sorting order.
+#' @param filter Character string specifying the filter to apply.
+#' @param fields Character string specifying the fields to select.
+#' @param page_after Numeric value indicating the cursor position.
+#' @param page_size Character string specifying the number of items per page.
+#' @param max_category Logical value indicating whether to use the max category.
+#'
+#' @return A list containing links, meta, fields, and data related to the panels
+#' list generated.
+#'
+#' @export
 generate_panels_list <- function(sort = "symbol",
   filter = "equals(category,'Definitive'),any(inheritance_filter,'Autosomal dominant','Autosomal recessive','X-linked','Other')",
   fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38",
@@ -414,7 +467,40 @@ generate_panels_list <- function(sort = "symbol",
 }
 
 
-# nest the tibble for statistics
+#' Generate a tibble of statistics for disease types
+#'
+#' This function takes inputs for sorting and type and
+#' generates a tibble of statistics for disease types based
+#' on a pool of data. It also has the option to limit the number of
+#' categories to only the maximum, if max_category = TRUE.
+#'
+#' @param sort A character string indicating how to sort the output.
+#' The format should be "column_name,direction"
+#' (e.g. "category_id,-n" to sort by category_id in ascending
+#' order and then by n in descending order).
+#' @param type A character string indicating the type of data to include.
+#' Can be either "gene" or "entity".
+#' @param max_category A logical value indicating whether to limit
+#' the number of categories to only the maximum. Default is TRUE.
+#' @export
+#'
+#' @return A list with two components: meta and data. The meta
+#' component includes the last_update date from the ndd_entity_view table
+#'  in the database, as well as the execution time of the function.
+#' The data component includes a tibble of  statistics for disease types,
+#' with columns for category, inheritance (if applicable), and count.
+#'
+#' @examples
+#' # Generate a tibble of statistics for genes,
+#' sorted by category_id in ascending order
+#' generate_stat_tibble(sort = "category_id", type = "gene")
+#'
+#' # Generate a tibble of statistics for entities,
+#' limited to the maximum category
+#' generate_stat_tibble(max_category = TRUE, type = "entity")
+#'
+#' @seealso https://www.tidyverse.org/ for more information on the tidyverse packages used in this function
+#' @seealso https://db.rstudio.com/pool/ for more information on the RStudio Pool package
 generate_stat_tibble <- function(sort = "category_id,-n",
   type = "gene",
   max_category = TRUE) {
@@ -537,7 +623,20 @@ generate_stat_tibble <- function(sort = "category_id,-n",
 }
 
 
-# generate the gene news tibble
+#' Generate Gene News Tibble
+#'
+#' This function generates a tibble of news for genes associated with
+#' neurodevelopmental disorders (NDDs). The data is retrieved from a database
+#' and filtered based on certain criteria before being returned as a tibble.
+#'
+#' @param n Numeric value indicating the number of news items to include in
+#' the tibble.
+#' @return A tibble containing news for genes associated with NDDs.
+#' @export
+#' @seealso See 'pool', 'tbl', 'arrange', 'filter', 'collect', 'slice',
+#' and 'desc' for more information on the functions used.
+#' @examples
+#' generate_gene_news_tibble(10)
 generate_gene_news_tibble <- function(n) {
   # get data from database and filter
   sysndd_db_disease_genes_news <- pool %>%
