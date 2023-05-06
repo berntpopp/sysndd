@@ -512,17 +512,22 @@ export default {
     async requestExcel() {
       this.downloading = true;
 
-      const apiUrl = `${process.env.VUE_APP_API_URL
-      }/api/panels/excel?sort=${
+      const urlParam = `sort=${
         this.sortDesc ? '-' : '+'
       }${this.sortBy
       }&filter=any(category,${
         this.selected_category
       }),any(inheritance_filter,${
         this.selected_inheritance
-      })`
-        + `&fields=${
-          this.selected_columns.join()}`;
+      })&page_after=`
+        + '0'
+        + '&page_size='
+        + 'all'
+        + '&format=xlsx';
+
+      const apiUrl = `${process.env.VUE_APP_API_URL
+      }/api/panels/browse?${
+        urlParam}`;
 
       try {
         const response = await this.axios({
@@ -535,7 +540,7 @@ export default {
         const fileLink = document.createElement('a');
 
         fileLink.href = fileURL;
-        fileLink.setAttribute('download', 'curation_comparisons.xlsx');
+        fileLink.setAttribute('download', 'sysndd_panels.xlsx');
         document.body.appendChild(fileLink);
 
         fileLink.click();
