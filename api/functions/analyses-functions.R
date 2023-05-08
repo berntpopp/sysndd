@@ -96,7 +96,6 @@ gen_string_clust_obj <- function(hgnc_list,
 
   # return result
   return(clusters_tibble)
-
 }
 
 

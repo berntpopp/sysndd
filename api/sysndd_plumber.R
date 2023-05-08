@@ -275,18 +275,25 @@ function(req, res) {
 ##-------------------------------------------------------------------##
 ## Entity endpoints
 
+#* Get a Cursor Pagination Object of All Entities
+#*
+#* This endpoint returns a cursor pagination object of all entities based on the
+#* data in the database.
+#*
 #* @tag entity
-#* allows filtering and field selection from all entities
 #* @serializer json list(na="string")
-#* @param sort:str  Output column to arrange output on.
+#* @param sort:str Output column to arrange output on.
 #* @param filter:str Comma separated list of filters to apply.
 #* @param fields:str Comma separated list of output columns.
 #* @param page_after:str Cursor after which entries are shown.
 #* @param page_size:str Page size in cursor pagination.
-#* @param fspec:str Fields to generate fied specification for.
-#* @response 200 A cursor pagination object with links, meta information and entity objects in the data field.
+#* @param fspec:str Fields to generate field specification for.
+#* @response 200 A cursor pagination object with links, meta information and
+#* entity objects in the data field.
 #* @response 500 Internal server error.
-#' @get /api/entity
+#* @return A cursor pagination object containing a list of entities.
+#*
+#* @get /api/entity
 function(res,
   sort = "entity_id",
   filter = "",
@@ -389,7 +396,7 @@ function(res,
 #* @tag entity
 #* creates a new entity
 #* @serializer json list(na="string")
-#' @post /api/entity/create
+#* @post /api/entity/create
 function(req, res, direct_approval = FALSE) {
 
   # make sure direct_approval input is logical
@@ -640,10 +647,38 @@ function(req, res, direct_approval = FALSE) {
 }
 
 
+#* Renames an entity by updating its disease ontology ID version.
+#*
 #* @tag entity
-#* renames an entity
 #* @serializer json list(na="string")
-#' @post /api/entity/rename
+#*
+#* @param rename_json A JSON object with the following properties:
+#* - entity_id: (integer) The ID of the entity to be renamed.
+#* - hgnc_id: (string) The HGNC ID of the entity.
+#* - hpo_mode_of_inheritance_term: (string) The HPO term for mode of inheritance of the entity.
+#* - ndd_phenotype: (string) The non-disease phenotype of the entity.
+#* - disease_ontology_id_version: (string) The new version of the disease ontology ID of the entity.
+#*
+#* @return A JSON object with the following properties:
+#* - status: (integer) The HTTP status code of the response.
+#* - message: (string) A message describing the outcome of the operation.
+#* - entry: (list) A list containing the updated entity ID and other metadata.
+#*
+#* @examples
+#* # Example request using curl
+#* curl --location --request POST 'http://localhost:8000/api/entity/rename'
+#* --header 'Content-Type: application/json'
+#* --data-raw '{
+#* "rename_json": {
+#* "entity_id": 123,
+#* "hgnc_id": "ABC123",
+#* "hpo_mode_of_inheritance_term": "HP:0000001",
+#* "ndd_phenotype": "Phenotype 1",
+#* "disease_ontology_id_version": "DOID:12345/2.0"
+#* }
+#* }'
+#*
+#* @post /api/entity/rename
 function(req, res) {
 
   # first check rights
@@ -841,7 +876,7 @@ function(req, res) {
 #* @tag entity
 #* deactivates an entity
 #* @serializer json list(na="string")
-#' @post /api/entity/deactivate
+#* @post /api/entity/deactivate
 function(req, res) {
 
   # first check rights
@@ -906,7 +941,7 @@ function(req, res) {
 #* @tag entity
 #* gets all phenotypes for a entity_id
 #* @serializer json list(na="string")
-#' @get /api/entity/<sysndd_id>/phenotypes
+#* @get /api/entity/<sysndd_id>/phenotypes
 function(sysndd_id) {
 
   # get data from database and filter
@@ -937,7 +972,7 @@ function(sysndd_id) {
 #* @tag entity
 #* gets all variation ontology terms for a entity_id
 #* @serializer json list(na="string")
-#' @get /api/entity/<sysndd_id>/variation
+#* @get /api/entity/<sysndd_id>/variation
 function(sysndd_id) {
 
   # get data from database and filter
@@ -961,7 +996,7 @@ function(sysndd_id) {
 #* @tag entity
 #* gets all clinical synopsis for a entity_id
 #* @serializer json list(na="null")
-#' @get /api/entity/<sysndd_id>/review
+#* @get /api/entity/<sysndd_id>/review
 function(sysndd_id) {
 
   # get data from database and filter
@@ -984,7 +1019,7 @@ function(sysndd_id) {
 #* @tag entity
 #* gets status for a entity_id
 #* @serializer json list(na="null")
-#' @get /api/entity/<sysndd_id>/status
+#* @get /api/entity/<sysndd_id>/status
 function(sysndd_id) {
 
   # get data from database and filter
@@ -1013,7 +1048,7 @@ function(sysndd_id) {
 #* @tag entity
 #* gets all publications for a entity_id
 #* @serializer json list(na="string")
-#' @get /api/entity/<sysndd_id>/publications
+#* @get /api/entity/<sysndd_id>/publications
 function(sysndd_id) {
 
   # get data from database and filter
@@ -1046,7 +1081,7 @@ function(sysndd_id) {
 #* @tag review
 #* gets review list
 #* @serializer json list(na="null")
-#' @get /api/review
+#* @get /api/review
 function(req, res, filter_review_approved = FALSE) {
 
   # TODO: maybe this endpoint should be authenticated
@@ -1189,8 +1224,8 @@ function(req, res, filter_review_approved = FALSE) {
 #* @tag review
 #* posts or puts a new clinical synopsis for a entity_id
 #* @serializer json list(na="string")
-#' @post /api/review/create
-#' @put /api/review/update
+#* @post /api/review/create
+#* @put /api/review/update
 function(req, res, re_review = FALSE) {
 
   # first check rights
@@ -1441,7 +1476,7 @@ function(req, res, re_review = FALSE) {
 #* @tag review
 #* gets a single review by review_id
 #* @serializer json list(na="null")
-#' @get /api/review/<review_id_requested>
+#* @get /api/review/<review_id_requested>
 function(review_id_requested) {
   # remove spaces from list
   review_id_requested <- URLdecode(review_id_requested) %>%
@@ -1481,7 +1516,7 @@ function(review_id_requested) {
 #* @tag review
 #* gets all phenotypes for a review
 #* @serializer json list(na="string")
-#' @get /api/review/<review_id_requested>/phenotypes
+#* @get /api/review/<review_id_requested>/phenotypes
 function(review_id_requested) {
   # remove spaces from list
   review_id_requested <- URLdecode(review_id_requested) %>%
@@ -1509,7 +1544,7 @@ function(review_id_requested) {
 #* @tag review
 #* gets all variant_ontology terms for a review
 #* @serializer json list(na="string")
-#' @get /api/review/<review_id_requested>/variation
+#* @get /api/review/<review_id_requested>/variation
 function(review_id_requested) {
   # remove spaces from list
   review_id_requested <- URLdecode(review_id_requested) %>%
@@ -1537,7 +1572,7 @@ function(review_id_requested) {
 #* @tag review
 #* gets all publications for a reviews_id
 #* @serializer json list(na="string")
-#' @get /api/review/<review_id_requested>/publications
+#* @get /api/review/<review_id_requested>/publications
 function(review_id_requested) {
   # remove spaces from list
   review_id_requested <- URLdecode(review_id_requested) %>%
@@ -1563,7 +1598,7 @@ function(review_id_requested) {
 #* @tag review
 #* puts the review approvement (only Administrator and Curator status users)
 #* @serializer json list(na="string")
-#' @put /api/review/approve/<review_id_requested>
+#* @put /api/review/approve/<review_id_requested>
 function(req, res, review_id_requested, review_ok = FALSE) {
   review_ok <- as.logical(review_ok)
 
@@ -1605,7 +1640,7 @@ function(req, res, review_id_requested, review_ok = FALSE) {
 #* puts the re-review submission
 ## example data:
 #* @serializer json list(na="string")
-#' @put /api/re_review/submit
+#* @put /api/re_review/submit
 function(req, res) {
   # first check rights
   if (req$user_role %in% c("Administrator", "Curator", "Reviewer")) {
@@ -1652,7 +1687,7 @@ function(req, res) {
 #* puts a re-review submission back into un-submitted mode
 #* (only Administrator and Curator status users)
 #* @serializer json list(na="string")
-#' @put /api/re_review/unsubmit/<re_review_id>
+#* @put /api/re_review/unsubmit/<re_review_id>
 function(req, res, re_review_id) {
   # first check rights
   if (length(req$user_id) == 0) {
@@ -1696,7 +1731,7 @@ function(req, res, re_review_id) {
 #* puts the re-review status and review approvement
 #* (only Administrator and Curator status users)
 #* @serializer json list(na="string")
-#' @put /api/re_review/approve/<re_review_id>
+#* @put /api/re_review/approve/<re_review_id>
 function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
   status_ok <- as.logical(status_ok)
   review_ok <- as.logical(review_ok)
@@ -1855,7 +1890,7 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
 #* @tag re_review
 #* gets the re-review overview table for the user logged in
 #* @serializer json list(na="string")
-#' @get /api/re_review_table
+#* @get /api/re_review_table
 function(req,
   res,
   filter = "or(lessOrEqual(review_date,2020-01-01),equals(re_review_review_saved,1)",
@@ -1956,7 +1991,7 @@ function(req,
 #* @tag re_review
 #* requests a new batch of entities to review by mail to curators
 #* @serializer json list(na="string")
-#' @get /api/re_review/batch/apply
+#* @get /api/re_review/batch/apply
 function(req, res) {
 
   user <- req$user_id
@@ -2001,7 +2036,7 @@ function(req, res) {
 #* @tag re_review
 #* puts a new re-review batch assignment
 #* @serializer json list(na="string")
-#' @put /api/re_review/batch/assign
+#* @put /api/re_review/batch/assign
 function(req, res, user_id) {
 
   user <- req$user_id
@@ -2037,7 +2072,7 @@ function(req, res, user_id) {
 
     res$status <- 401 # Unauthorized
     return(list(error = "Please authenticate."))
-
+#* @
   } else if (req$user_role %in% c("Administrator", "Curator") && !user_id_assign_exists) {
 
     res$status <- 409 # Conflict
@@ -2067,7 +2102,7 @@ function(req, res, user_id) {
 #* @tag re_review
 #* deletes certain re-review batch assignment
 #* @serializer json list(na="string")
-#' @delete /api/re_review/batch/unassign
+#* @delete /api/re_review/batch/unassign
 function(req, res, re_review_batch) {
 
   user <- req$user_id
@@ -2126,7 +2161,7 @@ function(req, res, re_review_batch) {
 #* @tag re_review
 #* gets a summary table of currently assigned re-review batches
 #* @serializer json list(na="string")
-#' @get /api/re_review/assignment_table
+#* @get /api/re_review/assignment_table
 function(req, res) {
 
   user <- req$user_id
@@ -2192,7 +2227,7 @@ function(req, res) {
 #* @tag publication
 #* gets a publication by pmid
 #* @serializer json list(na="string")
-#' @get /api/publication/<pmid>
+#* @get /api/publication/<pmid>
 function(pmid) {
 
   pmid <- URLdecode(pmid) %>%
@@ -2220,7 +2255,7 @@ function(pmid) {
 #* @tag publication
 #* validates if a pmid exists in pubmed
 #* @serializer json list(na="string")
-#' @get /api/publication/validate/<pmid>
+#* @get /api/publication/validate/<pmid>
 function(req, res, pmid) {
 
   pmid <- URLdecode(pmid) %>%
@@ -2246,7 +2281,7 @@ function(req, res, pmid) {
 #* @param page_after:str Cursor after which to show entries in cursor pagination.
 #* @param page_size:str Page size in cursor pagination.
 #* @param fspec:str Fields for which to generate the fied specification in the meta data response.
-#' @get /api/gene
+#* @get /api/gene
 function(res,
   sort = "symbol",
   filter = "",
@@ -2347,7 +2382,7 @@ function(res,
 #* @tag gene
 #* gets infos for a single gene by hgnc_id
 #* @serializer json list(na="null")
-#' @get /api/gene/<gene_input>
+#* @get /api/gene/<gene_input>
 function(gene_input, input_type = "hgnc") {
 
   # conditionally url decode and reformat input
@@ -2400,7 +2435,7 @@ function(gene_input, input_type = "hgnc") {
 #* @tag ontology
 #* gets an ontology entry by disease_ontology_id_version
 #* @serializer json list(na="null")
-#' @get /api/ontology/<ontology_input>
+#* @get /api/ontology/<ontology_input>
 function(ontology_input, input_type = "ontology_id") {
   # decode URL
   ontology_input <- URLdecode(ontology_input)
@@ -2460,16 +2495,27 @@ function(ontology_input, input_type = "ontology_id") {
 ##-------------------------------------------------------------------##
 ## Phenotype endpoints
 
+#* Get a List of Entities Associated with a List of Phenotypes
+#*
+#* This endpoint returns a list of entities associated with a list of phenotypes
+#* based on the data in the database.
+#* 
 #* @tag phenotype
-#* gets a list of entities associated with a list of phenotypes
 #* @serializer json list(na="string")
-#* @param sort:str  Output column to arrange output on.
+#* @param sort:str Output column to arrange output on.
 #* @param filter:str Comma separated list of filters to apply.
 #* @param fields:str Comma separated list of output columns.
-#* @param page_after:str Cursor after which to show entries in cursor pagination.
+#* @param page_after:str Cursor after which to show entries in cursor
+#* pagination.
 #* @param page_size:str Page size in cursor pagination.
-#* @param fspec:str Fields for which to generate the fied specification in the meta data response.
-#' @get /api/phenotype/entities/browse
+#* @param fspec:str Fields for which to generate the field specification in
+#* the meta data response.
+#* @param format:str The output format, either "json" or "xlsx". Defaults to
+#* "json".
+#* @return A data frame containing the list of entities associated with the
+#* list of phenotypes.
+#* 
+#* @get /api/phenotype/entities/browse
 function(req,
   res,
   sort = "entity_id",
@@ -2518,10 +2564,26 @@ function(req,
 }
 
 
+#* Get Correlation between Phenotypes
+#*
+#* This endpoint returns the correlation matrix between phenotypes based on
+#* the data in the database.
+#*
 #* @tag phenotype
-#* gets correlation between phenotypes
 #* @serializer json list(na="string")
-#' @get /api/phenotype/correlation
+#* @param res The res parameter that is not used in this function,
+#* but is required by the plumber package.
+#* @param filter:str A string representing a filter query to use when selecting
+#* data from the database. By default, the filter is set to
+#* "contains(ndd_phenotype_word,Yes),any(category,Definitive)". This parameter
+#* is optional.
+#* @return A data frame containing the correlation matrix between phenotypes,
+#* with the columns "x", "x_id", "y", "y_id", and "value". The "x" and "y"
+#* columns represent the names of the phenotypes, the "x_id" and "y_id" columns
+#* represent the corresponding HPO IDs, and the "value" column represents the
+#* correlation coefficient between the two phenotypes.
+#*
+#* @get /api/phenotype/correlation
 function(res,
   filter = "contains(ndd_phenotype_word,Yes),any(category,Definitive)") {
 
@@ -2576,14 +2638,29 @@ function(res,
 
   # return the object
   phenotypes_corr_melted_ids
-
 }
 
 
+#* Get Counts of Phenotypes in Annotated Entities
+#*
+#* This endpoint returns the counts of phenotypes in annotated entities based on
+#* the data in the database.
+#*
 #* @tag phenotype
-#* gets counts of phenotypes in annotated entities
 #* @serializer json list(na="string")
-#' @get /api/phenotype/count
+#* @param res A parameter that is not used in this function, but is required
+#* by the plumber package.
+#* @param filter:str A string representing a filter query to use when selecting
+#* data from the database. By default, the filter is set to
+#* "contains(ndd_phenotype_word,Yes),any(category,Definitive)". This parameter
+#* is optional.
+#* @return A data frame containing the counts of phenotypes in annotated
+#* entities, with the columns "HPO_term", "phenotype_id", and "count". The
+#* "HPO_term" column represents the name of the phenotype, the "phenotype_id"
+#* column represents the corresponding HPO ID, and the "count" column represents
+#* the number of times the phenotype appears in annotated entities.
+#*
+#* @get /api/phenotype/count
 function(res,
   filter = "contains(ndd_phenotype_word,Yes),any(category,Definitive)") {
 
@@ -2620,7 +2697,6 @@ function(res,
 
   # generate object to return
   sysndd_db_phenotypes_count
-
 }
 ## Phenotype endpoints
 ##-------------------------------------------------------------------##
@@ -2633,7 +2709,7 @@ function(res,
 #* @tag status
 #* gets the status list
 #* @serializer json list(na="null")
-#' @get /api/status
+#* @get /api/status
 function(req, res, filter_status_approved = FALSE) {
 
   # TODO: maybe this endpoint should be authenticated
@@ -2771,7 +2847,7 @@ function(req, res, filter_status_approved = FALSE) {
 #* @tag status
 #* gets a single status by status_id
 #* @serializer json list(na="null")
-#' @get /api/status/<status_id_requested>
+#* @get /api/status/<status_id_requested>
 function(status_id_requested) {
   # remove spaces from list
   status_id_requested <- URLdecode(status_id_requested) %>%
@@ -2817,7 +2893,7 @@ function(status_id_requested) {
 #* @tag status
 #* gets a list of all status
 #* @serializer json list(na="string")
-#' @get /api/status_list
+#* @get /api/status_list
 function() {
   status_list_collected <- pool %>%
     tbl("ndd_entity_status_categories_list") %>%
@@ -2831,8 +2907,8 @@ function() {
 ## example data: '{"status_id":3,"entity_id":3,"category_id":1,"comment":"fsa","problematic": true}'
 ## (provide status_id for put and entity_id for post requests)
 #* @serializer json list(na="string")
-#' @post /api/status/create
-#' @put /api/status/update
+#* @post /api/status/create
+#* @put /api/status/update
 function(req, res, re_review = FALSE) {
 
   # first check rights
@@ -2863,7 +2939,7 @@ function(req, res, re_review = FALSE) {
 #* puts the status approvement
 #* (only Administrator and Curator status users)
 #* @serializer json list(na="string")
-#' @put /api/status/approve/<status_id_requested>
+#* @put /api/status/approve/<status_id_requested>
 function(req, res, status_id_requested, status_ok = FALSE) {
   # make sure status_ok input is logical
   status_ok <- as.logical(status_ok)
@@ -2905,7 +2981,7 @@ function(req, res, status_id_requested, status_ok = FALSE) {
 #* @tag panels
 #* gets list of all panel filtering options
 #* @serializer json list(na="string")
-#' @get /api/panels/options
+#* @get /api/panels/options
 function() {
   # connect to database and get category list
   categories_list <- pool %>%
@@ -2942,7 +3018,7 @@ function() {
 #* @param sort Output column to arrange output on.
 #* @param filter Comma separated list of filters to apply.
 #* @param fields Comma separated list of output columns.
-#' @get /api/panels/browse
+#* @get /api/panels/browse
 function(req,
   res,
   sort = "symbol",
@@ -3004,7 +3080,7 @@ function(req,
 #* gets statistics for all genes associated with a
 #* NDD phenotype by inheritance and association category
 #* @serializer json list(na="string")
-#' @get /api/statistics/category_count
+#* @get /api/statistics/category_count
 function(sort = "category_id,-n",
   type = "gene") {
  disease_genes_statistics <- generate_stat_tibble_mem(sort, type)
@@ -3016,7 +3092,7 @@ function(sort = "category_id,-n",
 #* @tag statistics
 #* gets last n entries in definitive category as news
 #* @serializer json list(na="string")
-#' @get /api/statistics/news
+#* @get /api/statistics/news
 function(n = 5) {
  sysndd_db_disease_genes_news <- generate_gene_news_tibble_mem(n)
 
@@ -3027,7 +3103,7 @@ function(n = 5) {
 #* @tag statistics
 #* gets database entry development over time
 #* @serializer json list(na="string")
-#' @get /api/statistics/entities_over_time
+#* @get /api/statistics/entities_over_time
 function(res,
   aggregate = "entity_id",
   group = "category",
@@ -3160,7 +3236,7 @@ function(res,
 #* @tag comparisons
 #* gets list of all panel filtering options
 #* @serializer json list(na="string")
-#' @get /api/comparisons/options
+#* @get /api/comparisons/options
 function() {
   # connect to database and get comparisons view
   ndd_database_comparison_view <- pool %>%
@@ -3209,7 +3285,7 @@ function() {
 #* @tag comparisons
 #* return plot data showing intersection between different databases
 #* @serializer json list(na="string")
-#' @get /api/comparisons/upset
+#* @get /api/comparisons/upset
 function(res, fields = "") {
   # get data from database and filter
   ndd_database_comp_gene_list  <- pool %>%
@@ -3246,7 +3322,7 @@ function(res, fields = "") {
 #* @tag comparisons
 #* gets cosine similarity data between different databases for plotting
 #* @serializer json list(na="string")
-#' @get /api/comparisons/similarity
+#* @get /api/comparisons/similarity
 function() {
 
   # get data from database, filter and restructure
@@ -3285,7 +3361,7 @@ function() {
 #* @param page_after:str Cursor after which to show entries in cursor pagination.
 #* @param page_size:str Page size in cursor pagination.
 #* @param fspec:str Fields for which to generate the fied specification in the meta data response.
-#' @get /api/comparisons/browse
+#* @get /api/comparisons/browse
 function(req,
   res,
   sort = "symbol",
@@ -3342,7 +3418,7 @@ function(req,
 #* @tag analysis
 #* gene clusters using stringdb
 #* @serializer json list(na="string")
-#' @get /api/analysis/functional_clustering
+#* @get /api/analysis/functional_clustering
 function() {
 
   # define link sources
@@ -3416,7 +3492,7 @@ function() {
 #* @tag analysis
 #* entity clusters from phenotypes using MCA and HC
 #* @serializer json list(na="string")
-#' @get /api/analysis/phenotype_clustering
+#* @get /api/analysis/phenotype_clustering
 function() {
   # define constants for filtering
   id_phenotype_ids <- c("HP:0001249",
@@ -3522,7 +3598,7 @@ function() {
 #* @tag hash
 #* takes a list of identifiers, sorts, hashes and safes this, then returns the hash link
 #* @serializer json list(na="string")
-#' @post /api/hash/create
+#* @post /api/hash/create
 function(req, res, endpoint = "/api/gene") {
 
   # get data from POST body
@@ -3558,7 +3634,7 @@ function(req, res, endpoint = "/api/gene") {
 #* searches the entity view by columns entity_id,
 #* hgnc_id, symbol, disease_ontology_id_version, disease_ontology_name
 #* @serializer json list(na="string")
-#' @get /api/search/<searchterm>
+#* @get /api/search/<searchterm>
 function(searchterm, helper = TRUE) {
   # make sure helper input is logical
   helper <- as.logical(helper)
@@ -3632,7 +3708,7 @@ function(searchterm, helper = TRUE) {
 #* searches the search_disease_ontology_set view by
 #* columns disease_ontology_id_version, disease_ontology_name
 #* @serializer json list(na="string")
-#' @get /api/search/ontology/<searchterm>
+#* @get /api/search/ontology/<searchterm>
 function(searchterm, tree = FALSE) {
   # make sure tree input is logical
   tree <- as.logical(tree)
@@ -3692,7 +3768,7 @@ function(searchterm, tree = FALSE) {
 #* @tag search
 #* searches the search_non_alt_loci_view table by columns hgnc_id, symbol
 #* @serializer json list(na="string")
-#' @get /api/search/gene/<searchterm>
+#* @get /api/search/gene/<searchterm>
 function(searchterm, tree = FALSE) {
   # make sure tree input is logical
   tree <- as.logical(tree)
@@ -3745,7 +3821,7 @@ function(searchterm, tree = FALSE) {
 #* searches the search_mode_of_inheritance_list_view table by columns
 #* hpo_mode_of_inheritance_term_name, hpo_mode_of_inheritance_term
 #* @serializer json list(na="string")
-#' @get /api/search/inheritance/<searchterm>
+#* @get /api/search/inheritance/<searchterm>
 function(searchterm, tree = FALSE) {
   # make sure tree input is logical
   tree <- as.logical(tree)
@@ -3812,7 +3888,7 @@ function(searchterm, tree = FALSE) {
 #* @tag list
 #* gets a list of all status
 #* @serializer json list(na="string")
-#' @get /api/list/status
+#* @get /api/list/status
 function(tree = FALSE) {
   # make sure tree input is logical
   tree <- as.logical(tree)
@@ -3842,7 +3918,7 @@ function(tree = FALSE) {
 #* @tag list
 #* gets a list of all phenotypes
 #* @serializer json list(na="string")
-#' @get /api/list/phenotype
+#* @get /api/list/phenotype
 function(tree = FALSE) {
   # make sure tree input is logical
   tree <- as.logical(tree)
@@ -3890,7 +3966,7 @@ function(tree = FALSE) {
 #* @tag list
 #* gets a list of all inheritance terms
 #* @serializer json list(na="string")
-#' @get /api/list/inheritance
+#* @get /api/list/inheritance
 function(tree = FALSE) {
   # make sure tree input is logical
   tree <- as.logical(tree)
@@ -3923,7 +3999,7 @@ function(tree = FALSE) {
 #* @tag list
 #* gets a list of all variation ontology terms
 #* @serializer json list(na="string")
-#' @get /api/list/variation_ontology
+#* @get /api/list/variation_ontology
 function(tree = FALSE) {
   # make sure tree input is logical
   tree <- as.logical(tree)
@@ -3980,7 +4056,7 @@ function(tree = FALSE) {
 #* @tag external
 #* takes a sysndd URl and submits it to archive.org
 #* @serializer json list(na="string")
-#' @get /api/external/internet_archive
+#* @get /api/external/internet_archive
 function(req, res, parameter_url, capture_screenshot = "on") {
 
   # check if provided URL is valid
@@ -4013,7 +4089,7 @@ function(req, res, parameter_url, capture_screenshot = "on") {
 #* @tag user
 #* gets a summary table of users
 #* @serializer json list(na="string")
-#' @get /api/user/table
+#* @get /api/user/table
 function(req, res) {
 
   user <- req$user_id
@@ -4074,7 +4150,7 @@ function(req, res) {
 
 #* @tag user
 #* gets count statistics of all contributions of a user
-#' @get /api/user/<user_id>/contributions
+#* @get /api/user/<user_id>/contributions
 function(req, res, user_id) {
 
   user_requested <- user_id
@@ -4120,7 +4196,7 @@ function(req, res, user_id) {
 
 #* @tag user
 #* manages user application approval
-#' @put /api/user/approval
+#* @put /api/user/approval
 function(req, res, user_id = 0, status_approval = FALSE) {
 
   user <- req$user_id
@@ -4234,7 +4310,7 @@ function(req, res, user_id = 0, status_approval = FALSE) {
 
 #* @tag user
 #* manages user application approval
-#' @put /api/user/change_role
+#* @put /api/user/change_role
 function(req, res, user_id, role_assigned = "Viewer") {
   user <- req$user_id
   user_id_role <- as.integer(user_id)
@@ -4296,7 +4372,7 @@ function(req, res, user_id, role_assigned = "Viewer") {
 
 #* @tag user
 #* gets a list of all available user status options
-#' @get /api/user/role_list
+#* @get /api/user/role_list
 function(req, res) {
 
   user <- req$user_id
@@ -4329,7 +4405,7 @@ function(req, res) {
 
 #* @tag user
 #* gets a list of users based having a role
-#' @get /api/user/list
+#* @get /api/user/list
 function(req, res, roles = "Viewer") {
 
   user <- req$user_id
@@ -4375,7 +4451,7 @@ function(req, res, roles = "Viewer") {
 
 #* @tag user
 #* changes the user password
-#' @put /api/user/password/update
+#* @put /api/user/password/update
 function(
   req,
   res,
@@ -4484,7 +4560,7 @@ function(
 
 #* @tag user
 #* request password reset
-#' @get /api/user/password/reset/request
+#* @get /api/user/password/reset/request
 function(req, res, email_request = "") {
 
   user_table <- pool %>%
@@ -4570,7 +4646,7 @@ function(req, res, email_request = "") {
 
 #* @tag user
 #* does password reset
-#' @get /api/user/password/reset/change
+#* @get /api/user/password/reset/change
 function(req, res, new_pass_1 = "", new_pass_2 = "") {
 
   # load jwt from header
@@ -4661,7 +4737,7 @@ function(req, res, new_pass_1 = "", new_pass_2 = "") {
 #* @tag authentication
 #* manages user signup
 #* @serializer json list(na="string")
-#' @get /api/auth/signup
+#* @get /api/auth/signup
 function(signup_data) {
   user <- tibble::as_tibble(fromJSON(signup_data)) %>%
       mutate(terms_agreed = case_when(
@@ -4730,7 +4806,7 @@ function(signup_data) {
 ## based on "https://github.com/
 ## jandix/sealr/blob/master/examples/jwt_simple_example.R"
 #* @serializer json list(na="string")
-#' @get /api/auth/authenticate
+#* @get /api/auth/authenticate
 function(req, res, user_name, password) {
 
   check_user <- user_name
@@ -4787,7 +4863,7 @@ function(req, res, user_name, password) {
 #* @tag authentication
 #* does user authentication
 #* @serializer json list(na="string")
-#' @get /api/auth/signin
+#* @get /api/auth/signin
 function(req, res) {
   # load secret and convert to raw
   key <- charToRaw(dw$secret)
@@ -4817,7 +4893,7 @@ function(req, res) {
 #* @tag authentication
 #* does authentication refresh
 #* @serializer json list(na="string")
-#' @get /api/auth/refresh
+#* @get /api/auth/refresh
 function(req, res) {
   # load secret and convert to raw
   key <- charToRaw(dw$secret)
