@@ -78,7 +78,7 @@ pool <- dbPool(
 ## global variables
 serializers <- list(
   "json" = serializer_json(),
-  "xlsx" = serializer_content_type(type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+  "xlsx" = serializer_content_type(type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 )
 
 # TODO: This needs to go into the database as helper
@@ -280,18 +280,32 @@ function(req, res) {
 #* This endpoint returns a cursor pagination object of all entities based on the
 #* data in the database.
 #*
+#* # `Details`
+#* This is a plumber endpoint function that retrieves paginated data from a
+#* database table and returns it as a JSON response. The function takes input
+#* parameters for sorting, filtering, and field selection, and uses cursor
+#* pagination to generate links to previous and next pages.
+#* It retrieves data from two tables in the database, filters and sorts the data
+#* based on input parameters, selects fields for inclusion in the response, and
+#* generates pagination information and fields specifications.
+#* The function adds meta and link information to the response and computes
+#* execution time before returning the paginated data as a list.
+#*
+#* # `Return`
+#* A cursor pagination object containing a list of entities.
+#*
 #* @tag entity
 #* @serializer json list(na="string")
+#*
 #* @param sort:str Output column to arrange output on.
 #* @param filter:str Comma separated list of filters to apply.
 #* @param fields:str Comma separated list of output columns.
 #* @param page_after:str Cursor after which entries are shown.
 #* @param page_size:str Page size in cursor pagination.
 #* @param fspec:str Fields to generate field specification for.
-#* @response 200 A cursor pagination object with links, meta information and
-#* entity objects in the data field.
+#*
+#* @response 200 OK. A cursor pagination object with links, meta and data (entity objects).
 #* @response 500 Internal server error.
-#* @return A cursor pagination object containing a list of entities.
 #*
 #* @get /api/entity
 function(res,
@@ -393,29 +407,28 @@ function(res,
 }
 
 
-#* @title Create New Entity
+#* Create New Entity
 #*
-#* @tag entity
-#* @serializer json list(na="string")
-#*
-#* @description This endpoint allows for the creation of a new entity,
+#* This endpoint allows for the creation of a new entity,
 #* including entity details, review, and status.
 #* It also provides options for direct approval,
 #* review of literature, synopsis, phenotypes, and variation ontology.
 #*
-#* @param req An object of class `Request` provided by `plumber` with
-#* the incoming HTTP request data.
-#* @param res An object of class `Response` provided by `plumber`
-#* for populating the HTTP response.
-#* @param direct_approval A boolean input, indicating if direct approval
-#* is required. Defaults to FALSE.
-#* @details The function checks for user rights, and if valid,
+#* # `Details`
+#* The function checks for user rights, and if valid,
 #* proceeds to create a new entity. Subsequent checks are performed
 #* to review the entity and create status. The function also handles
 #* different scenarios like empty publications, phenotypes, and
 #* variation ontology.
-#* @return A list with status and message of the operation or an
+#*
+#* # `Return`
+#* A list with status and message of the operation or an
 #* error message if user has no write access.
+#*
+#* @tag entity
+#* @serializer json list(na="string")
+#*
+#* @param direct_approval Boolean for direct approval. Defaults to FALSE.
 #*
 #* @post /api/entity/create
 function(req, res, direct_approval = FALSE) {
@@ -670,34 +683,34 @@ function(req, res, direct_approval = FALSE) {
 
 #* Renames an entity by updating its disease ontology ID version.
 #*
-#* @tag entity
-#* @serializer json list(na="string")
+#* # `Details`
+#* This endpoint function renames the disease ontology of a entity.
+#* It checks user role and replaces the disease_ontology_id_version
+#* in the ndd_entity table. It deactivates the old entity_id and sets
+#* the replacement using put_db_entity_deactivation. It copies all review
+#* information from the old entity to the new one, posts new status for
+#* the posted entity, and computes a response based on the status of the requests.
+#* If successful, the function returns the new entity_id, otherwise,
+#* it returns an error message.
 #*
-#* @param rename_json A JSON object with the following properties:
+#* # `Input`
+#* A JSON object with the following properties:
 #* - entity_id: (integer) The ID of the entity to be renamed.
 #* - hgnc_id: (string) The HGNC ID of the entity.
 #* - hpo_mode_of_inheritance_term: (string) The HPO term for mode of inheritance of the entity.
 #* - ndd_phenotype: (string) The non-disease phenotype of the entity.
 #* - disease_ontology_id_version: (string) The new version of the disease ontology ID of the entity.
 #*
-#* @return A JSON object with the following properties:
+#* # `Return`
+#* A JSON object with the following properties:
 #* - status: (integer) The HTTP status code of the response.
 #* - message: (string) A message describing the outcome of the operation.
 #* - entry: (list) A list containing the updated entity ID and other metadata.
 #*
-#* @examples
-#* # Example request using curl
-#* curl --location --request POST 'http://localhost:8000/api/entity/rename'
-#* --header 'Content-Type: application/json'
-#* --data-raw '{
-#* "rename_json": {
-#* "entity_id": 123,
-#* "hgnc_id": "ABC123",
-#* "hpo_mode_of_inheritance_term": "HP:0000001",
-#* "ndd_phenotype": "Phenotype 1",
-#* "disease_ontology_id_version": "DOID:12345/2.0"
-#* }
-#* }'
+#* @tag entity
+#* @serializer json list(na="string")
+#*
+#* @param rename_json A JSON object with the above detailed properties.
 #*
 #* @post /api/entity/rename
 function(req, res) {
@@ -894,28 +907,32 @@ function(req, res) {
 }
 
 
-#* @title Deactivate Entity
+#* Deactivate Entity
 #*
-#* @tag entity
-#* @serializer json list(na="string")
-#*
-#* @description This endpoint allows for the deactivation of an existing entity.
+#* This endpoint allows for the deactivation of an existing entity.
 #* The function checks user rights and proceeds with the deactivation
 #* only if the user role is either Administrator or Curator.
 #* The deactivation process includes updating the 'is_active' and 'replaced_by'
 #* fields in the database.
-#* @param req An object of class `Request` provided by `plumber` with the
-#* incoming HTTP request data.
-#* @param res An object of class `Response` provided by `plumber` for
-#* populating the HTTP response.
-#* @details The function only allows deactivation of an entity, any other
+#*
+#* # `Details`
+#* The function only allows deactivation of an entity, any other
 #* changes to the entity will result in a 'Bad Request' response.
-#* @return A list with status and message of the operation or an error
+#*
+#* # `Return`
+#* A list with status and message of the operation or an error
 #* message if user has no write access or if the request is invalid.
+#*
+#* @tag entity
+#* @serializer json list(na="string")
+#*
+#* @response 200 OK. A list with status, message and entity_id.
+#* @response 400 Bad Request. Submitted JSON data does not match the criteria for deactivating or is malformed.
+#* @response 403 Forbidden. User does not have the required role.
+#* @response 500 Internal server error.
 #*
 #* @post /api/entity/deactivate
 function(req, res) {
-
   # first check rights
   if (req$user_role %in% c("Administrator", "Curator")) {
 
@@ -975,21 +992,28 @@ function(req, res) {
 }
 
 
-#* @title Get Phenotypes for Entity
+#* Get Phenotypes for Entity
+#*
+#* This endpoint retrieves all phenotypes associated with a
+#* given entity_id. The function gets data from the database, performs
+#* necessary joins and filtering to produce the list of phenotypes.
+#*
+#* # `Details`
+#* The function joins active entities with phenotype connections
+#* and then matches these with the phenotype list to get a complete
+#* phenotype information for the given entity_id.
+#*
+#* # `Return`
+#* A dataframe containing entity_id, phenotype_id, HPO_term,
+#* and modifier_id for each phenotype associated with the entity_id.
 #*
 #* @tag entity
 #* @serializer json list(na="string")
 #*
-#* @description This endpoint retrieves all phenotypes associated with a
-#* given entity_id. The function gets data from the database, performs
-#* necessary joins and filtering to produce the list of phenotypes.
-#* @param sysndd_id A numeric, representing the entity_id for which phenotypes
-#* are to be retrieved.
-#* @details The function joins active entities with phenotype connections
-#* and then matches these with the phenotype list to get a complete
-#* phenotype information for the given entity_id.
-#* @return A dataframe containing entity_id, phenotype_id, HPO_term,
-#* and modifier_id for each phenotype associated with the entity_id.
+#* @param sysndd_id A numeric, representing the entity_id to be retrieved.
+#*
+#* @response 200 OK. A data frame as described above.
+#* @response 500 Internal server error.
 #*
 #* @get /api/entity/<sysndd_id>/phenotypes
 function(sysndd_id) {
@@ -1019,21 +1043,27 @@ function(sysndd_id) {
 }
 
 
-#* @title Get Variation Ontology for Entity
+#* Get Variation Ontology for Entity
 #*
+#* This endpoint retrieves all variation ontology terms associated
+#* with a given entity_id. The function fetches data from the database,
+#* performs necessary joins and filtering to produce the 
+#* list of variation ontology terms.
+#*
+#* # `Details`
+#*The function first collects the active variation ontology connections
+#* from the database, then filters for the given entity_id,
+#* and joins these with the variation ontology list to get the complete
+#* variation ontology information.
+#* 
+#* # `Return`
+#* A dataframe containing entity_id, vario_id, vario_name, and
+#* modifier_id for each variation ontology term associated with the entity_id.
+#* 
 #* @tag entity
 #* @serializer json list(na="string")
 #*
-#* @description This endpoint retrieves all variation ontology terms associated
-#* with a given entity_id. The function fetches data from the database, performs 
-#* necessary joins and filtering to produce the list of variation ontology terms.
-#* @param sysndd_id A numeric, representing the entity_id for which variation
-#* ontology terms are to be retrieved.
-#* @details The function first collects the active variation ontology connections 
-#* from the database, then filters for the given entity_id, and joins these with 
-#* the variation ontology list to get the complete variation ontology information.
-#* @return A dataframe containing entity_id, vario_id, vario_name, and
-#* modifier_id for each variation ontology term associated with the entity_id.
+#* @param sysndd_id The entity_id for which ontology should be retrieved.
 #*
 #* @get /api/entity/<sysndd_id>/variation
 function(sysndd_id) {
@@ -1056,22 +1086,26 @@ function(sysndd_id) {
 }
 
 
-#* @title Get Clinical Synopsis for Entity
+#* Get Clinical Synopsis for Entity
+#*
+#* This endpoint retrieves all clinical synopsis associated with a
+#* given entity_id. The function fetches data from the database, performs
+#* necessary filtering to produce the list of clinical synopsis.
+#*
+#* # `Details`
+#* The function collects the review data from the database, filters for
+#* the given entity_id and primary reviews, and selects necessary columns. The
+#* result is then joined with the provided entity_id to provide a complete list.
+#*
+#* # `Return`
+#* A dataframe containing entity_id, review_id, synopsis,
+#* review_date, and comment for each clinical synopsis associated
+#* with the entity_id.
 #*
 #* @tag entity
 #* @serializer json list(na="string")
 #*
-#* @description This endpoint retrieves all clinical synopsis associated with a
-#* given entity_id. The function fetches data from the database, performs
-#* necessary filtering to produce the list of clinical synopsis.
-#* @param sysndd_id A numeric, representing the entity_id for which the
-#* clinical synopsis is to be retrieved.
-#* @details The function collects the review data from the database, filters for
-#* the given entity_id and primary reviews, and selects necessary columns. The
-#* result is then joined with the provided entity_id to provide a complete list.
-#* @return A dataframe containing entity_id, review_id, synopsis,
-#* review_date, and comment for each clinical synopsis associated
-#* with the entity_id.
+#* @param sysndd_id The entity_id for which the clinical synopsis is to be retrieved.
 #*
 #* @get /api/entity/<sysndd_id>/review
 function(sysndd_id) {
@@ -1093,23 +1127,27 @@ function(sysndd_id) {
 }
 
 
-#* @title Get Entity Status
+#* Get Entity Status
+#*
+#* This endpoint retrieves the status for a given entity_id. The
+#* function collects the status data from the database, performs necessary 
+#* filtering, and joins with the status categories list.
+#*
+#* # `Details`
+#* The function fetches status data and status categories from the 
+#* database, filters for the given entity_id and active status, joins with the 
+#* categories list, and selects relevant columns. The result is then ordered 
+#* by status date.
+#*
+#* # `Return`
+#* A dataframe containing status_id, entity_id, category, category_id, 
+#* status_date, comment, and problematic fields for the status associated with 
+#* the entity_id.
 #*
 #* @tag entity
 #* @serializer json list(na="string")
 #*
-#* @description This endpoint retrieves the status for a given entity_id. The 
-#* function collects the status data from the database, performs necessary 
-#* filtering, and joins with the status categories list.
-#* @param sysndd_id A numeric, representing the entity_id for which the status 
-#* is to be retrieved.
-#* @details The function fetches status data and status categories from the 
-#* database, filters for the given entity_id and active status, joins with the 
-#* categories list, and selects relevant columns. The result is then ordered 
-#* by status date.
-#* @return A dataframe containing status_id, entity_id, category, category_id, 
-#* status_date, comment, and problematic fields for the status associated with 
-#* the entity_id.
+#* @param sysndd_id The entity_id for which the status is to be retrieved.
 #*
 #* @get /api/entity/<sysndd_id>/status
 function(sysndd_id) {
@@ -1137,22 +1175,26 @@ function(sysndd_id) {
 }
 
 
-#* @title Get Entity Publications
+#* Get Entity Publications
 #*
-#* @tag entity
-#* @serializer json list(na="string")
-#
-#* @description This endpoint retrieves all publications associated with a 
-#* given entity_id. It collects publication data from the database, performs 
+#* This endpoint retrieves all publications associated with a
+#* given entity_id. It collects publication data from the database, performs
 #* necessary filtering and joins, and selects relevant fields.
-#* @param sysndd_id A numeric, representing the entity_id for which the 
-#* publications are to be retrieved.
-#* @details The function fetches publication data and entity data from the 
+#*
+#* # `Details`
+#* The function fetches publication data and entity data from the 
 #* database, filters for reviewed publications and the given entity_id, joins 
 #* on entity_id, and selects relevant columns. The result is then ordered by 
 #* publication_id and de-duplicated.
-#* @return A dataframe containing entity_id, publication_id, publication_type, 
+#*
+#* # `Return`
+#* A dataframe containing entity_id, publication_id, publication_type, 
 #* and is_reviewed fields for the publications associated with the entity_id.
+#*
+#* @tag entity
+#* @serializer json list(na="string")
+#*
+#* @param sysndd_id The entity_id for which the publications are to be retrieved.
 #*
 #* @get /api/entity/<sysndd_id>/publications
 function(sysndd_id) {
@@ -2619,7 +2661,7 @@ function(ontology_input, input_type = "ontology_id") {
 #* "json".
 #* @return A data frame containing the list of entities associated with the
 #* list of phenotypes.
-#* 
+#*
 #* @get /api/phenotype/entities/browse
 function(req,
   res,

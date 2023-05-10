@@ -56,6 +56,7 @@ root <- pr("sysndd_plumber.R") %>%
       spec$components$securitySchemes$bearerAuth$bearerFormat <- "JWT"
       spec$security[[1]]$bearerAuth <- ""
 
+      ##-------------------------------------------------------------------##
       ## set examples in OpenAPI spec
       # for EP entity/create
       spec$paths$`/api/entity/create`$post$requestBody$content$`application/json`$schema$properties$create_json$example <-
@@ -99,6 +100,8 @@ root <- pr("sysndd_plumber.R") %>%
             problematic = 0
           )
         )
+      ##-------------------------------------------------------------------##
+
 
       ## return spec
       spec
