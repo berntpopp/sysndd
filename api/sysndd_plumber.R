@@ -308,14 +308,20 @@ function(req, res) {
 #* @response 500 Internal server error.
 #*
 #* @get /api/entity
-function(res,
+function(req,
+  res,
   sort = "entity_id",
   filter = "",
   fields = "",
   `page_after` = 0,
   `page_size` = "10",
-  fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details") {
+  fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details",
+  format = "json") {
+  # set serializers
+  res$serializer <- serializers[[format]]
 
+  # TODO: Put all of this into and endpoint function
+  # start time calculation
   start_time <- Sys.time()
 
   # generate sort expression based on sort input
@@ -401,9 +407,35 @@ function(res,
       pivot_wider(everything(), names_from = "type", values_from = "link")
 
   # generate object to return
-  list(links = links,
+  entities_list <- list(links = links,
     meta = meta,
     data = disease_table_pagination_info$data)
+
+  # if xlsx requested compute this and return
+  if (format == "xlsx") {
+    # generate creation date statistic for output
+    creation_date <- strftime(as.POSIXlt(Sys.time(),
+      "UTC",
+      "%Y-%m-%dT%H:%M:%S"),
+      "%Y-%m-%d_T%H-%M-%S")
+
+    # generate base filename from api name
+    base_filename <- str_replace_all(req$PATH_INFO, "\\/", "_") %>%
+        str_replace_all("_api_", "")
+
+    filename <- file.path(paste0(base_filename,
+      "_",
+      creation_date,
+      ".xlsx"))
+
+    # generate xlsx bin using helper function
+    bin <- generate_xlsx_bin(entities_list, base_filename)
+
+    # Return the binary contents
+    as_attachment(bin, filename)
+  } else {
+    entities_list
+  }
 }
 
 
@@ -2429,16 +2461,21 @@ function(req, res, pmid) {
 #* @param page_size:str Page size in cursor pagination.
 #* @param fspec:str Fields for which to generate the fied specification in the meta data response.
 #* @get /api/gene
-function(res,
+function(req,
+  res,
   sort = "symbol",
   filter = "",
   fields = "",
   `page_after` = "0",
   `page_size` = "10",
-  fspec = "symbol,category,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,entities_count,details") {
+  fspec = "symbol,category,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,entities_count,details",
+  format = "json") {
+  # set serializers
+  res$serializer <- serializers[[format]]
 
+  # TODO: Put all of this into and endpoint function
+  # start time calculation
   start_time <- Sys.time()
-
   # generate sort expression based on sort input
   sort_exprs <- generate_sort_expressions(sort, unique_id = "symbol")
 
@@ -2520,9 +2557,40 @@ function(res,
       pivot_wider(everything(), names_from = "type", values_from = "link")
 
   # generate object to return
-  list(links = links,
+  gene_list <- list(links = links,
     meta = meta,
     data = genes_nested_pag_info$data)
+
+  # if xlsx requested compute this and return
+  if (format == "xlsx") {
+    #TODO: move this to a helper function and collapse again as strings
+    # unnest data
+    gene_list$data <- gene_list$data %>%
+      unnest(c(entities), names_sep= "_")
+
+    # generate creation date statistic for output
+    creation_date <- strftime(as.POSIXlt(Sys.time(),
+      "UTC",
+      "%Y-%m-%dT%H:%M:%S"),
+      "%Y-%m-%d_T%H-%M-%S")
+
+    # generate base filename from api name
+    base_filename <- str_replace_all(req$PATH_INFO, "\\/", "_") %>%
+        str_replace_all("_api_", "")
+
+    filename <- file.path(paste0(base_filename,
+      "_",
+      creation_date,
+      ".xlsx"))
+
+    # generate xlsx bin using helper function
+    bin <- generate_xlsx_bin(gene_list, base_filename)
+
+    # Return the binary contents
+    as_attachment(bin, filename)
+  } else {
+    gene_list
+  }
 }
 
 
