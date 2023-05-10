@@ -49,6 +49,28 @@
                   >
                     <b-button
                       v-b-tooltip.hover.bottom
+                      class="mr-1"
+                      size="sm"
+                      title="Download data as Excel file."
+                      @click="requestExcel()"
+                    >
+                      <b-icon
+                        icon="table"
+                        class="mx-1"
+                      />
+                      <b-icon
+                        v-if="!downloading"
+                        icon="download"
+                      />
+                      <b-spinner
+                        v-if="downloading"
+                        small
+                      />
+                      .xlsx
+                    </b-button>
+
+                    <b-button
+                      v-b-tooltip.hover.bottom
                       class="mx-1"
                       size="sm"
                       title="Copy link to this page."
@@ -493,6 +515,7 @@ export default {
         title: '',
         content: '',
       },
+      downloading: false,
       loading: true,
       isBusy: true,
     };
@@ -638,6 +661,45 @@ export default {
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
+    },
+    async requestExcel() {
+      this.downloading = true;
+
+      // compose URL param
+      const urlParam = `sort=${
+        this.sort
+      }&filter=${
+        this.filter_string
+      }&page_after=`
+        + '0'
+        + '&page_size='
+        + 'all'
+        + '&format=xlsx';
+
+      const apiUrl = `${process.env.VUE_APP_API_URL
+      }/api/entity?${
+        urlParam}`;
+
+      try {
+        const response = await this.axios({
+          url: apiUrl,
+          method: 'GET',
+          responseType: 'blob',
+        });
+
+        const fileURL = window.URL.createObjectURL(new Blob([response.data]));
+        const fileLink = document.createElement('a');
+
+        fileLink.href = fileURL;
+        fileLink.setAttribute('download', 'sysndd_entity_table.xlsx');
+        document.body.appendChild(fileLink);
+
+        fileLink.click();
+      } catch (e) {
+        this.makeToast(e, 'Error', 'danger');
+      }
+
+      this.downloading = false;
     },
     normalizer(node) {
       return {
