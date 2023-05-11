@@ -82,6 +82,7 @@ serializers <- list(
 )
 
 # TODO: This needs to go into the database as helper
+# TODO: this might me deprecated as the panels EP now has filtering
 inheritance_input_allowed <- c("X-linked",
   "Autosomal dominant",
   "Autosomal recessive",
@@ -89,6 +90,7 @@ inheritance_input_allowed <- c("X-linked",
   "All")
 
 # TODO: This needs to go into the database as helper
+# TODO: this might me deprecated as the panels EP now has filtering
 output_columns_allowed <- c("category",
   "inheritance",
   "symbol",
