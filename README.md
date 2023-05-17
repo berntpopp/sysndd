@@ -18,7 +18,7 @@ This repository is for development of our SysNDD web application (app), applicat
 - [Documentation](#documentation) 📝
 - [Contributing and community](#contributing-and-community) 👥
 - [Bugs and feature requests](#bugs-and-feature-requests) 🪲 & 🌟
-- [Creators](#creators) 👩‍🔬
+- [Creators](#creators-and-contributors) 👩‍🔬
 - [Support and Funding](#support-and-funding) 🤗
 - [Credits and acknowledgement](#credits-and-acknowledgments) 👍
 - [Copyright and license](#copyright-and-license) ©️
