@@ -1462,6 +1462,7 @@ function(req, res, re_review = FALSE) {
       }
 
       # convert sysnopsis to tibble, check if comment is null and handle
+      # NULL value is replaced with empty string for downward compatibility
       if (!is.null(review_data$comment)) {
         sysnopsis_received <- tibble::as_tibble(review_data$synopsis) %>%
           add_column(review_data$entity_id) %>%
@@ -1478,7 +1479,7 @@ function(req, res, re_review = FALSE) {
           select(entity_id = `review_data$entity_id`,
             synopsis = value,
             review_user_id,
-            comment = NULL)
+            comment = "")
       }
 
       # convert phenotypes to tibble

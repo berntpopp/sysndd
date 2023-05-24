@@ -197,6 +197,15 @@ put_post_db_review <- function(request_method,
   re_review <- as.logical(re_review)
   ##-------------------------------------------------------------------##
 
+  ##-------------------------------------------------------------------##
+  # escape single quotes for SQL
+  # This fixes a bug where single quotes cause saving error
+  # based on: https://stackoverflow.com/questions/40257230/r-escape-single-quote-in-a-string
+  review_received <- review_received %>%
+    mutate(synopsis = str_replace_all(synopsis, "'", "''"),
+      comment = str_replace_all(comment, "'", "''"))
+  ##-------------------------------------------------------------------##
+
   if (("synopsis" %in% colnames(review_received)) &&
       ("entity_id" %in% colnames(review_received)) &&
       nchar(review_received$synopsis) > 0) {
