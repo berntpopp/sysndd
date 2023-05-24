@@ -133,7 +133,7 @@ put_db_entity_deactivation <- function(entity_id,
     port = dw$port
     )
 
-    # perform the review update
+    # perform the entity update
     dbExecute(sysndd_db, paste0("UPDATE ndd_entity SET ",
     "is_active = 0, ",
     "replaced_by = ",
@@ -202,8 +202,7 @@ put_post_db_review <- function(request_method,
   # This fixes a bug where single quotes cause saving error
   # based on: https://stackoverflow.com/questions/40257230/r-escape-single-quote-in-a-string
   review_received <- review_received %>%
-    mutate(synopsis = str_replace_all(synopsis, "'", "''"),
-      comment = str_replace_all(comment, "'", "''"))
+    mutate(synopsis = str_replace_all(synopsis, "'", "''"))
   ##-------------------------------------------------------------------##
 
   if (("synopsis" %in% colnames(review_received)) &&
@@ -737,6 +736,7 @@ put_post_db_status <- function(request_method,
   status_data, re_review = FALSE) {
     ##-------------------------------------------------------------------##
     # block to convert the entity components into tibble
+    # TODO: comment why compact is used here
     status_received <- purrr::compact(status_data) %>%
       tibble::as_tibble()
     ##-------------------------------------------------------------------##

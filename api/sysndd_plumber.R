@@ -1081,7 +1081,7 @@ function(sysndd_id) {
 #*
 #* This endpoint retrieves all variation ontology terms associated
 #* with a given entity_id. The function fetches data from the database,
-#* performs necessary joins and filtering to produce the 
+#* performs necessary joins and filtering to produce the
 #* list of variation ontology terms.
 #*
 #* # `Details`
@@ -1089,11 +1089,11 @@ function(sysndd_id) {
 #* from the database, then filters for the given entity_id,
 #* and joins these with the variation ontology list to get the complete
 #* variation ontology information.
-#* 
+#*
 #* # `Return`
 #* A dataframe containing entity_id, vario_id, vario_name, and
 #* modifier_id for each variation ontology term associated with the entity_id.
-#* 
+#*
 #* @tag entity
 #* @serializer json list(na="string")
 #*
@@ -1164,18 +1164,18 @@ function(sysndd_id) {
 #* Get Entity Status
 #*
 #* This endpoint retrieves the status for a given entity_id. The
-#* function collects the status data from the database, performs necessary 
+#* function collects the status data from the database, performs necessary
 #* filtering, and joins with the status categories list.
 #*
 #* # `Details`
-#* The function fetches status data and status categories from the 
-#* database, filters for the given entity_id and active status, joins with the 
-#* categories list, and selects relevant columns. The result is then ordered 
+#* The function fetches status data and status categories from the
+#* database, filters for the given entity_id and active status, joins with the
+#* categories list, and selects relevant columns. The result is then ordered
 #* by status date.
 #*
 #* # `Return`
-#* A dataframe containing status_id, entity_id, category, category_id, 
-#* status_date, comment, and problematic fields for the status associated with 
+#* A dataframe containing status_id, entity_id, category, category_id,
+#* status_date, comment, and problematic fields for the status associated with
 #* the entity_id.
 #*
 #* @tag entity
@@ -1216,13 +1216,13 @@ function(sysndd_id) {
 #* necessary filtering and joins, and selects relevant fields.
 #*
 #* # `Details`
-#* The function fetches publication data and entity data from the 
-#* database, filters for reviewed publications and the given entity_id, joins 
-#* on entity_id, and selects relevant columns. The result is then ordered by 
+#* The function fetches publication data and entity data from the
+#* database, filters for reviewed publications and the given entity_id, joins
+#* on entity_id, and selects relevant columns. The result is then ordered by
 #* publication_id and de-duplicated.
 #*
 #* # `Return`
-#* A dataframe containing entity_id, publication_id, publication_type, 
+#* A dataframe containing entity_id, publication_id, publication_type,
 #* and is_reviewed fields for the publications associated with the entity_id.
 #*
 #* @tag entity
@@ -1479,7 +1479,7 @@ function(req, res, re_review = FALSE) {
           select(entity_id = `review_data$entity_id`,
             synopsis = value,
             review_user_id,
-            comment = "")
+            comment = NULL)
       }
 
       # convert phenotypes to tibble
