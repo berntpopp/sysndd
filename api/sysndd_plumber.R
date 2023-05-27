@@ -2717,7 +2717,7 @@ function(ontology_input, input_type = "ontology_id") {
 #*
 #* This endpoint returns a list of entities associated with a list of phenotypes
 #* based on the data in the database.
-#* 
+#*
 #* @tag phenotype
 #* @serializer json list(na="string")
 #* @param sort:str Output column to arrange output on.
@@ -3576,7 +3576,7 @@ function() {
 #* @param sort:str  Output column to arrange output on.
 #* @param filter:str Comma separated list of filters to apply.
 #* @param fields:str Comma separated list of output columns.
-#* @param page_after:str Cursor after which to show entries in cursor pagination.
+#* @param page_after:str Cursor after which to show entries in pagination.
 #* @param page_size:str Page size in cursor pagination.
 #* @param fspec:str Fields for which to generate the fied specification in the meta data response.
 #* @get /api/comparisons/browse
@@ -3814,7 +3814,7 @@ function() {
 ##-------------------------------------------------------------------##
 ## Hash endpoints
 #* @tag hash
-#* takes a list of identifiers, sorts, hashes and safes this, then returns the hash link
+#* takes list identifiers, sorts, hashes and safes, returns hash link
 #* @serializer json list(na="string")
 #* @post /api/hash/create
 function(req, res, endpoint = "/api/gene") {
@@ -4201,12 +4201,15 @@ function(tree = FALSE) {
   # moi short for mode of inheritance
   if (tree) {
     moi_list_return_helper <- moi_list_collected %>%
-      select(id = hpo_mode_of_inheritance_term, label = hpo_mode_of_inheritance_term_name)
+      select(id = hpo_mode_of_inheritance_term, label =
+        hpo_mode_of_inheritance_term_name)
   } else {
     moi_list_return_helper <- moi_list_collected %>%
       nest_by(hpo_mode_of_inheritance_term, .key = "values") %>%
       ungroup() %>%
-      pivot_wider(everything(), names_from = "hpo_mode_of_inheritance_term", values_from = "values")
+      pivot_wider(everything(),
+        names_from = "hpo_mode_of_inheritance_term",
+        values_from = "values")
   }
 
   # return output

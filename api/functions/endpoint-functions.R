@@ -80,7 +80,6 @@ generate_comparisons_list <- function(sort = "symbol",
     select(-category) %>%
     left_join(status_categories_list, by = c("category_id"))
 
-  # TODO: change this to represent the category instead of "yes"
   ndd_database_comparison_table <- ndd_database_comparison_table_norm %>%
     select(symbol, hgnc_id, list, category = max_category) %>%
     unique() %>%
