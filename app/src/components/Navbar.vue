@@ -81,7 +81,8 @@
                 size="sm"
                 autocomplete="off"
                 class="navbar-search"
-                @input="loadSearchInfo"
+                debounce="300"
+                @update="loadSearchInfo"
                 @keydown.native="keydown_handler"
               />
 

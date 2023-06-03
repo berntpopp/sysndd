@@ -29,7 +29,8 @@
                   placeholder="Search by genes, entities and diseases using names or identifiers"
                   size="md"
                   autocomplete="off"
-                  @input="loadSearchInfo"
+                  debounce="300"
+                  @update="loadSearchInfo"
                   @keydown.native="keydown_handler"
                 />
 
