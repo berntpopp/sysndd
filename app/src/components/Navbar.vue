@@ -438,13 +438,16 @@ export default {
       }
     },
     updateDiffs() {
+      const timestampMillisecondDivider = 1000;
+      const secondToMinuteDivider = 60;
+      const warningTimePoints = [60, 180, 300];
       if (localStorage.token) {
         const expires = JSON.parse(localStorage.user).exp;
-        const timestamp = Math.floor(new Date().getTime() / 1000);
+        const timestamp = Math.floor(new Date().getTime() / timestampMillisecondDivider);
 
         if (expires > timestamp) {
-          this.time_to_logout = ((expires - timestamp) / 60).toFixed(2);
-          if ([60, 180, 300].includes(expires - timestamp)) {
+          this.time_to_logout = ((expires - timestamp) / secondToMinuteDivider).toFixed(2);
+          if (warningTimePoints.includes(expires - timestamp)) {
             this.makeToast(
               'Refresh token.',
               `Logout in ${expires - timestamp} seconds`,
