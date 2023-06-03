@@ -11,7 +11,7 @@
         class="py-0"
       >
         <img
-          src="../../public/SysNDD_brain-dna-magnifying-glass_dall-e_logo.webp"
+          :src="require('../../public/SysNDD_brain-dna-magnifying-glass_dall-e_logo.webp')"
           height="68"
           width="68"
           alt="SysNDD Logo"
