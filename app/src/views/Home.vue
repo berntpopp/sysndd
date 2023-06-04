@@ -31,7 +31,7 @@
                   autocomplete="off"
                   debounce="300"
                   @update="loadSearchInfo"
-                  @keydown.native="keydown_handler"
+                  @keydown.native="handleSearchInputKeydown"
                 />
 
                 <b-form-datalist
@@ -44,7 +44,7 @@
                     variant="outline-dark"
                     size="md"
                     :disabled="search_input.length < 2"
-                    @click="keydown_handler"
+                    @click="handleSearchInputKeydown"
                   >
                     <b-icon icon="search" />
                   </b-button>
@@ -807,7 +807,7 @@ export default {
         }
       }
     },
-    keydown_handler(event) {
+    handleSearchInputKeydown(event) {
       if (
         ((event.which === 13) || (event.which === 1))
         && (this.search_input.length > 0)

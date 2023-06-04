@@ -70,7 +70,7 @@
         <b-navbar-nav class="mx-auto">
           <b-nav-form
             v-if="show_search"
-            @submit.stop.prevent="keydown_handler"
+            @submit.stop.prevent="handleSearchInputKeydown"
           >
             <b-input-group class="mb-2">
               <b-form-input
@@ -83,7 +83,7 @@
                 class="navbar-search"
                 debounce="300"
                 @update="loadSearchInfo"
-                @keydown.native="keydown_handler"
+                @keydown.native="handleSearchInputKeydown"
               />
 
               <b-form-datalist
@@ -96,7 +96,7 @@
                   variant="outline-primary"
                   size="sm"
                   :disabled="search_input.length < 2"
-                  @click="keydown_handler"
+                  @click="handleSearchInputKeydown"
                 >
                   <b-icon icon="search" />
                 </b-button>
@@ -408,7 +408,7 @@ export default {
         }
       }
     },
-    keydown_handler(event) {
+    handleSearchInputKeydown(event) {
       if (
         ((event.which === 13) || (event.which === 1))
         && (this.search_input.length > 0)
