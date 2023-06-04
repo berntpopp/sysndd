@@ -15,77 +15,11 @@
           justified
           class="flex-grow-1"
         >
-          <b-nav-item
-            :link-attrs="link['license']"
-            href="http://creativecommons.org/licenses/by/4.0/"
-            target="_blank"
-          >
-            <img
-              src="../../public/licensebuttons.netlby4.0_88x31.png"
-              height="34"
-              width="96.52"
-              alt="Creative Commons License"
-            >
-          </b-nav-item>
-          <b-nav-item
-            :link-attrs="link['github']"
-            href="https://github.com/berntpopp/sysndd"
-            target="_blank"
-          >
-            <img
-              src="../../public/GitHub-Mark-64px_white.png"
-              height="34"
-              width="34"
-              alt="GitHub Logo"
-            >
-          </b-nav-item>
-          <b-nav-item
-            :link-attrs="link['api']"
-            href="/API"
-          >
-            <img
-              src="../../public/swagger.png"
-              height="34"
-              width="34"
-              alt="Swagger OpenAPI Logo"
-            >
-          </b-nav-item>
-          <b-nav-item
-            :link-attrs="link['dfg']"
-            href="https://www.dfg.de/"
-            target="_blank"
-          >
-            <img
-              src="../../public/dfg_logo_foerderung/dfg_logo_schriftzug_blau_foerderung_4c.png"
-              height="34"
-              width="120"
-              alt="DFG gefördert Logo"
-            >
-          </b-nav-item>
-          <b-nav-item
-            :link-attrs="link['unibe']"
-            href="https://www.unibe.ch/"
-            target="_blank"
-          >
-            <img
-              src="../../public/ub_16pt_rgb_quer_2018_68px.png"
-              height="34"
-              width="107"
-              alt="Universität Bern Logo"
-            >
-          </b-nav-item>
-          <b-nav-item
-            :link-attrs="link['ern-ithaca']"
-            href="https://ern-ithaca.eu/"
-            target="_blank"
-          >
-            <img
-              src="../../public/logo_blue_tiny.png"
-              height="34"
-              width="159"
-              alt="ERN ITHACA Logo"
-            >
-          </b-nav-item>
+          <FooterNavItem
+            v-for="(item, index) in footerItems"
+            :key="index"
+            :item="item"
+          />
         </b-navbar-nav>
       </b-collapse>
     </b-navbar>
@@ -93,8 +27,13 @@
 </template>
 
 <script>
+import FooterNavItem from '@/components/small/FooterNavItem.vue';
+
 export default {
   name: 'Footer',
+  components: {
+    FooterNavItem,
+  },
   data() {
     return {
       link: {
@@ -105,6 +44,62 @@ export default {
         unibe: { 'aria-label': 'unibe-link' },
         'ern-ithaca': { 'aria-label': 'ern-ithaca-link' },
       },
+      footerItems: [
+        // cc license
+        {
+          link: 'http://creativecommons.org/licenses/by/4.0/',
+          linkAttr: { 'aria-label': 'license-link' },
+          imgSrc: '/licensebuttons.netlby4.0_88x31.png',
+          alt: 'Creative Commons License',
+          width: '96.52',
+          target: '_blank',
+        },
+        // GitHub
+        {
+          link: '/API',
+          linkAttr: { 'aria-label': 'github-link' },
+          imgSrc: '/GitHub-Mark-64px_white.png',
+          alt: 'GitHub Logo',
+          width: '34',
+          target: '_blank',
+        },
+        // OpenAPI
+        {
+          link: '/API',
+          linkAttr: { 'aria-label': 'api-link' },
+          imgSrc: '/swagger.png',
+          alt: 'OpenAPI Logo',
+          width: '34',
+          target: '_self',
+        },
+        // DFG
+        {
+          link: 'https://www.dfg.de/',
+          linkAttr: { 'aria-label': 'dfg-link' },
+          imgSrc: '/dfg_logo_foerderung/dfg_logo_schriftzug_blau_foerderung_4c.png',
+          alt: 'DFG gefördert Logo',
+          width: '120',
+          target: '_blank',
+        },
+        // UniBe
+        {
+          link: 'https://www.unibe.ch/',
+          linkAttr: { 'aria-label': 'unibe-link' },
+          imgSrc: '/ub_16pt_rgb_quer_2018_68px.png',
+          alt: 'Universität Bern Logo',
+          width: '107',
+          target: '_blank',
+        },
+        // UniBe
+        {
+          link: 'https://ern-ithaca.eu/',
+          linkAttr: { 'aria-label': 'ern-ithaca-link' },
+          imgSrc: '/logo_blue_tiny.png',
+          alt: 'ERN ITHACA Logo',
+          width: '159',
+          target: '_blank',
+        },
+      ],
     };
   },
 };
@@ -112,20 +107,6 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-h3 {
-  margin: 40px 0 0;
-}
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-li {
-  display: inline-block;
-  margin: 0 10px;
-}
-a {
-  color: #42b983;
-}
 .bg-footer {
   background-image: linear-gradient(
     to top,
