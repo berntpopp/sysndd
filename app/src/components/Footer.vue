@@ -1,23 +1,29 @@
 <template>
+  <!-- The footer component -->
   <div class="footer">
+    <!-- Using bootstrap-vue navbar component to create the footer -->
     <b-navbar
       toggleable="sm"
       type="light"
       variant="light"
       class="py-0 bg-footer"
     >
+      <!-- The navbar toggle button for smaller screen sizes -->
       <b-navbar-toggle target="footer-collapse" />
+      <!-- The collapsible part of the navbar -->
       <b-collapse
         id="footer-collapse"
         is-nav
       >
+        <!-- The navbar items, distributed evenly across the navbar -->
         <b-navbar-nav
           justified
           class="flex-grow-1"
         >
+          <!-- A component for each item in the footer -->
           <FooterNavItem
             v-for="(item, index) in footerItems"
-            :key="index"
+            :key="index.id"
             :item="item"
           />
         </b-navbar-nav>
@@ -27,7 +33,11 @@
 </template>
 
 <script>
-import FooterNavItem from '@/components/small/FooterNavItem.vue';
+// Importing URLs from a constants file to avoid hardcoding them in this component
+import URLS from '@/assets/js/constants/constants';
+
+// Lazy-loading the FooterNavItem component to optimize performance
+const FooterNavItem = () => import('@/components/small/FooterNavItem.vue');
 
 export default {
   name: 'Footer',
@@ -36,18 +46,13 @@ export default {
   },
   data() {
     return {
-      link: {
-        license: { 'aria-label': 'license-link' },
-        github: { 'aria-label': 'github-link' },
-        api: { 'aria-label': 'api-link' },
-        dfg: { 'aria-label': 'dfg-link' },
-        unibe: { 'aria-label': 'unibe-link' },
-        'ern-ithaca': { 'aria-label': 'ern-ithaca-link' },
-      },
+      // An array of items to be displayed in the footer.
+      // Each item has an id, link, attributes for the link, image source, alt text, width, and target for the link.
       footerItems: [
         // cc license
         {
-          link: 'http://creativecommons.org/licenses/by/4.0/',
+          id: 'cc-license',
+          link: URLS.COMMON_LICENSE,
           linkAttr: { 'aria-label': 'license-link' },
           imgSrc: '/licensebuttons.netlby4.0_88x31.png',
           alt: 'Creative Commons License',
@@ -56,7 +61,8 @@ export default {
         },
         // GitHub
         {
-          link: '/API',
+          id: 'github',
+          link: URLS.GITHUB,
           linkAttr: { 'aria-label': 'github-link' },
           imgSrc: '/GitHub-Mark-64px_white.png',
           alt: 'GitHub Logo',
@@ -65,7 +71,8 @@ export default {
         },
         // OpenAPI
         {
-          link: '/API',
+          id: 'openapi',
+          link: URLS.API,
           linkAttr: { 'aria-label': 'api-link' },
           imgSrc: '/swagger.png',
           alt: 'OpenAPI Logo',
@@ -74,7 +81,8 @@ export default {
         },
         // DFG
         {
-          link: 'https://www.dfg.de/',
+          id: 'dfg',
+          link: URLS.DFG,
           linkAttr: { 'aria-label': 'dfg-link' },
           imgSrc: '/dfg_logo_foerderung/dfg_logo_schriftzug_blau_foerderung_4c.png',
           alt: 'DFG gefördert Logo',
@@ -83,16 +91,18 @@ export default {
         },
         // UniBe
         {
-          link: 'https://www.unibe.ch/',
+          id: 'unibe',
+          link: URLS.UNIBE,
           linkAttr: { 'aria-label': 'unibe-link' },
           imgSrc: '/ub_16pt_rgb_quer_2018_68px.png',
           alt: 'Universität Bern Logo',
           width: '107',
           target: '_blank',
         },
-        // UniBe
+        // ITHACA
         {
-          link: 'https://ern-ithaca.eu/',
+          id: 'ern-ithaca',
+          link: URLS.ERN_ITHACA,
           linkAttr: { 'aria-label': 'ern-ithaca-link' },
           imgSrc: '/logo_blue_tiny.png',
           alt: 'ERN ITHACA Logo',
@@ -105,9 +115,10 @@ export default {
 };
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
+<!-- The "scoped" attribute limits the styles to this component only -->
 <style scoped>
 .bg-footer {
+  /* A linear gradient background for the footer */
   background-image: linear-gradient(
     to top,
     #d5d4d0 0%,
