@@ -73,112 +73,110 @@
                   <mark>Entities</mark>
                 </h5>
                 <b-card-text class="text-left">
-                  <b-skeleton-wrapper :loading="loading_statistics">
-                    <template #loading>
-                      <b-skeleton-table
-                        :rows="2"
-                        :columns="3"
-                        :table-props="{
-                          bordered: false,
-                          striped: false,
-                          small: true,
-                        }"
-                      />
+                  <template #loading>
+                    <b-skeleton-table
+                      :rows="2"
+                      :columns="3"
+                      :table-props="{
+                        bordered: false,
+                        striped: false,
+                        small: true,
+                      }"
+                    />
+                  </template>
+
+                  <b-table
+                    :items="entity_statistics.data"
+                    :fields="statistics_fields"
+                    stacked="lg"
+                    head-variant="light"
+                    show-empty
+                    small
+                  >
+                    <template #cell(category)="data">
+                      <div>
+                        <b-avatar
+                          size="1.4em"
+                          icon="stoplights"
+                          :variant="stoplights_style[data.item.category]"
+                        />
+                        {{ data.item.category }}
+                      </div>
                     </template>
 
-                    <b-table
-                      :items="entity_statistics.data"
-                      :fields="statistics_fields"
-                      stacked="lg"
-                      head-variant="light"
-                      show-empty
-                      small
-                    >
-                      <template #cell(category)="data">
-                        <div>
-                          <b-avatar
-                            size="1.4em"
-                            icon="stoplights"
-                            :variant="stoplights_style[data.item.category]"
-                          />
-                          {{ data.item.category }}
+                    <template #cell(n)="data">
+                      <b-link
+                        :href="
+                          '/Entities?filter=any(category,' +
+                            data.item.category +
+                            ')'
+                        "
+                      >
+                        <div style="cursor: pointer">
+                          {{ data.item.n }}
                         </div>
-                      </template>
+                      </b-link>
+                    </template>
 
-                      <template #cell(n)="data">
-                        <b-link
-                          :href="
-                            '/Entities?filter=any(category,' +
-                              data.item.category +
-                              ')'
-                          "
+                    <template #cell(actions)="row">
+                      <b-button
+                        class="btn-xs"
+                        variant="outline-primary"
+                        @click="row.toggleDetails"
+                      >
+                        {{ row.detailsShowing ? "hide" : "show" }}
+                      </b-button>
+                    </template>
+
+                    <template #row-details="row">
+                      <b-card>
+                        <b-table
+                          :items="row.item.groups"
+                          :fields="statistics_details_fields"
+                          head-variant="light"
+                          show-empty
+                          small
+                          fixed
+                          striped
+                          sort-icon-left
                         >
-                          <div style="cursor: pointer">
-                            {{ data.item.n }}
-                          </div>
-                        </b-link>
-                      </template>
-
-                      <template #cell(actions)="row">
-                        <b-button
-                          class="btn-xs"
-                          variant="outline-primary"
-                          @click="row.toggleDetails"
-                        >
-                          {{ row.detailsShowing ? "hide" : "show" }}
-                        </b-button>
-                      </template>
-
-                      <template #row-details="row">
-                        <b-card>
-                          <b-table
-                            :items="row.item.groups"
-                            :fields="statistics_details_fields"
-                            head-variant="light"
-                            show-empty
-                            small
-                            fixed
-                            striped
-                            sort-icon-left
-                          >
-                            <template #cell(inheritance)="data">
-                              <div>
-                                <b-badge
-                                  pill
-                                  variant="info"
-                                  class="justify-content-md-center px-1 mx-1"
-                                  size="1.3em"
-                                >
-                                  {{
-                                    inheritance_overview_text[
-                                      data.item.inheritance
-                                    ]
-                                  }}
-                                </b-badge>
-                                {{ data.item.inheritance }}
-                              </div>
-                            </template>
-
-                            <template #cell(n)="data">
-                              <b-link
-                                :href="
-                                  '/Entities?filter=any(category,' +
-                                    data.item.category +
-                                    '),any(hpo_mode_of_inheritance_term_name,' +
-                                    inheritance_link[data.item.inheritance].join(',') +
-                                    ')'
-                                "
+                          <template #cell(inheritance)="data">
+                            <div>
+                              <b-badge
+                                pill
+                                variant="info"
+                                class="justify-content-md-center px-1 mx-1"
+                                size="1.3em"
                               >
-                                <div style="cursor: pointer">
-                                  {{ data.item.n }}
-                                </div>
-                              </b-link>
-                            </template>
-                          </b-table>
-                        </b-card>
-                      </template>
-                    </b-table>
-                  </b-skeleton-wrapper>
+                                {{
+                                  inheritance_overview_text[
+                                    data.item.inheritance
+                                  ]
+                                }}
+                              </b-badge>
+                              {{ data.item.inheritance }}
+                            </div>
+                          </template>
+
+                          <template #cell(n)="data">
+                            <b-link
+                              :href="
+                                '/Entities?filter=any(category,' +
+                                  data.item.category +
+                                  '),any(hpo_mode_of_inheritance_term_name,' +
+                                  inheritance_link[data.item.inheritance].join(',') +
+                                  ')'
+                              "
+                            >
+                              <div style="cursor: pointer">
+                                {{ data.item.n }}
+                              </div>
+                            </b-link>
+                          </template>
+                        </b-table>
+                      </b-card>
+                    </template>
+                  </b-table>
                 </b-card-text>
                 <!-- first statistics table for genes -->
 
@@ -189,112 +187,110 @@
                   <mark>Genes</mark> (links to Panels)
                 </h5>
                 <b-card-text class="text-left">
-                  <b-skeleton-wrapper :loading="loading_statistics">
-                    <template #loading>
-                      <b-skeleton-table
-                        :rows="2"
-                        :columns="3"
-                        :table-props="{
-                          bordered: false,
-                          striped: false,
-                          small: true,
-                        }"
-                      />
+                  <template #loading>
+                    <b-skeleton-table
+                      :rows="2"
+                      :columns="3"
+                      :table-props="{
+                        bordered: false,
+                        striped: false,
+                        small: true,
+                      }"
+                    />
+                  </template>
+
+                  <b-table
+                    :items="gene_statistics.data"
+                    :fields="statistics_fields"
+                    stacked="lg"
+                    head-variant="light"
+                    show-empty
+                    small
+                  >
+                    <template #cell(category)="data">
+                      <div>
+                        <b-avatar
+                          size="1.4em"
+                          icon="stoplights"
+                          :variant="stoplights_style[data.item.category]"
+                        />
+                        {{ data.item.category }}
+                      </div>
                     </template>
 
-                    <b-table
-                      :items="gene_statistics.data"
-                      :fields="statistics_fields"
-                      stacked="lg"
-                      head-variant="light"
-                      show-empty
-                      small
-                    >
-                      <template #cell(category)="data">
-                        <div>
-                          <b-avatar
-                            size="1.4em"
-                            icon="stoplights"
-                            :variant="stoplights_style[data.item.category]"
-                          />
-                          {{ data.item.category }}
+                    <template #cell(n)="data">
+                      <b-link
+                        :href="
+                          '/Panels/' +
+                            data.item.category +
+                            '/' +
+                            data.item.inheritance
+                        "
+                      >
+                        <div style="cursor: pointer">
+                          {{ data.item.n }}
                         </div>
-                      </template>
+                      </b-link>
+                    </template>
 
-                      <template #cell(n)="data">
-                        <b-link
-                          :href="
-                            '/Panels/' +
-                              data.item.category +
-                              '/' +
-                              data.item.inheritance
-                          "
+                    <template #cell(actions)="row">
+                      <b-button
+                        class="btn-xs"
+                        variant="outline-primary"
+                        @click="row.toggleDetails"
+                      >
+                        {{ row.detailsShowing ? "hide" : "show" }}
+                      </b-button>
+                    </template>
+
+                    <template #row-details="row">
+                      <b-card>
+                        <b-table
+                          :items="row.item.groups"
+                          :fields="statistics_details_fields"
+                          head-variant="light"
+                          show-empty
+                          small
+                          fixed
+                          striped
+                          sort-icon-left
                         >
-                          <div style="cursor: pointer">
-                            {{ data.item.n }}
-                          </div>
-                        </b-link>
-                      </template>
-
-                      <template #cell(actions)="row">
-                        <b-button
-                          class="btn-xs"
-                          variant="outline-primary"
-                          @click="row.toggleDetails"
-                        >
-                          {{ row.detailsShowing ? "hide" : "show" }}
-                        </b-button>
-                      </template>
-
-                      <template #row-details="row">
-                        <b-card>
-                          <b-table
-                            :items="row.item.groups"
-                            :fields="statistics_details_fields"
-                            head-variant="light"
-                            show-empty
-                            small
-                            fixed
-                            striped
-                            sort-icon-left
-                          >
-                            <template #cell(inheritance)="data">
-                              <div>
-                                <b-badge
-                                  pill
-                                  variant="info"
-                                  class="justify-content-md-center px-1 mx-1"
-                                  size="1.3em"
-                                >
-                                  {{
-                                    inheritance_overview_text[
-                                      data.item.inheritance
-                                    ]
-                                  }}
-                                </b-badge>
-                                {{ data.item.inheritance }}
-                              </div>
-                            </template>
-
-                            <template #cell(n)="data">
-                              <b-link
-                                :href="
-                                  '/Panels/' +
-                                    data.item.category +
-                                    '/' +
-                                    data.item.inheritance
-                                "
+                          <template #cell(inheritance)="data">
+                            <div>
+                              <b-badge
+                                pill
+                                variant="info"
+                                class="justify-content-md-center px-1 mx-1"
+                                size="1.3em"
                               >
-                                <div style="cursor: pointer">
-                                  {{ data.item.n }}
-                                </div>
-                              </b-link>
-                            </template>
-                          </b-table>
-                        </b-card>
-                      </template>
-                    </b-table>
-                  </b-skeleton-wrapper>
+                                {{
+                                  inheritance_overview_text[
+                                    data.item.inheritance
+                                  ]
+                                }}
+                              </b-badge>
+                              {{ data.item.inheritance }}
+                            </div>
+                          </template>
+
+                          <template #cell(n)="data">
+                            <b-link
+                              :href="
+                                '/Panels/' +
+                                  data.item.category +
+                                  '/' +
+                                  data.item.inheritance
+                              "
+                            >
+                              <div style="cursor: pointer">
+                                {{ data.item.n }}
+                              </div>
+                            </b-link>
+                          </template>
+                        </b-table>
+                      </b-card>
+                    </template>
+                  </b-table>
                 </b-card-text>
                 <!-- second statistics table for genes -->
               </b-card>
@@ -652,20 +648,196 @@ export default {
       entity_statistics: {
         meta: [
           {
-            last_update: null,
+            last_update: '2010-01-01 00:00:00',
             executionTime: null,
           },
         ],
-        data: [],
+        data: [
+          {
+            category: 'Definitive',
+            n: 0,
+            inheritance: 'All',
+            groups: [
+              {
+                category: 'Definitive',
+                category_id: 1,
+                inheritance: 'Autosomal recessive',
+                n: 0,
+              },
+              {
+                category: 'Definitive',
+                category_id: 1,
+                inheritance: 'Autosomal dominant',
+                n: 0,
+              },
+              {
+                category: 'Definitive',
+                category_id: 1,
+                inheritance: 'X-linked',
+                n: 0,
+              },
+              {
+                category: 'Definitive',
+                category_id: 1,
+                inheritance: 'Other',
+                n: 0,
+              },
+            ],
+          },
+          {
+            category: 'Moderate',
+            n: 0,
+            inheritance: 'All',
+            groups: [
+              {
+                category: 'Moderate',
+                category_id: 2,
+                inheritance: 'Autosomal dominant',
+                n: 0,
+              },
+              {
+                category: 'Moderate',
+                category_id: 2,
+                inheritance: 'Autosomal recessive',
+                n: 0,
+              },
+              {
+                category: 'Moderate',
+                category_id: 2,
+                inheritance: 'X-linked',
+                n: 0,
+              },
+            ],
+          },
+          {
+            category: 'Limited',
+            n: 0,
+            inheritance: 'All',
+            groups: [
+              {
+                category: 'Limited',
+                category_id: 3,
+                inheritance: 'Autosomal recessive',
+                n: 0,
+              },
+              {
+                category: 'Limited',
+                category_id: 3,
+                inheritance: 'Autosomal dominant',
+                n: 0,
+              },
+              {
+                category: 'Limited',
+                category_id: 3,
+                inheritance: 'X-linked',
+                n: 0,
+              },
+              {
+                category: 'Limited',
+                category_id: 3,
+                inheritance: 'Other',
+                n: 0,
+              },
+            ],
+          },
+        ],
       },
       gene_statistics: {
         meta: [
           {
-            last_update: null,
+            last_update: '2010-01-01 00:00:00',
             executionTime: null,
           },
         ],
-        data: [],
+        data: [
+          {
+            category: 'Definitive',
+            n: 0,
+            inheritance: 'All',
+            groups: [
+              {
+                category: 'Definitive',
+                category_id: 1,
+                inheritance: 'Autosomal recessive',
+                n: 0,
+              },
+              {
+                category: 'Definitive',
+                category_id: 1,
+                inheritance: 'Autosomal dominant',
+                n: 0,
+              },
+              {
+                category: 'Definitive',
+                category_id: 1,
+                inheritance: 'X-linked',
+                n: 0,
+              },
+              {
+                category: 'Definitive',
+                category_id: 1,
+                inheritance: 'Other',
+                n: 0,
+              },
+            ],
+          },
+          {
+            category: 'Moderate',
+            n: 0,
+            inheritance: 'All',
+            groups: [
+              {
+                category: 'Moderate',
+                category_id: 2,
+                inheritance: 'Autosomal dominant',
+                n: 0,
+              },
+              {
+                category: 'Moderate',
+                category_id: 2,
+                inheritance: 'Autosomal recessive',
+                n: 0,
+              },
+              {
+                category: 'Moderate',
+                category_id: 2,
+                inheritance: 'X-linked',
+                n: 0,
+              },
+            ],
+          },
+          {
+            category: 'Limited',
+            n: 0,
+            inheritance: 'All',
+            groups: [
+              {
+                category: 'Limited',
+                category_id: 3,
+                inheritance: 'Autosomal recessive',
+                n: 0,
+              },
+              {
+                category: 'Limited',
+                category_id: 3,
+                inheritance: 'Autosomal dominant',
+                n: 0,
+              },
+              {
+                category: 'Limited',
+                category_id: 3,
+                inheritance: 'X-linked',
+                n: 0,
+              },
+              {
+                category: 'Limited',
+                category_id: 3,
+                inheritance: 'Other',
+                n: 0,
+              },
+            ],
+          },
+        ],
       },
       statistics_fields: [
         { key: 'category', label: 'Category', class: 'text-left' },

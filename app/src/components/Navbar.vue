@@ -313,9 +313,12 @@ export default {
   mounted() {
     this.isUserLoggedIn();
 
+    // set constant for interval refresh in milliseconds
+    const UPDATE_INTERVAL = 1000;
+
     this.interval = setInterval(() => {
       this.updateDiffs();
-    }, 1000);
+    }, UPDATE_INTERVAL);
     this.updateDiffs();
   },
   beforeDestroy() {
