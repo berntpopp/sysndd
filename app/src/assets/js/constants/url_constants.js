@@ -1,4 +1,4 @@
-// constants.js
+// url_constants.js
 export default {
   COMMON_LICENSE: 'http://creativecommons.org/licenses/by/4.0/',
   GITHUB: 'https://github.com/berntpopp/sysndd/',

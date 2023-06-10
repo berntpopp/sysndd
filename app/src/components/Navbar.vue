@@ -278,7 +278,7 @@
 
 <script>
 // Importing URLs from a constants file to avoid hardcoding them in this component
-import URLS from '@/assets/js/constants/constants';
+import URLS from '@/assets/js/constants/url_constants';
 
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
