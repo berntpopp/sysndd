@@ -5,6 +5,7 @@ export default {
   DFG: 'https://www.dfg.de/',
   UNIBE: 'https://www.unibe.ch/',
   ERN_ITHACA: 'https://ern-ithaca.eu/',
-  API: '/API',
+  API_LINK: '/API',
+  API_URL: process.env.VUE_APP_API_URL,
   // add the rest of your constants here
 };

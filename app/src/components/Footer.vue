@@ -72,7 +72,7 @@ export default {
         // OpenAPI
         {
           id: 'openapi',
-          link: URLS.API,
+          link: URLS.API_LINK,
           linkAttr: { 'aria-label': 'api-link' },
           imgSrc: '/swagger.png',
           alt: 'OpenAPI Logo',

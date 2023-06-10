@@ -7,7 +7,7 @@
       class="py-0 bg-navbar"
     >
       <b-navbar-brand
-        href="/"
+        to="/"
         class="py-0"
       >
         <img
@@ -29,40 +29,40 @@
         <b-navbar-nav>
           <!-- Navbar Tables dropdown -->
           <b-nav-item-dropdown text="Tables">
-            <b-dropdown-item href="/Entities">
+            <b-dropdown-item to="/Entities">
               Entities
             </b-dropdown-item>
-            <b-dropdown-item href="/Genes">
+            <b-dropdown-item to="/Genes">
               Genes
             </b-dropdown-item>
-            <b-dropdown-item href="/Phenotypes">
+            <b-dropdown-item to="/Phenotypes">
               Phenotypes
             </b-dropdown-item>
-            <b-dropdown-item href="/Panels">
+            <b-dropdown-item to="/Panels">
               Panels
             </b-dropdown-item>
           </b-nav-item-dropdown>
 
           <!-- Navbar Analyses dropdown -->
           <b-nav-item-dropdown text="Analyses">
-            <b-dropdown-item href="/CurationComparisons">
+            <b-dropdown-item to="/CurationComparisons">
               Compare curations
             </b-dropdown-item>
-            <b-dropdown-item href="/PhenotypeCorrelations">
+            <b-dropdown-item to="/PhenotypeCorrelations">
               Correlate phenotypes
             </b-dropdown-item>
-            <b-dropdown-item href="/EntriesOverTime">
+            <b-dropdown-item to="/EntriesOverTime">
               Entries over time
             </b-dropdown-item>
-            <b-dropdown-item href="/PublicationsNDD">
+            <b-dropdown-item to="/PublicationsNDD">
               NDD Publications
             </b-dropdown-item>
-            <b-dropdown-item href="/GeneNetworks">
+            <b-dropdown-item to="/GeneNetworks">
               Functional clusters
             </b-dropdown-item>
           </b-nav-item-dropdown>
 
-          <b-nav-item href="/About">
+          <b-nav-item to="/About">
             About
           </b-nav-item>
         </b-navbar-nav>
@@ -112,7 +112,7 @@
             v-if="user && admin"
             text="Administration"
           >
-            <b-dropdown-item href="/ManageUser">
+            <b-dropdown-item to="/ManageUser">
               <b-icon
                 icon="gear"
                 font-scale="1.0"
@@ -123,7 +123,7 @@
               />
               Manage user
             </b-dropdown-item>
-            <b-dropdown-item href="/ManageAnnotations">
+            <b-dropdown-item to="/ManageAnnotations">
               <b-icon
                 icon="gear"
                 font-scale="1.0"
@@ -134,7 +134,7 @@
               />
               Manage annotations
             </b-dropdown-item>
-            <b-dropdown-item href="/ManageAbout">
+            <b-dropdown-item to="/ManageAbout">
               <b-icon
                 icon="gear"
                 font-scale="1.0"
@@ -153,7 +153,7 @@
             v-if="user && curate"
             text="Curation"
           >
-            <b-dropdown-item href="/CreateEntity">
+            <b-dropdown-item to="/CreateEntity">
               <b-icon
                 icon="plus-square"
                 font-scale="1.0"
@@ -164,7 +164,7 @@
               />
               Create entity
             </b-dropdown-item>
-            <b-dropdown-item href="/ModifyEntity">
+            <b-dropdown-item to="/ModifyEntity">
               <b-icon
                 icon="pen"
                 font-scale="1.0"
@@ -175,7 +175,7 @@
               />
               Modify entity
             </b-dropdown-item>
-            <b-dropdown-item href="/ApproveReview">
+            <b-dropdown-item to="/ApproveReview">
               <b-icon
                 icon="check"
                 font-scale="1.0"
@@ -186,7 +186,7 @@
               />
               Approve review
             </b-dropdown-item>
-            <b-dropdown-item href="/ApproveStatus">
+            <b-dropdown-item to="/ApproveStatus">
               <b-icon
                 icon="check"
                 font-scale="1.0"
@@ -197,7 +197,7 @@
               />
               Approve status
             </b-dropdown-item>
-            <b-dropdown-item href="/ApproveUser">
+            <b-dropdown-item to="/ApproveUser">
               <b-icon
                 icon="check"
                 font-scale="1.0"
@@ -208,7 +208,7 @@
               />
               Approve user
             </b-dropdown-item>
-            <b-dropdown-item href="/ManageReReview">
+            <b-dropdown-item to="/ManageReReview">
               <b-icon
                 icon="gear"
                 font-scale="1.0"
@@ -224,7 +224,7 @@
 
           <b-nav-item
             v-if="user && review"
-            href="/Review"
+            to="/Review"
           >
             Review
           </b-nav-item>
@@ -237,7 +237,7 @@
             <template #button-content>
               <em>{{ user }}</em>
             </template>
-            <b-dropdown-item href="/User">
+            <b-dropdown-item to="/User">
               <b-icon
                 icon="person-circle"
                 font-scale="1.0"
@@ -266,7 +266,7 @@
           </b-nav-item-dropdown>
           <b-nav-item
             v-else
-            href="/Login"
+            to="/Login"
           >
             Login
           </b-nav-item>
@@ -277,6 +277,9 @@
 </template>
 
 <script>
+// Importing URLs from a constants file to avoid hardcoding them in this component
+import URLS from '@/assets/js/constants/constants';
+
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
@@ -328,7 +331,7 @@ export default {
       }
     },
     async checkSigninWithJWT() {
-      const apiAuthenticateURL = `${process.env.VUE_APP_API_URL}/api/auth/signin`;
+      const apiAuthenticateURL = `${URLS.API_URL}/api/auth/signin`;
 
       try {
         const response_signin = await this.axios.get(apiAuthenticateURL, {
@@ -368,7 +371,7 @@ export default {
       }
     },
     async refreshWithJWT() {
-      const apiAuthenticateURL = `${process.env.VUE_APP_API_URL}/api/auth/refresh`;
+      const apiAuthenticateURL = `${URLS.API_URL}/api/auth/refresh`;
 
       try {
         const response_refresh = await this.axios.get(apiAuthenticateURL, {
@@ -384,7 +387,7 @@ export default {
       }
     },
     async signinWithJWT() {
-      const apiAuthenticateURL = `${process.env.VUE_APP_API_URL}/api/auth/signin`;
+      const apiAuthenticateURL = `${URLS.API_URL}/api/auth/signin`;
 
       try {
         const response_signin = await this.axios.get(apiAuthenticateURL, {
@@ -400,7 +403,7 @@ export default {
     },
     async loadSearchInfo() {
       if (this.search_input.length > 0) {
-        const apiSearchURL = `${process.env.VUE_APP_API_URL}/api/search/${this.search_input}`;
+        const apiSearchURL = `${URLS.API_URL}/api/search/${this.search_input}`;
         try {
           const response_search = await this.axios.get(apiSearchURL);
           let rest;
