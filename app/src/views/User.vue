@@ -246,6 +246,9 @@ export default {
       this.getUserContributions();
     }
   },
+  beforeDestroy() {
+    clearInterval(this.interval);
+  },
   methods: {
     getValidationState({ dirty, validated, valid = null }) {
       return dirty || validated ? valid : null;

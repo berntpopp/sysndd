@@ -315,6 +315,9 @@ export default {
     }, 1000);
     this.updateDiffs();
   },
+  beforeDestroy() {
+    clearInterval(this.interval);
+  },
   methods: {
     isUserLoggedIn() {
       if (localStorage.user && localStorage.token) {
