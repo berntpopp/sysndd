@@ -64,7 +64,15 @@
               >
                 <template #header>
                   <h5 class="mb-0 font-weight-bold">
-                    Current database statistics (last update: {{ last_update }})
+                    Current database statistics, last update:
+                    <transition
+                      name="fade"
+                      mode="out-in"
+                    >
+                      <span :key="last_update">
+                        {{ last_update }}
+                      </span>
+                    </transition>
                   </h5>
                 </template>
 
@@ -608,6 +616,8 @@
 </template>
 
 <script>
+import { gsap } from 'gsap';
+
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 import textMixin from '@/assets/js/mixins/textMixin';
@@ -659,7 +669,6 @@ export default {
         { key: 'inheritance', label: 'Inheritance' },
         { key: 'n', label: 'Count', class: 'text-left' },
       ],
-      last_update: null,
       news: [],
       news_fields: [
         {
@@ -705,6 +714,65 @@ export default {
       banner_acknowledged: false,
     };
   },
+  computed: {
+    last_update() {
+      if (this.entity_statistics) {
+        const date_last_update = new Date(this.entity_statistics.meta[0].last_update);
+        return date_last_update.toLocaleDateString();
+      }
+      return null;
+    },
+  },
+  watch: {
+    'entity_statistics.data': {
+      handler(after, before) {
+        // We're watching the 'entity' array in gene_statistics for changes.
+        // When a change happens, this handler function will be called.
+        // It receives the new ('after') and old ('before') versions of the data array.
+
+        for (let i = 0; i < after.length; i += 1) {
+          // If 'n' has changed in the main 'data' object, animate the change.
+          if (before[i].n !== after[i].n) {
+            gsap.fromTo(after[i], {
+              n: before[i].n,
+            }, {
+              duration: 1.0,
+              n: after[i].n,
+              onUpdate: () => {
+                after[i].n = Math.round(after[i].n);
+                this.$forceUpdate();
+              },
+            });
+          }
+        }
+      },
+      deep: true, // This is necessary to watch for changes in nested properties.
+    },
+    'gene_statistics.data': {
+      handler(after, before) {
+        // We're watching the 'gene' array in gene_statistics for changes.
+        // When a change happens, this handler function will be called.
+        // It receives the new ('after') and old ('before') versions of the data array.
+
+        for (let i = 0; i < after.length; i += 1) {
+          // If 'n' has changed in the main 'data' object, animate the change.
+          if (before[i].n !== after[i].n) {
+            gsap.fromTo(after[i], {
+              n: before[i].n,
+            }, {
+              duration: 1.0,
+              n: after[i].n,
+              onUpdate: () => {
+                after[i].n = Math.round(after[i].n);
+                this.$forceUpdate();
+              },
+            });
+          }
+        }
+      },
+      deep: true, // This is necessary to watch for changes in nested properties.
+    },
+  },
   mounted() {
     this.checkBanner();
   },
@@ -748,11 +816,6 @@ export default {
         this.gene_statistics = response_statistics_gene.data;
 
         this.entity_statistics = response_statistics_entity.data;
-
-        const date_last_update = new Date(
-          response_statistics_gene.data.meta[0].last_update,
-        );
-        this.last_update = date_last_update.toLocaleDateString();
 
         this.loading_statistics = false;
       } catch (e) {
@@ -833,5 +896,11 @@ mark {
 }
 hr.dashed {
     border-top: 2px dashed #999;
+}
+.fade-enter-active, .fade-leave-active {
+  transition: opacity .2s;
+}
+.fade-enter, .fade-leave-to {
+  opacity: 0;
 }
 </style>
