@@ -693,51 +693,15 @@ export default {
   watch: {
     'entity_statistics.data': {
       handler(after, before) {
-        // We're watching the 'entity' array in gene_statistics for changes.
-        // When a change happens, this handler function will be called.
-        // It receives the new ('after') and old ('before') versions of the data array.
-
-        for (let i = 0; i < after.length; i += 1) {
-          // If 'n' has changed in the main 'data' object, animate the change.
-          if (before[i].n !== after[i].n) {
-            gsap.fromTo(after[i], {
-              n: before[i].n,
-            }, {
-              duration: 1.0,
-              n: after[i].n,
-              onUpdate: () => {
-                after[i].n = Math.round(after[i].n);
-                this.$forceUpdate();
-              },
-            });
-          }
-        }
+        this.animateOnChange(after, before);
       },
-      deep: true, // This is necessary to watch for changes in nested properties.
+      deep: true,
     },
     'gene_statistics.data': {
       handler(after, before) {
-        // We're watching the 'gene' array in gene_statistics for changes.
-        // When a change happens, this handler function will be called.
-        // It receives the new ('after') and old ('before') versions of the data array.
-
-        for (let i = 0; i < after.length; i += 1) {
-          // If 'n' has changed in the main 'data' object, animate the change.
-          if (before[i].n !== after[i].n) {
-            gsap.fromTo(after[i], {
-              n: before[i].n,
-            }, {
-              duration: 1.0,
-              n: after[i].n,
-              onUpdate: () => {
-                after[i].n = Math.round(after[i].n);
-                this.$forceUpdate();
-              },
-            });
-          }
-        }
+        this.animateOnChange(after, before);
       },
-      deep: true, // This is necessary to watch for changes in nested properties.
+      deep: true,
     },
   },
   mounted() {
@@ -763,6 +727,22 @@ export default {
     acknowledgeBanner() {
       localStorage.setItem('banner_acknowledged', true);
       this.banner_acknowledged = localStorage.getItem('banner_acknowledged');
+    },
+    animateOnChange(after, before) {
+      for (let i = 0; i < after.length; i += 1) {
+        if (before[i].n !== after[i].n) {
+          gsap.fromTo(after[i], {
+            n: before[i].n,
+          }, {
+            duration: 1.0,
+            n: after[i].n,
+            onUpdate: () => {
+              after[i].n = Math.round(after[i].n);
+              this.$forceUpdate();
+            },
+          });
+        }
+      }
     },
     async loadStatistics() {
       this.loading_statistics = true;
@@ -822,7 +802,7 @@ export default {
     },
     handleSearchInputKeydown(event) {
       if (
-        ((event.which === 13) || (event.which === 1))
+        ((event.key === 'Enter') || (event.which === 1))
         && (this.search_input.length > 0)
         && !(this.search_object[this.search_input] === undefined)
       ) {
@@ -830,7 +810,7 @@ export default {
         this.search_input = '';
         this.search_keys = [];
       } else if (
-        ((event.which === 13) || (event.which === 1))
+        ((event.key === 'Enter') || (event.which === 1))
         && (this.search_input.length > 0)
         && (this.search_object[this.search_input] === undefined)
       ) {
