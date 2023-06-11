@@ -3,14 +3,14 @@ export default {
   ENTITY_STAT_INIT: {
     meta: [
       {
-        last_update: '2010-01-01 00:00:00',
+        last_update: '2010-12-01 00:00:00',
         executionTime: null,
       },
     ],
     data: [
       {
         category: 'Definitive',
-        n: 0,
+        n: 398,
         inheritance: 'All',
         groups: [
           {
@@ -41,7 +41,7 @@ export default {
       },
       {
         category: 'Moderate',
-        n: 0,
+        n: 16,
         inheritance: 'All',
         groups: [
           {
@@ -66,7 +66,7 @@ export default {
       },
       {
         category: 'Limited',
-        n: 0,
+        n: 33,
         inheritance: 'All',
         groups: [
           {
@@ -100,14 +100,14 @@ export default {
   GENE_STAT_INIT: {
     meta: [
       {
-        last_update: '2010-01-01 00:00:00',
+        last_update: '2010-12-01 00:00:00',
         executionTime: null,
       },
     ],
     data: [
       {
         category: 'Definitive',
-        n: 0,
+        n: 344,
         inheritance: 'All',
         groups: [
           {
@@ -138,7 +138,7 @@ export default {
       },
       {
         category: 'Moderate',
-        n: 0,
+        n: 23,
         inheritance: 'All',
         groups: [
           {
@@ -163,7 +163,7 @@ export default {
       },
       {
         category: 'Limited',
-        n: 0,
+        n: 35,
         inheritance: 'All',
         groups: [
           {
@@ -194,4 +194,81 @@ export default {
       },
     ],
   },
+  NEWS_INIT: [
+    {
+      entity_id: 771,
+      hgnc_id: 'HGNC:2183',
+      symbol: 'VPS13B',
+      disease_ontology_id_version: 'OMIM:216550',
+      disease_ontology_name: 'Cohen syndrome',
+      hpo_mode_of_inheritance_term: 'HP:0000007',
+      hpo_mode_of_inheritance_term_name: 'Autosomal recessive inheritance',
+      inheritance_filter: 'Autosomal recessive',
+      ndd_phenotype: 1,
+      ndd_phenotype_word: 'Yes',
+      entry_date: '2010-11-23 00:00:00',
+      category: 'Definitive',
+      category_id: 1,
+    },
+    {
+      entity_id: 775,
+      hgnc_id: 'HGNC:20509',
+      symbol: 'ZC3H14',
+      disease_ontology_id_version: 'OMIM:617125',
+      disease_ontology_name: 'Intellectual developmental disorder, autosomal recessive 56',
+      hpo_mode_of_inheritance_term: 'HP:0000007',
+      hpo_mode_of_inheritance_term_name: 'Autosomal recessive inheritance',
+      inheritance_filter: 'Autosomal recessive',
+      ndd_phenotype: 1,
+      ndd_phenotype_word: 'Yes',
+      entry_date: '2010-11-23 00:00:00',
+      category: 'Definitive',
+      category_id: 1,
+    },
+    {
+      entity_id: 776,
+      hgnc_id: 'HGNC:18475',
+      symbol: 'ZDHHC9',
+      disease_ontology_id_version: 'OMIM:300799',
+      disease_ontology_name: 'Intellectual developmental disorder, X-linked syndromic, Raymond type',
+      hpo_mode_of_inheritance_term: 'HP:0001419',
+      hpo_mode_of_inheritance_term_name: 'X-linked recessive inheritance',
+      inheritance_filter: 'X-linked',
+      ndd_phenotype: 1,
+      ndd_phenotype_word: 'Yes',
+      entry_date: '2010-11-23 00:00:00',
+      category: 'Definitive',
+      category_id: 1,
+    },
+    {
+      entity_id: 779,
+      hgnc_id: 'HGNC:12873',
+      symbol: 'ZIC2',
+      disease_ontology_id_version: 'OMIM:609637',
+      disease_ontology_name: 'Holoprosencephaly 5',
+      hpo_mode_of_inheritance_term: 'HP:0000006',
+      hpo_mode_of_inheritance_term_name: 'Autosomal dominant inheritance',
+      inheritance_filter: 'Autosomal dominant',
+      ndd_phenotype: 1,
+      ndd_phenotype_word: 'Yes',
+      entry_date: '2010-11-23 00:00:00',
+      category: 'Definitive',
+      category_id: 1,
+    },
+    {
+      entity_id: 783,
+      hgnc_id: 'HGNC:13128',
+      symbol: 'ZNF711',
+      disease_ontology_id_version: 'OMIM:300803',
+      disease_ontology_name: 'Intellectual developmental disorder, X-linked 97',
+      hpo_mode_of_inheritance_term: 'HP:0001417',
+      hpo_mode_of_inheritance_term_name: 'X-linked other inheritance',
+      inheritance_filter: 'X-linked',
+      ndd_phenotype: 1,
+      ndd_phenotype_word: 'Yes',
+      entry_date: '2010-11-23 00:00:00',
+      category: 'Definitive',
+      category_id: 1,
+    },
+  ],
 };

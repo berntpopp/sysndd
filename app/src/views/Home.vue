@@ -76,23 +76,11 @@
                   </h5>
                 </template>
 
-                <!-- first statistics table for genes -->
+                <!-- first statistics table for entities -->
                 <h5 class="mb-0 font-weight-bold mx-2">
                   <mark>Entities</mark>
                 </h5>
                 <b-card-text class="text-left">
-                  <template #loading>
-                    <b-skeleton-table
-                      :rows="2"
-                      :columns="3"
-                      :table-props="{
-                        bordered: false,
-                        striped: false,
-                        small: true,
-                      }"
-                    />
-                  </template>
-
                   <b-table
                     :items="entity_statistics.data"
                     :fields="statistics_fields"
@@ -186,7 +174,7 @@
                     </template>
                   </b-table>
                 </b-card-text>
-                <!-- first statistics table for genes -->
+                <!-- first statistics table for entities -->
 
                 <hr class="dashed">
 
@@ -195,18 +183,6 @@
                   <mark>Genes</mark> (links to Panels)
                 </h5>
                 <b-card-text class="text-left">
-                  <template #loading>
-                    <b-skeleton-table
-                      :rows="2"
-                      :columns="3"
-                      :table-props="{
-                        bordered: false,
-                        striped: false,
-                        small: true,
-                      }"
-                    />
-                  </template>
-
                   <b-table
                     :items="gene_statistics.data"
                     :fields="statistics_fields"
@@ -315,20 +291,11 @@
                     New entities
                   </h5>
                 </template>
-                <b-card-text class="text-left">
-                  <b-skeleton-wrapper :loading="loading_statistics">
-                    <template #loading>
-                      <b-skeleton-table
-                        :rows="3"
-                        :columns="2"
-                        :table-props="{
-                          bordered: false,
-                          striped: false,
-                          small: true,
-                        }"
-                      />
-                    </template>
-
+                <transition
+                  name="fade"
+                  mode="out-in"
+                >
+                  <b-card-text class="text-left">
                     <b-table
                       :items="news"
                       :fields="news_fields"
@@ -453,8 +420,8 @@
                         </div>
                       </template>
                     </b-table>
-                  </b-skeleton-wrapper>
-                </b-card-text>
+                  </b-card-text>
+                </transition>
               </b-card>
             </b-col>
 
@@ -669,7 +636,7 @@ export default {
         { key: 'inheritance', label: 'Inheritance' },
         { key: 'n', label: 'Count', class: 'text-left' },
       ],
-      news: [],
+      news: INIT_OBJ.NEWS_INIT,
       news_fields: [
         {
           key: 'entity_id',
