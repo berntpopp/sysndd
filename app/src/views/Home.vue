@@ -801,20 +801,12 @@ export default {
       }
     },
     handleSearchInputKeydown(event) {
-      if (
-        ((event.key === 'Enter') || (event.which === 1))
-        && (this.search_input.length > 0)
-        && !(this.search_object[this.search_input] === undefined)
-      ) {
-        this.$router.push(this.search_object[this.search_input][0].link);
-        this.search_input = '';
-        this.search_keys = [];
-      } else if (
-        ((event.key === 'Enter') || (event.which === 1))
-        && (this.search_input.length > 0)
-        && (this.search_object[this.search_input] === undefined)
-      ) {
-        this.$router.push(`/Search/${this.search_input}`);
+      if ((event.key === 'Enter' || event.key === 'Mouse1') && this.search_input.length > 0) {
+        if (this.search_object[this.search_input] !== undefined) {
+          this.$router.push(this.search_object[this.search_input][0].link);
+        } else {
+          this.$router.push(`/Search/${this.search_input}`);
+        }
         this.search_input = '';
         this.search_keys = [];
       }
