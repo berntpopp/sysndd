@@ -729,13 +729,19 @@ export default {
     );
   },
   methods: {
+    // Function to check if the user has acknowledged the banner.
+    // This is done by checking a value in localStorage.
     checkBanner() {
       this.banner_acknowledged = localStorage.getItem('banner_acknowledged');
     },
+    // Function to acknowledge the banner.
+    // This sets a value in localStorage to remember the user's action.
     acknowledgeBanner() {
       localStorage.setItem('banner_acknowledged', true);
       this.banner_acknowledged = localStorage.getItem('banner_acknowledged');
     },
+    // Function to animate changes in data.
+    // This uses the GSAP library to create a transition effect.
     animateOnChange(after, before) {
       for (let i = 0; i < after.length; i += 1) {
         if (before[i].n !== after[i].n) {
@@ -752,6 +758,9 @@ export default {
         }
       }
     },
+    // Function to load statistical data from the API.
+    // The function sets a loading flag, makes the API request,
+    // and then clears the loading flag when complete.
     async loadStatistics() {
       this.loading_statistics = true;
       try {
@@ -764,6 +773,9 @@ export default {
         this.loading_statistics = false;
       }
     },
+    // Function to load news data from the API.
+    // The function sets a loading flag, makes the API request,
+    // and then clears the loading flag when complete.
     async loadNews() {
       this.loading_news = true;
       try {
@@ -775,6 +787,8 @@ export default {
         this.loading_news = false;
       }
     },
+    // Function to load search information from the API.
+    // This function is triggered when the user types into the search input.
     async loadSearchInfo() {
       if (this.search_input.length > 0) {
         try {
@@ -787,8 +801,10 @@ export default {
         }
       }
     },
+    // Function to handle keydown events on the search input.
+    // This function listens for the 'Enter' key and performs a search action.
     handleSearchInputKeydown(event) {
-      if ((event.key === 'Enter' || event.key === 'Mouse1') && this.search_input.length > 0) {
+      if ((event.key === 'Enter' || event.which === 1) && this.search_input.length > 0) {
         if (this.search_object[this.search_input] !== undefined) {
           this.$router.push(this.search_object[this.search_input][0].link);
         } else {
@@ -798,6 +814,8 @@ export default {
         this.search_keys = [];
       }
     },
+    // Function to truncate a string to a specified length.
+    // If the string is longer than the specified length, it adds '...' to the end.
     truncate(str, n) {
       return str.length > n ? `${str.substr(0, n - 1)}...` : str;
     },
