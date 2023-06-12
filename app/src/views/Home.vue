@@ -595,6 +595,9 @@ import URLS from '@/assets/js/constants/url_constants';
 // Importing initial objects from a constants file to avoid hardcoding them in this component
 import INIT_OBJ from '@/assets/js/constants/init_obj_constants';
 
+// Import the apiService to make the API calls
+import apiService from '@/assets/js/services/apiService'; // Adjust the path to match where the file is located
+
 export default {
   name: 'Home',
   mixins: [toastMixin, colorAndSymbolsMixin, textMixin],
@@ -749,41 +752,36 @@ export default {
         }
       }
     },
-    async makeApiCall(url, loadingVarName) {
-      this[loadingVarName] = true;
-
+    async loadStatistics() {
+      this.loading_statistics = true;
       try {
-        const response = await this.axios.get(url);
-        this[loadingVarName] = false;
-        return response.data;
+        // use the functions from apiService asset to make calls to the API
+        this.gene_statistics = await apiService.fetchStatistics('gene');
+        this.entity_statistics = await apiService.fetchStatistics('entity');
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
-        this[loadingVarName] = false;
-        return null;
+      } finally {
+        this.loading_statistics = false;
       }
     },
-    async loadStatistics() {
-      const apiStatisticsGenesURL = `${URLS.API_URL}/api/statistics/category_count?type=gene`;
-      const apiStatisticsEntityURL = `${URLS.API_URL}/api/statistics/category_count?type=entity`;
-
-      this.gene_statistics = await this.makeApiCall(apiStatisticsGenesURL, 'loading_statistics');
-      this.entity_statistics = await this.makeApiCall(apiStatisticsEntityURL, 'loading_statistics');
-    },
     async loadNews() {
-      const apiNewsURL = `${URLS.API_URL}/api/statistics/news?n=5`;
-      this.news = await this.makeApiCall(apiNewsURL, 'loading_news');
+      this.loading_news = true;
+      try {
+        // use the functions from apiService asset to make calls to the API
+        this.news = await apiService.fetchNews(5);
+      } catch (e) {
+        this.makeToast(e, 'Error', 'danger');
+      } finally {
+        this.loading_news = false;
+      }
     },
     async loadSearchInfo() {
       if (this.search_input.length > 0) {
-        const apiSearchURL = `${URLS.API_URL
-        }/api/search/${
-          this.search_input
-        }?helper=true`;
         try {
-          const response_search = await this.axios.get(apiSearchURL);
-          let rest;
-          [this.search_object, ...rest] = response_search.data;
-          this.search_keys = Object.keys(response_search.data[0]);
+          // use the functions from apiService asset to make calls to the API
+          const response_search = await apiService.fetchSearchInfo(this.search_input);
+          [this.search_object] = response_search;
+          this.search_keys = Object.keys(response_search[0]);
         } catch (e) {
           this.makeToast(e, 'Error', 'danger');
         }
