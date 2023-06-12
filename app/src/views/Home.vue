@@ -19,37 +19,9 @@
                 </h4>
               </b-container>
 
-              <b-input-group class="mb-2 p-2">
-                <b-form-input
-                  v-model="search_input"
-                  autofocus
-                  class="border-dark"
-                  list="search-list"
-                  type="search"
-                  placeholder="Search by genes, entities and diseases using names or identifiers"
-                  size="md"
-                  autocomplete="off"
-                  debounce="300"
-                  @update="loadSearchInfo"
-                  @keydown.native="handleSearchInputKeydown"
-                />
+              <!-- The SearchBar component -->
+              <SearchBar />
 
-                <b-form-datalist
-                  id="search-list"
-                  :options="search_keys"
-                />
-
-                <b-input-group-append>
-                  <b-button
-                    variant="outline-dark"
-                    size="md"
-                    :disabled="search_input.length < 2"
-                    @click="handleSearchInputKeydown"
-                  >
-                    <b-icon icon="search" />
-                  </b-button>
-                </b-input-group-append>
-              </b-input-group>
             </b-col>
           </b-row>
 
@@ -528,20 +500,18 @@
       </b-row>
     </b-container>
 
+    <!-- The Banner component -->
     <Banner />
+
   </div>
 </template>
 
 <script>
-// Lazy-loading the Banner component to optimize performance
 import { gsap } from 'gsap';
 
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 import textMixin from '@/assets/js/mixins/textMixin';
-
-// Importing URLs from a constants file to avoid hardcoding them in this component
-import URLS from '@/assets/js/constants/url_constants';
 
 // Importing initial objects from a constants file to avoid hardcoding them in this component
 import INIT_OBJ from '@/assets/js/constants/init_obj_constants';
@@ -549,12 +519,17 @@ import INIT_OBJ from '@/assets/js/constants/init_obj_constants';
 // Import the apiService to make the API calls
 import apiService from '@/assets/js/services/apiService';
 
-const Banner = () => import('@/components/small/Banner.vue'); // Adjust the path to match where the file is located
+// Import the SearchBar component
+import SearchBar from '@/components/small/SearchBar.vue';
+
+// Lazy-loading the Banner component to optimize performance
+const Banner = () => import('@/components/small/Banner.vue');
 
 export default {
   name: 'Home',
   components: {
     Banner,
+    SearchBar,
   },
   mixins: [toastMixin, colorAndSymbolsMixin, textMixin],
   metaInfo: {
