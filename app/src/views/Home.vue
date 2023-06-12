@@ -21,7 +21,7 @@
 
               <!-- The SearchBar component -->
               <SearchBar />
-
+              <!-- The SearchBar component -->
             </b-col>
           </b-row>
 
@@ -502,7 +502,7 @@
 
     <!-- The Banner component -->
     <Banner />
-
+    <!-- The Banner component -->
   </div>
 </template>
 
@@ -665,12 +665,6 @@ export default {
     checkBanner() {
       this.banner_acknowledged = localStorage.getItem('banner_acknowledged');
     },
-    // Function to acknowledge the banner.
-    // This sets a value in localStorage to remember the user's action.
-    acknowledgeBanner() {
-      localStorage.setItem('banner_acknowledged', true);
-      this.banner_acknowledged = localStorage.getItem('banner_acknowledged');
-    },
     // Function to animate changes in data.
     // This uses the GSAP library to create a transition effect.
     animateOnChange(after, before) {
@@ -716,33 +710,6 @@ export default {
         this.makeToast(e, 'Error', 'danger');
       } finally {
         this.loading_news = false;
-      }
-    },
-    // Function to load search information from the API.
-    // This function is triggered when the user types into the search input.
-    async loadSearchInfo() {
-      if (this.search_input.length > 0) {
-        try {
-          // use the functions from apiService asset to make calls to the API
-          const response_search = await apiService.fetchSearchInfo(this.search_input);
-          [this.search_object] = response_search;
-          this.search_keys = Object.keys(response_search[0]);
-        } catch (e) {
-          this.makeToast(e, 'Error', 'danger');
-        }
-      }
-    },
-    // Function to handle keydown events on the search input.
-    // This function listens for the 'Enter' key and performs a search action.
-    handleSearchInputKeydown(event) {
-      if ((event.key === 'Enter' || event.which === 1) && this.search_input.length > 0) {
-        if (this.search_object[this.search_input] !== undefined) {
-          this.$router.push(this.search_object[this.search_input][0].link);
-        } else {
-          this.$router.push(`/Search/${this.search_input}`);
-        }
-        this.search_input = '';
-        this.search_keys = [];
       }
     },
     // Function to truncate a string to a specified length.

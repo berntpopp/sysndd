@@ -64,6 +64,8 @@ export default {
     };
   },
   methods: {
+    // Function to acknowledge the banner.
+    // This sets a value in localStorage to remember the user's action.
     acknowledgeBanner() {
       localStorage.setItem('banner_acknowledged', true);
       this.banner_acknowledged = localStorage.getItem('banner_acknowledged');

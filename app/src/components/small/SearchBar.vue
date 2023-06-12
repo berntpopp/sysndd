@@ -49,6 +49,8 @@ export default {
     search_input: 'loadSearchInfo',
   },
   methods: {
+    // Function to load search information from the API.
+    // This function is triggered when the user types into the search input.
     async loadSearchInfo() {
       if (this.search_input.length > 0) {
         try {
@@ -60,6 +62,8 @@ export default {
         }
       }
     },
+    // Function to handle keydown events on the search input.
+    // This function listens for the 'Enter' key and performs a search action.
     handleSearchInputKeydown(event) {
       if ((event.key === 'Enter' || event.which === 1) && this.search_input.length > 0) {
         if (this.search_object[this.search_input] !== undefined) {
