@@ -589,6 +589,9 @@ import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 import textMixin from '@/assets/js/mixins/textMixin';
 
+// Importing URLs from a constants file to avoid hardcoding them in this component
+import URLS from '@/assets/js/constants/url_constants';
+
 // Importing initial objects from a constants file to avoid hardcoding them in this component
 import INIT_OBJ from '@/assets/js/constants/init_obj_constants';
 
@@ -683,11 +686,13 @@ export default {
   },
   computed: {
     last_update() {
-      if (this.entity_statistics) {
-        const date_last_update = new Date(this.entity_statistics.meta[0].last_update);
-        return date_last_update.toLocaleDateString();
+      // If entity_statistics does not exist, return a default message
+      if (!this.entity_statistics) {
+        return 'Data not available';
       }
-      return null;
+
+      const date_last_update = new Date(this.entity_statistics.meta[0].last_update);
+      return date_last_update.toLocaleDateString();
     },
   },
   watch: {
@@ -744,49 +749,33 @@ export default {
         }
       }
     },
-    async loadStatistics() {
-      this.loading_statistics = true;
-
-      const apiStatisticsGenesURL = `${process.env.VUE_APP_API_URL}/api/statistics/category_count?type=gene`;
-
-      const apiStatisticsEntityURL = `${process.env.VUE_APP_API_URL}/api/statistics/category_count?type=entity`;
+    async makeApiCall(url, loadingVarName) {
+      this[loadingVarName] = true;
 
       try {
-        const response_statistics_gene = await this.axios.get(
-          apiStatisticsGenesURL,
-        );
-
-        const response_statistics_entity = await this.axios.get(
-          apiStatisticsEntityURL,
-        );
-
-        this.gene_statistics = response_statistics_gene.data;
-
-        this.entity_statistics = response_statistics_entity.data;
-
-        this.loading_statistics = false;
+        const response = await this.axios.get(url);
+        this[loadingVarName] = false;
+        return response.data;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this[loadingVarName] = false;
+        return null;
       }
     },
+    async loadStatistics() {
+      const apiStatisticsGenesURL = `${URLS.API_URL}/api/statistics/category_count?type=gene`;
+      const apiStatisticsEntityURL = `${URLS.API_URL}/api/statistics/category_count?type=entity`;
+
+      this.gene_statistics = await this.makeApiCall(apiStatisticsGenesURL, 'loading_statistics');
+      this.entity_statistics = await this.makeApiCall(apiStatisticsEntityURL, 'loading_statistics');
+    },
     async loadNews() {
-      this.loading_news = true;
-
-      const apiNewsURL = `${process.env.VUE_APP_API_URL}/api/statistics/news?n=5`;
-
-      try {
-        const response_news = await this.axios.get(apiNewsURL);
-
-        this.news = response_news.data;
-
-        this.loading_news = false;
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-      }
+      const apiNewsURL = `${URLS.API_URL}/api/statistics/news?n=5`;
+      this.news = await this.makeApiCall(apiNewsURL, 'loading_news');
     },
     async loadSearchInfo() {
       if (this.search_input.length > 0) {
-        const apiSearchURL = `${process.env.VUE_APP_API_URL
+        const apiSearchURL = `${URLS.API_URL
         }/api/search/${
           this.search_input
         }?helper=true`;
