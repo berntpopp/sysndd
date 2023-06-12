@@ -528,61 +528,12 @@
       </b-row>
     </b-container>
 
-    <b-alert
-      class="position-fixed fixed-bottom m-0 rounded-0 text-left"
-      style="z-index: 2000; font-size: 0.8rem"
-      variant="danger"
-      :show="!banner_acknowledged"
-    >
-      <b-row>
-        <b-col md="1">
-          <b-icon
-            icon="exclamation-triangle"
-            font-scale="2.0"
-          />
-        </b-col>
-        <b-col md="10">
-          <h6 class="alert-heading">
-            Usage policy
-          </h6>
-          The information on this website is not intended for direct diagnostic
-          use or medical decision-making without review by a genetics
-          professional. Individuals should not change their health behavior on
-          the basis of information contained on this website. SysNDD does not
-          independently verify the information gathered from external sources.
-          If you have questions about specific gene-disease claims, please
-          contact the respective primary sources. If you have questions about
-          the representation of the data on this website, please contact support
-          [at] sysndd.org.<br><br>
-
-          <h6 class="alert-heading">
-            Data privacy
-          </h6>
-          The SysNDD website does not use cookies and tries to be completely
-          stateless for regular users. Our parent domain unibe.ch uses cookies
-          which we do not control (<b-link
-            href="https://www.unibe.ch/legal_notice/index_eng.html"
-            target="_blank"
-          >
-            see legal notice here
-          </b-link>). Server side programs keep error logs to improve SysNDD. These are
-          deleted regularly.
-        </b-col>
-        <b-col md="1">
-          <b-button
-            variant="outline-dark"
-            size="sm"
-            @click="acknowledgeBanner()"
-          >
-            Dismiss
-          </b-button>
-        </b-col>
-      </b-row>
-    </b-alert>
+    <Banner />
   </div>
 </template>
 
 <script>
+// Lazy-loading the Banner component to optimize performance
 import { gsap } from 'gsap';
 
 import toastMixin from '@/assets/js/mixins/toastMixin';
@@ -596,10 +547,15 @@ import URLS from '@/assets/js/constants/url_constants';
 import INIT_OBJ from '@/assets/js/constants/init_obj_constants';
 
 // Import the apiService to make the API calls
-import apiService from '@/assets/js/services/apiService'; // Adjust the path to match where the file is located
+import apiService from '@/assets/js/services/apiService';
+
+const Banner = () => import('@/components/small/Banner.vue'); // Adjust the path to match where the file is located
 
 export default {
   name: 'Home',
+  components: {
+    Banner,
+  },
   mixins: [toastMixin, colorAndSymbolsMixin, textMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
