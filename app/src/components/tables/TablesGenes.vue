@@ -471,15 +471,18 @@
 </template>
 
 <script>
+// import the Treeselect component
+import Treeselect from '@riophae/vue-treeselect';
+// import the Treeselect styles
+import '@riophae/vue-treeselect/dist/vue-treeselect.css';
+
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 import textMixin from '@/assets/js/mixins/textMixin';
 
-// import the Treeselect component
-import Treeselect from '@riophae/vue-treeselect';
-// import the Treeselect styles
-import '@riophae/vue-treeselect/dist/vue-treeselect.css';
+// Import the utilities file
+import Utils from '@/assets/js/utils';
 
 export default {
   name: 'TablesGenes',
@@ -796,8 +799,12 @@ export default {
         label: node,
       };
     },
+    // Function to truncate a string to a specified length.
+    // If the string is longer than the specified length, it adds '...' to the end.
+    // imported from utils.js
     truncate(str, n) {
-      return str.length > n ? `${str.substr(0, n - 1)}...` : str;
+      // Use the utility function here
+      return Utils.truncate(str, n);
     },
   },
 };

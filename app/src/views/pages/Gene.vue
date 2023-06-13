@@ -369,6 +369,9 @@
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 
+// Import the utilities file
+import Utils from '@/assets/js/utils';
+
 export default {
   name: 'Gene',
   mixins: [toastMixin, colorAndSymbolsMixin],
@@ -483,8 +486,12 @@ export default {
       }
       this.loading = false;
     },
+    // Function to truncate a string to a specified length.
+    // If the string is longer than the specified length, it adds '...' to the end.
+    // imported from utils.js
     truncate(str, n) {
-      return str.length > n ? `${str.substr(0, n - 1)}...` : str;
+      // Use the utility function here
+      return Utils.truncate(str, n);
     },
   },
 };

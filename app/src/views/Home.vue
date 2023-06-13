@@ -513,6 +513,9 @@ import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 import textMixin from '@/assets/js/mixins/textMixin';
 
+// Import the utilities file
+import Utils from '@/assets/js/utils';
+
 // Importing initial objects from a constants file to avoid hardcoding them in this component
 import INIT_OBJ from '@/assets/js/constants/init_obj_constants';
 
@@ -522,8 +525,8 @@ import apiService from '@/assets/js/services/apiService';
 // Import the SearchBar component
 import SearchBar from '@/components/small/SearchBar.vue';
 
-// Lazy-loading the Banner component to optimize performance
-const Banner = () => import('@/components/small/Banner.vue');
+// Import the Banner component
+import Banner from '@/components/small/Banner.vue';
 
 export default {
   name: 'Home',
@@ -714,8 +717,10 @@ export default {
     },
     // Function to truncate a string to a specified length.
     // If the string is longer than the specified length, it adds '...' to the end.
+    // imported from utils.js
     truncate(str, n) {
-      return str.length > n ? `${str.substr(0, n - 1)}...` : str;
+      // Use the utility function here
+      return Utils.truncate(str, n);
     },
   },
 };
