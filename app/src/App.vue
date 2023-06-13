@@ -8,8 +8,7 @@
     </div>
     <div
       id="content"
-      class="position-relative"
-      style="min-height: calc(100vh - 100px)"
+      class="content-style"
     >
       <router-view :key="$route.fullPath" />
     </div>
@@ -71,5 +70,10 @@ body {
 
 .spinner {
   min-height: 100%;
+}
+
+.content-style {
+  position: relative;
+  min-height: calc(100vh - 100px);
 }
 </style>
