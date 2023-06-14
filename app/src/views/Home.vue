@@ -9,6 +9,7 @@
                 fluid="lg"
                 class="py-3"
               >
+                <!-- This is the welcome message that users see when they visit the website. -->
                 <h3 class="text-center font-weight-bold">
                   Welcome to SysNDD,
                 </h3>
@@ -49,10 +50,12 @@
                 </template>
 
                 <!-- first statistics table for entities -->
+                <!-- This table displays statistics about the various entities in the database. -->
                 <h5 class="mb-0 font-weight-bold mx-2">
                   <mark>Entities</mark>
                 </h5>
                 <b-card-text class="text-left">
+                  <!-- Each row in the table is generated from the data in `entity_statistics.data`. -->
                   <b-table
                     :items="entity_statistics.data"
                     :fields="statistics_fields"
@@ -96,6 +99,7 @@
                       </b-button>
                     </template>
 
+                    <!-- These are the details that appear when a row in the entities table is clicked. -->
                     <template #row-details="row">
                       <b-card>
                         <b-table
@@ -151,10 +155,12 @@
                 <hr class="dashed">
 
                 <!-- second statistics table for genes -->
+                <!-- This table displays statistics about the genes in the database. -->
                 <h5 class="mb-0 font-weight-bold mx-2">
                   <mark>Genes</mark> (links to Panels)
                 </h5>
                 <b-card-text class="text-left">
+                  <!-- Each row in the table is generated from the data in `gene_statistics.data`. -->
                   <b-table
                     :items="gene_statistics.data"
                     :fields="statistics_fields"
@@ -199,6 +205,7 @@
                       </b-button>
                     </template>
 
+                    <!-- These are the details that appear when a row in the genes table is clicked. -->
                     <template #row-details="row">
                       <b-card>
                         <b-table
@@ -259,6 +266,7 @@
                 border-variant="dark"
               >
                 <template #header>
+                  <!-- This section displays new entities added to the database. -->
                   <h5 class="mb-0 font-weight-bold">
                     New entities
                   </h5>
