@@ -702,8 +702,8 @@ export default {
       this.loadingStates.statistics = true;
       try {
         // use the functions from apiService asset to make calls to the API
-        this.gene_statistics = await apiService.fetchStatistics('gene');
         this.entity_statistics = await apiService.fetchStatistics('entity');
+        this.gene_statistics = await apiService.fetchStatistics('gene');
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       } finally {
