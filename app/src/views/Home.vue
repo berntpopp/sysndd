@@ -615,9 +615,10 @@ export default {
           width: '10%',
         },
       ],
-      loading: false,
-      loading_statistics: true,
-      loading_news: true,
+      loadingStates: {
+        statistics: false,
+        news: false,
+      },
       banner_acknowledged: false,
     };
   },
@@ -690,7 +691,7 @@ export default {
     // The function sets a loading flag, makes the API request,
     // and then clears the loading flag when complete.
     async loadStatistics() {
-      this.loading_statistics = true;
+      this.loadingStates.statistics = true;
       try {
         // use the functions from apiService asset to make calls to the API
         this.gene_statistics = await apiService.fetchStatistics('gene');
@@ -698,21 +699,21 @@ export default {
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       } finally {
-        this.loading_statistics = false;
+        this.loadingStates.statistics = false;
       }
     },
     // Function to load news data from the API.
     // The function sets a loading flag, makes the API request,
     // and then clears the loading flag when complete.
     async loadNews() {
-      this.loading_news = true;
+      this.loadingStates.news = true;
       try {
         // use the functions from apiService asset to make calls to the API
         this.news = await apiService.fetchNews(5);
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       } finally {
-        this.loading_news = false;
+        this.loadingStates.news = false;
       }
     },
     // Function to truncate a string to a specified length.
