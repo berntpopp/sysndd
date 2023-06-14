@@ -6,6 +6,7 @@
       toggleable="sm"
       type="light"
       variant="light"
+      fixed="bottom"
       class="py-0 bg-footer"
     >
       <!-- The navbar toggle button for smaller screen sizes -->

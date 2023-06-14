@@ -114,9 +114,7 @@
   text-overflow: ellipsis;
 }
 .bg-gradient {
-  margin: 0px;
-  height: 100%;
-  min-height: calc(100vh - 100px);
+  min-height: calc(100vh - 68px - 50px);
   background-image: linear-gradient(-225deg, #e3fdf5 0%, #ffe6fa 100%);
 }
 .border-dark {

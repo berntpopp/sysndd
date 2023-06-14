@@ -2,7 +2,6 @@
   <div id="app">
     <div
       id="navbar"
-      class="sticky-top"
     >
       <Navbar />
     </div>
@@ -14,7 +13,6 @@
     </div>
     <div
       id="footer"
-      class="sticky-bottom"
     >
       <Footer />
     </div>
@@ -60,20 +58,7 @@ export default {
 }
 
 body {
-  position: relative;
-  min-height: 100vh;
-}
-
-.footer {
-  width: 100%;
-}
-
-.spinner {
-  min-height: 100%;
-}
-
-.content-style {
-  position: relative;
-  min-height: calc(100vh - 100px);
+  padding-top: 68px;
+  padding-bottom: 50px;
 }
 </style>

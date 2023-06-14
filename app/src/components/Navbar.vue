@@ -4,6 +4,7 @@
       toggleable="lg"
       type="dark"
       variant="dark"
+      fixed="top"
       class="py-0 bg-navbar"
     >
       <b-navbar-brand
