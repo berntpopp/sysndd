@@ -15,6 +15,8 @@ const components = {
   HelperBadge: () => import(/* webpackChunkName: "Helper" */ '@/components/HelperBadge.vue'),
   Navbar: () => import(/* webpackChunkName: "Navigation" */ '@/components/Navbar.vue'),
   Footer: () => import(/* webpackChunkName: "Navigation" */ '@/components/Footer.vue'),
+  SearchBar: () => import(/* webpackChunkName: "SearchBar" */ '@/components/small/SearchBar.vue'),
+  Banner: () => import(/* webpackChunkName: "Banner" */ '@/components/small/Banner.vue'),
 };
 
 Object.entries(components).forEach(([name, component]) => Vue.component(name, component));

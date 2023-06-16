@@ -530,18 +530,8 @@ import INIT_OBJ from '@/assets/js/constants/init_obj_constants';
 // Import the apiService to make the API calls
 import apiService from '@/assets/js/services/apiService';
 
-// Import the SearchBar component
-import SearchBar from '@/components/small/SearchBar.vue';
-
-// Import the Banner component
-import Banner from '@/components/small/Banner.vue';
-
 export default {
   name: 'Home',
-  components: {
-    Banner,
-    SearchBar,
-  },
   mixins: [toastMixin, colorAndSymbolsMixin, textMixin],
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
