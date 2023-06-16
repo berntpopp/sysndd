@@ -7,38 +7,20 @@
           md="12"
         >
           <div>
-            <b-tabs
-              v-model="tabIndex"
-              content-class="mt-3"
-            >
-              <b-tab
-                title="Overlap"
-                active
-              >
-                <AnalysesCurationUpset />
-              </b-tab>
+            <b-card title="Curation comparisons" no-body>
+              <b-card-header header-tag="nav">
+                <b-nav card-header tabs>
+                  <!-- <b-nav-item>'s with child routes. Note the trailing slash on the first <b-nav-item> -->
+                  <b-nav-item to="/CurationComparisons" exact exact-active-class="active">Overlap</b-nav-item>
+                  <b-nav-item to="/CurationComparisons/Similarity" exact exact-active-class="active">Similarity</b-nav-item>
+                  <b-nav-item to="/CurationComparisons/Table" exact exact-active-class="active">Table</b-nav-item>
+                </b-nav>
+              </b-card-header>
 
-              <b-tab
-                title="Similarity"
-                lazy
-              >
-                <AnalysesCurationMatrixPlot />
-              </b-tab>
-
-              <b-tab
-                title="Table"
-                lazy
-              >
-                <AnalysesCurationComparisonsTable
-                  :sort-input="sort"
-                  :filter-input="filter"
-                  :fields-input="fields"
-                  :page-after-input="pageAfter"
-                  :page-size-input="pageSize"
-                  :fspec-input="fspec"
-                />
-              </b-tab>
-            </b-tabs>
+              <b-card-body>
+                <router-view/>
+              </b-card-body>
+            </b-card>
           </div>
         </b-col>
       </b-row>

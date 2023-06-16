@@ -80,10 +80,30 @@ export const routes = [
   },
   {
     path: '/CurationComparisons',
-    name: 'CurationComparisons',
     component: () => import(
       /* webpackChunkName: "Analyses" */ '@/views/analyses/CurationComparisons.vue'
     ),
+    children: [
+      {
+        path: '',
+        component: () => import(
+          /* webpackChunkName: "AnalysesComponentsCuration" */ '@/components/analyses/AnalysesCurationUpset.vue'
+        ),
+        name: 'CurationComparisons',
+      },
+      {
+        path: 'Similarity',
+        component: () => import(
+          /* webpackChunkName: "AnalysesCurationMatrixPlot" */ '@/components/analyses/AnalysesCurationMatrixPlot.vue'
+        ),
+      },
+      {
+        path: 'Table',
+        component: () => import(
+          /* webpackChunkName: "AnalysesCurationComparisonsTable" */ '@/components/analyses/AnalysesCurationComparisonsTable.vue'
+        ),
+      },
+    ],
     meta: {
       sitemap: {
         priority: 0.8,
@@ -93,10 +113,30 @@ export const routes = [
   },
   {
     path: '/PhenotypeCorrelations',
-    name: 'PhenotypeCorrelations',
     component: () => import(
       /* webpackChunkName: "Analyses" */ '@/views/analyses/PhenotypeCorrelations.vue'
     ),
+    children: [
+      {
+        path: '',
+        component: () => import(
+          /* webpackChunkName: "AnalysesComponentsCuration" */ '@/components/analyses/AnalysesPhenotypeCorrelogram.vue'
+        ),
+        name: 'PhenotypeCorrelations',
+      },
+      {
+        path: 'PhenotypeCounts',
+        component: () => import(
+          /* webpackChunkName: "AnalysesPhenotypeCounts" */ '@/components/analyses/AnalysesPhenotypeCounts.vue'
+        ),
+      },
+      {
+        path: 'PhenotypeClusters',
+        component: () => import(
+          /* webpackChunkName: "AnalysesPhenotypeClusters" */ '@/components/analyses/AnalysesPhenotypeClusters.vue'
+        ),
+      },
+    ],
     meta: {
       sitemap: {
         priority: 0.7,
