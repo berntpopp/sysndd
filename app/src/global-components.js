@@ -1,3 +1,5 @@
+// global-components.js
+
 import Vue from 'vue';
 
 const components = {

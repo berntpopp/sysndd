@@ -18,11 +18,17 @@
                 <AnalysesCurationUpset />
               </b-tab>
 
-              <b-tab title="Similarity">
+              <b-tab
+                title="Similarity"
+                lazy
+              >
                 <AnalysesCurationMatrixPlot />
               </b-tab>
 
-              <b-tab title="Table">
+              <b-tab
+                title="Table"
+                lazy
+              >
                 <AnalysesCurationComparisonsTable
                   :sort-input="sort"
                   :filter-input="filter"

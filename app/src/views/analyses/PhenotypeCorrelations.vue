@@ -15,15 +15,20 @@
                 title="Phenotype correlogram"
                 active
               >
-                <!-- TODO: make these components lazy loading -->
                 <AnalysesPhenotypeCorrelogram />
               </b-tab>
 
-              <b-tab title="Phenotype counts">
+              <b-tab
+                title="Phenotype counts"
+                lazy
+              >
                 <AnalysesPhenotypeCounts />
               </b-tab>
 
-              <b-tab title="Phenotype clustering">
+              <b-tab
+                title="Phenotype clustering"
+                lazy
+              >
                 <AnalysesPhenotypeClusters />
               </b-tab>
             </b-tabs>
