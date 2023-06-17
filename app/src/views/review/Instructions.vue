@@ -56,7 +56,9 @@
                     </b-row>
                     <b-row>
                       <b-col md="12">
-                        Please read the Curation criteria at <b-link href="https://berntpopp.github.io/sysndd/curation-criteria.html"> The SysNDD Documentation - Chapter | 5 Curation criteria </b-link>.<br><br>
+                        Please read the Curation criteria at <b-link href="https://berntpopp.github.io/sysndd/curation-criteria.html">
+                          The SysNDD Documentation - Chapter | 5 Curation criteria
+                        </b-link>.<br><br>
                       </b-col>
                     </b-row>
 
@@ -69,7 +71,9 @@
                     </b-row>
                     <b-row>
                       <b-col md="12">
-                        Please read the Re-review instructions at <b-link href="https://berntpopp.github.io/sysndd/re-review-instructions.html"> The SysNDD Documentation - Chapter | 6 Re-review instructions </b-link>.<br><br>
+                        Please read the Re-review instructions at <b-link href="https://berntpopp.github.io/sysndd/re-review-instructions.html">
+                          The SysNDD Documentation - Chapter | 6 Re-review instructions
+                        </b-link>.<br><br>
                       </b-col>
                     </b-row>
 
@@ -82,10 +86,11 @@
                     </b-row>
                     <b-row>
                       <b-col md="12">
-                        Please watch the tutorial videos at l<b-link href="https://berntpopp.github.io/sysndd/tutorial-videos.htm"> The SysNDD Documentation - Chapter | 7 Tutorial videos </b-link>.<br><br>
+                        Please watch the tutorial videos at l<b-link href="https://berntpopp.github.io/sysndd/tutorial-videos.htm">
+                          The SysNDD Documentation - Chapter | 7 Tutorial videos
+                        </b-link>.<br><br>
                       </b-col>
                     </b-row>
-
                   </b-container>
                 </b-card-body>
               </b-collapse>
