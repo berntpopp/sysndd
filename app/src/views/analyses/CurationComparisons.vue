@@ -7,18 +7,42 @@
           md="12"
         >
           <div>
-            <b-card title="Curation comparisons" no-body>
+            <b-card
+              title="Curation comparisons"
+              no-body
+            >
               <b-card-header header-tag="nav">
-                <b-nav card-header tabs>
+                <b-nav
+                  card-header
+                  tabs
+                >
                   <!-- <b-nav-item>'s with child routes. Note the trailing slash on the first <b-nav-item> -->
-                  <b-nav-item to="/CurationComparisons" exact exact-active-class="active">Overlap</b-nav-item>
-                  <b-nav-item to="/CurationComparisons/Similarity" exact exact-active-class="active">Similarity</b-nav-item>
-                  <b-nav-item to="/CurationComparisons/Table" exact exact-active-class="active">Table</b-nav-item>
+                  <b-nav-item
+                    to="/CurationComparisons"
+                    exact
+                    exact-active-class="active"
+                  >
+                    Overlap
+                  </b-nav-item>
+                  <b-nav-item
+                    to="/CurationComparisons/Similarity"
+                    exact
+                    exact-active-class="active"
+                  >
+                    Similarity
+                  </b-nav-item>
+                  <b-nav-item
+                    to="/CurationComparisons/Table"
+                    exact
+                    exact-active-class="active"
+                  >
+                    Table
+                  </b-nav-item>
                 </b-nav>
               </b-card-header>
 
               <b-card-body>
-                <router-view/>
+                <router-view />
               </b-card-body>
             </b-card>
           </div>
