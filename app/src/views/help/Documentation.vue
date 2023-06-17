@@ -18,7 +18,6 @@
             class="accordion"
             role="tablist"
           >
-
             <b-card
               no-body
               class="mb-1"
@@ -227,7 +226,6 @@
                 </b-card-body>
               </b-collapse>
             </b-card>
-
           </div>
         </b-col>
       </b-row>
@@ -237,10 +235,10 @@
 
 <script>
 export default {
-  name: 'About',
+  name: 'Documentation',
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
-    title: 'About',
+    title: 'Documentation',
     // all titles will be injected into this template
     titleTemplate:
       '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
@@ -252,13 +250,13 @@ export default {
         vmid: 'description',
         name: 'description',
         content:
-          'The About view contains information about the SysNDD curation effort and website.',
+          'The Documentation view contains information about the SysNDD curation effort and website.',
       },
     ],
   },
   data() {
     return {
-      name: 'About',
+      name: 'Documentation',
       loading: false,
     };
   },

@@ -1,5 +1,8 @@
 /* eslint-disable import/prefer-default-export */
 // src/router/routes.js
+
+// TODO: remove redundance in localStorage setting/reading
+
 import Vue from 'vue';
 
 import VueAxios from 'vue-axios';
@@ -210,7 +213,7 @@ export const routes = [
   {
     path: '/About',
     name: 'About',
-    component: () => import(/* webpackChunkName: "About" */ '@/views/About.vue'),
+    component: () => import(/* webpackChunkName: "About" */ '@/views/help/About.vue'),
     meta: {
       sitemap: {
         priority: 0.5,
@@ -221,7 +224,7 @@ export const routes = [
   {
     path: '/Documentation',
     name: 'Documentation',
-    component: () => import(/* webpackChunkName: "Documentation" */ '@/views/Documentation.vue'),
+    component: () => import(/* webpackChunkName: "Documentation" */ '@/views/help/Documentation.vue'),
     meta: {
       sitemap: {
         priority: 0.5,
@@ -284,7 +287,31 @@ export const routes = [
   {
     path: '/Review',
     name: 'Review',
-    component: () => import(/* webpackChunkName: "DataEntry" */ '@/views/Review.vue'),
+    component: () => import(/* webpackChunkName: "DataEntry" */ '@/views/review/Review.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: (to, from, next) => {
+      const allowed_roles = ['Administrator', 'Curator', 'Reviewer'];
+      let expires = 0;
+      let timestamp = 0;
+      let user_role = 'Viewer';
+
+      if (localStorage.token) {
+        expires = JSON.parse(localStorage.user).exp;
+        user_role = JSON.parse(localStorage.user).user_role;
+        timestamp = Math.floor(new Date().getTime() / 1000);
+      }
+
+      if (
+        !localStorage.user
+        || timestamp > expires
+        || !allowed_roles.includes(user_role[0])
+      ) { next({ name: 'Login' }); } else next();
+    },
+  },
+  {
+    path: '/ReviewInstructions',
+    name: 'ReviewInstructions',
+    component: () => import(/* webpackChunkName: "DataEntry" */ '@/views/review/Instructions.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator', 'Curator', 'Reviewer'];

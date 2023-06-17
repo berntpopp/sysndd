@@ -232,13 +232,37 @@
           </b-nav-item-dropdown>
           <!-- Navbar Curation dropdown -->
 
-          <b-nav-item
+          <!-- Navbar Review dropdown -->
+          <b-nav-item-dropdown
             v-if="user && review"
-            to="/Review"
+            text="Review"
           >
-            Review
-          </b-nav-item>
+            <b-dropdown-item to="/ReviewInstructions">
+              <b-icon
+                icon="check"
+                font-scale="1.0"
+              />
+              <b-icon
+                icon="book-fill"
+                font-scale="1.0"
+              />
+              Instructions
+            </b-dropdown-item>
+            <b-dropdown-item to="/Review">
+              <b-icon
+                icon="pen"
+                font-scale="1.0"
+              />
+              <b-icon
+                icon="clipboard-plus"
+                font-scale="1.0"
+              />
+              Re-Review
+            </b-dropdown-item>
+          </b-nav-item-dropdown>
+          <!-- Navbar Review dropdown -->
 
+          <!-- Navbar User dropdown -->
           <b-nav-item-dropdown
             v-if="user"
             right
@@ -280,6 +304,7 @@
           >
             Login
           </b-nav-item>
+          <!-- Navbar User dropdown -->
         </b-navbar-nav>
       </b-collapse>
     </b-navbar>
