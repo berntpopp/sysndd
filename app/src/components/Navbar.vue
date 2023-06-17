@@ -281,6 +281,9 @@
 // Importing URLs from a constants file to avoid hardcoding them in this component
 import URLS from '@/assets/js/constants/url_constants';
 
+// Importing URLs from a constants file to avoid hardcoding them in this component
+import ROLES from '@/assets/js/constants/role_constants';
+
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
@@ -350,18 +353,11 @@ export default {
           this.user_from_jwt.user_name[0]
           === JSON.parse(localStorage.user).user_name[0]
         ) {
-          const allowed_roles = ['Administrator', 'Curator', 'Reviewer'];
-          const allowence_navigation = [
-            ['Admin', 'Curate', 'Review'],
-            ['Curate', 'Review'],
-            ['Review'],
-          ];
-
           let rest;
           [this.user, ...rest] = JSON.parse(localStorage.user).user_name;
 
           const user_role = JSON.parse(localStorage.user).user_role[0];
-          const allowence = allowence_navigation[allowed_roles.indexOf(user_role)];
+          const allowence = ROLES.ALLOWENCE_NAVIGATION[ROLES.ALLOWED_ROLES.indexOf(user_role)];
 
           this.review = allowence.includes('Review');
           this.curate = allowence.includes('Curate');
