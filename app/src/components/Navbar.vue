@@ -43,6 +43,7 @@
               Panels
             </b-dropdown-item>
           </b-nav-item-dropdown>
+          <!-- Navbar Tables dropdown -->
 
           <!-- Navbar Analyses dropdown -->
           <b-nav-item-dropdown text="Analyses">
@@ -62,10 +63,18 @@
               Functional clusters
             </b-dropdown-item>
           </b-nav-item-dropdown>
+          <!-- Navbar Analyses dropdown -->
 
-          <b-nav-item to="/About">
-            About
-          </b-nav-item>
+          <!-- Navbar About dropdown -->
+          <b-nav-item-dropdown text="Help">
+            <b-dropdown-item to="/About">
+              About
+            </b-dropdown-item>
+            <b-dropdown-item to="/Documentation">
+              Docs and FAQ
+            </b-dropdown-item>
+          </b-nav-item-dropdown>
+          <!-- Navbar About dropdown -->
         </b-navbar-nav>
 
         <b-navbar-nav class="mx-auto">

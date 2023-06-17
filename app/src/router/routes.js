@@ -219,6 +219,17 @@ export const routes = [
     },
   },
   {
+    path: '/Documentation',
+    name: 'Documentation',
+    component: () => import(/* webpackChunkName: "Documentation" */ '@/views/Documentation.vue'),
+    meta: {
+      sitemap: {
+        priority: 0.5,
+        changefreq: 'yearly',
+      },
+    },
+  },
+  {
     path: '/Login',
     name: 'Login',
     component: () => import(/* webpackChunkName: "User" */ '@/views/Login.vue'),
