@@ -4,11 +4,11 @@
     <b-form-input
       v-model="search_input"
       autofocus
-      class="border-dark"
+      :class="inNavbar ? 'navbar-search' : 'border-dark'"
       list="search-list"
       type="search"
-      placeholder="Search by genes, entities and diseases using names or identifiers"
-      size="md"
+      :placeholder="placeholderString"
+      :size="inNavbar ? 'sm' : 'md'"
       autocomplete="off"
       debounce="300"
       @update="loadSearchInfo"
@@ -22,8 +22,8 @@
 
     <b-input-group-append>
       <b-button
-        variant="outline-dark"
-        size="md"
+        :variant="inNavbar ? 'outline-primary' : 'outline-dark'"
+        :size="inNavbar ? 'sm' : 'md'"
         :disabled="search_input.length < 2"
         @click="handleSearchInputKeydown"
       >
@@ -38,6 +38,18 @@
 import apiService from '@/assets/js/services/apiService';
 
 export default {
+  props: {
+    placeholderString: {
+      type: String,
+      required: true,
+      default: '...',
+    },
+    inNavbar: {
+      type: Boolean,
+      required: true,
+      default: false,
+    },
+  },
   data() {
     return {
       search_input: '',
@@ -78,3 +90,10 @@ export default {
   },
 };
 </script>
+
+<!-- Add "scoped" attribute to limit CSS to this component only -->
+<style scoped>
+.navbar-search {
+  width: 400px;
+}
+</style>

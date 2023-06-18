@@ -21,7 +21,10 @@
               </b-container>
 
               <!-- The SearchBar component -->
-              <SearchBar />
+              <SearchBar
+                placeholder-string="Search by genes, entities and diseases using names or identifiers"
+                :in-navbar="false"
+              />
               <!-- The SearchBar component -->
             </b-col>
           </b-row>

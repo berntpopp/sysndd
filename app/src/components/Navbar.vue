@@ -77,42 +77,16 @@
           <!-- Navbar About dropdown -->
         </b-navbar-nav>
 
-        <b-navbar-nav class="mx-auto">
-          <b-nav-form
-            v-if="show_search"
-            @submit.stop.prevent="handleSearchInputKeydown"
-          >
-            <b-input-group class="mb-2">
-              <b-form-input
-                v-model="search_input"
-                list="search-list"
-                type="search"
-                placeholder="..."
-                size="sm"
-                autocomplete="off"
-                class="navbar-search"
-                debounce="300"
-                @update="loadSearchInfo"
-                @keydown.native="handleSearchInputKeydown"
-              />
-
-              <b-form-datalist
-                id="search-list"
-                :options="search_keys"
-              />
-
-              <b-input-group-append>
-                <b-button
-                  variant="outline-primary"
-                  size="sm"
-                  :disabled="search_input.length < 2"
-                  @click="handleSearchInputKeydown"
-                >
-                  <b-icon icon="search" />
-                </b-button>
-              </b-input-group-append>
-            </b-input-group>
-          </b-nav-form>
+        <b-navbar-nav
+          v-if="show_search"
+          class="mx-auto"
+        >
+          <!-- The SearchBar component -->
+          <SearchBar
+            placeholder-string="..."
+            :in-navbar="true"
+          />
+          <!-- The SearchBar component -->
         </b-navbar-nav>
 
         <!-- Right aligned nav items -->
@@ -331,9 +305,6 @@ export default {
       admin: false,
       user_from_jwt: [],
       time_to_logout: 0,
-      search_input: '',
-      search_keys: [],
-      search_object: {},
       show_search: false,
     };
   },
@@ -433,36 +404,6 @@ export default {
         localStorage.setItem('user', JSON.stringify(response_signin.data));
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
-      }
-    },
-    async loadSearchInfo() {
-      if (this.search_input.length > 0) {
-        const apiSearchURL = `${URLS.API_URL}/api/search/${this.search_input}`;
-        try {
-          const response_search = await this.axios.get(apiSearchURL);
-          let rest;
-          [this.search_object, ...rest] = response_search.data;
-          this.search_keys = Object.keys(response_search.data[0]);
-        } catch (e) {
-          this.makeToast(e, 'Error', 'danger');
-        }
-      }
-    },
-    handleSearchInputKeydown(event) {
-      if (
-        ((event.which === 13) || (event.which === 1))
-        && (this.search_input.length > 0)
-        && !(this.search_object[this.search_input] === undefined)
-      ) {
-        this.$router.push(this.search_object[this.search_input][0].link);
-        this.search_input = '';
-      } else if (
-        ((event.which === 13) || (event.which === 1))
-        && (this.search_input.length > 0)
-        && (this.search_object[this.search_input] === undefined)
-      ) {
-        this.$router.push(`/Search/${this.search_input}`);
-        this.search_input = '';
       }
     },
     doUserLogOut() {
