@@ -374,6 +374,6 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 100px);
+  min-height: calc(100vh - 68px - 50px);
 }
 </style>
