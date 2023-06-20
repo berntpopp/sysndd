@@ -1,9 +1,10 @@
 // role_constants.js
 export default {
-  ALLOWED_ROLES: ['Administrator', 'Curator', 'Reviewer'],
+  ALLOWED_ROLES: ['Administrator', 'Curator', 'Reviewer', 'Viewer'],
   ALLOWENCE_NAVIGATION: [
-    ['Admin', 'Curate', 'Review'],
-    ['Curate', 'Review'],
-    ['Review'],
+    ['Admin', 'Curate', 'Review', 'View'],
+    ['Curate', 'Review', 'View'],
+    ['Review', 'View'],
+    ['View'],
   ],
 };
