@@ -84,7 +84,9 @@ export default {
       align: 'right',
       items: [
         { text: 'View profile', path: '/User', icons: ['person-circle'] },
-        { text: 'Token', action: 'refreshWithJWT', icons: ['arrow-repeat'] },
+        {
+          text: 'Token', action: 'refreshWithJWT', icons: ['arrow-repeat'], component: 'LogoutCountdownBadge',
+        },
         { text: 'Sign out', action: 'doUserLogOut', icons: ['x-circle'] },
       ],
     },

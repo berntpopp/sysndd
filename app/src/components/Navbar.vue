@@ -27,55 +27,18 @@
         id="nav-collapse"
         is-nav
       >
+        <!-- Left aligned nav items -->
         <b-navbar-nav>
-          <!-- Navbar Tables dropdown -->
-          <b-nav-item-dropdown text="Tables">
-            <b-dropdown-item to="/Entities">
-              Entities
-            </b-dropdown-item>
-            <b-dropdown-item to="/Genes">
-              Genes
-            </b-dropdown-item>
-            <b-dropdown-item to="/Phenotypes">
-              Phenotypes
-            </b-dropdown-item>
-            <b-dropdown-item to="/Panels">
-              Panels
-            </b-dropdown-item>
-          </b-nav-item-dropdown>
-          <!-- Navbar Tables dropdown -->
-
-          <!-- Navbar Analyses dropdown -->
-          <b-nav-item-dropdown text="Analyses">
-            <b-dropdown-item to="/CurationComparisons">
-              Compare curations
-            </b-dropdown-item>
-            <b-dropdown-item to="/PhenotypeCorrelations">
-              Correlate phenotypes
-            </b-dropdown-item>
-            <b-dropdown-item to="/EntriesOverTime">
-              Entries over time
-            </b-dropdown-item>
-            <b-dropdown-item to="/PublicationsNDD">
-              NDD Publications
-            </b-dropdown-item>
-            <b-dropdown-item to="/GeneNetworks">
-              Functional clusters
-            </b-dropdown-item>
-          </b-nav-item-dropdown>
-          <!-- Navbar Analyses dropdown -->
-
-          <!-- Navbar About dropdown -->
-          <b-nav-item-dropdown text="Help">
-            <b-dropdown-item to="/About">
-              About
-            </b-dropdown-item>
-            <b-dropdown-item to="/Documentation">
-              Docs and FAQ
-            </b-dropdown-item>
-          </b-nav-item-dropdown>
-          <!-- Navbar About dropdown -->
+          <IconPairDropdownMenu
+            v-for="(item, index) in dropdownItemsLeft"
+            :key="index.id"
+            :title="item.title"
+            :align="item.align"
+            :required="item.required"
+            :items="item.items"
+          />
         </b-navbar-nav>
+        <!-- Left aligned nav items -->
 
         <b-navbar-nav
           v-if="show_search"
@@ -90,202 +53,36 @@
         </b-navbar-nav>
 
         <!-- Right aligned nav items -->
-        <b-navbar-nav class="ml-auto">
-          <!-- Navbar Admin dropdown -->
-          <b-nav-item-dropdown
-            v-if="user && admin"
-            text="Administration"
-          >
-            <b-dropdown-item to="/ManageUser">
-              <b-icon
-                icon="gear"
-                font-scale="1.0"
-              />
-              <b-icon
-                icon="person-circle"
-                font-scale="1.0"
-              />
-              Manage user
-            </b-dropdown-item>
-            <b-dropdown-item to="/ManageAnnotations">
-              <b-icon
-                icon="gear"
-                font-scale="1.0"
-              />
-              <b-icon
-                icon="table"
-                font-scale="1.0"
-              />
-              Manage annotations
-            </b-dropdown-item>
-            <b-dropdown-item to="/ManageAbout">
-              <b-icon
-                icon="gear"
-                font-scale="1.0"
-              />
-              <b-icon
-                icon="question-circle-fill"
-                font-scale="1.0"
-              />
-              Manage about
-            </b-dropdown-item>
-          </b-nav-item-dropdown>
-          <!-- Navbar Admin dropdown -->
-
-          <!-- Navbar Curation dropdown -->
-          <b-nav-item-dropdown
-            v-if="user && curate"
-            text="Curation"
-          >
-            <b-dropdown-item to="/CreateEntity">
-              <b-icon
-                icon="plus-square"
-                font-scale="1.0"
-              />
-              <b-icon
-                icon="link"
-                font-scale="1.0"
-              />
-              Create entity
-            </b-dropdown-item>
-            <b-dropdown-item to="/ModifyEntity">
-              <b-icon
-                icon="pen"
-                font-scale="1.0"
-              />
-              <b-icon
-                icon="link"
-                font-scale="1.0"
-              />
-              Modify entity
-            </b-dropdown-item>
-            <b-dropdown-item to="/ApproveReview">
-              <b-icon
-                icon="check"
-                font-scale="1.0"
-              />
-              <b-icon
-                icon="clipboard-plus"
-                font-scale="1.0"
-              />
-              Approve review
-            </b-dropdown-item>
-            <b-dropdown-item to="/ApproveStatus">
-              <b-icon
-                icon="check"
-                font-scale="1.0"
-              />
-              <b-icon
-                icon="stoplights"
-                font-scale="1.0"
-              />
-              Approve status
-            </b-dropdown-item>
-            <b-dropdown-item to="/ApproveUser">
-              <b-icon
-                icon="check"
-                font-scale="1.0"
-              />
-              <b-icon
-                icon="person-circle"
-                font-scale="1.0"
-              />
-              Approve user
-            </b-dropdown-item>
-            <b-dropdown-item to="/ManageReReview">
-              <b-icon
-                icon="gear"
-                font-scale="1.0"
-              />
-              <b-icon
-                icon="clipboard-check"
-                font-scale="1.0"
-              />
-              Manage re-review
-            </b-dropdown-item>
-          </b-nav-item-dropdown>
-          <!-- Navbar Curation dropdown -->
-
-          <!-- Navbar Review dropdown -->
-          <b-nav-item-dropdown
-            v-if="user && review"
-            text="Review"
-          >
-            <b-dropdown-item to="/ReviewInstructions">
-              <b-icon
-                icon="check"
-                font-scale="1.0"
-              />
-              <b-icon
-                icon="book-fill"
-                font-scale="1.0"
-              />
-              Instructions
-            </b-dropdown-item>
-            <b-dropdown-item to="/Review">
-              <b-icon
-                icon="pen"
-                font-scale="1.0"
-              />
-              <b-icon
-                icon="clipboard-plus"
-                font-scale="1.0"
-              />
-              Re-Review
-            </b-dropdown-item>
-          </b-nav-item-dropdown>
-          <!-- Navbar Review dropdown -->
-
-          <!-- Navbar User dropdown -->
-          <b-nav-item-dropdown
-            v-if="user"
-            right
-          >
-            <!-- Using 'button-content' slot -->
-            <template #button-content>
-              <em>{{ user }}</em>
-            </template>
-            <b-dropdown-item to="/User">
-              <b-icon
-                icon="person-circle"
-                font-scale="1.0"
-              /> View profile
-            </b-dropdown-item>
-            <b-dropdown-item @click="refreshWithJWT">
-              <b-icon
-                icon="arrow-repeat"
-                font-scale="1.0"
-              /> Token
-              <b-badge variant="info">
-                {{ Math.floor(time_to_logout) }}m
-                {{
-                  ((time_to_logout - Math.floor(time_to_logout)) * 60).toFixed(
-                    0
-                  )
-                }}s
-              </b-badge>
-            </b-dropdown-item>
-            <b-dropdown-item @click="doUserLogOut">
-              <b-icon
-                icon="x-circle"
-                font-scale="1.0"
-              /> Sign out
-            </b-dropdown-item>
-          </b-nav-item-dropdown>
-          <b-nav-item
-            v-else
-            to="/Login"
-          >
-            Login
-          </b-nav-item>
-          <!-- Navbar User dropdown -->
+        <b-navbar-nav
+          v-if="user"
+          class="ml-auto"
+        >
+          <IconPairDropdownMenu
+            v-for="(item, index) in dropdownItemsRightDisplay"
+            :key="index.id"
+            :title="item.title"
+            :required="item.required"
+            :align="item.align"
+            :items="item.items"
+          />
         </b-navbar-nav>
+        <b-nav-item
+          v-else
+          to="/Login"
+          class="ml-auto"
+        >
+          Login
+        </b-nav-item>
+        <!-- Right aligned nav items -->
       </b-collapse>
     </b-navbar>
   </div>
 </template>
 
 <script>
+// Importing URLs from a constants file to avoid hardcoding them in this component
+import MAIN_NAV_CONSTANTS from '@/assets/js/constants/main_nav_constants';
+
 // Importing URLs from a constants file to avoid hardcoding them in this component
 import URLS from '@/assets/js/constants/url_constants';
 
@@ -299,14 +96,34 @@ export default {
   mixins: [toastMixin],
   data() {
     return {
+      dropdownItemsLeft: MAIN_NAV_CONSTANTS.DROPDOWN_ITEMS_LEFT,
+      dropdownItemsRight: MAIN_NAV_CONSTANTS.DROPDOWN_ITEMS_RIGHT,
       user: null,
-      review: false,
-      curate: false,
-      admin: false,
+      userAllowence: {
+        view: false,
+        review: false,
+        curate: false,
+        admin: false,
+      },
       user_from_jwt: [],
-      time_to_logout: 0,
       show_search: false,
     };
+  },
+  computed: {
+    // here we filter the user dropdown according to user roles
+    // if the user has the required role, the dropdown item is displayed
+    // also add the username to the dropdown
+    dropdownItemsRightDisplay() {
+      return this.dropdownItemsRight.map((item) => {
+        if (item.id === 'user_dropdown') {
+          return {
+            ...item,
+            title: this.user,
+          };
+        }
+        return item;
+      }).filter((i) => i.required.every((condition) => this.userAllowence[condition]));
+    },
   },
   watch: {
     // used to refresh navbar on login push
@@ -321,17 +138,6 @@ export default {
   },
   mounted() {
     this.isUserLoggedIn();
-
-    // set constant for interval refresh in milliseconds
-    const UPDATE_INTERVAL = 1000;
-
-    this.interval = setInterval(() => {
-      this.updateDiffs();
-    }, UPDATE_INTERVAL);
-    this.updateDiffs();
-  },
-  beforeDestroy() {
-    clearInterval(this.interval);
   },
   methods: {
     isUserLoggedIn() {
@@ -340,6 +146,13 @@ export default {
       } else {
         localStorage.removeItem('user');
         localStorage.removeItem('token');
+        this.user = null;
+        this.userAllowence = {
+          view: false,
+          review: false,
+          curate: false,
+          admin: false,
+        };
       }
     },
     async checkSigninWithJWT() {
@@ -364,80 +177,16 @@ export default {
           const user_role = JSON.parse(localStorage.user).user_role[0];
           const allowence = ROLES.ALLOWENCE_NAVIGATION[ROLES.ALLOWED_ROLES.indexOf(user_role)];
 
-          this.review = allowence.includes('Review');
-          this.curate = allowence.includes('Curate');
-          this.admin = allowence.includes('Admin');
+          this.userAllowence.view = allowence.includes('View');
+          this.userAllowence.review = allowence.includes('Review');
+          this.userAllowence.curate = allowence.includes('Curate');
+          this.userAllowence.admin = allowence.includes('Admin');
         } else {
           localStorage.removeItem('user');
           localStorage.removeItem('token');
         }
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
-      }
-    },
-    async refreshWithJWT() {
-      const apiAuthenticateURL = `${URLS.API_URL}/api/auth/refresh`;
-
-      try {
-        const response_refresh = await this.axios.get(apiAuthenticateURL, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-
-        localStorage.setItem('token', response_refresh.data[0]);
-        this.signinWithJWT();
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-      }
-    },
-    async signinWithJWT() {
-      const apiAuthenticateURL = `${URLS.API_URL}/api/auth/signin`;
-
-      try {
-        const response_signin = await this.axios.get(apiAuthenticateURL, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-
-        localStorage.setItem('user', JSON.stringify(response_signin.data));
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-      }
-    },
-    doUserLogOut() {
-      if (localStorage.user || localStorage.token) {
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        this.user = null;
-
-        // based on https://stackoverflow.com/questions/57837758/navigationduplicated-navigating-to-current-location-search-is-not-allowed
-        // to avoid double navigation
-        const path = '/';
-        if (this.$route.path !== path) this.$router.push({ name: 'Home' });
-      }
-    },
-    updateDiffs() {
-      const timestampMillisecondDivider = 1000;
-      const secondToMinuteDivider = 60;
-      const warningTimePoints = [60, 180, 300];
-      if (localStorage.token) {
-        const expires = JSON.parse(localStorage.user).exp;
-        const timestamp = Math.floor(new Date().getTime() / timestampMillisecondDivider);
-
-        if (expires > timestamp) {
-          this.time_to_logout = ((expires - timestamp) / secondToMinuteDivider).toFixed(2);
-          if (warningTimePoints.includes(expires - timestamp)) {
-            this.makeToast(
-              'Refresh token.',
-              `Logout in ${expires - timestamp} seconds`,
-              'danger',
-            );
-          }
-        } else {
-          this.doUserLogOut();
-        }
       }
     },
   },
@@ -480,8 +229,5 @@ a {
 }
 .bg-navbar {
   background-image: linear-gradient(to right, #434343 0%, black 100%);
-}
-.navbar-search {
-  width: 400px;
 }
 </style>

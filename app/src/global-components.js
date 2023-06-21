@@ -14,11 +14,13 @@ const components = {
   AnalysesPhenotypeCorrelogram: () => import(/* webpackChunkName: "AnalysesComponentsPhenotype" */ '@/components/analyses/AnalysesPhenotypeCorrelogram.vue'),
   AnalysesPhenotypeCounts: () => import(/* webpackChunkName: "AnalysesComponentsPhenotype" */ '@/components/analyses/AnalysesPhenotypeCounts.vue'),
   AnalysesTimePlot: () => import(/* webpackChunkName: "AnalysesComponentsTime" */ '@/components/analyses/AnalysesTimePlot.vue'),
-  HelperBadge: () => import(/* webpackChunkName: "Helper" */ '@/components/HelperBadge.vue'),
+  HelperBadge: () => import(/* webpackChunkName: "Small" */ '@/components/HelperBadge.vue'),
   Navbar: () => import(/* webpackChunkName: "Navigation" */ '@/components/Navbar.vue'),
   Footer: () => import(/* webpackChunkName: "Navigation" */ '@/components/Footer.vue'),
-  SearchBar: () => import(/* webpackChunkName: "SearchBar" */ '@/components/small/SearchBar.vue'),
-  Banner: () => import(/* webpackChunkName: "Banner" */ '@/components/small/Banner.vue'),
+  SearchBar: () => import(/* webpackChunkName: "Small" */ '@/components/small/SearchBar.vue'),
+  Banner: () => import(/* webpackChunkName: "Small" */ '@/components/small/Banner.vue'),
+  LogoutCountdownBadge: () => import(/* webpackChunkName: "Small" */ '@/components/small/LogoutCountdownBadge.vue'),
+  IconPairDropdownMenu: () => import(/* webpackChunkName: "Small" */ '@/components/small/IconPairDropdownMenu.vue'),
 };
 
 Object.entries(components).forEach(([name, component]) => Vue.component(name, component));
