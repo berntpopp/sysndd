@@ -87,11 +87,14 @@
 </template>
 
 <script>
+// Importing a mixin that provides toast notifications
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
   name: 'Login',
+  // Using the toastMixin to provide toast notifications
   mixins: [toastMixin],
+  // Meta information for the page, including title and description
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
     title: 'Login',
@@ -110,6 +113,7 @@ export default {
       },
     ],
   },
+  // Data properties for this component
   data() {
     return {
       user_name: '',
@@ -120,6 +124,7 @@ export default {
       animated: false,
     };
   },
+  // Lifecycle hook that's run when the component is added to the DOM
   mounted() {
     if (localStorage.user) {
       this.doUserLogOut();
@@ -127,9 +132,11 @@ export default {
     this.loading = false;
   },
   methods: {
+    // Returns the validation state for form fields
     getValidationState({ dirty, validated, valid = null }) {
       return dirty || validated ? valid : null;
     },
+    // Asynchronously load the JWT token
     async loadJWT() {
       const apiAuthenticateURL = `${process.env.VUE_APP_API_URL
       }/api/auth/authenticate?user_name=${
