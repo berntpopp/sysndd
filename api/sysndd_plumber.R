@@ -4498,12 +4498,14 @@ function(req, res, user_id = 0, status_approval = FALSE) {
       dbDisconnect(sysndd_db)
 
       # send mail
+      # TODO: change blind copy curator mail address to a constant in config
       res <- send_noreply_email(c(
          "Your registration for sysndd.org has been approved by a curator.",
          "Your password (please change after first login):",
          user_password),
          "Account approved for SysNDD.org",
-         user_table$email
+         user_table$email,
+         "curator@sysndd.org"
         )
     } else {
       # connect to database, delete application then disconnect
@@ -5006,12 +5008,14 @@ function(signup_data) {
     dbDisconnect(sysndd_db)
 
     # send mail
+    # TODO: change blind copy curator mail address to a constant in config
     res <- send_noreply_email(c(
        "Your registration request for sysndd.org has been send to the curators",
        "who will review it soon. Information provided:",
        user),
        "Your registration request to SysNDD.org",
-       user$email
+       user$email,
+       "curator@sysndd.org"
       )
 
   } else {
