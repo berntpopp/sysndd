@@ -2569,7 +2569,7 @@ function(req,
     #TODO: move this to a helper function and collapse again as strings
     # unnest data
     gene_list$data <- gene_list$data %>%
-      unnest(c(entities), names_sep= "_")
+      unnest(c(entities), names_sep = "_")
 
     # generate creation date statistic for output
     creation_date <- strftime(as.POSIXlt(Sys.time(),

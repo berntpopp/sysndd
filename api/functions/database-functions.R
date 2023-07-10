@@ -99,25 +99,33 @@ post_db_entity <- function(entity_data) {
 }
 
 
-#' Post DB Entity
+#' Post DB Entity deactivation
 #'
-#' This function adds a new entity to the database, if all required columns are
-#' present in the provided entity data. The entity data is first converted to a
-#' tibble, and then filtered to include only the required columns. The function
-#' then connects to the database, adds the new entity, and disconnects from the
-#' database. Finally, the function returns a status message with information on
-#' whether the entity was successfully added or not.
+#' This function connects to the MariaDB database and performs an update on a given entity to deactivate it.
+#' It returns an OK status message if the operation is successful, and a Bad Request message if the entity_id is null.
 #'
-#' @param entity_data A data frame containing the entity data to be added to the
-#' database.
-#' @return A list with information on the status of the entity addition process,
-#' including a status code, a message, and the entity ID if the entity was
-#' successfully added.
+#' @param entity_id The ID of the entity to be deactivated. Cannot be null.
+#' @param replacement The replacement value for the deactivated entity. Default value is "NULL".
+#'
+#' @return If the operation is successful, a list containing:
+#' \describe{
+#'   \item{status}{HTTP status 200}
+#'   \item{message}{A message "OK. Entity deactivated."}
+#'   \item{entry}{The entity_id that was deactivated}
+#' }
+#' If the operation is not successful (entity_id is null), a list containing:
+#' \describe{
+#'   \item{status}{HTTP status 405}
+#'   \item{message}{A message "Submitted entity_id can not be empty."}
+#' }
+#'
 #' @export
 #' @seealso See 'as_tibble', 'dbConnect', 'dbAppendTable', 'dbGetQuery',
 #' and 'dbDisconnect' for more information on the functions used.
 #' @examples
-#' post_db_entity(entity_data)
+#' \dontrun{
+#' put_db_entity_deactivation(entity_id = 123, replacement = 456)
+#' }
 put_db_entity_deactivation <- function(entity_id,
   replacement = "NULL") {
   if (!is.null(entity_id)
