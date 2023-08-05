@@ -236,12 +236,20 @@ function(req, res) {
   } else if (req$REQUEST_METHOD == "GET" && !is.null(req$HTTP_AUTHORIZATION)) {
     # load jwt from header
     jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
+
     # decode jwt
-    user <- jwt_decode_hmac(str_remove(req$HTTP_AUTHORIZATION, "Bearer "),
-      secret = key)
+    tryCatch({
+      user <- jwt_decode_hmac(str_remove(req$HTTP_AUTHORIZATION, "Bearer "),
+        secret = key)
+    }, error = function(e) {
+      res$status <- 401 # Unauthorized
+      return(list(error = "Token expired or invalid."))
+    })
+
     # add user_id and user_role as value to request
     req$user_id <- as.integer(user$user_id)
     req$user_role <- user$user_role
+
     # and forward request
     plumber::forward()
   } else if (req$REQUEST_METHOD == "POST" &&

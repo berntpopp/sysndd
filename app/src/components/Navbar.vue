@@ -166,27 +166,30 @@ export default {
         });
 
         this.user_from_jwt = response_signin.data;
-
-        if (
-          this.user_from_jwt.user_name[0]
-          === JSON.parse(localStorage.user).user_name[0]
-        ) {
-          let rest;
-          [this.user, ...rest] = JSON.parse(localStorage.user).user_name;
-
-          const user_role = JSON.parse(localStorage.user).user_role[0];
-          const allowence = ROLES.ALLOWENCE_NAVIGATION[ROLES.ALLOWED_ROLES.indexOf(user_role)];
-
-          this.userAllowence.view = allowence.includes('View');
-          this.userAllowence.review = allowence.includes('Review');
-          this.userAllowence.curate = allowence.includes('Curate');
-          this.userAllowence.admin = allowence.includes('Admin');
-        } else {
-          localStorage.removeItem('user');
-          localStorage.removeItem('token');
-        }
       } catch (e) {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
         this.makeToast(e, 'Error', 'danger');
+      }
+
+      if (
+        this.user_from_jwt.user_name[0]
+        === JSON.parse(localStorage.user).user_name[0]
+      ) {
+        console.log('this happened');
+        let rest;
+        [this.user, ...rest] = JSON.parse(localStorage.user).user_name;
+
+        const user_role = JSON.parse(localStorage.user).user_role[0];
+        const allowence = ROLES.ALLOWENCE_NAVIGATION[ROLES.ALLOWED_ROLES.indexOf(user_role)];
+
+        this.userAllowence.view = allowence.includes('View');
+        this.userAllowence.review = allowence.includes('Review');
+        this.userAllowence.curate = allowence.includes('Curate');
+        this.userAllowence.admin = allowence.includes('Admin');
+      } else {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
       }
     },
   },
