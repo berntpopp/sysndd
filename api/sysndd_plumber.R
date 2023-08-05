@@ -4965,9 +4965,38 @@ function(req, res, new_pass_1 = "", new_pass_2 = "") {
 ##-------------------------------------------------------------------##
 ## Authentication section
 
+# TODO: add signup data example
+#* User Signup
+#*
+#* This endpoint is responsible for managing user signups. It validates the
+#* provided signup data and, if valid, adds the new user to the database. It
+#* then sends an email to the user to notify them of their successful signup.
+#*
+#* # `Details`
+#* This is a Plumber endpoint function that handles user signups. It validates
+#* the user's provided information, such as username, first name, family name,
+#* email, ORCID, comment, and terms agreement. If all information is valid, the
+#* function adds the new user to the user database and sends a confirmation
+#* email to the user. If any of the provided information is not valid, the
+#* function returns an error.
+#*
+#* # `Return`
+#* If successful, the function does not return anything to the client but adds
+#* the new user to the database and sends a confirmation email to the user. If
+#* unsuccessful, it returns an error message.
+#*
 #* @tag authentication
-#* manages user signup
 #* @serializer json list(na="string")
+#*
+#* @param signup_data: The signup data provided by the user, in JSON format. It
+#*             should include the user's username, first name, family name,
+#*             email, ORCID, comment, and terms agreement.
+#*
+#* @response 200 OK. The signup was successful. The user is added to the
+#*             database and a confirmation email is sent to the user.
+#* @response 404 Not Found. An error message indicating that the provided
+#*             signup data was not valid.
+#*
 #* @get /api/auth/signup
 function(signup_data) {
   user <- tibble::as_tibble(fromJSON(signup_data)) %>%
@@ -5034,11 +5063,43 @@ function(signup_data) {
 }
 
 
+#* Authenticate a User with Login
+#*
+#* This endpoint is responsible for authenticating a user using their username
+#* and password. If the credentials match a record in the database and the
+#* account is approved, the function returns a JWT; otherwise, it returns an
+#* error.
+#*
+#* # `Details`
+#* This is a Plumber endpoint function that uses JWT for user authentication.
+#* JWT is a compact, URL-safe means of representing claims to be transferred
+#* between two parties. The claims in a JWT are encoded as a JSON object that
+#* is used as the payload of a JSON Web Signature (JWS) structure enabling the
+#* claims to be digitally signed or integrity protected with a Message
+#* Authentication Code (MAC) and/or encrypted.
+#*
+#* The function checks if the provided username and password are valid. If
+#* valid, it checks if the credentials match an approved account in the
+#* database. If a match is found, the function generates a JWT and returns it.
+#* If no match is found or if the account is not approved, the function returns
+#* an error.
+#*
+#* # `Return`
+#* If successful, the function returns a JWT. If unsuccessful, it returns an
+#* error message.
+#*
 #* @tag authentication
-#* does user login
-## based on "https://github.com/
-## jandix/sealr/blob/master/examples/jwt_simple_example.R"
 #* @serializer json list(na="string")
+#*
+#* @param user_name: The username provided by the user.
+#* @param password: The password provided by the user.
+#*
+#* @response 200 OK. The JWT.
+#* @response 401 Unauthorized. An error message indicating that the provided
+#*             credentials were incorrect.
+#* @response 404 Not Found. An error message indicating that the provided
+#*             credentials were not valid.
+#*
 #* @get /api/auth/authenticate
 function(req, res, user_name, password) {
 
@@ -5093,9 +5154,39 @@ function(req, res, user_name, password) {
 }
 
 
+#* Authenticate a User
+#*
+#* This endpoint is responsible for authenticating a user. It checks the
+#* authorization header of the incoming request for a valid JSON Web Token (JWT).
+#* If a valid JWT is provided and not expired, the endpoint returns the user's
+#* information; otherwise, it returns an error.
+#*
+#* # `Details`
+#* This is a Plumber endpoint function that uses JWT for user authentication. 
+#* JWT is a compact, URL-safe means of representing claims to be transferred
+#* between two parties. The claims in a JWT are encoded as a JSON object that
+#* is used as the payload of a JSON Web Signature (JWS) structure enabling the
+#* claims to be digitally signed or integrity protected with a Message 
+#* Authentication Code (MAC) and/or encrypted. 
+#* 
+#* The function first checks if the 'Authorization' header is present in the
+#* request. If not, it returns a 401 Unauthorized error. If the 'Authorization'
+#* header is present, the function attempts to decode the JWT. If the JWT is
+#* valid and not expired, the function returns the user's information. If the
+#* JWT is not valid or expired, the function returns a 401 Unauthorized error.
+#*
+#* # `Return`
+#* If successful, the function returns the user's information. If unsuccessful,
+#* it returns an error message.
+#*
 #* @tag authentication
-#* does user authentication
 #* @serializer json list(na="string")
+#*
+#* @response 200 OK. The user's information.
+#* @response 401 Unauthorized. An error message indicating that the 
+#*             'Authorization' header was missing or that the provided JWT was
+#*             not valid or expired.
+#*
 #* @get /api/auth/signin
 function(req, res) {
   # load secret and convert to raw
@@ -5133,9 +5224,40 @@ function(req, res) {
 }
 
 
+#* Refresh the Authentication Token
+#*
+#* This endpoint is responsible for refreshing the user's authentication token.
+#* It checks the authorization header of the incoming request for a valid
+#* JSON Web Token (JWT). If a valid JWT is provided, the endpoint refreshes
+#* the token; otherwise, it returns an error.
+#*
+#* # `Details`
+#* This is a Plumber endpoint function that uses JWT for user authentication.
+#* JWT is a compact, URL-safe means of representing claims to be transferred
+#* between two parties. The claims in a JWT are encoded as a JSON object that
+#* is used as the payload of a JSON Web Signature (JWS) structure enabling the
+#* claims to be digitally signed or integrity protected with a Message
+#* Authentication Code (MAC) and/or encrypted.
+#*
+#* The function first checks if the 'Authorization' header is present in the
+#* request. If not, it returns a 401 Unauthorized error. If the 'Authorization'
+#* header is present, the function attempts to decode the JWT. If the JWT is
+#* valid and not expired, the function refreshes the token and returns the new
+#* JWT. If the JWT is not valid or expired, the function returns a 401
+#* Unauthorized error.
+#*
+#* # `Return`
+#* If successful, the function returns the refreshed JWT. If unsuccessful, it
+#* returns an error message.
+#*
 #* @tag authentication
-#* does authentication refresh
 #* @serializer json list(na="string")
+#*
+#* @response 200 OK. The refreshed JWT.
+#* @response 401 Unauthorized. An error message indicating that the 
+#*             'Authorization' header was missing or that the provided JWT was
+#*             not valid or expired.
+#*
 #* @get /api/auth/refresh
 function(req, res) {
   # load secret and convert to raw
