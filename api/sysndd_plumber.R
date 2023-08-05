@@ -5101,11 +5101,21 @@ function(req, res) {
   # load secret and convert to raw
   key <- charToRaw(dw$secret)
 
+  if (is.null(req$HTTP_AUTHORIZATION)) {
+    res$status <- 401 # Unauthorized
+    return(list(error = "Authorization http header missing."))
+  }
+
   # load jwt from header
   jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
 
-  user <- jwt_decode_hmac(jwt, secret = key)
-  user$token_expired <- (user$exp < as.numeric(Sys.time()))
+  tryCatch({
+    user <- jwt_decode_hmac(jwt, secret = key)
+    user$token_expired <- (user$exp < as.numeric(Sys.time()))
+  }, error = function(e) {
+    res$status <- 401 # Unauthorized
+    return(list(error = "Authentication not successful."))
+  })
 
   if (is.null(jwt) || user$token_expired) {
     res$status <- 401 # Unauthorized
@@ -5131,11 +5141,21 @@ function(req, res) {
   # load secret and convert to raw
   key <- charToRaw(dw$secret)
 
+  if (is.null(req$HTTP_AUTHORIZATION)) {
+    res$status <- 401 # Unauthorized
+    return(list(error = "Authorization http header missing."))
+  }
+
   # load jwt from header
   jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
 
-  user <- jwt_decode_hmac(jwt, secret = key)
-  user$token_expired <- (user$exp < as.numeric(Sys.time()))
+  tryCatch({
+    user <- jwt_decode_hmac(jwt, secret = key)
+    user$token_expired <- (user$exp < as.numeric(Sys.time()))
+  }, error = function(e) {
+    res$status <- 401 # Unauthorized
+    return(list(error = "Authentication not successful."))
+  })
 
   if (is.null(jwt) || user$token_expired) {
     res$status <- 401 # Unauthorized
