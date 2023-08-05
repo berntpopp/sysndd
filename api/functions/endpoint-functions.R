@@ -142,7 +142,7 @@ generate_comparisons_list <- function(sort = "symbol",
         link),
       link == "null" ~ "null"
     )) %>%
-      pivot_wider(everything(), names_from = "type", values_from = "link")
+      pivot_wider(id_cols = everything(), names_from = "type", values_from = "link")
 
   # generate object to return
   return_list <- list(links = links,
@@ -266,7 +266,7 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
         link),
       link == "null" ~ "null"
     )) %>%
-      pivot_wider(everything(), names_from = "type", values_from = "link")
+      pivot_wider(id_cols = everything(), names_from = "type", values_from = "link")
 
   # generate object to return
   return_list <- list(links = links,
@@ -453,7 +453,7 @@ generate_panels_list <- function(sort = "symbol",
         link),
       link == "null" ~ "null"
     )) %>%
-      pivot_wider(everything(), names_from = "type", values_from = "link")
+      pivot_wider(id_cols = everything(), names_from = "type", values_from = "link")
 
   # generate object to return
   return_list <- list(links = links,

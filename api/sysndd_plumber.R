@@ -414,7 +414,7 @@ function(req,
         link),
       link == "null" ~ "null"
     )) %>%
-      pivot_wider(everything(), names_from = "type", values_from = "link")
+      pivot_wider(id_cols = everything(), names_from = "type", values_from = "link")
 
   # generate object to return
   entities_list <- list(links = links,
@@ -2726,7 +2726,7 @@ function(req,
         link),
       link == "null" ~ "null"
     )) %>%
-      pivot_wider(everything(), names_from = "type", values_from = "link")
+      pivot_wider(id_cols = everything(), names_from = "type", values_from = "link")
 
   # generate object to return
   gene_list <- list(links = links,
@@ -4081,7 +4081,7 @@ function(searchterm, helper = TRUE) {
     sysndd_db_entity_search_return <- sysndd_db_entity_search_return %>%
       nest_by(results, .key = "values") %>%
       ungroup() %>%
-      pivot_wider(everything(), names_from = "results", values_from = "values")
+      pivot_wider(id_cols = everything(), names_from = "results", values_from = "values")
   } else {
     sysndd_db_entity_search_return
   }
@@ -4144,7 +4144,7 @@ function(searchterm, tree = FALSE) {
     do_set_search_return_helper <- do_set_search_return %>%
       nest_by(result, .key = "values") %>%
       ungroup() %>%
-      pivot_wider(everything(), names_from = "result", values_from = "values")
+      pivot_wider(id_cols = everything(), names_from = "result", values_from = "values")
   }
 
   # return output
@@ -4196,7 +4196,7 @@ function(searchterm, tree = FALSE) {
     nal_set_search_return_helper <- non_alt_loci_set_search_return %>%
       nest_by(result, .key = "values") %>%
       ungroup() %>%
-      pivot_wider(everything(), names_from = "result", values_from = "values")
+      pivot_wider(id_cols = everything(), names_from = "result", values_from = "values")
   }
 
   # return output
@@ -4257,7 +4257,7 @@ function(searchterm, tree = FALSE) {
     moi_list_search_return_helper <- moi_list_search_return %>%
       nest_by(result, .key = "values") %>%
       ungroup() %>%
-      pivot_wider(everything(), names_from = "result", values_from = "values")
+      pivot_wider(id_cols = everything(), names_from = "result", values_from = "values")
   }
 
   # return output
@@ -4294,7 +4294,7 @@ function(tree = FALSE) {
     status_list_return_helper <- status_list_collected %>%
       nest_by(category, .key = "values") %>%
       ungroup() %>%
-      pivot_wider(everything(), names_from = "category", values_from = "values")
+      pivot_wider(id_cols = everything(), names_from = "category", values_from = "values")
   }
 
   # return output
@@ -4376,7 +4376,7 @@ function(tree = FALSE) {
     moi_list_return_helper <- moi_list_collected %>%
       nest_by(hpo_mode_of_inheritance_term, .key = "values") %>%
       ungroup() %>%
-      pivot_wider(everything(),
+      pivot_wider(id_cols = everything(),
         names_from = "hpo_mode_of_inheritance_term",
         values_from = "values")
   }
