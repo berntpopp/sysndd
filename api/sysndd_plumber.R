@@ -1268,9 +1268,34 @@ function(sysndd_id) {
 ##-------------------------------------------------------------------##
 ## Review endpoints
 
+#* Get Review List
+#*
+#* This endpoint is responsible for getting the list of reviews. It accepts a
+#* filter parameter to display only approved reviews. The function fetches
+#* review data from multiple database tables, applies filters, and returns the
+#* review list.
+#*
+#* # `Details`
+#* This is a Plumber endpoint function that handles fetching review data from
+#* the database. The function pulls data from multiple tables including user,
+#* gene, disease, inheritance mode, approval status, and other related
+#* information. The function applies a filter based on the 'filter_review_
+#* approved' parameter and returns the filtered review list.
+#*
+#* # `Return`
+#* The function returns a list of reviews that match the applied filter. Each
+#* review includes the review ID, entity ID, gene details, disease details,
+#* inheritance mode, review details, approval details, and status information.
+#*
 #* @tag review
-#* gets review list
 #* @serializer json list(na="null")
+#*
+#* @param filter_review_approved: A boolean indicating whether to filter
+#*             reviews based on approval status. If TRUE, only approved reviews
+#*             are returned. If FALSE or not provided, all reviews are returned.
+#*
+#* @response 200 OK. A list of reviews that match the applied filter.
+#*
 #* @get /api/review
 function(req, res, filter_review_approved = FALSE) {
 
@@ -1406,14 +1431,42 @@ function(req, res, filter_review_approved = FALSE) {
   review_table_collected <- review_table_collected %>%
     left_join(status_table, by = c("entity_id"))
 
-
   review_table_collected
 }
 
-
+#* Create or Update a Clinical Synopsis for an Entity ID
+#*
+#* This endpoint handles creating or updating a clinical synopsis for a
+#* specified entity ID. The function checks the user role and accepts a review
+#* JSON. It validates the JSON data and performs database operations accordingly.
+#* Depending on the request type (POST or PUT), the function creates a new
+#* review or updates an existing one, and links the review with publications,
+#* phenotypes, and variation ontology.
+#*
+#* # `Details`
+#* This is a Plumber endpoint function that handles creating or updating
+#* clinical synopsis for an entity ID. The function first checks the user role
+#* and then validates the submitted review data. Depending on the request type
+#* (POST or PUT), the function creates a new review or updates an existing one,
+#* and links the review with publications, phenotypes, and variation ontology.
+#* It also handles re-reviewing scenarios.
+#*
+#* # `Return`
+#* The function returns a response containing the status and message. The
+#* message provides information about the operations performed during the
+#* request handling.
+#*
 #* @tag review
-#* posts or puts a new clinical synopsis for a entity_id
 #* @serializer json list(na="string")
+#*
+#* @param re_review: A boolean indicating whether to re-review an existing
+#*             review. If TRUE, the function will handle re-reviewing scenarios.
+#*
+#* @response 200 OK. The operation was successful.
+#* @response 400 Bad Request. The submitted synopsis data cannot be empty.
+#* @response 403 Forbidden. The user does not have write access.
+#* @response 405 Method Not Allowed. The HTTP method used is not allowed.
+#*
 #* @post /api/review/create
 #* @put /api/review/update
 function(req, res, re_review = FALSE) {
@@ -1664,9 +1717,28 @@ function(req, res, re_review = FALSE) {
 }
 
 
+#* Get a Single Review by review_id
+#*
+#* This endpoint retrieves a single review by its review_id. The function 
+#* accepts a review_id as a parameter, performs data cleaning, and fetches 
+#* the corresponding review data from the database.
+#*
+#* # `Details`
+#* This is a Plumber endpoint function that retrieves a single review by its 
+#* review_id. The function accepts a review_id, removes spaces from it, and 
+#* queries the database to fetch the corresponding review data.
+#*
+#* # `Return`
+#* The function returns a collected review table containing the review details.
+#*
 #* @tag review
-#* gets a single review by review_id
 #* @serializer json list(na="null")
+#*
+#* @param review_id_requested: The review_id of the review to retrieve.
+#*
+#* @response 200 OK. The operation was successful and the review data is 
+#*             returned.
+#*
 #* @get /api/review/<review_id_requested>
 function(review_id_requested) {
   # remove spaces from list
@@ -1704,9 +1776,30 @@ function(review_id_requested) {
 }
 
 
+#* Get All Phenotypes for a Review
+#*
+#* This endpoint retrieves all phenotypes associated with a review. The function 
+#* accepts a review_id as a parameter, performs data cleaning, and fetches 
+#* the corresponding phenotype data from the database.
+#*
+#* # `Details`
+#* This is a Plumber endpoint function that retrieves all phenotypes 
+#* associated with a specific review. The function accepts a review_id, 
+#* removes spaces from it, and queries the database to fetch the corresponding 
+#* phenotype data.
+#*
+#* # `Return`
+#* The function returns a list of phenotypes associated with the review.
+#*
 #* @tag review
-#* gets all phenotypes for a review
 #* @serializer json list(na="string")
+#*
+#* @param review_id_requested: The review_id of the review for which to 
+#*                             retrieve phenotypes.
+#*
+#* @response 200 OK. The operation was successful and the phenotype data 
+#*             is returned.
+#*
 #* @get /api/review/<review_id_requested>/phenotypes
 function(review_id_requested) {
   # remove spaces from list
@@ -1732,9 +1825,31 @@ function(review_id_requested) {
 }
 
 
+#* Get All Variant Ontology Terms for a Review
+#*
+#* This endpoint retrieves all variant ontology terms associated with a review. 
+#* The function accepts a review_id as a parameter, performs data cleaning, 
+#* and fetches the corresponding variant ontology data from the database.
+#*
+#* # `Details`
+#* This is a Plumber endpoint function that retrieves all variant ontology 
+#* terms associated with a specific review. The function accepts a review_id, 
+#* removes spaces from it, and queries the database to fetch the corresponding 
+#* variant ontology data.
+#*
+#* # `Return`
+#* The function returns a list of variant ontology terms associated with the 
+#* review.
+#*
 #* @tag review
-#* gets all variant_ontology terms for a review
 #* @serializer json list(na="string")
+#*
+#* @param review_id_requested: The review_id of the review for which to 
+#*                             retrieve variant ontology terms.
+#*
+#* @response 200 OK. The operation was successful and the variant ontology 
+#*             data is returned.
+#*
 #* @get /api/review/<review_id_requested>/variation
 function(review_id_requested) {
   # remove spaces from list
@@ -1760,9 +1875,30 @@ function(review_id_requested) {
 }
 
 
+#* Get All Publications for a Review
+#*
+#* This endpoint retrieves all publications associated with a review. 
+#* The function accepts a review_id as a parameter, performs data cleaning, 
+#* and fetches the corresponding publications from the database.
+#*
+#* # `Details`
+#* This is a Plumber endpoint function that retrieves all publications 
+#* associated with a specific review. The function accepts a review_id, 
+#* removes spaces from it, and queries the database to fetch the corresponding 
+#* publications.
+#*
+#* # `Return`
+#* The function returns a list of publications associated with the review.
+#*
 #* @tag review
-#* gets all publications for a reviews_id
 #* @serializer json list(na="string")
+#*
+#* @param review_id_requested: The review_id of the review for which to 
+#*                             retrieve publications.
+#*
+#* @response 200 OK. The operation was successful and the publications data 
+#*             is returned.
+#*
 #* @get /api/review/<review_id_requested>/publications
 function(review_id_requested) {
   # remove spaces from list
@@ -1785,10 +1921,35 @@ function(review_id_requested) {
     arrange(publication_id)
 }
 
-
+#* Put the Review Approval
+#*
+#* This endpoint is used to update the approval status of a review. Only 
+#* users with "Administrator" or "Curator" roles can perform this action. 
+#* The function accepts a review_id and a review_ok flag (indicating approval 
+#* status) as parameters, performs user rights checks, and updates the review 
+#* approval in the database accordingly.
+#*
+#* # `Details`
+#* This is a Plumber endpoint function that updates the approval status of 
+#* a specific review. The function checks the role of the user making the 
+#* request to ensure they have the necessary permissions. It then calls the 
+#* "put_db_review_approve" function to update the approval status in the 
+#* database.
+#*
+#* # `Return`
+#* The function returns a response with the status of the operation.
+#*
 #* @tag review
-#* puts the review approvement (only Administrator and Curator status users)
 #* @serializer json list(na="string")
+#*
+#* @param review_id_requested: The review_id of the review to be approved.
+#* @param review_ok: Boolean flag indicating the approval status.
+#*
+#* @response 200 OK. The operation was successful and the approval status 
+#*             is updated.
+#* @response 401 Unauthorized. The user is not authenticated.
+#* @response 403 Forbidden. The user does not have the necessary permissions.
+#*
 #* @put /api/review/approve/<review_id_requested>
 function(req, res, review_id_requested, review_ok = FALSE) {
   review_ok <- as.logical(review_ok)
