@@ -3093,9 +3093,32 @@ function(res,
 ##-------------------------------------------------------------------##
 ## Status endpoints
 
+#* Get the Status List
+#*
+#* This endpoint retrieves the status list for entities. It allows optional filtering 
+#* based on the approval status. The status details include gene and disease information, 
+#* associated reviews, user details, and other associated metadata.
+#*
+#* # `Details`
+#* The function first decodes the provided review ID and removes any spaces. 
+#* It then fetches data from various database tables, such as gene information, disease 
+#* ontology, mode of inheritance, and status approval view. It joins and filters these 
+#* datasets to create a comprehensive status list. The function also computes a review 
+#* table to determine any changes in the review status.
+#*
+#* # `Return`
+#* The function returns a data frame containing the status list with associated 
+#* metadata. Each row represents the status for a specific entity.
+#*
 #* @tag status
-#* gets the status list
 #* @serializer json list(na="null")
+#*
+#* @param review_id_requested: The ID of the review for which the status list is requested.
+#* @param filter_status_approved: Boolean flag indicating if the results should be filtered 
+#*                                based on approval status.
+#*
+#* @response 200: Returns a list containing the status details for the specified review ID.
+#*
 #* @get /api/status
 function(req, res, filter_status_approved = FALSE) {
 
@@ -3231,9 +3254,28 @@ function(req, res, filter_status_approved = FALSE) {
 }
 
 
+#* Get Single Status by Status ID
+#*
+#* This endpoint retrieves detailed status information for a specific status ID. 
+#* The information includes associated user details, category of the status, approval 
+#* details, and other relevant metadata.
+#*
+#* # `Details`
+#* The function first decodes the provided status ID and removes any spaces. It then fetches 
+#* data from the `ndd_entity_status` database table and joins it with user information and 
+#* status categories to create a detailed status report.
+#*
+#* # `Return`
+#* The function returns a data frame containing the detailed status information for the 
+#* specified status ID.
+#*
 #* @tag status
-#* gets a single status by status_id
 #* @serializer json list(na="null")
+#*
+#* @param status_id_requested: The ID of the status for which detailed information is requested.
+#*
+#* @response 200: Returns a list containing the status details for the specified status ID.
+#*
 #* @get /api/status/<status_id_requested>
 function(status_id_requested) {
   # remove spaces from list
@@ -3277,9 +3319,24 @@ function(status_id_requested) {
   status_table_collected
 }
 
+
+#* Get List of All Status
+#*
+#* This endpoint retrieves a list of all available status categories from the `ndd_entity_status_categories_list` 
+#* database table. The list is sorted based on the `category_id`.
+#*
+#* # `Details`
+#* The function fetches the list of status categories from the database and arranges them in ascending order 
+#* based on the `category_id`.
+#*
+#* # `Return`
+#* The function returns a data frame containing the list of all available status categories.
+#*
 #* @tag status
-#* gets a list of all status
 #* @serializer json list(na="string")
+#*
+#* @response 200: Returns a list containing all available status categories.
+#*
 #* @get /api/status_list
 function() {
   status_list_collected <- pool %>%
@@ -3289,11 +3346,33 @@ function() {
 }
 
 
+#* Create or Update Entity Status
+#*
+#* This endpoint allows for the creation of a new status for a given `entity_id` 
+#* or the update of an existing status based on the `status_id`. Users must provide 
+#* the `status_id` when making a PUT request and the `entity_id` when making a POST request.
+#* Only users with roles "Administrator", "Curator", or "Reviewer" have the rights to access this endpoint.
+#*
+#* # `Details`
+#* The function first checks the user's role for necessary permissions. If permitted, 
+#* it then proceeds to either create a new status or update an existing one based on 
+#* the request method.
+#*
+#* # `Parameters`
+#* `re_review`: A logical parameter indicating whether a re-review is required. Defaults to FALSE.
+#* `status_json`: A JSON object containing the status data. Example: 
+#* '{"status_id":3,"entity_id":3,"category_id":1,"comment":"fsa","problematic": true}'
+#*
+#* # `Return`
+#* The function returns a response containing the status of the operation and 
+#* any associated messages or errors.
+#*
 #* @tag status
-#* posts a new status for a entity_id or put an update to a certain status_id
-## example data: '{"status_id":3,"entity_id":3,"category_id":1,"comment":"fsa","problematic": true}'
-## (provide status_id for put and entity_id for post requests)
 #* @serializer json list(na="string")
+#* 
+#* @response 200: Returns a success message.
+#* @response 403: User does not have permission to write.
+#* 
 #* @post /api/status/create
 #* @put /api/status/update
 function(req, res, re_review = FALSE) {
@@ -3321,11 +3400,32 @@ function(req, res, re_review = FALSE) {
   }
 }
 
-
+#* Approve Entity Status
+#*
+#* This endpoint allows users with roles "Administrator" or "Curator" to approve a given status 
+#* associated with a specific `status_id`. This is done by sending a PUT request with the desired 
+#* `status_id` in the URL.
+#*
+#* # `Details`
+#* The function first checks if the user is authenticated. If the user is not authenticated, 
+#* a 401 Unauthorized response is returned. If authenticated, the user's role is checked to 
+#* determine if they have the necessary permissions. If permitted, the status is approved or 
+#* disapproved based on the `status_ok` parameter.
+#*
+#* # `Parameters`
+#* `status_ok`: A logical parameter indicating whether the status is approved. Defaults to FALSE.
+#*
+#* # `Return`
+#* The function returns a response containing the status of the operation and 
+#* any associated messages or errors.
+#*
 #* @tag status
-#* puts the status approvement
-#* (only Administrator and Curator status users)
 #* @serializer json list(na="string")
+#* 
+#* @response 200: Returns a success message.
+#* @response 401: User is not authenticated.
+#* @response 403: User does not have permission to write.
+#* 
 #* @put /api/status/approve/<status_id_requested>
 function(req, res, status_id_requested, status_ok = FALSE) {
   # make sure status_ok input is logical
