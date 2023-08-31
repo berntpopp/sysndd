@@ -1988,9 +1988,25 @@ function(req, res, review_id_requested, review_ok = FALSE) {
 ##-------------------------------------------------------------------##
 ## Re-review endpoints
 
+#* Submit a Re-Review Entry
+#*
+#* This endpoint allows users with roles (Administrator, Curator, Reviewer) to
+#* submit a re-review entry to the database.
+#*
+#* # `Details`
+#* This is a Plumber endpoint accepting submission data for re-review entries.
+#* It checks the user role for permissions and updates the database accordingly.
+#*
+#* # `Return`
+#* If successful, it returns a success message or the updated entry. For errors,
+#* an appropriate error message is returned.
+#*
 #* @tag re_review
-#* puts the re-review submission
 #* @serializer json list(na="string")
+#*
+#* @response 200 OK. If successful, the updated entry or a message is returned.
+#* @response 403 Forbidden. If the user lacks the necessary permissions.
+#*
 #* @put /api/re_review/submit
 function(req, res) {
   # first check rights
@@ -2034,10 +2050,28 @@ function(req, res) {
 }
 
 
+#* Unsubmit a Re-Review Entry
+#*
+#* This endpoint allows users with specific roles (Administrator, Curator) to
+#* revert a re-review entry to an un-submitted state in the database.
+#*
+#* # `Details`
+#* This is a Plumber endpoint function that reverts the submission status of a
+#* specific re-review entry based on its re_review_id. Only users with the roles
+#* of Administrator or Curator can perform this action.
+#*
+#* # `Return`
+#* If successful, a success message is returned. In case of errors, such as
+#* unauthorized access, an appropriate error message is returned.
+#*
 #* @tag re_review
-#* puts a re-review submission back into un-submitted mode
-#* (only Administrator and Curator status users)
 #* @serializer json list(na="string")
+#*
+#* @param re_review_id The ID of the re-review entry to be un-submitted.
+#*
+#* @response 200 OK. If the operation is successful, a success message is returned.
+#* @response 401 Unauthorized. If the user is not authenticated or lacks permissions.
+#*
 #* @put /api/re_review/unsubmit/<re_review_id>
 function(req, res, re_review_id) {
   # first check rights
@@ -2078,10 +2112,29 @@ function(req, res, re_review_id) {
 }
 
 
+#* Approve a Re-Review Entry
+#*
+#* This endpoint allows users with specific roles (Administrator, Curator) to
+#* approve a re-review entry in the database.
+#*
+#* # `Details`
+#* This is a Plumber endpoint function that approves a specific re-review entry
+#* based on its re_review_id. Only users with the roles of Administrator or
+#* Curator can perform this action.
+#*
+#* # `Return`
+#* If successful, a success message indicating the approval is returned. In case
+#* of errors, an appropriate error message is returned.
+#*
 #* @tag re_review
-#* puts the re-review status and review approvement
-#* (only Administrator and Curator status users)
 #* @serializer json list(na="string")
+#*
+#* @param re_review_id The ID of the re-review entry to be approved.
+#*
+#* @response 200 OK. If successful, a success message indicating the approval is
+#*             returned.
+#* @response 401 Unauthorized. If the user is not authenticated or lacks permissions.
+#*
 #* @put /api/re_review/approve/<re_review_id>
 function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
   status_ok <- as.logical(status_ok)
@@ -2238,9 +2291,28 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
 }
 
 
+#* Get Re-Review Overview Table
+#* 
+#* This endpoint returns the re-review overview table for the authenticated user.
+#* 
+#* # `Details`
+#* The function filters the re-review data based on the provided `filter` and
+#* `curate` parameters. Users with the roles of Administrator, Curator, or
+#* Reviewer can access this endpoint.
+#* 
+#* # `Return`
+#* Returns a re-review overview table if successful, or an error message.
+#*
 #* @tag re_review
-#* gets the re-review overview table for the user logged in
 #* @serializer json list(na="string")
+#* 
+#* @param filter: The filter condition for the re-review data.
+#* @param curate: Boolean flag indicating whether to curate the data.
+#*
+#* @response 200 OK. Returns the re-review overview table.
+#* @response 401 Unauthorized. The user is not authenticated.
+#* @response 403 Forbidden. The user does not have the necessary permissions.
+#*
 #* @get /api/re_review_table
 function(req,
   res,
@@ -2339,9 +2411,26 @@ function(req,
 }
 
 
+#* Request New Re-Review Batch
+#* 
+#* This endpoint allows the authenticated user to request a new batch of entities
+#* for re-review by sending a mail to curators.
+#* 
+#* # `Details`
+#* The function sends an email to curators to request a new batch for re-review.
+#* Users with the roles of Administrator, Curator, or Reviewer can access this
+#* endpoint.
+#* 
+#* # `Return`
+#* Sends a request email to curators if successful, or returns an error message.
+#* 
 #* @tag re_review
-#* requests a new batch of entities to review by mail to curators
 #* @serializer json list(na="string")
+#* 
+#* @response 200 OK. Email request successfully sent.
+#* @response 401 Unauthorized. The user is not authenticated.
+#* @response 403 Forbidden. The user does not have the necessary permissions.
+#* 
 #* @get /api/re_review/batch/apply
 function(req, res) {
 
@@ -2384,9 +2473,28 @@ function(req, res) {
 }
 
 
+#* Assign New Re-Review Batch
+#* 
+#* This endpoint allows administrators or curators to assign a new batch of
+#* entities for re-review to a specific user.
+#* 
+#* # `Details`
+#* The function assigns a new batch of entities for re-review based on the
+#* provided `user_id`. Only administrators or curators can perform this action.
+#* 
+#* # `Return`
+#* If successful, updates the assignment table. Otherwise, returns an error.
+#* 
 #* @tag re_review
-#* puts a new re-review batch assignment
 #* @serializer json list(na="string")
+#* 
+#* @param user_id: The ID of the user to whom the batch will be assigned.
+#* 
+#* @response 200 OK. Successfully updated the assignment table.
+#* @response 401 Unauthorized. The user is not authenticated.
+#* @response 403 Forbidden. The user does not have the necessary permissions.
+#* @response 409 Conflict. User account does not exist or batch does not exist.
+#* 
 #* @put /api/re_review/batch/assign
 function(req, res, user_id) {
 
@@ -2450,9 +2558,29 @@ function(req, res, user_id) {
 }
 
 
+#* Unassign Re-Review Batch
+#* 
+#* This endpoint allows administrators or curators to unassign a re-review batch
+#* based on the provided `re_review_batch`.
+#* 
+#* # `Details`
+#* The function removes a re-review batch assignment. Access is restricted to
+#* administrators and curators.
+#* 
+#* # `Return`
+#* If successful, the batch is unassigned and removed from the assignment table.
+#* Otherwise, returns an error message.
+#* 
 #* @tag re_review
-#* deletes certain re-review batch assignment
 #* @serializer json list(na="string")
+#* 
+#* @param re_review_batch: The ID of the re-review batch to unassign.
+#* 
+#* @response 200 OK. Successfully unassigned the re-review batch.
+#* @response 401 Unauthorized. The user is not authenticated.
+#* @response 403 Forbidden. The user does not have the necessary permissions.
+#* @response 409 Conflict. Batch does not exist.
+#* 
 #* @delete /api/re_review/batch/unassign
 function(req, res, re_review_batch) {
 
@@ -2509,9 +2637,26 @@ function(req, res, re_review_batch) {
 }
 
 
+#* Get Re-Review Assignment Table
+#* 
+#* This endpoint returns a summary table of currently assigned re-review batches
+#* for administrators and curators.
+#* 
+#* # `Details`
+#* The function fetches and returns a summary table of re-review batch
+#* assignments. Access is restricted to administrators and curators.
+#* 
+#* # `Return`
+#* Returns a summary table of re-review batch assignments if successful, or an
+#* error message otherwise.
+#* 
 #* @tag re_review
-#* gets a summary table of currently assigned re-review batches
 #* @serializer json list(na="string")
+#* 
+#* @response 200 OK. Returns the summary table of re-review batch assignments.
+#* @response 401 Unauthorized. The user is not authenticated.
+#* @response 403 Forbidden. The user does not have the necessary permissions.
+#* 
 #* @get /api/re_review/assignment_table
 function(req, res) {
 
@@ -2575,9 +2720,25 @@ function(req, res) {
 ##-------------------------------------------------------------------##
 ## Publication endpoints
 
+#* Fetch Publication by PMID
+#*
+#* This endpoint fetches a publication from the database based on the provided
+#* PubMed ID (PMID).
+#*
+#* # `Details`
+#* Retrieves a publication's metadata, such as title, abstract, authors, and
+#* publication date, based on its PMID.
+#*
+#* # `Return`
+#* Returns the publication metadata as JSON.
+#*
 #* @tag publication
-#* gets a publication by pmid
 #* @serializer json list(na="string")
+#*
+#* @param pmid The PubMed ID of the publication.
+#*
+#* @response 200 OK. Returns the publication metadata.
+#*
 #* @get /api/publication/<pmid>
 function(pmid) {
 
@@ -2603,9 +2764,23 @@ function(pmid) {
 }
 
 
+#* Validate PMID Existence in PubMed
+#*
+#* This endpoint validates whether a given PubMed ID (PMID) exists in PubMed.
+#*
+#* # `Details`
+#* Validates the existence of a PMID in the PubMed database.
+#*
+#* # `Return`
+#* Returns a JSON object indicating the validation result.
+#*
 #* @tag publication
-#* validates if a pmid exists in pubmed
 #* @serializer json list(na="string")
+#*
+#* @param pmid The PubMed ID to validate.
+#*
+#* @response 200 OK. Returns the validation result.
+#*
 #* @get /api/publication/validate/<pmid>
 function(req, res, pmid) {
 
@@ -2623,15 +2798,30 @@ function(req, res, pmid) {
 ##-------------------------------------------------------------------##
 ## Gene endpoints
 
+#* Fetch Gene Data with Filters and Field Selection
+#*
+#* This endpoint fetches gene data from the database, allowing for filtering,
+#* field selection, and pagination.
+#*
+#* # `Details`
+#* Retrieves gene data with optional filters, sorting, and pagination. Users
+#* can also specify the fields they want to be returned.
+#*
+#* # `Return`
+#* Returns a paginated list of genes based on the provided filters.
+#*
 #* @tag gene
-#* allows filtering and field selection from all genes and associated entities
 #* @serializer json list(na="string")
-#* @param sort:str  Output column to arrange output on.
-#* @param filter:str Comma separated list of filters to apply.
-#* @param fields:str Comma separated list of output columns.
-#* @param page_after:str Cursor after which to show entries in cursor pagination.
-#* @param page_size:str Page size in cursor pagination.
-#* @param fspec:str Fields for which to generate the fied specification in the meta data response.
+#*
+#* @param sort The column to sort the output by.
+#* @param filter Filters to apply.
+#* @param fields Fields to be returned in the output.
+#* @param page_after Cursor for pagination.
+#* @param page_size Size of the page for pagination.
+#* @param fspec Field specifications for meta data response.
+#*
+#* @response 200 OK. Returns the filtered and paginated list of genes.
+#*
 #* @get /api/gene
 function(req,
   res,
@@ -2766,9 +2956,25 @@ function(req,
 }
 
 
+#* Fetch Single Gene Information
+#*
+#* This endpoint fetches detailed information for a single gene based on either
+#* its HGNC ID or symbol.
+#*
+#* # `Details`
+#* Retrieves detailed gene information including associated IDs and names.
+#*
+#* # `Return`
+#* Returns detailed information of the specified gene.
+#*
 #* @tag gene
-#* gets infos for a single gene by hgnc_id
 #* @serializer json list(na="null")
+#*
+#* @param gene_input The HGNC ID or symbol of the gene.
+#* @param input_type The type of input ('hgnc' or 'symbol').
+#*
+#* @response 200 OK. Returns detailed information of the gene.
+#*
 #* @get /api/gene/<gene_input>
 function(gene_input, input_type = "hgnc") {
 
@@ -2819,9 +3025,25 @@ function(gene_input, input_type = "hgnc") {
 ##-------------------------------------------------------------------##
 ## Ontology endpoints
 
+#* Fetch Ontology Entry by ID
+#*
+#* This endpoint fetches an ontology entry based on its disease_ontology_id_version.
+#*
+#* # `Details`
+#* Retrieves detailed information about an ontology term, including associated
+#* HGNC IDs and inheritance terms.
+#*
+#* # `Return`
+#* Returns detailed information of the specified ontology term.
+#*
 #* @tag ontology
-#* gets an ontology entry by disease_ontology_id_version
 #* @serializer json list(na="null")
+#*
+#* @param ontology_input The disease_ontology_id_version of the ontology term.
+#* @param input_type The type of input ('ontology_id').
+#*
+#* @response 200 OK. Returns detailed information of the ontology term.
+#*
 #* @get /api/ontology/<ontology_input>
 function(ontology_input, input_type = "ontology_id") {
   # decode URL
@@ -2884,23 +3106,22 @@ function(ontology_input, input_type = "ontology_id") {
 
 #* Get a List of Entities Associated with a List of Phenotypes
 #*
-#* This endpoint returns a list of entities associated with a list of phenotypes
-#* based on the data in the database.
+#* # `Details`
+#* This endpoint retrieves a list of entities associated with specified phenotypes based on the data in the database.
+#*
+#* # `Return`
+#* Returns a data frame containing the list of entities associated with the list of phenotypes.
 #*
 #* @tag phenotype
 #* @serializer json list(na="string")
+#*
 #* @param sort:str Output column to arrange output on.
 #* @param filter:str Comma separated list of filters to apply.
 #* @param fields:str Comma separated list of output columns.
-#* @param page_after:str Cursor after which to show entries in cursor
-#* pagination.
+#* @param page_after:str Cursor after which to show entries in cursor pagination.
 #* @param page_size:str Page size in cursor pagination.
-#* @param fspec:str Fields for which to generate the field specification in
-#* the meta data response.
-#* @param format:str The output format, either "json" or "xlsx". Defaults to
-#* "json".
-#* @return A data frame containing the list of entities associated with the
-#* list of phenotypes.
+#* @param fspec:str Fields for which to generate the field specification in the meta data response.
+#* @param format:str The output format, either "json" or "xlsx". Defaults to "json".
 #*
 #* @get /api/phenotype/entities/browse
 function(req,
@@ -2956,19 +3177,21 @@ function(req,
 #* This endpoint returns the correlation matrix between phenotypes based on
 #* the data in the database.
 #*
-#* @tag phenotype
-#* @serializer json list(na="string")
-#* @param res The res parameter that is not used in this function,
-#* but is required by the plumber package.
-#* @param filter:str A string representing a filter query to use when selecting
-#* data from the database. By default, the filter is set to
-#* "contains(ndd_phenotype_word,Yes),any(category,Definitive)". This parameter
-#* is optional.
-#* @return A data frame containing the correlation matrix between phenotypes,
+#* # `Details`
+#* Retrieves the correlation matrix between specified phenotypes.
+#*
+#* # `Return`
+#* A data frame containing the correlation matrix between phenotypes,
 #* with the columns "x", "x_id", "y", "y_id", and "value". The "x" and "y"
 #* columns represent the names of the phenotypes, the "x_id" and "y_id" columns
 #* represent the corresponding HPO IDs, and the "value" column represents the
 #* correlation coefficient between the two phenotypes.
+#*
+#* @tag phenotype
+#* @serializer json list(na="string")
+#*
+#* @param filter:str A string representing a filter query to use when selecting
+#* data from the database.
 #*
 #* @get /api/phenotype/correlation
 function(res,
@@ -3033,19 +3256,21 @@ function(res,
 #* This endpoint returns the counts of phenotypes in annotated entities based on
 #* the data in the database.
 #*
-#* @tag phenotype
-#* @serializer json list(na="string")
-#* @param res A parameter that is not used in this function, but is required
-#* by the plumber package.
-#* @param filter:str A string representing a filter query to use when selecting
-#* data from the database. By default, the filter is set to
-#* "contains(ndd_phenotype_word,Yes),any(category,Definitive)". This parameter
-#* is optional.
-#* @return A data frame containing the counts of phenotypes in annotated
+#* # `Details`
+#* Retrieves the counts of phenotypes in annotated entities.
+#*
+#* # `Return`
+#* A data frame containing the counts of phenotypes in annotated
 #* entities, with the columns "HPO_term", "phenotype_id", and "count". The
 #* "HPO_term" column represents the name of the phenotype, the "phenotype_id"
 #* column represents the corresponding HPO ID, and the "count" column represents
 #* the number of times the phenotype appears in annotated entities.
+#*
+#* @tag phenotype
+#* @serializer json list(na="string")
+#*
+#* @param filter:str A string representing a filter query to use when selecting
+#* data from the database.
 #*
 #* @get /api/phenotype/count
 function(res,
@@ -3465,8 +3690,17 @@ function(req, res, status_id_requested, status_ok = FALSE) {
 ##-------------------------------------------------------------------##
 ## Panels endpoints
 
+#* Get List of All Panel Filtering Options
+#*
+#* This endpoint retrieves a list of all available filtering options for panels.
+#*
+#* # `Details`
+#* Connects to the database and retrieves categories, inheritance, and columns.
+#*
+#* # `Return`
+#* Returns lists of categories, inheritance terms, and columns.
+#*
 #* @tag panels
-#* gets list of all panel filtering options
 #* @serializer json list(na="string")
 #* @get /api/panels/options
 function() {
@@ -3499,12 +3733,23 @@ function() {
 }
 
 
+#* Browse Panel Data
+#*
+#* This endpoint retrieves panel data based on filters and sorting.
+#*
+#* # `Details`
+#* Retrieves panel data based on category, inheritance, sorting, and filters.
+#*
+#* # `Return`
+#* Returns the filtered and sorted panel data.
+#*
 #* @tag panels
-#* gets panel data by category and inheritance terms
 #* @serializer json list(na="string")
-#* @param sort Output column to arrange output on.
-#* @param filter Comma separated list of filters to apply.
-#* @param fields Comma separated list of output columns.
+#* 
+#* @param sort Output column for sorting.
+#* @param filter Filters to apply.
+#* @param fields Output columns to include.
+#* 
 #* @get /api/panels/browse
 function(req,
   res,
@@ -3563,10 +3808,19 @@ function(req,
 ##-------------------------------------------------------------------##
 ## Statistics endpoints
 
+#* Get Category Count Statistics
+#*
+#* This endpoint retrieves statistics for genes with a NDD phenotype.
+#*
+#* # `Details`
+#* Retrieves statistics on entities by category and inheritance type.
+#*
+#* # `Return`
+#* Returns the category count statistics.
+#*
 #* @tag statistics
-#* gets statistics for all genes associated with a
-#* NDD phenotype by inheritance and association category
 #* @serializer json list(na="string")
+#* 
 #* @get /api/statistics/category_count
 function(sort = "category_id,-n",
   type = "gene") {
@@ -3576,9 +3830,21 @@ function(sort = "category_id,-n",
 }
 
 
+#* Get News Entries
+#*
+#* This endpoint retrieves the last n entries in the definitive category.
+#*
+#* # `Details`
+#* Retrieves latest entries in the definitive category as news.
+#*
+#* # `Return`
+#* Returns the latest news entries.
+#*
 #* @tag statistics
-#* gets last n entries in definitive category as news
 #* @serializer json list(na="string")
+#* 
+#* @param n Number of latest entries to retrieve.
+#* 
 #* @get /api/statistics/news
 function(n = 5) {
  sysndd_db_disease_genes_news <- generate_gene_news_tibble_mem(n)
@@ -3587,9 +3853,25 @@ function(n = 5) {
 }
 
 
+#* Get Entities Over Time
+#*
+#* This endpoint retrieves database entry development over time.
+#*
+#* # `Details`
+#* Retrieves the cumulative count of entities over time.
+#*
+#* # `Return`
+#* Returns the cumulative count of entities over time.
+#*
 #* @tag statistics
-#* gets database entry development over time
 #* @serializer json list(na="string")
+#*
+#* @param aggregate Aggregation level ('entity_id' or 'symbol').
+#* @param group Grouping level ('category', 'inheritance_filter', or 
+#*             'inheritance_multiple').
+#* @param summarize Time summarization level ('month').
+#* @param filter Filters to apply.
+#*
 #* @get /api/statistics/entities_over_time
 function(res,
   aggregate = "entity_id",
@@ -3720,9 +4002,20 @@ function(res,
 ##-------------------------------------------------------------------##
 ## Comparisons endpoints
 
+#* Get Panel Filtering Options for Comparisons
+#*
+#* This endpoint provides a list of all filtering options for panels
+#* in the comparison view.
+#*
+#* # `Details`
+#* Retrieves a list of all filtering options for panels in the comparison view.
+#*
+#* # `Return`
+#* Returns a list of filtering options.
+#*
 #* @tag comparisons
-#* gets list of all panel filtering options
 #* @serializer json list(na="string")
+#* 
 #* @get /api/comparisons/options
 function() {
   # connect to database and get comparisons view
@@ -3769,9 +4062,22 @@ function() {
 }
 
 
+#* Get Upset Plot Data
+#*
+#* This endpoint retrieves data for generating an UpSet plot
+#* showing the intersection between different databases.
+#*
+#* # `Details`
+#* Retrieves data for generating an UpSet plot.
+#*
+#* # `Return`
+#* Returns the data for the UpSet plot.
+#*
 #* @tag comparisons
-#* return plot data showing intersection between different databases
 #* @serializer json list(na="string")
+#* 
+#* @param fields Comma separated list of fields to include in the UpSet plot.
+#* 
 #* @get /api/comparisons/upset
 function(res, fields = "") {
   # get data from database and filter
@@ -3806,9 +4112,20 @@ function(res, fields = "") {
 }
 
 
+#* Get Cosine Similarity Data
+#*
+#* This endpoint retrieves cosine similarity data between different
+#* databases for plotting.
+#*
+#* # `Details`
+#* Retrieves cosine similarity data between databases.
+#*
+#* # `Return`
+#* Returns the cosine similarity data.
+#*
 #* @tag comparisons
-#* gets cosine similarity data between different databases for plotting
 #* @serializer json list(na="string")
+#* 
 #* @get /api/comparisons/similarity
 function() {
 
@@ -3838,16 +4155,27 @@ function() {
 }
 
 
+#* Browse NDD Genes Across Databases
+#*
+#* This endpoint retrieves a table showing the presence of NDD-associated
+#* genes in different databases.
+#*
+#* # `Details`
+#* Retrieves a table showing NDD-associated genes in different databases.
+#*
+#* # `Return`
+#* Returns a table of NDD-associated genes.
+#*
 #* @tag comparisons
-#* returns a table showing the presence of
-#* NDD associated genes in different databases
 #* @serializer json list(na="string")
-#* @param sort:str  Output column to arrange output on.
-#* @param filter:str Comma separated list of filters to apply.
-#* @param fields:str Comma separated list of output columns.
-#* @param page_after:str Cursor after which to show entries in pagination.
-#* @param page_size:str Page size in cursor pagination.
-#* @param fspec:str Fields for which to generate the fied specification in the meta data response.
+#* 
+#* @param sort Output column to arrange output on.
+#* @param filter Comma separated list of filters to apply.
+#* @param fields Comma separated list of output columns.
+#* @param page_after Cursor after which to show entries in pagination.
+#* @param page_size Page size in cursor pagination.
+#* @param fspec Fields for field specification in meta data response.
+#* 
 #* @get /api/comparisons/browse
 function(req,
   res,
@@ -3902,9 +4230,22 @@ function(req,
 ##-------------------------------------------------------------------##
 ## Analyses endpoints
 
+#* Retrieve Available Functional Clustering Categories
+#*
+#* This endpoint fetches the available functional clustering categories
+#* for genes, linking them to their respective sources.
+#*
+#* # `Details`
+#* Retrieves functional clustering categories with source links.
+#*
+#* # `Return`
+#* Returns a list of functional clustering categories and their source links.
+#*
 #* @tag analysis
-#* gene clusters using stringdb
 #* @serializer json list(na="string")
+#*
+#* @response 200 OK. Returns functional clustering categories and source links.
+#*
 #* @get /api/analysis/functional_clustering
 function() {
 
@@ -3976,9 +4317,23 @@ function() {
 
 }
 
+
+#* Retrieve Phenotype Clustering Data
+#*
+#* This endpoint fetches data clusters of entities based on phenotypes
+#* using Multiple Correspondence Analysis (MCA) and Hierarchical Clustering.
+#*
+#* # `Details`
+#* Retrieves phenotype-based clusters of entities.
+#*
+#* # `Return`
+#* Returns a list of entities grouped by phenotype clusters.
+#*
 #* @tag analysis
-#* entity clusters from phenotypes using MCA and HC
 #* @serializer json list(na="string")
+#*
+#* @response 200 OK. Returns phenotype clustering data.
+#*
 #* @get /api/analysis/phenotype_clustering
 function() {
   # define constants for filtering
@@ -4082,9 +4437,27 @@ function() {
 
 ##-------------------------------------------------------------------##
 ## Hash endpoints
+
+#* Create a Hash for a List of Identifiers
+#*
+#* This endpoint takes a list of identifiers, sorts and hashes them,
+#* then saves and returns a hash link.
+#*
+#* # `Details`
+#* Creates a hash link for a list of identifiers.
+#*
+#* # `Return`
+#* Returns a hash link for the given list of identifiers.
+#*
 #* @tag hash
-#* takes list identifiers, sorts, hashes and safes, returns hash link
 #* @serializer json list(na="string")
+#*
+#* @param json_data The list of identifiers to hash.
+#* @param endpoint The endpoint to associate with the hash.
+#*
+#* @response 200 OK. Returns the created hash link.
+#* @response 400 Bad Request. Missing required 'json_data' parameter.
+#*
 #* @post /api/hash/create
 function(req, res, endpoint = "/api/gene") {
 
@@ -4108,8 +4481,8 @@ function(req, res, endpoint = "/api/gene") {
     # return response
     return(response_hash)
   }
-
 }
+
 ##-------------------------------------------------------------------##
 
 
@@ -4117,10 +4490,26 @@ function(req, res, endpoint = "/api/gene") {
 ##-------------------------------------------------------------------##
 ## Search endpoints
 
+#* Search Entity View by Multiple Columns
+#*
+#* This endpoint enables searching of the entity view by columns including
+#* entity_id, hgnc_id, symbol, disease_ontology_id_version, and 
+#* disease_ontology_name.
+#*
+#* # `Details`
+#* Supports advanced searching with fuzzy matching.
+#*
+#* # `Return`
+#* Returns a list of matching entities.
+#*
 #* @tag search
-#* searches the entity view by columns entity_id,
-#* hgnc_id, symbol, disease_ontology_id_version, disease_ontology_name
 #* @serializer json list(na="string")
+#*
+#* @param searchterm The search query.
+#* @param helper Logical flag to control output format.
+#*
+#* @response 200 OK. Returns the list of matching entities.
+#*
 #* @get /api/search/<searchterm>
 function(searchterm, helper = TRUE) {
   # make sure helper input is logical
@@ -4191,10 +4580,25 @@ function(searchterm, helper = TRUE) {
 }
 
 
+#* Search Disease Ontology by ID or Name
+#*
+#* This endpoint allows searching within the disease ontology set
+#* by disease_ontology_id_version and disease_ontology_name.
+#*
+#* # `Details`
+#* Supports advanced searching with fuzzy matching.
+#*
+#* # `Return`
+#* Returns a list of matching disease ontology terms.
+#*
 #* @tag search
-#* searches the search_disease_ontology_set view by
-#* columns disease_ontology_id_version, disease_ontology_name
 #* @serializer json list(na="string")
+#*
+#* @param searchterm The search query.
+#* @param tree Logical flag to control output format.
+#*
+#* @response 200 OK. Returns the list of matching disease ontology terms.
+#*
 #* @get /api/search/ontology/<searchterm>
 function(searchterm, tree = FALSE) {
   # make sure tree input is logical
@@ -4252,9 +4656,24 @@ function(searchterm, tree = FALSE) {
 }
 
 
+#* Search Gene by HGNC ID or Symbol
+#*
+#* This endpoint enables searching within the gene set by hgnc_id and symbol.
+#*
+#* # `Details`
+#* Supports advanced searching with fuzzy matching.
+#*
+#* # `Return`
+#* Returns a list of matching genes.
+#*
 #* @tag search
-#* searches the search_non_alt_loci_view table by columns hgnc_id, symbol
 #* @serializer json list(na="string")
+#*
+#* @param searchterm The search query.
+#* @param tree Logical flag to control output format.
+#*
+#* @response 200 OK. Returns the list of matching genes.
+#*
 #* @get /api/search/gene/<searchterm>
 function(searchterm, tree = FALSE) {
   # make sure tree input is logical
@@ -4304,10 +4723,25 @@ function(searchterm, tree = FALSE) {
 }
 
 
+#* Search Mode of Inheritance by Term Name or Term
+#*
+#* This endpoint allows searching within the mode of inheritance list by 
+#* hpo_mode_of_inheritance_term_name and hpo_mode_of_inheritance_term.
+#*
+#* # `Details`
+#* Supports advanced searching with fuzzy matching.
+#*
+#* # `Return`
+#* Returns a list of matching mode of inheritance terms.
+#*
 #* @tag search
-#* searches the search_mode_of_inheritance_list_view table by columns
-#* hpo_mode_of_inheritance_term_name, hpo_mode_of_inheritance_term
 #* @serializer json list(na="string")
+#*
+#* @param searchterm The search query.
+#* @param tree Logical flag to control output format.
+#*
+#* @response 200 OK. Returns the list of matching mode of inheritance terms.
+#*
 #* @get /api/search/inheritance/<searchterm>
 function(searchterm, tree = FALSE) {
   # make sure tree input is logical
@@ -4372,9 +4806,20 @@ function(searchterm, tree = FALSE) {
 ##-------------------------------------------------------------------##
 ## List endpoints
 
+#* Get All Status Categories
+#*
+#* This endpoint retrieves a list of all status categories.
+#*
+#* # `Return`
+#* Returns a list of status categories.
+#*
 #* @tag list
-#* gets a list of all status
 #* @serializer json list(na="string")
+#*
+#* @param tree Logical flag to control output format.
+#*
+#* @response 200 OK. Returns the list of status categories.
+#*
 #* @get /api/list/status
 function(tree = FALSE) {
   # make sure tree input is logical
@@ -4402,9 +4847,20 @@ function(tree = FALSE) {
 }
 
 
+#* Get All Phenotypes
+#*
+#* This endpoint retrieves a list of all phenotypes.
+#*
+#* # `Return`
+#* Returns a list of phenotypes.
+#*
 #* @tag list
-#* gets a list of all phenotypes
 #* @serializer json list(na="string")
+#*
+#* @param tree Logical flag to control output format.
+#*
+#* @response 200 OK. Returns the list of phenotypes.
+#*
 #* @get /api/list/phenotype
 function(tree = FALSE) {
   # make sure tree input is logical
@@ -4450,9 +4906,20 @@ function(tree = FALSE) {
 }
 
 
+#* Get All Inheritance Terms
+#*
+#* This endpoint retrieves a list of all inheritance terms.
+#*
+#* # `Return`
+#* Returns a list of inheritance terms.
+#*
 #* @tag list
-#* gets a list of all inheritance terms
 #* @serializer json list(na="string")
+#*
+#* @param tree Logical flag to control output format.
+#*
+#* @response 200 OK. Returns the list of inheritance terms.
+#*
 #* @get /api/list/inheritance
 function(tree = FALSE) {
   # make sure tree input is logical
@@ -4486,9 +4953,20 @@ function(tree = FALSE) {
 }
 
 
+#* Get All Variation Ontology Terms
+#*
+#* This endpoint retrieves a list of all variation ontology terms.
+#*
+#* # `Return`
+#* Returns a list of variation ontology terms.
+#*
 #* @tag list
-#* gets a list of all variation ontology terms
 #* @serializer json list(na="string")
+#*
+#* @param tree Logical flag to control output format.
+#*
+#* @response 200 OK. Returns the list of variation ontology terms.
+#*
 #* @get /api/list/variation_ontology
 function(tree = FALSE) {
   # make sure tree input is logical
@@ -4543,9 +5021,26 @@ function(tree = FALSE) {
 
 ##-------------------------------------------------------------------##
 ## External endpoints
+
+#* Submit URL to Internet Archive
+#*
+#* This endpoint takes a sysndd URL and submits it to the Internet Archive for archiving.
+#*
+#* # `Details`
+#* Validates the provided URL against the base URL of the archive.
+#*
+#* # `Return`
+#* Returns the status of the archiving operation.
+#*
 #* @tag external
-#* takes a sysndd URl and submits it to archive.org
 #* @serializer json list(na="string")
+#*
+#* @param parameter_url The URL to be archived.
+#* @param capture_screenshot Flag to capture a screenshot during archiving.
+#*
+#* @response 200 OK. URL successfully archived.
+#* @response 400 Bad Request. Invalid or missing URL.
+#*
 #* @get /api/external/internet_archive
 function(req, res, parameter_url, capture_screenshot = "on") {
 
@@ -4569,6 +5064,7 @@ function(req, res, parameter_url, capture_screenshot = "on") {
     return(response_archive)
   }
 }
+
 ##-------------------------------------------------------------------##
 
 
