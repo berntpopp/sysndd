@@ -1,0 +1,58 @@
+{
+    "/api/entity/create": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "create_json": {
+                    "example": {
+                      "entity": {
+                        "hgnc_id": "HGNC:1511",
+                        "disease_ontology_id_version": "MONDO:0002254",
+                        "hpo_mode_of_inheritance_term": "HP:0000007",
+                        "ndd_phenotype": 1
+                      },
+                      "review": {
+                        "synopsis": "Synopsis: Short summary for this disease entity.",
+                        "literature": {
+                          "additional_references": [],
+                          "gene_review": []
+                        },
+                        "phenotypes": [
+                          {
+                            "phenotype_id": "HP:0001249",
+                            "modifier_id": "1"
+                          },
+                          {
+                            "phenotype_id": "HP:0000478",
+                            "modifier_id": "1"
+                          },
+                          {
+                            "phenotype_id": "HP:0000077",
+                            "modifier_id": "1"
+                          }
+                        ],
+                        "variation_ontology": {
+                          "vario_id": "VariO:0001",
+                          "modifier_id": "1"
+                        },
+                        "comment": ""
+                      },
+                      "status": {
+                        "category_id": 1,
+                        "comment": "",
+                        "problematic": 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  

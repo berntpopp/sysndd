@@ -4,12 +4,26 @@ library(plumber)
 library(logger)
 library(tictoc)
 library(fs)
+library(jsonlite) # for api spec examples
 ##-------------------------------------------------------------------##
 
 
 ##-------------------------------------------------------------------##
 # set work directory
 setwd("/sysndd_api_volume")
+##-------------------------------------------------------------------##
+
+
+##-------------------------------------------------------------------##
+# Global API functions
+# load source files
+source("functions/config-functions.R", local = TRUE)
+##-------------------------------------------------------------------##
+
+
+##-------------------------------------------------------------------##
+# Load the API spec from the JSON file
+api_spec <- fromJSON("config/api_spec.json", flatten = TRUE)
 ##-------------------------------------------------------------------##
 
 
@@ -57,51 +71,9 @@ root <- pr("sysndd_plumber.R") %>%
       spec$security[[1]]$bearerAuth <- ""
 
       ##-------------------------------------------------------------------##
-      ## set examples in OpenAPI spec
-      # for EP entity/create
-      spec$paths$`/api/entity/create`$post$requestBody$content$`application/json`$schema$properties$create_json$example <-
-       list(
-        entity =
-          list(
-            hgnc_id = "HGNC:1511",
-            disease_ontology_id_version = "MONDO:0002254",
-            hpo_mode_of_inheritance_term = "HP:0000007",
-            ndd_phenotype = 1
-          ),
-        review = list(
-            synopsis = "Synopsis: Short summary for this disease entity.",
-            literature = list(
-                additional_references = list(),
-                gene_review = list()
-              ),
-            phenotypes = list(
-              list(
-                phenotype_id = "HP:0001249",
-                modifier_id = "1"
-              ),
-              list(
-                phenotype_id = "HP:0000478",
-                modifier_id = "1"
-              ),
-              list(
-                phenotype_id = "HP:0000077",
-                modifier_id = "1"
-              )
-            ),
-            variation_ontology = list(
-                vario_id = "VariO:0001",
-                modifier_id = "1"
-              ),
-            comment = ""
-          ),
-        status = list(
-            category_id = 1,
-            comment = "",
-            problematic = 0
-          )
-        )
+      # set examples in OpenAPI spec
+      spec <- update_api_spec_examples(spec, api_spec)
       ##-------------------------------------------------------------------##
-
 
       ## return spec
       spec
