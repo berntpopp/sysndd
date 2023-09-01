@@ -2412,25 +2412,25 @@ function(req,
 
 
 #* Request New Re-Review Batch
-#* 
+#*
 #* This endpoint allows the authenticated user to request a new batch of entities
 #* for re-review by sending a mail to curators.
-#* 
+#*
 #* # `Details`
 #* The function sends an email to curators to request a new batch for re-review.
 #* Users with the roles of Administrator, Curator, or Reviewer can access this
 #* endpoint.
-#* 
+#*
 #* # `Return`
 #* Sends a request email to curators if successful, or returns an error message.
-#* 
+#*
 #* @tag re_review
 #* @serializer json list(na="string")
-#* 
+#*
 #* @response 200 OK. Email request successfully sent.
 #* @response 401 Unauthorized. The user is not authenticated.
 #* @response 403 Forbidden. The user does not have the necessary permissions.
-#* 
+#*
 #* @get /api/re_review/batch/apply
 function(req, res) {
 
@@ -2474,27 +2474,27 @@ function(req, res) {
 
 
 #* Assign New Re-Review Batch
-#* 
+#*
 #* This endpoint allows administrators or curators to assign a new batch of
 #* entities for re-review to a specific user.
-#* 
+#*
 #* # `Details`
 #* The function assigns a new batch of entities for re-review based on the
 #* provided `user_id`. Only administrators or curators can perform this action.
-#* 
+#*
 #* # `Return`
 #* If successful, updates the assignment table. Otherwise, returns an error.
-#* 
+#*
 #* @tag re_review
 #* @serializer json list(na="string")
-#* 
+#*
 #* @param user_id: The ID of the user to whom the batch will be assigned.
-#* 
+#*
 #* @response 200 OK. Successfully updated the assignment table.
 #* @response 401 Unauthorized. The user is not authenticated.
 #* @response 403 Forbidden. The user does not have the necessary permissions.
 #* @response 409 Conflict. User account does not exist or batch does not exist.
-#* 
+#*
 #* @put /api/re_review/batch/assign
 function(req, res, user_id) {
 
@@ -2559,28 +2559,28 @@ function(req, res, user_id) {
 
 
 #* Unassign Re-Review Batch
-#* 
+#*
 #* This endpoint allows administrators or curators to unassign a re-review batch
 #* based on the provided `re_review_batch`.
-#* 
+#*
 #* # `Details`
 #* The function removes a re-review batch assignment. Access is restricted to
 #* administrators and curators.
-#* 
+#*
 #* # `Return`
 #* If successful, the batch is unassigned and removed from the assignment table.
 #* Otherwise, returns an error message.
-#* 
+#*
 #* @tag re_review
 #* @serializer json list(na="string")
-#* 
+#*
 #* @param re_review_batch: The ID of the re-review batch to unassign.
-#* 
+#*
 #* @response 200 OK. Successfully unassigned the re-review batch.
 #* @response 401 Unauthorized. The user is not authenticated.
 #* @response 403 Forbidden. The user does not have the necessary permissions.
 #* @response 409 Conflict. Batch does not exist.
-#* 
+#*
 #* @delete /api/re_review/batch/unassign
 function(req, res, re_review_batch) {
 
@@ -2638,25 +2638,25 @@ function(req, res, re_review_batch) {
 
 
 #* Get Re-Review Assignment Table
-#* 
+#*
 #* This endpoint returns a summary table of currently assigned re-review batches
 #* for administrators and curators.
-#* 
+#*
 #* # `Details`
 #* The function fetches and returns a summary table of re-review batch
 #* assignments. Access is restricted to administrators and curators.
-#* 
+#*
 #* # `Return`
 #* Returns a summary table of re-review batch assignments if successful, or an
 #* error message otherwise.
-#* 
+#*
 #* @tag re_review
 #* @serializer json list(na="string")
-#* 
+#*
 #* @response 200 OK. Returns the summary table of re-review batch assignments.
 #* @response 401 Unauthorized. The user is not authenticated.
 #* @response 403 Forbidden. The user does not have the necessary permissions.
-#* 
+#*
 #* @get /api/re_review/assignment_table
 function(req, res) {
 
@@ -4223,6 +4223,8 @@ function(req,
     comparisons_list
   }
 }
+
+## Comparisons endpoints
 ##-------------------------------------------------------------------##
 
 
@@ -4431,6 +4433,8 @@ function() {
   # return output
   phenotype_clusters_identifiers
 }
+
+## Analyses endpoints
 ##-------------------------------------------------------------------##
 
 
@@ -4483,6 +4487,7 @@ function(req, res, endpoint = "/api/gene") {
   }
 }
 
+## Hash endpoints
 ##-------------------------------------------------------------------##
 
 
@@ -5065,6 +5070,7 @@ function(req, res, parameter_url, capture_screenshot = "on") {
   }
 }
 
+## External endpoints
 ##-------------------------------------------------------------------##
 
 
@@ -5072,8 +5078,19 @@ function(req, res, parameter_url, capture_screenshot = "on") {
 ##-------------------------------------------------------------------##
 ## User endpoint section
 
+#* Retrieves a summary table of users based on role permissions.
+#*
+#* # `Details`
+#* This endpoint fetches a table containing summary information about users.
+#* The table includes user details like ID, name, email, etc. Administrators
+#* have access to all users, while Curators can only see unapproved users.
+#* 
+#* # `Return`
+#* A JSON object containing the user table.
+#* For unauthorized or forbidden access, a status code and error message
+#* are returned.
+#*
 #* @tag user
-#* gets a summary table of users
 #* @serializer json list(na="string")
 #* @get /api/user/table
 function(req, res) {
@@ -5134,8 +5151,21 @@ function(req, res) {
 }
 
 
+#* Retrieves count statistics of all contributions for a specified user.
+#*
+#* # `Details`
+#* This endpoint fetches the count of active reviews and active status 
+#* contributions for a given user. Accessible by Administrators, Curators, 
+#* and Reviewers.
+#*
+#* # `Return`
+#* A JSON object containing user ID, count of active status, and count of
+#* active reviews.
+#* For unauthorized or forbidden access, a status code and error message
+#* are returned.
+#*
 #* @tag user
-#* gets count statistics of all contributions of a user
+#* @serializer json list(na="string")
 #* @get /api/user/<user_id>/contributions
 function(req, res, user_id) {
 
@@ -5180,8 +5210,24 @@ function(req, res, user_id) {
 }
 
 
+#* Manages the approval status of a user application.
+#*
+#* # `Details`
+#* This endpoint allows Administrators and Curators to approve or reject
+#* user applications. If approved, a password is generated and an email
+#* is sent to the user.
+#*
+#* # `Input`
+#* - user_id: (integer) ID of the user whose application is to be managed.
+#* - status_approval: (boolean) Approval status to set.
+#*
+#* # `Return`
+#* A JSON object containing the outcome of the approval process.
+#* For unauthorized or forbidden access, or if the user does not exist,
+#* a status code and error message are returned.
+#*
 #* @tag user
-#* manages user application approval
+#* @serializer json list(na="string")
 #* @put /api/user/approval
 function(req, res, user_id = 0, status_approval = FALSE) {
 
@@ -5296,8 +5342,17 @@ function(req, res, user_id = 0, status_approval = FALSE) {
 }
 
 
+#* Allows administrators to change the roles of users.
+#*
+#* # `Details`
+#* The role of a specified user can be changed by administrators.
+#* Curators can only change roles to a subset of allowed roles.
+#* 
+#* # `Input`
+#* - user_id: (integer) The ID of the user whose role needs to be changed.
+#* - role_assigned: (string) The role to assign to the user.
+#*
 #* @tag user
-#* manages user application approval
 #* @put /api/user/change_role
 function(req, res, user_id, role_assigned = "Viewer") {
   user <- req$user_id
@@ -5358,8 +5413,15 @@ function(req, res, user_id, role_assigned = "Viewer") {
 }
 
 
+#* Retrieves a list of all available user roles.
+#*
+#* # `Details`
+#* Administrators can view all roles. Curators can view all roles except "Administrator".
+#*
+#* # `Return`
+#* A list of available user roles.
+#*
 #* @tag user
-#* gets a list of all available user status options
 #* @get /api/user/role_list
 function(req, res) {
 
@@ -5391,8 +5453,16 @@ function(req, res) {
 }
 
 
+#* Retrieves a list of users based on their roles.
+#*
+#* # `Details`
+#* Administrators and Curators can retrieve a list of users filtered by roles.
+#* The input roles should be comma-separated.
+#*
+#* # `Return`
+#* A list of users filtered by roles.
+#*
 #* @tag user
-#* gets a list of users based having a role
 #* @get /api/user/list
 function(req, res, roles = "Viewer") {
 
@@ -5437,8 +5507,16 @@ function(req, res, roles = "Viewer") {
 }
 
 
+#* Allows a user or an administrator to change the user's password.
+#*
+#* # `Details`
+#* Validates the old password and checks if the new password satisfies the criteria.
+#* Then updates the password in the database.
+#*
+#* # `Return`
+#* A status message indicating the outcome.
+#*
 #* @tag user
-#* changes the user password
 #* @put /api/user/password/update
 function(
   req,
@@ -5546,9 +5624,17 @@ function(
 }
 
 
+#* Allows a user or an administrator to change the user's password.
+#*
+#* # `Details`
+#* Validates the old password and checks if the new password satisfies the criteria.
+#* Then updates the password in the database.
+#*
+#* # `Return`
+#* A status message indicating the outcome.
+#*
 #* @tag user
-#* request password reset
-#* @get /api/user/password/reset/request
+#* @put /api/user/password/update
 function(req, res, email_request = "") {
 
   user_table <- pool %>%
