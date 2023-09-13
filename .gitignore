@@ -1,3 +1,6 @@
+# vs code settings
+.vscode/
+
 # database config file
 # docker-compose.yml
 
