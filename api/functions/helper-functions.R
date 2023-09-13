@@ -331,6 +331,14 @@ generate_filter_expressions <- function(filter_string,
   filter_string <- URLdecode(filter_string) %>%
     str_trim()
 
+  # If the filter_string is empty or "null" (as a string), return an empty 
+  # string immediately, indicating no filtering should be applied. This 
+  # handles cases where users input "null" as a literal string, which is 
+  # not valid for generating filter expressions.
+  if (filter_string == "" | filter_string == "null") {
+      return("")
+  }
+
   logical_operator <- stringr::str_extract(string = filter_string,
       pattern = ".+?\\(") %>%
     stringr::str_remove_all("\\(")
