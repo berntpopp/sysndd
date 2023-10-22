@@ -4540,13 +4540,15 @@ function(searchterm, helper = TRUE) {
       method = "jw",
       p = 0.1)) %>%
     arrange(searchdist, results) %>%
+    mutate(results_url = URLencode(results, reserved = TRUE)) %>%
     mutate(link = case_when(
-      search == "hgnc_id" ~ paste0("/Genes/", results),
-      search == "symbol" ~ paste0("/Genes/", results),
-      search == "disease_ontology_id_version" ~ paste0("/Ontology/", results),
-      search == "disease_ontology_name" ~ paste0("/Ontology/", results),
-      search == "entity_id" ~ paste0("/Entities/", results)
-    ))
+      search == "hgnc_id" ~ paste0("/Genes/", results_url),
+      search == "symbol" ~ paste0("/Genes/", results_url),
+      search == "disease_ontology_id_version" ~ paste0("/Ontology/", results_url),
+      search == "disease_ontology_name" ~ paste0("/Ontology/", results_url),
+      search == "entity_id" ~ paste0("/Entities/", results_url)
+    )) %>%
+    select(-results_url)
 
   # compute filtered length with match < 0.1
   sysndd_db_entity_search_length <- sysndd_db_entity_search %>%

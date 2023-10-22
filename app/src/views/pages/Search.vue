@@ -145,10 +145,10 @@ export default {
         this.$router.push(this.search[0].link);
       } else {
         this.loading = false;
-        this.formatedItems();
+        this.formattedItems();
       }
     },
-    formatedItems() {
+    formattedItems() {
       if (!this.search) return [];
       return this.search.map((item) => {
         item._rowVariant = this.getVariant(item.searchdist);
