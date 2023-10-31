@@ -176,7 +176,6 @@ export default {
         this.user_from_jwt.user_name[0]
         === JSON.parse(localStorage.user).user_name[0]
       ) {
-        console.log('this happened');
         let rest;
         [this.user, ...rest] = JSON.parse(localStorage.user).user_name;
 
