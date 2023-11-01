@@ -253,19 +253,12 @@ export default {
     getValidationState({ dirty, validated, valid = null }) {
       return dirty || validated ? valid : null;
     },
+    // TODO: change function name to something more meaningful and non redundant
     updateDiffs() {
       if (localStorage.token) {
         const expires = JSON.parse(localStorage.user).exp;
         const timestamp = Math.floor(new Date().getTime() / 1000);
-
-        if (expires > timestamp) {
-          this.time_to_logout = ((expires - timestamp) / 60).toFixed(2);
-          if (expires - timestamp === 60) {
-            this.makeToast('Refresh token.', 'Logout in 60 seconds', 'danger');
-          }
-        } else {
-          this.doUserLogOut();
-        }
+        this.time_to_logout = ((expires - timestamp) / 60).toFixed(2);
       }
     },
     async getUserContributions() {

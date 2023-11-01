@@ -11,8 +11,13 @@
 </template>
 
 <script>
+import Vue from 'vue';
 
 import toastMixin from '@/assets/js/mixins/toastMixin';
+
+import { BBadge } from 'bootstrap-vue';
+
+Vue.component('b-badge', BBadge);
 
 export default {
   name: 'LogoutCountdownBadge',
@@ -52,7 +57,40 @@ export default {
         }
       }
     },
+    // TODO: move to a mixin to be used in other components (DRY)
+    async refreshWithJWT() {
+      const apiAuthenticateURL = `${process.env.VUE_APP_API_URL}/api/auth/refresh`;
+      try {
+        const response_refresh = await this.axios.get(apiAuthenticateURL, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        localStorage.setItem('token', response_refresh.data[0]);
+        this.signinWithJWT();
+      } catch (e) {
+        this.makeToast(e, 'Error', 'danger');
+      }
+    },
+    // TODO: move to a mixin to be used in other components (DRY)
+    async signinWithJWT() {
+      const apiAuthenticateURL = `${process.env.VUE_APP_API_URL}/api/auth/signin`;
+
+      try {
+        const response_signin = await this.axios.get(apiAuthenticateURL, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+
+        localStorage.setItem('user', JSON.stringify(response_signin.data));
+      } catch (e) {
+        this.makeToast(e, 'Error', 'danger');
+      }
+    },
+    // TODO: move to a mixin to be used in other components (DRY)
     updateDiffs() {
+      // TODO: remove magic numbers and put them in constants in a config file
       const timestampMillisecondDivider = 1000;
       const secondToMinuteDivider = 60;
       const warningTimePoints = [60, 180, 300];
@@ -63,9 +101,27 @@ export default {
         if (expires > timestamp) {
           this.time_to_logout = ((expires - timestamp) / secondToMinuteDivider).toFixed(2);
           if (warningTimePoints.includes(expires - timestamp)) {
+            // Use a shorter name for this.$createElement
+            const h = this.$createElement;
+
+            // compose the logout message
+            const vNodesMsg = h(
+              'p',
+              { class: ['text-center', 'mb-0'] },
+              [
+                'Token ',
+                h('b-badge', {
+                  props: { variant: 'success', href: '#' },
+                  // TODO: make the modal close after clicking on the badge
+                  on: { click: () => this.refreshWithJWT() },
+                },
+                'refresh now'),
+              ],
+            );
+
             this.makeToast(
-              'Refresh token.',
-              `Logout in ${expires - timestamp} seconds`,
+              [vNodesMsg],
+              `Warning: Logout in ${expires - timestamp} seconds`,
               'danger',
             );
           }
