@@ -645,7 +645,8 @@ function(req, res, direct_approval = FALSE) {
     } else {
       res$status <- response_entity$status
       return(list(status = response_entity$status,
-        message = response_entity$message))
+        message = response_entity$message,
+        error = response_entity$error))
     }
 
 
