@@ -53,15 +53,17 @@ root <- pr("sysndd_plumber.R") %>%
     pr_hook("postroute", function(req, res) {
             end <- tictoc::toc(quiet = TRUE)
              # Log details about the request and the response
-            log_info(paste0("{convert_empty(req$REMOTE_ADDR)} ",
-            "'{convert_empty(req$HTTP_USER_AGENT)}' ",
-            "{convert_empty(req$HTTP_HOST)} ",
-            "{convert_empty(req$REQUEST_METHOD)} ",
-            "{convert_empty(req$PATH_INFO)} ",
-            "{convert_empty(req$QUERY_STRING)} ",
-            "{convert_empty(req$postBody)} ",
-            "{convert_empty(res$status)} ",
-            "{round(end$toc - end$tic, digits = getOption('digits', 5))}")
+            log_info(paste("{convert_empty(req$REMOTE_ADDR)}",
+            "'{convert_empty(req$HTTP_USER_AGENT)}'",
+            "{convert_empty(req$HTTP_HOST)}",
+            "{convert_empty(req$REQUEST_METHOD)}",
+            "{convert_empty(req$PATH_INFO)}",
+            "{convert_empty(req$QUERY_STRING)}",
+            "{convert_empty(req$postBody)}",
+            "{convert_empty(res$status)}",
+            "{round(end$toc - end$tic, digits = getOption('digits', 5))}",
+            sep = ";",
+            collapse = "")
             )
         }) %>%
     pr_set_api_spec(function(spec) {
