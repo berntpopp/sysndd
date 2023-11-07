@@ -59,6 +59,7 @@ If you have technical problems using SysNDD or requests regarding the data or fu
 - <https://github.com/berntpopp>
 - <https://orcid.org/0000-0002-3679-1081>
 - <https://scholar.google.com/citations?user=Uvhu3t0AAAAJ>
+- <https://www.berntpopp.com>
 
 **Christiane Zweier** (SysID, SysNDD)
 

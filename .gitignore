@@ -7,3 +7,6 @@
 # ssl key files
 app/docker/nginx/cert.pem
 app/docker/nginx/key.pem
+
+# testing files
+TESTING.md
