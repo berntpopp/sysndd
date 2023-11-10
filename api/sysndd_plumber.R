@@ -5116,7 +5116,7 @@ function(req, res, parameter_url, capture_screenshot = "on") {
 function(req,
          res,
          folder_path = "logs",
-         sort = "last_modified",
+         sort = "row_id",
          filter = "",
          fields = "",
          `page_after` = 0,
@@ -5128,6 +5128,7 @@ function(req,
       res$status <- 403 # Forbidden
       return(list(error = "Access forbidden. Only administrators can access logs."))
     }
+
     # Set serializers
     res$serializer <- serializers[[format]]
 
@@ -5139,16 +5140,16 @@ function(req,
 
     # TODO: Apply filtering, sorting, and field selection
     # Generate sort expression
-    sort_exprs <- generate_sort_expressions(sort, unique_id = "last_modified")
+    sort_exprs <- generate_sort_expressions(sort, unique_id = "row_id")
 
     # Generate filter expression
     filter_exprs <- generate_filter_expressions(filter)
 
     # Select fields
-    logs <- select_tibble_fields(logs, fields, "last_modified")
+    logs <- select_tibble_fields(logs, fields, "row_id")
 
     # Apply pagination
-    log_pagination_info <- generate_cursor_pag_inf(logs, `page_size`, `page_after`, "last_modified")
+    log_pagination_info <- generate_cursor_pag_inf(logs, `page_size`, `page_after`, "row_id")
 
     # Generate field specifications if needed
     if (fspec != "") {

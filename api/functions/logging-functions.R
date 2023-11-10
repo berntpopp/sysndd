@@ -83,8 +83,18 @@ read_log_files <- function(folder_path, regexp = "plumber_*", delim = ";", quote
   }
 
   # Read all files, combine into a single tibble, and sort by last_modified
-  map_dfr(log_files, read_log_file) %>%
+  combined_logs <- map_dfr(log_files, read_log_file) %>%
     arrange(desc(last_modified))
+
+  # Add a unique identifier (row number) as the first column
+  combined_logs <- combined_logs %>% 
+    mutate(row_id = row_number())
+
+  # Rearrange columns to move row_id to the first position
+  combined_logs <- combined_logs %>% 
+    select(row_id, everything())
+
+  return(combined_logs)
 }
 
 
