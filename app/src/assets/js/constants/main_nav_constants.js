@@ -51,6 +51,7 @@ export default {
         { text: 'Manage user', path: '/ManageUser', icons: ['gear', 'person-circle'] },
         { text: 'Manage annotations', path: '/ManageAnnotations', icons: ['gear', 'table'] },
         { text: 'Manage about', path: '/ManageAbout', icons: ['gear', 'question-circle-fill'] },
+        { text: 'View logs', path: '/ViewLogs', icons: ['eye', 'clipboard-plus'] },
       ],
     },
     {

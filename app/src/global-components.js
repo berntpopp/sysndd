@@ -6,6 +6,7 @@ const components = {
   TablesEntities: () => import(/* webpackChunkName: "TableComponentsEntities" */ '@/components/tables/TablesEntities.vue'),
   TablesGenes: () => import(/* webpackChunkName: "TableComponentsGenes" */ '@/components/tables/TablesGenes.vue'),
   TablesPhenotypes: () => import(/* webpackChunkName: "TableComponentsPhenotypes" */ '@/components/tables/TablesPhenotypes.vue'),
+  TablesLogs: () => import(/* webpackChunkName: "TableComponentsLogs" */ '@/components/tables/TablesLogs.vue'),
   AnalyseGeneClusters: () => import(/* webpackChunkName: "AnalysesComponentsClusters" */ '@/components/analyses/AnalyseGeneClusters.vue'),
   AnalysesPhenotypeClusters: () => import(/* webpackChunkName: "AnalysesPhenotypeClusters" */ '@/components/analyses/AnalysesPhenotypeClusters.vue'),
   AnalysesCurationComparisonsTable: () => import(/* webpackChunkName: "AnalysesComponentsCuration" */ '@/components/analyses/AnalysesCurationComparisonsTable.vue'),
