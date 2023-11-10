@@ -122,6 +122,7 @@ source("functions/publication-functions.R", local = TRUE)
 source("functions/analyses-functions.R", local = TRUE)
 source("functions/helper-functions.R", local = TRUE)
 source("functions/external-functions.R", local = TRUE)
+source("functions/logging-functions.R", local = TRUE)
 
 # convert to memoise functions
 # Expire items in cache after 60 minutes
@@ -145,6 +146,9 @@ gen_string_clust_obj_mem <- memoise(gen_string_clust_obj,
   cache = cm)
 
 gen_mca_clust_obj_mem <- memoise(gen_mca_clust_obj,
+  cache = cm)
+
+read_log_files_mem <- memoise(read_log_files,
   cache = cm)
 
 ##-------------------------------------------------------------------##
@@ -182,6 +186,7 @@ gen_mca_clust_obj_mem <- memoise(gen_mca_clust_obj,
 #* @apiTag list Database list related endpoints
 #* @apiTag statistics Database statistics
 #* @apiTag external Interaction with external resources
+#* @apiTag logging Logging related endpoints
 #* @apiTag user User account related endpoints
 #* @apiTag authentication Authentication related endpoints
 ##-------------------------------------------------------------------##
@@ -193,7 +198,6 @@ gen_mca_clust_obj_mem <- memoise(gen_mca_clust_obj,
 
 #* @plumber
 function(pr) {
-
   pr %>%
     plumber::pr_hook("exit", function() {
       pool::poolClose(pool)
@@ -5079,6 +5083,102 @@ function(req, res, parameter_url, capture_screenshot = "on") {
 
 
 ##-------------------------------------------------------------------##
+## Logging section
+
+#* Get Paginated Log Files
+#*
+#* This endpoint returns paginated log files from a specified folder.
+#*
+#* # `Details`
+#* This is a plumber endpoint function that reads log files using the `read_log_files` 
+#* function, applies filtering and pagination, and returns the data as a JSON response. 
+#* The function takes input parameters for folder path, sorting, filtering, and field 
+#* selection, and uses cursor pagination to generate links to previous and next pages.
+#*
+#* # `Return`
+#* A cursor pagination object containing a list of log file entries.
+#*
+#* @tag logging
+#* @serializer json list(na="string")
+#*
+#* @param folder_path:str Path to the folder containing log files.
+#* @param sort:str Column to arrange output on.
+#* @param filter:str Comma separated list of filters to apply.
+#* @param fields:str Comma separated list of output columns.
+#* @param page_after:str Cursor after which entries are shown.
+#* @param page_size:str Page size in cursor pagination.
+#* @param fspec:str Fields to generate field specification for.
+#*
+#* @response 200 OK. A cursor pagination object with links, meta and data (log entries).
+#* @response 500 Internal server error.
+#*
+#* @get /api/logs
+function(req,
+         res,
+         folder_path = "logs",
+         sort = "last_modified",
+         filter = "",
+         fields = "",
+         `page_after` = 0,
+         `page_size` = "10",
+         fspec = "",
+         format = "json") {
+    # Check if the user_role is set and if the user is an Administrator
+    if (is.null(req$user_role) || req$user_role != "Administrator") {
+      res$status <- 403 # Forbidden
+      return(list(error = "Access forbidden. Only administrators can access logs."))
+    }
+    # Set serializers
+    res$serializer <- serializers[[format]]
+
+    # Start time calculation
+    start_time <- Sys.time()
+
+    # Read log files
+    logs <- read_log_files_mem(folder_path)
+
+    # TODO: Apply filtering, sorting, and field selection
+    # Generate sort expression
+    sort_exprs <- generate_sort_expressions(sort, unique_id = "last_modified")
+
+    # Generate filter expression
+    filter_exprs <- generate_filter_expressions(filter)
+
+    # Select fields
+    logs <- select_tibble_fields(logs, fields, "last_modified")
+
+    # Apply pagination
+    log_pagination_info <- generate_cursor_pag_inf(logs, `page_size`, `page_after`, "last_modified")
+
+    # Generate field specifications if needed
+    if (fspec != "") {
+        log_fspec <- generate_tibble_fspec(logs, fspec)
+    }
+
+    # Compute execution time
+    end_time <- Sys.time()
+    execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
+
+    # Prepare response
+    response <- list(
+        links = log_pagination_info$links,
+        meta = log_pagination_info$meta %>% add_column(executionTime = execution_time),
+        data = log_pagination_info$data
+    )
+
+    if (format == "xlsx") {
+        # Additional logic for XLSX format
+    } else {
+        response
+    }
+}
+
+## Logging section
+##-------------------------------------------------------------------##
+
+
+
+##-------------------------------------------------------------------##
 ## User endpoint section
 
 #* Retrieves a summary table of users based on role permissions.
@@ -5087,7 +5187,7 @@ function(req, res, parameter_url, capture_screenshot = "on") {
 #* This endpoint fetches a table containing summary information about users.
 #* The table includes user details like ID, name, email, etc. Administrators
 #* have access to all users, while Curators can only see unapproved users.
-#* 
+#*
 #* # `Return`
 #* A JSON object containing the user table.
 #* For unauthorized or forbidden access, a status code and error message
@@ -5350,7 +5450,7 @@ function(req, res, user_id = 0, status_approval = FALSE) {
 #* # `Details`
 #* The role of a specified user can be changed by administrators.
 #* Curators can only change roles to a subset of allowed roles.
-#* 
+#*
 #* # `Input`
 #* - user_id: (integer) The ID of the user whose role needs to be changed.
 #* - role_assigned: (string) The role to assign to the user.

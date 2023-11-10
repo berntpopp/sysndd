@@ -62,10 +62,10 @@ read_log_files <- function(folder_path, regexp = "plumber_*", delim = ";", quote
       file_name <- fs::path_file(file_path)
       file_mod_time <- fs::file_info(file_path)$modification_time
 
-      # Read the log file into a tibble
+      # Read the log file into a tibble with show_col_types set to FALSE
       log_data <- read_delim(file_path, delim = delim, quote = quote, 
-                             escape_double = FALSE, col_names = FALSE, 
-                             trim_ws = TRUE)
+                            escape_double = FALSE, col_names = FALSE, 
+                            trim_ws = TRUE, show_col_types = FALSE)
 
       # Handle missing columns
       if (ncol(log_data) != length(col_names_vec)) {
