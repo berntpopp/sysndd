@@ -30,11 +30,13 @@
 
           <b-pagination
             v-model="currentPage"
-            :total-rows="totalItems"
+            :total-rows="totalRows"
             :per-page="perPage"
-            align="center"
+            align="fill"
             size="sm"
             class="my-0"
+            limit="2"
+            @change="handlePageChange"
           />
         </b-col>
       </b-row>
@@ -50,6 +52,7 @@ export default {
   data() {
     // Initialize with placeholder data
     const placeholderData = Array(10).fill().map(() => ({
+      row_id: 'Loading...',
       remote_addr: 'Loading...',
       http_user_agent: 'Loading...',
       http_host: 'Loading...',
@@ -65,16 +68,22 @@ export default {
     return {
       logsData: placeholderData,
       logFields: [
-        // ... your field definitions ...
+        // ... other field definitions ...
       ],
+      totalRows: 0,
       currentPage: 1,
-      perPage: 10,
-      totalItems: 0,
+      currentItemID: this.pageAfterInput,
+      prevItemID: null,
+      nextItemID: null,
+      lastItemID: null,
+      executionTime: 0,
+      perPage: this.pageSizeInput,
+      pageOptions: ['10', '25', '50', '200'],
       loading: false, // Start with false as we're showing placeholder data
     };
   },
   watch: {
-    currentPage() {
+    currentPage(newVal, oldVal) {
       this.loadLogsData();
     },
   },
@@ -83,13 +92,14 @@ export default {
   },
   methods: {
     loadLogsData() {
-      this.loading = true; // Start loading when actual API call is made
+      this.loading = true;
 
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/logs`;
+      // Calculate the page_after parameter
+      const pageAfter = this.currentPage === 1 ? 0 : this.logsData[this.logsData.length - 1].row_id;
 
-      axios.get(apiUrl, {
+      axios.get(`${process.env.VUE_APP_API_URL}/api/logs`, {
         params: {
-          page_after: this.currentPage === 1 ? 0 : this.logsData[this.logsData.length - 1].last_modified,
+          page_after: pageAfter,
           page_size: this.perPage,
         },
         headers: {
@@ -97,12 +107,40 @@ export default {
         },
       }).then((response) => {
         this.logsData = response.data.data;
-        this.totalItems = response.data.meta[0].totalItems;
+        this.totalRows = response.data.meta[0].totalItems;
+
+        // this solves an update issue in b-pagination component
+        // based on https://github.com/bootstrap-vue/bootstrap-vue/issues/3541
+        this.$nextTick(() => {
+          this.currentPage = response.data.meta[0].currentPage;
+        });
+        this.totalPages = response.data.meta[0].totalPages;
+        this.prevItemID = response.data.meta[0].prevItemID;
+        this.currentItemID = response.data.meta[0].currentItemID;
+        this.nextItemID = response.data.meta[0].nextItemID;
+        this.lastItemID = response.data.meta[0].lastItemID;
+        this.executionTime = response.data.meta[0].executionTime;
+        this.fields = response.data.meta[0].fspec;
       }).catch((error) => {
         console.error('Error fetching logs:', error);
       }).finally(() => {
-        this.loading = false; // Stop loading once API call is complete
+        this.loading = false;
       });
+    },
+    handlePageChange(value) {
+      if (value === 1) {
+        this.currentItemID = 0;
+        this.filtered();
+      } else if (value === this.totalPages) {
+        this.currentItemID = this.lastItemID;
+        this.filtered();
+      } else if (value > this.currentPage) {
+        this.currentItemID = this.nextItemID;
+        this.filtered();
+      } else if (value < this.currentPage) {
+        this.currentItemID = this.prevItemID;
+        this.filtered();
+      }
     },
   },
 };
