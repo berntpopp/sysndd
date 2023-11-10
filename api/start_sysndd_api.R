@@ -18,6 +18,7 @@ setwd("/sysndd_api_volume")
 # Global API functions
 # load source files
 source("functions/config-functions.R", local = TRUE)
+source("functions/logging-functions.R", local = TRUE)
 ##-------------------------------------------------------------------##
 
 
@@ -32,15 +33,6 @@ api_spec <- fromJSON("config/api_spec.json", flatten = TRUE)
 log_dir <- "logs"
 if (!fs::dir_exists(log_dir)) fs::dir_create(log_dir)
 log_appender(appender_file(tempfile("plumber_", log_dir, ".log")))
-
-# helper function to handle empty string
-convert_empty <- function(string) {
-  if (string == "") {
-    "-"
-  } else {
-    string
-  }
-}
 ##-------------------------------------------------------------------##
 
 
