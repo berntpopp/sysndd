@@ -1,10 +1,17 @@
 <template>
+  <!-- Main Container -->
+  <!-- This section contains the overall layout of the component. -->
   <div class="container-fluid">
+    <!-- Loading Spinner -->
+    <!-- Displays while logs data is being fetched. -->
     <b-spinner
       v-if="loading"
       label="Loading..."
       class="float-center m-5"
     />
+
+    <!-- Table Container -->
+    <!-- This container holds the table and pagination components. -->
     <b-container
       v-else
       fluid
@@ -14,6 +21,8 @@
           col
           md="12"
         >
+          <!-- Logs Table -->
+          <!-- Displays log data in a tabular format. Each cell is truncated for text overflow. -->
           <b-table
             :items="logsData"
             :fields="logFields"
@@ -23,11 +32,26 @@
             striped
             hover
           >
+            <!-- Custom Cell Formatting -->
+            <!-- Uses a slot to format the 'http_user_agent' field, truncating long text. -->
+            <template v-slot:cell(http_user_agent)="data">
+              <div
+                v-b-tooltip.hover.top
+                :title="data.item.http_user_agent"
+              >
+                {{ truncate(data.item.http_user_agent, 50) }}
+              </div>
+            </template>
+
+            <!-- Last Modified Column Formatting -->
+            <!-- Formats the 'last_modified' field to display date-time strings. -->
             <template v-slot:cell(last_modified)="data">
               {{ new Date(data.item.last_modified).toLocaleString() }}
             </template>
           </b-table>
 
+          <!-- Pagination Component -->
+          <!-- Allows navigating through different pages of log data. -->
           <b-pagination
             v-model="currentPage"
             :total-rows="totalRows"
@@ -45,11 +69,34 @@
 </template>
 
 <script>
+// TODO: is this import needed?
 import axios from 'axios';
 
+// Import the utilities file
+import Utils from '@/assets/js/utils';
+
+/**
+ * TablesLogs Component
+ * @description
+ * This component is used to display log data in a table format. It supports pagination and displays a loading spinner while data is being fetched.
+ * @component
+ * @example
+ * <TablesLogs />
+ */
 export default {
   name: 'TablesLogs',
   data() {
+    /**
+     * Data function for TablesLogs component
+     * @returns {Object} The component's reactive data object
+     * @property {Array} logsData - The array of log data to be displayed in the table.
+     * @property {Array} logFields - Field definitions for the log table.
+     * @property {Number} totalRows - Total number of rows in the log data.
+     * @property {Number} currentPage - Current page number in pagination.
+     * @property {String} currentItemID - Identifier for the current item for pagination.
+     * @property {Number} perPage - Number of items per page in the table.
+     * @property {Boolean} loading - Indicates if the data is currently being loaded.
+     */
     // Initialize with placeholder data
     const placeholderData = Array(10).fill().map(() => ({
       row_id: 'Loading...',
@@ -91,6 +138,18 @@ export default {
     this.loadLogsData();
   },
   methods: {
+    /**
+     * Truncates a given string to a specified length.
+     * @param {String} str - The string to truncate.
+     * @param {Number} n - The maximum length of the truncated string.
+     * @returns {String} The truncated string.
+     */
+    truncate(str, n) {
+      return Utils.truncate(str, n);
+    },
+    /**
+    * Fetches and loads log data for the current page.
+    */
     loadLogsData() {
       this.loading = true;
 
@@ -127,6 +186,10 @@ export default {
         this.loading = false;
       });
     },
+    /**
+     * Handles page change events for pagination.
+     * @param {Number} value - The new page number.
+     */
     handlePageChange(value) {
       if (value === 1) {
         this.currentItemID = 0;
@@ -147,6 +210,7 @@ export default {
 </script>
 
 <style scoped>
+/* Styles specific to the TablesLogs component */
 .btn-group-xs > .btn,
 .btn-xs {
   padding: 0.25rem 0.4rem;
