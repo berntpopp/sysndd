@@ -69,8 +69,6 @@
 </template>
 
 <script>
-// TODO: is this import needed?
-import axios from 'axios';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
@@ -156,7 +154,7 @@ export default {
       // Calculate the page_after parameter
       const pageAfter = this.currentPage === 1 ? 0 : this.logsData[this.logsData.length - 1].row_id;
 
-      axios.get(`${process.env.VUE_APP_API_URL}/api/logs`, {
+      this.axios.get(`${process.env.VUE_APP_API_URL}/api/logs`, {
         params: {
           page_after: pageAfter,
           page_size: this.perPage,
