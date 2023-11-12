@@ -6,9 +6,15 @@
           col
           md="12"
         >
-          <h3>View Log Files</h3>
           <!-- Include TablesLogs Component Here -->
-          <TablesLogs />
+          <TablesLogs
+            :sort-input="sort"
+            :filter-input="filter"
+            :fields-input="fields"
+            :page-after-input="pageAfter"
+            :page-size-input="pageSize"
+            :fspec-input="fspec"
+          />
         </b-col>
       </b-row>
     </b-container>
@@ -19,6 +25,35 @@
 
 export default {
   name: 'ViewLogs',
+  props: {
+    sort: { type: String, default: '+row_id' },
+    filter: { type: String, default: null },
+    fields: { type: String, default: null },
+    pageAfter: { type: String, default: '0' },
+    pageSize: { type: String, default: '10' },
+    fspec: {
+      type: String,
+      default:
+        'row_id,remote_addr,http_user_agent,http_host,request_method,path_info,query_string,postbody,status,duration,filename,last_modified',
+    },
+  },
+  metaInfo: {
+    // if no subcomponents specify a metaInfo.title, this title will be used
+    title: 'Logging',
+    // all titles will be injected into this template
+    titleTemplate:
+      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
+    htmlAttrs: {
+      lang: 'en',
+    },
+    meta: [
+      {
+        vmid: 'description',
+        name: 'description',
+        content: 'An expert curated resource of neurodevelopmental disorders.',
+      },
+    ],
+  },
 };
 </script>
 
