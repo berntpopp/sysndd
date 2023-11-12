@@ -1,5 +1,5 @@
 <template>
-  <!-- Main Container -->
+  <!-- Main Container: Holds the entire TablesLogs component layout -->
   <!-- This section contains the overall layout of the component. -->
   <div class="container-fluid">
     <!-- Loading Spinner -->
@@ -10,7 +10,7 @@
       class="float-center m-5"
     />
 
-    <!-- Table Container -->
+    <!-- Table Container: Contains the table along with UI controls for interaction -->
     <!-- This container holds the table and pagination components. -->
     <b-container
       v-else
@@ -21,7 +21,7 @@
           col
           md="12"
         >
-          <!-- User Interface controls -->
+          <!-- User Interface Controls: Includes buttons for downloading, copying links, and filtering -->
           <b-card
             header-tag="header"
             body-class="p-0"
@@ -170,7 +170,7 @@
             </b-row>
             <!-- User Interface controls -->
 
-            <!-- Logs Table -->
+            <!-- Logs Table: Displays the log data with custom formatting and interaction capabilities -->
             <!-- Displays log data in a tabular format. Each cell is truncated for text overflow. -->
             <b-table
               :items="items"
@@ -313,10 +313,20 @@ import textMixin from '@/assets/js/mixins/textMixin';
 /**
  * TablesLogs Component
  * @description
- * This component is used to display log data in a table format. It supports pagination and displays a loading spinner while data is being fetched.
+ * Displays log data in a table format with features like pagination, filtering, sorting, and downloading.
  * @component
  * @example
  * <TablesLogs />
+ * @props
+ * showFilterControls - Boolean indicating whether filter controls should be shown.
+ * showPaginationControls - Boolean indicating whether pagination controls should be shown.
+ * headerLabel - String label for the table header.
+ * sortInput - Default sort parameter.
+ * filterInput - Default filter parameter.
+ * fieldsInput - Fields to be displayed in the table.
+ * pageAfterInput - Identifier for pagination.
+ * pageSizeInput - Number of items per page.
+ * fspecInput - Fields specification for the table.
  */
 export default {
   name: 'TablesLogs',
