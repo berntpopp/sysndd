@@ -1,7 +1,15 @@
 // assets/js/mixins/urlParsingMixin.js
+
 export default {
   methods: {
-    // this function takes a filter object and joins it into one filter string
+    /**
+     * Converts a filter object into a filter string for URL parameters.
+     * This function takes a filter object, removes any null or empty values,
+     * and then concatenates each key-value pair into a string.
+     *
+     * @param {Object} filter_object - The filter object to convert.
+     * @returns {string} A string representation of the filter object.
+     */
     filterObjToStr(filter_object) {
       // this function checks if a paramater is a valid object
       const isObject = (obj) => obj === Object(obj);
@@ -28,6 +36,18 @@ export default {
       // return filter string
       return filter_string;
     },
+    /**
+   * Converts a filter string into a filter object.
+   * Parses a filter string, typically from URL parameters, and converts it
+   * into a filter object with keys representing the filter fields and values
+   * representing the filter criteria.
+   *
+   * @param {string} filter_string - The filter string to parse.
+   * @param {Object} standard_object - The standard object structure for the filter.
+   * @param {string[]} split_content - Array of delimiters for splitting the filter string.
+   * @param {string[]} join_char_allow - Array of allowed characters for join operations.
+   * @returns {Object} An object representation of the filter string.
+   */
     filterStrToObj(filter_string, standard_object, split_content = [',(?! )'], join_char_allow = [',']) {
       // convert input split_content to regex object
       const split_content_regex = new RegExp(split_content.join('|'));
@@ -75,6 +95,13 @@ export default {
       }
       return standard_object;
     },
+    /**
+   * Converts a sorting string into an object with sorting variables.
+   * Parses a sorting string and extracts sorting direction and field.
+   *
+   * @param {string} sort_string - The sorting string to parse.
+   * @returns {Object} An object containing the sorting direction and field.
+   */
     sortStringToVariables(sort_string) {
       const sortStr = sort_string.trim();
       const return_object = {
