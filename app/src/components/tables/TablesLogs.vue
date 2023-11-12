@@ -609,8 +609,8 @@ export default {
         this.nextItemID = response.data.meta[0].nextItemID;
         this.lastItemID = response.data.meta[0].lastItemID;
         this.executionTime = response.data.meta[0].executionTime;
+        this.fields = response.data.meta[0].fspec;
       } catch (error) {
-        console.error('Error fetching logs:', error);
         this.makeToast(`Error: ${error.message}`, 'Error loading logs', 'danger');
       } finally {
         this.isBusy = false;
