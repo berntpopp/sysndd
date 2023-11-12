@@ -5121,7 +5121,7 @@ function(req,
          fields = "",
          `page_after` = 0,
          `page_size` = "10",
-         fspec = "",
+         fspec = "row_id,remote_addr,http_user_agent,http_host,request_method,path_info,query_string,postbody,status,duration,filename,last_modified",
          format = "json") {
     # Check if the user_role is set and if the user is an Administrator
     if (is.null(req$user_role) || req$user_role != "Administrator") {
@@ -5136,41 +5136,101 @@ function(req,
     start_time <- Sys.time()
 
     # Read log files
-    logs <- read_log_files_mem(folder_path)
+    logs_raw <- read_log_files_mem(folder_path)
 
-    # TODO: Apply filtering, sorting, and field selection
     # Generate sort expression
     sort_exprs <- generate_sort_expressions(sort, unique_id = "row_id")
 
     # Generate filter expression
     filter_exprs <- generate_filter_expressions(filter)
 
+    # Apply sorting and filtering
+    logs_table <- logs_raw %>%
+      arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
+      filter(!!!rlang::parse_exprs(filter_exprs))
+
     # Select fields
-    logs <- select_tibble_fields(logs, fields, "row_id")
+    logs_table <- select_tibble_fields(logs_table, fields, "row_id")
 
     # Apply pagination
-    log_pagination_info <- generate_cursor_pag_inf(logs, `page_size`, `page_after`, "row_id")
+    log_pagination_info <- generate_cursor_pag_inf(logs_table, `page_size`, `page_after`, "row_id")
 
     # Generate field specifications if needed
     if (fspec != "") {
-        log_fspec <- generate_tibble_fspec(logs, fspec)
+      # use the helper generate_tibble_fspec to
+      # generate fields specs from a tibble
+      # first for the unfiltered and not subset table
+      logs_raw_fspec <- generate_tibble_fspec_mem(logs_raw,
+        fspec)
+      # then for the filtered/ subset one
+      logs_table <- generate_tibble_fspec_mem(
+        logs_table,
+        fspec)
+      # assign the second to the first as filtered
+      logs_raw_fspec$fspec$count_filtered <-
+        logs_raw_fspec$fspec$count
     }
 
     # Compute execution time
     end_time <- Sys.time()
     execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
 
+    # add columns to the meta information from
+    # generate_cursor_pag_inf function return
+    meta <- log_pagination_info$meta %>%
+      add_column(tibble::as_tibble(list("sort" = sort,
+        "filter" = filter,
+        "fields" = fields,
+        "fspec" = logs_raw_fspec,
+        "executionTime" = execution_time)))
+
+    # add host, port and other information to links from
+    # the link information from generate_cursor_pag_inf function return
+    links <- log_pagination_info$links %>%
+        pivot_longer(everything(), names_to = "type", values_to = "link") %>%
+      mutate(link = case_when(
+        link != "null" ~ paste0(
+          dw$api_base_url,
+          "/api/entity?sort=",
+          sort,
+          ifelse(filter != "", paste0("&filter=", filter), ""),
+          ifelse(fields != "", paste0("&fields=", fields), ""),
+          link),
+        link == "null" ~ "null"
+      )) %>%
+        pivot_wider(id_cols = everything(), names_from = "type", values_from = "link")
+
     # Prepare response
     response <- list(
-        links = log_pagination_info$links,
-        meta = log_pagination_info$meta %>% add_column(executionTime = execution_time),
+        links = links,
+        meta = meta,
         data = log_pagination_info$data
     )
 
+    # if xlsx requested compute this and return
     if (format == "xlsx") {
-        # Additional logic for XLSX format
+      # generate creation date statistic for output
+      creation_date <- strftime(as.POSIXlt(Sys.time(),
+        "UTC",
+        "%Y-%m-%dT%H:%M:%S"),
+        "%Y-%m-%d_T%H-%M-%S")
+
+      # generate base filename from api name
+      base_filename <- str_replace_all(req$PATH_INFO, "\\/", "_") %>%
+          str_replace_all("_api_", "")
+
+      filename <- file.path(paste0(base_filename,
+        "_",
+        creation_date,
+        ".xlsx"))
+
+      # generate xlsx bin using helper function
+      bin <- generate_xlsx_bin(response, base_filename)
+
+      # Return the binary contents
+      as_attachment(bin, filename)
     } else {
-        response
+      response
     }
 }
 
