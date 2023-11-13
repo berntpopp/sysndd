@@ -3,9 +3,24 @@
 // Importing URLs from a constants file to avoid hardcoding them in this component
 import URLS from '@/assets/js/constants/url_constants';
 
+/**
+ * @fileoverview This file defines constants for the footer navigation, 
+ * including navigation items with their respective links, attributes, 
+ * and other relevant properties.
+ */
+
 export default {
-  // An array of items to be displayed in the footer.
-  // Each item has an id, link, attributes for the link, image source, alt text, width, and target for the link.
+  /**
+   * Navigation items to be displayed in the footer.
+   * @type {Object[]}
+   * @property {string} id - The unique identifier for the navigation item.
+   * @property {string} link - The URL to which the navigation item points.
+   * @property {Object} linkAttr - Additional attributes for the link element, such as aria-label.
+   * @property {string} [imgSrc] - Optional. The source path for the navigation item's image.
+   * @property {string} [altText] - Optional. Alt text for the navigation item's image.
+   * @property {number} [width] - Optional. Width of the navigation item's image.
+   * @property {string} [target] - Optional. Specifies where to open the linked document.
+   */
   NAV_ITEMS: [
     // cc license
     {

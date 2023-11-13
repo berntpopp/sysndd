@@ -1,5 +1,14 @@
 // assets/js/mixins/urlParsingMixin.js
 
+/**
+ * @fileoverview Mixin for handling URL parsing in Vue components.
+ *
+ * This mixin provides methods to convert filter objects to strings and vice versa,
+ * and to parse sorting strings. These functionalities are useful for managing URL
+ * parameters in the application, facilitating the interaction with API endpoints,
+ * and maintaining the state of components based on URL queries.
+ */
+
 export default {
   methods: {
     /**
@@ -11,7 +20,7 @@ export default {
      * @returns {string} A string representation of the filter object.
      */
     filterObjToStr(filter_object) {
-      // this function checks if a paramater is a valid object
+      // this function checks if a parameter is a valid object
       const isObject = (obj) => obj === Object(obj);
 
       // filter the filter object to only contain non null values

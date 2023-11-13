@@ -1,10 +1,26 @@
 // main_nav_constants.js
 
+/**
+ * @fileoverview Constants for main navigation elements.
+ */
+
 export default {
   // An array of dropdown menus items to be displayed in the navbar.
   // Each item has an id, title, items for the dropdown with text and path.
   // Additionally includes conditional properties for the user, admin, curate, and review permissions.
   DROPDOWN_ITEMS_LEFT: [
+    /**
+     * Represents a dropdown item in the main navigation.
+     * @type {Object}
+     * @property {string} id - Unique identifier for the dropdown item.
+     * @property {string} title - Title of the dropdown to be displayed.
+     * @property {Array} required - Array of strings indicating required permissions to view this dropdown.
+     * @property {string} align - Alignment of the dropdown, typically 'left' or 'right'.
+     * @property {Array} items - Array of objects representing individual menu items in the dropdown.
+     * Each menu item object contains:
+     * @property {string} items.text - Display text for the menu item.
+     * @property {string} items.path - Navigation path associated with the menu item.
+     */
     {
       id: 'tables_dropdown',
       title: 'Tables',
@@ -42,6 +58,18 @@ export default {
     },
   ],
   DROPDOWN_ITEMS_RIGHT: [
+    /**
+     * Represents a dropdown item in the main navigation on the right side.
+     * @type {Object}
+     * @property {string} id - Unique identifier for the dropdown item.
+     * @property {string} title - Title of the dropdown to be displayed.
+     * @property {Array} required - Array of strings indicating required permissions to view this dropdown.
+     * @property {string} align - Alignment of the dropdown, typically 'left' or 'right'.
+     * @property {Array} items - Array of objects representing individual menu items in the dropdown.
+     * Each menu item object contains:
+     * @property {string} items.text - Display text for the menu item.
+     * @property {string} items.path - Navigation path associated with the menu item.
+     */
     {
       id: 'administration_dropdown',
       title: 'Administration',

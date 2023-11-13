@@ -1,3 +1,5 @@
+// assets/js/utils.js
+
 /**
  * @fileoverview Utility functions for common operations.
  */

@@ -1,4 +1,13 @@
 // assets/js/mixins/toastMixin.js
+
+/**
+ * @fileoverview Mixin for handling toast notifications in the Vue application.
+ *
+ * This mixin provides a method to display toast notifications. It is designed to be used across
+ * different components for consistent toast behavior. The method allows customization of the message,
+ * title, style variant, position, and auto-hide behavior of the toast.
+ */
+
 export default {
   methods: {
     /**

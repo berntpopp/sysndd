@@ -1,5 +1,26 @@
 // init_obj_constants.js
+
+/**
+ * @fileoverview Constants for initializing various objects used in the application.
+ */
+
 export default {
+  /**
+   * Initial structure for entity statistics.
+   * @type {Object}
+   * @property {Array} meta - Meta information for the entity statistics.
+   * @property {string} meta[].last_update - The last update time of the statistics.
+   * @property {?number} meta[].executionTime - The time taken for the execution, if available.
+   * @property {Array} data - The actual statistical data.
+   * @property {string} data[].category - The category of the entity.
+   * @property {number} data[].n - Number of entities in this category.
+   * @property {string} data[].inheritance - Type of inheritance associated with this category.
+   * @property {Object[]} data[].groups - Group details within the category.
+   * @property {string} data[].groups[].category - Category name for the group.
+   * @property {number} data[].groups[].category_id - Identifier for the category.
+   * @property {string} data[].groups[].inheritance - Type of inheritance for the group.
+   * @property {number} data[].groups[].n - Number of entities in this group.
+   */
   ENTITY_STAT_INIT: {
     meta: [
       {
@@ -97,6 +118,12 @@ export default {
       },
     ],
   },
+
+  /**
+   * Initial structure for gene statistics.
+   * @type {Object}
+   * Similar structure and properties as ENTITY_STAT_INIT.
+   */
   GENE_STAT_INIT: {
     meta: [
       {
@@ -194,6 +221,24 @@ export default {
       },
     ],
   },
+
+  /**
+   * Initial list of news items.
+   * @type {Object[]}
+   * @property {number} entity_id - Identifier for the news entity.
+   * @property {string} hgnc_id - HGNC ID associated with the entity.
+   * @property {string} symbol - Symbolic representation of the entity.
+   * @property {string} disease_ontology_id_version - Disease ontology ID and version.
+   * @property {string} disease_ontology_name - Name of the disease ontology.
+   * @property {string} hpo_mode_of_inheritance_term - HPO term for mode of inheritance.
+   * @property {string} hpo_mode_of_inheritance_term_name - Name of the HPO term for mode of inheritance.
+   * @property {string} inheritance_filter - Type of inheritance filter applied.
+   * @property {number} ndd_phenotype - NDD phenotype indicator (numeric).
+   * @property {string} ndd_phenotype_word - NDD phenotype indicator (word).
+   * @property {string} entry_date - Date of entry into the system.
+   * @property {string} category - The category of the news item.
+   * @property {number} category_id - Identifier for the category of the news item.
+   */
   NEWS_INIT: [
     {
       entity_id: 771,
