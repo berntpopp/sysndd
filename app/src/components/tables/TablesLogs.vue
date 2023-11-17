@@ -303,6 +303,11 @@
 <script>
 
 // Import the utilities file
+// import the Treeselect component
+import Treeselect from '@riophae/vue-treeselect';
+// import the Treeselect styles
+import '@riophae/vue-treeselect/dist/vue-treeselect.css';
+
 import Utils from '@/assets/js/utils';
 
 import toastMixin from '@/assets/js/mixins/toastMixin';
@@ -330,6 +335,8 @@ import textMixin from '@/assets/js/mixins/textMixin';
  */
 export default {
   name: 'TablesLogs',
+  // register the Treeselect component
+  components: { Treeselect },
   mixins: [toastMixin, urlParsingMixin, colorAndSymbolsMixin, textMixin],
   props: {
     showFilterControls: { type: Boolean, default: true },
