@@ -4,8 +4,8 @@
 import URLS from '@/assets/js/constants/url_constants';
 
 /**
- * @fileoverview This file defines constants for the footer navigation, 
- * including navigation items with their respective links, attributes, 
+ * @fileoverview This file defines constants for the footer navigation,
+ * including navigation items with their respective links, attributes,
  * and other relevant properties.
  */
 

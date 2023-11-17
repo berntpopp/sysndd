@@ -5,7 +5,7 @@
  *
  * This mixin provides a centralized collection of various text labels and
  * constants used in the Vue components. These constants primarily consist
- * of text representations for various statuses and categories, enhancing 
+ * of text representations for various statuses and categories, enhancing
  * readability and maintainability of the codebase.
  */
 

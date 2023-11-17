@@ -24,8 +24,8 @@ export default {
   /**
    * URL of the German Research Foundation (DFG).
    * @type {string}
-   * @description Link to the homepage of the Deutsche Forschungsgemeinschaft (DFG), 
-   * a major research funding organization in Germany. This may be relevant for citing 
+   * @description Link to the homepage of the Deutsche Forschungsgemeinschaft (DFG),
+   * a major research funding organization in Germany. This may be relevant for citing
    * funding sources or partnerships.
    */
   DFG: 'https://www.dfg.de/',
