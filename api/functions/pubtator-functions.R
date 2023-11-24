@@ -1,6 +1,95 @@
 #### This file holds analyses functions for PubTator requests
 
 
+#' Retrieve Gene-Related Data from PubTator API v3
+#'
+#' This function queries the PubTator v3 API to retrieve gene-related data based on a given query string.
+#' It performs two main steps: firstly, it fetches the PubMed IDs (PMIDs) associated with the query;
+#' secondly, it retrieves annotations for these PMIDs.
+#'
+#' @param query Character: The search query string for PubTator.
+#' @param page Numeric: The page number for the API response (for pagination).
+#' @param max_retries Numeric: Maximum number of retries for the API request in case of failure. 
+#'   Defaults to 3.
+#' @param api_base_url Character: Base URL of the PubTator API. 
+#'   Defaults to "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/".
+#' @param endpoint_search Character: API endpoint for the search query. 
+#'   Defaults to "search/".
+#' @param endpoint_annotations Character: API endpoint for fetching annotations. 
+#'   Defaults to "publications/export/biocjson".
+#' @param query_parameter Character: URL parameter for the search query. 
+#'   Defaults to "?text=".
+#'
+#' @return A list containing the processed annotations data if PMIDs are found; NULL otherwise. 
+#'   The function internally parses non-standard JSON data from the API response.
+#'
+#' @details
+#' The function includes an internal method `parse_nonstandard_json` to handle non-standard JSON 
+#' format returned by the PubTator v3 API. This method corrects and parses the JSON data into a list 
+#' of R objects. After fetching PMIDs based on the query, the function makes a second API call to 
+#' retrieve annotations for these PMIDs. The annotations are then processed and returned as a list.
+#'
+#' @examples
+#' genes_data <- pubtator_v3_genes_in_request(query = "BRCA1", page = 1)
+#'
+#' @export
+pubtator_v3_genes_in_request <- function(query,
+                                         page,
+                                         max_retries = 3,
+                                         api_base_url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/",
+                                         endpoint_search = "search/",
+                                         endpoint_annotations = "publications/export/biocjson",
+                                         query_parameter = "?text=") {
+  
+  # Custom function to parse non-standard JSON
+  parse_nonstandard_json <- function(json_content) {
+    json_strings <- strsplit(paste(json_content, collapse = " "), "} ")[[1]]
+    json_strings <- ifelse(grepl("}$", json_strings), json_strings, paste0(json_strings, "}"))
+    parsed_json <- lapply(json_strings, function(x) tryCatch(fromJSON(x), error = function(e) NULL))
+    return(parsed_json)
+  }
+
+  # Define URL for search
+  url_search <- paste0(api_base_url, endpoint_search, query_parameter, query, "&page=", page)
+  retries <- 0
+  pmids <- NULL
+
+  # Fetch PMIDs
+  while(retries <= max_retries && is.null(pmids)) {
+    tryCatch({
+      response_search <- fromJSON(URLencode(url_search), flatten = TRUE)
+      pmids <- response_search$results %>%
+        as_tibble() %>%
+        pull(pmid)
+      break
+    }, error = function(e) {
+      retries <- retries + 1
+      if(retries <= max_retries) {
+        warning(paste("Attempt", retries, "failed. Retrying..."))
+      }
+    })
+  }
+
+  if(retries > max_retries) {
+    stop("Failed to fetch PMIDs after", max_retries, "attempts.")
+  }
+
+  # Fetch and Process Annotations
+  if (!is.null(pmids) && length(pmids) > 0) {
+    url_annotations <- paste0(api_base_url, endpoint_annotations, "?pmids=", paste(pmids, collapse = ","))
+    annotations_content <- readLines(URLencode(url_annotations))
+    annotations_data <- parse_nonstandard_json(annotations_content)
+
+    # Process annotations data
+    # ...
+    # Extract the required data from annotations_data
+    # Return the processed data
+  } else {
+    return(NULL)  # Return NULL if no PMIDs are found
+  }
+}
+
+
 #' Retrieve gene-related data from PubTator based on a given query
 #'
 #' This function makes a request to the PubTator API to find genes related to a specified query.
