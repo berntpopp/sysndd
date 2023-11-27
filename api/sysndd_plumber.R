@@ -119,10 +119,10 @@ options("plumber.apiURL" = dw$api_base_url)
 source("functions/database-functions.R", local = TRUE)
 source("functions/endpoint-functions.R", local = TRUE)
 source("functions/publication-functions.R", local = TRUE)
+source("functions/genereviews-functions.R", local = TRUE)
 source("functions/analyses-functions.R", local = TRUE)
 source("functions/helper-functions.R", local = TRUE)
 source("functions/external-functions.R", local = TRUE)
-source("functions/genereviews-functions.R", local = TRUE)
 source("functions/logging-functions.R", local = TRUE)
 
 # convert to memoise functions
