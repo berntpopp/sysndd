@@ -512,6 +512,18 @@ export default {
           class: 'text-left',
         },
       ],
+      filter: {
+        any: { content: null, join_char: null, operator: 'contains' },
+        entity_id: { content: null, join_char: null, operator: 'contains' },
+        symbol: { content: null, join_char: null, operator: 'contains' },
+        disease_ontology_name: { content: null, join_char: null, operator: 'contains' },
+        disease_ontology_id_version: { content: null, join_char: null, operator: 'contains' },
+        hpo_mode_of_inheritance_term_name: { content: null, join_char: ',', operator: 'any' },
+        hpo_mode_of_inheritance_term: { content: null, join_char: ',', operator: 'any' },
+        ndd_phenotype_word: { content: null, join_char: null, operator: 'contains' },
+        category: { content: null, join_char: ',', operator: 'any' },
+        entities_count: { content: null, join_char: ',', operator: 'any' },
+      },
     };
   },
   watch: {
