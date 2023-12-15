@@ -24,84 +24,25 @@
             <template #header>
               <b-row>
                 <b-col>
-                  <h4 class="mb-1 text-left font-weight-bold">
-                    Genes table
-                    <b-badge
-                      v-b-tooltip.hover.bottom
-                      variant="success"
-                      :title="
-                        'Loaded ' +
-                          perPage +
-                          '/' +
-                          totalRows +
-                          ' in ' +
-                          executionTime
-                      "
-                    >
-                      Genes: {{ totalRows }}
-                    </b-badge>
-                  </h4>
+                  <TableHeaderLabel
+                    :label="headerLabel"
+                    :subtitle="'Genes: ' + totalRows"
+                    :tool-tip-title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
+                  />
                 </b-col>
                 <b-col>
                   <h5
                     v-if="showFilterControls"
                     class="mb-1 text-right font-weight-bold"
                   >
-                    <b-button
-                      v-b-tooltip.hover.bottom
-                      class="mr-1"
-                      size="sm"
-                      title="Download data as Excel file."
-                      @click="requestExcel()"
-                    >
-                      <b-icon
-                        icon="table"
-                        class="mx-1"
-                      />
-                      <b-icon
-                        v-if="!downloading"
-                        icon="download"
-                      />
-                      <b-spinner
-                        v-if="downloading"
-                        small
-                      />
-                      .xlsx
-                    </b-button>
-
-                    <b-button
-                      v-b-tooltip.hover.bottom
-                      class="mx-1"
-                      size="sm"
-                      title="Copy link to this page."
-                      variant="success"
-                      @click="copyLinkToClipboard()"
-                    >
-                      <b-icon
-                        icon="link"
-                        font-scale="1.0"
-                      />
-                    </b-button>
-
-                    <b-button
-                      v-b-tooltip.hover.bottom
-                      size="sm"
-                      :title="
-                        'The table is ' +
-                          ((filter_string === '' || filter_string === null || filter_string === 'null') ? 'not' : '') +
-                          ' filtered.' +
-                          ((filter_string === '' || filter_string === null || filter_string === 'null')
-                            ? ''
-                            : ' Click to remove all filters.')
-                      "
-                      :variant="(filter_string === '' || filter_string === null || filter_string === 'null') ? 'info' : 'warning'"
-                      @click="removeFilters()"
-                    >
-                      <b-icon
-                        icon="filter"
-                        font-scale="1.0"
-                      />
-                    </b-button>
+                    <TableDownloadLinkCopyButtons
+                      :downloading="downloading"
+                      :remove-filters-title="removeFiltersButtonTitle"
+                      :remove-filters-variant="removeFiltersButtonVariant"
+                      @request-excel="requestExcel"
+                      @copy-link="copyLinkToClipboard"
+                      @remove-filters="removeFilters"
+                    />
                   </h5>
                 </b-col>
               </b-row>
@@ -112,20 +53,12 @@
                 class="my-1"
                 sm="8"
               >
-                <b-form-group class="mb-1">
-                  <b-form-input
-                    v-if="showFilterControls"
-                    id="filter-input"
-                    v-model="filter['any'].content"
-                    class="mb-1 border-dark"
-                    size="sm"
-                    type="search"
-                    placeholder="Search any field by typing here"
-                    debounce="500"
-                    @click="removeFilters()"
-                    @update="filtered()"
-                  />
-                </b-form-group>
+                <TableSearchInput
+                  v-model="filter['any'].content"
+                  :placeholder="'Search any field by typing here'"
+                  :debounce-time="500"
+                  @input="filtered"
+                />
               </b-col>
 
               <b-col
@@ -135,28 +68,12 @@
                 <b-container
                   v-if="totalRows > perPage || showPaginationControls"
                 >
-                  <b-input-group
-                    prepend="Per page"
-                    class="mb-1"
-                    size="sm"
-                  >
-                    <b-form-select
-                      id="per-page-select"
-                      v-model="perPage"
-                      :options="pageOptions"
-                      size="sm"
-                    />
-                  </b-input-group>
-
-                  <b-pagination
-                    v-model="currentPage"
+                  <TablePaginationControls
                     :total-rows="totalRows"
-                    :per-page="perPage"
-                    align="fill"
-                    size="sm"
-                    class="my-0"
-                    limit="2"
-                    @change="handlePageChange"
+                    :initial-per-page="perPage"
+                    :page-options="pageOptions"
+                    @page-change="handlePageChange"
+                    @per-page-change="handlePerPageChange"
                   />
                 </b-container>
               </b-col>
@@ -481,14 +398,30 @@ import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 import textMixin from '@/assets/js/mixins/textMixin';
 
+// Import the table mixins
+import tableMethodsMixin from '@/assets/js/mixins/tableMethodsMixin';
+import tableDataMixin from '@/assets/js/mixins/tableDataMixin';
+
+// Import the Table components
+import TableHeaderLabel from '@/components/small/TableHeaderLabel.vue';
+import TableSearchInput from '@/components/small/TableSearchInput.vue';
+import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
+import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
+
 // Import the utilities file
 import Utils from '@/assets/js/utils';
 
 export default {
   name: 'TablesGenes',
   // register the Treeselect component
-  components: { Treeselect },
-  mixins: [toastMixin, urlParsingMixin, colorAndSymbolsMixin, textMixin],
+  components: {
+    // Components used within TablesEntities
+    Treeselect, TablePaginationControls, TableDownloadLinkCopyButtons, TableHeaderLabel, TableSearchInput,
+  },
+  mixins: [
+    // Mixins used within TablesEntities
+    toastMixin, urlParsingMixin, colorAndSymbolsMixin, textMixin, tableMethodsMixin, tableDataMixin,
+  ],
   props: {
     showFilterControls: { type: Boolean, default: true },
     showPaginationControls: { type: Boolean, default: true },
@@ -506,7 +439,7 @@ export default {
   },
   data() {
     return {
-      items: [],
+      // ... data properties with a brief description for each
       fields: [
         {
           key: 'symbol',
@@ -575,43 +508,10 @@ export default {
           class: 'text-left',
         },
       ],
-      totalRows: 0,
-      currentPage: 1,
-      currentItemID: this.pageAfterInput,
-      prevItemID: null,
-      nextItemID: null,
-      lastItemID: null,
-      executionTime: 0,
-      perPage: this.pageSizeInput,
-      pageOptions: ['10', '25', '50', '200'],
-      sortBy: 'symbol',
-      sortDesc: true,
-      sort: this.sortInput,
-      filter: {
-        any: { content: null, join_char: null, operator: 'contains' },
-        entity_id: { content: null, join_char: null, operator: 'contains' },
-        symbol: { content: null, join_char: null, operator: 'contains' },
-        disease_ontology_name: { content: null, join_char: null, operator: 'contains' },
-        disease_ontology_id_version: { content: null, join_char: null, operator: 'contains' },
-        hpo_mode_of_inheritance_term_name: { content: null, join_char: ',', operator: 'any' },
-        hpo_mode_of_inheritance_term: { content: null, join_char: ',', operator: 'any' },
-        ndd_phenotype_word: { content: null, join_char: null, operator: 'contains' },
-        category: { content: null, join_char: ',', operator: 'any' },
-        entities_count: { content: null, join_char: ',', operator: 'any' },
-      },
-      filter_string: null,
-      filterOn: [],
-      infoModal: {
-        id: 'info-modal',
-        title: '',
-        content: '',
-      },
-      downloading: false,
-      loading: true,
-      isBusy: true,
     };
   },
   watch: {
+    // ... watchers with descriptions
     filter(value) {
       this.filtered();
     },
@@ -621,13 +521,12 @@ export default {
     sortDesc(value) {
       this.handleSortByOrDescChange();
     },
-    perPage(value) {
-      this.handlePerPageChange();
-    },
   },
   created() {
+  // Lifecycle hooks
   },
   mounted() {
+  // Lifecycle hooks
     // transform input sort string to object and assign
     const sort_object = this.sortStringToVariables(this.sortInput);
     this.sortBy = sort_object.sortBy;
@@ -640,7 +539,7 @@ export default {
       this.filter = this.filterStrToObj(this.filterInput, this.filter);
     } else {
       // initiate first data load
-      this.loadGenesData();
+      this.loadData();
     }
 
     setTimeout(() => {
@@ -648,74 +547,7 @@ export default {
     }, 500);
   },
   methods: {
-    copyLinkToClipboard() {
-      const urlParam = `sort=${
-        this.sort
-      }&filter=${
-        this.filter_string
-      }&page_after=${
-        this.currentItemID
-      }&page_size=${
-        this.perPage}`;
-      navigator.clipboard.writeText(
-        `${process.env.VUE_APP_URL + this.$route.path}?${urlParam}`,
-      );
-    },
-    handleSortByOrDescChange() {
-      this.currentItemID = 0;
-      this.sort = (!this.sortDesc ? '-' : '+') + this.sortBy;
-      this.filtered();
-    },
-    handlePerPageChange() {
-      this.currentItemID = 0;
-      this.filtered();
-    },
-    handlePageChange(value) {
-      if (value === 1) {
-        this.currentItemID = 0;
-        this.filtered();
-      } else if (value === this.totalPages) {
-        this.currentItemID = this.lastItemID;
-        this.filtered();
-      } else if (value > this.currentPage) {
-        this.currentItemID = this.nextItemID;
-        this.filtered();
-      } else if (value < this.currentPage) {
-        this.currentItemID = this.prevItemID;
-        this.filtered();
-      }
-    },
-    filtered() {
-      const filter_string_loc = this.filterObjToStr(this.filter);
-
-      if (filter_string_loc !== this.filter_string) {
-        this.filter_string = this.filterObjToStr(this.filter);
-      }
-
-      this.loadGenesData();
-    },
-    removeFilters() {
-      this.filter = {
-        any: { content: null, join_char: null, operator: 'contains' },
-        entity_id: { content: null, join_char: null, operator: 'contains' },
-        symbol: { content: null, join_char: null, operator: 'contains' },
-        disease_ontology_name: { content: null, join_char: null, operator: 'contains' },
-        disease_ontology_id_version: { content: null, join_char: null, operator: 'contains' },
-        hpo_mode_of_inheritance_term_name: { content: null, join_char: ',', operator: 'any' },
-        hpo_mode_of_inheritance_term: { content: null, join_char: ',', operator: 'any' },
-        ndd_phenotype_word: { content: null, join_char: null, operator: 'contains' },
-        category: { content: null, join_char: ',', operator: 'any' },
-        entities_count: { content: null, join_char: ',', operator: 'any' },
-      };
-    },
-    removeSearch() {
-      this.filter.any.content = null;
-
-      if (this.filter.any.content !== null) {
-        this.filter.any.content = null;
-      }
-    },
-    async loadGenesData() {
+    async loadData() {
       this.isBusy = true;
 
       const urlParam = `sort=${
@@ -753,58 +585,6 @@ export default {
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
-    },
-    async requestExcel() {
-      this.downloading = true;
-
-      // compose URL param
-      const urlParam = `sort=${
-        this.sort
-      }&filter=${
-        this.filter_string
-      }&page_after=`
-        + '0'
-        + '&page_size='
-        + 'all'
-        + '&format=xlsx';
-
-      const apiUrl = `${process.env.VUE_APP_API_URL
-      }/api/gene?${
-        urlParam}`;
-
-      try {
-        const response = await this.axios({
-          url: apiUrl,
-          method: 'GET',
-          responseType: 'blob',
-        });
-
-        const fileURL = window.URL.createObjectURL(new Blob([response.data]));
-        const fileLink = document.createElement('a');
-
-        fileLink.href = fileURL;
-        fileLink.setAttribute('download', 'sysndd_gene_table.xlsx');
-        document.body.appendChild(fileLink);
-
-        fileLink.click();
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-      }
-
-      this.downloading = false;
-    },
-    normalizer(node) {
-      return {
-        id: node,
-        label: node,
-      };
-    },
-    // Function to truncate a string to a specified length.
-    // If the string is longer than the specified length, it adds '...' to the end.
-    // imported from utils.js
-    truncate(str, n) {
-      // Use the utility function here
-      return Utils.truncate(str, n);
     },
   },
 };
