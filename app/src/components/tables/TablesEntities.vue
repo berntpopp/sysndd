@@ -366,6 +366,10 @@ export default {
     toastMixin, urlParsingMixin, colorAndSymbolsMixin, textMixin, tableMethodsMixin, tableDataMixin,
   ],
   props: {
+    apiEndpoint: {
+      type: String,
+      default: 'entity',
+    },
     showFilterControls: { type: Boolean, default: true },
     showPaginationControls: { type: Boolean, default: true },
     headerLabel: { type: String, default: 'Entities table' },

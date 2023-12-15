@@ -102,20 +102,11 @@ export default {
     async requestExcel() {
       this.downloading = true;
 
-      // compose URL param
-      const urlParam = `sort=${
-        this.sort
-      }&filter=${
-        this.filter_string
-      }&page_after=`
-          + '0'
-          + '&page_size='
-          + 'all'
-          + '&format=xlsx';
+      // Compose URL parameter
+      const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=0&page_size=all&format=xlsx`;
 
-      const apiUrl = `${process.env.VUE_APP_API_URL
-      }/api/entity?${
-        urlParam}`;
+      // Build the API URL using the provided endpoint
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/${this.apiEndpoint}?${urlParam}`;
 
       try {
         const response = await this.axios({
@@ -124,19 +115,26 @@ export default {
           responseType: 'blob',
         });
 
+        // Create a URL for the downloaded file
         const fileURL = window.URL.createObjectURL(new Blob([response.data]));
         const fileLink = document.createElement('a');
 
+        // Set the download attribute with a dynamic filename
+        fileLink.setAttribute('download', `sysndd_${this.apiEndpoint}_table.xlsx`);
         fileLink.href = fileURL;
-        fileLink.setAttribute('download', 'sysndd_entity_table.xlsx');
         document.body.appendChild(fileLink);
 
+        // Trigger the download
         fileLink.click();
+
+        // Cleanup
+        document.body.removeChild(fileLink);
+        window.URL.revokeObjectURL(fileURL);
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+      } finally {
+        this.downloading = false;
       }
-
-      this.downloading = false;
     },
 
     /**
