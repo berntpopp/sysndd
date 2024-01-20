@@ -11,15 +11,24 @@
         to="/"
         class="py-0"
       >
-        <img
-          src="/SysNDD_brain-dna-magnifying-glass_dall-e_logo.webp"
-          height="68"
-          width="68"
-          alt="SysNDD Logo"
-          rel="preload"
-          class="app-logo"
-        >
-        SysNDD
+        <div class="brand-container">
+          <img
+            src="/SysNDD_brain-dna-magnifying-glass_dall-e_logo.webp"
+            height="68"
+            width="68"
+            alt="SysNDD Logo"
+            rel="preload"
+            class="app-logo"
+          >
+          <div class="brand-text">
+            <div class="app-name">
+              SysNDD
+            </div>
+            <div class="version-display">
+              v{{ appVersion }}-{{ lastCommitHash }}
+            </div>
+          </div>
+        </div>
       </b-navbar-brand>
 
       <b-navbar-toggle target="nav-collapse" />
@@ -92,6 +101,17 @@ import ROLES from '@/assets/js/constants/role_constants';
 
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
+// Importing the package.json file to get the version number
+import packageInfo from '../../package.json';
+
+// Importing the appConfig file to get the version number
+import appConfig from '../config/appConfig.json';
+
+/**
+ * Navigation bar component for the SysNDD web application.
+ * It provides links for navigation, user authentication status,
+ * and displays the current application version and commit hash.
+ */
 export default {
   name: 'Navbar',
   mixins: [toastMixin],
@@ -108,12 +128,17 @@ export default {
       },
       user_from_jwt: [],
       show_search: false,
+      appVersion: packageInfo.version,
+      lastCommitHash: 'loading...',
+      fetchError: false,
     };
   },
   computed: {
-    // here we filter the user dropdown according to user roles
-    // if the user has the required role, the dropdown item is displayed
-    // also add the username to the dropdown
+    /**
+     * Computes the items to be displayed in the right-side dropdown menu.
+     * Filters based on the user's roles and permissions.
+     * @returns {Array} Filtered dropdown items.
+     */
     dropdownItemsRightDisplay() {
       return this.dropdownItemsRight.map((item) => {
         if (item.id === 'user_dropdown') {
@@ -139,8 +164,12 @@ export default {
   },
   mounted() {
     this.isUserLoggedIn();
+    this.fetchLastCommit();
   },
   methods: {
+    /**
+     * Checks if user is logged in by verifying the presence of user and token in local storage.
+     */
     isUserLoggedIn() {
       if (localStorage.user && localStorage.token) {
         this.checkSigninWithJWT();
@@ -156,6 +185,9 @@ export default {
         };
       }
     },
+    /**
+     * Verifies user sign-in status with JWT from local storage, and updates user permissions.
+     */
     async checkSigninWithJWT() {
       const apiAuthenticateURL = `${URLS.API_URL}/api/auth/signin`;
 
@@ -192,13 +224,31 @@ export default {
         localStorage.removeItem('token');
       }
     },
+    /**
+     * Fetches the latest commit hash from the GitHub repository.
+     */
+    async fetchLastCommit() {
+      try {
+        const { repoName } = appConfig;
+        const response = await this.axios.get(`https://api.github.com/repos/${repoName}/commits?per_page=1`);
+
+        const commits = response.data;
+        if (commits.length) {
+          this.lastCommitHash = commits[0].sha.substring(0, 7);
+        }
+      } catch (error) {
+        this.makeToast(error, 'Error fetching last commit:', 'danger');
+        this.fetchError = true;
+        this.lastCommitHash = 'offline';
+      }
+    },
   },
 };
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-/* Styles for the application logo */
+/* Keyframe animations for logo appearance */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -208,6 +258,8 @@ export default {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.1); }
 }
+
+/* Logo styles with animation */
 .app-logo {
   max-width: 92px; /* Fixed maximum width */
   margin-right: 20px; /* Spacing between logo and title */
@@ -252,5 +304,32 @@ a {
 }
 .bg-navbar {
   background-image: linear-gradient(to right, #434343 0%, black 100%);
+}
+
+/* Styles specific to the brand container in the navbar */
+.brand-container {
+  display: flex;
+  align-items: center;
+}
+
+/* Container for the application name and version information */
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding-left: 10px; /* Adjust spacing between logo and text as needed */
+}
+
+/* Styling for the application name */
+.app-name {
+  font-size: 1.5rem; /* Adjust the size as needed */
+  color: #ffffff; /* Adjust the color as needed */
+  margin-bottom: 0.25rem; /* Adjust spacing between app name and version as needed */
+}
+
+/* Styling for displaying the application version and commit hash */
+.version-display {
+  color: #fff;
+  font-size: 0.75rem; /* Adjust the size as needed */
 }
 </style>
