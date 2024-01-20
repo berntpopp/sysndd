@@ -38,12 +38,12 @@ export default {
       default: null,
     },
     initialPerPage: {
-      type: String,
-      default: '10',
+      type: Number,
+      default: 10,
     },
     pageOptions: {
       type: Array,
-      default: () => ['10', '25', '50', '100'],
+      default: () => [10, 25, 50, 100],
     },
   },
   data() {

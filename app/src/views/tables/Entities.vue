@@ -1,3 +1,4 @@
+<!-- Entities table component -->
 <template>
   <div class="container-fluid">
     <!-- Load Entities table component element -->
@@ -21,7 +22,7 @@ export default {
     filter: { type: String, default: null },
     fields: { type: String, default: null },
     pageAfter: { type: String, default: '0' },
-    pageSize: { type: String, default: '10' },
+    pageSize: { type: Number, default: 10 },
     fspec: {
       type: String,
       default:

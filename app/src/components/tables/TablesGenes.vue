@@ -1,3 +1,4 @@
+<!-- components/tables/TablesGenes.vue -->
 <template>
   <div class="container-fluid">
     <b-spinner
@@ -195,7 +196,7 @@
                 <b-card>
                   <b-table
                     :items="row.item.entities"
-                    :fields="entities_fields"
+                    :fields="fields_details"
                     head-variant="light"
                     show-empty
                     small
@@ -479,7 +480,7 @@ export default {
           label: 'Details',
         },
       ],
-      entities_fields: [
+      fields_details: [
         {
           key: 'entity_id',
           label: 'Entity',

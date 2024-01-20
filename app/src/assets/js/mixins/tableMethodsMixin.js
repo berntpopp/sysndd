@@ -1,4 +1,4 @@
-// tableMethodsMixin.js
+// app/src/assets/js/mixins/tableMethodsMixin.js
 /**
  * Mixin with shared methods for table components.
  */
@@ -149,6 +149,10 @@ export default {
         id: node,
         label: node,
       };
+    },
+    handleSortUpdate({ sortBy, sortDesc }) {
+      this.sortBy = sortBy;
+      this.sortDesc = sortDesc;
     },
   },
 };

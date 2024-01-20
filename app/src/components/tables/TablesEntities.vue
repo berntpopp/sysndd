@@ -1,3 +1,4 @@
+<!-- components/tables/TablesEntities.vue -->
 <template>
   <div class="container-fluid">
     <b-spinner
@@ -81,56 +82,18 @@
             <!-- User Interface controls -->
 
             <!-- Main table element -->
-            <b-table
+            <GenericTable
               :items="items"
               :fields="fields"
-              :current-page="currentPage"
-              :filter-included-fields="filterOn"
-              :sort-by.sync="sortBy"
-              :sort-desc.sync="sortDesc"
-              :busy="isBusy"
-              stacked="md"
-              head-variant="light"
-              show-empty
-              small
-              fixed
-              striped
-              hover
-              sort-icon-left
-              no-local-sorting
-              no-local-pagination
+              :field-details="fields_details"
+              :sort-by="sortBy"
+              :sort-desc="sortDesc"
+              @update-sort="handleSortUpdate"
             >
-              <!-- custom formatted header -->
-              <template v-slot:head()="data">
-                <div
-                  v-b-tooltip.hover.top
-                  :data="data"
-                  data-html="true"
-                  :title="
-                    data.label +
-                      ' (unique filtered/total values: ' +
-                      fields
-                        .filter((item) => item.label === data.label)
-                        .map((item) => {
-                          return item.count_filtered;
-                        })[0] +
-                      '/' +
-                      fields
-                        .filter((item) => item.label === data.label)
-                        .map((item) => {
-                          return item.count;
-                        })[0] +
-                      ')'
-                  "
-                >
-                  {{ truncate(data.label.replace(/( word)|( name)/g, ""), 20) }}
-                </div>
-              </template>
-
-              <!-- based on:  https://stackoverflow.com/questions/52959195/bootstrap-vue-b-table-with-filter-in-header -->
+              <!-- Custom filter fields slot -->
               <template
                 v-if="showFilterControls"
-                slot="top-row"
+                v-slot:filter-controls
               >
                 <td
                   v-for="field in fields"
@@ -181,62 +144,42 @@
                   </label>
                 </td>
               </template>
+              <!-- Custom filter fields slot -->
 
-              <template #cell(details)="row">
-                <b-button
-                  class="btn-xs"
-                  variant="outline-primary"
-                  @click="row.toggleDetails"
-                >
-                  {{ row.detailsShowing ? "Hide" : "Show" }}
-                </b-button>
-              </template>
-
-              <template #row-details="row">
-                <b-card>
-                  <b-table
-                    :items="[row.item]"
-                    :fields="fields_details"
-                    stacked
-                    small
-                  />
-                </b-card>
-              </template>
-
-              <template #cell(entity_id)="data">
+              <template v-slot:cell-entity_id="{ row }">
                 <div>
-                  <b-link :href="'/Entities/' + data.item.entity_id">
+                  <b-link :href="'/Entities/' + row.entity_id">
                     <b-badge
                       variant="primary"
                       style="cursor: pointer"
                     >
-                      sysndd:{{ data.item.entity_id }}
+                      sysndd:{{ row.entity_id }}
                     </b-badge>
                   </b-link>
                 </div>
               </template>
 
-              <template #cell(symbol)="data">
+              <template v-slot:cell-symbol="{ row }">
                 <div class="font-italic">
-                  <b-link :href="'/Genes/' + data.item.hgnc_id">
+                  <b-link :href="'/Genes/' + row.hgnc_id">
                     <b-badge
                       v-b-tooltip.hover.leftbottom
                       pill
                       variant="success"
-                      :title="data.item.hgnc_id"
+                      :title="row.hgnc_id"
                     >
-                      {{ data.item.symbol }}
+                      {{ row.symbol }}
                     </b-badge>
                   </b-link>
                 </div>
               </template>
 
-              <template #cell(disease_ontology_name)="data">
+              <template v-slot:cell-disease_ontology_name="{ row }">
                 <div class="overflow-hidden text-truncate">
                   <b-link
                     :href="
                       '/Ontology/' +
-                        data.item.disease_ontology_id_version.replace(/_.+/g, '')
+                        row.disease_ontology_id_version.replace(/_.+/g, '')
                     "
                   >
                     <b-badge
@@ -244,18 +187,19 @@
                       pill
                       variant="secondary"
                       :title="
-                        data.item.disease_ontology_name +
+                        row.disease_ontology_name +
                           '; ' +
-                          data.item.disease_ontology_id_version
+                          row.disease_ontology_id_version
                       "
                     >
-                      {{ data.item.disease_ontology_name }}
+                      {{ row.disease_ontology_name }}
                     </b-badge>
                   </b-link>
                 </div>
               </template>
 
-              <template #cell(hpo_mode_of_inheritance_term_name)="data">
+              <!-- Custom slot for the 'hpo_mode_of_inheritance_term_name' column -->
+              <template v-slot:cell-hpo_mode_of_inheritance_term_name="{ row }">
                 <div>
                   <b-badge
                     v-b-tooltip.hover.leftbottom
@@ -264,45 +208,45 @@
                     class="justify-content-md-center px-1 mx-1"
                     size="1.3em"
                     :title="
-                      data.item.hpo_mode_of_inheritance_term_name +
+                      row.hpo_mode_of_inheritance_term_name +
                         ' (' +
-                        data.item.hpo_mode_of_inheritance_term +
+                        row.hpo_mode_of_inheritance_term +
                         ')'
                     "
                   >
                     {{
                       inheritance_short_text[
-                        data.item.hpo_mode_of_inheritance_term_name
+                        row.hpo_mode_of_inheritance_term_name
                       ]
                     }}
                   </b-badge>
                 </div>
               </template>
 
-              <template #cell(ndd_phenotype_word)="data">
-                <div>
-                  <b-avatar
-                    v-b-tooltip.hover.left
-                    size="1.4em"
-                    :icon="ndd_icon[data.item.ndd_phenotype_word]"
-                    :variant="ndd_icon_style[data.item.ndd_phenotype_word]"
-                    :title="ndd_icon_text[data.item.ndd_phenotype_word]"
-                  />
-                </div>
+              <!-- Custom slot for the 'ndd_phenotype_word' column -->
+              <template v-slot:cell-ndd_phenotype_word="{ row }">
+                <b-avatar
+                  v-b-tooltip.hover.left
+                  size="1.4em"
+                  :icon="ndd_icon[row.ndd_phenotype_word]"
+                  :variant="ndd_icon_style[row.ndd_phenotype_word]"
+                  :title="ndd_icon_text[row.ndd_phenotype_word]"
+                />
               </template>
 
-              <template #cell(category)="data">
-                <div>
-                  <b-avatar
-                    v-b-tooltip.hover.left
-                    size="1.4em"
-                    icon="stoplights"
-                    :variant="stoplights_style[data.item.category]"
-                    :title="data.item.category"
-                  />
-                </div>
+              <!-- Custom slot for the 'category' column -->
+              <template v-slot:cell-category="{ row }">
+                <b-avatar
+                  v-b-tooltip.hover.left
+                  size="1.4em"
+                  icon="stoplights"
+                  :variant="stoplights_style[row.category]"
+                  :title="row.category"
+                />
               </template>
-            </b-table>
+              <!-- Custom slot for the 'category' column -->
+            </GenericTable>
+            <!-- Main table element -->
           </b-card>
         </b-col>
       </b-row>
@@ -326,7 +270,7 @@
  *  filterInput={null}
  *  fieldsInput={null}
  *  pageAfterInput="0"
- *  pageSizeInput="10"
+ *  pageSizeInput=10
  *  fspecInput="entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details"
  * />
  */
@@ -350,6 +294,7 @@ import TableHeaderLabel from '@/components/small/TableHeaderLabel.vue';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
+import GenericTable from '@/components/small/GenericTable.vue';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
@@ -359,7 +304,7 @@ export default {
   // register the Treeselect component
   components: {
     // Components used within TablesEntities
-    Treeselect, TablePaginationControls, TableDownloadLinkCopyButtons, TableHeaderLabel, TableSearchInput,
+    Treeselect, TablePaginationControls, TableDownloadLinkCopyButtons, TableHeaderLabel, TableSearchInput, GenericTable,
   },
   mixins: [
     // Mixins used within TablesEntities
@@ -377,7 +322,7 @@ export default {
     filterInput: { type: String, default: null },
     fieldsInput: { type: String, default: null },
     pageAfterInput: { type: String, default: '0' },
-    pageSizeInput: { type: String, default: '10' },
+    pageSizeInput: { type: Number, default: 10 },
     fspecInput: {
       type: String,
       default:
@@ -469,11 +414,15 @@ export default {
     filter(value) {
       this.filtered();
     },
-    sortBy(value) {
-      this.handleSortByOrDescChange();
+    sortBy(newVal, oldVal) {
+      if (newVal !== oldVal) {
+        this.handleSortByOrDescChange();
+      }
     },
-    sortDesc(value) {
-      this.handleSortByOrDescChange();
+    sortDesc(newVal, oldVal) {
+      if (newVal !== oldVal) {
+        this.handleSortByOrDescChange();
+      }
     },
   },
   created() {
@@ -482,19 +431,22 @@ export default {
   mounted() {
   // Lifecycle hooks
     // transform input sort string to object and assign
-    const sort_object = this.sortStringToVariables(this.sortInput);
-    this.sortBy = sort_object.sortBy;
-    this.sortDesc = sort_object.sortDesc;
+    // fixes double loading and update bugs
+    // TODO: find a better way to do this
+    if (this.sortInput !== '+entity_id') {
+      const sort_object = this.sortStringToVariables(this.sortInput);
+      this.sortBy = sort_object.sortBy;
+      this.sortDesc = sort_object.sortDesc;
+    }
 
     // conditionally perform data load based on filter input
     // fixes double loading and update bugs
     if (this.filterInput !== null && this.filterInput !== 'null' && this.filterInput !== '') {
       // transform input filter string from params to object and assign
       this.filter = this.filterStrToObj(this.filterInput, this.filter);
-    } else {
-      // initiate first data load
-      this.loadData();
     }
+
+    this.loadData();
 
     setTimeout(() => {
       this.loading = false;
