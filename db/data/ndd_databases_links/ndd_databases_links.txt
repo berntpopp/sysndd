@@ -1,0 +1,10 @@
+name	link	format	list_output	deprecated
+radboudumc_ID	https://order.radboudumc.nl/en/LabProduct/Pdf/30240	pdf	radboudumc_list	no
+gene2phenotype_ID	https://www.ebi.ac.uk/gene2phenotype/downloads/DDG2P.csv.gz	csv	gene2phenotype_list	no
+panelapp_ID	https://panelapp.genomicsengland.co.uk/panels/285/download/01234/	tsv	panelappID_list	no
+sfari	https://gene.sfari.org//wp-content/themes/sfari-gene/utilities/download-csv.php?api-endpoint=genes	csv	sfari_list	no
+geisinger_DBD	https://dbd.geisingeradmi.org/downloads/DBD-Genes-Full-Data.csv	csv	geisinger_list	no
+orphanet_id	https://id-genes.orphanet.app/es/index/sysid_index_1	json	orphanet_id_list	no
+hpo_phenotype_to_genes	http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt	txt	omim_ndd_list	yes
+phenotype_hpoa	http://purl.obolibrary.org/obo/hp/hpoa/phenotype.hpoa	txt	omim_ndd_list	omim_ndd_list	no
+omim_genemap2	https://data.omim.org/downloads/VVpx0Ng3TneJyOfawPWFcg/genemap2.txt	txt	omim_ndd_list	no

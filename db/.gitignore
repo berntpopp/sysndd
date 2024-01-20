@@ -1,0 +1,9 @@
+# R files
+.Rhistory
+
+# config files
+sysndd_db.yml
+initial_users.csv
+
+# omim files
+omim_links.txt

@@ -464,7 +464,7 @@ function(signup_data) {
 
 
 ## athentication login user
-## example data: {"user_name":"Bernt", "password":"password"}
+## example data: {"user_name":"Testuser", "password":"password"}
 ## based on https://github.com/jandix/sealr/blob/master/examples/jwt_simple_example.R
 #* @serializer json list(na="string")
 #' @post /api/auth/signin
