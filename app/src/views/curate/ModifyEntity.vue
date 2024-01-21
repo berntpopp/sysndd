@@ -1,3 +1,4 @@
+<!-- views/curate/ModifyEntity.vue -->
 <template>
   <div class="container-fluid">
     <b-container fluid>
