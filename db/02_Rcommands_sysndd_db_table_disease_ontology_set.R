@@ -160,8 +160,6 @@ HPO_all_children_from_term <- function(term_input) {
 ## define OxO functions
 ## these functions calculate mappings to other ontologies
 
-ontology_id <- "OMIM:100300"
-
 oxo_mapping_from_ontology_id <- function(ontology_id)  {
 
   url <- paste0("https://www.ebi.ac.uk/spot/oxo/api/mappings?fromId=", ontology_id)

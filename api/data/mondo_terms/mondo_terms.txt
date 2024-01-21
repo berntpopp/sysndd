@@ -1,0 +1,12 @@
+disease_ontology_id	disease_ontology_name
+MONDO:0001071	intellectual disability
+MONDO:0005258	autism spectrum disorder
+MONDO:0100062	developmental and epileptic encephalopathy
+MONDO:0019046	leukodystrophy
+MONDO:0044970	mitochondrial disease
+MONDO:0020022	central nervous system malformation
+MONDO:0002254	syndromic disease
+MONDO:0005066	metabolic disease
+MONDO:0005071	nervous system disorders
+MONDO:0019056	neuromuscular disease
+MONDO:0700096	human disease

@@ -1,3 +1,4 @@
+<!-- views/curate/ApproveUser.vue -->
 <template>
   <div class="container-fluid">
     <b-container fluid>

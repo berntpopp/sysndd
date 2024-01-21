@@ -1,0 +1,5 @@
+default:
+  hpo_obo_url: "https://github.com/obophenotype/human-phenotype-ontology/releases/download/v2023-10-09/hp.obo"
+  mpo_obo_url: "https://github.com/mgijax/mammalian-phenotype-ontology/releases/download/v2023-10-31/mp.obo"
+  mondo_obo_url: "http://purl.obolibrary.org/obo/mondo.obo"
+  mondo_term_file: "data/mondo_terms/mondo_terms.txt"

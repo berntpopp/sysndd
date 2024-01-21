@@ -5,9 +5,10 @@ config.yml
 
 # Ignore the results directory in api folder
 results/*.json
+results/ontology/*.*
 
 # Ignore the data directory in api folder
-data/*.gz
+data/*.*
 
 # Ignore the log files in logs directory in api folder
 logs/*.log

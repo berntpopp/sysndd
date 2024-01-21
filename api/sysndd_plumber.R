@@ -34,6 +34,7 @@ library(FactoMineR)
 library(vctrs)
 library(httr)
 library(ellipsis)
+library(ontologyIndex)
 ##-------------------------------------------------------------------##
 
 
@@ -124,6 +125,11 @@ source("functions/analyses-functions.R", local = TRUE)
 source("functions/helper-functions.R", local = TRUE)
 source("functions/external-functions.R", local = TRUE)
 source("functions/logging-functions.R", local = TRUE)
+source("functions/file-functions.R", local = TRUE)
+
+source("functions/hpo-functions.R", local = TRUE)
+source("functions/hgnc-functions.R", local = TRUE)
+source("functions/ontology-functions.R", local = TRUE)
 
 # convert to memoise functions
 # Expire items in cache after 60 minutes
@@ -3600,10 +3606,10 @@ function() {
 #*
 #* @tag status
 #* @serializer json list(na="string")
-#* 
+#*
 #* @response 200: Returns a success message.
 #* @response 403: User does not have permission to write.
-#* 
+#*
 #* @post /api/status/create
 #* @put /api/status/update
 function(req, res, re_review = FALSE) {
@@ -6170,13 +6176,13 @@ function(req, res, user_name, password) {
 #* information; otherwise, it returns an error.
 #*
 #* # `Details`
-#* This is a Plumber endpoint function that uses JWT for user authentication. 
+#* This is a Plumber endpoint function that uses JWT for user authentication.
 #* JWT is a compact, URL-safe means of representing claims to be transferred
 #* between two parties. The claims in a JWT are encoded as a JSON object that
 #* is used as the payload of a JSON Web Signature (JWS) structure enabling the
-#* claims to be digitally signed or integrity protected with a Message 
-#* Authentication Code (MAC) and/or encrypted. 
-#* 
+#* claims to be digitally signed or integrity protected with a Message
+#* Authentication Code (MAC) and/or encrypted.
+#*
 #* The function first checks if the 'Authorization' header is present in the
 #* request. If not, it returns a 401 Unauthorized error. If the 'Authorization'
 #* header is present, the function attempts to decode the JWT. If the JWT is
