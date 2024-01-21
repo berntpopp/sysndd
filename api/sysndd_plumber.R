@@ -196,6 +196,7 @@ read_log_files_mem <- memoise(read_log_files,
 #* @apiTag logging Logging related endpoints
 #* @apiTag user User account related endpoints
 #* @apiTag authentication Authentication related endpoints
+#* @apiTag admin Administration related endpoints
 ##-------------------------------------------------------------------##
 ##-------------------------------------------------------------------##
 
@@ -6313,4 +6314,156 @@ function(req, res) {
 }
 
 ##Authentication section
+##-------------------------------------------------------------------##
+
+
+
+##-------------------------------------------------------------------##
+## Administration section
+
+#* Updates ontology sets and identifies critical changes
+#*
+#* This endpoint performs an ontology update process by aggregating and updating
+#* various ontology data sets. It is restricted to Administrator users and
+#* handles the complex process of updating the ontology data, identifying
+#* critical changes, and updating relevant database tables.
+#*
+#* # `Details`
+#* The function starts by collecting data from multiple tables like 
+#* mode_of_inheritance_list, non_alt_loci_set, and ndd_entity_view. It then computes
+#* a new disease ontology set and identifies critical changes. Finally, it updates
+#* the ndd_entity table with these changes and updates the database tables.
+#*
+#* # `Authorization`
+#* Access to this endpoint is restricted to users with the 'Administrator' role. 
+#* Any requests from users without this role will be denied.
+#*
+#* # `Return`
+#* If successful, the function returns a success message. If the user is unauthorized,
+#* it returns an error message indicating that access is forbidden.
+#*
+#* @tag admin
+#* @serializer json list(na="string")
+#* @put /api/admin/update_ontology
+function(req) {
+  # Check user role for Administrator access
+  if (req$user_role != "Administrator") {
+    res$status <- 403 # Forbidden
+    return(list(error = "Access forbidden. Only administrators can perform this operation."))
+  }
+
+  # moi information from mode_of_inheritance_list table
+  mode_of_inheritance_list <- pool %>%
+    tbl("mode_of_inheritance_list") %>%
+    select(-is_active, -sort) %>%
+    collect()
+
+  # gene information from non_alt_loci_set table
+  non_alt_loci_set <- pool %>%
+    tbl("non_alt_loci_set") %>%
+    select(hgnc_id, symbol) %>%
+    collect()
+
+  # currently used ontology terms from ndd_entity_view
+  ndd_entity_view <- pool %>%
+      tbl("ndd_entity_view") %>%
+    collect()
+
+  ndd_entity_view_ontology_set <- ndd_entity_view %>%
+      select(entity_id, disease_ontology_id_version,
+            disease_ontology_name) %>%
+    collect()
+
+  # all current ontology terms from disease_ontology_set
+  disease_ontology_set <- pool %>%
+      tbl("disease_ontology_set") %>%
+      select(disease_ontology_id_version,
+      disease_ontology_id,
+      hgnc_id,
+      hpo_mode_of_inheritance_term,
+      disease_ontology_name) %>%
+    collect()
+
+  # ndd_entity for later update
+  ndd_entity <- pool %>%
+      tbl("ndd_entity") %>%
+    collect()
+
+  # compute the new disease_ontology_set using the function process_combine_ontology
+  disease_ontology_set_update <- process_combine_ontology(non_alt_loci_set, mode_of_inheritance_list, 3, "data/")
+
+  # compute critical changes between old and new disease_ontology_set using the function identify_critical_ontology_changes
+  critical_changes <- identify_critical_ontology_changes(
+    disease_ontology_set_update,
+    disease_ontology_set,
+    ndd_entity_view_ontology_set
+    )
+
+  # mutate ndd_entity with critical changes
+  # TODO: later this needs to be updated for the entities that can be automatically assigned
+  ndd_entity_mutated <- ndd_entity %>%
+      mutate(disease_ontology_id_version = case_when(
+        (disease_ontology_id_version %in% critical_changes$disease_ontology_id_version) ~ "MONDO:0700096_1",
+        TRUE ~ disease_ontology_id_version
+      )) %>%
+    mutate(entity_quadruple = paste0(hgnc_id, "-", disease_ontology_id_version, "-", hpo_mode_of_inheritance_term, "-", ndd_phenotype)) %>%
+    mutate(number = 1) %>%
+    group_by(entity_quadruple) %>%
+    mutate(entity_quadruple_unique = n(),
+    sum_number = cumsum(number)) %>%
+    ungroup() %>%
+      mutate(disease_ontology_id_version = case_when(
+        entity_quadruple_unique > 1 & sum_number == 1 ~ "MONDO:0700096_1",
+        entity_quadruple_unique > 1 & sum_number == 2 ~ "MONDO:0700096_2",
+        entity_quadruple_unique > 1 & sum_number == 3 ~ "MONDO:0700096_3",
+        entity_quadruple_unique > 1 & sum_number == 4 ~ "MONDO:0700096_4",
+        entity_quadruple_unique > 1 & sum_number == 5 ~ "MONDO:0700096_5",
+        TRUE ~ disease_ontology_id_version
+      )) %>%
+    select(-entity_quadruple, -number, - entity_quadruple_unique, -sum_number)
+
+  # Connect to database
+  sysndd_db <- dbConnect(RMariaDB::MariaDB(),
+                         dbname = dw$dbname,
+                         user = dw$user,
+                         password = dw$password,
+                         server = dw$server,
+                         host = dw$host,
+                         port = dw$port)
+
+  # Start transaction
+  dbBegin(sysndd_db)
+
+  tryCatch({
+    # Your existing code to process and update the ontology sets...
+    # (process_combine_ontology, identify_critical_ontology_changes, etc.)
+
+    # Database update operations...
+    dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 0;")
+    dbExecute(sysndd_db, "TRUNCATE TABLE disease_ontology_set;")
+    dbAppendTable(sysndd_db, "disease_ontology_set", disease_ontology_set_update)
+    dbExecute(sysndd_db, "TRUNCATE TABLE ndd_entity;")
+    dbAppendTable(sysndd_db, "ndd_entity", ndd_entity_mutated)
+    dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 1;")
+
+    # Commit transaction
+    dbCommit(sysndd_db)
+
+    # Successful operation response
+    return(list(status = "Success", message = "Ontology update process completed."))
+
+  }, error = function(e) {
+    # Rollback transaction in case of error
+    dbRollback(sysndd_db)
+
+    # Return error message
+    res$status <- 500 # Internal Server Error
+    return(list(error = "An error occurred during the update process. Transaction rolled back."))
+  })
+
+  # Close database connection
+  dbDisconnect(sysndd_db)
+}
+
+## Administration section
 ##-------------------------------------------------------------------##
