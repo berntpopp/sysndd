@@ -1,4 +1,4 @@
-<!-- Entities table component -->
+<!-- views/tables/Entities.vue -->
 <template>
   <div class="container-fluid">
     <!-- Load Entities table component element -->

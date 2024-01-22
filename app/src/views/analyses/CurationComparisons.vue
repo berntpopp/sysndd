@@ -1,3 +1,4 @@
+<!-- views/analyses/CurationComparisons.vue -->
 <template>
   <div class="container-fluid bg-gradient">
     <b-container fluid>

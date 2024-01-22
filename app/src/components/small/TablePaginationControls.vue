@@ -1,4 +1,4 @@
-<!-- TablePaginationControls.vue -->
+<!-- components/small/TablePaginationControls.vue -->
 <template>
   <div>
     <!-- Page Size Selector -->
