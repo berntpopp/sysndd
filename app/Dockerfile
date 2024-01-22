@@ -33,7 +33,7 @@ RUN apt-get update \
     && git submodule update --init --recursive \
     && cd ../nginx-${nginx_version} \
     && ./configure \
-    --add-dynamic-module=../ngx_brotli \
+    --add-dynamic-module=../brotli \
     --add-dynamic-module=../ngx_devel_kit-0.3.1 \
     --add-dynamic-module=../set-misc-nginx-module-0.33 \
     --prefix=/etc/nginx \
