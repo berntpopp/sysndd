@@ -37,8 +37,27 @@
           :current-page="currentPage"
           :busy="isLoading"
         >
-          <!-- Custom slots for table columns -->
-          <!-- ... existing slots ... -->
+          <!-- Custom slot for the 'PMID' column -->
+          <template v-slot:cell-pmid="{ row }">
+            <div>
+              <b-link
+                :href="'https://pubmed.ncbi.nlm.nih.gov/' + row.pmid"
+                target="_blank"
+              >
+                {{ row.pmid }}
+              </b-link>
+            </div>
+          </template>
+
+          <!-- Custom slot for the 'title' column -->
+          <template v-slot:cell-title="{ row }">
+            <div
+              v-b-tooltip.hover
+              :title="row.title"
+            >
+              {{ truncate(row.title, 30) }}
+            </div>
+          </template>
         </GenericTable>
       </b-card>
     </b-container>
