@@ -64,7 +64,9 @@
                         </b-link>
                       </div>
 
+                      <!-- Link to HGNC -->
                       <b-button
+                        v-b-tooltip.hover.leftbottom
                         class="btn-xs mx-2"
                         variant="outline-primary"
                         :src="id"
@@ -72,13 +74,82 @@
                           'https://www.genenames.org/data/gene-symbol-report/#!/symbol/' +
                             id
                         "
+                        :title="id + ' in the HGNC database'"
                         target="_blank"
                       >
                         <b-icon
                           icon="box-arrow-up-right"
                           font-scale="0.8"
                         />
-                        <span class="font-italic"> {{ id }} </span>
+                        <span class="font-italic"> HGNC: {{ id }} </span>
+                      </b-button>
+
+                      <!-- Link to SFARI -->
+                      <b-button
+                        v-b-tooltip.hover.leftbottom
+                        class="btn-xs mx-2"
+                        variant="outline-primary"
+                        :src="id"
+                        :href="'https://gene.sfari.org/database/human-gene/' + id"
+                        :title="id + ' in the SFARI database'"
+                        target="_blank"
+                      >
+                        <b-icon
+                          icon="box-arrow-up-right"
+                          font-scale="0.8"
+                        />
+                        <span class="font-italic"> SFARI: {{ id }} </span>
+                      </b-button>
+
+                      <!-- Link to gene2phenotype -->
+                      <b-button
+                        v-b-tooltip.hover.leftbottom
+                        class="btn-xs mx-2"
+                        variant="outline-primary"
+                        :src="id"
+                        :href="'https://www.ebi.ac.uk/gene2phenotype/search?panel=ALL&search_term=' + id"
+                        :title="id + ' in the gene2phenotype database'"
+                        target="_blank"
+                      >
+                        <b-icon
+                          icon="box-arrow-up-right"
+                          font-scale="0.8"
+                        />
+                        <span class="font-italic"> g2p: {{ id }} </span>
+                      </b-button>
+
+                      <!-- Link to PanelApp -->
+                      <b-button
+                        v-b-tooltip.hover.leftbottom
+                        class="btn-xs mx-2"
+                        variant="outline-primary"
+                        :src="id"
+                        :href="'https://panelapp.genomicsengland.co.uk/panels/entities/' + id"
+                        :title="id + ' in the PanelApp database'"
+                        target="_blank"
+                      >
+                        <b-icon
+                          icon="box-arrow-up-right"
+                          font-scale="0.8"
+                        />
+                        <span class="font-italic"> panelapp: {{ id }} </span>
+                      </b-button>
+
+                      <!-- Link to ClinGen using HGNC id -->
+                      <b-button
+                        v-b-tooltip.hover.leftbottom
+                        class="btn-xs mx-2"
+                        variant="outline-primary"
+                        :src="id"
+                        :href="'https://search.clinicalgenome.org/kb/genes/' + data.item.hgnc_id"
+                        :title="id + ' in the ClinGen database'"
+                        target="_blank"
+                      >
+                        <b-icon
+                          icon="box-arrow-up-right"
+                          font-scale="0.8"
+                        />
+                        <span class="font-italic"> ClinGen: {{ id }} </span>
                       </b-button>
                     </b-col>
                   </b-row>
