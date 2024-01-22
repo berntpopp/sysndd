@@ -14,7 +14,9 @@
           <b-row>
             <b-col>
               <!-- You can put a title or additional controls here -->
-              <h5 class="mb-1">Recent NDD publications (Pubtator)</h5>
+              <h5 class="mb-1">
+                Recent NDD publications (Pubtator)
+              </h5>
             </b-col>
           </b-row>
         </template>
@@ -100,10 +102,10 @@ export default {
     async fetchPublicationsData(page = 1) {
       this.isLoading = true;
       try {
-        const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/publication/pubtator/search?start_page=${page}&max_pages=${this.perPage}`);
-        this.publicationsData = response.data;
-        // TODO: get the total number of rows from the response (this.totalRows = response.data.total;)
-        this.totalRows = 100;
+        const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/publication/pubtator/search?current_page=${page}&max_pages=${this.perPage}`);
+        this.publicationsData = response.data.data;
+        // TODO: review and correct this for total pages vs total rows
+        [this.totalRows] = response.data.meta.totalPages;
       } catch (error) {
         console.error('Failed to fetch publications:', error);
       } finally {

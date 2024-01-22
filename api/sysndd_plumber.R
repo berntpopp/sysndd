@@ -2820,28 +2820,44 @@ function(req, res, pmid) {
 #* @tag publication
 #* @serializer json list(na="string")
 #*
-#* @param start_page Numeric: The starting page number for the API response (for pagination).
+#* @param current_page Numeric: The starting page number for the API response (for pagination).
 #*
 #* @response 200 OK. Returns the list of publications' metadata.
 #*
 #* @get /api/publication/pubtator/search
-function(req, res, start_page = 1) {
+function(req, res, current_page = 1) {
 
   # TODO: Put this in a config or allow user input
   query <- '("intellectual disability" OR "mental retardation" OR "autism" OR "epilepsy" OR "neurodevelopmental disorder" OR "neurodevelopmental disease" OR "epileptic encephalopathy") AND (gene OR syndrome) AND (variant OR mutation)'
 
-  max_pages = 1
+  max_pages <- 1
 
   # Validate and process input parameters
-  start_page <- as.numeric(start_page)
+  current_page <- as.numeric(current_page)
 
   # Call the function to fetch data from PubTator
-  pmids_data <- pubtator_v3_pmids_from_request(query, start_page, max_pages)
+  pmids_data <- pubtator_v3_pmids_from_request(query, current_page, max_pages)
 
-  # Return the fetched data as JSON
+  # Calculate the total pages based on your query and items per page
+  per_page <- 10
+  total_pages <- pubtator_v3_total_pages_from_query(query)
+
+  # Create the response data structure
+  # TODO: fix arrays retured as strings
+  response_data <- list(
+    meta = list(
+      "perPage" = per_page,
+      "currentPage" = current_page,
+      "totalPages" = total_pages
+    ),
+    data = pmids_data
+  )
+
+  # Return the response as JSON
   res$status <- 200
-  return(pmids_data)
+  return(response_data)
 }
+
 
 ## Publication endpoints
 ##-------------------------------------------------------------------##
