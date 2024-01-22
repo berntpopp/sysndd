@@ -130,6 +130,7 @@ source("functions/file-functions.R", local = TRUE)
 source("functions/hpo-functions.R", local = TRUE)
 source("functions/hgnc-functions.R", local = TRUE)
 source("functions/ontology-functions.R", local = TRUE)
+source("functions/pubtator-functions.R", local = TRUE)
 
 # convert to memoise functions
 # Expire items in cache after 60 minutes
@@ -2801,6 +2802,45 @@ function(req, res, pmid) {
     str_replace_all("[^0-9]+", "")
 
   check_pmid(pmid)
+}
+
+
+#* Search Publications on PubTator
+#*
+#* This endpoint queries the PubTator API to retrieve publications based on a given search query.
+#* It allows pagination through the results.
+#*
+#* # `Details`
+#* Retrieves a list of publications' metadata, such as PMIDs, titles, journals, and dates,
+#* based on the search query. Supports pagination through the results.
+#*
+#* # `Return`
+#* Returns a list of publications' metadata as JSON.
+#*
+#* @tag publication
+#* @serializer json list(na="string")
+#*
+#* @param start_page Numeric: The starting page number for the API response (for pagination).
+#*
+#* @response 200 OK. Returns the list of publications' metadata.
+#*
+#* @get /api/publication/pubtator/search
+function(req, res, start_page = 1) {
+
+  # TODO: Put this in a config or allow user input
+  query <- '("intellectual disability" OR "mental retardation" OR "autism" OR "epilepsy" OR "neurodevelopmental disorder" OR "neurodevelopmental disease" OR "epileptic encephalopathy") AND (gene OR syndrome) AND (variant OR mutation)'
+
+  max_pages = 1
+
+  # Validate and process input parameters
+  start_page <- as.numeric(start_page)
+
+  # Call the function to fetch data from PubTator
+  pmids_data <- pubtator_v3_pmids_from_request(query, start_page, max_pages)
+
+  # Return the fetched data as JSON
+  res$status <- 200
+  return(pmids_data)
 }
 
 ## Publication endpoints
