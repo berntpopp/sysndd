@@ -12,5 +12,6 @@ libicu-dev \
 liblzma-dev \
 libsodium-dev \
 libtool
-RUN Rscript -e 'install.packages(c("Rcpp", "plumber", "DBI", "RMariaDB", "jsonlite", "config", "jose", "RCurl", "stringdist", "xlsx", "easyPubMed", "rvest", "lubridate", "pool", "memoise", "coop", "reshape2", "blastula", "keyring", "future", "knitr", "rlang", "timetk", "xml2", "igraph", "BiocManager", "logger", "tictoc", "fs", "factoextra", "FactoMineR", "vctrs", "httr", "stringr", "ellipsis", "ontologyIndex"), repos="https://cloud.r-project.org")'
+RUN Rscript -e 'install.packages(c("Rcpp", "plumber", "DBI", "RMariaDB", "jsonlite", "config", "jose", "RCurl", "stringdist", "xlsx", "easyPubMed", "rvest", "lubridate", "devtools", "memoise", "coop", "reshape2", "blastula", "keyring", "future", "knitr", "rlang", "timetk", "xml2", "igraph", "BiocManager", "logger", "tictoc", "fs", "factoextra", "FactoMineR", "vctrs", "httr", "stringr", "ellipsis", "ontologyIndex"), repos="https://cloud.r-project.org")'
+RUN Rscript -e 'require(devtools); install_version("pool", version = "1.0.1", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'BiocManager::install(c("STRINGdb"))'
