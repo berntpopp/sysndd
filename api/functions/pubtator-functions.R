@@ -4,6 +4,44 @@ require(tidyverse)
 require(jsonlite)
 
 
+#' Retrieve Total Number of Pages from PubTator API v3 for a Given Query
+#'
+#' This function contacts the PubTator API v3 and retrieves the total number of pages
+#' of results available for a specific query. This is useful for understanding the scope
+#' of the data set and planning pagination strategies when retrieving all data.
+#'
+#' @param query Character string containing the search query for PubTator.
+#' @param api_base_url Character string containing the base URL of the PubTator API.
+#'        Default is "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/".
+#' @param endpoint_search Character string containing the API endpoint for searching.
+#'        Default is "search/".
+#' @param query_parameter Character string containing the URL parameter for the search query.
+#'        Default is "?text=".
+#'
+#' @return Numeric value indicating the total number of pages available for the query.
+#'         Returns NULL if the request fails.
+#'
+#' @examples
+#' \dontrun{
+#'   total_pages <- pubtator_v3_total_pages_from_query("BRCA1")
+#' }
+#'
+#' @export
+pubtator_v3_total_pages_from_query <- function(query, 
+                                               api_base_url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/", 
+                                               endpoint_search = "search/", 
+                                               query_parameter = "?text=") {
+  url_search <- paste0(api_base_url, endpoint_search, query_parameter, query, "&page=1")
+  tryCatch({
+    response_search <- fromJSON(URLencode(url_search), flatten = TRUE)
+    return(response_search$total_pages)
+  }, error = function(e) {
+    warning("Failed to fetch the total pages for the query: ", query, " Error: ", e$message)
+    return(NULL)
+  })
+}
+
+
 #' Fetch PMIDs and Associated Data from PubTator API v3 Based on Query
 #'
 #' This function queries the PubTator v3 API to retrieve PubMed IDs (PMIDs) and associated metadata 
