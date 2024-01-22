@@ -29,7 +29,7 @@ RUN apt-get update \
     && wget https://github.com/vision5/ngx_devel_kit/archive/refs/tags/v0.3.1.tar.gz \
     && tar zxf v0.3.1.tar.gz \
     && git clone -b v1.0.9 --depth=1 https://github.com/google/brotli.git \
-    && cd ngx_brotli \
+    && cd brotli \
     && git submodule update --init --recursive \
     && cd ../nginx-${nginx_version} \
     && ./configure \
