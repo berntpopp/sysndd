@@ -1,3 +1,4 @@
+<!-- components/analyses/AnalysesTimePlot.vue -->
 <template>
   <b-container fluid>
     <!-- User Interface controls -->
