@@ -12,7 +12,7 @@ libicu-dev \
 liblzma-dev \
 libsodium-dev \
 libtool
-RUN Rscript -e 'install.packages(c("devtools", httr), repos="https://cloud.r-project.org")'
+RUN Rscript -e 'install.packages(c("devtools", "httr"), repos="https://cloud.r-project.org")'
 RUN Rscript -e 'require(devtools); install_version("pool", version = "1.0.1", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'require(devtools); install_version("Rcpp", version = "1.0.10", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'require(devtools); install_version("plumber", version = "1.2.1", repos = "http://cran.us.r-project.org")'
