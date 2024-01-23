@@ -44,5 +44,5 @@ RUN Rscript -e 'require(devtools); install_version("tictoc", version = "1.2", re
 RUN Rscript -e 'require(devtools); install_version("fs", version = "1.6.2", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'require(devtools); install_version("factoextra", version = "1.0.7", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'require(devtools); install_version("FactoMineR", version = "2.8", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("vctrs", version = "0.6.2", repos = "http://cran.us.r-project.org")'
+RUN Rscript -e 'require(devtools); install_version("vctrs", version = "0.6.3", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'BiocManager::install(c("STRINGdb"))'
