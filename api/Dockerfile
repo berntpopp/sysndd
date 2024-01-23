@@ -12,7 +12,7 @@ libicu-dev \
 liblzma-dev \
 libsodium-dev \
 libtool
-RUN Rscript -e 'install.packages(c("devtools", "httr"), repos="https://cloud.r-project.org")'
+RUN Rscript -e 'install.packages(c("devtools", "httr", "stringr", "ellipsis", "ontologyIndex"), repos="https://cloud.r-project.org")'
 RUN Rscript -e 'require(devtools); install_version("pool", version = "1.0.1", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'require(devtools); install_version("Rcpp", version = "1.0.10", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'require(devtools); install_version("plumber", version = "1.2.1", repos = "http://cran.us.r-project.org")'
@@ -45,7 +45,4 @@ RUN Rscript -e 'require(devtools); install_version("fs", version = "1.6.2", repo
 RUN Rscript -e 'require(devtools); install_version("factoextra", version = "1.0.7", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'require(devtools); install_version("FactoMineR", version = "2.8", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'require(devtools); install_version("vctrs", version = "0.6.2", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("stringr", version = "1.5.0", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("ellipsis", version = "0.3.2", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("ontologyIndex", version = "2.11", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'BiocManager::install(c("STRINGdb"))'
