@@ -1,4 +1,4 @@
-FROM rocker/tidyverse:4.3.0
+FROM rocker/tidyverse:4.2.1
 RUN apt-get update && apt-get install -y \
 ## build tools for factoextra compilation
 build-essential git wget libpcre3 libpcre3-dev libssl-dev zlib1g-dev cmake \
