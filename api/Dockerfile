@@ -12,6 +12,7 @@ libicu-dev \
 liblzma-dev \
 libsodium-dev \
 libtool
+RUN ulimit -s 65536
 RUN Rscript -e 'install.packages(c("httr", "stringr", "ellipsis", "ontologyIndex", "vctrs"), repos="https://cloud.r-project.org")'
 RUN Rscript -e 'require(devtools); install_version("pool", version = "1.0.1", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'require(devtools); install_version("Rcpp", version = "1.0.10", repos = "http://cran.us.r-project.org")'
