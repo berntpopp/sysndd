@@ -62,7 +62,7 @@ gen_string_clust_obj <- function(hgnc_list,
       mutate(hash_filter = list(
         post_db_hash(identifiers %>% purrr::pluck("symbol")))
       ) %>%
-      mutate(hash_filter = hash_filter$links$hash) %>%
+      mutate(hash_filter = purrr::pluck(hash_filter, 1, 1, "hash")) %>%
       ungroup() %>%
       rowwise() %>%
       mutate(cluster_size = nrow(identifiers)) %>%
