@@ -4040,7 +4040,7 @@ function(res,
 
   # generate object to return
   entity_view_nested <- entity_view_cumsum %>%
-    nest_by(!!rlang::sym(group), .key = "values") %>%
+    tidyr::nest(.by = !!rlang::sym(group), .key = "values") %>%
     ungroup() %>%
     select("group" = !!rlang::sym(group), values)
 
@@ -4644,7 +4644,7 @@ function(searchterm, helper = TRUE) {
   # unique values (helper = TRUE) or entities (helper = FALSE)
   if (helper) {
     sysndd_db_entity_search_return <- sysndd_db_entity_search_return %>%
-      nest_by(results, .key = "values") %>%
+      tidyr::nest(.by = c(results), .key = "values") %>%
       ungroup() %>%
       pivot_wider(id_cols = everything(), names_from = "results", values_from = "values")
   } else {
@@ -4722,7 +4722,7 @@ function(searchterm, tree = FALSE) {
         searchdist)
   } else {
     do_set_search_return_helper <- do_set_search_return %>%
-      nest_by(result, .key = "values") %>%
+      tidyr::nest(.by = c(results), .key = "values") %>%
       ungroup() %>%
       pivot_wider(id_cols = everything(), names_from = "result", values_from = "values")
   }
@@ -4789,7 +4789,7 @@ function(searchterm, tree = FALSE) {
       select(id = hgnc_id, label = result, symbol, name, search, searchdist)
   } else {
     nal_set_search_return_helper <- non_alt_loci_set_search_return %>%
-      nest_by(result, .key = "values") %>%
+      tidyr::nest(.by = c(results), .key = "values") %>%
       ungroup() %>%
       pivot_wider(id_cols = everything(), names_from = "result", values_from = "values")
   }
@@ -4865,7 +4865,7 @@ function(searchterm, tree = FALSE) {
         searchdist)
   } else {
     moi_list_search_return_helper <- moi_list_search_return %>%
-      nest_by(result, .key = "values") %>%
+      tidyr::nest(.by = c(results), .key = "values") %>%
       ungroup() %>%
       pivot_wider(id_cols = everything(), names_from = "result", values_from = "values")
   }
@@ -4913,7 +4913,7 @@ function(tree = FALSE) {
     status_list_return_helper <- status_list_collected
   } else {
     status_list_return_helper <- status_list_collected %>%
-      nest_by(category, .key = "values") %>%
+      tidyr::nest(.by = c(results), .key = "values") %>%
       ungroup() %>%
       pivot_wider(id_cols = everything(), names_from = "category", values_from = "values")
   }
@@ -5017,7 +5017,7 @@ function(tree = FALSE) {
         hpo_mode_of_inheritance_term_name)
   } else {
     moi_list_return_helper <- moi_list_collected %>%
-      nest_by(hpo_mode_of_inheritance_term, .key = "values") %>%
+      tidyr::nest(.by = c(hpo_mode_of_inheritance_term), .key = "values") %>%
       ungroup() %>%
       pivot_wider(id_cols = everything(),
         names_from = "hpo_mode_of_inheritance_term",
