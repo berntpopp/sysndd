@@ -58,9 +58,9 @@ gen_string_clust_obj <- function(hgnc_list,
       mutate(cluster = row_number()) %>%
       unnest_longer(col = "STRING_id") %>%
       left_join(sysndd_db_string_id_table, by = c("STRING_id")) %>%
-      nest_by(cluster, .key = "identifiers") %>%
+      tidyr::nest(.by = c(cluster), .key = "identifiers") %>%
       mutate(hash_filter = list(
-        post_db_hash(identifiers %>% select(symbol)))
+        post_db_hash(identifiers %>% purrr::pluck("symbol")))
       ) %>%
       mutate(hash_filter = hash_filter$links$hash) %>%
       ungroup() %>%
@@ -183,10 +183,10 @@ gen_mca_clust_obj <- function(wide_phenotypes_df,
     # generate cluster tibble
     clusters_tibble <- tibble(mca_hcpc$data.clust) %>%
       select(entity_id, cluster = clust) %>%
-      nest_by(cluster, .key = "identifiers") %>%
+      tidyr::nest(.by = c(cluster), .key = "identifiers") %>%
       mutate(hash_filter = list(
         post_db_hash(identifiers %>%
-          select(entity_id), "entity_id", "/api/entity"))
+          purrr::pluck("entity_id"), "entity_id", "/api/entity"))
       ) %>%
       mutate(hash_filter = hash_filter$links$hash) %>%
       ungroup() %>%
