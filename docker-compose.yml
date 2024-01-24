@@ -34,10 +34,10 @@ services:
   restart: unless-stopped
  api:
   build: ./api/
-   ulimits:
-      stack:
-         soft: "16384"
-         hard: "65536"
+  ulimits:
+   stack:
+    soft: 16384
+    hard: 65536
   command: Rscript /sysndd_api_volume/start_sysndd_api.R
   restart: always
   volumes:
