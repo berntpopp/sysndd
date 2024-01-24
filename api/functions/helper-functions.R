@@ -42,8 +42,7 @@ nest_gene_tibble <- function(tibble) {
 
   # nest then re-apply the sorting
     nested_tibble <- tibble %>%
-        nest_by(symbol, hgnc_id, entities_count, .key = "entities") %>%
-        ungroup() %>%
+        tidyr::nest(.by = c(symbol, hgnc_id, entities_count), .key = "entities") %>%
         arrange(factor(symbol, levels = initial_sort$symbol))
 
     return(nested_tibble)
