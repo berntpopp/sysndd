@@ -6116,7 +6116,7 @@ function(req, res, user_id) {
 #* @serializer json list(na="string")
 #* @accept json
 #* @put /api/user/update
-function(req, res, user_details) {
+function(req, res) {
 
   # Check if the user has admin privileges
   if (req$user_role != "Administrator") {
@@ -6125,7 +6125,7 @@ function(req, res, user_details) {
   }
 
   # Parse the JSON payload from the request
-  user_details <- jsonlite::fromJSON(user_details)
+  user_details <- req$argsBody$user_details
 
   # Check for required user_id in the payload
   if (is.null(user_details$user_id)) {
