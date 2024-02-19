@@ -6028,6 +6028,151 @@ function(req, res, new_pass_1 = "", new_pass_2 = "") {
   }
 }
 
+
+#* Deletes a user from the system.
+#*
+#* # `Details`
+#* This endpoint allows Administrators to delete a user from the database.
+#* It checks for administrator role, validates the existence of the user, and then proceeds to delete the user.
+#* The operation is logged for audit purposes.
+#*
+#* # `Input`
+#* - `user_id`: (integer) The ID of the user to be deleted.
+#*
+#* # `Return`
+#* A JSON object containing the status of the operation. In case of success, a confirmation message is returned.
+#* For unauthorized access, incorrect input, or internal errors, a corresponding status code and error message are returned.
+#*
+#* @tag user
+#* @serializer json list(na="string")
+#* @delete /api/user/delete
+function(req, res, user_id) {
+  user_id <- as.integer(user_id)
+
+  # Verify administrator access
+  if (req$user_role != "Administrator") {
+    res$status <- 403 # Forbidden
+    return(list(error = "Administrative privileges required for this action."))
+  }
+
+  # Validate user_id input
+  if (!is.numeric(user_id) || user_id <= 0) {
+    res$status <- 400 # Bad Request
+    return(list(error = "Invalid user_id provided."))
+  }
+
+  # Connect to the database
+  sysndd_db <- dbConnect(RMariaDB::MariaDB(),
+    dbname = dw$dbname,
+    user = dw$user,
+    password = dw$password,
+    server = dw$server,
+    host = dw$host,
+    port = dw$port)
+
+  # Check if the user exists
+  exist_result <- dbGetQuery(sysndd_db, paste0("SELECT COUNT(*) as count FROM user WHERE user_id = ", user_id, ";"))
+  if (exist_result$count == 0) {
+    dbDisconnect(sysndd_db)
+    res$status <- 404 # Not Found
+    return(list(error = "User not found."))
+  }
+
+  # Prepare and execute the delete query
+  delete_result <- tryCatch({
+    dbExecute(sysndd_db, paste0("DELETE FROM user WHERE user_id = ", user_id, ";"))
+  }, error = function(e) {
+    NULL
+  })
+
+  # Disconnect from the database
+  dbDisconnect(sysndd_db)
+
+  # Check if the delete was successful
+  if (is.null(delete_result)) {
+    res$status <- 500 # Internal Server Error
+    return(list(error = "Failed to delete user."))
+  }
+
+  list(message = "User successfully deleted.")
+}
+
+
+#* Updates the details of an existing user.
+#*
+#* # `Details`
+#* This endpoint allows Administrators to modify user attributes. It accepts a JSON object containing
+#* the user attributes to be updated. The `user_id` is required to identify the user, and at least one
+#* other attribute must be provided for the update.
+#*
+#* # `Input`
+#* - `user_json`: (JSON object) A JSON object representing the user attributes to be updated.
+#*    Example: `{"user_id": 2, "email": "newemail@example.com", "first_name": "John", "family_name": "Doe"}`
+#*
+#* # `Return`
+#* A JSON object containing the outcome of the update process.
+#*
+#* @tag user
+#* @serializer json list(na="string")
+#* @accept json
+#* @put /api/user/update
+function(req, res, user_details) {
+
+  # Check if the user has admin privileges
+  if (req$user_role != "Administrator") {
+    res$status <- 403 # Forbidden
+    return(list(error = "Administrative privileges required for this action."))
+  }
+
+  # Parse the JSON payload from the request
+  user_details <- jsonlite::fromJSON(user_details)
+
+  # Check for required user_id in the payload
+  if (is.null(user_details$user_id)) {
+    res$status <- 400 # Bad Request
+    return(list(error = "The user_id field is required."))
+  }
+
+  # Connect to the database
+  sysndd_db <- dbConnect(RMariaDB::MariaDB(),
+    dbname = dw$dbname,
+    user = dw$user,
+    password = dw$password,
+    server = dw$server,
+    host = dw$host,
+    port = dw$port)
+
+  # Prepare the update query, excluding user_id which should not be modified
+  fields_to_update <- names(user_details)[names(user_details) != "user_id"]
+  set_clause <- paste(
+    sapply(fields_to_update, function(field) {
+      paste0(field, " = '", user_details[[field]], "'")
+    }, USE.NAMES = FALSE),
+    collapse = ", "
+  )
+
+  # Construct the full SQL update query
+  query <- sprintf("UPDATE user SET %s WHERE user_id = %d;", set_clause, user_details[["user_id"]])
+
+  # Execute the update query
+  result <- tryCatch({
+    dbExecute(sysndd_db, query)
+  }, error = function(e) {
+    list(error = e$message)
+  })
+
+  # Disconnect from the database
+  dbDisconnect(sysndd_db)
+
+  # Check if the update was successful
+  if (is.list(result) && !is.null(result$error)) {
+    res$status <- 500 # Internal Server Error
+    return(list(error = "Failed to update user details: ", result$error))
+  }
+
+  list(message = "User details updated successfully.")
+}
+
 ## User endpoint section
 ##-------------------------------------------------------------------##
 
