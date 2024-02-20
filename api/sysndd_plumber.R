@@ -159,6 +159,16 @@ gen_mca_clust_obj_mem <- memoise(gen_mca_clust_obj,
 read_log_files_mem <- memoise(read_log_files,
   cache = cm)
 
+# function to get the API version
+# based on https://stackoverflow.com/questions/65021158/programmatically-use-apiversion-with-plumber
+#' @plumber
+function(pr) {
+  assign("apiV",
+         function() {
+           pr$.__enclos_env__$private$globalSettings$info$version
+         },
+         envir = pr$environment)
+}
 ##-------------------------------------------------------------------##
 ##-------------------------------------------------------------------##
 
@@ -6664,6 +6674,34 @@ function(req) {
 
   # Close database connection
   dbDisconnect(sysndd_db)
+}
+
+
+#* Retrieves the current API version
+#*
+#* This endpoint provides the current version of the API. It's a simple utility
+#* function that can be useful for clients to check the API version they are interacting with.
+#* This can help in ensuring compatibility, especially when multiple versions of the API exist.
+#*
+#* # `Details`
+#* The function utilizes the internal structure of the Plumber router (`pr`) to access the
+#* API version. It's a read-only endpoint, primarily used for informational purposes.
+#* The version number is retrieved programmatically from the Plumber router's environment.
+#*
+#* # `Authorization`
+#* This endpoint does not require any specific user role for access. It is openly accessible
+#* for any client or user who needs to know the API version.
+#*
+#* # `Return`
+#* Returns a JSON object containing the current version of the API. The structure of the
+#* return object is: `{"api_version": "x.y.z"}`, where `x.y.z` is the current version number.
+#*
+#* @tag admin
+#* @serializer unboxedJSON list(na="string")
+#* @get /api/admin/api_version
+function() {
+  version <- apiV()
+  return(list(api_version = version))
 }
 
 ## Administration section
