@@ -5,7 +5,7 @@ config.yml
 
 # Ignore the results directory in api folder
 results/*.json
-results/ontology/*.*
+results/ontology/*.csv
 
 # Ignore the data directory in api folder
 data/*.*
