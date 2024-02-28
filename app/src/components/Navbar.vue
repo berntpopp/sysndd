@@ -25,7 +25,7 @@
               SysNDD
             </div>
             <div class="version-display">
-              v{{ appVersion }}-{{ lastCommitHash }}
+              v{{ appVersion }}
             </div>
           </div>
         </div>
@@ -110,7 +110,7 @@ import appConfig from '../config/appConfig.json';
 /**
  * Navigation bar component for the SysNDD web application.
  * It provides links for navigation, user authentication status,
- * and displays the current application version and commit hash.
+ * and displays the current application version.
  */
 export default {
   name: 'Navbar',
@@ -129,7 +129,6 @@ export default {
       user_from_jwt: [],
       show_search: false,
       appVersion: packageInfo.version,
-      lastCommitHash: 'loading...',
       fetchError: false,
     };
   },
@@ -164,7 +163,6 @@ export default {
   },
   mounted() {
     this.isUserLoggedIn();
-    this.fetchLastCommit();
   },
   methods: {
     /**
@@ -222,24 +220,6 @@ export default {
       } else {
         localStorage.removeItem('user');
         localStorage.removeItem('token');
-      }
-    },
-    /**
-     * Fetches the latest commit hash from the GitHub repository.
-     */
-    async fetchLastCommit() {
-      try {
-        const { repoName } = appConfig;
-        const response = await this.axios.get(`https://api.github.com/repos/${repoName}/commits?per_page=1`);
-
-        const commits = response.data;
-        if (commits.length) {
-          this.lastCommitHash = commits[0].sha.substring(0, 7);
-        }
-      } catch (error) {
-        this.makeToast(error, 'Error fetching last commit:', 'danger');
-        this.fetchError = true;
-        this.lastCommitHash = 'offline';
       }
     },
   },
@@ -327,9 +307,10 @@ a {
   margin-bottom: 0.25rem; /* Adjust spacing between app name and version as needed */
 }
 
-/* Styling for displaying the application version and commit hash */
+/* Styling for displaying the application version */
 .version-display {
   color: #fff;
   font-size: 0.75rem; /* Adjust the size as needed */
+  margin-top: -10px; /* Decrease the top margin to bring it closer to the app name */
 }
 </style>
