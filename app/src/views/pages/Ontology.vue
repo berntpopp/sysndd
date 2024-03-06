@@ -322,7 +322,6 @@ export default {
   methods: {
     async loadOntologyInfo() {
       this.loading = true;
-      console.log(this.$route.params.disease_term);
       const apiDiseaseOntologyURL = `${process.env.VUE_APP_API_URL
       }/api/ontology/${
         encodeURIComponent(this.$route.params.disease_term)

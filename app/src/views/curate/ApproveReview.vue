@@ -1376,10 +1376,8 @@ export default {
       }/api/entity?filter=equals(entity_id,${
         entity_input
       })`;
-      console.log(apiGetURL);
       try {
         const response = await this.axios.get(apiGetURL);
-        console.log(response.data.data);
         // assign to local variable
         [this.entity_info] = response.data.data;
       } catch (e) {
