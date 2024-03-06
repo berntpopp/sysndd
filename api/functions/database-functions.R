@@ -495,7 +495,6 @@ put_post_db_phen_con <- function(request_method,
   phenotype_list_collected <- pool %>%
     tbl("phenotype_list") %>%
     select(phenotype_id) %>%
-    arrange(HPO_term) %>%
     collect()
 
   # check if received phenotypes are in allowed phenotypes
