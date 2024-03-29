@@ -439,14 +439,14 @@ export default {
       this.sortDesc = sort_object.sortDesc;
     }
 
-    // conditionally perform data load based on filter input
+    // transform input filter string to object and assign
     // fixes double loading and update bugs
-    if (this.filterInput !== null && this.filterInput !== 'null' && this.filterInput !== '') {
-      // transform input filter string from params to object and assign
+    // by checking if the filter is not null
+    if (this.filterInput && this.filterInput !== 'null' && this.filterInput !== '') {
       this.filter = this.filterStrToObj(this.filterInput, this.filter);
+    } else {
+      this.loadData();
     }
-
-    this.loadData();
 
     setTimeout(() => {
       this.loading = false;

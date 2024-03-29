@@ -1,3 +1,4 @@
+<!-- views/pages/Gene.vue -->
 <template>
   <div class="container-fluid bg-gradient">
     <b-spinner
