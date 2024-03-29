@@ -2,14 +2,13 @@
 <template>
   <div class="container-fluid">
     <b-container fluid>
+      <!-- Updating Ontology Annotations Section -->
       <b-row class="justify-content-md-center py-2">
         <b-col
           col
           md="10"
         >
           <h3>Manage Annotations</h3>
-
-          <!-- Updating Ontology Annotations Section -->
           <b-card
             header-tag="header"
             align="left"
@@ -39,6 +38,42 @@
           </b-card>
         </b-col>
       </b-row>
+
+      <!-- Updating HGNC Data Section -->
+      <b-row class="justify-content-md-center py-2">
+        <b-col
+          col
+          md="10"
+        >
+          <b-card
+            header-tag="header"
+            align="left"
+            body-class="p-1"
+            header-class="p-1"
+            border-variant="dark"
+            class="mb-3"
+          >
+            <template #header>
+              <h5 class="mb-0 text-left font-weight-bold">
+                Updating HGNC Data
+              </h5>
+            </template>
+
+            <b-button
+              variant="primary"
+              :disabled="loadingHgnc"
+              @click="updateHgncData"
+            >
+              <b-spinner
+                v-if="loadingHgnc"
+                small
+                type="grow"
+              />
+              {{ loadingHgnc ? 'Updating...' : 'Update HGNC Data' }}
+            </b-button>
+          </b-card>
+        </b-col>
+      </b-row>
     </b-container>
   </div>
 </template>
@@ -49,6 +84,7 @@ export default {
   data() {
     return {
       loading: false, // Indicates the loading state of the API call
+      loadingHgnc: false, // Loading state for HGNC data update
     };
   },
   methods: {
@@ -73,6 +109,29 @@ export default {
         });
       } finally {
         this.loading = false; // Reset loading to false after the API call
+      }
+    },
+    async updateHgncData() {
+      this.loadingHgnc = true;
+      try {
+        const response = await this.axios.put(`${process.env.VUE_APP_API_URL}/api/admin/update_hgnc_data`, {}, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        this.$bvToast.toast('HGNC data updated successfully', {
+          title: 'Success',
+          variant: 'success',
+          solid: true,
+        });
+      } catch (error) {
+        this.$bvToast.toast('Failed to update HGNC data', {
+          title: 'Error',
+          variant: 'danger',
+          solid: true,
+        });
+      } finally {
+        this.loadingHgnc = false;
       }
     },
   },

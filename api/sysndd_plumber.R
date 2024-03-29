@@ -3,6 +3,7 @@
 
 ##-------------------------------------------------------------------##
 # load libraries
+library(biomaRt)
 library(plumber)
 library(tidyverse)
 library(stringr)
@@ -131,6 +132,7 @@ source("functions/hpo-functions.R", local = TRUE)
 source("functions/hgnc-functions.R", local = TRUE)
 source("functions/ontology-functions.R", local = TRUE)
 source("functions/pubtator-functions.R", local = TRUE)
+source("functions/ensembl-functions.R", local = TRUE)
 
 # convert to memoise functions
 # Expire items in cache after 60 minutes
@@ -367,7 +369,7 @@ function(req,
   ndd_entity_review <- pool %>%
     tbl("ndd_entity_review") %>%
     filter(is_primary) %>%
-    select(entity_id, synopsis)
+    dplyr::select(entity_id, synopsis)
 
   # get entity data from database
   # '!!!' in filter needed to evaluate formula for any/ all
@@ -532,13 +534,13 @@ function(req, res, direct_approval = FALSE) {
             tibble::as_tibble(compact(
               create_data$review$literature$gene_review)),
             .id = "publication_type") %>%
-          select(publication_id = value, publication_type) %>%
+          dplyr::select(publication_id = value, publication_type) %>%
           mutate(publication_type = case_when(
             publication_type == 1 ~ "additional_references",
             publication_type == 2 ~ "gene_review"
           )) %>%
           unique() %>%
-          select(publication_id, publication_type) %>%
+          dplyr::select(publication_id, publication_type) %>%
           arrange(publication_id) %>%
           mutate(publication_id = str_replace_all(publication_id,
             "\\s",
@@ -554,7 +556,7 @@ function(req, res, direct_approval = FALSE) {
               "additional_references",
             TRUE ~ publication_type
           )) %>%
-          select(-gr_check)
+          dplyr::select(-gr_check)
 
       } else {
         publications_received <- tibble::as_tibble_row(c(publication_id = NA,
@@ -567,7 +569,7 @@ function(req, res, direct_approval = FALSE) {
           add_column(response_entity$entry$entity_id) %>%
           add_column(create_data$review$comment) %>%
           add_column(review_user_id) %>%
-          select(entity_id = `response_entity$entry$entity_id`,
+          dplyr::select(entity_id = `response_entity$entry$entity_id`,
             synopsis = value,
             review_user_id,
             comment = `create_data$review$comment`)
@@ -575,7 +577,7 @@ function(req, res, direct_approval = FALSE) {
         sysnopsis_received <- tibble::as_tibble(create_data$review$synopsis) %>%
           add_column(response_entity$entry$entity_id) %>%
           add_column(review_user_id) %>%
-          select(entity_id = `response_entity$entry$entity_id`,
+          dplyr::select(entity_id = `response_entity$entry$entity_id`,
             synopsis = value,
             review_user_id,
             comment = NULL)
@@ -659,7 +661,7 @@ function(req, res, direct_approval = FALSE) {
         bind_rows(tibble::as_tibble(response_publication_conn)) %>%
         bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
         bind_rows(tibble::as_tibble(resp_variation_ontology_conn)) %>%
-        select(status, message) %>%
+        dplyr::select(status, message) %>%
         mutate(status = max(status)) %>%
         mutate(message = str_c(message, collapse = "; ")) %>%
         unique()
@@ -6674,6 +6676,77 @@ function(req) {
 
   # Close database connection
   dbDisconnect(sysndd_db)
+}
+
+
+#* Updates HGNC data and refreshes the non_alt_loci_set table in the MySQL database
+#*
+#* This endpoint performs an update process by downloading the latest HGNC data,
+#* processing it, and updating the non_alt_loci_set table. It is restricted to Administrator users.
+#*
+#* # `Details`
+#* The function starts by downloading the latest HGNC file, processing the gene information,
+#* updating STRINGdb identifiers, computing gene coordinates, and then updating the
+#* non_alt_loci_set table in the MySQL database with these new values.
+#*
+#* # `Authorization`
+#* Access to this endpoint is restricted to users with the 'Administrator' role.
+#* Any requests from users without this role will be denied.
+#*
+#* # `Return`
+#* If successful, the function returns a success message. If the user is unauthorized,
+#* it returns an error message indicating that access is forbidden.
+#*
+#* @tag admin
+#* @serializer json list(na="string")
+#* @put /api/admin/update_hgnc_data
+function(req, res) {
+  # Check user role for Administrator access
+  if (req$user_role != "Administrator") {
+    res$status <- 403 # Forbidden
+    return(list(error = "Access forbidden. Only administrators can perform this operation."))
+  }
+
+  # Call the function to update the HGNC data
+  hgnc_data <- update_process_hgnc_data()
+
+  # Connect to database
+  sysndd_db <- dbConnect(RMariaDB::MariaDB(),
+                        dbname = dw$dbname,
+                        user = dw$user,
+                        password = dw$password,
+                        server = dw$server,
+                        host = dw$host,
+                        port = dw$port)
+
+  # Start transaction
+  dbBegin(sysndd_db)
+
+  # Ensure dbDisconnect is called even if an error occurs
+  on.exit(dbDisconnect(sysndd_db), add = TRUE)
+
+  tryCatch({
+
+    # Update operations for the non_alt_loci_set table
+    dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 0;")
+    dbExecute(sysndd_db, "TRUNCATE TABLE non_alt_loci_set;")
+    dbWriteTable(sysndd_db, "non_alt_loci_set", hgnc_data, append = TRUE)
+    dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 1;")
+
+    # Commit transaction
+    dbCommit(sysndd_db)
+
+    # Successful operation response
+    list(status = "Success", message = "HGNC data update process completed.")
+
+  }, error = function(e) {
+    # Rollback transaction in case of error
+    dbRollback(sysndd_db)
+
+    # Return error message
+    res$status <- 500 # Internal Server Error
+    list(error = "An error occurred during the HGNC update process. Transaction rolled back.", details = e$message)
+  })
 }
 
 

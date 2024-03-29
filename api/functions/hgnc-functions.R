@@ -198,3 +198,109 @@ symbol_from_hgnc_id_grouped <- function(input_tibble, request_max = 150) {
 
   return(input_tibble_request$response)
 }
+
+
+#' Update and Process HGNC Data
+#'
+#' This function checks for the latest HGNC file and downloads it if necessary, 
+#' then processes the gene information, updates STRINGdb identifiers, computes gene 
+#' coordinates, and returns a tibble with the updated data. If the data is updated 
+#' successfully, it saves it as a CSV file.
+#'
+#' @param hgnc_link The URL to download the latest HGNC file.
+#' @param output_path String, the path where the output CSV file will be stored.
+#' @param max_file_age Integer, the number of days to consider the file recent enough not to require re-downloading.
+#' @return A tibble containing the updated non_alt_loci_set data.
+#'
+#' @examples
+#' \dontrun{
+#'   updated_hgnc_data <- update_process_hgnc_data()
+#' }
+#'
+#' @export
+update_process_hgnc_data <- function(hgnc_link = "http://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/tsv/non_alt_loci_set.txt",
+                                      output_path = "data/",
+                                      max_file_age = 1) {
+  # TODO: replace with function
+  current_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"), "%Y-%m-%d")
+
+  # define the file base name
+  hgnc_file_basename <- "non_alt_loci_set"
+
+  if (check_file_age(hgnc_file_basename, output_path, max_file_age)) {
+    hgnc_file <- get_newest_file(hgnc_file_basename, output_path)
+  } else {
+    hgnc_file <- paste0(output_path,
+      hgnc_file_basename,
+      ".",
+      current_date,
+      ".txt")
+
+    download.file(hgnc_link, hgnc_file, mode = "wb", quiet = TRUE)
+  }
+
+  # Load the downloaded HGNC file
+  non_alt_loci_set <- suppressWarnings(read_delim(hgnc_file, "\t", col_names = TRUE, show_col_types = FALSE) %>%
+    mutate(update_date = current_date))
+
+  # get symbols for string db mapping
+  non_alt_loci_set_table <- non_alt_loci_set %>% 
+    dplyr::select(symbol) %>%
+    unique()
+
+  # convert to data frame
+  non_alt_loci_set_df <- non_alt_loci_set_table %>% 
+      as.data.frame()
+
+  # Load STRINGdb database
+  string_db <- STRINGdb$new(version = "11.5", species = 9606, score_threshold = 200, input_directory = output_path)
+
+  # Map the gene symbols to STRING identifiers
+  non_alt_loci_set_mapped <- string_db$map(non_alt_loci_set_df, "symbol")
+
+  # Convert the mapped data to a tibble
+  non_alt_loci_set_mapped_tibble <- as_tibble(non_alt_loci_set_mapped) %>%
+    filter(!is.na(STRING_id)) %>%
+    group_by(symbol) %>%
+    summarise(STRING_id = str_c(STRING_id, collapse=";")) %>%
+    ungroup %>%
+    unique()
+
+  ## join with String identifiers
+  non_alt_loci_set_string <- non_alt_loci_set %>% 
+    left_join(non_alt_loci_set_mapped_tibble, by="symbol")
+
+  # Compute gene coordinates from symbol and Ensembl ID
+  non_alt_loci_set_coordinates <- non_alt_loci_set_string %>%
+    mutate(hg19_coordinates_from_ensembl =
+      gene_coordinates_from_ensembl(ensembl_gene_id)) %>%
+    mutate(hg19_coordinates_from_symbol =
+      gene_coordinates_from_symbol(symbol)) %>%
+    mutate(hg38_coordinates_from_ensembl =
+      gene_coordinates_from_ensembl(ensembl_gene_id, reference = "hg38")) %>%
+    mutate(hg38_coordinates_from_symbol =
+      gene_coordinates_from_symbol(symbol, reference = "hg38")) %>%
+    mutate(bed_hg19 =
+      case_when(
+        !is.na(hg19_coordinates_from_ensembl$bed_format) ~
+          hg19_coordinates_from_ensembl$bed_format,
+        is.na(hg19_coordinates_from_ensembl$bed_format) ~
+          hg19_coordinates_from_symbol$bed_format,
+      )
+    ) %>%
+    mutate(bed_hg38 =
+      case_when(
+        !is.na(hg38_coordinates_from_ensembl$bed_format) ~
+          hg38_coordinates_from_ensembl$bed_format,
+        is.na(hg38_coordinates_from_ensembl$bed_format) ~
+          hg38_coordinates_from_symbol$bed_format,
+      )
+    ) %>%
+    dplyr::select(-hg19_coordinates_from_ensembl,
+      -hg19_coordinates_from_symbol,
+      -hg38_coordinates_from_ensembl,
+      -hg38_coordinates_from_symbol)
+
+  # Return the tibble
+  return(non_alt_loci_set_coordinates)
+}
