@@ -1,3 +1,4 @@
+<!-- views/curate/ApproveReview.vue -->
 <template>
   <div class="container-fluid">
     <b-container fluid>
@@ -666,7 +667,7 @@
               input-id="review-genereviews-select"
               no-outer-focus
               class="my-0"
-              separator=" ,;"
+              separator=",;"
               :tag-validator="tagValidatorPMID"
               remove-on-delete
             >
@@ -1213,6 +1214,26 @@ export default {
       isBusy: true,
     };
   },
+  watch: {
+    select_additional_references: {
+      handler(newVal) {
+        const sanitizedValues = newVal.map(this.sanitizeInput);
+        if (!this.arraysAreEqual(this.select_additional_references, sanitizedValues)) {
+          this.select_additional_references = sanitizedValues;
+        }
+      },
+      deep: true,
+    },
+    select_gene_reviews: {
+      handler(newVal) {
+        const sanitizedValues = newVal.map(this.sanitizeInput);
+        if (!this.arraysAreEqual(this.select_gene_reviews, sanitizedValues)) {
+          this.select_gene_reviews = sanitizedValues;
+        }
+      },
+      deep: true,
+    },
+  },
   mounted() {
     this.loadStatusList();
     this.loadPhenotypesList();
@@ -1390,10 +1411,12 @@ export default {
 
       // define literature specific attributes as constants from inputs
       // first clean the arrays
-      const select_additional_references_clean = this.select_additional_references.map((element) => element.replace(/\s+/g, ''));
+      const select_additional_references_clean = this.select_additional_references.map(
+        (element) => this.sanitizeInput(element),
+      );
 
       const select_gene_reviews_clean = this.select_gene_reviews.map(
-        (element) => element.replace(/\s+/g, ''),
+        (element) => this.sanitizeInput(element),
       );
 
       const replace_literature = new Literature(
@@ -1632,7 +1655,7 @@ export default {
     },
     tagValidatorPMID(tag) {
       // Individual PMID tag validator function
-      const tag_copy = tag.replace(/\s+/g, '');
+      const tag_copy = this.sanitizeInput(tag);
       return (
         !Number.isNaN(Number(tag_copy.replaceAll('PMID:', '')))
         && tag_copy.includes('PMID:')
@@ -1651,6 +1674,31 @@ export default {
     truncate(str, n) {
       // Use the utility function here
       return Utils.truncate(str, n);
+    },
+    /**
+     * Sanitizes the input by removing extra white spaces, especially for PubMed IDs.
+     * Expected input format: "PMID: 123456"
+     * Output format: "PMID:123456"
+     * @param {String} input - The input string to be sanitized.
+     * @return {String} The sanitized string.
+     */
+    sanitizeInput(input) {
+      if (!input) return '';
+
+      // Split the input based on ':' (e.g., "PMID: 123456")
+      const parts = input.split(':');
+
+      // Check if the input format is as expected
+      if (parts.length !== 2 || !parts[0].trim().startsWith('PMID')) return input;
+
+      // Trim whitespace from both parts and rejoin them
+      return `${parts[0].trim()}:${parts[1].trim()}`;
+    },
+    arraysAreEqual(array1, array2) {
+      if (array1.length !== array2.length) {
+        return false;
+      }
+      return array1.every((value, index) => value === array2[index]);
     },
   },
 };
