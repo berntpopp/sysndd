@@ -916,7 +916,8 @@ function(req, res) {
           select(status, message) %>%
           unique() %>%
           mutate(status = max(status)) %>%
-          mutate(message = str_c(message, collapse = "; "))
+          mutate(message = str_c(message, collapse = "; ")) %>%
+          unique()
         ##-------------------------------------------------------------------##
 
         ##-------------------------------------------------------------------##

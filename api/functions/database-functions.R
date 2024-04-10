@@ -213,9 +213,11 @@ put_post_db_review <- function(request_method,
     mutate(synopsis = str_replace_all(synopsis, "'", "''"))
   ##-------------------------------------------------------------------##
 
+  # TODO: check if synopsis is not empty and through error if it is
   if (("synopsis" %in% colnames(review_received)) &&
       ("entity_id" %in% colnames(review_received)) &&
-      nchar(review_received$synopsis) > 0) {
+      (nchar(review_received$synopsis) > 0 ||
+      is.na(review_received$synopsis))) {
 
     ##-------------------------------------------------------------------##
     # check request type and perform database update accordingly
