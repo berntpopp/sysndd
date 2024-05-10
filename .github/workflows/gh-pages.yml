@@ -1,0 +1,90 @@
+# based onhttps://github.com/horosin/pages-deploy
+# and https://lucacozzuto.medium.com/automatic-reports-with-bookdown-and-github-actions-3c19498394aa
+# and https://stackoverflow.com/questions/76723921/install-a-github-r-package-for-a-github-action
+# and https://docs.github.com/en/actions/learn-github-actions/variables
+# and https://github.com/salimkayabasi/drawio-github-action-installation/blob/main/.github/workflows/drawio.yml
+name: github pages
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'documentation/**'
+      - '.github/workflows/**'
+      - 'analysis/**/results/**'
+  pull_request:
+    paths:
+      - 'documentation/**'
+      - '.github/workflows/**'
+      - 'analysis/**/results/**'
+
+env:
+    DRAWIO_DISABLE_UPDATE: true
+    DISPLAY: :99.0
+    CONFIG_FILE: config.yml
+    R_ENVIRONMENT: github
+
+jobs:
+    bookdown:
+        name: Render-Book
+        runs-on: ubuntu-20.04
+        defaults:
+            run:
+              working-directory: ./documentation
+        steps:
+            - uses: actions/checkout@v4
+            - uses: r-lib/actions/setup-r@v2
+              with:
+                r-version: 'release'
+                rtools-version: '42'
+                use-public-rspm: true
+            - uses: r-lib/actions/setup-pandoc@v2
+            - name: Install TinyTeX
+              uses: r-lib/actions/setup-tinytex@v2
+              env:
+                TINYTEX_INSTALLER: TinyTeX
+            - name: Instaling librsvg2
+              timeout-minutes: 3
+              run: |
+                sudo apt-get install librsvg2-bin
+            - name: Instaling drawio
+              timeout-minutes: 3
+              run: |
+                  Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+                  sudo mkdir -p /run/user/1001
+                  sudo chmod -R 777 /run/user/1001
+                  sudo snap install drawio
+            - name: Install packages
+              run: Rscript -e 'install.packages(c("rmarkdown", "bookdown", "config", "remotes", "webshot", "readr", "dplyr", "DT", "plotly", "knitr", "knitrdrawio", "config", "ggplot2", "ComplexUpset", "snakecase", "readxl", "shinyLP"))'
+            - name: Install knitrdrawio
+              run: Rscript -e 'remotes::install_url("https://github.com/rchaput/knitrdrawio/archive/refs/tags/v0.2.2.tar.gz")'
+            - name: Install phantomjs
+              run: Rscript -e 'webshot::install_phantomjs()'
+            - name: Render Book
+              run: Rscript -e 'bookdown::render_book("index.Rmd", "all")'
+            - uses: actions/upload-artifact@v4
+              with:
+                name: build
+                path: ./documentation/build
+                if-no-files-found: error
+    checkout-and-deploy:
+        runs-on: ubuntu-20.04
+        needs: bookdown
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+            - name: Download artifact
+              uses: actions/download-artifact@v4
+              with:
+                # Artifact name
+                name: build
+                # Destination path
+                path: docs
+            - name: Deploy to GitHub Pages
+              uses: Cecilapp/GitHub-Pages-deploy@v3
+              env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                build_dir: docs
+                branch: gh-pages

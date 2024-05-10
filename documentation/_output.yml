@@ -1,0 +1,18 @@
+bookdown::gitbook:
+  css: style.css
+  config:
+    toc:
+      before: |
+        <li><a href="./">SysNDD Documentation</a></li>
+    download: ["pdf", "epub"]
+bookdown::pdf_book:
+  includes:
+    in_header: preamble.tex
+  latex_engine: xelatex
+  citation_package: natbib
+  keep_tex: no
+bookdown::epub_book:
+  stylesheet: style.css
+  cover_image: static/img/android-chrome-192x192.png
+bookdown::word_document2:
+  toc: true
