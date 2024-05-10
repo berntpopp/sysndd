@@ -56,7 +56,7 @@ jobs:
                   sudo chmod -R 777 /run/user/1001
                   sudo snap install drawio
             - name: Install packages
-              run: Rscript -e 'install.packages(c("rmarkdown", "bookdown", "config", "remotes", "webshot", "readr", "dplyr", "DT", "plotly", "knitr", "knitrdrawio", "config", "ggplot2", "ComplexUpset", "snakecase", "readxl", "shinyLP"))'
+              run: Rscript -e 'install.packages(c("tidyverse", "rmarkdown", "bookdown", "config", "remotes", "webshot", "readr", "dplyr", "DT", "plotly", "knitr", "knitrdrawio", "config", "ggplot2", "ComplexUpset", "snakecase", "readxl", "shinyLP"))'
             - name: Install knitrdrawio
               run: Rscript -e 'remotes::install_url("https://github.com/rchaput/knitrdrawio/archive/refs/tags/v0.2.2.tar.gz")'
             - name: Install phantomjs
