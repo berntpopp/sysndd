@@ -17,7 +17,6 @@ language:
     edit: "Edit"
     chapter_name: "Chapter | "
 download:
-  - ["SysNDD_documentation.pdf", "PDF"]
   - ["SysNDD_documentation.epub", "EPUB"]
   - ["SysNDD_documentation.docx", "DOCX"]
 view: https://github.com/berntpopp/sysndd/tree/master/docs/%s
