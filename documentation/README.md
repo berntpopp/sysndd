@@ -5,7 +5,7 @@ The repository subfolder for the SysNDD documentation.
 First change the work directory:
 
 ```
-## workfolder <- "path/to/the/edit_docs/"
+## workfolder <- "path/to/the/documentation/"
 setwd(workfolder)
 ```
 
