@@ -10,10 +10,10 @@ library(DT) # needed to generate nice data tables in html
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 ## load the Excel data
-variation_ontology_list <- read_excel("data/lists_2022-05-03.xlsx", 
+variation_ontology_list <- read_excel("data/lists_2024-05-15.xlsx", 
     sheet = "variation_ontology_list")
 
-mode_of_inheritance_list <- read_excel("data/lists_2022-05-03.xlsx", 
+mode_of_inheritance_list <- read_excel("data/lists_2024-05-15.xlsx", 
     sheet = "mode_of_inheritance_list")
 ```
 ---
@@ -41,7 +41,7 @@ As of 2022-06-07 the database schema looks like this:
 ## Variant ontology
 
 We use the "Variation Ontology" as ontology for the annotation of variation effects and mechanisms.
-Currently active terms are represented in following table.
+Currently active terms are represented in following table. Initially we used 85 variant ontology terms. This was extended to include 11 additional terms for non-coding RNA variation. The column 'use' depicts the variant ontology terms used for our curation. The column 'sort' is used to display the most commonly used ontology terms first.
 
 ```{r, echo=FALSE}
 
@@ -53,8 +53,7 @@ variation_ontology_list_filtered <- variation_ontology_list %>%
                            '" target="_blank" >',
                            vario_id,
                            '</a>')) %>%
-  arrange(sort, vario_name) %>%
-  select(-use, -sort)
+  arrange(sort, vario_name)
 
 datatable(variation_ontology_list_filtered,
           filter = 'top', # this argument positions the filtering input at the top of the table
