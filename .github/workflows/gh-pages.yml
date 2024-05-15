@@ -42,21 +42,8 @@ jobs:
               uses: r-lib/actions/setup-tinytex@v2
               env:
                 TINYTEX_INSTALLER: TinyTeX
-            - name: Instaling librsvg2
-              timeout-minutes: 3
-              run: |
-                sudo apt-get install librsvg2-bin
-            - name: Instaling drawio
-              timeout-minutes: 3
-              run: |
-                  Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-                  sudo mkdir -p /run/user/1001
-                  sudo chmod -R 777 /run/user/1001
-                  sudo snap install drawio
             - name: Install packages
-              run: Rscript -e 'install.packages(c("tidyverse", "rmarkdown", "bookdown", "config", "remotes", "webshot", "readr", "dplyr", "DT", "plotly", "knitr", "knitrdrawio", "config", "ggplot2", "ComplexUpset", "snakecase", "readxl", "shinyLP"))'
-            - name: Install knitrdrawio
-              run: Rscript -e 'remotes::install_url("https://github.com/rchaput/knitrdrawio/archive/refs/tags/v0.2.2.tar.gz")'
+              run: Rscript -e 'install.packages(c("tidyverse", "rmarkdown", "bookdown", "config", "webshot", "readr", "DT", "knitr", "ggplot2", "readxl"))'
             - name: Install phantomjs
               run: Rscript -e 'webshot::install_phantomjs()'
             - name: Render Book
