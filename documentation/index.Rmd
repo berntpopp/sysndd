@@ -1,6 +1,6 @@
 --- 
 title: "The SysNDD Documentation"
-author: "Bernt Popp, Melek Firat Altay, Christiane Zweier"
+author: "Bernt Popp, Melek Firat Altay, Simon Früh, Christiane Zweier"
 date: "`r Sys.Date()`"
 site: bookdown::bookdown_site
 output: bookdown::gitbook
