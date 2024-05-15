@@ -1,3 +1,21 @@
+/**
+ * components/Footer.vue
+ *
+ * @description The footer component of the application.
+ * @component Footer
+ *
+ * @script
+ *   - Imports FOOTER_NAV_CONSTANTS from '@/assets/js/constants/footer_nav_constants' to avoid hardcoding URLs in this component.
+ *   - Lazy-loads the FooterNavItem component to optimize performance.
+ *   - Exports the Footer component.
+ *   - Defines the name of the component as 'Footer'.
+ *   - Registers the FooterNavItem component.
+ *   - Defines the data property 'footerItems' as an array of items to be displayed in the footer.
+ *
+ * @style
+ *   - Uses the 'scoped' attribute to limit the styles to this component only.
+ *   - Sets a linear gradient background for the footer.
+ */
 <template>
   <!-- The footer component -->
   <div class="footer">

@@ -1,3 +1,25 @@
+/**
+ * components/HelperBadge.vue
+ *
+ * @description The HelperBadge component displays a dropdown menu with various options for user assistance and feedback.
+ * @component HelperBadge
+ *
+ * @example
+ * <HelperBadge />
+ *
+ * @slot button-content - The content of the button that triggers the dropdown menu.
+ *
+ * @prop {String} variant - The variant of the dropdown button. Default is "primary".
+ * @prop {String} toggle-class - The class to be applied to the dropdown button. Default is "rounded-circle px-2".
+ * @prop {Boolean} no-caret - Whether to hide the caret icon. Default is false.
+ * @prop {Boolean} dropup - Whether to show the dropdown menu above the button. Default is true.
+ * @prop {String} title - The title of the dropdown button.
+ *
+ * @event click - Emitted when a dropdown item is clicked.
+ *
+ * @method copyURLCitation - Copies the URL citation to the clipboard.
+ * @method createInternetArchiveSnapshot - Creates a snapshot of the URL using the Internet Archive API.
+ */
 <template>
   <b-container fluid>
     <!-- https://stackoverflow.com/questions/64487119/how-to-style-the-button-in-bootstrap-vue-dropdown-like-a-circle
