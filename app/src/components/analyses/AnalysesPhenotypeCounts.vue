@@ -26,7 +26,6 @@
 
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
-
 import * as d3 from 'd3';
 
 export default {
@@ -42,6 +41,11 @@ export default {
     this.loadCountData();
   },
   methods: {
+    /**
+     * Fetches phenotype count data from the API and triggers graph generation.
+     * @async
+     * @returns {Promise<void>}
+     */
     async loadCountData() {
       const apiUrl = `${process.env.VUE_APP_API_URL}/api/phenotype/count`;
 
@@ -55,15 +59,22 @@ export default {
         this.makeToast(e, 'Error', 'danger');
       }
     },
+
+    /**
+     * Generates the D3.js bar plot for phenotype counts.
+     */
     generateCountGraph() {
-      // set the dimensions and margins of the graph
+      // Set the dimensions and margins of the graph
       const margin = {
         top: 30, right: 30, bottom: 200, left: 150,
       };
       const width = 760 - margin.left - margin.right;
       const height = 500 - margin.top - margin.bottom;
 
-      // append the svg object to the body of the page
+      // Remove any existing SVG
+      d3.select('#count_dataviz').select('svg').remove();
+
+      // Append the SVG object to the body of the page
       const svg = d3
         .select('#count_dataviz')
         .append('svg')
@@ -72,16 +83,14 @@ export default {
         .append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`);
 
-      // prepare data
+      // Prepare data
       const data = this.itemsCount;
 
       // X axis
       const x = d3
         .scaleBand()
         .range([0, width])
-        .domain(
-          data.map((d) => d.HPO_term),
-        )
+        .domain(data.map((d) => d.HPO_term))
         .padding(0.2);
 
       svg
@@ -94,10 +103,11 @@ export default {
         .style('font-size', '12px');
 
       // Add Y axis
-      const y = d3.scaleLinear().domain([0, 1000]).range([height, 0]);
+      const maxY = d3.max(data, (d) => d.count);
+      const y = d3.scaleLinear().domain([0, maxY * 1.1]).range([height, 0]); // Add 10% buffer to the max value
       svg.append('g').call(d3.axisLeft(y));
 
-      // create a tooltip
+      // Create a tooltip
       const tooltip = d3
         .select('#count_dataviz')
         .append('div')
@@ -109,13 +119,21 @@ export default {
         .style('border-radius', '5px')
         .style('padding', '2px');
 
-      // Three function that change the tooltip when user hover / move / leave a cell
+      /**
+       * Mouseover event handler to display tooltip.
+       * @param {Event} event - The event object.
+       * @param {Object} d - The data point.
+       */
       const mouseover = function mouseover(event, d) {
         tooltip.style('opacity', 1);
-
         d3.select(this).style('stroke', 'black').style('opacity', 1);
       };
 
+      /**
+       * Mousemove event handler to move the tooltip with the mouse.
+       * @param {Event} event - The event object.
+       * @param {Object} d - The data point.
+       */
       const mousemove = function mousemove(event, d) {
         tooltip
           .html(`Count: ${d.count}<br>(${d.HPO_term})`)
@@ -123,9 +141,13 @@ export default {
           .style('top', `${event.layerY + 20}px`);
       };
 
+      /**
+       * Mouseleave event handler to hide the tooltip.
+       * @param {Event} event - The event object.
+       * @param {Object} d - The data point.
+       */
       const mouseleave = function mouseleave(event, d) {
         tooltip.style('opacity', 0);
-
         d3.select(this).style('stroke', 'none');
       };
 
@@ -135,7 +157,7 @@ export default {
         .data(data)
         .enter()
         .append('a')
-        .attr('xlink:href', (d) => `/Phenotypes/?sort=entity_id&filter=any(category,Definitive),all(modifier_phenotype_id,${d.phenotype_id})&page_after=0&page_size=10`) // <- add links to the filtered phenotype table to the bars
+        .attr('xlink:href', (d) => `/Phenotypes/?sort=entity_id&filter=any(category,Definitive),all(modifier_phenotype_id,${d.phenotype_id})&page_after=0&page_size=10`) // Add links to the filtered phenotype table to the bars
         .attr('aria-label', (d) => `Link to phenotypes table for ${d.phenotype_id}`)
         .append('rect')
         .attr('x', (d) => x(d.HPO_term))
