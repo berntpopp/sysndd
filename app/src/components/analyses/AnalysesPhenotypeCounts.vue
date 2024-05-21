@@ -8,9 +8,15 @@
       border-variant="dark"
     >
       <template #header>
-        <h6 class="mb-1 text-left font-weight-bold">
-          Bar plot of phenotype counts.
-        </h6>
+        <div class="d-flex justify-content-between align-items-center">
+          <h6 class="mb-1 text-left font-weight-bold">
+            Bar plot of phenotype counts.
+          </h6>
+          <DownloadImageButtons
+            :svg-id="'phenotype-svg'"
+            :file-name="'phenotype_counts'"
+          />
+        </div>
       </template>
 
       <!-- Content -->
@@ -27,9 +33,13 @@
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import * as d3 from 'd3';
+import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 
 export default {
   name: 'AnalysesPhenotypeCounts',
+  components: {
+    DownloadImageButtons,
+  },
   mixins: [toastMixin],
   data() {
     return {
@@ -78,6 +88,7 @@ export default {
       const svg = d3
         .select('#count_dataviz')
         .append('svg')
+        .attr('id', 'phenotype-svg') // Added id for easier selection
         .attr('viewBox', '0 0 760 500')
         .attr('preserveAspectRatio', 'xMinYMin meet')
         .append('g')
