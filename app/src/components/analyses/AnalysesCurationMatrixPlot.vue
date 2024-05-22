@@ -20,51 +20,58 @@
       <b-row>
         <!-- column 1 -->
         <b-col class="my-1" />
-
         <!-- column 2 -->
         <b-col class="my-1" />
-
         <!-- column 3 -->
         <b-col class="my-1" />
-
         <!-- column 4 -->
         <b-col class="my-1" />
       </b-row>
       <!-- User Interface controls -->
 
-      <!-- Content -->
-      <div
-        id="matrix_dataviz"
-        class="svg-container"
-      />
-      <!-- Content -->
+      <!-- Content with overlay spinner -->
+      <div class="position-relative">
+        <div
+          id="matrix_dataviz"
+          class="svg-container"
+        />
+        <div
+          v-show="loadingMatrix"
+          class="float-center m-5"
+        >
+          <b-spinner
+            label="Loading..."
+            class="spinner"
+          />
+        </div>
+      </div>
     </b-card>
   </b-container>
 </template>
 
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
-
 import * as d3 from 'd3';
 
 export default {
   name: 'AnalysesCurationMatrixPlot',
-  // register the Treeselect component
-  components: {},
   mixins: [toastMixin],
   data() {
     return {
       items: [],
       itemsMatrix: [],
-      loadingMatrix: true,
+      loadingMatrix: true, // Added loading state
     };
   },
-  computed: {},
-  watch: {},
   mounted() {
     this.loadMatrixData();
   },
   methods: {
+    /**
+     * Fetches matrix data from the API and triggers graph generation.
+     * @async
+     * @returns {Promise<void>}
+     */
     async loadMatrixData() {
       this.loadingMatrix = true;
 
@@ -74,14 +81,17 @@ export default {
         const response = await this.axios.get(apiUrl);
 
         this.itemsMatrix = response.data;
-
         this.generateGraph();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+      } finally {
+        this.loadingMatrix = false; // Set loading to false after data is fetched
       }
-
-      this.loadingMatrix = false;
     },
+
+    /**
+     * Generates the D3.js matrix plot for cosine similarity.
+     */
     generateGraph() {
       // Graph dimension
       const margin = {
@@ -89,6 +99,9 @@ export default {
       };
       const width = 800 - margin.left - margin.right;
       const height = 600 - margin.top - margin.bottom;
+
+      // Remove any existing SVG
+      d3.select('#matrix_dataviz').select('svg').remove();
 
       // Create the svg area
       const svg = d3
@@ -99,15 +112,11 @@ export default {
         .append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`);
 
-      //
+      // Prepare data
       const data = this.itemsMatrix;
 
       // List of all variables and number of them
-      const domain = Array.from(
-        new Set(
-          data.map((d) => d.x),
-        ),
-      );
+      const domain = Array.from(new Set(data.map((d) => d.x)));
 
       // Build X scales and axis:
       const x = d3.scaleBand().range([0, width]).domain(domain).padding(0.01);
@@ -129,12 +138,9 @@ export default {
       svg.append('g').call(d3.axisLeft(y)).style('font-size', '16px');
 
       // Build color scale
-      const myColor = d3
-        .scaleLinear()
-        .range(['#000080', '#fff', '#B22222'])
-        .domain([-1, 0, 1]);
+      const myColor = d3.scaleLinear().range(['#000080', '#fff', '#B22222']).domain([-1, 0, 1]);
 
-      // create a tooltip
+      // Create a tooltip
       const tooltip = d3
         .select('#matrix_dataviz')
         .append('div')
@@ -146,13 +152,21 @@ export default {
         .style('border-radius', '5px')
         .style('padding', '2px');
 
-      // Three function that change the tooltip when user hover / move / leave a cell
+      /**
+       * Mouseover event handler to display tooltip.
+       * @param {Event} event - The event object.
+       * @param {Object} d - The data point.
+       */
       const mouseover = function mouseover(event, d) {
         tooltip.style('opacity', 1);
-
         d3.select(this).style('stroke', 'black').style('opacity', 1);
       };
 
+      /**
+       * Mousemove event handler to move the tooltip with the mouse.
+       * @param {Event} event - The event object.
+       * @param {Object} d - The data point.
+       */
       const mousemove = function mousemove(event, d) {
         tooltip
           .html(`S(c): ${d.value}<br>(${d.x} &<br>${d.y})`)
@@ -160,13 +174,17 @@ export default {
           .style('top', `${event.layerY + 20}px`);
       };
 
+      /**
+       * Mouseleave event handler to hide the tooltip.
+       * @param {Event} event - The event object.
+       * @param {Object} d - The data point.
+       */
       const mouseleave = function mouseleave(event, d) {
         tooltip.style('opacity', 0);
-
         d3.select(this).style('stroke', 'none');
       };
 
-      // add the squares
+      // Add the squares
       svg
         .selectAll()
         .data(data, (d) => `${d.x}:${d.y}`)
@@ -206,5 +224,15 @@ mark {
   padding-bottom: 0.5em;
   font-weight: bold;
   background-color: #eaadba;
+}
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>
