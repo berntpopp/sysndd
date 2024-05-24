@@ -1,4 +1,3 @@
-<!-- components/analyses/AnalysesTimePlot.vue -->
 <template>
   <b-container fluid>
     <!-- User Interface controls -->
@@ -9,9 +8,15 @@
       border-variant="dark"
     >
       <template #header>
-        <h6 class="mb-1 text-left font-weight-bold">
-          NDD entities and genes over time.
-        </h6>
+        <div class="d-flex justify-content-between align-items-center">
+          <h6 class="mb-1 text-left font-weight-bold">
+            NDD entities and genes over time.
+          </h6>
+          <DownloadImageButtons
+            :svg-id="'timeplot-svg'"
+            :file-name="'entities_over_time'"
+          />
+        </div>
       </template>
       <b-row>
         <!-- column 1 -->
@@ -49,23 +54,33 @@
       </b-row>
       <!-- User Interface controls -->
 
-      <!-- Content -->
-      <div
-        id="my_dataviz"
-        class="svg-container"
-      />
-      <!-- Content -->
+      <!-- Content with overlay spinner -->
+      <div class="position-relative">
+        <b-spinner
+          v-if="loadingData"
+          label="Loading..."
+          class="spinner"
+        />
+        <div
+          v-show="!loadingData"
+          id="my_dataviz"
+          class="svg-container"
+        />
+      </div>
     </b-card>
   </b-container>
 </template>
 
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
-
+import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 import * as d3 from 'd3';
 
 export default {
   name: 'AnalysesTimePlot',
+  components: {
+    DownloadImageButtons,
+  },
   mixins: [toastMixin],
   data() {
     return {
@@ -76,6 +91,7 @@ export default {
       filter_string: 'contains(ndd_phenotype_word,Yes),any(inheritance_filter,Autosomal dominant,Autosomal recessive,X-linked)',
       items: [],
       itemsMeta: [],
+      loadingData: true, // Added loading state
     };
   },
   mounted() {
@@ -83,6 +99,7 @@ export default {
   },
   methods: {
     async loadData() {
+      this.loadingData = true;
       const apiUrl = `${process.env.VUE_APP_API_URL
       }/api/statistics/entities_over_time?aggregate=${
         this.selected_aggregate
@@ -100,6 +117,8 @@ export default {
         this.generateGraph();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+      } finally {
+        this.loadingData = false; // Set loading to false after data is fetched
       }
     },
     generateGraph() {
@@ -120,6 +139,7 @@ export default {
       const svg = d3
         .select('#my_dataviz')
         .append('svg')
+        .attr('id', 'timeplot-svg') // Added id for easier selection
         .attr('viewBox', '0 0 600 400')
         .attr('preserveAspectRatio', 'xMinYMin meet')
         .classed('svg-content', true)
@@ -209,8 +229,8 @@ export default {
           .html(
             `Count: ${d.cumulative_count}<br>Date: ${d.entry_date_text}`,
           )
-          .style('left', `${event.layerX + 20}px`)
-          .style('top', `${event.layerY + 20}px`);
+          .style('left', `${event.clientX + 20}px`)
+          .style('top', `${event.clientY + 20}px`);
       };
 
       const mouseleave = function mouseleave(event, d) {
@@ -239,7 +259,6 @@ export default {
         .attr('cy', (d) => y(d.cumulative_count))
         .attr('r', 5)
         .attr('stroke', 'white')
-        .style('fill', (d) => myColor(d.group))
         .on('mouseover', mouseover)
         .on('mousemove', mousemove)
         .on('mouseleave', mouseleave);
@@ -287,5 +306,18 @@ export default {
   position: absolute;
   top: 0;
   left: 0;
+}
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  margin: 5rem auto;
+  display: block;
+}
+mark {
+  display: inline-block;
+  line-height: 0em;
+  padding-bottom: 0.5em;
+  font-weight: bold;
+  background-color: #eaadba;
 }
 </style>
