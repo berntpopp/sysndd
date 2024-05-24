@@ -19,12 +19,19 @@
         </div>
       </template>
 
-      <!-- Content -->
-      <div
-        id="count_dataviz"
-        class="svg-container"
-      />
-      <!-- Content -->
+      <!-- Content with overlay spinner -->
+      <div class="position-relative">
+        <b-spinner
+          v-if="loadingCount"
+          label="Loading..."
+          class="spinner"
+        />
+        <div
+          v-show="!loadingCount"
+          id="count_dataviz"
+          class="svg-container"
+        />
+      </div>
     </b-card>
     <!-- User Interface controls -->
   </b-container>
@@ -32,8 +39,8 @@
 
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
-import * as d3 from 'd3';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
+import * as d3 from 'd3';
 
 export default {
   name: 'AnalysesPhenotypeCounts',
@@ -44,7 +51,7 @@ export default {
   data() {
     return {
       itemsCount: [],
-      tabIndex: 0,
+      loadingCount: true, // Added loading state
     };
   },
   mounted() {
@@ -57,6 +64,8 @@ export default {
      * @returns {Promise<void>}
      */
     async loadCountData() {
+      this.loadingCount = true;
+
       const apiUrl = `${process.env.VUE_APP_API_URL}/api/phenotype/count`;
 
       try {
@@ -67,6 +76,8 @@ export default {
         this.generateCountGraph();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+      } finally {
+        this.loadingCount = false; // Set loading to false after data is fetched
       }
     },
 
@@ -198,5 +209,11 @@ export default {
   position: absolute;
   top: 0;
   left: 0;
+}
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  margin: 5rem auto;
+  display: block;
 }
 </style>
