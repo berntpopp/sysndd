@@ -8,34 +8,49 @@
       border-variant="dark"
     >
       <template #header>
-        <h6 class="mb-1 text-left font-weight-bold">
-          Matrix of phenotype correlations.
-        </h6>
+        <div class="d-flex justify-content-between align-items-center">
+          <h6 class="mb-1 text-left font-weight-bold">
+            Matrix of phenotype correlations.
+          </h6>
+          <DownloadImageButtons
+            :svg-id="'matrix-svg'"
+            :file-name="'phenotype_correlation_matrix'"
+          />
+        </div>
       </template>
 
-      <!-- Content -->
-      <div
-        id="matrix_dataviz"
-        class="svg-container"
-      />
-      <!-- Content -->
+      <!-- Content with overlay spinner -->
+      <div class="position-relative">
+        <b-spinner
+          v-if="loadingMatrix"
+          label="Loading..."
+          class="spinner"
+        />
+        <div
+          v-show="!loadingMatrix"
+          id="matrix_dataviz"
+          class="svg-container"
+        />
+      </div>
     </b-card>
-    <!-- User Interface controls -->
   </b-container>
 </template>
 
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
-
+import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 import * as d3 from 'd3';
 
 export default {
   name: 'AnalysesPhenotypeCorrelogram',
+  components: {
+    DownloadImageButtons,
+  },
   mixins: [toastMixin],
   data() {
     return {
       itemsMatrix: [],
-      itemsCount: [],
+      loadingMatrix: true, // Added loading state
     };
   },
   mounted() {
@@ -43,6 +58,8 @@ export default {
   },
   methods: {
     async loadMatrixData() {
+      this.loadingMatrix = true;
+
       const apiUrl = `${process.env.VUE_APP_API_URL}/api/phenotype/correlation`;
 
       try {
@@ -53,6 +70,8 @@ export default {
         this.generateMatrixGraph();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+      } finally {
+        this.loadingMatrix = false; // Set loading to false after data is fetched
       }
     },
     generateMatrixGraph() {
@@ -63,10 +82,14 @@ export default {
       const width = 650 - margin.left - margin.right;
       const height = 620 - margin.top - margin.bottom;
 
+      // Remove any existing SVG
+      d3.select('#matrix_dataviz').select('svg').remove();
+
       // Create the svg area
       const svg = d3
         .select('#matrix_dataviz')
         .append('svg')
+        .attr('id', 'matrix-svg') // Added id for easier selection
         .attr('viewBox', '0 0 700 700')
         .attr('preserveAspectRatio', 'xMinYMin meet')
         .append('g')
@@ -174,5 +197,11 @@ export default {
   position: absolute;
   top: 0;
   left: 0;
+}
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  margin: 5rem auto;
+  display: block;
 }
 </style>
