@@ -33,7 +33,6 @@
                 triggers="focus"
               >
                 <template #title>
-                  <!-- TODO: last update is a mock, replace with EP data -->
                   Comparisons selection [last update 2023-04-13]
                 </template>
                 The NDD databases and lists for the comparison with SysNDD are:
@@ -41,8 +40,7 @@
                 <strong>1) radboudumc ID,</strong> downloaded and normalized
                 from https://order.radboudumc.nl/en/LabProduct/Pdf/30240, <br>
                 <strong>2) gene2phenotype ID</strong> downloaded and normalized
-                from
-                https://www.ebi.ac.uk/gene2phenotype/downloads/DDG2P.csv.gz,
+                from https://www.ebi.ac.uk/gene2phenotype/downloads/DDG2P.csv.gz,
                 <br>
                 <strong>3) panelapp ID</strong> downloaded and normalized from
                 https://panelapp.genomicsengland.co.uk/panels/285/download/01234/,
@@ -69,9 +67,7 @@
               <b-badge
                 v-b-tooltip.hover.bottom
                 variant="success"
-                :title="
-                  'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime
-                "
+                :title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
               >
                 Genes: {{ totalRows }}
               </b-badge>
@@ -103,29 +99,10 @@
                 />
                 .xlsx
               </b-button>
-              <!--               <b-button
-                v-b-tooltip.hover.bottom
-                class="mx-1"
-                size="sm"
-                title="Copy link to this page."
-                variant="success"
-                @click="copyLinkToClipboard()"
-              >
-                <b-icon
-                  icon="link"
-                  font-scale="1.0"
-                />
-              </b-button> -->
-
               <b-button
                 v-b-tooltip.hover.bottom
                 size="sm"
-                :title="
-                  'The table is ' +
-                    (filter_string === '' ? 'not' : '') +
-                    ' filtered.' +
-                    (filter_string === '' ? '' : ' Click to remove all filters.')
-                "
+                :title="'The table is ' + (filter_string === '' ? 'not' : '') + ' filtered.' + (filter_string === '' ? '' : ' Click to remove all filters.')"
                 :variant="filter_string === '' ? 'info' : 'warning'"
                 @click="removeFilters()"
               >
@@ -139,249 +116,242 @@
         </b-row>
       </template>
 
-      <b-row>
-        <b-col
-          class="my-1"
-          sm="6"
-        >
-          <b-form-group class="mb-1 border-dark">
-            <b-form-input
-              v-if="showFilterControls"
-              id="filter-input"
-              v-model="filter['any'].content"
-              class="mb-1 border-dark"
-              size="sm"
-              type="search"
-              placeholder="Search any field by typing here"
-              debounce="500"
-              @click="removeFilters()"
-              @update="filtered()"
-            />
-          </b-form-group>
-        </b-col>
-
-        <b-col
-          class="my-1"
-          sm="4"
-        >
-          <b-container
-            v-if="totalRows > perPage || showPaginationControls"
+      <div v-if="!loadingTable">
+        <b-row>
+          <b-col
+            class="my-1"
+            sm="6"
           >
-            <b-input-group
-              prepend="Per page"
-              class="mb-1"
-              size="sm"
-            >
-              <b-form-select
-                id="per-page-select"
-                v-model="perPage"
-                :options="pageOptions"
+            <b-form-group class="mb-1 border-dark">
+              <b-form-input
+                v-if="showFilterControls"
+                id="filter-input"
+                v-model="filter['any'].content"
+                class="mb-1 border-dark"
                 size="sm"
+                type="search"
+                placeholder="Search any field by typing here"
+                debounce="500"
+                @click="removeFilters()"
+                @update="filtered()"
               />
-            </b-input-group>
+            </b-form-group>
+          </b-col>
 
-            <b-pagination
-              v-model="currentPage"
-              :total-rows="totalRows"
-              :per-page="perPage"
-              align="fill"
-              size="sm"
-              class="my-0"
-              limit="2"
-              @change="handlePageChange"
-            />
-          </b-container>
-        </b-col>
-      </b-row>
-      <!-- User Interface controls -->
-
-      <!-- Main table element -->
-      <b-table
-        :items="items"
-        :fields="fields"
-        :current-page="currentPage"
-        :filter-included-fields="filterOn"
-        :sort-by.sync="sortBy"
-        :sort-desc.sync="sortDesc"
-        :busy="isBusy"
-        stacked="md"
-        head-variant="light"
-        show-empty
-        small
-        fixed
-        striped
-        hover
-        sort-icon-left
-        no-local-sorting
-        no-local-pagination
-      >
-        <!-- based on:  https://stackoverflow.com/questions/52959195/bootstrap-vue-b-table-with-filter-in-header -->
-        <template
-          v-if="showFilterControls"
-          slot="top-row"
-        >
-          <td
-            v-for="field in fields"
-            :key="field.key"
+          <b-col
+            class="my-1"
+            sm="4"
           >
-            <b-form-input
-              v-if="field.filterable"
-              v-model="filter[field.key].content"
-              :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
-              debounce="500"
-              size="sm"
-              type="search"
-              autocomplete="off"
-              @click="removeSearch()"
-              @update="filtered()"
-            />
-
-            <b-form-select
-              v-if="field.selectable"
-              v-model="filter[field.key].content"
-              :options="field.selectOptions"
-              type="search"
-              @input="removeSearch()"
-              @change="filtered()"
+            <b-container
+              v-if="totalRows > perPage || showPaginationControls"
             >
-              <template v-slot:first>
-                <b-form-select-option value="null">
-                  .. {{ truncate(field.label, 20) }} ..
-                </b-form-select-option>
-              </template>
-            </b-form-select>
-
-            <label
-              v-if="field.multi_selectable"
-              :for="'select_' + field.key"
-              :aria-label="field.label"
-            >
-              <treeselect
-                v-if="field.multi_selectable"
-                :id="'select_' + field.key"
-                v-model="filter[field.key].content"
-                size="small"
-                :multiple="true"
-                :options="field.selectOptions"
-                :normalizer="normalizer"
-                :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
-                @input="removeSearch();filtered();"
-              />
-            </label>
-          </td>
-        </template>
-
-        <template #cell(symbol)="data">
-          <div class="font-italic">
-            <b-link :href="'/Genes/' + data.item.hgnc_id">
-              <b-badge
-                v-b-tooltip.hover.leftbottom
-                pill
-                variant="success"
-                :title="data.item.hgnc_id"
+              <b-input-group
+                prepend="Per page"
+                class="mb-1"
+                size="sm"
               >
-                {{ data.item.symbol }}
-              </b-badge>
-            </b-link>
-          </div>
-        </template>
+                <b-form-select
+                  id="per-page-select"
+                  v-model="perPage"
+                  :options="pageOptions"
+                  size="sm"
+                />
+              </b-input-group>
 
-        <template #cell(SysNDD)="data">
-          <div>
-            <b-avatar
-              v-b-tooltip.hover.left
-              size="1.4em"
-              icon="stoplights"
-              :variant="stoplights_style[data.item.SysNDD]"
-              :title="data.item.SysNDD"
-            />
-          </div>
-        </template>
+              <b-pagination
+                v-model="currentPage"
+                :total-rows="totalRows"
+                :per-page="perPage"
+                align="fill"
+                size="sm"
+                class="my-0"
+                limit="2"
+                @change="handlePageChange"
+              />
+            </b-container>
+          </b-col>
+        </b-row>
+      </div>
 
-        <template #cell(radboudumc_ID)="data">
-          <div>
-            <b-avatar
-              v-b-tooltip.hover.left
-              size="1.4em"
-              icon="stoplights"
-              :variant="stoplights_style[data.item.radboudumc_ID]"
-              :title="data.item.radboudumc_ID"
-            />
-          </div>
-        </template>
+      <div class="position-relative">
+        <b-spinner
+          v-if="loadingTable"
+          label="Loading..."
+          class="spinner"
+        />
+        <GenericTable
+          v-else
+          :items="items"
+          :fields="fields"
+          :current-page="currentPage"
+          :is-busy="isBusy"
+          :sort-by="sortBy"
+          :sort-desc="sortDesc"
+          @update-sort="handleSortUpdate"
+        >
+          <template v-slot:filter-controls>
+            <td
+              v-for="field in fields"
+              :key="field.key"
+            >
+              <b-form-input
+                v-if="field.filterable"
+                v-model="filter[field.key].content"
+                :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
+                debounce="500"
+                type="search"
+                autocomplete="off"
+                @click="removeSearch()"
+                @update="filtered()"
+              />
 
-        <template #cell(gene2phenotype)="data">
-          <div>
-            <b-avatar
-              v-b-tooltip.hover.left
-              size="1.4em"
-              icon="stoplights"
-              :variant="stoplights_style[data.item.gene2phenotype]"
-              :title="data.item.gene2phenotype"
-            />
-          </div>
-        </template>
+              <b-form-select
+                v-if="field.selectable"
+                v-model="filter[field.key].content"
+                :options="field.selectOptions"
+                type="search"
+                @input="removeSearch()"
+                @change="filtered()"
+              >
+                <template v-slot:first>
+                  <b-form-select-option value="null">
+                    .. {{ truncate(field.label, 20) }} ..
+                  </b-form-select-option>
+                </template>
+              </b-form-select>
 
-        <template #cell(panelapp)="data">
-          <div>
-            <b-avatar
-              v-b-tooltip.hover.left
-              size="1.4em"
-              icon="stoplights"
-              :variant="stoplights_style[data.item.panelapp]"
-              :title="data.item.panelapp"
-            />
-          </div>
-        </template>
+              <label
+                v-if="field.multi_selectable"
+                :for="'select_' + field.key"
+                :aria-label="field.label"
+              >
+                <treeselect
+                  v-if="field.multi_selectable"
+                  :id="'select_' + field.key"
+                  v-model="filter[field.key].content"
+                  size="small"
+                  :multiple="true"
+                  :options="field.selectOptions"
+                  :normalizer="normalizer"
+                  :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
+                  @input="removeSearch();filtered();"
+                />
+              </label>
+            </td>
+          </template>
 
-        <template #cell(sfari)="data">
-          <div>
-            <b-avatar
-              v-b-tooltip.hover.left
-              size="1.4em"
-              icon="stoplights"
-              :variant="stoplights_style[data.item.sfari]"
-              :title="data.item.sfari"
-            />
-          </div>
-        </template>
+          <template v-slot:cell-symbol="{ row }">
+            <div class="font-italic">
+              <b-link :href="'/Genes/' + row.hgnc_id">
+                <b-badge
+                  v-b-tooltip.hover.leftbottom
+                  pill
+                  variant="success"
+                  :title="row.hgnc_id"
+                >
+                  {{ row.symbol }}
+                </b-badge>
+              </b-link>
+            </div>
+          </template>
 
-        <template #cell(geisinger_DBD)="data">
-          <div>
-            <b-avatar
-              v-b-tooltip.hover.left
-              size="1.4em"
-              icon="stoplights"
-              :variant="stoplights_style[data.item.geisinger_DBD]"
-              :title="data.item.geisinger_DBD"
-            />
-          </div>
-        </template>
+          <template v-slot:cell-SysNDD="{ row }">
+            <div>
+              <b-avatar
+                v-b-tooltip.hover.left
+                size="1.4em"
+                icon="stoplights"
+                :variant="stoplights_style[row.SysNDD]"
+                :title="row.SysNDD"
+              />
+            </div>
+          </template>
 
-        <template #cell(omim_ndd)="data">
-          <div>
-            <b-avatar
-              v-b-tooltip.hover.left
-              size="1.4em"
-              icon="stoplights"
-              :variant="stoplights_style[data.item.omim_ndd]"
-              :title="data.item.omim_ndd"
-            />
-          </div>
-        </template>
+          <template v-slot:cell-radboudumc_ID="{ row }">
+            <div>
+              <b-avatar
+                v-b-tooltip.hover.left
+                size="1.4em"
+                icon="stoplights"
+                :variant="stoplights_style[row.radboudumc_ID]"
+                :title="row.radboudumc_ID"
+              />
+            </div>
+          </template>
 
-        <template #cell(orphanet_id)="data">
-          <div>
-            <b-avatar
-              v-b-tooltip.hover.left
-              size="1.4em"
-              icon="stoplights"
-              :variant="stoplights_style[data.item.orphanet_id]"
-              :title="data.item.orphanet_id"
-            />
-          </div>
-        </template>
-      </b-table>
+          <template v-slot:cell-gene2phenotype="{ row }">
+            <div>
+              <b-avatar
+                v-b-tooltip.hover.left
+                size="1.4em"
+                icon="stoplights"
+                :variant="stoplights_style[row.gene2phenotype]"
+                :title="row.gene2phenotype"
+              />
+            </div>
+          </template>
+
+          <template v-slot:cell-panelapp="{ row }">
+            <div>
+              <b-avatar
+                v-b-tooltip.hover.left
+                size="1.4em"
+                icon="stoplights"
+                :variant="stoplights_style[row.panelapp]"
+                :title="row.panelapp"
+              />
+            </div>
+          </template>
+
+          <template v-slot:cell-sfari="{ row }">
+            <div>
+              <b-avatar
+                v-b-tooltip.hover.left
+                size="1.4em"
+                icon="stoplights"
+                :variant="stoplights_style[row.sfari]"
+                :title="row.sfari"
+              />
+            </div>
+          </template>
+
+          <template v-slot:cell-geisinger_DBD="{ row }">
+            <div>
+              <b-avatar
+                v-b-tooltip.hover.left
+                size="1.4em"
+                icon="stoplights"
+                :variant="stoplights_style[row.geisinger_DBD]"
+                :title="row.geisinger_DBD"
+              />
+            </div>
+          </template>
+
+          <template v-slot:cell-omim_ndd="{ row }">
+            <div>
+              <b-avatar
+                v-b-tooltip.hover.left
+                size="1.4em"
+                icon="stoplights"
+                :variant="stoplights_style[row.omim_ndd]"
+                :title="row.omim_ndd"
+              />
+            </div>
+          </template>
+
+          <template v-slot:cell-orphanet_id="{ row }">
+            <div>
+              <b-avatar
+                v-b-tooltip.hover.left
+                size="1.4em"
+                icon="stoplights"
+                :variant="stoplights_style[row.orphanet_id]"
+                :title="row.orphanet_id"
+              />
+            </div>
+          </template>
+        </GenericTable>
+      </div>
     </b-card>
   </b-container>
 </template>
@@ -399,10 +369,13 @@ import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 // Import the utilities file
 import Utils from '@/assets/js/utils';
 
+// Import the GenericTable component
+import GenericTable from '@/components/small/GenericTable.vue';
+
 export default {
   name: 'AnalysesCurationComparisonsTable',
-  // register the Treeselect component
-  components: { Treeselect },
+  // register the Treeselect component and GenericTable component
+  components: { Treeselect, GenericTable },
   mixins: [toastMixin, urlParsingMixin, colorAndSymbolsMixin],
   props: {
     showFilterControls: { type: Boolean, default: true },
@@ -415,7 +388,7 @@ export default {
     fspecInput: {
       type: String,
       default:
-        'symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id',
+          'symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id',
     },
   },
   data() {
@@ -512,16 +485,11 @@ export default {
       },
       filter_string: '',
       filterOn: [],
-      selection: null,
-      loadingUpset: true,
-      loadingMatrix: true,
       loadingTable: true,
-      tabIndex: 0,
       isBusy: true,
       downloading: false,
     };
   },
-  computed: {},
   watch: {
     filter(value) {
       this.filtered();
@@ -537,17 +505,15 @@ export default {
     },
   },
   created() {
-    // transform input filter string from params to object and assign
     this.filter = this.filterStrToObj(this.filterInput, this.filter);
   },
   mounted() {
-    // transform input sort string to object and assign
     const sort_object = this.sortStringToVariables(this.sortInput);
     this.sortBy = sort_object.sortBy;
     this.sortDesc = sort_object.sortDesc;
 
     setTimeout(() => {
-      this.loading = false;
+      this.loadingTable = false;
     }, 500);
   },
   methods: {
@@ -585,8 +551,6 @@ export default {
         this.items = response.data.data;
 
         this.totalRows = response.data.meta[0].totalItems;
-        // this solves an update issue in b-pagination component
-        // based on https://github.com/bootstrap-vue/bootstrap-vue/issues/3541
         this.$nextTick(() => {
           this.currentPage = response.data.meta[0].currentPage;
         });
@@ -611,10 +575,10 @@ export default {
       }&filter=${
         this.filter_string
       }&page_after=`
-        + '0'
-        + '&page_size='
-        + 'all'
-        + '&format=xlsx';
+          + '0'
+          + '&page_size='
+          + 'all'
+          + '&format=xlsx';
 
       const apiUrl = `${process.env.VUE_APP_API_URL
       }/api/comparisons/browse?${
