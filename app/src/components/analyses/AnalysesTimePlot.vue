@@ -30,9 +30,8 @@
               v-model="selected_aggregate"
               input-id="aggregate-select"
               :options="aggregate_list"
-              text-field="value"
+              text-field="text"
               size="sm"
-              @input="loadData"
             />
           </b-input-group>
 
@@ -44,10 +43,9 @@
             <b-form-select
               v-model="selected_group"
               input-id="group-select"
-              :options="group_list"
-              text-field="value"
+              :options="filteredGroupList"
+              text-field="text"
               size="sm"
-              @input="loadData"
             />
           </b-input-group>
         </b-col>
@@ -84,15 +82,41 @@ export default {
   mixins: [toastMixin],
   data() {
     return {
-      aggregate_list: ['entity_id', 'symbol'],
+      aggregate_list: [
+        { value: 'entity_id', text: 'Entity ID' },
+        { value: 'symbol', text: 'Symbol' },
+      ],
       selected_aggregate: 'entity_id',
-      group_list: ['category', 'inheritance_filter', 'inheritance_multiple'],
+      group_list: [
+        { value: 'category', text: 'Category' },
+        { value: 'inheritance_filter', text: 'Inheritance Filter' },
+        { value: 'inheritance_multiple', text: 'Inheritance Multiple' },
+      ],
       selected_group: 'category',
       filter_string: 'contains(ndd_phenotype_word,Yes),any(inheritance_filter,Autosomal dominant,Autosomal recessive,X-linked)',
       items: [],
       itemsMeta: [],
       loadingData: true, // Added loading state
     };
+  },
+  computed: {
+    filteredGroupList() {
+      if (this.selected_aggregate === 'entity_id') {
+        return this.group_list.filter((group) => group.value !== 'inheritance_multiple');
+      }
+      return this.group_list;
+    },
+  },
+  watch: {
+    selected_aggregate(newVal, oldVal) {
+      if (newVal !== oldVal) {
+        this.selected_group = 'category';
+        this.loadData();
+      }
+    },
+    selected_group() {
+      this.loadData();
+    },
   },
   mounted() {
     this.loadData();
