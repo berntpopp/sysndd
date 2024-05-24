@@ -8,14 +8,20 @@
       border-variant="dark"
     >
       <template #header>
-        <h6 class="mb-1 text-left font-weight-bold">
-          <mark
-            v-b-tooltip.hover.leftbottom
-            title="A visualization for set intersections used as an alternative to Venn diagrams. Rows correspond to a set and columns correspond to possible intersections represented by the connected dots."
-          >Upset plot</mark>
-          showing the overlap between different selected curation efforts for
-          neurodevelopmental disorders.
-        </h6>
+        <div class="d-flex justify-content-between align-items-center">
+          <h6 class="mb-1 text-left font-weight-bold">
+            <mark
+              v-b-tooltip.hover.leftbottom
+              title="A visualization for set intersections used as an alternative to Venn diagrams. Rows correspond to a set and columns correspond to possible intersections represented by the connected dots."
+            >Upset plot</mark>
+            showing the overlap between different selected curation efforts for
+            neurodevelopmental disorders.
+          </h6>
+          <DownloadImageButtons
+            :svg-id="'comparisons-upset-svg'"
+            :file-name="'upset_plot'"
+          />
+        </div>
       </template>
 
       <div v-if="!loadingUpset">
@@ -42,7 +48,7 @@
         />
         <div v-else>
           <UpSetJS
-            id="comparisons-upset"
+            id="comparisons-upset-svg"
             :sets="sets"
             :width="width"
             :height="height"
@@ -62,10 +68,11 @@ import toastMixin from '@/assets/js/mixins/toastMixin';
 import UpSetJS, { extractSets, createElement } from '@upsetjs/vue';
 import Treeselect from '@riophae/vue-treeselect';
 import '@riophae/vue-treeselect/dist/vue-treeselect.css';
+import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 
 export default {
   name: 'AnalysesCurationUpset',
-  components: { Treeselect, UpSetJS },
+  components: { Treeselect, UpSetJS, DownloadImageButtons },
   mixins: [toastMixin],
   data() {
     return {

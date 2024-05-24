@@ -8,14 +8,20 @@
       border-variant="dark"
     >
       <template #header>
-        <h6 class="mb-1 text-left font-weight-bold">
-          Matrix plot of the
-          <mark
-            v-b-tooltip.hover.leftbottom
-            title="This is a measure of similarity between two sequences of numbers used to quantify the similarity between two word lists."
-          >cosine similarity</mark>
-          between different curation efforts for neurodevelopmental disorders.
-        </h6>
+        <div class="d-flex justify-content-between align-items-center">
+          <h6 class="mb-1 text-left font-weight-bold">
+            Matrix plot of the
+            <mark
+              v-b-tooltip.hover.leftbottom
+              title="This is a measure of similarity between two sequences of numbers used to quantify the similarity between two word lists."
+            >cosine similarity</mark>
+            between different curation efforts for neurodevelopmental disorders.
+          </h6>
+          <DownloadImageButtons
+            :svg-id="'matrix-svg'"
+            :file-name="'matrix_plot'"
+          />
+        </div>
       </template>
       <b-row>
         <!-- column 1 -->
@@ -52,9 +58,13 @@
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import * as d3 from 'd3';
+import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 
 export default {
   name: 'AnalysesCurationMatrixPlot',
+  components: {
+    DownloadImageButtons,
+  },
   mixins: [toastMixin],
   data() {
     return {
@@ -107,6 +117,7 @@ export default {
       const svg = d3
         .select('#matrix_dataviz')
         .append('svg')
+        .attr('id', 'matrix-svg') // Added id for easier selection
         .attr('viewBox', '0 0 800 600')
         .attr('preserveAspectRatio', 'xMinYMin meet')
         .append('g')
