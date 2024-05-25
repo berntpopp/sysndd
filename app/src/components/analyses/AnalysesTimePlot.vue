@@ -71,6 +71,7 @@
 
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
+import textMixin from '@/assets/js/mixins/textMixin';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 import * as d3 from 'd3';
 
@@ -79,7 +80,7 @@ export default {
   components: {
     DownloadImageButtons,
   },
-  mixins: [toastMixin],
+  mixins: [toastMixin, textMixin],
   data() {
     return {
       aggregate_list: [
@@ -144,6 +145,24 @@ export default {
       } finally {
         this.loadingData = false; // Set loading to false after data is fetched
       }
+    },
+    generateLink(d) {
+      let baseUrl = '/Entities/?sort=entity_id&filter=';
+      if (this.selected_aggregate === 'symbol') {
+        baseUrl = '/Genes/?sort=symbol&filter=';
+      }
+
+      const dateFilter = `lessOrEqual(entry_date,${d.entry_date_text})`;
+      let groupFilter = '';
+
+      if (this.selected_group === 'category') {
+        groupFilter = `any(category,${d.group})`;
+      } else if (this.selected_group === 'inheritance_filter' || this.selected_group === 'inheritance_multiple') {
+        const groupText = d.group.split(' | ').map((term) => `${term} inheritance`).join(',');
+        groupFilter = this.selected_group === 'inheritance_multiple' ? `all(hpo_mode_of_inheritance_term_name,${groupText})` : `any(hpo_mode_of_inheritance_term_name,${groupText})`;
+      }
+
+      return `${baseUrl}${groupFilter},${dateFilter}`;
     },
     generateGraph() {
       // based on https://d3-graph-gallery.com/graph/connectedscatter_legend.html and https://d3-graph-gallery.com/graph/connectedscatter_tooltip.html
@@ -240,11 +259,9 @@ export default {
         .style('border-radius', '5px')
         .style('padding', '2px');
 
-      // Three function that change the tooltip when user hover / move / leave a cell
-      // layerX/Y replaced by clientX/Y
+      // Three functions that change the tooltip when user hover / move / leave a cell
       const mouseover = function mouseover(event, d) {
         tooltip.style('opacity', 1);
-
         d3.select(this).style('stroke', 'black');
       };
 
@@ -259,37 +276,38 @@ export default {
 
       const mouseleave = function mouseleave(event, d) {
         tooltip.style('opacity', 0);
-
         d3.select(this).style('stroke', 'white');
       };
 
       // Add the points
       svg
-        // First we need to enter in a group
+      // First we need to enter in a group
         .selectAll('myDots')
         .data(data)
         .enter().append('g')
         .style('fill', (d) => myColor(d.group))
         .attr('class', (d) => d.class)
-        // Second we need to enter in the 'values' part of this group
+      // Second we need to enter in the 'values' part of this group
         .selectAll('myPoints')
         .data((d) => d.values)
         .enter()
         .append('a')
-        .attr('xlink:href', (d) => `/Entities/?sort=entity_id&filter=lessOrEqual(entry_date,${d.entry_date_text}),any(category,${d.group})`) // <- add links to the filtered phenotype table to the bars
+        .attr('xlink:href', (d) => this.generateLink(d)) // <- Use generateLink method here
         .attr('aria-label', (d) => `Link to entities filtered before entry date ${d.entry_date_text}`)
+        .style('text-decoration', 'none') // <- Ensure no text decoration on links
         .append('circle')
         .attr('cx', (d) => x(d.entry_date))
         .attr('cy', (d) => y(d.cumulative_count))
         .attr('r', 5)
         .attr('stroke', 'white')
+        .style('fill', (d) => myColor(d.group))
         .on('mouseover', mouseover)
         .on('mousemove', mousemove)
         .on('mouseleave', mouseleave);
 
       // function for clickable legend
       const clicklegend = function clicklegend(event, d) {
-        // is the element currently visible ?
+        // is the element currently visible?
         const currentOpacity = d3.selectAll(`.${d.class}`).style('opacity');
 
         // Change the opacity: from 0 to 1 or from 1 to 0
