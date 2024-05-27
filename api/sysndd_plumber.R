@@ -5494,7 +5494,7 @@ function(req,
 #* are returned.
 #*
 #* @tag user
-#* @serializer json list(na="string")
+#* @serializer json list(na="null")
 #* @get /api/user/table
 function(req, res) {
 
@@ -5514,6 +5514,7 @@ function(req, res) {
         user_name,
         email,
         orcid,
+        abbreviation,
         first_name,
         family_name,
         comment,
@@ -5534,6 +5535,7 @@ function(req, res) {
         user_name,
         email,
         orcid,
+        abbreviation,
         first_name,
         family_name,
         comment,
@@ -6273,12 +6275,13 @@ function(req, res, user_id) {
 }
 
 
-#* Updates the details of an existing user.
+#* Updates the details of an existing user and handles approval process.
 #*
 #* # `Details`
 #* This endpoint allows Administrators to modify user attributes. It accepts a JSON object containing
 #* the user attributes to be updated. The `user_id` is required to identify the user, and at least one
-#* other attribute must be provided for the update.
+#* other attribute must be provided for the update. If the user is being approved, it checks if the user 
+#* already has a password in the database, and if not, generates a password and sends an email to the user.
 #*
 #* # `Input`
 #* - `user_json`: (JSON object) A JSON object representing the user attributes to be updated.
@@ -6305,17 +6308,49 @@ function(req, res) {
   # Check for required user_id in the payload
   if (is.null(user_details$user_id)) {
     res$status <- 400 # Bad Request
-    return(list(error = "The user_id field is required."))
+    res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
+      status = 400,
+      message = "The user_id field is required."
+    ))
+    return(res)
+  }
+
+  # Convert different representations of boolean values to 0 and 1 for approved field
+  if (!is.null(user_details$approved)) {
+    approved <- user_details$approved
+    if (approved %in% c(TRUE, "TRUE", "1", 1)) {
+      user_details$approved <- 1
+    } else if (approved %in% c(FALSE, "FALSE", "0", 0)) {
+      user_details$approved <- 0
+    } else {
+      res$status <- 400 # Bad Request
+      res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
+        status = 400,
+        message = "Invalid value for approved field."
+      ))
+      return(res)
+    }
+
+    if (user_details$approved == 1) {
+      if (is.null(user_details$abbreviation) || user_details$abbreviation == "") {
+        res$status <- 400 # Bad Request
+        res$body <- jsonlite::toJSON(auto_unbox = TRUE, list(
+          status = 400,
+          message = "Abbreviation must be set for approval."
+        ))
+        return(res)
+      }
+    }
   }
 
   # Connect to the database
   sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-    dbname = dw$dbname,
-    user = dw$user,
-    password = dw$password,
-    server = dw$server,
-    host = dw$host,
-    port = dw$port)
+                         dbname = dw$dbname,
+                         user = dw$user,
+                         password = dw$password,
+                         server = dw$server,
+                         host = dw$host,
+                         port = dw$port)
 
   # Prepare the update query, excluding user_id which should not be modified
   fields_to_update <- names(user_details)[names(user_details) != "user_id"]
@@ -6342,7 +6377,48 @@ function(req, res) {
   # Check if the update was successful
   if (is.list(result) && !is.null(result$error)) {
     res$status <- 500 # Internal Server Error
-    return(list(error = "Failed to update user details: ", result$error))
+    return(list(error = paste("Failed to update user details:", result$error)))
+  }
+
+  # Handle user approval process
+  if (!is.null(user_details$approved) && user_details$approved == 1) {
+    user_table <- pool %>%
+      tbl("user") %>%
+      collect() %>%
+      filter(user_id == user_details$user_id) %>%
+      select(first_name, family_name, email, password)
+
+    if (nrow(user_table) > 0) {
+      if (is.null(user_table$password) || user_table$password == "") {
+        user_password <- random_password()
+        user_initials <- generate_initials(user_table$first_name, user_table$family_name)
+
+        # Update password and initials in the database
+        sysndd_db <- dbConnect(RMariaDB::MariaDB(),
+                               dbname = dw$dbname,
+                               user = dw$user,
+                               password = dw$password,
+                               server = dw$server,
+                               host = dw$host,
+                               port = dw$port)
+
+        dbExecute(sysndd_db,
+                  paste0("UPDATE user SET password = '", user_password, "', abbreviation = '", user_initials, "' WHERE user_id = ", user_details$user_id, ";"))
+
+        dbDisconnect(sysndd_db)
+
+        # Send email notification
+        send_noreply_email(
+          email_body = paste0(
+            "Your registration for sysndd.org has been approved by a curator.\n",
+            "Your password (please change after first login): ", user_password
+          ),
+          email_subject = "Account approved for SysNDD.org",
+          email_recipient = user_table$email,
+          email_blind_copy = "curator@sysndd.org"
+        )
+      }
+    }
   }
 
   list(message = "User details updated successfully.")
