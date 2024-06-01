@@ -9,7 +9,9 @@
       id="content"
       class="content-style"
     >
-      <router-view :key="$route.fullPath" />
+      <perfect-scrollbar>
+        <router-view :key="$route.fullPath" />
+      </perfect-scrollbar>
     </div>
     <div
       id="footer"
@@ -60,5 +62,10 @@ export default {
 body {
   padding-top: 68px;
   padding-bottom: 50px;
+  overflow: hidden;
+}
+
+.ps {
+  height: calc(100vh - 116px);
 }
 </style>

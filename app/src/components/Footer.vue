@@ -85,5 +85,6 @@ export default {
     #efeeec 75%,
     #e9e9e7 100%
   );
+  min-height: 50px;
 }
 </style>

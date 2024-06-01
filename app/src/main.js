@@ -69,6 +69,10 @@ import {
 import en from 'vee-validate/dist/locale/en.json';
 import * as rules from 'vee-validate/dist/rules';
 
+// import perfect-scrollbar
+import PerfectScrollbar from 'vue2-perfect-scrollbar';
+import 'vue2-perfect-scrollbar/dist/vue2-perfect-scrollbar.css';
+
 // eslint: import should occur after import of `vee-validate/dist/rules`
 import App from './App.vue';
 
@@ -78,6 +82,8 @@ import './registerServiceWorker';
 
 // import custom css
 import './assets/css/custom.css';
+
+Vue.use(PerfectScrollbar);
 
 Vue.component('Navbar', require('./components/Navbar.vue').default);
 
