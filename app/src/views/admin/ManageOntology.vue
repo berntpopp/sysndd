@@ -120,6 +120,9 @@
 import GenericTable from '@/components/small/GenericTable.vue';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
+// Import the event bus
+import EventBus from '@/assets/js/eventBus';
+
 export default {
   name: 'ManageOntology',
   components: {
@@ -230,9 +233,12 @@ export default {
           },
         });
         this.ontologies = response.data;
+
+        EventBus.$emit('update-scrollbar'); // Emit event to update scrollbar
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
+
       this.isLoading = false;
     },
     /**

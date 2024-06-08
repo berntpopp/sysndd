@@ -5,14 +5,14 @@
     >
       <Navbar />
     </div>
-    <div
-      id="content"
-      class="content-style"
-    >
-      <perfect-scrollbar>
+    <perfect-scrollbar ref="scroll">
+      <div
+        id="content"
+        class="content-style"
+      >
         <router-view :key="$route.fullPath" />
-      </perfect-scrollbar>
-    </div>
+      </div>
+    </perfect-scrollbar>
     <div
       id="footer"
     >
@@ -26,6 +26,8 @@
 </template>
 
 <script>
+import EventBus from '@/assets/js/eventBus';
+
 export default {
   name: 'SysNDD',
   metaInfo: {
@@ -45,6 +47,26 @@ export default {
           'SysNDD contains a manually curated catalog of published genes implicated in neurodevelopmental disorders (NDDs) and classified into primary and candidate genes according to the degree of underlying evidence.',
       },
     ],
+  },
+  watch: {
+    $route() {
+      this.$refs.scroll.$el.scrollTop = 0;
+    },
+  },
+  created() {
+    EventBus.$on('update-scrollbar', this.updateScrollbar);
+  },
+  beforeDestroy() {
+    EventBus.$off('update-scrollbar', this.updateScrollbar);
+  },
+  methods: {
+    updateScrollbar() {
+      this.$nextTick(() => {
+        if (this.$refs.scroll) {
+          this.$refs.scroll.update();
+        }
+      });
+    },
   },
 };
 </script>

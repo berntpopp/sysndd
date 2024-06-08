@@ -118,6 +118,9 @@
 import GenericTable from '@/components/small/GenericTable.vue';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
+// Import the event bus
+import EventBus from '@/assets/js/eventBus';
+
 export default {
   name: 'ManageUser',
   components: {
@@ -201,6 +204,9 @@ export default {
       } catch (e) {
         this.makeToast(e.message, 'Error', 'danger');
       }
+
+      EventBus.$emit('update-scrollbar'); // Emit event to update scrollbar
+
       this.isLoading = false;
     },
     async loadRoleList() {

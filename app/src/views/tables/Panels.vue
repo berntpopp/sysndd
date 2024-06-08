@@ -318,6 +318,9 @@
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
+// Import the event bus
+import EventBus from '@/assets/js/eventBus';
+
 export default {
   name: 'Panels',
   mixins: [toastMixin],
@@ -506,6 +509,8 @@ export default {
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
+
+      EventBus.$emit('update-scrollbar'); // Emit event to update scrollbar
 
       this.loading = false;
     },

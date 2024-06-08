@@ -299,6 +299,9 @@ import GenericTable from '@/components/small/GenericTable.vue';
 // Import the utilities file
 import Utils from '@/assets/js/utils';
 
+// Import the event bus
+import EventBus from '@/assets/js/eventBus';
+
 export default {
   name: 'TablesEntities',
   // register the Treeselect component
@@ -486,6 +489,8 @@ export default {
         this.lastItemID = response.data.meta[0].lastItemID;
         this.executionTime = response.data.meta[0].executionTime;
         this.fields = response.data.meta[0].fspec;
+
+        EventBus.$emit('update-scrollbar'); // Emit event to update scrollbar
 
         this.isBusy = false;
       } catch (e) {

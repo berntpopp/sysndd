@@ -315,6 +315,9 @@ import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 import textMixin from '@/assets/js/mixins/textMixin';
 
+// Import the event bus
+import EventBus from '@/assets/js/eventBus';
+
 /**
  * TablesLogs Component
  * @description
@@ -627,6 +630,8 @@ export default {
         this.lastItemID = response.data.meta[0].lastItemID;
         this.executionTime = response.data.meta[0].executionTime;
         this.fields = response.data.meta[0].fspec;
+
+        EventBus.$emit('update-scrollbar'); // Emit event to update scrollbar
       } catch (error) {
         this.makeToast(`Error: ${error.message}`, 'Error loading logs', 'danger');
       } finally {

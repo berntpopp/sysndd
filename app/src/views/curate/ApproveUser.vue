@@ -123,6 +123,9 @@
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 
+// Import the event bus
+import EventBus from '@/assets/js/eventBus';
+
 export default {
   name: 'ApproveStatus',
   mixins: [toastMixin, colorAndSymbolsMixin],
@@ -162,9 +165,12 @@ export default {
         });
         this.items_UsersTable = response.data;
         this.totalRows_UsersTable = response.data.length;
+
+        EventBus.$emit('update-scrollbar'); // Emit event to update scrollbar
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
+
       this.loadingUsersApprove = false;
     },
     async loadRoleList() {

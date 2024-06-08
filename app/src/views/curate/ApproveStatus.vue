@@ -571,6 +571,9 @@ import Utils from '@/assets/js/utils';
 
 import Status from '@/assets/js/classes/submission/submissionStatus';
 
+// Import the event bus
+import EventBus from '@/assets/js/eventBus';
+
 export default {
   name: 'ApproveStatus',
   // register the Treeselect component
@@ -762,6 +765,9 @@ export default {
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
+
+      EventBus.$emit('update-scrollbar'); // Emit event to update scrollbar
+
       this.isBusy = false;
       this.loading_status_approve = false;
     },

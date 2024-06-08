@@ -426,6 +426,9 @@ import textMixin from '@/assets/js/mixins/textMixin';
 // Import the utilities file
 import Utils from '@/assets/js/utils';
 
+// Import the event bus
+import EventBus from '@/assets/js/eventBus';
+
 export default {
   name: 'TablesPhenotypes',
   // register the Treeselect component
@@ -716,6 +719,8 @@ export default {
         this.nextItemID = response.data.meta[0].nextItemID;
         this.lastItemID = response.data.meta[0].lastItemID;
         this.executionTime = response.data.meta[0].executionTime;
+
+        EventBus.$emit('update-scrollbar'); // Emit event to update scrollbar
 
         this.isBusy = false;
       } catch (e) {

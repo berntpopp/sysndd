@@ -1028,6 +1028,9 @@ import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
 import Variation from '@/assets/js/classes/submission/submissionVariation';
 import Literature from '@/assets/js/classes/submission/submissionLiterature';
 
+// Import the event bus
+import EventBus from '@/assets/js/eventBus';
+
 export default {
   name: 'ApproveReview',
   // register the Treeselect component
@@ -1298,6 +1301,9 @@ export default {
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
+
+      EventBus.$emit('update-scrollbar'); // Emit event to update scrollbar
+
       this.isBusy = false;
       this.loading_review_approve = false;
     },
