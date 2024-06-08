@@ -4238,6 +4238,103 @@ function(res,
   list(meta = meta, data = entity_view_nested)
 }
 
+
+#* Get Updates Statistics
+#*
+#* This endpoint retrieves statistics for new updates within a specified date range.
+#*
+#* # `Details`
+#* Retrieves the total number of new entities, the number of unique genes, 
+#* and the average number of new entities per day within the specified date range.
+#*
+#* # `Return`
+#* Returns the updates statistics.
+#*
+#* @tag statistics
+#* @serializer json list(na="string")
+#* 
+#* @param start_date Start date for the statistics (YYYY-MM-DD).
+#* @param end_date End date for the statistics (YYYY-MM-DD).
+#* 
+#* @get /api/statistics/updates
+function(req, res, start_date, end_date) {
+  # Check if the user_role is set and if the user is an Administrator
+  if (is.null(req$user_role) || req$user_role != "Administrator") {
+    res$status <- 403 # Forbidden
+    return(list(error = "Access forbidden. Only administrators can access this endpoint."))
+  }
+
+  sysndd_ndd_entity <- pool %>%
+    tbl("ndd_entity") %>%
+    collect() %>%
+    mutate(ndd_phenotype = case_when(
+      ndd_phenotype == 1 ~ "Yes",
+      ndd_phenotype == 0 ~ "No"
+    )) %>%
+    filter(ndd_phenotype == "Yes") %>%
+    filter(is_active == 1) %>%
+    filter(entry_date >= as.Date(start_date) & entry_date <= as.Date(end_date))
+
+  list(
+    total_new_entities = nrow(sysndd_ndd_entity),
+    unique_genes = n_distinct(sysndd_ndd_entity$hgnc_id),
+    average_per_day = nrow(sysndd_ndd_entity) / as.numeric(difftime(as.Date(end_date), as.Date(start_date), units = "days"))
+  )
+}
+
+
+#* Get Re-review Statistics
+#*
+#* This endpoint retrieves statistics for re-reviews within a specified date range.
+#*
+#* # `Details`
+#* Retrieves the total number of re-reviews, the percentage of re-reviews finished,
+#* and the average number of re-reviews per day within the specified date range.
+#*
+#* # `Return`
+#* Returns the re-review statistics.
+#*
+#* @tag statistics
+#* @serializer json list(na="string")
+#* 
+#* @param start_date Start date for the statistics (YYYY-MM-DD).
+#* @param end_date End date for the statistics (YYYY-MM-DD).
+#*
+#* @get /api/statistics/rereview
+function(req, res, start_date, end_date) {
+  # Check if the user_role is set and if the user is an Administrator
+  if (is.null(req$user_role) || req$user_role != "Administrator") {
+    res$status <- 403 # Forbidden
+    return(list(error = "Access forbidden. Only administrators can access this endpoint."))
+  }
+  
+  sysndd_review_connect <- pool %>%
+    tbl("ndd_entity_review") %>%
+    collect() %>%
+    select(review_id, review_date)
+  
+  sysndd_status_connect <- pool %>%
+    tbl("ndd_entity_status") %>%
+    collect() %>%
+    select(status_id, status_date)
+  
+  sysndd_re_review_entity_connect <- pool %>%
+    tbl("re_review_entity_connect") %>%
+    collect() %>%
+    filter(re_review_submitted == 1) %>%
+    left_join(sysndd_review_connect, by = c("review_id")) %>%
+    left_join(sysndd_status_connect, by = c("status_id")) %>%
+    rowwise() %>%
+    mutate(date = max(review_date, status_date)) %>%
+    filter(date >= as.Date(start_date) & date <= as.Date(end_date))
+  
+  list(
+    total_rereviews = nrow(sysndd_re_review_entity_connect),
+    percentage_finished = (nrow(sysndd_re_review_entity_connect) / 3650) * 100,
+    average_per_day = nrow(sysndd_re_review_entity_connect) / as.numeric(difftime(as.Date(end_date), as.Date(start_date), units = "days"))
+  )
+}
+
 ## Statistics endpoints
 ##-------------------------------------------------------------------##
 
