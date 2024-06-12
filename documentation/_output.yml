@@ -5,6 +5,7 @@ bookdown::gitbook:
       before: |
         <li><a href="./">SysNDD Documentation</a></li>
     download: ["pdf", "epub"]
+  fig_caption: false
 bookdown::pdf_book:
   includes:
     in_header: preamble.tex
