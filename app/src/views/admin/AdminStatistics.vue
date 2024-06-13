@@ -90,6 +90,52 @@
           </b-card>
         </b-col>
       </b-row>
+      <b-row
+        v-if="updatedReviewsStatistics"
+        class="justify-content-md-center py-2"
+      >
+        <b-col md="10">
+          <b-card
+            header-tag="header"
+            align="left"
+            body-class="p-1"
+            header-class="p-1"
+            border-variant="dark"
+            class="mb-3"
+          >
+            <template #header>
+              <h5 class="mb-0 text-left">
+                Updated Reviews Statistics
+                <small>({{ startDate }} to {{ endDate }})</small>
+              </h5>
+            </template>
+            <p>Total updated reviews: <span class="stats-number">{{ updatedReviewsStatistics.total_updated_reviews }}</span></p>
+          </b-card>
+        </b-col>
+      </b-row>
+      <b-row
+        v-if="updatedStatusesStatistics"
+        class="justify-content-md-center py-2"
+      >
+        <b-col md="10">
+          <b-card
+            header-tag="header"
+            align="left"
+            body-class="p-1"
+            header-class="p-1"
+            border-variant="dark"
+            class="mb-3"
+          >
+            <template #header>
+              <h5 class="mb-0 text-left">
+                Updated Statuses Statistics
+                <small>({{ startDate }} to {{ endDate }})</small>
+              </h5>
+            </template>
+            <p>Total updated statuses: <span class="stats-number">{{ updatedStatusesStatistics.total_updated_statuses }}</span></p>
+          </b-card>
+        </b-col>
+      </b-row>
     </b-container>
   </div>
 </template>
@@ -102,6 +148,8 @@ export default {
       endDate: new Date().toISOString().split('T')[0], // Set default end date to today's date
       statistics: null,
       reReviewStatistics: null,
+      updatedReviewsStatistics: null,
+      updatedStatusesStatistics: null,
     };
   },
   methods: {
@@ -120,6 +168,20 @@ export default {
           },
         });
         this.reReviewStatistics = reReviewResponse.data;
+
+        const updatedReviewsResponse = await this.axios.get(`${process.env.VUE_APP_API_URL}/api/statistics/updated_reviews?start_date=${this.startDate}&end_date=${this.endDate}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        this.updatedReviewsStatistics = updatedReviewsResponse.data;
+
+        const updatedStatusesResponse = await this.axios.get(`${process.env.VUE_APP_API_URL}/api/statistics/updated_statuses?start_date=${this.startDate}&end_date=${this.endDate}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        this.updatedStatusesStatistics = updatedStatusesResponse.data;
       } catch (error) {
         this.$bvToast.toast('Failed to fetch statistics', {
           title: 'Error',

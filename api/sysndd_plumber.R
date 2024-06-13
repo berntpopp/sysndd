@@ -4307,17 +4307,17 @@ function(req, res, start_date, end_date) {
     res$status <- 403 # Forbidden
     return(list(error = "Access forbidden. Only administrators can access this endpoint."))
   }
-  
+
   sysndd_review_connect <- pool %>%
     tbl("ndd_entity_review") %>%
     collect() %>%
     select(review_id, review_date)
-  
+
   sysndd_status_connect <- pool %>%
     tbl("ndd_entity_status") %>%
     collect() %>%
     select(status_id, status_date)
-  
+
   sysndd_re_review_entity_connect <- pool %>%
     tbl("re_review_entity_connect") %>%
     collect() %>%
@@ -4327,11 +4327,88 @@ function(req, res, start_date, end_date) {
     rowwise() %>%
     mutate(date = max(review_date, status_date)) %>%
     filter(date >= as.Date(start_date) & date <= as.Date(end_date))
-  
+
   list(
     total_rereviews = nrow(sysndd_re_review_entity_connect),
     percentage_finished = (nrow(sysndd_re_review_entity_connect) / 3650) * 100,
     average_per_day = nrow(sysndd_re_review_entity_connect) / as.numeric(difftime(as.Date(end_date), as.Date(start_date), units = "days"))
+  )
+}
+
+
+#* Get Updated Reviews Statistics
+#*
+#* This endpoint retrieves statistics for updated reviews within a specified date range.
+#*
+#* # `Details`
+#* Retrieves the total number of updated reviews.
+#*
+#* # `Return`
+#* Returns the updated reviews statistics.
+#*
+#* @tag statistics
+#* @serializer json list(na="string")
+#*
+#* @param start_date Start date for the statistics (YYYY-MM-DD).
+#* @param end_date End date for the statistics (YYYY-MM-DD).
+#*
+#* @get /api/statistics/updated_reviews
+function(req, res, start_date, end_date) {
+  # Check if the user_role is set and if the user is an Administrator
+  if (is.null(req$user_role) || req$user_role != "Administrator") {
+    res$status <- 403 # Forbidden
+    return(list(error = "Access forbidden. Only administrators can access this endpoint."))
+  }
+
+  updated_reviews <- pool %>%
+    tbl("ndd_entity_review") %>%
+    collect() %>%
+    group_by(entity_id) %>%
+    filter(n() > 1) %>%
+    summarise(latest_review_date = max(review_date)) %>%
+    filter(latest_review_date >= as.Date(start_date) & latest_review_date <= as.Date(end_date))
+
+
+  list(
+    total_updated_reviews = nrow(updated_reviews)
+  )
+}
+
+
+#* Get Updated Statuses Statistics
+#*
+#* This endpoint retrieves statistics for updated statuses within a specified date range.
+#*
+#* # `Details`
+#* Retrieves the total number of updated statuses.
+#*
+#* # `Return`
+#* Returns the updated statuses statistics.
+#*
+#* @tag statistics
+#* @serializer json list(na="string")
+#* 
+#* @param start_date Start date for the statistics (YYYY-MM-DD).
+#* @param end_date End date for the statistics (YYYY-MM-DD).
+#*
+#* @get /api/statistics/updated_statuses
+function(req, res, start_date, end_date) {
+  # Check if the user_role is set and if the user is an Administrator
+  if (is.null(req$user_role) || req$user_role != "Administrator") {
+    res$status <- 403 # Forbidden
+    return(list(error = "Access forbidden. Only administrators can access this endpoint."))
+  }
+
+  updated_statuses <- pool %>%
+    tbl("ndd_entity_status") %>%
+    collect() %>%
+    group_by(entity_id) %>%
+    filter(n() > 1) %>%
+    summarise(latest_status_date = max(status_date)) %>%
+    filter(latest_status_date >= as.Date(start_date) & latest_status_date <= as.Date(end_date))
+
+  list(
+    total_updated_statuses = nrow(updated_statuses)
   )
 }
 
