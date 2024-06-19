@@ -1,3 +1,4 @@
+<!-- src/views/analyses/PhenotypeCorrelations.vue -->
 <template>
   <div class="container-fluid bg-gradient">
     <b-container fluid>

@@ -1,3 +1,4 @@
+<!-- src/components/analyses/AnalyseGeneClusters.vue -->
 <template>
   <b-container fluid>
     <!-- User Interface controls -->
@@ -56,7 +57,16 @@
             <div
               id="cluster_dataviz"
               class="svg-container"
-            />
+            >
+              <b-spinner
+                v-if="loading"
+                label="Loading..."
+                class="spinner"
+              />
+              <div v-else>
+                <!-- Cluster graph will be rendered here -->
+              </div>
+            </div>
 
             <template #footer>
               <b-link :href="'/Entities/?filter=' + selectedCluster.hash_filter">
@@ -269,20 +279,19 @@ export default {
       perPage: 10,
       totalRows: 1,
       currentPage: 1,
+      loading: true, // Add a loading state
     };
   },
   watch: {
     activeParentCluster(value) {
       if (this.selectType === 'clusters') {
         this.setActiveCluster();
-        // TODO: do not redraw the svg, instead just set border in function
         this.generateClusterGraph();
       }
     },
     activeSubCluster(value) {
       if (this.selectType === 'subclusters') {
         this.setActiveCluster();
-        // TODO: do not redraw the svg, instead just set border in function
         this.generateClusterGraph();
       }
     },
@@ -311,6 +320,8 @@ export default {
         this.generateClusterGraph();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+      } finally {
+        this.loading = false; // Set loading to false after data is loaded
       }
     },
     setActiveCluster() {
@@ -589,5 +600,11 @@ export default {
   font-size: 0.875rem;
   line-height: 0.5;
   border-radius: 0.2rem;
+}
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  margin: 5rem auto;
+  display: block;
 }
 </style>

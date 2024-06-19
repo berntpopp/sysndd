@@ -1,3 +1,4 @@
+<!-- src/components/analyses/AnalysesPhenotypeClusters.vue -->
 <template>
   <b-container fluid>
     <!-- User Interface controls -->
@@ -27,9 +28,7 @@
             <template #header>
               <h6 class="mb-0 font-weight-bold">
                 Selected cluster {{ selectedCluster.cluster }} with
-                <b-badge
-                  variant="primary"
-                >
+                <b-badge variant="primary">
                   {{ selectedCluster.cluster_size }} entities
                 </b-badge>
               </h6>
@@ -38,7 +37,16 @@
             <div
               id="cluster_dataviz"
               class="svg-container"
-            />
+            >
+              <b-spinner
+                v-if="loading"
+                label="Loading..."
+                class="spinner"
+              />
+              <div v-else>
+                <!-- Cluster graph will be rendered here -->
+              </div>
+            </div>
 
             <template #footer>
               <b-link :href="'/Entities/?filter=' + selectedCluster.hash_filter">
@@ -111,7 +119,6 @@
 
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
-
 import * as d3 from 'd3';
 
 export default {
@@ -146,12 +153,12 @@ export default {
       perPage: 10,
       totalRows: 1,
       currentPage: 1,
+      loading: false, // New loading state
     };
   },
   watch: {
     activeCluster(value) {
       this.setActiveCluster();
-      // TODO: do not redraw the svg, instead just set border in function
       this.generateClusterGraph();
     },
     tableType(value) {
@@ -164,16 +171,16 @@ export default {
   methods: {
     async loadClusterData() {
       const apiUrl = `${process.env.VUE_APP_API_URL}/api/analysis/phenotype_clustering`;
-
+      this.loading = true; // Start loading
       try {
         const response = await this.axios.get(apiUrl);
-
         this.itemsCluster = response.data;
         this.setActiveCluster();
-
         this.generateClusterGraph();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+      } finally {
+        this.loading = false; // End loading
       }
     },
     setActiveCluster() {
@@ -213,7 +220,7 @@ export default {
       const size = d3
         .scaleLinear()
         .domain([0, 1000])
-        .range([7, 55]); // circle will be between 7 and 55 px wide
+        .range([7, 55]);
 
       // get unique cluster ids as array
       const unique = (value, index, self) => self.indexOf(value) === index;
@@ -291,21 +298,7 @@ export default {
             .strength(0.2)
             .radius((d) => size(d.cluster_size) + 3)
             .iterations(1),
-        ) // Force that avoids circle overlapping
-        .force(
-          'forceX',
-          d3
-            .forceX()
-            .strength(0.5)
-            .x((d) => x(d.cluster)),
-        )
-        .force(
-          'forceY',
-          d3
-            .forceY()
-            .strength(0.1)
-            .y(height * 0.5),
-        );
+        ); // Force that avoids circle overlapping
 
       // What happens when a circle is dragged?
       function dragstarted(event, d) {
@@ -383,10 +376,11 @@ export default {
   vertical-align: top;
   overflow: hidden;
 }
-.svg-content {
-  display: inline-block;
-  position: absolute;
-  top: 0;
-  left: 0;
+
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  margin: 5rem auto;
+  display: block;
 }
 </style>

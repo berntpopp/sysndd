@@ -1,3 +1,4 @@
+<!-- src/components/analyses/AnalysesCurationUpset.vue -->
 <template>
   <b-container fluid>
     <!-- User Interface controls -->
