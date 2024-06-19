@@ -9,9 +9,32 @@
       border-variant="dark"
     >
       <template #header>
-        <h5 class="mb-1 text-left font-weight-bold">
-          Entities clustered using phenotype annotation.
-        </h5>
+        <div class="d-flex justify-content-between align-items-center">
+          <h6 class="mb-1 text-left font-weight-bold">
+            Entities <mark
+              v-b-tooltip.hover.leftbottom
+              title="Entities clustered based on their phenotype annotations to identify groups with similar characteristics. Interactive visualization allows exploration of cluster details."
+            >clustered using phenotype</mark> annotation.
+            <b-badge
+              id="popover-badge-help-clusters"
+              pill
+              href="#"
+              variant="info"
+            >
+              <b-icon icon="question-circle-fill" />
+            </b-badge>
+            <b-popover
+              target="popover-badge-help-clusters"
+              variant="info"
+              triggers="focus"
+            >
+              <template #title>
+                Cluster Analysis Details
+              </template>
+              This section provides an interactive visualization of entities grouped by phenotype annotations. The graphical part allows you to explore the clusters by clicking on the nodes, and the table displays detailed information about the variables within each cluster.
+            </b-popover>
+          </h6>
+        </div>
       </template>
 
       <!-- Content -->
@@ -382,5 +405,13 @@ export default {
   height: 2rem;
   margin: 5rem auto;
   display: block;
+}
+
+mark {
+  display: inline-block;
+  line-height: 0em;
+  padding-bottom: 0.5em;
+  font-weight: bold;
+  background-color: #eaadba;
 }
 </style>

@@ -14,9 +14,36 @@
             <mark
               v-b-tooltip.hover.leftbottom
               title="A visualization for set intersections used as an alternative to Venn diagrams. Rows correspond to a set and columns correspond to possible intersections represented by the connected dots."
-            >Upset plot</mark>
+            >
+              Upset plot
+            </mark>
             showing the overlap between different selected curation efforts for
             neurodevelopmental disorders.
+            <b-badge
+              id="popover-badge-help-upset"
+              pill
+              href="#"
+              variant="info"
+            >
+              <b-icon icon="question-circle-fill" />
+            </b-badge>
+            <b-popover
+              target="popover-badge-help-upset"
+              variant="info"
+              triggers="focus"
+            >
+              <template #title>
+                Comparisons of Curation Efforts
+              </template>
+              The Upset plot visualizes the overlaps between various curation efforts including:
+              <br>
+              <strong>1) SysNDD</strong>: This curation effort<br>
+              <strong>2) Radboudumc ID</strong>: Clinical curation list<br>
+              <strong>3) SFARI</strong>: Autism gene curation effort<br>
+              <strong>4) Gene2Phenotype</strong>: Gene to phenotype  database<br>
+              <strong>5) PanelApp</strong>: Gene panels for genetic disorders<br>
+              <strong>6) Geisinger DBD</strong>: Developmental disorder curation<br>
+            </b-popover>
           </h6>
           <DownloadImageButtons
             :svg-id="'comparisons-upset-svg'"
@@ -27,7 +54,6 @@
 
       <div v-if="!loadingUpset">
         <b-row>
-          <!-- column 1 -->
           <b-col class="my-1">
             <treeselect
               id="columns-select"

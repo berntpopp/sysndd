@@ -1,3 +1,4 @@
+<!-- src/components/analyses/AnalysesPhenotypeCounts.vue -->
 <template>
   <b-container fluid>
     <!-- User Interface controls -->
@@ -10,7 +11,30 @@
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
           <h6 class="mb-1 text-left font-weight-bold">
-            Bar plot of phenotype counts.
+            Bar plot of
+            <mark
+              v-b-tooltip.hover.leftbottom
+              title="This plot shows the counts of different phenotypes observed in the data set."
+            >phenotype counts</mark>.
+            <b-badge
+              id="popover-badge-help-phenotype-counts"
+              pill
+              href="#"
+              variant="info"
+            >
+              <b-icon icon="question-circle-fill" />
+            </b-badge>
+            <b-popover
+              target="popover-badge-help-phenotype-counts"
+              variant="info"
+              triggers="focus"
+            >
+              <template #title>
+                Phenotype Counts Information
+              </template>
+              This bar plot displays the counts of different phenotypes observed in the data set.
+              The x-axis represents the different phenotypes, and the y-axis shows the count of each phenotype.
+            </b-popover>
           </h6>
           <DownloadImageButtons
             :svg-id="'phenotype-svg'"
@@ -215,5 +239,12 @@ export default {
   height: 2rem;
   margin: 5rem auto;
   display: block;
+}
+mark {
+  display: inline-block;
+  line-height: 0em;
+  padding-bottom: 0.5em;
+  font-weight: bold;
+  background-color: #eaadba;
 }
 </style>

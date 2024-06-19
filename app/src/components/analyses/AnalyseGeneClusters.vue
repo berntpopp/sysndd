@@ -10,7 +10,31 @@
     >
       <template #header>
         <h6 class="mb-1 text-left font-weight-bold">
-          Functionally enriched gene clusters.
+          Functionally enriched
+          <mark
+            v-b-tooltip.hover.leftbottom
+            title="This section displays gene clusters that are enriched based on functional annotations. It allows users to explore and analyze the clusters."
+          >
+            gene clusters
+          </mark>.
+          <b-badge
+            id="popover-badge-help-geneclusters"
+            pill
+            href="#"
+            variant="info"
+          >
+            <b-icon icon="question-circle-fill" />
+          </b-badge>
+          <b-popover
+            target="popover-badge-help-geneclusters"
+            variant="info"
+            triggers="focus"
+          >
+            <template #title>
+              Gene Clusters Information
+            </template>
+            This section provides insights into gene clusters that are enriched based on their functional annotations. Users can explore various clusters and subclusters, and analyze the associated genes and their properties.
+          </b-popover>
         </h6>
       </template>
 
@@ -30,9 +54,7 @@
                 <b-col>
                   <h6 class="mb-0 font-weight-bold">
                     Selected {{ selectType === 'clusters' ? 'cluster' : 'subcluster' }} {{ selectType === 'clusters' ? selectedCluster.cluster : selectedCluster.parent_cluster + '.' + selectedCluster.cluster }} with
-                    <b-badge
-                      variant="success"
-                    >
+                    <b-badge variant="success">
                       {{ selectedCluster.cluster_size }} genes
                     </b-badge>
                   </h6>
@@ -606,5 +628,12 @@ export default {
   height: 2rem;
   margin: 5rem auto;
   display: block;
+}
+mark {
+  display: inline-block;
+  line-height: 0em;
+  padding-bottom: 0.5em;
+  font-weight: bold;
+  background-color: #eaadba;
 }
 </style>

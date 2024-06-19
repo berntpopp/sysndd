@@ -1,3 +1,4 @@
+<!-- src/components/analyses/AnalysesCurationMatrixPlot.vue -->
 <template>
   <b-container fluid>
     <!-- User Interface controls -->
@@ -16,6 +17,24 @@
               title="This is a measure of similarity between two sequences of numbers used to quantify the similarity between two word lists."
             >cosine similarity</mark>
             between different curation efforts for neurodevelopmental disorders.
+            <b-badge
+              id="popover-badge-help-similarity"
+              pill
+              href="#"
+              variant="info"
+            >
+              <b-icon icon="question-circle-fill" />
+            </b-badge>
+            <b-popover
+              target="popover-badge-help-similarity"
+              variant="info"
+              triggers="focus"
+            >
+              <template #title>
+                Cosine Similarity Analysis
+              </template>
+              Cosine similarity measures the cosine of the angle between two non-zero vectors. It is used to calculate the similarity between different curation efforts by comparing their respective gene lists. The values range from -1 (completely dissimilar) to 1 (completely similar), with 0 indicating orthogonality (no similarity).
+            </b-popover>
           </h6>
           <DownloadImageButtons
             :svg-id="'matrix-svg'"

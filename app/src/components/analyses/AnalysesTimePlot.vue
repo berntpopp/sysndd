@@ -1,3 +1,4 @@
+<!-- src/components/analyses/AnalysesTimePlot.vue -->
 <template>
   <b-container fluid>
     <!-- User Interface controls -->
@@ -10,7 +11,29 @@
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
           <h6 class="mb-1 text-left font-weight-bold">
-            NDD entities and genes over time.
+            NDD entities and genes
+            <mark
+              v-b-tooltip.hover.leftbottom
+              title="This plot shows the number of NDD entities and genes over time, categorized by different criteria. It provides an interactive way to explore trends and patterns in the data."
+            >over time</mark>.
+            <b-badge
+              id="popover-badge-help-timeplot"
+              pill
+              href="#"
+              variant="info"
+            >
+              <b-icon icon="question-circle-fill" />
+            </b-badge>
+            <b-popover
+              target="popover-badge-help-timeplot"
+              variant="info"
+              triggers="focus"
+            >
+              <template #title>
+                Time Plot Details
+              </template>
+              This section provides a dynamic visualization of the number of neurodevelopmental disorder (NDD) entities and genes over time. The plot can be customized by aggregation type and grouping criteria. Hover over the points to see detailed information, and use the legend to filter the categories displayed.
+            </b-popover>
           </h6>
           <DownloadImageButtons
             :svg-id="'timeplot-svg'"

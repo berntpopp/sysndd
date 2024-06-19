@@ -14,9 +14,32 @@
           <b-row>
             <b-col>
               <!-- You can put a title or additional controls here -->
-              <h5 class="mb-1">
-                Recent NDD publications (Pubtator)
-              </h5>
+              <h6 class="mb-1 text-left font-weight-bold">
+                Recent NDD publications
+                <mark
+                  v-b-tooltip.hover.leftbottom
+                  title="This section displays recent publications related to Neurodevelopmental Disorders (NDD) fetched from Pubtator."
+                > (Pubtator)</mark>.
+                <b-badge
+                  id="popover-badge-help-publications"
+                  pill
+                  href="#"
+                  variant="info"
+                >
+                  <b-icon icon="question-circle-fill" />
+                </b-badge>
+                <b-popover
+                  target="popover-badge-help-publications"
+                  variant="info"
+                  triggers="focus"
+                >
+                  <template #title>
+                    Publications Details
+                  </template>
+                  We query the PubTator API to retrieve publications based on a given search query related to NDD.
+                  The search retrieves a list of publications' metadata, such as PMIDs, titles, journals, and dates.
+                </b-popover>
+              </h6>
             </b-col>
           </b-row>
         </template>
@@ -152,5 +175,11 @@ export default {
 </script>
 
 <style scoped>
-
+mark {
+  display: inline-block;
+  line-height: 0em;
+  padding-bottom: 0.5em;
+  font-weight: bold;
+  background-color: #eaadba;
+}
 </style>

@@ -1,3 +1,4 @@
+<!-- src/components/analyses/AnalysesPhenotypeCorrelogram.vue -->
 <template>
   <b-container fluid>
     <!-- User Interface controls -->
@@ -10,7 +11,36 @@
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
           <h6 class="mb-1 text-left font-weight-bold">
-            Matrix of phenotype correlations.
+            Matrix of
+            <mark
+              v-b-tooltip.hover.leftbottom
+              title="This plot shows the correlation coefficients between various phenotypes."
+            >phenotype correlations</mark>.
+            <b-badge
+              id="popover-badge-help-phenotype"
+              pill
+              href="#"
+              variant="info"
+            >
+              <b-icon icon="question-circle-fill" />
+            </b-badge>
+            <b-popover
+              target="popover-badge-help-phenotype"
+              variant="info"
+              triggers="focus"
+            >
+              <template #title>
+                Phenotype Correlations
+              </template>
+              This plot displays the Pearson correlation coefficients between different phenotypes.
+              The color intensity represents the strength of the correlation:
+              <ul>
+                <li><strong>Red:</strong> Positive correlation</li>
+                <li><strong>Blue:</strong> Negative correlation</li>
+                <li><strong>White:</strong> No correlation</li>
+              </ul>
+              Click on the cells to explore the detailed phenotype relationships.
+            </b-popover>
           </h6>
           <DownloadImageButtons
             :svg-id="'matrix-svg'"
@@ -197,6 +227,13 @@ export default {
   position: absolute;
   top: 0;
   left: 0;
+}
+mark {
+  display: inline-block;
+  line-height: 0em;
+  padding-bottom: 0.5em;
+  font-weight: bold;
+  background-color: #eaadba;
 }
 .spinner {
   width: 2rem;
