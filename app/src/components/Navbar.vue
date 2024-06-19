@@ -69,7 +69,7 @@
         <b-navbar-nav>
           <IconPairDropdownMenu
             v-for="(item, index) in dropdownItemsLeft"
-            :key="index.id"
+            :key="index"
             :title="item.title"
             :align="item.align"
             :required="item.required"
@@ -78,17 +78,17 @@
         </b-navbar-nav>
         <!-- Left aligned nav items -->
 
+        <!-- Center aligned search bar -->
         <b-navbar-nav
           v-if="show_search"
-          class="mx-auto"
+          class="mx-auto d-none d-lg-flex"
         >
-          <!-- The SearchBar component -->
           <SearchBar
             placeholder-string="..."
             :in-navbar="true"
           />
-          <!-- The SearchBar component -->
         </b-navbar-nav>
+        <!-- Center aligned search bar -->
 
         <!-- Right aligned nav items -->
         <b-navbar-nav
@@ -97,10 +97,10 @@
         >
           <IconPairDropdownMenu
             v-for="(item, index) in dropdownItemsRightDisplay"
-            :key="index.id"
+            :key="index"
             :title="item.title"
-            :required="item.required"
             :align="item.align"
+            :required="item.required"
             :items="item.items"
           />
         </b-navbar-nav>
@@ -112,34 +112,30 @@
           Login
         </b-nav-item>
         <!-- Right aligned nav items -->
+
+        <!-- Mobile search bar -->
+        <b-navbar-nav
+          v-if="show_search"
+          class="d-lg-none ml-auto"
+        >
+          <SearchBar
+            placeholder-string="..."
+            :in-navbar="true"
+          />
+        </b-navbar-nav>
+        <!-- Mobile search bar -->
       </b-collapse>
     </b-navbar>
   </div>
 </template>
 
 <script>
-// Importing URLs from a constants file to avoid hardcoding them in this component
 import MAIN_NAV_CONSTANTS from '@/assets/js/constants/main_nav_constants';
-
-// Importing URLs from a constants file to avoid hardcoding them in this component
 import URLS from '@/assets/js/constants/url_constants';
-
-// Importing URLs from a constants file to avoid hardcoding them in this component
 import ROLES from '@/assets/js/constants/role_constants';
-
 import toastMixin from '@/assets/js/mixins/toastMixin';
-
-// Importing the package.json file to get the version number
 import packageInfo from '../../package.json';
 
-// Importing the appConfig file to get the version number
-import appConfig from '../config/appConfig.json';
-
-/**
- * Navigation bar component for the SysNDD web application.
- * It provides links for navigation, user authentication status,
- * and displays the current application version.
- */
 export default {
   name: 'Navbar',
   mixins: [toastMixin],
@@ -161,11 +157,6 @@ export default {
     };
   },
   computed: {
-    /**
-     * Computes the items to be displayed in the right-side dropdown menu.
-     * Filters based on the user's roles and permissions.
-     * @returns {Array} Filtered dropdown items.
-     */
     dropdownItemsRightDisplay() {
       return this.dropdownItemsRight.map((item) => {
         if (item.id === 'user_dropdown') {
@@ -179,23 +170,19 @@ export default {
     },
   },
   watch: {
-    // used to refresh navbar on login push
     $route(to, from) {
       if (to !== from) {
         this.isUserLoggedIn();
       }
-      this.$router.onReady(
-        () => { (this.show_search = this.$route.name !== 'Home'); },
-      );
+      this.$router.onReady(() => {
+        this.show_search = this.$route.name !== 'Home';
+      });
     },
   },
   mounted() {
     this.isUserLoggedIn();
   },
   methods: {
-    /**
-     * Checks if user is logged in by verifying the presence of user and token in local storage.
-     */
     isUserLoggedIn() {
       if (localStorage.user && localStorage.token) {
         this.checkSigninWithJWT();
@@ -211,9 +198,6 @@ export default {
         };
       }
     },
-    /**
-     * Verifies user sign-in status with JWT from local storage, and updates user permissions.
-     */
     async checkSigninWithJWT() {
       const apiAuthenticateURL = `${URLS.API_URL}/api/auth/signin`;
 
@@ -254,7 +238,6 @@ export default {
 };
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 /* Keyframe animations for logo appearance */
 @keyframes fadeIn {
@@ -304,7 +287,7 @@ a {
 }
 :deep(.dropdown-item) {
   color: #fff !important;
-  width: 220px;
+  min-width: 220px;
 }
 :deep(.dropdown-item:hover) {
   background-color: #999 !important;

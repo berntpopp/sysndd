@@ -2,11 +2,13 @@
   <b-nav-item-dropdown
     :text="title"
     :right="align === 'right'"
+    menu-class="dropdown-menu-center"
   >
     <b-dropdown-item
       v-for="(item, index) in items"
       :key="index"
       :to="item.path"
+      class="text-center"
       @click="call(item)"
     >
       <b-icon
@@ -27,11 +29,10 @@
 <script>
 // Importing URLs from a constants file to avoid hardcoding them in this component
 import URLS from '@/assets/js/constants/url_constants';
-
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
-  name: 'NavbarDropdownMenu',
+  name: 'IconPairDropdownMenu',
   mixins: [toastMixin],
   props: {
     title: {
@@ -50,8 +51,6 @@ export default {
       type: Array,
       required: true,
     },
-  },
-  mounted() {
   },
   methods: {
     // this method is called when a dropdown item is clicked
@@ -114,7 +113,12 @@ export default {
 };
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.dropdown-menu-center .dropdown-menu {
+  text-align: center;
+}
 
+.text-center {
+  text-align: center !important;
+}
 </style>

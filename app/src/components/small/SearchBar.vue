@@ -1,6 +1,5 @@
-<!-- SearchBar.vue -->
 <template>
-  <b-input-group class="mb-2 p-2">
+  <b-input-group class="mb-2 p-2 search-bar-container">
     <b-form-input
       v-model="search_input"
       autofocus
@@ -94,6 +93,11 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 .navbar-search {
-  width: 400px;
+  width: 300px;
+  min-width: 100px; /* Adjust min-width to prevent the button from disappearing */
+}
+
+.search-bar-container {
+  flex-wrap: nowrap; /* Ensure the search bar and button stay on the same line */
 }
 </style>
