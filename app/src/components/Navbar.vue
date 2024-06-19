@@ -104,13 +104,15 @@
             :items="item.items"
           />
         </b-navbar-nav>
-        <b-nav-item
+        <!-- Wrap Login button in ul for proper structure -->
+        <ul
           v-else
-          to="/Login"
-          class="ml-auto"
+          class="navbar-nav ml-auto"
         >
-          Login
-        </b-nav-item>
+          <b-nav-item to="/Login">
+            Login
+          </b-nav-item>
+        </ul>
         <!-- Right aligned nav items -->
 
         <!-- Mobile search bar -->
