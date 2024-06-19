@@ -312,8 +312,8 @@
                         class="btn-xs mx-2"
                         :variant="modifier_style[variant.modifier_id]"
                         :href="
-                          'https://www.ebi.ac.uk/ols/ontologies/vario/terms?iri=http://purl.obolibrary.org/obo/' +
-                            variant.vario_id.replace(':', '_')
+                          'http://aber-owl.net/ontology/VARIO/#/Browse/%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2F' +
+                            variant.vario_id.replace(':', '_') + '%3E'
                         "
                         target="_blank"
                         :title="modifier_text[variant.modifier_id] + '; ' + variant.vario_id"
