@@ -1,18 +1,43 @@
+<!-- views/components/small/DownloadImageButtons.vue -->
 <template>
   <div class="download-buttons">
     <b-button
+      v-b-tooltip.hover.bottom
+      class="download-button"
       size="sm"
-      class="float-right"
+      title="Download as PNG"
+      :disabled="downloadingPNG"
       @click="downloadPNG"
     >
-      Download as PNG
+      <b-icon
+        v-if="!downloadingPNG"
+        icon="image"
+        class="mx-1"
+      />
+      <b-spinner
+        v-if="downloadingPNG"
+        small
+      />
+      PNG
     </b-button>
     <b-button
+      v-b-tooltip.hover.bottom
+      class="download-button"
       size="sm"
-      class="float-right mr-2"
+      title="Download as SVG"
+      :disabled="downloadingSVG"
       @click="downloadSVG"
     >
-      Download as SVG
+      <b-icon
+        v-if="!downloadingSVG"
+        icon="file-earmark"
+        class="mx-1"
+      />
+      <b-spinner
+        v-if="downloadingSVG"
+        small
+      />
+      SVG
     </b-button>
   </div>
 </template>
@@ -33,48 +58,58 @@ export default {
       default: 'plot',
     },
   },
+  data() {
+    return {
+      downloadingPNG: false,
+      downloadingSVG: false,
+    };
+  },
   methods: {
-    /**
-     * Converts the D3 plot to PNG and triggers a download.
-     */
     async downloadPNG() {
-      const svgElement = document.getElementById(this.svgId);
-      const svgString = new XMLSerializer().serializeToString(svgElement);
+      this.downloadingPNG = true;
+      try {
+        const svgElement = document.getElementById(this.svgId);
+        const svgString = new XMLSerializer().serializeToString(svgElement);
 
-      // Create a canvas element
-      const canvas = document.createElement('canvas');
-      const canvasWidth = 760; // Width of the canvas
-      const canvasHeight = 500; // Height of the canvas
-      canvas.width = canvasWidth;
-      canvas.height = canvasHeight;
-      const context = canvas.getContext('2d');
+        const canvas = document.createElement('canvas');
+        const canvasWidth = 760;
+        const canvasHeight = 500;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        const context = canvas.getContext('2d');
 
-      // Create an image element
-      const img = new Image();
-      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(svgBlob);
+        const img = new Image();
+        const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
 
-      img.onload = () => {
-        context.drawImage(img, 0, 0, canvasWidth, canvasHeight);
-        URL.revokeObjectURL(url);
+        img.onload = () => {
+          context.drawImage(img, 0, 0, canvasWidth, canvasHeight);
+          URL.revokeObjectURL(url);
 
-        // Convert canvas to PNG and trigger download
-        canvas.toBlob((blob) => {
-          saveAs(blob, `${this.fileName}.png`);
-        });
-      };
+          canvas.toBlob((blob) => {
+            saveAs(blob, `${this.fileName}.png`);
+          });
+        };
 
-      img.src = url;
+        img.src = url;
+      } catch (error) {
+        console.error(error);
+      } finally {
+        this.downloadingPNG = false;
+      }
     },
-
-    /**
-     * Triggers a download of the SVG element.
-     */
-    downloadSVG() {
-      const svgElement = document.getElementById(this.svgId);
-      const svgString = new XMLSerializer().serializeToString(svgElement);
-      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-      saveAs(svgBlob, `${this.fileName}.svg`);
+    async downloadSVG() {
+      this.downloadingSVG = true;
+      try {
+        const svgElement = document.getElementById(this.svgId);
+        const svgString = new XMLSerializer().serializeToString(svgElement);
+        const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+        saveAs(svgBlob, `${this.fileName}.svg`);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        this.downloadingSVG = false;
+      }
     },
   },
 };
@@ -84,4 +119,9 @@ export default {
 .download-buttons {
   display: inline-block;
 }
+
+.download-button {
+  margin: 0.1rem 0.1rem; /* Vertical margin for small screens */
+}
+
 </style>

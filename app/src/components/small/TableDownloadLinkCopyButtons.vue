@@ -1,10 +1,11 @@
-<!-- TableDownloadLinkCopyButtons.vue -->
+<!-- views/components/small/TableDownloadLinkCopyButtons.vue -->
+<!-- views/components/small/TableDownloadLinkCopyButtons.vue -->
 <template>
-  <div>
+  <div class="download-buttons">
     <!-- Download CSV Button -->
     <b-button
       v-b-tooltip.hover.bottom
-      class="mr-1"
+      class="download-button"
       size="sm"
       title="Download data as Excel file."
       :disabled="downloading"
@@ -29,7 +30,7 @@
     <!-- Copy Link Button -->
     <b-button
       v-b-tooltip.hover.bottom
-      class="mx-1"
+      class="download-button"
       size="sm"
       title="Copy link to this page."
       variant="success"
@@ -45,6 +46,7 @@
     <!-- Remove Filters Button -->
     <b-button
       v-b-tooltip.hover.bottom
+      class="download-button"
       size="sm"
       :title="removeFiltersTitle"
       :variant="removeFiltersVariant"
@@ -77,3 +79,13 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.download-buttons {
+  display: inline-block;
+}
+
+.download-button {
+  margin: 0.1rem 0.1rem; /* Vertical margin for small screens */
+}
+</style>
