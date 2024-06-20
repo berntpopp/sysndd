@@ -1,3 +1,4 @@
+<!-- src/components/analyses/AnalysesCurationComparisonsTable.vue -->
 <template>
   <b-container fluid>
     <!-- User Interface controls -->
@@ -16,7 +17,7 @@
                 v-b-tooltip.hover.leftbottom
                 title="These have been reviewed to include lists which are regularly updated. Below table allows users to filter the presence of a gene (normalized category/ not listed) in the respective list overlaps."
               >curation efforts</mark>
-              for neurodevelopmental disorders.
+              for NDDs.
 
               <b-badge
                 id="popover-badge-help-comparisons"
@@ -127,7 +128,7 @@
                 v-if="showFilterControls"
                 id="filter-input"
                 v-model="filter['any'].content"
-                class="mb-1 border-dark"
+                class="filter-input mb-1 border-dark"
                 size="sm"
                 type="search"
                 placeholder="Search any field by typing here"
@@ -154,6 +155,7 @@
                   id="per-page-select"
                   v-model="perPage"
                   :options="pageOptions"
+                  class="filter-input"
                   size="sm"
                 />
               </b-input-group>
@@ -197,6 +199,7 @@
               <b-form-input
                 v-if="field.filterable"
                 v-model="filter[field.key].content"
+                class="filter-input"
                 :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
                 debounce="500"
                 type="search"
@@ -208,6 +211,7 @@
               <b-form-select
                 v-if="field.selectable"
                 v-model="filter[field.key].content"
+                class="filter-input"
                 :options="field.selectOptions"
                 type="search"
                 @input="removeSearch()"
@@ -229,6 +233,7 @@
                   v-if="field.multi_selectable"
                   :id="'select_' + field.key"
                   v-model="filter[field.key].content"
+                  class="filter-input"
                   size="small"
                   :multiple="true"
                   :options="field.selectOptions"
@@ -686,5 +691,10 @@ mark {
   padding-bottom: 0.5em;
   font-weight: bold;
   background-color: #eaadba;
+}
+.filter-input {
+  font-size: 0.875rem;
+  color: #495057;
+  border-color: #ced4da;
 }
 </style>
