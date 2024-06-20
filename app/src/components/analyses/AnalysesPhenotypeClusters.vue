@@ -34,6 +34,11 @@
               This section provides an interactive visualization of entities grouped by phenotype annotations. The graphical part allows you to explore the clusters by clicking on the nodes, and the table displays detailed information about the variables within each cluster.
             </b-popover>
           </h6>
+          <!-- Add download button for the cluster plot -->
+          <DownloadImageButtons
+            :svg-id="'cluster_dataviz-svg'"
+            :file-name="'cluster_plot'"
+          />
         </div>
       </template>
 
@@ -143,9 +148,13 @@
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import * as d3 from 'd3';
+import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 
 export default {
   name: 'AnalysesPhenotypeClusters',
+  components: {
+    DownloadImageButtons,
+  },
   mixins: [toastMixin],
   data() {
     return {
@@ -227,6 +236,7 @@ export default {
       const svg = d3
         .select('#cluster_dataviz')
         .append('svg')
+        .attr('id', 'cluster_dataviz-svg') // Add ID here
         .attr('width', width)
         .attr('height', height);
 

@@ -9,33 +9,40 @@
       border-variant="dark"
     >
       <template #header>
-        <h6 class="mb-1 text-left font-weight-bold">
-          Functionally enriched
-          <mark
-            v-b-tooltip.hover.leftbottom
-            title="This section displays gene clusters that are enriched based on functional annotations. It allows users to explore and analyze the clusters."
-          >
-            gene clusters
-          </mark>.
-          <b-badge
-            id="popover-badge-help-geneclusters"
-            pill
-            href="#"
-            variant="info"
-          >
-            <b-icon icon="question-circle-fill" />
-          </b-badge>
-          <b-popover
-            target="popover-badge-help-geneclusters"
-            variant="info"
-            triggers="focus"
-          >
-            <template #title>
-              Gene Clusters Information
-            </template>
-            This section provides insights into gene clusters that are enriched based on their functional annotations. Users can explore various clusters and subclusters, and analyze the associated genes and their properties.
-          </b-popover>
-        </h6>
+        <div class="d-flex justify-content-between align-items-center">
+          <h6 class="mb-1 text-left font-weight-bold">
+            Functionally enriched
+            <mark
+              v-b-tooltip.hover.leftbottom
+              title="This section displays gene clusters that are enriched based on functional annotations. It allows users to explore and analyze the clusters."
+            >
+              gene clusters
+            </mark>.
+            <b-badge
+              id="popover-badge-help-geneclusters"
+              pill
+              href="#"
+              variant="info"
+            >
+              <b-icon icon="question-circle-fill" />
+            </b-badge>
+            <b-popover
+              target="popover-badge-help-geneclusters"
+              variant="info"
+              triggers="focus"
+            >
+              <template #title>
+                Gene Clusters Information
+              </template>
+              This section provides insights into gene clusters that are enriched based on their functional annotations. Users can explore various clusters and subclusters, and analyze the associated genes and their properties.
+            </b-popover>
+          </h6>
+          <!-- Add download button for the gene cluster plot -->
+          <DownloadImageButtons
+            :svg-id="'gene_cluster_dataviz-svg'"
+            :file-name="'gene_cluster_plot'"
+          />
+        </div>
       </template>
 
       <!-- Content -->
@@ -62,7 +69,7 @@
                 <b-col>
                   <b-input-group
                     prepend="Select"
-                    class="mb-1text-right"
+                    class="mb-1 text-right"
                     size="sm"
                   >
                     <b-form-select
@@ -77,7 +84,7 @@
             </template>
 
             <div
-              id="cluster_dataviz"
+              id="gene_cluster_dataviz"
               class="svg-container"
             >
               <b-spinner
@@ -247,11 +254,15 @@
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
+import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 
 import * as d3 from 'd3';
 
 export default {
   name: 'AnalyseGeneClusters',
+  components: {
+    DownloadImageButtons,
+  },
   mixins: [toastMixin, colorAndSymbolsMixin],
   data() {
     return {
@@ -420,8 +431,9 @@ export default {
 
       // Create the svg area
       const svg = d3
-        .select('#cluster_dataviz')
+        .select('#gene_cluster_dataviz')
         .append('svg')
+        .attr('id', 'gene_cluster_dataviz-svg') // Add ID here
         .attr('width', width)
         .attr('height', height);
 
