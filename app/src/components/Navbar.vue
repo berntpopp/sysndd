@@ -1,31 +1,4 @@
-/**
- * components/Navbar.vue
- *
- * @description Navigation bar component for the SysNDD web application.
- * @component Navbar
- *
- * It provides links for navigation, user authentication status,
- * and displays the current application version.
- *
- * @prop {Array} dropdownItemsLeft - The items to be displayed in the left-side dropdown menu.
- * @prop {Array} dropdownItemsRight - The items to be displayed in the right-side dropdown menu.
- * @prop {Object} user - The user object containing user information.
- * @prop {Object} userAllowence - The user's permissions for different actions.
- * @prop {Array} user_from_jwt - The user object obtained from JWT.
- * @prop {Boolean} show_search - Flag indicating whether to show the search bar.
- * @prop {String} appVersion - The version number of the application.
- * @prop {Boolean} fetchError - Flag indicating whether there was an error fetching data.
- *
- * @event {Function} isUserLoggedIn - Checks if the user is logged in by verifying the presence of user and token in local storage.
- * @event {Function} checkSigninWithJWT - Verifies user sign-in status with JWT from local storage, and updates user permissions.
- *
- * @watch {$route} - Used to refresh the navbar on login push.
- *
- * @method mounted - Lifecycle method called when the component is mounted.
- * @method dropdownItemsRightDisplay - Computes the items to be displayed in the right-side dropdown menu.
- * @method isUserLoggedIn - Checks if the user is logged in by verifying the presence of user and token in local storage.
- * @method checkSigninWithJWT - Verifies user sign-in status with JWT from local storage, and updates user permissions.
- */
+<!-- scr/components/Navbar.vue -->
 <template>
   <div>
     <b-navbar
@@ -189,15 +162,7 @@ export default {
       if (localStorage.user && localStorage.token) {
         this.checkSigninWithJWT();
       } else {
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        this.user = null;
-        this.userAllowence = {
-          view: false,
-          review: false,
-          curate: false,
-          admin: false,
-        };
+        this.clearUserData();
       }
     },
     async checkSigninWithJWT() {
@@ -211,30 +176,41 @@ export default {
         });
 
         this.user_from_jwt = response_signin.data;
+        this.setUserFromJWT();
       } catch (e) {
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
+        this.clearUserData();
         this.makeToast(e, 'Error', 'danger');
       }
+    },
+    setUserFromJWT() {
+      const localStorageUser = JSON.parse(localStorage.user);
+      if (this.user_from_jwt.user_name[0] === localStorageUser.user_name[0]) {
+        const [user] = localStorageUser.user_name;
+        this.user = user;
 
-      if (
-        this.user_from_jwt.user_name[0]
-        === JSON.parse(localStorage.user).user_name[0]
-      ) {
-        let rest;
-        [this.user, ...rest] = JSON.parse(localStorage.user).user_name;
-
-        const user_role = JSON.parse(localStorage.user).user_role[0];
+        const user_role = localStorageUser.user_role[0];
         const allowence = ROLES.ALLOWENCE_NAVIGATION[ROLES.ALLOWED_ROLES.indexOf(user_role)];
 
-        this.userAllowence.view = allowence.includes('View');
-        this.userAllowence.review = allowence.includes('Review');
-        this.userAllowence.curate = allowence.includes('Curate');
-        this.userAllowence.admin = allowence.includes('Admin');
+        this.userAllowence = {
+          view: allowence.includes('View'),
+          review: allowence.includes('Review'),
+          curate: allowence.includes('Curate'),
+          admin: allowence.includes('Admin'),
+        };
       } else {
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
+        this.clearUserData();
       }
+    },
+    clearUserData() {
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      this.user = null;
+      this.userAllowence = {
+        view: false,
+        review: false,
+        curate: false,
+        admin: false,
+      };
     },
   },
 };

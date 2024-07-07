@@ -1,11 +1,14 @@
+<!-- src/views/Login.vue -->
 <template>
   <div class="container-fluid">
+    <!-- Loading Spinner -->
     <b-spinner
       v-if="loading"
       label="Loading..."
       class="float-center m-5"
     />
 
+    <!-- Login Form -->
     <b-container v-else>
       <b-row class="justify-content-md-center py-4">
         <b-col md="6">
@@ -20,8 +23,9 @@
                 v-slot="{ handleSubmit }"
               >
                 <b-form @submit.stop.prevent="handleSubmit(onSubmit)">
+                  <!-- Username Field -->
                   <validation-provider
-                    v-slot="validationContext"
+                    v-slot="{ errors, validated, dirty }"
                     name="username"
                     :rules="{ required: true, min: 5, max: 20 }"
                   >
@@ -29,13 +33,17 @@
                       <b-form-input
                         v-model="user_name"
                         placeholder="User"
-                        :state="getValidationState(validationContext)"
+                        :state="getValidationState({ errors, validated, dirty })"
                       />
+                      <b-form-invalid-feedback v-if="errors.length">
+                        {{ errors[0] }}
+                      </b-form-invalid-feedback>
                     </b-form-group>
                   </validation-provider>
 
+                  <!-- Password Field -->
                   <validation-provider
-                    v-slot="validationContext"
+                    v-slot="{ errors, validated, dirty }"
                     name="password"
                     :rules="{ required: true, min: 5, max: 50 }"
                   >
@@ -44,16 +52,20 @@
                         v-model="password"
                         placeholder="Password"
                         type="password"
-                        :state="getValidationState(validationContext)"
+                        :state="getValidationState({ errors, validated, dirty })"
                       />
+                      <b-form-invalid-feedback v-if="errors.length">
+                        {{ errors[0] }}
+                      </b-form-invalid-feedback>
                     </b-form-group>
                   </validation-provider>
 
+                  <!-- Form Buttons -->
                   <b-form-group>
                     <b-button
                       class="ml-2"
                       variant="outline-dark"
-                      @click="resetForm()"
+                      @click="resetForm"
                     >
                       Reset
                     </b-button>
@@ -62,7 +74,6 @@
                       :class="{ shake: animated }"
                       type="submit"
                       variant="dark"
-                      @click="clickHandler()"
                     >
                       Login
                     </b-button>
@@ -70,14 +81,19 @@
                 </b-form>
               </validation-observer>
 
-              Don't have an account yet and want to help?
-              <b-link :href="'/Register'">
-                Register now.
-              </b-link> <br>
-              Forgot your password?
-              <b-link :href="'/PasswordReset'">
-                Reset now.
-              </b-link>
+              <!-- Additional Links -->
+              <div>
+                Don't have an account yet and want to help?
+                <b-link :href="'/Register'">
+                  Register now.
+                </b-link>
+              </div>
+              <div>
+                Forgot your password?
+                <b-link :href="'/PasswordReset'">
+                  Reset now.
+                </b-link>
+              </div>
             </b-card-text>
           </b-card>
         </b-col>
@@ -87,44 +103,37 @@
 </template>
 
 <script>
-// Importing a mixin that provides toast notifications
+import { ValidationObserver, ValidationProvider } from 'vee-validate';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
   name: 'Login',
-  // Using the toastMixin to provide toast notifications
+  components: {
+    ValidationObserver,
+    ValidationProvider,
+  },
   mixins: [toastMixin],
-  // Meta information for the page, including title and description
   metaInfo: {
-    // if no subcomponents specify a metaInfo.title, this title will be used
     title: 'Login',
-    // all titles will be injected into this template
     titleTemplate:
       '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
-    htmlAttrs: {
-      lang: 'en',
-    },
+    htmlAttrs: { lang: 'en' },
     meta: [
       {
         vmid: 'description',
         name: 'description',
-        content:
-          'The Login view allows users and curators to log into their SysNDD account.',
+        content: 'The Login view allows users and curators to log into their SysNDD account.',
       },
     ],
   },
-  // Data properties for this component
   data() {
     return {
       user_name: '',
       password: '',
-      ywt: '',
-      user: [],
       loading: true,
       animated: false,
     };
   },
-  // Lifecycle hook that's run when the component is added to the DOM
   mounted() {
     if (localStorage.user) {
       this.doUserLogOut();
@@ -132,30 +141,18 @@ export default {
     this.loading = false;
   },
   methods: {
-    // Returns the validation state for form fields
-    getValidationState({ dirty, validated, valid = null }) {
-      return dirty || validated ? valid : null;
+    getValidationState({ errors, dirty, validated }) {
+      if (errors.length) {
+        return false;
+      }
+      return dirty || validated ? true : null;
     },
-    // Asynchronously load the JWT token
     async loadJWT() {
-      const apiAuthenticateURL = `${process.env.VUE_APP_API_URL
-      }/api/auth/authenticate?user_name=${
-        this.user_name
-      }&password=${
-        this.password}`;
+      const apiAuthenticateURL = `${process.env.VUE_APP_API_URL}/api/auth/authenticate?user_name=${this.user_name}&password=${this.password}`;
       try {
         const response_authenticate = await this.axios.get(apiAuthenticateURL);
         localStorage.setItem('token', response_authenticate.data[0]);
-        this.makeToast(
-          `${'You have logged in  '
-            + '(status '}${
-            response_authenticate.status
-          } (${
-            response_authenticate.statusText
-          }).`,
-          'Success',
-          'success',
-        );
+        this.makeToast(`You have logged in (status ${response_authenticate.status} - ${response_authenticate.statusText}).`, 'Success', 'success');
         this.signinWithJWT();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -163,7 +160,6 @@ export default {
     },
     async signinWithJWT() {
       const apiAuthenticateURL = `${process.env.VUE_APP_API_URL}/api/auth/signin`;
-
       try {
         const response_signin = await this.axios.get(apiAuthenticateURL, {
           headers: {
@@ -180,7 +176,6 @@ export default {
     resetForm() {
       this.user_name = '';
       this.password = '';
-
       this.$nextTick(() => {
         this.$refs.observer.reset();
       });
@@ -197,10 +192,9 @@ export default {
       }
     },
     clickHandler() {
-      const self = this;
-      self.animated = true;
+      this.animated = true;
       setTimeout(() => {
-        self.animated = false;
+        this.animated = false;
       }, 1000);
     },
   },

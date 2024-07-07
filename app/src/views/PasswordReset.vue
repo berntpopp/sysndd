@@ -1,3 +1,4 @@
+<!-- src/views/PasswordReset.vue -->
 <template>
   <div class="container-fluid">
     <b-spinner
@@ -9,47 +10,47 @@
     <b-container v-else>
       <b-row class="justify-content-md-center py-4">
         <b-col md="6">
-          <b-container v-if="show_change_container">
+          <b-container v-if="showChangeContainer">
             <b-card
               header="Reset Password"
               header-bg-variant="dark"
               header-text-variant="white"
             >
               <b-card-text>
-                <validation-observer
+                <ValidationObserver
                   ref="observer"
                   v-slot="{ handleSubmit }"
                 >
                   <b-form @submit.stop.prevent="handleSubmit(doPasswordChange)">
-                    <validation-provider
+                    <ValidationProvider
                       v-slot="validationContext"
                       name="password"
                       :rules="{ required: true, min: 7, max: 50 }"
                     >
                       <b-form-group description="Enter your new password">
                         <b-form-input
-                          v-model="new_password_entry"
+                          v-model="newPasswordEntry"
                           placeholder="Enter new password"
                           type="password"
                           :state="getValidationState(validationContext)"
                         />
                       </b-form-group>
-                    </validation-provider>
+                    </ValidationProvider>
 
-                    <validation-provider
+                    <ValidationProvider
                       v-slot="validationContext"
-                      name="password"
+                      name="repeatPassword"
                       :rules="{ required: true, min: 7, max: 50 }"
                     >
                       <b-form-group description="Repeat your new password">
                         <b-form-input
-                          v-model="new_password_repeat"
+                          v-model="newPasswordRepeat"
                           placeholder="Repeat new password"
                           type="password"
                           :state="getValidationState(validationContext)"
                         />
                       </b-form-group>
-                    </validation-provider>
+                    </ValidationProvider>
 
                     <b-form-group>
                       <b-button
@@ -61,38 +62,36 @@
                       </b-button>
                     </b-form-group>
                   </b-form>
-                </validation-observer>
+                </ValidationObserver>
               </b-card-text>
             </b-card>
           </b-container>
 
-          <b-container v-if="show_request_container">
+          <b-container v-if="showRequestContainer">
             <b-card
               header="Reset Password"
               header-bg-variant="dark"
               header-text-variant="white"
             >
               <b-card-text>
-                <validation-observer
+                <ValidationObserver
                   ref="observer"
                   v-slot="{ handleSubmit }"
                 >
-                  <b-form
-                    @submit.stop.prevent="handleSubmit(requestPasswordReset)"
-                  >
-                    <validation-provider
+                  <b-form @submit.stop.prevent="handleSubmit(requestPasswordReset)">
+                    <ValidationProvider
                       v-slot="validationContext"
                       name="email"
                       :rules="{ required: true, email: true }"
                     >
                       <b-form-group description="Enter your mail account">
                         <b-form-input
-                          v-model="email_entry"
+                          v-model="emailEntry"
                           placeholder="mail@your-institution.com"
                           :state="getValidationState(validationContext)"
                         />
                       </b-form-group>
-                    </validation-provider>
+                    </ValidationProvider>
 
                     <b-form-group>
                       <b-button
@@ -104,7 +103,7 @@
                       </b-button>
                     </b-form-group>
                   </b-form>
-                </validation-observer>
+                </ValidationObserver>
               </b-card-text>
             </b-card>
           </b-container>
@@ -115,18 +114,23 @@
 </template>
 
 <script>
+import { ValidationObserver, ValidationProvider } from 'vee-validate';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
   name: 'PasswordReset',
+  components: {
+    ValidationObserver,
+    ValidationProvider,
+  },
   mixins: [toastMixin],
   data() {
     return {
-      show_change_container: false,
-      show_request_container: true,
-      email_entry: '',
-      new_password_entry: '',
-      new_password_repeat: '',
+      showChangeContainer: false,
+      showRequestContainer: true,
+      emailEntry: '',
+      newPasswordEntry: '',
+      newPasswordRepeat: '',
       loading: true,
     };
   },
@@ -134,30 +138,35 @@ export default {
     this.checkURLParameter();
   },
   methods: {
-    getValidationState({ dirty, validated, valid = null }) {
-      return dirty || validated ? valid : null;
+    getValidationState(validationContext) {
+      if (validationContext.errors[0]) {
+        return false;
+      }
+      if (validationContext.dirty || validationContext.validated) {
+        return validationContext.valid;
+      }
+      return null;
     },
     async checkURLParameter() {
       this.loading = true;
 
-      const decode_jwt = this.parseJwt(this.$route.params.request_jwt);
+      const decodeJwt = this.parseJwt(this.$route.params.request_jwt);
       const timestamp = Math.floor(new Date().getTime() / 1000);
 
-      if (decode_jwt === null) {
-        this.show_change_container = false;
-        this.show_request_container = true;
-      } else if (decode_jwt.exp < timestamp) {
+      if (decodeJwt === null) {
+        this.showChangeContainer = false;
+        this.showRequestContainer = true;
+      } else if (decodeJwt.exp < timestamp) {
         setTimeout(() => {
           this.$router.push('/');
         }, 1000);
       } else {
-        this.show_change_container = true;
-        this.show_request_container = false;
+        this.showChangeContainer = true;
+        this.showRequestContainer = false;
       }
       this.loading = false;
     },
     parseJwt(token) {
-      // based on https://stackoverflow.com/questions/51292406/check-if-token-expired-using-this-jwt-library
       try {
         return JSON.parse(atob(token.split('.')[1]));
       } catch (e) {
@@ -167,20 +176,12 @@ export default {
     async requestPasswordReset() {
       const apiPasswordResetRequest = `${process.env.VUE_APP_API_URL
       }/api/user/password/reset/request?email_request=${
-        this.email_entry}`;
+        this.emailEntry}`;
 
       try {
-        const response_reset_request = await this.axios.get(
-          apiPasswordResetRequest,
-          {},
-        );
+        const responseResetRequest = await this.axios.get(apiPasswordResetRequest);
         this.makeToast(
-          `${'If the mail exists your request has been send '
-            + '(status '}${
-            response_reset_request.status
-          } (${
-            response_reset_request.statusText
-          }).`,
+          `If the mail exists your request has been sent (status ${responseResetRequest.status} - ${responseResetRequest.statusText}).`,
           'Success',
           'success',
         );
@@ -190,7 +191,7 @@ export default {
       this.resetRequestForm();
     },
     resetRequestForm() {
-      this.email_entry = '';
+      this.emailEntry = '';
       setTimeout(() => {
         this.$router.push('/');
       }, 1000);
@@ -198,9 +199,9 @@ export default {
     async doPasswordChange() {
       const apiUrl = `${process.env.VUE_APP_API_URL
       }/api/user/password/reset/change?new_pass_1=${
-        this.new_password_entry
+        this.newPasswordEntry
       }&new_pass_2=${
-        this.new_password_repeat}`;
+        this.newPasswordRepeat}`;
       try {
         const response = await this.axios.get(apiUrl, {
           headers: {
@@ -213,8 +214,8 @@ export default {
       this.resetChangeForm();
     },
     resetChangeForm() {
-      this.new_password_entry = '';
-      this.new_password_repeat = '';
+      this.newPasswordEntry = '';
+      this.newPasswordRepeat = '';
       setTimeout(() => {
         this.$router.push('/');
       }, 1000);
