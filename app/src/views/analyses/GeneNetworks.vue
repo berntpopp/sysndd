@@ -1,3 +1,4 @@
+<!-- src/views/analyses/GeneNetworks.vue -->
 <template>
   <div class="container-fluid">
     <b-container fluid>

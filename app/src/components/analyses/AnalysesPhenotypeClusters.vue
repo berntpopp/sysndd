@@ -228,7 +228,7 @@ export default {
       const width = 400 - margin.left - margin.right;
       const height = 400 - margin.top - margin.bottom;
 
-      // first remove svg
+      // First remove existing svg and div elements
       d3.select('#cluster_dataviz').select('svg').remove();
       d3.select('#cluster_dataviz').select('div').remove();
 
@@ -240,7 +240,7 @@ export default {
         .attr('width', width)
         .attr('height', height);
 
-      // define data from API call object
+      // Define data from API call object
       const data = this.itemsCluster;
 
       // Color palette for clusters
@@ -255,9 +255,8 @@ export default {
         .domain([0, 1000])
         .range([7, 55]);
 
-      // get unique cluster ids as array
+      // Get unique cluster ids as array
       const unique = (value, index, self) => self.indexOf(value) === index;
-
       const unique_cluster = data
         .map(({ cluster }) => cluster)
         .filter(unique);
@@ -266,11 +265,9 @@ export default {
       const x = d3
         .scaleOrdinal()
         .domain(unique_cluster)
-        .range(
-          unique_cluster.map((x) => x * 30),
-        );
+        .range(unique_cluster.map((x) => x * 30));
 
-      // create a tooltip
+      // Create a tooltip
       const Tooltip = d3
         .select('#cluster_dataviz')
         .append('div')
@@ -283,33 +280,22 @@ export default {
         .style('padding', '5px');
 
       const mouseover = function mouseover(event, d) {
-        d3.select(this)
-          .style('cursor', 'pointer');
-        Tooltip
-          .style('opacity', 1);
-
+        d3.select(this).style('cursor', 'pointer');
+        Tooltip.style('opacity', 1);
         d3.select(this).style('stroke', 'black');
       };
 
       const mousemove = function mousemove(event, d) {
         Tooltip.html(
-          `<u>Cluster: ${
-            d.cluster
-          }</u>`
-            + `<br>${
-              d.cluster_size
-            } entities`,
+          `<u>Cluster: ${d.cluster}</u><br>${d.cluster_size} entities`,
         )
           .style('left', `${event.layerX + 20}px`)
           .style('top', `${event.layerY + 20}px`);
       };
 
       const mouseleave = function mouseleave(event, d) {
-        d3.select(this)
-          .style('cursor', 'default');
-        Tooltip
-          .style('opacity', 0);
-
+        d3.select(this).style('cursor', 'default');
+        Tooltip.style('opacity', 0);
         d3.select(this).style('stroke', '#696969');
       };
 
@@ -331,7 +317,21 @@ export default {
             .strength(0.2)
             .radius((d) => size(d.cluster_size) + 3)
             .iterations(1),
-        ); // Force that avoids circle overlapping
+        ) // Force that avoids circle overlapping
+        .force(
+          'forceX',
+          d3
+            .forceX()
+            .strength(0.5)
+            .x((d) => x(d.cluster)),
+        )
+        .force(
+          'forceY',
+          d3
+            .forceY()
+            .strength(0.1)
+            .y(height * 0.5),
+        );
 
       // What happens when a circle is dragged?
       function dragstarted(event, d) {
@@ -356,8 +356,6 @@ export default {
         .data(data)
         .enter()
         .append('a')
-        // .attr('xlink:href', (d) => `/Entities/?filter=${d.hash_filter}`) // <- add links to the filtered gene table to the circles
-        // .attr('aria-label', (d) => `Link to entity table for cluster, ${d.cluster}`)
         .append('circle')
         .attr('class', 'node')
         .attr('r', (d) => size(d.cluster_size))
@@ -377,10 +375,11 @@ export default {
         .on('mouseleave', mouseleave)
         .on('click', (e, d) => {
           this.activeCluster = d.cluster;
+          Tooltip.style('opacity', 0); // Hide tooltip on click
         })
         .call(
           d3
-            .drag() // call specific function when circle is dragged
+            .drag() // Call specific function when circle is dragged
             .on('start', dragstarted)
             .on('drag', dragged)
             .on('end', dragended),
@@ -388,13 +387,9 @@ export default {
 
       // Apply these forces to the nodes and update their positions.
       // Once the force algorithm is happy with positions ('alpha' value is low enough), simulations will stop.
-      simulation
-        .nodes(data)
-        .on('tick', (d) => {
-          node
-            .attr('cx', (d) => d.x)
-            .attr('cy', (d) => d.y);
-        });
+      simulation.nodes(data).on('tick', (d) => {
+        node.attr('cx', (d) => d.x).attr('cy', (d) => d.y);
+      });
     },
   },
 };

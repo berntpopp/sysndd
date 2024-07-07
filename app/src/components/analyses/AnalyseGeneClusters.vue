@@ -37,7 +37,6 @@
               This section provides insights into gene clusters that are enriched based on their functional annotations. Users can explore various clusters and subclusters, and analyze the associated genes and their properties.
             </b-popover>
           </h6>
-          <!-- Add download button for the gene cluster plot -->
           <DownloadImageButtons
             :svg-id="'gene_cluster_dataviz-svg'"
             :file-name="'gene_cluster_plot'"
@@ -252,11 +251,10 @@
 </template>
 
 <script>
+import * as d3 from 'd3';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
-
-import * as d3 from 'd3';
 
 export default {
   name: 'AnalyseGeneClusters',
@@ -426,8 +424,8 @@ export default {
       const height = 400 - margin.top - margin.bottom;
 
       // first remove svg
-      d3.select('#cluster_dataviz').select('svg').remove();
-      d3.select('#cluster_dataviz').select('div').remove();
+      d3.select('#gene_cluster_dataviz').select('svg').remove();
+      d3.select('#gene_cluster_dataviz').select('div').remove();
 
       // Create the svg area
       const svg = d3
@@ -471,7 +469,7 @@ export default {
 
       // create a tooltip
       const Tooltip = d3
-        .select('#cluster_dataviz')
+        .select('#gene_cluster_dataviz')
         .append('div')
         .style('opacity', 0)
         .attr('class', 'tooltip')
@@ -483,7 +481,6 @@ export default {
 
       const mouseover = function mouseover(event, d) {
         Tooltip.style('opacity', 1);
-
         d3.select(this).style('stroke-width', 3);
       };
 
@@ -494,9 +491,9 @@ export default {
           }.${
             d.cluster
           }</u>`
-            + `<br>${
-              d.cluster_size
-            } genes`,
+          + `<br>${
+            d.cluster_size
+          } genes`,
         )
           .style('left', `${event.layerX + 20}px`)
           .style('top', `${event.layerY + 20}px`);
@@ -504,7 +501,6 @@ export default {
 
       const mouseleave = function mouseleave(event, d) {
         Tooltip.style('opacity', 0);
-
         d3.select(this).style('stroke-width', 1);
       };
 
@@ -565,8 +561,8 @@ export default {
         .data(data)
         .enter()
         .append('a')
-        // .attr('xlink:href', (d) => `/Entities/?filter=${d.hash_filter}`) // <- add links to the filtered gene table to the circles
-        // .attr('aria-label', (d) => `Link to entity table for cluster, ${d.cluster}`)
+      // .attr('xlink:href', (d) => `/Entities/?filter=${d.hash_filter}`) // <- add links to the filtered gene table to the circles
+      // .attr('aria-label', (d) => `Link to entity table for cluster, ${d.cluster}`)
         .append('circle')
         .attr('class', 'node')
         .attr('r', (d) => size(d.cluster_size))
@@ -590,6 +586,7 @@ export default {
         .on('click', (e, d) => {
           this.activeParentCluster = d.parent_cluster;
           this.activeSubCluster = d.cluster;
+          Tooltip.style('opacity', 0); // Hide tooltip on click
         })
         .call(
           d3
