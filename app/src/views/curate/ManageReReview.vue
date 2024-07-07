@@ -14,9 +14,29 @@
             border-variant="dark"
           >
             <template #header>
-              <h6 class="mb-1 text-left font-weight-bold">
-                Manage re-review submissions
-              </h6>
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-1 text-left font-weight-bold">
+                  Manage re-review submissions
+                  <b-badge
+                    id="popover-badge-help-manage"
+                    pill
+                    href="#"
+                    variant="info"
+                  >
+                    <b-icon icon="question-circle-fill" />
+                  </b-badge>
+                  <b-popover
+                    target="popover-badge-help-manage"
+                    variant="info"
+                    triggers="focus"
+                  >
+                    <template #title>
+                      Re-review Submissions Management
+                    </template>
+                    Use this section to manage re-review submissions. You can assign new batches to users and view the details of each batch.
+                  </b-popover>
+                </h6>
+              </div>
             </template>
 
             <b-col>
@@ -30,11 +50,13 @@
                     <b-form-select
                       v-model="user_id_assignment"
                       :options="user_options"
+                      class="username-select"
                     />
                     <b-input-group-append>
                       <b-button
                         block
                         size="sm"
+                        variant="primary"
                         @click="handleNewBatchAssignment"
                       >
                         <b-icon
@@ -45,6 +67,7 @@
                       </b-button>
                     </b-input-group-append>
                   </b-input-group>
+                  <small class="text-muted">Select a user and click "Assign new batch" to assign a new re-review batch to the selected user.</small>
                 </b-col>
 
                 <b-col class="my-1" />
@@ -79,7 +102,7 @@
                   v-b-tooltip.hover.top
                   size="sm"
                   class="mr-1 btn-xs"
-                  title="unassign this batch"
+                  title="Unassign this batch"
                   variant="danger"
                   @click="handleBatchUnAssignment(data.item.re_review_batch)"
                 >
@@ -222,6 +245,7 @@ export default {
             },
           },
         );
+        this.makeToast('New batch assigned successfully.', 'Success', 'success');
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
@@ -238,6 +262,7 @@ export default {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
+        this.makeToast('Batch unassigned successfully.', 'Success', 'success');
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
@@ -254,5 +279,19 @@ export default {
   font-size: 0.875rem;
   line-height: 0.5;
   border-radius: 0.2rem;
+}
+
+.username-select {
+  background-color: #f8f9fa;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.username-select:focus {
+  border-color: #80bdff;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 </style>
