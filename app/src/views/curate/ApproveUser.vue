@@ -21,6 +21,27 @@
             </template>
             <!-- User Interface controls -->
 
+            <!-- Pagination Controls -->
+            <b-row class="my-2">
+              <b-col>
+                <b-pagination
+                  v-model="currentPage"
+                  :total-rows="totalRows_UsersTable"
+                  :per-page="perPage"
+                  align="fill"
+                  size="sm"
+                />
+              </b-col>
+              <b-col class="text-right">
+                <b-form-select
+                  v-model="perPage"
+                  :options="pageOptions"
+                  size="sm"
+                />
+              </b-col>
+            </b-row>
+            <!-- Pagination Controls -->
+
             <!-- Main table -->
             <b-spinner
               v-if="loadingUsersApprove"
@@ -30,6 +51,9 @@
             <b-table
               v-else
               :items="items_UsersTable"
+              :fields="fields_UsersTable"
+              :per-page="perPage"
+              :current-page="currentPage"
               stacked="md"
               head-variant="light"
               show-empty
@@ -39,6 +63,7 @@
               hover
               sort-icon-left
               empty-text="Currently no open user applications."
+              @filtered="onFiltered"
             >
               <template #cell(user_role)="row">
                 <b-form-select
@@ -46,9 +71,6 @@
                   class="form-control"
                   size="sm"
                   :options="role_options"
-                  @input="
-                    handleUserChangeRole(row.item.user_id, row.item.user_role)
-                  "
                 />
               </template>
 
@@ -72,7 +94,6 @@
                 </b-button>
               </template>
             </b-table>
-            <!-- Main table -->
           </b-card>
         </b-col>
       </b-row>
@@ -111,7 +132,9 @@
           <label
             class="custom-control-label"
             for="approveUserSwitch"
-          ><b>{{ switch_user_approval_text[user_approved] }}</b></label>
+          >
+            <b>{{ switch_user_approval_text[user_approved] }}</b>
+          </label>
         </div>
       </b-modal>
       <!-- Manage user approval modal -->
@@ -138,6 +161,44 @@ export default {
         false: 'Delete application',
       },
       items_UsersTable: [],
+      fields_UsersTable: [
+        {
+          key: 'user_id', label: 'User Id', sortable: true, class: 'text-left',
+        },
+        {
+          key: 'user_name', label: 'User Name', sortable: true, class: 'text-left',
+        },
+        {
+          key: 'email', label: 'Email', sortable: true, class: 'text-left',
+        },
+        {
+          key: 'orcid', label: 'Orcid', sortable: true, class: 'text-left',
+        },
+        {
+          key: 'abbreviation', label: 'Abbreviation', sortable: true, class: 'text-left',
+        },
+        {
+          key: 'first_name', label: 'First Name', sortable: true, class: 'text-left',
+        },
+        {
+          key: 'family_name', label: 'Family Name', sortable: true, class: 'text-left',
+        },
+        {
+          key: 'comment', label: 'Comment', sortable: true, class: 'text-left',
+        },
+        {
+          key: 'terms_agreed', label: 'Terms Agreed', sortable: true, class: 'text-left',
+        },
+        {
+          key: 'created_at', label: 'Created At', sortable: true, class: 'text-left',
+        },
+        {
+          key: 'user_role', label: 'User Role', sortable: false, class: 'text-left',
+        },
+        {
+          key: 'approved', label: 'Approved', sortable: false, class: 'text-left',
+        },
+      ],
       totalRows_UsersTable: 0,
       loadingUsersApprove: true,
       approveUserModal: {
@@ -146,6 +207,14 @@ export default {
         content: [],
       },
       user_approved: false,
+      currentPage: 1,
+      perPage: 10,
+      pageOptions: [
+        { value: 5, text: '5' },
+        { value: 10, text: '10' },
+        { value: 20, text: '20' },
+        { value: 50, text: '50' },
+      ],
     };
   },
   mounted() {
@@ -219,11 +288,7 @@ export default {
       this.user_approved = false;
     },
     async handleUserApproveOk(bvModalEvt) {
-      const apiUrl = `${process.env.VUE_APP_API_URL
-      }/api/user/approval?user_id=${
-        this.approve_user[0].user_id
-      }&status_approval=${
-        this.user_approved}`;
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/approval?user_id=${this.approve_user[0].user_id}&status_approval=${this.user_approved}`;
 
       try {
         const response = await this.axios.put(
@@ -235,6 +300,7 @@ export default {
             },
           },
         );
+        this.makeToast('User approval updated successfully.', 'Success', 'success');
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
@@ -242,11 +308,7 @@ export default {
       this.loadUserTableData();
     },
     async handleUserChangeRole(user_id, user_role) {
-      const apiUrl = `${process.env.VUE_APP_API_URL
-      }/api/user/change_role?user_id=${
-        user_id
-      }&role_assigned=${
-        user_role}`;
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/change_role?user_id=${user_id}&role_assigned=${user_role}`;
 
       try {
         const response = await this.axios.put(
@@ -258,9 +320,13 @@ export default {
             },
           },
         );
+        this.makeToast('User role updated successfully.', 'Success', 'success');
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
+    },
+    onFiltered(filteredItems) {
+      this.totalRows_UsersTable = filteredItems.length;
     },
   },
 };
@@ -273,5 +339,61 @@ export default {
   font-size: 0.875rem;
   line-height: 0.5;
   border-radius: 0.2rem;
+}
+
+.username-select {
+  background-color: #f8f9fa;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.username-select:focus {
+  border-color: #80bdff;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.table-header h6 {
+  margin-bottom: 0;
+}
+
+.table-header .actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.table-search-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.table-search-pagination .search-input {
+  flex: 1;
+  margin-right: 1rem;
+}
+
+.table-search-pagination .pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.table-search-pagination .pagination-controls .b-pagination,
+.table-search-pagination .pagination-controls .b-form-select {
+  margin-bottom: 0;
+}
+
+.text-left {
+  text-align: left;
 }
 </style>
