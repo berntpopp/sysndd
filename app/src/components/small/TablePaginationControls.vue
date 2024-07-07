@@ -2,19 +2,23 @@
 <template>
   <div>
     <!-- Page Size Selector -->
-    <b-input-group
-      prepend="Per page"
-      class="mb-1"
-      size="sm"
+    <b-form-group
+      label="Per page"
+      label-for="per-page-select"
     >
-      <b-form-select
-        id="per-page-select"
-        v-model="localPerPage"
-        :options="pageOptions"
+      <b-input-group
+        class="mb-1"
         size="sm"
-        @change="onPageSizeChange"
-      />
-    </b-input-group>
+      >
+        <b-form-select
+          id="per-page-select"
+          v-model="localPerPage"
+          :options="pageOptions"
+          size="sm"
+          @change="onPageSizeChange"
+        />
+      </b-input-group>
+    </b-form-group>
 
     <!-- Pagination -->
     <b-pagination

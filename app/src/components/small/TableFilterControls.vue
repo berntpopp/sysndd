@@ -1,3 +1,4 @@
+<!-- src/components/small/TableFilterControls.vue -->
 <template>
   <div>
     <!-- Search inputs, filter buttons, etc. -->

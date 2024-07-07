@@ -147,20 +147,26 @@
                     @update="filtered()"
                   />
 
-                  <b-form-select
+                  <label
                     v-if="field.selectable"
-                    v-model="filter[field.key].content"
-                    :options="field.selectOptions"
-                    type="search"
-                    @input="removeSearch()"
-                    @change="filtered()"
+                    :for="'select_' + field.key"
+                    :aria-label="field.label"
                   >
-                    <template v-slot:first>
-                      <b-form-select-option value="null">
-                        .. {{ truncate(field.label, 20) }} ..
-                      </b-form-select-option>
-                    </template>
-                  </b-form-select>
+                    <b-form-select
+                      id="'select_' + field.key"
+                      v-model="filter[field.key].content"
+                      :options="field.selectOptions"
+                      type="search"
+                      @input="removeSearch()"
+                      @change="filtered()"
+                    >
+                      <template v-slot:first>
+                        <b-form-select-option value="null">
+                          .. {{ truncate(field.label, 20) }} ..
+                        </b-form-select-option>
+                      </template>
+                    </b-form-select>
+                  </label>
 
                   <label
                     v-if="field.multi_selectable"
