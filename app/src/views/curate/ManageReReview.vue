@@ -1,3 +1,4 @@
+<!-- src/views/curate/ManageReReview.vue -->
 <template>
   <div class="container-fluid">
     <b-container fluid>
@@ -75,9 +76,29 @@
             </b-col>
             <!-- User Interface controls -->
 
+            <b-row class="my-2">
+              <b-col>
+                <b-pagination
+                  v-model="currentPage"
+                  :total-rows="totalRows"
+                  :per-page="perPage"
+                  align="fill"
+                  size="sm"
+                />
+              </b-col>
+              <b-col class="text-right">
+                <b-form-select
+                  v-model="perPage"
+                  :options="pageOptions"
+                  size="sm"
+                />
+              </b-col>
+            </b-row>
             <b-table
               :items="items_ReReviewTable"
               :fields="fields_ReReviewTable"
+              :per-page="perPage"
+              :current-page="currentPage"
               stacked="md"
               head-variant="light"
               show-empty
@@ -86,6 +107,8 @@
               striped
               hover
               sort-icon-left
+              @filtered="onFiltered"
+              @sort-changed="onSortChanged"
             >
               <template #cell(user_name)="row">
                 <b-icon
@@ -187,6 +210,15 @@ export default {
         },
         { key: 'actions', label: 'Actions' },
       ],
+      currentPage: 1,
+      perPage: 50,
+      totalRows: 0,
+      pageOptions: [
+        { value: 5, text: '5' },
+        { value: 10, text: '10' },
+        { value: 20, text: '20' },
+        { value: 50, text: '50' },
+      ],
     };
   },
   mounted() {
@@ -221,7 +253,7 @@ export default {
           },
         });
         this.items_ReReviewTable = response.data;
-        this.totalRows_ReReviewTable = response.data.length;
+        this.totalRows = response.data.length;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
@@ -267,6 +299,12 @@ export default {
         this.makeToast(e, 'Error', 'danger');
       }
       this.loadReReviewTableData();
+    },
+    onFiltered(filteredItems) {
+      this.totalRows = filteredItems.length;
+    },
+    onSortChanged(ctx) {
+      // Handle sort change if needed
     },
   },
 };
