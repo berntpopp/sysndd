@@ -26,15 +26,15 @@
 export default {
   name: 'ViewLogs',
   props: {
-    sort: { type: String, default: '+row_id' },
+    sort: { type: String, default: '-id' },
     filter: { type: String, default: null },
     fields: { type: String, default: null },
     pageAfter: { type: String, default: '0' },
-    pageSize: { type: String, default: '10' },
+    pageSize: { type: Number, default: 10 },
     fspec: {
       type: String,
       default:
-        'row_id,remote_addr,http_user_agent,http_host,request_method,path_info,query_string,postbody,status,duration,filename,last_modified',
+        'id,timestamp,address,agent,host,request_method,path,query,post,status,duration,file,modified',
     },
   },
   metaInfo: {

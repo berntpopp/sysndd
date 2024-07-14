@@ -1,17 +1,11 @@
+<!-- src/components/tables/TablesLogs.vue -->
 <template>
-  <!-- Main Container: Holds the entire TablesLogs component layout -->
-  <!-- This section contains the overall layout of the component. -->
   <div class="container-fluid">
-    <!-- Loading Spinner -->
-    <!-- Displays while logs data is being fetched. -->
     <b-spinner
       v-if="loading"
       label="Loading..."
       class="float-center m-5"
     />
-
-    <!-- Table Container: Contains the table along with UI controls for interaction -->
-    <!-- This container holds the table and pagination components. -->
     <b-container
       v-else
       fluid
@@ -21,7 +15,7 @@
           col
           md="12"
         >
-          <!-- User Interface Controls: Includes buttons for downloading, copying links, and filtering -->
+          <!-- User Interface controls -->
           <b-card
             header-tag="header"
             body-class="p-0"
@@ -31,84 +25,25 @@
             <template #header>
               <b-row>
                 <b-col>
-                  <h4 class="mb-1 text-left font-weight-bold">
-                    {{ headerLabel }}
-                    <b-badge
-                      v-b-tooltip.hover.bottom
-                      variant="primary"
-                      :title="
-                        'Loaded ' +
-                          perPage +
-                          '/' +
-                          totalRows +
-                          ' in ' +
-                          executionTime
-                      "
-                    >
-                      Log entries: {{ totalRows }}
-                    </b-badge>
-                  </h4>
+                  <TableHeaderLabel
+                    :label="headerLabel"
+                    :subtitle="'Log entries: ' + totalRows"
+                    :tool-tip-title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
+                  />
                 </b-col>
                 <b-col>
                   <h5
                     v-if="showFilterControls"
                     class="mb-1 text-right font-weight-bold"
                   >
-                    <b-button
-                      v-b-tooltip.hover.bottom
-                      class="mr-1"
-                      size="sm"
-                      title="Download data as Excel file."
-                      @click="requestExcel()"
-                    >
-                      <b-icon
-                        icon="table"
-                        class="mx-1"
-                      />
-                      <b-icon
-                        v-if="!downloading"
-                        icon="download"
-                      />
-                      <b-spinner
-                        v-if="downloading"
-                        small
-                      />
-                      .xlsx
-                    </b-button>
-
-                    <b-button
-                      v-b-tooltip.hover.bottom
-                      class="mx-1"
-                      size="sm"
-                      title="Copy link to this page."
-                      variant="success"
-                      @click="copyLinkToClipboard()"
-                    >
-                      <b-icon
-                        icon="link"
-                        font-scale="1.0"
-                      />
-                    </b-button>
-
-                    <b-button
-                      v-b-tooltip.hover.bottom
-                      size="sm"
-                      :title="
-                        'The table is ' +
-                          ((filter_string === '' || filter_string === null || filter_string === 'null') ? 'not' : '') +
-                          ' filtered.' +
-                          ((filter_string === '' || filter_string === null || filter_string === 'null')
-                            ? ''
-                            : ' Click to remove all filters.')
-                      "
-                      :variant="(filter_string === '' || filter_string === null || filter_string === 'null') ? 'info' : 'warning'"
-                      @click="removeFilters()"
-                    >
-                      <b-icon
-                        icon="filter"
-                        font-scale="1.0"
-                      />
-                    </b-button>
+                    <TableDownloadLinkCopyButtons
+                      :downloading="downloading"
+                      :remove-filters-title="removeFiltersButtonTitle"
+                      :remove-filters-variant="removeFiltersButtonVariant"
+                      @request-excel="requestExcel"
+                      @copy-link="copyLinkToClipboard"
+                      @remove-filters="removeFilters"
+                    />
                   </h5>
                 </b-col>
               </b-row>
@@ -119,111 +54,44 @@
                 class="my-1"
                 sm="8"
               >
-                <b-form-group class="mb-1 border-dark">
-                  <b-form-input
-                    v-if="showFilterControls"
-                    id="filter-input"
-                    v-model="filter['any'].content"
-                    class="mb-1 border-dark"
-                    size="sm"
-                    type="search"
-                    placeholder="Search any field by typing here"
-                    debounce="500"
-                    @click="removeFilters()"
-                    @update="filtered()"
-                  />
-                </b-form-group>
+                <TableSearchInput
+                  v-model="filter['any'].content"
+                  :placeholder="'Search any field by typing here'"
+                  :debounce-time="500"
+                  @input="filtered"
+                />
               </b-col>
 
               <b-col
                 class="my-1"
                 sm="4"
               >
-                <b-container
-                  v-if="totalRows > perPage || showPaginationControls"
-                >
-                  <b-input-group
-                    prepend="Per page"
-                    class="mb-1"
-                    size="sm"
-                  >
-                    <b-form-select
-                      id="per-page-select"
-                      v-model="perPage"
-                      :options="pageOptions"
-                      size="sm"
-                    />
-                  </b-input-group>
-
-                  <b-pagination
-                    v-model="currentPage"
+                <b-container v-if="totalRows > perPage || showPaginationControls">
+                  <TablePaginationControls
                     :total-rows="totalRows"
-                    :per-page="perPage"
-                    align="fill"
-                    size="sm"
-                    class="my-0"
-                    limit="2"
-                    @change="handlePageChange"
+                    :initial-per-page="perPage"
+                    :page-options="pageOptions"
+                    @page-change="handlePageChange"
+                    @per-page-change="handlePerPageChange"
                   />
                 </b-container>
               </b-col>
             </b-row>
             <!-- User Interface controls -->
 
-            <!-- Logs Table: Displays the log data with custom formatting and interaction capabilities -->
-            <!-- Displays log data in a tabular format. Each cell is truncated for text overflow. -->
-            <b-table
+            <!-- Main table element -->
+            <GenericTable
               :items="items"
               :fields="fields"
-              :current-page="currentPage"
-              :filter-included-fields="filterOn"
-              :sort-by.sync="sortBy"
-              :sort-desc.sync="sortDesc"
-              :busy="isBusy"
-              stacked="md"
-              head-variant="light"
-              show-empty
-              small
-              fixed
-              striped
-              hover
-              sort-icon-left
-              no-local-sorting
-              no-local-pagination
+              :field-details="fields_details"
+              :sort-by="sortBy"
+              :sort-desc="sortDesc"
+              @update-sort="handleSortUpdate"
             >
-              <!-- custom formatted header -->
-              <template v-slot:head()="data">
-                <div
-                  v-b-tooltip.hover.top
-                  :data="data"
-                  data-html="true"
-                  :title="
-                    data.label +
-                      ' (unique filtered/total values: ' +
-                      fields
-                        .filter((item) => item.label === data.label)
-                        .map((item) => {
-                          return item.count_filtered;
-                        })[0] +
-                      '/' +
-                      fields
-                        .filter((item) => item.label === data.label)
-                        .map((item) => {
-                          return item.count;
-                        })[0] +
-                      ')'
-                  "
-                >
-                  {{ truncate(data.label.replace(/( word)|( name)/g, ""), 20) }}
-                </div>
-              </template>
-              <!-- custom formatted header -->
-
-              <!-- Filter Controls -->
-              <!-- based on:  https://stackoverflow.com/questions/52959195/bootstrap-vue-b-table-with-filter-in-header -->
+              <!-- Custom filter fields slot -->
               <template
                 v-if="showFilterControls"
-                slot="top-row"
+                v-slot:filter-controls
               >
                 <td
                   v-for="field in fields"
@@ -274,25 +142,77 @@
                   </label>
                 </td>
               </template>
-              <!-- Filter Controls -->
+              <!-- Custom filter fields slot -->
 
-              <!-- Custom Cell Formatting -->
-              <!-- Uses a slot to format the 'http_user_agent' field, truncating long text. -->
-              <template v-slot:cell(http_user_agent)="data">
-                <div
-                  v-b-tooltip.hover.top
-                  :title="data.item.http_user_agent"
-                >
-                  {{ truncate(data.item.http_user_agent, 50) }}
+              <template v-slot:cell-id="{ row }">
+                <div>
+                  <b-badge
+                    variant="primary"
+                    style="cursor: pointer"
+                  >
+                    {{ row.id }}
+                  </b-badge>
                 </div>
               </template>
 
-              <!-- Last Modified Column Formatting -->
-              <!-- Formats the 'last_modified' field to display date-time strings. -->
-              <template v-slot:cell(last_modified)="data">
-                {{ new Date(data.item.last_modified).toLocaleString() }}
+              <template v-slot:cell-agent="{ row }">
+                <div
+                  v-b-tooltip.hover.top
+                  class="overflow-hidden text-truncate"
+                  :title="row.agent"
+                >
+                  <b-badge
+                    pill
+                    variant="info"
+                  >
+                    {{ truncate(row.agent, 50) }}
+                  </b-badge>
+                </div>
               </template>
-            </b-table>
+
+              <template v-slot:cell-status="{ row }">
+                <b-badge :variant="row.status === 200 ? 'success' : 'danger'">
+                  {{ row.status }}
+                </b-badge>
+              </template>
+
+              <template v-slot:cell-request_method="{ row }">
+                <b-badge :variant="getMethodVariant(row.request_method)">
+                  {{ row.request_method }}
+                </b-badge>
+              </template>
+
+              <template v-slot:cell-query="{ row }">
+                <div
+                  v-b-tooltip.hover.top
+                  class="overflow-hidden text-truncate"
+                  :title="row.query"
+                >
+                  {{ row.query }}
+                </div>
+              </template>
+
+              <template v-slot:cell-timestamp="{ row }">
+                <div
+                  v-b-tooltip.hover.top
+                  class="overflow-hidden text-truncate"
+                  :title="row.timestamp"
+                >
+                  {{ formatDate(row.timestamp) }}
+                </div>
+              </template>
+
+              <template v-slot:cell-modified="{ row }">
+                <div
+                  v-b-tooltip.hover.top
+                  class="overflow-hidden text-truncate"
+                  :title="row.modified"
+                >
+                  {{ formatDate(row.modified) }}
+                </div>
+              </template>
+            </GenericTable>
+            <!-- Main table element -->
           </b-card>
         </b-col>
       </b-row>
@@ -301,165 +221,81 @@
 </template>
 
 <script>
-
-// Import the utilities file
-// import the Treeselect component
 import Treeselect from '@riophae/vue-treeselect';
-// import the Treeselect styles
 import '@riophae/vue-treeselect/dist/vue-treeselect.css';
-
-import Utils from '@/assets/js/utils';
 
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 import textMixin from '@/assets/js/mixins/textMixin';
 
-// Import the event bus
+import tableMethodsMixin from '@/assets/js/mixins/tableMethodsMixin';
+import tableDataMixin from '@/assets/js/mixins/tableDataMixin';
+
+import TableHeaderLabel from '@/components/small/TableHeaderLabel.vue';
+import TableSearchInput from '@/components/small/TableSearchInput.vue';
+import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
+import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
+import GenericTable from '@/components/small/GenericTable.vue';
+
+import Utils from '@/assets/js/utils';
 import EventBus from '@/assets/js/eventBus';
 
-/**
- * TablesLogs Component
- * @description
- * Displays log data in a table format with features like pagination, filtering, sorting, and downloading.
- * @component
- * @example
- * <TablesLogs />
- * @props
- * showFilterControls - Boolean indicating whether filter controls should be shown.
- * showPaginationControls - Boolean indicating whether pagination controls should be shown.
- * headerLabel - String label for the table header.
- * sortInput - Default sort parameter.
- * filterInput - Default filter parameter.
- * fieldsInput - Fields to be displayed in the table.
- * pageAfterInput - Identifier for pagination.
- * pageSizeInput - Number of items per page.
- * fspecInput - Fields specification for the table.
- */
 export default {
   name: 'TablesLogs',
-  // register the Treeselect component
-  components: { Treeselect },
-  mixins: [toastMixin, urlParsingMixin, colorAndSymbolsMixin, textMixin],
+  components: {
+    Treeselect,
+    TablePaginationControls,
+    TableDownloadLinkCopyButtons,
+    TableHeaderLabel,
+    TableSearchInput,
+    GenericTable,
+  },
+  mixins: [
+    toastMixin,
+    urlParsingMixin,
+    colorAndSymbolsMixin,
+    textMixin,
+    tableMethodsMixin,
+    tableDataMixin,
+  ],
   props: {
+    apiEndpoint: {
+      type: String,
+      default: 'logs',
+    },
     showFilterControls: { type: Boolean, default: true },
     showPaginationControls: { type: Boolean, default: true },
     headerLabel: { type: String, default: 'Logging table' },
-    sortInput: { type: String, default: '+row_id' },
+    sortInput: { type: String, default: '-id' },
     filterInput: { type: String, default: null },
     fieldsInput: { type: String, default: null },
     pageAfterInput: { type: String, default: '0' },
-    pageSizeInput: { type: String, default: '10' },
+    pageSizeInput: { type: Number, default: 10 },
     fspecInput: {
       type: String,
-      default:
-        'row_id,remote_addr,http_user_agent,http_host,request_method,path_info,query_string,postbody,status,duration,filename,last_modified',
+      default: 'id,timestamp,address,agent,host,request_method,path,query,post,status,duration,file,modified',
     },
   },
   data() {
-    /**
-     * Data function for TablesLogs component
-     * @returns {Object} The component's reactive data object
-     * @property {Array} items - The array of log data to be displayed in the table.
-     * @property {Array} fields - Field definitions for the log table.
-     * @property {Number} totalRows - Total number of rows in the log data.
-     * @property {Number} currentPage - Current page number in pagination.
-     * @property {String} currentItemID - Identifier for the current item for pagination.
-     * @property {Number} perPage - Number of items per page in the table.
-     * @property {Boolean} loading - Indicates if the data is currently being loaded.
-     */
-    // Initialize with placeholder data
-    const placeholderData = Array(10).fill().map(() => ({
-      row_id: 'Loading...',
-      remote_addr: 'Loading...',
-      http_user_agent: 'Loading...',
-      http_host: 'Loading...',
-      request_method: 'Loading...',
-      path_info: 'Loading...',
-      query_string: 'Loading...',
-      status: 'Loading...',
-      duration: 'Loading...',
-      filename: 'Loading...',
-      last_modified: new Date().toISOString(),
-    }));
-
     return {
-      items: placeholderData,
+      items: [],
       fields: [
-        {
-          key: 'row_id',
-          label: 'Row',
-          sortable: true,
-          sortDirection: 'asc',
-          class: 'text-left',
-        },
-        {
-          key: 'remote_addr',
-          label: 'Address',
-          sortable: true,
-          class: 'text-left',
-        },
-        {
-          key: 'http_user_agent',
-          label: 'Agent',
-          sortable: true,
-          class: 'text-left',
-        },
-        {
-          key: 'http_host',
-          label: 'Host',
-          sortable: true,
-          class: 'text-left',
-        },
-        {
-          key: 'request_method',
-          label: 'Request Method',
-          sortable: true,
-          class: 'text-left',
-        },
-        {
-          key: 'path_info',
-          label: 'Path',
-          sortable: true,
-          class: 'text-left',
-        },
-        {
-          key: 'query_string',
-          label: 'Query',
-          sortable: true,
-          class: 'text-left',
-        },
-        {
-          key: 'postbody',
-          label: 'Post',
-          sortable: true,
-          class: 'text-left',
-        },
-        {
-          key: 'status',
-          label: 'Status',
-          sortable: true,
-          class: 'text-left',
-        },
-        {
-          key: 'duration',
-          label: 'Duration',
-          sortable: true,
-          class: 'text-left',
-        },
-        {
-          key: 'filename',
-          label: 'File',
-          sortable: true,
-          class: 'text-left',
-        },
-        {
-          key: 'last_modified',
-          label: 'Modified',
-          sortable: true,
-          class: 'text-left',
-        },
+        { key: 'id', label: 'ID', sortable: true },
+        { key: 'timestamp', label: 'Timestamp', sortable: true },
+        { key: 'address', label: 'Address', sortable: true },
+        { key: 'agent', label: 'Agent', sortable: true },
+        { key: 'host', label: 'Host', sortable: true },
+        { key: 'request_method', label: 'Request Method', sortable: true },
+        { key: 'path', label: 'Path', sortable: true },
+        { key: 'query', label: 'Query', sortable: true },
+        { key: 'post', label: 'Post', sortable: true },
+        { key: 'status', label: 'Status', sortable: true },
+        { key: 'duration', label: 'Duration', sortable: true },
+        { key: 'file', label: 'File', sortable: true },
+        { key: 'modified', label: 'Modified', sortable: true },
       ],
+      fields_details: [],
       totalRows: 0,
       currentPage: 1,
       currentItemID: this.pageAfterInput,
@@ -467,30 +303,29 @@ export default {
       nextItemID: null,
       lastItemID: null,
       executionTime: 0,
-      perPage: this.pageSizeInput,
       pageOptions: ['10', '25', '50', '200'],
-      sortBy: 'entity_id',
+      sortBy: 'id',
       sortDesc: true,
       sort: this.sortInput,
       filter: {
         any: { content: null, join_char: null, operator: 'contains' },
-        row_id: { content: null, join_char: null, operator: 'contains' },
-        remote_addr: { content: null, join_char: null, operator: 'contains' },
-        http_user_agent: { content: null, join_char: null, operator: 'contains' },
-        http_host: { content: null, join_char: null, operator: 'contains' },
+        id: { content: null, join_char: null, operator: 'contains' },
+        timestamp: { content: null, join_char: null, operator: 'contains' },
+        address: { content: null, join_char: null, operator: 'contains' },
+        agent: { content: null, join_char: null, operator: 'contains' },
+        host: { content: null, join_char: null, operator: 'contains' },
         request_method: { content: null, join_char: ',', operator: 'contains' },
-        path_info: { content: null, join_char: ',', operator: 'contains' },
-        query_string: { content: null, join_char: null, operator: 'contains' },
-        postbody: { content: null, join_char: ',', operator: 'contains' },
+        path: { content: null, join_char: ',', operator: 'contains' },
+        query: { content: null, join_char: null, operator: 'contains' },
+        post: { content: null, join_char: ',', operator: 'contains' },
         status: { content: null, join_char: ',', operator: 'contains' },
         duration: { content: null, join_char: ',', operator: 'contains' },
-        filename: { content: null, join_char: ',', operator: 'contains' },
-        last_modified: { content: null, join_char: ',', operator: 'contains' },
+        file: { content: null, join_char: ',', operator: 'contains' },
+        modified: { content: null, join_char: ',', operator: 'contains' },
       },
       filter_string: null,
-      filterOn: [],
       downloading: false,
-      loading: false, // Start with false as we're showing placeholder data
+      loading: false,
       isBusy: true,
     };
   },
@@ -498,32 +333,30 @@ export default {
     filter(value) {
       this.filtered();
     },
-    sortBy(value) {
-      this.handleSortByOrDescChange();
+    sortBy(newVal, oldVal) {
+      if (newVal !== oldVal) {
+        this.handleSortByOrDescChange();
+      }
     },
-    sortDesc(value) {
-      this.handleSortByOrDescChange();
-    },
-    perPage(value) {
-      this.handlePerPageChange();
+    sortDesc(newVal, oldVal) {
+      if (newVal !== oldVal) {
+        this.handleSortByOrDescChange();
+      }
     },
   },
   created() {
+    // Lifecycle hooks
   },
   mounted() {
-    // transform input sort string to object and assign
+    // Lifecycle hooks
     const sort_object = this.sortStringToVariables(this.sortInput);
     this.sortBy = sort_object.sortBy;
     this.sortDesc = sort_object.sortDesc;
 
-    // conditionally perform data load based on filter input
-    // fixes double loading and update bugs
     if (this.filterInput !== null && this.filterInput !== 'null' && this.filterInput !== '') {
-      // transform input filter string from params to object and assign
       this.filter = this.filterStrToObj(this.filterInput, this.filter);
     } else {
-      // initiate first data load
-      this.loadLogsData();
+      this.loadData();
     }
 
     setTimeout(() => {
@@ -531,26 +364,51 @@ export default {
     }, 500);
   },
   methods: {
+    async loadData() {
+      this.isBusy = true;
+
+      try {
+        const response = await this.axios.get(`${process.env.VUE_APP_API_URL}/api/logs`, {
+          params: {
+            sort: this.sort,
+            filter: this.filter_string,
+            page_after: this.currentItemID,
+            page_size: this.perPage,
+          },
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+
+        this.items = response.data.data;
+        this.totalRows = response.data.meta[0].totalItems;
+
+        this.$nextTick(() => {
+          this.currentPage = response.data.meta[0].currentPage;
+        });
+
+        this.totalPages = response.data.meta[0].totalPages;
+        this.prevItemID = response.data.meta[0].prevItemID;
+        this.currentItemID = response.data.meta[0].currentItemID;
+        this.nextItemID = response.data.meta[0].nextItemID;
+        this.lastItemID = response.data.meta[0].lastItemID;
+        this.executionTime = response.data.meta[0].executionTime;
+        this.fields = response.data.meta[0].fspec;
+
+        EventBus.$emit('update-scrollbar');
+      } catch (error) {
+        this.makeToast(`Error: ${error.message}`, 'Error loading logs', 'danger');
+      } finally {
+        this.isBusy = false;
+      }
+    },
     copyLinkToClipboard() {
-      const urlParam = `sort=${
-        this.sort
-      }&filter=${
-        this.filter_string
-      }&page_after=${
-        this.currentItemID
-      }&page_size=${
-        this.perPage}`;
-      navigator.clipboard.writeText(
-        `${process.env.VUE_APP_URL + this.$route.path}?${urlParam}`,
-      );
+      const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${this.currentItemID}&page_size=${this.perPage}`;
+      navigator.clipboard.writeText(`${process.env.VUE_APP_URL + this.$route.path}?${urlParam}`);
     },
     handleSortByOrDescChange() {
       this.currentItemID = 0;
       this.sort = (!this.sortDesc ? '-' : '+') + this.sortBy;
-      this.filtered();
-    },
-    handlePerPageChange() {
-      this.currentItemID = 0;
       this.filtered();
     },
     handlePageChange(value) {
@@ -575,68 +433,28 @@ export default {
         this.filter_string = this.filterObjToStr(this.filter);
       }
 
-      this.loadLogsData();
+      this.loadData();
     },
     removeFilters() {
       this.filter = {
         any: { content: null, join_char: null, operator: 'contains' },
-        entity_id: { content: null, join_char: null, operator: 'contains' },
-        symbol: { content: null, join_char: null, operator: 'contains' },
-        disease_ontology_name: { content: null, join_char: null, operator: 'contains' },
-        disease_ontology_id_version: { content: null, join_char: null, operator: 'contains' },
-        hpo_mode_of_inheritance_term_name: { content: null, join_char: ',', operator: 'any' },
-        hpo_mode_of_inheritance_term: { content: null, join_char: ',', operator: 'any' },
-        ndd_phenotype_word: { content: null, join_char: null, operator: 'contains' },
-        category: { content: null, join_char: ',', operator: 'any' },
+        id: { content: null, join_char: null, operator: 'contains' },
+        timestamp: { content: null, join_char: null, operator: 'contains' },
+        address: { content: null, join_char: null, operator: 'contains' },
+        agent: { content: null, join_char: null, operator: 'contains' },
+        host: { content: null, join_char: null, operator: 'contains' },
+        request_method: { content: null, join_char: ',', operator: 'contains' },
+        path: { content: null, join_char: ',', operator: 'contains' },
+        query: { content: null, join_char: null, operator: 'contains' },
+        post: { content: null, join_char: ',', operator: 'contains' },
+        status: { content: null, join_char: ',', operator: 'contains' },
+        duration: { content: null, join_char: ',', operator: 'contains' },
+        file: { content: null, join_char: ',', operator: 'contains' },
+        modified: { content: null, join_char: ',', operator: 'contains' },
       };
     },
     removeSearch() {
       this.filter.any.content = null;
-
-      if (this.filter.any.content !== null) {
-        this.filter.any.content = null;
-      }
-    },
-    /**
-     * Asynchronously fetches and loads log data for the current page.
-     */
-    async loadLogsData() {
-      this.isBusy = true;
-
-      try {
-        const response = await this.axios.get(`${process.env.VUE_APP_API_URL}/api/logs`, {
-          params: {
-            sort: this.sort,
-            filter: this.filter_string,
-            page_after: this.currentItemID,
-            page_size: this.perPage,
-          },
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-
-        this.items = response.data.data;
-        this.totalRows = response.data.meta[0].totalItems;
-
-        // Update pagination details
-        this.$nextTick(() => {
-          this.currentPage = response.data.meta[0].currentPage;
-        });
-        this.totalPages = response.data.meta[0].totalPages;
-        this.prevItemID = response.data.meta[0].prevItemID;
-        this.currentItemID = response.data.meta[0].currentItemID;
-        this.nextItemID = response.data.meta[0].nextItemID;
-        this.lastItemID = response.data.meta[0].lastItemID;
-        this.executionTime = response.data.meta[0].executionTime;
-        this.fields = response.data.meta[0].fspec;
-
-        EventBus.$emit('update-scrollbar'); // Emit event to update scrollbar
-      } catch (error) {
-        this.makeToast(`Error: ${error.message}`, 'Error loading logs', 'danger');
-      } finally {
-        this.isBusy = false;
-      }
     },
     async requestExcel() {
       this.downloading = true;
@@ -657,7 +475,7 @@ export default {
         const fileLink = document.createElement('a');
 
         fileLink.href = fileURL;
-        fileLink.setAttribute('download', 'sysndd_logs_table.xlsx');
+        fileLink.setAttribute('download', 'logs_table.xlsx');
         document.body.appendChild(fileLink);
 
         fileLink.click();
@@ -667,18 +485,56 @@ export default {
 
       this.downloading = false;
     },
-    /**
-     * Truncates a given string to a specified length.
-     * @param {String} str - The string to truncate.
-     * @param {Number} n - The maximum length of the truncated string.
-     * @returns {String} The truncated string.
-     */
     truncate(str, n) {
       return Utils.truncate(str, n);
+    },
+    formatDate(dateStr) {
+      const options = {
+        year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+      };
+      return new Date(dateStr).toLocaleDateString(undefined, options);
+    },
+    getMethodVariant(method) {
+      const methodVariants = {
+        GET: 'success',
+        POST: 'primary',
+        PUT: 'warning',
+        DELETE: 'danger',
+        OPTIONS: 'info',
+      };
+      return methodVariants[method] || 'secondary';
     },
   },
 };
 </script>
+
+<style scoped>
+.btn-group-xs > .btn,
+.btn-xs {
+  padding: 0.25rem 0.4rem;
+  font-size: 0.875rem;
+  line-height: 0.5;
+  border-radius: 0.2rem;
+}
+.input-group > .input-group-prepend {
+  flex: 0 0 35%;
+}
+.input-group .input-group-text {
+  width: 100%;
+}
+.badge-container .badge {
+  width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+:deep(.vue-treeselect__placeholder) {
+  color: #6C757D !important;
+}
+:deep(.vue-treeselect__control) {
+  color: #6C757D !important;
+}
+</style>
 
 <style scoped>
 /* Styles specific to the TablesLogs component */

@@ -683,7 +683,7 @@ function(req, res, direct_approval = FALSE) {
       create_data$status <- tibble::as_tibble(create_data$status) %>%
         add_column(response_entity$entry$entity_id) %>%
         add_column(status_user_id) %>%
-        select(entity_id = `response_entity$entry$entity_id`,
+        dplyr::select(entity_id = `response_entity$entry$entity_id`,
           category_id,
           status_user_id,
           comment,
@@ -714,7 +714,7 @@ function(req, res, direct_approval = FALSE) {
     } else {
       response_entity_review_post <- tibble::as_tibble(response_entity) %>%
         bind_rows(tibble::as_tibble(response_review_post)) %>%
-        select(status, message) %>%
+        dplyr::select(status, message) %>%
         unique() %>%
         mutate(status = max(status)) %>%
         mutate(message = str_c(message, collapse = "; "))
@@ -733,7 +733,7 @@ function(req, res, direct_approval = FALSE) {
       response <- tibble::as_tibble(response_entity) %>%
         bind_rows(tibble::as_tibble(response_review_post)) %>%
         bind_rows(tibble::as_tibble(response_status_post)) %>%
-        select(status, message) %>%
+        dplyr::select(status, message) %>%
         unique() %>%
         mutate(status = max(status)) %>%
         mutate(message = str_c(message, collapse = "; "))
@@ -803,7 +803,7 @@ function(req, res) {
         mutate(disease_ontology_id_version =
           rename_data$entity$disease_ontology_id_version) %>%
           mutate(entry_user_id = new_entry_user_id) %>%
-        select(-entity_id)
+        dplyr::select(-entity_id)
     ##-------------------------------------------------------------------##
 
     if (rename_data$entity$hgnc_id == ndd_entity_replaced$hgnc_id &&
@@ -838,26 +838,26 @@ function(req, res) {
         # replace entity_id in ndd_entity_status_original tibble
         ndd_entity_review_replaced <- ndd_entity_review_original %>%
           mutate(entity_id = response_new_entity$entry$entity_id) %>%
-          select(-review_id)
+          dplyr::select(-review_id)
 
         # get all connections for review
         review_publication_join_ori <- pool %>%
             tbl("ndd_review_publication_join") %>%
             collect() %>%
             filter(review_id == ndd_entity_review_original$review_id) %>%
-            select(publication_id, publication_type)
+            dplyr::select(publication_id, publication_type)
 
         review_phenotype_connect_ori <- pool %>%
             tbl("ndd_review_phenotype_connect") %>%
             collect() %>%
             filter(review_id == ndd_entity_review_original$review_id) %>%
-            select(phenotype_id, modifier_id)
+            dplyr::select(phenotype_id, modifier_id)
 
         review_variation_ontology_conn_ori <- pool %>%
             tbl("ndd_review_variation_ontology_connect") %>%
             collect() %>%
             filter(review_id == ndd_entity_review_original$review_id) %>%
-            select(vario_id, modifier_id)
+            dplyr::select(vario_id, modifier_id)
 
         # use the "put_post_db_review" function to add the
         # review to the database table with the new entity_id and receive
@@ -913,7 +913,7 @@ function(req, res) {
           bind_rows(tibble::as_tibble(response_publication_conn)) %>%
           bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
           bind_rows(tibble::as_tibble(resp_variation_ontology_conn)) %>%
-          select(status, message) %>%
+          dplyr::select(status, message) %>%
           unique() %>%
           mutate(status = max(status)) %>%
           mutate(message = str_c(message, collapse = "; ")) %>%
@@ -931,7 +931,7 @@ function(req, res) {
         # replace entity_id in ndd_entity_status_original tibble
         ndd_entity_status_replaced <- ndd_entity_status_original %>%
           mutate(entity_id = response_new_entity$entry$entity_id) %>%
-          select(-status_id)
+          dplyr::select(-status_id)
 
         # use the put_post_db_status function to
         # add the status to the database table
@@ -950,7 +950,7 @@ function(req, res) {
         response <- tibble::as_tibble(response_new_entity) %>%
             bind_rows(tibble::as_tibble(response_review_post)) %>%
             bind_rows(tibble::as_tibble(response_status_post)) %>%
-            select(status, message) %>%
+            dplyr::select(status, message) %>%
             unique() %>%
             mutate(status = max(status)) %>%
             mutate(message = str_c(message, collapse = "; "))
@@ -1099,14 +1099,14 @@ function(sysndd_id) {
 
   ndd_entity_active <- pool %>%
     tbl("ndd_entity_view") %>%
-    select(entity_id) %>%
+    dplyr::select(entity_id) %>%
     collect()
 
   phenotype_list <- ndd_entity_active %>%
     left_join(ndd_review_phenotype_conn_coll, by = c("entity_id")) %>%
     filter(entity_id == sysndd_id) %>%
     inner_join(phenotype_list_collected, by = c("phenotype_id")) %>%
-    select(entity_id, phenotype_id, HPO_term, modifier_id) %>%
+    dplyr::select(entity_id, phenotype_id, HPO_term, modifier_id) %>%
     arrange(phenotype_id) %>%
     unique()
 }
@@ -1149,7 +1149,7 @@ function(sysndd_id) {
   variation_list <- ndd_review_variation_conn_coll %>%
     filter(entity_id == sysndd_id) %>%
     inner_join(variation_list_collected, by = c("vario_id")) %>%
-    select(entity_id, vario_id, vario_name, modifier_id) %>%
+    dplyr::select(entity_id, vario_id, vario_name, modifier_id) %>%
     arrange(vario_id) %>%
     unique()
 }
@@ -1186,11 +1186,11 @@ function(sysndd_id) {
 
   ndd_entity_review_list <- ndd_entity_review_collected %>%
     filter(entity_id == sysndd_id & is_primary) %>%
-    select(entity_id, review_id, synopsis, review_date, comment) %>%
+    dplyr::select(entity_id, review_id, synopsis, review_date, comment) %>%
     arrange(review_date)
 
   ndd_entity_review_list_joined <- tibble::as_tibble(sysndd_id) %>%
-    select(entity_id = value) %>%
+    dplyr::select(entity_id = value) %>%
     mutate(entity_id = as.integer(entity_id)) %>%
     left_join(ndd_entity_review_list, by = c("entity_id"))
 }
@@ -1233,7 +1233,7 @@ function(sysndd_id) {
   ndd_entity_status_list <- ndd_entity_status_collected %>%
     filter(entity_id == sysndd_id & is_active) %>%
     inner_join(entity_status_categories_coll, by = c("category_id")) %>%
-    select(status_id,
+    dplyr::select(status_id,
       entity_id,
       category,
       category_id,
@@ -1276,13 +1276,13 @@ function(sysndd_id) {
 
   ndd_entity_active <- pool %>%
     tbl("ndd_entity_view") %>%
-    select(entity_id) %>%
+    dplyr::select(entity_id) %>%
     collect()
 
   ndd_entity_publication_list <- ndd_entity_active %>%
     left_join(review_publication_join_coll, by = c("entity_id")) %>%
     filter(entity_id == sysndd_id) %>%
-    select(entity_id, publication_id, publication_type, is_reviewed) %>%
+    dplyr::select(entity_id, publication_id, publication_type, is_reviewed) %>%
     arrange(publication_id) %>%
     unique()
 }
@@ -1335,25 +1335,25 @@ function(req, res, filter_review_approved = FALSE) {
   # user information from user table
   user_table <- pool %>%
     tbl("user") %>%
-    select(user_id, user_name, user_role)
+    dplyr::select(user_id, user_name, user_role)
   # gene information from non_alt_loci_set table
   non_alt_loci_set <- pool %>%
     tbl("non_alt_loci_set") %>%
-    select(hgnc_id, symbol)
+    dplyr::select(hgnc_id, symbol)
   # disease information from disease_ontology_set table
   disease_ontology_set <- pool %>%
     tbl("disease_ontology_set") %>%
-    select(disease_ontology_id,
+    dplyr::select(disease_ontology_id,
       disease_ontology_id_version,
       disease_ontology_name)
   # moi information from mode_of_inheritance_list table
   mode_of_inheritance_list <- pool %>%
     tbl("mode_of_inheritance_list") %>%
-    select(-is_active, -sort)
+    dplyr::select(-is_active, -sort)
   # approved status from ndd_entity_status_approved_view view
   ndd_entity_status_approved_view <- pool %>%
     tbl("ndd_entity_status_approved_view") %>%
-    select(entity_id, status_approved, category_id)
+    dplyr::select(entity_id, status_approved, category_id)
   # categories status from ndd_entity_status_categories_list table
   ndd_entity_status_categories_list <- pool %>%
     tbl("ndd_entity_status_categories_list")
@@ -1377,7 +1377,7 @@ function(req, res, filter_review_approved = FALSE) {
       by = c("category_id")) %>%
     left_join(boolean_list,
       by = c("ndd_phenotype" = "logical")) %>%
-    select(entity_id,
+    dplyr::select(entity_id,
       hgnc_id,
       symbol,
       disease_ontology_id_version,
@@ -1393,7 +1393,7 @@ function(req, res, filter_review_approved = FALSE) {
     left_join(ndd_entity_tbl, by = c("entity_id")) %>%
     filter(review_approved == filter_review_approved) %>%
     collect() %>%
-    select(review_id,
+    dplyr::select(review_id,
       entity_id,
       hgnc_id,
       symbol,
@@ -1426,7 +1426,7 @@ function(req, res, filter_review_approved = FALSE) {
       tbl("ndd_entity_status") %>%
       collect() %>%
       filter(entity_id %in% review_table_collected$entity_id) %>%
-      select(entity_id, status_id, category_id, is_active, status_date) %>%
+      dplyr::select(entity_id, status_id, category_id, is_active, status_date) %>%
       arrange(entity_id) %>%
       group_by(entity_id) %>%
       mutate(active_status = case_when(
@@ -1441,7 +1441,7 @@ function(req, res, filter_review_approved = FALSE) {
               status_date == max(status_date) ~ category_id
           )
       ) %>%
-      select(entity_id,
+      dplyr::select(entity_id,
         active_status,
         active_category,
         newest_status,
@@ -1519,13 +1519,13 @@ function(req, res, re_review = FALSE) {
             tibble::as_tibble(
               compact(review_data$literature$gene_review)),
             .id = "publication_type") %>%
-          select(publication_id = value, publication_type) %>%
+          dplyr::select(publication_id = value, publication_type) %>%
           mutate(publication_type = case_when(
             publication_type == 1 ~ "additional_references",
             publication_type == 2 ~ "gene_review"
           )) %>%
           unique() %>%
-          select(publication_id, publication_type) %>%
+          dplyr::select(publication_id, publication_type) %>%
           arrange(publication_id) %>%
           mutate(publication_id = str_replace_all(publication_id,
             "\\s",
@@ -1543,7 +1543,7 @@ function(req, res, re_review = FALSE) {
               "additional_references",
             TRUE ~ publication_type
           )) %>%
-          select(-gr_check)
+          dplyr::select(-gr_check)
       } else {
         publications_received <- tibble::as_tibble_row(c(publication_id = NA,
           publication_type = NA))
@@ -1556,7 +1556,7 @@ function(req, res, re_review = FALSE) {
           add_column(review_data$entity_id) %>%
           add_column(review_data$comment) %>%
           add_column(review_user_id) %>%
-          select(entity_id = `review_data$entity_id`,
+          dplyr::select(entity_id = `review_data$entity_id`,
             synopsis = value,
             review_user_id,
             comment = `review_data$comment`)
@@ -1564,7 +1564,7 @@ function(req, res, re_review = FALSE) {
         sysnopsis_received <- tibble::as_tibble(review_data$synopsis) %>%
           add_column(review_data$entity_id) %>%
           add_column(review_user_id) %>%
-          select(entity_id = `review_data$entity_id`,
+          dplyr::select(entity_id = `review_data$entity_id`,
             synopsis = value,
             review_user_id,
             comment = NULL)
@@ -1642,7 +1642,7 @@ function(req, res, re_review = FALSE) {
           bind_rows(tibble::as_tibble(response_publication_conn)) %>%
           bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
           bind_rows(tibble::as_tibble(resp_variation_ontology_conn)) %>%
-          select(status, message) %>%
+          dplyr::select(status, message) %>%
           unique() %>%
           mutate(status = max(status)) %>%
           mutate(message = str_c(message, collapse = "; "))
@@ -1718,7 +1718,7 @@ function(req, res, re_review = FALSE) {
           bind_rows(tibble::as_tibble(response_publication_conn)) %>%
           bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
           bind_rows(tibble::as_tibble(resp_variation_ontology_conn)) %>%
-          select(status, message) %>%
+          dplyr::select(status, message) %>%
           unique() %>%
           mutate(status = max(status)) %>%
           mutate(message = str_c(message, collapse = "; "))
@@ -1780,14 +1780,14 @@ function(review_id_requested) {
 
   user_table <- pool %>%
     tbl("user") %>%
-    select(user_id, user_name, user_role)
+    dplyr::select(user_id, user_name, user_role)
 
   review_table_collected <- sysndd_db_review_table %>%
     filter(review_id == review_id_requested) %>%
     left_join(user_table, by = c("review_user_id" = "user_id")) %>%
     left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
     collect() %>%
-    select(review_id,
+    dplyr::select(review_id,
       entity_id,
       synopsis,
       is_primary,
@@ -1847,7 +1847,7 @@ function(review_id_requested) {
   phenotype_list <- ndd_review_phenotype_conn_coll %>%
     filter(review_id == review_id_requested & is_active) %>%
     inner_join(phenotype_list_collected, by = c("phenotype_id")) %>%
-    select(review_id, entity_id, phenotype_id, HPO_term, modifier_id) %>%
+    dplyr::select(review_id, entity_id, phenotype_id, HPO_term, modifier_id) %>%
     arrange(phenotype_id)
 }
 
@@ -1897,7 +1897,7 @@ function(review_id_requested) {
   variation_list <- review_variation_ontology_con %>%
     filter(review_id == review_id_requested & is_active) %>%
     inner_join(variation_ontology_list_col, by = c("vario_id")) %>%
-    select(review_id, entity_id, vario_id, vario_name, modifier_id) %>%
+    dplyr::select(review_id, entity_id, vario_id, vario_name, modifier_id) %>%
     arrange(vario_id)
 }
 
@@ -2043,11 +2043,11 @@ function(req, res) {
     submit_data <- req$argsBody$submit_json
 
     update_query <- tibble::as_tibble(submit_data) %>%
-      select(-re_review_entity_id) %>%
+      dplyr::select(-re_review_entity_id) %>%
       mutate(row = row_number()) %>%
       pivot_longer(-row) %>%
       mutate(query = paste0(name, "='", value, "'")) %>%
-      select(query) %>%
+      dplyr::select(query) %>%
       summarize(query = str_c(query, collapse = ", "))
 
     # connect to database
@@ -2381,7 +2381,7 @@ function(req,
       tbl("ndd_entity_view")
     ndd_entity_status_category <- pool %>%
       tbl("ndd_entity_status") %>%
-      select(status_id, category_id)
+      dplyr::select(status_id, category_id)
     ndd_entity_status_categories_list <- pool %>%
       tbl("ndd_entity_status_categories_list")
 
@@ -2393,7 +2393,7 @@ function(req,
   review_user_collected <- pool %>%
     tbl("ndd_entity_review") %>%
     left_join(user_table, by = c("review_user_id" = "user_id")) %>%
-    select(review_id,
+    dplyr::select(review_id,
       review_date,
       review_user_id,
       review_user_name = user_name,
@@ -2403,7 +2403,7 @@ function(req,
   status_user_collected <- pool %>%
     tbl("ndd_entity_status") %>%
     left_join(user_table, by = c("status_user_id" = "user_id")) %>%
-    select(status_id,
+    dplyr::select(status_id,
       status_date,
       status_user_id,
       status_user_name = user_name,
@@ -5500,12 +5500,12 @@ function(req, res, parameter_url, capture_screenshot = "on") {
 
 #* Get Paginated Log Files
 #*
-#* This endpoint returns paginated log files from a specified folder.
+#* This endpoint returns paginated log files from the database.
 #*
 #* # `Details`
-#* This is a plumber endpoint function that reads log files using the `read_log_files` 
-#* function, applies filtering and pagination, and returns the data as a JSON response. 
-#* The function takes input parameters for folder path, sorting, filtering, and field 
+#* This is a plumber endpoint function that reads log entries from the database, 
+#* applies filtering and pagination, and returns the data as a JSON response. 
+#* The function takes input parameters for sorting, filtering, and field 
 #* selection, and uses cursor pagination to generate links to previous and next pages.
 #*
 #* # `Return`
@@ -5514,7 +5514,6 @@ function(req, res, parameter_url, capture_screenshot = "on") {
 #* @tag logging
 #* @serializer json list(na="string")
 #*
-#* @param folder_path:str Path to the folder containing log files.
 #* @param sort:str Column to arrange output on.
 #* @param filter:str Comma separated list of filters to apply.
 #* @param fields:str Comma separated list of output columns.
@@ -5528,123 +5527,88 @@ function(req, res, parameter_url, capture_screenshot = "on") {
 #* @get /api/logs
 function(req,
          res,
-         folder_path = "logs",
-         sort = "row_id",
+         sort = "id",
          filter = "",
          fields = "",
-         `page_after` = 0,
-         `page_size` = "10",
-         fspec = "row_id,remote_addr,http_user_agent,http_host,request_method,path_info,query_string,postbody,status,duration,filename,last_modified",
+         page_after = 0,
+         page_size = 10,
+         fspec = "id,timestamp,address,agent,host,request_method,path,query,post,status,duration,file,modified",
          format = "json") {
-    # Check if the user_role is set and if the user is an Administrator
-    if (is.null(req$user_role) || req$user_role != "Administrator") {
-      res$status <- 403 # Forbidden
-      return(list(error = "Access forbidden. Only administrators can access logs."))
-    }
+  # Check if the user_role is set and if the user is an Administrator
+  if (is.null(req$user_role) || req$user_role != "Administrator") {
+    res$status <- 403 # Forbidden
+    return(list(error = "Access forbidden. Only administrators can access logs."))
+  }
 
-    # Set serializers
-    res$serializer <- serializers[[format]]
+  # Set serializers
+  res$serializer <- serializers[[format]]
 
-    # Start time calculation
-    start_time <- Sys.time()
+  # Start time calculation
+  start_time <- Sys.time()
 
-    # Read log files
-    logs_raw <- read_log_files_mem(folder_path)
 
-    # Generate sort expression
-    sort_exprs <- generate_sort_expressions(sort, unique_id = "row_id")
+  # generate sort expression based on sort input
+  sort_exprs <- generate_sort_expressions(sort, unique_id = "id")
 
-    # Generate filter expression
-    filter_exprs <- generate_filter_expressions(filter)
+  # generate filter expression based on filter input
+  filter_exprs <- generate_filter_expressions(filter)
 
-    # Apply sorting and filtering
-    logs_table <- logs_raw %>%
-      arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
-      filter(!!!rlang::parse_exprs(filter_exprs))
+  # Get logs from database
+  logs_raw <- pool %>%
+    tbl("logging") %>%
+    collect()
 
-    # Select fields
-    logs_table <- select_tibble_fields(logs_table, fields, "row_id")
+  # apply sorting and filtering
+  logs_raw <- logs_raw %>%
+    arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
+    filter(!!!rlang::parse_exprs(filter_exprs))
 
-    # Apply pagination
-    log_pagination_info <- generate_cursor_pag_inf(logs_table, `page_size`, `page_after`, "row_id")
+  # Select fields
+  if (fields != "") {
+    selected_fields <- unlist(strsplit(fields, ","))
+    logs_raw <- logs_raw %>%
+      select(all_of(selected_fields))
+  }
 
-    # Generate field specifications if needed
-    if (fspec != "") {
-      # use the helper generate_tibble_fspec to
-      # generate fields specs from a tibble
-      # first for the unfiltered and not subset table
-      logs_raw_fspec <- generate_tibble_fspec_mem(logs_raw,
-        fspec)
-      # then for the filtered/ subset one
-      logs_table <- generate_tibble_fspec_mem(
-        logs_table,
-        fspec)
-      # assign the second to the first as filtered
-      logs_raw_fspec$fspec$count_filtered <-
-        logs_raw_fspec$fspec$count
-    }
+  # Apply pagination
+  log_pagination_info <- generate_cursor_pag_inf(logs_raw, page_size, page_after, "id")
 
-    # Compute execution time
-    end_time <- Sys.time()
-    execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
+  # Generate field specifications if needed
+  if (fspec != "") {
+    logs_raw_fspec <- generate_tibble_fspec_mem(logs_raw, fspec)
+    logs_raw_fspec$fspec$count_filtered <- logs_raw_fspec$fspec$count
+  }
 
-    # add columns to the meta information from
-    # generate_cursor_pag_inf function return
-    meta <- log_pagination_info$meta %>%
-      add_column(tibble::as_tibble(list("sort" = sort,
-        "filter" = filter,
-        "fields" = fields,
-        "fspec" = logs_raw_fspec,
-        "executionTime" = execution_time)))
+  # Compute execution time
+  end_time <- Sys.time()
+  execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
 
-    # add host, port and other information to links from
-    # the link information from generate_cursor_pag_inf function return
-    links <- log_pagination_info$links %>%
-        pivot_longer(everything(), names_to = "type", values_to = "link") %>%
-      mutate(link = case_when(
-        link != "null" ~ paste0(
-          dw$api_base_url,
-          "/api/entity?sort=",
-          sort,
-          ifelse(filter != "", paste0("&filter=", filter), ""),
-          ifelse(fields != "", paste0("&fields=", fields), ""),
-          link),
-        link == "null" ~ "null"
-      )) %>%
-        pivot_wider(id_cols = everything(), names_from = "type", values_from = "link")
+  # Add columns to the meta information from generate_cursor_pag_inf function return
+  meta <- log_pagination_info$meta %>%
+    add_column(tibble::as_tibble(list("sort" = sort,
+                                      "filter" = filter,
+                                      "fields" = fields,
+                                      "fspec" = logs_raw_fspec,
+                                      "executionTime" = execution_time)))
 
-    # Prepare response
-    response <- list(
-        links = links,
-        meta = meta,
-        data = log_pagination_info$data
-    )
+  # Prepare response
+  response <- list(
+    links = log_pagination_info$links,
+    meta = meta,
+    data = log_pagination_info$data
+  )
 
-    # if xlsx requested compute this and return
-    if (format == "xlsx") {
-      # generate creation date statistic for output
-      creation_date <- strftime(as.POSIXlt(Sys.time(),
-        "UTC",
-        "%Y-%m-%dT%H:%M:%S"),
-        "%Y-%m-%d_T%H-%M-%S")
-
-      # generate base filename from api name
-      base_filename <- str_replace_all(req$PATH_INFO, "\\/", "_") %>%
-          str_replace_all("_api_", "")
-
-      filename <- file.path(paste0(base_filename,
-        "_",
-        creation_date,
-        ".xlsx"))
-
-      # generate xlsx bin using helper function
-      bin <- generate_xlsx_bin(response, base_filename)
-
-      # Return the binary contents
-      as_attachment(bin, filename)
-    } else {
-      response
-    }
+  # Return response
+  if (format == "xlsx") {
+    creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"), "%Y-%m-%d_T%H-%M-%S")
+    base_filename <- str_replace_all(req$PATH_INFO, "\\/", "_") %>%
+      str_replace_all("_api_", "")
+    filename <- file.path(paste0(base_filename, "_", creation_date, ".xlsx"))
+    bin <- generate_xlsx_bin(response, base_filename)
+    as_attachment(bin, filename)
+  } else {
+    response
+  }
 }
 
 ## Logging section
