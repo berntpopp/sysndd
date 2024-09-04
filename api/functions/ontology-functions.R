@@ -109,8 +109,8 @@ process_combine_ontology <- function(hgnc_list, mode_of_inheritance_list, max_fi
 
     # Get ontology mappings
     config_vars <- list(
-      hpo_obo_url = "https://github.com/obophenotype/human-phenotype-ontology/releases/download/v2023-10-09/hp.obo",
-      mpo_obo_url = "https://github.com/mgijax/mammalian-phenotype-ontology/releases/download/v2023-10-31/mp.obo",
+      hpo_obo_url = "https://github.com/obophenotype/human-phenotype-ontology/releases/download/v2024-08-13/hp.obo",
+      mpo_obo_url = "https://github.com/mgijax/mammalian-phenotype-ontology/releases/download/v2024-08-08/mp.obo",
       mondo_obo_url = "http://purl.obolibrary.org/obo/mondo.obo",
       download_path = "data/"
     )
@@ -226,7 +226,7 @@ process_mondo_ontology <- function(mondo_file = "data/mondo_terms/mondo_terms.tx
   # TODO: replace with function
   mondo_file_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"), "%Y-%m-%d")
 
-  # TODO: use the get_ontology_object fucntion and a list of mondo identifiers to compute this table
+  # TODO: use the get_ontology_object function and a list of mondo identifiers to compute this table
   mondo_terms <- read_delim(mondo_file, "\t", col_names = TRUE) %>%
     mutate(disease_ontology_source = "mondo") %>%
     mutate(disease_ontology_date = mondo_file_date) %>%
