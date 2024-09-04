@@ -59,7 +59,7 @@
                 terms using the files phenotype_to_genes
                 (http://purl.obolibrary.org/obo/hp/hpoa/phenotype.hpoa)
                 and genemap2
-                (https://data.omim.org/downloads/VVpx0Ng3TneJyOfawPWFcg/genemap2.txt),
+                (https://data.omim.org/downloads/9GJLEFvqSmWaImCijeRdVA/genemap2.txt),
                 <br>
               </b-popover>
             </h6>

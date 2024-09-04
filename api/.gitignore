@@ -7,8 +7,11 @@ config.yml
 results/*.json
 results/ontology/*.csv
 
-# Ignore the data directory in api folder
-data/*.*
+# Ignore the files in the data directory in api folder but not subdirectories
+data/*.gz
+data/*.txt
+data/*.csv
+data/*.obo
 
 # Ignore the log files in logs directory in api folder
 logs/*.log
