@@ -39,9 +39,13 @@ sysndd_db <- dbConnect(RMariaDB::MariaDB(),
 rs <- dbSendQuery(sysndd_db, "
   CREATE TABLE IF NOT EXISTS `pubtator_cache` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `pmid` INT NOT NULL,
+    `title` VARCHAR(1024),
+    `journal` VARCHAR(255),
+    `date` DATE,
+    `score` FLOAT,
     `query` TEXT NOT NULL,
     `page` INT NOT NULL,
-    `response` JSON NOT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );")
 
