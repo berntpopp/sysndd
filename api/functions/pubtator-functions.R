@@ -391,6 +391,7 @@ pubtator_v3_request <- function(query,
     # ...
     # Extract the required data from annotations_data
     # Return the processed data
+    return(annotations_data)
   } else {
     return(NULL)  # Return NULL if no PMIDs are found
   }
