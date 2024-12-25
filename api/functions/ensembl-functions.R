@@ -1,3 +1,4 @@
+# functions/ensembl-functions.R
 #### This file holds analyses functions for the ensembl database name using biomart
 
 #' Retrieve gene coordinates in BED format from gene symbols

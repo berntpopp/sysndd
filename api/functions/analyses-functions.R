@@ -1,3 +1,4 @@
+# functions/analyses-functions.R
 #### This file holds analyses functions
 
 #' A recursive function generating a functional gene cluster with string-db

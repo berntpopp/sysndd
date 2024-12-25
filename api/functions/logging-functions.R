@@ -1,3 +1,4 @@
+# functions/logging-functions.R
 #### This file holds logging functions
 
 #' Read and Combine Log Files into a Tibble

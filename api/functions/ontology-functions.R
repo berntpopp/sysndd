@@ -1,4 +1,5 @@
-# api/functions/ontology-functions.R
+# functions/ontology-functions.R
+
 require(ontologyIndex) # Needed to read ontology files
 require(tidyverse)     # For data manipulation
 

@@ -1,3 +1,4 @@
+# funcctions/hgnc-functions.R
 #### This file holds analyses functions for the hgnc standardization
 
 #' Retrieve HGNC ID from previous symbol
