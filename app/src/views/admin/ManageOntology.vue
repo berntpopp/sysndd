@@ -225,7 +225,7 @@ export default {
      */
     async loadOntologyTableData() {
       this.isLoading = true;
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/variant_ontology/table`;
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/ontology/variant/table`;
       try {
         const response = await this.axios.get(apiUrl, {
           headers: {
@@ -262,7 +262,7 @@ export default {
      * @returns {Promise<void>}
      */
     async updateOntologyData() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/variant_ontology/update`;
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/ontology/variant/update`;
       try {
         const response = await this.axios.put(
           apiUrl,

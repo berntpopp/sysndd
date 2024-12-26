@@ -1426,7 +1426,7 @@ export default {
     async loadReReviewData() {
       this.isBusy = true;
       const apiUrl = `${process.env.VUE_APP_API_URL
-      }/api/re_review_table?curate=${
+      }/api/re_review/table?curate=${
         this.curation_selected}`;
       try {
         const response = await this.axios.get(apiUrl, {
