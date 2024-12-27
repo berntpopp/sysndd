@@ -43,5 +43,6 @@ RUN Rscript -e 'require(devtools); install_version("logger", version = "0.2.2", 
 RUN Rscript -e 'require(devtools); install_version("tictoc", version = "1.2", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'require(devtools); install_version("fs", version = "1.6.2", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'require(devtools); install_version("FactoMineR", version = "2.8", repos = "http://cran.us.r-project.org")'
+RUN Rscript -e 'require(devtools); install_version("dotenv", version = "1.0.3", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'BiocManager::install(c("STRINGdb"))'
 RUN Rscript -e 'BiocManager::install(c("biomaRt"))'
