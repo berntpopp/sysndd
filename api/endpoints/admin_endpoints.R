@@ -234,8 +234,8 @@ function(req, res) {
 #* versions exist.
 #*
 #* # `Details`
-#* The function utilizes the internal structure of the Plumber router (`pr`) to 
-#* access the API version. It's primarily for informational purposes.
+#* The function no longer calls `apiV()`, but instead references a global
+#* variable `sysndd_api_version`. It's primarily for informational purposes.
 #*
 #* # `Authorization`
 #* This endpoint does not require any specific role. It's open for any client 
@@ -248,9 +248,9 @@ function(req, res) {
 #* @serializer unboxedJSON list(na="string")
 #* @get api_version
 function() {
-  version <- apiV()
-  list(api_version = version)
+  list(api_version = sysndd_api_version)
 }
+
 
 ## Administration section
 ##-------------------------------------------------------------------##

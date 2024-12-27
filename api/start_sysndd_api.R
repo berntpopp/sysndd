@@ -118,7 +118,7 @@ api_spec <- fromJSON("config/api_spec.json", flatten = TRUE)
 # 6) Setup logging
 ##-------------------------------------------------------------------##
 log_dir <- "logs"
-if (!dir_exists(log_dir)) dir_create(log_dir)
+if (!dir_exists(log_dir)) fs::dir_create(log_dir)
 logging_temp_file <- tempfile("plumber_", log_dir, ".log")
 log_appender(appender_file(logging_temp_file))
 
@@ -166,6 +166,10 @@ output_columns_allowed <<- c(
 )
 
 user_status_allowed <<- c("Administrator", "Curator", "Reviewer", "Viewer")
+
+# Load version info from version_spec.json
+version_json <<- fromJSON("version_spec.json")
+sysndd_api_version <<- version_json$version
 
 ##-------------------------------------------------------------------##
 # 9) Memoize certain functions
@@ -271,21 +275,22 @@ root <- pr() %>%
   
   # Insert doc info in pr_set_api_spec
   pr_set_api_spec(function(spec) {
-    spec$info$title       <- "SysNDD API"
-    spec$info$description <- paste(
-      "This is the API powering the SysNDD website, allowing programmatic",
-      "access to the database contents."
-    )
-    spec$info$version     <- "0.1.0"
-    spec$info$contact     <- list(
-      name = "API Support",
-      url  = "https://berntpopp.github.io/sysndd/api.html",
-      email= "support@sysndd.org"
-    )
-    spec$info$license     <- list(
-      name = "CC BY 4.0",
-      url  = "https://creativecommons.org/licenses/by/4.0/"
-    )
+    # -----------------------------------------------------------------
+    #  We read from version_spec.json for the version info:
+    # -----------------------------------------------------------------
+    version_info <- fromJSON("version_spec.json")  # Load your JSON file
+    # Set the spec fields from version_info:
+    spec$info$title       <- version_info$title
+    spec$info$description <- version_info$description
+    spec$info$version     <- version_info$version
+
+    if (!is.null(version_info$contact)) {
+      spec$info$contact <- version_info$contact
+    }
+    if (!is.null(version_info$license)) {
+      spec$info$license <- version_info$license
+    }
+    
     spec$components$securitySchemes$bearerAuth$type         <- "http"
     spec$components$securitySchemes$bearerAuth$scheme       <- "bearer"
     spec$components$securitySchemes$bearerAuth$bearerFormat <- "JWT"
