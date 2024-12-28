@@ -162,7 +162,7 @@ function(res,
     summarize_by_time(
       .date_var = entry_date,
       .by       = rlang::sym(summarize),
-      .type     = "ceiling", 
+      .type     = "ceiling",
       count     = sum(count)
     ) %>%
     mutate(cumulative_count = cumsum(count)) %>%
@@ -385,5 +385,129 @@ function(req, res, start_date, end_date) {
   )
 }
 
-## Statistics section
+
 ##-------------------------------------------------------------------##
+## Additional Endpoint: Publication Statistics
+##-------------------------------------------------------------------##
+
+#* Get Publication Statistics
+#*
+#* Aggregates counts on several columns of the publication table:
+#* - publication_type
+#* - Journal
+#* - Lastname
+#* - update_date (aggregated by year/month/etc. using summarize_by_time)
+#* - Publication_date (aggregated similarly)
+#* - Keywords (split by semicolons)
+#*
+#* # `Details`
+#* This endpoint fetches all rows from the publication table, applies a filter if provided,
+#* groups by each column, and returns counts for each unique value. For 'update_date' and
+#* 'Publication_date', it aggregates using summarize_by_time. For 'Keywords', it splits by
+#* semicolon.
+#*
+#* Example `filter` usage:
+#*   filter = "Lastname=='Smith',Journal=='Nature'"
+#*   filter = "contains(Title,MyGene),any(publication_type,review,additional_references)"
+#*
+#* # `Return`
+#* A JSON list with aggregated counts per column and the chosen time aggregation.
+#*
+#* @tag statistics
+#* @serializer json list(na="string")
+#*
+#* @param time_aggregate A character indicating the time grouping level,
+#*   e.g. "year", "month", "week", "day", etc. Defaults to "year".
+#* @param filter A filter string in your custom format, e.g. "contains(publication_type,gene_review)".
+#*
+#* @response 200 OK. A JSON list with aggregated counts
+#* @response 500 Internal server error
+#*
+#* @get /publication_stats
+function(req, res, time_aggregate = "year", filter = "") {
+  # 1) Generate filter expressions from the user-provided 'filter' string
+  #    This uses your existing helper: generate_filter_expressions()
+  filter_exprs <- generate_filter_expressions(filter)
+
+  # 2) Collect from the publication table, then apply filter
+  publication_tbl <- pool %>%
+    tbl("publication") %>%
+    collect() %>%
+    # Apply parsed filter expressions (!!! splices them in)
+    filter(!!!rlang::parse_exprs(filter_exprs))
+
+  # 3) Aggregate counts for publication_type
+  publication_type_counts <- publication_tbl %>%
+    group_by(publication_type) %>%
+    summarise(count = n()) %>%
+    arrange(desc(count))
+
+  # 4) Aggregate counts for Journal
+  journal_counts <- publication_tbl %>%
+    filter(!is.na(Journal) & Journal != "") %>%
+    group_by(Journal) %>%
+    summarise(count = n()) %>%
+    arrange(desc(count))
+
+  # 5) Aggregate counts for Lastname
+  last_name_counts <- publication_tbl %>%
+    filter(!is.na(Lastname) & Lastname != "") %>%
+    group_by(Lastname) %>%
+    summarise(count = n()) %>%
+    arrange(desc(count))
+
+  # 6) Summarize update_date by time_aggregate (using summarize_by_time)
+  update_date_by_time <- publication_tbl %>%
+    filter(!is.na(update_date)) %>%
+    mutate(update_date = as.Date(update_date)) %>%
+    summarize_by_time(
+      .date_var = update_date,
+      .by       = time_aggregate,
+      count     = n()
+    ) %>%
+    ungroup() %>%
+    rename(update_date = 1) %>%
+    mutate(update_date = as.character(update_date)) %>%
+    arrange(update_date)
+
+  # 7) Summarize Publication_date by time_aggregate
+  publication_date_by_time <- publication_tbl %>%
+    filter(!is.na(Publication_date)) %>%
+    mutate(Publication_date = as.Date(Publication_date)) %>%
+    summarize_by_time(
+      .date_var = Publication_date,
+      .by       = time_aggregate,
+      count     = n()
+    ) %>%
+    ungroup() %>%
+    rename(Publication_date = 1) %>%
+    mutate(Publication_date = as.character(Publication_date)) %>%
+    arrange(Publication_date)
+
+  # 8) Aggregate counts for Keywords (split by semicolon)
+  keyword_counts <- publication_tbl %>%
+    filter(!is.na(Keywords) & Keywords != "") %>%
+    mutate(Keywords = str_squish(Keywords)) %>%
+    tidyr::separate_rows(Keywords, sep = ";") %>%
+    mutate(Keywords = str_trim(Keywords)) %>%
+    filter(Keywords != "") %>%
+    group_by(Keywords) %>%
+    summarise(count = n()) %>%
+    arrange(desc(count))
+
+  # 9) Build a result list
+  stats_list <- list(
+    publication_type_counts      = publication_type_counts,
+    journal_counts               = journal_counts,
+    last_name_counts             = last_name_counts,
+    update_date_aggregated       = update_date_by_time,
+    publication_date_aggregated  = publication_date_by_time,
+    keyword_counts               = keyword_counts,
+    time_aggregate_used          = time_aggregate,
+    filter_used                  = filter
+  )
+
+  # 10) Return as JSON
+  res$status <- 200
+  stats_list
+}
