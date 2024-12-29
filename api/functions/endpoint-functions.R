@@ -648,3 +648,110 @@ generate_gene_news_tibble <- function(n) {
 
   return(sysndd_db_disease_genes_news)
 }
+
+
+# functions/endpoint-functions.R
+
+#' Generate variant entities list
+#'
+#' @description
+#' This function generates a variant entities list. It retrieves data from the DB,
+#' filters it, creates a comma-separated 'modifier_variant_id' (which actually
+#' references 'vario_id'), and returns a paginated list.
+#'
+#' @export
+generate_variant_entities_list <- function(sort = "entity_id",
+                                           filter = "",
+                                           fields = "",
+                                           page_after = "0",
+                                           page_size = "all",
+                                           fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,modifier_variant_id,details") {
+  start_time <- Sys.time()
+  filter <- URLdecode(filter)
+
+  # 1) Sort and Filter expressions
+  sort_exprs <- generate_sort_expressions(sort, unique_id = "entity_id")
+  filter_exprs <- generate_filter_expressions(filter)
+
+  # 2) Load your new 'ndd_review_variant_connect_view'
+  #    which has 'entity_id' and 'modifier_variant_id'
+  ndd_review_variant_connect <- pool %>%
+    tbl("ndd_review_variant_connect_view") %>%
+    collect() %>%
+    select(entity_id, modifier_variant_id) %>%
+    group_by(entity_id) %>%
+    arrange(entity_id, modifier_variant_id) %>%
+    mutate(modifier_variant_id = paste0(modifier_variant_id, collapse = ",")) %>%
+    ungroup() %>%
+    unique()
+
+  # 3) Join with entity view
+  entity_variant_table <- pool %>%
+    tbl("ndd_entity_view") %>%
+    collect() %>%
+    left_join(ndd_review_variant_connect, by = "entity_id") %>%
+    # only keep those rows that have a variant
+    filter(!is.na(modifier_variant_id))
+
+  # 4) Apply user filter/sort
+  sysndd_db_entity_variant_table <- entity_variant_table %>%
+    filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+    arrange(!!!rlang::parse_exprs(sort_exprs))
+
+  # 5) Generate field specs
+  entity_variant_table_fspec <- generate_tibble_fspec_mem(entity_variant_table, fspec)
+  sysndd_db_entity_variant_table_fspec <- generate_tibble_fspec_mem(sysndd_db_entity_variant_table, fspec)
+  entity_variant_table_fspec$fspec$count_filtered <-
+    sysndd_db_entity_variant_table_fspec$fspec$count
+
+  # 6) Select fields
+  sysndd_db_entity_variant_table <- select_tibble_fields(
+    sysndd_db_entity_variant_table,
+    fields,
+    "entity_id"
+  )
+
+  # 7) Cursor pagination
+  entity_variant_table_pag_info <- generate_cursor_pag_inf(
+    sysndd_db_entity_variant_table,
+    page_size,
+    page_after,
+    "entity_id"
+  )
+
+  # 8) Build meta, links
+  end_time <- Sys.time()
+  execution_time <- paste0(round(end_time - start_time, 2), " secs")
+
+  meta <- entity_variant_table_pag_info$meta %>%
+    add_column(tibble::as_tibble(list(
+      "sort" = sort,
+      "filter" = filter,
+      "fields" = fields,
+      "fspec" = entity_variant_table_fspec,
+      "executionTime" = execution_time
+    )))
+
+  links <- entity_variant_table_pag_info$links %>%
+    pivot_longer(everything(), names_to = "type", values_to = "link") %>%
+    mutate(
+      link = case_when(
+        link != "null" ~ paste0(
+          dw$api_base_url,
+          "/api/variant/browse?sort=", sort,
+          ifelse(filter != "", paste0("&filter=", filter), ""),
+          ifelse(fields != "", paste0("&fields=", fields), ""),
+          link
+        ),
+        TRUE ~ "null"
+      )
+    ) %>%
+    pivot_wider(id_cols = everything(), names_from = "type", values_from = "link")
+
+  # 9) Return final
+  list(
+    links = links,
+    meta = meta,
+    data = entity_variant_table_pag_info$data
+  )
+}

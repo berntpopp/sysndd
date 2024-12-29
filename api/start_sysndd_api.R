@@ -335,7 +335,9 @@ root <- pr() %>%
   pr_mount("/api/admin",          pr("endpoints/admin_endpoints.R")) %>%
   pr_mount("/api/external",       pr("endpoints/external_endpoints.R")) %>%
   pr_mount("/api/statistics",     pr("endpoints/statistics_endpoints.R")) %>%
-  
+  pr_mount("/api/variant",        pr("endpoints/variant_endpoints.R")) %>%
+  # -------------------------------------------------------------------
+
   ####################################################################
   # preroute / postroute hooks for timing & logging
   ####################################################################
