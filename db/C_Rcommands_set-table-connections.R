@@ -667,6 +667,28 @@ rs <- dbSendQuery(sysndd_db, "CREATE OR REPLACE VIEW `sysndd_db`.`ndd_review_phe
 dbClearResult(rs)
 
 
+## CREATE THE NEW ndd_review_variant_connect_view
+rs <- dbSendQuery(sysndd_db, "CREATE OR REPLACE VIEW `sysndd_db`.`ndd_review_variant_connect_view` AS
+    SELECT 
+        `ndd_review_variation_ontology_connect`.`entity_id` AS `entity_id`,
+        `ndd_review_variation_ontology_connect`.`review_id` AS `review_id`,
+        `ndd_review_variation_ontology_connect`.`vario_id` AS `vario_id`,
+        `ndd_review_variation_ontology_connect`.`modifier_id` AS `modifier_id`,
+        `variation_ontology_list`.`vario_name` AS `vario_name`,
+        CONCAT(`variation_ontology_list`.`vario_name`, ': ', `variation_ontology_list`.`definition`) AS `vario_label`,
+        CONCAT(`ndd_review_variation_ontology_connect`.`modifier_id`, '-', `ndd_review_variation_ontology_connect`.`vario_id`) AS `modifier_variant_id`,
+        `ndd_review_variation_ontology_connect`.`variation_ontology_date` AS `variation_ontology_date`
+    FROM
+        ((`ndd_review_variation_ontology_connect`
+        JOIN `variation_ontology_list`
+          ON (`ndd_review_variation_ontology_connect`.`vario_id` = `variation_ontology_list`.`vario_id`))
+        JOIN `ndd_entity_review` 
+          ON (`ndd_review_variation_ontology_connect`.`review_id` = `ndd_entity_review`.`review_id`))
+    WHERE
+        (`ndd_review_variation_ontology_connect`.`is_active` = 1
+         AND `ndd_entity_review`.`is_primary` = 1);")
+dbClearResult(rs)
+
 ############################################
 ## close database connection
 rm_con()
