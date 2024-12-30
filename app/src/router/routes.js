@@ -4,7 +4,6 @@
 // TODO: remove redundance in localStorage setting/reading
 
 import Vue from 'vue';
-
 import VueAxios from 'vue-axios';
 import axios from 'axios';
 
@@ -14,9 +13,7 @@ export const routes = [
   {
     path: '/',
     name: 'Home',
-    component: () => import(
-      /* webpackChunkName: "Home", webpackPrefetch: 1 */ '@/views/Home.vue'
-    ),
+    component: () => import(/* webpackChunkName: "Home", webpackPrefetch: 1 */ '@/views/Home.vue'),
     meta: {
       sitemap: {
         priority: 1.0,
@@ -83,9 +80,7 @@ export const routes = [
   },
   {
     path: '/CurationComparisons',
-    component: () => import(
-      /* webpackChunkName: "Analyses" */ '@/views/analyses/CurationComparisons.vue'
-    ),
+    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/analyses/CurationComparisons.vue'),
     children: [
       {
         path: '',
@@ -116,9 +111,7 @@ export const routes = [
   },
   {
     path: '/PhenotypeCorrelations',
-    component: () => import(
-      /* webpackChunkName: "Analyses" */ '@/views/analyses/PhenotypeCorrelations.vue'
-    ),
+    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/analyses/PhenotypeCorrelations.vue'),
     children: [
       {
         path: '',
@@ -150,9 +143,7 @@ export const routes = [
   {
     path: '/EntriesOverTime',
     name: 'EntriesOverTime',
-    component: () => import(
-      /* webpackChunkName: "Analyses" */ '@/views/analyses/EntriesOverTime.vue'
-    ),
+    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/analyses/EntriesOverTime.vue'),
     meta: {
       sitemap: {
         priority: 0.7,
@@ -160,12 +151,46 @@ export const routes = [
       },
     },
   },
+  /**
+   * UPDATED PublicationsNDD route with 4 children
+   */
   {
     path: '/PublicationsNDD',
-    name: 'PublicationsNDD',
-    component: () => import(
-      /* webpackChunkName: "Analyses" */ '@/views/analyses/PublicationsNDD.vue'
-    ),
+    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/analyses/PublicationsNDD.vue'),
+    children: [
+      // 1) Default child -> Pubtator
+      {
+        path: '',
+        name: 'PublicationsNDDPubtator',
+        component: () => import(
+          /* webpackChunkName: "PublicationsNDDPubtator" */ '@/components/analyses/PublicationsNDDPubtator.vue'
+        ),
+      },
+      // 2) The "All" publications table from DB
+      {
+        path: 'All',
+        name: 'PublicationsNDDTable',
+        component: () => import(
+          /* webpackChunkName: "PublicationsNDDTable" */ '@/components/analyses/PublicationsNDDTable.vue'
+        ),
+      },
+      // 3) The time plot
+      {
+        path: 'TimePlot',
+        name: 'PublicationsNDDTimePlot',
+        component: () => import(
+          /* webpackChunkName: "PublicationsNDDTimePlot" */ '@/components/analyses/PublicationsNDDTimePlot.vue'
+        ),
+      },
+      // 4) The stats bar plot
+      {
+        path: 'Stats',
+        name: 'PublicationsNDDStats',
+        component: () => import(
+          /* webpackChunkName: "PublicationsNDDStats" */ '@/components/analyses/PublicationsNDDStats.vue'
+        ),
+      },
+    ],
     meta: {
       sitemap: {
         priority: 0.7,
@@ -176,9 +201,7 @@ export const routes = [
   {
     path: '/GeneNetworks',
     name: 'GeneNetworks',
-    component: () => import(
-      /* webpackChunkName: "Analyses" */ '@/views/analyses/GeneNetworks.vue'
-    ),
+    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/analyses/GeneNetworks.vue'),
     meta: {
       sitemap: {
         priority: 0.7,
@@ -204,9 +227,9 @@ export const routes = [
           'X-linked',
         ].includes(to.params.inheritance_input)
       ) {
-        next(); // <-- everything good, proceed
+        next(); // everything good, proceed
       } else {
-        next({ path: '/Panels/All/All' }); // <-- redirect to setup
+        next({ path: '/Panels/All/All' }); // redirect to setup
       }
     },
   },
@@ -271,11 +294,9 @@ export const routes = [
         timestamp = Math.floor(new Date().getTime() / 1000);
       }
 
-      if (
-        !localStorage.user
-        || timestamp > expires
-        || !allowed_roles.includes(user_role[0])
-      ) { next({ name: 'Login' }); } else next();
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
     },
   },
   {
@@ -301,11 +322,9 @@ export const routes = [
         timestamp = Math.floor(new Date().getTime() / 1000);
       }
 
-      if (
-        !localStorage.user
-        || timestamp > expires
-        || !allowed_roles.includes(user_role[0])
-      ) { next({ name: 'Login' }); } else next();
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
     },
   },
   {
@@ -325,19 +344,15 @@ export const routes = [
         timestamp = Math.floor(new Date().getTime() / 1000);
       }
 
-      if (
-        !localStorage.user
-        || timestamp > expires
-        || !allowed_roles.includes(user_role[0])
-      ) { next({ name: 'Login' }); } else next();
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
     },
   },
   {
     path: '/CreateEntity',
     name: 'CreateEntity',
-    component: () => import(
-      /* webpackChunkName: "DataEntry" */ '@/views/curate/CreateEntity.vue'
-    ),
+    component: () => import(/* webpackChunkName: "DataEntry" */ '@/views/curate/CreateEntity.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator', 'Curator'];
@@ -351,19 +366,15 @@ export const routes = [
         timestamp = Math.floor(new Date().getTime() / 1000);
       }
 
-      if (
-        !localStorage.user
-        || timestamp > expires
-        || !allowed_roles.includes(user_role[0])
-      ) { next({ name: 'Login' }); } else next();
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
     },
   },
   {
     path: '/ModifyEntity',
     name: 'ModifyEntity',
-    component: () => import(
-      /* webpackChunkName: "DataEntry" */ '@/views/curate/ModifyEntity.vue'
-    ),
+    component: () => import(/* webpackChunkName: "DataEntry" */ '@/views/curate/ModifyEntity.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator', 'Curator'];
@@ -377,19 +388,15 @@ export const routes = [
         timestamp = Math.floor(new Date().getTime() / 1000);
       }
 
-      if (
-        !localStorage.user
-        || timestamp > expires
-        || !allowed_roles.includes(user_role[0])
-      ) { next({ name: 'Login' }); } else next();
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
     },
   },
   {
     path: '/ApproveReview',
     name: 'ApproveReview',
-    component: () => import(
-      /* webpackChunkName: "DataEntry" */ '@/views/curate/ApproveReview.vue'
-    ),
+    component: () => import(/* webpackChunkName: "DataEntry" */ '@/views/curate/ApproveReview.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator', 'Curator'];
@@ -403,19 +410,15 @@ export const routes = [
         timestamp = Math.floor(new Date().getTime() / 1000);
       }
 
-      if (
-        !localStorage.user
-        || timestamp > expires
-        || !allowed_roles.includes(user_role[0])
-      ) { next({ name: 'Login' }); } else next();
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
     },
   },
   {
     path: '/ApproveStatus',
     name: 'ApproveStatus',
-    component: () => import(
-      /* webpackChunkName: "DataEntry" */ '@/views/curate/ApproveStatus.vue'
-    ),
+    component: () => import(/* webpackChunkName: "DataEntry" */ '@/views/curate/ApproveStatus.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator', 'Curator'];
@@ -429,19 +432,15 @@ export const routes = [
         timestamp = Math.floor(new Date().getTime() / 1000);
       }
 
-      if (
-        !localStorage.user
-        || timestamp > expires
-        || !allowed_roles.includes(user_role[0])
-      ) { next({ name: 'Login' }); } else next();
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
     },
   },
   {
     path: '/ApproveUser',
     name: 'ApproveUser',
-    component: () => import(
-      /* webpackChunkName: "DataEntry" */ '@/views/curate/ApproveUser.vue'
-    ),
+    component: () => import(/* webpackChunkName: "DataEntry" */ '@/views/curate/ApproveUser.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator', 'Curator'];
@@ -455,19 +454,15 @@ export const routes = [
         timestamp = Math.floor(new Date().getTime() / 1000);
       }
 
-      if (
-        !localStorage.user
-        || timestamp > expires
-        || !allowed_roles.includes(user_role[0])
-      ) { next({ name: 'Login' }); } else next();
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
     },
   },
   {
     path: '/ManageReReview',
     name: 'ManageReReview',
-    component: () => import(
-      /* webpackChunkName: "DataEntry" */ '@/views/curate/ManageReReview.vue'
-    ),
+    component: () => import(/* webpackChunkName: "DataEntry" */ '@/views/curate/ManageReReview.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator', 'Curator'];
@@ -481,19 +476,15 @@ export const routes = [
         timestamp = Math.floor(new Date().getTime() / 1000);
       }
 
-      if (
-        !localStorage.user
-        || timestamp > expires
-        || !allowed_roles.includes(user_role[0])
-      ) { next({ name: 'Login' }); } else next();
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
     },
   },
   {
     path: '/ManageUser',
     name: 'ManageUser',
-    component: () => import(
-      /* webpackChunkName: "Administration" */ '@/views/admin/ManageUser.vue'
-    ),
+    component: () => import(/* webpackChunkName: "Administration" */ '@/views/admin/ManageUser.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator'];
@@ -507,19 +498,15 @@ export const routes = [
         timestamp = Math.floor(new Date().getTime() / 1000);
       }
 
-      if (
-        !localStorage.user
-        || timestamp > expires
-        || !allowed_roles.includes(user_role[0])
-      ) { next({ name: 'Login' }); } else next();
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
     },
   },
   {
     path: '/ManageAnnotations',
     name: 'ManageAnnotations',
-    component: () => import(
-      /* webpackChunkName: "Administration" */ '@/views/admin/ManageAnnotations.vue'
-    ),
+    component: () => import(/* webpackChunkName: "Administration" */ '@/views/admin/ManageAnnotations.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator'];
@@ -533,19 +520,15 @@ export const routes = [
         timestamp = Math.floor(new Date().getTime() / 1000);
       }
 
-      if (
-        !localStorage.user
-        || timestamp > expires
-        || !allowed_roles.includes(user_role[0])
-      ) { next({ name: 'Login' }); } else next();
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
     },
   },
   {
     path: '/ManageOntology',
     name: 'ManageOntology',
-    component: () => import(
-      /* webpackChunkName: "Administration" */ '@/views/admin/ManageOntology.vue'
-    ),
+    component: () => import(/* webpackChunkName: "Administration" */ '@/views/admin/ManageOntology.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator'];
@@ -559,19 +542,15 @@ export const routes = [
         timestamp = Math.floor(new Date().getTime() / 1000);
       }
 
-      if (
-        !localStorage.user
-        || timestamp > expires
-        || !allowed_roles.includes(user_role[0])
-      ) { next({ name: 'Login' }); } else next();
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
     },
   },
   {
     path: '/ManageAbout',
     name: 'ManageAbout',
-    component: () => import(
-      /* webpackChunkName: "Administration" */ '@/views/admin/ManageAbout.vue'
-    ),
+    component: () => import(/* webpackChunkName: "Administration" */ '@/views/admin/ManageAbout.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator'];
@@ -585,19 +564,15 @@ export const routes = [
         timestamp = Math.floor(new Date().getTime() / 1000);
       }
 
-      if (
-        !localStorage.user
-        || timestamp > expires
-        || !allowed_roles.includes(user_role[0])
-      ) { next({ name: 'Login' }); } else next();
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
     },
   },
   {
     path: '/ViewLogs',
     name: 'ViewLogs',
-    component: () => import(
-      /* webpackChunkName: "Administration" */ '@/views/admin/ViewLogs.vue'
-    ),
+    component: () => import(/* webpackChunkName: "Administration" */ '@/views/admin/ViewLogs.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator'];
@@ -611,19 +586,15 @@ export const routes = [
         timestamp = Math.floor(new Date().getTime() / 1000);
       }
 
-      if (
-        !localStorage.user
-        || timestamp > expires
-        || !allowed_roles.includes(user_role[0])
-      ) { next({ name: 'Login' }); } else next();
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
     },
   },
   {
     path: '/AdminStatistics',
     name: 'AdminStatistics',
-    component: () => import(
-      /* webpackChunkName: "Administration" */ '@/views/admin/AdminStatistics.vue'
-    ),
+    component: () => import(/* webpackChunkName: "Administration" */ '@/views/admin/AdminStatistics.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator'];
@@ -637,11 +608,7 @@ export const routes = [
         timestamp = Math.floor(new Date().getTime() / 1000);
       }
 
-      if (
-        !localStorage.user
-        || timestamp > expires
-        || !allowed_roles.includes(user_role[0])
-      ) {
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
         next({ name: 'Login' });
       } else {
         next();

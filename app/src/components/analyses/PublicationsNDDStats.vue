@@ -1,0 +1,362 @@
+<!-- src/components/analyses/PublicationsNDDStats.vue -->
+<template>
+  <b-container fluid>
+    <b-card
+      header-tag="header"
+      body-class="p-0"
+      header-class="p-1"
+      border-variant="dark"
+    >
+      <template #header>
+        <div class="d-flex justify-content-between align-items-center">
+          <h6 class="mb-1 text-left font-weight-bold">
+            NDD Publications Statistics
+            <mark
+              v-b-tooltip.hover.leftbottom
+              title="Shows aggregated counts for journals, authors, or keywords, from the publication_stats endpoint."
+            >
+              (Bar Plots)
+            </mark>
+            <b-badge
+              id="popover-badge-help-publications-stats"
+              pill
+              href="#"
+              variant="info"
+            >
+              <b-icon icon="question-circle-fill" />
+            </b-badge>
+            <b-popover
+              target="popover-badge-help-publications-stats"
+              variant="info"
+              triggers="focus"
+            >
+              <template #title>
+                Publications Statistics
+              </template>
+              This bar chart displays counts for selected categories (journal, author/lastname, or keywords).
+            </b-popover>
+          </h6>
+        </div>
+      </template>
+
+      <!-- User Interface controls: category selection, minJournalCount, etc. -->
+      <b-row>
+        <b-col
+          class="my-1"
+          sm="3"
+        >
+          <b-input-group
+            prepend="Category"
+            class="mb-1"
+            size="sm"
+          >
+            <b-form-select
+              v-model="selectedCategory"
+              :options="categoryOptions"
+              size="sm"
+              @change="generateBarPlot"
+            />
+          </b-input-group>
+        </b-col>
+
+        <b-col
+          class="my-1"
+          sm="3"
+        >
+          <b-input-group
+            prepend="Min Journal"
+            class="mb-1"
+            size="sm"
+          >
+            <b-form-input
+              v-model="min_journal_count"
+              type="number"
+              min="1"
+              step="1"
+              debounce="500"
+              @change="fetchStats"
+            />
+          </b-input-group>
+        </b-col>
+
+        <b-col
+          class="my-1"
+          sm="3"
+        >
+          <b-input-group
+            prepend="Min Author"
+            class="mb-1"
+            size="sm"
+          >
+            <b-form-input
+              v-model="min_lastname_count"
+              type="number"
+              min="1"
+              step="1"
+              debounce="500"
+              @change="fetchStats"
+            />
+          </b-input-group>
+        </b-col>
+
+        <b-col
+          class="my-1"
+          sm="3"
+        >
+          <b-input-group
+            prepend="Min Keyword"
+            class="mb-1"
+            size="sm"
+          >
+            <b-form-input
+              v-model="min_keyword_count"
+              type="number"
+              min="1"
+              step="1"
+              debounce="500"
+              @change="fetchStats"
+            />
+          </b-input-group>
+        </b-col>
+      </b-row>
+
+      <!-- Content with overlay spinner -->
+      <div class="position-relative">
+        <b-spinner
+          v-if="loadingCount"
+          label="Loading..."
+          class="spinner"
+        />
+        <div
+          v-show="!loadingCount"
+          id="stats_dataviz"
+          class="svg-container"
+        />
+      </div>
+    </b-card>
+  </b-container>
+</template>
+
+<script>
+import * as d3 from 'd3';
+import toastMixin from '@/assets/js/mixins/toastMixin';
+
+export default {
+  name: 'PublicationsNDDStats',
+  mixins: [toastMixin],
+  data() {
+    return {
+      // user selections
+      selectedCategory: 'journal', // 'journal' | 'author' | 'keyword'
+      categoryOptions: [
+        { value: 'journal', text: 'Journal' },
+        { value: 'author', text: 'Author (Lastname)' },
+        { value: 'keyword', text: 'Keywords' },
+      ],
+
+      // set defaults for min counts
+      min_journal_count: 20,
+      min_lastname_count: 5,
+      min_keyword_count: 100,
+
+      // data from the stats endpoint
+      statsData: null,
+
+      // chart loading state
+      loadingCount: true,
+    };
+  },
+  async mounted() {
+    // fetch stats on mount
+    await this.fetchStats();
+  },
+  methods: {
+    /**
+     * fetchStats
+     * Calls /api/statistics/publication_stats with the user’s selected min counts
+     */
+    async fetchStats() {
+      this.loadingCount = true;
+
+      // build query string
+      const baseUrl = `${process.env.VUE_APP_API_URL}/api/statistics/publication_stats`;
+      const params = new URLSearchParams();
+      params.set('min_journal_count', this.min_journal_count);
+      params.set('min_lastname_count', this.min_lastname_count);
+      params.set('min_keyword_count', this.min_keyword_count);
+      params.set('time_aggregate', 'year'); // or let them pick 'month' in future
+
+      const apiUrl = `${baseUrl}?${params.toString()}`;
+
+      try {
+        const response = await this.axios.get(apiUrl);
+        // store entire object in statsData
+        this.statsData = response.data;
+        // once loaded, generate bar chart
+        this.generateBarPlot();
+      } catch (error) {
+        this.makeToast(error, 'Error fetching publication stats', 'danger');
+      } finally {
+        this.loadingCount = false;
+      }
+    },
+
+    /**
+     * generateBarPlot
+     * Builds a bar chart from either journal_counts, last_name_counts, or keyword_counts
+     * depending on selectedCategory.
+     */
+    generateBarPlot() {
+      // guard if statsData not loaded
+      if (!this.statsData) return;
+
+      // remove old svg
+      d3.select('#stats_dataviz').select('svg').remove();
+
+      let data = [];
+      let xKey = ''; // 'Journal', 'Lastname', or 'Keywords'
+
+      if (this.selectedCategory === 'journal') {
+        data = this.statsData.journal_counts || [];
+        xKey = 'Journal';
+      } else if (this.selectedCategory === 'author') {
+        data = this.statsData.last_name_counts || [];
+        xKey = 'Lastname';
+      } else if (this.selectedCategory === 'keyword') {
+        data = this.statsData.keyword_counts || [];
+        xKey = 'Keywords';
+      }
+
+      // set dimensions
+      const margin = {
+        top: 30, right: 30, bottom: 200, left: 130,
+      };
+      const width = 760 - margin.left - margin.right;
+      const height = 500 - margin.top - margin.bottom;
+
+      // append the SVG
+      const svg = d3
+        .select('#stats_dataviz')
+        .append('svg')
+        .attr('id', 'pubstats-svg') // optional for referencing in downloads
+        .attr('viewBox', '0 0 760 500')
+        .attr('preserveAspectRatio', 'xMinYMin meet')
+        .append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
+
+      // X axis
+      const x = d3
+        .scaleBand()
+        .range([0, width])
+        .domain(data.map((d) => d[xKey]))
+        .padding(0.2);
+
+      svg
+        .append('g')
+        .attr('transform', `translate(0,${height})`)
+        .call(d3.axisBottom(x))
+        .selectAll('text')
+        .attr('transform', 'translate(-10,0)rotate(-45)')
+        .style('text-anchor', 'end')
+        .style('font-size', '12px');
+
+      // max count
+      const maxY = d3.max(data, (d) => d.count);
+      const y = d3.scaleLinear().domain([0, maxY * 1.1]).range([height, 0]);
+      svg.append('g').call(d3.axisLeft(y));
+
+      // Create a tooltip element
+      const tooltip = d3
+        .select('#stats_dataviz')
+        .append('div')
+        .style('opacity', 0)
+        .attr('class', 'tooltip')
+        .style('background-color', 'white')
+        .style('border', 'solid')
+        .style('border-width', '1px')
+        .style('border-radius', '5px')
+        .style('padding', '2px')
+        .style('position', 'absolute') // matching your "AnalysesPhenotypeCounts" approach
+        .style('pointer-events', 'none'); // let mouse events go through
+
+      /**
+       * Mouseover event handler to display tooltip.
+       */
+      const mouseover = function mouseover() {
+        tooltip.style('opacity', 1);
+        d3.select(this).style('stroke', 'black').style('opacity', 1);
+      };
+
+      /**
+       * Mousemove event handler to move the tooltip with the mouse.
+       */
+      const mousemove = function mousemove(event, d) {
+        // Using event.layerX and event.layerY to position near the cursor
+        // offset by +20 so it doesn't overlap the cursor
+        tooltip
+          .html(`Count: ${d.count}<br>(${d[xKey]})`)
+          .style('left', `${event.layerX + 20}px`)
+          .style('top', `${event.layerY + 20}px`);
+      };
+
+      /**
+       * Mouseleave event handler to hide the tooltip.
+       */
+      const mouseleave = function mouseleave() {
+        tooltip.style('opacity', 0);
+        d3.select(this).style('stroke', 'none');
+      };
+
+      // bars
+      svg
+        .selectAll('mybar')
+        .data(data)
+        .enter()
+        .append('rect')
+        .attr('x', (d) => x(d[xKey]))
+        .attr('y', (d) => y(d.count))
+        .attr('width', x.bandwidth())
+        .attr('height', (d) => height - y(d.count))
+        .attr('fill', '#69b3a2')
+        .on('mouseover', mouseover)
+        .on('mousemove', mousemove)
+        .on('mouseleave', mouseleave);
+    },
+  },
+};
+</script>
+
+<style scoped>
+.svg-container {
+  display: inline-block;
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  vertical-align: top;
+  overflow: hidden;
+}
+.svg-container svg {
+  display: inline-block;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  margin: 5rem auto;
+  display: block;
+}
+/* tooltip style consistent with your AnalysesPhenotypeCounts.vue */
+.tooltip {
+  pointer-events: none;
+  font-size: 0.9rem;
+}
+mark {
+  display: inline-block;
+  line-height: 0em;
+  padding-bottom: 0.5em;
+  font-weight: bold;
+  background-color: #eaadba;
+}
+</style>
