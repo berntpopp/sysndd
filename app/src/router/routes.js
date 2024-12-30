@@ -189,23 +189,15 @@ export const routes = [
     path: '/PublicationsNDD',
     component: () => import(/* webpackChunkName: "Analyses" */ '@/views/analyses/PublicationsNDD.vue'),
     children: [
-      // 1) Default child -> Pubtator
+      // 1) The "All" publications table from DB
       {
         path: '',
-        name: 'PublicationsNDDPubtator',
-        component: () => import(
-          /* webpackChunkName: "PublicationsNDDPubtator" */ '@/components/analyses/PublicationsNDDPubtator.vue'
-        ),
-      },
-      // 2) The "All" publications table from DB
-      {
-        path: 'All',
         name: 'PublicationsNDDTable',
         component: () => import(
           /* webpackChunkName: "PublicationsNDDTable" */ '@/components/analyses/PublicationsNDDTable.vue'
         ),
       },
-      // 3) The time plot
+      // 2) The time plot
       {
         path: 'TimePlot',
         name: 'PublicationsNDDTimePlot',
@@ -213,12 +205,20 @@ export const routes = [
           /* webpackChunkName: "PublicationsNDDTimePlot" */ '@/components/analyses/PublicationsNDDTimePlot.vue'
         ),
       },
-      // 4) The stats bar plot
+      // 3) The stats bar plot
       {
         path: 'Stats',
         name: 'PublicationsNDDStats',
         component: () => import(
           /* webpackChunkName: "PublicationsNDDStats" */ '@/components/analyses/PublicationsNDDStats.vue'
+        ),
+      },
+      // 4) Pubtator
+      {
+        path: 'Pubtator',
+        name: 'PublicationsNDDPubtator',
+        component: () => import(
+          /* webpackChunkName: "PublicationsNDDPubtator" */ '@/components/analyses/PublicationsNDDPubtator.vue'
         ),
       },
     ],

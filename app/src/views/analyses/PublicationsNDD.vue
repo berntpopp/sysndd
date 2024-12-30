@@ -20,7 +20,7 @@
                   exact
                   exact-active-class="active"
                 >
-                  All
+                  SysNDD Curated
                 </b-nav-item>
 
                 <!-- 2) Time Plot Child -->
