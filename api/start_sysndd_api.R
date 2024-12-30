@@ -61,6 +61,11 @@ library(ellipsis)
 library(ontologyIndex)
 
 ##-------------------------------------------------------------------##
+# set redirect to trailing slash
+options_plumber(trailingSlash = TRUE)
+##-------------------------------------------------------------------##
+
+##-------------------------------------------------------------------##
 # 2) Decide which environment (local vs production)
 ##-------------------------------------------------------------------##
 env_mode <- Sys.getenv("ENVIRONMENT", "local")
