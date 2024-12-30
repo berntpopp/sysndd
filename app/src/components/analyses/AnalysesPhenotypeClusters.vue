@@ -1,7 +1,7 @@
 <!-- src/components/analyses/AnalysesPhenotypeClusters.vue -->
 <template>
   <b-container fluid>
-    <!-- The main card -->
+    <!-- Main card -->
     <b-card
       header-tag="header"
       body-class="p-0"
@@ -40,7 +40,6 @@
               displays detailed information about the variables within each cluster.
             </b-popover>
           </h6>
-          <!-- Add download button for the cluster plot -->
           <DownloadImageButtons
             :svg-id="'cluster_dataviz-svg'"
             :file-name="'cluster_plot'"
@@ -48,7 +47,7 @@
         </div>
       </template>
 
-      <!-- Put both graph and table in ONE row -->
+      <!-- Row: left graph, right table -->
       <b-row>
         <!-- LEFT COLUMN (Graph) -->
         <b-col
@@ -106,7 +105,7 @@
             header-class="p-1"
             border-variant="dark"
           >
-            <!-- TABLE HEADER CONTROLS (table type selector, search bar, pagination) -->
+            <!-- TABLE HEADER CONTROLS -->
             <template #header>
               <div class="mb-0 font-weight-bold">
                 <b-row>
@@ -144,7 +143,6 @@
 
             <!-- MAIN TABLE -->
             <b-card-text class="text-left">
-
               <GenericTable
                 :items="displayedItems"
                 :fields="fields"
@@ -168,22 +166,22 @@
                   </td>
                 </template>
 
-                <!-- Optionally define custom column slots -->
+                <!-- Custom column slots -->
                 <template #cell-variable="{ row }">
                   <b-badge variant="primary">
                     {{ row.variable }}
                   </b-badge>
                 </template>
 
-                <template #cell-p.value="{ row }">
+                <template #cell-p_value="{ row }">
                   <b-badge variant="info">
-                    {{ row['p.value'] }}
+                    {{ row.p_value }}
                   </b-badge>
                 </template>
 
-                <template #cell-v.test="{ row }">
+                <template #cell-v_test="{ row }">
                   <b-badge variant="warning">
-                    {{ row['v.test'] }}
+                    {{ row.v_test }}
                   </b-badge>
                 </template>
               </GenericTable>
@@ -216,8 +214,6 @@
 import * as d3 from 'd3';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
-
-// Import your small table components:
 import GenericTable from '@/components/small/GenericTable.vue';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
@@ -247,24 +243,31 @@ export default {
 
       /* --------------------------------------
        * Table logic / fields
+       * Note that we changed 'p.value' to 'p_value' and 'v.test' to 'v_test'
+       * to avoid property keys with dots.
+       * If you want to keep them with dots, just revert them in both data + code.
+       * Also note usage of thClass and tdClass if you want guaranteed styling on headers/cells.
        * ------------------------------------ */
       fields: [
         {
           key: 'variable',
           label: 'Variable',
-          class: 'text-left',
+          thClass: 'text-left bg-light', // optional for table header
+          tdClass: 'text-left',
           sortable: true,
         },
         {
-          key: 'p.value',
+          key: 'p_value',
           label: 'p-value',
-          class: 'text-left',
+          thClass: 'text-left bg-light',
+          tdClass: 'text-left',
           sortable: true,
         },
         {
-          key: 'v.test',
+          key: 'v_test',
           label: 'v-test',
-          class: 'text-left',
+          thClass: 'text-left bg-light',
+          tdClass: 'text-left',
           sortable: true,
         },
       ],
@@ -295,43 +298,37 @@ export default {
       filter: {
         any: { content: null, join_char: null, operator: 'contains' },
         variable: { content: null, join_char: null, operator: 'contains' },
-        'p.value': { content: null, join_char: null, operator: 'contains' },
-        'v.test': { content: null, join_char: null, operator: 'contains' },
+        p_value: { content: null, join_char: null, operator: 'contains' },
+        v_test: { content: null, join_char: null, operator: 'contains' },
       },
     };
   },
   computed: {
     /**
-     * The items currently being displayed in the table (filtered + paginated).
-     * If you're hooking up to a back-end with query parameters, you may do so in
-     * a loadData() function. Here, we do a local filter as an example.
+     * displayedItems: local filtering + pagination
      */
     displayedItems() {
-      // 1. Start from the relevant cluster data
       let dataArray = this.selectedCluster[this.tableType] || [];
 
-      // 2. Apply filtering
+      // Filter
       dataArray = this.applyFilters(dataArray);
 
-      // 3. (Optional) Real-time sorting is handled by <GenericTable>
-
-      // 4. Paginate (client-side)
+      // Paginate
       const start = (this.currentPage - 1) * this.perPage;
       const end = start + this.perPage;
       return dataArray.slice(start, end);
     },
   },
   watch: {
-    // Update data whenever the user picks a new cluster
     activeCluster() {
       this.setActiveCluster();
       this.generateClusterGraph();
     },
-    // Watch the tableType so we can update totalRows based on new array
     tableType() {
+      // re-check totalRows
       const arr = this.selectedCluster[this.tableType] || [];
       this.totalRows = arr.length;
-      this.currentPage = 1; // Reset to first page
+      this.currentPage = 1;
     },
   },
   mounted() {
@@ -339,7 +336,7 @@ export default {
   },
   methods: {
     /* --------------------------------------
-     * Load cluster data from API
+     * Data load
      * ------------------------------------ */
     async loadClusterData() {
       const apiUrl = `${process.env.VUE_APP_API_URL}/api/analysis/phenotype_clustering`;
@@ -356,7 +353,6 @@ export default {
       }
     },
     setActiveCluster() {
-      // Filter out the cluster matching activeCluster
       const match = this.itemsCluster.find(
         (item) => item.cluster === this.activeCluster,
       );
@@ -365,34 +361,32 @@ export default {
         quali_sup_var: [],
         quanti_sup_var: [],
       };
-      // Update total rows
       const arr = this.selectedCluster[this.tableType] || [];
       this.totalRows = arr.length;
     },
 
     /* --------------------------------------
-     * Searching + Filtering (client-side example)
+     * Filtering
      * ------------------------------------ */
     applyFilters(items) {
       const anyFilterValue = (this.filter.any.content || '').toLowerCase();
 
-      // Return items that match the global "any" filter AND column-specific filters
       return items.filter((row) => {
-        // 1. Global "any" filter
+        // Global 'any' filter
         if (anyFilterValue) {
           const rowString = Object.values(row).join(' ').toLowerCase();
           if (!rowString.includes(anyFilterValue)) {
             return false;
           }
         }
-        // 2. Column-specific filters
+        // Column-specific filters
         const filterKeys = Object.keys(this.filter).filter((f) => f !== 'any');
         let keepRow = true;
         filterKeys.forEach((fieldKey) => {
-          const colFilterVal = (this.filter[fieldKey].content || '').toLowerCase();
-          if (colFilterVal) {
+          const colVal = (this.filter[fieldKey].content || '').toLowerCase();
+          if (colVal) {
             const rowVal = String(row[fieldKey] || '').toLowerCase();
-            if (!rowVal.includes(colFilterVal)) {
+            if (!rowVal.includes(colVal)) {
               keepRow = false;
             }
           }
@@ -401,12 +395,11 @@ export default {
       });
     },
     onFilterChange() {
-      // Reset page to 1 to see the updated first page
       this.currentPage = 1;
     },
 
     /* --------------------------------------
-     * Pagination controls
+     * Pagination
      * ------------------------------------ */
     handlePageChange(newPage) {
       this.currentPage = newPage;
@@ -425,24 +418,18 @@ export default {
     },
 
     /* --------------------------------------
-     * Graph code for cluster viz
+     * Graph code
      * ------------------------------------ */
     generateClusterGraph() {
-      // Graph dimension
       const margin = {
-        top: 10,
-        right: 10,
-        bottom: 10,
-        left: 10,
+        top: 10, right: 10, bottom: 10, left: 10,
       };
       const width = 400 - margin.left - margin.right;
       const height = 400 - margin.top - margin.bottom;
 
-      // Remove existing svg and div
       d3.select('#cluster_dataviz').select('svg').remove();
       d3.select('#cluster_dataviz').select('div').remove();
 
-      // Create the svg area
       const svg = d3
         .select('#cluster_dataviz')
         .append('svg')
@@ -450,31 +437,25 @@ export default {
         .attr('width', width)
         .attr('height', height);
 
-      // Data from API call
+      // Data from the API
       const data = this.itemsCluster;
 
-      // Color palette for clusters
       const color = d3
         .scaleOrdinal()
         .domain([1, 2, 3, 4, 5, 6])
         .range(d3.schemeSet1);
 
-      // Size scale for clusters
       const size = d3
         .scaleLinear()
         .domain([0, 1000])
         .range([7, 55]);
 
-      // Unique cluster IDs
       const uniqueClusters = [...new Set(data.map((d) => d.cluster))];
-
-      // X scale by cluster
       const x = d3
         .scaleOrdinal()
         .domain(uniqueClusters)
         .range(uniqueClusters.map((c) => c * 30));
 
-      // Tooltip
       const Tooltip = d3
         .select('#cluster_dataviz')
         .append('div')
@@ -486,24 +467,24 @@ export default {
         .style('border-radius', '5px')
         .style('padding', '5px');
 
-      // Mouse event handlers
-      const mouseoverHandler = function mouseoverHandler() {
+      function mouseoverHandler() {
         d3.select(this).style('cursor', 'pointer');
         Tooltip.style('opacity', 1);
         d3.select(this).style('stroke', 'black');
-      };
-      const mousemoveHandler = function mousemoveHandler(event, d) {
-        Tooltip.html(`<u>Cluster: ${d.cluster}</u><br>${d.cluster_size} entities`)
+      }
+      function mousemoveHandler(event, d) {
+        Tooltip.html(
+          `<u>Cluster: ${d.cluster}</u><br>${d.cluster_size} entities`,
+        )
           .style('left', `${event.layerX + 20}px`)
           .style('top', `${event.layerY + 20}px`);
-      };
-      const mouseleaveHandler = function mouseleaveHandler() {
+      }
+      function mouseleaveHandler() {
         d3.select(this).style('cursor', 'default');
         Tooltip.style('opacity', 0);
         d3.select(this).style('stroke', '#696969');
-      };
+      }
 
-      // Force simulation
       const simulation = d3
         .forceSimulation()
         .force('center', d3.forceCenter().x(width / 2).y(height / 2))
@@ -531,27 +512,25 @@ export default {
             .y(height * 0.5),
         );
 
-      // Drag handlers
-      function dragstartHandler(event, d) {
+      function dragstartHandler(event, datum) {
         if (!event.active) {
           simulation.alphaTarget(0.03).restart();
         }
-        d.fx = d.x;
-        d.fy = d.y;
+        datum.fx = datum.x;
+        datum.fy = datum.y;
       }
-      function dragHandler(event, d) {
-        d.fx = event.x;
-        d.fy = event.y;
+      function dragHandler(event, datum) {
+        datum.fx = event.x;
+        datum.fy = event.y;
       }
-      function dragendHandler(event, d) {
+      function dragendHandler(event, datum) {
         if (!event.active) {
           simulation.alphaTarget(0.03);
         }
-        d.fx = null;
-        d.fy = null;
+        datum.fx = null;
+        datum.fy = null;
       }
 
-      // Create circles
       const node = svg
         .append('g')
         .selectAll('circle')
@@ -566,25 +545,21 @@ export default {
         .style('fill', (d) => color(d.cluster))
         .style('fill-opacity', 0.8)
         .attr('stroke', '#696969')
-        .style('stroke-width', (d) => (
-          d.cluster === this.activeCluster ? 4 : 1
-        ))
+        .style('stroke-width', (d) => (d.cluster === this.activeCluster ? 4 : 1))
         .on('mouseover', mouseoverHandler)
         .on('mousemove', mousemoveHandler)
         .on('mouseleave', mouseleaveHandler)
         .on('click', (event, datum) => {
           this.activeCluster = datum.cluster;
-          Tooltip.style('opacity', 0); // Hide tooltip on click
+          Tooltip.style('opacity', 0);
         })
         .call(
-          d3
-            .drag()
+          d3.drag()
             .on('start', dragstartHandler)
             .on('drag', dragHandler)
             .on('end', dragendHandler),
         );
 
-      // Update positions each tick
       simulation.nodes(data).on('tick', () => {
         node
           .attr('cx', (d) => d.x)
