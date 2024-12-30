@@ -1,5 +1,3 @@
-// main_nav_constants.js
-
 /**
  * @fileoverview Constants for main navigation elements.
  */
@@ -41,6 +39,11 @@ export default {
       items: [
         { text: 'Compare curations', path: '/CurationComparisons' },
         { text: 'Correlate phenotypes', path: '/PhenotypeCorrelations' },
+        // ─────────────────────────────────────────────────────────────────
+        // NEW CORRELATE VARIANTS ITEM
+        // ─────────────────────────────────────────────────────────────────
+        { text: 'Correlate variants', path: '/VariantCorrelations' },
+        // ─────────────────────────────────────────────────────────────────
         { text: 'Entries over time', path: '/EntriesOverTime' },
         { text: 'NDD Publications', path: '/PublicationsNDD' },
         { text: 'Functional clusters', path: '/GeneNetworks' },
@@ -122,5 +125,5 @@ export default {
       ],
     },
   ],
-// add the rest of your constants here
+  // add the rest of your constants here
 };

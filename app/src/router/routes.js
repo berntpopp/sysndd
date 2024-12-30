@@ -116,7 +116,7 @@ export const routes = [
       {
         path: '',
         component: () => import(
-          /* webpackChunkName: "AnalysesComponentsCuration" */ '@/components/analyses/AnalysesPhenotypeCorrelogram.vue'
+          /* webpackChunkName: "AnalysesPhenotypeCorrelogram" */ '@/components/analyses/AnalysesPhenotypeCorrelogram.vue'
         ),
         name: 'PhenotypeCorrelations',
       },
@@ -140,6 +140,37 @@ export const routes = [
       },
     },
   },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // NEW ROUTE FOR VARIANT ANALYSES
+  // ─────────────────────────────────────────────────────────────────────────────
+  {
+    path: '/VariantCorrelations',
+    component: () => import(/* webpackChunkName: "AnalysesVariants" */ '@/views/analyses/VariantCorrelations.vue'),
+    children: [
+      {
+        path: '',
+        component: () => import(
+          /* webpackChunkName: "AnalysesVariantCorrelogram" */ '@/components/analyses/AnalysesVariantCorrelogram.vue'
+        ),
+        name: 'VariantCorrelations',
+      },
+      {
+        path: 'VariantCounts',
+        component: () => import(
+          /* webpackChunkName: "AnalysesVariantCounts" */ '@/components/analyses/AnalysesVariantCounts.vue'
+        ),
+      },
+    ],
+    meta: {
+      sitemap: {
+        priority: 0.7,
+        changefreq: 'monthly',
+      },
+    },
+  },
+  // ─────────────────────────────────────────────────────────────────────────────
+
   {
     path: '/EntriesOverTime',
     name: 'EntriesOverTime',
@@ -229,7 +260,7 @@ export const routes = [
       ) {
         next(); // everything good, proceed
       } else {
-        next({ path: '/Panels/All/All' }); // redirect to setup
+        next({ path: '/Panels/All/All' }); // redirect to a known setup
       }
     },
   },
@@ -619,28 +650,12 @@ export const routes = [
     path: '/Entities/:entity_id',
     name: 'Entity',
     component: () => import(/* webpackChunkName: "Pages" */ '@/views/pages/Entity.vue'),
-    /*     meta: { sitemap: {
-      slugs: async () => {
-        let apiUrl = process.env.VUE_APP_API_URL +
-          '/api/gene?sort=symbol&fields=symbol&page%5Bafter%5D=0&page%5Bsize%5D=all';
-        const result = await axios.get(apiUrl);
-        return result.data.data;
-      },
-     } }, */
     meta: { sitemap: { ignoreRoute: true } },
   },
   {
     path: '/Genes/:symbol',
     name: 'Gene',
     component: () => import(/* webpackChunkName: "Pages" */ '@/views/pages/Gene.vue'),
-    /*     meta: { sitemap: {
-      slugs: async () => {
-        let apiUrl = process.env.VUE_APP_API_URL +
-          '/api/gene?sort=symbol&fields=symbol&page%5Bafter%5D=0&page%5Bsize%5D=all';
-        const result = await axios.get(apiUrl);
-        return result.data.data;
-      },
-     } }, */
     meta: { sitemap: { ignoreRoute: true } },
   },
   {
