@@ -272,3 +272,238 @@ function(req,
     publications_list
   }
 }
+
+
+#* Get a Cursor-Pagination Object of All Rows from pubtator_search_cache
+#*
+#* This endpoint returns a cursor pagination object of all rows in the 
+#* `pubtator_search_cache` table, supporting the usual query parameters:
+#* - sort
+#* - filter
+#* - fields
+#* - page_after
+#* - page_size
+#* - fspec
+#* - format
+#*
+#* @tag publication
+#* @serializer json list(na="string")
+#*
+#* @param sort:str  Which columns to sort on, e.g. "search_id" or "pmid". Default "search_id".
+#* @param filter:str Comma-separated filters, e.g. "pmid=='123456'". 
+#* @param fields:str Comma-separated columns, e.g. "search_id,pmid,date".
+#* @param page_after:str The cursor to start results after. Default "0".
+#* @param page_size:str How many rows per page. Default "10".
+#* @param fspec:str Comma-separated columns for field spec generation. 
+#*        Example: "search_id,pmid,date,score".
+#* @param format:str Output format, "json" or "xlsx". Default "json".
+#*
+#* @response 200 OK - a cursor-paginated list of pubtator_search_cache rows.
+#*
+#* @get /pubtator/table
+function(req,
+         res,
+         sort = "search_id",
+         filter = "",
+         fields = "",
+         page_after = 0,
+         page_size = "10",
+         fspec = "search_id,query_id,id,pmid,doi,title,journal,date,score,text_hl",
+         format = "json") {
+  # Set the serializer
+  res$serializer <- serializers[[format]]
+
+  start_time <- Sys.time()
+
+  # Generate sort & filter expressions
+  sort_exprs <- generate_sort_expressions(sort, unique_id = "search_id")
+  filter_exprs <- generate_filter_expressions(filter)
+
+  # Collect from DB
+  table_data <- pool %>%
+    tbl("pubtator_search_cache") %>%
+    collect() %>%
+    arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
+    filter(!!!rlang::parse_exprs(filter_exprs))
+
+  # Select columns
+  table_data <- select_tibble_fields(
+    table_data,
+    fields,
+    unique_id = "search_id"  # always include
+  )
+
+  # Cursor pagination
+  pag_info <- generate_cursor_pag_inf(table_data, page_size, page_after, "search_id")
+
+  # Field specs
+  tbl_fspec <- generate_tibble_fspec_mem(pag_info$data, fspec)
+  fspec_obj <- tbl_fspec
+  fspec_obj$fspec$count_filtered <- tbl_fspec$fspec$count
+
+  end_time <- Sys.time()
+  execution_time <- paste0(round(end_time - start_time, 2), " secs")
+
+  # Build meta
+  meta <- pag_info$meta %>%
+    add_column(
+      tibble::as_tibble(list(
+        sort = sort,
+        filter = filter,
+        fields = fields,
+        fspec = fspec_obj,
+        executionTime = execution_time
+      ))
+    )
+
+  # Build links (here we assume something like dw$api_base_url plus path)
+  links <- pag_info$links %>%
+    pivot_longer(everything(), names_to = "type", values_to = "link") %>%
+    mutate(
+      link = case_when(
+        link != "null" ~ paste0(
+          dw$api_base_url,
+          "/pubtator/table?",
+          "sort=", sort,
+          ifelse(filter != "", paste0("&filter=", filter), ""),
+          ifelse(fields != "", paste0("&fields=", fields), ""),
+          link
+        ),
+        TRUE ~ "null"
+      )
+    ) %>%
+    pivot_wider(
+      id_cols = everything(),
+      names_from = "type",
+      values_from = "link"
+    )
+
+  final_list <- list(
+    links = links,
+    meta = meta,
+    data = pag_info$data
+  )
+
+  # If xlsx, return as file
+  if (format == "xlsx") {
+    creation_date <- format(Sys.time(), "%Y-%m-%d_T%H-%M-%S")
+    base_filename <- gsub("/", "_", req$PATH_INFO)
+    filename <- paste0(base_filename, "_", creation_date, ".xlsx")
+
+    bin <- generate_xlsx_bin(final_list, base_filename)
+    as_attachment(bin, filename)
+  } else {
+    final_list
+  }
+}
+
+
+#* Get a Cursor-Pagination Object of All Rows from pubtator_human_gene_entity_view
+#*
+#* This endpoint returns a cursor pagination object of all rows in the 
+#* `pubtator_human_gene_entity_view`, which includes only the PMIDs for 
+#* human (Species=9606) + gene references, and optionally joined to entity data.
+#*
+#* @tag publication
+#* @serializer json list(na="string")
+#*
+#* @param sort:str  Which columns to sort on, e.g. "pmid" or "symbol". Default "pmid".
+#* @param filter:str Comma-separated filters, e.g. "symbol=='BRCA1'". 
+#* @param fields:str Comma-separated columns, e.g. "pmid,symbol,name,normalized_id".
+#* @param page_after:str The cursor to start results after. Default "0".
+#* @param page_size:str How many rows per page. Default "10".
+#* @param fspec:str Comma-separated columns for field spec generation. 
+#*        Example: "pmid,symbol,normalized_id,name,category".
+#* @param format:str Output format, "json" or "xlsx". Default "json".
+#*
+#* @response 200 OK - a cursor-paginated list of pubtator_human_gene_entity_view rows.
+#*
+#* @get /pubtator/genes
+function(req,
+         res,
+         sort = "pmid",
+         filter = "",
+         fields = "",
+         page_after = 0,
+         page_size = "10",
+         fspec = "pmid,symbol,name,normalized_id,hgnc_id,category",
+         format = "json") {
+  res$serializer <- serializers[[format]]
+
+  start_time <- Sys.time()
+
+  # We assume pmid could be the unique cursor ID, or if there is a separate PK 
+  # (like search_id or entity_id), use that. Adjust below if needed.
+  sort_exprs <- generate_sort_expressions(sort, unique_id = "pmid")
+  filter_exprs <- generate_filter_expressions(filter)
+
+  view_data <- pool %>%
+    tbl("pubtator_human_gene_entity_view") %>%
+    collect() %>%
+    arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
+    filter(!!!rlang::parse_exprs(filter_exprs))
+
+  view_data <- select_tibble_fields(
+    view_data,
+    fields,
+    unique_id = "pmid"
+  )
+
+  pag_info <- generate_cursor_pag_inf(view_data, page_size, page_after, "pmid")
+
+  tbl_fspec <- generate_tibble_fspec_mem(pag_info$data, fspec)
+  fspec_obj <- tbl_fspec
+  fspec_obj$fspec$count_filtered <- tbl_fspec$fspec$count
+
+  end_time <- Sys.time()
+  execution_time <- paste0(round(end_time - start_time, 2), " secs")
+
+  meta <- pag_info$meta %>%
+    add_column(
+      tibble::as_tibble(list(
+        sort = sort,
+        filter = filter,
+        fields = fields,
+        fspec = fspec_obj,
+        executionTime = execution_time
+      ))
+    )
+
+  links <- pag_info$links %>%
+    pivot_longer(everything(), names_to = "type", values_to = "link") %>%
+    mutate(
+      link = case_when(
+        link != "null" ~ paste0(
+          dw$api_base_url,
+          "/pubtator/genes?",
+          "sort=", sort,
+          ifelse(filter != "", paste0("&filter=", filter), ""),
+          ifelse(fields != "", paste0("&fields=", fields), ""),
+          link
+        ),
+        TRUE ~ "null"
+      )
+    ) %>%
+    pivot_wider(
+      id_cols = everything(),
+      names_from = "type",
+      values_from = "link"
+    )
+
+  final_list <- list(
+    links = links,
+    meta = meta,
+    data = pag_info$data
+  )
+
+  if (format == "xlsx") {
+    creation_date <- format(Sys.time(), "%Y-%m-%d_T%H-%M-%S")
+    base_filename <- gsub("/", "_", req$PATH_INFO)
+    filename <- paste0(base_filename, "_", creation_date, ".xlsx")
+
+    bin <- generate_xlsx_bin(final_list, base_filename)
+    as_attachment(bin, filename)
+  } else {
+    final_list
+  }
+}
