@@ -28,7 +28,12 @@ options(scipen = 999)
 
 ############################################
 ## connect to the database
-sysndd_db <- dbConnect(RMariaDB::MariaDB(), dbname = config_vars_proj$dbname_sysndd, user = config_vars_proj$user_sysndd, password = config_vars_proj$password_sysndd, server = config_vars_proj$server_sysndd_local, port = config_vars_proj$port_sysndd_local)
+sysndd_db <- dbConnect(RMariaDB::MariaDB(),
+  dbname = config_vars_proj$dbname_sysndd,
+  user = config_vars_proj$user_sysndd,
+  password = config_vars_proj$password_sysndd,
+  server = config_vars_proj$server_sysid_sysndd,
+  port = config_vars_proj$port_sysid_sysndd)
 ############################################
 
 
@@ -688,6 +693,62 @@ rs <- dbSendQuery(sysndd_db, "CREATE OR REPLACE VIEW `sysndd_db`.`ndd_review_var
         (`ndd_review_variation_ontology_connect`.`is_active` = 1
          AND `ndd_entity_review`.`is_primary` = 1);")
 dbClearResult(rs)
+
+
+############################################
+## create pubtator_human_gene_entity_view
+rs <- dbSendQuery(sysndd_db, "CREATE OR REPLACE VIEW `sysndd_db`.`pubtator_human_gene_entity_view` AS
+    SELECT DISTINCT
+        s.pmid,
+        s.doi,
+        s.title,
+        s.journal,
+        s.date,
+        s.score,
+        s.text_hl,
+        a.name AS gene_name,
+        a.normalized_id AS gene_normalized_id,
+        nal.hgnc_id,
+        nal.symbol AS gene_symbol,
+        e.entity_id,
+        dos.disease_ontology_id_version,
+        dos.disease_ontology_name,
+        moi.hpo_mode_of_inheritance_term,
+        moi.hpo_mode_of_inheritance_term_name,
+        moi.inheritance_filter,
+        e.ndd_phenotype,
+        b.word_english AS ndd_phenotype_word,
+        e.entry_date,
+        cat.category,
+        cat.category_id
+    FROM `sysndd_db`.`pubtator_search_cache` s
+    JOIN `sysndd_db`.`pubtator_annotation_cache` a
+        ON s.search_id = a.search_id
+    JOIN `sysndd_db`.`non_alt_loci_set` nal
+        ON nal.entrez_id = a.normalized_id
+    LEFT JOIN `sysndd_db`.`ndd_entity` e
+        ON e.hgnc_id = nal.hgnc_id
+    LEFT JOIN `sysndd_db`.`disease_ontology_set` dos
+        ON e.disease_ontology_id_version = dos.disease_ontology_id_version
+    LEFT JOIN `sysndd_db`.`mode_of_inheritance_list` moi
+        ON e.hpo_mode_of_inheritance_term = moi.hpo_mode_of_inheritance_term
+    LEFT JOIN `sysndd_db`.`ndd_entity_status_approved_view` es
+        ON e.entity_id = es.entity_id
+    LEFT JOIN `sysndd_db`.`ndd_entity_status_categories_list` cat
+        ON es.category_id = cat.category_id
+    LEFT JOIN `sysndd_db`.`boolean_list` b
+        ON e.ndd_phenotype = b.logical
+    WHERE a.type = 'Gene'
+      AND EXISTS (
+        SELECT 1
+        FROM `sysndd_db`.`pubtator_annotation_cache` x
+        WHERE x.search_id = s.search_id
+          AND x.type = 'Species'
+          AND x.normalized_id = '9606'
+      )
+      AND (e.is_active = 1 OR e.is_active IS NULL);")
+dbClearResult(rs)
+
 
 ############################################
 ## close database connection
