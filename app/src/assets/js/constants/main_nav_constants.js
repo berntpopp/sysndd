@@ -39,14 +39,11 @@ export default {
       items: [
         { text: 'Compare curations', path: '/CurationComparisons' },
         { text: 'Correlate phenotypes', path: '/PhenotypeCorrelations' },
-        // ─────────────────────────────────────────────────────────────────
-        // NEW CORRELATE VARIANTS ITEM
-        // ─────────────────────────────────────────────────────────────────
         { text: 'Correlate variants', path: '/VariantCorrelations' },
-        // ─────────────────────────────────────────────────────────────────
         { text: 'Entries over time', path: '/EntriesOverTime' },
         { text: 'NDD Publications', path: '/PublicationsNDD' },
         { text: 'Functional clusters', path: '/GeneNetworks' },
+        { text: 'Pheno-Func Correlation', path: '/PhenotypeFunctionalCorrelation' },
       ],
     },
     {
@@ -119,11 +116,13 @@ export default {
       items: [
         { text: 'View profile', path: '/User', icons: ['person-circle'] },
         {
-          text: 'Token', action: 'refreshWithJWT', icons: ['arrow-repeat'], component: 'LogoutCountdownBadge',
+          text: 'Token',
+          action: 'refreshWithJWT',
+          icons: ['arrow-repeat'],
+          component: 'LogoutCountdownBadge',
         },
         { text: 'Sign out', action: 'doUserLogOut', icons: ['x-circle'] },
       ],
     },
   ],
-  // add the rest of your constants here
 };

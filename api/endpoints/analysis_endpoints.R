@@ -226,15 +226,6 @@ function() {
 }
 
 
-# api/endpoints/analysis_endpoints.R
-#
-# This file contains Analysis-related endpoints.
-# Example endpoint to generate correlation data between
-# phenotype-based and functional clusters, optionally with SFARI.
-#
-# Follows Google R Style Guide where possible (e.g., two-space indentation).
-
-
 #* Correlation of Phenotype & Functional Clusters
 #*
 #* This endpoint calculates the correlation between:

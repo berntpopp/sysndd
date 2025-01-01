@@ -140,9 +140,20 @@ export const routes = [
       },
     },
   },
-
   // ─────────────────────────────────────────────────────────────────────────────
-  // NEW ROUTE FOR VARIANT ANALYSES
+  // NEW ROUTE FOR PHENO-FUNC CORRELATION
+  // ─────────────────────────────────────────────────────────────────────────────
+  {
+    path: '/PhenotypeFunctionalCorrelation',
+    name: 'PhenotypeFunctionalCorrelation',
+    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/analyses/PhenotypeFunctionalCorrelation.vue'),
+    meta: {
+      sitemap: {
+        priority: 0.8,
+        changefreq: 'monthly',
+      },
+    },
+  },
   // ─────────────────────────────────────────────────────────────────────────────
   {
     path: '/VariantCorrelations',
@@ -169,8 +180,6 @@ export const routes = [
       },
     },
   },
-  // ─────────────────────────────────────────────────────────────────────────────
-
   {
     path: '/EntriesOverTime',
     name: 'EntriesOverTime',
@@ -619,7 +628,9 @@ export const routes = [
 
       if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
         next({ name: 'Login' });
-      } else next();
+      } else {
+        next();
+      }
     },
   },
   {
