@@ -33,8 +33,10 @@
               <template #title>
                 Publications Over Time / Type
               </template>
-              This plot can display either the publication_date_aggregated, update_date_aggregated line graphs or a bar chart of publication_type_counts.
-              Hover over the points/bars to see the details.
+              This plot can display either the publication_date_aggregated,
+              update_date_aggregated line graphs or a bar chart of
+              publication_type_counts. Hover over the points/bars to see
+              the details.
             </b-popover>
           </h6>
         </div>
@@ -107,7 +109,6 @@ export default {
       this.loading = true;
 
       // Example: GET /api/statistics/publication_stats
-      // You can pass min_journal_count, etc. if you want
       const apiUrl = `${process.env.VUE_APP_API_URL}/api/statistics/publication_stats`;
       try {
         const response = await this.axios.get(apiUrl);
@@ -120,6 +121,7 @@ export default {
         this.loading = false;
       }
     },
+
     generateGraph() {
       // remove old svg
       d3.select('#pubs_dataviz').select('svg').remove();
@@ -215,23 +217,33 @@ export default {
         .style('position', 'absolute')
         .style('pointer-events', 'none');
 
-      // mouse events
-      const mouseover = function () {
+      /**
+       * Handle mouse over for line points.
+       */
+      function handleLineMouseOver() {
         tooltip.style('opacity', 1);
         d3.select(this).style('stroke', 'black');
-      };
+      }
 
-      const mousemove = function (event, d) {
+      /**
+       * Handle mouse move for line points.
+       * @param {Event} event
+       * @param {Object} d
+       */
+      function handleLineMouseMove(event, d) {
         tooltip
           .html(`Date: <strong>${d.label}</strong><br>Count: <strong>${d.count}</strong>`)
           .style('left', `${event.layerX + 20}px`)
           .style('top', `${event.layerY + 20}px`);
-      };
+      }
 
-      const mouseleave = function () {
+      /**
+       * Handle mouse leave for line points.
+       */
+      function handleLineMouseLeave() {
         tooltip.style('opacity', 0);
         d3.select(this).style('stroke', 'none');
-      };
+      }
 
       // points
       svg
@@ -244,9 +256,10 @@ export default {
         .attr('r', 4)
         .attr('fill', '#69b3a2')
         .attr('stroke', 'white')
-        .on('mouseover', mouseover)
-        .on('mousemove', mousemove)
-        .on('mouseleave', mouseleave);
+        // Named event handlers:
+        .on('mouseover', handleLineMouseOver)
+        .on('mousemove', handleLineMouseMove)
+        .on('mouseleave', handleLineMouseLeave);
     },
 
     /**
@@ -309,22 +322,33 @@ export default {
         .style('position', 'absolute')
         .style('pointer-events', 'none');
 
-      const mouseover = function () {
+      /**
+       * Handle mouse over for bar chart bars.
+       */
+      function handleBarMouseOver() {
         tooltip.style('opacity', 1);
         d3.select(this).style('stroke', 'black');
-      };
+      }
 
-      const mousemove = function (event, d) {
+      /**
+       * Handle mouse move for bar chart bars.
+       * @param {Event} event
+       * @param {Object} d
+       */
+      function handleBarMouseMove(event, d) {
         tooltip
           .html(`Type: <strong>${d.publication_type}</strong><br>Count: <strong>${d.count}</strong>`)
           .style('left', `${event.layerX + 20}px`)
           .style('top', `${event.layerY + 20}px`);
-      };
+      }
 
-      const mouseleave = function () {
+      /**
+       * Handle mouse leave for bar chart bars.
+       */
+      function handleBarMouseLeave() {
         tooltip.style('opacity', 0);
         d3.select(this).style('stroke', 'none');
-      };
+      }
 
       // Bars
       svg
@@ -337,9 +361,10 @@ export default {
         .attr('width', x.bandwidth())
         .attr('height', (d) => height - y(d.count))
         .attr('fill', '#69b3a2')
-        .on('mouseover', mouseover)
-        .on('mousemove', mousemove)
-        .on('mouseleave', mouseleave);
+        // Named event handlers:
+        .on('mouseover', handleBarMouseOver)
+        .on('mousemove', handleBarMouseMove)
+        .on('mouseleave', handleBarMouseLeave);
     },
   },
 };
