@@ -237,6 +237,11 @@ export const routes = [
         name: 'PubtatorNDDTable',
         component: () => import('@/components/analyses/PubtatorNDDTable.vue' /* webpackChunkName: "PubtatorNDDTable" */),
       },
+      {
+        path: 'PubtatorNDDGenes',
+        name: 'PubtatorNDDGenes',
+        component: () => import('@/components/analyses/PubtatorNDDGenes.vue' /* webpackChunkName: "PubtatorNDDGenes" */),
+      },
     ],
     meta: {
       sitemap: { priority: 0.7, changefreq: 'monthly' },

@@ -1,20 +1,20 @@
-<!-- src/components/analyses/PubtatorNDDTable.vue -->
+<!-- src/views/analyses/PubtatorNDDGenes.vue -->
 <template>
   <div class="container-fluid">
-    <!-- Show an overlay spinner while loading -->
+    <!-- Loading spinner -->
     <b-spinner
       v-if="loading"
       label="Loading..."
       class="float-center m-5"
     />
-    <!-- Once loaded, show the table container -->
+    <!-- Main container -->
     <b-container
       v-else
       fluid
     >
       <b-row class="justify-content-md-center py-2">
         <b-col md="12">
-          <!-- b-card wrapper for the table and controls -->
+          <!-- b-card with header controls -->
           <b-card
             header-tag="header"
             body-class="p-0"
@@ -27,7 +27,7 @@
                 <b-col>
                   <TableHeaderLabel
                     :label="headerLabel"
-                    :subtitle="'Publications: ' + totalRows"
+                    :subtitle="'Genes: ' + totalRows"
                     :tool-tip-title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
                   />
                 </b-col>
@@ -49,9 +49,9 @@
               </b-row>
             </template>
 
-            <!-- Controls (search + pagination) -->
+            <!-- Search + Pagination Controls -->
             <b-row>
-              <!-- Search box for "any" field -->
+              <!-- Global "any" search -->
               <b-col
                 class="my-1"
                 sm="8"
@@ -69,14 +69,7 @@
                 class="my-1"
                 sm="4"
               >
-                <b-container
-                  v-if="totalRows > perPage || showPaginationControls"
-                >
-                  <!--
-                    TablePaginationControls will emit:
-                    @page-change="handlePageChange"
-                    @per-page-change="handlePerPageChange"
-                  -->
+                <b-container v-if="totalRows > perPage || showPaginationControls">
                   <TablePaginationControls
                     :total-rows="totalRows"
                     :initial-per-page="perPage"
@@ -87,30 +80,55 @@
                 </b-container>
               </b-col>
             </b-row>
-            <!-- Controls (search + pagination) -->
+            <!-- End Controls -->
 
-            <!-- Main GenericTable -->
-            <GenericTable
+            <!-- Main b-table -->
+            <b-table
               :items="items"
               :fields="fields"
-              :field-details="fields_details"
-              :sort-by="sortBy"
-              :sort-desc="sortDesc"
-              @update-sort="handleSortUpdate"
+              :current-page="currentPage"
+              :busy="isBusy"
+              :sort-by.sync="sortBy"
+              :sort-desc.sync="sortDesc"
+              no-local-sorting
+              no-local-pagination
+              head-variant="light"
+              show-empty
+              small
+              fixed
+              striped
+              hover
+              sort-icon-left
+              stacked="md"
             >
-              <!-- Custom filter fields slot -->
-              <template
-                v-if="showFilterControls"
-                v-slot:filter-controls
-              >
+              <!-- Optional: custom table header cell, showing tooltips or partial labels -->
+              <template #head()="columnData">
+                <div
+                  v-b-tooltip.hover.top
+                  :title="
+                    columnData.label +
+                      ' (unique/total: ' +
+                    fields.find((f) => f.label === columnData.label)?.count_filtered +
+                      '/' +
+                    fields.find((f) => f.label === columnData.label)?.count +
+                      ')'
+                  "
+                >
+                  {{ truncate(columnData.label, 20) }}
+                </div>
+              </template>
+
+              <!-- A "top-row" slot for per-column filters -->
+              <template #top-row>
                 <td
                   v-for="field in fields"
                   :key="field.key"
                 >
+                  <!-- If this field is filterable, show an input -->
                   <b-form-input
                     v-if="field.filterable"
                     v-model="filter[field.key].content"
-                    :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
+                    :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
                     debounce="500"
                     type="search"
                     autocomplete="off"
@@ -118,6 +136,7 @@
                     @update="filtered()"
                   />
 
+                  <!-- If we want a select dropdown for exact matching, uncomment below:
                   <b-form-select
                     v-if="field.selectable"
                     v-model="filter[field.key].content"
@@ -132,120 +151,11 @@
                       </b-form-select-option>
                     </template>
                   </b-form-select>
-
-                  <label
-                    v-if="field.multi_selectable"
-                    :for="'select_' + field.key"
-                    :aria-label="field.label"
-                  >
-                    <treeselect
-                      v-if="field.multi_selectable"
-                      :id="'select_' + field.key"
-                      v-model="filter[field.key].content"
-                      size="small"
-                      :multiple="true"
-                      :options="field.selectOptions"
-                      :normalizer="normalizer"
-                      :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
-                      @input="removeSearch();filtered();"
-                    />
-                  </label>
+                  -->
                 </td>
               </template>
-              <!-- Custom filter fields slot -->
-
-              <!-- search_id -->
-              <template v-slot:cell-search_id="{ row }">
-                <div>
-                  <b-badge
-                    variant="primary"
-                    style="cursor: pointer"
-                  >
-                    {{ row.search_id }}
-                  </b-badge>
-                </div>
-              </template>
-
-              <!-- pmid -->
-              <template v-slot:cell-pmid="{ row }">
-                <b-button
-                  v-b-tooltip.hover.bottom
-                  class="btn-xs mx-2"
-                  variant="primary"
-                  :href=" 'https://pubmed.ncbi.nlm.nih.gov/' + row.pmid "
-                  target="_blank"
-                  :title="row.pmid"
-                >
-                  <b-icon
-                    icon="box-arrow-up-right"
-                    font-scale="0.8"
-                  />
-                  PMID: {{ row.pmid }}
-                </b-button>
-              </template>
-
-              <!-- doi -->
-              <template v-slot:cell-doi="{ row }">
-                <div class="text-truncate">
-                  <a
-                    :href="`https://doi.org/${row.doi}`"
-                    target="_blank"
-                  >
-                    {{ row.doi }}
-                  </a>
-                </div>
-              </template>
-
-              <!-- title -->
-              <template v-slot:cell-title="{ row }">
-                <div
-                  v-b-tooltip.hover
-                  :title="row.title"
-                  class="overflow-hidden text-truncate"
-                  style="max-width: 300px;"
-                >
-                  {{ truncate(row.title, 60) }}
-                </div>
-              </template>
-
-              <!-- journal -->
-              <template v-slot:cell-journal="{ row }">
-                <div>
-                  {{ row.journal }}
-                </div>
-              </template>
-
-              <!-- date -->
-              <template v-slot:cell-date="{ row }">
-                <div>
-                  {{ row.date }}
-                </div>
-              </template>
-
-              <!-- score -->
-              <template v-slot:cell-score="{ row }">
-                <div>
-                  {{ row.score ? row.score.toFixed(3) : '' }}
-                </div>
-              </template>
-
-              <!-- text_hl -->
-              <template v-slot:cell-text_hl="{ row }">
-                <div
-                  v-if="row.text_hl"
-                  v-b-tooltip.hover
-                  :title="row.text_hl"
-                  class="overflow-hidden text-truncate"
-                  style="max-width: 400px;"
-                >
-                  {{ truncate(row.text_hl, 60) }}
-                </div>
-                <div v-else>
-                  <span class="text-muted">No highlight text</span>
-                </div>
-              </template>
-            </GenericTable>
-            <!-- Main GenericTable -->
+            </b-table>
+            <!-- End b-table -->
           </b-card>
         </b-col>
       </b-row>
@@ -268,19 +178,16 @@ import TableHeaderLabel from '@/components/small/TableHeaderLabel.vue';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
-import GenericTable from '@/components/small/GenericTable.vue';
 
-import Utils from '@/assets/js/utils';
 import EventBus from '@/assets/js/eventBus';
 
 export default {
-  name: 'PubtatorNDDTable',
+  name: 'PubtatorNDDGenes',
   components: {
     TableHeaderLabel,
     TableSearchInput,
     TablePaginationControls,
     TableDownloadLinkCopyButtons,
-    GenericTable,
   },
   mixins: [
     toastMixin,
@@ -291,119 +198,108 @@ export default {
     tableDataMixin,
   ],
   props: {
-    apiEndpoint: {
-      type: String,
-      default: 'publication/pubtator/table',
-    },
     showFilterControls: { type: Boolean, default: true },
     showPaginationControls: { type: Boolean, default: true },
-    headerLabel: { type: String, default: 'Pubtator Publications table' },
-    sortInput: { type: String, default: '-search_id' },
+    headerLabel: { type: String, default: 'Pubtator Genes table' },
+
+    // Initial sorting can come in as a string like '+gene_symbol' or '-gene_symbol'
+    sortInput: { type: String, default: '+gene_symbol' },
+
+    // Filter string from route query if desired
     filterInput: { type: String, default: null },
+
+    // Not used in this simplified version, but you can pass in other fields
     fieldsInput: { type: String, default: null },
-    pageAfterInput: { type: String, default: '0' },
-    pageSizeInput: { type: Number, default: 10 },
+
+    pageAfterInput: { type: String, default: '' },
+    pageSizeInput: { type: String, default: '10' },
+
+    // The server might expect these fields in the "fspec"
     fspecInput: {
       type: String,
-      default: 'search_id,pmid,doi,title,journal,date,score,text_hl',
+      default: 'gene_name,gene_symbol,gene_normalized_id,hgnc_id,publication_count,entities_count',
     },
   },
   data() {
     return {
-      // Table columns
+      // Table columns. We'll make them all filterable for demonstration.
       fields: [
         {
-          key: 'search_id',
-          label: 'Search ID',
+          key: 'gene_name',
+          label: 'Gene name',
           sortable: true,
           sortDirection: 'asc',
           class: 'text-left',
           filterable: true,
         },
         {
-          key: 'pmid',
-          label: 'PMID',
+          key: 'gene_symbol',
+          label: 'Gene symbol',
           sortable: true,
           class: 'text-left',
           filterable: true,
         },
         {
-          key: 'doi',
-          label: 'DOI',
+          key: 'gene_normalized_id',
+          label: 'Gene normalized id',
           sortable: true,
           class: 'text-left',
           filterable: true,
         },
         {
-          key: 'title',
-          label: 'Title',
+          key: 'hgnc_id',
+          label: 'HGNC id',
           sortable: true,
           class: 'text-left',
           filterable: true,
         },
         {
-          key: 'journal',
-          label: 'Journal',
+          key: 'publication_count',
+          label: 'Publication count',
           sortable: true,
           class: 'text-left',
           filterable: true,
         },
         {
-          key: 'date',
-          label: 'Date',
-          sortable: true,
-          class: 'text-left',
-          filterable: true,
-        },
-        {
-          key: 'score',
-          label: 'Score',
-          sortable: true,
-          class: 'text-left',
-          filterable: true,
-        },
-        {
-          key: 'text_hl',
-          label: 'Text HL',
+          key: 'entities_count',
+          label: 'Entities count',
           sortable: true,
           class: 'text-left',
           filterable: true,
         },
       ],
-      // Additional hidden or detail fields can go here:
-      fields_details: [],
 
-      // Basic data or filter state
+      // Filter object. Each field has content=null to avoid "undefined" reference.
+      // 'any' is for global search across all fields if you want that.
       filter: {
         any: { content: null, join_char: null, operator: 'contains' },
-        search_id: { content: null, join_char: null, operator: 'contains' },
-        pmid: { content: null, join_char: null, operator: 'contains' },
-        doi: { content: null, join_char: null, operator: 'contains' },
-        title: { content: null, join_char: null, operator: 'contains' },
-        journal: { content: null, join_char: null, operator: 'contains' },
-        date: { content: null, join_char: null, operator: 'contains' },
-        score: { content: null, join_char: null, operator: 'contains' },
-        text_hl: { content: null, join_char: null, operator: 'contains' },
+        gene_name: { content: null, join_char: null, operator: 'contains' },
+        gene_symbol: { content: null, join_char: null, operator: 'contains' },
+        gene_normalized_id: { content: null, join_char: null, operator: 'contains' },
+        hgnc_id: { content: null, join_char: null, operator: 'contains' },
+        publication_count: { content: null, join_char: null, operator: 'contains' },
+        entities_count: { content: null, join_char: null, operator: 'contains' },
       },
-      // Table items
+
+      // Table data
       items: [],
       totalRows: 0,
       currentPage: 1,
       perPage: 10,
       pageOptions: [10, 25, 50],
-      sortBy: 'search_id',
+      sortBy: 'gene_symbol',
       sortDesc: false,
-      sort: '+search_id',
+      sort: '+gene_symbol',
       filter_string: '',
 
-      // Cursor pagination info
+      // Cursor pagination
       prevItemID: null,
       currentItemID: 0,
       nextItemID: null,
       lastItemID: null,
       totalPages: 0,
 
-      // Execution time
+      // Execution
       executionTime: 0,
 
       // UI states
@@ -413,11 +309,11 @@ export default {
     };
   },
   watch: {
-    // Re-run data load when filter changes
+    // Watch filter changes -> reload
     filter() {
       this.filtered();
     },
-    // Re-run data load when sorting changes
+    // Watch sorting changes -> reload
     sortBy() {
       this.handleSortByOrDescChange();
     },
@@ -426,38 +322,33 @@ export default {
     },
   },
   mounted() {
-    // Initialize sorting
+    // Transform "+gene_symbol" into sortBy="gene_symbol" and sortDesc=false
     const sortObject = this.sortStringToVariables(this.sortInput);
     this.sortBy = sortObject.sortBy;
     this.sortDesc = sortObject.sortDesc;
 
-    // Initialize filters from input
-    if (this.filterInput && this.filterInput !== 'null') {
+    // If we have a pre-loaded filter string, parse it
+    if (this.filterInput && this.filterInput !== 'null' && this.filterInput !== '') {
       this.filter = this.filterStrToObj(this.filterInput, this.filter);
     }
-
+    // Slight delay, then show table
     setTimeout(() => {
       this.loading = false;
     }, 500);
 
     // Load initial data
-    this.loadTableData();
+    this.loadData();
   },
   methods: {
-    /**
-     * loadTableData
-     * Fetches data from the API using sort/filter/cursor pagination
-     */
-    async loadTableData() {
+    async loadData() {
       this.isBusy = true;
-
       const urlParam = `sort=${this.sort}`
         + `&filter=${this.filter_string}`
         + `&page_after=${this.currentItemID}`
         + `&page_size=${this.perPage}`
         + `&fields=${this.fspecInput}`;
 
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/${this.apiEndpoint}?${urlParam}`;
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/publication/pubtator/genes?${urlParam}`;
 
       try {
         const response = await this.axios.get(apiUrl);
@@ -466,18 +357,19 @@ export default {
         if (response.data.meta && response.data.meta.length > 0) {
           const metaObj = response.data.meta[0];
           this.totalRows = metaObj.totalItems || 0;
+          this.totalPages = metaObj.totalPages || 1;
+          this.prevItemID = metaObj.prevItemID || null;
+          this.currentItemID = metaObj.currentItemID || 0;
+          this.nextItemID = metaObj.nextItemID || null;
+          this.lastItemID = metaObj.lastItemID || null;
+          this.executionTime = metaObj.executionTime || 0;
 
-          // Fix for b-pagination
+          // Fix for b-pagination (which expects currentPage)
           this.$nextTick(() => {
             this.currentPage = metaObj.currentPage;
           });
-          this.totalPages = metaObj.totalPages;
-          this.prevItemID = metaObj.prevItemID;
-          this.currentItemID = metaObj.currentItemID;
-          this.nextItemID = metaObj.nextItemID;
-          this.lastItemID = metaObj.lastItemID;
-          this.executionTime = metaObj.executionTime;
 
+          // Optionally merge any fspec changes into fields
           if (metaObj.fspec && Array.isArray(metaObj.fspec)) {
             this.fields = this.mergeFields(metaObj.fspec);
           }
@@ -490,6 +382,7 @@ export default {
       }
     },
 
+    // Called when user changes page
     handlePageChange(value) {
       if (value === 1) {
         this.currentItemID = 0;
@@ -503,52 +396,51 @@ export default {
       this.filtered();
     },
 
+    // Called when user changes page size (10, 25, etc.)
     handlePerPageChange(newSize) {
       this.perPage = parseInt(newSize, 10) || 10;
       this.currentItemID = 0;
       this.filtered();
     },
 
+    // Rebuild filter string, reload data
     filtered() {
       const filterStringLoc = this.filterObjToStr(this.filter);
       if (filterStringLoc !== this.filter_string) {
         this.filter_string = filterStringLoc;
       }
-      this.loadTableData();
+      this.loadData();
     },
 
+    // Clear all filters
     removeFilters() {
-      // Reset every field's filter to null
       this.filter = {
         any: { content: null, join_char: null, operator: 'contains' },
-        search_id: { content: null, join_char: null, operator: 'contains' },
-        pmid: { content: null, join_char: null, operator: 'contains' },
-        doi: { content: null, join_char: null, operator: 'contains' },
-        title: { content: null, join_char: null, operator: 'contains' },
-        journal: { content: null, join_char: null, operator: 'contains' },
-        date: { content: null, join_char: null, operator: 'contains' },
-        score: { content: null, join_char: null, operator: 'contains' },
-        text_hl: { content: null, join_char: null, operator: 'contains' },
+        gene_name: { content: null, join_char: null, operator: 'contains' },
+        gene_symbol: { content: null, join_char: null, operator: 'contains' },
+        gene_normalized_id: { content: null, join_char: null, operator: 'contains' },
+        hgnc_id: { content: null, join_char: null, operator: 'contains' },
+        publication_count: { content: null, join_char: null, operator: 'contains' },
+        entities_count: { content: null, join_char: null, operator: 'contains' },
       };
       this.currentItemID = 0;
       this.filtered();
     },
 
+    // Clear the global "any" filter
     removeSearch() {
       this.filter.any.content = null;
     },
 
-    handleSortUpdate(ctx) {
-      this.sortBy = ctx.sortBy;
-      this.sortDesc = ctx.sortDesc;
-    },
-
+    // Called when user clicks a column header to sort
     handleSortByOrDescChange() {
       this.currentItemID = 0;
+      // e.g. +gene_symbol or -gene_symbol
       this.sort = (!this.sortDesc ? '+' : '-') + this.sortBy;
       this.filtered();
     },
 
+    // Excel download
     async requestExcel() {
       this.downloading = true;
       const urlParam = `sort=${this.sort}`
@@ -557,7 +449,7 @@ export default {
         + '&page_size=all'
         + '&format=xlsx'
         + `&fields=${this.fspecInput}`;
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/${this.apiEndpoint}?${urlParam}`;
+      const apiUrl = `${process.env.VUE_APP_API_URL}/api/publication/pubtator/genes?${urlParam}`;
 
       try {
         const response = await this.axios({
@@ -565,11 +457,10 @@ export default {
           method: 'GET',
           responseType: 'blob',
         });
-
         const fileURL = window.URL.createObjectURL(new Blob([response.data]));
         const fileLink = document.createElement('a');
         fileLink.href = fileURL;
-        fileLink.setAttribute('download', 'publications.xlsx');
+        fileLink.setAttribute('download', 'genes.xlsx');
         document.body.appendChild(fileLink);
         fileLink.click();
       } catch (error) {
@@ -578,6 +469,7 @@ export default {
       this.downloading = false;
     },
 
+    // Copy current filter/sort state to clipboard
     copyLinkToClipboard() {
       const urlParam = `sort=${this.sort}`
         + `&filter=${this.filter_string}`
@@ -588,34 +480,52 @@ export default {
       this.makeToast('Link copied to clipboard', 'Info', 'info');
     },
 
+    // If server returns fspec changes, merge them into local fields
     mergeFields(inboundFields) {
       return inboundFields.map((f) => {
         const existing = this.fields.find((x) => x.key === f.key);
         return {
           ...f,
-          // If your inbound fspec sets filterable, keep it or override it
-          // For now, we forcibly set filterable to true, but you can merge logic
+          // Force filterable if you want all columns text-filterable
           filterable: true,
           selectable: existing ? existing.selectable : false,
           class: existing ? existing.class : 'text-left',
-          multi_selectable: existing ? existing.multi_selectable : false,
         };
       });
     },
 
+    // Simple truncation utility
     truncate(str, n) {
-      return Utils.truncate(str, n);
+      return str?.length > n ? `${str.slice(0, n)}...` : str;
+    },
+
+    // Example Treeselect normalizer if needed
+    normalizer(node) {
+      return {
+        id: node,
+        label: node,
+        children: [],
+      };
     },
   },
 };
 </script>
 
 <style scoped>
+/* Some example styling you already had */
 .btn-group-xs > .btn,
 .btn-xs {
   padding: 0.25rem 0.4rem;
   font-size: 0.875rem;
   line-height: 0.5;
   border-radius: 0.2rem;
+}
+
+/* Optional: narrower placeholders */
+.input-group > .input-group-prepend {
+  flex: 0 0 35%;
+}
+.input-group .input-group-text {
+  width: 100%;
 }
 </style>
