@@ -191,6 +191,7 @@ generate_tibble_fspec_mem      <<- memoise(generate_tibble_fspec,      cache = c
 gen_string_clust_obj_mem       <<- memoise(gen_string_clust_obj,       cache = cm)
 gen_mca_clust_obj_mem          <<- memoise(gen_mca_clust_obj,          cache = cm)
 read_log_files_mem             <<- memoise(read_log_files,             cache = cm)
+nest_pubtator_gene_tibble_mem             <<- memoise(nest_pubtator_gene_tibble,             cache = cm)
 
 ##-------------------------------------------------------------------##
 # 10) Define filters as named functions with roxygen tags

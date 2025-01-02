@@ -398,81 +398,116 @@ function(req,
 }
 
 
-#* Get a Cursor-Pagination Object of All Rows from pubtator_human_gene_entity_view
+#* Get a Cursor-Pagination Object of Genes from pubtator_human_gene_entity_view
 #*
-#* This endpoint returns a cursor pagination object of all rows in the 
-#* `pubtator_human_gene_entity_view`, which includes only the PMIDs for 
-#* human (Species=9606) + gene references, and optionally joined to entity data.
+#* This endpoint returns a cursor pagination object with one row per gene,
+#* listing nested `publications` and `entities` for each gene. The data is
+#* from `pubtator_human_gene_entity_view`. It also provides two count columns:
+#* - `publication_count`: how many valid publication rows
+#* - `entities_count`: how many valid entity rows
+#*
+#* If the nested list-column has rows that are all NA in the key column 
+#* (e.g. `entity_id` == NA), those get filtered out => count becomes 0.
 #*
 #* @tag publication
 #* @serializer json list(na="string")
 #*
-#* @param sort:str  Which columns to sort on, e.g. "pmid" or "symbol". Default "pmid".
-#* @param filter:str Comma-separated filters, e.g. "symbol=='BRCA1'". 
-#* @param fields:str Comma-separated columns, e.g. "pmid,symbol,name,normalized_id".
+#* @param sort:str    Which columns to sort on, e.g. "gene_symbol".
+#* @param filter:str  Comma-separated filters, e.g. "gene_symbol=='BRCA1'".
+#* @param fields:str  Comma-separated columns to return 
 #* @param page_after:str The cursor to start results after. Default "0".
-#* @param page_size:str How many rows per page. Default "10".
-#* @param fspec:str Comma-separated columns for field spec generation. 
-#*        Example: "pmid,symbol,normalized_id,name,category".
-#* @param format:str Output format, "json" or "xlsx". Default "json".
+#* @param page_size:str  Page size. Default "10".
+#* @param fspec:str   Field spec for meta info. 
+#* @param format:str  "json" or "xlsx". Default "json".
 #*
-#* @response 200 OK - a cursor-paginated list of pubtator_human_gene_entity_view rows.
+#* @response 200 OK - a cursor-paginated list of nested gene rows
 #*
 #* @get /pubtator/genes
 function(req,
          res,
-         sort = "pmid",
+         sort = "gene_symbol",
          filter = "",
          fields = "",
-         page_after = 0,
+         page_after = "0",
          page_size = "10",
-         fspec = "pmid,symbol,name,normalized_id,hgnc_id,category",
+         fspec = "gene_name,gene_symbol,gene_normalized_id,hgnc_id,publication_count,entities_count,publications,entities",
          format = "json") {
+
+  # 1) Set serializer
   res$serializer <- serializers[[format]]
 
+  # 2) Start time
   start_time <- Sys.time()
 
-  # We assume pmid could be the unique cursor ID, or if there is a separate PK 
-  # (like search_id or entity_id), use that. Adjust below if needed.
-  sort_exprs <- generate_sort_expressions(sort, unique_id = "pmid")
+  # 3) Generate sort/filter expressions
+  sort_exprs   <- generate_sort_expressions(sort, unique_id = "gene_symbol")
   filter_exprs <- generate_filter_expressions(filter)
 
-  view_data <- pool %>%
+  # 4) Fetch from DB => apply filter & sorting
+  df_raw <- pool %>%
     tbl("pubtator_human_gene_entity_view") %>%
-    collect() %>%
-    arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
-    filter(!!!rlang::parse_exprs(filter_exprs))
+    collect()
 
-  view_data <- select_tibble_fields(
-    view_data,
+  df_filtered <- df_raw %>%
+    filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+    arrange(!!!rlang::parse_exprs(sort_exprs))
+
+  # 5) Nest the data => one row per gene
+  df_nested <- nest_pubtator_gene_tibble_mem(df_filtered)
+  
+  # 6) Add publication_count & entities_count
+  #    For publications, we check `pmid` is non-NA.
+  #    For entities, we check `entity_id` is non-NA.
+  df_counts <- df_nested %>%
+    mutate(
+      publication_count = purrr::map_int(publications, ~
+        dplyr::filter(.x, !is.na(pmid)) %>% nrow()
+      ),
+      entities_count = purrr::map_int(entities, ~
+        dplyr::filter(.x, !is.na(entity_id)) %>% nrow()
+      )
+    )
+
+  # 7) Field selection
+  df_selected <- select_tibble_fields(
+    df_counts,
     fields,
-    unique_id = "pmid"
+    unique_id = "gene_symbol"
   )
 
-  pag_info <- generate_cursor_pag_inf(view_data, page_size, page_after, "pmid")
+  # 8) Cursor pagination on 'gene_symbol'
+  pag_info <- generate_cursor_pag_inf(
+    df_selected,
+    page_size,
+    page_after,
+    "gene_symbol"
+  )
 
+  # 9) Field specs
   tbl_fspec <- generate_tibble_fspec_mem(pag_info$data, fspec)
-  fspec_obj <- tbl_fspec
-  fspec_obj$fspec$count_filtered <- tbl_fspec$fspec$count
+  tbl_fspec$fspec$count_filtered <- tbl_fspec$fspec$count
 
+  # 10) Execution time
   end_time <- Sys.time()
   execution_time <- paste0(round(end_time - start_time, 2), " secs")
 
+  # 11) Build meta
   meta <- pag_info$meta %>%
     add_column(
       tibble::as_tibble(list(
         sort = sort,
         filter = filter,
         fields = fields,
-        fspec = fspec_obj,
+        fspec = tbl_fspec,
         executionTime = execution_time
       ))
     )
 
+  # 12) Build links for next/prev
   links <- pag_info$links %>%
-    pivot_longer(everything(), names_to = "type", values_to = "link") %>%
-    mutate(
-      link = case_when(
+    tidyr::pivot_longer(everything(), names_to = "type", values_to = "link") %>%
+    dplyr::mutate(
+      link = dplyr::case_when(
         link != "null" ~ paste0(
           dw$api_base_url,
           "/pubtator/genes?",
@@ -484,18 +519,19 @@ function(req,
         TRUE ~ "null"
       )
     ) %>%
-    pivot_wider(
-      id_cols = everything(),
+    tidyr::pivot_wider(
+      id_cols = dplyr::everything(),
       names_from = "type",
       values_from = "link"
     )
 
   final_list <- list(
     links = links,
-    meta = meta,
-    data = pag_info$data
+    meta  = meta,
+    data  = pag_info$data
   )
 
+  # 13) XLSX or JSON
   if (format == "xlsx") {
     creation_date <- format(Sys.time(), "%Y-%m-%d_T%H-%M-%S")
     base_filename <- gsub("/", "_", req$PATH_INFO)

@@ -955,3 +955,55 @@ generate_xlsx_bin <- function(data_object, file_base_name) {
   # return the binary contents
   return(bin)
 }
+
+
+#' Nest PubTator Gene Tibble
+#'
+#' @description
+#' Groups a PubTator data frame by gene-related columns (e.g. `gene_name`,
+#' `gene_symbol`, `hgnc_id`, `gene_normalized_id`). Then creates two
+#' nested list-columns:
+#' \itemize{
+#'   \item \strong{publications:} pmid, doi, title, journal, date, score, text_hl
+#'   \item \strong{entities:} entity_id, disease_ontology_id_version, disease_ontology_name,
+#'       hpo_mode_of_inheritance_term, hpo_mode_of_inheritance_term_name,
+#'       inheritance_filter, ndd_phenotype, ndd_phenotype_word, entry_date, category, category_id
+#' }
+#'
+#' @param df A data frame (tibble) containing:
+#' \itemize{
+#'   \item \code{gene_name}, \code{gene_symbol}, \code{hgnc_id}, \code{gene_normalized_id}
+#'   \item \code{pmid}, \code{doi}, \code{title}, \code{journal}, \code{date}, \code{score}, \code{text_hl}
+#'   \item \code{entity_id}, \code{disease_ontology_id_version}, \code{disease_ontology_name},
+#'         \code{hpo_mode_of_inheritance_term}, etc.
+#' }
+#'
+#' @return A \strong{nested tibble} with one row per gene, plus two new list-columns:
+#'   \code{publications} and \code{entities}.
+#'
+#' @examples
+#' # Suppose `df_pubtator` has all required columns:
+#' # nest_pubtator_gene_tibble(df_pubtator)
+#'
+#' @export
+nest_pubtator_gene_tibble <- function(df) {
+  df %>%
+    dplyr::group_by(
+      gene_name,
+      gene_symbol,
+      hgnc_id,
+      gene_normalized_id
+    ) %>%
+    tidyr::nest(
+      publications = c(
+        pmid, doi, title, journal, date, score, text_hl
+      ),
+      entities = c(
+        entity_id, disease_ontology_id_version, disease_ontology_name,
+        hpo_mode_of_inheritance_term, hpo_mode_of_inheritance_term_name,
+        inheritance_filter, ndd_phenotype, ndd_phenotype_word,
+        entry_date, category, category_id
+      )
+    ) %>%
+    dplyr::ungroup()
+}
