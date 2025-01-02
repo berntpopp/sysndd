@@ -1,40 +1,38 @@
-<!-- views/analyses/PublicationsNDD.vue -->
+<!-- views/analyses/PubtatorNDD.vue -->
 <template>
   <div class="container-fluid bg-gradient">
     <b-container fluid>
       <b-row class="justify-content-md-center py-2">
         <b-col md="12">
           <b-card
-            title="NDD Publications"
+            title="PubTator Analysis"
             no-body
           >
-            <!-- Card Header with tabs -->
+            <!-- Tabs in the Card Header -->
             <b-card-header header-tag="nav">
               <b-nav
                 card-header
                 tabs
               >
-                <!-- 1) All Publications Child -->
+                <!-- Example tabs: Table, Genes, Stats, etc. -->
                 <b-nav-item
-                  :to="{ name: 'PublicationsNDDTable' }"
+                  :to="{ name: 'PubtatorNDDTable' }"
                   exact
                   exact-active-class="active"
                 >
-                  SysNDD Curated
+                  Table
                 </b-nav-item>
 
-                <!-- 2) Time Plot Child -->
                 <b-nav-item
-                  :to="{ name: 'PublicationsNDDTimePlot' }"
+                  :to="{ name: 'PubtatorNDDGenes' }"
                   exact
                   exact-active-class="active"
                 >
-                  Time Plot
+                  Genes
                 </b-nav-item>
 
-                <!-- 3) Stats Child -->
                 <b-nav-item
-                  :to="{ name: 'PublicationsNDDStats' }"
+                  :to="{ name: 'PubtatorNDDStats' }"
                   exact
                   exact-active-class="active"
                 >
@@ -43,7 +41,7 @@
               </b-nav>
             </b-card-header>
 
-            <!-- Card Body where the child routes are rendered -->
+            <!-- Child route content rendered here -->
             <b-card-body>
               <router-view />
             </b-card-body>
@@ -56,11 +54,14 @@
 
 <script>
 export default {
-  name: 'PublicationsNDDParent',
-  // This parent purely handles tab navigation & route display.
+  name: 'PubtatorNDDParent',
+  // purely manages the nav tabs + route display
 };
 </script>
 
 <style scoped>
-/* Optional styling for your background gradient, etc. */
+/* Optional styling for background gradient, spacing, etc. */
+.bg-gradient {
+  background: linear-gradient(120deg, #f8f9fa 0%, #fafbfc 100%);
+}
 </style>

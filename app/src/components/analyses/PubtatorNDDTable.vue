@@ -1,4 +1,4 @@
-<!-- src/components/analyses/PublicationsNDDTable.vue -->
+<!-- src/components/analyses/PubtatorNDDTable.vue -->
 <template>
   <div class="container-fluid">
     <!-- Show an overlay spinner while loading -->
@@ -154,40 +154,94 @@
               </template>
               <!-- Custom filter fields slot -->
 
-              <!-- Example custom slot for 'publication_id' -->
-              <template v-slot:cell-publication_id="{ row }">
+              <!-- search_id -->
+              <template v-slot:cell-search_id="{ row }">
                 <div>
                   <b-badge
                     variant="primary"
                     style="cursor: pointer"
                   >
-                    {{ row.publication_id }}
+                    {{ row.search_id }}
                   </b-badge>
                 </div>
               </template>
 
-              <!-- Example custom slot for 'Title' -->
-              <template v-slot:cell-Title="{ row }">
+              <!-- pmid -->
+              <template v-slot:cell-pmid="{ row }">
+                <b-button
+                  v-b-tooltip.hover.bottom
+                  class="btn-xs mx-2"
+                  variant="primary"
+                  :href=" 'https://pubmed.ncbi.nlm.nih.gov/' + row.pmid "
+                  target="_blank"
+                  :title="row.pmid"
+                >
+                  <b-icon
+                    icon="box-arrow-up-right"
+                    font-scale="0.8"
+                  />
+                  PMID: {{ row.pmid }}
+                </b-button>
+              </template>
+
+              <!-- doi -->
+              <template v-slot:cell-doi="{ row }">
+                <div class="text-truncate">
+                  <a
+                    :href="`https://doi.org/${row.doi}`"
+                    target="_blank"
+                  >
+                    {{ row.doi }}
+                  </a>
+                </div>
+              </template>
+
+              <!-- title -->
+              <template v-slot:cell-title="{ row }">
                 <div
                   v-b-tooltip.hover
+                  :title="row.title"
                   class="overflow-hidden text-truncate"
-                  :title="row.Title"
+                  style="max-width: 300px;"
                 >
-                  {{ truncate(row.Title, 50) }}
+                  {{ truncate(row.title, 60) }}
                 </div>
               </template>
 
-              <!-- Example custom slot for 'Journal' -->
-              <template v-slot:cell-Journal="{ row }">
+              <!-- journal -->
+              <template v-slot:cell-journal="{ row }">
                 <div>
-                  {{ row.Journal }}
+                  {{ row.journal }}
                 </div>
               </template>
 
-              <!-- Example custom slot for 'Publication_date' -->
-              <template v-slot:cell-Publication_date="{ row }">
+              <!-- date -->
+              <template v-slot:cell-date="{ row }">
                 <div>
-                  {{ row.Publication_date }}
+                  {{ row.date }}
+                </div>
+              </template>
+
+              <!-- score -->
+              <template v-slot:cell-score="{ row }">
+                <div>
+                  {{ row.score ? row.score.toFixed(3) : '' }}
+                </div>
+              </template>
+
+              <!-- text_hl -->
+              <template v-slot:cell-text_hl="{ row }">
+                <div
+                  v-if="row.text_hl"
+                  v-b-tooltip.hover
+                  :title="row.text_hl"
+                  class="overflow-hidden text-truncate"
+                  style="max-width: 400px;"
+                >
+                  {{ truncate(row.text_hl, 60) }}
+                </div>
+                <div v-else>
+                  <span class="text-muted">No highlight text</span>
                 </div>
               </template>
             </GenericTable>
@@ -220,7 +274,7 @@ import Utils from '@/assets/js/utils';
 import EventBus from '@/assets/js/eventBus';
 
 export default {
-  name: 'PublicationsNDDTable',
+  name: 'PubtatorNDDTable',
   components: {
     TableHeaderLabel,
     TableSearchInput,
@@ -239,19 +293,19 @@ export default {
   props: {
     apiEndpoint: {
       type: String,
-      default: 'publication', // So it references /api/publication
+      default: 'publication/pubtator/table',
     },
     showFilterControls: { type: Boolean, default: true },
     showPaginationControls: { type: Boolean, default: true },
     headerLabel: { type: String, default: 'Publications table' },
-    sortInput: { type: String, default: '+publication_id' },
+    sortInput: { type: String, default: '-search_id' },
     filterInput: { type: String, default: null },
     fieldsInput: { type: String, default: null },
     pageAfterInput: { type: String, default: '0' },
     pageSizeInput: { type: Number, default: 10 },
     fspecInput: {
       type: String,
-      default: 'publication_id,Title,Journal,Publication_date',
+      default: 'search_id,pmid,doi,title,journal,date,score,text_hl',
     },
   },
   data() {
@@ -259,30 +313,58 @@ export default {
       // Table columns
       fields: [
         {
-          key: 'publication_id',
-          label: 'ID',
+          key: 'search_id',
+          label: 'Search ID',
           sortable: true,
           sortDirection: 'asc',
           class: 'text-left',
           filterable: true,
         },
         {
-          key: 'Title',
+          key: 'pmid',
+          label: 'PMID',
+          sortable: true,
+          class: 'text-left',
+          filterable: true,
+        },
+        {
+          key: 'doi',
+          label: 'DOI',
+          sortable: true,
+          class: 'text-left',
+          filterable: true,
+        },
+        {
+          key: 'title',
           label: 'Title',
           sortable: true,
           class: 'text-left',
           filterable: true,
         },
         {
-          key: 'Journal',
+          key: 'journal',
           label: 'Journal',
           sortable: true,
           class: 'text-left',
           filterable: true,
         },
         {
-          key: 'Publication_date',
+          key: 'date',
           label: 'Date',
+          sortable: true,
+          class: 'text-left',
+          filterable: true,
+        },
+        {
+          key: 'score',
+          label: 'Score',
+          sortable: true,
+          class: 'text-left',
+          filterable: true,
+        },
+        {
+          key: 'text_hl',
+          label: 'Text HL',
           sortable: true,
           class: 'text-left',
           filterable: true,
@@ -294,10 +376,14 @@ export default {
       // Basic data or filter state
       filter: {
         any: { content: null, join_char: null, operator: 'contains' },
-        publication_id: { content: null, join_char: null, operator: 'contains' },
-        Title: { content: null, join_char: null, operator: 'contains' },
-        Journal: { content: null, join_char: null, operator: 'contains' },
-        Publication_date: { content: null, join_char: null, operator: 'contains' },
+        search_id: { content: null, join_char: null, operator: 'contains' },
+        pmid: { content: null, join_char: null, operator: 'contains' },
+        doi: { content: null, join_char: null, operator: 'contains' },
+        title: { content: null, join_char: null, operator: 'contains' },
+        journal: { content: null, join_char: null, operator: 'contains' },
+        date: { content: null, join_char: null, operator: 'contains' },
+        score: { content: null, join_char: null, operator: 'contains' },
+        text_hl: { content: null, join_char: null, operator: 'contains' },
       },
       // Table items
       items: [],
@@ -305,9 +391,9 @@ export default {
       currentPage: 1,
       perPage: 10,
       pageOptions: [10, 25, 50],
-      sortBy: 'publication_id',
+      sortBy: 'search_id',
       sortDesc: false,
-      sort: '+publication_id',
+      sort: '+search_id',
       filter_string: '',
 
       // Cursor pagination info
@@ -321,28 +407,26 @@ export default {
       executionTime: 0,
 
       // UI states
-      loading: true, // spinner overlay
-      isBusy: false, // table busy
+      loading: true,
+      isBusy: false,
       downloading: false,
     };
   },
   watch: {
-    // Watch the filters -> load new data
+    // Re-run data load when filter changes
     filter() {
       this.filtered();
     },
-    // Watch sorting -> load new data
+    // Re-run data load when sorting changes
     sortBy() {
       this.handleSortByOrDescChange();
     },
     sortDesc() {
       this.handleSortByOrDescChange();
     },
-    // NOTE: We remove watch(perPage) to avoid double-calling
-    // and rely solely on handlePerPageChange(newSize).
   },
   mounted() {
-    // Initialize sorting from input
+    // Initialize sorting
     const sortObject = this.sortStringToVariables(this.sortInput);
     this.sortBy = sortObject.sortBy;
     this.sortDesc = sortObject.sortDesc;
@@ -352,23 +436,21 @@ export default {
       this.filter = this.filterStrToObj(this.filterInput, this.filter);
     }
 
-    // Slight delay, then mark loading false
     setTimeout(() => {
       this.loading = false;
     }, 500);
 
-    // Load initial table data
+    // Load initial data
     this.loadTableData();
   },
   methods: {
     /**
      * loadTableData
-     * Fetches data from /api/publication using sort/filter/cursor pagination
+     * Fetches data from the API using sort/filter/cursor pagination
      */
     async loadTableData() {
       this.isBusy = true;
 
-      // Build query
       const urlParam = `sort=${this.sort}`
         + `&filter=${this.filter_string}`
         + `&page_after=${this.currentItemID}`
@@ -381,7 +463,6 @@ export default {
         const response = await this.axios.get(apiUrl);
         this.items = response.data.data;
 
-        // The meta array presumably includes pagination info
         if (response.data.meta && response.data.meta.length > 0) {
           const metaObj = response.data.meta[0];
           this.totalRows = metaObj.totalItems || 0;
@@ -397,7 +478,6 @@ export default {
           this.lastItemID = metaObj.lastItemID;
           this.executionTime = metaObj.executionTime;
 
-          // Merge inbound fspec so we keep filterable: true
           if (metaObj.fspec && Array.isArray(metaObj.fspec)) {
             this.fields = this.mergeFields(metaObj.fspec);
           }
@@ -410,10 +490,6 @@ export default {
       }
     },
 
-    /**
-     * handlePageChange
-     * Moves to the next/previous "page" in cursor pagination.
-     */
     handlePageChange(value) {
       if (value === 1) {
         this.currentItemID = 0;
@@ -427,21 +503,12 @@ export default {
       this.filtered();
     },
 
-    /**
-     * handlePerPageChange
-     * Called by the child TablePaginationControls when user picks a new page size
-     */
     handlePerPageChange(newSize) {
-      // Convert to integer
       this.perPage = parseInt(newSize, 10) || 10;
       this.currentItemID = 0;
       this.filtered();
     },
 
-    /**
-     * filtered
-     * Rebuilds filter_string from filter object, calls loadTableData.
-     */
     filtered() {
       const filterStringLoc = this.filterObjToStr(this.filter);
       if (filterStringLoc !== this.filter_string) {
@@ -450,56 +517,40 @@ export default {
       this.loadTableData();
     },
 
-    /**
-     * removeFilters
-     * Clears the filter object, resets to page=1, reloads data.
-     */
     removeFilters() {
+      // Reset every field's filter to null
       this.filter = {
         any: { content: null, join_char: null, operator: 'contains' },
-        publication_id: { content: null, join_char: null, operator: 'contains' },
-        Title: { content: null, join_char: null, operator: 'contains' },
-        Journal: { content: null, join_char: null, operator: 'contains' },
-        Publication_date: { content: null, join_char: null, operator: 'contains' },
+        search_id: { content: null, join_char: null, operator: 'contains' },
+        pmid: { content: null, join_char: null, operator: 'contains' },
+        doi: { content: null, join_char: null, operator: 'contains' },
+        title: { content: null, join_char: null, operator: 'contains' },
+        journal: { content: null, join_char: null, operator: 'contains' },
+        date: { content: null, join_char: null, operator: 'contains' },
+        score: { content: null, join_char: null, operator: 'contains' },
+        text_hl: { content: null, join_char: null, operator: 'contains' },
       };
       this.currentItemID = 0;
       this.filtered();
     },
 
-    /**
-     * removeSearch
-     * Clears the "any" filter so column-specific filters remain
-     */
     removeSearch() {
       this.filter.any.content = null;
     },
 
-    /**
-     * handleSortUpdate
-     * Event fired from the GenericTable if user clicks a column header
-     */
     handleSortUpdate(ctx) {
       this.sortBy = ctx.sortBy;
       this.sortDesc = ctx.sortDesc;
     },
 
-    /**
-     * handleSortByOrDescChange
-     * Rebuilds the sort param string (+ or -)
-     */
     handleSortByOrDescChange() {
       this.currentItemID = 0;
       this.sort = (!this.sortDesc ? '+' : '-') + this.sortBy;
       this.filtered();
     },
 
-    /**
-     * requestExcel
-     * Makes a call to the same endpoint with format=xlsx to fetch an Excel file.
-     */
     async requestExcel() {
       this.downloading = true;
-      // For instance: &page_after=0&page_size=all&format=xlsx
       const urlParam = `sort=${this.sort}`
         + `&filter=${this.filter_string}`
         + '&page_after=0'
@@ -527,10 +578,6 @@ export default {
       this.downloading = false;
     },
 
-    /**
-     * copyLinkToClipboard
-     * Copies the current table state (sort, filter, pagination) to the clipboard as a URL
-     */
     copyLinkToClipboard() {
       const urlParam = `sort=${this.sort}`
         + `&filter=${this.filter_string}`
@@ -541,30 +588,21 @@ export default {
       this.makeToast('Link copied to clipboard', 'Info', 'info');
     },
 
-    /**
-     * mergeFields
-     * Merges inbound fspec from the backend with your local fields array,
-     * preserving filterable or selectable properties if they exist.
-     */
     mergeFields(inboundFields) {
       return inboundFields.map((f) => {
-        // Attempt to match inbound field by key
         const existing = this.fields.find((x) => x.key === f.key);
         return {
           ...f,
-          // Preserve 'filterable' if it was in the local field
-          filterable: existing ? existing.filterable : false,
+          // If your inbound fspec sets filterable, keep it or override it
+          // For now, we forcibly set filterable to true, but you can merge logic
+          filterable: true,
           selectable: existing ? existing.selectable : false,
-          // Keep local classes if desired
           class: existing ? existing.class : 'text-left',
+          multi_selectable: existing ? existing.multi_selectable : false,
         };
       });
     },
 
-    /**
-     * truncate
-     * Shortens text to n chars + ellipsis, from utils.js
-     */
     truncate(str, n) {
       return Utils.truncate(str, n);
     },
@@ -573,5 +611,11 @@ export default {
 </script>
 
 <style scoped>
-/* Example styling similar to your Entities table code. */
+.btn-group-xs > .btn,
+.btn-xs {
+  padding: 0.25rem 0.4rem;
+  font-size: 0.875rem;
+  line-height: 0.5;
+  border-radius: 0.2rem;
+}
 </style>

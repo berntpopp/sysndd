@@ -191,9 +191,6 @@ export const routes = [
       },
     },
   },
-  /**
-   * UPDATED PublicationsNDD route with 4 children
-   */
   {
     path: '/PublicationsNDD',
     component: () => import(/* webpackChunkName: "Analyses" */ '@/views/analyses/PublicationsNDD.vue'),
@@ -222,20 +219,27 @@ export const routes = [
           /* webpackChunkName: "PublicationsNDDStats" */ '@/components/analyses/PublicationsNDDStats.vue'
         ),
       },
-      // 4) Pubtator
-      {
-        path: 'Pubtator',
-        name: 'PublicationsNDDPubtator',
-        component: () => import(
-          /* webpackChunkName: "PublicationsNDDPubtator" */ '@/components/analyses/PublicationsNDDPubtator.vue'
-        ),
-      },
     ],
     meta: {
       sitemap: {
         priority: 0.7,
         changefreq: 'monthly',
       },
+    },
+  },
+  {
+    path: '/PubtatorNDD',
+    component: () => import('@/views/analyses/PubtatorNDD.vue' /* webpackChunkName: "Analyses" */),
+    // Example children: your table, genes, stats, etc. Expand as needed:
+    children: [
+      {
+        path: '',
+        name: 'PubtatorNDDTable',
+        component: () => import('@/components/analyses/PubtatorNDDTable.vue' /* webpackChunkName: "PubtatorNDDTable" */),
+      },
+    ],
+    meta: {
+      sitemap: { priority: 0.7, changefreq: 'monthly' },
     },
   },
   {

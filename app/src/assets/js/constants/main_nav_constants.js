@@ -42,6 +42,7 @@ export default {
         { text: 'Correlate variants', path: '/VariantCorrelations' },
         { text: 'Entries over time', path: '/EntriesOverTime' },
         { text: 'NDD Publications', path: '/PublicationsNDD' },
+        { text: 'PubTator Analysis', path: '/PubtatorNDD' },
         { text: 'Functional clusters', path: '/GeneNetworks' },
         { text: 'Pheno-Func Correlation', path: '/PhenotypeFunctionalCorrelation' },
       ],
