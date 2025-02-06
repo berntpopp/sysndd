@@ -503,7 +503,7 @@ function(
 #* and sends email with reset URL.
 #*
 #* @tag user
-#* @put password/update
+#* @put password/reset/request
 function(req, res, email_request = "") {
   user_table <- pool %>%
     tbl("user") %>%

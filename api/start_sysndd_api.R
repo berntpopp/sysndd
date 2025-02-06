@@ -240,6 +240,13 @@ checkSignInFilter <- function(req, res) {
   ) {
     plumber::forward()
   }
+  # PUT to /api/user/password/reset/request
+  else if (
+    req$REQUEST_METHOD == "PUT" &&
+    (req$PATH_INFO == "/api/user/password/reset/request")
+  ) {
+    plumber::forward()
+  }
   # Otherwise require Bearer token
   else {
     if (is.null(req$HTTP_AUTHORIZATION)) {
