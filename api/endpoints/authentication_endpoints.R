@@ -133,7 +133,7 @@ function(signup_data) {
 #* @get authenticate
 function(req, res, user_name, password) {
   check_user <- user_name
-  check_pass <- URLdecode(password)
+  check_pass <- password
 
   # Load secret
   key <- charToRaw(dw$secret)
