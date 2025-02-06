@@ -75,13 +75,33 @@ export default {
     },
     // Function to handle keydown events on the search input.
     // This function listens for the 'Enter' key and performs a search action.
-    handleSearchInputKeydown(event) {
-      if ((event.key === 'Enter' || event.which === 1) && this.search_input.length > 0) {
+    async handleSearchInputKeydown(event) {
+      // Only proceed if the key is Enter or if it's a click (event.which === 1)
+      // and ensure search_input is nonempty and we are not already navigating.
+      if ((event.key === 'Enter' || event.which === 1)
+          && this.search_input.length > 0
+          && !this._isNavigating) {
+        // Set flag so duplicate calls are ignored
+        this._isNavigating = true;
+        let targetLink = '';
         if (this.search_object[this.search_input] !== undefined) {
-          this.$router.push(this.search_object[this.search_input][0].link);
+          targetLink = this.search_object[this.search_input][0].link;
         } else {
-          this.$router.push(`/Search/${this.search_input}`);
+          targetLink = `/Search/${this.search_input}`;
         }
+
+        this.$router.push(targetLink)
+          .catch((err) => {
+            // Only ignore NavigationDuplicated errors; throw others.
+            if (err.name !== 'NavigationDuplicated') {
+              throw err;
+            }
+          })
+          .finally(() => {
+            this._isNavigating = false;
+          });
+
+        // Clear search input and keys
         this.search_input = '';
         this.search_keys = [];
       }

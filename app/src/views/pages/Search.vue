@@ -142,7 +142,7 @@ export default {
       }
 
       if (this.search.length === 1) {
-        this.$router.push(this.search[0].link);
+        this.$router.push(this.search[0].link).catch(() => {});
       } else {
         this.loading = false;
         this.formattedItems();
