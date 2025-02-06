@@ -110,9 +110,9 @@ process_combine_ontology <- function(hgnc_list, mode_of_inheritance_list, max_fi
 
     # Get ontology mappings
     config_vars <- list(
-      hpo_obo_url = "https://github.com/obophenotype/human-phenotype-ontology/releases/download/v2024-08-13/hp.obo",
-      mpo_obo_url = "https://github.com/mgijax/mammalian-phenotype-ontology/releases/download/v2024-08-08/mp.obo",
-      mondo_obo_url = "http://purl.obolibrary.org/obo/mondo.obo",
+      hpo_obo_url = "https://github.com/obophenotype/human-phenotype-ontology/releases/download/v2025-01-16/hp.obo",
+      mpo_obo_url = "https://github.com/mgijax/mammalian-phenotype-ontology/releases/download/v2025-01-30/mp.obo",
+      mondo_obo_url = "https://github.com/monarch-initiative/mondo/releases/download/v2025-02-04/mondo-base.obo",
       download_path = "data/"
     )
     mondo_ontology <- get_ontology_object("mondo", config_vars)
