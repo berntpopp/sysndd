@@ -66,4 +66,3 @@ Finally, the API feeds the web tool which can be used to easily search, filter, 
 
 - thus, improving diagnostics and care for individuals with rare NDDs.
 
-
