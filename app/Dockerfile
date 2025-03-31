@@ -1,5 +1,5 @@
 # define nginx version
-ARG nginx_version=1.23.1
+ARG nginx_version=1.27.4
 
 FROM node:16.16.0-bullseye as app_builder
 # make the 'app' folder the current working directory
