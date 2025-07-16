@@ -1,0 +1,23 @@
+linters: linters_with_defaults(
+    line_length_linter = line_length_linter(100L),
+    object_length_linter = NULL,
+    object_name_linter = NULL,
+    object_usage_linter = NULL,
+    unused_import_linter = NULL,
+    namespace_linter = NULL,
+    assignment_linter = assignment_linter(),
+    spaces_inside_linter = spaces_inside_linter(),
+    spaces_left_parentheses_linter = spaces_left_parentheses_linter(),
+    infix_spaces_linter = infix_spaces_linter(),
+    commas_linter = commas_linter(),
+    pipe_continuation_linter = pipe_continuation_linter(),
+    function_left_parentheses_linter = function_left_parentheses_linter(),
+    absolute_path_linter = absolute_path_linter(),
+    any_duplicated_linter = any_duplicated_linter(),
+    any_is_na_linter = any_is_na_linter(),
+    redundant_ifelse_linter = redundant_ifelse_linter(),
+    seq_linter = seq_linter(),
+    todo_comment_linter = NULL,
+    multiple_dots_linter = NULL
+  )
+exclusions: list("_old", "data/", "logs/", "results/")
