@@ -10,3 +10,7 @@ app/docker/nginx/key.pem
 
 # testing files
 TESTING.md
+
+# claude files
+CLAUDE.md
+.claude
