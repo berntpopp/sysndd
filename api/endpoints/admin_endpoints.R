@@ -1,15 +1,15 @@
 # api/endpoints/admin_endpoints.R
 #
-# This file contains all Administrator-related endpoints, extracted from the 
-# original sysndd_plumber.R. It follows the Google R Style Guide conventions 
+# This file contains all Administrator-related endpoints, extracted from the
+# original sysndd_plumber.R. It follows the Google R Style Guide conventions
 # where possible (e.g., two-space indentation, meaningful function names, etc.).
 #
-# Be sure to source any required helper files at the top (e.g., 
+# Be sure to source any required helper files at the top (e.g.,
 # source("functions/database-functions.R", local = TRUE)) if needed.
 
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 ## Administration section
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 
 #* Updates ontology sets and identifies critical changes
 #*
@@ -19,16 +19,16 @@
 #* critical changes, and updating relevant database tables.
 #*
 #* # `Details`
-#* The function starts by collecting data from multiple tables like 
-#* mode_of_inheritance_list, non_alt_loci_set, and ndd_entity_view. It then 
-#* computes a new disease ontology set and identifies critical changes. Finally, 
+#* The function starts by collecting data from multiple tables like
+#* mode_of_inheritance_list, non_alt_loci_set, and ndd_entity_view. It then
+#* computes a new disease ontology set and identifies critical changes. Finally,
 #* it updates the ndd_entity table with these changes and updates the database.
 #*
 #* # `Authorization`
 #* Access to this endpoint is restricted to users with the 'Administrator' role.
 #*
 #* # `Return`
-#* If successful, the function returns a success message. If the user is 
+#* If successful, the function returns a success message. If the user is
 #* unauthorized, it returns an error message indicating that access is forbidden.
 #*
 #* @tag admin
@@ -207,30 +207,33 @@ function(req, res) {
 
   on.exit(dbDisconnect(sysndd_db), add = TRUE)
 
-  tryCatch({
-    dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 0;")
-    dbExecute(sysndd_db, "TRUNCATE TABLE non_alt_loci_set;")
-    dbWriteTable(sysndd_db, "non_alt_loci_set", hgnc_data, append = TRUE)
-    dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 1;")
+  tryCatch(
+    {
+      dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 0;")
+      dbExecute(sysndd_db, "TRUNCATE TABLE non_alt_loci_set;")
+      dbWriteTable(sysndd_db, "non_alt_loci_set", hgnc_data, append = TRUE)
+      dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 1;")
 
-    dbCommit(sysndd_db)
-    list(status = "Success", message = "HGNC data update process completed.")
-  }, error = function(e) {
-    dbRollback(sysndd_db)
-    res$status <- 500
-    list(
-      error = "An error occurred during the HGNC update process. Transaction rolled back.",
-      details = e$message
-    )
-  })
+      dbCommit(sysndd_db)
+      list(status = "Success", message = "HGNC data update process completed.")
+    },
+    error = function(e) {
+      dbRollback(sysndd_db)
+      res$status <- 500
+      list(
+        error = "An error occurred during the HGNC update process. Transaction rolled back.",
+        details = e$message
+      )
+    }
+  )
 }
 
 
 #* Retrieves the current API version
 #*
 #* This endpoint provides the current version of the API. It's a simple utility
-#* function that can be useful for clients to check the API version they are 
-#* interacting with. This can help in ensuring compatibility when multiple 
+#* function that can be useful for clients to check the API version they are
+#* interacting with. This can help in ensuring compatibility when multiple
 #* versions exist.
 #*
 #* # `Details`
@@ -238,7 +241,7 @@ function(req, res) {
 #* variable `sysndd_api_version`. It's primarily for informational purposes.
 #*
 #* # `Authorization`
-#* This endpoint does not require any specific role. It's open for any client 
+#* This endpoint does not require any specific role. It's open for any client
 #* or user who needs to know the API version.
 #*
 #* # `Return`
@@ -253,4 +256,4 @@ function() {
 
 
 ## Administration section
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##

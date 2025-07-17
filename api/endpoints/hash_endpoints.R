@@ -4,9 +4,9 @@
 # sysndd_plumber.R. It follows the Google R Style Guide conventions where
 # possible (e.g., two-space indentation, meaningful function names, etc.).
 
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 ## Hash endpoints
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 
 #* Create a Hash for a List of Identifiers
 #*
@@ -16,7 +16,7 @@
 #* # `Details`
 #* Creates a hash link for a list of identifiers. Uses the helper
 #* post_db_hash() to store the list in the database, associating it
-#* with a unique hash. 
+#* with a unique hash.
 #*
 #* # `Return`
 #* Returns a hash link for the given list of identifiers.
@@ -57,4 +57,4 @@ function(req, res, endpoint = "/api/gene") {
 }
 
 ## Hash endpoints
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##

@@ -7,9 +7,9 @@
 # Be sure to source any required helper files at the top (e.g.,
 # source("functions/database-functions.R", local = TRUE)) if needed.
 
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 ## Analyses endpoints
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 
 #* Retrieve Available Functional Clustering Categories
 #*
@@ -257,38 +257,42 @@ function() {
   # 2) Build Functional Clusters from all ndd_phenotype=1
   #-------------------------------------------------------#
   # define link sources (not strictly needed if you only want correlation)
-  value <- c("COMPARTMENTS",
-             "Component",
-             "DISEASES",
-             "Function",
-             "HPO",
-             "InterPro",
-             "KEGG",
-             "Keyword",
-             "NetworkNeighborAL",
-             "Pfam",
-             "PMID",
-             "Process",
-             "RCTM",
-             "SMART",
-             "TISSUES",
-             "WikiPathways")
-  link <- c("https://www.ebi.ac.uk/QuickGO/term/",
-            "https://www.ebi.ac.uk/QuickGO/term/",
-            "https://disease-ontology.org/term/",
-            "https://www.ebi.ac.uk/QuickGO/term/",
-            "https://hpo.jax.org/app/browse/term/",
-            "http://www.ebi.ac.uk/interpro/entry/InterPro/",
-            "https://www.genome.jp/dbget-bin/www_bget?",
-            "https://www.uniprot.org/keywords/",
-            "https://string-db.org/cgi/network?input_query_species=9606&network_cluster_id=",
-            "https://www.ebi.ac.uk/interpro/entry/pfam/",
-            "https://www.ncbi.nlm.nih.gov/search/all/?term=",
-            "https://www.ebi.ac.uk/QuickGO/term/",
-            "https://reactome.org/content/detail/R-",
-            "http://www.ebi.ac.uk/interpro/entry/smart/",
-            "https://ontobee.org/ontology/BTO?iri=http://purl.obolibrary.org/obo/",
-            "https://www.wikipathways.org/index.php/Pathway:")
+  value <- c(
+    "COMPARTMENTS",
+    "Component",
+    "DISEASES",
+    "Function",
+    "HPO",
+    "InterPro",
+    "KEGG",
+    "Keyword",
+    "NetworkNeighborAL",
+    "Pfam",
+    "PMID",
+    "Process",
+    "RCTM",
+    "SMART",
+    "TISSUES",
+    "WikiPathways"
+  )
+  link <- c(
+    "https://www.ebi.ac.uk/QuickGO/term/",
+    "https://www.ebi.ac.uk/QuickGO/term/",
+    "https://disease-ontology.org/term/",
+    "https://www.ebi.ac.uk/QuickGO/term/",
+    "https://hpo.jax.org/app/browse/term/",
+    "http://www.ebi.ac.uk/interpro/entry/InterPro/",
+    "https://www.genome.jp/dbget-bin/www_bget?",
+    "https://www.uniprot.org/keywords/",
+    "https://string-db.org/cgi/network?input_query_species=9606&network_cluster_id=",
+    "https://www.ebi.ac.uk/interpro/entry/pfam/",
+    "https://www.ncbi.nlm.nih.gov/search/all/?term=",
+    "https://www.ebi.ac.uk/QuickGO/term/",
+    "https://reactome.org/content/detail/R-",
+    "http://www.ebi.ac.uk/interpro/entry/smart/",
+    "https://ontobee.org/ontology/BTO?iri=http://purl.obolibrary.org/obo/",
+    "https://www.wikipathways.org/index.php/Pathway:"
+  )
   links <- tibble(value, link)
 
   # get data from DB: all genes with ndd_phenotype=1
@@ -315,16 +319,20 @@ function() {
   #-------------------------------------------------------#
   # 3) Build Phenotype Clusters
   #-------------------------------------------------------#
-  id_phenotype_ids <- c("HP:0001249",
-                        "HP:0001256",
-                        "HP:0002187",
-                        "HP:0002342",
-                        "HP:0006889",
-                        "HP:0010864")
+  id_phenotype_ids <- c(
+    "HP:0001249",
+    "HP:0001256",
+    "HP:0002187",
+    "HP:0002342",
+    "HP:0006889",
+    "HP:0010864"
+  )
   categories <- c("Definitive")
 
   # gather data from DB
-  ndd_entity_view_tbl <- pool %>% tbl("ndd_entity_view") %>% collect()
+  ndd_entity_view_tbl <- pool %>%
+    tbl("ndd_entity_view") %>%
+    collect()
   ndd_entity_review_tbl <- pool %>%
     tbl("ndd_entity_review") %>%
     collect() %>%
@@ -334,8 +342,12 @@ function() {
   ndd_review_phenotype_connect_tbl <- pool %>%
     tbl("ndd_review_phenotype_connect") %>%
     collect()
-  modifier_list_tbl <- pool %>% tbl("modifier_list") %>% collect()
-  phenotype_list_tbl <- pool %>% tbl("phenotype_list") %>% collect()
+  modifier_list_tbl <- pool %>%
+    tbl("modifier_list") %>%
+    collect()
+  phenotype_list_tbl <- pool %>%
+    tbl("phenotype_list") %>%
+    collect()
 
   # join/filter
   sysndd_db_phenotypes <- ndd_entity_view_tbl %>%
@@ -350,11 +362,13 @@ function() {
     filter(category %in% categories) %>%
     filter(modifier_name == "present") %>%
     filter(review_id %in% ndd_entity_review_tbl$review_id) %>%
-    select(entity_id,
-           hpo_mode_of_inheritance_term_name,
-           phenotype_id,
-           HPO_term,
-           hgnc_id) %>%
+    select(
+      entity_id,
+      hpo_mode_of_inheritance_term_name,
+      phenotype_id,
+      HPO_term,
+      hgnc_id
+    ) %>%
     group_by(entity_id) %>%
     mutate(
       phenotype_non_id_count = sum(!(phenotype_id %in% id_phenotype_ids)),
@@ -452,4 +466,4 @@ function() {
 }
 
 ## Analyses endpoints
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##

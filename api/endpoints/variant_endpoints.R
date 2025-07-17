@@ -154,7 +154,8 @@ function(res,
     left_join(local_vario_lookup, by = "x") %>%
     rename(x_vario_id = x_id) %>%
     # Join 'y' by a second rename
-    left_join(local_vario_lookup %>% rename(y = x, y_vario_id = x_id), by = "y") %>%
+    left_join(local_vario_lookup %>%
+      rename(y = x, y_vario_id = x_id), by = "y") %>%
     select(
       x, x_vario_id,
       y, y_vario_id,
@@ -171,7 +172,7 @@ function(res,
 #* based on data in the database.
 #*
 #* # `Details`
-#* Similar approach to the correlation endpoint, but instead of computing 
+#* Similar approach to the correlation endpoint, but instead of computing
 #* correlation, it simply tallies how many times each variant (vario_id) appears.
 #*
 #* # `Return`

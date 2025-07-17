@@ -1,16 +1,16 @@
 # api/endpoints/gene_endpoints.R
 #
 # This file contains all gene-related endpoints, extracted from the
-# original sysndd_plumber.R. It follows the Google R Style Guide 
-# conventions where possible (e.g., two-space indentation, 
+# original sysndd_plumber.R. It follows the Google R Style Guide
+# conventions where possible (e.g., two-space indentation,
 # meaningful function names, etc.).
 #
 # Be sure to source any required helpers if needed, for example:
 # source("functions/database-functions.R", local = TRUE)
 
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 ## Gene endpoints
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 
 #* Fetch Gene Data with Filters and Field Selection
 #*
@@ -201,14 +201,20 @@ function(gene_input, input_type = "hgnc") {
 
   non_alt_loci_set_collected <- pool %>%
     tbl("non_alt_loci_set") %>%
-    {if (input_type == "hgnc")
-      filter(., hgnc_id == gene_input)
-    else 
-      .} %>%
-    {if (input_type == "symbol")
-      filter(., str_to_lower(symbol) == gene_input)
-    else 
-      .} %>%
+    {
+      if (input_type == "hgnc") {
+        filter(., hgnc_id == gene_input)
+      } else {
+        .
+      }
+    } %>%
+    {
+      if (input_type == "symbol") {
+        filter(., str_to_lower(symbol) == gene_input)
+      } else {
+        .
+      }
+    } %>%
     select(
       hgnc_id,
       symbol,
@@ -233,4 +239,4 @@ function(gene_input, input_type = "hgnc") {
 
 
 ## Gene endpoints
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##

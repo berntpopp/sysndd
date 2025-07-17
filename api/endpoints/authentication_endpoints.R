@@ -8,9 +8,9 @@
 # for example:
 # source("functions/database-functions.R", local = TRUE)
 
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 ## Authentication section
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 
 #* User Signup
 #*
@@ -112,11 +112,11 @@ function(signup_data) {
 #* Authenticate a User with Login
 #*
 #* Checks username & password against the DB for an approved user. If correct,
-#* returns a JWT. Otherwise, returns an error. 
+#* returns a JWT. Otherwise, returns an error.
 #*
 #* # `Details`
 #* Loads secret from environment (dw$secret), verifies user, role, and other
-#* details, and if successful, encodes a JWT with expiry time. 
+#* details, and if successful, encodes a JWT with expiry time.
 #*
 #* # `Return`
 #* JWT on success, error message otherwise.
@@ -188,7 +188,7 @@ function(req, res, user_name, password) {
 #* not expired, returns the user data. Otherwise, returns an error.
 #*
 #* # `Details`
-#* Loads JWT from header, decodes it, checks expiration. 
+#* Loads JWT from header, decodes it, checks expiration.
 #*
 #* # `Return`
 #* User info if token is valid; 401 otherwise.
@@ -196,7 +196,7 @@ function(req, res, user_name, password) {
 #* @tag authentication
 #* @serializer json list(na="string")
 #*
-#* @response 200 OK. Returns user_id, user_name, email, etc. 
+#* @response 200 OK. Returns user_id, user_name, email, etc.
 #* @response 401 Unauthorized. If token is missing or invalid/expired.
 #*
 #* @get signin
@@ -212,13 +212,16 @@ function(req, res) {
   jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
 
   user <- NULL
-  tryCatch({
-    user <- jwt_decode_hmac(jwt, secret = key)
-    user$token_expired <- (user$exp < as.numeric(Sys.time()))
-  }, error = function(e) {
-    res$status <- 401
-    return(list(error = "Authentication not successful."))
-  })
+  tryCatch(
+    {
+      user <- jwt_decode_hmac(jwt, secret = key)
+      user$token_expired <- (user$exp < as.numeric(Sys.time()))
+    },
+    error = function(e) {
+      res$status <- 401
+      return(list(error = "Authentication not successful."))
+    }
+  )
 
   if (is.null(jwt) || user$token_expired) {
     res$status <- 401
@@ -268,13 +271,16 @@ function(req, res) {
   jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
   user <- NULL
 
-  tryCatch({
-    user <- jwt_decode_hmac(jwt, secret = key)
-    user$token_expired <- (user$exp < as.numeric(Sys.time()))
-  }, error = function(e) {
-    res$status <- 401
-    return(list(error = "Authentication not successful."))
-  })
+  tryCatch(
+    {
+      user <- jwt_decode_hmac(jwt, secret = key)
+      user$token_expired <- (user$exp < as.numeric(Sys.time()))
+    },
+    error = function(e) {
+      res$status <- 401
+      return(list(error = "Authentication not successful."))
+    }
+  )
 
   if (is.null(jwt) || user$token_expired) {
     res$status <- 401
@@ -297,4 +303,4 @@ function(req, res) {
 }
 
 ## Authentication section
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##

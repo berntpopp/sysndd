@@ -4,9 +4,9 @@
 # sysndd_plumber.R. It follows the Google R Style Guide conventions where possible
 # (e.g., two-space indentation, meaningful function names, etc.).
 
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 ## Entity endpoints
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 
 #* Get a Cursor Pagination Object of All Entities
 #*
@@ -385,8 +385,8 @@ function(req, res, direct_approval = FALSE) {
     }
 
     if (response_entity$status == 200 &&
-        response_review_post$status == 200 &&
-        response_status_post$status == 200) {
+      response_review_post$status == 200 &&
+      response_status_post$status == 200) {
       res$status <- response_entity$status
       return(response_entity)
     } else {
@@ -462,10 +462,10 @@ function(req, res) {
 
     if (
       rename_data$entity$hgnc_id == ndd_entity_replaced$hgnc_id &&
-      rename_data$entity$hpo_mode_of_inheritance_term == ndd_entity_replaced$hpo_mode_of_inheritance_term &&
-      rename_data$entity$ndd_phenotype == ndd_entity_replaced$ndd_phenotype &&
-      rename_data$entity$disease_ontology_id_version !=
-        ndd_entity_original$disease_ontology_id_version
+        rename_data$entity$hpo_mode_of_inheritance_term == ndd_entity_replaced$hpo_mode_of_inheritance_term &&
+        rename_data$entity$ndd_phenotype == ndd_entity_replaced$ndd_phenotype &&
+        rename_data$entity$disease_ontology_id_version !=
+          ndd_entity_original$disease_ontology_id_version
     ) {
       response_new_entity <- post_db_entity(ndd_entity_replaced)
       response_deactivate <- put_db_entity_deactivation(
@@ -564,8 +564,8 @@ function(req, res) {
 
       if (
         response_new_entity$status == 200 &&
-        response_review_post$status == 200 &&
-        response_status_post$status == 200
+          response_review_post$status == 200 &&
+          response_status_post$status == 200
       ) {
         res$status <- response_new_entity$status
         return(response_new_entity)
@@ -637,11 +637,11 @@ function(req, res) {
 
     if (
       deactivate_data$entity$hgnc_id == ndd_entity_replaced$hgnc_id &&
-      deactivate_data$entity$hpo_mode_of_inheritance_term ==
-        ndd_entity_replaced$hpo_mode_of_inheritance_term &&
-      deactivate_data$entity$ndd_phenotype ==
-        ndd_entity_replaced$ndd_phenotype &&
-      deactivate_data$entity$is_active != ndd_entity_original$is_active
+        deactivate_data$entity$hpo_mode_of_inheritance_term ==
+          ndd_entity_replaced$hpo_mode_of_inheritance_term &&
+        deactivate_data$entity$ndd_phenotype ==
+          ndd_entity_replaced$ndd_phenotype &&
+        deactivate_data$entity$is_active != ndd_entity_original$is_active
     ) {
       response_new_entity <- put_db_entity_deactivation(
         deactivate_data$entity$entity_id,
@@ -886,4 +886,4 @@ function(sysndd_id) {
 }
 
 ## Entity endpoints
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##

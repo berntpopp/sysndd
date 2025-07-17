@@ -4,9 +4,9 @@
 # sysndd_plumber.R. It follows the Google R Style Guide conventions
 # where possible.
 
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 ## List endpoints
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 
 #* Get All Status Categories
 #*
@@ -54,7 +54,7 @@ function(tree = FALSE) {
 #* This endpoint retrieves a list of all phenotypes.
 #*
 #* # `Return`
-#* Returns a list of phenotypes. If 'tree' is TRUE, 
+#* Returns a list of phenotypes. If 'tree' is TRUE,
 #* returns them in a nested structure with modifiers.
 #*
 #* @tag list
@@ -205,4 +205,4 @@ function(tree = FALSE) {
 }
 
 ## List endpoints
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
