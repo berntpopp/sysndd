@@ -668,33 +668,53 @@ function(req, res) {
 
 #* Get Phenotypes for Entity
 #*
-#* This endpoint retrieves all phenotypes associated with a
-#* given entity_id. The function gets data from the database, performs
-#* necessary joins and filtering to produce the list of phenotypes.
+#* This endpoint retrieves phenotypes associated with a given entity_id.
+#* By default, it returns phenotypes from the currently active review only.
 #*
 #* # `Details`
-#* The function joins active entities with phenotype connections
-#* and then matches these with the phenotype list to get a complete
-#* phenotype information for the given entity_id.
+#* The function joins active entities with phenotype connections from the
+#* currently active review (is_primary = 1) and matches with the phenotype
+#* list to get complete phenotype information.
 #*
 #* # `Return`
-#* A dataframe containing entity_id, phenotype_id, HPO_term,
-#* and modifier_id for each phenotype associated with the entity_id.
+#* A dataframe containing entity_id, phenotype_id, HPO_term, modifier_id,
+#* review_id, review_date, and is_primary for each phenotype.
 #*
 #* @tag entity
 #* @serializer json list(na="string")
 #*
 #* @param sysndd_id A numeric, representing the entity_id to be retrieved.
+#* @param current_review A logical, if TRUE (default) returns phenotypes from
+#* the currently active review only. If FALSE, returns all active phenotypes.
 #*
-#* @response 200 OK. A data frame as described above.
+#* @response 200 OK. A data frame with phenotype information and review metadata.
 #* @response 500 Internal server error.
 #*
 #* @get /<sysndd_id>/phenotypes
-function(sysndd_id) {
-  ndd_review_phenotype_conn_coll <- pool %>%
-    tbl("ndd_review_phenotype_connect") %>%
-    filter(is_active == 1) %>%
-    collect()
+function(sysndd_id, current_review = TRUE) {
+  if (current_review) {
+    # Get primary review for this entity
+    ndd_entity_review_collected <- pool %>%
+      tbl("ndd_entity_review") %>%
+      collect()
+
+    ndd_entity_review_list <- ndd_entity_review_collected %>%
+      filter(entity_id == sysndd_id & is_primary) %>%
+      dplyr::select(entity_id, review_id, synopsis, review_date, comment) %>%
+      arrange(review_date)
+
+    # Get phenotype connections for the primary review
+    ndd_review_phenotype_conn_coll <- pool %>%
+      tbl("ndd_review_phenotype_connect") %>%
+      filter(review_id %in% ndd_entity_review_list$review_id) %>%
+      collect()
+  } else {
+    # Legacy behavior: filter by is_active
+    ndd_review_phenotype_conn_coll <- pool %>%
+      tbl("ndd_review_phenotype_connect") %>%
+      filter(is_active == 1) %>%
+      collect()
+  }
 
   phenotype_list_collected <- pool %>%
     tbl("phenotype_list") %>%
@@ -717,32 +737,53 @@ function(sysndd_id) {
 
 #* Get Variation Ontology for Entity
 #*
-#* This endpoint retrieves all variation ontology terms associated
-#* with a given entity_id. The function fetches data from the database,
-#* performs necessary joins and filtering to produce the
-#* list of variation ontology terms.
+#* This endpoint retrieves variation ontology terms associated with a given
+#* entity_id. By default, it returns variations from the currently active review only.
 #*
 #* # `Details`
-#* The function first collects the active variation ontology connections
-#* from the database, then filters for the given entity_id,
-#* and joins these with the variation ontology list to get the complete
-#* variation ontology information.
+#* The function collects variation ontology connections from the currently
+#* active review (is_primary = 1), filters for the given entity_id, and joins
+#* with the variation ontology list to get complete information.
 #*
 #* # `Return`
-#* A dataframe containing entity_id, vario_id, vario_name, and
-#* modifier_id for each variation ontology term associated with the entity_id.
+#* A dataframe containing entity_id, vario_id, vario_name, modifier_id,
+#* review_id, review_date, and is_primary for each variation ontology term.
 #*
 #* @tag entity
 #* @serializer json list(na="string")
 #*
 #* @param sysndd_id The entity_id for which ontology should be retrieved.
+#* @param current_review A logical, if TRUE (default) returns variations from
+#* the currently active review only. If FALSE, returns all active variations.
+#*
+#* @response 200 OK. A data frame with variation ontology information and review metadata.
+#* @response 500 Internal server error.
 #*
 #* @get /<sysndd_id>/variation
-function(sysndd_id) {
-  ndd_review_variation_conn_coll <- pool %>%
-    tbl("ndd_review_variation_ontology_connect") %>%
-    filter(is_active == 1) %>%
-    collect()
+function(sysndd_id, current_review = TRUE) {
+  if (current_review) {
+    # Get primary review for this entity
+    ndd_entity_review_collected <- pool %>%
+      tbl("ndd_entity_review") %>%
+      collect()
+
+    ndd_entity_review_list <- ndd_entity_review_collected %>%
+      filter(entity_id == sysndd_id & is_primary) %>%
+      dplyr::select(entity_id, review_id, synopsis, review_date, comment) %>%
+      arrange(review_date)
+
+    # Get variation connections for the primary review
+    ndd_review_variation_conn_coll <- pool %>%
+      tbl("ndd_review_variation_ontology_connect") %>%
+      filter(review_id %in% ndd_entity_review_list$review_id) %>%
+      collect()
+  } else {
+    # Legacy behavior: filter by is_active
+    ndd_review_variation_conn_coll <- pool %>%
+      tbl("ndd_review_variation_ontology_connect") %>%
+      filter(is_active == 1) %>%
+      collect()
+  }
 
   variation_list_collected <- pool %>%
     tbl("variation_ontology_list") %>%
@@ -846,31 +887,53 @@ function(sysndd_id) {
 
 #* Get Entity Publications
 #*
-#* This endpoint retrieves all publications associated with a
-#* given entity_id. It collects publication data from the database, performs
-#* necessary filtering and joins, and selects relevant fields.
+#* This endpoint retrieves publications associated with a given entity_id.
+#* By default, it returns publications from the currently active review only.
 #*
 #* # `Details`
-#* The function fetches publication data and entity data from the
-#* database, filters for reviewed publications and the given entity_id, joins
-#* on entity_id, and selects relevant columns. The result is then ordered by
-#* publication_id and de-duplicated.
+#* The function fetches publication data from the currently active review
+#* (is_primary = 1), filters for the given entity_id, and selects relevant
+#* columns with review metadata.
 #*
 #* # `Return`
 #* A dataframe containing entity_id, publication_id, publication_type,
-#* and is_reviewed fields for the publications associated with the entity_id.
+#* is_reviewed, review_id, review_date, and is_primary for each publication.
 #*
 #* @tag entity
 #* @serializer json list(na="string")
 #*
-#* @param sysndd_id The entity_id for which the publications are to be retrieved.
+#* @param sysndd_id The entity_id for which publications are to be retrieved.
+#* @param current_review A logical, if TRUE (default) returns publications from
+#* the currently active review only. If FALSE, returns all reviewed publications.
+#*
+#* @response 200 OK. A data frame with publication information and review metadata.
+#* @response 500 Internal server error.
 #*
 #* @get /<sysndd_id>/publications
-function(sysndd_id) {
-  review_publication_join_coll <- pool %>%
-    tbl("ndd_review_publication_join") %>%
-    filter(is_reviewed == 1) %>%
-    collect()
+function(sysndd_id, current_review = TRUE) {
+  if (current_review) {
+    # Get primary review for this entity
+    ndd_entity_review_collected <- pool %>%
+      tbl("ndd_entity_review") %>%
+      collect()
+
+    ndd_entity_review_list <- ndd_entity_review_collected %>%
+      filter(entity_id == sysndd_id & is_primary) %>%
+      dplyr::select(entity_id, review_id, synopsis, review_date, comment) %>%
+      arrange(review_date)
+
+    # Get publication connections for the primary review
+    review_publication_join_coll <- pool %>%
+      tbl("ndd_review_publication_join") %>%
+      filter(review_id %in% ndd_entity_review_list$review_id) %>%
+      collect()
+  } else {
+    # Legacy behavior: filter by is_reviewed
+    review_publication_join_coll <- pool %>%
+      tbl("ndd_review_publication_join") %>%
+      filter(is_reviewed == 1) %>%
+      collect()
+  }
 
   ndd_entity_active <- pool %>%
     tbl("ndd_entity_view") %>%
