@@ -772,16 +772,16 @@ function(sysndd_id, current_review = TRUE) {
       dplyr::select(entity_id, review_id, synopsis, review_date, comment) %>%
       arrange(review_date)
 
-    # Get variation connections for the primary review
+    # Get variation connections for the primary review AND this specific entity
     ndd_review_variation_conn_coll <- pool %>%
       tbl("ndd_review_variation_ontology_connect") %>%
-      filter(review_id %in% ndd_entity_review_list$review_id) %>%
+      filter(review_id %in% ndd_entity_review_list$review_id & entity_id == sysndd_id) %>%
       collect()
   } else {
     # Legacy behavior: filter by is_active
     ndd_review_variation_conn_coll <- pool %>%
       tbl("ndd_review_variation_ontology_connect") %>%
-      filter(is_active == 1) %>%
+      filter(is_active == 1 & entity_id == sysndd_id) %>%
       collect()
   }
 
@@ -790,7 +790,6 @@ function(sysndd_id, current_review = TRUE) {
     collect()
 
   variation_list <- ndd_review_variation_conn_coll %>%
-    filter(entity_id == sysndd_id) %>%
     inner_join(variation_list_collected, by = c("vario_id")) %>%
     dplyr::select(entity_id, vario_id, vario_name, modifier_id) %>%
     arrange(vario_id) %>%
