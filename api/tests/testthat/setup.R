@@ -6,6 +6,7 @@ library(testthat)
 library(dittodb)
 library(withr)
 library(httr2)
+library(jose)  # For JWT token testing
 
 # Load tidyverse for data manipulation (used in assertions)
 library(dplyr)
