@@ -17,8 +17,8 @@ This roadmap delivers a modern developer experience for SysNDD through five phas
 **Plans:** 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Create verification scripts and confirm all 94 endpoints respond correctly
-- [ ] 01-02-PLAN.md — Remove legacy code and update documentation
+- [x] 01-01-PLAN.md — Create verification scripts and confirm all 94 endpoints respond correctly
+- [x] 01-02-PLAN.md — Remove legacy code and update documentation
 
 **Success Criteria:**
 1. All 21 extracted endpoint files respond correctly to their documented routes
@@ -120,13 +120,13 @@ Plans:
 
 | Phase | Status | Requirements | Completion |
 |-------|--------|--------------|------------|
-| 1 - API Refactoring Completion | Planned | REF-01, REF-02, REF-03 | 0/3 |
+| 1 - API Refactoring Completion | ✓ Complete | REF-01, REF-02, REF-03 | 3/3 |
 | 2 - Test Infrastructure Foundation | Not Started | TEST-01 through TEST-06 | 0/6 |
 | 3 - Package Management + Docker | Not Started | DEV-01 through DEV-06, TEST-07 | 0/7 |
 | 4 - Makefile Automation | Not Started | MAKE-01 through MAKE-06 | 0/6 |
 | 5 - Expanded Test Coverage | Not Started | COV-01, COV-02, COV-03 | 0/3 |
 
-**Total:** 0/25 requirements complete
+**Total:** 3/25 requirements complete
 
 ## Dependency Graph
 
