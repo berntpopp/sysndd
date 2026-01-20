@@ -14,6 +14,12 @@ This roadmap delivers a modern developer experience for SysNDD through five phas
 
 **Requirements:** REF-01, REF-02, REF-03
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Create verification scripts and confirm all 94 endpoints respond correctly
+- [ ] 01-02-PLAN.md — Remove legacy code and update documentation
+
 **Success Criteria:**
 1. All 21 extracted endpoint files respond correctly to their documented routes
 2. Legacy `api/_old/` directory is removed from repository
@@ -29,6 +35,11 @@ This roadmap delivers a modern developer experience for SysNDD through five phas
 **Dependencies:** Phase 1 (need stable API structure to test against)
 
 **Requirements:** TEST-01, TEST-02, TEST-03, TEST-04, TEST-05, TEST-06
+
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (created by /gsd:plan-phase)
 
 **Success Criteria:**
 1. Running `Rscript -e "testthat::test_dir('tests/testthat')"` executes tests successfully
@@ -47,6 +58,11 @@ This roadmap delivers a modern developer experience for SysNDD through five phas
 
 **Requirements:** DEV-01, DEV-02, DEV-03, DEV-04, DEV-05, DEV-06, TEST-07
 
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (created by /gsd:plan-phase)
+
 **Success Criteria:**
 1. Running `renv::restore()` on a fresh clone installs identical package versions
 2. `docker compose -f docker-compose.dev.yml up db` starts database for local API development
@@ -63,6 +79,11 @@ This roadmap delivers a modern developer experience for SysNDD through five phas
 **Dependencies:** Phase 2 (test targets need working test infrastructure), Phase 3 (docker targets need dev compose file)
 
 **Requirements:** MAKE-01, MAKE-02, MAKE-03, MAKE-04, MAKE-05, MAKE-06
+
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (created by /gsd:plan-phase)
 
 **Success Criteria:**
 1. Running `make help` displays all available targets with descriptions
@@ -82,6 +103,11 @@ This roadmap delivers a modern developer experience for SysNDD through five phas
 
 **Requirements:** COV-01, COV-02, COV-03
 
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (created by /gsd:plan-phase)
+
 **Success Criteria:**
 1. Code coverage for `functions/*.R` files reaches 70% or higher
 2. All critical endpoints have at least one integration test (entities, genes, phenotypes, analysis)
@@ -94,7 +120,7 @@ This roadmap delivers a modern developer experience for SysNDD through five phas
 
 | Phase | Status | Requirements | Completion |
 |-------|--------|--------------|------------|
-| 1 - API Refactoring Completion | Not Started | REF-01, REF-02, REF-03 | 0/3 |
+| 1 - API Refactoring Completion | Planned | REF-01, REF-02, REF-03 | 0/3 |
 | 2 - Test Infrastructure Foundation | Not Started | TEST-01 through TEST-06 | 0/6 |
 | 3 - Package Management + Docker | Not Started | DEV-01 through DEV-06, TEST-07 | 0/7 |
 | 4 - Makefile Automation | Not Started | MAKE-01 through MAKE-06 | 0/6 |
