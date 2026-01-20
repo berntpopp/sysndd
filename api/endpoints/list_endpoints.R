@@ -33,16 +33,12 @@ function(tree = FALSE) {
     collect()
 
   if (tree) {
-    status_list_return_helper <- status_list_collected
-  } else {
+    # Format for treeselect library: id and label columns
     status_list_return_helper <- status_list_collected %>%
-      tidyr::nest(.by = c(results), .key = "values") %>%
-      ungroup() %>%
-      pivot_wider(
-        id_cols = everything(),
-        names_from = "category",
-        values_from = "values"
-      )
+      select(id = category_id, label = category)
+  } else {
+    # Return raw data structure
+    status_list_return_helper <- status_list_collected
   }
 
   status_list_return_helper
