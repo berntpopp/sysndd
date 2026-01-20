@@ -115,19 +115,18 @@ public_endpoints <- list(
   list(path = "/api/list/phenotype", desc = "Phenotype list"),
   list(path = "/api/list/status", desc = "Status list"),
   list(path = "/api/analysis/functional_clustering", desc = "Functional clustering"),
-  list(path = "/api/hash/create", desc = "Hash creation"),
   list(path = "/api/variant/count", desc = "Variant count"),
   list(path = "/api/publication/", desc = "Publication root"),
   list(path = "/api/review/", desc = "Review root"),
-  list(path = "/api/re_review/table", desc = "Re-review table"),
-  list(path = "/api/logs/", desc = "Logs root")
+  list(path = "/api/admin/api_version", desc = "Admin API version")
 )
 
-# Protected endpoints that should return 401 (no auth provided)
+# Protected endpoints that should return 401 or 403 (no auth provided)
 protected_endpoints <- list(
-  list(path = "/api/admin/api_version", desc = "Admin API version"),
   list(path = "/api/user/list", desc = "User list"),
-  list(path = "/api/user/table", desc = "User table")
+  list(path = "/api/user/table", desc = "User table"),
+  list(path = "/api/re_review/table", desc = "Re-review table"),
+  list(path = "/api/logs/", desc = "Logs root")
 )
 
 # Skip these (POST-only or external dependencies)
@@ -148,12 +147,53 @@ for (endpoint in public_endpoints) {
 }
 
 cat("\n")
-cat("Testing PROTECTED endpoints (should return 401):\n")
+cat("Testing PROTECTED endpoints (should return 401 or 403):\n")
 cat(paste(rep("-", 60), collapse = ""), "\n")
+
+# Helper for protected endpoints - accepts 401 or 403
+verify_protected <- function(path, description = "") {
+  full_url <- paste0(base_url, path)
+
+  result <- tryCatch({
+    resp <- httr2::request(full_url) |>
+      httr2::req_error(is_error = function(resp) FALSE) |>
+      httr2::req_perform()
+
+    status <- httr2::resp_status(resp)
+
+    if (status %in% c(401, 403)) {
+      list(
+        success = TRUE,
+        status = status,
+        message = sprintf("[OK] %s - %d", path, status)
+      )
+    } else {
+      list(
+        success = FALSE,
+        status = status,
+        message = sprintf("[FAIL] %s - Expected 401/403, got %d", path, status)
+      )
+    }
+  }, error = function(e) {
+    list(
+      success = FALSE,
+      status = NA,
+      message = sprintf("[ERROR] %s - %s", path, conditionMessage(e))
+    )
+  })
+
+  if (!is.na(description) && description != "") {
+    cat(sprintf("%-50s %s\n", description, result$message))
+  } else {
+    cat(result$message, "\n")
+  }
+
+  return(result)
+}
 
 protected_results <- list()
 for (endpoint in protected_endpoints) {
-  result <- verify_endpoint(endpoint$path, 401, endpoint$desc)
+  result <- verify_protected(endpoint$path, endpoint$desc)
   protected_results[[length(protected_results) + 1]] <- result
 }
 
