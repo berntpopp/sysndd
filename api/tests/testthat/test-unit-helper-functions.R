@@ -55,3 +55,67 @@ test_that("is_valid_email handles edge cases", {
   # Underscores are valid
   expect_true(is_valid_email("user_name@example.com"))
 })
+
+
+# =============================================================================
+# generate_initials() tests
+# =============================================================================
+
+test_that("generate_initials creates correct initials from names", {
+  expect_equal(generate_initials("John", "Doe"), "JD")
+  expect_equal(generate_initials("Ada", "Lovelace"), "AL")
+  expect_equal(generate_initials("Marie", "Curie"), "MC")
+})
+
+test_that("generate_initials handles single-letter names", {
+  expect_equal(generate_initials("A", "B"), "AB")
+})
+
+test_that("generate_initials handles lowercase input", {
+  # Function takes first char regardless of case
+  expect_equal(generate_initials("john", "doe"), "jd")
+})
+
+
+# =============================================================================
+# generate_sort_expressions() tests
+# =============================================================================
+
+test_that("generate_sort_expressions parses ascending sort", {
+  result <- generate_sort_expressions("+name", unique_id = "id")
+
+  expect_true("name" %in% result)
+  # unique_id should be appended if not present
+  expect_true("id" %in% result)
+})
+
+test_that("generate_sort_expressions parses descending sort", {
+  result <- generate_sort_expressions("-name", unique_id = "id")
+
+  expect_true("desc(name)" %in% result)
+  expect_true("id" %in% result)
+})
+
+test_that("generate_sort_expressions handles multiple columns", {
+  result <- generate_sort_expressions("+name,-age,+date", unique_id = "id")
+
+  expect_true("name" %in% result)
+  expect_true("desc(age)" %in% result)
+  expect_true("date" %in% result)
+  expect_true("id" %in% result)
+})
+
+test_that("generate_sort_expressions defaults to ascending without prefix", {
+
+  result <- generate_sort_expressions("name", unique_id = "id")
+
+  expect_true("name" %in% result)
+})
+
+test_that("generate_sort_expressions includes unique_id only once", {
+  # When unique_id is already in sort list, don't duplicate
+  result <- generate_sort_expressions("+entity_id,-name", unique_id = "entity_id")
+
+  # entity_id should appear only once
+  expect_equal(sum(grepl("entity_id", result)), 1)
+})
