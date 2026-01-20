@@ -8,48 +8,58 @@
 
 ## Current Position
 
-**Phase:** 1 - API Refactoring Completion
-**Plan:** Not yet created
-**Status:** Not Started
+**Phase:** 1 - API Refactoring Completion (01-api-refactoring-completion)
+**Plan:** 01-02 complete
+**Status:** In Progress
 
 ```
-Progress: [..........] 0%
-Phase 1: [..........] 0/3 requirements
+Progress: [██........] 20%
+Phase 1: [██........] 2/3 plans complete
 ```
+
+**Plans completed:**
+- 01-01: Endpoint verification scripts (3 tasks, 5 commits)
+- 01-02: Legacy cleanup and documentation (2 tasks, 2 commits)
 
 ## GitHub Issues
 
 | Issue | Description | Phase | Status |
 |-------|-------------|-------|--------|
-| #109 | Refactor sysndd_plumber.R into smaller endpoint files | 1 | 95% complete |
+| #109 | Refactor sysndd_plumber.R into smaller endpoint files | 1 | Ready for PR - all endpoints verified, legacy removed, docs updated |
 | #123 | Implement comprehensive testing | 2, 5 | Not started |
 
 ## Performance Metrics
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| Session count | 0 | First session pending |
-| Phases completed | 0/5 | — |
-| Requirements completed | 0/25 | — |
-| Plans executed | 0 | — |
+| Session count | 1 | Current session |
+| Phases completed | 0/5 | Phase 1 in progress (2/3 plans) |
+| Requirements completed | 2/25 | REF-02, REF-03 complete |
+| Plans executed | 2 | 01-01, 01-02 |
+| Total commits | 7 | 5 from 01-01, 2 from 01-02 |
 
 ## Accumulated Context
 
 ### Key Decisions Made
 
-| Decision | Rationale | Date |
-|----------|-----------|------|
-| testthat + mirai for testing | callthat experimental; mirai production-ready | 2026-01-20 |
-| Hybrid dev setup | DB in Docker, API/frontend local for fast iteration | 2026-01-20 |
-| renv for R packages | Industry standard, replaces deprecated packrat | 2026-01-20 |
-| Makefile over Taskfile | Universal, no dependencies, works everywhere | 2026-01-20 |
+| Decision | Rationale | Date | Plan |
+|----------|-----------|------|------|
+| testthat + mirai for testing | callthat experimental; mirai production-ready | 2026-01-20 | Research |
+| Hybrid dev setup | DB in Docker, API/frontend local for fast iteration | 2026-01-20 | Research |
+| renv for R packages | Industry standard, replaces deprecated packrat | 2026-01-20 | Research |
+| Makefile over Taskfile | Universal, no dependencies, works everywhere | 2026-01-20 | Research |
+| Remove legacy _old directory | Safe after verification; preserved in git history | 2026-01-20 | 01-02 |
+| Document all 21 endpoints in table | Clear reference for mount paths and purpose | 2026-01-20 | 01-02 |
 
 ### Technical Discoveries
 
 - API refactoring created 21 endpoint files in `api/endpoints/`
-- Legacy code preserved in `api/_old/` pending verification
+- All 21 endpoints verified working (Plan 01-01: 21/21 tests passing)
+- Fixed /api/list/status endpoint bug during verification
+- Legacy code removed after verification (Plan 01-02)
 - R linting infrastructure already exists in `api/scripts/`
 - No testing infrastructure currently exists
+- New modular structure has 94 endpoints vs ~20 in old monolithic file
 
 ### Blockers
 
@@ -57,7 +67,10 @@ None currently.
 
 ### TODOs (Cross-Session)
 
-- [ ] Verify all extracted endpoints function correctly (Phase 1)
+- [x] Verify all extracted endpoints function correctly (Phase 1) - Done in 01-01
+- [x] Remove legacy _old directory (Phase 1) - Done in 01-02
+- [x] Update documentation for new structure (Phase 1) - Done in 01-02
+- [ ] Create PR and close Issue #109 (Phase 1, Plan 01-03)
 - [ ] Create test directory structure (Phase 2)
 - [ ] Document WSL2 filesystem requirement for Windows developers (Phase 3)
 
@@ -65,24 +78,27 @@ None currently.
 
 ### Last Session
 
-**Date:** Not yet started
-**Work completed:** Project initialization, requirements gathering, research synthesis
-**State at end:** Ready to begin Phase 1
+**Date:** 2026-01-20
+**Work completed:**
+- Plan 01-01: Created endpoint verification scripts, verified all 21 endpoints, fixed /api/list/status bug
+- Plan 01-02: Removed legacy _old directory, updated README with comprehensive endpoint documentation
+
+**State at end:** Phase 1 at 67% (2/3 plans complete). Ready for Plan 01-03 to create PR and close Issue #109.
 
 ### Resume Instructions
 
 To continue this project:
 
-1. Review current phase in ROADMAP.md
-2. Check this STATE.md for context and blockers
-3. If no plan exists for current phase, run `/gsd:plan-phase 1`
-4. If plan exists, continue execution
+1. Execute Plan 01-03: Create PR for Issue #109 with all refactoring work
+2. After #109 merged, begin Phase 2 planning (testing infrastructure)
+3. Review accumulated decisions in this STATE.md before planning
 
 ### Files to Review on Resume
 
-- `/mnt/c/development/sysndd/.planning/ROADMAP.md` - Phase structure and success criteria
-- `/mnt/c/development/sysndd/.planning/REQUIREMENTS.md` - Detailed requirements
-- `/mnt/c/development/sysndd/.planning/research/SUMMARY.md` - Technical recommendations
+- `.planning/phases/01-api-refactoring-completion/01-01-SUMMARY.md` - Endpoint verification results
+- `.planning/phases/01-api-refactoring-completion/01-02-SUMMARY.md` - Legacy cleanup results
+- `.planning/ROADMAP.md` - Phase structure and success criteria
+- `api/README.md` - Updated API documentation with endpoint table
 
 ---
 *Last updated: 2026-01-20*
