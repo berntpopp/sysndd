@@ -85,8 +85,10 @@ for (mount_point in names(mount_map)) {
       # Handle special cases: "/" stays as mount_point, others append
       full_path <- if (path == "/" || path == "") {
         paste0(mount_point, "/")
-      } else {
+      } else if (startsWith(path, "/")) {
         paste0(mount_point, path)
+      } else {
+        paste0(mount_point, "/", path)
       }
 
       # Determine if auth is required (heuristic)
