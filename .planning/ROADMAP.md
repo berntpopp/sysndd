@@ -36,10 +36,14 @@ Plans:
 
 **Requirements:** TEST-01, TEST-02, TEST-03, TEST-04, TEST-05, TEST-06
 
-**Plans:** 0 plans
+**Plans:** 5 plans
 
 Plans:
-- [ ] TBD (created by /gsd:plan-phase)
+- [ ] 02-01-PLAN.md — Install testing packages and create test directory structure
+- [ ] 02-02-PLAN.md — Configure test database connection and helper-db.R
+- [ ] 02-03-PLAN.md — Write unit tests for helper-functions.R
+- [ ] 02-04-PLAN.md — Create auth helpers and write authentication integration tests
+- [ ] 02-05-PLAN.md — Write entity CRUD integration tests
 
 **Success Criteria:**
 1. Running `Rscript -e "testthat::test_dir('tests/testthat')"` executes tests successfully
@@ -121,7 +125,7 @@ Plans:
 | Phase | Status | Requirements | Completion |
 |-------|--------|--------------|------------|
 | 1 - API Refactoring Completion | ✓ Complete | REF-01, REF-02, REF-03 | 3/3 |
-| 2 - Test Infrastructure Foundation | Not Started | TEST-01 through TEST-06 | 0/6 |
+| 2 - Test Infrastructure Foundation | Planned | TEST-01 through TEST-06 | 0/6 |
 | 3 - Package Management + Docker | Not Started | DEV-01 through DEV-06, TEST-07 | 0/7 |
 | 4 - Makefile Automation | Not Started | MAKE-01 through MAKE-06 | 0/6 |
 | 5 - Expanded Test Coverage | Not Started | COV-01, COV-02, COV-03 | 0/3 |
