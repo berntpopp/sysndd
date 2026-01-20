@@ -1,0 +1,30 @@
+{
+  "includeCoAuthoredBy": false,
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(find:*)",
+      "Bash(npm run lint:*)",
+      "Bash(rm:*)",
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(chmod:*)",
+      "Bash(Rscript:*)",
+      "Bash(npx eslint:*)",
+      "Bash(node:*)",
+      "Bash(npx prettier:*)",
+      "Bash(ls:*)",
+      "Bash(git log:*)",
+      "Bash(git tag:*)",
+      "WebFetch(domain:bootstrap-vue-next.github.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:vuetifyjs.com)",
+      "WebFetch(domain:blog.bitsrc.io)",
+      "Bash(gh issue create:*)",
+      "WebFetch(domain:edgararuiz.github.io)"
+    ],
+    "deny": []
+  }
+}
