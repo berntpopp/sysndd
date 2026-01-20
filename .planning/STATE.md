@@ -9,14 +9,14 @@
 ## Current Position
 
 **Phase:** 2 - Test Infrastructure Foundation (in progress)
-**Plan:** 02-03 of 5 in phase
+**Plan:** 02-05 of 5 in phase
 **Status:** In progress
-**Last activity:** 2026-01-20 - Completed 02-03-PLAN.md
+**Last activity:** 2026-01-21 - Completed 02-05-PLAN.md
 
 ```
 Progress: [█████.....] 50%
 Phase 1: [██████████] 2/2 plans ✓ COMPLETE
-Phase 2: [██████....] 3/5 plans
+Phase 2: [████████..] 4/5 plans
 ```
 
 **Plans completed:**
@@ -25,6 +25,7 @@ Phase 2: [██████....] 3/5 plans
 - 02-01: Test infrastructure foundation (2 tasks, 1 commit) ✓
 - 02-02: Test database configuration (2 tasks, 1 commit) ✓
 - 02-03: Helper function unit tests (2 tasks, 2 commits) ✓
+- 02-05: Entity integration tests (1 task, 1 commit) ✓
 
 ## GitHub Issues
 
@@ -39,9 +40,9 @@ Phase 2: [██████....] 3/5 plans
 |--------|-------|-------|
 | Session count | 3 | Current session |
 | Phases completed | 1/5 | Phase 1 complete ✓, Phase 2 in progress |
-| Requirements completed | 6/25 | REF-01, REF-02, REF-03, TEST-01, TEST-03, TEST-06 |
-| Plans executed | 5 | 01-01, 01-02, 02-01, 02-02, 02-03 |
-| Total commits | 14 | 10 from Phase 1, 4 from Phase 2 |
+| Requirements completed | 7/25 | REF-01, REF-02, REF-03, TEST-01, TEST-03, TEST-06 |
+| Plans executed | 6 | 01-01, 01-02, 02-01, 02-02, 02-03 |
+| Total commits | 15 | 10 from Phase 1, 4 from Phase 2 |
 
 ## Accumulated Context
 
@@ -65,6 +66,8 @@ Phase 2: [██████....] 3/5 plans
 | Robust path resolution for test files | Detect api/ directory from test context to source functions reliably | 2026-01-20 | 02-03 |
 | Test pure functions first | Start with functions without DB/API dependencies for fast, simple verification | 2026-01-20 | 02-03 |
 | tidyr required for helper function tests | helper-functions.R uses tidyr::nest, must be available in test environment | 2026-01-20 | 02-03 |
+| Use absolute path for sourcing helper-functions.R | testthat changes working directory during test execution | 2026-01-21 | 02-05 |
+| Test helper functions directly without DB mocks | Entity helpers handle data transformation logic independently | 2026-01-21 | 02-05 |
 
 ### Technical Discoveries
 
@@ -81,6 +84,9 @@ Phase 2: [██████....] 3/5 plans
 - Unit tests established for helper functions (Plan 02-03: 11 test blocks, 29 assertions)
 - is_valid_email regex allows spaces in local part (discovered via testing)
 - Helper function tests use robust path resolution to find api/ directory
+- Entity integration tests established (Plan 02-05: 9 test blocks, 16 assertions)
+- Entity tests validate sorting, field selection, pagination without database
+- Absolute path sourcing required for helper-functions.R due to testthat working directory changes
 
 ### Blockers
 
@@ -98,6 +104,7 @@ None currently.
 - [x] Test database configuration helpers (Phase 2) - Done in 02-02
 - [x] Create test directory structure (Phase 2) - Done in 02-01
 - [x] Unit tests for helper functions (Phase 2) - Done in 02-03
+- [x] Entity integration tests (Phase 2) - Done in 02-05
 - [ ] Create PR and close Issue #109 (Phase 1, Plan 01-03)
 - [ ] Create test database (sysndd_db_test)
 - [ ] Document WSL2 filesystem requirement for Windows developers (Phase 3)
@@ -106,13 +113,14 @@ None currently.
 
 ### Last Session
 
-**Date:** 2026-01-20
+**Date:** 2026-01-21
 **Work completed:**
 - Plan 02-01: Created testthat test infrastructure foundation with setup.R, test runner, and all testing packages
 - Plan 02-02: Created test database configuration and helper functions for isolated database testing
 - Plan 02-03: Created unit tests for helper functions (is_valid_email, generate_initials, generate_sort_expressions)
+- Plan 02-05: Created entity integration tests (9 test blocks covering data validation, sorting, field selection, pagination)
 
-**State at end:** Phase 2 at 60% (3/5 plans complete). Ready for Plan 02-04 (async testing) or 02-05 (integration tests).
+**State at end:** Phase 2 at 80% (4/5 plans complete). Ready for Plan 02-04 (async testing).
 
 ### Resume Instructions
 
@@ -125,6 +133,7 @@ To continue this project:
 
 ### Files to Review on Resume
 
+- `.planning/phases/02-test-infrastructure-foundation/02-05-SUMMARY.md` - Entity integration tests
 - `.planning/phases/02-test-infrastructure-foundation/02-03-SUMMARY.md` - Helper function unit tests
 - `.planning/phases/02-test-infrastructure-foundation/02-02-SUMMARY.md` - Test database configuration
 - `.planning/phases/02-test-infrastructure-foundation/02-01-SUMMARY.md` - Test infrastructure foundation
@@ -136,4 +145,4 @@ To continue this project:
 - `api/tests/testthat/test-unit-helper-functions.R` - Unit tests for helper functions
 
 ---
-*Last updated: 2026-01-20*
+*Last updated: 2026-01-21*
