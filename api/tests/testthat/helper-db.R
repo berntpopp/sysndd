@@ -15,16 +15,8 @@
 #' # ... use connection ...
 #' DBI::dbDisconnect(con)
 get_test_db_connection <- function() {
-  # Load test config from api/config.yml
-  config_path <- if (file.exists("config.yml")) {
-    "config.yml"
-  } else if (file.exists("../config.yml")) {
-    "../config.yml"
-  } else {
-    stop("config.yml not found. Run tests from api/ directory.")
-  }
-
-  test_config <- config::get("sysndd_db_test", file = config_path)
+  # Use get_test_config to find config.yml robustly
+  test_config <- get_test_config()
 
   if (is.null(test_config)) {
     stop("sysndd_db_test configuration not found in config.yml")
@@ -114,12 +106,25 @@ with_test_db_transaction <- function(code) {
 #' @param key Configuration key to retrieve
 #' @return Configuration value
 get_test_config <- function(key = NULL) {
-  config_path <- if (file.exists("config.yml")) {
-    "config.yml"
-  } else if (file.exists("../config.yml")) {
-    "../config.yml"
-  } else {
-    stop("config.yml not found")
+  # Try multiple paths to find config.yml
+  possible_paths <- c(
+    "config.yml",                          # Current directory
+    "../config.yml",                       # Parent directory
+    "../../config.yml",                    # Two levels up (from tests/testthat/)
+    file.path(getwd(), "config.yml"),     # Explicit current dir
+    file.path(dirname(getwd()), "config.yml")  # Explicit parent
+  )
+
+  config_path <- NULL
+  for (path in possible_paths) {
+    if (file.exists(path)) {
+      config_path <- path
+      break
+    }
+  }
+
+  if (is.null(config_path)) {
+    stop("config.yml not found. Tried: ", paste(possible_paths, collapse = ", "))
   }
 
   config <- config::get("sysndd_db_test", file = config_path)
