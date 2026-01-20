@@ -72,12 +72,12 @@ Developer experience and infrastructure improvements for SysNDD, focusing on API
 | REF-01 | Phase 1 | Complete |
 | REF-02 | Phase 1 | Complete |
 | REF-03 | Phase 1 | Complete |
-| TEST-01 | Phase 2 | Pending |
-| TEST-02 | Phase 2 | Pending |
-| TEST-03 | Phase 2 | Pending |
-| TEST-04 | Phase 2 | Pending |
-| TEST-05 | Phase 2 | Pending |
-| TEST-06 | Phase 2 | Pending |
+| TEST-01 | Phase 2 | Complete |
+| TEST-02 | Phase 2 | Complete |
+| TEST-03 | Phase 2 | Complete |
+| TEST-04 | Phase 2 | Complete |
+| TEST-05 | Phase 2 | Complete |
+| TEST-06 | Phase 2 | Complete |
 | TEST-07 | Phase 3 | Pending |
 | MAKE-01 | Phase 4 | Pending |
 | MAKE-02 | Phase 4 | Pending |
@@ -96,4 +96,4 @@ Developer experience and infrastructure improvements for SysNDD, focusing on API
 | COV-03 | Phase 5 | Pending |
 
 ---
-*Last updated: 2026-01-20*
+*Last updated: 2026-01-21*
