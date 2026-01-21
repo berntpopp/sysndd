@@ -8,7 +8,18 @@ Developer experience infrastructure for SysNDD, a neurodevelopmental disorders d
 
 A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-## Current State (v1 shipped 2026-01-21)
+## Current Milestone: v2 Docker Infrastructure Modernization
+
+**Goal:** Transform Docker infrastructure from 4/10 → 9/10 across security, build efficiency, developer experience, maintainability, and production readiness.
+
+**Target outcomes:**
+- Replace abandoned dockercloud/haproxy with Traefik v3
+- API build time: 45 min → 3-5 min (pak + Posit Package Manager binaries)
+- Node.js 16 EOL → Node 24 LTS
+- Add health checks, resource limits, non-root users
+- Docker Compose Watch for hot-reload dev workflow
+
+## v1 State (shipped 2026-01-21)
 
 - **Test suite:** 610 tests passing in ~74 seconds
 - **Coverage:** 20.3% unit test coverage (practical max for DB/network-coupled code)
@@ -53,9 +64,34 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 ### Active
 
-<!-- Next milestone scope -->
+<!-- v2 Docker Infrastructure Modernization scope -->
 
-(To be defined in next milestone)
+- [ ] Replace dockercloud/haproxy:1.6.7 with Traefik v3.6
+- [ ] Add .dockerignore files (api/, app/)
+- [ ] Fix HTTP CRAN repos → HTTPS in API Dockerfile
+- [ ] Add non-root users to all containers
+- [ ] Make Docker socket read-only
+- [ ] Consolidate API Dockerfile RUN layers (34 → 5-6)
+- [ ] Use Posit Package Manager binaries
+- [ ] Use pak instead of devtools::install_version()
+- [ ] Parallel package installation (--ncpus -1)
+- [ ] Switch from rocker/tidyverse to rocker/r-ver
+- [ ] Add ccache for C/C++ compilation caching
+- [ ] Add BuildKit cache mounts for incremental builds
+- [ ] Strip debug symbols for smaller images
+- [ ] Upgrade Node.js 16.16.0 → 24 LTS
+- [ ] Add HEALTHCHECK to all containers
+- [ ] Remove obsolete docker-compose version field
+- [ ] Replace links with networks
+- [ ] Add named networks for isolation
+- [ ] Add named volumes (remove ../data/ paths)
+- [ ] Update MySQL 8.0.29 → 8.0.40
+- [ ] Use caching_sha2_password auth plugin
+- [ ] Add resource limits (memory, CPU)
+- [ ] Add Traefik auto-discovery with labels
+- [ ] Create docker-compose.override.yml for dev
+- [ ] Add Docker Compose Watch configuration
+- [ ] Create app/Dockerfile.dev for hot-reload
 
 ### Out of Scope
 
@@ -106,4 +142,4 @@ A new developer can clone the repo and be productive within minutes, with confid
 | covr::file_coverage over package_coverage | API is not an R package | ✓ Good |
 
 ---
-*Last updated: 2026-01-21 after v1 milestone*
+*Last updated: 2026-01-21 after v2 milestone started*
