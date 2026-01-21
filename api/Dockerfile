@@ -1,48 +1,90 @@
-FROM rocker/tidyverse:4.3.2
-RUN apt-get update && apt-get install -y \
-## build tools for factoextra compilation
-build-essential git wget libpcre3 libpcre3-dev libssl-dev zlib1g-dev cmake \
-## Install Java
-default-jdk \
-## used for keyring package
-libsecret-1-dev \
-## used to build rJava and other packages
-libbz2-dev \
-libicu-dev \
-liblzma-dev \
-libsodium-dev \
-libtool
-RUN Rscript -e 'install.packages(c("httr", "stringr", "ellipsis", "ontologyIndex", "vctrs", "factoextra"), repos="https://cloud.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("pool", version = "1.0.1", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("Rcpp", version = "1.0.10", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("plumber", version = "1.2.1", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("DBI", version = "1.1.3", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("RMariaDB", version = "1.2.2", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("jsonlite", version = "1.8.4", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("config", version = "0.3.1", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("jose", version = "1.2.0", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("RCurl", version = "1.98-1.12", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("stringdist", version = "0.9.10", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("xlsx", version = "0.6.5", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("easyPubMed", version = "2.13", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("rvest", version = "1.0.3", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("lubridate", version = "1.9.2", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("memoise", version = "2.0.1", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("coop", version = "0.6-3", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("reshape2", version = "1.4.4", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("blastula", version = "0.3.3", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("keyring", version = "1.3.1", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("future", version = "1.32.0", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("knitr", version = "1.43", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("rlang", version = "1.1.1", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("timetk", version = "2.8.3", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("xml2", version = "1.3.4", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("igraph", version = "1.4.3", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("BiocManager", version = "1.30.21", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("logger", version = "0.2.2", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("tictoc", version = "1.2", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("fs", version = "1.6.2", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("FactoMineR", version = "2.8", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'require(devtools); install_version("dotenv", version = "1.0.3", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'BiocManager::install(c("STRINGdb"))'
-RUN Rscript -e 'BiocManager::install(c("biomaRt"))'
+# syntax=docker/dockerfile:1.4
+# SysNDD API - Optimized R Plumber Docker Image
+#
+# Build time target: 5-10 minutes (down from 45+ minutes)
+# Key optimizations:
+# - Posit Package Manager (P3M) pre-compiled binaries
+# - pak for parallel package installation
+# - renv::restore() from lockfile
+# - Consolidated system dependencies
+# - BuildKit cache for renv library
+
+FROM rocker/r-ver:4.4.2 AS base
+
+# Set R repository to Posit Package Manager for pre-compiled Linux binaries
+# This avoids source compilation for most packages
+ENV RENV_CONFIG_REPOS_OVERRIDE="https://packagemanager.posit.co/cran/__linux__/jammy/latest"
+
+# Enable pak for faster parallel downloads
+ENV RENV_CONFIG_PAK_ENABLED=TRUE
+
+# Global renv cache location (for BuildKit cache mount)
+ENV RENV_PATHS_CACHE=/renv_cache
+
+# Install all system dependencies in ONE layer
+# These are required by various R packages (RMariaDB, xml2, jose, etc.)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Build essentials
+    build-essential \
+    # OpenSSL for jose, httr, curl
+    libssl-dev \
+    # curl for httr, RCurl
+    libcurl4-openssl-dev \
+    # XML for xml2, rvest
+    libxml2-dev \
+    # MariaDB/MySQL client for RMariaDB
+    libmariadb-dev \
+    # Java for rJava, xlsx
+    default-jdk \
+    # Sodium for secure hashing
+    libsodium-dev \
+    # PCRE for stringr regex
+    libpcre3-dev \
+    # ICU for stringi
+    libicu-dev \
+    # Compression libraries
+    libbz2-dev \
+    liblzma-dev \
+    zlib1g-dev \
+    # Git for devtools (if needed for any GitHub packages)
+    git \
+    # libsecret for keyring package
+    libsecret-1-dev \
+    # Fortran compiler for some numerical packages
+    gfortran \
+    # GLPK for igraph
+    libglpk-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && R CMD javareconf
+
+# Install renv (required for restore)
+RUN R -e 'install.packages("renv", repos = "https://cloud.r-project.org")'
+
+# Set working directory
+WORKDIR /app
+
+# Copy renv infrastructure first (for layer caching)
+# If renv.lock hasn't changed, Docker will use cached layers
+COPY renv.lock renv.lock
+COPY renv/activate.R renv/activate.R
+COPY renv/settings.json renv/settings.json
+COPY .Rprofile .Rprofile
+
+# Restore packages from lockfile with BuildKit cache
+# The cache mount persists the renv cache across builds
+# This dramatically speeds up rebuilds when only a few packages change
+RUN --mount=type=cache,target=/renv_cache \
+    R -e 'renv::restore()'
+
+# Copy application code AFTER package installation
+# This ensures code changes don't invalidate the package cache layer
+COPY endpoints/ endpoints/
+COPY functions/ functions/
+COPY config.yml config.yml
+COPY start_sysndd_api.R start_sysndd_api.R
+
+# Expose API port
+EXPOSE 7777
+
+# Start the Plumber API
+CMD ["Rscript", "start_sysndd_api.R"]
