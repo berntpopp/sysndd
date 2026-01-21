@@ -1,71 +1,169 @@
 services:
- mysql:
-  image: mysql:8.0.29
-  container_name: mysql
-  command: mysqld --default-authentication-plugin=mysql_native_password
-  restart: always
-  environment:
-   MYSQL_DATABASE: ${MYSQL_DATABASE}
-   MYSQL_USER: ${MYSQL_USER}
-   MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-   MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-  ports:
-   - "7654:3306"
-  volumes:
-   - ../data/mysql/:/var/lib/mysql/
-   - ../data/backup:/backup
- mysql-cron-backup:
-  image: 'fradelg/mysql-cron-backup'
-  depends_on:
-   - mysql
-  volumes:
-   - ../data/backup:/backup
-  environment:
-   MYSQL_HOST: mysql
-   MYSQL_USER: root
-   MYSQL_PASS: ${MYSQL_ROOT_PASSWORD}
-   MAX_BACKUPS: 60
-   INIT_BACKUP: 1
-   # Every day at 03:00
-   CRON_TIME: 0 3 * * *
-   # Make it small
-   GZIP_LEVEL: 9
-  restart: unless-stopped
- api:
-  build: ./api/
-  command: Rscript /sysndd_api_volume/start_sysndd_api.R
-  restart: always
-  volumes:
-  - ./api/:/sysndd_api_volume/
-  ports:
-     - "7777-7787:7777"
-  environment:
-   PASSWORD: ${PASSWORD}
-   SMTP_PASSWORD: ${SMTP_PASSWORD}
-   API_CONFIG: ${API_CONFIG}
-  develop:
-    watch:
-      - action: sync
-        path: ./api/endpoints
-        target: /sysndd_api_volume/endpoints
-      - action: sync
-        path: ./api/functions
-        target: /sysndd_api_volume/functions
-      - action: rebuild
-        path: ./api/renv.lock
- alb:
-  image: 'dockercloud/haproxy:1.6.7'
-  links:
-     - api
-  volumes:
-     - /var/run/docker.sock:/var/run/docker.sock
-  restart: always
- app:
-  build: ./app/
-  container_name: sysndd_app
-  restart: always
-  ports:
-     - "80:80"
-     - "443:443"
+  traefik:
+    image: traefik:v3.6
+    container_name: sysndd_traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    command:
+      # Disable dashboard (security)
+      - "--api.dashboard=false"
+      # Docker provider
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=sysndd_proxy"
+      # HTTP entrypoint
+      - "--entryPoints.web.address=:80"
+      # Enable ping for health checks
+      - "--ping=true"
+      - "--ping.entryPoint=web"
+      # Minimal logging
+      - "--log.level=WARN"
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - proxy
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  mysql:
+    image: mysql:8.0.40
+    container_name: sysndd_mysql
+    restart: unless-stopped
+    command:
+      - --authentication-policy=caching_sha2_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - mysql_backup:/backup
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+
+  mysql-cron-backup:
+    image: fradelg/mysql-cron-backup
+    container_name: sysndd_mysql_backup
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    volumes:
+      - mysql_backup:/backup
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_USER: root
+      MYSQL_PASS: ${MYSQL_ROOT_PASSWORD}
+      MAX_BACKUPS: 60
+      INIT_BACKUP: 1
+      # Every day at 03:00
+      CRON_TIME: 0 3 * * *
+      # Make it small
+      GZIP_LEVEL: 9
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  api:
+    build: ./api/
+    container_name: sysndd_api
+    restart: unless-stopped
+    command: Rscript /sysndd_api_volume/start_sysndd_api.R
+    volumes:
+      - ./api/:/sysndd_api_volume/
+    environment:
+      PASSWORD: ${PASSWORD}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      API_CONFIG: ${API_CONFIG}
+    networks:
+      - proxy
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:7777/api/status_list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 4608M
+    develop:
+      watch:
+        - action: sync
+          path: ./api/endpoints
+          target: /sysndd_api_volume/endpoints
+        - action: sync
+          path: ./api/functions
+          target: /sysndd_api_volume/functions
+        - action: rebuild
+          path: ./api/renv.lock
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=PathPrefix(`/api`)"
+      - "traefik.http.routers.api.entrypoints=web"
+      - "traefik.http.services.api.loadbalancer.server.port=7777"
+
+  app:
+    build: ./app/
+    container_name: sysndd_app
+    restart: unless-stopped
+    networks:
+      - proxy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.app.entrypoints=web"
+      - "traefik.http.services.app.loadbalancer.server.port=80"
+      - "traefik.http.routers.app.priority=1"
+
+networks:
+  proxy:
+    name: sysndd_proxy
+    driver: bridge
+  backend:
+    name: sysndd_backend
+    driver: bridge
+    internal: true
+
 volumes:
- sysndd_api_volume:
+  mysql_data:
+    name: sysndd_mysql_data
+  mysql_backup:
+    name: sysndd_mysql_backup
