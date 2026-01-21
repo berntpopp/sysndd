@@ -129,6 +129,19 @@ format-app: check-npm ## [lint] Format frontend code with ESLint --fix
 		(printf "$(RED)✗ format-app failed$(RESET)\n" && exit 1)
 
 # =============================================================================
+# Quality Targets
+# =============================================================================
+pre-commit: ## [quality] Run all quality checks before committing
+	@printf "$(CYAN)==> Running pre-commit quality checks...$(RESET)\n"
+	@printf "\n$(CYAN)[1/3] Linting R code...$(RESET)\n"
+	@$(MAKE) lint-api
+	@printf "\n$(CYAN)[2/3] Linting frontend code...$(RESET)\n"
+	@$(MAKE) lint-app
+	@printf "\n$(CYAN)[3/3] Running R API tests...$(RESET)\n"
+	@$(MAKE) test-api
+	@printf "\n$(GREEN)✓ All pre-commit checks passed!$(RESET)\n"
+
+# =============================================================================
 # Docker Targets
 # =============================================================================
 docker-build: check-docker ## [docker] Build API Docker image
