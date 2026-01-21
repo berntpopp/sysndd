@@ -111,19 +111,23 @@ Plans:
 
 **Requirements:** COV-01, COV-02, COV-03
 
-**Plans:** 4 plans
+**Plans:** 6 plans (4 original + 2 gap closure)
 
 Plans:
-- [ ] 05-01-PLAN.md — Coverage infrastructure and expanded helper function tests
-- [ ] 05-02-PLAN.md — Database function tests with dittodb mocking
-- [ ] 05-03-PLAN.md — External API tests (HGNC, Ensembl) and file utility tests
-- [ ] 05-04-PLAN.md — Endpoint and ontology function tests, coverage verification
+- [x] 05-01-PLAN.md — Coverage infrastructure and expanded helper function tests
+- [x] 05-02-PLAN.md — Database function tests with dittodb mocking
+- [x] 05-03-PLAN.md — External API tests (HGNC, Ensembl) and file utility tests
+- [x] 05-04-PLAN.md — Endpoint and ontology function tests, coverage verification
+- [ ] 05-05-PLAN.md — Gap closure: Logging, config, and publication function tests
+- [ ] 05-06-PLAN.md — Gap closure: HPO and GeneReviews function tests, final coverage assessment
 
 **Success Criteria:**
 1. Code coverage for `functions/*.R` files reaches 70% or higher
 2. All critical endpoints have at least one integration test (entities, genes, phenotypes, analysis)
 3. Running `make coverage` generates an HTML coverage report via covr
 4. Test suite completes in under 2 minutes for fast feedback loop
+
+**Verification Status:** 2/4 criteria verified (coverage at 12.4%, no HTTP endpoint tests)
 
 ---
 
@@ -135,9 +139,9 @@ Plans:
 | 2 - Test Infrastructure Foundation | ✓ Complete | TEST-01 through TEST-06 | 6/6 |
 | 3 - Package Management + Docker | ✓ Complete | DEV-01 through DEV-06, TEST-07 | 7/7 |
 | 4 - Makefile Automation | ✓ Complete | MAKE-01 through MAKE-06 | 6/6 |
-| 5 - Expanded Test Coverage | Planned | COV-01, COV-02, COV-03 | 0/3 |
+| 5 - Expanded Test Coverage | In Progress | COV-01, COV-02, COV-03 | 1/3 (COV-03 verified) |
 
-**Total:** 22/25 requirements complete
+**Total:** 23/25 requirements complete
 
 ## Dependency Graph
 
