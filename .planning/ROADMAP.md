@@ -65,17 +65,17 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Initialize renv for R package version locking
-- [ ] 03-02-PLAN.md — Create docker-compose.dev.yml and .dockerignore files
-- [ ] 03-03-PLAN.md — Optimize API Dockerfile with renv and pak
-- [ ] 03-04-PLAN.md — Add httptest2 external API mocking for PubMed and PubTator
+- [x] 03-01-PLAN.md — Initialize renv for R package version locking
+- [x] 03-02-PLAN.md — Create docker-compose.dev.yml and .dockerignore files
+- [x] 03-03-PLAN.md — Optimize API Dockerfile with renv and pak
+- [x] 03-04-PLAN.md — Add httptest2 external API mocking for PubMed and PubTator
 
 **Success Criteria:**
-1. Running `renv::restore()` on a fresh clone installs identical package versions
-2. `docker compose -f docker-compose.dev.yml up db` starts database for local API development
-3. Docker Compose Watch syncs file changes to running containers without manual restart
-4. External API calls (HGNC, PubMed) are mocked in tests using httptest2 fixtures
-5. WSL2 development setup is documented with performance requirements
+1. ✓ Running `renv::restore()` on a fresh clone installs identical package versions
+2. ✓ `docker compose -f docker-compose.dev.yml up db` starts database for local API development
+3. ✓ Docker Compose Watch syncs file changes to running containers without manual restart
+4. ✓ External API calls (HGNC, PubMed) are mocked in tests using httptest2 fixtures
+5. ~~WSL2 development setup is documented with performance requirements~~ (dropped from scope)
 
 ---
 
@@ -129,11 +129,11 @@ Plans:
 |-------|--------|--------------|------------|
 | 1 - API Refactoring Completion | ✓ Complete | REF-01, REF-02, REF-03 | 3/3 |
 | 2 - Test Infrastructure Foundation | ✓ Complete | TEST-01 through TEST-06 | 6/6 |
-| 3 - Package Management + Docker | Planned | DEV-01 through DEV-06, TEST-07 | 0/7 |
+| 3 - Package Management + Docker | ✓ Complete | DEV-01 through DEV-06, TEST-07 | 7/7 |
 | 4 - Makefile Automation | Not Started | MAKE-01 through MAKE-06 | 0/6 |
 | 5 - Expanded Test Coverage | Not Started | COV-01, COV-02, COV-03 | 0/3 |
 
-**Total:** 9/25 requirements complete
+**Total:** 16/25 requirements complete
 
 ## Dependency Graph
 
