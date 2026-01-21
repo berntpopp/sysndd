@@ -7,8 +7,20 @@
 # 2. Run tests via testthat
 # 3. Report coverage
 
-# Load covr quietly
+# Load covr and dependencies quietly
 suppressPackageStartupMessages(library(covr))
+
+# Pre-load packages that sourced functions depend on
+# These are needed because covr runs in a clean environment
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(tibble)
+  library(stringr)
+  library(tidyr)
+  library(openssl)  # Required for sha256() in helper-functions.R
+  library(jsonlite)
+  library(purrr)
+})
 
 # Change to api directory
 if (basename(getwd()) != "api") {
