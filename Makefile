@@ -29,7 +29,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev docker-build docker-up docker-down
+.PHONY: help check-r check-npm check-docker install-api install-app dev test-api lint-api lint-app format-api format-app pre-commit docker-build docker-up docker-down
 
 # =============================================================================
 # Help Target (Self-documenting)
@@ -37,9 +37,15 @@ RESET := \033[0m
 help: ## Show this help message
 	@printf "SysNDD Development Commands\n\n"
 	@printf "$(CYAN)Development:$(RESET)\n"
-	@grep -E '^[a-zA-Z_-]+:.*?## \[dev\]' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## \\[dev\\] "}; {printf "  \033[0;36m%-20s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## \[dev\]' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## \\[dev\\] "}; {printf "  \033[0;36m%-20s\033[0m %s\n", $$1, $$2}' || true
+	@printf "\n$(CYAN)Testing:$(RESET)\n"
+	@grep -E '^[a-zA-Z_-]+:.*?## \[test\]' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## \\[test\\] "}; {printf "  \033[0;36m%-20s\033[0m %s\n", $$1, $$2}' || true
+	@printf "\n$(CYAN)Linting:$(RESET)\n"
+	@grep -E '^[a-zA-Z_-]+:.*?## \[lint\]' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## \\[lint\\] "}; {printf "  \033[0;36m%-20s\033[0m %s\n", $$1, $$2}' || true
 	@printf "\n$(CYAN)Docker:$(RESET)\n"
-	@grep -E '^[a-zA-Z_-]+:.*?## \[docker\]' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## \\[docker\\] "}; {printf "  \033[0;36m%-20s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## \[docker\]' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## \\[docker\\] "}; {printf "  \033[0;36m%-20s\033[0m %s\n", $$1, $$2}' || true
+	@printf "\n$(CYAN)Quality:$(RESET)\n"
+	@grep -E '^[a-zA-Z_-]+:.*?## \[quality\]' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## \\[quality\\] "}; {printf "  \033[0;36m%-20s\033[0m %s\n", $$1, $$2}' || true
 
 # =============================================================================
 # Prerequisite Checks (not in help)
@@ -85,6 +91,42 @@ dev: check-docker ## [dev] Start development database containers
 	@printf "\n$(CYAN)Next steps:$(RESET)\n"
 	@printf "  Start API:      cd api && Rscript start_sysndd_api.R\n"
 	@printf "  Start frontend: cd app && npm run serve\n"
+
+# =============================================================================
+# Testing Targets
+# =============================================================================
+test-api: check-r ## [test] Run R API tests with testthat
+	@printf "$(CYAN)==> Running R API tests...$(RESET)\n"
+	@cd /mnt/c/development/sysndd/api && Rscript -e "testthat::test_dir('tests/testthat')" && \
+		printf "$(GREEN)✓ test-api complete$(RESET)\n" || \
+		(printf "$(RED)✗ test-api failed$(RESET)\n" && exit 1)
+
+# =============================================================================
+# Linting Targets
+# =============================================================================
+lint-api: check-r ## [lint] Check R code with lintr
+	@printf "$(CYAN)==> Checking R code with lintr...$(RESET)\n"
+	@cd /mnt/c/development/sysndd/api && Rscript scripts/lint-check.R && \
+		printf "$(GREEN)✓ lint-api complete$(RESET)\n" || \
+		(printf "$(RED)✗ lint-api failed$(RESET)\n" && exit 1)
+
+lint-app: check-npm ## [lint] Check frontend code with ESLint
+	@printf "$(CYAN)==> Checking frontend code with ESLint...$(RESET)\n"
+	@cd /mnt/c/development/sysndd/app && npm run lint && \
+		printf "$(GREEN)✓ lint-app complete$(RESET)\n" || \
+		(printf "$(RED)✗ lint-app failed$(RESET)\n" && exit 1)
+
+format-api: check-r ## [lint] Format R code with styler
+	@printf "$(CYAN)==> Formatting R code with styler...$(RESET)\n"
+	@cd /mnt/c/development/sysndd/api && Rscript scripts/style-code.R && \
+		printf "$(GREEN)✓ format-api complete$(RESET)\n" || \
+		(printf "$(RED)✗ format-api failed$(RESET)\n" && exit 1)
+
+format-app: check-npm ## [lint] Format frontend code with ESLint --fix
+	@printf "$(CYAN)==> Formatting frontend code with ESLint --fix...$(RESET)\n"
+	@cd /mnt/c/development/sysndd/app && npm run lint -- --fix && \
+		printf "$(GREEN)✓ format-app complete$(RESET)\n" || \
+		(printf "$(RED)✗ format-app failed$(RESET)\n" && exit 1)
 
 # =============================================================================
 # Docker Targets
