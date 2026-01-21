@@ -9,17 +9,17 @@
 ## Current Position
 
 **Phase:** 5 - Expanded Test Coverage (IN PROGRESS)
-**Plan:** 05-02 of X in phase (Database Function Tests)
-**Status:** Plan 05-02 complete
-**Last activity:** 2026-01-21 - Completed 05-02-PLAN.md
+**Plan:** 05-03 of X in phase (External API and File Utility Tests)
+**Status:** Plan 05-03 complete
+**Last activity:** 2026-01-21 - Completed 05-03-PLAN.md
 
 ```
-Progress: [█████████.] 94%
+Progress: [█████████.] 95%
 Phase 1: [##########] 2/2 plans COMPLETE
 Phase 2: [##########] 5/5 plans COMPLETE
 Phase 3: [##########] 4/4 plans COMPLETE
 Phase 4: [##########] 2/2 plans COMPLETE
-Phase 5: [##........] 2/X plans (in progress)
+Phase 5: [###.......] 3/X plans (in progress)
 ```
 
 **Plans completed:**
@@ -38,6 +38,7 @@ Phase 5: [##........] 2/X plans (in progress)
 - 04-02: Testing and linting targets (2 tasks, 2 commits)
 - 05-01: Coverage infrastructure and helper function tests (2 tasks, 3 commits)
 - 05-02: Database function tests with dittodb mocking (2 tasks, 3 commits)
+- 05-03: External API and file utility tests (2 tasks, 2 commits)
 
 ## GitHub Issues
 
@@ -53,8 +54,8 @@ Phase 5: [##........] 2/X plans (in progress)
 | Session count | 9 | Current session |
 | Phases completed | 4/5 | Phase 1-4 COMPLETE, Phase 5 IN PROGRESS |
 | Requirements completed | 23/25 | REF-01 thru REF-03, TEST-01 thru TEST-07, DEV-01 thru DEV-06, MAKE-01 thru MAKE-06, COV-01 partial |
-| Plans executed | 16 | Phases 1-4 complete, 05-01, 05-02 |
-| Total commits | 35 | 10 Phase 1, 7 Phase 2, 9 Phase 3, 3 Phase 4, 6 Phase 5 |
+| Plans executed | 17 | Phases 1-4 complete, 05-01, 05-02, 05-03 |
+| Total commits | 37 | 10 Phase 1, 7 Phase 2, 9 Phase 3, 3 Phase 4, 8 Phase 5 |
 | Test count | 257 | All passing (11 skipped - expected) |
 | Docker build time | ~8 min | Down from 45+ minutes |
 | Makefile lines | 163 | Complete with 13 targets across 5 sections |
@@ -112,6 +113,9 @@ Phase 5: [##........] 2/X plans (in progress)
 | covr::file_coverage() for non-package R code | API not an R package; file_coverage measures functions/*.R directly | 2026-01-21 | 05-01 |
 | Validation-only testing for DB functions | Test input validation before DB connection, no live DB required | 2026-01-21 | 05-02 |
 | dittodb for database mocking | Infrastructure ready for future fixture-based integration tests | 2026-01-21 | 05-02 |
+| httptest2 for HGNC/Ensembl mocking | Follows Phase 3 pattern for external API testing | 2026-01-21 | 05-03 |
+| Skip HGNC/Ensembl tests without network | jsonlite and biomaRt don't use httr/httr2 - difficult to mock fully | 2026-01-21 | 05-03 |
+| withr::with_tempdir() for file tests | Isolated filesystem operations prevent side effects | 2026-01-21 | 05-03 |
 
 ### Technical Discoveries
 
@@ -163,6 +167,12 @@ Phase 5: [##........] 2/X plans (in progress)
 - Helper function tests expanded from 121 to 453 lines covering all major pure functions
 - Database function validation tests added (27 new assertions)
 - put_post_db_review() had validation order bug (synopsis escaping before column check) - fixed per Rule 1
+- HGNC API tests added (16 test cases, 233 lines) covering all symbol/ID conversion functions
+- Ensembl/BioMart API tests added (13 test cases, 225 lines) for gene coordinate lookups
+- File utility tests added (21 test cases, 320 lines) for replace_strings, check_file_age, get_newest_file
+- jsonlite::fromJSON() uses base R url() connections not intercepted by httptest2
+- biomaRt uses complex SOAP/REST hybrid API difficult to mock with httptest2
+- Test suite expanded from 108 to 257 tests (149 new tests in Phase 5)
 - dittodb mocking infrastructure ready for future fixture-based integration tests
 
 ### Blockers
@@ -211,30 +221,34 @@ None currently.
 - Phase 5: Expanded Test Coverage (IN PROGRESS)
   - Plan 05-01: Coverage infrastructure and helper function tests (3 commits)
   - Plan 05-02: Database function tests with dittodb mocking (3 commits)
-  - Coverage infrastructure with covr package
+  - Plan 05-03: External API and file utility tests (2 commits)
+  - Test suite expanded from 108 to 257 tests
   - Helper function tests expanded to 453 lines
   - Database function validation tests added (27 assertions)
   - Fixed put_post_db_review() validation order bug (Rule 1)
   - Total test count: 257 (up from 108)
 
-**State at end:** Phase 5 IN PROGRESS (2/X plans). 05-01 and 05-02 complete.
+**State at end:** Phase 5 IN PROGRESS (3/X plans). 05-01, 05-02, and 05-03 complete.
 
 ### Resume Instructions
 
 To continue this project:
 
 1. Continue Phase 5: Expanded Test Coverage (in progress)
-2. Run tests: `make test-api` (257 tests passing)
+2. Run tests: `make test-api` (257 tests passing, 11 skipped)
 3. Check coverage: `make coverage` (infrastructure ready)
-4. Review accumulated decisions in this STATE.md before planning
-5. Note: pre-commit will fail on lint issues until R codebase is cleaned up
+4. Review 05-03-SUMMARY.md for external API and file utility test patterns
+5. Consider next plans: endpoint tests, integration tests, or coverage measurement
+6. Note: pre-commit will fail on lint issues until R codebase is cleaned up
 
 ### Files to Review on Resume
 
 - `.planning/phases/05-expanded-test-coverage/05-01-SUMMARY.md` - Coverage infrastructure
 - `.planning/phases/05-expanded-test-coverage/05-02-SUMMARY.md` - Database function tests
-- `api/tests/testthat/test-database-functions.R` - Validation testing pattern
-- `api/tests/testthat/helper-db-mock.R` - dittodb mocking utilities
+- `.planning/phases/05-expanded-test-coverage/05-03-SUMMARY.md` - External API and file utility tests
+- `api/tests/testthat/test-external-hgnc.R` - HGNC API test pattern
+- `api/tests/testthat/test-external-ensembl.R` - Ensembl/BioMart API test pattern
+- `api/tests/testthat/test-unit-file-functions.R` - File utility test pattern
 
 ---
 *Last updated: 2026-01-21*
