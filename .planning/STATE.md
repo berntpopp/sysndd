@@ -9,17 +9,17 @@
 ## Current Position
 
 **Phase:** 5 - Expanded Test Coverage (IN PROGRESS)
-**Plan:** 05-05 of X in phase (Gap Closure - Logging, Config, Publication Tests)
-**Status:** Plan 05-05 complete
-**Last activity:** 2026-01-21 - Completed 05-05-PLAN.md
+**Plan:** 05-06 of X in phase (Gap Closure - HPO and GeneReviews Tests)
+**Status:** Plan 05-06 complete
+**Last activity:** 2026-01-21 - Completed 05-06-PLAN.md
 
 ```
-Progress: [█████████.] 95%
+Progress: [█████████.] 96%
 Phase 1: [##########] 2/2 plans COMPLETE
 Phase 2: [##########] 5/5 plans COMPLETE
 Phase 3: [##########] 4/4 plans COMPLETE
 Phase 4: [##########] 2/2 plans COMPLETE
-Phase 5: [#####.....] 5/X plans (in progress)
+Phase 5: [######....] 6/X plans (in progress)
 ```
 
 **Plans completed:**
@@ -40,6 +40,7 @@ Phase 5: [#####.....] 5/X plans (in progress)
 - 05-02: Database function tests with dittodb mocking (2 tasks, 3 commits)
 - 05-03: External API and file utility tests (2 tasks, 2 commits)
 - 05-05: Gap closure - logging, config, publication tests (3 tasks, 3 commits)
+- 05-06: Gap closure - HPO and GeneReviews tests (3 tasks, 2 commits)
 
 ## GitHub Issues
 
@@ -52,13 +53,13 @@ Phase 5: [#####.....] 5/X plans (in progress)
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| Session count | 10 | Current session |
+| Session count | 11 | Current session |
 | Phases completed | 4/5 | Phase 1-4 COMPLETE, Phase 5 IN PROGRESS |
 | Requirements completed | 23/25 | REF-01 thru REF-03, TEST-01 thru TEST-07, DEV-01 thru DEV-06, MAKE-01 thru MAKE-06, COV-01 partial |
-| Plans executed | 18 | Phases 1-4 complete, 05-01, 05-02, 05-03, 05-05 |
-| Total commits | 40 | 10 Phase 1, 7 Phase 2, 9 Phase 3, 3 Phase 4, 11 Phase 5 |
-| Test count | 456 | All passing (11 skipped - expected) |
-| Coverage | 19.9% | Up from 12.4% |
+| Plans executed | 19 | Phases 1-4 complete, 05-01, 05-02, 05-03, 05-05, 05-06 |
+| Total commits | 42 | 10 Phase 1, 7 Phase 2, 9 Phase 3, 3 Phase 4, 13 Phase 5 |
+| Test count | 610 | All passing (22 skipped - expected) |
+| Coverage | 20.3% | Up from 12.4% baseline |
 | Docker build time | ~8 min | Down from 45+ minutes |
 | Makefile lines | 163 | Complete with 13 targets across 5 sections |
 
@@ -121,6 +122,9 @@ Phase 5: [#####.....] 5/X plans (in progress)
 | XPath uses Pubstatus not PubStatus | table_articles_from_xml uses lowercase 's' in attribute | 2026-01-21 | 05-05 |
 | Working directory change for relative source() | publication-functions.R sources genereviews-functions.R relatively | 2026-01-21 | 05-05 |
 | Exclude test-external-* from coverage | httptest2 helper functions not available during covr execution | 2026-01-21 | 05-05 |
+| Mock ontologyIndex for HPO testing | create_mock_hpo_ontology() helper builds valid ontology_index for isolated tests | 2026-01-21 | 05-06 |
+| Test string patterns for GeneReviews | Network functions tested via extracted string transformation patterns | 2026-01-21 | 05-06 |
+| Skip HPO JAX API functions | hpo_name_from_term etc. require network, cannot be unit tested | 2026-01-21 | 05-06 |
 
 ### Technical Discoveries
 
@@ -163,7 +167,7 @@ Phase 5: [#####.....] 5/X plans (in progress)
 - Self-documenting help system parses ## comments with awk for categorized output
 - Colorized output uses ANSI codes: green (success), red (failure), cyan (info)
 - `make dev` starts development databases on ports 7654 and 7655
-- `make test-api` runs 456 tests (11 skipped as expected)
+- `make test-api` runs 610 tests (22 skipped as expected)
 - api/functions/.lintr used deprecated with_defaults (fixed to linters_with_defaults)
 - lint-api finds 1240 lint issues in R codebase (expected for legacy code)
 - lint-app crashes due to esm module Node.js version incompatibility (pre-existing issue)
@@ -177,12 +181,16 @@ Phase 5: [#####.....] 5/X plans (in progress)
 - File utility tests added (21 test cases, 320 lines) for replace_strings, check_file_age, get_newest_file
 - jsonlite::fromJSON() uses base R url() connections not intercepted by httptest2
 - biomaRt uses complex SOAP/REST hybrid API difficult to mock with httptest2
-- Test suite expanded from 108 to 456 tests (348 new tests in Phase 5)
+- Test suite expanded from 108 to 610 tests (502 new tests in Phase 5)
 - dittodb mocking infrastructure ready for future fixture-based integration tests
 - Logging function tests cover convert_empty() and read_log_files() (314 lines, 46 assertions)
 - Config function tests cover update_api_spec_examples() (400 lines, 16 assertions)
 - Publication function tests cover table_articles_from_xml() (547 lines, 41 assertions)
-- Coverage improved from 12.4% to 19.9% (7.5 percentage points)
+- Coverage improved from 12.4% to 20.3% (7.9 percentage points)
+- HPO function tests created with mock ontologyIndex (593 lines, 23 test blocks)
+- GeneReviews string pattern tests created (620 lines, 46 test blocks)
+- 14 of 16 function files now have test coverage (87.5%)
+- Test suite runs in ~74 seconds, under 2 minute threshold
 
 ### Blockers
 
@@ -228,34 +236,32 @@ None currently.
 **Date:** 2026-01-21
 **Work completed:**
 - Phase 5: Expanded Test Coverage (IN PROGRESS)
-  - Plan 05-05: Gap closure - logging, config, publication tests (3 commits)
-  - Logging function tests: convert_empty(), read_log_files() (314 lines, 46 assertions)
-  - Config function tests: update_api_spec_examples() (400 lines, 16 assertions)
-  - Publication function tests: table_articles_from_xml() (547 lines, 41 assertions)
-  - Updated coverage script with more dependencies and test patterns
-  - Coverage improved from 12.4% to 19.9%
-  - Test suite expanded from 257 to 456 tests (199 new assertions)
+  - Plan 05-06: Gap closure - HPO and GeneReviews tests (2 commits)
+  - HPO function tests: hpo_children_from_term(), hpo_all_children_from_term() (593 lines, 82 assertions)
+  - GeneReviews string pattern tests: PMID normalization, title cleaning, date parsing (620 lines, 72 assertions)
+  - Coverage improved from 19.9% to 20.3%
+  - Test suite expanded from 456 to 610 tests (154 new assertions)
+  - Test suite runs in ~74 seconds
 
-**State at end:** Phase 5 IN PROGRESS (5/X plans). 05-01, 05-02, 05-03, and 05-05 complete.
+**State at end:** Phase 5 IN PROGRESS (6/X plans). 05-01, 05-02, 05-03, 05-05, and 05-06 complete.
 
 ### Resume Instructions
 
 To continue this project:
 
 1. Continue Phase 5: Expanded Test Coverage (in progress)
-2. Run tests: `make test-api` (456 tests passing, 11 skipped)
-3. Check coverage: `make coverage` (19.9%)
-4. Review 05-05-SUMMARY.md for logging, config, publication test patterns
-5. Consider next plans: endpoint tests, integration tests, or additional gap closure
+2. Run tests: `make test-api` (610 tests passing, 22 skipped)
+3. Check coverage: `make coverage` (20.3%)
+4. Review 05-06-SUMMARY.md for HPO and GeneReviews test patterns
+5. Consider: Phase 5 gap closure is substantially complete - remaining coverage requires integration tests
 6. Note: pre-commit will fail on lint issues until R codebase is cleaned up
 
 ### Files to Review on Resume
 
-- `.planning/phases/05-expanded-test-coverage/05-05-SUMMARY.md` - Logging/Config/Publication tests
-- `api/tests/testthat/test-unit-logging-functions.R` - Logging function test patterns
-- `api/tests/testthat/test-unit-config-functions.R` - Config function test patterns
-- `api/tests/testthat/test-unit-publication-functions.R` - Publication XML parsing test patterns
-- `api/scripts/coverage.R` - Updated coverage script
+- `.planning/phases/05-expanded-test-coverage/05-06-SUMMARY.md` - HPO/GeneReviews tests
+- `api/tests/testthat/test-unit-hpo-functions.R` - Mock ontologyIndex pattern
+- `api/tests/testthat/test-unit-genereviews-functions.R` - String pattern testing pattern
+- `.planning/phases/05-expanded-test-coverage/05-VERIFICATION.md` - Phase verification status
 
 ---
 *Last updated: 2026-01-21*
