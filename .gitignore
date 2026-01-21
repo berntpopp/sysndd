@@ -14,3 +14,6 @@ TESTING.md
 # claude files
 CLAUDE.md
 .claude.planning/intel/
+
+# Coverage reports
+coverage/

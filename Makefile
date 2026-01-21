@@ -29,7 +29,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev test-api lint-api lint-app format-api format-app pre-commit docker-build docker-up docker-down
+.PHONY: help check-r check-npm check-docker install-api install-app dev test-api test-api-full coverage lint-api lint-app format-api format-app pre-commit docker-build docker-up docker-down
 
 # =============================================================================
 # Help Target (Self-documenting)
@@ -100,6 +100,19 @@ test-api: check-r ## [test] Run R API tests with testthat
 	@cd /mnt/c/development/sysndd/api && Rscript -e "testthat::test_dir('tests/testthat')" && \
 		printf "$(GREEN)✓ test-api complete$(RESET)\n" || \
 		(printf "$(RED)✗ test-api failed$(RESET)\n" && exit 1)
+
+test-api-full: check-r ## [test] Run full R API test suite including slow tests
+	@printf "$(CYAN)==> Running full R API test suite (including slow tests)...$(RESET)\n"
+	@cd /mnt/c/development/sysndd/api && RUN_SLOW_TESTS=true Rscript -e "testthat::test_dir('tests/testthat')" && \
+		printf "$(GREEN)✓ test-api-full complete$(RESET)\n" || \
+		(printf "$(RED)✗ test-api-full failed$(RESET)\n" && exit 1)
+
+coverage: check-r ## [test] Generate test coverage report with covr
+	@printf "$(CYAN)==> Calculating test coverage...$(RESET)\n"
+	@mkdir -p /mnt/c/development/sysndd/coverage
+	@cd /mnt/c/development/sysndd/api && Rscript scripts/coverage.R && \
+		printf "$(GREEN)✓ coverage complete$(RESET)\n" || \
+		(printf "$(RED)✗ coverage failed$(RESET)\n" && exit 1)
 
 # =============================================================================
 # Linting Targets
