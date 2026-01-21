@@ -9,15 +9,15 @@
 ## Current Position
 
 **Phase:** 3 - Package Management & Docker Modernization (in progress)
-**Plan:** 03-02 of 4 in phase
+**Plan:** 03-04 of 4 in phase
 **Status:** In progress
-**Last activity:** 2026-01-21 - Completed 03-02-PLAN.md
+**Last activity:** 2026-01-21 - Completed 03-04-PLAN.md
 
 ```
 Progress: [████████..] 80%
 Phase 1: [██████████] 2/2 plans COMPLETE
 Phase 2: [██████████] 5/5 plans COMPLETE
-Phase 3: [█████.....] 2/4 plans (in progress)
+Phase 3: [███████...] 3/4 plans (in progress)
 ```
 
 **Plans completed:**
@@ -30,6 +30,7 @@ Phase 3: [█████.....] 2/4 plans (in progress)
 - 02-05: Entity integration tests (1 task, 1 commit)
 - 03-01: Phase research and planning (research phase)
 - 03-02: Docker development configuration (2 tasks, 2 commits)
+- 03-04: External API mocking with httptest2 (2 tasks, 2 commits)
 
 ## GitHub Issues
 
@@ -44,9 +45,10 @@ Phase 3: [█████.....] 2/4 plans (in progress)
 |--------|-------|-------|
 | Session count | 4 | Current session |
 | Phases completed | 2/5 | Phase 1, Phase 2 COMPLETE |
-| Requirements completed | 8/25 | REF-01, REF-02, REF-03, TEST-01, TEST-03, TEST-04, TEST-06 |
-| Plans executed | 9 | 01-01, 01-02, 02-01 thru 02-05, 03-01, 03-02 |
-| Total commits | 19 | 10 from Phase 1, 7 from Phase 2, 2 from Phase 3 |
+| Requirements completed | 9/25 | REF-01, REF-02, REF-03, TEST-01, TEST-03, TEST-04, TEST-06, TEST-07 |
+| Plans executed | 10 | 01-01, 01-02, 02-01 thru 02-05, 03-01, 03-02, 03-04 |
+| Total commits | 21 | 10 from Phase 1, 7 from Phase 2, 4 from Phase 3 |
+| Test count | 108 | All passing (4 skipped - expected) |
 
 ## Accumulated Context
 
@@ -79,6 +81,10 @@ Phase 3: [█████.....] 2/4 plans (in progress)
 | Port 7655 for test DB | Enables running both dev and test databases simultaneously | 2026-01-21 | 03-02 |
 | Docker Compose Watch for hot-reload | Syncs endpoints/ and functions/ changes without container restart | 2026-01-21 | 03-02 |
 | Named volumes for data persistence | mysql_dev_data and mysql_test_data persist across restarts | 2026-01-21 | 03-02 |
+| httptest2 for API mocking | Industry standard for R API testing; records real responses to JSON files | 2026-01-21 | 03-04 |
+| Pure function tests run without network | table_articles_from_xml, generate_query_hash work independently | 2026-01-21 | 03-04 |
+| Graceful skip for network-dependent tests | skip_if_no_fixtures_or_network allows tests to skip not fail | 2026-01-21 | 03-04 |
+| Redactor for fixture files | Strips email addresses and API keys from recorded fixtures | 2026-01-21 | 03-04 |
 
 ### Technical Discoveries
 
@@ -105,6 +111,11 @@ Phase 3: [█████.....] 2/4 plans (in progress)
 - Docker Compose dev config created with separate dev/test databases
 - .dockerignore files reduce build context by excluding renv/library, node_modules, tests
 - Docker Compose Watch configured for api service hot-reload
+- httptest2 installed for external API mocking (v1.2.2)
+- easyPubMed uses base R url() connections not intercepted by httptest2
+- PubMed/PubTator integration tests skip gracefully when fixtures unavailable
+- External API test files now have 49 new assertions (14 PubMed, 35 PubTator)
+- Total test count: 108 passing, 4 skipped (expected behavior)
 
 ### Blockers
 
@@ -127,11 +138,13 @@ None currently.
 - [x] Entity integration tests (Phase 2) - Done in 02-05
 - [x] Phase 2 test infrastructure (Phase 2) - COMPLETE
 - [x] Docker development configuration (Phase 3) - Done in 03-02
+- [x] External API mocking (Phase 3) - Done in 03-04
 - [ ] Create PR and close Issue #109 (Phase 1, Plan 01-03)
 - [ ] Create test database (sysndd_db_test) - can now use docker-compose.dev.yml
 - [ ] Document WSL2 filesystem requirement for Windows developers (Phase 3)
 - [ ] renv package management setup (Phase 3, Plan 03-03)
-- [ ] Makefile automation (Phase 3, Plan 03-04)
+- [ ] Makefile automation (Phase 3, remaining plan)
+- [ ] Record fixtures from live API for full integration test coverage
 
 ## Session Continuity
 
@@ -139,13 +152,14 @@ None currently.
 
 **Date:** 2026-01-21
 **Work completed:**
-- Plan 03-02: Created Docker Compose development configuration
-  - docker-compose.dev.yml with mysql-dev (7654) and mysql-test (7655)
-  - api/.dockerignore and app/.dockerignore for optimized builds
-  - Docker Compose Watch configuration for hot-reload
-  - Removed obsolete version field from docker-compose.yml
+- Plan 03-04: Created external API mocking infrastructure
+  - helper-mock-apis.R with httptest2 configuration
+  - test-external-pubmed.R with 14 pure function tests + 4 integration tests
+  - test-external-pubtator.R with 18 pure function tests + 3 integration tests
+  - Fixture directories for PubMed and PubTator responses
+  - Test suite now at 108 passing tests
 
-**State at end:** Phase 3 in progress (2/4 plans complete). Ready for Plan 03-03 (renv setup).
+**State at end:** Phase 3 in progress (3/4 plans complete). Ready for Plan 03-03 (renv setup).
 
 ### Resume Instructions
 
@@ -158,12 +172,12 @@ To continue this project:
 
 ### Files to Review on Resume
 
+- `.planning/phases/03-package-management-docker-modernization/03-04-SUMMARY.md` - External API mocking
 - `.planning/phases/03-package-management-docker-modernization/03-02-SUMMARY.md` - Docker dev configuration
-- `.planning/phases/03-package-management-docker-modernization/03-02-PLAN.md` - Plan for reference
-- `docker-compose.dev.yml` - New development Docker Compose file
-- `docker-compose.yml` - Updated with Watch configuration
-- `api/.dockerignore` - API build context filter
-- `app/.dockerignore` - Frontend build context filter
+- `api/tests/testthat/helper-mock-apis.R` - httptest2 configuration
+- `api/tests/testthat/test-external-pubmed.R` - PubMed API tests
+- `api/tests/testthat/test-external-pubtator.R` - PubTator API tests
+- `docker-compose.dev.yml` - Development Docker Compose file
 
 ---
 *Last updated: 2026-01-21*
