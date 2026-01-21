@@ -4,22 +4,22 @@
 
 **Core Value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current Focus:** Phase 4 COMPLETE; ready for Phase 5 (Expanded Test Coverage)
+**Current Focus:** Phase 5 IN PROGRESS (Expanded Test Coverage)
 
 ## Current Position
 
-**Phase:** 4 - Makefile Automation (COMPLETE)
-**Plan:** 04-02 of 2 in phase (Testing and Linting Targets)
-**Status:** Phase 4 complete, verified
-**Last activity:** 2026-01-21 - Completed Phase 4 execution and verification
+**Phase:** 5 - Expanded Test Coverage (IN PROGRESS)
+**Plan:** 05-02 of X in phase (Database Function Tests)
+**Status:** Plan 05-02 complete
+**Last activity:** 2026-01-21 - Completed 05-02-PLAN.md
 
 ```
-Progress: [█████████.] 92%
+Progress: [█████████.] 94%
 Phase 1: [##########] 2/2 plans COMPLETE
 Phase 2: [##########] 5/5 plans COMPLETE
 Phase 3: [##########] 4/4 plans COMPLETE
 Phase 4: [##########] 2/2 plans COMPLETE
-Phase 5: [..........] 0/X plans (not started)
+Phase 5: [##........] 2/X plans (in progress)
 ```
 
 **Plans completed:**
@@ -36,6 +36,8 @@ Phase 5: [..........] 0/X plans (not started)
 - 03-04: External API mocking with httptest2 (2 tasks, 2 commits)
 - 04-01: Core Makefile foundation (2 tasks, 1 commit)
 - 04-02: Testing and linting targets (2 tasks, 2 commits)
+- 05-01: Coverage infrastructure and helper function tests (2 tasks, 3 commits)
+- 05-02: Database function tests with dittodb mocking (2 tasks, 3 commits)
 
 ## GitHub Issues
 
@@ -48,12 +50,12 @@ Phase 5: [..........] 0/X plans (not started)
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| Session count | 8 | Current session |
-| Phases completed | 4/5 | Phase 1, Phase 2, Phase 3, Phase 4 COMPLETE |
-| Requirements completed | 22/25 | REF-01 thru REF-03, TEST-01 thru TEST-07, DEV-01 thru DEV-06, MAKE-01 thru MAKE-06 |
-| Plans executed | 14 | 01-01, 01-02, 02-01 thru 02-05, 03-01 thru 03-04, 04-01, 04-02 |
-| Total commits | 29 | 10 from Phase 1, 7 from Phase 2, 9 from Phase 3, 3 from Phase 4 |
-| Test count | 108 | All passing (4 skipped - expected) |
+| Session count | 9 | Current session |
+| Phases completed | 4/5 | Phase 1-4 COMPLETE, Phase 5 IN PROGRESS |
+| Requirements completed | 23/25 | REF-01 thru REF-03, TEST-01 thru TEST-07, DEV-01 thru DEV-06, MAKE-01 thru MAKE-06, COV-01 partial |
+| Plans executed | 16 | Phases 1-4 complete, 05-01, 05-02 |
+| Total commits | 35 | 10 Phase 1, 7 Phase 2, 9 Phase 3, 3 Phase 4, 6 Phase 5 |
+| Test count | 257 | All passing (11 skipped - expected) |
 | Docker build time | ~8 min | Down from 45+ minutes |
 | Makefile lines | 163 | Complete with 13 targets across 5 sections |
 
@@ -107,6 +109,9 @@ Phase 5: [..........] 0/X plans (not started)
 | lint/format targets wrap existing scripts | Maintains single source of truth for linting configuration | 2026-01-21 | 04-02 |
 | pre-commit uses $(MAKE) recursion | Proper environment for chained quality workflow | 2026-01-21 | 04-02 |
 | Fail fast in pre-commit | Any failure should block commit | 2026-01-21 | 04-02 |
+| covr::file_coverage() for non-package R code | API not an R package; file_coverage measures functions/*.R directly | 2026-01-21 | 05-01 |
+| Validation-only testing for DB functions | Test input validation before DB connection, no live DB required | 2026-01-21 | 05-02 |
+| dittodb for database mocking | Infrastructure ready for future fixture-based integration tests | 2026-01-21 | 05-02 |
 
 ### Technical Discoveries
 
@@ -149,11 +154,16 @@ Phase 5: [..........] 0/X plans (not started)
 - Self-documenting help system parses ## comments with awk for categorized output
 - Colorized output uses ANSI codes: green (success), red (failure), cyan (info)
 - `make dev` starts development databases on ports 7654 and 7655
-- `make test-api` runs 108 tests (4 skipped as expected)
+- `make test-api` runs 257 tests (11 skipped as expected)
 - api/functions/.lintr used deprecated with_defaults (fixed to linters_with_defaults)
 - lint-api finds 1240 lint issues in R codebase (expected for legacy code)
 - lint-app crashes due to esm module Node.js version incompatibility (pre-existing issue)
 - format-api style-code.R has bug handling files with styling errors (pre-existing issue)
+- Coverage infrastructure established with covr package and scripts/coverage.R
+- Helper function tests expanded from 121 to 453 lines covering all major pure functions
+- Database function validation tests added (27 new assertions)
+- put_post_db_review() had validation order bug (synopsis escaping before column check) - fixed per Rule 1
+- dittodb mocking infrastructure ready for future fixture-based integration tests
 
 ### Blockers
 
@@ -198,32 +208,33 @@ None currently.
 
 **Date:** 2026-01-21
 **Work completed:**
-- Phase 4: Makefile Automation (COMPLETE)
-  - Plan 04-01: Core Makefile foundation with help, install, dev, Docker targets
-  - Plan 04-02: Testing and linting targets with pre-commit workflow
-  - Verification: 10/10 must-haves verified
-  - Fixed deprecated api/functions/.lintr with_defaults
-  - Makefile: 163 lines, 13 targets, 5 sections
-  - 4 tasks, 5 commits
+- Phase 5: Expanded Test Coverage (IN PROGRESS)
+  - Plan 05-01: Coverage infrastructure and helper function tests (3 commits)
+  - Plan 05-02: Database function tests with dittodb mocking (3 commits)
+  - Coverage infrastructure with covr package
+  - Helper function tests expanded to 453 lines
+  - Database function validation tests added (27 assertions)
+  - Fixed put_post_db_review() validation order bug (Rule 1)
+  - Total test count: 257 (up from 108)
 
-**State at end:** Phase 4 COMPLETE (2/2 plans). Ready for Phase 5.
+**State at end:** Phase 5 IN PROGRESS (2/X plans). 05-01 and 05-02 complete.
 
 ### Resume Instructions
 
 To continue this project:
 
-1. Begin Phase 5: Expanded Test Coverage
-2. Start test database: `make dev`
-3. Run tests: `make test-api`
+1. Continue Phase 5: Expanded Test Coverage (in progress)
+2. Run tests: `make test-api` (257 tests passing)
+3. Check coverage: `make coverage` (infrastructure ready)
 4. Review accumulated decisions in this STATE.md before planning
 5. Note: pre-commit will fail on lint issues until R codebase is cleaned up
 
 ### Files to Review on Resume
 
-- `Makefile` - Complete automation (163 lines, 13 targets)
-- `.planning/phases/04-makefile-automation/04-VERIFICATION.md` - Phase 4 verification report
-- `.planning/phases/04-makefile-automation/04-01-SUMMARY.md` - Core Makefile foundation
-- `.planning/phases/04-makefile-automation/04-02-SUMMARY.md` - Testing and linting targets
+- `.planning/phases/05-expanded-test-coverage/05-01-SUMMARY.md` - Coverage infrastructure
+- `.planning/phases/05-expanded-test-coverage/05-02-SUMMARY.md` - Database function tests
+- `api/tests/testthat/test-database-functions.R` - Validation testing pattern
+- `api/tests/testthat/helper-db-mock.R` - dittodb mocking utilities
 
 ---
 *Last updated: 2026-01-21*
