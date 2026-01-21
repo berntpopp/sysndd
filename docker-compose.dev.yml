@@ -1,0 +1,54 @@
+# Development database containers for hybrid workflow
+# Usage: docker compose -f docker-compose.dev.yml up -d
+#
+# This starts databases in Docker while you run the API locally.
+# API connects to localhost:7654 (dev) or localhost:7655 (test)
+
+services:
+  mysql-dev:
+    image: mysql:8.0.40
+    container_name: sysndd_mysql_dev
+    restart: unless-stopped
+    command: mysqld --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-sysndd_db}
+      MYSQL_USER: ${MYSQL_USER:-bernt}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-changeme}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+    ports:
+      - "7654:3306"
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  mysql-test:
+    image: mysql:8.0.40
+    container_name: sysndd_mysql_test
+    restart: unless-stopped
+    command: mysqld --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_DATABASE: sysndd_db_test
+      MYSQL_USER: ${MYSQL_USER:-bernt}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-changeme}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+    ports:
+      - "7655:3306"
+    volumes:
+      - mysql_test_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  mysql_dev_data:
+    name: sysndd_mysql_dev_data
+  mysql_test_data:
+    name: sysndd_mysql_test_data
