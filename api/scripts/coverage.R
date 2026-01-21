@@ -20,6 +20,10 @@ suppressPackageStartupMessages({
   library(openssl)  # Required for sha256() in helper-functions.R
   library(jsonlite)
   library(purrr)
+  library(xml2)     # Required for publication-functions.R
+  library(readr)    # Required for logging-functions.R
+  library(fs)       # Required for logging-functions.R
+  library(rvest)    # Required for genereviews-functions.R
 })
 
 # Change to api directory
@@ -33,14 +37,21 @@ source_files <- list.files("functions", pattern = "\\.R$", full.names = TRUE)
 cat("Measuring coverage for", length(source_files), "source files...\n")
 
 # Use file_coverage with explicit source and test paths
-# We filter to just test-unit-* files to avoid DB/network dependencies for now
+# Include multiple test file types:
+# - test-unit-* : Pure function tests (no external dependencies)
+# - test-database-* : Database validation tests (no live DB required)
+#
+# Note: test-external-* files are excluded from coverage because:
+# - They require httptest2 fixtures and helper functions
+# - They have network dependencies for initial fixture recording
+# - covr doesn't load testthat helper files automatically
 test_files <- list.files(
   "tests/testthat",
-  pattern = "^test-unit-.*\\.R$",
+  pattern = "^test-(unit|database)-.*\\.R$",
   full.names = TRUE
 )
 
-cat("Using", length(test_files), "unit test files\n\n")
+cat("Using", length(test_files), "test files\n\n")
 
 # Calculate coverage
 cov <- file_coverage(
