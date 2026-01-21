@@ -17,6 +17,11 @@ This roadmap transforms the Docker infrastructure from a functional but outdated
 
 **Dependencies:** None (foundation phase)
 
+**Plans:** 1 plan
+
+Plans:
+- [ ] 06-01-PLAN.md — Docker Compose modernization with Traefik, networks, health checks, resource limits
+
 **Requirements:**
 - SEC-01: Replace dockercloud/haproxy:1.6.7 with Traefik v3.6
 - SEC-02: Add .dockerignore file to api/ directory
@@ -119,7 +124,7 @@ This roadmap transforms the Docker infrastructure from a functional but outdated
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 6 | Security and Compose Foundation | 13 | Not Started |
+| 6 | Security and Compose Foundation | 13 | Planning Complete |
 | 7 | API Dockerfile Optimization | 12 | Not Started |
 | 8 | Frontend Dockerfile Modernization | 4 | Not Started |
 | 9 | Developer Experience | 8 | Not Started |
@@ -156,4 +161,4 @@ Detailed implementation guidance available in `.plan/DOCKER-REVIEW-REPORT.md`:
 
 ---
 *Roadmap created: 2026-01-21*
-*Last updated: 2026-01-21*
+*Last updated: 2026-01-21 — Phase 6 planning complete*
