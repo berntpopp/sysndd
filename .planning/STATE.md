@@ -9,16 +9,16 @@
 ## Current Position
 
 **Phase:** 4 - Makefile Automation (IN PROGRESS)
-**Plan:** 04-01 of X in phase (Core Makefile Foundation)
-**Status:** Plan 04-01 complete
-**Last activity:** 2026-01-21 - Completed 04-01-PLAN.md (Core Makefile Foundation)
+**Plan:** 04-02 of X in phase (Testing and Linting Targets)
+**Status:** Plan 04-02 complete
+**Last activity:** 2026-01-21 - Completed 04-02-PLAN.md (Testing and Linting Targets)
 
 ```
-Progress: [████████..] 86%
+Progress: [████████..] 88%
 Phase 1: [##########] 2/2 plans COMPLETE
 Phase 2: [##########] 5/5 plans COMPLETE
 Phase 3: [##########] 4/4 plans COMPLETE
-Phase 4: [##........] 1/X plans (in progress)
+Phase 4: [####......] 2/X plans (in progress)
 Phase 5: [..........] 0/X plans (not started)
 ```
 
@@ -35,6 +35,7 @@ Phase 5: [..........] 0/X plans (not started)
 - 03-03: Dockerfile optimization with renv (2 tasks, 3 commits)
 - 03-04: External API mocking with httptest2 (2 tasks, 2 commits)
 - 04-01: Core Makefile foundation (2 tasks, 1 commit)
+- 04-02: Testing and linting targets (2 tasks, 2 commits)
 
 ## GitHub Issues
 
@@ -47,13 +48,14 @@ Phase 5: [..........] 0/X plans (not started)
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| Session count | 7 | Current session |
+| Session count | 8 | Current session |
 | Phases completed | 3/5 | Phase 1, Phase 2, Phase 3 COMPLETE |
 | Requirements completed | 17/25 | REF-01 thru REF-03, TEST-01 thru TEST-07, DEV-01 thru DEV-07 |
-| Plans executed | 13 | 01-01, 01-02, 02-01 thru 02-05, 03-01 thru 03-04, 04-01 |
-| Total commits | 27 | 10 from Phase 1, 7 from Phase 2, 9 from Phase 3, 1 from Phase 4 |
+| Plans executed | 14 | 01-01, 01-02, 02-01 thru 02-05, 03-01 thru 03-04, 04-01, 04-02 |
+| Total commits | 29 | 10 from Phase 1, 7 from Phase 2, 9 from Phase 3, 3 from Phase 4 |
 | Test count | 108 | All passing (4 skipped - expected) |
 | Docker build time | ~8 min | Down from 45+ minutes |
+| Makefile lines | 163 | Complete with 13 targets across 5 sections |
 
 ## Accumulated Context
 
@@ -101,6 +103,10 @@ Phase 5: [..........] 0/X plans (not started)
 | Self-documenting help with ## comments | Targets grouped by section (Development, Docker) for discoverability | 2026-01-21 | 04-01 |
 | Prerequisite checks before targets | check-r, check-npm, check-docker provide actionable error messages | 2026-01-21 | 04-01 |
 | Absolute paths in Makefile recipes | WSL2 compatibility where relative paths can be problematic | 2026-01-21 | 04-01 |
+| test-api uses testthat::test_dir | Runs all tests in api/tests/testthat/ comprehensively | 2026-01-21 | 04-02 |
+| lint/format targets wrap existing scripts | Maintains single source of truth for linting configuration | 2026-01-21 | 04-02 |
+| pre-commit uses $(MAKE) recursion | Proper environment for chained quality workflow | 2026-01-21 | 04-02 |
+| Fail fast in pre-commit | Any failure should block commit | 2026-01-21 | 04-02 |
 
 ### Technical Discoveries
 
@@ -139,10 +145,15 @@ Phase 5: [..........] 0/X plans (not started)
 - renv.lock from Plan 03-01 is incomplete - missing plumber, RMariaDB, igraph, xlsx, BiocManager
 - Bioconductor packages require libpng-dev for compilation
 - R version in renv.lock must match Docker base image R version
-- Root Makefile created with 108 lines covering core development commands
+- Root Makefile created with 163 lines covering all development commands
 - Self-documenting help system parses ## comments with awk for categorized output
 - Colorized output uses ANSI codes: green (success), red (failure), cyan (info)
 - `make dev` starts development databases on ports 7654 and 7655
+- `make test-api` runs 108 tests (4 skipped as expected)
+- api/functions/.lintr used deprecated with_defaults (fixed to linters_with_defaults)
+- lint-api finds 1240 lint issues in R codebase (expected for legacy code)
+- lint-app crashes due to esm module Node.js version incompatibility (pre-existing issue)
+- format-api style-code.R has bug handling files with styling errors (pre-existing issue)
 
 ### Blockers
 
@@ -153,6 +164,8 @@ None currently.
 - Tests will skip gracefully until test DB is set up (skip_if_no_test_db() pattern)
 - Users need to update local config.yml sysndd_db_test.port to 7655 to match docker-compose.dev.yml
 - renv.lock should be regenerated with complete package list (missing critical packages)
+- Frontend lint-app crashes due to esm module incompatibility with Node.js version
+- R codebase has 1240 lint issues - make pre-commit will fail until addressed
 
 ### TODOs (Cross-Session)
 
@@ -173,7 +186,9 @@ None currently.
 - [ ] Create test database (sysndd_db_test) - can now use docker-compose.dev.yml
 - [ ] Document WSL2 filesystem requirement for Windows developers (Phase 4)
 - [x] Makefile core foundation (Phase 4) - Done in 04-01
-- [ ] Makefile testing and linting targets (Phase 4)
+- [x] Makefile testing and linting targets (Phase 4) - Done in 04-02
+- [ ] Fix frontend esm module compatibility for lint-app to work
+- [ ] Fix R lint issues (1240) for pre-commit to pass
 - [ ] Record fixtures from live API for full integration test coverage
 - [ ] Regenerate renv.lock with all required packages
 
@@ -183,36 +198,33 @@ None currently.
 
 **Date:** 2026-01-21
 **Work completed:**
-- Plan 04-01: Core Makefile Foundation
-  - Created root Makefile with Davis-Hansson preamble
-  - Self-documenting help with categorized output (Development, Docker)
-  - Prerequisite checks for R, npm, Docker with actionable errors
-  - install-api (renv::restore), install-app (npm install) targets
-  - dev target for development database containers
-  - docker-build, docker-up, docker-down for container management
-  - 2 tasks, 1 commit
+- Plan 04-02: Testing and Linting Targets
+  - Added test-api target for testthat test execution
+  - Added lint-api, lint-app targets for code quality checking
+  - Added format-api, format-app targets for code formatting
+  - Added pre-commit target chaining all quality checks
+  - Fixed deprecated api/functions/.lintr with_defaults
+  - Extended Makefile to 163 lines with 13 targets across 5 sections
+  - 2 tasks, 2 commits
 
-**State at end:** Plan 04-01 COMPLETE. Phase 4 in progress.
+**State at end:** Plan 04-02 COMPLETE. Phase 4 continues.
 
 ### Resume Instructions
 
 To continue this project:
 
-1. Continue Phase 4: Add testing and linting targets to Makefile
-2. Start test database: `make dev` (or `docker compose -f docker-compose.dev.yml up -d`)
-3. Run tests: `make test-api` (once target is added)
-4. Review accumulated decisions in this STATE.md before planning
-5. Consider regenerating renv.lock with all required packages
+1. Continue Phase 4: Review if additional Makefile targets needed
+2. Start test database: `make dev`
+3. Run tests: `make test-api`
+4. Run pre-commit (will fail on lint issues): `make pre-commit`
+5. Consider fixing lint issues or frontend esm compatibility
 
 ### Files to Review on Resume
 
+- `.planning/phases/04-makefile-automation/04-02-SUMMARY.md` - Testing and linting targets
+- `Makefile` - Complete automation (163 lines, 13 targets)
 - `.planning/phases/04-makefile-automation/04-01-SUMMARY.md` - Core Makefile foundation
-- `Makefile` - Root-level development automation
-- `.planning/phases/03-package-management-docker-modernization/03-03-SUMMARY.md` - Dockerfile optimization
-- `.planning/phases/03-package-management-docker-modernization/03-02-SUMMARY.md` - Docker dev configuration
-- `api/Dockerfile` - Optimized Docker image
-- `api/renv.lock` - Package version lockfile (277 packages - incomplete)
-- `docker-compose.dev.yml` - Development Docker Compose file
+- `api/functions/.lintr` - Fixed deprecated lintr config
 
 ---
 *Last updated: 2026-01-21*
