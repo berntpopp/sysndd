@@ -111,10 +111,13 @@ Plans:
 
 **Requirements:** COV-01, COV-02, COV-03
 
-**Plans:** 0 plans
+**Plans:** 4 plans
 
 Plans:
-- [ ] TBD (created by /gsd:plan-phase)
+- [ ] 05-01-PLAN.md — Coverage infrastructure and expanded helper function tests
+- [ ] 05-02-PLAN.md — Database function tests with dittodb mocking
+- [ ] 05-03-PLAN.md — External API tests (HGNC, Ensembl) and file utility tests
+- [ ] 05-04-PLAN.md — Endpoint and ontology function tests, coverage verification
 
 **Success Criteria:**
 1. Code coverage for `functions/*.R` files reaches 70% or higher
@@ -132,7 +135,7 @@ Plans:
 | 2 - Test Infrastructure Foundation | ✓ Complete | TEST-01 through TEST-06 | 6/6 |
 | 3 - Package Management + Docker | ✓ Complete | DEV-01 through DEV-06, TEST-07 | 7/7 |
 | 4 - Makefile Automation | ✓ Complete | MAKE-01 through MAKE-06 | 6/6 |
-| 5 - Expanded Test Coverage | Not Started | COV-01, COV-02, COV-03 | 0/3 |
+| 5 - Expanded Test Coverage | Planned | COV-01, COV-02, COV-03 | 0/3 |
 
 **Total:** 22/25 requirements complete
 
@@ -167,6 +170,7 @@ Phase 5 (Test Coverage)
 | Root Makefile with namespaced targets | Universal, no dependencies, AI-assistant friendly | 4 |
 | Flat hyphenated target names | test-api, lint-app, install-api - explicit component specification | 4 |
 | 70% function coverage target | Testable business logic prioritized over HTTP layer | 5 |
+| covr file_coverage over package_coverage | API is not an R package; file_coverage measures functions/*.R directly | 5 |
 
 ## Pitfalls to Avoid
 
@@ -179,6 +183,8 @@ From research synthesis (SUMMARY.md):
 5. **Phase 3:** Document renv lockfile update workflow to prevent merge conflicts
 6. **Phase 4:** Use tabs (not spaces) for Makefile recipe indentation
 7. **Phase 4:** Use `renv::restore(prompt = FALSE)` to avoid interactive prompts
+8. **Phase 5:** Don't run coverage tests inside testthat (causes recursion)
+9. **Phase 5:** Database connections must be inside `with_mock_db()` blocks for dittodb
 
 ---
 *Last updated: 2026-01-21*
