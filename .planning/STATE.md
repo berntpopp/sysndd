@@ -4,20 +4,22 @@
 
 **Core Value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current Focus:** Phase 3 in progress (Package Management & Docker Modernization)
+**Current Focus:** Phase 3 COMPLETE (Package Management & Docker Modernization)
 
 ## Current Position
 
-**Phase:** 3 - Package Management & Docker Modernization (in progress)
-**Plan:** 03-01 of 4 in phase
-**Status:** In progress
-**Last activity:** 2026-01-21 - Completed 03-01-PLAN.md (renv initialization)
+**Phase:** 3 - Package Management & Docker Modernization (COMPLETE)
+**Plan:** 03-03 of 4 in phase (Dockerfile Optimization)
+**Status:** Phase 3 complete
+**Last activity:** 2026-01-21 - Completed 03-03-PLAN.md (Dockerfile Optimization)
 
 ```
-Progress: [████████..] 80%
-Phase 1: [██████████] 2/2 plans COMPLETE
-Phase 2: [██████████] 5/5 plans COMPLETE
-Phase 3: [██████████] 4/4 plans COMPLETE
+Progress: [████████..] 84%
+Phase 1: [##########] 2/2 plans COMPLETE
+Phase 2: [##########] 5/5 plans COMPLETE
+Phase 3: [##########] 4/4 plans COMPLETE
+Phase 4: [..........] 0/X plans (not started)
+Phase 5: [..........] 0/X plans (not started)
 ```
 
 **Plans completed:**
@@ -30,6 +32,7 @@ Phase 3: [██████████] 4/4 plans COMPLETE
 - 02-05: Entity integration tests (1 task, 1 commit)
 - 03-01: renv initialization for reproducible R packages (2 tasks, 2 commits)
 - 03-02: Docker development configuration (2 tasks, 2 commits)
+- 03-03: Dockerfile optimization with renv (2 tasks, 3 commits)
 - 03-04: External API mocking with httptest2 (2 tasks, 2 commits)
 
 ## GitHub Issues
@@ -43,12 +46,13 @@ Phase 3: [██████████] 4/4 plans COMPLETE
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| Session count | 5 | Current session |
+| Session count | 6 | Current session |
 | Phases completed | 3/5 | Phase 1, Phase 2, Phase 3 COMPLETE |
-| Requirements completed | 10/25 | REF-01, REF-02, REF-03, TEST-01, TEST-03, TEST-04, TEST-06, TEST-07, PKG-01 |
-| Plans executed | 11 | 01-01, 01-02, 02-01 thru 02-05, 03-01, 03-02, 03-04 |
-| Total commits | 23 | 10 from Phase 1, 7 from Phase 2, 6 from Phase 3 |
+| Requirements completed | 11/25 | REF-01, REF-02, REF-03, TEST-01, TEST-03, TEST-04, TEST-06, TEST-07, PKG-01, PKG-02 |
+| Plans executed | 12 | 01-01, 01-02, 02-01 thru 02-05, 03-01 thru 03-04 |
+| Total commits | 26 | 10 from Phase 1, 7 from Phase 2, 9 from Phase 3 |
 | Test count | 108 | All passing (4 skipped - expected) |
+| Docker build time | ~8 min | Down from 45+ minutes |
 
 ## Accumulated Context
 
@@ -88,6 +92,10 @@ Phase 3: [██████████] 4/4 plans COMPLETE
 | Implicit snapshot type for renv | Automatically detects dependencies from R files | 2026-01-21 | 03-01 |
 | renv.lock tracks 277 packages | All direct and implicit dependencies captured | 2026-01-21 | 03-01 |
 | renv cache symlinks enabled | Packages shared via global cache for storage efficiency | 2026-01-21 | 03-01 |
+| Use R 4.1.2 for Docker image | Matches renv.lock version; avoids MASS/Matrix compilation errors | 2026-01-21 | 03-03 |
+| Use focal P3M binaries | rocker/r-ver:4.1.2 uses Ubuntu focal; noble binaries have ICU mismatch | 2026-01-21 | 03-03 |
+| Disable renv cache symlinks in Docker | BuildKit cache only available during build; symlinks break at runtime | 2026-01-21 | 03-03 |
+| Install missing packages after renv::restore() | renv.lock incomplete; plumber, RMariaDB etc. not captured | 2026-01-21 | 03-03 |
 
 ### Technical Discoveries
 
@@ -122,6 +130,10 @@ Phase 3: [██████████] 4/4 plans COMPLETE
 - renv initialized with 277 R packages in lockfile
 - Automatic renv activation via .Rprofile on R session startup
 - Some packages (RMariaDB, plumber, sodium, rJava, xlsx) require system libraries present in Docker
+- Docker build time reduced from 45+ minutes to ~8 minutes using renv::restore()
+- renv.lock from Plan 03-01 is incomplete - missing plumber, RMariaDB, igraph, xlsx, BiocManager
+- Bioconductor packages require libpng-dev for compilation
+- R version in renv.lock must match Docker base image R version
 
 ### Blockers
 
@@ -131,6 +143,7 @@ None currently.
 - Test database (sysndd_db_test) doesn't exist yet - needs to be created before integration tests can run
 - Tests will skip gracefully until test DB is set up (skip_if_no_test_db() pattern)
 - Users need to update local config.yml sysndd_db_test.port to 7655 to match docker-compose.dev.yml
+- renv.lock should be regenerated with complete package list (missing critical packages)
 
 ### TODOs (Cross-Session)
 
@@ -146,11 +159,13 @@ None currently.
 - [x] Docker development configuration (Phase 3) - Done in 03-02
 - [x] External API mocking (Phase 3) - Done in 03-04
 - [x] renv package management setup (Phase 3) - Done in 03-01
+- [x] Dockerfile optimization (Phase 3) - Done in 03-03
 - [ ] Create PR and close Issue #109 (Phase 1, Plan 01-03)
 - [ ] Create test database (sysndd_db_test) - can now use docker-compose.dev.yml
-- [ ] Document WSL2 filesystem requirement for Windows developers (Phase 3)
-- [ ] Makefile automation (Phase 3, Plan 03-03)
+- [ ] Document WSL2 filesystem requirement for Windows developers (Phase 4)
+- [ ] Makefile automation (Phase 4)
 - [ ] Record fixtures from live API for full integration test coverage
+- [ ] Regenerate renv.lock with all required packages
 
 ## Session Continuity
 
@@ -158,11 +173,14 @@ None currently.
 
 **Date:** 2026-01-21
 **Work completed:**
-- Plan 03-01: Initialized renv for reproducible R package management
-  - Created renv.lock with 277 R packages version-pinned
-  - Set up .Rprofile for automatic renv activation
-  - Configured gitignore for renv cache exclusions
-  - 2 tasks, 2 commits
+- Plan 03-03: Dockerfile Optimization with renv
+  - Rewrote Dockerfile to use renv::restore() instead of 35 install_version() calls
+  - Configured P3M for pre-compiled binaries
+  - Implemented BuildKit cache for renv library
+  - Fixed R version mismatch (4.1.2 to match renv.lock)
+  - Added missing packages not in renv.lock
+  - Build time: ~8 minutes (down from 45+)
+  - 2 tasks, 3 commits
 
 **State at end:** Phase 3 COMPLETE (4/4 plans). Ready for Phase 4.
 
@@ -174,13 +192,16 @@ To continue this project:
 2. Start test database: `docker compose -f docker-compose.dev.yml up -d mysql-test`
 3. Update local config.yml sysndd_db_test.port to 7655
 4. Review accumulated decisions in this STATE.md before planning
+5. Consider regenerating renv.lock with all required packages
 
 ### Files to Review on Resume
 
+- `.planning/phases/03-package-management-docker-modernization/03-03-SUMMARY.md` - Dockerfile optimization
 - `.planning/phases/03-package-management-docker-modernization/03-01-SUMMARY.md` - renv initialization
 - `.planning/phases/03-package-management-docker-modernization/03-04-SUMMARY.md` - External API mocking
 - `.planning/phases/03-package-management-docker-modernization/03-02-SUMMARY.md` - Docker dev configuration
-- `api/renv.lock` - Package version lockfile (277 packages)
+- `api/Dockerfile` - Optimized Docker image
+- `api/renv.lock` - Package version lockfile (277 packages - incomplete)
 - `api/.Rprofile` - R session startup sourcing renv
 - `docker-compose.dev.yml` - Development Docker Compose file
 
