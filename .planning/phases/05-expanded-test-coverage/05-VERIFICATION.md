@@ -2,19 +2,17 @@
 phase: 05-expanded-test-coverage
 verified: 2026-01-21T17:30:00Z
 status: gaps_found
-score: 1/4 success criteria verified
+score: 2/4 success criteria verified
 gaps:
   - truth: "make coverage generates console output showing percentage"
-    status: failed
-    reason: "Coverage script fails due to missing openssl dependency in covr environment"
+    status: passed
+    reason: "Coverage script fixed - now pre-loads required dependencies (openssl, dplyr, etc.)"
     artifacts:
       - path: "api/scripts/coverage.R"
-        issue: "Tests source helper-functions.R which uses openssl::sha256(), but openssl not loaded in covr environment"
+        issue: "Fixed - now loads openssl and other dependencies before running tests"
       - path: "Makefile"
-        issue: "coverage target calls scripts/coverage.R which fails"
-    missing:
-      - "Load openssl library before running coverage tests"
-      - "Fix test environment to include all required dependencies"
+        issue: "Fixed - coverage target now succeeds"
+    fixed_in: "27106a5"
   
   - truth: "Code coverage for functions/*.R reaches 70% or higher"
     status: failed
@@ -69,10 +67,10 @@ gaps:
 |---|-------|--------|----------|
 | 1 | Code coverage for functions/*.R reaches 70% or higher | ✗ FAILED | Actual coverage: 12.4% (57.6 percentage points below target) |
 | 2 | All critical endpoints have at least one integration test | ✗ FAILED | No HTTP endpoint tests exist; only helper function unit tests |
-| 3 | make coverage generates HTML coverage report | ✗ FAILED | Command fails with "could not find function sha256" error |
+| 3 | make coverage generates HTML coverage report | ✓ VERIFIED | Command succeeds after fix (commit 27106a5), generates coverage-report.html |
 | 4 | Test suite completes in under 2 minutes | ✓ VERIFIED | Test suite runs in 1m22s (38 seconds under budget) |
 
-**Score:** 1/4 truths verified
+**Score:** 2/4 truths verified
 
 ### Required Artifacts
 
@@ -107,7 +105,7 @@ gaps:
 |-------------|--------|----------------|
 | COV-01: 70%+ coverage of function files | ✗ BLOCKED | Coverage is 12.4%, 57.6 points below target; 8+ function files have 0% coverage |
 | COV-02: Integration tests for critical endpoints | ✗ BLOCKED | No HTTP endpoint tests exist; test-integration-*.R tests helper functions, not HTTP endpoints |
-| COV-03: Coverage reporting via covr | ✗ BLOCKED | make coverage fails due to missing openssl dependency in test environment |
+| COV-03: Coverage reporting via covr | ✓ VERIFIED | make coverage succeeds after fix (commit 27106a5), generates HTML report |
 
 ### Anti-Patterns Found
 
@@ -121,22 +119,16 @@ gaps:
 
 ### Gaps Summary
 
-**Critical Gaps (3):**
+**Critical Gaps (2):**
 
-1. **Coverage infrastructure is broken**
-   - `make coverage` fails with "could not find function sha256" error
-   - Issue: scripts/coverage.R doesn't load openssl package before running tests
-   - Impact: Cannot measure or report coverage, blocking COV-03
-   - Fix needed: Add `library(openssl)` or modify coverage script to pre-load dependencies
-
-2. **Coverage is 12.4%, missing 57.6 percentage points to reach 70% target**
+1. **Coverage is 12.4%, missing 57.6 percentage points to reach 70% target**
    - Only 4 of 16 function files have significant coverage
    - Untested files: analyses, config, genereviews, hpo, logging, oxo, publication (0% coverage)
    - Partially tested: database (validation only), pubtator (incomplete)
    - Impact: Insufficient confidence for refactoring, blocking COV-01
    - Fix needed: Add tests for 8+ untested function files
 
-3. **No HTTP endpoint integration tests exist**
+2. **No HTTP endpoint integration tests exist**
    - Files named test-integration-*.R test helper functions, not HTTP endpoints
    - Critical endpoints have no tests: POST /entity, GET /entities, GET /genes, GET /phenotypes, POST /analysis
    - Impact: Cannot verify endpoints work end-to-end, blocking COV-02
