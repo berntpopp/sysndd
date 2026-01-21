@@ -4,21 +4,21 @@
 
 **Core Value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current Focus:** Phase 3 COMPLETE; ready for Phase 4 (Makefile Automation)
+**Current Focus:** Phase 4 IN PROGRESS (Makefile Automation)
 
 ## Current Position
 
-**Phase:** 3 - Package Management & Docker Modernization (COMPLETE)
-**Plan:** 03-03 of 4 in phase (Dockerfile Optimization)
-**Status:** Phase 3 complete
-**Last activity:** 2026-01-21 - Completed 03-03-PLAN.md (Dockerfile Optimization)
+**Phase:** 4 - Makefile Automation (IN PROGRESS)
+**Plan:** 04-01 of X in phase (Core Makefile Foundation)
+**Status:** Plan 04-01 complete
+**Last activity:** 2026-01-21 - Completed 04-01-PLAN.md (Core Makefile Foundation)
 
 ```
-Progress: [████████..] 84%
+Progress: [████████..] 86%
 Phase 1: [##########] 2/2 plans COMPLETE
 Phase 2: [##########] 5/5 plans COMPLETE
 Phase 3: [##########] 4/4 plans COMPLETE
-Phase 4: [..........] 0/X plans (not started)
+Phase 4: [##........] 1/X plans (in progress)
 Phase 5: [..........] 0/X plans (not started)
 ```
 
@@ -34,6 +34,7 @@ Phase 5: [..........] 0/X plans (not started)
 - 03-02: Docker development configuration (2 tasks, 2 commits)
 - 03-03: Dockerfile optimization with renv (2 tasks, 3 commits)
 - 03-04: External API mocking with httptest2 (2 tasks, 2 commits)
+- 04-01: Core Makefile foundation (2 tasks, 1 commit)
 
 ## GitHub Issues
 
@@ -46,11 +47,11 @@ Phase 5: [..........] 0/X plans (not started)
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| Session count | 6 | Current session |
+| Session count | 7 | Current session |
 | Phases completed | 3/5 | Phase 1, Phase 2, Phase 3 COMPLETE |
-| Requirements completed | 16/25 | REF-01 thru REF-03, TEST-01 thru TEST-07, DEV-01 thru DEV-06 |
-| Plans executed | 12 | 01-01, 01-02, 02-01 thru 02-05, 03-01 thru 03-04 |
-| Total commits | 26 | 10 from Phase 1, 7 from Phase 2, 9 from Phase 3 |
+| Requirements completed | 17/25 | REF-01 thru REF-03, TEST-01 thru TEST-07, DEV-01 thru DEV-07 |
+| Plans executed | 13 | 01-01, 01-02, 02-01 thru 02-05, 03-01 thru 03-04, 04-01 |
+| Total commits | 27 | 10 from Phase 1, 7 from Phase 2, 9 from Phase 3, 1 from Phase 4 |
 | Test count | 108 | All passing (4 skipped - expected) |
 | Docker build time | ~8 min | Down from 45+ minutes |
 
@@ -96,6 +97,10 @@ Phase 5: [..........] 0/X plans (not started)
 | Use focal P3M binaries | rocker/r-ver:4.1.2 uses Ubuntu focal; noble binaries have ICU mismatch | 2026-01-21 | 03-03 |
 | Disable renv cache symlinks in Docker | BuildKit cache only available during build; symlinks break at runtime | 2026-01-21 | 03-03 |
 | Install missing packages after renv::restore() | renv.lock incomplete; plumber, RMariaDB etc. not captured | 2026-01-21 | 03-03 |
+| Davis-Hansson preamble for Makefile | Industry standard for safe, predictable Make execution | 2026-01-21 | 04-01 |
+| Self-documenting help with ## comments | Targets grouped by section (Development, Docker) for discoverability | 2026-01-21 | 04-01 |
+| Prerequisite checks before targets | check-r, check-npm, check-docker provide actionable error messages | 2026-01-21 | 04-01 |
+| Absolute paths in Makefile recipes | WSL2 compatibility where relative paths can be problematic | 2026-01-21 | 04-01 |
 
 ### Technical Discoveries
 
@@ -134,6 +139,10 @@ Phase 5: [..........] 0/X plans (not started)
 - renv.lock from Plan 03-01 is incomplete - missing plumber, RMariaDB, igraph, xlsx, BiocManager
 - Bioconductor packages require libpng-dev for compilation
 - R version in renv.lock must match Docker base image R version
+- Root Makefile created with 108 lines covering core development commands
+- Self-documenting help system parses ## comments with awk for categorized output
+- Colorized output uses ANSI codes: green (success), red (failure), cyan (info)
+- `make dev` starts development databases on ports 7654 and 7655
 
 ### Blockers
 
@@ -163,7 +172,8 @@ None currently.
 - [ ] Create PR and close Issue #109 (Phase 1, Plan 01-03)
 - [ ] Create test database (sysndd_db_test) - can now use docker-compose.dev.yml
 - [ ] Document WSL2 filesystem requirement for Windows developers (Phase 4)
-- [ ] Makefile automation (Phase 4)
+- [x] Makefile core foundation (Phase 4) - Done in 04-01
+- [ ] Makefile testing and linting targets (Phase 4)
 - [ ] Record fixtures from live API for full integration test coverage
 - [ ] Regenerate renv.lock with all required packages
 
@@ -173,36 +183,35 @@ None currently.
 
 **Date:** 2026-01-21
 **Work completed:**
-- Plan 03-03: Dockerfile Optimization with renv
-  - Rewrote Dockerfile to use renv::restore() instead of 35 install_version() calls
-  - Configured P3M for pre-compiled binaries
-  - Implemented BuildKit cache for renv library
-  - Fixed R version mismatch (4.1.2 to match renv.lock)
-  - Added missing packages not in renv.lock
-  - Build time: ~8 minutes (down from 45+)
-  - 2 tasks, 3 commits
+- Plan 04-01: Core Makefile Foundation
+  - Created root Makefile with Davis-Hansson preamble
+  - Self-documenting help with categorized output (Development, Docker)
+  - Prerequisite checks for R, npm, Docker with actionable errors
+  - install-api (renv::restore), install-app (npm install) targets
+  - dev target for development database containers
+  - docker-build, docker-up, docker-down for container management
+  - 2 tasks, 1 commit
 
-**State at end:** Phase 3 COMPLETE (4/4 plans). Ready for Phase 4.
+**State at end:** Plan 04-01 COMPLETE. Phase 4 in progress.
 
 ### Resume Instructions
 
 To continue this project:
 
-1. Begin Phase 4: Documentation and developer guides
-2. Start test database: `docker compose -f docker-compose.dev.yml up -d mysql-test`
-3. Update local config.yml sysndd_db_test.port to 7655
+1. Continue Phase 4: Add testing and linting targets to Makefile
+2. Start test database: `make dev` (or `docker compose -f docker-compose.dev.yml up -d`)
+3. Run tests: `make test-api` (once target is added)
 4. Review accumulated decisions in this STATE.md before planning
 5. Consider regenerating renv.lock with all required packages
 
 ### Files to Review on Resume
 
+- `.planning/phases/04-makefile-automation/04-01-SUMMARY.md` - Core Makefile foundation
+- `Makefile` - Root-level development automation
 - `.planning/phases/03-package-management-docker-modernization/03-03-SUMMARY.md` - Dockerfile optimization
-- `.planning/phases/03-package-management-docker-modernization/03-01-SUMMARY.md` - renv initialization
-- `.planning/phases/03-package-management-docker-modernization/03-04-SUMMARY.md` - External API mocking
 - `.planning/phases/03-package-management-docker-modernization/03-02-SUMMARY.md` - Docker dev configuration
 - `api/Dockerfile` - Optimized Docker image
 - `api/renv.lock` - Package version lockfile (277 packages - incomplete)
-- `api/.Rprofile` - R session startup sourcing renv
 - `docker-compose.dev.yml` - Development Docker Compose file
 
 ---
