@@ -4,46 +4,49 @@
 
 **Core Value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current Focus:** Phase 1 complete; ready for Phase 2 (Test Infrastructure)
+**Current Focus:** Phase 3 in progress (Package Management & Docker Modernization)
 
 ## Current Position
 
-**Phase:** 2 - Test Infrastructure Foundation (in progress)
-**Plan:** 02-04 of 5 in phase
-**Status:** Phase complete
-**Last activity:** 2026-01-21 - Completed 02-04-PLAN.md
+**Phase:** 3 - Package Management & Docker Modernization (in progress)
+**Plan:** 03-02 of 4 in phase
+**Status:** In progress
+**Last activity:** 2026-01-21 - Completed 03-02-PLAN.md
 
 ```
-Progress: [██████....] 60%
-Phase 1: [██████████] 2/2 plans ✓ COMPLETE
-Phase 2: [██████████] 5/5 plans ✓ COMPLETE
+Progress: [████████..] 80%
+Phase 1: [██████████] 2/2 plans COMPLETE
+Phase 2: [██████████] 5/5 plans COMPLETE
+Phase 3: [█████.....] 2/4 plans (in progress)
 ```
 
 **Plans completed:**
-- 01-01: Endpoint verification scripts (3 tasks, 5 commits) ✓
-- 01-02: Legacy cleanup and documentation (2 tasks, 3 commits) ✓
-- 02-01: Test infrastructure foundation (2 tasks, 1 commit) ✓
-- 02-02: Test database configuration (2 tasks, 1 commit) ✓
-- 02-03: Helper function unit tests (2 tasks, 2 commits) ✓
-- 02-04: Authentication integration tests (2 tasks, 2 commits) ✓
-- 02-05: Entity integration tests (1 task, 1 commit) ✓
+- 01-01: Endpoint verification scripts (3 tasks, 5 commits)
+- 01-02: Legacy cleanup and documentation (2 tasks, 3 commits)
+- 02-01: Test infrastructure foundation (2 tasks, 1 commit)
+- 02-02: Test database configuration (2 tasks, 1 commit)
+- 02-03: Helper function unit tests (2 tasks, 2 commits)
+- 02-04: Authentication integration tests (2 tasks, 2 commits)
+- 02-05: Entity integration tests (1 task, 1 commit)
+- 03-01: Phase research and planning (research phase)
+- 03-02: Docker development configuration (2 tasks, 2 commits)
 
 ## GitHub Issues
 
 | Issue | Description | Phase | Status |
 |-------|-------------|-------|--------|
-| #109 | Refactor sysndd_plumber.R into smaller endpoint files | 1 | ✓ Complete - verified, ready for PR |
+| #109 | Refactor sysndd_plumber.R into smaller endpoint files | 1 | Complete - verified, ready for PR |
 | #123 | Implement comprehensive testing | 2, 5 | Not started |
 
 ## Performance Metrics
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| Session count | 3 | Current session |
-| Phases completed | 2/5 | Phase 1 ✓, Phase 2 ✓ COMPLETE |
+| Session count | 4 | Current session |
+| Phases completed | 2/5 | Phase 1, Phase 2 COMPLETE |
 | Requirements completed | 8/25 | REF-01, REF-02, REF-03, TEST-01, TEST-03, TEST-04, TEST-06 |
-| Plans executed | 7 | 01-01, 01-02, 02-01, 02-02, 02-03, 02-04, 02-05 |
-| Total commits | 17 | 10 from Phase 1, 7 from Phase 2 |
+| Plans executed | 9 | 01-01, 01-02, 02-01 thru 02-05, 03-01, 03-02 |
+| Total commits | 19 | 10 from Phase 1, 7 from Phase 2, 2 from Phase 3 |
 
 ## Accumulated Context
 
@@ -72,6 +75,10 @@ Phase 2: [██████████] 5/5 plans ✓ COMPLETE
 | Test JWT logic at function level not HTTP | Avoids requiring running API server during tests, faster and more reliable | 2026-01-21 | 02-04 |
 | Use expect_error for expired token tests | jose validates expiration by default and throws error | 2026-01-21 | 02-04 |
 | Enhanced config path resolution for testthat | testthat changes working directory, need multiple path strategies | 2026-01-21 | 02-04 |
+| Port 7654 for dev DB | Matches existing config.yml sysndd_db_local configuration | 2026-01-21 | 03-02 |
+| Port 7655 for test DB | Enables running both dev and test databases simultaneously | 2026-01-21 | 03-02 |
+| Docker Compose Watch for hot-reload | Syncs endpoints/ and functions/ changes without container restart | 2026-01-21 | 03-02 |
+| Named volumes for data persistence | mysql_dev_data and mysql_test_data persist across restarts | 2026-01-21 | 03-02 |
 
 ### Technical Discoveries
 
@@ -95,6 +102,9 @@ Phase 2: [██████████] 5/5 plans ✓ COMPLETE
 - JWT token generation helpers created (create_test_jwt, decode_test_jwt, auth_header)
 - jose package installed for JWT token testing
 - Config path resolution enhanced to handle testthat working directory changes
+- Docker Compose dev config created with separate dev/test databases
+- .dockerignore files reduce build context by excluding renv/library, node_modules, tests
+- Docker Compose Watch configured for api service hot-reload
 
 ### Blockers
 
@@ -103,6 +113,7 @@ None currently.
 **Minor concerns:**
 - Test database (sysndd_db_test) doesn't exist yet - needs to be created before integration tests can run
 - Tests will skip gracefully until test DB is set up (skip_if_no_test_db() pattern)
+- Users need to update local config.yml sysndd_db_test.port to 7655 to match docker-compose.dev.yml
 
 ### TODOs (Cross-Session)
 
@@ -114,10 +125,13 @@ None currently.
 - [x] Unit tests for helper functions (Phase 2) - Done in 02-03
 - [x] Authentication integration tests (Phase 2) - Done in 02-04
 - [x] Entity integration tests (Phase 2) - Done in 02-05
-- [x] Phase 2 test infrastructure (Phase 2) - COMPLETE ✓
+- [x] Phase 2 test infrastructure (Phase 2) - COMPLETE
+- [x] Docker development configuration (Phase 3) - Done in 03-02
 - [ ] Create PR and close Issue #109 (Phase 1, Plan 01-03)
-- [ ] Create test database (sysndd_db_test)
+- [ ] Create test database (sysndd_db_test) - can now use docker-compose.dev.yml
 - [ ] Document WSL2 filesystem requirement for Windows developers (Phase 3)
+- [ ] renv package management setup (Phase 3, Plan 03-03)
+- [ ] Makefile automation (Phase 3, Plan 03-04)
 
 ## Session Continuity
 
@@ -125,35 +139,31 @@ None currently.
 
 **Date:** 2026-01-21
 **Work completed:**
-- Plan 02-01: Created testthat test infrastructure foundation with setup.R, test runner, and all testing packages
-- Plan 02-02: Created test database configuration and helper functions for isolated database testing
-- Plan 02-03: Created unit tests for helper functions (is_valid_email, generate_initials, generate_sort_expressions)
-- Plan 02-04: Created authentication integration tests (9 test blocks, JWT token helpers)
-- Plan 02-05: Created entity integration tests (9 test blocks covering data validation, sorting, field selection, pagination)
+- Plan 03-02: Created Docker Compose development configuration
+  - docker-compose.dev.yml with mysql-dev (7654) and mysql-test (7655)
+  - api/.dockerignore and app/.dockerignore for optimized builds
+  - Docker Compose Watch configuration for hot-reload
+  - Removed obsolete version field from docker-compose.yml
 
-**State at end:** Phase 2 COMPLETE ✓ (5/5 plans complete). Ready for Phase 3.
+**State at end:** Phase 3 in progress (2/4 plans complete). Ready for Plan 03-03 (renv setup).
 
 ### Resume Instructions
 
 To continue this project:
 
-1. Begin Phase 3: Developer experience enhancements
-2. Create test database: `CREATE DATABASE sysndd_db_test;` (for future database integration tests)
-3. Review accumulated decisions in this STATE.md before planning
-4. Consider creating PR for Issue #109 (Phase 1 refactoring)
+1. Continue Phase 3: Plan 03-03 (renv package management setup)
+2. Start test database: `docker compose -f docker-compose.dev.yml up -d mysql-test`
+3. Update local config.yml sysndd_db_test.port to 7655
+4. Review accumulated decisions in this STATE.md before planning
 
 ### Files to Review on Resume
 
-- `.planning/phases/02-test-infrastructure-foundation/02-04-SUMMARY.md` - Authentication integration tests
-- `.planning/phases/02-test-infrastructure-foundation/02-05-SUMMARY.md` - Entity integration tests
-- `.planning/phases/02-test-infrastructure-foundation/02-03-SUMMARY.md` - Helper function unit tests
-- `.planning/phases/02-test-infrastructure-foundation/02-02-SUMMARY.md` - Test database configuration
-- `.planning/phases/02-test-infrastructure-foundation/02-01-SUMMARY.md` - Test infrastructure foundation
-- `.planning/ROADMAP.md` - Phase structure and success criteria
-- `api/tests/testthat/setup.R` - Global test initialization
-- `api/tests/testthat/helper-auth.R` - JWT token generation helpers
-- `api/tests/testthat/helper-db.R` - Database testing helpers
-- `api/tests/testthat/test-integration-auth.R` - Authentication integration tests
+- `.planning/phases/03-package-management-docker-modernization/03-02-SUMMARY.md` - Docker dev configuration
+- `.planning/phases/03-package-management-docker-modernization/03-02-PLAN.md` - Plan for reference
+- `docker-compose.dev.yml` - New development Docker Compose file
+- `docker-compose.yml` - Updated with Watch configuration
+- `api/.dockerignore` - API build context filter
+- `app/.dockerignore` - Frontend build context filter
 
 ---
 *Last updated: 2026-01-21*
