@@ -87,18 +87,19 @@ Plans:
 
 **Requirements:** MAKE-01, MAKE-02, MAKE-03, MAKE-04, MAKE-05, MAKE-06
 
-**Plans:** 0 plans
+**Plans:** 2 plans
 
 Plans:
-- [ ] TBD (created by /gsd:plan-phase)
+- [ ] 04-01-PLAN.md — Create Makefile with help, install, dev, and Docker targets
+- [ ] 04-02-PLAN.md — Add testing and quality targets (lint, format, pre-commit)
 
 **Success Criteria:**
 1. Running `make help` displays all available targets with descriptions
-2. Running `make install` sets up both R (renv::restore) and frontend (npm install) dependencies
+2. Running `make install-api` and `make install-app` set up R and frontend dependencies
 3. Running `make dev` starts database container and displays instructions for local development
-4. Running `make test` executes R API tests and reports results
-5. Running `make lint` checks both R (lintr) and frontend (ESLint) code quality
-6. Running `make pre-commit` validates code before committing (format + lint + test)
+4. Running `make test-api` executes R API tests and reports results
+5. Running `make lint-api` and `make lint-app` check code quality
+6. Running `make pre-commit` validates code before committing (lint + test)
 
 ---
 
@@ -130,7 +131,7 @@ Plans:
 | 1 - API Refactoring Completion | ✓ Complete | REF-01, REF-02, REF-03 | 3/3 |
 | 2 - Test Infrastructure Foundation | ✓ Complete | TEST-01 through TEST-06 | 6/6 |
 | 3 - Package Management + Docker | ✓ Complete | DEV-01 through DEV-06, TEST-07 | 7/7 |
-| 4 - Makefile Automation | Not Started | MAKE-01 through MAKE-06 | 0/6 |
+| 4 - Makefile Automation | Planned | MAKE-01 through MAKE-06 | 0/6 |
 | 5 - Expanded Test Coverage | Not Started | COV-01, COV-02, COV-03 | 0/3 |
 
 **Total:** 16/25 requirements complete
@@ -164,6 +165,7 @@ Phase 5 (Test Coverage)
 | Hybrid dev (DB in Docker, API local) | Fast iteration, debugger access, consistent DB | 3 |
 | renv over packrat | packrat is soft-deprecated, renv is standard | 3 |
 | Root Makefile with namespaced targets | Universal, no dependencies, AI-assistant friendly | 4 |
+| Flat hyphenated target names | test-api, lint-app, install-api - explicit component specification | 4 |
 | 70% function coverage target | Testable business logic prioritized over HTTP layer | 5 |
 
 ## Pitfalls to Avoid
@@ -175,7 +177,8 @@ From research synthesis (SUMMARY.md):
 3. **Phase 3:** Multi-stage Docker builds with BuildKit cache for fast renv::restore
 4. **Phase 3:** Store project in WSL2 filesystem, NOT `/mnt/c/` (20x performance)
 5. **Phase 3:** Document renv lockfile update workflow to prevent merge conflicts
-6. **Phase 4:** Use `private` keyword for SHELL variable in Makefile
+6. **Phase 4:** Use tabs (not spaces) for Makefile recipe indentation
+7. **Phase 4:** Use `renv::restore(prompt = FALSE)` to avoid interactive prompts
 
 ---
 *Last updated: 2026-01-21*
