@@ -9,9 +9,9 @@
 ## Current Position
 
 **Phase:** 5 - Expanded Test Coverage (IN PROGRESS)
-**Plan:** 05-03 of X in phase (External API and File Utility Tests)
-**Status:** Plan 05-03 complete
-**Last activity:** 2026-01-21 - Completed 05-03-PLAN.md
+**Plan:** 05-05 of X in phase (Gap Closure - Logging, Config, Publication Tests)
+**Status:** Plan 05-05 complete
+**Last activity:** 2026-01-21 - Completed 05-05-PLAN.md
 
 ```
 Progress: [█████████.] 95%
@@ -19,7 +19,7 @@ Phase 1: [##########] 2/2 plans COMPLETE
 Phase 2: [##########] 5/5 plans COMPLETE
 Phase 3: [##########] 4/4 plans COMPLETE
 Phase 4: [##########] 2/2 plans COMPLETE
-Phase 5: [###.......] 3/X plans (in progress)
+Phase 5: [#####.....] 5/X plans (in progress)
 ```
 
 **Plans completed:**
@@ -39,6 +39,7 @@ Phase 5: [###.......] 3/X plans (in progress)
 - 05-01: Coverage infrastructure and helper function tests (2 tasks, 3 commits)
 - 05-02: Database function tests with dittodb mocking (2 tasks, 3 commits)
 - 05-03: External API and file utility tests (2 tasks, 2 commits)
+- 05-05: Gap closure - logging, config, publication tests (3 tasks, 3 commits)
 
 ## GitHub Issues
 
@@ -51,12 +52,13 @@ Phase 5: [###.......] 3/X plans (in progress)
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| Session count | 9 | Current session |
+| Session count | 10 | Current session |
 | Phases completed | 4/5 | Phase 1-4 COMPLETE, Phase 5 IN PROGRESS |
 | Requirements completed | 23/25 | REF-01 thru REF-03, TEST-01 thru TEST-07, DEV-01 thru DEV-06, MAKE-01 thru MAKE-06, COV-01 partial |
-| Plans executed | 17 | Phases 1-4 complete, 05-01, 05-02, 05-03 |
-| Total commits | 37 | 10 Phase 1, 7 Phase 2, 9 Phase 3, 3 Phase 4, 8 Phase 5 |
-| Test count | 257 | All passing (11 skipped - expected) |
+| Plans executed | 18 | Phases 1-4 complete, 05-01, 05-02, 05-03, 05-05 |
+| Total commits | 40 | 10 Phase 1, 7 Phase 2, 9 Phase 3, 3 Phase 4, 11 Phase 5 |
+| Test count | 456 | All passing (11 skipped - expected) |
+| Coverage | 19.9% | Up from 12.4% |
 | Docker build time | ~8 min | Down from 45+ minutes |
 | Makefile lines | 163 | Complete with 13 targets across 5 sections |
 
@@ -116,6 +118,9 @@ Phase 5: [###.......] 3/X plans (in progress)
 | httptest2 for HGNC/Ensembl mocking | Follows Phase 3 pattern for external API testing | 2026-01-21 | 05-03 |
 | Skip HGNC/Ensembl tests without network | jsonlite and biomaRt don't use httr/httr2 - difficult to mock fully | 2026-01-21 | 05-03 |
 | withr::with_tempdir() for file tests | Isolated filesystem operations prevent side effects | 2026-01-21 | 05-03 |
+| XPath uses Pubstatus not PubStatus | table_articles_from_xml uses lowercase 's' in attribute | 2026-01-21 | 05-05 |
+| Working directory change for relative source() | publication-functions.R sources genereviews-functions.R relatively | 2026-01-21 | 05-05 |
+| Exclude test-external-* from coverage | httptest2 helper functions not available during covr execution | 2026-01-21 | 05-05 |
 
 ### Technical Discoveries
 
@@ -158,7 +163,7 @@ Phase 5: [###.......] 3/X plans (in progress)
 - Self-documenting help system parses ## comments with awk for categorized output
 - Colorized output uses ANSI codes: green (success), red (failure), cyan (info)
 - `make dev` starts development databases on ports 7654 and 7655
-- `make test-api` runs 257 tests (11 skipped as expected)
+- `make test-api` runs 456 tests (11 skipped as expected)
 - api/functions/.lintr used deprecated with_defaults (fixed to linters_with_defaults)
 - lint-api finds 1240 lint issues in R codebase (expected for legacy code)
 - lint-app crashes due to esm module Node.js version incompatibility (pre-existing issue)
@@ -172,8 +177,12 @@ Phase 5: [###.......] 3/X plans (in progress)
 - File utility tests added (21 test cases, 320 lines) for replace_strings, check_file_age, get_newest_file
 - jsonlite::fromJSON() uses base R url() connections not intercepted by httptest2
 - biomaRt uses complex SOAP/REST hybrid API difficult to mock with httptest2
-- Test suite expanded from 108 to 257 tests (149 new tests in Phase 5)
+- Test suite expanded from 108 to 456 tests (348 new tests in Phase 5)
 - dittodb mocking infrastructure ready for future fixture-based integration tests
+- Logging function tests cover convert_empty() and read_log_files() (314 lines, 46 assertions)
+- Config function tests cover update_api_spec_examples() (400 lines, 16 assertions)
+- Publication function tests cover table_articles_from_xml() (547 lines, 41 assertions)
+- Coverage improved from 12.4% to 19.9% (7.5 percentage points)
 
 ### Blockers
 
@@ -219,36 +228,34 @@ None currently.
 **Date:** 2026-01-21
 **Work completed:**
 - Phase 5: Expanded Test Coverage (IN PROGRESS)
-  - Plan 05-01: Coverage infrastructure and helper function tests (3 commits)
-  - Plan 05-02: Database function tests with dittodb mocking (3 commits)
-  - Plan 05-03: External API and file utility tests (2 commits)
-  - Test suite expanded from 108 to 257 tests
-  - Helper function tests expanded to 453 lines
-  - Database function validation tests added (27 assertions)
-  - Fixed put_post_db_review() validation order bug (Rule 1)
-  - Total test count: 257 (up from 108)
+  - Plan 05-05: Gap closure - logging, config, publication tests (3 commits)
+  - Logging function tests: convert_empty(), read_log_files() (314 lines, 46 assertions)
+  - Config function tests: update_api_spec_examples() (400 lines, 16 assertions)
+  - Publication function tests: table_articles_from_xml() (547 lines, 41 assertions)
+  - Updated coverage script with more dependencies and test patterns
+  - Coverage improved from 12.4% to 19.9%
+  - Test suite expanded from 257 to 456 tests (199 new assertions)
 
-**State at end:** Phase 5 IN PROGRESS (3/X plans). 05-01, 05-02, and 05-03 complete.
+**State at end:** Phase 5 IN PROGRESS (5/X plans). 05-01, 05-02, 05-03, and 05-05 complete.
 
 ### Resume Instructions
 
 To continue this project:
 
 1. Continue Phase 5: Expanded Test Coverage (in progress)
-2. Run tests: `make test-api` (257 tests passing, 11 skipped)
-3. Check coverage: `make coverage` (infrastructure ready)
-4. Review 05-03-SUMMARY.md for external API and file utility test patterns
-5. Consider next plans: endpoint tests, integration tests, or coverage measurement
+2. Run tests: `make test-api` (456 tests passing, 11 skipped)
+3. Check coverage: `make coverage` (19.9%)
+4. Review 05-05-SUMMARY.md for logging, config, publication test patterns
+5. Consider next plans: endpoint tests, integration tests, or additional gap closure
 6. Note: pre-commit will fail on lint issues until R codebase is cleaned up
 
 ### Files to Review on Resume
 
-- `.planning/phases/05-expanded-test-coverage/05-01-SUMMARY.md` - Coverage infrastructure
-- `.planning/phases/05-expanded-test-coverage/05-02-SUMMARY.md` - Database function tests
-- `.planning/phases/05-expanded-test-coverage/05-03-SUMMARY.md` - External API and file utility tests
-- `api/tests/testthat/test-external-hgnc.R` - HGNC API test pattern
-- `api/tests/testthat/test-external-ensembl.R` - Ensembl/BioMart API test pattern
-- `api/tests/testthat/test-unit-file-functions.R` - File utility test pattern
+- `.planning/phases/05-expanded-test-coverage/05-05-SUMMARY.md` - Logging/Config/Publication tests
+- `api/tests/testthat/test-unit-logging-functions.R` - Logging function test patterns
+- `api/tests/testthat/test-unit-config-functions.R` - Config function test patterns
+- `api/tests/testthat/test-unit-publication-functions.R` - Publication XML parsing test patterns
+- `api/scripts/coverage.R` - Updated coverage script
 
 ---
 *Last updated: 2026-01-21*
