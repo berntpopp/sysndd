@@ -12,15 +12,16 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 11 - Bootstrap-Vue-Next Migration
-**Plan:** 11-03 BTable Migration (complete)
-**Status:** Wave 2 in progress
-**Last activity:** 2026-01-23 — BTable migration with array-based sortBy
+**Plan:** 11-05 CSS Class Updates (complete)
+**Status:** Wave 3 complete
+**Last activity:** 2026-01-23 — Bootstrap 4 utility classes migrated to Bootstrap 5 equivalents
 
 ```
 v3 Frontend Modernization: PHASE 11 IN PROGRESS
-Completed: 10-01 through 10-05, 11-01 Foundation, 11-02 Modal/Toast, 11-03 Tables
-Wave 2: 11-02 (complete), 11-03 (complete), 11-04 (forms in progress)
-Progress: █████████░ 9/16 plans (56%)
+Completed: 10-01 through 10-05, 11-01 Foundation, 11-02 Modal/Toast, 11-03 Tables, 11-04 Forms, 11-05 CSS
+Wave 2: 11-02 (complete), 11-03 (complete), 11-04 (complete)
+Wave 3: 11-05 (complete)
+Progress: ██████████░ 11/16 plans (69%)
 ```
 
 ## v3 Milestone Scope
@@ -86,6 +87,8 @@ See PROJECT.md for full decisions table.
 - Array-based sortBy format for Bootstrap-Vue-Next tables: [{ key, order }]
 - Deep watchers for sortBy instead of separate sortDesc watcher
 - sortDesc as computed getter/setter for backward compatibility
+- Bootstrap 5 RTL-first utility class naming: ms-*/me-* for margin, ps-*/pe-* for padding
+- text-start/text-end for alignment, float-start/float-end for positioning
 
 ## Archive Location
 
@@ -94,9 +97,9 @@ See PROJECT.md for full decisions table.
 
 ## Session Continuity
 
-**Last session:** 2026-01-23T00:00:00Z
-**Stopped at:** Completed 11-03-PLAN.md — BTable migration with array-based sortBy
+**Last session:** 2026-01-23T14:48:00Z
+**Stopped at:** Completed 11-05-PLAN.md — CSS class updates to Bootstrap 5 equivalents
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 11 in progress (3/6 plans complete)*
+*Last updated: 2026-01-23 — Phase 11 in progress (5/6 plans complete)*
