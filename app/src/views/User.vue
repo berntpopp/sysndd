@@ -246,7 +246,7 @@ export default {
       this.getUserContributions();
     }
   },
-  beforeDestroy() {
+  beforeUnmount() {
     clearInterval(this.interval);
   },
   methods: {
