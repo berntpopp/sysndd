@@ -1,6 +1,12 @@
 // tableDataMixin.js
 /**
  * Mixin for shared data properties in table components.
+ *
+ * Note: For Bootstrap-Vue-Next, sortBy is now an array of objects:
+ * [{ key: 'column_name', order: 'asc' | 'desc' }]
+ *
+ * The sortDesc computed property is provided for backward compatibility
+ * with existing code that references sortDesc directly.
  */
 export default {
   data() {
@@ -15,8 +21,8 @@ export default {
       executionTime: 0,
       perPage: this.pageSizeInput,
       pageOptions: ['10', '25', '50', '100'],
-      sortBy: '',
-      sortDesc: true,
+      // Bootstrap-Vue-Next uses array-based sortBy: [{ key: 'column', order: 'asc'|'desc' }]
+      sortBy: [],
       sort: this.sortInput,
       filter: { },
       filter_string: '',
@@ -28,6 +34,28 @@ export default {
     };
   },
   computed: {
+    /**
+     * Backward compatibility: derive sortDesc from sortBy array.
+     * Returns true if the first sort column is descending.
+     */
+    sortDesc: {
+      get() {
+        return this.sortBy.length > 0 && this.sortBy[0].order === 'desc';
+      },
+      set(value) {
+        // Allow setting sortDesc for backward compatibility
+        if (this.sortBy.length > 0) {
+          this.sortBy = [{ key: this.sortBy[0].key, order: value ? 'desc' : 'asc' }];
+        }
+      },
+    },
+    /**
+     * Backward compatibility: derive sortColumn from sortBy array.
+     * Returns the key of the first sort column.
+     */
+    sortColumn() {
+      return this.sortBy.length > 0 ? this.sortBy[0].key : '';
+    },
     removeFiltersButtonVariant() {
       return (this.filter_string === '' || this.filter_string === null || this.filter_string === 'null') ? 'info' : 'warning';
     },
