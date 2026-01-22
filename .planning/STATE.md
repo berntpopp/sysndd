@@ -12,15 +12,15 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 11 - Bootstrap-Vue-Next Migration
-**Plan:** 11-01 Bootstrap-Vue-Next Foundation (complete)
-**Status:** Ready for 11-02
-**Last activity:** 2026-01-23 — Bootstrap-Vue-Next foundation with BApp wrapper and composables
+**Plan:** 11-04 Form Components Migration (complete)
+**Status:** Wave 2 in progress (11-02, 11-03, 11-04 parallel)
+**Last activity:** 2026-01-23 — Form components migrated to BForm* naming
 
 ```
 v3 Frontend Modernization: PHASE 11 IN PROGRESS
-Completed: 10-01 through 10-05, 11-01 Bootstrap-Vue-Next Foundation
-Next: 11-02 (continuing component migrations)
-Progress: ██████░░░░ 6/16 plans (37.5%)
+Completed: 10-01 through 10-05, 11-01 Foundation, 11-04 Forms
+Wave 2: 11-02 (tables), 11-03 (modals), 11-04 (forms) in parallel
+Progress: ███████░░░ 7/16 plans (43.75%)
 ```
 
 ## v3 Milestone Scope
@@ -88,9 +88,9 @@ See PROJECT.md for full decisions table.
 
 ## Session Continuity
 
-**Last session:** 2026-01-22T23:32:08Z
-**Stopped at:** Completed 11-01-PLAN.md — Bootstrap-Vue-Next foundation with composables
+**Last session:** 2026-01-22T23:44:24Z
+**Stopped at:** Completed 11-04-PLAN.md — Form components migrated to Bootstrap-Vue-Next
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 11 in progress (1/6 plans complete)*
+*Last updated: 2026-01-23 — Phase 11 in progress (2/6 plans complete, Wave 2 active)*
