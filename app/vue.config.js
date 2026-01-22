@@ -29,6 +29,7 @@ module.exports = {
     },
     webpackBundleAnalyzer: {
       openAnalyzer: false,
+      analyzerMode: 'disabled',
     },
   },
   pwa: {

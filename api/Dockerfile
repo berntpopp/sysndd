@@ -110,17 +110,17 @@ WORKDIR /app
 
 # Copy renv infrastructure first (for layer caching)
 # If renv.lock hasn't changed, Docker will use cached layers
+# NOTE: Do NOT copy .Rprofile to avoid renv auto-activation during build
 COPY renv.lock renv.lock
 COPY renv/activate.R renv/activate.R
 COPY renv/settings.json renv/settings.json
-COPY .Rprofile .Rprofile
 
 # Restore packages from lockfile with BuildKit cache
+# Install to site-library to avoid renv library path issues
 # The cache mount persists the renv cache across builds
-# This dramatically speeds up rebuilds when only a few packages change
 RUN --mount=type=cache,target=/renv_cache,sharing=locked \
     --mount=type=cache,target=/root/.ccache,sharing=locked \
-    R -e 'renv::restore()'
+    R -e 'renv::restore(library = "/usr/local/lib/R/site-library")'
 
 # Install critical packages missing from renv.lock
 # Note: These packages should be added to renv.lock in a future update
@@ -130,14 +130,14 @@ RUN --mount=type=cache,target=/renv_cache,sharing=locked \
 RUN --mount=type=cache,target=/renv_cache,sharing=locked \
     --mount=type=cache,target=/root/.ccache,sharing=locked \
     R -e 'options(repos = c(CRAN = "https://packagemanager.posit.co/cran/__linux__/focal/latest")); \
-    install.packages(c("plumber", "RMariaDB", "igraph", "xlsx", "tidyverse", "remotes", "BiocManager"), Ncpus = parallel::detectCores())'
+    install.packages(c("plumber", "RMariaDB", "igraph", "xlsx", "tidyverse", "remotes", "BiocManager", "dotenv"), lib = "/usr/local/lib/R/site-library", Ncpus = parallel::detectCores())'
 
 # Install FactoMineR/factoextra with R 4.1.2-compatible versions from 2022-01-03 snapshot
 # This gives us lme4 1.1-27.1, pbkrtest 0.5-0.1, car 3.0-12, which all work with Matrix 1.4-0
 RUN --mount=type=cache,target=/renv_cache,sharing=locked \
     --mount=type=cache,target=/root/.ccache,sharing=locked \
     R -e 'options(repos = c(CRAN = "https://packagemanager.posit.co/cran/__linux__/focal/2022-01-03")); \
-    install.packages(c("nloptr", "lme4", "pbkrtest", "car", "FactoMineR", "factoextra"), Ncpus = parallel::detectCores())'
+    install.packages(c("nloptr", "lme4", "pbkrtest", "car", "FactoMineR", "factoextra"), lib = "/usr/local/lib/R/site-library", Ncpus = parallel::detectCores())'
 
 # Install Bioconductor packages (use latest versions)
 RUN --mount=type=cache,target=/renv_cache,sharing=locked \
@@ -178,7 +178,7 @@ RUN mkdir -p /app/logs && chown apiuser:api /app/logs
 # Health check instruction for Docker orchestration
 # Checks /health endpoint created in 07-01
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -sf http://localhost:7777/health || exit 1
+    CMD curl -sf http://localhost:7777/health/ || exit 1
 
 # Image metadata
 LABEL maintainer="SysNDD Team" \

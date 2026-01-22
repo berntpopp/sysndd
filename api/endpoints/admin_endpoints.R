@@ -11,6 +11,20 @@
 ## Administration section
 ## -------------------------------------------------------------------##
 
+#* Get OpenAPI specification
+#*
+#* Returns the OpenAPI JSON specification for this API.
+#* This endpoint is used by the frontend Swagger UI.
+#*
+#* @tag admin
+#* @serializer unboxedJSON
+#*
+#* @get /openapi.json
+function(req, res) {
+  spec <- req$pr$getApiSpec()
+  spec
+}
+
 #* Updates ontology sets and identifies critical changes
 #*
 #* This endpoint performs an ontology update process by aggregating and updating
