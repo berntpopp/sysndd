@@ -52,16 +52,22 @@ Plans:
 
 **Dependencies:** Phase 6 (needs health check infrastructure, networks)
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — Add /health endpoint for Docker HEALTHCHECK
+- [ ] 07-02-PLAN.md — Multi-stage Dockerfile with ccache, debug stripping, non-root user
+
 **Requirements:**
-- SEC-04: Fix HTTP CRAN repos to HTTPS in API Dockerfile
+- SEC-04: Fix HTTP CRAN repos to HTTPS in API Dockerfile (DONE - already uses HTTPS)
 - SEC-05: Add non-root user to API container
-- BUILD-01: Consolidate API Dockerfile RUN layers (34 to 5-6 layers)
-- BUILD-02: Configure Posit Package Manager for pre-compiled R binaries
-- BUILD-03: Use pak instead of devtools::install_version()
-- BUILD-04: Enable parallel package installation (--ncpus -1 / Ncpus)
-- BUILD-05: Switch base image from rocker/tidyverse to rocker/r-ver
+- BUILD-01: Consolidate API Dockerfile RUN layers (DONE - already consolidated)
+- BUILD-02: Configure Posit Package Manager for pre-compiled R binaries (DONE - already configured)
+- BUILD-03: Use pak instead of devtools::install_version() (DONE - using renv + install.packages)
+- BUILD-04: Enable parallel package installation (DONE - Ncpus configured)
+- BUILD-05: Switch base image from rocker/tidyverse to rocker/r-ver (DONE - already uses r-ver)
 - BUILD-06: Add ccache for C/C++ compilation caching
-- BUILD-07: Configure BuildKit cache mounts for incremental builds
+- BUILD-07: Configure BuildKit cache mounts for incremental builds (DONE - already configured)
 - BUILD-08: Strip debug symbols from R package .so files
 - BUILD-09: Create multi-stage API Dockerfile (base to packages to production)
 - COMP-10: Add HEALTHCHECK to API container
@@ -125,7 +131,7 @@ Plans:
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
 | 6 | Security and Compose Foundation | 13 | Planning Complete |
-| 7 | API Dockerfile Optimization | 12 | Not Started |
+| 7 | API Dockerfile Optimization | 12 | Planning Complete |
 | 8 | Frontend Dockerfile Modernization | 4 | Not Started |
 | 9 | Developer Experience | 8 | Not Started |
 
@@ -161,4 +167,4 @@ Detailed implementation guidance available in `.plan/DOCKER-REVIEW-REPORT.md`:
 
 ---
 *Roadmap created: 2026-01-21*
-*Last updated: 2026-01-21 — Phase 6 planning complete*
+*Last updated: 2026-01-22 — Phase 7 planning complete*
