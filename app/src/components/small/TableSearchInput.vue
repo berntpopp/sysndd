@@ -1,14 +1,14 @@
 <!-- TableSearchInput.vue -->
 <template>
   <div class="search-input-container">
-    <b-form-input
-      :value="value"
+    <BFormInput
+      :model-value="value"
       :placeholder="placeholder"
       size="sm"
       type="search"
       class="mb-1 border-dark"
       :debounce="debounceTime"
-      @input="updateValue($event)"
+      @update:model-value="updateValue($event)"
     />
   </div>
 </template>

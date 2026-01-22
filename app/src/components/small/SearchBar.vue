@@ -1,6 +1,6 @@
 <template>
-  <b-input-group class="mb-2 p-2 search-bar-container">
-    <b-form-input
+  <BInputGroup class="mb-2 p-2 search-bar-container">
+    <BFormInput
       v-model="search_input"
       autofocus
       :class="inNavbar ? 'navbar-search' : 'border-dark'"
@@ -10,26 +10,26 @@
       :size="inNavbar ? 'sm' : 'md'"
       autocomplete="off"
       debounce="300"
-      @update="loadSearchInfo"
-      @keydown.native="handleSearchInputKeydown"
+      @update:model-value="loadSearchInfo"
+      @keydown="handleSearchInputKeydown"
     />
 
-    <b-form-datalist
+    <BFormDatalist
       id="search-list"
       :options="search_keys"
     />
 
-    <b-input-group-append>
-      <b-button
+    <BInputGroupAppend>
+      <BButton
         :variant="inNavbar ? 'outline-primary' : 'outline-dark'"
         :size="inNavbar ? 'sm' : 'md'"
         :disabled="search_input.length < 2"
         @click="handleSearchInputKeydown"
       >
-        <b-icon icon="search" />
-      </b-button>
-    </b-input-group-append>
-  </b-input-group>
+        <BIcon icon="search" />
+      </BButton>
+    </BInputGroupAppend>
+  </BInputGroup>
 </template>
 
 <script>

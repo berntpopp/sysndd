@@ -2,7 +2,7 @@
 <template>
   <div>
     <!-- Search inputs, filter buttons, etc. -->
-    <b-form-input
+    <BFormInput
       v-if="showFilterControls"
       v-model="filterContent"
       placeholder="Search any field..."

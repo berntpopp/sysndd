@@ -3,22 +3,22 @@
   <div>
     <!-- Page Size Selector -->
 
-    <b-input-group
+    <BInputGroup
       prepend="Per page"
       class="mb-1"
       size="sm"
     >
-      <b-form-select
+      <BFormSelect
         id="per-page-select"
         v-model="localPerPage"
         :options="pageOptions"
         size="sm"
         @change="onPageSizeChange"
       />
-    </b-input-group>
+    </BInputGroup>
 
     <!-- Pagination -->
-    <b-pagination
+    <BPagination
       v-model="localCurrentPage"
       :total-rows="totalRows"
       :per-page="localPerPage"
