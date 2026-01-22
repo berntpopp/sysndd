@@ -32,8 +32,8 @@
                   size="sm"
                 />
               </b-col>
-              <b-col class="text-right">
-                <b-form-select
+              <b-col class="text-end">
+                <BFormSelect
                   v-model="perPage"
                   :options="pageOptions"
                   size="sm"
@@ -66,7 +66,7 @@
               @filtered="onFiltered"
             >
               <template #cell(user_role)="row">
-                <b-form-select
+                <BFormSelect
                   v-model="row.item.user_role"
                   class="form-control"
                   size="sm"
@@ -145,6 +145,7 @@
 <script>
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
+import useModalControls from '@/composables/useModalControls';
 
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
@@ -277,7 +278,8 @@ export default {
       this.approveUserModal.title = `${item.user_name}`;
       this.approve_user = [];
       this.approve_user.push(item);
-      this.$root.$emit('bv::show::modal', this.approveUserModal.id, button);
+      const { showModal } = useModalControls();
+      showModal(this.approveUserModal.id);
     },
     resetUserApproveModal() {
       this.approveUserModal = {

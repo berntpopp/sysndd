@@ -1,18 +1,18 @@
 <template>
   <div class="container-fluid centered">
-    <b-container>
-      <b-row class="justify-content-md-center py-4">
-        <b-col md="6">
-          <b-card
+    <BContainer>
+      <BRow class="justify-content-md-center py-4">
+        <BCol md="6">
+          <BCard
             no-body
             class="overflow-hidden"
             style="max-width: 540px"
           >
-            <b-row align-v="center">
-              <b-col>
-                <b-card-body>
-                  <b-card-title>
-                    <b-avatar
+            <BRow align-v="center">
+              <BCol>
+                <BCardBody>
+                  <BCardTitle>
+                    <BAvatar
                       :variant="user_style[user.user_role[0]]"
                       :badge-variant="user_style[user.user_role[0]]"
                       class="justify-content-md-center"
@@ -20,56 +20,56 @@
                       badge-offset="-12px"
                       badge-bottom
                     >
-                      <b-icon
+                      <BIcon
                         :icon="user_icon[user.user_role[0]]"
                         font-scale="1.0"
-                        class="mr-1"
+                        class="me-1"
                       />
                       {{ user.abbreviation[0] }}
                       <template #badge>
                         {{ user.user_role[0] }}
                       </template>
-                    </b-avatar>
-                  </b-card-title>
+                    </BAvatar>
+                  </BCardTitle>
 
-                  <b-list-group flush>
-                    <b-list-group-item>
+                  <BListGroup flush>
+                    <BListGroupItem>
                       Username:
-                      <b-badge
+                      <BBadge
                         :variant="user_style[user.user_role[0]]"
                       >
                         {{ user.user_name[0] }}
-                      </b-badge>
-                    </b-list-group-item>
-                    <b-list-group-item>
+                      </BBadge>
+                    </BListGroupItem>
+                    <BListGroupItem>
                       Contributions: Reviews:
-                      <b-badge variant="info">
+                      <BBadge variant="info">
                         {{ user.active_reviews }}
-                      </b-badge>, Status:
-                      <b-badge variant="info">
+                      </BBadge>, Status:
+                      <BBadge variant="info">
                         {{ user.active_status }}
-                      </b-badge>
-                    </b-list-group-item>
-                    <b-list-group-item>
+                      </BBadge>
+                    </BListGroupItem>
+                    <BListGroupItem>
                       Account created:
                       {{ user.user_created[0] }}
-                    </b-list-group-item>
-                    <b-list-group-item>
+                    </BListGroupItem>
+                    <BListGroupItem>
                       E-Mail: {{ user.email[0] }}
-                    </b-list-group-item>
-                    <b-list-group-item>
+                    </BListGroupItem>
+                    <BListGroupItem>
                       ORCID:
-                      <b-link
+                      <BLink
                         :href="'https://orcid.org/' + user.orcid[0]"
                         target="_blank"
                       >
                         {{ user.orcid[0] }}
-                      </b-link>
-                    </b-list-group-item>
-                    <b-list-group-item>
+                      </BLink>
+                    </BListGroupItem>
+                    <BListGroupItem>
                       Token expires:
-                      <b-badge
-                        class="ml-1"
+                      <BBadge
+                        class="ms-1"
                         variant="info"
                       >
                         {{ Math.floor(time_to_logout) }} m
@@ -81,23 +81,23 @@
                           ).toFixed(0)
                         }}
                         s
-                      </b-badge>
-                      <b-badge
-                        class="ml-1"
+                      </BBadge>
+                      <BBadge
+                        class="ms-1"
                         href="#"
                         variant="success"
                         pill
                         @click="refreshWithJWT"
                       >
-                        <b-icon
+                        <BIcon
                           icon="arrow-repeat"
                           font-scale="1.0"
                         />
-                      </b-badge>
-                    </b-list-group-item>
+                      </BBadge>
+                    </BListGroupItem>
 
-                    <b-list-group-item>
-                      <b-button
+                    <BListGroupItem>
+                      <BButton
                         class="m-1"
                         size="sm"
                         :class="pass_change_visible ? null : 'collapsed'"
@@ -106,8 +106,8 @@
                         @click="pass_change_visible = !pass_change_visible"
                       >
                         Change password
-                      </b-button>
-                      <b-collapse
+                      </BButton>
+                      <BCollapse
                         id="collapse-pass-change"
                         v-model="pass_change_visible"
                       >
@@ -115,7 +115,7 @@
                           ref="observer"
                           v-slot="{ handleSubmit }"
                         >
-                          <b-form
+                          <BForm
                             @submit.stop.prevent="handleSubmit(changePassword)"
                           >
                             <validation-provider
@@ -123,16 +123,16 @@
                               name="password"
                               :rules="{ required: true, min: 5, max: 50 }"
                             >
-                              <b-form-group
+                              <BFormGroup
                                 description="Enter your current password"
                               >
-                                <b-form-input
+                                <BFormInput
                                   v-model="current_password"
                                   placeholder="Current password"
                                   type="password"
                                   :state="getValidationState(validationContext)"
                                 />
-                              </b-form-group>
+                              </BFormGroup>
                             </validation-provider>
 
                             <validation-provider
@@ -144,18 +144,18 @@
                                         regex: /(?=.*[!@#$%^&*])(?=.*[A-Z])(?=.*[a-z])(?=.*[\d])/,
                               }"
                             >
-                              <b-form-group
+                              <BFormGroup
                                 v-b-tooltip.hover.right
                                 description="Enter your new password"
                                 title="Rules: >7 characters, at least one upper character, one lower character, one decimal number and one special character (!@#$%^&*)."
                               >
-                                <b-form-input
+                                <BFormInput
                                   v-model="new_password_entry"
                                   placeholder="Enter new password"
                                   type="password"
                                   :state="getValidationState(validationContext)"
                                 />
-                              </b-form-group>
+                              </BFormGroup>
                             </validation-provider>
 
                             <validation-provider
@@ -168,41 +168,41 @@
                                         confirmed: 'newPassword',
                               }"
                             >
-                              <b-form-group
+                              <BFormGroup
                                 v-b-tooltip.hover.right
                                 description="Repeat your new password"
                                 title="Rules: must match first input."
                               >
-                                <b-form-input
+                                <BFormInput
                                   v-model="new_password_repeat"
                                   placeholder="Repeat new password"
                                   type="password"
                                   :state="getValidationState(validationContext)"
                                 />
-                              </b-form-group>
+                              </BFormGroup>
                             </validation-provider>
 
-                            <b-form-group>
-                              <b-button
-                                class="ml-2"
+                            <BFormGroup>
+                              <BButton
+                                class="ms-2"
                                 type="submit"
                                 variant="dark"
                               >
                                 Submit change
-                              </b-button>
-                            </b-form-group>
-                          </b-form>
+                              </BButton>
+                            </BFormGroup>
+                          </BForm>
                         </validation-observer>
-                      </b-collapse>
-                    </b-list-group-item>
-                  </b-list-group>
-                </b-card-body>
-              </b-col>
-            </b-row>
-          </b-card>
-        </b-col>
-      </b-row>
-    </b-container>
+                      </BCollapse>
+                    </BListGroupItem>
+                  </BListGroup>
+                </BCardBody>
+              </BCol>
+            </BRow>
+          </BCard>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 

@@ -180,7 +180,7 @@
                           class="mr-sm-2 mb-0 font-weight-bold"
                           for="NDD-select"
                         >NDD</label>
-                        <b-form-select
+                        <BFormSelect
                           id="NDD-select"
                           v-model="NDD_selected"
                           class="NDD-control"
@@ -222,7 +222,7 @@
                       name="validation-synopsis"
                       :rules="{ required: true, min: 10, max: 2000 }"
                     >
-                      <b-form-textarea
+                      <BFormTextarea
                         id="textarea-synopsis"
                         v-model="synopsis_review"
                         rows="3"
@@ -271,7 +271,7 @@
                     >Publications</label>
 
                     <!-- publications tag form with links out -->
-                    <b-form-tags
+                    <BFormTags
                       v-model="literature_review"
                       input-id="literature-select"
                       no-outer-focus
@@ -289,8 +289,8 @@
                           removeTag,
                         }"
                       >
-                        <b-input-group class="my-0">
-                          <b-form-input
+                        <BInputGroup class="my-0">
+                          <BFormInput
                             v-bind="inputAttrs"
                             autocomplete="off"
                             placeholder="Enter PMIDs separated by comma or semicolon"
@@ -298,27 +298,27 @@
                             size="sm"
                             v-on="inputHandlers"
                           />
-                          <b-input-group-append>
-                            <b-button
+                          <BInputGroupAppend>
+                            <BButton
                               variant="secondary"
                               size="sm"
                               @click="addTag()"
                             >
                               Add
-                            </b-button>
-                          </b-input-group-append>
-                        </b-input-group>
+                            </BButton>
+                          </BInputGroupAppend>
+                        </BInputGroup>
 
                         <div class="d-inline-block">
                           <h6>
-                            <b-form-tag
+                            <BFormTag
                               v-for="tag in tags"
                               :key="tag"
                               :title="tag"
                               variant="secondary"
                               @remove="removeTag(tag)"
                             >
-                              <b-link
+                              <BLink
                                 :href="
                                   'https://pubmed.ncbi.nlm.nih.gov/' +
                                     tag.replace('PMID:', '')
@@ -326,17 +326,17 @@
                                 target="_blank"
                                 class="text-light"
                               >
-                                <b-icon
+                                <BIcon
                                   icon="box-arrow-up-right"
                                   font-scale="0.9"
                                 />
                                 {{ tag }}
-                              </b-link>
-                            </b-form-tag>
+                              </BLink>
+                            </BFormTag>
                           </h6>
                         </div>
                       </template>
-                    </b-form-tags>
+                    </BFormTags>
                     <!-- Publication select -->
 
                     <!-- Genereviews select -->
@@ -346,7 +346,7 @@
                     >GeneReviews</label>
 
                     <!-- genereviews tag form with links out -->
-                    <b-form-tags
+                    <BFormTags
                       v-model="genereviews_review"
                       input-id="genereviews-select"
                       no-outer-focus
@@ -364,8 +364,8 @@
                           removeTag,
                         }"
                       >
-                        <b-input-group class="my-0">
-                          <b-form-input
+                        <BInputGroup class="my-0">
+                          <BFormInput
                             v-bind="inputAttrs"
                             autocomplete="off"
                             placeholder="Enter PMIDs separated by comma or semicolon"
@@ -373,27 +373,27 @@
                             size="sm"
                             v-on="inputHandlers"
                           />
-                          <b-input-group-append>
-                            <b-button
+                          <BInputGroupAppend>
+                            <BButton
                               variant="secondary"
                               size="sm"
                               @click="addTag()"
                             >
                               Add
-                            </b-button>
-                          </b-input-group-append>
-                        </b-input-group>
+                            </BButton>
+                          </BInputGroupAppend>
+                        </BInputGroup>
 
                         <div class="d-inline-block">
                           <h6>
-                            <b-form-tag
+                            <BFormTag
                               v-for="tag in tags"
                               :key="tag"
                               :title="tag"
                               variant="secondary"
                               @remove="removeTag(tag)"
                             >
-                              <b-link
+                              <BLink
                                 :href="
                                   'https://pubmed.ncbi.nlm.nih.gov/' +
                                     tag.replace('PMID:', '')
@@ -401,27 +401,27 @@
                                 target="_blank"
                                 class="text-light"
                               >
-                                <b-icon
+                                <BIcon
                                   icon="box-arrow-up-right"
                                   font-scale="0.9"
                                 />
                                 {{ tag }}
-                              </b-link>
-                            </b-form-tag>
+                              </BLink>
+                            </BFormTag>
                           </h6>
                         </div>
                       </template>
-                    </b-form-tags>
+                    </BFormTags>
                     <!-- Genereviews select -->
 
                     <hr class="mt-2 mb-3">
 
                     <!-- Review comments -->
                     <label
-                      class="mr-sm-2 mb-0 font-weight-bold"
+                      class="me-sm-2 mb-0 fw-bold"
                       for="textarea-review"
                     >Comment</label>
-                    <b-form-textarea
+                    <BFormTextarea
                       id="textarea-review"
                       v-model="review_comment"
                       rows="2"
