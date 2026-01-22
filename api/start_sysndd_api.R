@@ -19,7 +19,10 @@
 # 1) Load Required Libraries
 ## -------------------------------------------------------------------##
 library(dotenv)
-dotenv::load_dot_env(file = ".env") # This reads variables from .env if present
+# Load .env file if present (local development); skip in Docker where env vars come from compose
+if (file.exists(".env")) {
+  dotenv::load_dot_env(file = ".env")
+}
 
 library(plumber)
 library(logger)

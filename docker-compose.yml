@@ -94,18 +94,23 @@ services:
     build: ./api/
     container_name: sysndd_api
     restart: unless-stopped
-    command: Rscript /sysndd_api_volume/start_sysndd_api.R
+    # Run from /app where packages are installed, with selective mounts for dev
     volumes:
-      - ./api/:/sysndd_api_volume/
+      - ./api/endpoints:/app/endpoints
+      - ./api/functions:/app/functions
+      - ./api/config:/app/config
+      - ./api/config.yml:/app/config.yml
+      - ./api/version_spec.json:/app/version_spec.json
+      - ./api/start_sysndd_api.R:/app/start_sysndd_api.R
     environment:
+      ENVIRONMENT: production
       PASSWORD: ${PASSWORD}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
-      API_CONFIG: ${API_CONFIG}
     networks:
       - proxy
       - backend
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:7777/api/status_list"]
+      test: ["CMD", "curl", "-sf", "http://localhost:7777/api/admin/api_version"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -118,10 +123,10 @@ services:
       watch:
         - action: sync
           path: ./api/endpoints
-          target: /sysndd_api_volume/endpoints
+          target: /app/endpoints
         - action: sync
           path: ./api/functions
-          target: /sysndd_api_volume/functions
+          target: /app/functions
         - action: rebuild
           path: ./api/renv.lock
     labels:
@@ -137,7 +142,7 @@ services:
     networks:
       - proxy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      test: ["CMD", "curl", "-sf", "http://localhost:80/"]
       interval: 30s
       timeout: 10s
       retries: 3
