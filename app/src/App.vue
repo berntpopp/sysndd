@@ -26,7 +26,8 @@
 </template>
 
 <script>
-import EventBus from '@/assets/js/eventBus';
+import { useUiStore } from '@/stores/ui';
+import { mapState } from 'pinia';
 
 export default {
   name: 'SysNDD',
@@ -48,16 +49,19 @@ export default {
       },
     ],
   },
+  computed: {
+    ...mapState(useUiStore, ['scrollbarUpdateTrigger']),
+  },
   watch: {
     $route() {
       this.$refs.scroll.$el.scrollTop = 0;
     },
-  },
-  created() {
-    EventBus.$on('update-scrollbar', this.updateScrollbar);
-  },
-  beforeDestroy() {
-    EventBus.$off('update-scrollbar', this.updateScrollbar);
+    scrollbarUpdateTrigger: {
+      handler() {
+        this.updateScrollbar();
+      },
+      // No immediate: true - only react to changes after initial render
+    },
   },
   methods: {
     updateScrollbar() {
