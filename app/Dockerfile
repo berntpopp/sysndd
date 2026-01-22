@@ -1,37 +1,49 @@
-# define nginx version
-ARG nginx_version=1.27.4
-
-FROM node:16.16.0-bullseye as app_builder
-# Build mode: docker (default), production, development
+# Build arguments
+ARG NODE_VERSION=20
+ARG NGINX_VERSION=1.27.4
 ARG VUE_MODE=docker
-# make the 'app' folder the current working directory
+
+# Stage 1: Build Vue.js application
+# NOTE: Node.js 20 LTS required for Vue 2.7 + Vue CLI 5 + webpack 5 compatibility
+# Upgrade to node:24-alpine after Vue 3 migration (Phase 10+)
+FROM node:${NODE_VERSION}-alpine AS builder
+
+# Build mode: docker (default), production, development
+ARG VUE_MODE
+
+# Set working directory
 WORKDIR /app
-# copy both 'package.json' and 'package-lock.json' (if available)
+
+# Copy dependency manifests (cache optimization layer)
 COPY package*.json ./
-# update npm
-RUN npm install -g npm@8.17.0
-# install project dependencies
-RUN npm install --legacy-peer-deps
-# copy project files and folders to the current working directory (i.e. 'app' folder)
+
+# Install dependencies with BuildKit cache mount
+# --legacy-peer-deps required by existing package.json
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --no-audit --no-fund --legacy-peer-deps
+
+# Copy application source
 COPY . .
-# build app using specified mode (loads .env.[mode] file)
+
+# Build production bundle
 RUN npm run build -- --mode ${VUE_MODE}
 
 
-# nginx builder for brotli module and modules needed for nonce generation
-FROM nginx:${nginx_version} AS brotli_nonce_builder
-ARG nginx_version
+# Stage 2: nginx builder for brotli module and modules needed for nonce generation
+FROM nginx:${NGINX_VERSION} AS brotli_nonce_builder
+ARG NGINX_VERSION
+
 WORKDIR /root/
 RUN apt-get update \
     && apt-get install -y build-essential git wget libpcre3 libpcre3-dev libssl-dev zlib1g zlib1g-dev openssl gcc make libbrotli-dev \
-    && wget http://nginx.org/download/nginx-${nginx_version}.tar.gz \
-    && tar zxf nginx-${nginx_version}.tar.gz \
+    && wget http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz \
+    && tar zxf nginx-${NGINX_VERSION}.tar.gz \
     && wget https://github.com/openresty/set-misc-nginx-module/archive/refs/tags/v0.33.tar.gz \
     && tar zxf v0.33.tar.gz \
     && wget https://github.com/vision5/ngx_devel_kit/archive/refs/tags/v0.3.1.tar.gz \
     && tar zxf v0.3.1.tar.gz \
     && git clone --recurse-submodules -j8 https://github.com/google/ngx_brotli \
-    && cd nginx-${nginx_version} \
+    && cd nginx-${NGINX_VERSION} \
     && ./configure \
     --add-dynamic-module=../ngx_brotli \
     --add-dynamic-module=../ngx_devel_kit-0.3.1 \
@@ -81,29 +93,34 @@ RUN apt-get update \
     && make modules
 
 
-# nginx state for serving content
-FROM nginx:${nginx_version}
-ARG nginx_version
-# add time zone
-ENV TIME_ZONE=Europe/Berlin
-RUN ln -snf /usr/share/zoneinfo/$TIME_ZONE /etc/localtime && echo $TIME_ZONE > /etc/timezone
-# copy brotli module files from brotli_nonce_builder
-COPY --from=brotli_nonce_builder /root/nginx-${nginx_version}/objs/ngx_http_brotli_filter_module.so /usr/lib/nginx/modules/
-COPY --from=brotli_nonce_builder /root/nginx-${nginx_version}/objs/ngx_http_brotli_static_module.so /usr/lib/nginx/modules/
-COPY --from=brotli_nonce_builder /root/nginx-${nginx_version}/objs/ndk_http_module.so /usr/lib/nginx/modules/
-COPY --from=brotli_nonce_builder /root/nginx-${nginx_version}/objs/ngx_http_set_misc_module.so /usr/lib/nginx/modules/
-# remove and add new configs
-RUN rm /etc/nginx/conf.d/default.conf
+# Stage 3: Production nginx server
+FROM nginxinc/nginx-unprivileged:${NGINX_VERSION}-alpine
+ARG NGINX_VERSION
+
+# Copy brotli module files from brotli_nonce_builder
+COPY --chown=nginx:nginx --from=brotli_nonce_builder /root/nginx-${NGINX_VERSION}/objs/ngx_http_brotli_filter_module.so /usr/lib/nginx/modules/
+COPY --chown=nginx:nginx --from=brotli_nonce_builder /root/nginx-${NGINX_VERSION}/objs/ngx_http_brotli_static_module.so /usr/lib/nginx/modules/
+COPY --chown=nginx:nginx --from=brotli_nonce_builder /root/nginx-${NGINX_VERSION}/objs/ndk_http_module.so /usr/lib/nginx/modules/
+COPY --chown=nginx:nginx --from=brotli_nonce_builder /root/nginx-${NGINX_VERSION}/objs/ngx_http_set_misc_module.so /usr/lib/nginx/modules/
+
+# Copy nginx configuration
 # Use local.conf for Docker Compose development (no SSL, no alb upstream)
 # For production deployment, use prod.conf with SSL certificates
-COPY ./docker/nginx/local.conf /etc/nginx/conf.d/
-COPY ./docker/nginx/nginx.conf /etc/nginx/
+COPY --chown=nginx:nginx ./docker/nginx/local.conf /etc/nginx/conf.d/default.conf
+COPY --chown=nginx:nginx ./docker/nginx/nginx.conf /etc/nginx/nginx.conf
+
 # Set working directory to nginx asset directory
 WORKDIR /usr/share/nginx/html
-# Remove default nginx static assets
-RUN rm -rf ./*
-# Copy static assets from app_builder stage
-COPY --from=app_builder /app/dist .
-# Containers run nginx with global directives and daemon off
-EXPOSE 80
-ENTRYPOINT ["nginx", "-g", "daemon off;"]
+
+# Copy static assets from builder stage
+COPY --chown=nginx:nginx --from=builder /app/dist .
+
+# Health check using wget (included in Alpine busybox)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget --spider --tries=1 --no-verbose http://localhost:8080/ || exit 1
+
+# Expose non-privileged port
+EXPOSE 8080
+
+# Container runs as nginx user (UID 101) - inherited from base image
+# ENTRYPOINT inherited from nginxinc/nginx-unprivileged
