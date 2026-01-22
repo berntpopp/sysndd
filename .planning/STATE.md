@@ -6,21 +6,21 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v3 Frontend Modernization — roadmap ready for approval
+**Current focus:** v3 Frontend Modernization — Bootstrap-Vue-Next migration in progress
 
 ## Current Position
 
 **Milestone:** v3 Frontend Modernization
-**Phase:** 10 - Vue 3 Core Migration
-**Plan:** 10-04 EventBus to Pinia Migration (complete)
-**Status:** Ready for 10-06
-**Last activity:** 2026-01-22 — EventBus pattern replaced with Pinia store
+**Phase:** 11 - Bootstrap-Vue-Next Migration
+**Plan:** 11-01 Bootstrap-Vue-Next Foundation (complete)
+**Status:** Ready for 11-02
+**Last activity:** 2026-01-23 — Bootstrap-Vue-Next foundation with BApp wrapper and composables
 
 ```
-v3 Frontend Modernization: PHASE 10 IN PROGRESS
-Completed: 10-01 Pre-Migration Audit, 10-02 Install Vue 3, 10-03 Vue Router 4, 10-04 EventBus Migration, 10-05 Lifecycle Hooks
-Next: 10-06 Plugin Migrations
-Progress: █████░░░░░ 5/10 plans (50%)
+v3 Frontend Modernization: PHASE 11 IN PROGRESS
+Completed: 10-01 through 10-05, 11-01 Bootstrap-Vue-Next Foundation
+Next: 11-02 (continuing component migrations)
+Progress: ██████░░░░ 6/16 plans (37.5%)
 ```
 
 ## v3 Milestone Scope
@@ -76,6 +76,10 @@ See PROJECT.md for full decisions table.
 - No additional array watchers need deep: true (existing configuration correct)
 - Counter pattern for Pinia watcher triggering (more reliable than boolean toggle)
 - UI store for cross-cutting concerns (scrollbar, future: loading states, toasts)
+- Upgraded Bootstrap 4.6.2 to 5.3.8 for Bootstrap-Vue-Next compatibility
+- Keep both Bootstrap-Vue and Bootstrap-Vue-Next CSS during transition
+- Fixed esm package incompatibility with Node.js 18+ in vue.config.js
+- Added babel-loader cache path to /tmp to avoid permission issues
 
 ## Archive Location
 
@@ -84,9 +88,9 @@ See PROJECT.md for full decisions table.
 
 ## Session Continuity
 
-**Last session:** 2026-01-22T22:04:54Z
-**Stopped at:** Completed 10-04-PLAN.md — EventBus pattern replaced with Pinia
+**Last session:** 2026-01-22T23:32:08Z
+**Stopped at:** Completed 11-01-PLAN.md — Bootstrap-Vue-Next foundation with composables
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-22 — Phase 10 in progress (5/10 plans complete)*
+*Last updated: 2026-01-23 — Phase 11 in progress (1/6 plans complete)*
