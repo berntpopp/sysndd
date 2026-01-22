@@ -22,9 +22,10 @@ services:
   # DEV-02: API development mode
   # Note: Compose Watch for API is configured in docker-compose.yml
   # because the API Dockerfile serves both dev and prod
-  api:
-    environment:
-      ENVIRONMENT: development
+  # IMPORTANT: Keep ENVIRONMENT=production for API in Docker
+  # The start_sysndd_api.R maps "development" to sysndd_db_local (Windows paths)
+  # Production config uses Docker-compatible paths (/app)
+  api: {}
 
   # FRONT-04, DEV-01, DEV-02: Frontend development with hot-reload
   app:
@@ -41,6 +42,14 @@ services:
       - /app/node_modules
     environment:
       NODE_ENV: development
+      # Increase Node heap for webpack-dev-server with large codebase
+      NODE_OPTIONS: "--max-old-space-size=4096"
+    # Override memory limit from docker-compose.yml (256M is for nginx in prod)
+    # webpack-dev-server needs more memory for compilation and HMR
+    deploy:
+      resources:
+        limits:
+          memory: 4096M
     # DEV-05: Compose Watch configuration for frontend
     # Syncs source changes without full container restart
     develop:
