@@ -6,13 +6,22 @@
 
 ## Summary
 
-This research covers modernizing a Vue.js frontend Dockerfile from Node.js 16 to 24 LTS using Alpine-based multi-stage builds with security hardening. The current Dockerfile uses node:16.16.0-bullseye (650MB+ base) and nginx:1.27.4 (Debian-based). The modernization targets node:24-alpine (~167MB) and nginx:alpine (~43MB) with non-root user configuration.
+This research covers modernizing a Vue.js frontend Dockerfile with a focus on **Vue 2.7 compatibility constraints**. The current stack uses Vue 2.7.8 with Vue CLI 5.0.8 and webpack 5, which has **critical compatibility issues with Node.js 24** due to OpenSSL 3.0 changes and legacy tooling dependencies.
 
-Node.js 24 entered Active LTS on October 28, 2025 and will receive support through April 30, 2028. Alpine Linux provides significant size reduction (5MB base vs 120MB+ Debian) but uses musl libc instead of glibc, which may affect packages with native dependencies. The Vue.js application uses Vue 2.7 with @vue/cli-service, compatible with Node.js 24.
+**CRITICAL FINDING:** Node.js 24 (and 22) use OpenSSL 3.0+ which disables legacy cryptographic algorithms (MD4, MD5) that webpack and Vue CLI tooling depend on for hashing. Vue 2 reached End-of-Life December 31, 2023 and receives no updates. The combination of EOL Vue 2 + EOL Node 16 creates a compatibility gap that cannot be cleanly bridged without either:
+1. Using `NODE_OPTIONS=--openssl-legacy-provider` (security workaround, not recommended for production)
+2. Upgrading to Vue 3 (significant effort: 14-20 weeks per FRONTEND-REVIEW-REPORT.md)
+3. Using Node.js 20 LTS (maintenance LTS until April 2026, buys time for Vue 3 migration)
 
-The standard approach for production-ready Vue.js containers is a two-stage build: (1) node:24-alpine builder stage using npm ci with BuildKit cache mounts, and (2) nginx:alpine-slim production stage running as non-root user (UID 1001) with proper health checks using wget. Security hardening includes running nginx on port 8080 (non-privileged), read-only filesystems where possible, and proper permission configuration for nginx temp directories.
+**Recommended approach for Phase 8:** Use **Node.js 20 LTS Alpine** (node:20-alpine) as a transitional solution that:
+- Maintains compatibility with Vue 2.7 + Vue CLI 5 + webpack 5 toolchain
+- Avoids security workarounds (`--openssl-legacy-provider`)
+- Provides support until April 2026 (4 months runway for Vue 3 migration)
+- Delivers all other modernization benefits (Alpine base, multi-stage build, non-root nginx, HEALTHCHECK)
 
-**Primary recommendation:** Use node:24-alpine3.23 for builder stage, nginxinc/nginx-unprivileged:alpine-slim for production stage (pre-configured for non-root), implement BuildKit cache mounts for npm, and add wget-based HEALTHCHECK with 5-second timeout.
+The standard approach for production-ready Vue.js containers is a two-stage build: (1) node:20-alpine builder stage using npm ci with BuildKit cache mounts, and (2) nginx:alpine-slim production stage running as non-root user (UID 101) with proper health checks using wget.
+
+**Primary recommendation:** Use node:20-alpine for builder stage (Vue 2 compatibility), nginxinc/nginx-unprivileged:alpine-slim for production stage (pre-configured for non-root), implement BuildKit cache mounts for npm, and add wget-based HEALTHCHECK with 5-second timeout. Plan Vue 3 migration before Node.js 20 EOL (April 2026).
 
 ## Standard Stack
 
@@ -21,10 +30,19 @@ The established libraries/tools for this domain:
 ### Core
 | Library | Version | Purpose | Why Standard |
 |---------|---------|---------|--------------|
-| node:24-alpine3.23 | 24.13.0 | Build stage base image | Current LTS (EOL 2028-04-30), 167MB vs 650MB+ for Debian, officially supported Alpine 3.23 |
-| nginxinc/nginx-unprivileged:alpine-slim | 1.29.3+ | Production base image | Official non-root nginx (UID 101), pre-configured for port 8080, amd64/arm64 support |
-| npm ci | 11.x (bundled) | Dependency installation | Faster, deterministic installs with lockfile validation, part of Node 24 |
+| node:20-alpine | 20.18.x | Build stage base image | **Maintenance LTS until April 2026**, compatible with Vue 2.7 + Vue CLI 5 + webpack 5, no OpenSSL workarounds needed |
+| nginxinc/nginx-unprivileged:alpine-slim | 1.27.4+ | Production base image | Official non-root nginx (UID 101), pre-configured for port 8080, amd64/arm64 support |
+| npm ci | 10.x (bundled) | Dependency installation | Faster, deterministic installs with lockfile validation, part of Node 20 |
 | wget | busybox | Health check tool | Pre-installed in Alpine busybox, smaller than curl |
+
+### Vue 2 Compatibility Constraints
+| Constraint | Impact | Mitigation |
+|------------|--------|------------|
+| Vue 2.7.8 EOL (Dec 2023) | No security patches | Plan Vue 3 migration (Phase 10+) |
+| Vue CLI 5.0.8 maintenance mode | No new features, limited Node.js support | Use Node.js 20 LTS for compatibility |
+| webpack 5 MD4 hashing | ERR_OSSL_EVP_UNSUPPORTED on Node 22+ | Use Node.js 20 or upgrade webpack internals |
+| vue-template-compiler EOL | Bundled with Vue 2, no longer maintained | Required until Vue 3 migration |
+| bootstrap-vue 2.21.2 EOL | No Vue 3 path | Migrate to bootstrap-vue-next with Vue 3 |
 
 ### Supporting
 | Library | Version | Purpose | When to Use |
@@ -36,10 +54,21 @@ The established libraries/tools for this domain:
 ### Alternatives Considered
 | Instead of | Could Use | Tradeoff |
 |------------|-----------|----------|
+| node:20-alpine | node:22-alpine + --openssl-legacy-provider | Node 22 is Active LTS but requires security workaround for Vue 2 compatibility, **not recommended** |
+| node:20-alpine | node:24-alpine + --openssl-legacy-provider | Node 24 future-proof but requires security workaround, **not recommended** |
 | nginxinc/nginx-unprivileged | nginx:alpine + manual config | Alpine saves ~5MB but requires manual non-root setup (addgroup/adduser, chown, port changes) |
-| node:24-alpine | node:24-slim | Slim is 231MB vs Alpine 167MB, uses glibc (better native module compatibility), 64MB larger |
+| node:20-alpine | node:20-slim | Slim is ~200MB vs Alpine ~130MB, uses glibc (better native module compatibility), 70MB larger |
 | npm ci | npm install | install doesn't validate lockfile, may cause version drift, slower |
 | wget | curl | curl not in Alpine busybox, requires apk add curl (~6MB), wget included by default |
+
+### Node.js Version Decision Matrix (Vue 2.7 Context)
+| Node Version | Vue 2 Compatible | OpenSSL Workaround | Support Until | Recommendation |
+|--------------|------------------|-------------------|---------------|----------------|
+| 16.x | ✓ Yes | Not needed | **EOL Sept 2023** | Do not use (security risk) |
+| 18.x | ✓ Yes | Not needed | **EOL April 2025** | Do not use (EOL imminent) |
+| **20.x** | **✓ Yes** | **Not needed** | **April 2026** | **RECOMMENDED for Phase 8** |
+| 22.x | ⚠ Requires workaround | --openssl-legacy-provider | April 2027 | Not recommended (workaround) |
+| 24.x | ⚠ Requires workaround | --openssl-legacy-provider | April 2028 | Not recommended (workaround) |
 
 **Installation:**
 ```bash
@@ -79,9 +108,10 @@ app/
 # Source: Docker Official Docs + Vue.js containerization guides
 # https://docs.docker.com/guides/vuejs/containerize/
 # https://labs.iximiuz.com/tutorials/docker-multi-stage-builds
+# NOTE: Node.js 20 for Vue 2.7 compatibility; upgrade to 24 after Vue 3 migration
 
 # Stage 1: Build Vue.js application
-FROM node:24-alpine3.23 AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -100,7 +130,7 @@ ARG VUE_MODE=docker
 RUN npm run build -- --mode ${VUE_MODE}
 
 # Stage 2: Production nginx server
-FROM nginxinc/nginx-unprivileged:1.29.3-alpine-slim
+FROM nginxinc/nginx-unprivileged:1.27.4-alpine
 
 # Copy built assets from builder
 COPY --chown=nginx:nginx --from=builder /app/dist /usr/share/nginx/html
@@ -211,6 +241,85 @@ Problems that look simple but have existing solutions:
 
 **Key insight:** Alpine and nginx ecosystems have mature, well-tested solutions for common containerization patterns. The nginxinc/nginx-unprivileged image alone solves 5+ manual configuration steps and is maintained by the nginx team. BuildKit cache mounts are 10x more efficient than manual cache management. Always prefer official solutions over custom implementations.
 
+## Critical: Vue 2 + Node.js 22/24 Compatibility
+
+### The Problem
+
+Vue 2.7 with Vue CLI 5 and webpack 5 uses cryptographic hashing (MD4) that was disabled in OpenSSL 3.0 (Node.js 17+). This causes `ERR_OSSL_EVP_UNSUPPORTED` errors during build.
+
+**Error message:**
+```
+Error: error:0308010C:digital envelope routines::unsupported
+    at new Hash (node:internal/crypto/hash:79:19)
+```
+
+### Root Cause
+
+1. **webpack internal hashing:** webpack uses MD4 for module hashing by default
+2. **OpenSSL 3.0 security changes:** Node.js 17+ uses OpenSSL 3.0 which disables legacy algorithms
+3. **Vue CLI 5 in maintenance mode:** No updates to address this; recommendation is to use Vite
+
+### Why Node.js 24 Won't Work Without Workarounds
+
+| Component | Status | Issue |
+|-----------|--------|-------|
+| Vue 2.7.8 | EOL Dec 2023 | No updates for OpenSSL 3.0 compatibility |
+| Vue CLI 5.0.8 | Maintenance mode | Webpack 5 internally uses deprecated crypto |
+| vue-template-compiler 2.7.8 | EOL | Required by Vue 2, no updates |
+| bootstrap-vue 2.21.2 | EOL | No Vue 3 support |
+| webpack 5 (via Vue CLI) | Active but Vue CLI pins older version | Would need manual upgrade outside Vue CLI |
+
+### Available Solutions
+
+1. **Use Node.js 20 LTS (RECOMMENDED for Phase 8)**
+   - Compatible with Vue 2.7 + Vue CLI 5
+   - No workarounds needed
+   - Supported until April 2026
+   - Provides 4-month runway for Vue 3 migration
+
+2. **Use `--openssl-legacy-provider` (NOT RECOMMENDED)**
+   ```dockerfile
+   ENV NODE_OPTIONS=--openssl-legacy-provider
+   ```
+   - Re-enables deprecated cryptographic algorithms
+   - Security concern: allows insecure algorithms
+   - Workaround, not a solution
+   - May break in future Node.js versions
+
+3. **Migrate to Vue 3 + Vite (FUTURE - Phase 10+)**
+   - Estimated effort: 14-20 weeks (per FRONTEND-REVIEW-REPORT.md)
+   - Eliminates dependency on Vue CLI and webpack
+   - Vite uses modern tooling compatible with Node.js 22/24
+   - Long-term solution
+
+### Recommendation for Phase 8
+
+Use **Node.js 20 LTS Alpine** as a transitional solution:
+
+```dockerfile
+# Phase 8: Use Node.js 20 for Vue 2 compatibility
+FROM node:20-alpine AS builder
+
+# After Vue 3 migration (Phase 10+): Upgrade to Node.js 24
+# FROM node:24-alpine AS builder
+```
+
+This approach:
+- ✓ Delivers all modernization benefits (Alpine, multi-stage, non-root, HEALTHCHECK)
+- ✓ Avoids security workarounds
+- ✓ Maintains build compatibility with existing codebase
+- ✓ Creates clear upgrade path to Node.js 24 after Vue 3 migration
+
+### Sources
+
+- [Vue.js LTS Policy](https://v2.vuejs.org/lts/) - Vue 2 EOL December 2023
+- [Vue CLI GitHub Issue #6770](https://github.com/vuejs/vue-cli/issues/6770) - ERR_OSSL_EVP_UNSUPPORTED with Node 17+
+- [webpack Issue #14560](https://github.com/webpack/webpack/issues/14560) - webpack MD4 deprecation
+- [Node.js endoflife.date](https://endoflife.date/nodejs) - Node.js 20 LTS until April 2026
+- [How to Fix ERR_OSSL_EVP_UNSUPPORTED](https://builtin.com/software-engineering-perspectives/err-ossl-evp-unsupported) - Solution comparison
+
+---
+
 ## Common Pitfalls
 
 ### Pitfall 1: Alpine musl libc Incompatibility with Native Modules
@@ -311,19 +420,21 @@ Problems that look simple but have existing solutions:
 
 Verified patterns from official sources:
 
-### Complete Multi-Stage Dockerfile
+### Complete Multi-Stage Dockerfile (Vue 2.7 Compatible)
 ```dockerfile
 # Source: Docker Official Docs, Vue.js containerization best practices
 # https://docs.docker.com/guides/vuejs/containerize/
-# https://medium.com/@regansomi/4-easy-docker-best-practices-for-node-js-build-faster-smaller-and-more-secure-containers-151474129ac0
+# IMPORTANT: Uses Node.js 20 for Vue 2.7 compatibility (see Vue 2 + Node.js section)
 
 # Build arguments
-ARG NODE_VERSION=24.13.0
-ARG NGINX_VERSION=1.29.3
+ARG NODE_VERSION=20
+ARG NGINX_VERSION=1.27.4
 ARG VUE_MODE=docker
 
 # Stage 1: Build Vue.js application
-FROM node:${NODE_VERSION}-alpine3.23 AS builder
+# NOTE: Node.js 20 LTS required for Vue 2.7 + Vue CLI 5 + webpack 5 compatibility
+# Upgrade to node:24-alpine after Vue 3 migration (Phase 10+)
+FROM node:${NODE_VERSION}-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -342,7 +453,7 @@ COPY . .
 RUN npm run build -- --mode ${VUE_MODE}
 
 # Stage 2: Production nginx server
-FROM nginxinc/nginx-unprivileged:${NGINX_VERSION}-alpine-slim
+FROM nginxinc/nginx-unprivileged:${NGINX_VERSION}-alpine
 
 # Copy nginx configuration
 COPY --chown=nginx:nginx docker/nginx/local.conf /etc/nginx/conf.d/default.conf
@@ -571,47 +682,58 @@ networks:
 
 | Old Approach | Current Approach | When Changed | Impact |
 |--------------|------------------|--------------|--------|
-| node:16-bullseye (650MB) | node:24-alpine (167MB) | Node 24 LTS Oct 2025 | 74% size reduction, musl libc compatibility considerations |
-| nginx:latest (Debian 140MB) | nginxinc/nginx-unprivileged:alpine-slim (43MB) | Security focus 2024-2026 | 69% size reduction, non-root by default, weekly security updates |
+| node:16-bullseye (650MB) | node:20-alpine (~130MB) for Vue 2, node:24-alpine for Vue 3 | Node 20 LTS Oct 2023, Node 24 LTS Oct 2025 | 80% size reduction, Vue 2 requires Node 20 for compatibility |
+| nginx:latest (Debian 140MB) | nginxinc/nginx-unprivileged:alpine (~23MB) | Security focus 2024-2026 | 84% size reduction, non-root by default, weekly security updates |
 | npm install | npm ci with cache mounts | npm v7+ / BuildKit 2021 | 10-50x faster rebuilds, deterministic installs, CI/CD optimization |
 | Manual non-root setup | nginxinc/nginx-unprivileged | Official image 2022+ | Eliminates 8+ Dockerfile lines, pre-configured temp paths, multi-arch |
 | curl for health checks | wget (Alpine busybox) | Alpine adoption 2020+ | No additional package install, 6MB savings, included by default |
 | user nginx; in nginx.conf | Remove user directive | Non-root requirement | Required for unprivileged containers, incompatible with user directive |
 | Static vulnerability scanning | Weekly rebuilt images | Container security 2024+ | nginxinc/nginx-unprivileged rebuilt weekly, automatic security patches |
 
+**Vue 2 Specific Constraints (2026):**
+- **node:22.x/24.x with Vue 2**: Requires `--openssl-legacy-provider` workaround due to webpack MD4 hashing
+- **Vue CLI 5**: In maintenance mode, recommends Vite for new projects
+- **bootstrap-vue**: No Vue 3 support, requires migration to bootstrap-vue-next
+
 **Deprecated/outdated:**
-- **node:16.x**: End-of-Life September 2023, no security patches, use node:24-alpine
+- **node:16.x**: End-of-Life September 2023, no security patches, do not use
+- **node:18.x**: End-of-Life April 2025, do not use for new deployments
 - **npm install in Dockerfiles**: Non-deterministic, slower, ignores lockfile validation - always use npm ci
 - **Running containers as root**: Security anti-pattern, violates least-privilege principle, SEC-06 requirement
 - **Ports < 1024 for apps**: Requires root, use 8080+ for non-root containers
-- **npm@8.x or earlier**: npm v11 bundled with Node 24 has significant performance improvements
 - **curl in Alpine**: Not included in busybox, adds 6MB, use wget instead
 
 ## Open Questions
 
 Things that couldn't be fully resolved:
 
-1. **Vue.js Native Dependency Compatibility with Alpine musl**
+1. **Vue 3 Migration Timeline and Node.js 24 Upgrade Path**
+   - What we know: Node.js 20 LTS ends April 2026; Vue 3 migration estimated at 14-20 weeks
+   - What's unclear: Exact Vue 3 migration start date and whether it will complete before Node 20 EOL
+   - Recommendation: Track as Phase 10+ in roadmap; consider starting Vue 3 planning in parallel
+   - **Risk:** If Vue 3 migration delayed beyond April 2026, will need to use --openssl-legacy-provider
+
+2. **Vue.js Native Dependency Compatibility with Alpine musl**
    - What we know: Vue.js 2.7 with standard dependencies (bootstrap-vue, d3, gsap) unlikely to have musl issues
    - What's unclear: Some dependencies like html2canvas may have native bindings; won't know until build test
-   - Recommendation: Try node:24-alpine first; if build fails with native module errors, add libc6-compat or switch to node:24-slim
+   - Recommendation: Try node:20-alpine first; if build fails with native module errors, add libc6-compat or switch to node:20-slim
 
-2. **nginx Brotli Module Compatibility with Non-Root**
+3. **nginx Brotli Module Compatibility with Non-Root**
    - What we know: Current Dockerfile compiles brotli module from source in custom builder stage
    - What's unclear: Whether compiled brotli modules compatible with nginxinc/nginx-unprivileged base image
    - Recommendation: Phase 8 focuses on Dockerfile modernization; brotli optimization can remain in separate builder stage or be deferred to later phase if incompatible
 
-3. **CSP Nonce Implementation with Non-Root nginx**
+4. **CSP Nonce Implementation with Non-Root nginx**
    - What we know: Current nginx.conf includes CSP headers with 'unsafe-inline'; nonce generation requires set-misc-nginx-module
    - What's unclear: Whether nginxinc/nginx-unprivileged includes set-misc module or if custom compilation still needed
    - Recommendation: Keep existing CSP configuration for Phase 8; nonce-based CSP can be separate security enhancement phase
 
-4. **Docker Compose Port Mapping Strategy**
+5. **Docker Compose Port Mapping Strategy**
    - What we know: Non-root nginx listens on 8080; docker-compose needs to map host port to 8080
    - What's unclear: Whether to expose host port 80 (requires "80:8080" mapping) or use 8080 on both (Traefik can handle)
    - Recommendation: Use "80:8080" mapping for local development; Traefik routes to container port 8080 in production (Phase 6 labels already configured)
 
-5. **BuildKit Cache Mount Persistence in CI/CD**
+6. **BuildKit Cache Mount Persistence in CI/CD**
    - What we know: Cache mounts work locally and with Docker cache backends
    - What's unclear: Exact CI/CD pipeline setup (GitHub Actions, GitLab CI, etc.) and cache configuration
    - Recommendation: Enable BuildKit locally first; CI/CD cache optimization can be separate task depending on platform
@@ -619,12 +741,15 @@ Things that couldn't be fully resolved:
 ## Sources
 
 ### Primary (HIGH confidence)
-- [Node.js Release Schedule (GitHub)](https://github.com/nodejs/Release) - Official EOL dates, Node.js 24 LTS 2028-04-30
+- [Node.js Release Schedule (GitHub)](https://github.com/nodejs/Release) - Official EOL dates, Node.js 20 LTS until April 2026
+- [Node.js endoflife.date](https://endoflife.date/nodejs) - Complete Node.js version support timeline
+- [Vue.js LTS Policy](https://v2.vuejs.org/lts/) - Vue 2 EOL December 2023
+- [Vue CLI GitHub Issue #6770](https://github.com/vuejs/vue-cli/issues/6770) - ERR_OSSL_EVP_UNSUPPORTED with Node 17+
+- [webpack Issue #14560](https://github.com/webpack/webpack/issues/14560) - webpack MD4 deprecation discussion
 - [nginxinc/nginx-unprivileged (Docker Hub)](https://hub.docker.com/r/nginxinc/nginx-unprivileged) - Official non-root nginx image
 - [nginxinc/nginx-unprivileged (GitHub)](https://github.com/nginx/docker-nginx-unprivileged) - Source code and documentation
 - [Docker BuildKit Cache Optimization (Docker Docs)](https://docs.docker.com/build/cache/optimize/) - Official cache mount documentation
 - [Docker Multi-Stage Builds (Docker Labs)](https://labs.iximiuz.com/tutorials/docker-multi-stage-builds) - Multi-stage patterns
-- [Node.js v22 to v24 Migration Guide (nodejs.org)](https://nodejs.org/en/blog/migrations/v22-to-v24) - Breaking changes
 - [Docker Compose Health Checks (Docker Docs)](https://docs.docker.com/reference/compose-file/services/) - HEALTHCHECK syntax
 
 ### Secondary (MEDIUM confidence)
@@ -646,9 +771,9 @@ Things that couldn't be fully resolved:
 **Confidence breakdown:**
 - Standard stack: HIGH - Official Node.js/nginx images verified through Docker Hub, release schedules confirmed
 - Architecture: HIGH - Multi-stage builds well-documented in official Docker guides, nginxinc/nginx-unprivileged extensively documented
+- Vue 2 + Node.js compatibility: HIGH - Extensively researched via official GitHub issues, community reports, and EOL documentation
 - Pitfalls: MEDIUM - Based on community reports and best practice articles, cross-referenced with official docs where possible
-- Node.js 24 compatibility: MEDIUM - Migration guide official but Vue.js 2.7 specific testing needed
 
-**Research date:** 2026-01-22
-**Valid until:** 2026-04-22 (90 days - stable technology stack)
-**Re-verify:** Node.js 24.x version updates monthly, nginx security releases weekly, Alpine Linux 3.23 through 2026-06
+**Research date:** 2026-01-22 (Updated with Vue 2 compatibility deep-dive)
+**Valid until:** 2026-04-22 (90 days - but Node.js 20 EOL April 2026 is hard deadline)
+**Re-verify:** Node.js 20.x security releases, nginx security releases weekly, Vue 3 migration readiness
