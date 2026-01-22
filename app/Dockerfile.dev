@@ -1,0 +1,42 @@
+# Development Dockerfile for Vue.js with Hot Module Reload
+#
+# Purpose: Development environment with webpack-dev-server hot reload
+# NOT FOR PRODUCTION - Use app/Dockerfile for production builds
+#
+# Source code is mounted via docker-compose.override.yml or Compose Watch
+# This file only installs dependencies; source code comes from volume mount
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.override.yml up app
+
+# Match production Node version for consistency
+ARG NODE_VERSION=20
+
+FROM node:${NODE_VERSION}-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency manifests
+COPY package*.json ./
+
+# Install dependencies with BuildKit cache mount
+# --legacy-peer-deps required by existing package.json (matches production)
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --no-audit --no-fund --legacy-peer-deps
+
+# Environment variables for development server
+ENV NODE_ENV=development
+ENV HOST=0.0.0.0
+
+# Expose webpack-dev-server port (matches production nginx port)
+EXPOSE 8080
+
+# Health check with longer start-period for dev server startup
+# Uses wget included in Alpine (same as production)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD wget --spider --tries=1 --no-verbose http://localhost:8080/ || exit 1
+
+# Start development server
+# --host 0.0.0.0 allows external connections (required for Docker/Traefik)
+CMD ["npm", "run", "serve", "--", "--host", "0.0.0.0"]
