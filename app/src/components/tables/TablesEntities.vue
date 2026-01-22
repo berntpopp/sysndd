@@ -87,7 +87,6 @@
               :fields="fields"
               :field-details="fields_details"
               :sort-by="sortBy"
-              :sort-desc="sortDesc"
               @update-sort="handleSortUpdate"
             >
               <!-- Custom filter fields slot -->
@@ -413,37 +412,30 @@ export default {
     };
   },
   watch: {
-    // ... watchers with descriptions
+    // Watch for filter changes
     filter(value) {
       this.filtered();
     },
-    sortBy(newVal, oldVal) {
-      if (newVal !== oldVal) {
+    // Watch for sortBy changes (deep watch for array)
+    sortBy: {
+      handler() {
         this.handleSortByOrDescChange();
-      }
-    },
-    sortDesc(newVal, oldVal) {
-      if (newVal !== oldVal) {
-        this.handleSortByOrDescChange();
-      }
+      },
+      deep: true,
     },
   },
   created() {
   // Lifecycle hooks
   },
   mounted() {
-  // Lifecycle hooks
-    // transform input sort string to object and assign
-    // fixes double loading and update bugs
-    // TODO: find a better way to do this
-    if (this.sortInput !== '+entity_id') {
-      const sort_object = this.sortStringToVariables(this.sortInput);
-      this.sortBy = sort_object.sortBy;
-      this.sortDesc = sort_object.sortDesc;
-    }
+    // Lifecycle hooks
+    // Transform input sort string to Bootstrap-Vue-Next array format
+    // sortStringToVariables now returns { sortBy: [{ key: 'column', order: 'asc'|'desc' }] }
+    const sort_object = this.sortStringToVariables(this.sortInput);
+    this.sortBy = sort_object.sortBy;
 
-    // transform input filter string to object and assign
-    // fixes double loading and update bugs
+    // Transform input filter string to object and assign
+    // Fixes double loading and update bugs
     // by checking if the filter is not null
     if (this.filterInput && this.filterInput !== 'null' && this.filterInput !== '') {
       this.filter = this.filterStrToObj(this.filterInput, this.filter);

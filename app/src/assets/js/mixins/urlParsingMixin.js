@@ -108,16 +108,20 @@ export default {
    * Converts a sorting string into an object with sorting variables.
    * Parses a sorting string and extracts sorting direction and field.
    *
-   * @param {string} sort_string - The sorting string to parse.
-   * @returns {Object} An object containing the sorting direction and field.
+   * Updated for Bootstrap-Vue-Next: Returns array-based sortBy format.
+   *
+   * @param {string} sort_string - The sorting string to parse (e.g., '+entity_id' or '-symbol').
+   * @returns {Object} An object containing sortBy (array format) for Bootstrap-Vue-Next.
    */
     sortStringToVariables(sort_string) {
       const sortStr = sort_string.trim();
-      const return_object = {
-        sortDesc: (sortStr.substr(0, 1) !== '-'),
-        sortBy: sortStr.replace('+', '').replace('-', ''),
+      const isDesc = sortStr.substr(0, 1) === '-';
+      const columnKey = sortStr.replace('+', '').replace('-', '');
+
+      // Return Bootstrap-Vue-Next array format
+      return {
+        sortBy: [{ key: columnKey, order: isDesc ? 'desc' : 'asc' }],
       };
-      return return_object;
     },
   },
 };

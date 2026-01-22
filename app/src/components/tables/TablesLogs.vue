@@ -85,7 +85,6 @@
               :fields="fields"
               :field-details="fields_details"
               :sort-by="sortBy"
-              :sort-desc="sortDesc"
               @update-sort="handleSortUpdate"
             >
               <!-- Custom filter fields slot -->
@@ -304,8 +303,8 @@ export default {
       lastItemID: null,
       executionTime: 0,
       pageOptions: ['10', '25', '50', '200'],
-      sortBy: 'id',
-      sortDesc: true,
+      // sortBy is now provided by tableDataMixin (array-based format)
+      // sortDesc is computed from sortBy in tableDataMixin
       sort: this.sortInput,
       filter: {
         any: { content: null, join_char: null, operator: 'contains' },
@@ -333,15 +332,12 @@ export default {
     filter(value) {
       this.filtered();
     },
-    sortBy(newVal, oldVal) {
-      if (newVal !== oldVal) {
+    // Watch for sortBy changes (deep watch for array)
+    sortBy: {
+      handler() {
         this.handleSortByOrDescChange();
-      }
-    },
-    sortDesc(newVal, oldVal) {
-      if (newVal !== oldVal) {
-        this.handleSortByOrDescChange();
-      }
+      },
+      deep: true,
     },
   },
   created() {
@@ -349,9 +345,9 @@ export default {
   },
   mounted() {
     // Lifecycle hooks
+    // Transform input sort string to Bootstrap-Vue-Next array format
     const sort_object = this.sortStringToVariables(this.sortInput);
     this.sortBy = sort_object.sortBy;
-    this.sortDesc = sort_object.sortDesc;
 
     if (this.filterInput !== null && this.filterInput !== 'null' && this.filterInput !== '') {
       this.filter = this.filterStrToObj(this.filterInput, this.filter);
@@ -409,7 +405,10 @@ export default {
     },
     handleSortByOrDescChange() {
       this.currentItemID = 0;
-      this.sort = (!this.sortDesc ? '-' : '+') + this.sortBy;
+      // Extract sort column and order from array-based sortBy
+      const sortColumn = this.sortBy.length > 0 ? this.sortBy[0].key : 'id';
+      const sortOrder = this.sortBy.length > 0 ? this.sortBy[0].order : 'desc';
+      this.sort = (sortOrder === 'desc' ? '-' : '+') + sortColumn;
       this.filtered();
     },
     handlePageChange(value) {

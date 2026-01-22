@@ -82,13 +82,11 @@
             <!-- User Interface controls -->
 
             <!-- Main table element -->
-            <b-table
+            <BTable
               :items="items"
               :fields="fields"
               :current-page="currentPage"
-              :filter-included-fields="filterOn"
-              :sort-by.sync="sortBy"
-              :sort-desc.sync="sortDesc"
+              :sort-by="sortBy"
               :busy="isBusy"
               stacked="md"
               head-variant="light"
@@ -100,6 +98,7 @@
               sort-icon-left
               no-local-sorting
               no-local-pagination
+              @update:sort-by="handleSortByUpdate"
             >
               <!-- custom formatted header -->
               <template v-slot:head()="data">
@@ -386,7 +385,7 @@
                   {{ data.item.entities_count }}
                 </b-avatar>
               </template>
-            </b-table>
+            </BTable>
           </b-card>
         </b-col>
       </b-row>
@@ -399,6 +398,9 @@
 import Treeselect from '@riophae/vue-treeselect';
 // import the Treeselect styles
 import '@riophae/vue-treeselect/dist/vue-treeselect.css';
+
+// Import Bootstrap-Vue-Next BTable
+import { BTable } from 'bootstrap-vue-next';
 
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
@@ -423,10 +425,10 @@ import { useUiStore } from '@/stores/ui';
 
 export default {
   name: 'TablesGenes',
-  // register the Treeselect component
+  // register the components
   components: {
-    // Components used within TablesEntities
-    Treeselect, TablePaginationControls, TableDownloadLinkCopyButtons, TableHeaderLabel, TableSearchInput,
+    // Components used within TablesGenes
+    BTable, Treeselect, TablePaginationControls, TableDownloadLinkCopyButtons, TableHeaderLabel, TableSearchInput,
   },
   mixins: [
     // Mixins used within TablesEntities
@@ -537,34 +539,34 @@ export default {
     };
   },
   watch: {
-    // ... watchers with descriptions
+    // Watch for filter changes
     filter(value) {
       this.filtered();
     },
-    sortBy(value) {
-      this.handleSortByOrDescChange();
-    },
-    sortDesc(value) {
-      this.handleSortByOrDescChange();
+    // Watch for sortBy changes (deep watch for array)
+    sortBy: {
+      handler() {
+        this.handleSortByOrDescChange();
+      },
+      deep: true,
     },
   },
   created() {
-  // Lifecycle hooks
+    // Lifecycle hooks
   },
   mounted() {
-  // Lifecycle hooks
-    // transform input sort string to object and assign
+    // Lifecycle hooks
+    // Transform input sort string to Bootstrap-Vue-Next array format
     const sort_object = this.sortStringToVariables(this.sortInput);
     this.sortBy = sort_object.sortBy;
-    this.sortDesc = sort_object.sortDesc;
 
-    // conditionally perform data load based on filter input
-    // fixes double loading and update bugs
+    // Conditionally perform data load based on filter input
+    // Fixes double loading and update bugs
     if (this.filterInput !== null && this.filterInput !== 'null' && this.filterInput !== '') {
-      // transform input filter string from params to object and assign
+      // Transform input filter string from params to object and assign
       this.filter = this.filterStrToObj(this.filterInput, this.filter);
     } else {
-      // initiate first data load
+      // Initiate first data load
       this.loadData();
     }
 

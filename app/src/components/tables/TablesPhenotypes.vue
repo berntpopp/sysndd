@@ -183,13 +183,11 @@
             <!-- User Interface controls -->
 
             <!-- Main table element -->
-            <b-table
+            <BTable
               :items="items"
               :fields="fields"
               :current-page="currentPage"
-              :filter-included-fields="filterOn"
-              :sort-by.sync="sortBy"
-              :sort-desc.sync="sortDesc"
+              :sort-by="sortBy"
               :busy="isBusy"
               stacked="md"
               head-variant="light"
@@ -201,6 +199,7 @@
               sort-icon-left
               no-local-sorting
               no-local-pagination
+              @update:sort-by="handleSortByUpdate"
             >
               <!-- custom formatted header -->
               <template v-slot:head()="data">
@@ -418,6 +417,9 @@ import Treeselect from '@riophae/vue-treeselect';
 // import the Treeselect styles
 import '@riophae/vue-treeselect/dist/vue-treeselect.css';
 
+// Import Bootstrap-Vue-Next BTable
+import { BTable } from 'bootstrap-vue-next';
+
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
@@ -431,8 +433,8 @@ import { useUiStore } from '@/stores/ui';
 
 export default {
   name: 'TablesPhenotypes',
-  // register the Treeselect component
-  components: { Treeselect },
+  // register the components
+  components: { BTable, Treeselect },
   mixins: [toastMixin, urlParsingMixin, colorAndSymbolsMixin, textMixin],
   props: {
     showFilterControls: { type: Boolean, default: true },
@@ -520,8 +522,8 @@ export default {
       executionTime: 0,
       perPage: this.pageSizeInput,
       pageOptions: ['10', '25', '50', '200'],
-      sortBy: 'entity_id',
-      sortDesc: true,
+      // Bootstrap-Vue-Next uses array-based sortBy
+      sortBy: [{ key: 'entity_id', order: 'desc' }],
       sort: this.sortInput,
       filter: {
         modifier_phenotype_id: { content: ['HP:0001249'], join_char: ',', operator: 'all' },
@@ -547,11 +549,12 @@ export default {
     filter(value) {
       this.filtered();
     },
-    sortBy(value) {
-      this.handleSortByOrDescChange();
-    },
-    sortDesc(value) {
-      this.handleSortByOrDescChange();
+    // Watch for sortBy changes (deep watch for array)
+    sortBy: {
+      handler() {
+        this.handleSortByOrDescChange();
+      },
+      deep: true,
     },
     perPage(value) {
       this.handlePerPageChange();
@@ -562,10 +565,9 @@ export default {
     this.loadPhenotypesList();
   },
   mounted() {
-    // transform input sort string to object and assign
+    // Transform input sort string to Bootstrap-Vue-Next array format
     const sort_object = this.sortStringToVariables(this.sortInput);
     this.sortBy = sort_object.sortBy;
-    this.sortDesc = sort_object.sortDesc;
 
     // conditionally perform data load based on filter input
     // fixes double loading and update bugs
@@ -599,8 +601,18 @@ export default {
     },
     handleSortByOrDescChange() {
       this.currentItemID = 0;
-      this.sort = (!this.sortDesc ? '-' : '+') + this.sortBy;
+      // Extract sort column and order from array-based sortBy
+      const sortColumn = this.sortBy.length > 0 ? this.sortBy[0].key : 'entity_id';
+      const sortOrder = this.sortBy.length > 0 ? this.sortBy[0].order : 'desc';
+      this.sort = (sortOrder === 'desc' ? '-' : '+') + sortColumn;
       this.filtered();
+    },
+    /**
+     * Handle sort-by updates from Bootstrap-Vue-Next BTable.
+     * @param {Array} newSortBy - Array of sort objects: [{ key: 'column', order: 'asc'|'desc' }]
+     */
+    handleSortByUpdate(newSortBy) {
+      this.sortBy = newSortBy;
     },
     handlePerPageChange() {
       this.currentItemID = 0;
