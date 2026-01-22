@@ -12,15 +12,15 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 11 - Bootstrap-Vue-Next Migration
-**Plan:** 11-02 Modal and Toast Migration (complete)
+**Plan:** 11-03 BTable Migration (complete)
 **Status:** Wave 2 in progress
-**Last activity:** 2026-01-23 — Modal and toast patterns migrated to composables
+**Last activity:** 2026-01-23 — BTable migration with array-based sortBy
 
 ```
 v3 Frontend Modernization: PHASE 11 IN PROGRESS
-Completed: 10-01 through 10-05, 11-01 Foundation, 11-02 Modal/Toast
-Wave 2: 11-02 (complete), 11-03 (tables in progress), 11-04 (forms)
-Progress: ████████░░ 8/16 plans (50%)
+Completed: 10-01 through 10-05, 11-01 Foundation, 11-02 Modal/Toast, 11-03 Tables
+Wave 2: 11-02 (complete), 11-03 (complete), 11-04 (forms in progress)
+Progress: █████████░ 9/16 plans (56%)
 ```
 
 ## v3 Milestone Scope
@@ -83,6 +83,9 @@ See PROJECT.md for full decisions table.
 - toastMixin delegates to useToastNotifications for backward compatibility
 - Error toasts (danger variant) force manual close for medical app reliability
 - Composables use default exports for ESLint compliance
+- Array-based sortBy format for Bootstrap-Vue-Next tables: [{ key, order }]
+- Deep watchers for sortBy instead of separate sortDesc watcher
+- sortDesc as computed getter/setter for backward compatibility
 
 ## Archive Location
 
@@ -91,9 +94,9 @@ See PROJECT.md for full decisions table.
 
 ## Session Continuity
 
-**Last session:** 2026-01-22T23:47:00Z
-**Stopped at:** Completed 11-02-PLAN.md — Modal and toast patterns migrated to composables
+**Last session:** 2026-01-23T00:00:00Z
+**Stopped at:** Completed 11-03-PLAN.md — BTable migration with array-based sortBy
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 11 in progress (2/6 plans complete)*
+*Last updated: 2026-01-23 — Phase 11 in progress (3/6 plans complete)*
