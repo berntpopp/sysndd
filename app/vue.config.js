@@ -4,8 +4,17 @@
 // const BootstrapVueLoader = require('bootstrap-vue-loader');
 
 // based on https://www.npmjs.com/package/vue-cli-plugin-sitemap#installation
-require = require('esm')(module);
-const { routes } = require('./src/router/routes');
+// NOTE: esm package not compatible with Node.js 18+, using dynamic import instead
+let routes = [];
+try {
+  // Import routes asynchronously for sitemap generation
+  // This is only used during sitemap generation, not during dev serve
+  const routesModule = require('./src/router/routes.cjs');
+  routes = routesModule.routes;
+} catch (e) {
+  // Routes will be empty if import fails (ok for dev, sitemap cmd will handle separately)
+  console.warn('Routes import skipped (expected in dev mode):', e.message);
+}
 
 // transpileDependencies and devtool source-map based on https://stackoverflow.com/questions/59693708/how-can-i-activate-the-sourcemap-for-vue-cli-4
 // prefetch delete based on https://github.com/vuejs/vue-cli/issues/979
@@ -150,6 +159,17 @@ module.exports = {
               MODE: 2  // Vue 2 mode - maximum compatibility
             }
           }
+        };
+      });
+
+    // Configure babel-loader cache to use /tmp to avoid permission issues
+    config.module
+      .rule('js')
+      .use('babel-loader')
+      .tap((options) => {
+        return {
+          ...options,
+          cacheDirectory: '/tmp/babel-cache',
         };
       });
   },

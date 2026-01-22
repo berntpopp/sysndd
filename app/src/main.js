@@ -9,10 +9,17 @@ import './assets/js/functions';
 import './global-components';
 
 // Bootstrap-Vue (uses @vue/compat for Vue 3 compatibility)
+// Keep during transition - existing components still use these
 import { BootstrapVue, BootstrapVueIcons, ToastPlugin } from 'bootstrap-vue';
 
-// Bootstrap 4 CSS (Bootstrap-Vue requires Bootstrap 4)
+// Bootstrap-Vue-Next (Vue 3 native Bootstrap 5 components)
+import { createBootstrap } from 'bootstrap-vue-next';
+
+// Bootstrap 5 CSS (required by Bootstrap-Vue-Next)
 import 'bootstrap/dist/css/bootstrap.css';
+// Bootstrap-Vue-Next CSS
+import 'bootstrap-vue-next/dist/bootstrap-vue-next.css';
+// Bootstrap-Vue CSS (keep during transition for existing components)
 import 'bootstrap-vue/dist/bootstrap-vue.css';
 
 // Custom SCSS overrides (loads after bootstrap)
@@ -105,6 +112,9 @@ const app = createApp(App);
 // Register axios on Vue 3 app instance (VueAxios via Vue.use doesn't fully transfer)
 app.config.globalProperties.axios = axios;
 app.config.globalProperties.$http = axios;
+
+// Register Bootstrap-Vue-Next plugin (Vue 3 native)
+app.use(createBootstrap());
 
 app.use(pinia);
 app.use(router);
