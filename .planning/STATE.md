@@ -11,14 +11,14 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 ## Current Position
 
 **Milestone:** v2 Docker Infrastructure Modernization
-**Phase:** 7 - API Dockerfile Optimization
-**Plan:** 07-03 of 12 (Gap Closure - Build Time Criteria)
+**Phase:** 8 - Frontend Dockerfile Modernization
+**Plan:** 08-01 of 04 (Modernize Dockerfile)
 **Status:** Complete
-**Last activity:** 2026-01-22 — Completed 07-03-PLAN.md
+**Last activity:** 2026-01-22 — Completed 08-01-PLAN.md
 
 ```
-v2 Progress: [█████████░] 100% (23/23 plans)
-Phase 7:     [████████████] 12/12 requirements
+v2 Progress: [█████████░] 100% (24/24 plans)
+Phase 8:     [███░░░░░░░░░] 1/4 requirements
 ```
 
 ## v2 Scope
@@ -47,7 +47,7 @@ Phase 7:     [████████████] 12/12 requirements
 |-------|------|--------------|--------|
 | 6 | Security and Compose Foundation | 13 | Complete |
 | 7 | API Dockerfile Optimization | 12 | Complete |
-| 8 | Frontend Dockerfile Modernization | 4 | In Progress |
+| 8 | Frontend Dockerfile Modernization | 4 | In Progress (1/4) |
 | 9 | Developer Experience | 8 | Not Started |
 
 ## GitHub Issues
@@ -79,7 +79,10 @@ Phase 7:     [████████████] 12/12 requirements
 | Non-root user uid 1001 | Security best practice; specific uid enables consistent file ownership | 07-02 |
 | HEALTHCHECK with 30s start period | Prevents premature unhealthy status during R package loading | 07-02 |
 | 12-minute cold build target | Bioconductor packages lack binaries for focal/R 4.1.2; source compilation adds ~2.5 min overhead | 07-03 |
-| Node 24 LTS over 22 | Current LTS, security patches through 2027 | 8 |
+| Node 20 LTS for frontend | Vue 2.7 compatible (Node 22+ breaks webpack 5 with OpenSSL 3.0 MD4 deprecation) | 08-01 |
+| nginxinc/nginx-unprivileged | Pre-configured non-root nginx (UID 101), Alpine-based, follows API security pattern | 08-01 |
+| Port 8080 for frontend | Non-privileged port for non-root user; ports <1024 require root | 08-01 |
+| wget for health checks | Included in Alpine busybox; no curl installation needed | 08-01 |
 | Compose Watch over bind mounts | Modern, cross-platform, no polling config | 9 |
 
 ## Resume Instructions
