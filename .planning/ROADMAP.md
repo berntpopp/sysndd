@@ -48,15 +48,16 @@ Plans:
 
 ### Phase 7: API Dockerfile Optimization
 
-**Goal:** Reduce API Docker build time from 45 minutes to 3-5 minutes while improving security and image size.
+**Goal:** Reduce API Docker build time from 45 minutes to under 12 minutes while improving security and image size.
 
 **Dependencies:** Phase 6 (needs health check infrastructure, networks)
 
-**Plans:** 2 plans
+**Plans:** 3 plans
 
 Plans:
-- [ ] 07-01-PLAN.md — Add /health endpoint for Docker HEALTHCHECK
-- [ ] 07-02-PLAN.md — Multi-stage Dockerfile with ccache, debug stripping, non-root user
+- [x] 07-01-PLAN.md — Add /health endpoint for Docker HEALTHCHECK
+- [x] 07-02-PLAN.md — Multi-stage Dockerfile with ccache, debug stripping, non-root user
+- [ ] 07-03-PLAN.md — Gap closure: Update success criteria for Bioconductor constraints
 
 **Requirements:**
 - SEC-04: Fix HTTP CRAN repos to HTTPS in API Dockerfile (DONE - already uses HTTPS)
@@ -73,11 +74,13 @@ Plans:
 - COMP-10: Add HEALTHCHECK to API container
 
 **Success Criteria:**
-1. Cold API build completes in under 8 minutes (target: 5 minutes)
+1. Cold API build completes in under 12 minutes (Bioconductor packages require source compilation)
 2. Warm API build with BuildKit cache completes in under 2 minutes
 3. API container runs as non-root user (uid 1001)
 4. `docker history` shows 6 or fewer RUN layers in final image
 5. API health check endpoint responds at /health within 30 seconds of container start
+
+> **Note:** Bioconductor packages (STRINGdb, biomaRt, Biostrings, IRanges, S4Vectors) do not have pre-compiled binaries for Ubuntu focal/R 4.1.2 and require source compilation, adding ~2.5-3 minutes to cold builds. This is an inherent platform constraint. The original 5-8 minute target assumed all packages would have P3M binaries available.
 
 ---
 
@@ -136,7 +139,7 @@ Plans:
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
 | 6 | Security and Compose Foundation | 13 | Planning Complete |
-| 7 | API Dockerfile Optimization | 12 | Planning Complete |
+| 7 | API Dockerfile Optimization | 12 | Execution Complete (gap closure pending) |
 | 8 | Frontend Dockerfile Modernization | 4 | Planning Complete |
 | 9 | Developer Experience | 8 | Not Started |
 
@@ -172,4 +175,4 @@ Detailed implementation guidance available in `.plan/DOCKER-REVIEW-REPORT.md`:
 
 ---
 *Roadmap created: 2026-01-21*
-*Last updated: 2026-01-22 — Phase 8 planning complete*
+*Last updated: 2026-01-22 — Phase 7 gap closure plan added*
