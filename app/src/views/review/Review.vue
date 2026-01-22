@@ -1151,6 +1151,7 @@ import '@riophae/vue-treeselect/dist/vue-treeselect.css';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 import textMixin from '@/assets/js/mixins/textMixin';
+import useModalControls from '@/composables/useModalControls';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
@@ -1403,25 +1404,29 @@ export default {
       this.reviewModal.title = `sysndd:${item.entity_id}`;
       this.getEntity(item.entity_id);
       this.loadReviewInfo(item.review_id, item.re_review_review_saved);
-      this.$root.$emit('bv::show::modal', this.reviewModal.id, button);
+      const { showModal } = useModalControls();
+      showModal(this.reviewModal.id);
     },
     infoStatus(item, index, button) {
       this.statusModal.title = `sysndd:${item.entity_id}`;
       this.getEntity(item.entity_id);
       this.loadStatusInfo(item.status_id, item.re_review_status_saved);
-      this.$root.$emit('bv::show::modal', this.statusModal.id, button);
+      const { showModal } = useModalControls();
+      showModal(this.statusModal.id);
     },
     infoSubmit(item, index, button) {
       this.submitModal.title = `sysndd:${item.entity_id}`;
       this.entity = [];
       this.entity.push(item);
-      this.$root.$emit('bv::show::modal', this.submitModal.id, button);
+      const { showModal } = useModalControls();
+      showModal(this.submitModal.id);
     },
     infoApprove(item, index, button) {
       this.approveModal.title = `sysndd:${item.entity_id}`;
       this.entity = [];
       this.entity.push(item);
-      this.$root.$emit('bv::show::modal', this.approveModal.id, button);
+      const { showModal } = useModalControls();
+      showModal(this.approveModal.id);
     },
     async loadReReviewData() {
       this.isBusy = true;
@@ -1857,7 +1862,8 @@ export default {
       return Math.round((Date.now() - Date.parse(date)) / 1000 / 60 / 60 / 24 / 365 / rounding) * rounding;
     },
     hideModal(id) {
-      this.$root.$emit('bv::hide::modal', id);
+      const { hideModal: closeModal } = useModalControls();
+      closeModal(id);
     },
     /**
      * Sanitizes the input by removing extra white spaces, especially for PubMed IDs.

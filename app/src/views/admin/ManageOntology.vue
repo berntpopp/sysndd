@@ -119,6 +119,7 @@
 <script>
 import GenericTable from '@/components/small/GenericTable.vue';
 import toastMixin from '@/assets/js/mixins/toastMixin';
+import useModalControls from '@/composables/useModalControls';
 
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
@@ -253,7 +254,8 @@ export default {
     editOntology(item, button) {
       this.updateOntologyModal.title = `${item.vario_id}`;
       this.ontologyToUpdate = item;
-      this.$root.$emit('bv::show::modal', this.updateOntologyModal.id, button);
+      const { showModal } = useModalControls();
+      showModal(this.updateOntologyModal.id);
     },
     /**
      * Updates the ontology data via the API

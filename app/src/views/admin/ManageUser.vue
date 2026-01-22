@@ -117,6 +117,7 @@
 <script>
 import GenericTable from '@/components/small/GenericTable.vue';
 import toastMixin from '@/assets/js/mixins/toastMixin';
+import useModalControls from '@/composables/useModalControls';
 
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
@@ -235,7 +236,8 @@ export default {
     promptDeleteUser(item, button) {
       this.deleteUserModal.title = `${item.user_name}`;
       this.userToDelete = item;
-      this.$root.$emit('bv::show::modal', this.deleteUserModal.id, button);
+      const { showModal } = useModalControls();
+      showModal(this.deleteUserModal.id);
     },
     async confirmDeleteUser() {
       const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/delete`;
@@ -253,13 +255,15 @@ export default {
       } catch (e) {
         this.makeToast(e.message, 'Error', 'danger');
       }
-      this.$root.$emit('bv::hide::modal', this.deleteUserModal.id);
+      const { hideModal } = useModalControls();
+      hideModal(this.deleteUserModal.id);
       this.userToDelete = {};
     },
     editUser(item, button) {
       this.updateUserModal.title = `${item.user_name}`;
       this.userToUpdate = { ...item };
-      this.$root.$emit('bv::show::modal', this.updateUserModal.id, button);
+      const { showModal } = useModalControls();
+      showModal(this.updateUserModal.id);
     },
     validateAndUpdateUser() {
       this.$refs.observer.validate().then((success) => {

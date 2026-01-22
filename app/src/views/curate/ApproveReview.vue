@@ -1017,6 +1017,7 @@ import '@riophae/vue-treeselect/dist/vue-treeselect.css';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 import textMixin from '@/assets/js/mixins/textMixin';
+import useModalControls from '@/composables/useModalControls';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
@@ -1552,13 +1553,15 @@ export default {
       this.reviewModal.title = `sysndd:${item.entity_id}`;
       this.getEntity(item.entity_id);
       this.loadReviewInfo(item.review_id);
-      this.$root.$emit('bv::show::modal', this.reviewModal.id, button);
+      const { showModal } = useModalControls();
+      showModal(this.reviewModal.id);
     },
     infoApproveReview(item, index, button) {
       this.approveModal.title = `sysndd:${item.entity_id}`;
       this.entity = {};
       this.entity = item;
-      this.$root.$emit('bv::show::modal', this.approveModal.id, button);
+      const { showModal } = useModalControls();
+      showModal(this.approveModal.id);
     },
     async handleApproveOk(bvModalEvt) {
       const apiUrlReview = `${process.env.VUE_APP_API_URL
@@ -1655,7 +1658,8 @@ export default {
       this.statusModal.title = `sysndd:${item.entity_id}`;
       this.getEntity(item.entity_id);
       this.loadStatusInfo(item.newest_status);
-      this.$root.$emit('bv::show::modal', this.statusModal.id, button);
+      const { showModal } = useModalControls();
+      showModal(this.statusModal.id);
     },
     resetApproveModal() {
       this.status_approved = false;

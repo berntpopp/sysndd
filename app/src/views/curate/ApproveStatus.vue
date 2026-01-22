@@ -565,6 +565,7 @@ import '@riophae/vue-treeselect/dist/vue-treeselect.css';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 import textMixin from '@/assets/js/mixins/textMixin';
+import useModalControls from '@/composables/useModalControls';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
@@ -863,13 +864,15 @@ export default {
     infoApproveStatus(item, index, button) {
       this.approveModal.title = `sysndd:${item.entity_id}`;
       this.loadStatusInfo(item.status_id);
-      this.$root.$emit('bv::show::modal', this.approveModal.id, button);
+      const { showModal } = useModalControls();
+      showModal(this.approveModal.id);
     },
     infoStatus(item, index, button) {
       this.statusModal.title = `sysndd:${item.entity_id}`;
       this.getEntity(item.entity_id);
       this.loadStatusInfo(item.status_id);
-      this.$root.$emit('bv::show::modal', this.statusModal.id, button);
+      const { showModal } = useModalControls();
+      showModal(this.statusModal.id);
     },
     async handleStatusOk(bvModalEvt) {
       const apiUrl = `${process.env.VUE_APP_API_URL
