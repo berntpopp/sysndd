@@ -2,30 +2,25 @@
 
 ## What This Is
 
-Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v1 delivered modular API structure, comprehensive R testing with testthat, reproducible environments via renv, and unified Makefile automation.
+Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v2 delivered modern Docker infrastructure with Traefik reverse proxy, optimized multi-stage builds, security hardening, and hot-reload development workflow.
 
 ## Core Value
 
 A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-## Current Milestone: v2 Docker Infrastructure Modernization
+## Current State (v2 shipped 2026-01-22)
 
-**Goal:** Transform Docker infrastructure from 4/10 → 9/10 across security, build efficiency, developer experience, maintainability, and production readiness.
+**Docker Infrastructure:** 9/10 (up from 4/10)
+- Traefik v3.6 reverse proxy with Docker auto-discovery
+- Multi-stage Dockerfiles with ccache and BuildKit cache mounts
+- Non-root users: API (uid 1001), App (nginx)
+- API build time: ~10 min cold, ~2 min warm (down from 45 min)
+- Health checks and resource limits on all containers
+- Docker Compose Watch hot-reload development workflow
 
-**Target outcomes:**
-- Replace abandoned dockercloud/haproxy with Traefik v3
-- API build time: 45 min → 3-5 min (pak + Posit Package Manager binaries)
-- Node.js 16 EOL → Node 24 LTS
-- Add health checks, resource limits, non-root users
-- Docker Compose Watch for hot-reload dev workflow
+**Test Suite:** 610 tests passing in ~74 seconds, 20.3% coverage
 
-## v1 State (shipped 2026-01-21)
-
-- **Test suite:** 610 tests passing in ~74 seconds
-- **Coverage:** 20.3% unit test coverage (practical max for DB/network-coupled code)
-- **Automation:** 13 Makefile targets across 5 categories
-- **Docker build:** ~8 minutes (down from 45+)
-- **Packages:** 277 R packages locked in renv.lock
+**Automation:** 13 Makefile targets across 5 categories
 
 ## Requirements
 
@@ -62,59 +57,45 @@ A new developer can clone the repo and be productive within minutes, with confid
 - ✓ renv for R package version locking — v1
 - ✓ Coverage reporting via covr — v1
 
+<!-- Shipped in v2 -->
+
+- ✓ Traefik v3.6 reverse proxy replacing dockercloud/haproxy — v2
+- ✓ Multi-stage API Dockerfile with ccache and BuildKit cache — v2
+- ✓ Non-root users in all containers — v2
+- ✓ Health checks on all services — v2
+- ✓ Resource limits (memory, CPU) on all services — v2
+- ✓ Node.js 20 LTS for frontend (Vue 2 compatible) — v2
+- ✓ Alpine-based frontend with nginx-unprivileged — v2
+- ✓ Named networks for service isolation (proxy, backend) — v2
+- ✓ MySQL 8.0.40 with caching_sha2_password — v2
+- ✓ docker-compose.override.yml for development — v2
+- ✓ app/Dockerfile.dev for hot-reload development — v2
+- ✓ .env.example template for developer onboarding — v2
+
 ### Active
 
-<!-- v2 Docker Infrastructure Modernization scope -->
+<!-- Next milestone scope (v3 CI/CD) -->
 
-- [ ] Replace dockercloud/haproxy:1.6.7 with Traefik v3.6
-- [ ] Add .dockerignore files (api/, app/)
-- [ ] Fix HTTP CRAN repos → HTTPS in API Dockerfile
-- [ ] Add non-root users to all containers
-- [ ] Make Docker socket read-only
-- [ ] Consolidate API Dockerfile RUN layers (34 → 5-6)
-- [ ] Use Posit Package Manager binaries
-- [ ] Use pak instead of devtools::install_version()
-- [ ] Parallel package installation (--ncpus -1)
-- [ ] Switch from rocker/tidyverse to rocker/r-ver
-- [ ] Add ccache for C/C++ compilation caching
-- [ ] Add BuildKit cache mounts for incremental builds
-- [ ] Strip debug symbols for smaller images
-- [ ] Upgrade Node.js 16.16.0 → 24 LTS
-- [ ] Add HEALTHCHECK to all containers
-- [ ] Remove obsolete docker-compose version field
-- [ ] Replace links with networks
-- [ ] Add named networks for isolation
-- [ ] Add named volumes (remove ../data/ paths)
-- [ ] Update MySQL 8.0.29 → 8.0.40
-- [ ] Use caching_sha2_password auth plugin
-- [ ] Add resource limits (memory, CPU)
-- [ ] Add Traefik auto-discovery with labels
-- [ ] Create docker-compose.override.yml for dev
-- [ ] Add Docker Compose Watch configuration
-- [ ] Create app/Dockerfile.dev for hot-reload
+(No requirements defined yet. Run `/gsd:new-milestone` to start next milestone.)
 
 ### Out of Scope
 
 - Vue 3 migration — scheduled for later, keeping Vue 2 for now
 - R/Plumber replacement — keeping current stack
 - Frontend testing — R API testing is priority; frontend tests later
-- CI/CD pipeline — focus on local development first
-- Production deployment changes — this is developer experience focused
 
 ## Context
 
-**After v1:**
-- API refactoring complete — 21 endpoint files, 94 endpoints
-- Test infrastructure established — 610 tests, 20.3% coverage
-- Docker dev workflow working — hybrid setup, hot-reload
-- renv package management — 277 packages locked
-- Makefile automation — 13 targets, self-documenting
+**After v2:**
+- Docker infrastructure modernized — Traefik, multi-stage builds, security hardening
+- Developer workflow improved — hot-reload, 2-minute rebuild cycles
+- All v2 requirements shipped — 37/37 complete
 
 **GitHub Issues:**
 - #109: Refactor sysndd_plumber.R into smaller endpoint files — Ready for PR
 - #123: Implement comprehensive testing — Foundation complete, integration tests deferred
 
-**Tech Debt (from v1 audit):**
+**Tech Debt (carried from v1):**
 - lint-app crashes (esm module compatibility)
 - 1240 lintr issues in R codebase
 - renv.lock incomplete (Dockerfile workarounds)
@@ -125,9 +106,10 @@ A new developer can clone the repo and be productive within minutes, with confid
 ## Constraints
 
 - **Stack**: Must stay with R/Plumber for API, Vue 2 for frontend (Vue 3 later)
-- **Database**: MariaDB/MySQL 8.0.29 compatibility required
+- **Database**: MySQL 8.0.40 (upgraded in v2)
 - **Docker**: rocker/r-ver:4.1.2 base image (matched to renv.lock R version)
 - **Compatibility**: Must work on Windows (WSL2), macOS, and Linux
+- **Node.js**: Node 20 LTS for Vue 2 compatibility (not 22/24 due to OpenSSL 3.0 MD4 deprecation)
 
 ## Key Decisions
 
@@ -140,6 +122,12 @@ A new developer can clone the repo and be productive within minutes, with confid
 | Hybrid dev setup (DB in Docker, API local) | Fast iteration, debugger access | ✓ Good |
 | 20% coverage practical maximum | Most functions are DB/network-coupled | ✓ Good |
 | covr::file_coverage over package_coverage | API is not an R package | ✓ Good |
+| Traefik over HAProxy 2.9 | Native Docker integration, auto-discovery, Let's Encrypt | ✓ Good |
+| pak over devtools | Parallel, binary-preferring, modern (via renv) | ✓ Good |
+| Posit Package Manager | Pre-compiled Linux binaries, 10x faster | ✓ Good |
+| Node 20 LTS over 24 | Vue 2.7 compatibility (OpenSSL 3.0 MD4 issue) | ✓ Good |
+| nginxinc/nginx-unprivileged | Pre-configured non-root nginx, Alpine-based | ✓ Good |
+| 12-minute cold build target | Bioconductor packages require source compilation | ✓ Good |
 
 ---
-*Last updated: 2026-01-21 after v2 milestone started*
+*Last updated: 2026-01-22 after v2 milestone shipped*

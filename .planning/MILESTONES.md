@@ -1,5 +1,33 @@
 # Project Milestones: SysNDD Developer Experience
 
+## v2 Docker Infrastructure Modernization (Shipped: 2026-01-22)
+
+**Delivered:** Modern Docker infrastructure with Traefik v3.6 reverse proxy, optimized multi-stage builds, security hardening (non-root users), and hot-reload development workflow.
+
+**Phases completed:** 6-9 (8 plans total)
+
+**Key accomplishments:**
+
+- Replaced abandoned dockercloud/haproxy with Traefik v3.6 reverse proxy
+- Reduced API build time from 45 min to ~10 min cold / ~2 min warm
+- Added multi-stage Dockerfiles with BuildKit cache mounts and ccache
+- Implemented non-root users (API uid 1001, App nginx user)
+- Created Docker Compose Watch hot-reload development workflow
+- Added health checks and resource limits to all containers
+
+**Stats:**
+
+- 48 files created/modified
+- 9,436 lines added, 304 deleted
+- 4 phases, 8 plans
+- 2 days (2026-01-21 to 2026-01-22)
+
+**Git range:** `docs(06): create phase plan` to `docs(09): complete Developer Experience phase`
+
+**What's next:** CI/CD pipeline, Trivy security scanning, integration tests
+
+---
+
 ## v1 Developer Experience (Shipped: 2026-01-21)
 
 **Delivered:** Modern developer experience with modular API, comprehensive R testing infrastructure, reproducible environments, and unified Makefile automation.

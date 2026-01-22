@@ -2,30 +2,36 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-01-21)
+See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v2 Docker Infrastructure Modernization — COMPLETE
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-**Milestone:** v2 Docker Infrastructure Modernization
-**Phase:** 9 - Developer Experience
-**Plan:** Complete
-**Status:** Verified
-**Last activity:** 2026-01-22 — Phase 9 verified, milestone complete
+**Milestone:** None (v2 complete, v3 not started)
+**Phase:** N/A
+**Plan:** N/A
+**Status:** Ready for next milestone
+**Last activity:** 2026-01-22 — v2 milestone archived
 
 ```
-v2 Progress: [██████████] 100% (4/4 phases)
-Phase 9:     [████████████] 8/8 requirements
+v2 Docker Infrastructure: COMPLETE
+Next: /gsd:new-milestone
 ```
 
-## v2 Scope — ACHIEVED
+## Completed Milestones
 
-**Goal:** Transform Docker infrastructure from 4/10 to 9/10
+| Milestone | Phases | Shipped | Archive |
+|-----------|--------|---------|---------|
+| v1 Developer Experience | 1-5 (19 plans) | 2026-01-21 | milestones/v1-* |
+| v2 Docker Infrastructure | 6-9 (8 plans) | 2026-01-22 | milestones/v2-* |
 
-**Ratings achieved:**
+## v2 Achievements Summary
+
+**Goal:** Transform Docker infrastructure from 4/10 to 9/10 — ACHIEVED
+
 | Category | Before | Target | Achieved |
 |----------|--------|--------|----------|
 | Security | 4/10 | 9/10 | 9/10 |
@@ -34,21 +40,12 @@ Phase 9:     [████████████] 8/8 requirements
 | Maintainability | 5/10 | 9/10 | 9/10 |
 | Production Readiness | 6/10 | 9/10 | 9/10 |
 
-**Deliverables completed:**
-- ✓ Replace dockercloud/haproxy with Traefik v3.6
-- ✓ API build time: 45 min → ~10 min (cold), ~2 min (warm)
-- ✓ Node.js 16 → 20 LTS
-- ✓ Health checks, resource limits, non-root users
-- ✓ Docker Compose Watch for hot-reload
-
-## Phase Structure
-
-| Phase | Name | Requirements | Status |
-|-------|------|--------------|--------|
-| 6 | Security and Compose Foundation | 13 | Complete |
-| 7 | API Dockerfile Optimization | 12 | Complete |
-| 8 | Frontend Dockerfile Modernization | 4 | Complete |
-| 9 | Developer Experience | 8 | Complete |
+**Key deliverables:**
+- Traefik v3.6 replacing dockercloud/haproxy
+- API build time: 45 min → ~10 min cold, ~2 min warm
+- Node.js 20 LTS (Vue 2 compatible)
+- Non-root users, health checks, resource limits
+- Docker Compose Watch hot-reload workflow
 
 ## GitHub Issues
 
@@ -57,7 +54,7 @@ Phase 9:     [████████████] 8/8 requirements
 | #109 | Refactor sysndd_plumber.R into smaller endpoint files | Ready for PR |
 | #123 | Implement comprehensive testing | Foundation complete, integration tests deferred |
 
-## Tech Debt (from v1 audit)
+## Tech Debt (from v1/v2 audits)
 
 - lint-app crashes (esm module compatibility)
 - 1240 lintr issues in R codebase
@@ -67,58 +64,26 @@ Phase 9:     [████████████] 8/8 requirements
 
 ## Key Decisions
 
-| Decision | Rationale | Phase |
-|----------|-----------|-------|
-| Traefik over HAProxy 2.9 | Native Docker integration, auto-discovery, Let's Encrypt | 6 |
-| pak over devtools | Parallel, binary-preferring, modern | 7 |
-| Posit Package Manager | Pre-compiled Linux binaries, 10x faster | 7 |
-| Health endpoint at /health | Standard convention for health checks; shorter path for HEALTHCHECK | 07-01 |
-| No database query in health | Fast response time; HEALTHCHECK should validate API process, not DB connectivity | 07-01 |
-| Multi-stage Dockerfile | Separates build dependencies from production image; enables ccache and debug stripping | 07-02 |
-| ccache with BuildKit cache mounts | Persistent compilation cache across builds for 30-40% faster rebuilds | 07-02 |
-| Non-root user uid 1001 | Security best practice; specific uid enables consistent file ownership | 07-02 |
-| HEALTHCHECK with 30s start period | Prevents premature unhealthy status during R package loading | 07-02 |
-| 12-minute cold build target | Bioconductor packages lack binaries for focal/R 4.1.2; source compilation adds ~2.5 min overhead | 07-03 |
-| Node 20 LTS for frontend | Vue 2.7 compatible (Node 22+ breaks webpack 5 with OpenSSL 3.0 MD4 deprecation) | 08-01 |
-| nginxinc/nginx-unprivileged | Pre-configured non-root nginx (UID 101), Alpine-based, follows API security pattern | 08-01 |
-| Port 8080 for frontend | Non-privileged port for non-root user; ports <1024 require root | 08-01 |
-| wget for health checks | Included in Alpine busybox; no curl installation needed | 08-01 |
-| Compose Watch over bind mounts | Modern, cross-platform, no polling config | 9 |
-| 60s HEALTHCHECK start-period for dev | Longer start for webpack-dev-server vs nginx | 09-01 |
-| Source code via volume mount not COPY | Enables hot-reload; Dockerfile.dev only installs deps | 09-01 |
-| Placeholder values 'your_xxx_here' pattern | Clear indication of required user input in .env.example | 09-01 |
-| MySQL port 127.0.0.1:7654 | Localhost-only binding for security; accessible to DBeaver/Workbench | 09-02 |
-| Anonymous volume for node_modules | Cross-platform native binary isolation; prevents host/container conflicts | 09-02 |
-| App watch in override, API watch in main | API uses same Dockerfile; app uses dev-only Dockerfile.dev | 09-02 |
-| 127.0.0.1 for Alpine healthchecks | IPv6 resolution issues with localhost in Alpine containers | 09-03 |
-| allowedHosts: 'all' for dev server | Required for webpack-dev-server to accept Traefik proxy requests | 09-03 |
-| Traefik dashboard at localhost:8090 | Development debugging for routing issues | 09-03 |
-| 120s healthcheck start-period for dev | Extended time needed for webpack compilation | 09-03 |
+See PROJECT.md for full decisions table.
 
 ## Resume Instructions
 
-**v2 Milestone complete.** All 4 phases executed and verified.
+**v2 Milestone complete and archived.**
 
-Phase 9 achievements:
-- Plan 01: app/Dockerfile.dev created with Node 20 Alpine and webpack-dev-server
-- Plan 02: docker-compose.override.yml with Dockerfile.dev, MySQL localhost:7654, Compose Watch
-- Plan 03: End-to-end workflow verified, Traefik routing fixed, hot-reload confirmed
-
-Next: Run `/gsd:audit-milestone` to verify requirements and cross-phase integration before archiving.
-
-## Research Location
-
-Detailed implementation guidance: `.plan/DOCKER-REVIEW-REPORT.md`
+Next steps:
+1. Run `/gsd:new-milestone` to start v3 milestone planning
+2. Consider focus areas: CI/CD pipeline, Trivy security scanning, integration tests
 
 ## Archive Location
 
-v1 artifacts: `.planning/milestones/`
+- v1 artifacts: `.planning/milestones/v1-*`
+- v2 artifacts: `.planning/milestones/v2-*`
 
 ## Session Continuity
 
-**Last session:** 2026-01-22 20:00:00 UTC
-**Stopped at:** v2 milestone complete
+**Last session:** 2026-01-22
+**Stopped at:** v2 milestone archived, ready for v3
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-22 — v2 milestone complete*
+*Last updated: 2026-01-22 — v2 milestone archived*
