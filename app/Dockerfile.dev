@@ -44,4 +44,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 \
 
 # Start development server
 # --host 0.0.0.0 allows external connections (required for Docker/Traefik)
-CMD ["npm", "run", "serve", "--", "--host", "0.0.0.0"]
+# --mode docker uses .env.docker with correct API URL (through Traefik)
+CMD ["npm", "run", "serve", "--", "--host", "0.0.0.0", "--mode", "docker"]

@@ -121,7 +121,9 @@ module.exports = {
     },
   },
   devServer: {
-    host: 'localhost',
+    host: '0.0.0.0',
+    // Allow requests from Traefik reverse proxy and container hostnames
+    allowedHosts: 'all',
   },
   chainWebpack: (config) => {
     // A, remove the plugin

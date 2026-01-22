@@ -1,5 +1,8 @@
 # Development Overrides - Auto-loaded by Docker Compose
 #
+# TRAEFIK DEBUG: Expose Traefik API at localhost:8090 for debugging
+# Access dashboard at http://localhost:8090/dashboard/
+#
 # This file is automatically merged with docker-compose.yml when running:
 #   docker compose up
 #
@@ -12,6 +15,31 @@
 # - Development environment settings
 
 services:
+  # DEVELOPMENT: Enable Traefik dashboard for debugging routing issues
+  traefik:
+    command:
+      # Enable dashboard for development debugging
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      # Docker provider
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=sysndd_proxy"
+      # HTTP entrypoint
+      - "--entryPoints.web.address=:80"
+      # RFC 3986 encoded characters
+      - "--entryPoints.web.http.encodedCharacters.allowEncodedSlash=true"
+      - "--entryPoints.web.http.encodedCharacters.allowEncodedBackSlash=true"
+      - "--entryPoints.web.http.encodedCharacters.allowEncodedPercent=true"
+      # Health checks
+      - "--ping=true"
+      - "--ping.entryPoint=web"
+      # Debug logging for development
+      - "--log.level=DEBUG"
+    ports:
+      - "80:80"
+      - "127.0.0.1:8090:8080"
+
   # DEV-03: Database access for local tools
   # Connect with DBeaver, MySQL Workbench, DataGrip, etc.
   mysql:
@@ -29,6 +57,17 @@ services:
 
   # FRONT-04, DEV-01, DEV-02: Frontend development with hot-reload
   app:
+    # Expose webpack-dev-server directly for development
+    # Use http://localhost:8080 to bypass Traefik routing issues
+    ports:
+      - "127.0.0.1:8080:8080"
+    # Override healthcheck for development (longer start-period for webpack compilation)
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--tries=1", "--no-verbose", "http://127.0.0.1:8080/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
     # Override build to use development Dockerfile
     build:
       context: ./app
