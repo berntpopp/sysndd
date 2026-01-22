@@ -1,6 +1,11 @@
 // app/src/assets/js/mixins/tableMethodsMixin.js
 /**
  * Mixin with shared methods for table components.
+ *
+ * Note: For Bootstrap-Vue-Next, sortBy is an array of objects:
+ * [{ key: 'column_name', order: 'asc' | 'desc' }]
+ *
+ * The handleSortByOrDescChange method extracts sort parameters from this array.
  */
 export default {
   methods: {
@@ -23,10 +28,18 @@ export default {
 
     /**
      * Handles changes in sorting order or direction.
+     * Works with Bootstrap-Vue-Next array-based sortBy format.
      */
     handleSortByOrDescChange() {
       this.currentItemID = 0;
-      this.sort = (!this.sortDesc ? '-' : '+') + this.sortBy;
+
+      // Extract sort column and order from array-based sortBy (Bootstrap-Vue-Next format)
+      const sortColumn = this.sortBy.length > 0 ? this.sortBy[0].key : '';
+      const sortOrder = this.sortBy.length > 0 ? this.sortBy[0].order : 'asc';
+      const isDesc = sortOrder === 'desc';
+
+      // Build sort string for API: +column for asc, -column for desc
+      this.sort = (isDesc ? '-' : '+') + sortColumn;
       this.filtered();
     },
 
@@ -150,9 +163,26 @@ export default {
         label: node,
       };
     },
+
+    /**
+     * Handles sort updates from GenericTable component.
+     * Converts legacy { sortBy, sortDesc } format to new array format.
+     * @param {Object} payload - Object with sortBy (string) and sortDesc (boolean)
+     */
     handleSortUpdate({ sortBy, sortDesc }) {
-      this.sortBy = sortBy;
-      this.sortDesc = sortDesc;
+      // Convert from legacy format to Bootstrap-Vue-Next array format
+      this.sortBy = [{ key: sortBy, order: sortDesc ? 'desc' : 'asc' }];
+      // Note: handleSortByOrDescChange will be triggered by watcher
+    },
+
+    /**
+     * Handles sort-by updates from Bootstrap-Vue-Next BTable.
+     * Called when @update:sort-by event fires.
+     * @param {Array} newSortBy - Array of sort objects: [{ key: 'column', order: 'asc'|'desc' }]
+     */
+    handleSortByUpdate(newSortBy) {
+      this.sortBy = newSortBy;
+      // Note: handleSortByOrDescChange will be triggered by watcher
     },
   },
 };
