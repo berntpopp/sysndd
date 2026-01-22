@@ -118,9 +118,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 09-01-PLAN.md — Create app/Dockerfile.dev and .env.example template
-- [ ] 09-02-PLAN.md — Create docker-compose.override.yml with volume mounts and MySQL port
-- [ ] 09-03-PLAN.md — Verify end-to-end hot-reload workflow and update documentation
+- [x] 09-01-PLAN.md — Create app/Dockerfile.dev and .env.example template
+- [x] 09-02-PLAN.md — Create docker-compose.override.yml with volume mounts and MySQL port
+- [x] 09-03-PLAN.md — Verify end-to-end hot-reload workflow and update documentation
 
 **Requirements:**
 - FRONT-04: Create app/Dockerfile.dev for hot-reload development
@@ -148,7 +148,7 @@ Plans:
 | 6 | Security and Compose Foundation | 13 | Complete |
 | 7 | API Dockerfile Optimization | 12 | Complete |
 | 8 | Frontend Dockerfile Modernization | 4 | Complete |
-| 9 | Developer Experience | 8 | Planned |
+| 9 | Developer Experience | 8 | Complete |
 
 **Total:** 37 requirements across 4 phases
 
@@ -182,4 +182,4 @@ Detailed implementation guidance available in `.plan/DOCKER-REVIEW-REPORT.md`:
 
 ---
 *Roadmap created: 2026-01-21*
-*Last updated: 2026-01-22 — Phase 9 planned (3 plans in 2 waves)*
+*Last updated: 2026-01-22 — Phase 9 complete (v2 milestone complete)*
