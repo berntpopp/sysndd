@@ -1,328 +1,683 @@
-# Feature Landscape: Makefile Development Workflow
+# Feature Landscape: Vue 3 + TypeScript Migration
 
-**Domain:** Development tooling for R/Node.js hybrid project
-**Project:** SysNDD Makefile automation
-**Researched:** 2026-01-20
+**Domain:** Vue 2.7 to Vue 3 + TypeScript + Bootstrap-Vue-Next migration
+**Project:** SysNDD (medical/scientific database application)
+**Researched:** 2026-01-22
+
+---
 
 ## Executive Summary
 
-Modern polyglot projects (R + Node.js) in 2026 standardize on Makefiles as a universal interface wrapping language-specific commands. Research shows consistent patterns: setup targets (`install`, `setup`), development targets (`dev`, `serve`), quality targets (`test`, `lint`, `format`), and Docker lifecycle targets (`docker-up`, `docker-down`). The key value is **abstraction** - developers use the same `make` commands across different stacks, without needing to memorize npm vs Rscript vs docker-compose syntax.
+Vue 3 migrations are characterized by **mandatory breaking changes** (table stakes) and **optional modernization opportunities** (differentiators). For SysNDD's 50+ component codebase with 7 mixins, Bootstrap-Vue dependency, and D3/GSAP visualizations, success depends on:
 
-For SysNDD's two-component architecture (R Plumber API + Vue frontend), best practices emphasize:
-- **Namespaced targets** using `/` delimiter (e.g., `api/test`, `frontend/test`)
-- **Self-documenting help** via `make help` target with `##` annotations
-- **Phony target declarations** for performance and correctness
-- **Modular Makefiles** separating concerns into included files
+1. **Breaking change compatibility** - Handling removed APIs, v-model changes, router updates
+2. **Component library migration** - Bootstrap-Vue → Bootstrap-Vue-Next (or alternative)
+3. **Composition API adoption** - Converting Options API and mixins to composables
+4. **TypeScript integration** - Adding type safety to untyped JavaScript codebase
+5. **Testing infrastructure** - Establishing Vitest + Vue Test Utils foundation
 
-## Table Stakes
+**Key insight:** Migration features are NOT optional. The challenge is choosing *how* to implement them (incremental vs full rewrite, Options API vs Composition API, TypeScript strictness level).
 
-Features users expect. Missing = Makefile feels incomplete or confusing.
+---
 
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| `make help` | De facto standard for self-documentation, makes Makefile discoverable | Low | Uses awk to extract `##` comments |
-| `make install` / `make setup` | Universal entry point - "how do I get started?" | Low | Wraps `npm install` and `Rscript` package installation |
-| `make dev` | Single command to start local development | Medium | Coordinates API + frontend + DB |
-| `make test` | Run all tests across all components | Medium | Aggregates API tests + frontend tests (when added) |
-| `make lint` | Check code quality without modifications | Low | Runs lintr + ESLint |
-| `make format` / `make fmt` | Auto-format all code | Low | styler for R, prettier/eslint for JS |
-| `make clean` | Remove build artifacts and containers | Low | Cleans `dist/`, `.Rcheck/`, stops Docker |
-| `.PHONY` declarations | Prevents conflicts with files named like targets | Low | Required for `test`, `clean`, `build`, etc. |
-| `make docker-up` | Start all Docker services | Low | Wraps `docker-compose up -d` |
-| `make docker-down` | Stop all Docker services | Low | Wraps `docker-compose down` |
-| Namespaced targets | Separate API from frontend commands | Medium | `api/test`, `frontend/build`, `docker/logs` |
-| Variables at top | Configurability (ports, versions, paths) | Low | `API_PORT ?= 7778`, `NODE_VERSION ?= 18` |
+## Table Stakes Features
+
+Features that **must** be implemented for a Vue 3 migration to function. Missing these = broken application.
+
+### 1. Vue 3 Core Breaking Changes Resolution
+
+**Why expected:** Vue 3 removed/changed APIs that Vue 2 code depends on. Non-negotiable compatibility requirement.
+
+| Breaking Change | Complexity | Migration Path | Notes |
+|----------------|------------|----------------|-------|
+| `this.$set` / `this.$delete` removed | Low | Use direct assignment with Vue 3 reactivity | Vue 3 reactivity auto-tracks deep changes |
+| Event bus pattern (`$on`, `$off`, `$emit`) | Medium | Replace with mitt library or Pinia state | 7 mixins may use event bus |
+| Filters removed (e.g. `{{ value \| filter }}`) | Low | Convert to methods or computed properties | Text formatting only |
+| `v-model` behavior change | Medium | Update component bindings | Affects form components heavily |
+| Functional components syntax change | Low | Rewrite as `<script setup>` | If any functional components exist |
+| Async component API change | Low | Update `defineAsyncComponent()` syntax | Affects lazy-loaded routes |
+
+**Sources:**
+- [Vue 3 Migration Guide - Breaking Changes](https://v3-migration.vuejs.org/breaking-changes/)
+- [Vue 3 Migration Build](https://v3-migration.vuejs.org/migration-build.html)
+
+**Confidence:** HIGH (official documentation, well-documented)
+
+---
+
+### 2. Vue Router 4 Migration
+
+**Why expected:** Vue Router 3 is incompatible with Vue 3. Router 4 is required.
+
+| Breaking Change | Complexity | Migration Impact | Notes |
+|----------------|------------|------------------|-------|
+| `new Router()` → `createRouter()` | Low | Single file change (router/index.js) | Instantiation API change |
+| `mode: 'history'` → `createWebHistory()` | Low | History mode API change | Hash mode: `createWebHashHistory()` |
+| `router.currentRoute` returns Ref | Low | Access via `.value` if used directly | Rare in practice |
+| `router.onReady()` → `router.isReady()` | Low | Returns Promise instead of callback | Affects App.vue initialization |
+| All navigations async | Medium | Await navigation guards properly | May affect sequential routing logic |
+| `router.go()` no return value | Low | Don't rely on return value | Rarely used |
+| ScrollBehavior `x`/`y` → `left`/`top` | Low | Rename properties | If custom scroll behavior exists |
+| `<router-view>` v-slot API change | Medium | Update scoped slot syntax | Affects nested routes |
+
+**Sources:**
+- [Vue Router 4 Migration Guide](https://router.vuejs.org/guide/migration/)
+- [Vue Router 4 Breaking Changes Discussion](https://github.com/vuejs/router/discussions/1975)
+
+**Confidence:** HIGH (official documentation)
+
+**SysNDD Impact:** 708 lines in routes.js with lazy loading. Expect ~50 lines of changes.
+
+---
+
+### 3. Bootstrap-Vue → Bootstrap-Vue-Next Component Migration
+
+**Why expected:** Bootstrap-Vue has NO Vue 3 support. Bootstrap-Vue-Next is the only Vue 3 port.
+
+| Component | Change Required | Complexity | Notes |
+|-----------|----------------|------------|-------|
+| `<b-table>` | API changes in 0.42.0+ | High | Server-side provider function syntax updated |
+| `<b-form-input>` | `v-model` prop changes | Medium | Vue 3 `modelValue` pattern |
+| `<b-modal>` | Event name changes | Medium | `@show` → `@show.once` patterns |
+| `<b-nav>` / `<b-navbar>` | Minimal changes | Low | Mostly compatible |
+| `<b-button>` | Minimal changes | Low | Mostly compatible |
+| `<b-badge>` | Minimal changes | Low | Mostly compatible |
+| `<b-card>` | Minimal changes | Low | Mostly compatible |
+| Directional props | `left`/`right` → `start`/`end` | Low | Bootstrap 5 RTL support |
+| `BFormFile` | Complete rewrite (VueUse) | Medium | Modern file upload, new API |
+
+**Sources:**
+- [Bootstrap-Vue-Next Migration Guide](https://bootstrap-vue-next.github.io/bootstrap-vue-next/docs/migration-guide)
+- [Bootstrap-Vue-Next Documentation](https://bootstrap-vue-next.github.io/bootstrap-vue-next/docs)
+
+**Confidence:** MEDIUM (bootstrap-vue-next still 0.x alpha, API changes ongoing)
+
+**SysNDD Impact:** Heavy BTable usage in `TablesEntities.vue`, `TablesGenes.vue`, `TablesPhenotypes.vue`, `TablesLogs.vue`. Forms in `CreateEntity.vue`, `ModifyEntity.vue`.
+
+**Risk:** Bootstrap-Vue-Next is alpha (0.42.0). Breaking changes may occur in future releases. Mitigation: pin version, contribute fixes upstream.
+
+---
+
+### 4. Deprecated Dependencies Replacement
+
+**Why expected:** Vue 2 ecosystem packages are incompatible with Vue 3.
+
+| Dependency | Vue 2 Version | Vue 3 Replacement | Complexity | Notes |
+|------------|---------------|-------------------|------------|-------|
+| `@vue/composition-api` | 1.7.0 | Remove (native in Vue 3) | Low | Backport no longer needed |
+| `vue-meta` | 2.4.0 | `@unhead/vue` or native `useHead` | Medium | SEO/meta tags management |
+| `vue-axios` | 3.4.1 | Native Axios + composables | Low | Wrapper not needed |
+| `vue2-perfect-scrollbar` | 1.5.56 | Alternative (OverlayScrollbars-Vue) | Medium | Custom scrollbar styling |
+| `vee-validate` | 3.4.14 | VeeValidate 4.x (Vue 3 compatible) | High | Form validation, major API change |
+| `@riophae/vue-treeselect` | 0.4.0 | Check Vue 3 compatibility or replace | Medium | Ontology hierarchy selection |
+| `bootstrap-vue` | 2.21.2 | `bootstrap-vue-next` 0.42+ | High | Component library (covered above) |
+
+**Sources:**
+- [Vue 3 Migration Guide - Deprecated Packages](https://v3-migration.vuejs.org/)
+- [VeeValidate 4.x Migration](https://vee-validate.logaretm.com/v4/guide/migration/)
+
+**Confidence:** HIGH (official package documentation)
+
+**SysNDD Impact:** `vee-validate` used in forms (curation workflows). `vue-treeselect` used for phenotype/ontology selection.
+
+---
+
+### 5. Build Tooling Modernization
+
+**Why expected:** Vue CLI is in maintenance mode. Vite is the recommended build tool for Vue 3.
+
+| Tool | Current | Target | Complexity | Impact |
+|------|---------|--------|------------|--------|
+| Build tool | Vue CLI 5 + Webpack 5 | Vite 6 | Medium | 10x faster dev server, ESM-native |
+| Config file | `vue.config.js` | `vite.config.ts` | Medium | Complete config rewrite |
+| Environment variables | `VUE_APP_*` | `VITE_*` | Low | Rename in `.env` files |
+| Public assets | `public/` | `public/` | Low | No change (compatible) |
+| Static imports | Webpack loaders | Vite plugins | Medium | PurgeCSS, sitemap generation |
+| Template compiler | `vue-template-compiler` | Built into Vue 3 | Low | Remove dependency |
+| HMR (Hot Module Reload) | Webpack HMR | Vite HMR (faster) | Low | Automatic improvement |
+
+**Sources:**
+- [Vite Guide](https://vite.dev/guide/)
+- [Vue CLI to Vite Migration](https://vitejs.dev/guide/migration.html)
+
+**Confidence:** HIGH (official Vite documentation)
+
+**SysNDD Impact:** Current Webpack config has PurgeCSS, PWA plugin, sitemap generation, bundle analyzer. Need Vite equivalents.
+
+---
+
+### 6. Pinia State Management Updates
+
+**Why expected:** Pinia 2.0.14 is Vue 2 compatible but needs minor updates for Vue 3.
+
+| Change | Complexity | Notes |
+|--------|------------|-------|
+| Import from `pinia` (not `@pinia/vue2`) | Low | Package name change |
+| `createPinia()` in main.ts | Low | Instantiation unchanged |
+| Store composition API compatibility | Low | Already using Composition API style |
+| TypeScript support improvement | Low | Better inference in Vue 3 |
+
+**Sources:**
+- [Pinia Migration Guide](https://pinia.vuejs.org/cookbook/migration-vuex.html)
+
+**Confidence:** HIGH (SysNDD already using Pinia, minimal changes needed)
+
+**SysNDD Impact:** Pinia already adopted in v1. Migration is straightforward.
+
+---
 
 ## Differentiators
 
-Features that set excellent Makefiles apart. Not expected, but highly valued.
+Features that set a **modern, well-executed** Vue 3 migration apart from a minimal "just make it work" migration.
 
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| `make setup-db` | Idempotent database initialization | Medium | Checks if DB exists, runs migrations |
-| `make watch` / hot-reload support | Modern DX with auto-restart on changes | Medium | Uses Docker Compose Watch or nodemon |
-| `make pre-commit` | Run all quality checks before commit | Low | Aggregates lint, format-check, test |
-| `make lint-fix` | Check and auto-fix linting issues | Low | Combines styler + eslint --fix |
-| Grouped help sections | Organizes targets by category in `make help` | Low | Uses `##@` for sections like "Development" |
-| `make logs` / `make logs-api` | Quick access to service logs | Low | Wraps `docker-compose logs -f` |
-| `make shell-api` / `make shell-db` | Interactive shell into containers | Low | `docker exec -it` shortcuts |
-| Version checks | Validates R/Node.js versions match requirements | Medium | Guards against version mismatches |
-| Parallel execution support | Fast builds via `make -j` | Medium | Requires careful dependency management |
-| `make test-watch` | Continuous testing during development | Medium | Re-runs tests on file changes |
-| Environment switching | `make dev-local` vs `make dev-docker` | Medium | Supports hybrid workflows |
-| `make doctor` / health check | Validates entire environment setup | High | Checks R/Node/Docker versions, DB connection |
-| Sentinel files | Tracks build state to avoid redundant work | High | `.built` files prevent unnecessary rebuilds |
-| Color-coded output | Visual feedback (errors red, success green) | Low | Uses ANSI codes in echo statements |
+### 1. Composition API + `<script setup>` Adoption
+
+**Value proposition:** Better code organization, improved TypeScript inference, reduced boilerplate.
+
+| Feature | Complexity | When to Use | Notes |
+|---------|------------|-------------|-------|
+| Convert Options API → Composition API | Medium | All new components | Extract reusable logic |
+| Use `<script setup>` syntax | Low | All new components | Reduces boilerplate (no return object) |
+| Keep Options API | Low | Simple view components | Mixed approach acceptable |
+| Hybrid approach (both APIs in codebase) | Low | During migration | Incremental adoption path |
+
+**Sources:**
+- [Vue 3 Composition API FAQ](https://vuejs.org/guide/extras/composition-api-faq.html)
+- [Options API vs Composition API](https://vueschool.io/articles/vuejs-tutorials/options-api-vs-composition-api/)
+
+**Confidence:** HIGH (official Vue recommendation for new code)
+
+**SysNDD Recommendation:** Hybrid approach. Convert during component refactoring, not as separate pass. Prioritize components with shared logic first.
+
+**Effort estimate:** ~30% of components benefit significantly (analyses, tables). ~70% can remain Options API without penalty.
+
+---
+
+### 2. Mixin → Composable Refactoring
+
+**Value proposition:** Eliminate mixin pain points (unclear property sources, namespace collisions, implicit coupling).
+
+| Pattern | Complexity | Benefit | Notes |
+|---------|------------|---------|-------|
+| Extract mixin logic to composable function | Medium | Explicit imports, no collisions | Return reactive values |
+| Use `vue-mixable` for gradual migration | Low | Automated wrapper function | Temporary bridge |
+| Convert to Composition API in consuming components | Medium | Full benefits of Composition API | Required for composable use |
+
+**Sources:**
+- [Vue Composables Guide](https://vuejs.org/guide/reusability/composables.html)
+- [Converting Mixins to Composables](https://www.thisdot.co/blog/converting-your-vue-2-mixins-into-composables-using-the-composition-api)
+- [vue-mixable library](https://github.com/LinusBorg/vue-mixable)
+
+**Confidence:** HIGH (official Vue pattern, community consensus)
+
+**SysNDD Impact:** 7 mixins currently. Likely candidates:
+- Authentication state mixin
+- Table pagination mixin
+- Form validation mixin
+- API request mixin
+
+**Effort estimate:** ~1-2 days per mixin (extract → test → update consuming components).
+
+---
+
+### 3. TypeScript Adoption
+
+**Value proposition:** Catch errors at compile time, improve IDE experience, document data shapes.
+
+| Feature | Complexity | Strictness Level | Notes |
+|---------|------------|------------------|-------|
+| `.vue` files with TypeScript `<script lang="ts">` | Low | Baseline | SFC TypeScript support |
+| Prop type definitions (`defineProps<T>()`) | Low | Component contracts | Better than PropTypes |
+| API response type definitions | Medium | Data shape safety | 21 API endpoints to type |
+| Store typing (Pinia) | Low | State management safety | Pinia has excellent TS support |
+| `strict: true` in tsconfig | High | Maximum safety | Requires all types defined |
+| `strict: false` with gradual adoption | Low | Incremental approach | Allow `any` during migration |
+
+**Sources:**
+- [Vue 3 TypeScript with Composition API](https://vuejs.org/guide/typescript/composition-api.html)
+- [TypeScript with Vue 3 Best Practices](https://medium.com/@davisaac8/design-patterns-and-best-practices-with-the-composition-api-in-vue-3-77ba95cb4d63)
+
+**Confidence:** HIGH (official Vue documentation, strong ecosystem support)
+
+**SysNDD Recommendation:** Start with `strict: false`, incrementally tighten. Prioritize:
+1. API response types (prevents runtime errors with database schemas)
+2. Component props (component contracts)
+3. Store types (state management safety)
+4. Utility functions (pure logic, easy to type)
+
+**Effort estimate:** ~2-3 weeks for baseline types, ~4-6 weeks for full strict mode.
+
+---
+
+### 4. Vitest + Vue Test Utils Testing Infrastructure
+
+**Value proposition:** Catch regressions during migration, enable confident refactoring, establish testing culture.
+
+| Feature | Complexity | Value | Notes |
+|---------|------------|-------|-------|
+| Vitest setup with Browser Mode | Medium | Most accurate testing (real browsers) | Playwright-based |
+| Component testing with Vue Test Utils | Medium | Test user interactions | Focus on behavior, not internals |
+| Composable testing | Low | Unit test extracted logic | Wrap in test component for lifecycle |
+| Page Object pattern for tests | Medium | Reduce test duplication | Extract once 3+ tests use same pattern |
+| API mocking with MSW | Medium | Isolate frontend from backend | Modern mock service worker approach |
+| Snapshot testing (use sparingly) | Low | Catch unexpected changes | Avoid overuse, test behavior instead |
+
+**Sources:**
+- [Vue 3 Testing Pyramid with Vitest](https://alexop.dev/posts/vue3_testing_pyramid_vitest_browser_mode/)
+- [Vitest Component Testing](https://vitest.dev/guide/browser/component-testing)
+- [Testing Vue 3 Composables](https://dylanbritz.dev/writing/testing-vue-composables-lifecycle/)
+- [Vue.js Testing Guide](https://vuejs.org/guide/scaling-up/testing)
+
+**Confidence:** HIGH (Vitest is official recommendation for Vue 3 + Vite projects)
+
+**SysNDD Recommendation:** Modern testing pyramid approach:
+- 70% integration tests (component with mocked API)
+- 20% composable unit tests
+- 10% accessibility + visual regression
+
+**Effort estimate:** ~3-4 weeks for infrastructure + example tests. Testing is ongoing, not one-time.
+
+---
+
+### 5. D3.js + GSAP Integration Modernization
+
+**Value proposition:** Leverage Composition API for cleaner animation lifecycle, better reactivity integration.
+
+| Feature | Complexity | Pattern | Notes |
+|---------|------------|---------|-------|
+| D3 with template refs + `onMounted` | Low | Vue 3 Composition API pattern | Cleaner than Options API |
+| `watchEffect` for D3 re-rendering | Medium | Reactive data → D3 updates | Automatic re-render on data change |
+| GSAP timeline in composable | Medium | Extract animation logic | Reusable, testable |
+| Proper cleanup in `onBeforeUnmount` | Low | Prevent memory leaks | Kill timelines, remove event listeners |
+| TypeScript types for D3/GSAP | Low | @types/d3, @types/gsap | Improve autocomplete |
+
+**Sources:**
+- [Using Vue 3 Composition API with D3](https://dev.to/muratkemaldar/using-vue-3-with-d3-composition-api-3h1g)
+- [Building Charts in Vue with D3](https://dev.to/jacobandrewsky/building-charts-in-vue-with-d3-38gl)
+- [GSAP with Vue 3 Composition API](https://gsap.com/community/forums/topic/27052-using-gsap-with-vuejs-3-composition-api/)
+- [Modern Web Animations with GSAP and Vue 3](https://blog.openreplay.com/modern-web-animations-with-gsap-and-vue-3/)
+
+**Confidence:** MEDIUM (community patterns, not official Vue guidance)
+
+**SysNDD Impact:** 14 analysis components use D3 or GSAP:
+- D3: `AnalysesCurationUpset.vue`, `AnalysesPhenotypeCorrelogram.vue`, `AnalysesTimePlot.vue`, etc.
+- GSAP: Animation helpers for transitions
+
+**Effort estimate:** ~1-2 days per visualization component to modernize patterns.
+
+---
+
+### 6. UI/UX Modernization (Bonus Differentiator)
+
+**Value proposition:** Migration is the perfect time to address visual debt without fear of regressions (you're already touching everything).
+
+| Feature | Complexity | Impact | Notes |
+|---------|------------|--------|-------|
+| CSS variables for theming | Low | High | Easy color palette updates |
+| Shadow depth system | Low | High | Modern card/elevation feel |
+| Loading skeleton states | Medium | Medium | Better perceived performance |
+| Empty state illustrations | Low | Medium | User guidance, reduces confusion |
+| Mobile responsive refinements | Medium | Medium | Table → card view on small screens |
+| Accessibility improvements (WCAG 2.2) | Medium | High | Medical app requirement, legal compliance |
+
+**Sources:**
+- [Healthcare UX Best Practices 2026](https://www.eleken.co/blog-posts/user-interface-design-for-healthcare-applications)
+- [Bootstrap 5 Design System](https://getbootstrap.com/docs/5.3/customize/overview/)
+
+**Confidence:** HIGH (established design patterns, Bootstrap 5 foundation)
+
+**SysNDD Context:** Frontend review identified dated gradient backgrounds, hard card borders, cramped spacing. Bootstrap-Vue-Next uses Bootstrap 5, already a visual upgrade.
+
+**Effort estimate:** ~1-2 weeks for CSS refinements (parallel to migration work).
+
+---
 
 ## Anti-Features
 
-Features to explicitly NOT build. Common mistakes in this domain.
+Features to **explicitly avoid** during migration. Common mistakes that waste time or create technical debt.
 
-| Anti-Feature | Why Avoid | What to Do Instead |
-|--------------|-----------|-------------------|
-| Single monolithic Makefile | Becomes unmaintainable as targets grow | Modularize: `Makefile.api`, `Makefile.frontend`, include them |
-| Using `:` or `-` in target names | Non-standard, confuses tab completion | Use `/` for namespacing: `api/test` not `api:test` |
-| Targets without `.PHONY` | Breaks if file with same name exists | Always declare utility targets as `.PHONY` |
-| Hardcoded paths | Breaks portability across environments | Use variables: `API_DIR ?= api` |
-| Complex bash scripts in targets | Hard to debug, defeats Makefile purpose | Move logic to separate shell scripts |
-| Undocumented targets | Forces reading Makefile source | Add `##` comments for all user-facing targets |
-| Mixing tabs and spaces | Causes cryptic errors | Use tabs for recipes (Make requirement) |
-| Missing help target | Developers don't know what's available | Implement `make help` with awk extraction |
-| Silent failures | Errors get swallowed | Use `.SHELLFLAGS = -ec` for strict mode |
-| Over-engineering dependencies | Rebuilds too much or too little | Keep dependencies simple and explicit |
-| Language-specific assumptions | Assumes everyone knows npm/Rscript syntax | Abstract behind make targets |
-| No default target | Running bare `make` does nothing | Set `.DEFAULT_GOAL := help` |
-| Ignoring Make's parallelism | Sequential execution wastes time | Design independent targets for `make -j` |
-| Committing `.built` sentinel files | Confuses CI, breaks clean state | Add to `.gitignore` |
+### 1. Big Bang Rewrite
+
+**What:** Rewrite entire application from scratch in Vue 3 before deploying anything.
+
+**Why bad:**
+- Months without shipping value
+- Higher risk (no incremental validation)
+- Merge conflicts with ongoing Vue 2 development
+- "Works on my machine" surprises at the end
+
+**Instead:** Incremental migration using Vue 3 migration build (`@vue/compat`).
+
+**Detection:** If migration plan has no intermediate deployable states, you're doing a big bang rewrite.
+
+**Sources:**
+- [Vue 3 Migration Build Guide](https://v3-migration.vuejs.org/migration-build.html)
+- [Vue Mastery Migration Build Tutorial](https://www.vuemastery.com/blog/vue-3-migration-build/)
+
+---
+
+### 2. Forcing Composition API Everywhere
+
+**What:** Rewrite all Options API components to Composition API as part of migration.
+
+**Why bad:**
+- Options API is NOT deprecated (official statement)
+- Adds significant effort for little gain on simple components
+- Delays migration completion
+- Composition API only shines with complex logic or reuse
+
+**Instead:** Hybrid approach. Keep Options API for simple view components. Convert only:
+- Components with mixins (replace with composables)
+- Components with complex state logic
+- Components with reusable logic across multiple files
+
+**Detection:** If migration timeline includes "Convert all components to Composition API" as a separate phase, you're forcing it.
+
+**Sources:**
+- [Composition API FAQ - Is Options API Deprecated?](https://vuejs.org/guide/extras/composition-api-faq.html)
+- [When to Use Composition API](https://vueschool.io/articles/vuejs-tutorials/from-vue-js-options-api-to-composition-api-is-it-worth-it/)
+
+---
+
+### 3. TypeScript Strict Mode from Day 1
+
+**What:** Enable `strict: true` in tsconfig.json immediately, forcing all code to be fully typed.
+
+**Why bad:**
+- Paralyzes migration progress (fighting compiler instead of migrating)
+- Forces typing decisions before understanding data shapes
+- Creates "any escape hatches" everywhere (defeats the purpose)
+- TypeScript is incremental by design
+
+**Instead:** Start with `strict: false`, incrementally tighten:
+1. Add `.ts` extensions and basic types
+2. Type API responses (prevents runtime errors)
+3. Type component props (component contracts)
+4. Enable `noImplicitAny` once comfortable
+5. Enable `strict` as final step (optional)
+
+**Detection:** If tsconfig has `strict: true` and codebase has 100+ `any` types or `@ts-ignore` comments, you jumped the gun.
+
+**Sources:**
+- [TypeScript Handbook - Strict Mode](https://www.typescriptlang.org/docs/handbook/2/basic-types.html#strictness)
+- [Vue TypeScript Guide](https://vuejs.org/guide/typescript/overview.html)
+
+---
+
+### 4. Premature Component Library Switch
+
+**What:** Switching from Bootstrap-Vue-Next to PrimeVue/Vuetify/Quasar without trying Bootstrap-Vue-Next first.
+
+**Why bad:**
+- Visual disruption confuses users (medical researchers expect consistency)
+- Higher migration effort (rewrite all 50+ components)
+- Unnecessary bundle size increase (Bootstrap-Vue-Next is smallest at ~150KB)
+- "Grass is greener" trap (every library has tradeoffs)
+
+**Instead:** Start with Bootstrap-Vue-Next (minimal visual change). Only switch if:
+- Critical feature missing (e.g., virtual scrolling for 100K+ rows)
+- Blocking bugs in Bootstrap-Vue-Next
+- Bootstrap aesthetic fundamentally wrong (not the case for SysNDD)
+
+**Detection:** If migration plan starts with "Evaluate component libraries" and doesn't prioritize visual consistency, you're premature.
+
+**Sources:**
+- [Bootstrap-Vue-Next Documentation](https://bootstrap-vue-next.github.io/bootstrap-vue-next/docs)
+- [SysNDD Frontend Review](https://github.com/bernt-popp/sysndd/blob/master/.planning/FRONTEND-REVIEW-REPORT.md)
+
+---
+
+### 5. Testing Everything Before Shipping Anything
+
+**What:** Writing comprehensive test suite (80%+ coverage) before deploying migrated components.
+
+**Why bad:**
+- Testing is infinite work (diminishing returns after ~70%)
+- Blocks migration progress (waiting for perfect tests)
+- Tests may need rewriting anyway (understanding evolves)
+- Manual testing catches most migration issues
+
+**Instead:** Test-Driven Migration (not Test-Driven Development):
+1. Migrate component
+2. Manually test critical paths
+3. Write tests for **bugs found** (regression prevention)
+4. Write tests for **complex logic** (composables, calculations)
+5. Skip tests for simple presentational components
+
+**Detection:** If "Write tests" is blocking "Deploy to production" in migration plan, you're over-testing.
+
+**Sources:**
+- [Vue Testing Guide - Testing Priorities](https://vuejs.org/guide/scaling-up/testing)
+- [Testing Pyramid for Vue](https://alexop.dev/posts/vue3_testing_pyramid_vitest_browser_mode/)
+
+---
+
+### 6. Ignoring the Migration Build (`@vue/compat`)
+
+**What:** Migrating without Vue 3's official migration build, going straight to Vue 3.
+
+**Why bad:**
+- No deprecation warnings (flying blind)
+- All breaking changes hit at once
+- Hard to isolate issues
+- Migration build exists specifically for smooth migrations
+
+**Instead:** Use `@vue/compat` for incremental migration:
+1. Install `@vue/compat` (Vue 3 with Vue 2 compatibility layer)
+2. Fix migration build errors (fatal issues)
+3. Fix migration build warnings one by one
+4. Disable compatibility mode per component/file
+5. Remove `@vue/compat` when all warnings resolved
+
+**Detection:** If migration plan doesn't mention `@vue/compat`, you're ignoring the migration build.
+
+**Sources:**
+- [Vue 3 Migration Build](https://v3-migration.vuejs.org/migration-build.html)
+- [Migration Build Best Practices](https://medium.com/@kilian.j.2005/vue-2-to-vue-3-a-nearly-painless-approach-d46c13cca63a)
+
+---
+
+### 7. Relying on Vue 2 Internal APIs
+
+**What:** Using undocumented Vue 2 internals (`this.$children`, `this._uid`, VNode private properties).
+
+**Why bad:**
+- Break silently in Vue 3 (no migration build warnings)
+- Hard to debug (no error messages, just broken behavior)
+- No migration path (internals changed completely)
+
+**Instead:**
+- Use refs (`this.$refs`) instead of `$children`
+- Use Pinia or props/emits instead of `$parent` chains
+- Use Vue DevTools instead of `_uid` for debugging
+- Refactor before migrating
+
+**Detection:** Search codebase for `$children`, `_uid`, `_vnode`. If found, you're using internals.
+
+**Sources:**
+- [Vue 3 Migration Guide - Removed Internal APIs](https://v3-migration.vuejs.org/breaking-changes/)
+- [Vue 3 Breaking Changes](https://v3-migration.vuejs.org/breaking-changes/)
+
+---
 
 ## Feature Dependencies
 
 ```
-Setup phase:
-  make install
-    ├─> api/install (R packages via renv)
-    └─> frontend/install (npm install)
+Vue 3 Core Migration
+  ├─ Breaking Changes Resolution (REQUIRED FIRST)
+  │   └─ Vue Router 4 (blocking: router.js changes)
+  │   └─ Bootstrap-Vue-Next (blocking: component rewrites)
+  │   └─ Deprecated Dependencies (blocking: build errors)
+  │
+  ├─ Build Tooling (Vite) (PARALLEL: independent of Vue 3)
+  │   └─ TypeScript Setup (enables: .ts files in Vite config)
+  │   └─ Vitest Setup (requires: Vite for native integration)
+  │
+  ├─ Composition API Adoption (AFTER CORE WORKING)
+  │   └─ Mixin → Composable (requires: Composition API understanding)
+  │
+  └─ TypeScript Adoption (PARALLEL: can start in Vue 2.7)
+      └─ Strict Mode (LAST: after all code typed)
 
-  make setup
-    ├─> install
-    └─> setup-db (database initialization)
+D3/GSAP Modernization (AFTER COMPOSITION API)
 
-Development phase:
-  make dev
-    ├─> docker/up (start DB)
-    ├─> api/dev (start R server with reload)
-    └─> frontend/dev (start Vue dev server)
+UI/UX Polish (PARALLEL: CSS-only, no JavaScript changes)
 
-Quality phase:
-  make pre-commit
-    ├─> format-check
-    ├─> lint
-    └─> test
-
-  make format
-    ├─> api/format (styler)
-    └─> frontend/format (eslint --fix)
-
-  make test
-    ├─> api/test (testthat)
-    └─> frontend/test (when implemented)
-
-Docker phase:
-  make docker-build
-    ├─> docker/build-api
-    └─> docker/build-frontend
-
-  make docker-up
-    └─> Requires: docker-build (if images don't exist)
-
-Cleanup phase:
-  make clean
-    ├─> api/clean (remove .Rcheck/, logs)
-    ├─> frontend/clean (remove dist/)
-    └─> docker/clean (stop and remove containers)
+Testing Infrastructure (AFTER CORE MIGRATION WORKING)
 ```
 
-## MVP Recommendation
+**Key insight:** Vue 3 core migration is blocking. Everything else can be done in parallel or deferred.
 
-For MVP Makefile, prioritize these targets:
+---
 
-### Core (Must Have)
-1. `help` - Self-documentation (always first)
-2. `install` - Setup dependencies
-3. `dev` - Start development environment
-4. `test` - Run tests
-5. `lint` - Check code quality
-6. `format` - Auto-format code
-7. `docker-up` / `docker-down` - Docker lifecycle
-8. `clean` - Remove artifacts
+## MVP Migration Recommendation
 
-### Phase 2 (Add After Core Works)
-9. `setup-db` - Database initialization
-10. `pre-commit` - Combined quality checks
-11. `lint-fix` - Auto-fix linting issues
-12. `logs` - View service logs
-13. `shell-api` / `shell-db` - Interactive shells
+For SysNDD's Vue 3 migration, prioritize getting **functionally equivalent** application running in Vue 3, then iterate.
 
-### Defer to Post-MVP
-- `watch` targets: Complex, requires file watching infrastructure
-- `doctor`: High complexity health checking
-- Sentinel files: Optimization, not essential initially
-- Color-coded output: Nice-to-have visual polish
-- `test-watch`: Requires continuous test runner setup
+### Phase 1: Core Migration (Must Have)
+1. ✅ Install `@vue/compat` and resolve fatal errors
+2. ✅ Migrate Vue Router 3 → 4
+3. ✅ Migrate Bootstrap-Vue → Bootstrap-Vue-Next (pin 0.42.0)
+4. ✅ Replace deprecated dependencies (`vue-meta`, `vue-axios`, `vee-validate`)
+5. ✅ Fix all migration build warnings
+6. ✅ Manual testing of critical paths (login, table view, create entity)
 
-## Implementation Patterns
+**Estimated effort:** 2-3 weeks
 
-### Self-Documenting Help Target
+### Phase 2: Build Modernization (Should Have)
+1. ✅ Migrate Vue CLI → Vite
+2. ✅ Setup basic TypeScript (strict: false)
+3. ✅ Type API responses (21 endpoints)
+4. ✅ Convert environment variables (`VUE_APP_*` → `VITE_*`)
 
-```makefile
-.DEFAULT_GOAL := help
+**Estimated effort:** 1-2 weeks
 
-.PHONY: help
-help: ## Display this help message
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n\nTargets:\n"} /^[a-zA-Z_\/.-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
-```
+### Phase 3: Code Modernization (Nice to Have)
+1. ✅ Convert 7 mixins → composables
+2. ✅ Adopt `<script setup>` in new/refactored components
+3. ✅ Setup Vitest with example tests
+4. ✅ Modernize D3/GSAP patterns in 2-3 high-value components
 
-### Namespaced Targets
+**Estimated effort:** 2-3 weeks
 
-```makefile
-.PHONY: api/install
-api/install: ## Install R dependencies
-	cd $(API_DIR) && Rscript -e "renv::restore()"
+### Phase 4: Polish (Can Defer to Later Milestone)
+1. Enable TypeScript strict mode incrementally
+2. UI/UX refinements (shadows, spacing, colors)
+3. Accessibility improvements (WCAG 2.2)
+4. Expand test coverage to 40-50%
 
-.PHONY: frontend/install
-frontend/install: ## Install Node dependencies
-	cd $(APP_DIR) && npm install
-```
+**Estimated effort:** 3-4 weeks
 
-### Aggregate Targets
+---
 
-```makefile
-.PHONY: install
-install: api/install frontend/install ## Install all dependencies
+## Effort Summary by Feature Category
 
-.PHONY: test
-test: api/test frontend/test ## Run all tests
-```
+| Category | Complexity | Time Estimate | Blocking? | Notes |
+|----------|------------|---------------|-----------|-------|
+| **Table Stakes** | | | | |
+| Vue 3 Breaking Changes | Medium | 1 week | ✅ Yes | Migration build helps |
+| Vue Router 4 | Low | 2-3 days | ✅ Yes | Well-documented |
+| Bootstrap-Vue-Next | High | 2-3 weeks | ✅ Yes | 50+ components to update |
+| Deprecated Dependencies | Medium | 1 week | ✅ Yes | VeeValidate most complex |
+| Vite Migration | Medium | 1 week | ❌ No | Webpack still works |
+| Pinia Updates | Low | 1 day | ❌ No | Already using Pinia |
+| **Differentiators** | | | | |
+| Composition API | Medium | 2-3 weeks | ❌ No | Hybrid approach |
+| Mixin → Composable | Medium | 1-2 weeks | ❌ No | 7 mixins to convert |
+| TypeScript Adoption | High | 4-6 weeks | ❌ No | Incremental approach |
+| Vitest Testing | Medium | 3-4 weeks | ❌ No | Infrastructure + examples |
+| D3/GSAP Modernization | Medium | 1-2 weeks | ❌ No | 14 components affected |
+| UI/UX Modernization | Medium | 1-2 weeks | ❌ No | CSS-only, parallel work |
 
-### Variables for Flexibility
+**Total MVP (Phase 1-2):** 4-5 weeks
+**Total with Code Modernization (Phase 1-3):** 6-8 weeks
+**Total with Polish (Phase 1-4):** 9-12 weeks
 
-```makefile
-# Configuration
-API_DIR     ?= api
-APP_DIR     ?= app
-API_PORT    ?= 7778
-FRONTEND_PORT ?= 8080
-COMPOSE_FILE ?= docker-compose.yml
+---
 
-# Docker images
-API_IMAGE   ?= sysndd-api
-APP_IMAGE   ?= sysndd-app
-```
+## SysNDD-Specific Considerations
 
-### Docker Integration
+### High-Risk Components (Test Thoroughly)
 
-```makefile
-.PHONY: docker-up
-docker-up: ## Start all Docker services
-	docker-compose -f $(COMPOSE_FILE) up -d
+| Component | Why High-Risk | Migration Complexity |
+|-----------|---------------|---------------------|
+| `TablesEntities.vue` | Heavy BTable usage, 4200+ rows | High |
+| `CreateEntity.vue` | Complex form, VeeValidate | High |
+| `ModifyEntity.vue` | Complex form, VeeValidate | High |
+| `AnalysesCurationUpset.vue` | D3 + @upsetjs/vue integration | Medium |
+| `Login.vue` | Authentication critical path | Medium |
+| `User.vue` | User profile, session management | Medium |
 
-.PHONY: docker-logs
-docker-logs: ## Follow logs from all services
-	docker-compose -f $(COMPOSE_FILE) logs -f
+### Components with External Dependencies
 
-.PHONY: shell-api
-shell-api: ## Open shell in API container
-	docker-compose -f $(COMPOSE_FILE) exec api bash
-```
+| Component | External Dependency | Vue 3 Compatibility | Action Required |
+|-----------|-------------------|---------------------|-----------------|
+| `AnalysesCurationUpset.vue` | `@upsetjs/vue` 1.11.0 | ✅ Vue 3 compatible | Update to latest |
+| Multiple forms | `vee-validate` 3.x | ❌ Use v4 | Major API change |
+| Ontology selectors | `@riophae/vue-treeselect` 0.4.0 | ❓ Check compatibility | May need replacement |
+| Multiple views | `vue-meta` 2.4.0 | ❌ Use @unhead/vue | Migration path exists |
 
-### Quality Check Aggregation
+### Migration Sequence Recommendation
 
-```makefile
-.PHONY: pre-commit
-pre-commit: format-check lint test ## Run all pre-commit checks
+**Order components by risk × impact:**
 
-.PHONY: format-check
-format-check: ## Check code formatting without changes
-	@echo "Checking R code formatting..."
-	cd $(API_DIR) && Rscript scripts/lint-check.R
-	@echo "Checking JS code formatting..."
-	cd $(APP_DIR) && npm run lint
+1. **Low-risk utilities first** (Banner, Footer, HelperBadge) — validate migration process
+2. **Authentication next** (Login, Register, PasswordReset) — critical path
+3. **Table views** (TablesEntities, TablesGenes) — high impact, high complexity
+4. **Forms** (CreateEntity, ModifyEntity) — VeeValidate migration blocks these
+5. **Analysis views** (D3/GSAP components) — lower priority, can defer
+6. **Admin views last** (ManageUser, ViewLogs) — less frequently used
 
-.PHONY: lint-fix
-lint-fix: ## Check and auto-fix linting issues
-	cd $(API_DIR) && Rscript scripts/lint-and-fix.R
-	cd $(APP_DIR) && npm run lint -- --fix
-```
+---
 
-## Target Naming Conventions
+## Validation Checklist
 
-Based on ecosystem research, standard naming patterns:
+Migration is complete when:
 
-| Pattern | Examples | Used For |
-|---------|----------|----------|
-| Verb only | `install`, `test`, `build`, `clean` | Primary actions |
-| Component/action | `api/test`, `frontend/build` | Namespaced operations |
-| Action-component | `test-api`, `build-frontend` | Alternative namespacing (less common) |
-| Service/action | `docker-up`, `docker-down` | External tool operations |
-| Qualifier | `test-watch`, `lint-fix`, `format-check` | Action variations |
+- [ ] All Vue 2 breaking changes resolved (no `@vue/compat` warnings)
+- [ ] Vue Router 4 installed and routes working
+- [ ] Bootstrap-Vue-Next components render correctly
+- [ ] All deprecated dependencies replaced
+- [ ] Forms submit successfully (VeeValidate 4)
+- [ ] Tables paginate/sort/filter (BTable provider functions)
+- [ ] D3 visualizations render and update reactively
+- [ ] GSAP animations play without memory leaks
+- [ ] Authentication flow works (login → protected route → logout)
+- [ ] Build completes without errors (Vite or Webpack)
+- [ ] Production bundle size reasonable (<2MB gzipped)
+- [ ] Manual testing of all critical paths passes
+- [ ] Browser console has no Vue warnings
 
-**Recommendation for SysNDD:** Use `/` namespacing (e.g., `api/test`) for consistency with modern Makefile best practices.
-
-## Cross-Platform Considerations
-
-SysNDD must work on Windows (WSL2), macOS, and Linux:
-
-| Concern | Solution |
-|---------|----------|
-| Path separators | Use forward slashes, set `SHELL := /bin/bash` |
-| Docker socket | Works consistently across platforms via Docker Desktop |
-| R installation | Different paths on each OS - use `Rscript` in PATH |
-| npm/node | nvm or system install, always via PATH |
-| Line endings | Set `.gitattributes` with `* text=auto eol=lf` |
-| Make version | Require GNU Make 3.82+ (available on all platforms) |
-
-## Confidence Assessment
-
-| Area | Level | Source Quality |
-|------|-------|----------------|
-| Standard targets | HIGH | Multiple authoritative sources agree (Docker blog, Shipyard, FreeCodeCamp) |
-| Namespacing patterns | HIGH | Community consensus in 2026 examples |
-| Self-documenting help | HIGH | Official GNU Make manual + widespread adoption |
-| Docker integration | HIGH | Docker official documentation + common practice |
-| R-specific patterns | MEDIUM | Limited R+Makefile resources, extrapolated from R package dev |
-| Anti-patterns | HIGH | ConfigZen, MoldStud articles on common mistakes |
-| Cross-platform | MEDIUM | Docker consistency verified, platform differences known |
-
-## Gaps and Uncertainties
-
-**Low confidence areas requiring validation:**
-- **R package caching in Makefile context** - renv integration patterns with Make targets not well documented
-- **Hot-reload for R Plumber APIs** - Best approach for development server with auto-restart unclear
-- **Testing Plumber endpoints** - callthat + testthat integration with Make targets needs exploration
-- **Parallel test execution** - Whether R tests can safely run in parallel
-
-**Recommend phase-specific research for:**
-- Testing milestone: Deep dive into R testing patterns, callthat best practices
-- Docker modernization: Docker Compose Watch configuration for R + Vue hot-reload
-- CI/CD (future): GitHub Actions integration with existing Make targets
+---
 
 ## Sources
 
-### Makefile Best Practices
-- [Why you should adopt Makefile in all of your projects](https://yieldcode.blog/post/why-you-should-adpot-makefile-in-all-of-your-projects/)
-- [Makefile for Node.js developers](https://zentered.co/articles/makefile-for-node-js-developers/)
-- [Makefiles for Modern Development - Shipyard](https://shipyard.build/blog/makefiles-for-modern-development/)
-- [How to "Make" It in a Polyglot Engineering Environment](https://narcismpap.medium.com/how-to-make-it-in-a-polyglot-engineering-environment-software-architecture-series-part-vi-a2bd722a0847)
+### Official Documentation
+- [Vue 3 Migration Guide](https://v3-migration.vuejs.org/)
+- [Vue Router 4 Migration Guide](https://router.vuejs.org/guide/migration/)
+- [Pinia Migration from Vuex](https://pinia.vuejs.org/cookbook/migration-vuex.html)
+- [Bootstrap-Vue-Next Migration Guide](https://bootstrap-vue-next.github.io/bootstrap-vue-next/docs/migration-guide)
+- [Vue 3 Composition API](https://vuejs.org/guide/extras/composition-api-faq.html)
+- [Vue 3 TypeScript Guide](https://vuejs.org/guide/typescript/composition-api.html)
+- [Vitest Component Testing](https://vitest.dev/guide/browser/component-testing)
 
-### Self-Documenting Makefiles
-- [make help - Well documented Makefiles](https://www.thapaliya.com/en/writings/well-documented-makefiles/)
-- [Self-Documenting (GNU) Makefiles - Michael Goerz](https://michaelgoerz.net/notes/self-documenting-makefiles.html)
-- [How to Create a Self-Documenting Makefile - FreeCodeCamp](https://www.freecodecamp.org/news/self-documenting-makefile/)
+### Community Resources
+- [A Comprehensive Vue 2 to Vue 3 Migration Guide](https://medium.com/simform-engineering/a-comprehensive-vue-2-to-vue-3-migration-guide-a00501bbc3f0)
+- [How to Migrate from Vue 2 to Vue 3: Risks & Key Benefits](https://epicmax.co/vue-3-migration-guide)
+- [Options API vs Composition API](https://vueschool.io/articles/vuejs-tutorials/options-api-vs-composition-api/)
+- [Converting Mixins to Composables](https://www.thisdot.co/blog/converting-your-vue-2-mixins-into-composables-using-the-composition-api)
+- [Vue 3 Testing Pyramid with Vitest](https://alexop.dev/posts/vue3_testing_pyramid_vitest_browser_mode/)
+- [Using Vue 3 Composition API with D3](https://dev.to/muratkemaldar/using-vue-3-with-d3-composition-api-3h1g)
+- [GSAP with Vue 3 Composition API](https://gsap.com/community/forums/topic/27052-using-gsap-with-vuejs-3-composition-api/)
+- [Common Vue 3 Migration Anti-Patterns](https://www.binarcode.com/blog/3-anti-patterns-to-avoid-in-vuejs)
+- [A Guide to Smooth Vue 3 Migration](https://dev.to/vinsay11/a-guide-to-smooth-vue-3-migration-guide-mistakes-to-watch-out-for-57m1)
 
-### Docker Integration
-- [Containerizing Test Tooling: Creating your Dockerfile and Makefile - Docker Blog](https://www.docker.com/blog/containerizing-test-tooling-creating-your-dockerfile-and-makefile/)
-- [Makefiles and Docker for Local Development](https://www.codyhiar.com/blog/makefiles-and-docker-for-local-development/)
-- [Simplifying docker-compose operations using Makefile](https://medium.com/freestoneinfotech/simplifying-docker-compose-operations-using-makefile-26d451456d63)
+### SysNDD-Specific
+- [SysNDD Frontend Review Report](file:///home/bernt-popp/development/sysndd/.planning/FRONTEND-REVIEW-REPORT.md)
+- [SysNDD PROJECT.md](file:///home/bernt-popp/development/sysndd/.planning/PROJECT.md)
 
-### Monorepo Patterns
-- [makefile-for-monorepos - enspirit/makefile-for-monorepos](https://github.com/enspirit/makefile-for-monorepos)
-- [The Ultimate Guide to Building a Monorepo in 2026](https://medium.com/@sanjaytomar717/the-ultimate-guide-to-building-a-monorepo-in-2025-sharing-code-like-the-pros-ee4d6d56abaa)
+---
 
-### R Development
-- [R Plumber API Development](https://www.rplumber.io/)
-- [MaRP - Makefile for R Package development](https://github.com/josherrickson/MaRP)
-- [Writing R Extensions (2026-01-14)](https://cran.r-project.org/doc/manuals/r-devel/R-exts.html)
-
-### Pre-commit Integration
-- [Pre-Commit & Git Hooks: Automate High Code Quality](https://towardsdatascience.com/pre-commit-git-hooks-automate-high-code-quality-fbcbaa720e52/)
-- [Speed up your Python development workflow with pre-commit and Makefile](https://medium.com/vantageai/speed-up-your-python-development-workflow-in-5-minutes-with-pre-commit-and-makefile-ed2c5f28e80f)
-- [Effortless Code Quality: The Ultimate Pre-Commit Hooks Guide for 2025](https://gatlenculp.medium.com/effortless-code-quality-the-ultimate-pre-commit-hooks-guide-for-2025-57ca501d9835)
-
-### Makefile Anti-Patterns
-- [Top 5 Makefile Mistakes - ConfigZen](https://configzen.com/blog/top-5-makefile-mistakes-dev-process)
-- [Makefile Madness Common Pitfalls and How to Avoid Them - MoldStud](https://moldstud.com/articles/p-makefile-madness-common-pitfalls-and-how-to-avoid-them)
-- [Phony Targets (GNU make)](https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html)
-
-### Vue.js Build Practices
-- [Production Deployment - Vue.js](https://vuejs.org/guide/best-practices/production-deployment)
-- [Build Targets - Vue CLI](https://cli.vuejs.org/guide/build-targets)
+*Research completed: 2026-01-22*
+*Confidence: HIGH (official sources verified with Context7 and official documentation where available)*
+*Researcher: GSD Project Researcher (Features dimension)*
