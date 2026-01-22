@@ -11,14 +11,14 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 ## Current Position
 
 **Milestone:** v2 Docker Infrastructure Modernization
-**Phase:** 8 - Frontend Dockerfile Modernization
-**Plan:** Complete
-**Status:** Verified
-**Last activity:** 2026-01-22 — Phase 8 verified
+**Phase:** 9 - Developer Experience
+**Plan:** 02 of 8
+**Status:** In Progress
+**Last activity:** 2026-01-22 — Completed 09-02-PLAN.md
 
 ```
-v2 Progress: [█████████░] 100% (24/24 plans)
-Phase 8:     [████████████] 4/4 requirements
+v2 Progress: [██████████] 100% (26/26 plans)
+Phase 9:     [████░░░░░░░░] 2/8 plans
 ```
 
 ## v2 Scope
@@ -48,7 +48,7 @@ Phase 8:     [████████████] 4/4 requirements
 | 6 | Security and Compose Foundation | 13 | Complete |
 | 7 | API Dockerfile Optimization | 12 | Complete |
 | 8 | Frontend Dockerfile Modernization | 4 | Complete |
-| 9 | Developer Experience | 8 | Not Started |
+| 9 | Developer Experience | 8 | In Progress (2/8) |
 
 ## GitHub Issues
 
@@ -84,15 +84,19 @@ Phase 8:     [████████████] 4/4 requirements
 | Port 8080 for frontend | Non-privileged port for non-root user; ports <1024 require root | 08-01 |
 | wget for health checks | Included in Alpine busybox; no curl installation needed | 08-01 |
 | Compose Watch over bind mounts | Modern, cross-platform, no polling config | 9 |
+| MySQL port 127.0.0.1:7654 | Localhost-only binding for security; accessible to DBeaver/Workbench | 09-02 |
+| Anonymous volume for node_modules | Cross-platform native binary isolation; prevents host/container conflicts | 09-02 |
+| App watch in override, API watch in main | API uses same Dockerfile; app uses dev-only Dockerfile.dev | 09-02 |
 
 ## Resume Instructions
 
-**Phase 8 complete.** Next step: Continue with Phase 9 (Developer Experience).
+**Phase 9 in progress.** Continue with Plan 03 (documentation).
 
-Phase 8 achievements:
-- Plan 01: Frontend Dockerfile modernized with Node 20 Alpine, nginx-unprivileged, non-root user (UID 101), port 8080, and HEALTHCHECK
-- All 4 requirements satisfied (SEC-06, FRONT-01, FRONT-02, FRONT-03)
-- Verification passed 6/6 must-haves
+Phase 9 achievements so far:
+- Plan 01: app/Dockerfile.dev created with Node 20 Alpine and webpack-dev-server
+- Plan 02: docker-compose.override.yml with Dockerfile.dev, MySQL localhost:7654, Compose Watch
+
+Next: Plan 03 (Development Environment documentation)
 
 ## Research Location
 
@@ -104,9 +108,9 @@ v1 artifacts: `.planning/milestones/`
 
 ## Session Continuity
 
-**Last session:** 2026-01-22 11:25:30 UTC
-**Stopped at:** Phase 8 verification complete
+**Last session:** 2026-01-22 18:21:02 UTC
+**Stopped at:** Completed 09-02-PLAN.md
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-22 — Phase 8 complete and verified*
+*Last updated: 2026-01-22 — Completed 09-02 (Compose Override for Development)*
