@@ -1,7 +1,7 @@
-import Vue from 'vue';
+import Vue, { createApp } from 'vue';
 import VueMeta from 'vue-meta';
 
-import { createPinia, PiniaVuePlugin } from 'pinia';
+import { createPinia } from 'pinia';
 
 // import custom js
 import './assets/js/functions';
@@ -90,8 +90,6 @@ Vue.use(PerfectScrollbar);
 
 Vue.component('Navbar', require('./components/Navbar.vue').default);
 
-Vue.config.productionTip = false;
-
 Vue.use(VueAxios, axios);
 Vue.use(ToastPlugin);
 
@@ -154,12 +152,10 @@ localize('en', en);
 Vue.component('ValidationObserver', ValidationObserver);
 Vue.component('ValidationProvider', ValidationProvider);
 
-// use pinia
-Vue.use(PiniaVuePlugin);
+// Create Vue 3 app instance
 const pinia = createPinia();
+const app = createApp(App);
 
-new Vue({
-  router,
-  pinia,
-  render: (h) => h(App),
-}).$mount('#app');
+app.use(pinia);
+app.use(router);
+app.mount('#app');

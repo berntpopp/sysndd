@@ -1,4 +1,7 @@
-const BootstrapVueLoader = require('bootstrap-vue-loader');
+// NOTE: BootstrapVueLoader disabled for Vue 3 migration
+// It requires vue-template-compiler which is Vue 2 only
+// Will be removed entirely in Phase 11 (Bootstrap-Vue-Next migration)
+// const BootstrapVueLoader = require('bootstrap-vue-loader');
 
 // based on https://www.npmjs.com/package/vue-cli-plugin-sitemap#installation
 require = require('esm')(module);
@@ -9,7 +12,7 @@ const { routes } = require('./src/router/routes');
 // module in webpack for pinia import based on: https://github.com/vuejs/pinia/issues/675
 module.exports = {
   configureWebpack: {
-    plugins: [new BootstrapVueLoader()],
+    plugins: [],
     module: {
       rules: [
         {
