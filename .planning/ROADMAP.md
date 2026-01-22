@@ -57,7 +57,7 @@ Plans:
 Plans:
 - [x] 07-01-PLAN.md — Add /health endpoint for Docker HEALTHCHECK
 - [x] 07-02-PLAN.md — Multi-stage Dockerfile with ccache, debug stripping, non-root user
-- [ ] 07-03-PLAN.md — Gap closure: Update success criteria for Bioconductor constraints
+- [x] 07-03-PLAN.md — Gap closure: Update success criteria for Bioconductor constraints
 
 **Requirements:**
 - SEC-04: Fix HTTP CRAN repos to HTTPS in API Dockerfile (DONE - already uses HTTPS)
