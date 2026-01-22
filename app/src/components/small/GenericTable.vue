@@ -18,46 +18,54 @@
     no-local-pagination
     @update:sort-by="handleSortByUpdate"
   >
-    <!-- Slot for custom table header -->
-    <slot
-      name="table-header"
-      :fields="fields"
-    />
-    <!-- Slot for custom table header -->
-
     <!-- Slot for custom filter fields -->
-    <template v-slot:top-row>
+    <template #top-row>
       <slot name="filter-controls" />
     </template>
-    <!-- Slot for custom filter fields -->
 
-    <!-- Slot for custom footer -->
-    <slot name="table-footer" />
-    <!-- Slot for custom footer -->
-
-    <!-- Dynamic Slot for custom column rendering -->
-    <template
-      v-for="field in fields"
-      v-slot:[`cell(${field.key})`]="data"
-    >
-      <slot
-        :name="'cell-' + field.key"
-        :row="data.item"
-        :index="data.index"
-        :field="field"
-      >
-        <!-- Fallback default content if no slot is provided -->
-        <div
-          :key="field.key"
-          :class="field.customStyle"
-        >
-          {{ data.item[field.key] }}
-        </div>
+    <!-- Entity ID column -->
+    <template #cell(entity_id)="data">
+      <slot name="cell-entity_id" :row="data.item" :index="data.index">
+        {{ data.item.entity_id }}
       </slot>
     </template>
-    <!-- Dynamic Slot for custom column rendering -->
 
-    <!-- Custom slot for the 'details' button -->
+    <!-- Symbol column -->
+    <template #cell(symbol)="data">
+      <slot name="cell-symbol" :row="data.item" :index="data.index">
+        {{ data.item.symbol }}
+      </slot>
+    </template>
+
+    <!-- Disease ontology name column -->
+    <template #cell(disease_ontology_name)="data">
+      <slot name="cell-disease_ontology_name" :row="data.item" :index="data.index">
+        {{ data.item.disease_ontology_name }}
+      </slot>
+    </template>
+
+    <!-- HPO mode of inheritance column -->
+    <template #cell(hpo_mode_of_inheritance_term_name)="data">
+      <slot name="cell-hpo_mode_of_inheritance_term_name" :row="data.item" :index="data.index">
+        {{ data.item.hpo_mode_of_inheritance_term_name }}
+      </slot>
+    </template>
+
+    <!-- Category column -->
+    <template #cell(category)="data">
+      <slot name="cell-category" :row="data.item" :index="data.index">
+        {{ data.item.category }}
+      </slot>
+    </template>
+
+    <!-- NDD phenotype column -->
+    <template #cell(ndd_phenotype_word)="data">
+      <slot name="cell-ndd_phenotype_word" :row="data.item" :index="data.index">
+        {{ data.item.ndd_phenotype_word }}
+      </slot>
+    </template>
+
+    <!-- Details column -->
     <template #cell(details)="row">
       <BButton
         class="btn-xs"
@@ -68,6 +76,7 @@
       </BButton>
     </template>
 
+    <!-- Row details -->
     <template #row-details="row">
       <BCard>
         <BTable
@@ -78,7 +87,6 @@
         />
       </BCard>
     </template>
-    <!-- Slot for row details -->
   </BTable>
 </template>
 
@@ -95,15 +103,15 @@ export default {
   props: {
     items: {
       type: Array,
-      default: null,
+      default: () => [],
     },
     fields: {
       type: Array,
-      default: null,
+      default: () => [],
     },
     fieldDetails: {
       type: Array,
-      default: null,
+      default: () => [],
     },
     currentPage: {
       type: Number,
@@ -113,20 +121,10 @@ export default {
       type: Boolean,
       default: false,
     },
-    /**
-     * Bootstrap-Vue-Next uses array-based sortBy:
-     * [{ key: 'column_name', order: 'asc' | 'desc' }]
-     *
-     * For backward compatibility, also accepts legacy string sortBy prop.
-     */
     sortBy: {
       type: Array,
       default: () => [],
     },
-    /**
-     * Legacy prop for backward compatibility with existing components.
-     * If provided, will be converted to array format internally.
-     */
     sortDesc: {
       type: Boolean,
       default: false,
@@ -134,24 +132,13 @@ export default {
   },
   emits: ['update-sort', 'update:sort-by'],
   computed: {
-    /**
-     * Local sortBy that syncs with the parent's sortBy prop.
-     */
     localSortBy() {
       return this.sortBy;
     },
   },
   methods: {
-    /**
-     * Handle sort-by updates from BTable.
-     * Emits both Bootstrap-Vue-Next and legacy formats for backward compatibility.
-     * @param {Array} newSortBy - New sort configuration
-     */
     handleSortByUpdate(newSortBy) {
-      // Emit in Bootstrap-Vue-Next format
       this.$emit('update:sort-by', newSortBy);
-
-      // Also emit in legacy format for backward compatibility with handleSortUpdate
       if (newSortBy && newSortBy.length > 0) {
         const sortByStr = newSortBy[0].key;
         const sortDescBool = newSortBy[0].order === 'desc';
