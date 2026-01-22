@@ -102,6 +102,10 @@ Vue.component('ValidationProvider', ValidationProvider);
 const pinia = createPinia();
 const app = createApp(App);
 
+// Register axios on Vue 3 app instance (VueAxios via Vue.use doesn't fully transfer)
+app.config.globalProperties.axios = axios;
+app.config.globalProperties.$http = axios;
+
 app.use(pinia);
 app.use(router);
 app.mount('#app');
