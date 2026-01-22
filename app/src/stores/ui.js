@@ -4,6 +4,7 @@
 
 import { defineStore } from 'pinia';
 
+// eslint-disable-next-line import/prefer-default-export
 export const useUiStore = defineStore('ui', {
   state: () => ({
     // Counter pattern: increment triggers watchers
@@ -18,6 +19,7 @@ export const useUiStore = defineStore('ui', {
      * Replaces: EventBus.$emit('update-scrollbar')
      */
     requestScrollbarUpdate() {
+      // eslint-disable-next-line no-plusplus
       this.scrollbarUpdateTrigger++;
     },
   },
