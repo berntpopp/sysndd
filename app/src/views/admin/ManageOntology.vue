@@ -286,7 +286,8 @@ export default {
         this.makeToast(e.response.data.error || e.message, 'Error', 'danger');
       }
       // Close the modal after the update
-      this.$bvModal.hide(this.updateOntologyModal.id);
+      const { hideModal } = useModalControls();
+      hideModal(this.updateOntologyModal.id);
       // Reset the ontologyToUpdate object
       this.ontologyToUpdate = {};
     },

@@ -79,8 +79,11 @@
 </template>
 
 <script>
+import toastMixin from '@/assets/js/mixins/toastMixin';
+
 export default {
   name: 'ManageAnnotations',
+  mixins: [toastMixin],
   data() {
     return {
       loading: false, // Indicates the loading state of the API call
@@ -96,17 +99,9 @@ export default {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        this.$bvToast.toast('Ontology annotations updated successfully', {
-          title: 'Success',
-          variant: 'success',
-          solid: true,
-        });
+        this.makeToast('Ontology annotations updated successfully', 'Success', 'success');
       } catch (error) {
-        this.$bvToast.toast('Failed to update ontology annotations', {
-          title: 'Error',
-          variant: 'danger',
-          solid: true,
-        });
+        this.makeToast('Failed to update ontology annotations', 'Error', 'danger');
       } finally {
         this.loading = false; // Reset loading to false after the API call
       }
@@ -119,17 +114,9 @@ export default {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        this.$bvToast.toast('HGNC data updated successfully', {
-          title: 'Success',
-          variant: 'success',
-          solid: true,
-        });
+        this.makeToast('HGNC data updated successfully', 'Success', 'success');
       } catch (error) {
-        this.$bvToast.toast('Failed to update HGNC data', {
-          title: 'Error',
-          variant: 'danger',
-          solid: true,
-        });
+        this.makeToast('Failed to update HGNC data', 'Error', 'danger');
       } finally {
         this.loadingHgnc = false;
       }

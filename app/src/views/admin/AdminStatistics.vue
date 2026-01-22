@@ -141,7 +141,11 @@
 </template>
 
 <script>
+import toastMixin from '@/assets/js/mixins/toastMixin';
+
 export default {
+  name: 'AdminStatistics',
+  mixins: [toastMixin],
   data() {
     return {
       startDate: '',
@@ -183,11 +187,7 @@ export default {
         });
         this.updatedStatusesStatistics = updatedStatusesResponse.data;
       } catch (error) {
-        this.$bvToast.toast('Failed to fetch statistics', {
-          title: 'Error',
-          variant: 'danger',
-          solid: true,
-        });
+        this.makeToast('Failed to fetch statistics', 'Error', 'danger');
       }
     },
   },
