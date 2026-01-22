@@ -685,7 +685,8 @@ export const routes = [
     meta: { sitemap: { ignoreRoute: true } },
   },
   {
-    path: '*',
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
     component: () => import(/* webpackChunkName: "Pages" */ '@/views/PageNotFound.vue'),
   },
   {
