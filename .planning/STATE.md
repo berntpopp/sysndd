@@ -84,6 +84,9 @@ Phase 9:     [████░░░░░░░░] 2/8 plans
 | Port 8080 for frontend | Non-privileged port for non-root user; ports <1024 require root | 08-01 |
 | wget for health checks | Included in Alpine busybox; no curl installation needed | 08-01 |
 | Compose Watch over bind mounts | Modern, cross-platform, no polling config | 9 |
+| 60s HEALTHCHECK start-period for dev | Longer start for webpack-dev-server vs nginx | 09-01 |
+| Source code via volume mount not COPY | Enables hot-reload; Dockerfile.dev only installs deps | 09-01 |
+| Placeholder values 'your_xxx_here' pattern | Clear indication of required user input in .env.example | 09-01 |
 | MySQL port 127.0.0.1:7654 | Localhost-only binding for security; accessible to DBeaver/Workbench | 09-02 |
 | Anonymous volume for node_modules | Cross-platform native binary isolation; prevents host/container conflicts | 09-02 |
 | App watch in override, API watch in main | API uses same Dockerfile; app uses dev-only Dockerfile.dev | 09-02 |
@@ -108,9 +111,9 @@ v1 artifacts: `.planning/milestones/`
 
 ## Session Continuity
 
-**Last session:** 2026-01-22 18:21:02 UTC
-**Stopped at:** Completed 09-02-PLAN.md
+**Last session:** 2026-01-22 18:21:37 UTC
+**Stopped at:** Completed 09-01-SUMMARY.md
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-22 — Completed 09-02 (Compose Override for Development)*
+*Last updated: 2026-01-22 — Added 09-01-SUMMARY.md*
