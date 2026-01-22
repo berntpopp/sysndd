@@ -78,7 +78,7 @@
                 <b-button
                   v-b-tooltip.hover.top
                   size="sm"
-                  class="mr-1 btn-xs"
+                  class="me-1 btn-xs"
                   title="Manage user approval"
                   :variant="user_approval_style[row.item.approved]"
                   @click="infoApproveUser(row.item, row.index, $event.target)"

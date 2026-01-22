@@ -243,7 +243,7 @@
                     v-b-tooltip.hover.right
                     variant="light"
                     :title="data.item.status_date"
-                    class="ml-1"
+                    class="ms-1"
                   >
                     {{ data.item.status_date.substring(0,10) }}
                   </b-badge>
@@ -261,7 +261,7 @@
                     v-b-tooltip.hover.right
                     :variant="user_style[data.item.status_user_role]"
                     :title="data.item.status_user_role"
-                    class="ml-1"
+                    class="ms-1"
                   >
                     {{ data.item.status_user_name }}
                   </b-badge>
@@ -271,7 +271,7 @@
               <template #cell(actions)="row">
                 <b-button
                   size="sm"
-                  class="mr-1 btn-xs"
+                  class="me-1 btn-xs"
                   variant="outline-primary"
                   @click="row.toggleDetails"
                 >
@@ -284,7 +284,7 @@
                 <b-button
                   v-b-tooltip.hover.left
                   size="sm"
-                  class="mr-1 btn-xs"
+                  class="me-1 btn-xs"
                   variant="secondary"
                   title="Edit status"
                   @click="infoStatus(row.item, row.index, $event.target)"
@@ -298,7 +298,7 @@
                 <b-button
                   v-b-tooltip.hover.right
                   size="sm"
-                  class="mr-1 btn-xs"
+                  class="me-1 btn-xs"
                   variant="danger"
                   title="Approve status"
                   @click="infoApproveStatus(row.item, row.index, $event.target)"
@@ -443,13 +443,13 @@
               />
               <b-badge
                 :variant="user_style[status_info.status_user_role]"
-                class="ml-1"
+                class="ms-1"
               >
                 {{ status_info.status_user_name }}
               </b-badge>
               <b-badge
                 :variant="user_style[status_info.status_user_role]"
-                class="ml-1"
+                class="ms-1"
               >
                 {{ status_info.status_user_role }}
               </b-badge>
@@ -458,14 +458,14 @@
             <!-- Emulate built in modal footer ok and cancel button actions -->
             <b-button
               variant="primary"
-              class="float-right mr-2"
+              class="float-end me-2"
               @click="ok()"
             >
               Save status
             </b-button>
             <b-button
               variant="secondary"
-              class="float-right mr-2"
+              class="float-end me-2"
               @click="cancel()"
             >
               Cancel

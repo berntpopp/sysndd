@@ -235,7 +235,7 @@
                     v-b-tooltip.hover.right
                     variant="light"
                     :title="data.item.review_date"
-                    class="ml-1"
+                    class="ms-1"
                   >
                     {{ data.item.review_date.substring(0,10) }}
                   </b-badge>
@@ -253,7 +253,7 @@
                     v-b-tooltip.hover.right
                     :variant="user_style[data.item.review_user_role]"
                     :title="data.item.review_user_role"
-                    class="ml-1"
+                    class="ms-1"
                   >
                     {{ data.item.review_user_name }}
                   </b-badge>
@@ -263,7 +263,7 @@
               <template #cell(actions)="row">
                 <b-button
                   size="sm"
-                  class="mr-1 btn-xs"
+                  class="me-1 btn-xs"
                   variant="outline-primary"
                   @click="row.toggleDetails"
                 >
@@ -276,7 +276,7 @@
                 <b-button
                   v-b-tooltip.hover.left
                   size="sm"
-                  class="mr-1 btn-xs"
+                  class="me-1 btn-xs"
                   variant="secondary"
                   title="Edit review"
                   @click="infoReview(row.item, row.index, $event.target)"
@@ -290,7 +290,7 @@
                 <b-button
                   v-b-tooltip.hover.top
                   size="sm"
-                  class="mr-1 btn-xs"
+                  class="me-1 btn-xs"
                   :variant="stoplights_style[row.item.active_category]"
                   :title="row.item.status_change ? 'edit new status' : 'edit status'"
                   @click="infoStatus(row.item, row.index, $event.target)"
@@ -315,7 +315,7 @@
                 <b-button
                   v-b-tooltip.hover.right
                   size="sm"
-                  class="mr-1 btn-xs"
+                  class="me-1 btn-xs"
                   variant="danger"
                   title="Approve review"
                   @click="infoApproveReview(row.item, row.index, $event.target)"
@@ -331,7 +331,7 @@
                   variant="danger"
                   title="Multiple unapproved reviews for this entity"
                   size="sm"
-                  class="mr-1 btn-xs"
+                  class="me-1 btn-xs"
                 >
                   <b-icon
                     icon="exclamation-triangle-fill"
@@ -495,13 +495,13 @@
               />
               <b-badge
                 :variant="user_style[review_info.review_user_role]"
-                class="ml-1"
+                class="ms-1"
               >
                 {{ review_info.review_user_name }}
               </b-badge>
               <b-badge
                 :variant="user_style[review_info.review_user_role]"
-                class="ml-1"
+                class="ms-1"
               >
                 {{ review_info.review_user_role }}
               </b-badge>
@@ -521,14 +521,14 @@
             <!-- Emulate built in modal footer ok and cancel button actions -->
             <b-button
               variant="primary"
-              class="float-right mr-2"
+              class="float-end me-2"
               @click="ok()"
             >
               Save review
             </b-button>
             <b-button
               variant="secondary"
-              class="float-right mr-2"
+              class="float-end me-2"
               @click="cancel()"
             >
               Cancel
@@ -832,19 +832,19 @@
               />
               <b-badge
                 :variant="user_style[status_info.status_user_role]"
-                class="ml-1"
+                class="ms-1"
               >
                 {{ status_info.status_user_name }}
               </b-badge>
               <b-badge
                 :variant="user_style[status_info.status_user_role]"
-                class="ml-1"
+                class="ms-1"
               >
                 {{ status_info.status_user_role }}
               </b-badge>
               <b-badge
                 variant="dark"
-                class="ml-1"
+                class="ms-1"
               >
                 {{ status_info.status_date }}
               </b-badge>
@@ -853,14 +853,14 @@
             <!-- Emulate built in modal footer ok and cancel button actions -->
             <b-button
               variant="primary"
-              class="float-right mr-2"
+              class="float-end me-2"
               @click="ok()"
             >
               Save status
             </b-button>
             <b-button
               variant="secondary"
-              class="float-right mr-2"
+              class="float-end me-2"
               @click="cancel()"
             >
               Cancel

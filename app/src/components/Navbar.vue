@@ -66,7 +66,7 @@
         <!-- Right aligned nav items -->
         <b-navbar-nav
           v-if="user"
-          class="ml-auto"
+          class="ms-auto"
         >
           <IconPairDropdownMenu
             v-for="(item, index) in dropdownItemsRightDisplay"
@@ -80,7 +80,7 @@
         <!-- Wrap Login button in ul for proper structure -->
         <ul
           v-else
-          class="navbar-nav ml-auto"
+          class="navbar-nav ms-auto"
         >
           <b-nav-item to="/Login">
             Login
@@ -91,7 +91,7 @@
         <!-- Mobile search bar -->
         <b-navbar-nav
           v-if="show_search"
-          class="d-lg-none ml-auto"
+          class="d-lg-none ms-auto"
         >
           <SearchBar
             placeholder-string="..."

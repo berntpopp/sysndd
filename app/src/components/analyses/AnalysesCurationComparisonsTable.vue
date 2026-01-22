@@ -81,7 +81,7 @@
             >
               <b-button
                 v-b-tooltip.hover.bottom
-                class="mr-1"
+                class="me-1"
                 size="sm"
                 title="Download data as Excel file."
                 @click="requestExcel()"

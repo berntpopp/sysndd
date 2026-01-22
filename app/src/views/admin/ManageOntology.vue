@@ -50,7 +50,7 @@
                   <b-button
                     v-b-tooltip.hover.top
                     size="sm"
-                    class="mr-1 btn-xs"
+                    class="me-1 btn-xs"
                     title="Edit ontology"
                     @click="editOntology(row, $event.target)"
                   >

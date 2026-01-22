@@ -75,7 +75,7 @@
                           <p class="float-right">
                             <b-button
                               variant="primary"
-                              class="float-right mr-2"
+                              class="float-end me-2"
                               @click="ok()"
                             >
                               Submit
@@ -84,7 +84,7 @@
                           <p class="float-right">
                             <b-button
                               variant="secondary"
-                              class="float-right mr-2"
+                              class="float-end me-2"
                               @click="cancel()"
                             >
                               Cancel
@@ -96,7 +96,7 @@
                               v-b-tooltip.hover.top
                               title="It is not recommended to skip double review and should be performed only by very experienced curators."
                               variant="outline-warning"
-                              class="float-right mr-2"
+                              class="float-end me-2"
                             >
                               <div class="custom-control custom-switch">
                                 <input

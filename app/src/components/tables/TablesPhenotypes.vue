@@ -49,7 +49,7 @@
                   >
                     <b-button
                       v-b-tooltip.hover.bottom
-                      class="mr-1"
+                      class="me-1"
                       size="sm"
                       title="Download data as Excel file."
                       @click="requestSelectedExcel()"
@@ -71,7 +71,7 @@
 
                     <b-button
                       v-b-tooltip.hover.bottom
-                      class="mr-1"
+                      class="me-1"
                       size="sm"
                       title="Copy link to this page."
                       variant="success"
@@ -86,7 +86,7 @@
                     <b-button
                       v-b-tooltip.hover.bottom
                       size="sm"
-                      class="mr-1"
+                      class="me-1"
                       :title="
                         'The table is ' +
                           ((filter_string === '' || filter_string === null || filter_string === 'null') ? 'not' : '') +
