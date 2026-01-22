@@ -66,46 +66,24 @@ Plans:
 
 **Requirements:** FR-02 (all), NFR-01 (Modularization)
 
-### Plans
+**Plans:** 6 plans in 4 waves
 
-#### 11-01: Install Bootstrap-Vue-Next
-- Install bootstrap@5.3.8, bootstrap-vue-next@0.42+
-- Update main.js imports
-- Configure Bootstrap-Vue-Next plugin
-- Verify basic components render
+Plans:
+- [ ] 11-01-PLAN.md — Install Bootstrap-Vue-Next foundation (Wave 1)
+- [ ] 11-02-PLAN.md — Modal and Toast Migration (Wave 2)
+- [ ] 11-03-PLAN.md — Table Component Migration (Wave 2)
+- [ ] 11-04-PLAN.md — Form Component Migration (Wave 2)
+- [ ] 11-05-PLAN.md — Bootstrap 5 CSS Class Updates (Wave 3)
+- [ ] 11-06-PLAN.md — Third-Party Component Migration (Wave 4)
 
-#### 11-02: Modal and Toast Migration
-- Replace $bvModal with v-model or composable
-- Replace $bvToast with composable pattern
-- Create useModal and useToast composables
-- Update all modal/toast usages
+### Wave Structure
 
-#### 11-03: Table Component Migration
-- Audit all b-table usages
-- Update filter props (filter-included-fields → filterable)
-- Update sort events (@sort-changed → @update:sort-by)
-- Update selection events
-- Test filtering, sorting, pagination
-
-#### 11-04: Form Component Migration
-- Update form input v-model bindings
-- Update form validation for Bootstrap 5
-- Update checkbox/radio syntax
-- Test all forms work
-
-#### 11-05: Bootstrap 5 CSS Class Updates
-- Replace ml-*/mr-* with ms-*/me-*
-- Replace text-left/text-right with text-start/text-end
-- Replace float-left/float-right
-- Update data-* to data-bs-*
-- Update .close to .btn-close
-
-#### 11-06: Third-Party Component Verification
-- Verify @upsetjs/vue Vue 3 compatibility
-- Find vue-treeselect replacement
-- Find vue2-perfect-scrollbar replacement or remove
-- Replace vue-meta with @unhead/vue
-- Migrate vee-validate 3 → 4
+| Wave | Plans | Dependencies |
+|------|-------|--------------|
+| 1 | 11-01 | None (foundation) |
+| 2 | 11-02, 11-03, 11-04 | 11-01 (parallel execution) |
+| 3 | 11-05 | 11-02, 11-03, 11-04 |
+| 4 | 11-06 | 11-05 |
 
 ### Success Criteria
 - All Bootstrap-Vue-Next components render correctly
@@ -113,6 +91,7 @@ Plans:
 - All forms functional
 - All tables functional
 - No Bootstrap-Vue imports remaining
+- All third-party libraries Vue 3 compatible
 
 ---
 
