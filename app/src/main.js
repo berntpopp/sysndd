@@ -8,53 +8,15 @@ import './assets/js/functions';
 // import global components
 import './global-components';
 
-// import b-vue icons
-import {
-  BIconPersonCircle,
-  BIconEmojiSmile,
-  BIconEmojiHeartEyes,
-  BIconEmojiSunglasses,
-  BIconStoplights,
-  BIconFilter,
-  BIconSearch,
-  BIconCheck,
-  BIconX,
-  BIconXCircle,
-  BIconArrowRepeat,
-  BIconEye,
-  BIconEyeSlash,
-  BIconPen,
-  BIconCheck2Circle,
-  BIconHandThumbsUp,
-  BIconHandThumbsDown,
-  BIconBoxArrowUpRight,
-  BIconTable,
-  BIconDownload,
-  BIconClipboardCheck,
-  BIconClipboardPlus,
-  BIconQuestionCircleFill,
-  BIconCheckSquare,
-  BIconQuestionSquare,
-  BIconPlusSquare,
-  BIconFileEarmarkMinus,
-  BIconLink,
-  BIconGear,
-  BIconExclamationTriangle,
-  BIconBookFill,
-  BIconExclamationTriangleFill,
-  BIconChatLeftQuoteFill,
-  BIconListNested,
-  BIconBarChartLine,
-  BIconImage,
-  BIconFileEarmark,
-  ToastPlugin,
-} from 'bootstrap-vue';
+// Bootstrap-Vue (uses @vue/compat for Vue 3 compatibility)
+import { BootstrapVue, BootstrapVueIcons, ToastPlugin } from 'bootstrap-vue';
 
-// based on https://stackoverflow.com/questions/54829710/how-to-override-bootstrap-variables-in-vue-workflow-vanilla-bootstrap
-// import 'bootstrap/dist/css/bootstrap.css'
-
-import './assets/scss/custom.scss';
+// Bootstrap 4 CSS (Bootstrap-Vue requires Bootstrap 4)
+import 'bootstrap/dist/css/bootstrap.css';
 import 'bootstrap-vue/dist/bootstrap-vue.css';
+
+// Custom SCSS overrides (loads after bootstrap)
+import './assets/scss/custom.scss';
 
 // import axios
 import VueAxios from 'vue-axios';
@@ -105,51 +67,16 @@ configureCompat({
   ATTR_FALSE_VALUE: true,
 });
 
+// Install Bootstrap-Vue globally (Vue 2 style, handled by @vue/compat)
+Vue.use(BootstrapVue);
+Vue.use(BootstrapVueIcons);
+Vue.use(ToastPlugin);
+
 Vue.use(PerfectScrollbar);
 
 Vue.component('Navbar', require('./components/Navbar.vue').default);
 
 Vue.use(VueAxios, axios);
-Vue.use(ToastPlugin);
-
-// Install the BootstrapVue icon components plugin
-Vue.component('BIconPersonCircle', BIconPersonCircle);
-Vue.component('BIconEmojiSmile', BIconEmojiSmile);
-Vue.component('BIconEmojiHeartEyes', BIconEmojiHeartEyes);
-Vue.component('BIconEmojiSunglasses', BIconEmojiSunglasses);
-Vue.component('BIconStoplights', BIconStoplights);
-Vue.component('BIconFilter', BIconFilter);
-Vue.component('BIconSearch', BIconSearch);
-Vue.component('BIconCheck', BIconCheck);
-Vue.component('BIconX', BIconX);
-Vue.component('BIconXCircle', BIconXCircle);
-Vue.component('BIconArrowRepeat', BIconArrowRepeat);
-Vue.component('BIconEye', BIconEye);
-Vue.component('BIconEyeSlash', BIconEyeSlash);
-Vue.component('BIconPen', BIconPen);
-Vue.component('BIconCheck2Circle', BIconCheck2Circle);
-Vue.component('BIconHandThumbsUp', BIconHandThumbsUp);
-Vue.component('BIconHandThumbsDown', BIconHandThumbsDown);
-Vue.component('BIconBoxArrowUpRight', BIconBoxArrowUpRight);
-Vue.component('BIconTable', BIconTable);
-Vue.component('BIconDownload', BIconDownload);
-Vue.component('BIconClipboardCheck', BIconClipboardCheck);
-Vue.component('BIconClipboardPlus', BIconClipboardPlus);
-Vue.component('BIconQuestionCircleFill', BIconQuestionCircleFill);
-Vue.component('BIconCheckSquare', BIconCheckSquare);
-Vue.component('BIconQuestionSquare', BIconQuestionSquare);
-Vue.component('BIconPlusSquare', BIconPlusSquare);
-Vue.component('BIconFileEarmarkMinus', BIconFileEarmarkMinus);
-Vue.component('BIconLink', BIconLink);
-Vue.component('BIconGear', BIconGear);
-Vue.component('BIconExclamationTriangle', BIconExclamationTriangle);
-Vue.component('BIconBookFill', BIconBookFill);
-Vue.component('BIconExclamationTriangleFill', BIconExclamationTriangleFill);
-Vue.component('BIconChatLeftQuoteFill', BIconChatLeftQuoteFill);
-Vue.component('BIconListNested', BIconListNested);
-Vue.component('BIconBarChartLine', BIconBarChartLine);
-Vue.component('BIconImage', BIconImage);
-Vue.component('BIconFileEarmark', BIconFileEarmark);
 
 // register vue-meta globally
 Vue.use(VueMeta, {
@@ -160,7 +87,7 @@ Vue.use(VueMeta, {
   refreshOnceOnNavigation: true,
 });
 
-// Install VeeValidate rules and localization (based on https://codesandbox.io/s/boostrapvue-veevalidate-v3-example-xm3et?from-embed=&file=/index.js)
+// Install VeeValidate rules and localization
 Object.keys(rules).forEach((rule) => {
   extend(rule, rules[rule]);
 });
