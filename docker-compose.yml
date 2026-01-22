@@ -147,11 +147,11 @@ services:
     networks:
       - proxy
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:80/"]
+      test: ["CMD", "wget", "--spider", "--tries=1", "--no-verbose", "http://localhost:8080/"]
       interval: 30s
-      timeout: 10s
+      timeout: 5s
       retries: 3
-      start_period: 60s
+      start_period: 10s
     deploy:
       resources:
         limits:
@@ -160,7 +160,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.app.rule=PathPrefix(`/`)"
       - "traefik.http.routers.app.entrypoints=web"
-      - "traefik.http.services.app.loadbalancer.server.port=80"
+      - "traefik.http.services.app.loadbalancer.server.port=8080"
       - "traefik.http.routers.app.priority=1"
 
 networks:
