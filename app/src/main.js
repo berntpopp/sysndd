@@ -1,6 +1,5 @@
-import Vue, { createApp } from 'vue';
+import Vue, { createApp, configureCompat } from 'vue';
 import VueMeta from 'vue-meta';
-
 import { createPinia } from 'pinia';
 
 // import custom js
@@ -85,6 +84,26 @@ import './registerServiceWorker';
 
 // import custom css
 import './assets/css/custom.css';
+
+// Configure @vue/compat runtime behavior
+// MODE: 2 enables full Vue 2 compatibility
+// Enable specific compat features needed by vue-meta and bootstrap-vue
+configureCompat({
+  MODE: 2,
+  INSTANCE_CHILDREN: true,
+  INSTANCE_LISTENERS: true,
+  INSTANCE_EVENT_EMITTER: true,
+  INSTANCE_EVENT_HOOKS: true,
+  OPTIONS_BEFORE_DESTROY: true,
+  OPTIONS_DESTROYED: true,
+  COMPONENT_ASYNC: true,
+  GLOBAL_PROTOTYPE: true,
+  GLOBAL_EXTEND: true,
+  GLOBAL_MOUNT: true,
+  RENDER_FUNCTION: true,
+  WATCH_ARRAY: true,
+  ATTR_FALSE_VALUE: true,
+});
 
 Vue.use(PerfectScrollbar);
 
