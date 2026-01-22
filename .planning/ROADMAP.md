@@ -83,21 +83,26 @@ Plans:
 
 ### Phase 8: Frontend Dockerfile Modernization
 
-**Goal:** Modernize frontend build with Node.js 24 LTS, alpine base, and security hardening.
+**Goal:** Modernize frontend build with Node.js 20 LTS (Vue 2 compatible), Alpine base, and security hardening.
 
 **Dependencies:** Phase 6 (needs Traefik labels, networks)
 
+**Plans:** 1 plan
+
+Plans:
+- [ ] 08-01-PLAN.md — Multi-stage Dockerfile with Node 20 Alpine, nginx-unprivileged, HEALTHCHECK
+
 **Requirements:**
 - SEC-06: Add non-root user to App container
-- FRONT-01: Upgrade Node.js from 16.16.0 to 24 LTS
+- FRONT-01: Upgrade Node.js from 16.16.0 to 20 LTS (NOT 24 - Vue 2 compatibility)
 - FRONT-02: Convert to alpine-based multi-stage build
 - FRONT-03: Add HEALTHCHECK instruction to App Dockerfile
 
 **Success Criteria:**
-1. Frontend build uses Node.js 24 (verified with `node --version` in container)
-2. Final production image based on nginx:alpine (under 50MB for nginx layer)
-3. App container runs as non-root user (uid 1001)
-4. Health check at http://localhost/ responds within 5 seconds of container start
+1. Frontend build uses Node.js 20 LTS (verified with `node --version` in builder container)
+2. Final production image based on nginxinc/nginx-unprivileged:alpine (under 50MB for nginx layer)
+3. App container runs as non-root user (UID 101 using nginx user)
+4. Health check at http://localhost:8080/ responds within 5 seconds of container start
 
 ---
 
@@ -132,7 +137,7 @@ Plans:
 |-------|------|--------------|--------|
 | 6 | Security and Compose Foundation | 13 | Planning Complete |
 | 7 | API Dockerfile Optimization | 12 | Planning Complete |
-| 8 | Frontend Dockerfile Modernization | 4 | Not Started |
+| 8 | Frontend Dockerfile Modernization | 4 | Planning Complete |
 | 9 | Developer Experience | 8 | Not Started |
 
 **Total:** 37 requirements across 4 phases
@@ -160,11 +165,11 @@ Phase 9 depends on both Phase 7 and Phase 8 because:
 
 Detailed implementation guidance available in `.plan/DOCKER-REVIEW-REPORT.md`:
 - Optimized API Dockerfile template (pak + P3M + ccache)
-- Optimized Frontend Dockerfile (Node 24 + alpine)
+- Optimized Frontend Dockerfile (Node 20 + alpine for Vue 2 compatibility)
 - Production docker-compose.yml with Traefik
 - Development docker-compose.override.yml
 - Docker Compose Watch configuration
 
 ---
 *Roadmap created: 2026-01-21*
-*Last updated: 2026-01-22 — Phase 7 planning complete*
+*Last updated: 2026-01-22 — Phase 8 planning complete*
