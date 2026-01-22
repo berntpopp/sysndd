@@ -1,36 +1,42 @@
 <template>
-  <div id="app">
-    <div
-      id="navbar"
-    >
-      <Navbar />
-    </div>
-    <perfect-scrollbar ref="scroll">
+  <BApp>
+    <div id="app">
       <div
-        id="content"
-        class="content-style"
+        id="navbar"
       >
-        <router-view :key="$route.fullPath" />
+        <Navbar />
       </div>
-    </perfect-scrollbar>
-    <div
-      id="footer"
-    >
-      <Footer />
-    </div>
+      <perfect-scrollbar ref="scroll">
+        <div
+          id="content"
+          class="content-style"
+        >
+          <router-view :key="$route.fullPath" />
+        </div>
+      </perfect-scrollbar>
+      <div
+        id="footer"
+      >
+        <Footer />
+      </div>
 
-    <!--place the helper badge -->
-    <HelperBadge />
-    <!--place the helper badge -->
-  </div>
+      <!--place the helper badge -->
+      <HelperBadge />
+      <!--place the helper badge -->
+    </div>
+  </BApp>
 </template>
 
 <script>
+import { BApp } from 'bootstrap-vue-next';
 import { useUiStore } from '@/stores/ui';
 import { mapState } from 'pinia';
 
 export default {
   name: 'SysNDD',
+  components: {
+    BApp,
+  },
   metaInfo: {
     // if no subcomponents specify a metaInfo.title, this title will be used
     title: 'SysNDD',
