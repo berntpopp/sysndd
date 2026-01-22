@@ -36,7 +36,7 @@ export default {
     }, UPDATE_INTERVAL);
     this.updateDiffs();
   },
-  beforeDestroy() {
+  beforeUnmount() {
     clearInterval(this.interval);
   },
   methods: {
