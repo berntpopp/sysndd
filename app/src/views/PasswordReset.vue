@@ -1,40 +1,40 @@
 <!-- src/views/PasswordReset.vue -->
 <template>
   <div class="container-fluid">
-    <b-spinner
+    <BSpinner
       v-if="loading"
       label="Loading..."
       class="float-center m-5"
     />
 
-    <b-container v-else>
-      <b-row class="justify-content-md-center py-4">
-        <b-col md="6">
-          <b-container v-if="showChangeContainer">
-            <b-card
+    <BContainer v-else>
+      <BRow class="justify-content-md-center py-4">
+        <BCol md="6">
+          <BContainer v-if="showChangeContainer">
+            <BCard
               header="Reset Password"
               header-bg-variant="dark"
               header-text-variant="white"
             >
-              <b-card-text>
+              <BCardText>
                 <ValidationObserver
                   ref="observer"
                   v-slot="{ handleSubmit }"
                 >
-                  <b-form @submit.stop.prevent="handleSubmit(doPasswordChange)">
+                  <BForm @submit.stop.prevent="handleSubmit(doPasswordChange)">
                     <ValidationProvider
                       v-slot="validationContext"
                       name="password"
                       :rules="{ required: true, min: 7, max: 50 }"
                     >
-                      <b-form-group description="Enter your new password">
-                        <b-form-input
+                      <BFormGroup description="Enter your new password">
+                        <BFormInput
                           v-model="newPasswordEntry"
                           placeholder="Enter new password"
                           type="password"
                           :state="getValidationState(validationContext)"
                         />
-                      </b-form-group>
+                      </BFormGroup>
                     </ValidationProvider>
 
                     <ValidationProvider
@@ -42,74 +42,74 @@
                       name="repeatPassword"
                       :rules="{ required: true, min: 7, max: 50 }"
                     >
-                      <b-form-group description="Repeat your new password">
-                        <b-form-input
+                      <BFormGroup description="Repeat your new password">
+                        <BFormInput
                           v-model="newPasswordRepeat"
                           placeholder="Repeat new password"
                           type="password"
                           :state="getValidationState(validationContext)"
                         />
-                      </b-form-group>
+                      </BFormGroup>
                     </ValidationProvider>
 
-                    <b-form-group>
-                      <b-button
-                        class="ml-2"
+                    <BFormGroup>
+                      <BButton
+                        class="ms-2"
                         type="submit"
                         variant="dark"
                       >
                         Submit change
-                      </b-button>
-                    </b-form-group>
-                  </b-form>
+                      </BButton>
+                    </BFormGroup>
+                  </BForm>
                 </ValidationObserver>
-              </b-card-text>
-            </b-card>
-          </b-container>
+              </BCardText>
+            </BCard>
+          </BContainer>
 
-          <b-container v-if="showRequestContainer">
-            <b-card
+          <BContainer v-if="showRequestContainer">
+            <BCard
               header="Reset Password"
               header-bg-variant="dark"
               header-text-variant="white"
             >
-              <b-card-text>
+              <BCardText>
                 <ValidationObserver
                   ref="observer"
                   v-slot="{ handleSubmit }"
                 >
-                  <b-form @submit.stop.prevent="handleSubmit(requestPasswordReset)">
+                  <BForm @submit.stop.prevent="handleSubmit(requestPasswordReset)">
                     <ValidationProvider
                       v-slot="validationContext"
                       name="email"
                       :rules="{ required: true, email: true }"
                     >
-                      <b-form-group description="Enter your mail account">
-                        <b-form-input
+                      <BFormGroup description="Enter your mail account">
+                        <BFormInput
                           v-model="emailEntry"
                           placeholder="mail@your-institution.com"
                           :state="getValidationState(validationContext)"
                         />
-                      </b-form-group>
+                      </BFormGroup>
                     </ValidationProvider>
 
-                    <b-form-group>
-                      <b-button
-                        class="ml-2"
+                    <BFormGroup>
+                      <BButton
+                        class="ms-2"
                         type="submit"
                         variant="dark"
                       >
                         Submit
-                      </b-button>
-                    </b-form-group>
-                  </b-form>
+                      </BButton>
+                    </BFormGroup>
+                  </BForm>
                 </ValidationObserver>
-              </b-card-text>
-            </b-card>
-          </b-container>
-        </b-col>
-      </b-row>
-    </b-container>
+              </BCardText>
+            </BCard>
+          </BContainer>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 

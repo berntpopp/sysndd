@@ -1,43 +1,43 @@
 <template>
   <div class="container-fluid">
-    <b-spinner
+    <BSpinner
       v-if="loading"
       label="Loading..."
       class="float-center m-5"
     />
 
-    <b-container v-else>
-      <b-row class="justify-content-md-center py-4">
-        <b-col md="6">
-          <b-card
+    <BContainer v-else>
+      <BRow class="justify-content-md-center py-4">
+        <BCol md="6">
+          <BCard
             header="Register new SysNDD account"
             header-bg-variant="dark"
             header-text-variant="white"
           >
-            <b-overlay
+            <BOverlay
               :show="show_overlay"
               rounded="sm"
             >
-              <b-card-text>
+              <BCardText>
                 <validation-observer
                   ref="observer"
                   v-slot="{ handleSubmit }"
                 >
-                  <b-form @submit.stop.prevent="handleSubmit(onSubmit)">
+                  <BForm @submit.stop.prevent="handleSubmit(onSubmit)">
                     <validation-provider
                       v-slot="validationContext"
                       name="username"
                       :rules="{ required: true, min: 5, max: 20 }"
                     >
-                      <b-form-group
+                      <BFormGroup
                         description="Enter your preferred user name (min 5 chars)"
                       >
-                        <b-form-input
+                        <BFormInput
                           v-model="registration_form.user_name"
                           placeholder="Username"
                           :state="getValidationState(validationContext)"
                         />
-                      </b-form-group>
+                      </BFormGroup>
                     </validation-provider>
 
                     <validation-provider
@@ -45,15 +45,15 @@
                       name="email"
                       :rules="{ required: true, email: true }"
                     >
-                      <b-form-group
+                      <BFormGroup
                         description="Enter your institutional mail account"
                       >
-                        <b-form-input
+                        <BFormInput
                           v-model="registration_form.email"
                           placeholder="mail@your-institution.com"
                           :state="getValidationState(validationContext)"
                         />
-                      </b-form-group>
+                      </BFormGroup>
                     </validation-provider>
 
                     <validation-provider
@@ -64,13 +64,13 @@
                         regex: /^(([0-9]{4})-){3}[0-9]{3}[0-9X]$/,
                       }"
                     >
-                      <b-form-group description="Enter your ORCID">
-                        <b-form-input
+                      <BFormGroup description="Enter your ORCID">
+                        <BFormInput
                           v-model="registration_form.orcid"
                           placeholder="NNNN-NNNN-NNNN-NNNX"
                           :state="getValidationState(validationContext)"
                         />
-                      </b-form-group>
+                      </BFormGroup>
                     </validation-provider>
 
                     <validation-provider
@@ -78,13 +78,13 @@
                       name="firstname"
                       :rules="{ required: true, min: 2, max: 50 }"
                     >
-                      <b-form-group description="Enter your first name">
-                        <b-form-input
+                      <BFormGroup description="Enter your first name">
+                        <BFormInput
                           v-model="registration_form.first_name"
                           placeholder="First name"
                           :state="getValidationState(validationContext)"
                         />
-                      </b-form-group>
+                      </BFormGroup>
                     </validation-provider>
 
                     <validation-provider
@@ -92,13 +92,13 @@
                       name="familyname"
                       :rules="{ required: true, min: 2, max: 50 }"
                     >
-                      <b-form-group description="Enter your family name">
-                        <b-form-input
+                      <BFormGroup description="Enter your family name">
+                        <BFormInput
                           v-model="registration_form.family_name"
                           placeholder="Family name"
                           :state="getValidationState(validationContext)"
                         />
-                      </b-form-group>
+                      </BFormGroup>
                     </validation-provider>
 
                     <validation-provider
@@ -106,15 +106,15 @@
                       name="sysnddcomment"
                       :rules="{ required: true, min: 10, max: 250 }"
                     >
-                      <b-form-group
+                      <BFormGroup
                         description="Please describe why you want to help with SysNDD"
                       >
-                        <b-form-input
+                        <BFormInput
                           v-model="registration_form.comment"
                           placeholder="Your interest in SysNDD"
                           :state="getValidationState(validationContext)"
                         />
-                      </b-form-group>
+                      </BFormGroup>
                     </validation-provider>
 
                     <validation-provider
@@ -122,43 +122,43 @@
                       name="termsagreed"
                       :rules="{ required: true, is: 'accepted' }"
                     >
-                      <b-form-group>
-                        <b-form-checkbox
+                      <BFormGroup>
+                        <BFormCheckbox
                           v-model="registration_form.terms_agreed"
                           value="accepted"
                           unchecked-value="not_accepted"
                           :state="getValidationState(validationContext)"
                         >
                           I accept the terms and use
-                        </b-form-checkbox>
-                      </b-form-group>
+                        </BFormCheckbox>
+                      </BFormGroup>
                     </validation-provider>
 
-                    <b-form-group>
-                      <b-button
-                        class="ml-2"
+                    <BFormGroup>
+                      <BButton
+                        class="ms-2"
                         variant="outline-dark"
                         @click="resetForm()"
                       >
                         Reset
-                      </b-button>
-                      <b-button
-                        class="ml-2"
+                      </BButton>
+                      <BButton
+                        class="ms-2"
                         :class="{ shake: animated }"
                         type="submit"
                         variant="dark"
                         @click="clickHandler()"
                       >
                         Register
-                      </b-button>
-                    </b-form-group>
-                  </b-form>
+                      </BButton>
+                    </BFormGroup>
+                  </BForm>
                 </validation-observer>
-              </b-card-text>
+              </BCardText>
 
               <template #overlay>
                 <div class="text-center">
-                  <b-icon
+                  <BIcon
                     icon="clipboard-check"
                     font-scale="3"
                     animation="cylon"
@@ -166,11 +166,11 @@
                   <p>Request send. Redirecting now...</p>
                 </div>
               </template>
-            </b-overlay>
-          </b-card>
-        </b-col>
-      </b-row>
-    </b-container>
+            </BOverlay>
+          </BCard>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 

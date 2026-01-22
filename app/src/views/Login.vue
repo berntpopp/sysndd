@@ -2,43 +2,43 @@
 <template>
   <div class="container-fluid">
     <!-- Loading Spinner -->
-    <b-spinner
+    <BSpinner
       v-if="loading"
       label="Loading..."
       class="float-center m-5"
     />
 
     <!-- Login Form -->
-    <b-container v-else>
-      <b-row class="justify-content-md-center py-4">
-        <b-col md="6">
-          <b-card
+    <BContainer v-else>
+      <BRow class="justify-content-md-center py-4">
+        <BCol md="6">
+          <BCard
             header="Sign in"
             header-bg-variant="dark"
             header-text-variant="white"
           >
-            <b-card-text>
+            <BCardText>
               <validation-observer
                 ref="observer"
                 v-slot="{ handleSubmit }"
               >
-                <b-form @submit.stop.prevent="handleSubmit(onSubmit)">
+                <BForm @submit.stop.prevent="handleSubmit(onSubmit)">
                   <!-- Username Field -->
                   <validation-provider
                     v-slot="{ errors, validated, dirty }"
                     name="username"
                     :rules="{ required: true, min: 5, max: 20 }"
                   >
-                    <b-form-group description="Enter your user name">
-                      <b-form-input
+                    <BFormGroup description="Enter your user name">
+                      <BFormInput
                         v-model="user_name"
                         placeholder="User"
                         :state="getValidationState({ errors, validated, dirty })"
                       />
-                      <b-form-invalid-feedback v-if="errors.length">
+                      <BFormInvalidFeedback v-if="errors.length">
                         {{ errors[0] }}
-                      </b-form-invalid-feedback>
-                    </b-form-group>
+                      </BFormInvalidFeedback>
+                    </BFormGroup>
                   </validation-provider>
 
                   <!-- Password Field -->
@@ -47,58 +47,58 @@
                     name="password"
                     :rules="{ required: true, min: 5, max: 50 }"
                   >
-                    <b-form-group description="Enter your user password">
-                      <b-form-input
+                    <BFormGroup description="Enter your user password">
+                      <BFormInput
                         v-model="password"
                         placeholder="Password"
                         type="password"
                         :state="getValidationState({ errors, validated, dirty })"
                       />
-                      <b-form-invalid-feedback v-if="errors.length">
+                      <BFormInvalidFeedback v-if="errors.length">
                         {{ errors[0] }}
-                      </b-form-invalid-feedback>
-                    </b-form-group>
+                      </BFormInvalidFeedback>
+                    </BFormGroup>
                   </validation-provider>
 
                   <!-- Form Buttons -->
-                  <b-form-group>
-                    <b-button
-                      class="ml-2"
+                  <BFormGroup>
+                    <BButton
+                      class="ms-2"
                       variant="outline-dark"
                       @click="resetForm"
                     >
                       Reset
-                    </b-button>
-                    <b-button
-                      class="ml-2"
+                    </BButton>
+                    <BButton
+                      class="ms-2"
                       :class="{ shake: animated }"
                       type="submit"
                       variant="dark"
                     >
                       Login
-                    </b-button>
-                  </b-form-group>
-                </b-form>
+                    </BButton>
+                  </BFormGroup>
+                </BForm>
               </validation-observer>
 
               <!-- Additional Links -->
               <div>
                 Don't have an account yet and want to help?
-                <b-link :href="'/Register'">
+                <BLink :href="'/Register'">
                   Register now.
-                </b-link>
+                </BLink>
               </div>
               <div>
                 Forgot your password?
-                <b-link :href="'/PasswordReset'">
+                <BLink :href="'/PasswordReset'">
                   Reset now.
-                </b-link>
+                </BLink>
               </div>
-            </b-card-text>
-          </b-card>
-        </b-col>
-      </b-row>
-    </b-container>
+            </BCardText>
+          </BCard>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 
