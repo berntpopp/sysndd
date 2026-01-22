@@ -149,7 +149,8 @@ export default {
       if (to !== from) {
         this.isUserLoggedIn();
       }
-      this.$router.onReady(() => {
+      // Vue Router 4: onReady replaced with isReady()
+      this.$router.isReady().then(() => {
         this.show_search = this.$route.name !== 'Home';
       });
     },

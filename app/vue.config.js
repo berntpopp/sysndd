@@ -13,6 +13,11 @@ const { routes } = require('./src/router/routes');
 module.exports = {
   configureWebpack: {
     plugins: [],
+    resolve: {
+      alias: {
+        vue: '@vue/compat',
+      },
+    },
     module: {
       rules: [
         {
