@@ -1028,8 +1028,8 @@ import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
 import Variation from '@/assets/js/classes/submission/submissionVariation';
 import Literature from '@/assets/js/classes/submission/submissionLiterature';
 
-// Import the event bus
-import EventBus from '@/assets/js/eventBus';
+// Import the Pinia store
+import { useUiStore } from '@/stores/ui';
 
 export default {
   name: 'ApproveReview',
@@ -1302,7 +1302,8 @@ export default {
         this.makeToast(e, 'Error', 'danger');
       }
 
-      EventBus.$emit('update-scrollbar'); // Emit event to update scrollbar
+      const uiStore = useUiStore();
+      uiStore.requestScrollbarUpdate();
 
       this.isBusy = false;
       this.loading_review_approve = false;

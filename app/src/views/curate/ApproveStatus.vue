@@ -571,8 +571,8 @@ import Utils from '@/assets/js/utils';
 
 import Status from '@/assets/js/classes/submission/submissionStatus';
 
-// Import the event bus
-import EventBus from '@/assets/js/eventBus';
+// Import the Pinia store
+import { useUiStore } from '@/stores/ui';
 
 export default {
   name: 'ApproveStatus',
@@ -766,7 +766,8 @@ export default {
         this.makeToast(e, 'Error', 'danger');
       }
 
-      EventBus.$emit('update-scrollbar'); // Emit event to update scrollbar
+      const uiStore = useUiStore();
+      uiStore.requestScrollbarUpdate();
 
       this.isBusy = false;
       this.loading_status_approve = false;

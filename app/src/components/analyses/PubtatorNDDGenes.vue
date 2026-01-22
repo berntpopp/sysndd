@@ -179,7 +179,7 @@ import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
 
-import EventBus from '@/assets/js/eventBus';
+import { useUiStore } from '@/stores/ui';
 
 export default {
   name: 'PubtatorNDDGenes',
@@ -374,7 +374,8 @@ export default {
             this.fields = this.mergeFields(metaObj.fspec);
           }
         }
-        EventBus.$emit('update-scrollbar');
+        const uiStore = useUiStore();
+        uiStore.requestScrollbarUpdate();
       } catch (error) {
         this.makeToast(error, 'Error', 'danger');
       } finally {

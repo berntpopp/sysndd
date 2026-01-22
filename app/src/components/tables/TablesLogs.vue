@@ -239,7 +239,7 @@ import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCo
 import GenericTable from '@/components/small/GenericTable.vue';
 
 import Utils from '@/assets/js/utils';
-import EventBus from '@/assets/js/eventBus';
+import { useUiStore } from '@/stores/ui';
 
 export default {
   name: 'TablesLogs',
@@ -395,7 +395,8 @@ export default {
         this.executionTime = response.data.meta[0].executionTime;
         this.fields = response.data.meta[0].fspec;
 
-        EventBus.$emit('update-scrollbar');
+        const uiStore = useUiStore();
+        uiStore.requestScrollbarUpdate();
       } catch (error) {
         this.makeToast(`Error: ${error.message}`, 'Error loading logs', 'danger');
       } finally {

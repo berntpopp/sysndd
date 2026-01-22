@@ -217,7 +217,7 @@ import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCo
 import GenericTable from '@/components/small/GenericTable.vue';
 
 import Utils from '@/assets/js/utils';
-import EventBus from '@/assets/js/eventBus';
+import { useUiStore } from '@/stores/ui';
 
 export default {
   name: 'PublicationsNDDTable',
@@ -402,7 +402,8 @@ export default {
             this.fields = this.mergeFields(metaObj.fspec);
           }
         }
-        EventBus.$emit('update-scrollbar');
+        const uiStore = useUiStore();
+        uiStore.requestScrollbarUpdate();
       } catch (error) {
         this.makeToast(error, 'Error', 'danger');
       } finally {

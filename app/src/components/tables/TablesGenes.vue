@@ -418,8 +418,8 @@ import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCo
 // Import the utilities file
 import Utils from '@/assets/js/utils';
 
-// Import the event bus
-import EventBus from '@/assets/js/eventBus';
+// Import the Pinia store
+import { useUiStore } from '@/stores/ui';
 
 export default {
   name: 'TablesGenes',
@@ -607,7 +607,8 @@ export default {
         this.executionTime = response.data.meta[0].executionTime;
         this.fields = response.data.meta[0].fspec;
 
-        EventBus.$emit('update-scrollbar'); // Emit event to update scrollbar
+        const uiStore = useUiStore();
+        uiStore.requestScrollbarUpdate();
 
         this.isBusy = false;
       } catch (e) {
