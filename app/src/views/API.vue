@@ -1,5 +1,5 @@
 <template>
-  <div class="container-fluid text-left py-2">
+  <div class="container-fluid text-start py-2">
     <div
       v-if="error"
       class="alert alert-warning"

@@ -17,13 +17,13 @@
           <!-- Entity overview card -->
           <b-card
             header-tag="header"
-            class="my-3 text-left"
+            class="my-3 text-start"
             body-class="p-0"
             header-class="p-1"
             border-variant="dark"
           >
             <template #header>
-              <h3 class="mb-1 text-left font-weight-bold">
+              <h3 class="mb-1 text-start font-weight-bold">
                 Entity:
                 <b-badge variant="primary">
                   sysndd:{{ $route.params.entity_id }}
@@ -370,13 +370,13 @@ export default {
           key: 'symbol',
           label: 'Gene Symbol',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'disease_ontology_name',
           label: 'Disease',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           sortByFormatted: true,
           filterByFormatted: true,
         },
@@ -384,7 +384,7 @@ export default {
           key: 'hpo_mode_of_inheritance_term_name',
           label: 'Inheritance',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           sortByFormatted: true,
           filterByFormatted: true,
         },
@@ -392,16 +392,16 @@ export default {
           key: 'ndd_phenotype_word',
           label: 'NDD',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
       ],
       status: [],
       status_fields: [
-        { key: 'category', label: 'Association Category', class: 'text-left' },
+        { key: 'category', label: 'Association Category', class: 'text-start' },
       ],
       review: [],
       review_fields: [
-        { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-left' },
+        { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-start' },
       ],
       publications: [],
       publications_table: [{ publications: '' }],

@@ -22,7 +22,7 @@
             border-variant="dark"
           >
             <template #header>
-              <h6 class="mb-1 text-left font-weight-bold">
+              <h6 class="mb-1 text-start font-weight-bold">
                 Panel compilation and download
                 <b-badge
                   v-b-tooltip.hover.bottom

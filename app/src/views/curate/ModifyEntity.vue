@@ -16,7 +16,7 @@
             border-variant="dark"
           >
             <template #header>
-              <h6 class="mb-1 text-left font-weight-bold">
+              <h6 class="mb-1 text-start font-weight-bold">
                 Modify an existing entity
               </h6>
             </template>
@@ -29,7 +29,7 @@
               border-variant="dark"
             >
               <template #header>
-                <h6 class="mb-1 text-left font-weight-bold">
+                <h6 class="mb-1 text-start font-weight-bold">
                   1. Select an entity to modify
                 </h6>
               </template>
@@ -57,7 +57,7 @@
               border-variant="dark"
             >
               <template #header>
-                <h6 class="mb-1 text-left font-weight-bold">
+                <h6 class="mb-1 text-start font-weight-bold">
                   2. Options to modify the selected entity
                   <b-badge variant="primary">
                     sysndd:{{ modify_entity_input }}

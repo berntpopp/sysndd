@@ -135,31 +135,31 @@ export default {
       users: [],
       fields: [
         {
-          key: 'user_name', label: 'User name', sortable: true, sortDirection: 'asc', class: 'text-left',
+          key: 'user_name', label: 'User name', sortable: true, sortDirection: 'asc', class: 'text-start',
         },
         {
-          key: 'email', label: 'E-mail', sortable: true, sortDirection: 'asc', class: 'text-left',
+          key: 'email', label: 'E-mail', sortable: true, sortDirection: 'asc', class: 'text-start',
         },
         {
-          key: 'orcid', label: 'ORCID', sortable: true, sortDirection: 'asc', class: 'text-left',
+          key: 'orcid', label: 'ORCID', sortable: true, sortDirection: 'asc', class: 'text-start',
         },
         {
-          key: 'abbreviation', label: 'Abbreviation', sortable: true, sortDirection: 'asc', class: 'text-left',
+          key: 'abbreviation', label: 'Abbreviation', sortable: true, sortDirection: 'asc', class: 'text-start',
         },
         {
-          key: 'first_name', label: 'First name', sortable: true, sortDirection: 'asc', class: 'text-left',
+          key: 'first_name', label: 'First name', sortable: true, sortDirection: 'asc', class: 'text-start',
         },
         {
-          key: 'family_name', label: 'Family name', sortable: true, sortDirection: 'asc', class: 'text-left',
+          key: 'family_name', label: 'Family name', sortable: true, sortDirection: 'asc', class: 'text-start',
         },
         {
-          key: 'user_role', label: 'Role', sortable: true, sortDirection: 'asc', class: 'text-left',
+          key: 'user_role', label: 'Role', sortable: true, sortDirection: 'asc', class: 'text-start',
         },
         {
-          key: 'comment', label: 'Comment', sortable: true, sortDirection: 'asc', class: 'text-left',
+          key: 'comment', label: 'Comment', sortable: true, sortDirection: 'asc', class: 'text-start',
         },
         {
-          key: 'approved', label: 'Approved', sortable: true, sortDirection: 'asc', class: 'text-left',
+          key: 'approved', label: 'Approved', sortable: true, sortDirection: 'asc', class: 'text-start',
         },
         { key: 'actions', label: 'Actions', class: 'text-center' },
       ],

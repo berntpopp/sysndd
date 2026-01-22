@@ -24,7 +24,7 @@
             <template #header>
               <b-row>
                 <b-col>
-                  <h4 class="mb-1 text-left font-weight-bold">
+                  <h4 class="mb-1 text-start font-weight-bold">
                     Phenotype search
                     <b-badge
                       v-b-tooltip.hover.bottom
@@ -45,7 +45,7 @@
                 <b-col>
                   <h5
                     v-if="showFilterControls"
-                    class="mb-1 text-right font-weight-bold"
+                    class="mb-1 text-end font-weight-bold"
                   >
                     <b-button
                       v-b-tooltip.hover.bottom
@@ -462,37 +462,37 @@ export default {
           label: 'Entity',
           sortable: true,
           sortDirection: 'desc',
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'symbol',
           label: 'Gene Symbol',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'disease_ontology_name',
           label: 'Disease',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'hpo_mode_of_inheritance_term_name',
           label: 'Inheritance',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'category',
           label: 'Category',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'ndd_phenotype_word',
           label: 'NDD',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'details',
@@ -500,18 +500,18 @@ export default {
         },
       ],
       fields_details: [
-        { key: 'hgnc_id', label: 'HGNC ID', class: 'text-left' },
+        { key: 'hgnc_id', label: 'HGNC ID', class: 'text-start' },
         {
           key: 'disease_ontology_id_version',
           label: 'Ontology ID version',
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'disease_ontology_name',
           label: 'Disease ontology name',
-          class: 'text-left',
+          class: 'text-start',
         },
-        { key: 'entry_date', label: 'Entry date', class: 'text-left' },
+        { key: 'entry_date', label: 'Entry date', class: 'text-start' },
       ],
       totalRows: 0,
       currentPage: 1,

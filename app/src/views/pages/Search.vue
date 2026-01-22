@@ -17,13 +17,13 @@
           <!-- Gene overview card -->
           <b-card
             header-tag="header"
-            class="my-3 text-left"
+            class="my-3 text-start"
             body-class="p-0"
             header-class="p-1"
             border-variant="dark"
           >
             <template #header>
-              <h3 class="mb-1 text-left font-weight-bold">
+              <h3 class="mb-1 text-start font-weight-bold">
                 Top results for your search term:
                 <b-badge variant="dark">
                   {{ $route.params.search_term }}
@@ -103,10 +103,10 @@ export default {
       },
       search: [],
       search_fields: [
-        { key: 'results', label: 'Results', class: 'text-left' },
-        { key: 'search', label: 'Search', class: 'text-left' },
-        { key: 'entity_id', label: 'Entity', class: 'text-left' },
-        { key: 'searchdist', label: 'Searchdist', class: 'text-left' },
+        { key: 'results', label: 'Results', class: 'text-start' },
+        { key: 'search', label: 'Search', class: 'text-start' },
+        { key: 'entity_id', label: 'Entity', class: 'text-start' },
+        { key: 'searchdist', label: 'Searchdist', class: 'text-start' },
       ],
       loading: true,
     };

@@ -26,7 +26,7 @@
             <template #header>
               <b-row>
                 <b-col>
-                  <h6 class="mb-1 text-left font-weight-bold">
+                  <h6 class="mb-1 text-start font-weight-bold">
                     Re-review table
                     <b-badge variant="primary">
                       Entities: {{ totalRows }}
@@ -34,7 +34,7 @@
                   </h6>
                 </b-col>
                 <b-col>
-                  <h6 class="mb-1 text-right font-weight-bold">
+                  <h6 class="mb-1 text-end font-weight-bold">
                     <b-icon
                       :icon="user_icon[user.user_role[0]]"
                       :variant="user_style[user.user_role[0]]"
@@ -438,7 +438,7 @@
 
         <template #modal-footer="{ ok, cancel }">
           <div class="w-100">
-            <p class="float-left">
+            <p class="float-start">
               Review by:
               <b-icon
                 :icon="user_icon[review_info.review_user_role]"
@@ -900,7 +900,7 @@
 
         <template #modal-footer="{ ok, cancel }">
           <div class="w-100">
-            <p class="float-left">
+            <p class="float-start">
               Status by:
               <b-icon
                 :icon="user_icon[status_info.status_user_role]"
@@ -1176,7 +1176,7 @@ export default {
           label: 'Entity',
           sortable: true,
           sortDirection: 'desc',
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'symbol',
@@ -1184,13 +1184,13 @@ export default {
           sortable: true,
           filterable: true,
           sortDirection: 'desc',
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'disease_ontology_name',
           label: 'Disease',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           sortByFormatted: true,
           filterByFormatted: true,
         },
@@ -1198,7 +1198,7 @@ export default {
           key: 'hpo_mode_of_inheritance_term_name',
           label: 'Inheritance',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           sortByFormatted: true,
           filterByFormatted: true,
         },
@@ -1206,26 +1206,26 @@ export default {
           key: 'ndd_phenotype_word',
           label: 'NDD',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'review_date',
           label: 'Review date',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'review_user_name',
           label: 'User',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'actions',
           label: 'Actions',
-          class: 'text-left',
+          class: 'text-start',
         },
       ],
       totalRows: 1,
@@ -1259,7 +1259,7 @@ export default {
       },
       review: [{ synopsis: '' }],
       review_fields: [
-        { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-left' },
+        { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-start' },
       ],
       status_options: [],
       status_info: new Status(),

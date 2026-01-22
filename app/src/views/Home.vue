@@ -33,7 +33,7 @@
             <b-col md="6">
               <b-card
                 header-tag="header"
-                class="my-3 text-left"
+                class="my-3 text-start"
                 body-class="p-0"
                 header-class="p-1"
                 border-variant="dark"
@@ -57,7 +57,7 @@
                 <h5 class="mb-0 font-weight-bold mx-2">
                   <mark>Entities</mark>
                 </h5>
-                <b-card-text class="text-left">
+                <b-card-text class="text-start">
                   <!-- Each row in the table is generated from the data in `entity_statistics.data`. -->
                   <b-table
                     :items="entity_statistics.data"
@@ -162,7 +162,7 @@
                 <h5 class="mb-0 font-weight-bold mx-2">
                   <mark>Genes</mark> (links to Panels)
                 </h5>
-                <b-card-text class="text-left">
+                <b-card-text class="text-start">
                   <!-- Each row in the table is generated from the data in `gene_statistics.data`. -->
                   <b-table
                     :items="gene_statistics.data"
@@ -263,7 +263,7 @@
 
               <b-card
                 header-tag="header"
-                class="my-3 text-left"
+                class="my-3 text-start"
                 body-class="p-0"
                 header-class="p-1"
                 border-variant="dark"
@@ -278,7 +278,7 @@
                   name="fade"
                   mode="out-in"
                 >
-                  <b-card-text class="text-left">
+                  <b-card-text class="text-start">
                     <b-table
                       :items="news"
                       :fields="news_fields"
@@ -409,7 +409,7 @@
             </b-col>
 
             <b-col md="6">
-              <div class="container-fluid text-left py-2 my-3">
+              <div class="container-fluid text-start py-2 my-3">
                 <span
                   class="word"
                 >NDD comprise <mark>developmental delay</mark> (DD),
@@ -569,50 +569,50 @@ export default {
       entity_statistics: INIT_OBJ.ENTITY_STAT_INIT,
       gene_statistics: INIT_OBJ.GENE_STAT_INIT,
       statistics_fields: [
-        { key: 'category', label: 'Category', class: 'text-left' },
-        { key: 'n', label: 'Count', class: 'text-left' },
+        { key: 'category', label: 'Category', class: 'text-start' },
+        { key: 'n', label: 'Count', class: 'text-start' },
         { key: 'actions', label: 'Details' },
       ],
       statistics_details_fields: [
         { key: 'inheritance', label: 'Inheritance' },
-        { key: 'n', label: 'Count', class: 'text-left' },
+        { key: 'n', label: 'Count', class: 'text-start' },
       ],
       news: INIT_OBJ.NEWS_INIT,
       news_fields: [
         {
           key: 'entity_id',
           label: 'Entity',
-          class: 'text-left',
+          class: 'text-start',
           width: '20%',
         },
         {
           key: 'symbol',
           label: 'Symbol',
-          class: 'text-left',
+          class: 'text-start',
           width: '15%',
         },
         {
           key: 'disease_ontology_name',
           label: 'Disease',
-          class: 'text-left',
+          class: 'text-start',
           width: '30%',
         },
         {
           key: 'inheritance_filter',
           label: 'Inh.',
-          class: 'text-left',
+          class: 'text-start',
           width: '10%',
         },
         {
           key: 'category',
           label: 'Category',
-          class: 'text-left',
+          class: 'text-start',
           width: '15%',
         },
         {
           key: 'ndd_phenotype_word',
           label: 'NDD',
-          class: 'text-left',
+          class: 'text-start',
           width: '10%',
         },
       ],

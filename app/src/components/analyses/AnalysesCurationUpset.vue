@@ -10,7 +10,7 @@
     >
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-1 text-left font-weight-bold">
+          <h6 class="mb-1 text-start font-weight-bold">
             <mark
               v-b-tooltip.hover.leftbottom
               title="A visualization for set intersections used as an alternative to Venn diagrams. Rows correspond to a set and columns correspond to possible intersections represented by the connected dots."

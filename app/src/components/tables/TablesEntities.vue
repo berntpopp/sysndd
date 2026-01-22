@@ -34,7 +34,7 @@
                 <b-col>
                   <h5
                     v-if="showFilterControls"
-                    class="mb-1 text-right font-weight-bold"
+                    class="mb-1 text-end font-weight-bold"
                   >
                     <TableDownloadLinkCopyButtons
                       :downloading="downloading"
@@ -340,37 +340,37 @@ export default {
           label: 'Entity',
           sortable: true,
           sortDirection: 'asc',
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'symbol',
           label: 'Symbol',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'disease_ontology_name',
           label: 'Disease',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'hpo_mode_of_inheritance_term_name',
           label: 'Inheritance',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'category',
           label: 'Category',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'ndd_phenotype_word',
           label: 'NDD',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'details',
@@ -378,19 +378,19 @@ export default {
         },
       ],
       fields_details: [
-        { key: 'hgnc_id', label: 'HGNC ID', class: 'text-left' },
+        { key: 'hgnc_id', label: 'HGNC ID', class: 'text-start' },
         {
           key: 'disease_ontology_id_version',
           label: 'Ontology ID version',
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'disease_ontology_name',
           label: 'Disease ontology name',
-          class: 'text-left',
+          class: 'text-start',
         },
-        { key: 'entry_date', label: 'Entry date', class: 'text-left' },
-        { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-left' },
+        { key: 'entry_date', label: 'Entry date', class: 'text-start' },
+        { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-start' },
       ],
       infoModal: {
         id: 'info-modal',

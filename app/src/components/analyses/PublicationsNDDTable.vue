@@ -34,7 +34,7 @@
                 <b-col>
                   <h5
                     v-if="showFilterControls"
-                    class="mb-1 text-right font-weight-bold"
+                    class="mb-1 text-end font-weight-bold"
                   >
                     <TableDownloadLinkCopyButtons
                       :downloading="downloading"
@@ -263,28 +263,28 @@ export default {
           label: 'ID',
           sortable: true,
           sortDirection: 'asc',
-          class: 'text-left',
+          class: 'text-start',
           filterable: true,
         },
         {
           key: 'Title',
           label: 'Title',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           filterable: true,
         },
         {
           key: 'Journal',
           label: 'Journal',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           filterable: true,
         },
         {
           key: 'Publication_date',
           label: 'Date',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           filterable: true,
         },
       ],
@@ -557,7 +557,7 @@ export default {
           filterable: existing ? existing.filterable : false,
           selectable: existing ? existing.selectable : false,
           // Keep local classes if desired
-          class: existing ? existing.class : 'text-left',
+          class: existing ? existing.class : 'text-start',
         };
       });
     },

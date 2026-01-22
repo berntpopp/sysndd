@@ -31,7 +31,7 @@
                   v-b-toggle.accordion-1
                   block
                   variant="info"
-                  class="text-left"
+                  class="text-start"
                 >
                   About SysNDD and it's creators
                 </b-button>
@@ -45,7 +45,7 @@
                 <b-card-body>
                   <b-container
                     fluid="sm"
-                    class="text-left py-2"
+                    class="text-start py-2"
                   >
                     The SysNDD database is based on some content of its
                     predecessor database, SysID (
@@ -126,7 +126,7 @@
                   v-b-toggle.accordion-2
                   block
                   variant="info"
-                  class="text-left"
+                  class="text-start"
                 >
                   Citation Policy
                 </b-button>
@@ -139,7 +139,7 @@
                 <b-card-body>
                   <b-container
                     fluid="sm"
-                    class="text-left py-2"
+                    class="text-start py-2"
                   >
                     <b-row>
                       <b-col md="12">
@@ -186,7 +186,7 @@
                   v-b-toggle.accordion-3
                   block
                   variant="info"
-                  class="text-left"
+                  class="text-start"
                 >
                   Support and Funding
                 </b-button>
@@ -198,7 +198,7 @@
               >
                 <b-container
                   fluid="sm"
-                  class="text-left py-2"
+                  class="text-start py-2"
                 >
                   <b-row>
                     <b-col md="12">
@@ -243,7 +243,7 @@
 
                 <b-container
                   fluid="sm"
-                  class="text-left py-2"
+                  class="text-start py-2"
                 >
                   <b-row>
                     <b-col md="12">
@@ -334,7 +334,7 @@
                   v-b-toggle.accordion-4
                   block
                   variant="info"
-                  class="text-left"
+                  class="text-start"
                 >
                   News and Updates
                 </b-button>
@@ -347,19 +347,19 @@
                 <b-card-body>
                   <b-container
                     fluid="sm"
-                    class="text-left py-2"
+                    class="text-start py-2"
                   >
-                    <b-card-text class="text-left">
+                    <b-card-text class="text-start">
                       <span class="font-weight-bold">2022-05-07:</span> First
                       SysNDD native data update. depricating SysID. SysNDD now
                       in usable beta mode.
                     </b-card-text>
-                    <b-card-text class="text-left">
+                    <b-card-text class="text-start">
                       <span class="font-weight-bold">2021-11-09:</span> Several
                       updates to the APP, API and DB preparing it for re-review
                       mode.
                     </b-card-text>
-                    <b-card-text class="text-left">
+                    <b-card-text class="text-start">
                       <span class="font-weight-bold">2021-08-16:</span> SysNDD
                       is currently in alpha development status and changes. We
                       currently recommend using the stable
@@ -389,7 +389,7 @@
                   v-b-toggle.accordion-5
                   block
                   variant="info"
-                  class="text-left"
+                  class="text-start"
                 >
                   Credits and acknowledgement
                 </b-button>
@@ -402,7 +402,7 @@
                 <b-card-body>
                   <b-container
                     fluid="sm"
-                    class="text-left py-2"
+                    class="text-start py-2"
                   >
                     We acknowledge Martijn Huynen and members of the Huynen and
                     Schenck groups at the Radboud University Medical Center
@@ -433,7 +433,7 @@
                   v-b-toggle.accordion-7
                   block
                   variant="info"
-                  class="text-left"
+                  class="text-start"
                 >
                   Disclaimer
                 </b-button>
@@ -446,7 +446,7 @@
                 <b-card-body>
                   <b-container
                     fluid="sm"
-                    class="text-left py-2"
+                    class="text-start py-2"
                   >
                     The Department of Human Genetics (University Hospital,
                     University Bern, Bern, Switzerland) makes no representation
@@ -458,7 +458,7 @@
                   </b-container>
                   <b-container
                     fluid="sm"
-                    class="text-left py-2"
+                    class="text-start py-2"
                   >
                     <span
                       class="font-weight-bold"
@@ -467,7 +467,7 @@
                   </b-container>
                   <b-container
                     fluid="sm"
-                    class="text-left py-2"
+                    class="text-start py-2"
                   >
                     <span
                       class="font-weight-bold"
@@ -476,7 +476,7 @@
                   </b-container>
                   <b-container
                     fluid="sm"
-                    class="text-left py-2"
+                    class="text-start py-2"
                   >
                     <span class="font-weight-bold">Address:</span>
                     Universitätsklinik für Humangenetik, Inselspital,
@@ -500,7 +500,7 @@
                   v-b-toggle.accordion-8
                   block
                   variant="info"
-                  class="text-left"
+                  class="text-start"
                 >
                   Contact
                 </b-button>
@@ -513,7 +513,7 @@
                 <b-card-body>
                   <b-container
                     fluid="sm"
-                    class="text-left py-2"
+                    class="text-start py-2"
                   >
                     If you have technical problems using SysNDD or requests
                     regarding the data or functionality, please contact us at

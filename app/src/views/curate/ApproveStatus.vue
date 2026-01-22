@@ -14,7 +14,7 @@
             border-variant="dark"
           >
             <template #header>
-              <h6 class="mb-1 text-left font-weight-bold">
+              <h6 class="mb-1 text-start font-weight-bold">
                 Approve new status
               </h6>
             </template>
@@ -434,7 +434,7 @@
 
         <template #modal-footer="{ ok, cancel }">
           <div class="w-100">
-            <p class="float-left">
+            <p class="float-start">
               Status by:
               <b-icon
                 :icon="user_icon[status_info.status_user_role]"
@@ -594,7 +594,7 @@ export default {
           sortable: true,
           filterable: true,
           sortDirection: 'desc',
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'symbol',
@@ -602,13 +602,13 @@ export default {
           sortable: true,
           filterable: true,
           sortDirection: 'desc',
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'disease_ontology_name',
           label: 'Disease',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           sortByFormatted: true,
           filterByFormatted: true,
         },
@@ -616,7 +616,7 @@ export default {
           key: 'hpo_mode_of_inheritance_term_name',
           label: 'Inheritance',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           sortByFormatted: true,
           filterByFormatted: true,
         },
@@ -625,40 +625,40 @@ export default {
           label: 'Category',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'comment',
           label: 'Comment',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'problematic',
           label: 'Problematic',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'status_date',
           label: 'Status date',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'status_user_name',
           label: 'User',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'actions',
           label: 'Actions',
-          class: 'text-left',
+          class: 'text-start',
         },
       ],
       fields_details_StatusTable: [
@@ -668,35 +668,35 @@ export default {
           sortable: true,
           filterable: true,
           sortDirection: 'desc',
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'status_date',
           label: 'Status date',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'status_user_name',
           label: 'Status user',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'is_active',
           label: 'Active',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'comment',
           label: 'Comment',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
       ],
       statusModal: {

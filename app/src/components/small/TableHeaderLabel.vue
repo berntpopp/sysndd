@@ -1,7 +1,7 @@
 <!-- TableHeaderLabel.vue -->
 <template>
   <div>
-    <h4 class="mb-1 text-left font-weight-bold">
+    <h4 class="mb-1 text-start font-weight-bold">
       {{ label }}
       <b-badge
         v-b-tooltip.hover.bottom

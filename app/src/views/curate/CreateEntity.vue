@@ -19,7 +19,7 @@
               border-variant="dark"
             >
               <template #header>
-                <h6 class="mb-1 text-left font-weight-bold">
+                <h6 class="mb-1 text-start font-weight-bold">
                   Create new entity
                 </h6>
               </template>
@@ -72,7 +72,7 @@
                       <template #modal-footer="{ ok, cancel }">
                         <div class="w-100">
                           <!-- Emulate built in modal footer ok and cancel button actions -->
-                          <p class="float-right">
+                          <p class="float-end">
                             <b-button
                               variant="primary"
                               class="float-end me-2"
@@ -81,7 +81,7 @@
                               Submit
                             </b-button>
                           </p>
-                          <p class="float-right">
+                          <p class="float-end">
                             <b-button
                               variant="secondary"
                               class="float-end me-2"
@@ -91,7 +91,7 @@
                             </b-button>
                           </p>
                           <!-- Emulate built in modal footer ok and cancel button actions -->
-                          <p class="float-right">
+                          <p class="float-end">
                             <b-button
                               v-b-tooltip.hover.top
                               title="It is not recommended to skip double review and should be performed only by very experienced curators."

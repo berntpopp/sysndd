@@ -10,7 +10,7 @@
     >
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-1 text-left font-weight-bold">
+          <h6 class="mb-1 text-start font-weight-bold">
             Entities
             <mark
               v-b-tooltip.hover.leftbottom
@@ -56,7 +56,7 @@
         >
           <b-card
             header-tag="header"
-            class="my-3 mx-2 text-left"
+            class="my-3 mx-2 text-start"
             body-class="p-0"
             header-class="p-1"
             footer-class="p-1"
@@ -101,7 +101,7 @@
         >
           <b-card
             header-tag="header"
-            class="my-3 mx-2 text-left"
+            class="my-3 mx-2 text-start"
             body-class="p-0"
             header-class="p-1"
             border-variant="dark"
@@ -128,7 +128,7 @@
 
                   <b-col
                     sm="6"
-                    class="mb-1 text-right"
+                    class="mb-1 text-end"
                   >
                     <!-- A search input controlling the 'any' filter -->
                     <TableSearchInput
@@ -143,7 +143,7 @@
             </template>
 
             <!-- MAIN TABLE -->
-            <b-card-text class="text-left">
+            <b-card-text class="text-start">
               <GenericTable
                 :items="displayedItems"
                 :fields="fields"
@@ -251,19 +251,19 @@ export default {
         {
           key: 'variable',
           label: 'Variable',
-          class: 'text-left',
+          class: 'text-start',
           sortable: true,
         },
         {
           key: 'p.value',
           label: 'p-value',
-          class: 'text-left',
+          class: 'text-start',
           sortable: true,
         },
         {
           key: 'v.test',
           label: 'v-test',
-          class: 'text-left',
+          class: 'text-start',
           sortable: true,
         },
       ],

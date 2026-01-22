@@ -15,7 +15,7 @@
             border-variant="dark"
           >
             <template #header>
-              <h6 class="mb-1 text-left font-weight-bold">
+              <h6 class="mb-1 text-start font-weight-bold">
                 Approve new reviews
               </h6>
             </template>
@@ -486,7 +486,7 @@
 
         <template #modal-footer="{ ok, cancel }">
           <div class="w-100">
-            <p class="float-left">
+            <p class="float-start">
               Review by:
               <b-icon
                 :icon="user_icon[review_info.review_user_role]"
@@ -507,7 +507,7 @@
               </b-badge>
             </p>
 
-            <p class="float-left px-1">
+            <p class="float-start px-1">
               Current status:
               <b-avatar
                 v-b-tooltip.hover.top
@@ -823,7 +823,7 @@
 
         <template #modal-footer="{ ok, cancel }">
           <div class="w-100">
-            <p class="float-left">
+            <p class="float-start">
               Status by:
               <b-icon
                 :icon="user_icon[status_info.status_user_role]"
@@ -1049,7 +1049,7 @@ export default {
           sortable: true,
           filterable: true,
           sortDirection: 'desc',
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'symbol',
@@ -1057,13 +1057,13 @@ export default {
           sortable: true,
           filterable: true,
           sortDirection: 'desc',
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'disease_ontology_name',
           label: 'Disease',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           sortByFormatted: true,
           filterByFormatted: true,
         },
@@ -1071,7 +1071,7 @@ export default {
           key: 'hpo_mode_of_inheritance_term_name',
           label: 'Inheritance',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           sortByFormatted: true,
           filterByFormatted: true,
         },
@@ -1080,33 +1080,33 @@ export default {
           label: 'Clinical synopsis',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'comment',
           label: 'Comment',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'review_date',
           label: 'Review date',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'review_user_name',
           label: 'User',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'actions',
           label: 'Actions',
-          class: 'text-left',
+          class: 'text-start',
         },
       ],
       fields_details_ReviewTable: [
@@ -1116,56 +1116,56 @@ export default {
           sortable: true,
           filterable: true,
           sortDirection: 'desc',
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'review_date',
           label: 'Review date',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'disease_ontology_id_version',
           label: 'Ontology ID version',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'disease_ontology_name',
           label: 'Disease ontology name',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'hpo_mode_of_inheritance_term_name',
           label: 'Inheritance',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'review_user_name',
           label: 'Review user',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'is_primary',
           label: 'Primary',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'synopsis',
           label: 'Clinical synopsis',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
       ],
       totalRows: 0,

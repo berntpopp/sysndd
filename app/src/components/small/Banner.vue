@@ -3,7 +3,7 @@
   <div v-if="!banner_acknowledged">
     <!-- Banner display code -->
     <b-alert
-      class="position-fixed fixed-bottom m-0 rounded-0 text-left"
+      class="position-fixed fixed-bottom m-0 rounded-0 text-start"
       style="z-index: 2000; font-size: 0.8rem"
       variant="danger"
       :show="!banner_acknowledged"

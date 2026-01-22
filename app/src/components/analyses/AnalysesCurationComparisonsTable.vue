@@ -11,7 +11,7 @@
       <template #header>
         <b-row>
           <b-col>
-            <h6 class="mb-1 text-left font-weight-bold">
+            <h6 class="mb-1 text-start font-weight-bold">
               Comparing the presence of a gene in different
               <mark
                 v-b-tooltip.hover.leftbottom
@@ -64,7 +64,7 @@
               </b-popover>
             </h6>
 
-            <h6 class="mb-1 text-left font-weight-bold">
+            <h6 class="mb-1 text-start font-weight-bold">
               <b-badge
                 v-b-tooltip.hover.bottom
                 variant="success"
@@ -77,7 +77,7 @@
           <b-col>
             <h5
               v-if="showFilterControls"
-              class="mb-1 text-right font-weight-bold"
+              class="mb-1 text-end font-weight-bold"
             >
               <b-button
                 v-b-tooltip.hover.bottom
@@ -405,63 +405,63 @@ export default {
           label: 'Symbol',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'SysNDD',
           label: 'SysNDD',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'radboudumc_ID',
           label: 'Radboud UMC ID',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'gene2phenotype',
           label: 'gene2phenotype',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'panelapp',
           label: 'PanelApp',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'sfari',
           label: 'SFARI',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'geisinger_DBD',
           label: 'Geisinger DBD',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'omim_ndd',
           label: 'OMIM NDD',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'orphanet_id',
           label: 'Orphanet ID',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
       ],
       totalRows: 0,

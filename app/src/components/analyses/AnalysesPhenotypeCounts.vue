@@ -10,7 +10,7 @@
     >
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-1 text-left font-weight-bold">
+          <h6 class="mb-1 text-start font-weight-bold">
             Bar plot of
             <mark
               v-b-tooltip.hover.leftbottom

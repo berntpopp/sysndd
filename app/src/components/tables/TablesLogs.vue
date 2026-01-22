@@ -34,7 +34,7 @@
                 <b-col>
                   <h5
                     v-if="showFilterControls"
-                    class="mb-1 text-right font-weight-bold"
+                    class="mb-1 text-end font-weight-bold"
                   >
                     <TableDownloadLinkCopyButtons
                       :downloading="downloading"

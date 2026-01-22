@@ -18,13 +18,13 @@
           <!-- Ontology overview card -->
           <b-card
             header-tag="header"
-            class="my-3 text-left"
+            class="my-3 text-start"
             body-class="p-0"
             header-class="p-1"
             border-variant="dark"
           >
             <template #header>
-              <h3 class="mb-1 text-left font-weight-bold">
+              <h3 class="mb-1 text-start font-weight-bold">
                 Disease:
                 <b-badge
                   pill
@@ -276,13 +276,13 @@ export default {
           key: 'disease_ontology_id_version',
           label: 'Versions',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'disease_ontology_name',
           label: 'Disease',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           sortByFormatted: true,
           filterByFormatted: true,
         },
@@ -290,21 +290,21 @@ export default {
           key: 'hpo_mode_of_inheritance_term_name',
           label: 'Inheritance',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           sortByFormatted: true,
           filterByFormatted: true,
         },
         {
-          key: 'DOID', label: 'DOID', sortable: true, class: 'text-left',
+          key: 'DOID', label: 'DOID', sortable: true, class: 'text-start',
         },
         {
-          key: 'MONDO', label: 'MONDO', sortable: true, class: 'text-left',
+          key: 'MONDO', label: 'MONDO', sortable: true, class: 'text-start',
         },
         {
           key: 'Orphanet',
           label: 'Orphanet',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
       ],
       totalRows: 0,

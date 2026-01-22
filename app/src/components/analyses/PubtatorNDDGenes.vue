@@ -34,7 +34,7 @@
                 <b-col>
                   <h5
                     v-if="showFilterControls"
-                    class="mb-1 text-right font-weight-bold"
+                    class="mb-1 text-end font-weight-bold"
                   >
                     <TableDownloadLinkCopyButtons
                       :downloading="downloading"
@@ -229,42 +229,42 @@ export default {
           label: 'Gene name',
           sortable: true,
           sortDirection: 'asc',
-          class: 'text-left',
+          class: 'text-start',
           filterable: true,
         },
         {
           key: 'gene_symbol',
           label: 'Gene symbol',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           filterable: true,
         },
         {
           key: 'gene_normalized_id',
           label: 'Gene normalized id',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           filterable: true,
         },
         {
           key: 'hgnc_id',
           label: 'HGNC id',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           filterable: true,
         },
         {
           key: 'publication_count',
           label: 'Publication count',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           filterable: true,
         },
         {
           key: 'entities_count',
           label: 'Entities count',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           filterable: true,
         },
       ],
@@ -490,7 +490,7 @@ export default {
           // Force filterable if you want all columns text-filterable
           filterable: true,
           selectable: existing ? existing.selectable : false,
-          class: existing ? existing.class : 'text-left',
+          class: existing ? existing.class : 'text-start',
         };
       });
     },

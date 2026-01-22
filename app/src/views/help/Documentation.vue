@@ -31,7 +31,7 @@
                   v-b-toggle.accordion-6
                   block
                   variant="info"
-                  class="text-left"
+                  class="text-start"
                 >
                   Docs and FAQ
                 </b-button>
@@ -45,7 +45,7 @@
                 <b-card-body>
                   <b-container
                     fluid="sm"
-                    class="text-left py-2"
+                    class="text-start py-2"
                   >
                     <b-row>
                       <b-col md="12">

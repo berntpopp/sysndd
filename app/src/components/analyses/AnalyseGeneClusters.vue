@@ -10,7 +10,7 @@
     >
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-1 text-left font-weight-bold">
+          <h6 class="mb-1 text-start font-weight-bold">
             Functionally enriched
             <mark
               v-b-tooltip.hover.leftbottom
@@ -51,7 +51,7 @@
         <b-col md="4">
           <b-card
             header-tag="header"
-            class="my-3 mx-2 text-left"
+            class="my-3 mx-2 text-start"
             body-class="p-0"
             header-class="p-1"
             footer-class="p-1"
@@ -77,7 +77,7 @@
                 <b-col>
                   <b-input-group
                     prepend="Select"
-                    class="mb-1 text-right"
+                    class="mb-1 text-end"
                     size="sm"
                   >
                     <b-form-select
@@ -117,7 +117,7 @@
         <b-col md="8">
           <b-card
             header-tag="header"
-            class="my-3 mx-2 text-left"
+            class="my-3 mx-2 text-start"
             body-class="p-0"
             header-class="p-1"
             border-variant="dark"
@@ -146,7 +146,7 @@
 
                   <b-col
                     sm="6"
-                    class="mb-1 text-right"
+                    class="mb-1 text-end"
                   >
                     <!-- A global 'any' filter for searching all columns -->
                     <TableSearchInput
@@ -160,7 +160,7 @@
               </div>
             </template>
 
-            <b-card-text class="text-left">
+            <b-card-text class="text-start">
               <!-- GenericTable for main table content -->
               <GenericTable
                 :items="displayedItems"
@@ -405,29 +405,29 @@ export default {
             key: 'category',
             label: 'Category',
             sortable: true,
-            thClass: 'text-left bg-light', // header cell class
-            tdClass: 'text-left', // data cell class
+            thClass: 'text-start bg-light', // header cell class
+            tdClass: 'text-start', // data cell class
           },
           {
             key: 'number_of_genes',
             label: '#Genes',
             sortable: true,
-            thClass: 'text-left bg-light',
-            tdClass: 'text-left',
+            thClass: 'text-start bg-light',
+            tdClass: 'text-start',
           },
           {
             key: 'fdr',
             label: 'FDR',
             sortable: true,
-            thClass: 'text-left bg-light',
-            tdClass: 'text-left',
+            thClass: 'text-start bg-light',
+            tdClass: 'text-start',
           },
           {
             key: 'description',
             label: 'Description',
             sortable: true,
-            thClass: 'text-left bg-light',
-            tdClass: 'text-left',
+            thClass: 'text-start bg-light',
+            tdClass: 'text-start',
           },
         ];
       }
@@ -437,15 +437,15 @@ export default {
           key: 'symbol',
           label: 'Symbol',
           sortable: true,
-          thClass: 'text-left bg-light',
-          tdClass: 'text-left',
+          thClass: 'text-start bg-light',
+          tdClass: 'text-start',
         },
         {
           key: 'STRING_id',
           label: 'STRING ID',
           sortable: true,
-          thClass: 'text-left bg-light',
-          tdClass: 'text-left',
+          thClass: 'text-start bg-light',
+          tdClass: 'text-start',
         },
       ];
     },

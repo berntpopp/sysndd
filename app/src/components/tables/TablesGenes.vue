@@ -34,7 +34,7 @@
                 <b-col>
                   <h5
                     v-if="showFilterControls"
-                    class="mb-1 text-right font-weight-bold"
+                    class="mb-1 text-end font-weight-bold"
                   >
                     <TableDownloadLinkCopyButtons
                       :downloading="downloading"
@@ -462,25 +462,25 @@ export default {
           label: 'Gene Symbol',
           sortable: true,
           sortDirection: 'desc',
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'category',
           label: 'Category',
           sortable: false,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'hpo_mode_of_inheritance_term_name',
           label: 'Inheritance',
           sortable: false,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'ndd_phenotype_word',
           label: 'NDD',
           sortable: false,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'entities_count',
@@ -497,31 +497,31 @@ export default {
           label: 'Entity',
           sortable: true,
           sortDirection: 'desc',
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'disease_ontology_name',
           label: 'Disease',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'hpo_mode_of_inheritance_term_name',
           label: 'Inheritance',
           sortable: false,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'category',
           label: 'Category',
           sortable: false,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'ndd_phenotype_word',
           label: 'NDD',
           sortable: false,
-          class: 'text-left',
+          class: 'text-start',
         },
       ],
       filter: {

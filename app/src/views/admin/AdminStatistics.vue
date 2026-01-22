@@ -13,7 +13,7 @@
             class="mb-3"
           >
             <template #header>
-              <h5 class="mb-0 text-left font-weight-bold">
+              <h5 class="mb-0 text-start font-weight-bold">
                 Filter Statistics
               </h5>
             </template>
@@ -54,7 +54,7 @@
             class="mb-3"
           >
             <template #header>
-              <h5 class="mb-0 text-left">
+              <h5 class="mb-0 text-start">
                 Updates Statistics
                 <small>({{ startDate }} to {{ endDate }})</small>
               </h5>
@@ -79,7 +79,7 @@
             class="mb-3"
           >
             <template #header>
-              <h5 class="mb-0 text-left">
+              <h5 class="mb-0 text-start">
                 Re-review Statistics
                 <small>({{ startDate }} to {{ endDate }})</small>
               </h5>
@@ -104,7 +104,7 @@
             class="mb-3"
           >
             <template #header>
-              <h5 class="mb-0 text-left">
+              <h5 class="mb-0 text-start">
                 Updated Reviews Statistics
                 <small>({{ startDate }} to {{ endDate }})</small>
               </h5>
@@ -127,7 +127,7 @@
             class="mb-3"
           >
             <template #header>
-              <h5 class="mb-0 text-left">
+              <h5 class="mb-0 text-start">
                 Updated Statuses Statistics
                 <small>({{ startDate }} to {{ endDate }})</small>
               </h5>

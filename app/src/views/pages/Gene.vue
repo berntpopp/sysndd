@@ -21,13 +21,13 @@
           <!-- Gene overview card -->
           <b-card
             header-tag="header"
-            class="my-3 text-left"
+            class="my-3 text-start"
             body-class="p-0"
             header-class="p-1"
             border-variant="dark"
           >
             <template #header>
-              <h3 class="mb-1 text-left font-weight-bold">
+              <h3 class="mb-1 text-start font-weight-bold">
                 Gene:
                 <b-badge
                   pill
@@ -472,52 +472,52 @@ export default {
           key: 'symbol',
           label: 'HGNC Symbol',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
-          key: 'name', label: 'Gene Name', sortable: true, class: 'text-left',
+          key: 'name', label: 'Gene Name', sortable: true, class: 'text-start',
         },
         {
           key: 'entrez_id',
           label: 'Entrez',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'ensembl_gene_id',
           label: 'Ensembl',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
-          key: 'ucsc_id', label: 'UCSC', sortable: true, class: 'text-left',
+          key: 'ucsc_id', label: 'UCSC', sortable: true, class: 'text-start',
         },
         {
-          key: 'ccds_id', label: 'CCDS', sortable: true, class: 'text-left',
+          key: 'ccds_id', label: 'CCDS', sortable: true, class: 'text-start',
         },
         {
           key: 'uniprot_ids',
           label: 'UniProt',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'omim_id',
           label: 'OMIM gene',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
-          key: 'mgd_id', label: 'MGI', sortable: true, class: 'text-left',
+          key: 'mgd_id', label: 'MGI', sortable: true, class: 'text-start',
         },
         {
-          key: 'rgd_id', label: 'RGD', sortable: true, class: 'text-left',
+          key: 'rgd_id', label: 'RGD', sortable: true, class: 'text-start',
         },
         {
           key: 'STRING_id',
           label: 'STRING',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
       ],
       totalRows: 0,

@@ -34,7 +34,7 @@
                 <b-col>
                   <h5
                     v-if="showFilterControls"
-                    class="mb-1 text-right font-weight-bold"
+                    class="mb-1 text-end font-weight-bold"
                   >
                     <TableDownloadLinkCopyButtons
                       :downloading="downloading"
@@ -317,56 +317,56 @@ export default {
           label: 'Search ID',
           sortable: true,
           sortDirection: 'asc',
-          class: 'text-left',
+          class: 'text-start',
           filterable: true,
         },
         {
           key: 'pmid',
           label: 'PMID',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           filterable: true,
         },
         {
           key: 'doi',
           label: 'DOI',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           filterable: true,
         },
         {
           key: 'title',
           label: 'Title',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           filterable: true,
         },
         {
           key: 'journal',
           label: 'Journal',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           filterable: true,
         },
         {
           key: 'date',
           label: 'Date',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           filterable: true,
         },
         {
           key: 'score',
           label: 'Score',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           filterable: true,
         },
         {
           key: 'text_hl',
           label: 'Text HL',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           filterable: true,
         },
       ],
@@ -598,7 +598,7 @@ export default {
           // For now, we forcibly set filterable to true, but you can merge logic
           filterable: true,
           selectable: existing ? existing.selectable : false,
-          class: existing ? existing.class : 'text-left',
+          class: existing ? existing.class : 'text-start',
           multi_selectable: existing ? existing.multi_selectable : false,
         };
       });

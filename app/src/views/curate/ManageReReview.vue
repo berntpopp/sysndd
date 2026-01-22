@@ -16,7 +16,7 @@
           >
             <template #header>
               <div class="d-flex justify-content-between align-items-center">
-                <h6 class="mb-1 text-left font-weight-bold">
+                <h6 class="mb-1 text-start font-weight-bold">
                   Manage re-review submissions
                   <b-badge
                     id="popover-badge-help-manage"
@@ -86,7 +86,7 @@
                   size="sm"
                 />
               </b-col>
-              <b-col class="text-right">
+              <b-col class="text-end">
                 <b-form-select
                   v-model="perPage"
                   :options="pageOptions"
@@ -164,49 +164,49 @@ export default {
           sortable: true,
           filterable: true,
           sortDirection: 'desc',
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 're_review_batch',
           label: 'Re-review batch ID',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 're_review_review_saved',
           label: 'Review saved count',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 're_review_status_saved',
           label: 'Status saved count',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 're_review_submitted',
           label: 'Re-review submitted count',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 're_review_approved',
           label: 'Re-review approved count',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'entity_count',
           label: 'Total entities in batch',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         { key: 'actions', label: 'Actions' },
       ],

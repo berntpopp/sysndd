@@ -18,7 +18,7 @@
             class="mb-3"
           >
             <template #header>
-              <h5 class="mb-0 text-left font-weight-bold">
+              <h5 class="mb-0 text-start font-weight-bold">
                 Updating Ontology Annotations
               </h5>
             </template>
@@ -54,7 +54,7 @@
             class="mb-3"
           >
             <template #header>
-              <h5 class="mb-0 text-left font-weight-bold">
+              <h5 class="mb-0 text-start font-weight-bold">
                 Updating HGNC Data
               </h5>
             </template>

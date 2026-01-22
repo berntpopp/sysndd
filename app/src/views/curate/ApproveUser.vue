@@ -15,7 +15,7 @@
             border-variant="dark"
           >
             <template #header>
-              <h6 class="mb-1 text-left font-weight-bold">
+              <h6 class="mb-1 text-start font-weight-bold">
                 Approve new user applications
               </h6>
             </template>
@@ -164,40 +164,40 @@ export default {
       items_UsersTable: [],
       fields_UsersTable: [
         {
-          key: 'user_id', label: 'User Id', sortable: true, class: 'text-left',
+          key: 'user_id', label: 'User Id', sortable: true, class: 'text-start',
         },
         {
-          key: 'user_name', label: 'User Name', sortable: true, class: 'text-left',
+          key: 'user_name', label: 'User Name', sortable: true, class: 'text-start',
         },
         {
-          key: 'email', label: 'Email', sortable: true, class: 'text-left',
+          key: 'email', label: 'Email', sortable: true, class: 'text-start',
         },
         {
-          key: 'orcid', label: 'Orcid', sortable: true, class: 'text-left',
+          key: 'orcid', label: 'Orcid', sortable: true, class: 'text-start',
         },
         {
-          key: 'abbreviation', label: 'Abbreviation', sortable: true, class: 'text-left',
+          key: 'abbreviation', label: 'Abbreviation', sortable: true, class: 'text-start',
         },
         {
-          key: 'first_name', label: 'First Name', sortable: true, class: 'text-left',
+          key: 'first_name', label: 'First Name', sortable: true, class: 'text-start',
         },
         {
-          key: 'family_name', label: 'Family Name', sortable: true, class: 'text-left',
+          key: 'family_name', label: 'Family Name', sortable: true, class: 'text-start',
         },
         {
-          key: 'comment', label: 'Comment', sortable: true, class: 'text-left',
+          key: 'comment', label: 'Comment', sortable: true, class: 'text-start',
         },
         {
-          key: 'terms_agreed', label: 'Terms Agreed', sortable: true, class: 'text-left',
+          key: 'terms_agreed', label: 'Terms Agreed', sortable: true, class: 'text-start',
         },
         {
-          key: 'created_at', label: 'Created At', sortable: true, class: 'text-left',
+          key: 'created_at', label: 'Created At', sortable: true, class: 'text-start',
         },
         {
-          key: 'user_role', label: 'User Role', sortable: false, class: 'text-left',
+          key: 'user_role', label: 'User Role', sortable: false, class: 'text-start',
         },
         {
-          key: 'approved', label: 'Approved', sortable: false, class: 'text-left',
+          key: 'approved', label: 'Approved', sortable: false, class: 'text-start',
         },
       ],
       totalRows_UsersTable: 0,
@@ -396,7 +396,7 @@ export default {
   margin-bottom: 0;
 }
 
-.text-left {
+.text-start {
   text-align: left;
 }
 </style>
