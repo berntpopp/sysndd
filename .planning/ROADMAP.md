@@ -93,7 +93,7 @@ Plans:
 **Plans:** 1 plan
 
 Plans:
-- [ ] 08-01-PLAN.md — Multi-stage Dockerfile with Node 20 Alpine, nginx-unprivileged, HEALTHCHECK
+- [x] 08-01-PLAN.md — Multi-stage Dockerfile with Node 20 Alpine, nginx-unprivileged, HEALTHCHECK
 
 **Requirements:**
 - SEC-06: Add non-root user to App container
@@ -138,9 +138,9 @@ Plans:
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 6 | Security and Compose Foundation | 13 | Planning Complete |
-| 7 | API Dockerfile Optimization | 12 | Execution Complete (gap closure pending) |
-| 8 | Frontend Dockerfile Modernization | 4 | Planning Complete |
+| 6 | Security and Compose Foundation | 13 | Complete |
+| 7 | API Dockerfile Optimization | 12 | Complete |
+| 8 | Frontend Dockerfile Modernization | 4 | Complete |
 | 9 | Developer Experience | 8 | Not Started |
 
 **Total:** 37 requirements across 4 phases
@@ -175,4 +175,4 @@ Detailed implementation guidance available in `.plan/DOCKER-REVIEW-REPORT.md`:
 
 ---
 *Roadmap created: 2026-01-21*
-*Last updated: 2026-01-22 — Phase 7 gap closure plan added*
+*Last updated: 2026-01-22 — Phase 8 complete*
