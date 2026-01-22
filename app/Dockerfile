@@ -2,6 +2,8 @@
 ARG nginx_version=1.27.4
 
 FROM node:16.16.0-bullseye as app_builder
+# Build mode: docker (default), production, development
+ARG VUE_MODE=docker
 # make the 'app' folder the current working directory
 WORKDIR /app
 # copy both 'package.json' and 'package-lock.json' (if available)
@@ -12,8 +14,8 @@ RUN npm install -g npm@8.17.0
 RUN npm install --legacy-peer-deps
 # copy project files and folders to the current working directory (i.e. 'app' folder)
 COPY . .
-# build app for production with minification
-RUN npm run build
+# build app using specified mode (loads .env.[mode] file)
+RUN npm run build -- --mode ${VUE_MODE}
 
 
 # nginx builder for brotli module and modules needed for nonce generation
@@ -92,10 +94,10 @@ COPY --from=brotli_nonce_builder /root/nginx-${nginx_version}/objs/ndk_http_modu
 COPY --from=brotli_nonce_builder /root/nginx-${nginx_version}/objs/ngx_http_set_misc_module.so /usr/lib/nginx/modules/
 # remove and add new configs
 RUN rm /etc/nginx/conf.d/default.conf
-COPY ./docker/nginx/prod.conf /etc/nginx/conf.d/
+# Use local.conf for Docker Compose development (no SSL, no alb upstream)
+# For production deployment, use prod.conf with SSL certificates
+COPY ./docker/nginx/local.conf /etc/nginx/conf.d/
 COPY ./docker/nginx/nginx.conf /etc/nginx/
-COPY ./docker/nginx/*.pem /etc/nginx/certificates/
-COPY ./docker/nginx/*.key /etc/nginx/certificates/
 # Set working directory to nginx asset directory
 WORKDIR /usr/share/nginx/html
 # Remove default nginx static assets
@@ -103,5 +105,5 @@ RUN rm -rf ./*
 # Copy static assets from app_builder stage
 COPY --from=app_builder /app/dist .
 # Containers run nginx with global directives and daemon off
-EXPOSE 443
+EXPOSE 80
 ENTRYPOINT ["nginx", "-g", "daemon off;"]
