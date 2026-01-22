@@ -12,13 +12,13 @@ See: .planning/PROJECT.md (updated 2026-01-21)
 
 **Milestone:** v2 Docker Infrastructure Modernization
 **Phase:** 9 - Developer Experience
-**Plan:** 02 of 8
+**Plan:** 03 of 8
 **Status:** In Progress
-**Last activity:** 2026-01-22 — Completed 09-02-PLAN.md
+**Last activity:** 2026-01-22 — Completed 09-03-PLAN.md
 
 ```
 v2 Progress: [██████████] 100% (26/26 plans)
-Phase 9:     [████░░░░░░░░] 2/8 plans
+Phase 9:     [██████░░░░░░] 3/8 plans
 ```
 
 ## v2 Scope
@@ -90,16 +90,21 @@ Phase 9:     [████░░░░░░░░] 2/8 plans
 | MySQL port 127.0.0.1:7654 | Localhost-only binding for security; accessible to DBeaver/Workbench | 09-02 |
 | Anonymous volume for node_modules | Cross-platform native binary isolation; prevents host/container conflicts | 09-02 |
 | App watch in override, API watch in main | API uses same Dockerfile; app uses dev-only Dockerfile.dev | 09-02 |
+| 127.0.0.1 for Alpine healthchecks | IPv6 resolution issues with localhost in Alpine containers | 09-03 |
+| allowedHosts: 'all' for dev server | Required for webpack-dev-server to accept Traefik proxy requests | 09-03 |
+| Traefik dashboard at localhost:8090 | Development debugging for routing issues | 09-03 |
+| 120s healthcheck start-period for dev | Extended time needed for webpack compilation | 09-03 |
 
 ## Resume Instructions
 
-**Phase 9 in progress.** Continue with Plan 03 (documentation).
+**Phase 9 in progress.** Continue with Plan 04 (documentation).
 
 Phase 9 achievements so far:
 - Plan 01: app/Dockerfile.dev created with Node 20 Alpine and webpack-dev-server
 - Plan 02: docker-compose.override.yml with Dockerfile.dev, MySQL localhost:7654, Compose Watch
+- Plan 03: End-to-end workflow verified, Traefik routing fixed, hot-reload confirmed
 
-Next: Plan 03 (Development Environment documentation)
+Next: Plan 04 (Development Environment documentation)
 
 ## Research Location
 
@@ -111,9 +116,9 @@ v1 artifacts: `.planning/milestones/`
 
 ## Session Continuity
 
-**Last session:** 2026-01-22 18:21:37 UTC
-**Stopped at:** Completed 09-01-SUMMARY.md
+**Last session:** 2026-01-22 18:45:00 UTC
+**Stopped at:** Completed 09-03-SUMMARY.md
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-22 — Added 09-01-SUMMARY.md*
+*Last updated: 2026-01-22 — Added 09-03-SUMMARY.md*
