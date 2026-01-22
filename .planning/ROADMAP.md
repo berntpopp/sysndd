@@ -41,45 +41,15 @@ Modernize SysNDD frontend from Vue 2.7 + JavaScript to Vue 3 + TypeScript with B
 
 **Requirements:** FR-01 (all), NFR-01 (DRY, KISS)
 
-### Plans
+**Plans:** 5 plans (10-02 through 10-06)
 
-#### 10-01: Pre-Migration Audit
-- Run audit commands to identify breaking change locations
-- Document event bus usage ($root.$emit, $root.$on)
-- Document lifecycle hooks to rename
-- Document filter usage
-- Create migration tracking checklist
-
-#### 10-02: Install Vue 3 with @vue/compat
-- Install vue@3, @vue/compat
-- Configure compat mode in main.js
-- Resolve initial compilation errors
-- Verify app boots with warnings
-
-#### 10-03: Vue Router 4 Migration
-- Install vue-router@4
-- Migrate router/index.js to createRouter() API
-- Update mode: 'history' → createWebHistory()
-- Fix route parameter access issues
-- Test all routes work
-
-#### 10-04: Event Bus Pattern Removal
-- Replace $root.$emit with Pinia stores
-- Replace $root.$on with computed/watchers
-- Remove $on/$off/$once usage
-- Test inter-component communication
-
-#### 10-05: Lifecycle and Reactivity Updates
-- Rename destroyed → unmounted
-- Rename beforeDestroy → beforeUnmount
-- Add deep: true to array watchers
-- Convert filters to methods
-- Update v-model bindings
-
-#### 10-06: Pinia Verification
-- Remove @vue/composition-api dependency
-- Update Pinia initialization for Vue 3
-- Verify all stores work correctly
+Plans:
+- [x] 10-01-PLAN.md — Pre-Migration Audit (COMPLETE - done as RESEARCH.md)
+- [ ] 10-02-PLAN.md — Install Vue 3 with @vue/compat
+- [ ] 10-03-PLAN.md — Vue Router 4 Migration
+- [ ] 10-04-PLAN.md — Event Bus Pattern Removal
+- [ ] 10-05-PLAN.md — Lifecycle and Reactivity Updates
+- [ ] 10-06-PLAN.md — Pinia Verification
 
 ### Success Criteria
 - App runs on Vue 3 with @vue/compat
