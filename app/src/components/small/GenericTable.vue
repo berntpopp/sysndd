@@ -1,12 +1,11 @@
 <!-- components/small/GenericTable.vue -->
 <template>
-  <b-table
+  <BTable
     :items="items"
     :fields="fields"
     :current-page="currentPage"
     :busy="isBusy"
-    :sort-by="sortBy"
-    :sort-desc="sortDesc"
+    :sort-by="localSortBy"
     stacked="md"
     head-variant="light"
     show-empty
@@ -17,7 +16,7 @@
     sort-icon-left
     no-local-sorting
     no-local-pagination
-    @sort-changed="handleSortChanged"
+    @update:sort-by="handleSortByUpdate"
   >
     <!-- Slot for custom table header -->
     <slot
@@ -60,32 +59,39 @@
 
     <!-- Custom slot for the 'details' button -->
     <template #cell(details)="row">
-      <b-button
+      <BButton
         class="btn-xs"
         variant="outline-primary"
         @click="row.toggleDetails"
       >
         {{ row.detailsShowing ? "Hide" : "Show" }}
-      </b-button>
+      </BButton>
     </template>
 
     <template #row-details="row">
-      <b-card>
-        <b-table
+      <BCard>
+        <BTable
           :items="[row.item]"
           :fields="fieldDetails"
           stacked
           small
         />
-      </b-card>
+      </BCard>
     </template>
     <!-- Slot for row details -->
-  </b-table>
+  </BTable>
 </template>
 
 <script>
+import { BTable, BButton, BCard } from 'bootstrap-vue-next';
+
 export default {
   name: 'GenericTable',
+  components: {
+    BTable,
+    BButton,
+    BCard,
+  },
   props: {
     items: {
       type: Array,
@@ -107,18 +113,50 @@ export default {
       type: Boolean,
       default: false,
     },
+    /**
+     * Bootstrap-Vue-Next uses array-based sortBy:
+     * [{ key: 'column_name', order: 'asc' | 'desc' }]
+     *
+     * For backward compatibility, also accepts legacy string sortBy prop.
+     */
     sortBy: {
-      type: String,
-      default: null,
+      type: Array,
+      default: () => [],
     },
+    /**
+     * Legacy prop for backward compatibility with existing components.
+     * If provided, will be converted to array format internally.
+     */
     sortDesc: {
       type: Boolean,
       default: false,
     },
   },
+  emits: ['update-sort', 'update:sort-by'],
+  computed: {
+    /**
+     * Local sortBy that syncs with the parent's sortBy prop.
+     */
+    localSortBy() {
+      return this.sortBy;
+    },
+  },
   methods: {
-    handleSortChanged({ sortBy, sortDesc }) {
-      this.$emit('update-sort', { sortBy, sortDesc });
+    /**
+     * Handle sort-by updates from BTable.
+     * Emits both Bootstrap-Vue-Next and legacy formats for backward compatibility.
+     * @param {Array} newSortBy - New sort configuration
+     */
+    handleSortByUpdate(newSortBy) {
+      // Emit in Bootstrap-Vue-Next format
+      this.$emit('update:sort-by', newSortBy);
+
+      // Also emit in legacy format for backward compatibility with handleSortUpdate
+      if (newSortBy && newSortBy.length > 0) {
+        const sortByStr = newSortBy[0].key;
+        const sortDescBool = newSortBy[0].order === 'desc';
+        this.$emit('update-sort', { sortBy: sortByStr, sortDesc: sortDescBool });
+      }
     },
   },
 };
