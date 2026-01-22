@@ -17,3 +17,8 @@ CLAUDE.md
 
 # Coverage reports
 coverage/
+
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
