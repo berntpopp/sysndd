@@ -128,6 +128,22 @@ module.exports = {
   chainWebpack: (config) => {
     // A, remove the plugin
     config.plugins.delete('prefetch');
+
+    // Vue 3 compat mode configuration
+    config.resolve.alias.set('vue', '@vue/compat');
+    config.module
+      .rule('vue')
+      .use('vue-loader')
+      .tap((options) => {
+        return {
+          ...options,
+          compilerOptions: {
+            compatConfig: {
+              MODE: 2  // Vue 2 mode - maximum compatibility
+            }
+          }
+        };
+      });
   },
   css: {
     loaderOptions: {
