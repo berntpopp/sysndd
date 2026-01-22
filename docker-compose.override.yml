@@ -1,0 +1,63 @@
+# Development Overrides - Auto-loaded by Docker Compose
+#
+# This file is automatically merged with docker-compose.yml when running:
+#   docker compose up
+#
+# For production (skip overrides):
+#   docker compose -f docker-compose.yml up
+#
+# What this enables:
+# - Hot-reload development for frontend (Dockerfile.dev + Compose Watch)
+# - MySQL port exposed at localhost:7654 for database tools
+# - Development environment settings
+
+services:
+  # DEV-03: Database access for local tools
+  # Connect with DBeaver, MySQL Workbench, DataGrip, etc.
+  mysql:
+    ports:
+      # Bind to localhost only (not network-accessible for security)
+      - "127.0.0.1:7654:3306"
+
+  # DEV-02: API development mode
+  # Note: Compose Watch for API is configured in docker-compose.yml
+  # because the API Dockerfile serves both dev and prod
+  api:
+    environment:
+      ENVIRONMENT: development
+
+  # FRONT-04, DEV-01, DEV-02: Frontend development with hot-reload
+  app:
+    # Override build to use development Dockerfile
+    build:
+      context: ./app
+      dockerfile: Dockerfile.dev
+    # Volume mounts for live code changes
+    volumes:
+      # Mount entire app directory with caching for macOS/Windows performance
+      - ./app:/app:cached
+      # Anonymous volume for node_modules - CRITICAL for cross-platform
+      # Prevents host node_modules from overriding container (native binaries differ)
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+    # DEV-05: Compose Watch configuration for frontend
+    # Syncs source changes without full container restart
+    develop:
+      watch:
+        # Sync source code changes
+        - action: sync
+          path: ./app/src
+          target: /app/src
+          ignore:
+            - node_modules/
+        # Sync public assets
+        - action: sync
+          path: ./app/public
+          target: /app/public
+        # Rebuild on dependency changes
+        - action: rebuild
+          path: ./app/package.json
+        # Rebuild on config changes
+        - action: rebuild
+          path: ./app/vue.config.js
