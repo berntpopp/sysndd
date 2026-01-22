@@ -6,20 +6,35 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** Planning next milestone
+**Current focus:** v3 Frontend Modernization — defining requirements
 
 ## Current Position
 
-**Milestone:** None (v2 complete, v3 not started)
-**Phase:** N/A
-**Plan:** N/A
-**Status:** Ready for next milestone
-**Last activity:** 2026-01-22 — v2 milestone archived
+**Milestone:** v3 Frontend Modernization
+**Phase:** Not started (defining requirements)
+**Plan:** —
+**Status:** Defining requirements
+**Last activity:** 2026-01-22 — v3 milestone started
 
 ```
-v2 Docker Infrastructure: COMPLETE
-Next: /gsd:new-milestone
+v3 Frontend Modernization: REQUIREMENTS PHASE
+Next: Define REQUIREMENTS.md, then create ROADMAP.md
 ```
+
+## v3 Milestone Scope
+
+**Goal:** Modernize frontend from Vue 2 + JavaScript to Vue 3 + TypeScript with comprehensive UI/UX improvements.
+
+**Key deliverables (planned):**
+- Vue 3 migration with Composition API
+- TypeScript adoption across all components
+- Bootstrap-Vue-Next component library
+- Vite build tooling
+- Vitest + Vue Test Utils for testing
+- UI modernization (colors, shadows, spacing, loading states)
+- WCAG 2.2 accessibility compliance
+
+**Frontend review:** See `.planning/FRONTEND-REVIEW-REPORT.md`
 
 ## Completed Milestones
 
@@ -27,25 +42,6 @@ Next: /gsd:new-milestone
 |-----------|--------|---------|---------|
 | v1 Developer Experience | 1-5 (19 plans) | 2026-01-21 | milestones/v1-* |
 | v2 Docker Infrastructure | 6-9 (8 plans) | 2026-01-22 | milestones/v2-* |
-
-## v2 Achievements Summary
-
-**Goal:** Transform Docker infrastructure from 4/10 to 9/10 — ACHIEVED
-
-| Category | Before | Target | Achieved |
-|----------|--------|--------|----------|
-| Security | 4/10 | 9/10 | 9/10 |
-| Build Efficiency | 3/10 | 9/10 | 9/10 |
-| Developer Experience | 2/10 | 9/10 | 9/10 |
-| Maintainability | 5/10 | 9/10 | 9/10 |
-| Production Readiness | 6/10 | 9/10 | 9/10 |
-
-**Key deliverables:**
-- Traefik v3.6 replacing dockercloud/haproxy
-- API build time: 45 min → ~10 min cold, ~2 min warm
-- Node.js 20 LTS (Vue 2 compatible)
-- Non-root users, health checks, resource limits
-- Docker Compose Watch hot-reload workflow
 
 ## GitHub Issues
 
@@ -56,23 +52,20 @@ Next: /gsd:new-milestone
 
 ## Tech Debt (from v1/v2 audits)
 
-- lint-app crashes (esm module compatibility)
+- lint-app crashes (esm module compatibility) — will be resolved by Vite migration
 - 1240 lintr issues in R codebase
 - renv.lock incomplete (Dockerfile workarounds)
 - No HTTP endpoint integration tests
-- httptest2 fixtures not yet recorded
 
 ## Key Decisions
 
 See PROJECT.md for full decisions table.
 
-## Resume Instructions
-
-**v2 Milestone complete and archived.**
-
-Next steps:
-1. Run `/gsd:new-milestone` to start v3 milestone planning
-2. Consider focus areas: CI/CD pipeline, Trivy security scanning, integration tests
+**v3 decisions made:**
+- Bootstrap-Vue-Next over PrimeVue (minimize visual disruption)
+- Include UI/UX polish in v3 (not separate milestone)
+- Include Vitest testing infrastructure
+- Quality over speed approach
 
 ## Archive Location
 
@@ -82,8 +75,8 @@ Next steps:
 ## Session Continuity
 
 **Last session:** 2026-01-22
-**Stopped at:** v2 milestone archived, ready for v3
+**Stopped at:** v3 milestone started, defining requirements
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-22 — v2 milestone archived*
+*Last updated: 2026-01-22 — v3 milestone started*

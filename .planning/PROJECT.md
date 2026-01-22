@@ -2,7 +2,7 @@
 
 ## What This Is
 
-Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v2 delivered modern Docker infrastructure with Traefik reverse proxy, optimized multi-stage builds, security hardening, and hot-reload development workflow.
+Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v2 delivered modern Docker infrastructure with Traefik reverse proxy, optimized multi-stage builds, security hardening, and hot-reload development workflow. v3 will modernize the frontend with Vue 3, TypeScript, and UI/UX improvements.
 
 ## Core Value
 
@@ -74,15 +74,41 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 ### Active
 
-<!-- Next milestone scope (v3 CI/CD) -->
+<!-- v3 Frontend Modernization scope -->
 
-(No requirements defined yet. Run `/gsd:new-milestone` to start next milestone.)
+- [ ] Vue 3 migration from Vue 2.7
+- [ ] TypeScript adoption across all components
+- [ ] Bootstrap-Vue → Bootstrap-Vue-Next component library
+- [ ] Vite build tooling (replacing Vue CLI + Webpack)
+- [ ] vue-router@4 migration
+- [ ] Vitest + Vue Test Utils for frontend testing
+- [ ] UI/UX polish: color palette, card styling, typography
+- [ ] UI/UX polish: table improvements, search enhancement
+- [ ] UI/UX polish: loading states, empty states
+- [ ] UI/UX polish: mobile responsive refinements
+- [ ] Accessibility improvements (WCAG 2.2 compliance)
 
 ### Out of Scope
 
-- Vue 3 migration — scheduled for later, keeping Vue 2 for now
 - R/Plumber replacement — keeping current stack
-- Frontend testing — R API testing is priority; frontend tests later
+- Backend changes — v3 is frontend-only
+- CI/CD pipeline — deferred to v4
+- Trivy security scanning — deferred to v4
+
+## Current Milestone: v3 Frontend Modernization
+
+**Goal:** Modernize the frontend from Vue 2 + JavaScript to Vue 3 + TypeScript with Bootstrap-Vue-Next, including comprehensive UI/UX improvements based on medical web application best practices.
+
+**Target features:**
+- Vue 3 with Composition API and `<script setup>` syntax
+- Full TypeScript adoption with strict type checking
+- Bootstrap-Vue-Next (0.42+) component library
+- Vite for faster build times and modern tooling
+- Vitest for unit/component testing
+- Modernized UI: color palette, shadows, spacing, loading states
+- WCAG 2.2 accessibility compliance
+
+**Frontend Review:** See `.planning/FRONTEND-REVIEW-REPORT.md` for detailed analysis
 
 ## Context
 
@@ -91,12 +117,19 @@ A new developer can clone the repo and be productive within minutes, with confid
 - Developer workflow improved — hot-reload, 2-minute rebuild cycles
 - All v2 requirements shipped — 37/37 complete
 
+**Frontend state (pre-v3):**
+- Vue 2.7.8 with @vue/composition-api backport
+- Bootstrap-Vue 2.21.2 (no Vue 3 support)
+- 50+ Vue components, 100% JavaScript
+- Bootstrap 4 visual aesthetic (dated)
+- No frontend test coverage
+
 **GitHub Issues:**
 - #109: Refactor sysndd_plumber.R into smaller endpoint files — Ready for PR
 - #123: Implement comprehensive testing — Foundation complete, integration tests deferred
 
 **Tech Debt (carried from v1):**
-- lint-app crashes (esm module compatibility)
+- lint-app crashes (esm module compatibility) — will be resolved by Vite migration
 - 1240 lintr issues in R codebase
 - renv.lock incomplete (Dockerfile workarounds)
 - No HTTP endpoint integration tests
@@ -105,11 +138,13 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 ## Constraints
 
-- **Stack**: Must stay with R/Plumber for API, Vue 2 for frontend (Vue 3 later)
-- **Database**: MySQL 8.0.40 (upgraded in v2)
-- **Docker**: rocker/r-ver:4.1.2 base image (matched to renv.lock R version)
+- **Stack**: R/Plumber API unchanged, Vue 3 + TypeScript for frontend
+- **Database**: MySQL 8.0.40 (unchanged from v2)
+- **Docker**: rocker/r-ver:4.1.2 base image (unchanged from v2)
 - **Compatibility**: Must work on Windows (WSL2), macOS, and Linux
-- **Node.js**: Node 20 LTS for Vue 2 compatibility (not 22/24 due to OpenSSL 3.0 MD4 deprecation)
+- **Node.js**: Node 20 LTS (Vue 3 + Vite compatible)
+- **Component Library**: Bootstrap-Vue-Next (minimize visual disruption)
+- **Browser Support**: Modern browsers (Chrome, Firefox, Safari, Edge — last 2 versions)
 
 ## Key Decisions
 
@@ -129,5 +164,9 @@ A new developer can clone the repo and be productive within minutes, with confid
 | nginxinc/nginx-unprivileged | Pre-configured non-root nginx, Alpine-based | ✓ Good |
 | 12-minute cold build target | Bioconductor packages require source compilation | ✓ Good |
 
+| Bootstrap-Vue-Next over PrimeVue | Minimize visual disruption for researchers/clinicians | — Pending |
+| Vite over Vue CLI | Faster builds, modern tooling, ESM native | — Pending |
+| Vitest over Jest | Native Vite integration, faster, ESM compatible | — Pending |
+
 ---
-*Last updated: 2026-01-22 after v2 milestone shipped*
+*Last updated: 2026-01-22 after v3 milestone started*
