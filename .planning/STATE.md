@@ -12,15 +12,15 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 11 - Bootstrap-Vue-Next Migration
-**Plan:** 11-04 Form Components Migration (complete)
-**Status:** Wave 2 in progress (11-02, 11-03, 11-04 parallel)
-**Last activity:** 2026-01-23 — Form components migrated to BForm* naming
+**Plan:** 11-02 Modal and Toast Migration (complete)
+**Status:** Wave 2 in progress
+**Last activity:** 2026-01-23 — Modal and toast patterns migrated to composables
 
 ```
 v3 Frontend Modernization: PHASE 11 IN PROGRESS
-Completed: 10-01 through 10-05, 11-01 Foundation, 11-04 Forms
-Wave 2: 11-02 (tables), 11-03 (modals), 11-04 (forms) in parallel
-Progress: ███████░░░ 7/16 plans (43.75%)
+Completed: 10-01 through 10-05, 11-01 Foundation, 11-02 Modal/Toast
+Wave 2: 11-02 (complete), 11-03 (tables in progress), 11-04 (forms)
+Progress: ████████░░ 8/16 plans (50%)
 ```
 
 ## v3 Milestone Scope
@@ -80,6 +80,9 @@ See PROJECT.md for full decisions table.
 - Keep both Bootstrap-Vue and Bootstrap-Vue-Next CSS during transition
 - Fixed esm package incompatibility with Node.js 18+ in vue.config.js
 - Added babel-loader cache path to /tmp to avoid permission issues
+- toastMixin delegates to useToastNotifications for backward compatibility
+- Error toasts (danger variant) force manual close for medical app reliability
+- Composables use default exports for ESLint compliance
 
 ## Archive Location
 
@@ -88,9 +91,9 @@ See PROJECT.md for full decisions table.
 
 ## Session Continuity
 
-**Last session:** 2026-01-22T23:44:24Z
-**Stopped at:** Completed 11-04-PLAN.md — Form components migrated to Bootstrap-Vue-Next
+**Last session:** 2026-01-22T23:47:00Z
+**Stopped at:** Completed 11-02-PLAN.md — Modal and toast patterns migrated to composables
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 11 in progress (2/6 plans complete, Wave 2 active)*
+*Last updated: 2026-01-23 — Phase 11 in progress (2/6 plans complete)*
