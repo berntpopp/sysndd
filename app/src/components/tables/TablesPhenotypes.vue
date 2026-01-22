@@ -403,7 +403,7 @@
                   />
                 </div>
               </template>
-            </b-table>
+            </BTable>
           </b-card>
         </b-col>
       </b-row>

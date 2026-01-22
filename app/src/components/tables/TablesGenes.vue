@@ -198,8 +198,8 @@
               </template>
 
               <template #row-details="row">
-                <b-card>
-                  <b-table
+                <BCard>
+                  <BTable
                     :items="row.item.entities"
                     :fields="fields_details"
                     head-variant="light"
@@ -299,8 +299,8 @@
                         </b-badge>
                       </div>
                     </template>
-                  </b-table>
-                </b-card>
+                  </BTable>
+                </BCard>
               </template>
 
               <template #cell(symbol)="data">
@@ -399,8 +399,8 @@ import Treeselect from '@riophae/vue-treeselect';
 // import the Treeselect styles
 import '@riophae/vue-treeselect/dist/vue-treeselect.css';
 
-// Import Bootstrap-Vue-Next BTable
-import { BTable } from 'bootstrap-vue-next';
+// Import Bootstrap-Vue-Next components
+import { BTable, BCard } from 'bootstrap-vue-next';
 
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
@@ -428,7 +428,7 @@ export default {
   // register the components
   components: {
     // Components used within TablesGenes
-    BTable, Treeselect, TablePaginationControls, TableDownloadLinkCopyButtons, TableHeaderLabel, TableSearchInput,
+    BTable, BCard, Treeselect, TablePaginationControls, TableDownloadLinkCopyButtons, TableHeaderLabel, TableSearchInput,
   },
   mixins: [
     // Mixins used within TablesEntities
