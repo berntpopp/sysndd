@@ -12,15 +12,15 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 10 - Vue 3 Core Migration
-**Plan:** 10-03 Vue Router 4 Migration (complete)
-**Status:** Ready for 10-04
-**Last activity:** 2026-01-22 — Vue Router 4 migrated to createRouter() and createWebHistory()
+**Plan:** 10-05 Lifecycle Hooks and Reactivity Patterns (complete)
+**Status:** Ready for 10-04 or 10-06
+**Last activity:** 2026-01-22 — Lifecycle hooks migrated to Vue 3, watchers audited
 
 ```
 v3 Frontend Modernization: PHASE 10 IN PROGRESS
-Completed: 10-01 Pre-Migration Audit, 10-02 Install Vue 3, 10-03 Vue Router 4
-Next: 10-04 Pinia 2.x Migration
-Progress: ███░░░░░░░ 3/10 plans (30%)
+Completed: 10-01 Pre-Migration Audit, 10-02 Install Vue 3, 10-03 Vue Router 4, 10-05 Lifecycle Hooks
+Next: 10-04 Pinia 2.x Migration or 10-06 EventBus Replacement
+Progress: ████░░░░░░ 4/10 plans (40%)
 ```
 
 ## v3 Milestone Scope
@@ -73,6 +73,7 @@ See PROJECT.md for full decisions table.
 - @vue/compat MODE 2 for maximum compatibility during migration
 - Changed routes import from require() to ES import for Vue 3 consistency
 - Added ESLint exceptions for Pinia store patterns (named exports, counter increment)
+- No additional array watchers need deep: true (existing configuration correct)
 
 ## Archive Location
 
@@ -81,9 +82,9 @@ See PROJECT.md for full decisions table.
 
 ## Session Continuity
 
-**Last session:** 2026-01-22T22:01:50Z
-**Stopped at:** Completed 10-03-PLAN.md — Vue Router 4 migrated
+**Last session:** 2026-01-22T22:02:00Z
+**Stopped at:** Completed 10-05-PLAN.md — Lifecycle hooks and watchers migrated
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-22 — Phase 10 in progress (3/10 plans complete)*
+*Last updated: 2026-01-22 — Phase 10 in progress (4/10 plans complete)*
