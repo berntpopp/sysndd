@@ -93,7 +93,7 @@ import {
   nextTick,
 } from 'vue';
 import useToast from '@/composables/useToast';
-import { render, extractSets, UpSetDarkTheme } from '@upsetjs/bundle';
+import { render, extractSets } from '@upsetjs/bundle';
 // TODO: vue3-treeselect disabled pending Bootstrap-Vue-Next migration
 // import Treeselect from '@zanmato/vue3-treeselect';
 // import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';

@@ -127,19 +127,26 @@ export default function useUrlParsing() {
    * Converts a sorting string into an object with sorting variables.
    * Parses a sorting string and extracts sorting direction and field.
    *
-   * Updated for Bootstrap-Vue-Next: Returns array-based sortBy format.
+   * Returns Bootstrap-Vue-Next array format for sortBy (used by migrated components)
+   * plus legacy sortDesc boolean for backward compatibility.
    *
    * @param {string} sort_string - The sorting string to parse (e.g., '+entity_id' or '-symbol').
-   * @returns {Object} An object containing sortBy (array format) for Bootstrap-Vue-Next.
+   * @returns {Object} An object containing:
+   *   - sortBy: [{ key, order }] - Bootstrap-Vue-Next array format (primary)
+   *   - sortDesc: boolean - legacy format for backward compatibility
+   *   - sortColumn: string - column key for legacy access
    */
   const sortStringToVariables = (sort_string) => {
     const sortStr = sort_string.trim();
     const isDesc = sortStr.substr(0, 1) === '-';
     const columnKey = sortStr.replace('+', '').replace('-', '');
 
-    // Return Bootstrap-Vue-Next array format
     return {
+      // Bootstrap-Vue-Next array format (primary format for migrated components)
       sortBy: [{ key: columnKey, order: isDesc ? 'desc' : 'asc' }],
+      // Legacy format for backward compatibility
+      sortDesc: isDesc,
+      sortColumn: columnKey,
     };
   };
 

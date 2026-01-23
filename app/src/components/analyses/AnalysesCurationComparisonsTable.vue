@@ -542,7 +542,8 @@ export default {
   },
   mounted() {
     const sort_object = this.sortStringToVariables(this.sortInput);
-    this.sortBy = sort_object.sortBy;
+    // Use sortColumn for string format, sortDesc for boolean
+    this.sortBy = sort_object.sortColumn;
     this.sortDesc = sort_object.sortDesc;
 
     setTimeout(() => {

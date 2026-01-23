@@ -349,7 +349,7 @@ export default {
   mounted() {
     // Transform "+gene_symbol" into sortBy="gene_symbol" and sortDesc=false
     const sortObject = this.sortStringToVariables(this.sortInput);
-    this.sortBy = sortObject.sortBy;
+    this.sortBy = sortObject.sortColumn;
     this.sortDesc = sortObject.sortDesc;
 
     // If we have a pre-loaded filter string, parse it

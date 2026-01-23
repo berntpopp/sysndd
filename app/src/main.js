@@ -74,6 +74,8 @@ const app = createApp(App);
 // Register axios on Vue 3 app instance (VueAxios via Vue.use doesn't fully transfer)
 app.config.globalProperties.axios = axios;
 app.config.globalProperties.$http = axios;
+// Also provide axios for composition API inject() usage
+app.provide('axios', axios);
 
 // Register Bootstrap-Vue-Next plugin (Vue 3 native)
 app.use(createBootstrap());

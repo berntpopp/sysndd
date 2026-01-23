@@ -462,7 +462,7 @@ export default {
   mounted() {
     // Initialize sorting
     const sortObject = this.sortStringToVariables(this.sortInput);
-    this.sortBy = sortObject.sortBy;
+    this.sortBy = sortObject.sortColumn;
     this.sortDesc = sortObject.sortDesc;
 
     // Initialize filters from input
