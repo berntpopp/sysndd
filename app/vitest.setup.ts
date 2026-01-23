@@ -1,15 +1,15 @@
 // vitest.setup.ts
 // Global test setup - runs before each test file
 
-import { vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
+import { vi, beforeEach, afterEach, beforeAll, afterAll, expect } from 'vitest';
+import * as matchers from 'vitest-axe/matchers';
 
 // =============================================================================
 // Accessibility Testing Matchers (vitest-axe)
 // =============================================================================
 
-// Note: vitest-axe provides axe() function for accessibility testing
-// Custom matchers can be added here if needed
-// import { axe } from 'vitest-axe';
+// Extend Vitest expect with accessibility matchers (toHaveNoViolations)
+expect.extend(matchers);
 
 // =============================================================================
 // Browser API Mocks (required for Bootstrap and Vue components)
