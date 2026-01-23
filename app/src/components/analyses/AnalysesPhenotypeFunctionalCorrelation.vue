@@ -85,14 +85,17 @@
  * AnalysesTimePlot).
  */
 
-import toastMixin from '@/assets/js/mixins/toastMixin';
+import useToast from '@/composables/useToast';
 import * as d3 from 'd3';
 // import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue'; // If needed
 
 export default {
   name: 'AnalysesPhenotypeFunctionalCorrelation',
   // components: { DownloadImageButtons }, // If you want the download buttons
-  mixins: [toastMixin],
+  setup() {
+    const { makeToast } = useToast();
+    return { makeToast };
+  },
   data() {
     return {
       loadingCorrelation: false,

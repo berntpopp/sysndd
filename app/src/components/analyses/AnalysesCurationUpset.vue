@@ -92,7 +92,7 @@ import {
   watch,
   nextTick,
 } from 'vue';
-import toastMixin from '@/assets/js/mixins/toastMixin';
+import useToast from '@/composables/useToast';
 import { render, extractSets, UpSetDarkTheme } from '@upsetjs/bundle';
 // TODO: vue3-treeselect disabled pending Bootstrap-Vue-Next migration
 // import Treeselect from '@zanmato/vue3-treeselect';
@@ -103,10 +103,10 @@ export default {
   name: 'AnalysesCurationUpset',
   // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
   components: { DownloadImageButtons },
-  mixins: [toastMixin],
   setup() {
     const upsetContainer = ref(null);
-    return { upsetContainer };
+    const { makeToast } = useToast();
+    return { upsetContainer, makeToast };
   },
   data() {
     return {

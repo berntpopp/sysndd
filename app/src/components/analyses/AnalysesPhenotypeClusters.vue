@@ -213,7 +213,7 @@
 
 <script>
 import * as d3 from 'd3';
-import toastMixin from '@/assets/js/mixins/toastMixin';
+import useToast from '@/composables/useToast';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 
 // Import your small table components:
@@ -229,7 +229,10 @@ export default {
     TableSearchInput,
     TablePaginationControls,
   },
-  mixins: [toastMixin],
+  setup() {
+    const { makeToast } = useToast();
+    return { makeToast };
+  },
   data() {
     return {
       /* --------------------------------------
