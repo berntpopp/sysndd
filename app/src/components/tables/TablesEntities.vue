@@ -292,19 +292,19 @@
  * />
  */
 
-// Treeselect temporarily disabled due to Vue 3 compatibility issues
-// TODO: Re-enable when vue3-treeselect compatibility is fixed
-// import Treeselect from '@zanmato/vue3-treeselect';
-// import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
+// Import Vue utilities
+import { ref, inject } from 'vue';
+import { useRoute } from 'vue-router';
 
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
-import textMixin from '@/assets/js/mixins/textMixin';
-
-// Import the table mixins
-import tableMethodsMixin from '@/assets/js/mixins/tableMethodsMixin';
-import tableDataMixin from '@/assets/js/mixins/tableDataMixin';
+// Import composables
+import {
+  useToast,
+  useUrlParsing,
+  useColorAndSymbols,
+  useText,
+  useTableData,
+  useTableMethods,
+} from '@/composables';
 
 // Import the Table components
 import TableHeaderLabel from '@/components/small/TableHeaderLabel.vue';
@@ -323,13 +323,8 @@ export default {
   name: 'TablesEntities',
   components: {
     // Components used within TablesEntities
-    // Treeselect temporarily disabled
     TablePaginationControls, TableDownloadLinkCopyButtons, TableHeaderLabel, TableSearchInput, GenericTable,
   },
-  mixins: [
-    // Mixins used within TablesEntities
-    toastMixin, urlParsingMixin, colorAndSymbolsMixin, textMixin, tableMethodsMixin, tableDataMixin,
-  ],
   props: {
     apiEndpoint: {
       type: String,
@@ -348,6 +343,61 @@ export default {
       default:
         'entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details',
     },
+  },
+  setup(props) {
+    // Independent composables
+    const { makeToast } = useToast();
+    const { filterObjToStr, filterStrToObj, sortStringToVariables } = useUrlParsing();
+    const colorAndSymbols = useColorAndSymbols();
+    const text = useText();
+
+    // Table state composable
+    const tableData = useTableData({
+      pageSizeInput: props.pageSizeInput,
+      sortInput: props.sortInput,
+      pageAfterInput: props.pageAfterInput,
+    });
+
+    // Component-specific filter
+    const filter = ref({
+      any: { content: null, join_char: null, operator: 'contains' },
+      entity_id: { content: null, join_char: null, operator: 'contains' },
+      symbol: { content: null, join_char: null, operator: 'contains' },
+      disease_ontology_name: { content: null, join_char: null, operator: 'contains' },
+      disease_ontology_id_version: { content: null, join_char: null, operator: 'contains' },
+      hpo_mode_of_inheritance_term_name: { content: null, join_char: ',', operator: 'any' },
+      hpo_mode_of_inheritance_term: { content: null, join_char: ',', operator: 'any' },
+      ndd_phenotype_word: { content: null, join_char: null, operator: 'contains' },
+      category: { content: null, join_char: ',', operator: 'any' },
+      entities_count: { content: null, join_char: ',', operator: 'any' },
+    });
+
+    // Inject axios and route
+    const axios = inject('axios');
+    const route = useRoute();
+
+    // Table methods composable
+    const tableMethods = useTableMethods(tableData, {
+      filter,
+      filterObjToStr,
+      apiEndpoint: props.apiEndpoint,
+      axios,
+      route,
+    });
+
+    // Return all needed properties
+    return {
+      makeToast,
+      filterObjToStr,
+      filterStrToObj,
+      sortStringToVariables,
+      ...colorAndSymbols,
+      ...text,
+      ...tableData,
+      ...tableMethods,
+      filter,
+      axios,
+    };
   },
   data() {
     return {
@@ -415,18 +465,6 @@ export default {
         title: '',
         content: '',
       },
-      filter: {
-        any: { content: null, join_char: null, operator: 'contains' },
-        entity_id: { content: null, join_char: null, operator: 'contains' },
-        symbol: { content: null, join_char: null, operator: 'contains' },
-        disease_ontology_name: { content: null, join_char: null, operator: 'contains' },
-        disease_ontology_id_version: { content: null, join_char: null, operator: 'contains' },
-        hpo_mode_of_inheritance_term_name: { content: null, join_char: ',', operator: 'any' },
-        hpo_mode_of_inheritance_term: { content: null, join_char: ',', operator: 'any' },
-        ndd_phenotype_word: { content: null, join_char: null, operator: 'contains' },
-        category: { content: null, join_char: ',', operator: 'any' },
-        entities_count: { content: null, join_char: ',', operator: 'any' },
-      },
     };
   },
   watch: {
@@ -469,6 +507,16 @@ export default {
     }, 500);
   },
   methods: {
+    // Override filtered to call loadData
+    filtered() {
+      const filter_string_loc = this.filterObjToStr(this.filter);
+
+      if (filter_string_loc !== this.filter_string) {
+        this.filter_string = filter_string_loc;
+      }
+
+      this.loadData();
+    },
     async loadData() {
       this.isBusy = true;
 

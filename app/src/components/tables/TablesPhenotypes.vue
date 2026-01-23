@@ -435,10 +435,13 @@
 // Import Bootstrap-Vue-Next BTable
 import { BTable } from 'bootstrap-vue-next';
 
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
-import textMixin from '@/assets/js/mixins/textMixin';
+// Import composables
+import {
+  useToast,
+  useUrlParsing,
+  useColorAndSymbols,
+  useText,
+} from '@/composables';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
@@ -448,9 +451,7 @@ import { useUiStore } from '@/stores/ui';
 
 export default {
   name: 'TablesPhenotypes',
-  // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
   components: { BTable },
-  mixins: [toastMixin, urlParsingMixin, colorAndSymbolsMixin, textMixin],
   props: {
     showFilterControls: { type: Boolean, default: true },
     showPaginationControls: { type: Boolean, default: true },
@@ -465,6 +466,23 @@ export default {
       default:
         'entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,modifier_phenotype_id',
     },
+  },
+  setup() {
+    // Independent composables
+    const { makeToast } = useToast();
+    const { filterObjToStr, filterStrToObj, sortStringToVariables } = useUrlParsing();
+    const colorAndSymbols = useColorAndSymbols();
+    const text = useText();
+
+    // Return all needed properties
+    return {
+      makeToast,
+      filterObjToStr,
+      filterStrToObj,
+      sortStringToVariables,
+      ...colorAndSymbols,
+      ...text,
+    };
   },
   data() {
     return {

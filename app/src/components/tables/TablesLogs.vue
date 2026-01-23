@@ -223,17 +223,19 @@
 </template>
 
 <script>
-// TODO: vue3-treeselect disabled pending Bootstrap-Vue-Next migration
-// import Treeselect from '@zanmato/vue3-treeselect';
-// import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
+// Import Vue utilities
+import { ref, inject } from 'vue';
+import { useRoute } from 'vue-router';
 
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
-import textMixin from '@/assets/js/mixins/textMixin';
-
-import tableMethodsMixin from '@/assets/js/mixins/tableMethodsMixin';
-import tableDataMixin from '@/assets/js/mixins/tableDataMixin';
+// Import composables
+import {
+  useToast,
+  useUrlParsing,
+  useColorAndSymbols,
+  useText,
+  useTableData,
+  useTableMethods,
+} from '@/composables';
 
 import TableHeaderLabel from '@/components/small/TableHeaderLabel.vue';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
@@ -246,7 +248,6 @@ import { useUiStore } from '@/stores/ui';
 
 export default {
   name: 'TablesLogs',
-  // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
   components: {
     TablePaginationControls,
     TableDownloadLinkCopyButtons,
@@ -254,14 +255,6 @@ export default {
     TableSearchInput,
     GenericTable,
   },
-  mixins: [
-    toastMixin,
-    urlParsingMixin,
-    colorAndSymbolsMixin,
-    textMixin,
-    tableMethodsMixin,
-    tableDataMixin,
-  ],
   props: {
     apiEndpoint: {
       type: String,
@@ -280,9 +273,67 @@ export default {
       default: 'id,timestamp,address,agent,host,request_method,path,query,post,status,duration,file,modified',
     },
   },
+  setup(props) {
+    // Independent composables
+    const { makeToast } = useToast();
+    const { filterObjToStr, filterStrToObj, sortStringToVariables } = useUrlParsing();
+    const colorAndSymbols = useColorAndSymbols();
+    const text = useText();
+
+    // Table state composable
+    const tableData = useTableData({
+      pageSizeInput: props.pageSizeInput,
+      sortInput: props.sortInput,
+      pageAfterInput: props.pageAfterInput,
+    });
+
+    // Component-specific filter
+    const filter = ref({
+      any: { content: null, join_char: null, operator: 'contains' },
+      id: { content: null, join_char: null, operator: 'contains' },
+      timestamp: { content: null, join_char: null, operator: 'contains' },
+      address: { content: null, join_char: null, operator: 'contains' },
+      agent: { content: null, join_char: null, operator: 'contains' },
+      host: { content: null, join_char: null, operator: 'contains' },
+      request_method: { content: null, join_char: ',', operator: 'contains' },
+      path: { content: null, join_char: ',', operator: 'contains' },
+      query: { content: null, join_char: null, operator: 'contains' },
+      post: { content: null, join_char: ',', operator: 'contains' },
+      status: { content: null, join_char: ',', operator: 'contains' },
+      duration: { content: null, join_char: ',', operator: 'contains' },
+      file: { content: null, join_char: ',', operator: 'contains' },
+      modified: { content: null, join_char: ',', operator: 'contains' },
+    });
+
+    // Inject axios and route
+    const axios = inject('axios');
+    const route = useRoute();
+
+    // Table methods composable
+    const tableMethods = useTableMethods(tableData, {
+      filter,
+      filterObjToStr,
+      apiEndpoint: props.apiEndpoint,
+      axios,
+      route,
+    });
+
+    // Return all needed properties
+    return {
+      makeToast,
+      filterObjToStr,
+      filterStrToObj,
+      sortStringToVariables,
+      ...colorAndSymbols,
+      ...text,
+      ...tableData,
+      ...tableMethods,
+      filter,
+      axios,
+    };
+  },
   data() {
     return {
-      items: [],
       fields: [
         { key: 'id', label: 'ID', sortable: true },
         { key: 'timestamp', label: 'Timestamp', sortable: true },
@@ -299,37 +350,6 @@ export default {
         { key: 'modified', label: 'Modified', sortable: true },
       ],
       fields_details: [],
-      totalRows: 0,
-      currentPage: 1,
-      currentItemID: this.pageAfterInput,
-      prevItemID: null,
-      nextItemID: null,
-      lastItemID: null,
-      executionTime: 0,
-      pageOptions: [10, 25, 50, 200],
-      // sortBy is now provided by tableDataMixin (array-based format)
-      // sortDesc is computed from sortBy in tableDataMixin
-      sort: this.sortInput,
-      filter: {
-        any: { content: null, join_char: null, operator: 'contains' },
-        id: { content: null, join_char: null, operator: 'contains' },
-        timestamp: { content: null, join_char: null, operator: 'contains' },
-        address: { content: null, join_char: null, operator: 'contains' },
-        agent: { content: null, join_char: null, operator: 'contains' },
-        host: { content: null, join_char: null, operator: 'contains' },
-        request_method: { content: null, join_char: ',', operator: 'contains' },
-        path: { content: null, join_char: ',', operator: 'contains' },
-        query: { content: null, join_char: null, operator: 'contains' },
-        post: { content: null, join_char: ',', operator: 'contains' },
-        status: { content: null, join_char: ',', operator: 'contains' },
-        duration: { content: null, join_char: ',', operator: 'contains' },
-        file: { content: null, join_char: ',', operator: 'contains' },
-        modified: { content: null, join_char: ',', operator: 'contains' },
-      },
-      filter_string: null,
-      downloading: false,
-      loading: false,
-      isBusy: true,
     };
   },
   watch: {

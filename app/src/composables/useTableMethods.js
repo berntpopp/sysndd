@@ -1,4 +1,4 @@
-import { useToast } from '@/composables';
+import useToast from './useToast';
 
 /**
  * Composable for table action methods.
@@ -19,6 +19,28 @@ import { useToast } from '@/composables';
  */
 export default function useTableMethods(tableData, options = {}) {
   const { makeToast } = useToast();
+
+  /**
+   * Filters the table data based on the current filter criteria.
+   */
+  const filtered = () => {
+    if (!options.filterObjToStr || !options.filter) {
+      console.warn('filterObjToStr or filter not provided to useTableMethods');
+      return;
+    }
+
+    const filter_string_loc = options.filterObjToStr(options.filter);
+
+    if (filter_string_loc !== tableData.filter_string.value) {
+      tableData.filter_string.value = filter_string_loc;
+    }
+
+    // Call a method to load data.
+    // This method should be defined in each component.
+    if (options.loadData) {
+      options.loadData();
+    }
+  };
 
   /**
    * Copies the current page URL with query parameters to the clipboard.
@@ -80,28 +102,6 @@ export default function useTableMethods(tableData, options = {}) {
       tableData.currentItemID.value = tableData.prevItemID.value;
     }
     filtered();
-  };
-
-  /**
-   * Filters the table data based on the current filter criteria.
-   */
-  const filtered = () => {
-    if (!options.filterObjToStr || !options.filter) {
-      console.warn('filterObjToStr or filter not provided to useTableMethods');
-      return;
-    }
-
-    const filter_string_loc = options.filterObjToStr(options.filter);
-
-    if (filter_string_loc !== tableData.filter_string.value) {
-      tableData.filter_string.value = filter_string_loc;
-    }
-
-    // Call a method to load data.
-    // This method should be defined in each component.
-    if (options.loadData) {
-      options.loadData();
-    }
   };
 
   /**
