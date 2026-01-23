@@ -12,15 +12,15 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 17 - Cleanup & Polish (IN PROGRESS)
-**Plan:** 4 of 8 plans complete
+**Plan:** 5 of 8 plans complete
 **Status:** Executing cleanup and optimization
-**Last activity:** 2026-01-23 — Completed 17-04-PLAN.md (Dependency Cleanup & Security)
+**Last activity:** 2026-01-23 — Completed 17-05-PLAN.md (Bundle Size Optimization)
 
 ```
 v3 Frontend Modernization: PHASE 17 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables), Phase 14 (TypeScript), Phase 15 (Testing), Phase 16 (UI/UX Modernization)
-Phase 17 progress: Dependency cleanup complete, 704 packages removed, zero vulnerabilities
-Progress: ███████████████████████████████▓ 53/~57 plans in v3 milestone
+Phase 17 progress: Bundle optimized to 520 KB gzipped (26% of 2MB target), 74.6% headroom
+Progress: ███████████████████████████████▓ 54/~57 plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -226,6 +226,9 @@ See PROJECT.md for full decisions table.
 - Main build script now points to Vite: vue-tsc --noEmit && vite build
 - Zero-tolerance for high/critical production vulnerabilities
 - Package count reduced from 1787 to 1083 (39% reduction) in Phase 17-04
+- Bundle optimization target met: 520 KB gzipped (26% of 2MB limit, 74.6% headroom)
+- Chunk size warning limit set to 500 KB for early bundle bloat detection
+- Viz chunk kept unified (d3, @upsetjs/bundle, gsap) at 84 KB gzipped - optimal for lazy-loading
 
 ## Archive Location
 
@@ -235,8 +238,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 17-04 Dependency Cleanup & Security
+**Stopped at:** Completed 17-05 Bundle Size Optimization
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 17 in progress, 17-04 complete (704 packages removed, zero vulnerabilities, Vite-only scripts)*
+*Last updated: 2026-01-23 — Phase 17 in progress, 17-05 complete (bundle optimized to 520 KB gzipped, 74.6% headroom)*
