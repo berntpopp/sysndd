@@ -144,7 +144,8 @@ export default defineConfig({
     preprocessorOptions: {
       scss: {
         api: 'modern-compiler', // For @use support
-        additionalData: '@use "@/assets/scss/custom.scss" as *;\n',
+        // Note: additionalData removed - was causing circular import in custom.scss
+        // SCSS variables are imported explicitly where needed
       },
     },
   },
