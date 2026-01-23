@@ -31,3 +31,4 @@ export { default as useUrlParsing } from './useUrlParsing.js';
 
 // Table state management
 export { default as useTableData } from './useTableData.js';
+export { default as useTableMethods } from './useTableMethods.js';
