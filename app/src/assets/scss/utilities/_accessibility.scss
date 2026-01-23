@@ -1,0 +1,123 @@
+// Accessibility utilities for WCAG 2.2 Level AA compliance
+// Supports NFR-03 (all sub-requirements) and FR-07.10
+
+// Focus indicators for all interactive elements
+// Modern :focus-visible only shows outline for keyboard navigation
+*:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+  box-shadow: 0 0 0 calc(var(--focus-ring-width) + var(--focus-ring-offset)) rgba(13, 71, 161, 0.15);
+}
+
+// Remove default focus styles for mouse users (but keep for keyboard)
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+// Skip link for keyboard navigation to main content
+// Hidden off-screen by default, visible when focused
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--medical-blue-700);
+  color: white;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  z-index: 9999;
+  border-radius: 0 0 0.25rem 0;
+  transition: top var(--transition-fast);
+
+  &:focus {
+    top: 0;
+    outline: var(--focus-ring-width) solid white;
+    outline-offset: -0.25rem;
+  }
+}
+
+// Screen reader only content
+// Hides content visually but keeps it available for assistive technology
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+// Screen reader only content that becomes visible on focus
+// Useful for skip links and keyboard-only navigation hints
+.sr-only-focusable:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: inherit;
+  margin: inherit;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+// High contrast mode support
+// Increases visibility for users with low vision
+@media (prefers-contrast: more) {
+  :root {
+    // Increase border widths for better visibility
+    --bs-border-width: 2px;
+
+    // Ensure focus ring is more visible
+    --focus-ring-width: 0.375rem;
+  }
+
+  // Increase button and form control borders
+  .btn,
+  .form-control,
+  .form-select,
+  .form-check-input,
+  .card {
+    border-width: 2px !important;
+  }
+
+  // Ensure links are clearly distinguishable
+  a {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+  }
+}
+
+// Link styling for accessibility
+// Links must be distinguishable by more than color alone (WCAG 2.2)
+a:not(.btn):not(.nav-link):not(.dropdown-item) {
+  text-decoration: underline;
+  text-decoration-color: currentColor;
+  text-underline-offset: 0.15em;
+
+  &:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  &:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
+}
+
+// Ensure sufficient color contrast for muted text
+.text-muted,
+.text-secondary {
+  // WCAG AA requires 4.5:1 contrast for normal text
+  // #757575 on white = 4.54:1 (passes)
+  color: var(--neutral-600) !important;
+}
+
+// Reduced motion support (already in _animations.scss, but documenting pattern here)
+// Users who prefer reduced motion should not see animations
+@media (prefers-reduced-motion: reduce) {
+  .skip-link {
+    transition: none;
+  }
+}
