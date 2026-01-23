@@ -13,15 +13,13 @@
       Loading API documentation...
     </div>
     <div
-      id="swagger"
+      id="swagger-ui"
       class="swagger"
     />
   </div>
 </template>
 
 <script>
-import 'swagger-ui/dist/swagger-ui.css';
-
 export default {
   name: 'Swagger',
   data() {
@@ -31,22 +29,44 @@ export default {
     };
   },
   mounted() {
-    this.loadAPIInfo();
+    this.loadSwaggerUI();
   },
   methods: {
-    async loadAPIInfo() {
+    loadSwaggerUI() {
+      // Load Swagger UI CSS
+      const cssLink = document.createElement('link');
+      cssLink.rel = 'stylesheet';
+      cssLink.href = 'https://unpkg.com/swagger-ui-dist@5.31.0/swagger-ui.css';
+      document.head.appendChild(cssLink);
+
+      // Load Swagger UI Bundle
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/swagger-ui-dist@5.31.0/swagger-ui-bundle.js';
+      script.onload = () => {
+        this.initSwagger();
+      };
+      script.onerror = () => {
+        this.error = 'Failed to load API documentation. Please try refreshing the page.';
+        this.loading = false;
+      };
+      document.head.appendChild(script);
+    },
+    initSwagger() {
       try {
-        // Dynamic import to avoid bundling issues
-        const SwaggerUI = (await import('swagger-ui')).default;
         const apiURL = `${import.meta.env.VITE_API_URL}/api/admin/openapi.json`;
-        SwaggerUI({
-          dom_id: '#swagger',
+        // eslint-disable-next-line no-undef
+        SwaggerUIBundle({
+          dom_id: '#swagger-ui',
           url: apiURL,
           docExpansion: 'none',
+          presets: [
+            // eslint-disable-next-line no-undef
+            SwaggerUIBundle.presets.apis,
+          ],
         });
         this.loading = false;
       } catch (err) {
-        console.error('Failed to load Swagger UI:', err);
+        console.error('Failed to initialize Swagger UI:', err);
         this.error = 'Failed to load API documentation. Please try refreshing the page.';
         this.loading = false;
       }
