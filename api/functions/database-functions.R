@@ -427,11 +427,10 @@ put_post_db_pub_con <- function(request_method,
         port = dw$port
         )
 
-      # delete old publication connections for review_id
+      # delete old publication connections for review_id (parameterized)
       dbExecute(sysndd_db,
-        paste0("DELETE FROM ndd_review_publication_join WHERE review_id = ",
-        review_id,
-        ";")
+        "DELETE FROM ndd_review_publication_join WHERE review_id = ?",
+        params = list(review_id)
         )
 
       # submit publications from new review to database
@@ -551,12 +550,10 @@ put_post_db_phen_con <- function(request_method,
 
       # used to delete the old phenotype
       # connections for review_id here (until 2022-06-10)
-      # changed to inactivation
+      # changed to inactivation (parameterized)
       dbExecute(sysndd_db,
-        paste0("DELETE FROM ndd_review_phenotype_connect ",
-        "WHERE review_id = ",
-        review_id,
-        ";")
+        "DELETE FROM ndd_review_phenotype_connect WHERE review_id = ?",
+        params = list(review_id)
         )
 
       # submit phenotypes from new review to database
@@ -678,12 +675,10 @@ put_post_db_var_ont_con <- function(request_method,
         port = dw$port
         )
 
-      # delete old variation ontology connections for review_id first
+      # delete old variation ontology connections for review_id first (parameterized)
       dbExecute(sysndd_db,
-        paste0("DELETE FROM ndd_review_variation_ontology_connect ",
-        "WHERE review_id = ",
-        review_id,
-        ";")
+        "DELETE FROM ndd_review_variation_ontology_connect WHERE review_id = ?",
+        params = list(review_id)
         )
 
       # submit variation ontology terms from new review to database
