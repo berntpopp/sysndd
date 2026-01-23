@@ -1,18 +1,13 @@
 <template>
   <div class="container-fluid bg-gradient">
-    <b-container fluid>
-      <b-row class="justify-content-md-center py-2">
-        <b-col md="12">
-          <b-tab
-            title="Pheno-Func Correlation"
-            active
-          >
-            <!-- Use the child component here -->
-            <AnalysesPhenotypeFunctionalCorrelation />
-          </b-tab>
-        </b-col>
-      </b-row>
-    </b-container>
+    <BContainer fluid>
+      <BRow class="justify-content-md-center py-2">
+        <BCol md="12">
+          <!-- Use the child component here -->
+          <AnalysesPhenotypeFunctionalCorrelation />
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 

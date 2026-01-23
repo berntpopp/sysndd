@@ -1,22 +1,15 @@
 <template>
   <div class="container-fluid bg-gradient">
-    <b-container fluid>
-      <b-row class="justify-content-md-center py-2">
-        <b-col
+    <BContainer fluid>
+      <BRow class="justify-content-md-center py-2">
+        <BCol
           col
           md="12"
         >
-          <div>
-            <b-tab
-              title="Entities over time"
-              active
-            >
-              <AnalysesTimePlot />
-            </b-tab>
-          </div>
-        </b-col>
-      </b-row>
-    </b-container>
+          <AnalysesTimePlot />
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 

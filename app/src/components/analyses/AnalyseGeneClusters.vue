@@ -1,8 +1,8 @@
 <!-- src/components/analyses/AnalyseGeneClusters.vue -->
 <template>
-  <b-container fluid>
+  <BContainer fluid>
     <!-- Main card -->
-    <b-card
+    <BCard
       header-tag="header"
       body-class="p-0"
       header-class="p-1"
@@ -18,15 +18,15 @@
             >
               gene clusters
             </mark>.
-            <b-badge
+            <BBadge
               id="popover-badge-help-geneclusters"
               pill
               href="#"
               variant="info"
             >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
-            <b-popover
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
+            <BPopover
               target="popover-badge-help-geneclusters"
               variant="info"
               triggers="focus"
@@ -36,7 +36,7 @@
               </template>
               This section provides insights into gene clusters that are enriched based on their functional annotations.
               Users can explore various clusters/subclusters, and analyze the associated genes and their properties.
-            </b-popover>
+            </BPopover>
           </h6>
           <DownloadImageButtons
             :svg-id="'gene_cluster_dataviz-svg'"
@@ -46,10 +46,10 @@
       </template>
 
       <!-- ROW: LEFT = Graph, RIGHT = Table -->
-      <b-row>
+      <BRow>
         <!-- LEFT COLUMN (Graph) -->
-        <b-col md="4">
-          <b-card
+        <BCol md="4">
+          <BCard
             header-tag="header"
             class="my-3 mx-2 text-start"
             body-class="p-0"
@@ -58,8 +58,8 @@
             border-variant="dark"
           >
             <template #header>
-              <b-row>
-                <b-col>
+              <BRow>
+                <BCol>
                   <h6 class="mb-0 font-weight-bold">
                     Selected
                     {{ selectType === 'clusters' ? 'cluster' : 'subcluster' }}
@@ -69,33 +69,32 @@
                         : selectedCluster.parent_cluster + '.' + selectedCluster.cluster
                     }}
                     with
-                    <b-badge variant="success">
+                    <BBadge variant="success">
                       {{ selectedCluster.cluster_size }} genes
-                    </b-badge>
+                    </BBadge>
                   </h6>
-                </b-col>
-                <b-col>
-                  <b-input-group
+                </BCol>
+                <BCol>
+                  <BInputGroup
                     prepend="Select"
                     class="mb-1 text-end"
                     size="sm"
                   >
-                    <b-form-select
+                    <BFormSelect
                       v-model="selectType"
                       :options="selectOptions"
-                      type="search"
                       size="sm"
                     />
-                  </b-input-group>
-                </b-col>
-              </b-row>
+                  </BInputGroup>
+                </BCol>
+              </BRow>
             </template>
 
             <div
               id="gene_cluster_dataviz"
               class="svg-container"
             >
-              <b-spinner
+              <BSpinner
                 v-if="loading"
                 label="Loading..."
                 class="spinner"
@@ -106,16 +105,16 @@
             </div>
 
             <template #footer>
-              <b-link :href="'/Entities/?filter=' + selectedCluster.hash_filter">
+              <BLink :href="'/Entities/?filter=' + selectedCluster.hash_filter">
                 Genes for cluster {{ selectedCluster.cluster }}
-              </b-link>
+              </BLink>
             </template>
-          </b-card>
-        </b-col>
+          </BCard>
+        </BCol>
 
         <!-- RIGHT COLUMN (Table) -->
-        <b-col md="8">
-          <b-card
+        <BCol md="8">
+          <BCard
             header-tag="header"
             class="my-3 mx-2 text-start"
             body-class="p-0"
@@ -125,26 +124,25 @@
             <!-- TABLE HEADER (Table type, Search input, etc.) -->
             <template #header>
               <div class="mb-0 font-weight-bold">
-                <b-row>
-                  <b-col
+                <BRow>
+                  <BCol
                     sm="6"
                     class="mb-1"
                   >
                     <!-- Table type selector (term_enrichment vs. identifiers) -->
-                    <b-input-group
+                    <BInputGroup
                       prepend="Table type"
                       size="sm"
                     >
-                      <b-form-select
+                      <BFormSelect
                         v-model="tableType"
                         :options="tableOptions"
-                        type="search"
                         size="sm"
                       />
-                    </b-input-group>
-                  </b-col>
+                    </BInputGroup>
+                  </BCol>
 
-                  <b-col
+                  <BCol
                     sm="6"
                     class="mb-1 text-end"
                   >
@@ -155,12 +153,12 @@
                       :debounce-time="500"
                       @input="onFilterChange"
                     />
-                  </b-col>
-                </b-row>
+                  </BCol>
+                </BRow>
               </div>
             </template>
 
-            <b-card-text class="text-start">
+            <BCardText class="text-start">
               <!-- GenericTable for main table content -->
               <GenericTable
                 :items="displayedItems"
@@ -175,7 +173,7 @@
                     v-for="field in fieldsComputed"
                     :key="field.key"
                   >
-                    <b-form-input
+                    <BFormInput
                       v-if="field.key !== 'details'"
                       v-model="filter[field.key].content"
                       :placeholder="'Filter ' + field.label"
@@ -189,21 +187,21 @@
                 <template #cell-category="{ row }">
                   <!-- Render only if tableType === 'term_enrichment' -->
                   <div v-if="tableType === 'term_enrichment'">
-                    <b-badge
+                    <BBadge
                       v-b-tooltip.hover.rightbottom
                       variant="light"
-                      :style="'border-color: ' + (category_style[row.category] || category_style.default) + '; border-width: medium;'"
+                      :style="'border-color: ' + (clusterCategoryStyle[row.category] || clusterCategoryStyle.default) + '; border-width: medium;'"
                       :title="row.category"
                     >
                       {{ findCategoryText(row.category) }}
-                    </b-badge>
+                    </BBadge>
                   </div>
                 </template>
 
                 <template #cell-number_of_genes="{ row }">
-                  <b-badge variant="info">
+                  <BBadge variant="info">
                     {{ row['number_of_genes'] }}
-                  </b-badge>
+                  </BBadge>
                 </template>
 
                 <!-- fdr cell -->
@@ -215,9 +213,9 @@
                     class="overflow-hidden text-truncate"
                     :title="row.fdr != null ? Number(row.fdr).toFixed(10) : ''"
                   >
-                    <b-badge variant="warning">
+                    <BBadge variant="warning">
                       {{ row.fdr }}
-                    </b-badge>
+                    </BBadge>
                   </div>
                 </template>
 
@@ -225,7 +223,7 @@
                 <template #cell-description="{ row }">
                   <!-- Render only if tableType === 'term_enrichment' -->
                   <div v-if="tableType === 'term_enrichment'">
-                    <b-button
+                    <BButton
                       v-b-tooltip.hover.leftbottom
                       class="btn-xs mx-2"
                       variant="outline-primary"
@@ -233,12 +231,9 @@
                       :title="row.term"
                       target="_blank"
                     >
-                      <b-icon
-                        icon="box-arrow-up-right"
-                        font-scale="0.8"
-                      />
+                      <i class="bi bi-box-arrow-up-right" />
                       {{ row.description }}
-                    </b-button>
+                    </BButton>
                   </div>
                 </template>
 
@@ -249,16 +244,16 @@
                     v-if="tableType === 'identifiers'"
                     class="font-italic"
                   >
-                    <b-link :href="'/Genes/' + row.hgnc_id">
-                      <b-badge
+                    <BLink :href="'/Genes/' + row.hgnc_id">
+                      <BBadge
                         v-b-tooltip.hover.leftbottom
                         pill
                         variant="success"
                         :title="row.hgnc_id"
                       >
                         {{ row.symbol }}
-                      </b-badge>
-                    </b-link>
+                      </BBadge>
+                    </BLink>
                   </div>
                 </template>
 
@@ -269,25 +264,22 @@
                     v-if="tableType === 'identifiers'"
                     class="overflow-hidden text-truncate"
                   >
-                    <b-button
+                    <BButton
                       class="btn-xs mx-2"
                       variant="outline-primary"
                       :href="'https://string-db.org/network/' + row.STRING_id"
                       target="_blank"
                     >
-                      <b-icon
-                        icon="box-arrow-up-right"
-                        font-scale="0.8"
-                      />
+                      <i class="bi bi-box-arrow-up-right" />
                       {{ row.STRING_id }}
-                    </b-button>
+                    </BButton>
                   </div>
                 </template>
               </GenericTable>
 
               <!-- OPTIONAL bottom pagination controls -->
-              <b-row class="justify-content-end">
-                <b-col
+              <BRow class="justify-content-end">
+                <BCol
                   cols="12"
                   md="auto"
                   class="my-1"
@@ -299,14 +291,14 @@
                     @page-change="handlePageChange"
                     @per-page-change="handlePerPageChange"
                   />
-                </b-col>
-              </b-row>
-            </b-card-text>
-          </b-card>
-        </b-col>
-      </b-row>
-    </b-card>
-  </b-container>
+                </BCol>
+              </BRow>
+            </BCardText>
+          </BCard>
+        </BCol>
+      </BRow>
+    </BCard>
+  </BContainer>
 </template>
 
 <script>
@@ -341,10 +333,10 @@ export default {
       },
 
       /*
-       * If you color badges by category, define category_style object here
-       * with fallback "default" color
+       * If you color badges by category, define clusterCategoryStyle object here
+       * with fallback "default" color (renamed to avoid conflict with mixin's category_style)
        */
-      category_style: {
+      clusterCategoryStyle: {
         GO: '#AA00AA',
         KEGG: '#AA5500',
         MONDO: '#0088AA',
