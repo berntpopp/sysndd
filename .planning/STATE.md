@@ -12,15 +12,15 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 17 - Cleanup & Polish (IN PROGRESS)
-**Plan:** 2 of 8 plans complete
+**Plan:** 3 of 8 plans complete
 **Status:** Executing cleanup and optimization
-**Last activity:** 2026-01-23 — Completed 17-02-PLAN.md (Remove Vue 2 Compatibility Layer)
+**Last activity:** 2026-01-23 — Completed 17-03-PLAN.md (Remove Global Component Registration)
 
 ```
 v3 Frontend Modernization: PHASE 17 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables), Phase 14 (TypeScript), Phase 15 (Testing), Phase 16 (UI/UX Modernization)
-Phase 17 progress: Vue 2 compat removed, pure Vue 3 application (492 KB gzipped baseline)
-Progress: ███████████████████████████████▓ 51/~57 plans in v3 milestone
+Phase 17 progress: Global component registration removed, explicit imports for tree-shaking
+Progress: ███████████████████████████████▓ 52/~57 plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -216,6 +216,9 @@ See PROJECT.md for full decisions table.
 - Removed @vue/compat compatibility layer completely for pure Vue 3 operation
 - Used --legacy-peer-deps for @vue/compat removal (peer dep conflicts with legacy Vue CLI plugins)
 - Pre-existing test failures (23 tests) confirmed unrelated to Vue 2 compat removal
+- Removed global component registration pattern in favor of explicit imports
+- Component imports in script section with components: {} registration for clarity
+- Keep Bootstrap-Vue-Next as global (framework components) but custom components explicit
 
 ## Archive Location
 
@@ -225,8 +228,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 17-02 Remove Vue 2 Compatibility Layer
+**Stopped at:** Completed 17-03 Remove Global Component Registration
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 17 in progress, 17-02 complete (Vue 2 compat removed, pure Vue 3 application)*
+*Last updated: 2026-01-23 — Phase 17 in progress, 17-03 complete (Global component registration removed, explicit imports for tree-shaking)*
