@@ -43,12 +43,21 @@ Requirements for v4 Backend Overhaul. Each maps to roadmap phases.
 
 ### OMIM Data Migration
 
-- [ ] **OMIM-01**: mim2gene.txt integration implemented (replaces genemap2 dependency)
-- [ ] **OMIM-02**: MONDO integration enhanced for disease name lookup
-- [ ] **OMIM-03**: HPO annotation files integrated for phenotype links
+- [ ] **OMIM-01**: mim2gene.txt integration for MIM-to-gene mappings (filtered for phenotype entries)
+- [ ] **OMIM-02**: JAX ontology API integration for OMIM disease names
+  - Endpoint: `https://ontology.jax.org/api/network/annotation/OMIM:{mim_number}`
+  - Returns disease name, description, phenotypes, genes
+  - Caching strategy for API responses (rate limiting consideration)
+- [ ] **OMIM-03**: OMIM disease names preserved (NOT replaced by MONDO names)
 - [ ] **OMIM-04**: Data completeness validation before database writes
 - [ ] **OMIM-05**: ManageAnnotations view updated for new data sources
 - [ ] **OMIM-06**: Fallback strategy for missing disease names documented
+
+### MONDO Equivalence (Optional Enhancement)
+
+- [ ] **MONDO-01**: MONDO-to-OMIM equivalence mapping stored
+- [ ] **MONDO-02**: Curation interface to view/assign MONDO equivalents
+- [ ] **MONDO-03**: Existing MONDO integration preserved for cross-ontology queries
 
 ### Architecture Refactoring
 
@@ -206,6 +215,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | OMIM-04 | Phase 23 | Pending |
 | OMIM-05 | Phase 23 | Pending |
 | OMIM-06 | Phase 23 | Pending |
+| MONDO-01 | Phase 23 | Pending |
+| MONDO-02 | Phase 23 | Pending |
+| MONDO-03 | Phase 23 | Pending |
 | PAG-01 | Phase 24 | Pending |
 | PAG-02 | Phase 24 | Pending |
 | PAG-03 | Phase 24 | Pending |
@@ -222,8 +234,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TEST-05 | Phase 24 | Pending |
 
 **Coverage:**
-- v4 requirements: 68 total
-- Mapped to phases: 68
+- v4 requirements: 71 total
+- Mapped to phases: 71
 - Unmapped: 0
 
 ## Reference APIs

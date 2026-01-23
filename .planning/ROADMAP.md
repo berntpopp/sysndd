@@ -101,14 +101,15 @@ Plans:
 - [ ] 22-01: TBD (to be determined during planning)
 
 ### Phase 23: OMIM Migration
-**Goal**: OMIM annotations work without genemap2 dependency
+**Goal**: OMIM annotations work without genemap2 dependency, with OMIM disease names preserved
 **Depends on**: Phase 22 (Service Layer & Middleware)
-**Requirements**: OMIM-01, OMIM-02, OMIM-03, OMIM-04, OMIM-05, OMIM-06
+**Requirements**: OMIM-01, OMIM-02, OMIM-03, OMIM-04, OMIM-05, OMIM-06, MONDO-01, MONDO-02, MONDO-03
 **Success Criteria** (what must be TRUE):
-  1. OMIM annotation update succeeds using mim2gene.txt
-  2. Disease names retrieved from MONDO integration
+  1. OMIM annotation update succeeds using mim2gene.txt for gene mappings
+  2. OMIM disease names retrieved from JAX ontology API (not replaced by MONDO)
   3. Data completeness validated before database writes (no empty critical fields)
   4. ManageAnnotations admin view works with new data sources
+  5. MONDO equivalence available in curation interface (optional enhancement)
 **Plans**: TBD
 
 Plans:
@@ -146,20 +147,21 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 
 ## Coverage Summary
 
-**v4 Requirements:** 68 total
-**Mapped to phases:** 68
+**v4 Requirements:** 71 total
+**Mapped to phases:** 71
 **Unmapped:** 0
 
 | Category | Count | Phase |
 |----------|-------|-------|
 | Foundation (FOUND) | 6 | Phase 18 |
-| Security (SEC) | 7 | Phase 19 |
+| Security (SEC) | 8 | Phase 19 |
 | Error Handling (ERR) | 4 | Phase 19 |
 | Async (ASYNC) | 6 | Phase 20 |
 | Architecture (ARCH-01 to ARCH-10) | 10 | Phase 21 |
 | Architecture (ARCH-11 to ARCH-20) | 10 | Phase 22 |
 | Quality Assurance (QA) | 5 | Phase 22 |
 | OMIM | 6 | Phase 23 |
+| MONDO (optional) | 3 | Phase 23 |
 | Pagination (PAG) | 5 | Phase 24 |
 | Versioning (VER) | 4 | Phase 24 |
 | Testing (TEST) | 5 | Phase 24 |
