@@ -434,6 +434,22 @@ root <- pr() %>%
   pr_hook("postroute", function(req, res) {
     end <- tictoc::toc(quiet = TRUE)
 
+    # Sanitize the request before logging
+    safe_req <- sanitize_request(req)
+
+    # For postBody, extract and sanitize if present
+    safe_post_body <- if (!is.null(req$postBody) && nchar(req$postBody) > 0) {
+      tryCatch({
+        body_parsed <- jsonlite::fromJSON(req$postBody, simplifyVector = FALSE)
+        body_sanitized <- sanitize_object(body_parsed)
+        jsonlite::toJSON(body_sanitized, auto_unbox = TRUE)
+      }, error = function(e) {
+        "[PARSE_ERROR]"
+      })
+    } else {
+      convert_empty(req$postBody)
+    }
+
     log_entry <- paste(
       convert_empty(req$REMOTE_ADDR),
       convert_empty(req$HTTP_USER_AGENT),
@@ -441,7 +457,7 @@ root <- pr() %>%
       convert_empty(req$REQUEST_METHOD),
       convert_empty(req$PATH_INFO),
       convert_empty(req$QUERY_STRING),
-      convert_empty(req$postBody),
+      safe_post_body,
       convert_empty(res$status),
       round(end$toc - end$tic, digits = getOption("digits", 5)),
       sep = ";",
@@ -449,7 +465,7 @@ root <- pr() %>%
     )
     log_info(skip_formatter(log_entry))
 
-    # Write log entry to DB
+    # Write log entry to DB with sanitized data
     log_message_to_db(
       address         = convert_empty(req$REMOTE_ADDR),
       agent           = convert_empty(req$HTTP_USER_AGENT),
@@ -457,7 +473,7 @@ root <- pr() %>%
       request_method  = convert_empty(req$REQUEST_METHOD),
       path            = convert_empty(req$PATH_INFO),
       query           = convert_empty(req$QUERY_STRING),
-      post            = convert_empty(req$postBody),
+      post            = safe_post_body,
       status          = convert_empty(res$status),
       duration        = round(end$toc - end$tic, digits = getOption("digits", 5)),
       file            = logging_temp_file,

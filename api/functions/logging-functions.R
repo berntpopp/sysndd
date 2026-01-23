@@ -130,6 +130,9 @@ convert_empty <- function(string) {
 #' @description
 #' `log_message_to_db` logs a message to the specified database logging table.
 #' This function connects to the database, inserts the log message, and then disconnects.
+#' Uses parameterized queries to prevent SQL injection.
+#' Note: The post body should already be sanitized before calling this function
+#' to prevent sensitive data (passwords, tokens) from being logged.
 #'
 #' @param address A character string containing the IP address.
 #' @param agent A character string containing the user agent.
@@ -137,14 +140,14 @@ convert_empty <- function(string) {
 #' @param request_method A character string containing the request method.
 #' @param path A character string containing the path.
 #' @param query A character string containing the query string.
-#' @param post A character string containing the post body.
+#' @param post A character string containing the post body (should be pre-sanitized).
 #' @param status A character string containing the response status.
 #' @param duration A numeric value containing the request duration.
 #' @param file A character string containing the log file name.
-#' @param modified A character string containing the last modified time.
+#' @param modified A POSIXct or character string containing the last modified time.
 #'
 #' @examples
-#' log_message_to_db("127.0.0.1", "user_agent", "localhost", "GET", "/path", "query", "post_body", "200", 0.123, "logfile.log", "2024-07-07 12:34:56")
+#' log_message_to_db("127.0.0.1", "user_agent", "localhost", "GET", "/path", "query", "post_body", "200", 0.123, "logfile.log", Sys.time())
 #'
 #' @export
 log_message_to_db <- function(address, agent, host, request_method, path, query, post, status, duration, file, modified) {
@@ -156,10 +159,23 @@ log_message_to_db <- function(address, agent, host, request_method, path, query,
                      password = dw$password,
                      host = dw$host,
                      port = dw$port)
-    query <- sprintf("INSERT INTO logging (timestamp, address, agent, host, request_method, path, query, post, status, duration, file, modified) VALUES (NOW(), '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', %f, '%s', '%s')",
-                     address, agent, host, request_method, path, query, post, status, duration, file, modified)
 
-    dbExecute(con, query)
+    # Use parameterized query to prevent SQL injection
+    sql <- "INSERT INTO logging (timestamp, address, agent, host, request_method, path, query, post, status, duration, file, modified) VALUES (NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+
+    dbExecute(con, sql, params = list(
+      address,
+      agent,
+      host,
+      request_method,
+      path,
+      query,
+      post,
+      status,
+      duration,
+      file,
+      as.character(modified)
+    ))
   }, error = function(e) {
     warning(sprintf("Failed to log message to database: %s", e$message))
   }, finally = {
