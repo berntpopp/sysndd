@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 14 - TypeScript Introduction (IN PROGRESS)
-**Plan:** 10 of TBD plans complete
+**Plan:** 11 of TBD plans complete
 **Status:** In progress
-**Last activity:** 2026-01-23 — Completed 14-10-PLAN.md (Fix API URL Double Prefix)
+**Last activity:** 2026-01-23 — Completed 14-09-PLAN.md (Composables TypeScript Conversion)
 
 ```
 v3 Frontend Modernization: PHASE 14 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables)
-Phase 14 (TypeScript Introduction): 10 plans complete (Infrastructure, Types, Constants, Services, Router, Linting, Pre-commit, main.ts fix, API URL verification gaps)
-Last completed: 14-10 Fix API URL Double Prefix (Corrected environment configuration eliminating double /api/api/ prefix)
-Progress: █████████████████████░ 32/TBD plans in v3 milestone
+Phase 14 (TypeScript Introduction): 11 plans complete (Infrastructure, Types, Constants, Services, Router, Linting, Pre-commit, main.ts fix, Composables conversion, API URL verification gaps)
+Last completed: 14-09 Composables TypeScript Conversion (All 10 composables converted to TypeScript with explicit types)
+Progress: █████████████████████░ 33/TBD plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -143,6 +143,10 @@ See PROJECT.md for full decisions table.
 - Separate lint-staged rules: TS/Vue get ESLint+Prettier, other files Prettier only
 - Type assertion (as Component) for Bootstrap-Vue-Next component registration (BFormDatalist generic slot types)
 - Environment variables contain base URL only, code adds /api/ prefix for consistency
+- ColorAndSymbols interface uses Record<string | number, string> for flexible style mappings
+- FilterField interface defines content as string | string[] | null for flexible filtering
+- TableDataState exported as type for component usage (dependency injection pattern)
+- ScrollbarControls types scrollRef as Ref<{ update: () => void }> | null for optional usage
 
 ## Archive Location
 
@@ -152,8 +156,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 14-10-PLAN.md (Fix API URL Double Prefix)
+**Stopped at:** Completed 14-09-PLAN.md (Composables TypeScript Conversion)
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 14 in progress (10/TBD plans: Infrastructure, types, constants, services, router, linting, pre-commit, main.ts fix, API URL gaps complete)*
+*Last updated: 2026-01-23 — Phase 14 in progress (11/TBD plans: Infrastructure, types, constants, services, router, linting, pre-commit, main.ts fix, composables conversion, API URL gaps complete)*
