@@ -1,0 +1,106 @@
+// Enhanced table styling for medical database application
+// Includes zebra striping, row hover, and improved border styling
+
+:root {
+  // Table background colors (subtle per CONTEXT.md)
+  --bs-table-striped-bg: rgba(0, 0, 0, 0.02); // Very subtle zebra striping
+  --bs-table-hover-bg: rgba(13, 71, 161, 0.05); // Medical blue at 5% for row hover
+
+  // Table border colors
+  --table-border-color: rgba(0, 0, 0, 0.08); // Softer than default Bootstrap
+  --table-header-border: rgba(0, 0, 0, 0.12); // Slightly stronger for header bottom
+}
+
+// Base table styling enhancements
+.table {
+  // Softer borders throughout
+  border-color: var(--table-border-color);
+
+  // Remove double borders between cells
+  > :not(caption) > * > * {
+    border-bottom-width: 1px;
+    border-color: var(--table-border-color);
+  }
+
+  // Table headers - enhanced styling
+  thead {
+    th {
+      font-weight: 600;
+      border-bottom: 2px solid var(--table-header-border);
+      vertical-align: middle;
+    }
+  }
+
+  // Light header variant (commonly used in application)
+  .thead-light th {
+    background-color: var(--neutral-100);
+    color: var(--neutral-900);
+  }
+}
+
+// Zebra striping (subtle alternating row colors)
+.table-striped {
+  > tbody > tr:nth-of-type(odd) > * {
+    background-color: var(--bs-table-striped-bg);
+  }
+}
+
+// Row hover state (subtle highlight for tracking across wide tables)
+.table-hover {
+  > tbody > tr {
+    transition: background-color var(--transition-fast);
+
+    &:hover > * {
+      background-color: var(--bs-table-hover-bg);
+    }
+  }
+}
+
+// Combined striped + hover: ensure hover takes precedence
+.table-striped.table-hover {
+  > tbody > tr:hover > * {
+    background-color: var(--bs-table-hover-bg);
+  }
+}
+
+// Compact table variant for data-heavy views
+// Use on genes, entities tables where density is important
+.table-compact {
+  th,
+  td {
+    padding: 0.375rem 0.5rem; // Tighter than Bootstrap default (0.5rem 0.75rem)
+    font-size: 0.875rem; // Slightly smaller text
+  }
+
+  // Even tighter header padding
+  thead th {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+}
+
+// Table container with border radius
+.table-responsive,
+.table-container {
+  border-radius: var(--border-radius-base);
+  overflow: hidden; // Ensures border-radius applies to inner table
+}
+
+// Bordered tables - refine border styling
+.table-bordered {
+  border-color: var(--table-border-color);
+
+  > :not(caption) > * {
+    border-width: 1px;
+    border-color: var(--table-border-color);
+  }
+
+  > :not(caption) > * > * {
+    border-width: 0 1px;
+    border-color: var(--table-border-color);
+  }
+}
+
+// WCAG 2.2 NFR-03.6: Respect reduced motion preferences
+// Transitions already use var(--transition-fast) which becomes 0.01ms with prefers-reduced-motion
+// No additional overrides needed
