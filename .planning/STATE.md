@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 14 - TypeScript Introduction (IN PROGRESS)
-**Plan:** 7 of TBD plans complete
+**Plan:** 8 of TBD plans complete
 **Status:** In progress
-**Last activity:** 2026-01-23 — Completed 14-07-PLAN.md (Pre-commit Hooks Setup)
+**Last activity:** 2026-01-23 — Completed 14-08-PLAN.md (TypeScript main.ts Type Error Fix)
 
 ```
 v3 Frontend Modernization: PHASE 14 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables)
-Phase 14 (TypeScript Introduction): 7 plans complete (Infrastructure, Types, Constants, Services, Router, Linting, Pre-commit)
-Last completed: 14-07 Pre-commit Hooks Setup (Husky 9 + lint-staged for automated code quality)
-Progress: █████████████████████░ 29/TBD plans in v3 milestone
+Phase 14 (TypeScript Introduction): 8 plans complete (Infrastructure, Types, Constants, Services, Router, Linting, Pre-commit, main.ts fix)
+Last completed: 14-08 TypeScript main.ts Type Error Fix (Type-safe component registration)
+Progress: █████████████████████░ 30/TBD plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -141,6 +141,7 @@ See PROJECT.md for full decisions table.
 - Husky 9 pre-commit hooks with lint-staged for automated code quality
 - --max-warnings=50 during TypeScript migration allows commits while fixing warnings
 - Separate lint-staged rules: TS/Vue get ESLint+Prettier, other files Prettier only
+- Type assertion (as Component) for Bootstrap-Vue-Next component registration (BFormDatalist generic slot types)
 
 ## Archive Location
 
@@ -150,8 +151,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 14-07-PLAN.md (Pre-commit Hooks Setup)
+**Stopped at:** Completed 14-08-PLAN.md (TypeScript main.ts Type Error Fix)
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 14 in progress (7/TBD plans: Infrastructure, types, constants, services, router, linting, pre-commit complete)*
+*Last updated: 2026-01-23 — Phase 14 in progress (8/TBD plans: Infrastructure, types, constants, services, router, linting, pre-commit, main.ts fix complete)*
