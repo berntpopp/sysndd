@@ -223,23 +223,23 @@ export const routes = [
   },
   {
     path: '/PubtatorNDD',
-    component: () => import('@/views/analyses/PubtatorNDD.vue' ),
+    component: () => import('@/views/analyses/PubtatorNDD.vue'),
     // Example children: your table, genes, stats, etc. Expand as needed:
     children: [
       {
         path: '',
         name: 'PubtatorNDDTable',
-        component: () => import('@/components/analyses/PubtatorNDDTable.vue' ),
+        component: () => import('@/components/analyses/PubtatorNDDTable.vue'),
       },
       {
         path: 'PubtatorNDDGenes',
         name: 'PubtatorNDDGenes',
-        component: () => import('@/components/analyses/PubtatorNDDGenes.vue' ),
+        component: () => import('@/components/analyses/PubtatorNDDGenes.vue'),
       },
       {
         path: 'Stats',
         name: 'PubtatorNDDStats',
-        component: () => import('@/components/analyses/PubtatorNDDStats.vue' ),
+        component: () => import('@/components/analyses/PubtatorNDDStats.vue'),
       },
     ],
     meta: {
