@@ -103,41 +103,28 @@ Plans:
 
 **Requirements:** FR-03 (all), NFR-02 (Performance), NFR-01 (SOLID SRP)
 
-### Plans
+**Plans:** 6 plans in 4 waves
 
-#### 12-01: Vite Installation and Configuration
-- Install vite, @vitejs/plugin-vue
-- Create vite.config.ts
-- Configure path aliases (@/*)
-- Configure dev server proxy
+Plans:
+- [ ] 12-01-PLAN.md — Vite installation and configuration (Wave 1)
+- [ ] 12-02-PLAN.md — Index.html migration (Wave 2)
+- [ ] 12-03-PLAN.md — Environment variable migration (Wave 2)
+- [ ] 12-04-PLAN.md — Import updates and webpack removal (Wave 2)
+- [ ] 12-05-PLAN.md — Docker integration (Wave 3)
+- [ ] 12-06-PLAN.md — Verification and testing (Wave 4)
 
-#### 12-02: Project Structure Updates
-- Move index.html to project root
-- Update script tags for Vite
-- Add .vue extensions to all component imports
-- Remove webpack magic comments
+### Wave Structure
 
-#### 12-03: Environment Variable Migration
-- Rename VUE_APP_* to VITE_*
-- Update .env files
-- Update all Sys.getenv references
-- Update Dockerfile for new env vars
-
-#### 12-04: Build Configuration
-- Configure production build
-- Set up code splitting (vendor, bootstrap-vue chunks)
-- Configure sourcemaps
-- Test production build
-
-#### 12-05: Docker Integration
-- Update app/Dockerfile for Vite
-- Update app/Dockerfile.dev for dev server
-- Test docker-compose.dev.yml with Vite
-- Verify hot reload works in Docker
+| Wave | Plans | Dependencies |
+|------|-------|--------------|
+| 1 | 12-01 | None (foundation) |
+| 2 | 12-02, 12-03, 12-04 | 12-01 (parallel execution) |
+| 3 | 12-05 | 12-01, 12-02, 12-03, 12-04 |
+| 4 | 12-06 | 12-05 |
 
 ### Success Criteria
-- Vite dev server starts < 2 seconds
-- HMR works correctly
+- Vite dev server starts < 5 seconds
+- HMR works correctly in Docker
 - Production build succeeds
 - Docker builds work
 - All environment variables work
