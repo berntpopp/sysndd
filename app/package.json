@@ -18,7 +18,11 @@
     "build:docker": "vite build --mode docker",
     "build:production": "vite build --mode production",
     "type-check": "vue-tsc --noEmit",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test:unit": "vitest run",
+    "test:watch": "vitest watch",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
