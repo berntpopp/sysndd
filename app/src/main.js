@@ -29,10 +29,6 @@ import './assets/scss/custom.scss';
 import VueAxios from 'vue-axios';
 import axios from 'axios';
 
-// import perfect-scrollbar
-import PerfectScrollbar from 'vue2-perfect-scrollbar';
-import 'vue2-perfect-scrollbar/dist/vue2-perfect-scrollbar.css';
-
 import App from './App.vue';
 
 // import router
@@ -66,8 +62,6 @@ configureCompat({
 Vue.use(BootstrapVue);
 Vue.use(BootstrapVueIcons);
 Vue.use(ToastPlugin);
-
-Vue.use(PerfectScrollbar);
 
 Vue.component('Navbar', require('./components/Navbar.vue').default);
 

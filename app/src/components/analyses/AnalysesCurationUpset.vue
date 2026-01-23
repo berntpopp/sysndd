@@ -73,34 +73,33 @@
           label="Loading..."
           class="spinner"
         />
-        <div v-else>
-          <UpSetJS
-            id="comparisons-upset-svg"
-            :sets="sets"
-            :width="width"
-            :height="height"
-            :selection="selection"
-            :style-factory="customStyleFactory"
-            theme="vega"
-            @hover="hover"
-          />
-        </div>
+        <div
+          v-else
+          id="comparisons-upset-svg"
+          ref="upsetContainer"
+          class="upset-container"
+        />
       </div>
     </b-card>
   </b-container>
 </template>
 
 <script>
+import { ref, onMounted, watch, nextTick } from 'vue';
 import toastMixin from '@/assets/js/mixins/toastMixin';
-import UpSetJS, { extractSets, createElement } from '@upsetjs/vue';
+import { render, extractSets, UpSetDarkTheme } from '@upsetjs/bundle';
 import Treeselect from '@r2rka/vue3-treeselect';
 import '@r2rka/vue3-treeselect/dist/vue3-treeselect.css';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 
 export default {
   name: 'AnalysesCurationUpset',
-  components: { Treeselect, UpSetJS, DownloadImageButtons },
+  components: { Treeselect, DownloadImageButtons },
   mixins: [toastMixin],
+  setup() {
+    const upsetContainer = ref(null);
+    return { upsetContainer };
+  },
   data() {
     return {
       elems: [
@@ -135,6 +134,14 @@ export default {
         this.loadComparisonsUpsetData();
       }, 0);
     },
+    sets: {
+      handler() {
+        this.$nextTick(() => {
+          this.renderUpset();
+        });
+      },
+      deep: true,
+    },
   },
   mounted() {
     this.loadOptionsData();
@@ -160,16 +167,28 @@ export default {
         this.makeToast(e, 'Error', 'danger');
       } finally {
         this.loadingUpset = false;
+        this.$nextTick(() => {
+          this.renderUpset();
+        });
       }
     },
-    customStyleFactory(rules) {
-      return createElement(
-        'style',
-        {
-          nonce: '3oyp38ny90lxgbgw9g3o4sumkiim4pww',
+    renderUpset() {
+      if (!this.upsetContainer || this.loadingUpset) {
+        return;
+      }
+
+      const sets = extractSets(this.elems);
+
+      render(this.upsetContainer, {
+        sets,
+        width: this.width,
+        height: this.height,
+        selection: this.selection,
+        theme: 'vega',
+        onHover: (s) => {
+          this.selection = s;
         },
-        rules,
-      );
+      });
     },
     normalizeLists(node) {
       return {
@@ -199,6 +218,10 @@ mark {
   max-width: 1400px;
   vertical-align: top;
   overflow: hidden;
+}
+.upset-container {
+  width: 100%;
+  min-height: 600px;
 }
 .spinner {
   width: 2rem;

@@ -6,14 +6,13 @@
       >
         <Navbar />
       </div>
-      <perfect-scrollbar ref="scroll">
-        <div
-          id="content"
-          class="content-style"
-        >
-          <router-view :key="$route.fullPath" />
-        </div>
-      </perfect-scrollbar>
+      <div
+        id="content"
+        ref="scroll"
+        class="content-style scrollable-content"
+      >
+        <router-view :key="$route.fullPath" />
+      </div>
       <div
         id="footer"
       >
@@ -59,22 +58,15 @@ export default {
   },
   watch: {
     $route() {
-      this.$refs.scroll.$el.scrollTop = 0;
+      if (this.$refs.scroll) {
+        this.$refs.scroll.scrollTop = 0;
+      }
     },
     scrollbarUpdateTrigger: {
       handler() {
-        this.updateScrollbar();
+        // Native scrollbar doesn't need explicit update
+        // This watcher kept for potential future scroll-to-top behavior
       },
-      // No immediate: true - only react to changes after initial render
-    },
-  },
-  methods: {
-    updateScrollbar() {
-      this.$nextTick(() => {
-        if (this.$refs.scroll) {
-          this.$refs.scroll.update();
-        }
-      });
     },
   },
 };
@@ -96,7 +88,28 @@ body {
   overflow: hidden;
 }
 
-.ps {
+// Native scrollbar styling
+.scrollable-content {
   height: calc(100vh - 116px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+// Optional: Custom scrollbar styling for webkit browsers
+.scrollable-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollable-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.scrollable-content::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.scrollable-content::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 </style>
