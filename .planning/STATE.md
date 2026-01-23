@@ -6,21 +6,21 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v3 Frontend Modernization — Phase 16 complete, ready for Phase 17
+**Current focus:** v3 Frontend Modernization — Phase 17 complete
 
 ## Current Position
 
 **Milestone:** v3 Frontend Modernization
-**Phase:** 17 - Cleanup & Polish (IN PROGRESS)
-**Plan:** 5 of 8 plans complete
-**Status:** Executing cleanup and optimization
-**Last activity:** 2026-01-23 — Completed 17-05-PLAN.md (Bundle Size Optimization)
+**Phase:** 17 - Cleanup & Polish (COMPLETE)
+**Plan:** 8 of 8 plans complete
+**Status:** Phase 17 complete, ready for milestone completion
+**Last activity:** 2026-01-23 — Completed 17-08 Documentation Update + mobile UI fixes
 
 ```
-v3 Frontend Modernization: PHASE 17 IN PROGRESS
-Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables), Phase 14 (TypeScript), Phase 15 (Testing), Phase 16 (UI/UX Modernization)
-Phase 17 progress: Bundle optimized to 520 KB gzipped (26% of 2MB target), 74.6% headroom
-Progress: ███████████████████████████████▓ 54/~57 plans in v3 milestone
+v3 Frontend Modernization: PHASE 17 COMPLETE
+Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables), Phase 14 (TypeScript), Phase 15 (Testing), Phase 16 (UI/UX Modernization), Phase 17 (Cleanup & Polish)
+Final bundle: 520 KB gzipped (26% of 2MB target), 74.6% headroom
+Progress: █████████████████████████████████ 57/57 plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -229,6 +229,9 @@ See PROJECT.md for full decisions table.
 - Bundle optimization target met: 520 KB gzipped (26% of 2MB limit, 74.6% headroom)
 - Chunk size warning limit set to 500 KB for early bundle bloat detection
 - Viz chunk kept unified (d3, @upsetjs/bundle, gsap) at 84 KB gzipped - optimal for lazy-loading
+- Mobile badge/icon protection: explicit width/height constraints in scoped CSS override flex stretching
+- CategoryIcon requires mobile-specific !important rules due to parent flex: 1 inheritance
+- Badge components protected with flex: 0 0 auto and max-width: max-content in responsive SCSS
 
 ## Archive Location
 
@@ -238,8 +241,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 17-05 Bundle Size Optimization
+**Stopped at:** Completed Phase 17 (Cleanup & Polish)
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 17 in progress, 17-05 complete (bundle optimized to 520 KB gzipped, 74.6% headroom)*
+*Last updated: 2026-01-23 — Phase 17 complete, v3 milestone ready for final review*
