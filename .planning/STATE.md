@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 15 - Testing Infrastructure (IN PROGRESS)
-**Plan:** 3/6 plans complete
+**Plan:** 4/6 plans complete
 **Status:** In progress
-**Last activity:** 2026-01-23 — Completed 15-03 MSW API Mocking Setup
+**Last activity:** 2026-01-23 — Completed 15-04 Composable Tests Examples
 
 ```
 v3 Frontend Modernization: PHASE 15 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables), Phase 14 (TypeScript)
-Phase 15: 3/6 plans complete (Vitest + Vue Test Utils + MSW)
-Last completed: 15-03 MSW API Mocking Setup
-Progress: ██████████████████████████░ 38/~50 plans in v3 milestone
+Phase 15: 4/6 plans complete (Vitest + Vue Test Utils + MSW + Composable Tests)
+Last completed: 15-04 Composable Tests Examples (88 tests, 5 files)
+Progress: ███████████████████████████░ 39/~50 plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -153,6 +153,10 @@ See PROJECT.md for full decisions table.
 - AnyComponent type alias for Vue Test Utils generic constraints (DefineComponent<any, any, any>)
 - withSetup returns [result!, app] tuple for composable lifecycle testing
 - Barrel export in test-utils/index.ts re-exports common testing utilities
+- Stateless composables tested directly without Vue context (no withSetup needed)
+- Pure function composables tested with comprehensive edge cases and round-trips
+- vi.mock must precede import for external dependency mocking (module hoisting)
+- app.unmount() required after each withSetup test for cleanup
 
 ## Archive Location
 
@@ -162,8 +166,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 15-03 MSW API Mocking Setup
+**Stopped at:** Completed 15-04 Composable Tests Examples
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 15 in progress (3/6 plans complete, MSW configured)*
+*Last updated: 2026-01-23 — Phase 15 in progress (4/6 plans complete, composable tests added)*
