@@ -12,15 +12,15 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 12 - Vite Migration (IN PROGRESS)
-**Plan:** 2 of 4 complete
+**Plan:** 3 of 4 complete
 **Status:** In progress
-**Last activity:** 2026-01-23 — Completed 12-02-PLAN.md (Index HTML Migration)
+**Last activity:** 2026-01-23 — Completed 12-04-PLAN.md (Vite-Compatible Imports)
 
 ```
 v3 Frontend Modernization: PHASE 12 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next)
-Phase 12: 2/4 plans complete (12-01 Vite Installation, 12-02 Index HTML)
-Progress: ██████████████░ 14/16 plans (88%)
+Phase 12: 3/4 plans complete (12-01, 12-02, 12-04)
+Progress: ███████████████░ 15/16 plans (94%)
 ```
 
 ## v3 Milestone Scope
@@ -97,6 +97,7 @@ See PROJECT.md for full decisions table.
 - SCSS uses @use syntax with modern-compiler API for Vite compatibility
 - Dual build system during migration: npm run dev (Vite) vs npm run serve (Vue CLI)
 - Vite entry point: index.html in app root (not public/) with module script
+- Removed webpack magic comments - Vite handles chunk splitting automatically
 
 ## Archive Location
 
@@ -106,8 +107,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 12-02-PLAN.md (Index HTML Migration)
+**Stopped at:** Completed 12-04-PLAN.md (Vite-Compatible Imports)
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 12 plan 02 complete (Index HTML Migration)*
+*Last updated: 2026-01-23 — Phase 12 plan 04 complete (Vite-Compatible Imports)*
