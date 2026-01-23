@@ -1,6 +1,6 @@
-# Development Dockerfile for Vue.js with Hot Module Reload
+# Development Dockerfile for Vue.js with Vite Hot Module Reload
 #
-# Purpose: Development environment with webpack-dev-server hot reload
+# Purpose: Development environment with Vite dev server HMR
 # NOT FOR PRODUCTION - Use app/Dockerfile for production builds
 #
 # Source code is mounted via docker-compose.override.yml or Compose Watch
@@ -9,8 +9,8 @@
 # Usage:
 #   docker compose -f docker-compose.yml -f docker-compose.override.yml up app
 
-# Match production Node version for consistency
-ARG NODE_VERSION=20
+# Match production Node version (24 LTS for Vite 7 compatibility)
+ARG NODE_VERSION=24
 
 FROM node:${NODE_VERSION}-alpine
 
@@ -25,24 +25,20 @@ COPY package*.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --no-audit --no-fund --legacy-peer-deps
 
-# Environment variables for development server
+# Environment variables for Vite dev server
 ENV NODE_ENV=development
 ENV HOST=0.0.0.0
-# Increase Node heap for larger Vue.js project with webpack
-# Default ~512MB is insufficient for this codebase
-ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-# Expose webpack-dev-server port (matches production nginx port)
-EXPOSE 8080
+# Expose Vite dev server port
+EXPOSE 5173
 
-# Health check with longer start-period for dev server startup
-# Uses wget included in Alpine (same as production)
-# Extended start-period (120s) for webpack compilation with larger codebase
+# Health check with longer start-period for Vite first compilation
+# Vite is faster than webpack, but first load still takes time
 # Use 127.0.0.1 instead of localhost (IPv6 resolution issues in Alpine)
-HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 \
-    CMD wget --spider --tries=1 --no-verbose http://127.0.0.1:8080/ || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD wget --spider --tries=1 --no-verbose http://127.0.0.1:5173/ || exit 1
 
-# Start development server
+# Start Vite dev server
 # --host 0.0.0.0 allows external connections (required for Docker/Traefik)
 # --mode docker uses .env.docker with correct API URL (through Traefik)
-CMD ["npm", "run", "serve", "--", "--host", "0.0.0.0", "--mode", "docker"]
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--mode", "docker"]
