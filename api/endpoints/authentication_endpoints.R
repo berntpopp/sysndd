@@ -8,6 +8,9 @@
 # for example:
 # source("functions/database-functions.R", local = TRUE)
 
+# Load security utilities for password verification and progressive migration
+source("core/security.R", local = TRUE)
+
 ## -------------------------------------------------------------------##
 ## Authentication section
 ## -------------------------------------------------------------------##
@@ -147,22 +150,39 @@ function(req, res, user_name, password) {
     return(res)
   }
 
-  # Check DB for user
+  # Fetch user by username only (don't filter by password in SQL)
   user_filtered <- pool %>%
     tbl("user") %>%
-    filter(user_name == check_user & password == check_pass & approved == 1) %>%
-    select(-password) %>%
-    collect() %>%
-    mutate(
-      iat = as.numeric(Sys.time()),
-      exp = as.numeric(Sys.time()) + dw$refresh
-    )
+    filter(user_name == check_user & approved == 1) %>%
+    collect()
 
   if (nrow(user_filtered) != 1) {
     res$status <- 401
     res$body <- "User or password wrong."
     return(res)
   }
+
+  # Verify password using dual-hash support (Argon2id or plaintext)
+  authenticated <- verify_password(user_filtered$password[1], check_pass)
+
+  if (!authenticated) {
+    res$status <- 401
+    res$body <- "User or password wrong."
+    return(res)
+  }
+
+  # Progressive password upgrade: migrate plaintext to Argon2id on successful login
+  if (needs_upgrade(user_filtered$password[1])) {
+    upgrade_password(pool, user_filtered$user_id[1], check_pass)
+  }
+
+  # Remove password and add JWT timestamps
+  user_filtered <- user_filtered %>%
+    select(-password) %>%
+    mutate(
+      iat = as.numeric(Sys.time()),
+      exp = as.numeric(Sys.time()) + dw$refresh
+    )
 
   # If match found, create JWT
   claim <- jwt_claim(
