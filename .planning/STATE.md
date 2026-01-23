@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 13 - Mixin Composable Conversion (IN PROGRESS)
-**Plan:** 1 of TBD plans complete
+**Plan:** 3 of TBD plans complete
 **Status:** In progress
-**Last activity:** 2026-01-23 — Completed 13-01-PLAN.md (Foundation Composables)
+**Last activity:** 2026-01-23 — Completed 13-03-PLAN.md (URL Parsing Composable)
 
 ```
 v3 Frontend Modernization: PHASE 13 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite)
-Phase 13 (Mixin Composable Conversion): 1 plan complete (Foundation Composables)
-Last completed: 13-01 Foundation Composables (3 stateless composables + barrel export)
-Progress: ███████████████████ 19/TBD plans in v3 milestone
+Phase 13 (Mixin Composable Conversion): 3 plans complete (Wave 2 in progress)
+Last completed: 13-03 URL Parsing Composable (filter/sort URL utilities)
+Progress: ███████████████████ 21/TBD plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -117,8 +117,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 13-01-PLAN.md (Foundation Composables)
+**Stopped at:** Completed 13-03-PLAN.md (URL Parsing Composable)
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 13 in progress (1/TBD plans: Foundation Composables)*
+*Last updated: 2026-01-23 — Phase 13 in progress (3/TBD plans: Wave 2 URL Parsing Composable)*
