@@ -11,17 +11,17 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 **Milestone:** v3 Frontend Modernization
-**Phase:** 15 - Testing Infrastructure (COMPLETE)
-**Plan:** 6/6 plans complete
-**Status:** Complete
-**Last activity:** 2026-01-23 — Completed Phase 15 (Testing Infrastructure)
+**Phase:** 16 - UI/UX Modernization (IN PROGRESS)
+**Plan:** 1 of ~6 plans complete
+**Status:** In progress
+**Last activity:** 2026-01-23 — Completed 16-01 Design Token Foundation
 
 ```
-v3 Frontend Modernization: PHASE 15 COMPLETE
+v3 Frontend Modernization: PHASE 16 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables), Phase 14 (TypeScript), Phase 15 (Testing)
-Phase 15 verified: 5/5 success criteria passed (144 tests passing)
-Last completed: 15-06 Accessibility Testing
-Progress: ████████████████████████████░ 41/~50 plans in v3 milestone
+Phase 16 started: Design token foundation complete
+Last completed: 16-01 Design Token Foundation
+Progress: ████████████████████████████░ 42/~50 plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -165,6 +165,12 @@ See PROJECT.md for full decisions table.
 - shallowMount with explicit stubs for Bootstrap-Vue-Next component isolation in tests
 - Test component methods directly when DOM interaction unreliable with stubs
 - vi.mock for constants decouples tests from actual constant values
+- CSS custom properties over SCSS variables for runtime flexibility and theming
+- SCSS variables ($text-main, $primary) kept for component backward compatibility
+- Medical blue (#0d47a1) as primary brand color with subtle shadows
+- Colorblind-safe status colors for medical context (WCAG 2.2 AAA compliance)
+- Compact spacing scale (0.5rem base) for dense data tables
+- Transition tokens with prefers-reduced-motion for accessibility (NFR-03.6)
 
 ## Archive Location
 
@@ -174,8 +180,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed Phase 15 (Testing Infrastructure)
+**Stopped at:** Completed 16-01 Design Token Foundation
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 15 complete (6/6 plans, 5/5 success criteria verified, 144 tests passing)*
+*Last updated: 2026-01-23 — Phase 16 started, 16-01 complete (design token foundation with CSS custom properties)*
