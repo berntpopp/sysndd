@@ -12,6 +12,7 @@
 
 // Toast notifications
 export { default as useToastNotifications } from './useToastNotifications.js';
+export { default as useToast } from './useToast.js';
 
 // Modal controls
 export { default as useModalControls } from './useModalControls.js';
@@ -24,3 +25,6 @@ export { default as useText } from './useText.js';
 
 // Scrollbar utilities
 export { default as useScrollbar } from './useScrollbar.js';
+
+// URL parsing utilities
+export { default as useUrlParsing } from './useUrlParsing.js';
