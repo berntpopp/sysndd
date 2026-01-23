@@ -347,6 +347,12 @@ import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
 
+// Import badge components
+import CategoryIcon from '@/components/ui/CategoryIcon.vue';
+import NddIcon from '@/components/ui/NddIcon.vue';
+import GeneBadge from '@/components/ui/GeneBadge.vue';
+import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
+
 // Import the utilities file
 import Utils from '@/assets/js/utils';
 
@@ -359,6 +365,7 @@ export default {
   components: {
     // Components used within TablesGenes
     BTable, BCard, TablePaginationControls, TableDownloadLinkCopyButtons, TableHeaderLabel, TableSearchInput,
+    CategoryIcon, NddIcon, GeneBadge, InheritanceBadge,
   },
   props: {
     apiEndpoint: {

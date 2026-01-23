@@ -110,9 +110,15 @@ import URLS from '@/assets/js/constants/url_constants';
 import ROLES from '@/assets/js/constants/role_constants';
 import useToast from '@/composables/useToast';
 import packageInfo from '../../package.json';
+import SearchBar from '@/components/small/SearchBar.vue';
+import IconPairDropdownMenu from '@/components/small/IconPairDropdownMenu.vue';
 
 export default {
   name: 'Navbar',
+  components: {
+    SearchBar,
+    IconPairDropdownMenu,
+  },
   setup() {
     const { makeToast } = useToast();
     return { makeToast };

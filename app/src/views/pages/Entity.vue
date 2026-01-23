@@ -275,9 +275,23 @@
 <script>
 import { useHead } from '@unhead/vue';
 import { useToast, useColorAndSymbols, useText } from '@/composables';
+import CategoryIcon from '@/components/ui/CategoryIcon.vue';
+import NddIcon from '@/components/ui/NddIcon.vue';
+import EntityBadge from '@/components/ui/EntityBadge.vue';
+import GeneBadge from '@/components/ui/GeneBadge.vue';
+import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
+import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 
 export default {
   name: 'Entity',
+  components: {
+    CategoryIcon,
+    NddIcon,
+    EntityBadge,
+    GeneBadge,
+    DiseaseBadge,
+    InheritanceBadge,
+  },
   setup() {
     const { makeToast } = useToast();
     const colorAndSymbols = useColorAndSymbols();

@@ -394,8 +394,15 @@ import { useToast, useColorAndSymbols } from '@/composables';
 // Import the utilities file
 import Utils from '@/assets/js/utils';
 
+import TablesEntities from '@/components/tables/TablesEntities.vue';
+import GeneBadge from '@/components/ui/GeneBadge.vue';
+
 export default {
   name: 'Gene',
+  components: {
+    TablesEntities,
+    GeneBadge,
+  },
   setup() {
     const { makeToast } = useToast();
     const colorAndSymbols = useColorAndSymbols();

@@ -32,9 +32,17 @@ import { useHead } from '@unhead/vue';
 import { useToast } from 'bootstrap-vue-next';
 import { useUiStore } from '@/stores/ui';
 import { mapState } from 'pinia';
+import Navbar from '@/components/Navbar.vue';
+import Footer from '@/components/Footer.vue';
+import HelperBadge from '@/components/HelperBadge.vue';
 
 export default {
   name: 'SysNDD',
+  components: {
+    Navbar,
+    Footer,
+    HelperBadge,
+  },
   setup() {
     useHead({
       title: 'SysNDD',

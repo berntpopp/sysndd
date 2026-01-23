@@ -15,9 +15,13 @@
 
 <script>
 import { useHead } from '@unhead/vue';
+import TablesGenes from '@/components/tables/TablesGenes.vue';
 
 export default {
   name: 'Genes',
+  components: {
+    TablesGenes,
+  },
   props: {
     sort: { type: String, default: '+symbol' },
     filter: { type: String, default: null },

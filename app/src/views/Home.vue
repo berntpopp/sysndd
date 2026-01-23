@@ -440,8 +440,28 @@ import INIT_OBJ from '@/assets/js/constants/init_obj_constants';
 // Import the apiService to make the API calls
 import apiService from '@/assets/js/services/apiService';
 
+// Import global components
+import SearchBar from '@/components/small/SearchBar.vue';
+import Banner from '@/components/small/Banner.vue';
+import CategoryIcon from '@/components/ui/CategoryIcon.vue';
+import NddIcon from '@/components/ui/NddIcon.vue';
+import EntityBadge from '@/components/ui/EntityBadge.vue';
+import GeneBadge from '@/components/ui/GeneBadge.vue';
+import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
+import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
+
 export default {
   name: 'Home',
+  components: {
+    SearchBar,
+    Banner,
+    CategoryIcon,
+    NddIcon,
+    EntityBadge,
+    GeneBadge,
+    DiseaseBadge,
+    InheritanceBadge,
+  },
   setup() {
     const { makeToast } = useToast();
     const colorAndSymbols = useColorAndSymbols();

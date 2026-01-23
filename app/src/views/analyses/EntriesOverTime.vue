@@ -16,9 +16,13 @@
 <script>
 import { useHead } from '@unhead/vue';
 import useToast from '@/composables/useToast';
+import AnalysesTimePlot from '@/components/analyses/AnalysesTimePlot.vue';
 
 export default {
   name: 'EntriesOverTime',
+  components: {
+    AnalysesTimePlot,
+  },
   setup() {
     const { makeToast } = useToast();
     useHead({

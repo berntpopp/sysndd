@@ -218,8 +218,17 @@ import { useToast, useColorAndSymbols } from '@/composables';
 // Import the utilities file
 import Utils from '@/assets/js/utils';
 
+import TablesEntities from '@/components/tables/TablesEntities.vue';
+import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
+import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
+
 export default {
   name: 'Ontology',
+  components: {
+    TablesEntities,
+    DiseaseBadge,
+    InheritanceBadge,
+  },
   setup() {
     const { makeToast } = useToast();
     const colorAndSymbols = useColorAndSymbols();

@@ -16,9 +16,13 @@
 
 <script>
 import { useHead } from '@unhead/vue';
+import TablesEntities from '@/components/tables/TablesEntities.vue';
 
 export default {
   name: 'Entities',
+  components: {
+    TablesEntities,
+  },
   props: {
     sort: { type: String, default: '+entity_id' },
     filter: { type: String, default: null },

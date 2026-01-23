@@ -24,9 +24,13 @@
 <script>
 import { useHead } from '@unhead/vue';
 import useToast from '@/composables/useToast';
+import AnalyseGeneClusters from '@/components/analyses/AnalyseGeneClusters.vue';
 
 export default {
   name: 'GeneNetworks',
+  components: {
+    AnalyseGeneClusters,
+  },
   setup() {
     const { makeToast } = useToast();
     useHead({

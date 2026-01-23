@@ -320,10 +320,18 @@ import Utils from '@/assets/js/utils';
 // Import the GenericTable component
 import GenericTable from '@/components/small/GenericTable.vue';
 
+// Import badge components
+import CategoryIcon from '@/components/ui/CategoryIcon.vue';
+import GeneBadge from '@/components/ui/GeneBadge.vue';
+
 export default {
   name: 'AnalysesCurationComparisonsTable',
   // register the GenericTable component (Treeselect temporarily disabled)
-  components: { GenericTable },
+  components: {
+    GenericTable,
+    CategoryIcon,
+    GeneBadge,
+  },
   props: {
     showFilterControls: { type: Boolean, default: true },
     showPaginationControls: { type: Boolean, default: true },

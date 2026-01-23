@@ -67,9 +67,13 @@
 <script>
 import { useHead } from '@unhead/vue';
 import useToast from '@/composables/useToast';
+import EntityBadge from '@/components/ui/EntityBadge.vue';
 
 export default {
   name: 'Search',
+  components: {
+    EntityBadge,
+  },
   setup() {
     const { makeToast } = useToast();
     useHead({

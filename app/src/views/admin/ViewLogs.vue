@@ -23,9 +23,13 @@
 
 <script>
 import { useHead } from '@unhead/vue';
+import TablesLogs from '@/components/tables/TablesLogs.vue';
 
 export default {
   name: 'ViewLogs',
+  components: {
+    TablesLogs,
+  },
   props: {
     sort: { type: String, default: '-id' },
     filter: { type: String, default: null },

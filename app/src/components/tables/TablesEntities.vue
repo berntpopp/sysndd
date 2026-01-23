@@ -253,6 +253,14 @@ import TablePaginationControls from '@/components/small/TablePaginationControls.
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
 import GenericTable from '@/components/small/GenericTable.vue';
 
+// Import badge components
+import CategoryIcon from '@/components/ui/CategoryIcon.vue';
+import NddIcon from '@/components/ui/NddIcon.vue';
+import EntityBadge from '@/components/ui/EntityBadge.vue';
+import GeneBadge from '@/components/ui/GeneBadge.vue';
+import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
+import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
+
 // Import the utilities file
 import Utils from '@/assets/js/utils';
 
@@ -264,6 +272,7 @@ export default {
   components: {
     // Components used within TablesEntities
     TablePaginationControls, TableDownloadLinkCopyButtons, TableHeaderLabel, TableSearchInput, GenericTable,
+    CategoryIcon, NddIcon, EntityBadge, GeneBadge, DiseaseBadge, InheritanceBadge,
   },
   props: {
     apiEndpoint: {
