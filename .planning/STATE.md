@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 16 - UI/UX Modernization (IN PROGRESS)
-**Plan:** 7 of ~8 plans complete
-**Status:** In progress
-**Last activity:** 2026-01-23 — Completed 16-07 Mobile Responsive Refinements
+**Plan:** 8 of ~8 plans complete
+**Status:** Phase 16 nearly complete
+**Last activity:** 2026-01-23 — Completed 16-08 Accessibility Polish
 
 ```
 v3 Frontend Modernization: PHASE 16 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables), Phase 14 (TypeScript), Phase 15 (Testing)
-Phase 16 progress: Design tokens (16-01), Card styling (16-02), Table styling (16-03), Form styling (16-04), Button styling (16-05), Search UX (16-06), Mobile responsive (16-07)
-Last completed: 16-07 Mobile Responsive Refinements
-Progress: █████████████████████████████▓ 48/~50 plans in v3 milestone
+Phase 16 progress: Design tokens (16-01), Card styling (16-02), Table styling (16-03), Form styling (16-04), Button styling (16-05), Search UX (16-06), Mobile responsive (16-07), Accessibility (16-08)
+Last completed: 16-08 Accessibility Polish
+Progress: █████████████████████████████▓ 49/~50 plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -209,6 +209,11 @@ See PROJECT.md for full decisions table.
 - Comprehensive breakpoint coverage from 320px (small phones) to 1024px+ (desktop)
 - Mobile card transformation: Each table row becomes visually distinct card
 - Data label pattern: ::before pseudo-element with attr(data-label) shows column headers
+- Focus-visible pattern: Use :focus-visible selector for keyboard-only focus indicators
+- Skip link pattern: Positioned off-screen, visible on focus for screen reader navigation
+- High contrast mode: @media (prefers-contrast: more) increases border widths to 2px
+- Text-muted uses neutral-600 (#757575) for verified 4.54:1 contrast ratio
+- Links in prose content underlined; UI links distinguishable by context
 
 ## Archive Location
 
@@ -218,8 +223,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 16-07 Mobile Responsive Refinements
+**Stopped at:** Completed 16-08 Accessibility Polish
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 16 in progress, 16-07 complete (mobile responsive refinements with table-to-card transformation)*
+*Last updated: 2026-01-23 — Phase 16 in progress, 16-08 complete (WCAG 2.2 AA accessibility with focus-visible, color contrast, high contrast mode)*
