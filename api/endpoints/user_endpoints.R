@@ -1,8 +1,11 @@
 # api/endpoints/user_endpoints.R
 #
-# This file contains all user-related endpoints, extracted from the 
-# original sysndd_plumber.R. It follows the Google R Style Guide 
+# This file contains all user-related endpoints, extracted from the
+# original sysndd_plumber.R. It follows the Google R Style Guide
 # conventions where possible.
+
+# Load security utilities for password hashing and verification
+source("core/security.R", local = TRUE)
 
 ##-------------------------------------------------------------------##
 ## User endpoint section
@@ -176,30 +179,12 @@ function(req, res, user_id = 0, status_approval = FALSE) {
         port = dw$port
       )
 
-      dbExecute(sysndd_db,
-        paste0(
-          "UPDATE user SET approved = 1 WHERE user_id = ",
-          user_id_approval,
-          ";"
-        )
-      )
-      dbExecute(sysndd_db,
-        paste0(
-          "UPDATE user SET password = '",
-          user_password,
-          "' WHERE user_id = ",
-          user_id_approval,
-          ";"
-        )
-      )
-      dbExecute(sysndd_db,
-        paste0(
-          "UPDATE user SET abbreviation = '",
-          user_initials,
-          "' WHERE user_id = ",
-          user_id_approval,
-          ";"
-        )
+      # Hash password with Argon2id before storing
+      hashed_password <- hash_password(user_password)
+      dbExecute(
+        sysndd_db,
+        "UPDATE user SET approved = 1, password = ?, abbreviation = ? WHERE user_id = ?",
+        params = list(hashed_password, user_initials, user_id_approval)
       )
 
       dbDisconnect(sysndd_db)
@@ -225,12 +210,10 @@ function(req, res, user_id = 0, status_approval = FALSE) {
         port = dw$port
       )
 
-      dbExecute(sysndd_db,
-        paste0(
-          "DELETE FROM user WHERE user_id = ",
-          user_id_approval,
-          ";"
-        )
+      dbExecute(
+        sysndd_db,
+        "DELETE FROM user WHERE user_id = ?",
+        params = list(user_id_approval)
       )
 
       dbDisconnect(sysndd_db)
@@ -268,14 +251,10 @@ function(req, res, user_id, role_assigned = "Viewer") {
       port = dw$port
     )
 
-    dbExecute(sysndd_db,
-      paste0(
-        "UPDATE user SET user_role = '",
-        role_assigned,
-        "' WHERE user_id = ",
-        user_id_role,
-        ";"
-      )
+    dbExecute(
+      sysndd_db,
+      "UPDATE user SET user_role = ? WHERE user_id = ?",
+      params = list(role_assigned, user_id_role)
     )
 
     dbDisconnect(sysndd_db)
@@ -294,14 +273,10 @@ function(req, res, user_id, role_assigned = "Viewer") {
       port = dw$port
     )
 
-    dbExecute(sysndd_db,
-      paste0(
-        "UPDATE user SET user_role = '",
-        role_assigned,
-        "' WHERE user_id = ",
-        user_id_role,
-        ";"
-      )
+    dbExecute(
+      sysndd_db,
+      "UPDATE user SET user_role = ? WHERE user_id = ?",
+      params = list(role_assigned, user_id_role)
     )
 
     dbDisconnect(sysndd_db)
@@ -423,7 +398,8 @@ function(
 
   user_id_pass_change_exists <- as.logical(length(user_table$user_id))
   user_id_pass_change_approved <- as.logical(user_table$approved[1])
-  old_pass_match <- user_table$password[1] == old_pass
+  # Use verify_password to support both plaintext and hashed passwords
+  old_pass_match <- verify_password(user_table$password[1], old_pass)
   new_pass_match_and_valid <- (new_pass_1 == new_pass_2) &&
     (new_pass_1 != old_pass) &&
     nchar(new_pass_1) > 7 &&
@@ -475,14 +451,12 @@ function(
       port = dw$port
     )
 
-    dbExecute(sysndd_db,
-      paste0(
-        "UPDATE user SET password = '",
-        new_pass_1,
-        "' WHERE user_id = ",
-        user_id_pass_change,
-        ";"
-      )
+    # Hash new password with Argon2id before storing
+    hashed_new_password <- hash_password(new_pass_1)
+    dbExecute(
+      sysndd_db,
+      "UPDATE user SET password = ? WHERE user_id = ?",
+      params = list(hashed_new_password, user_id_pass_change)
     )
 
     dbDisconnect(sysndd_db)
@@ -539,14 +513,10 @@ function(req, res, email_request = "") {
       port = dw$port
     )
 
-    dbExecute(sysndd_db,
-      paste0(
-        "UPDATE user SET password_reset_date = '",
-        timestamp_request,
-        "' WHERE user_id = ",
-        user_id_from_email[1],
-        ";"
-      )
+    dbExecute(
+      sysndd_db,
+      "UPDATE user SET password_reset_date = ? WHERE user_id = ?",
+      params = list(as.character(timestamp_request), user_id_from_email[1])
     )
 
     dbDisconnect(sysndd_db)
@@ -638,21 +608,17 @@ function(req, res, new_pass_1 = "", new_pass_2 = "") {
         port = dw$port
       )
 
-      dbExecute(sysndd_db,
-        paste0(
-          "UPDATE user SET password = '",
-          new_pass_1,
-          "' WHERE user_id = ",
-          user_jwt$user_id,
-          ";"
-        )
+      # Hash new password with Argon2id before storing
+      hashed_new_password <- hash_password(new_pass_1)
+      dbExecute(
+        sysndd_db,
+        "UPDATE user SET password = ? WHERE user_id = ?",
+        params = list(hashed_new_password, user_jwt$user_id)
       )
-      dbExecute(sysndd_db,
-        paste0(
-          "UPDATE user SET password_reset_date = NULL WHERE user_id = ",
-          user_jwt$user_id,
-          ";"
-        )
+      dbExecute(
+        sysndd_db,
+        "UPDATE user SET password_reset_date = NULL WHERE user_id = ?",
+        params = list(user_jwt$user_id)
       )
 
       dbDisconnect(sysndd_db)
@@ -700,7 +666,8 @@ function(req, res, user_id) {
 
   exist_result <- dbGetQuery(
     sysndd_db,
-    paste0("SELECT COUNT(*) as count FROM user WHERE user_id = ", user_id, ";")
+    "SELECT COUNT(*) as count FROM user WHERE user_id = ?",
+    params = list(user_id)
   )
 
   if (exist_result$count == 0) {
@@ -710,7 +677,11 @@ function(req, res, user_id) {
   }
 
   delete_result <- tryCatch({
-    dbExecute(sysndd_db, paste0("DELETE FROM user WHERE user_id = ", user_id, ";"))
+    dbExecute(
+      sysndd_db,
+      "DELETE FROM user WHERE user_id = ?",
+      params = list(user_id)
+    )
   }, error = function(e) {
     NULL
   })
@@ -790,22 +761,14 @@ function(req, res) {
     port = dw$port
   )
 
+  # Build parameterized query to prevent SQL injection
   fields_to_update <- names(user_details)[names(user_details) != "user_id"]
-  set_clause <- paste(
-    sapply(fields_to_update, function(field) {
-      paste0(field, " = '", user_details[[field]], "'")
-    }, USE.NAMES = FALSE),
-    collapse = ", "
-  )
-
-  query <- sprintf(
-    "UPDATE user SET %s WHERE user_id = %d;",
-    set_clause,
-    user_details[["user_id"]]
-  )
+  placeholders <- paste0(fields_to_update, " = ?", collapse = ", ")
+  query <- paste0("UPDATE user SET ", placeholders, " WHERE user_id = ?")
+  params <- c(as.list(user_details[fields_to_update]), list(user_details[["user_id"]]))
 
   result <- tryCatch({
-    dbExecute(sysndd_db, query)
+    dbExecute(sysndd_db, query, params = params)
   }, error = function(e) {
     list(error = e$message)
   })
@@ -839,12 +802,12 @@ function(req, res) {
           port = dw$port
         )
 
-        dbExecute(sysndd_db,
-          paste0(
-            "UPDATE user SET password = '", user_password,
-            "', abbreviation = '", user_initials,
-            "' WHERE user_id = ", user_details$user_id, ";"
-          )
+        # Hash password with Argon2id before storing
+        hashed_password <- hash_password(user_password)
+        dbExecute(
+          sysndd_db,
+          "UPDATE user SET password = ?, abbreviation = ? WHERE user_id = ?",
+          params = list(hashed_password, user_initials, user_details$user_id)
         )
 
         dbDisconnect(sysndd_db)
