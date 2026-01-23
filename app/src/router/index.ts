@@ -1,11 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import type { Router } from 'vue-router';
 import { routes } from './routes';
 
 // Support both Vite (import.meta.env) and Vue CLI (process.env) during migration
-// eslint-disable-next-line no-undef
-const baseUrl = typeof import.meta !== 'undefined' ? import.meta.env.BASE_URL : process.env.BASE_URL;
+const baseUrl: string = import.meta.env.BASE_URL;
 
-const router = createRouter({
+const router: Router = createRouter({
   history: createWebHistory(baseUrl),
   routes,
 });

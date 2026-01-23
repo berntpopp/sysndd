@@ -1,9 +1,11 @@
 /* eslint-disable import/prefer-default-export */
-// src/router/routes.js
+// src/router/routes.ts
+
+import type { RouteRecordRaw, RouteLocationNormalized, NavigationGuardNext } from 'vue-router';
 
 // TODO: remove redundance in localStorage setting/reading
 
-export const routes = [
+export const routes: RouteRecordRaw[] = [
   {
     path: '/',
     name: 'Home',
@@ -262,7 +264,7 @@ export const routes = [
     name: 'Panels',
     component: () => import('@/views/tables/Panels.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to, from, next) => {
+    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
       if (
         ['All', 'Limited', 'Definitive', 'Moderate', 'Refuted'].includes(
           to.params.category_input,
@@ -330,7 +332,7 @@ export const routes = [
     name: 'User',
     component: () => import('@/views/User.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to, from, next) => {
+    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
       const allowed_roles = ['Administrator', 'Curator', 'Reviewer'];
       let expires = 0;
       let timestamp = 0;
@@ -358,7 +360,7 @@ export const routes = [
     name: 'Review',
     component: () => import('@/views/review/Review.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to, from, next) => {
+    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
       const allowed_roles = ['Administrator', 'Curator', 'Reviewer'];
       let expires = 0;
       let timestamp = 0;
@@ -380,7 +382,7 @@ export const routes = [
     name: 'ReviewInstructions',
     component: () => import('@/views/review/Instructions.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to, from, next) => {
+    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
       const allowed_roles = ['Administrator', 'Curator', 'Reviewer'];
       let expires = 0;
       let timestamp = 0;
@@ -402,7 +404,7 @@ export const routes = [
     name: 'CreateEntity',
     component: () => import('@/views/curate/CreateEntity.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to, from, next) => {
+    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
       const allowed_roles = ['Administrator', 'Curator'];
       let expires = 0;
       let timestamp = 0;
@@ -424,7 +426,7 @@ export const routes = [
     name: 'ModifyEntity',
     component: () => import('@/views/curate/ModifyEntity.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to, from, next) => {
+    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
       const allowed_roles = ['Administrator', 'Curator'];
       let expires = 0;
       let timestamp = 0;
@@ -446,7 +448,7 @@ export const routes = [
     name: 'ApproveReview',
     component: () => import('@/views/curate/ApproveReview.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to, from, next) => {
+    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
       const allowed_roles = ['Administrator', 'Curator'];
       let expires = 0;
       let timestamp = 0;
@@ -468,7 +470,7 @@ export const routes = [
     name: 'ApproveStatus',
     component: () => import('@/views/curate/ApproveStatus.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to, from, next) => {
+    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
       const allowed_roles = ['Administrator', 'Curator'];
       let expires = 0;
       let timestamp = 0;
@@ -490,7 +492,7 @@ export const routes = [
     name: 'ApproveUser',
     component: () => import('@/views/curate/ApproveUser.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to, from, next) => {
+    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
       const allowed_roles = ['Administrator', 'Curator'];
       let expires = 0;
       let timestamp = 0;
@@ -512,7 +514,7 @@ export const routes = [
     name: 'ManageReReview',
     component: () => import('@/views/curate/ManageReReview.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to, from, next) => {
+    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
       const allowed_roles = ['Administrator', 'Curator'];
       let expires = 0;
       let timestamp = 0;
@@ -534,7 +536,7 @@ export const routes = [
     name: 'ManageUser',
     component: () => import('@/views/admin/ManageUser.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to, from, next) => {
+    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
       const allowed_roles = ['Administrator'];
       let expires = 0;
       let timestamp = 0;
@@ -556,7 +558,7 @@ export const routes = [
     name: 'ManageAnnotations',
     component: () => import('@/views/admin/ManageAnnotations.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to, from, next) => {
+    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
       const allowed_roles = ['Administrator'];
       let expires = 0;
       let timestamp = 0;
@@ -578,7 +580,7 @@ export const routes = [
     name: 'ManageOntology',
     component: () => import('@/views/admin/ManageOntology.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to, from, next) => {
+    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
       const allowed_roles = ['Administrator'];
       let expires = 0;
       let timestamp = 0;
@@ -600,7 +602,7 @@ export const routes = [
     name: 'ManageAbout',
     component: () => import('@/views/admin/ManageAbout.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to, from, next) => {
+    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
       const allowed_roles = ['Administrator'];
       let expires = 0;
       let timestamp = 0;
@@ -622,7 +624,7 @@ export const routes = [
     name: 'ViewLogs',
     component: () => import('@/views/admin/ViewLogs.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to, from, next) => {
+    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
       const allowed_roles = ['Administrator'];
       let expires = 0;
       let timestamp = 0;
@@ -646,7 +648,7 @@ export const routes = [
     name: 'AdminStatistics',
     component: () => import('@/views/admin/AdminStatistics.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to, from, next) => {
+    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
       const allowed_roles = ['Administrator'];
       let expires = 0;
       let timestamp = 0;
@@ -706,3 +708,15 @@ export const routes = [
     },
   },
 ];
+
+// Module augmentation for route meta types
+declare module 'vue-router' {
+  interface RouteMeta {
+    sitemap?: {
+      priority?: number;
+      changefreq?: 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never';
+      ignoreRoute?: boolean;
+    };
+    requiresAuth?: boolean;
+  }
+}
