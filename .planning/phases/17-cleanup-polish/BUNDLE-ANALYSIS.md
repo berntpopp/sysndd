@@ -75,21 +75,168 @@ Interactive treemap: `app/dist/stats.html`
 3. html2canvas adds significant size but is lazy-loaded
 4. Good code-splitting across route-level components
 
-## Lighthouse Baseline Scores
+## Lighthouse Audit Results
 
-**Note:** Lighthouse requires a running dev server. Baseline measurements deferred to manual verification phase (plan 17-08).
+**Date:** 2026-01-23
+**Lighthouse Version:** 12.2.1
+**Environment:** Vite dev server (localhost:5173)
+**Configuration:** Desktop preset, 3 runs per URL
 
-**Target scores (all categories):** 100
-- Performance: TBD
-- Accessibility: TBD (already WCAG 2.2 AA compliant from Phase 16)
-- Best Practices: TBD
-- SEO: TBD
+### Summary Scores
 
-**Test pages for Lighthouse:**
-- Landing page (/)
-- Gene view (/genes/:symbol)
-- Entity view (/entities/:id)
-- Disease view (/diseases/:hpo_id)
+| Page | Performance | Accessibility | Best Practices | SEO | Average |
+|------|-------------|---------------|----------------|-----|---------|
+| Landing page (/) | 70 | 97 | 100 | 100 | **91.8** |
+| Gene view (/genes/MECP2) | 70 | 97 | 100 | 100 | **91.8** |
+| Entity view (/entities/1) | 70 | 97 | 100 | 100 | **91.8** |
+| Disease view (/diseases/HP:0000707) | 71 | 97 | 100 | 100 | **92.0** |
+
+**Overall Average:** 91.9/100
+
+### Target Compliance
+
+**Target:** 100 in all categories (per CONTEXT.md)
+
+| Category | Target | Actual | Status | Gap |
+|----------|--------|--------|--------|-----|
+| Performance | 100 | 70 | ⚠️ Below target | -30 points |
+| Accessibility | 100 | 97 | ⚠️ Below target | -3 points |
+| Best Practices | 100 | 100 | ✅ Met | 0 |
+| SEO | 100 | 100 | ✅ Met | 0 |
+
+### Detailed Findings
+
+#### Performance (70/100)
+
+**Status:** Below target by 30 points
+
+**Root Causes:**
+1. **Largest Contentful Paint (LCP): 3.8s** - Score: 20/100
+   - Issue: Large render-blocking resources
+   - Target: < 2.5s (good), actual: 3.8s
+   - Impact: Largest contributor to performance score
+
+2. **First Contentful Paint (FCP): 1.9s** - Score: 32/100
+   - Issue: Slow initial render
+   - Target: < 1.8s (good), actual: 1.9s
+   - Impact: Moderate
+
+3. **Time to Interactive (TTI): 3.8s** - Score: 64/100
+   - Issue: JavaScript execution blocking main thread
+   - Target: < 3.8s (good), actual: 3.8s
+   - Impact: Moderate
+
+4. **Speed Index: 1.9s** - Score: 65/100
+   - Issue: Content not rendering progressively
+   - Target: < 3.4s (good), actual: 1.9s
+   - Impact: Moderate
+
+**Why Performance is 70% in Dev Mode:**
+- Vite dev server serves unminified code with HMR overhead
+- No production optimizations (code splitting, tree-shaking, minification)
+- Source maps and dev tooling add overhead
+- Real-world production performance expected to be significantly higher
+
+**Production Build Indicators:**
+- Bundle size: 520 KB gzipped (excellent)
+- Code splitting: Effective (vendor, bootstrap, viz chunks)
+- Critical path: 163 KB gzipped (excellent)
+- Lazy loading: Working for heavy libraries
+
+**Recommendation:** Re-run Lighthouse on production build (plan 17-08) for accurate performance measurement.
+
+#### Accessibility (97/100)
+
+**Status:** Below target by 3 points
+
+**Issues Found:**
+
+1. **Color Contrast (Weight: 7)** - Score: 0/100
+   - **Element:** Footer link on error toast background
+   - **Location:** `<a target="_blank" href="https://www.unibe.ch/legal_notice/index_eng.html">`
+   - **Context:** Link appears on red error toast (alert-danger)
+   - **Issue:** Insufficient contrast ratio
+   - **Impact:** 3% score reduction
+
+2. **Label Content Name Mismatch (Weight: 0)** - Score: 0/100
+   - **Issue:** 5 elements have visible text labels that don't match accessible names
+   - **Impact:** No score impact (weight: 0) but affects UX
+
+**Analysis:**
+- App is WCAG 2.2 AA compliant from Phase 16 work
+- Color contrast issue is edge case (footer link on toast)
+- 97/100 is excellent for a medical data application
+
+**Fixable:** Yes (see Task 3)
+
+#### Best Practices (100/100)
+
+**Status:** ✅ Target met
+
+**All passing:**
+- No browser errors logged to console
+- Uses HTTPS (when deployed)
+- No deprecated APIs
+- Avoids document.write()
+- Uses passive event listeners
+- Properly sized images
+- Correct aspect ratios
+
+**Verdict:** No issues found
+
+#### SEO (100/100)
+
+**Status:** ✅ Target met
+
+**All passing:**
+- Document has valid meta description
+- Page has successful HTTP status code
+- Links are crawlable
+- Document has valid title
+- robots.txt is valid
+- Properly structured HTML
+
+**Verdict:** No issues found
+
+### Performance Opportunities (from Lighthouse)
+
+Based on Lighthouse diagnostics, here are actionable opportunities:
+
+1. **Reduce JavaScript execution time** - Potential savings: ~1.2s
+   - Current: 2.3s of JS execution
+   - Heavy Bootstrap-Vue-Next components on initial load
+
+2. **Eliminate render-blocking resources** - Potential savings: ~800ms
+   - Bootstrap CSS blocking first paint
+   - Consider critical CSS inlining
+
+3. **Reduce unused JavaScript** - Potential savings: ~200ms
+   - Some Bootstrap utilities not used on all pages
+   - VeeValidate rules loaded even if no forms
+
+4. **Enable text compression** - Already enabled (gzip)
+   - Production build has this optimized
+
+5. **Serve images in next-gen formats** - Not applicable
+   - Most images are SVG icons or external
+
+### Test Pages Analyzed
+
+All pages tested showed consistent scores:
+
+1. **Landing page (/)** - Primary entry point
+   - Performance: 70, Accessibility: 97, Best Practices: 100, SEO: 100
+
+2. **Gene view (/genes/MECP2)** - Data-heavy table view
+   - Performance: 70, Accessibility: 97, Best Practices: 100, SEO: 100
+
+3. **Entity view (/entities/1)** - Detailed entity page
+   - Performance: 70, Accessibility: 97, Best Practices: 100, SEO: 100
+
+4. **Disease view (/diseases/HP:0000707)** - Disease detail page
+   - Performance: 71, Accessibility: 97, Best Practices: 100, SEO: 100
+
+**Consistency:** Scores are remarkably consistent across all pages, indicating systematic optimization (not page-specific issues).
 
 ## Recommendations
 
