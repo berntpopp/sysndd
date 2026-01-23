@@ -17,52 +17,41 @@
               header-text-variant="white"
             >
               <BCardText>
-                <ValidationObserver
-                  ref="observer"
-                  v-slot="{ handleSubmit }"
-                >
-                  <BForm @submit.stop.prevent="handleSubmit(doPasswordChange)">
-                    <ValidationProvider
-                      v-slot="validationContext"
-                      name="password"
-                      :rules="{ required: true, min: 7, max: 50 }"
-                    >
-                      <BFormGroup description="Enter your new password">
-                        <BFormInput
-                          v-model="newPasswordEntry"
-                          placeholder="Enter new password"
-                          type="password"
-                          :state="getValidationState(validationContext)"
-                        />
-                      </BFormGroup>
-                    </ValidationProvider>
+                <BForm @submit.prevent="onPasswordChange">
+                  <BFormGroup description="Enter your new password">
+                    <BFormInput
+                      v-model="newPasswordEntry"
+                      placeholder="Enter new password"
+                      type="password"
+                      :state="passwordMeta.touched ? (passwordError ? false : true) : null"
+                    />
+                    <BFormInvalidFeedback v-if="passwordError">
+                      {{ passwordError }}
+                    </BFormInvalidFeedback>
+                  </BFormGroup>
 
-                    <ValidationProvider
-                      v-slot="validationContext"
-                      name="repeatPassword"
-                      :rules="{ required: true, min: 7, max: 50 }"
-                    >
-                      <BFormGroup description="Repeat your new password">
-                        <BFormInput
-                          v-model="newPasswordRepeat"
-                          placeholder="Repeat new password"
-                          type="password"
-                          :state="getValidationState(validationContext)"
-                        />
-                      </BFormGroup>
-                    </ValidationProvider>
+                  <BFormGroup description="Repeat your new password">
+                    <BFormInput
+                      v-model="newPasswordRepeat"
+                      placeholder="Repeat new password"
+                      type="password"
+                      :state="repeatPasswordMeta.touched ? (repeatPasswordError ? false : true) : null"
+                    />
+                    <BFormInvalidFeedback v-if="repeatPasswordError">
+                      {{ repeatPasswordError }}
+                    </BFormInvalidFeedback>
+                  </BFormGroup>
 
-                    <BFormGroup>
-                      <BButton
-                        class="ms-2"
-                        type="submit"
-                        variant="dark"
-                      >
-                        Submit change
-                      </BButton>
-                    </BFormGroup>
-                  </BForm>
-                </ValidationObserver>
+                  <BFormGroup>
+                    <BButton
+                      class="ms-2"
+                      type="submit"
+                      variant="dark"
+                    >
+                      Submit change
+                    </BButton>
+                  </BFormGroup>
+                </BForm>
               </BCardText>
             </BCard>
           </BContainer>
@@ -74,36 +63,28 @@
               header-text-variant="white"
             >
               <BCardText>
-                <ValidationObserver
-                  ref="observer"
-                  v-slot="{ handleSubmit }"
-                >
-                  <BForm @submit.stop.prevent="handleSubmit(requestPasswordReset)">
-                    <ValidationProvider
-                      v-slot="validationContext"
-                      name="email"
-                      :rules="{ required: true, email: true }"
-                    >
-                      <BFormGroup description="Enter your mail account">
-                        <BFormInput
-                          v-model="emailEntry"
-                          placeholder="mail@your-institution.com"
-                          :state="getValidationState(validationContext)"
-                        />
-                      </BFormGroup>
-                    </ValidationProvider>
+                <BForm @submit.prevent="onPasswordRequest">
+                  <BFormGroup description="Enter your mail account">
+                    <BFormInput
+                      v-model="emailEntry"
+                      placeholder="mail@your-institution.com"
+                      :state="emailMeta.touched ? (emailError ? false : true) : null"
+                    />
+                    <BFormInvalidFeedback v-if="emailError">
+                      {{ emailError }}
+                    </BFormInvalidFeedback>
+                  </BFormGroup>
 
-                    <BFormGroup>
-                      <BButton
-                        class="ms-2"
-                        type="submit"
-                        variant="dark"
-                      >
-                        Submit
-                      </BButton>
-                    </BFormGroup>
-                  </BForm>
-                </ValidationObserver>
+                  <BFormGroup>
+                    <BButton
+                      class="ms-2"
+                      type="submit"
+                      variant="dark"
+                    >
+                      Submit
+                    </BButton>
+                  </BFormGroup>
+                </BForm>
               </BCardText>
             </BCard>
           </BContainer>
@@ -114,38 +95,94 @@
 </template>
 
 <script>
-import { ValidationObserver, ValidationProvider } from 'vee-validate';
+import { ref } from 'vue';
+import { useHead } from '@unhead/vue';
+import { useForm, useField, defineRule } from 'vee-validate';
+import { required, min, max, email } from '@vee-validate/rules';
 import toastMixin from '@/assets/js/mixins/toastMixin';
+
+// Define validation rules
+defineRule('required', required);
+defineRule('min', min);
+defineRule('max', max);
+defineRule('email', email);
 
 export default {
   name: 'PasswordReset',
-  components: {
-    ValidationObserver,
-    ValidationProvider,
-  },
   mixins: [toastMixin],
-  data() {
+  setup() {
+    useHead({
+      title: 'Password Reset',
+      meta: [
+        {
+          name: 'description',
+          content: 'Reset your SysNDD account password.',
+        },
+      ],
+    });
+
+    // Setup form validation for change password form
+    const { handleSubmit: handleChangeSubmit, resetForm: resetChangeVeeForm } = useForm();
+
+    // Setup form validation for request password reset form
+    const { handleSubmit: handleRequestSubmit, resetForm: resetRequestVeeForm } = useForm();
+
+    // Define fields for password change
+    const {
+      value: newPasswordEntry,
+      errorMessage: passwordError,
+      meta: passwordMeta,
+    } = useField('password', 'required|min:7|max:50');
+
+    const {
+      value: newPasswordRepeat,
+      errorMessage: repeatPasswordError,
+      meta: repeatPasswordMeta,
+    } = useField('repeatPassword', 'required|min:7|max:50');
+
+    // Define fields for email request
+    const {
+      value: emailEntry,
+      errorMessage: emailError,
+      meta: emailMeta,
+    } = useField('email', 'required|email');
+
+    const showChangeContainer = ref(false);
+    const showRequestContainer = ref(true);
+    const loading = ref(true);
+
     return {
-      showChangeContainer: false,
-      showRequestContainer: true,
-      emailEntry: '',
-      newPasswordEntry: '',
-      newPasswordRepeat: '',
-      loading: true,
+      newPasswordEntry,
+      passwordError,
+      passwordMeta,
+      newPasswordRepeat,
+      repeatPasswordError,
+      repeatPasswordMeta,
+      emailEntry,
+      emailError,
+      emailMeta,
+      showChangeContainer,
+      showRequestContainer,
+      loading,
+      handleChangeSubmit,
+      handleRequestSubmit,
+      resetChangeVeeForm,
+      resetRequestVeeForm,
     };
   },
   mounted() {
     this.checkURLParameter();
   },
   methods: {
-    getValidationState(validationContext) {
-      if (validationContext.errors[0]) {
-        return false;
-      }
-      if (validationContext.dirty || validationContext.validated) {
-        return validationContext.valid;
-      }
-      return null;
+    onPasswordChange() {
+      this.handleChangeSubmit(() => {
+        this.doPasswordChange();
+      })();
+    },
+    onPasswordRequest() {
+      this.handleRequestSubmit(() => {
+        this.requestPasswordReset();
+      })();
     },
     async checkURLParameter() {
       this.loading = true;
@@ -192,6 +229,7 @@ export default {
     },
     resetRequestForm() {
       this.emailEntry = '';
+      this.resetRequestVeeForm();
       setTimeout(() => {
         this.$router.push('/');
       }, 1000);
@@ -216,6 +254,7 @@ export default {
     resetChangeForm() {
       this.newPasswordEntry = '';
       this.newPasswordRepeat = '';
+      this.resetChangeVeeForm();
       setTimeout(() => {
         this.$router.push('/');
       }, 1000);

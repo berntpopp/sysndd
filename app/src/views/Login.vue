@@ -18,68 +18,51 @@
             header-text-variant="white"
           >
             <BCardText>
-              <validation-observer
-                ref="observer"
-                v-slot="{ handleSubmit }"
-              >
-                <BForm @submit.stop.prevent="handleSubmit(onSubmit)">
-                  <!-- Username Field -->
-                  <validation-provider
-                    v-slot="{ errors, validated, dirty }"
-                    name="username"
-                    :rules="{ required: true, min: 5, max: 20 }"
-                  >
-                    <BFormGroup description="Enter your user name">
-                      <BFormInput
-                        v-model="user_name"
-                        placeholder="User"
-                        :state="getValidationState({ errors, validated, dirty })"
-                      />
-                      <BFormInvalidFeedback v-if="errors.length">
-                        {{ errors[0] }}
-                      </BFormInvalidFeedback>
-                    </BFormGroup>
-                  </validation-provider>
+              <BForm @submit.prevent="onSubmit">
+                <!-- Username Field -->
+                <BFormGroup description="Enter your user name">
+                  <BFormInput
+                    v-model="user_name"
+                    placeholder="User"
+                    :state="usernameMeta.touched ? (usernameError ? false : true) : null"
+                  />
+                  <BFormInvalidFeedback v-if="usernameError">
+                    {{ usernameError }}
+                  </BFormInvalidFeedback>
+                </BFormGroup>
 
-                  <!-- Password Field -->
-                  <validation-provider
-                    v-slot="{ errors, validated, dirty }"
-                    name="password"
-                    :rules="{ required: true, min: 5, max: 50 }"
-                  >
-                    <BFormGroup description="Enter your user password">
-                      <BFormInput
-                        v-model="password"
-                        placeholder="Password"
-                        type="password"
-                        :state="getValidationState({ errors, validated, dirty })"
-                      />
-                      <BFormInvalidFeedback v-if="errors.length">
-                        {{ errors[0] }}
-                      </BFormInvalidFeedback>
-                    </BFormGroup>
-                  </validation-provider>
+                <!-- Password Field -->
+                <BFormGroup description="Enter your user password">
+                  <BFormInput
+                    v-model="password"
+                    placeholder="Password"
+                    type="password"
+                    :state="passwordMeta.touched ? (passwordError ? false : true) : null"
+                  />
+                  <BFormInvalidFeedback v-if="passwordError">
+                    {{ passwordError }}
+                  </BFormInvalidFeedback>
+                </BFormGroup>
 
-                  <!-- Form Buttons -->
-                  <BFormGroup>
-                    <BButton
-                      class="ms-2"
-                      variant="outline-dark"
-                      @click="resetForm"
-                    >
-                      Reset
-                    </BButton>
-                    <BButton
-                      class="ms-2"
-                      :class="{ shake: animated }"
-                      type="submit"
-                      variant="dark"
-                    >
-                      Login
-                    </BButton>
-                  </BFormGroup>
-                </BForm>
-              </validation-observer>
+                <!-- Form Buttons -->
+                <BFormGroup>
+                  <BButton
+                    class="ms-2"
+                    variant="outline-dark"
+                    @click="handleReset"
+                  >
+                    Reset
+                  </BButton>
+                  <BButton
+                    class="ms-2"
+                    :class="{ shake: animated }"
+                    type="submit"
+                    variant="dark"
+                  >
+                    Login
+                  </BButton>
+                </BFormGroup>
+              </BForm>
 
               <!-- Additional Links -->
               <div>
@@ -103,16 +86,19 @@
 </template>
 
 <script>
-import { ValidationObserver, ValidationProvider } from 'vee-validate';
+import { ref } from 'vue';
 import { useHead } from '@unhead/vue';
+import { useForm, useField, defineRule } from 'vee-validate';
+import { required, min, max } from '@vee-validate/rules';
 import toastMixin from '@/assets/js/mixins/toastMixin';
+
+// Define validation rules globally
+defineRule('required', required);
+defineRule('min', min);
+defineRule('max', max);
 
 export default {
   name: 'Login',
-  components: {
-    ValidationObserver,
-    ValidationProvider,
-  },
   mixins: [toastMixin],
   setup() {
     useHead({
@@ -124,13 +110,37 @@ export default {
         },
       ],
     });
-  },
-  data() {
+
+    // Setup form validation with vee-validate 4
+    const { handleSubmit, resetForm: resetVeeForm } = useForm();
+
+    // Define fields with validation
+    const {
+      value: user_name,
+      errorMessage: usernameError,
+      meta: usernameMeta,
+    } = useField('username', 'required|min:5|max:20');
+
+    const {
+      value: password,
+      errorMessage: passwordError,
+      meta: passwordMeta,
+    } = useField('password', 'required|min:5|max:50');
+
+    const loading = ref(true);
+    const animated = ref(false);
+
     return {
-      user_name: '',
-      password: '',
-      loading: true,
-      animated: false,
+      user_name,
+      usernameError,
+      usernameMeta,
+      password,
+      passwordError,
+      passwordMeta,
+      loading,
+      animated,
+      handleSubmit,
+      resetVeeForm,
     };
   },
   mounted() {
@@ -140,11 +150,10 @@ export default {
     this.loading = false;
   },
   methods: {
-    getValidationState({ errors, dirty, validated }) {
-      if (errors.length) {
-        return false;
-      }
-      return dirty || validated ? true : null;
+    onSubmit() {
+      this.handleSubmit((values) => {
+        this.loadJWT();
+      })();
     },
     async loadJWT() {
       const apiAuthenticateURL = `${process.env.VUE_APP_API_URL}/api/auth/authenticate?user_name=${this.user_name}&password=${this.password}`;
@@ -172,15 +181,10 @@ export default {
         this.makeToast(e, 'Error', 'danger');
       }
     },
-    resetForm() {
+    handleReset() {
       this.user_name = '';
       this.password = '';
-      this.$nextTick(() => {
-        this.$refs.observer.reset();
-      });
-    },
-    onSubmit(event) {
-      this.loadJWT();
+      this.resetVeeForm();
     },
     doUserLogOut() {
       if (localStorage.user || localStorage.token) {
@@ -189,12 +193,6 @@ export default {
         this.user = null;
         this.$router.push('/');
       }
-    },
-    clickHandler() {
-      this.animated = true;
-      setTimeout(() => {
-        this.animated = false;
-      }, 1000);
     },
   },
 };

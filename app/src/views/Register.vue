@@ -19,141 +19,112 @@
               rounded="sm"
             >
               <BCardText>
-                <validation-observer
-                  ref="observer"
-                  v-slot="{ handleSubmit }"
-                >
-                  <BForm @submit.stop.prevent="handleSubmit(onSubmit)">
-                    <validation-provider
-                      v-slot="validationContext"
-                      name="username"
-                      :rules="{ required: true, min: 5, max: 20 }"
-                    >
-                      <BFormGroup
-                        description="Enter your preferred user name (min 5 chars)"
-                      >
-                        <BFormInput
-                          v-model="registration_form.user_name"
-                          placeholder="Username"
-                          :state="getValidationState(validationContext)"
-                        />
-                      </BFormGroup>
-                    </validation-provider>
+                <BForm @submit.prevent="onSubmit">
+                  <BFormGroup
+                    description="Enter your preferred user name (min 5 chars)"
+                  >
+                    <BFormInput
+                      v-model="user_name"
+                      placeholder="Username"
+                      :state="usernameMeta.touched ? (usernameError ? false : true) : null"
+                    />
+                    <BFormInvalidFeedback v-if="usernameError">
+                      {{ usernameError }}
+                    </BFormInvalidFeedback>
+                  </BFormGroup>
 
-                    <validation-provider
-                      v-slot="validationContext"
-                      name="email"
-                      :rules="{ required: true, email: true }"
-                    >
-                      <BFormGroup
-                        description="Enter your institutional mail account"
-                      >
-                        <BFormInput
-                          v-model="registration_form.email"
-                          placeholder="mail@your-institution.com"
-                          :state="getValidationState(validationContext)"
-                        />
-                      </BFormGroup>
-                    </validation-provider>
+                  <BFormGroup
+                    description="Enter your institutional mail account"
+                  >
+                    <BFormInput
+                      v-model="email"
+                      placeholder="mail@your-institution.com"
+                      :state="emailMeta.touched ? (emailError ? false : true) : null"
+                    />
+                    <BFormInvalidFeedback v-if="emailError">
+                      {{ emailError }}
+                    </BFormInvalidFeedback>
+                  </BFormGroup>
 
-                    <validation-provider
-                      v-slot="validationContext"
-                      name="orcid"
-                      :rules="{
-                        required: true,
-                        regex: /^(([0-9]{4})-){3}[0-9]{3}[0-9X]$/,
-                      }"
-                    >
-                      <BFormGroup description="Enter your ORCID">
-                        <BFormInput
-                          v-model="registration_form.orcid"
-                          placeholder="NNNN-NNNN-NNNN-NNNX"
-                          :state="getValidationState(validationContext)"
-                        />
-                      </BFormGroup>
-                    </validation-provider>
+                  <BFormGroup description="Enter your ORCID">
+                    <BFormInput
+                      v-model="orcid"
+                      placeholder="NNNN-NNNN-NNNN-NNNX"
+                      :state="orcidMeta.touched ? (orcidError ? false : true) : null"
+                    />
+                    <BFormInvalidFeedback v-if="orcidError">
+                      {{ orcidError }}
+                    </BFormInvalidFeedback>
+                  </BFormGroup>
 
-                    <validation-provider
-                      v-slot="validationContext"
-                      name="firstname"
-                      :rules="{ required: true, min: 2, max: 50 }"
-                    >
-                      <BFormGroup description="Enter your first name">
-                        <BFormInput
-                          v-model="registration_form.first_name"
-                          placeholder="First name"
-                          :state="getValidationState(validationContext)"
-                        />
-                      </BFormGroup>
-                    </validation-provider>
+                  <BFormGroup description="Enter your first name">
+                    <BFormInput
+                      v-model="first_name"
+                      placeholder="First name"
+                      :state="firstnameMeta.touched ? (firstnameError ? false : true) : null"
+                    />
+                    <BFormInvalidFeedback v-if="firstnameError">
+                      {{ firstnameError }}
+                    </BFormInvalidFeedback>
+                  </BFormGroup>
 
-                    <validation-provider
-                      v-slot="validationContext"
-                      name="familyname"
-                      :rules="{ required: true, min: 2, max: 50 }"
-                    >
-                      <BFormGroup description="Enter your family name">
-                        <BFormInput
-                          v-model="registration_form.family_name"
-                          placeholder="Family name"
-                          :state="getValidationState(validationContext)"
-                        />
-                      </BFormGroup>
-                    </validation-provider>
+                  <BFormGroup description="Enter your family name">
+                    <BFormInput
+                      v-model="family_name"
+                      placeholder="Family name"
+                      :state="familynameMeta.touched ? (familynameError ? false : true) : null"
+                    />
+                    <BFormInvalidFeedback v-if="familynameError">
+                      {{ familynameError }}
+                    </BFormInvalidFeedback>
+                  </BFormGroup>
 
-                    <validation-provider
-                      v-slot="validationContext"
-                      name="sysnddcomment"
-                      :rules="{ required: true, min: 10, max: 250 }"
-                    >
-                      <BFormGroup
-                        description="Please describe why you want to help with SysNDD"
-                      >
-                        <BFormInput
-                          v-model="registration_form.comment"
-                          placeholder="Your interest in SysNDD"
-                          :state="getValidationState(validationContext)"
-                        />
-                      </BFormGroup>
-                    </validation-provider>
+                  <BFormGroup
+                    description="Please describe why you want to help with SysNDD"
+                  >
+                    <BFormInput
+                      v-model="comment"
+                      placeholder="Your interest in SysNDD"
+                      :state="commentMeta.touched ? (commentError ? false : true) : null"
+                    />
+                    <BFormInvalidFeedback v-if="commentError">
+                      {{ commentError }}
+                    </BFormInvalidFeedback>
+                  </BFormGroup>
 
-                    <validation-provider
-                      v-slot="validationContext"
-                      name="termsagreed"
-                      :rules="{ required: true, is: 'accepted' }"
+                  <BFormGroup>
+                    <BFormCheckbox
+                      v-model="terms_agreed"
+                      value="accepted"
+                      unchecked-value="not_accepted"
+                      :state="termsMeta.touched ? (termsError ? false : true) : null"
                     >
-                      <BFormGroup>
-                        <BFormCheckbox
-                          v-model="registration_form.terms_agreed"
-                          value="accepted"
-                          unchecked-value="not_accepted"
-                          :state="getValidationState(validationContext)"
-                        >
-                          I accept the terms and use
-                        </BFormCheckbox>
-                      </BFormGroup>
-                    </validation-provider>
+                      I accept the terms and use
+                    </BFormCheckbox>
+                    <BFormInvalidFeedback v-if="termsError" class="d-block">
+                      {{ termsError }}
+                    </BFormInvalidFeedback>
+                  </BFormGroup>
 
-                    <BFormGroup>
-                      <BButton
-                        class="ms-2"
-                        variant="outline-dark"
-                        @click="resetForm()"
-                      >
-                        Reset
-                      </BButton>
-                      <BButton
-                        class="ms-2"
-                        :class="{ shake: animated }"
-                        type="submit"
-                        variant="dark"
-                        @click="clickHandler()"
-                      >
-                        Register
-                      </BButton>
-                    </BFormGroup>
-                  </BForm>
-                </validation-observer>
+                  <BFormGroup>
+                    <BButton
+                      class="ms-2"
+                      variant="outline-dark"
+                      @click="handleReset()"
+                    >
+                      Reset
+                    </BButton>
+                    <BButton
+                      class="ms-2"
+                      :class="{ shake: animated }"
+                      type="submit"
+                      variant="dark"
+                      @click="clickHandler()"
+                    >
+                      Register
+                    </BButton>
+                  </BFormGroup>
+                </BForm>
               </BCardText>
 
               <template #overlay>
@@ -175,8 +146,21 @@
 </template>
 
 <script>
+import { ref } from 'vue';
 import { useHead } from '@unhead/vue';
+import { useForm, useField, defineRule } from 'vee-validate';
+import { required, min, max, email, regex } from '@vee-validate/rules';
 import toastMixin from '@/assets/js/mixins/toastMixin';
+
+// Define validation rules
+defineRule('required', required);
+defineRule('min', min);
+defineRule('max', max);
+defineRule('email', email);
+defineRule('regex', regex);
+defineRule('is', (value, [target]) => {
+  return value === target || 'You must accept the terms';
+});
 
 export default {
   name: 'Register',
@@ -191,21 +175,94 @@ export default {
         },
       ],
     });
-  },
-  data() {
+
+    const { handleSubmit, resetForm: resetVeeForm } = useForm();
+
+    // Define all fields with validation
+    const {
+      value: user_name,
+      errorMessage: usernameError,
+      meta: usernameMeta,
+    } = useField('username', 'required|min:5|max:20');
+
+    const {
+      value: email,
+      errorMessage: emailError,
+      meta: emailMeta,
+    } = useField('email', 'required|email');
+
+    const {
+      value: orcid,
+      errorMessage: orcidError,
+      meta: orcidMeta,
+    } = useField('orcid', (value) => {
+      if (!value) return 'ORCID is required';
+      const orcidRegex = /^(([0-9]{4})-){3}[0-9]{3}[0-9X]$/;
+      if (!orcidRegex.test(value)) return 'Invalid ORCID format (NNNN-NNNN-NNNN-NNNX)';
+      return true;
+    });
+
+    const {
+      value: first_name,
+      errorMessage: firstnameError,
+      meta: firstnameMeta,
+    } = useField('firstname', 'required|min:2|max:50');
+
+    const {
+      value: family_name,
+      errorMessage: familynameError,
+      meta: familynameMeta,
+    } = useField('familyname', 'required|min:2|max:50');
+
+    const {
+      value: comment,
+      errorMessage: commentError,
+      meta: commentMeta,
+    } = useField('comment', 'required|min:10|max:250');
+
+    const {
+      value: terms_agreed,
+      errorMessage: termsError,
+      meta: termsMeta,
+    } = useField('terms', (value) => {
+      if (value !== 'accepted') return 'You must accept the terms';
+      return true;
+    });
+
+    // Initialize terms_agreed
+    terms_agreed.value = 'not_accepted';
+
+    const animated = ref(false);
+    const show_overlay = ref(false);
+    const loading = ref(true);
+
     return {
-      registration_form: {
-        user_name: '',
-        email: '',
-        orcid: '',
-        first_name: '',
-        family_name: '',
-        comment: '',
-        terms_agreed: 'not_accepted',
-      },
-      animated: false,
-      show_overlay: false,
-      loading: true,
+      user_name,
+      usernameError,
+      usernameMeta,
+      email,
+      emailError,
+      emailMeta,
+      orcid,
+      orcidError,
+      orcidMeta,
+      first_name,
+      firstnameError,
+      firstnameMeta,
+      family_name,
+      familynameError,
+      familynameMeta,
+      comment,
+      commentError,
+      commentMeta,
+      terms_agreed,
+      termsError,
+      termsMeta,
+      animated,
+      show_overlay,
+      loading,
+      handleSubmit,
+      resetVeeForm,
     };
   },
   mounted() {
@@ -215,14 +272,26 @@ export default {
     this.loading = false;
   },
   methods: {
-    getValidationState({ dirty, validated, valid = null }) {
-      return dirty || validated ? valid : null;
+    onSubmit() {
+      this.handleSubmit(() => {
+        this.sendRegistration();
+      })();
     },
     async sendRegistration() {
       const apiUrl = `${process.env.VUE_APP_API_URL}/api/auth/signup?signup_data=`;
 
+      const registration_form = {
+        user_name: this.user_name,
+        email: this.email,
+        orcid: this.orcid,
+        first_name: this.first_name,
+        family_name: this.family_name,
+        comment: this.comment,
+        terms_agreed: this.terms_agreed,
+      };
+
       try {
-        const submission_json = JSON.stringify(this.registration_form);
+        const submission_json = JSON.stringify(registration_form);
         const response = await this.axios.get(apiUrl + submission_json, {});
         this.makeToast(
           `${'Your registration request has been send '
@@ -245,14 +314,20 @@ export default {
         this.$router.push('/');
       }, 2000);
     },
-    onSubmit(event) {
-      this.sendRegistration();
+    handleReset() {
+      this.user_name = '';
+      this.email = '';
+      this.orcid = '';
+      this.first_name = '';
+      this.family_name = '';
+      this.comment = '';
+      this.terms_agreed = 'not_accepted';
+      this.resetVeeForm();
     },
     clickHandler() {
-      const self = this;
-      self.animated = true;
+      this.animated = true;
       setTimeout(() => {
-        self.animated = false;
+        this.animated = false;
       }, 1000);
     },
     doUserLogOut() {

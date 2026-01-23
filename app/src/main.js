@@ -29,22 +29,10 @@ import './assets/scss/custom.scss';
 import VueAxios from 'vue-axios';
 import axios from 'axios';
 
-// vee-validate imports
-import {
-  ValidationObserver,
-  ValidationProvider,
-  extend,
-  localize,
-} from 'vee-validate';
-
-import en from 'vee-validate/dist/locale/en.json';
-import * as rules from 'vee-validate/dist/rules';
-
 // import perfect-scrollbar
 import PerfectScrollbar from 'vue2-perfect-scrollbar';
 import 'vue2-perfect-scrollbar/dist/vue2-perfect-scrollbar.css';
 
-// eslint: import should occur after import of `vee-validate/dist/rules`
 import App from './App.vue';
 
 // import router
@@ -84,18 +72,6 @@ Vue.use(PerfectScrollbar);
 Vue.component('Navbar', require('./components/Navbar.vue').default);
 
 Vue.use(VueAxios, axios);
-
-
-// Install VeeValidate rules and localization
-Object.keys(rules).forEach((rule) => {
-  extend(rule, rules[rule]);
-});
-
-localize('en', en);
-
-// Install VeeValidate components globally
-Vue.component('ValidationObserver', ValidationObserver);
-Vue.component('ValidationProvider', ValidationProvider);
 
 // Create Vue 3 app instance
 const pinia = createPinia();
