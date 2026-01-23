@@ -316,6 +316,7 @@
 </template>
 
 <script>
+import { useHead } from '@unhead/vue';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
 // Import the Pinia store
@@ -324,23 +325,17 @@ import { useUiStore } from '@/stores/ui';
 export default {
   name: 'Panels',
   mixins: [toastMixin],
-  metaInfo: {
-    // if no subcomponents specify a metaInfo.title, this title will be used
-    title: 'Panels',
-    // all titles will be injected into this template
-    titleTemplate:
-      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
-    htmlAttrs: {
-      lang: 'en',
-    },
-    meta: [
-      {
-        vmid: 'description',
-        name: 'description',
-        content:
-          'The Panels table view allows composing panels of genes associated with NDD which can be sued for filtering in sequencing studies.',
-      },
-    ],
+  setup() {
+    useHead({
+      title: 'Panels',
+      meta: [
+        {
+          name: 'description',
+          content:
+            'The Panels table view allows composing panels of genes associated with NDD which can be sued for filtering in sequencing studies.',
+        },
+      ],
+    });
   },
   data() {
     return {

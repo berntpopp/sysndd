@@ -104,6 +104,7 @@
 
 <script>
 import { ValidationObserver, ValidationProvider } from 'vee-validate';
+import { useHead } from '@unhead/vue';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
@@ -113,18 +114,16 @@ export default {
     ValidationProvider,
   },
   mixins: [toastMixin],
-  metaInfo: {
-    title: 'Login',
-    titleTemplate:
-      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
-    htmlAttrs: { lang: 'en' },
-    meta: [
-      {
-        vmid: 'description',
-        name: 'description',
-        content: 'The Login view allows users and curators to log into their SysNDD account.',
-      },
-    ],
+  setup() {
+    useHead({
+      title: 'Login',
+      meta: [
+        {
+          name: 'description',
+          content: 'The Login view allows users and curators to log into their SysNDD account.',
+        },
+      ],
+    });
   },
   data() {
     return {

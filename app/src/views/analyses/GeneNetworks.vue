@@ -22,28 +22,23 @@
 </template>
 
 <script>
+import { useHead } from '@unhead/vue';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
   name: 'GeneNetworks',
   mixins: [toastMixin],
-  metaInfo: {
-    // if no subcomponents specify a metaInfo.title, this title will be used
-    title: 'Functional clusters',
-    // all titles will be injected into this template
-    titleTemplate:
-      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
-    htmlAttrs: {
-      lang: 'en',
-    },
-    meta: [
-      {
-        vmid: 'description',
-        name: 'description',
-        content:
-          'The Gene Networks analysis shows the interactions between genes associated with neurodevelopmental disorders and curated in SysNDD.',
-      },
-    ],
+  setup() {
+    useHead({
+      title: 'Functional clusters',
+      meta: [
+        {
+          name: 'description',
+          content:
+            'The Gene Networks analysis shows the interactions between genes associated with neurodevelopmental disorders and curated in SysNDD.',
+        },
+      ],
+    });
   },
 };
 </script>

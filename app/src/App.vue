@@ -29,6 +29,7 @@
 
 <script>
 import { BApp } from 'bootstrap-vue-next';
+import { useHead } from '@unhead/vue';
 import { useUiStore } from '@/stores/ui';
 import { mapState } from 'pinia';
 
@@ -37,23 +38,21 @@ export default {
   components: {
     BApp,
   },
-  metaInfo: {
-    // if no subcomponents specify a metaInfo.title, this title will be used
-    title: 'SysNDD',
-    // all titles will be injected into this template
-    titleTemplate:
-      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
-    htmlAttrs: {
-      lang: 'en',
-    },
-    meta: [
-      {
-        vmid: 'description',
-        name: 'description',
-        content:
-          'SysNDD contains a manually curated catalog of published genes implicated in neurodevelopmental disorders (NDDs) and classified into primary and candidate genes according to the degree of underlying evidence.',
+  setup() {
+    useHead({
+      title: 'SysNDD',
+      titleTemplate: '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
+      htmlAttrs: {
+        lang: 'en',
       },
-    ],
+      meta: [
+        {
+          name: 'description',
+          content:
+            'SysNDD contains a manually curated catalog of published genes implicated in neurodevelopmental disorders (NDDs) and classified into primary and candidate genes according to the degree of underlying evidence.',
+        },
+      ],
+    });
   },
   computed: {
     ...mapState(useUiStore, ['scrollbarUpdateTrigger']),

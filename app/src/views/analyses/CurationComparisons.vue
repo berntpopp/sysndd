@@ -54,6 +54,7 @@
 </template>
 
 <script>
+import { useHead } from '@unhead/vue';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
@@ -71,23 +72,17 @@ export default {
         'symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id',
     },
   },
-  metaInfo: {
-    // if no subcomponents specify a metaInfo.title, this title will be used
-    title: 'Curation comparisons',
-    // all titles will be injected into this template
-    titleTemplate:
-      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
-    htmlAttrs: {
-      lang: 'en',
-    },
-    meta: [
-      {
-        vmid: 'description',
-        name: 'description',
-        content:
-          'The Comparisons analysis can be used to compare different curation efforts for neurodevelopmental disorders (including attention-deficit/hyperactivity disorder (ADHD), autism spectrum disorders (ASD), learning disabilities and intellectual disability) based on UpSet plots, similarity matrix or tabular views.',
-      },
-    ],
+  setup() {
+    useHead({
+      title: 'Curation comparisons',
+      meta: [
+        {
+          name: 'description',
+          content:
+            'The Comparisons analysis can be used to compare different curation efforts for neurodevelopmental disorders (including attention-deficit/hyperactivity disorder (ADHD), autism spectrum disorders (ASD), learning disabilities and intellectual disability) based on UpSet plots, similarity matrix or tabular views.',
+        },
+      ],
+    });
   },
   data() {
     return {

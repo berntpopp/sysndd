@@ -21,28 +21,23 @@
 </template>
 
 <script>
+import { useHead } from '@unhead/vue';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
   name: 'EntriesOverTime',
   mixins: [toastMixin],
-  metaInfo: {
-    // if no subcomponents specify a metaInfo.title, this title will be used
-    title: 'Entries over time',
-    // all titles will be injected into this template
-    titleTemplate:
-      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
-    htmlAttrs: {
-      lang: 'en',
-    },
-    meta: [
-      {
-        vmid: 'description',
-        name: 'description',
-        content:
-          'This analysis shows the development of database entries over time for neurodevelopmental disorders curated in SysNDD.',
-      },
-    ],
+  setup() {
+    useHead({
+      title: 'Entries over time',
+      meta: [
+        {
+          name: 'description',
+          content:
+            'This analysis shows the development of database entries over time for neurodevelopmental disorders curated in SysNDD.',
+        },
+      ],
+    });
   },
   data() {
     return {

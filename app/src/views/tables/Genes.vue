@@ -14,6 +14,8 @@
 </template>
 
 <script>
+import { useHead } from '@unhead/vue';
+
 export default {
   name: 'Genes',
   props: {
@@ -28,23 +30,17 @@ export default {
         'symbol,category,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,entities_count,details',
     },
   },
-  metaInfo: {
-    // if no subcomponents specify a metaInfo.title, this title will be used
-    title: 'Genes',
-    // all titles will be injected into this template
-    titleTemplate:
-      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
-    htmlAttrs: {
-      lang: 'en',
-    },
-    meta: [
-      {
-        vmid: 'description',
-        name: 'description',
-        content:
-          'The Genes table view allows browsing NDD associations by gene.',
-      },
-    ],
+  setup() {
+    useHead({
+      title: 'Genes',
+      meta: [
+        {
+          name: 'description',
+          content:
+            'The Genes table view allows browsing NDD associations by gene.',
+        },
+      ],
+    });
   },
   mounted() {},
 };

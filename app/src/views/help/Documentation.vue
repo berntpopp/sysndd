@@ -234,25 +234,21 @@
 </template>
 
 <script>
+import { useHead } from '@unhead/vue';
+
 export default {
   name: 'Documentation',
-  metaInfo: {
-    // if no subcomponents specify a metaInfo.title, this title will be used
-    title: 'Documentation',
-    // all titles will be injected into this template
-    titleTemplate:
-      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
-    htmlAttrs: {
-      lang: 'en',
-    },
-    meta: [
-      {
-        vmid: 'description',
-        name: 'description',
-        content:
-          'The Documentation view contains information about the SysNDD curation effort and website.',
-      },
-    ],
+  setup() {
+    useHead({
+      title: 'Documentation',
+      meta: [
+        {
+          name: 'description',
+          content:
+            'The Documentation view contains information about the SysNDD curation effort and website.',
+        },
+      ],
+    });
   },
   data() {
     return {

@@ -520,6 +520,7 @@
 <script>
 import { gsap } from 'gsap';
 
+import { useHead } from '@unhead/vue';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 import textMixin from '@/assets/js/mixins/textMixin';
@@ -536,30 +537,23 @@ import apiService from '@/assets/js/services/apiService';
 export default {
   name: 'Home',
   mixins: [toastMixin, colorAndSymbolsMixin, textMixin],
-  metaInfo: {
-    // if no subcomponents specify a metaInfo.title, this title will be used
-    title: 'Home',
-    // all titles will be injected into this template
-    titleTemplate:
-      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
-    htmlAttrs: {
-      lang: 'en',
-    },
-    meta: [
-      {
-        vmid: 'description',
-        name: 'description',
-        content:
-          'The Home view shows current information about NDD (attention-deficit/hyperactivity disorder (ADHD), autism, learning disabilities, intellectual disability) entities .',
-      },
-      {
-        vmid: 'keywords',
-        name: 'keywords',
-        content:
-          'neurodevelopmental disorders, NDD, autism, ASD, learning disabilities, intellectual disability, ID, attention-deficit/hyperactivity disorder, ADHD',
-      },
-      { vmid: 'author', name: 'author', content: 'SysNDD database' },
-    ],
+  setup() {
+    useHead({
+      title: 'Home',
+      meta: [
+        {
+          name: 'description',
+          content:
+            'The Home view shows current information about NDD (attention-deficit/hyperactivity disorder (ADHD), autism, learning disabilities, intellectual disability) entities .',
+        },
+        {
+          name: 'keywords',
+          content:
+            'neurodevelopmental disorders, NDD, autism, ASD, learning disabilities, intellectual disability, ID, attention-deficit/hyperactivity disorder, ADHD',
+        },
+        { name: 'author', content: 'SysNDD database' },
+      ],
+    });
   },
   data() {
     return {

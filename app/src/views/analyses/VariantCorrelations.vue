@@ -46,29 +46,24 @@
 </template>
 
 <script>
+import { useHead } from '@unhead/vue';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import * as d3 from 'd3';
 
 export default {
   name: 'VariantCorrelations',
   mixins: [toastMixin],
-  metaInfo: {
-    // Page title
-    title: 'Variant correlations',
-    // All titles will be injected into this template
-    titleTemplate:
-      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
-    htmlAttrs: {
-      lang: 'en',
-    },
-    meta: [
-      {
-        vmid: 'description',
-        name: 'description',
-        content:
-          'The Variant analysis can be used to compare the correlations between genetic variants observed in neurodevelopmental disorders.',
-      },
-    ],
+  setup() {
+    useHead({
+      title: 'Variant correlations',
+      meta: [
+        {
+          name: 'description',
+          content:
+            'The Variant analysis can be used to compare the correlations between genetic variants observed in neurodevelopmental disorders.',
+        },
+      ],
+    });
   },
   data() {
     return {

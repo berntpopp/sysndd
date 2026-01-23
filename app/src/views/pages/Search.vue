@@ -70,28 +70,23 @@
 </template>
 
 <script>
+import { useHead } from '@unhead/vue';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
   name: 'Search',
   mixins: [toastMixin],
-  metaInfo: {
-    // if no subcomponents specify a metaInfo.title, this title will be used
-    title: 'Search',
-    // all titles will be injected into this template
-    titleTemplate:
-      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
-    htmlAttrs: {
-      lang: 'en',
-    },
-    meta: [
-      {
-        vmid: 'description',
-        name: 'description',
-        content:
-          'The Search table shows results of database searches and their similarity when no exact terms was identified.',
-      },
-    ],
+  setup() {
+    useHead({
+      title: 'Search',
+      meta: [
+        {
+          name: 'description',
+          content:
+            'The Search table shows results of database searches and their similarity when no exact terms was identified.',
+        },
+      ],
+    });
   },
   data() {
     return {

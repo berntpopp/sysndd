@@ -338,6 +338,7 @@
 </template>
 
 <script>
+import { useHead } from '@unhead/vue';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 import textMixin from '@/assets/js/mixins/textMixin';
@@ -345,22 +346,16 @@ import textMixin from '@/assets/js/mixins/textMixin';
 export default {
   name: 'Entity',
   mixins: [toastMixin, colorAndSymbolsMixin, textMixin],
-  metaInfo: {
-    // if no subcomponents specify a metaInfo.title, this title will be used
-    title: 'Entity',
-    // all titles will be injected into this template
-    titleTemplate:
-      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
-    htmlAttrs: {
-      lang: 'en',
-    },
-    meta: [
-      {
-        vmid: 'description',
-        name: 'description',
-        content: 'This Entity view shows specific information for an entity.',
-      },
-    ],
+  setup() {
+    useHead({
+      title: 'Entity',
+      meta: [
+        {
+          name: 'description',
+          content: 'This Entity view shows specific information for an entity.',
+        },
+      ],
+    });
   },
   data() {
     return {

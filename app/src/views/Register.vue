@@ -175,27 +175,22 @@
 </template>
 
 <script>
+import { useHead } from '@unhead/vue';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
 export default {
   name: 'Register',
   mixins: [toastMixin],
-  metaInfo: {
-    // if no subcomponents specify a metaInfo.title, this title will be used
-    title: 'Register',
-    // all titles will be injected into this template
-    titleTemplate:
-      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
-    htmlAttrs: {
-      lang: 'en',
-    },
-    meta: [
-      {
-        vmid: 'description',
-        name: 'description',
-        content: 'The Register view allows to apply for a new SysNDD account.',
-      },
-    ],
+  setup() {
+    useHead({
+      title: 'Register',
+      meta: [
+        {
+          name: 'description',
+          content: 'The Register view allows to apply for a new SysNDD account.',
+        },
+      ],
+    });
   },
   data() {
     return {

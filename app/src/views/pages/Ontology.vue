@@ -242,6 +242,7 @@
 </template>
 
 <script>
+import { useHead } from '@unhead/vue';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 
@@ -251,22 +252,16 @@ import Utils from '@/assets/js/utils';
 export default {
   name: 'Ontology',
   mixins: [toastMixin, colorAndSymbolsMixin],
-  metaInfo: {
-    // if no subcomponents specify a metaInfo.title, this title will be used
-    title: 'Ontology',
-    // all titles will be injected into this template
-    titleTemplate:
-      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
-    htmlAttrs: {
-      lang: 'en',
-    },
-    meta: [
-      {
-        vmid: 'description',
-        name: 'description',
-        content: 'This Ontology view shows specific information for a disease.',
-      },
-    ],
+  setup() {
+    useHead({
+      title: 'Ontology',
+      meta: [
+        {
+          name: 'description',
+          content: 'This Ontology view shows specific information for a disease.',
+        },
+      ],
+    });
   },
   data() {
     return {

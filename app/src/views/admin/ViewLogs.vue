@@ -22,6 +22,7 @@
 </template>
 
 <script>
+import { useHead } from '@unhead/vue';
 
 export default {
   name: 'ViewLogs',
@@ -37,22 +38,16 @@ export default {
         'id,timestamp,address,agent,host,request_method,path,query,post,status,duration,file,modified',
     },
   },
-  metaInfo: {
-    // if no subcomponents specify a metaInfo.title, this title will be used
-    title: 'Logging',
-    // all titles will be injected into this template
-    titleTemplate:
-      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
-    htmlAttrs: {
-      lang: 'en',
-    },
-    meta: [
-      {
-        vmid: 'description',
-        name: 'description',
-        content: 'An expert curated resource of neurodevelopmental disorders.',
-      },
-    ],
+  setup() {
+    useHead({
+      title: 'Logging',
+      meta: [
+        {
+          name: 'description',
+          content: 'An expert curated resource of neurodevelopmental disorders.',
+        },
+      ],
+    });
   },
 };
 </script>

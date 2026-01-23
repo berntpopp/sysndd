@@ -17,6 +17,7 @@
 </template>
 
 <script>
+import { useHead } from '@unhead/vue';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 // IMPORTANT: Import your child
 import AnalysesPhenotypeFunctionalCorrelation from '@/components/analyses/AnalysesPhenotypeFunctionalCorrelation.vue';
@@ -27,19 +28,17 @@ export default {
     AnalysesPhenotypeFunctionalCorrelation,
   },
   mixins: [toastMixin],
-  metaInfo: {
-    title: 'Pheno-Func Correlation',
-    titleTemplate:
-      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
-    htmlAttrs: { lang: 'en' },
-    meta: [
-      {
-        vmid: 'description',
-        name: 'description',
-        content:
-          'Shows the correlation between phenotype-based clusters and functional clusters, plus optional SFARI genes, in a heatmap format.',
-      },
-    ],
+  setup() {
+    useHead({
+      title: 'Pheno-Func Correlation',
+      meta: [
+        {
+          name: 'description',
+          content:
+            'Shows the correlation between phenotype-based clusters and functional clusters, plus optional SFARI genes, in a heatmap format.',
+        },
+      ],
+    });
   },
   data() {
     return {

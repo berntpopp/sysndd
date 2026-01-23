@@ -1,5 +1,5 @@
 import Vue, { createApp, configureCompat } from 'vue';
-import VueMeta from 'vue-meta';
+import { createHead } from '@unhead/vue/client';
 import { createPinia } from 'pinia';
 
 // import custom js
@@ -56,7 +56,7 @@ import './assets/css/custom.css';
 
 // Configure @vue/compat runtime behavior
 // MODE: 2 enables full Vue 2 compatibility
-// Enable specific compat features needed by vue-meta and bootstrap-vue
+// Enable specific compat features needed by bootstrap-vue
 configureCompat({
   MODE: 2,
   INSTANCE_CHILDREN: true,
@@ -85,14 +85,6 @@ Vue.component('Navbar', require('./components/Navbar.vue').default);
 
 Vue.use(VueAxios, axios);
 
-// register vue-meta globally
-Vue.use(VueMeta, {
-  keyName: 'metaInfo',
-  attribute: 'data-vue-meta',
-  ssrAttribute: 'data-vue-meta-server-rendered',
-  tagIDKeyName: 'vmid',
-  refreshOnceOnNavigation: true,
-});
 
 // Install VeeValidate rules and localization
 Object.keys(rules).forEach((rule) => {
@@ -107,6 +99,7 @@ Vue.component('ValidationProvider', ValidationProvider);
 
 // Create Vue 3 app instance
 const pinia = createPinia();
+const head = createHead();
 const app = createApp(App);
 
 // Register axios on Vue 3 app instance (VueAxios via Vue.use doesn't fully transfer)
@@ -115,6 +108,9 @@ app.config.globalProperties.$http = axios;
 
 // Register Bootstrap-Vue-Next plugin (Vue 3 native)
 app.use(createBootstrap());
+
+// Register @unhead/vue for head management
+app.use(head);
 
 app.use(pinia);
 app.use(router);

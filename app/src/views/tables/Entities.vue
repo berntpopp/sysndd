@@ -15,6 +15,8 @@
 </template>
 
 <script>
+import { useHead } from '@unhead/vue';
+
 export default {
   name: 'Entities',
   props: {
@@ -29,22 +31,16 @@ export default {
         'entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details',
     },
   },
-  metaInfo: {
-    // if no subcomponents specify a metaInfo.title, this title will be used
-    title: 'Entities',
-    // all titles will be injected into this template
-    titleTemplate:
-      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
-    htmlAttrs: {
-      lang: 'en',
-    },
-    meta: [
-      {
-        vmid: 'description',
-        name: 'description',
-        content: 'An expert curated resource of neurodevelopmental disorders.',
-      },
-    ],
+  setup() {
+    useHead({
+      title: 'Entities',
+      meta: [
+        {
+          name: 'description',
+          content: 'An expert curated resource of neurodevelopmental disorders.',
+        },
+      ],
+    });
   },
 };
 </script>
