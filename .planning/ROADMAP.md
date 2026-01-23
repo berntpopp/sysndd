@@ -37,10 +37,11 @@ The v4 Backend Overhaul modernizes the R/Plumber API through a strict phase sequ
   2. All existing API tests pass on upgraded R version
   3. renv::restore() completes without errors or Dockerfile workarounds
   4. Matrix/lme4 clustering endpoints return correct results
-**Plans**: TBD
+**Plans**: 2 plans in 2 waves
 
 Plans:
-- [ ] 18-01: TBD (to be determined during planning)
+- [ ] 18-01-PLAN.md - Create fresh renv.lock on R 4.4.x with complete dependencies
+- [ ] 18-02-PLAN.md - Update Dockerfile to R 4.4.3, remove workarounds, verify build
 
 ### Phase 19: Security Hardening
 **Goal**: Zero SQL injection vulnerabilities and secure password storage
@@ -137,7 +138,7 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 18. Foundation | 0/TBD | Not started | - |
+| 18. Foundation | 0/2 | Planned | - |
 | 19. Security Hardening | 0/TBD | Not started | - |
 | 20. Async/Non-blocking | 0/TBD | Not started | - |
 | 21. Repository Layer | 0/TBD | Not started | - |
@@ -168,4 +169,4 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 
 ---
 *Roadmap created: 2026-01-23*
-*Last updated: 2026-01-23*
+*Last updated: 2026-01-23 - Phase 18 planned (2 plans)*
