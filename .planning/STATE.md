@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 16 - UI/UX Modernization (IN PROGRESS)
-**Plan:** 2 of ~6 plans complete
+**Plan:** 3 of ~6 plans complete
 **Status:** In progress
-**Last activity:** 2026-01-23 — Completed 16-04 Form Styling Enhancement
+**Last activity:** 2026-01-23 — Completed 16-03 Table Styling Enhancement
 
 ```
 v3 Frontend Modernization: PHASE 16 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables), Phase 14 (TypeScript), Phase 15 (Testing)
-Phase 16 progress: Design tokens (16-01), Form styling (16-04)
-Last completed: 16-04 Form Styling Enhancement
-Progress: ████████████████████████████░ 43/~50 plans in v3 milestone
+Phase 16 progress: Design tokens (16-01), Table styling (16-03), Form styling (16-04)
+Last completed: 16-03 Table Styling Enhancement
+Progress: ████████████████████████████░ 44/~50 plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -175,6 +175,12 @@ See PROJECT.md for full decisions table.
 - Validation feedback: inline below field using status-danger/success colors
 - Required fields: red asterisk with aria-label for accessibility
 - Disabled inputs: not-allowed cursor with reduced opacity for clear indication
+- Table zebra striping: 2% opacity for subtle visual distinction without overwhelming data
+- Table row hover: 5% medical blue for tracking across wide tables
+- Sort indicators: CSS triangles (pseudo-elements) instead of icon fonts for performance
+- Active sort column: 8% background + font-weight 600 for clear visual feedback
+- Compact table variant (.table-compact) with tighter padding for genes/entities tables
+- Sortable headers styled via aria-sort attribute for semantic accessibility
 
 ## Archive Location
 
@@ -184,8 +190,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 16-04 Form Styling Enhancement
+**Stopped at:** Completed 16-03 Table Styling Enhancement
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 16 in progress, 16-04 complete (form styling with enhanced focus states and validation feedback)*
+*Last updated: 2026-01-23 — Phase 16 in progress, 16-03 complete (table styling with zebra striping, row hover, sort indicators)*
