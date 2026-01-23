@@ -23,9 +23,10 @@
       :variant="inNavbar ? 'outline-primary' : 'outline-dark'"
       :size="inNavbar ? 'sm' : 'md'"
       :disabled="search_input.length < 2"
+      aria-label="Search"
       @click="handleSearchInputKeydown"
     >
-      <i class="bi bi-search" />
+      <i class="bi bi-search" aria-hidden="true" />
     </BButton>
   </BInputGroup>
 </template>

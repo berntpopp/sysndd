@@ -68,13 +68,8 @@
                     small
                   >
                     <template #cell(category)="data">
-                      <div>
-                        <BAvatar
-                          size="1.4em"
-                          :variant="stoplights_style[data.item.category]"
-                        >
-                          <i class="bi bi-stoplights" />
-                        </BAvatar>
+                      <div class="d-flex align-items-center gap-2">
+                        <CategoryIcon :category="data.item.category" size="sm" />
                         {{ data.item.category }}
                       </div>
                     </template>
@@ -174,13 +169,8 @@
                     small
                   >
                     <template #cell(category)="data">
-                      <div>
-                        <BAvatar
-                          size="1.4em"
-                          :variant="stoplights_style[data.item.category]"
-                        >
-                          <i class="bi bi-stoplights" />
-                        </BAvatar>
+                      <div class="d-flex align-items-center gap-2">
+                        <CategoryIcon :category="data.item.category" size="sm" />
                         {{ data.item.category }}
                       </div>
                     </template>
@@ -300,110 +290,50 @@
                       </template>
 
                       <template #cell(entity_id)="data">
-                        <div>
-                          <BLink :href="'/Entities/' + data.item.entity_id">
-                            <BBadge
-                              v-b-tooltip.hover.rightbottom
-                              variant="primary"
-                              style="cursor: pointer"
-                              :title="'Entry date: ' + data.item.entry_date"
-                            >
-                              sysndd:{{ data.item.entity_id }}
-                            </BBadge>
-                          </BLink>
-                        </div>
+                        <EntityBadge
+                          :entity-id="data.item.entity_id"
+                          :link-to="'/Entities/' + data.item.entity_id"
+                          :title="'Entry date: ' + data.item.entry_date"
+                          size="sm"
+                        />
                       </template>
 
                       <template #cell(symbol)="data">
-                        <div class="overflow-hidden text-truncate font-italic">
-                          <BLink :href="'/Genes/' + data.item.hgnc_id">
-                            <BBadge
-                              v-b-tooltip.hover.leftbottom
-                              pill
-                              variant="success"
-                              :title="data.item.hgnc_id"
-                            >
-                              {{ data.item.symbol }}
-                            </BBadge>
-                          </BLink>
-                        </div>
+                        <GeneBadge
+                          :symbol="data.item.symbol"
+                          :hgnc-id="data.item.hgnc_id"
+                          :link-to="'/Genes/' + data.item.hgnc_id"
+                          size="sm"
+                        />
                       </template>
 
                       <template #cell(disease_ontology_name)="data">
-                        <div class="overflow-hidden text-truncate">
-                          <BLink
-                            :href="
-                              '/Ontology/' +
-                                data.item.disease_ontology_id_version
-                            "
-                          >
-                            <BBadge
-                              v-b-tooltip.hover.leftbottom
-                              pill
-                              variant="secondary"
-                              :title="
-                                data.item.disease_ontology_name +
-                                  '; ' +
-                                  data.item.disease_ontology_id_version
-                              "
-                            >
-                              {{
-                                truncate(data.item.disease_ontology_name, 40)
-                              }}
-                            </BBadge>
-                          </BLink>
-                        </div>
+                        <DiseaseBadge
+                          :name="data.item.disease_ontology_name"
+                          :ontology-id="data.item.disease_ontology_id_version"
+                          :link-to="'/Ontology/' + data.item.disease_ontology_id_version"
+                          :max-length="35"
+                          size="sm"
+                        />
                       </template>
 
                       <template #cell(inheritance_filter)="data">
-                        <div>
-                          <BBadge
-                            v-b-tooltip.hover.leftbottom
-                            pill
-                            variant="info"
-                            class="justify-content-md-center px-1 mx-1"
-                            size="1.3em"
-                            :title="
-                              data.item.inheritance_filter +
-                                ' (' +
-                                data.item.hpo_mode_of_inheritance_term +
-                                ')'
-                            "
-                          >
-                            {{
-                              inheritance_overview_text[
-                                data.item.inheritance_filter
-                              ]
-                            }}
-                          </BBadge>
-                        </div>
+                        <InheritanceBadge
+                          :full-name="data.item.inheritance_filter"
+                          :hpo-term="data.item.hpo_mode_of_inheritance_term"
+                          size="sm"
+                        />
                       </template>
 
                       <template #cell(category)="data">
-                        <div>
-                          <BAvatar
-                            v-b-tooltip.hover.left
-                            size="1.4em"
-                            :variant="stoplights_style[data.item.category]"
-                            :title="data.item.category"
-                          >
-                            <i class="bi bi-stoplights" />
-                          </BAvatar>
+                        <div v-b-tooltip.hover.left :title="data.item.category">
+                          <CategoryIcon :category="data.item.category" size="sm" :show-title="false" />
                         </div>
                       </template>
 
                       <template #cell(ndd_phenotype_word)="data">
-                        <div>
-                          <BAvatar
-                            v-b-tooltip.hover.left
-                            size="1.4em"
-                            :variant="
-                              ndd_icon_style[data.item.ndd_phenotype_word]
-                            "
-                            :title="ndd_icon_text[data.item.ndd_phenotype_word]"
-                          >
-                            <i :class="'bi bi-' + ndd_icon[data.item.ndd_phenotype_word]" />
-                          </BAvatar>
+                        <div v-b-tooltip.hover.left :title="ndd_icon_text[data.item.ndd_phenotype_word]">
+                          <NddIcon :status="data.item.ndd_phenotype_word" size="sm" :show-title="false" />
                         </div>
                       </template>
                     </BTable>
@@ -435,25 +365,14 @@
                   class="word"
                 >We define “gene-inheritance-disease” units as
                   “<mark>entities</mark>”, </span><br>
-                <span
-                  class="word"
-                >which are color coded throughout the website:
-                  <BBadge
-                    variant="primary"
-                  >Entity:
-                    <BBadge
-                      pill
-                      variant="success"
-                    >Gene</BBadge>
-                    <BBadge
-                      pill
-                      variant="info"
-                    >Inheritance</BBadge>
-                    <BBadge
-                      pill
-                      variant="secondary"
-                    >Disease</BBadge>
-                  </BBadge> </span><br><br>
+                <span class="word">which are color coded throughout the website:
+                  <span class="entity-concept__container">
+                    <span class="entity-concept__label">Entity:</span>
+                    <GeneBadge symbol="Gene" :show-title="false" size="sm" />
+                    <InheritanceBadge full-name="Inheritance" :show-title="false" :use-abbreviation="false" size="sm" />
+                    <DiseaseBadge name="Disease" :show-title="false" :max-length="0" size="sm" />
+                  </span>
+                </span><br><br>
 
                 <span
                   class="word"
@@ -461,35 +380,16 @@
                   “<mark>Categories</mark>”, based on the strength of their
                   association with NDD phenotypes. They are represented using
                   these differently colored stoplight symbols: </span><br>
-                <span class="word">
+                <span class="word d-flex align-items-center flex-wrap gap-1">
                   Definitive:
-                  <BAvatar
-                    size="1.4em"
-                    :variant="stoplights_style['Definitive']"
-                  >
-                    <i class="bi bi-stoplights" />
-                  </BAvatar>
+                  <CategoryIcon category="Definitive" />
                   , Moderate:
-                  <BAvatar
-                    size="1.4em"
-                    :variant="stoplights_style['Moderate']"
-                  >
-                    <i class="bi bi-stoplights" />
-                  </BAvatar>
+                  <CategoryIcon category="Moderate" />
                   , Limited:
-                  <BAvatar
-                    size="1.4em"
-                    :variant="stoplights_style['Limited']"
-                  >
-                    <i class="bi bi-stoplights" />
-                  </BAvatar>
+                  <CategoryIcon category="Limited" />
                   , Refuted:
-                  <BAvatar
-                    size="1.4em"
-                    :variant="stoplights_style['Refuted']"
-                  >
-                    <i class="bi bi-stoplights" />
-                  </BAvatar> </span><br>
+                  <CategoryIcon category="Refuted" />
+                </span><br>
                 <span
                   class="word"
                 >The classification criteria used for the categories are
@@ -760,5 +660,24 @@ hr.dashed {
 }
 .fade-enter, .fade-leave-to {
   opacity: 0;
+}
+/* Entity concept visual explanation */
+.entity-concept__container {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 1rem;
+  background: linear-gradient(145deg, #0d6efd 0%, #0a58ca 100%);
+  border: 1.5px solid #084298;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.15),
+    inset 0 1px 2px rgba(255, 255, 255, 0.2);
+}
+.entity-concept__label {
+  color: white;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
 }
 </style>

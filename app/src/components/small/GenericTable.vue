@@ -112,6 +112,87 @@
       </slot>
     </template>
 
+    <!-- Curation comparison columns -->
+    <template #cell(SysNDD)="data">
+      <slot
+        name="cell-SysNDD"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.SysNDD }}
+      </slot>
+    </template>
+
+    <template #cell(radboudumc_ID)="data">
+      <slot
+        name="cell-radboudumc_ID"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.radboudumc_ID }}
+      </slot>
+    </template>
+
+    <template #cell(gene2phenotype)="data">
+      <slot
+        name="cell-gene2phenotype"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.gene2phenotype }}
+      </slot>
+    </template>
+
+    <template #cell(panelapp)="data">
+      <slot
+        name="cell-panelapp"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.panelapp }}
+      </slot>
+    </template>
+
+    <template #cell(sfari)="data">
+      <slot
+        name="cell-sfari"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.sfari }}
+      </slot>
+    </template>
+
+    <template #cell(geisinger_DBD)="data">
+      <slot
+        name="cell-geisinger_DBD"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.geisinger_DBD }}
+      </slot>
+    </template>
+
+    <template #cell(omim_ndd)="data">
+      <slot
+        name="cell-omim_ndd"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.omim_ndd }}
+      </slot>
+    </template>
+
+    <template #cell(orphanet_id)="data">
+      <slot
+        name="cell-orphanet_id"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.orphanet_id }}
+      </slot>
+    </template>
+
     <!-- Details column -->
     <template #cell(details)="row">
       <BButton

@@ -237,138 +237,68 @@
           </template>
 
           <template v-slot:cell-symbol="{ row }">
-            <div class="font-italic">
-              <BLink :href="'/Genes/' + row.hgnc_id">
-                <BBadge
-                  v-b-tooltip.hover.leftbottom
-                  pill
-                  variant="success"
-                  :title="row.hgnc_id"
-                >
-                  {{ row.symbol }}
-                </BBadge>
-              </BLink>
-            </div>
+            <GeneBadge
+              :symbol="row.symbol"
+              :hgnc-id="row.hgnc_id"
+              :link-to="'/Genes/' + row.hgnc_id"
+              size="sm"
+            />
           </template>
 
           <template v-slot:cell-SysNDD="{ row }">
-            <span
-              v-b-tooltip.hover.left
-              class="d-inline-flex align-items-center justify-content-center rounded-circle"
-              :class="'bg-' + (stoplights_style[row.SysNDD] || 'secondary')"
-              :title="row.SysNDD"
-              style="width: 1.5em; height: 1.5em;"
-            >
-              <i
-                class="bi bi-stoplights-fill text-white"
-                style="font-size: 0.8em;"
-              />
-            </span>
+            <CategoryIcon
+              :category="row.SysNDD"
+              size="sm"
+            />
           </template>
 
           <template v-slot:cell-radboudumc_ID="{ row }">
-            <span
-              v-b-tooltip.hover.left
-              class="d-inline-flex align-items-center justify-content-center rounded-circle"
-              :class="'bg-' + (stoplights_style[row.radboudumc_ID] || 'secondary')"
-              :title="row.radboudumc_ID"
-              style="width: 1.5em; height: 1.5em;"
-            >
-              <i
-                class="bi bi-stoplights-fill text-white"
-                style="font-size: 0.8em;"
-              />
-            </span>
+            <CategoryIcon
+              :category="row.radboudumc_ID"
+              size="sm"
+            />
           </template>
 
           <template v-slot:cell-gene2phenotype="{ row }">
-            <span
-              v-b-tooltip.hover.left
-              class="d-inline-flex align-items-center justify-content-center rounded-circle"
-              :class="'bg-' + (stoplights_style[row.gene2phenotype] || 'secondary')"
-              :title="row.gene2phenotype"
-              style="width: 1.5em; height: 1.5em;"
-            >
-              <i
-                class="bi bi-stoplights-fill text-white"
-                style="font-size: 0.8em;"
-              />
-            </span>
+            <CategoryIcon
+              :category="row.gene2phenotype"
+              size="sm"
+            />
           </template>
 
           <template v-slot:cell-panelapp="{ row }">
-            <span
-              v-b-tooltip.hover.left
-              class="d-inline-flex align-items-center justify-content-center rounded-circle"
-              :class="'bg-' + (stoplights_style[row.panelapp] || 'secondary')"
-              :title="row.panelapp"
-              style="width: 1.5em; height: 1.5em;"
-            >
-              <i
-                class="bi bi-stoplights-fill text-white"
-                style="font-size: 0.8em;"
-              />
-            </span>
+            <CategoryIcon
+              :category="row.panelapp"
+              size="sm"
+            />
           </template>
 
           <template v-slot:cell-sfari="{ row }">
-            <span
-              v-b-tooltip.hover.left
-              class="d-inline-flex align-items-center justify-content-center rounded-circle"
-              :class="'bg-' + (stoplights_style[row.sfari] || 'secondary')"
-              :title="row.sfari"
-              style="width: 1.5em; height: 1.5em;"
-            >
-              <i
-                class="bi bi-stoplights-fill text-white"
-                style="font-size: 0.8em;"
-              />
-            </span>
+            <CategoryIcon
+              :category="row.sfari"
+              size="sm"
+            />
           </template>
 
           <template v-slot:cell-geisinger_DBD="{ row }">
-            <span
-              v-b-tooltip.hover.left
-              class="d-inline-flex align-items-center justify-content-center rounded-circle"
-              :class="'bg-' + (stoplights_style[row.geisinger_DBD] || 'secondary')"
-              :title="row.geisinger_DBD"
-              style="width: 1.5em; height: 1.5em;"
-            >
-              <i
-                class="bi bi-stoplights-fill text-white"
-                style="font-size: 0.8em;"
-              />
-            </span>
+            <CategoryIcon
+              :category="row.geisinger_DBD"
+              size="sm"
+            />
           </template>
 
           <template v-slot:cell-omim_ndd="{ row }">
-            <span
-              v-b-tooltip.hover.left
-              class="d-inline-flex align-items-center justify-content-center rounded-circle"
-              :class="'bg-' + (stoplights_style[row.omim_ndd] || 'secondary')"
-              :title="row.omim_ndd"
-              style="width: 1.5em; height: 1.5em;"
-            >
-              <i
-                class="bi bi-stoplights-fill text-white"
-                style="font-size: 0.8em;"
-              />
-            </span>
+            <CategoryIcon
+              :category="row.omim_ndd"
+              size="sm"
+            />
           </template>
 
           <template v-slot:cell-orphanet_id="{ row }">
-            <span
-              v-b-tooltip.hover.left
-              class="d-inline-flex align-items-center justify-content-center rounded-circle"
-              :class="'bg-' + (stoplights_style[row.orphanet_id] || 'secondary')"
-              :title="row.orphanet_id"
-              style="width: 1.5em; height: 1.5em;"
-            >
-              <i
-                class="bi bi-stoplights-fill text-white"
-                style="font-size: 0.8em;"
-              />
-            </span>
+            <CategoryIcon
+              :category="row.orphanet_id"
+              size="sm"
+            />
           </template>
         </GenericTable>
       </div>

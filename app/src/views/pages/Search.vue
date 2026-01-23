@@ -50,16 +50,11 @@
               </template>
 
               <template #cell(entity_id)="data">
-                <div>
-                  <BLink :href="'/Entities/' + data.item.entity_id">
-                    <BBadge
-                      variant="primary"
-                      style="cursor: pointer"
-                    >
-                      sysndd:{{ data.item.entity_id }}
-                    </BBadge>
-                  </BLink>
-                </div>
+                <EntityBadge
+                  :entity-id="data.item.entity_id"
+                  :link-to="'/Entities/' + data.item.entity_id"
+                  size="sm"
+                />
               </template>
             </BTable>
           </BCard>

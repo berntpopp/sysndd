@@ -32,9 +32,11 @@
       no-caret
       dropup
       title="Help us improve this page. We value your feedback."
+      aria-label="Feedback and help menu"
     >
       <template #button-content>
-        <i class="bi bi-emoji-smile" />
+        <i class="bi bi-emoji-smile" aria-hidden="true" />
+        <span class="visually-hidden">Feedback and help</span>
       </template>
 
       <BDropdownItem
@@ -42,7 +44,7 @@
         title="Cite this page."
         @click="copyURLCitation(path)"
       >
-        <i class="bi bi-chat-left-quote-fill" />
+        <i class="bi bi-chat-left-quote-fill" aria-hidden="true" /> Cite
       </BDropdownItem>
 
       <BDropdownItem
@@ -54,7 +56,7 @@
         "
         target="_blank"
       >
-        <i class="bi bi-hand-thumbs-up" />
+        <i class="bi bi-hand-thumbs-up" aria-hidden="true" /> Like
       </BDropdownItem>
 
       <BDropdownItem
@@ -66,7 +68,7 @@
         "
         target="_blank"
       >
-        <i class="bi bi-hand-thumbs-down" />
+        <i class="bi bi-hand-thumbs-down" aria-hidden="true" /> Improve
       </BDropdownItem>
 
       <BDropdownItem
@@ -75,7 +77,7 @@
         href="https://berntpopp.github.io/sysndd/"
         target="_blank"
       >
-        <i class="bi bi-book-fill" />
+        <i class="bi bi-book-fill" aria-hidden="true" /> Docs
       </BDropdownItem>
 
       <BDropdownItem
@@ -84,7 +86,7 @@
         href="https://github.com/berntpopp/sysndd/discussions"
         target="_blank"
       >
-        <i class="bi bi-question-circle-fill" />
+        <i class="bi bi-question-circle-fill" aria-hidden="true" /> Help
       </BDropdownItem>
     </BDropdown>
   </BContainer>

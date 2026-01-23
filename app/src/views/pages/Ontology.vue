@@ -24,14 +24,15 @@
             border-variant="dark"
           >
             <template #header>
-              <h3 class="mb-1 text-start font-weight-bold">
+              <h3 class="mb-1 text-start font-weight-bold d-flex align-items-center gap-2">
                 Disease:
-                <BBadge
-                  pill
-                  variant="secondary"
-                >
-                  {{ $route.params.disease_term }}
-                </BBadge>
+                <DiseaseBadge
+                  :name="$route.params.disease_term"
+                  :link-to="'/Ontology/' + $route.params.disease_term"
+                  :max-length="0"
+                  size="lg"
+                  :show-title="false"
+                />
               </h3>
             </template>
 
@@ -49,22 +50,16 @@
                     v-for="id in data.item.disease_ontology_id_version"
                     :key="id"
                   >
-                    <BCol>
-                      <div class="overflow-hidden text-truncate font-italic">
-                        <BLink :href="'/Ontology/' + id.replace(/_.+/g, '')">
-                          <BBadge
-                            v-b-tooltip.hover.leftbottom
-                            pill
-                            class="mx-2"
-                            variant="secondary"
-                          >
-                            {{ id }}
-                          </BBadge>
-                        </BLink>
-                      </div>
+                    <BCol class="d-flex align-items-center flex-wrap gap-2 mb-1">
+                      <DiseaseBadge
+                        :name="id"
+                        :link-to="'/Ontology/' + id.replace(/_.+/g, '')"
+                        :max-length="0"
+                        :show-title="false"
+                      />
 
                       <BButton
-                        class="btn-xs mx-2"
+                        class="btn-xs"
                         variant="outline-primary"
                         :src="data.item.disease_ontology_id_version"
                         :href="
@@ -88,17 +83,11 @@
                     :key="id"
                   >
                     <BCol>
-                      <BLink :href="'/Ontology/' + id">
-                        <BBadge
-                          v-b-tooltip.hover.leftbottom
-                          pill
-                          class="mx-2"
-                          variant="secondary"
-                          :title="id"
-                        >
-                          {{ truncate(id, 40) }}
-                        </BBadge>
-                      </BLink>
+                      <DiseaseBadge
+                        :name="id"
+                        :link-to="'/Ontology/' + id"
+                        :max-length="50"
+                      />
                     </BCol>
                   </BRow>
                 </BRow>
@@ -107,26 +96,17 @@
               <template #cell(hpo_mode_of_inheritance_term_name)="data">
                 <BRow>
                   <BRow
-                    v-for="id in data.item.hpo_mode_of_inheritance_term_name"
+                    v-for="(id, index) in data.item.hpo_mode_of_inheritance_term_name"
                     :key="id"
                   >
                     <BCol>
-                      <BBadge
+                      <InheritanceBadge
                         v-if="id"
-                        v-b-tooltip.hover.leftbottom
-                        pill
-                        class="mx-2"
-                        variant="info"
-                        size="1.3em"
-                        :title="
-                          id +
-                            ' (' +
-                            data.item.hpo_mode_of_inheritance_term +
-                            ')'
-                        "
-                      >
-                        {{ id }}
-                      </BBadge>
+                        :full-name="id"
+                        :hpo-term="Array.isArray(data.item.hpo_mode_of_inheritance_term) ? data.item.hpo_mode_of_inheritance_term[index] : data.item.hpo_mode_of_inheritance_term"
+                        :use-abbreviation="false"
+                        class="mb-1"
+                      />
                     </BCol>
                   </BRow>
                 </BRow>
@@ -214,12 +194,14 @@
           <!-- Associated entities card -->
 
           <TablesEntities
-            v-if="ontology.length !== 0"
+            v-if="ontology.length !== 0 && ontology[0].disease_ontology_id_version"
             :show-filter-controls="false"
             :show-pagination-controls="false"
             header-label="Associated "
             :filter-input="'any(disease_ontology_id_version,' +
-              ontology[0].disease_ontology_id_version.join(',') + ')'"
+              (Array.isArray(ontology[0].disease_ontology_id_version)
+                ? ontology[0].disease_ontology_id_version.join(',')
+                : ontology[0].disease_ontology_id_version) + ')'"
           />
 
           <!-- Associated entities card -->

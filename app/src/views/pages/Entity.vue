@@ -23,11 +23,13 @@
             border-variant="dark"
           >
             <template #header>
-              <h3 class="mb-1 text-start font-weight-bold">
+              <h3 class="mb-1 text-start font-weight-bold d-flex align-items-center gap-2">
                 Entity:
-                <BBadge variant="primary">
-                  sysndd:{{ $route.params.entity_id }}
-                </BBadge>
+                <EntityBadge
+                  :entity-id="$route.params.entity_id"
+                  :link-to="'/Entities/' + $route.params.entity_id"
+                  size="lg"
+                />
               </h3>
             </template>
 
@@ -40,111 +42,67 @@
               style="width: 100%; white-space: nowrap"
             >
               <template #cell(symbol)="data">
-                <div class="overflow-hidden text-truncate font-italic">
-                  <BLink :href="'/Genes/' + data.item.hgnc_id">
-                    <BBadge
-                      v-b-tooltip.hover.leftbottom
-                      pill
-                      variant="success"
-                      :title="data.item.hgnc_id"
-                    >
-                      {{ data.item.symbol }}
-                    </BBadge>
-                  </BLink>
-                </div>
+                <GeneBadge
+                  :symbol="data.item.symbol"
+                  :hgnc-id="data.item.hgnc_id"
+                  :link-to="'/Genes/' + data.item.hgnc_id"
+                />
               </template>
 
               <template #cell(disease_ontology_name)="data">
-                <div class="overflow-hidden text-truncate">
-                  <BLink
+                <div class="d-flex align-items-center flex-wrap gap-2">
+                  <DiseaseBadge
+                    :name="data.item.disease_ontology_name"
+                    :ontology-id="data.item.disease_ontology_id_version"
+                    :link-to="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"
+                    :max-length="0"
+                  />
+
+                  <BButton
+                    v-if="data.item.disease_ontology_id_version.includes('OMIM')"
+                    class="btn-xs"
+                    variant="outline-primary"
                     :href="
-                      '/Ontology/' +
-                        data.item.disease_ontology_id_version.replace(/_.+/g, '')
+                      'https://www.omim.org/entry/' +
+                        data.item.disease_ontology_id_version
+                          .replace('OMIM:', '')
+                          .replace(/_.+/g, '')
                     "
+                    target="_blank"
                   >
-                    <BBadge
-                      v-b-tooltip.hover.leftbottom
-                      pill
-                      variant="secondary"
-                      :title="
-                        data.item.disease_ontology_name +
-                          '; ' +
-                          data.item.disease_ontology_id_version
-                      "
-                    >
-                      {{ data.item.disease_ontology_name }}
-                    </BBadge>
-                  </BLink>
+                    <i class="bi bi-box-arrow-up-right" />
+                    {{
+                      data.item.disease_ontology_id_version.replace(/_.+/g, "")
+                    }}
+                  </BButton>
+
+                  <BButton
+                    v-if="data.item.disease_ontology_id_version.includes('MONDO')"
+                    class="btn-xs"
+                    variant="outline-primary"
+                    :href="
+                      'http://purl.obolibrary.org/obo/' +
+                        data.item.disease_ontology_id_version.replace(':', '_')
+                    "
+                    target="_blank"
+                  >
+                    <i class="bi bi-box-arrow-up-right" />
+                    {{ data.item.disease_ontology_id_version }}
+                  </BButton>
                 </div>
-
-                <BButton
-                  v-if="data.item.disease_ontology_id_version.includes('OMIM')"
-                  class="btn-xs mx-2"
-                  variant="outline-primary"
-                  :href="
-                    'https://www.omim.org/entry/' +
-                      data.item.disease_ontology_id_version
-                        .replace('OMIM:', '')
-                        .replace(/_.+/g, '')
-                  "
-                  target="_blank"
-                >
-                  <i class="bi bi-box-arrow-up-right" />
-                  {{
-                    data.item.disease_ontology_id_version.replace(/_.+/g, "")
-                  }}
-                </BButton>
-
-                <BButton
-                  v-if="data.item.disease_ontology_id_version.includes('MONDO')"
-                  class="btn-xs mx-2"
-                  variant="outline-primary"
-                  :href="
-                    'http://purl.obolibrary.org/obo/' +
-                      data.item.disease_ontology_id_version.replace(':', '_')
-                  "
-                  target="_blank"
-                >
-                  <i class="bi bi-box-arrow-up-right" />
-                  {{ data.item.disease_ontology_id_version }}
-                </BButton>
               </template>
 
               <template #cell(hpo_mode_of_inheritance_term_name)="data">
-                <div class="overflow-hidden text-truncate">
-                  <BBadge
-                    v-b-tooltip.hover.leftbottom
-                    pill
-                    variant="info"
-                    class="justify-content-md-center"
-                    size="1.3em"
-                    :title="
-                      data.item.hpo_mode_of_inheritance_term_name +
-                        ' (' +
-                        data.item.hpo_mode_of_inheritance_term +
-                        ')'
-                    "
-                  >
-                    {{
-                      inheritance_short_text[
-                        data.item.hpo_mode_of_inheritance_term_name
-                      ]
-                    }}
-                  </BBadge>
-                </div>
+                <InheritanceBadge
+                  :full-name="data.item.hpo_mode_of_inheritance_term_name"
+                  :hpo-term="data.item.hpo_mode_of_inheritance_term"
+                />
               </template>
 
               <template #cell(ndd_phenotype_word)="data">
-                <div>
-                  <BAvatar
-                    v-b-tooltip.hover.left
-                    size="1.4em"
-                    :variant="ndd_icon_style[data.item.ndd_phenotype_word]"
-                    :title="ndd_icon_text[data.item.ndd_phenotype_word]"
-                  >
-                    <i :class="'bi bi-' + ndd_icon[data.item.ndd_phenotype_word]" />
-                  </BAvatar>
-                </div>
+                <span v-b-tooltip.hover.left :title="ndd_icon_text[data.item.ndd_phenotype_word]">
+                  <NddIcon :status="data.item.ndd_phenotype_word" :show-title="false" />
+                </span>
               </template>
             </BTable>
 
@@ -155,16 +113,9 @@
               small
             >
               <template #cell(category)="data">
-                <div>
-                  <BAvatar
-                    v-b-tooltip.hover.left
-                    size="1.4em"
-                    :variant="stoplights_style[data.item.category]"
-                    :title="data.item.category"
-                  >
-                    <i class="bi bi-stoplights" />
-                  </BAvatar>
-                </div>
+                <span v-b-tooltip.hover.left :title="data.item.category">
+                  <CategoryIcon :category="data.item.category" :show-title="false" />
+                </span>
               </template>
             </BTable>
 

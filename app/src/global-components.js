@@ -28,6 +28,14 @@ const globalComponents = {
   LoadingSkeleton: defineAsyncComponent(() => import('@/components/ui/LoadingSkeleton.vue')),
   TableSkeleton: defineAsyncComponent(() => import('@/components/ui/TableSkeleton.vue')),
   EmptyState: defineAsyncComponent(() => import('@/components/ui/EmptyState.vue')),
+  // Category and status indicator icons
+  CategoryIcon: defineAsyncComponent(() => import('@/components/ui/CategoryIcon.vue')),
+  NddIcon: defineAsyncComponent(() => import('@/components/ui/NddIcon.vue')),
+  // Professional 3D-styled badges for entities, genes, diseases, and inheritance
+  EntityBadge: defineAsyncComponent(() => import('@/components/ui/EntityBadge.vue')),
+  GeneBadge: defineAsyncComponent(() => import('@/components/ui/GeneBadge.vue')),
+  DiseaseBadge: defineAsyncComponent(() => import('@/components/ui/DiseaseBadge.vue')),
+  InheritanceBadge: defineAsyncComponent(() => import('@/components/ui/InheritanceBadge.vue')),
 };
 
 export default globalComponents;

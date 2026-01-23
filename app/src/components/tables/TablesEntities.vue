@@ -153,112 +153,52 @@
               <!-- Custom filter fields slot -->
 
               <template v-slot:cell-entity_id="{ row }">
-                <div>
-                  <BLink :href="'/Entities/' + row.entity_id">
-                    <BBadge
-                      variant="primary"
-                      style="cursor: pointer"
-                    >
-                      sysndd:{{ row.entity_id }}
-                    </BBadge>
-                  </BLink>
-                </div>
+                <EntityBadge
+                  :entity-id="row.entity_id"
+                  :link-to="'/Entities/' + row.entity_id"
+                  size="sm"
+                />
               </template>
 
               <template v-slot:cell-symbol="{ row }">
-                <div class="font-italic">
-                  <BLink :href="'/Genes/' + row.hgnc_id">
-                    <BBadge
-                      v-b-tooltip.hover.leftbottom
-                      pill
-                      variant="success"
-                      :title="row.hgnc_id"
-                    >
-                      {{ row.symbol }}
-                    </BBadge>
-                  </BLink>
-                </div>
+                <GeneBadge
+                  :symbol="row.symbol"
+                  :hgnc-id="row.hgnc_id"
+                  :link-to="'/Genes/' + row.hgnc_id"
+                  size="sm"
+                />
               </template>
 
               <template v-slot:cell-disease_ontology_name="{ row }">
-                <div class="overflow-hidden text-truncate">
-                  <BLink
-                    :href="
-                      '/Ontology/' +
-                        row.disease_ontology_id_version.replace(/_.+/g, '')
-                    "
-                  >
-                    <BBadge
-                      v-b-tooltip.hover.leftbottom
-                      pill
-                      variant="secondary"
-                      :title="
-                        row.disease_ontology_name +
-                          '; ' +
-                          row.disease_ontology_id_version
-                      "
-                    >
-                      {{ row.disease_ontology_name }}
-                    </BBadge>
-                  </BLink>
-                </div>
+                <DiseaseBadge
+                  :name="row.disease_ontology_name"
+                  :ontology-id="row.disease_ontology_id_version"
+                  :link-to="'/Ontology/' + row.disease_ontology_id_version.replace(/_.+/g, '')"
+                  :max-length="35"
+                  size="sm"
+                />
               </template>
 
               <!-- Custom slot for the 'hpo_mode_of_inheritance_term_name' column -->
               <template v-slot:cell-hpo_mode_of_inheritance_term_name="{ row }">
-                <div>
-                  <BBadge
-                    v-b-tooltip.hover.leftbottom
-                    pill
-                    variant="info"
-                    class="justify-content-md-center px-1 mx-1"
-                    size="1.3em"
-                    :title="
-                      row.hpo_mode_of_inheritance_term_name +
-                        ' (' +
-                        row.hpo_mode_of_inheritance_term +
-                        ')'
-                    "
-                  >
-                    {{
-                      inheritance_short_text[
-                        row.hpo_mode_of_inheritance_term_name
-                      ]
-                    }}
-                  </BBadge>
-                </div>
+                <InheritanceBadge
+                  :full-name="row.hpo_mode_of_inheritance_term_name"
+                  :hpo-term="row.hpo_mode_of_inheritance_term"
+                  size="sm"
+                />
               </template>
 
               <!-- Custom slot for the 'ndd_phenotype_word' column -->
               <template v-slot:cell-ndd_phenotype_word="{ row }">
-                <span
-                  v-b-tooltip.hover.left
-                  class="d-inline-flex align-items-center justify-content-center rounded-circle"
-                  :class="'bg-' + ndd_icon_style[row.ndd_phenotype_word]"
-                  :title="ndd_icon_text[row.ndd_phenotype_word]"
-                  style="width: 1.5em; height: 1.5em;"
-                >
-                  <i
-                    :class="'bi bi-' + ndd_icon[row.ndd_phenotype_word]"
-                    class="text-white"
-                    style="font-size: 0.9em;"
-                  />
+                <span v-b-tooltip.hover.left :title="ndd_icon_text[row.ndd_phenotype_word]">
+                  <NddIcon :status="row.ndd_phenotype_word" size="sm" :show-title="false" />
                 </span>
               </template>
 
               <!-- Custom slot for the 'category' column -->
               <template v-slot:cell-category="{ row }">
-                <span
-                  v-b-tooltip.hover.left
-                  class="d-inline-flex align-items-center justify-content-center rounded-circle"
-                  :class="'bg-' + stoplights_style[row.category]"
-                  :title="row.category"
-                  style="width: 1.5em; height: 1.5em;"
-                >
-                  <i
-                    class="bi bi-stoplights-fill text-white"
-                    style="font-size: 0.8em;"
-                  />
+                <span v-b-tooltip.hover.left :title="row.category">
+                  <CategoryIcon :category="row.category" size="sm" :show-title="false" />
                 </span>
               </template>
               <!-- Custom slot for the 'category' column -->
@@ -493,14 +433,18 @@ export default {
     const sort_object = this.sortStringToVariables(this.sortInput);
     this.sortBy = sort_object.sortBy;
 
-    // Transform input filter string to object and assign
-    // Fixes double loading and update bugs
-    // by checking if the filter is not null
-    if (this.filterInput && this.filterInput !== 'null' && this.filterInput !== '') {
-      this.filter = this.filterStrToObj(this.filterInput, this.filter);
-    } else {
-      this.loadData();
-    }
+    // Transform input filter string to object and load data
+    // Use $nextTick to ensure Vue reactivity is fully initialized
+    this.$nextTick(() => {
+      if (this.filterInput && this.filterInput !== 'null' && this.filterInput !== '') {
+        // Directly set the filter_string from input and load
+        // This bypasses complex reactivity issues with the filter object
+        this.filter_string = this.filterInput;
+        this.loadData();
+      } else {
+        this.loadData();
+      }
+    });
 
     setTimeout(() => {
       this.loading = false;

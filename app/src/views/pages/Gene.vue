@@ -27,14 +27,14 @@
             border-variant="dark"
           >
             <template #header>
-              <h3 class="mb-1 text-start font-weight-bold">
+              <h3 class="mb-1 text-start font-weight-bold d-flex align-items-center gap-2">
                 Gene:
-                <BBadge
-                  pill
-                  variant="success"
-                >
-                  {{ $route.params.symbol }}
-                </BBadge>
+                <GeneBadge
+                  :symbol="$route.params.symbol"
+                  :link-to="'/Genes/' + $route.params.symbol"
+                  size="lg"
+                  :show-title="false"
+                />
               </h3>
             </template>
 
@@ -51,19 +51,11 @@
                     :key="id"
                   >
                     <BCol>
-                      <div class="font-italic">
-                        <BLink :href="'/Genes/' + id">
-                          <BBadge
-                            v-b-tooltip.hover.leftbottom
-                            pill
-                            variant="success"
-                            class="mx-2"
-                            :title="id"
-                          >
-                            {{ id }}
-                          </BBadge>
-                        </BLink>
-                      </div>
+                      <GeneBadge
+                        :symbol="id"
+                        :link-to="'/Genes/' + id"
+                        class="me-2"
+                      />
 
                       <!-- Link to HGNC -->
                       <BButton

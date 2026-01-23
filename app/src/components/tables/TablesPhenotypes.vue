@@ -319,103 +319,50 @@
               </template>
 
               <template #cell(entity_id)="data">
-                <div>
-                  <BLink :href="'/Entities/' + data.item.entity_id">
-                    <BBadge
-                      variant="primary"
-                      style="cursor: pointer"
-                    >
-                      sysndd:{{ data.item.entity_id }}
-                    </BBadge>
-                  </BLink>
-                </div>
+                <EntityBadge
+                  :entity-id="data.item.entity_id"
+                  :link-to="'/Entities/' + data.item.entity_id"
+                  size="sm"
+                />
               </template>
 
               <template #cell(symbol)="data">
-                <div class="font-italic">
-                  <BLink :href="'/Genes/' + data.item.hgnc_id">
-                    <BBadge
-                      v-b-tooltip.hover.leftbottom
-                      pill
-                      variant="success"
-                      :title="data.item.hgnc_id"
-                    >
-                      {{ data.item.symbol }}
-                    </BBadge>
-                  </BLink>
-                </div>
+                <GeneBadge
+                  :symbol="data.item.symbol"
+                  :hgnc-id="data.item.hgnc_id"
+                  :link-to="'/Genes/' + data.item.hgnc_id"
+                  size="sm"
+                />
               </template>
 
               <template #cell(disease_ontology_name)="data">
-                <div class="overflow-hidden text-truncate">
-                  <BLink
-                    :href="
-                      '/Ontology/' +
-                        data.item.disease_ontology_id_version.replace(/_.+/g, '')
-                    "
-                  >
-                    <BBadge
-                      v-b-tooltip.hover.leftbottom
-                      pill
-                      variant="secondary"
-                      :title="
-                        data.item.disease_ontology_name +
-                          '; ' +
-                          data.item.disease_ontology_id_version
-                      "
-                    >
-                      {{ truncate(data.item.disease_ontology_name, 40) }}
-                    </BBadge>
-                  </BLink>
-                </div>
+                <DiseaseBadge
+                  :name="data.item.disease_ontology_name"
+                  :ontology-id="data.item.disease_ontology_id_version"
+                  :link-to="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"
+                  :max-length="35"
+                  size="sm"
+                />
               </template>
 
               <template #cell(hpo_mode_of_inheritance_term_name)="data">
-                <div>
-                  <BBadge
-                    v-b-tooltip.hover.leftbottom
-                    pill
-                    variant="info"
-                    class="justify-content-md-center px-1 mx-1"
-                    size="1.3em"
-                    :title="
-                      data.item.hpo_mode_of_inheritance_term_name +
-                        ' (' +
-                        data.item.hpo_mode_of_inheritance_term +
-                        ')'
-                    "
-                  >
-                    {{
-                      inheritance_short_text[
-                        data.item.hpo_mode_of_inheritance_term_name
-                      ]
-                    }}
-                  </BBadge>
-                </div>
+                <InheritanceBadge
+                  :full-name="data.item.hpo_mode_of_inheritance_term_name"
+                  :hpo-term="data.item.hpo_mode_of_inheritance_term"
+                  size="sm"
+                />
               </template>
 
               <template #cell(ndd_phenotype_word)="data">
-                <div>
-                  <BAvatar
-                    v-b-tooltip.hover.left
-                    size="1.4em"
-                    :icon="ndd_icon[data.item.ndd_phenotype_word]"
-                    :variant="ndd_icon_style[data.item.ndd_phenotype_word]"
-                    :title="ndd_icon_text[data.item.ndd_phenotype_word]"
-                  />
-                </div>
+                <span v-b-tooltip.hover.left :title="ndd_icon_text[data.item.ndd_phenotype_word]">
+                  <NddIcon :status="data.item.ndd_phenotype_word" size="sm" :show-title="false" />
+                </span>
               </template>
 
               <template #cell(category)="data">
-                <div>
-                  <BAvatar
-                    v-b-tooltip.hover.left
-                    size="1.4em"
-                    icon="stoplights"
-                    :variant="stoplights_style[data.item.category]"
-                    :title="data.item.category"
-                  />
-                </div>
+                <span v-b-tooltip.hover.left :title="data.item.category">
+                  <CategoryIcon :category="data.item.category" size="sm" :show-title="false" />
+                </span>
               </template>
             </BTable>
           </BCard>
