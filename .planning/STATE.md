@@ -12,15 +12,15 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 12 - Vite Migration (IN PROGRESS)
-**Plan:** 3 of 4 complete
-**Status:** In progress
-**Last activity:** 2026-01-23 — Completed 12-04-PLAN.md (Vite-Compatible Imports)
+**Plan:** 4 of 4 complete
+**Status:** Phase complete
+**Last activity:** 2026-01-23 — Completed 12-03-PLAN.md (Environment Variable Migration)
 
 ```
-v3 Frontend Modernization: PHASE 12 IN PROGRESS
-Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next)
-Phase 12: 3/4 plans complete (12-01, 12-02, 12-04)
-Progress: ███████████████░ 15/16 plans (94%)
+v3 Frontend Modernization: PHASE 12 COMPLETE
+Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite Migration)
+Phase 12: 4/4 plans complete (12-01, 12-02, 12-03, 12-04)
+Progress: ████████████████ 16/16 plans (100%)
 ```
 
 ## v3 Milestone Scope
@@ -98,6 +98,9 @@ See PROJECT.md for full decisions table.
 - Dual build system during migration: npm run dev (Vite) vs npm run serve (Vue CLI)
 - Vite entry point: index.html in app root (not public/) with module script
 - Removed webpack magic comments - Vite handles chunk splitting automatically
+- Environment variables: VITE_* prefix, import.meta.env access pattern
+- Development port: 5173 (Vite default) instead of 8080 (Vue CLI default)
+- Production mode detection: import.meta.env.PROD instead of process.env.NODE_ENV
 
 ## Archive Location
 
@@ -107,8 +110,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 12-04-PLAN.md (Vite-Compatible Imports)
+**Stopped at:** Completed 12-03-PLAN.md (Environment Variable Migration)
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 12 plan 04 complete (Vite-Compatible Imports)*
+*Last updated: 2026-01-23 — Phase 12 complete (all 4 plans: Vite Installation, Index HTML, Environment Variables, Vite-Compatible Imports)*
