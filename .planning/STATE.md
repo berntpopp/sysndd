@@ -14,13 +14,13 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 **Phase:** 14 - TypeScript Introduction (IN PROGRESS)
 **Plan:** 3 of TBD plans complete
 **Status:** In progress
-**Last activity:** 2026-01-23 — Completed 14-04-PLAN.md (Services and Router Conversion)
+**Last activity:** 2026-01-23 — Completed 14-03-PLAN.md (Constants Conversion)
 
 ```
 v3 Frontend Modernization: PHASE 14 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables)
-Phase 14 (TypeScript Introduction): 3 plans complete (Infrastructure, Types, Services/Router)
-Last completed: 14-04 Services and Router Conversion (Type-safe API service + Vue Router)
+Phase 14 (TypeScript Introduction): 3 plans complete (Infrastructure, Types, Constants)
+Last completed: 14-03 Constants Conversion (Type-safe constants with const assertions)
 Progress: ████████████████████░ 25/TBD plans in v3 milestone
 ```
 
@@ -130,6 +130,10 @@ See PROJECT.md for full decisions table.
 - Type-only imports for AxiosResponse to satisfy verbatimModuleSyntax
 - Module augmentation for RouteMeta instead of global type extension
 - Route params handled as string | string[] with Array.isArray checks
+- Const assertions ('as const') for literal type inference in constants
+- 'satisfies' operator validates types while preserving literal types
+- Export type aliases alongside default exports (XConfig = typeof X pattern)
+- Type assertion ('as unknown as') acceptable for branded type constants
 
 ## Archive Location
 
@@ -139,8 +143,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 14-04-PLAN.md (Services and Router Conversion)
+**Stopped at:** Completed 14-03-PLAN.md (Constants Conversion)
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 14 in progress (3/TBD plans: Infrastructure, types, services/router typed)*
+*Last updated: 2026-01-23 — Phase 14 in progress (3/TBD plans: Infrastructure, types, constants typed)*
