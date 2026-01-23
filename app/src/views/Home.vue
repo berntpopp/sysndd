@@ -1,11 +1,11 @@
 <template>
   <div class="bg-gradient">
-    <b-container fluid>
-      <b-row class="justify-content-md-center">
-        <b-col md="12">
-          <b-row class="justify-content-md-center">
-            <b-col md="8">
-              <b-container
+    <BContainer fluid>
+      <BRow class="justify-content-md-center">
+        <BCol md="12">
+          <BRow class="justify-content-md-center">
+            <BCol md="8">
+              <BContainer
                 fluid="lg"
                 class="py-3"
               >
@@ -18,7 +18,7 @@
                   the expert curated database of gene disease relationships in
                   <mark>neurodevelopmental</mark> <mark>disorders</mark> (NDD).
                 </h4>
-              </b-container>
+              </BContainer>
 
               <!-- The SearchBar component -->
               <SearchBar
@@ -26,12 +26,12 @@
                 :in-navbar="false"
               />
               <!-- The SearchBar component -->
-            </b-col>
-          </b-row>
+            </BCol>
+          </BRow>
 
-          <b-row>
-            <b-col md="6">
-              <b-card
+          <BRow>
+            <BCol md="6">
+              <BCard
                 header-tag="header"
                 class="my-3 text-start"
                 body-class="p-0"
@@ -57,9 +57,9 @@
                 <h5 class="mb-0 font-weight-bold mx-2">
                   <mark>Entities</mark>
                 </h5>
-                <b-card-text class="text-start">
+                <BCardText class="text-start">
                   <!-- Each row in the table is generated from the data in `entity_statistics.data`. -->
-                  <b-table
+                  <BTable
                     :items="entity_statistics.data"
                     :fields="statistics_fields"
                     stacked="lg"
@@ -69,17 +69,18 @@
                   >
                     <template #cell(category)="data">
                       <div>
-                        <b-avatar
+                        <BAvatar
                           size="1.4em"
-                          icon="stoplights"
                           :variant="stoplights_style[data.item.category]"
-                        />
+                        >
+                          <i class="bi bi-stoplights" />
+                        </BAvatar>
                         {{ data.item.category }}
                       </div>
                     </template>
 
                     <template #cell(n)="data">
-                      <b-link
+                      <BLink
                         :href="
                           '/Entities?filter=any(category,' +
                             data.item.category +
@@ -89,23 +90,23 @@
                         <div style="cursor: pointer">
                           {{ data.item.n }}
                         </div>
-                      </b-link>
+                      </BLink>
                     </template>
 
                     <template #cell(actions)="row">
-                      <b-button
+                      <BButton
                         class="btn-xs"
                         variant="outline-primary"
                         @click="row.toggleDetails"
                       >
                         {{ row.detailsShowing ? "hide" : "show" }}
-                      </b-button>
+                      </BButton>
                     </template>
 
                     <!-- These are the details that appear when a row in the entities table is clicked. -->
                     <template #row-details="row">
-                      <b-card>
-                        <b-table
+                      <BCard>
+                        <BTable
                           :items="row.item.groups"
                           :fields="statistics_details_fields"
                           head-variant="light"
@@ -117,7 +118,7 @@
                         >
                           <template #cell(inheritance)="data">
                             <div>
-                              <b-badge
+                              <BBadge
                                 pill
                                 variant="info"
                                 class="justify-content-md-center px-1 mx-1"
@@ -128,13 +129,13 @@
                                     data.item.inheritance
                                   ]
                                 }}
-                              </b-badge>
+                              </BBadge>
                               {{ data.item.inheritance }}
                             </div>
                           </template>
 
                           <template #cell(n)="data">
-                            <b-link
+                            <BLink
                               :href="
                                 '/Entities?filter=any(category,' +
                                   data.item.category +
@@ -146,13 +147,13 @@
                               <div style="cursor: pointer">
                                 {{ data.item.n }}
                               </div>
-                            </b-link>
+                            </BLink>
                           </template>
-                        </b-table>
-                      </b-card>
+                        </BTable>
+                      </BCard>
                     </template>
-                  </b-table>
-                </b-card-text>
+                  </BTable>
+                </BCardText>
                 <!-- first statistics table for entities -->
 
                 <hr class="dashed">
@@ -162,9 +163,9 @@
                 <h5 class="mb-0 font-weight-bold mx-2">
                   <mark>Genes</mark> (links to Panels)
                 </h5>
-                <b-card-text class="text-start">
+                <BCardText class="text-start">
                   <!-- Each row in the table is generated from the data in `gene_statistics.data`. -->
-                  <b-table
+                  <BTable
                     :items="gene_statistics.data"
                     :fields="statistics_fields"
                     stacked="lg"
@@ -174,17 +175,18 @@
                   >
                     <template #cell(category)="data">
                       <div>
-                        <b-avatar
+                        <BAvatar
                           size="1.4em"
-                          icon="stoplights"
                           :variant="stoplights_style[data.item.category]"
-                        />
+                        >
+                          <i class="bi bi-stoplights" />
+                        </BAvatar>
                         {{ data.item.category }}
                       </div>
                     </template>
 
                     <template #cell(n)="data">
-                      <b-link
+                      <BLink
                         :href="
                           '/Panels/' +
                             data.item.category +
@@ -195,23 +197,23 @@
                         <div style="cursor: pointer">
                           {{ data.item.n }}
                         </div>
-                      </b-link>
+                      </BLink>
                     </template>
 
                     <template #cell(actions)="row">
-                      <b-button
+                      <BButton
                         class="btn-xs"
                         variant="outline-primary"
                         @click="row.toggleDetails"
                       >
                         {{ row.detailsShowing ? "hide" : "show" }}
-                      </b-button>
+                      </BButton>
                     </template>
 
                     <!-- These are the details that appear when a row in the genes table is clicked. -->
                     <template #row-details="row">
-                      <b-card>
-                        <b-table
+                      <BCard>
+                        <BTable
                           :items="row.item.groups"
                           :fields="statistics_details_fields"
                           head-variant="light"
@@ -223,7 +225,7 @@
                         >
                           <template #cell(inheritance)="data">
                             <div>
-                              <b-badge
+                              <BBadge
                                 pill
                                 variant="info"
                                 class="justify-content-md-center px-1 mx-1"
@@ -234,13 +236,13 @@
                                     data.item.inheritance
                                   ]
                                 }}
-                              </b-badge>
+                              </BBadge>
                               {{ data.item.inheritance }}
                             </div>
                           </template>
 
                           <template #cell(n)="data">
-                            <b-link
+                            <BLink
                               :href="
                                 '/Panels/' +
                                   data.item.category +
@@ -251,17 +253,17 @@
                               <div style="cursor: pointer">
                                 {{ data.item.n }}
                               </div>
-                            </b-link>
+                            </BLink>
                           </template>
-                        </b-table>
-                      </b-card>
+                        </BTable>
+                      </BCard>
                     </template>
-                  </b-table>
-                </b-card-text>
+                  </BTable>
+                </BCardText>
                 <!-- second statistics table for genes -->
-              </b-card>
+              </BCard>
 
-              <b-card
+              <BCard
                 header-tag="header"
                 class="my-3 text-start"
                 body-class="p-0"
@@ -278,8 +280,8 @@
                   name="fade"
                   mode="out-in"
                 >
-                  <b-card-text class="text-start">
-                    <b-table
+                  <BCardText class="text-start">
+                    <BTable
                       :items="news"
                       :fields="news_fields"
                       stacked="lg"
@@ -299,43 +301,43 @@
 
                       <template #cell(entity_id)="data">
                         <div>
-                          <b-link :href="'/Entities/' + data.item.entity_id">
-                            <b-badge
+                          <BLink :href="'/Entities/' + data.item.entity_id">
+                            <BBadge
                               v-b-tooltip.hover.rightbottom
                               variant="primary"
                               style="cursor: pointer"
                               :title="'Entry date: ' + data.item.entry_date"
                             >
                               sysndd:{{ data.item.entity_id }}
-                            </b-badge>
-                          </b-link>
+                            </BBadge>
+                          </BLink>
                         </div>
                       </template>
 
                       <template #cell(symbol)="data">
                         <div class="overflow-hidden text-truncate font-italic">
-                          <b-link :href="'/Genes/' + data.item.hgnc_id">
-                            <b-badge
+                          <BLink :href="'/Genes/' + data.item.hgnc_id">
+                            <BBadge
                               v-b-tooltip.hover.leftbottom
                               pill
                               variant="success"
                               :title="data.item.hgnc_id"
                             >
                               {{ data.item.symbol }}
-                            </b-badge>
-                          </b-link>
+                            </BBadge>
+                          </BLink>
                         </div>
                       </template>
 
                       <template #cell(disease_ontology_name)="data">
                         <div class="overflow-hidden text-truncate">
-                          <b-link
+                          <BLink
                             :href="
                               '/Ontology/' +
                                 data.item.disease_ontology_id_version
                             "
                           >
-                            <b-badge
+                            <BBadge
                               v-b-tooltip.hover.leftbottom
                               pill
                               variant="secondary"
@@ -348,14 +350,14 @@
                               {{
                                 truncate(data.item.disease_ontology_name, 40)
                               }}
-                            </b-badge>
-                          </b-link>
+                            </BBadge>
+                          </BLink>
                         </div>
                       </template>
 
                       <template #cell(inheritance_filter)="data">
                         <div>
-                          <b-badge
+                          <BBadge
                             v-b-tooltip.hover.leftbottom
                             pill
                             variant="info"
@@ -373,42 +375,44 @@
                                 data.item.inheritance_filter
                               ]
                             }}
-                          </b-badge>
+                          </BBadge>
                         </div>
                       </template>
 
                       <template #cell(category)="data">
                         <div>
-                          <b-avatar
+                          <BAvatar
                             v-b-tooltip.hover.left
                             size="1.4em"
-                            icon="stoplights"
                             :variant="stoplights_style[data.item.category]"
                             :title="data.item.category"
-                          />
+                          >
+                            <i class="bi bi-stoplights" />
+                          </BAvatar>
                         </div>
                       </template>
 
                       <template #cell(ndd_phenotype_word)="data">
                         <div>
-                          <b-avatar
+                          <BAvatar
                             v-b-tooltip.hover.left
                             size="1.4em"
-                            :icon="ndd_icon[data.item.ndd_phenotype_word]"
                             :variant="
                               ndd_icon_style[data.item.ndd_phenotype_word]
                             "
                             :title="ndd_icon_text[data.item.ndd_phenotype_word]"
-                          />
+                          >
+                            <i :class="'bi bi-' + ndd_icon[data.item.ndd_phenotype_word]" />
+                          </BAvatar>
                         </div>
                       </template>
-                    </b-table>
-                  </b-card-text>
+                    </BTable>
+                  </BCardText>
                 </transition>
-              </b-card>
-            </b-col>
+              </BCard>
+            </BCol>
 
-            <b-col md="6">
+            <BCol md="6">
               <div class="container-fluid text-start py-2 my-3">
                 <span
                   class="word"
@@ -434,22 +438,22 @@
                 <span
                   class="word"
                 >which are color coded throughout the website:
-                  <b-badge
+                  <BBadge
                     variant="primary"
                   >Entity:
-                    <b-badge
+                    <BBadge
                       pill
                       variant="success"
-                    >Gene</b-badge>
-                    <b-badge
+                    >Gene</BBadge>
+                    <BBadge
                       pill
                       variant="info"
-                    >Inheritance</b-badge>
-                    <b-badge
+                    >Inheritance</BBadge>
+                    <BBadge
                       pill
                       variant="secondary"
-                    >Disease</b-badge>
-                  </b-badge> </span><br><br>
+                    >Disease</BBadge>
+                  </BBadge> </span><br><br>
 
                 <span
                   class="word"
@@ -459,39 +463,43 @@
                   these differently colored stoplight symbols: </span><br>
                 <span class="word">
                   Definitive:
-                  <b-avatar
+                  <BAvatar
                     size="1.4em"
-                    icon="stoplights"
                     :variant="stoplights_style['Definitive']"
-                  />
+                  >
+                    <i class="bi bi-stoplights" />
+                  </BAvatar>
                   , Moderate:
-                  <b-avatar
+                  <BAvatar
                     size="1.4em"
-                    icon="stoplights"
                     :variant="stoplights_style['Moderate']"
-                  />
+                  >
+                    <i class="bi bi-stoplights" />
+                  </BAvatar>
                   , Limited:
-                  <b-avatar
+                  <BAvatar
                     size="1.4em"
-                    icon="stoplights"
                     :variant="stoplights_style['Limited']"
-                  />
+                  >
+                    <i class="bi bi-stoplights" />
+                  </BAvatar>
                   , Refuted:
-                  <b-avatar
+                  <BAvatar
                     size="1.4em"
-                    icon="stoplights"
                     :variant="stoplights_style['Refuted']"
-                  /> </span><br>
+                  >
+                    <i class="bi bi-stoplights" />
+                  </BAvatar> </span><br>
                 <span
                   class="word"
                 >The classification criteria used for the categories are
                   detailed in our
-                  <b-link
+                  <BLink
                     href="https://berntpopp.github.io/sysndd/curation-criteria.html"
                     target="_blank"
                   >
                     Documentation
-                  </b-link>
+                  </BLink>
                   on GitHub.<br>
                   In the <mark>Panel</mark> views, which are aggregated by gene,
                   we assign the highest category of associated entities to the
@@ -505,11 +513,11 @@
                   <mark>Analyses</mark> sections for genes, phenotypes and
                   comparisons with other curation efforts. </span><br>
               </div>
-            </b-col>
-          </b-row>
-        </b-col>
-      </b-row>
-    </b-container>
+            </BCol>
+          </BRow>
+        </BCol>
+      </BRow>
+    </BContainer>
 
     <!-- The Banner component -->
     <Banner />

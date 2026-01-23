@@ -2,20 +2,20 @@
 <template>
   <div class="container-fluid">
     <!-- Show an overlay spinner while loading -->
-    <b-spinner
+    <BSpinner
       v-if="loading"
       label="Loading..."
       class="float-center m-5"
     />
     <!-- Once loaded, show the table container -->
-    <b-container
+    <BContainer
       v-else
       fluid
     >
-      <b-row class="justify-content-md-center py-2">
-        <b-col md="12">
+      <BRow class="justify-content-md-center py-2">
+        <BCol md="12">
           <!-- b-card wrapper for the table and controls -->
-          <b-card
+          <BCard
             header-tag="header"
             body-class="p-0"
             header-class="p-1"
@@ -23,15 +23,15 @@
           >
             <!-- Card Header -->
             <template #header>
-              <b-row>
-                <b-col>
+              <BRow>
+                <BCol>
                   <TableHeaderLabel
                     :label="headerLabel"
                     :subtitle="'Publications: ' + totalRows"
                     :tool-tip-title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
                   />
-                </b-col>
-                <b-col>
+                </BCol>
+                <BCol>
                   <h5
                     v-if="showFilterControls"
                     class="mb-1 text-end font-weight-bold"
@@ -45,14 +45,14 @@
                       @remove-filters="removeFilters"
                     />
                   </h5>
-                </b-col>
-              </b-row>
+                </BCol>
+              </BRow>
             </template>
 
             <!-- Controls (search + pagination) -->
-            <b-row>
+            <BRow>
               <!-- Search box for "any" field -->
-              <b-col
+              <BCol
                 class="my-1"
                 sm="8"
               >
@@ -62,14 +62,14 @@
                   :debounce-time="500"
                   @input="filtered"
                 />
-              </b-col>
+              </BCol>
 
               <!-- Pagination controls -->
-              <b-col
+              <BCol
                 class="my-1"
                 sm="4"
               >
-                <b-container
+                <BContainer
                   v-if="totalRows > perPage || showPaginationControls"
                 >
                   <!--
@@ -84,9 +84,9 @@
                     @page-change="handlePageChange"
                     @per-page-change="handlePerPageChange"
                   />
-                </b-container>
-              </b-col>
-            </b-row>
+                </BContainer>
+              </BCol>
+            </BRow>
             <!-- Controls (search + pagination) -->
 
             <!-- Main GenericTable -->
@@ -107,7 +107,7 @@
                   v-for="field in fields"
                   :key="field.key"
                 >
-                  <b-form-input
+                  <BFormInput
                     v-if="field.filterable"
                     v-model="filter[field.key].content"
                     :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
@@ -118,7 +118,7 @@
                     @update="filtered()"
                   />
 
-                  <b-form-select
+                  <BFormSelect
                     v-if="field.selectable"
                     v-model="filter[field.key].content"
                     :options="field.selectOptions"
@@ -127,28 +127,31 @@
                     @change="filtered()"
                   >
                     <template v-slot:first>
-                      <b-form-select-option value="null">
+                      <BFormSelectOption value="null">
                         .. {{ truncate(field.label, 20) }} ..
-                      </b-form-select-option>
+                      </BFormSelectOption>
                     </template>
-                  </b-form-select>
+                  </BFormSelect>
 
+                  <!-- TODO: treeselect disabled pending Bootstrap-Vue-Next migration -->
                   <label
-                    v-if="field.multi_selectable"
+                    v-if="field.multi_selectable && field.selectOptions && field.selectOptions.length > 0"
                     :for="'select_' + field.key"
                     :aria-label="field.label"
                   >
-                    <treeselect
-                      v-if="field.multi_selectable"
+                    <BFormSelect
                       :id="'select_' + field.key"
                       v-model="filter[field.key].content"
-                      size="small"
-                      :multiple="true"
-                      :options="field.selectOptions"
-                      :normalizer="normalizer"
-                      :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
-                      @input="removeSearch();filtered();"
-                    />
+                      :options="normalizeSelectOptions(field.selectOptions)"
+                      size="sm"
+                      @change="removeSearch();filtered();"
+                    >
+                      <template v-slot:first>
+                        <BFormSelectOption :value="null">
+                          .. {{ truncate(field.label, 20) }} ..
+                        </BFormSelectOption>
+                      </template>
+                    </BFormSelect>
                   </label>
                 </td>
               </template>
@@ -157,12 +160,12 @@
               <!-- Example custom slot for 'publication_id' -->
               <template v-slot:cell-publication_id="{ row }">
                 <div>
-                  <b-badge
+                  <BBadge
                     variant="primary"
                     style="cursor: pointer"
                   >
                     {{ row.publication_id }}
-                  </b-badge>
+                  </BBadge>
                 </div>
               </template>
 
@@ -192,10 +195,10 @@
               </template>
             </GenericTable>
             <!-- Main GenericTable -->
-          </b-card>
-        </b-col>
-      </b-row>
-    </b-container>
+          </BCard>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 
@@ -306,7 +309,7 @@ export default {
       perPage: 10,
       pageOptions: [10, 25, 50],
       sortBy: 'publication_id',
-      sortDesc: false,
+      // Note: sortDesc is handled by tableDataMixin computed property
       sort: '+publication_id',
       filter_string: '',
 
@@ -490,7 +493,9 @@ export default {
      */
     handleSortByOrDescChange() {
       this.currentItemID = 0;
-      this.sort = (!this.sortDesc ? '+' : '-') + this.sortBy;
+      // Ensure sortBy is a string for the API URL
+      const sortColumn = typeof this.sortBy === 'string' ? this.sortBy : (this.sortBy[0]?.key || 'publication_id');
+      this.sort = (!this.sortDesc ? '+' : '-') + sortColumn;
       this.filtered();
     },
 
@@ -568,6 +573,16 @@ export default {
      */
     truncate(str, n) {
       return Utils.truncate(str, n);
+    },
+    // Normalize select options for BFormSelect (replacement for treeselect normalizer)
+    normalizeSelectOptions(options) {
+      if (!options || !Array.isArray(options)) return [];
+      return options.map((opt) => {
+        if (typeof opt === 'object' && opt !== null) {
+          return { value: opt.id || opt.value, text: opt.label || opt.text || opt.id };
+        }
+        return { value: opt, text: opt };
+      });
     },
   },
 };

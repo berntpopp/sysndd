@@ -1,14 +1,14 @@
 <!-- views/curate/ModifyEntity.vue -->
 <template>
   <div class="container-fluid">
-    <b-container fluid>
-      <b-row class="justify-content-md-center py-2">
-        <b-col
+    <BContainer fluid>
+      <BRow class="justify-content-md-center py-2">
+        <BCol
           col
           md="12"
         >
           <!-- User Interface controls -->
-          <b-card
+          <BCard
             header-tag="header"
             align="left"
             body-class="p-1"
@@ -22,7 +22,7 @@
             </template>
             <!-- User Interface controls -->
 
-            <b-card
+            <BCard
               class="my-2"
               body-class="p-0"
               header-class="p-1"
@@ -34,9 +34,11 @@
                 </h6>
               </template>
 
-              <b-row>
-                <b-col class="my-1">
-                  <treeselect
+              <BRow>
+                <BCol class="my-1">
+                  <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
+                  <!-- Async search temporarily disabled - use text input -->
+                  <!-- <treeselect
                     id="entity-select"
                     v-model="modify_entity_input"
                     :multiple="false"
@@ -44,12 +46,20 @@
                     :load-options="searchEntityInfo"
                     :normalizer="normalizerEntitySearch"
                     required
+                  /> -->
+                  <BFormInput
+                    id="entity-select"
+                    v-model="modify_entity_input"
+                    size="sm"
+                    placeholder="Enter entity ID (e.g., 123)"
+                    type="number"
+                    required
                   />
-                </b-col>
-              </b-row>
-            </b-card>
+                </BCol>
+              </BRow>
+            </BCard>
 
-            <b-card
+            <BCard
               v-if="modify_entity_input"
               class="my-2"
               body-class="p-0"
@@ -59,100 +69,68 @@
               <template #header>
                 <h6 class="mb-1 text-start font-weight-bold">
                   2. Options to modify the selected entity
-                  <b-badge variant="primary">
+                  <BBadge variant="primary">
                     sysndd:{{ modify_entity_input }}
-                  </b-badge>
+                  </BBadge>
                 </h6>
               </template>
 
-              <b-row>
-                <b-col class="my-1">
-                  <b-input-group-append>
-                    <b-button
-                      size="sm"
-                      variant="dark"
-                      @click="showEntityRename()"
-                    >
-                      <b-icon
-                        icon="pen"
-                        font-scale="1.0"
-                      />
-                      <b-icon
-                        icon="link"
-                        font-scale="1.0"
-                      />
-                      Rename disease
-                    </b-button>
-                  </b-input-group-append>
-                </b-col>
+              <BRow>
+                <BCol class="my-1">
+                  <BButton
+                    size="sm"
+                    variant="dark"
+                    @click="showEntityRename()"
+                  >
+                    <i class="bi bi-pen" />
+                    <i class="bi bi-link" />
+                    Rename disease
+                  </BButton>
+                </BCol>
 
-                <b-col class="my-1">
-                  <b-input-group-append>
-                    <b-button
-                      size="sm"
-                      variant="dark"
-                      @click="showEntityDeactivate()"
-                    >
-                      <b-icon
-                        icon="x"
-                        font-scale="1.0"
-                      />
-                      <b-icon
-                        icon="link"
-                        font-scale="1.0"
-                      />
-                      Deactivate entity
-                    </b-button>
-                  </b-input-group-append>
-                </b-col>
+                <BCol class="my-1">
+                  <BButton
+                    size="sm"
+                    variant="dark"
+                    @click="showEntityDeactivate()"
+                  >
+                    <i class="bi bi-x" />
+                    <i class="bi bi-link" />
+                    Deactivate entity
+                  </BButton>
+                </BCol>
 
-                <b-col class="my-1">
-                  <b-input-group-append>
-                    <b-button
-                      size="sm"
-                      variant="dark"
-                      @click="showReviewModify()"
-                    >
-                      <b-icon
-                        icon="pen"
-                        font-scale="1.0"
-                      />
-                      <b-icon
-                        icon="clipboard-plus"
-                        font-scale="1.0"
-                      />
-                      Modify review
-                    </b-button>
-                  </b-input-group-append>
-                </b-col>
+                <BCol class="my-1">
+                  <BButton
+                    size="sm"
+                    variant="dark"
+                    @click="showReviewModify()"
+                  >
+                    <i class="bi bi-pen" />
+                    <i class="bi bi-clipboard-plus" />
+                    Modify review
+                  </BButton>
+                </BCol>
 
-                <b-col class="my-1">
-                  <b-input-group-append>
-                    <b-button
-                      size="sm"
-                      variant="dark"
-                      @click="showStatusModify()"
-                    >
-                      <b-icon
-                        icon="pen"
-                        font-scale="1.0"
-                      />
-                      <b-icon
-                        icon="stoplights"
-                        font-scale="1.0"
-                      />
-                      Modify status
-                    </b-button>
-                  </b-input-group-append>
-                </b-col>
-              </b-row>
-            </b-card>
-          </b-card>
-        </b-col>
-      </b-row>
+                <BCol class="my-1">
+                  <BButton
+                    size="sm"
+                    variant="dark"
+                    @click="showStatusModify()"
+                  >
+                    <i class="bi bi-pen" />
+                    <i class="bi bi-stoplights" />
+                    Modify status
+                  </BButton>
+                </BCol>
+              </BRow>
+            </BCard>
+          </BCard>
+        </BCol>
+      </BRow>
 
       <!-- Rename disease modal -->
-      <b-modal
+      <BModal
         id="renameModal"
         ref="renameModal"
         size="lg"
@@ -167,9 +145,9 @@
         <template #modal-title>
           <h4>
             Rename entity disease:
-            <b-badge variant="primary">
+            <BBadge variant="primary">
               sysndd:{{ entity_info.entity_id }}
-            </b-badge>
+            </BBadge>
           </h4>
         </template>
 
@@ -177,7 +155,9 @@
           Select a new disease name:
         </p>
 
-        <treeselect
+        <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
+        <!-- Async search temporarily disabled - use text input -->
+        <!-- <treeselect
           id="ontology-select"
           v-model="ontology_input"
           :multiple="false"
@@ -185,12 +165,19 @@
           :load-options="loadOntologyInfoTree"
           :normalizer="normalizerOntologySearch"
           required
+        /> -->
+        <BFormInput
+          id="ontology-select"
+          v-model="ontology_input"
+          size="sm"
+          placeholder="Enter Ontology ID (e.g., OMIM:123456)"
+          required
         />
-      </b-modal>
+      </BModal>
       <!-- Rename disease modal -->
 
       <!-- Deactivate entity modal -->
-      <b-modal
+      <BModal
         id="deactivateModal"
         ref="deactivateModal"
         size="lg"
@@ -205,9 +192,9 @@
         <template #modal-title>
           <h4>
             Deactivate entity:
-            <b-badge variant="primary">
+            <BBadge variant="primary">
               sysndd:{{ entity_info.entity_id }}
-            </b-badge>
+            </BBadge>
           </h4>
         </template>
 
@@ -260,7 +247,9 @@
             3. Select the entity replacing the above one:
           </p>
 
-          <treeselect
+          <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
+          <!-- Async search temporarily disabled - use text input -->
+          <!-- <treeselect
             id="entity-select"
             v-model="replace_entity_input"
             :multiple="false"
@@ -268,13 +257,21 @@
             :load-options="searchEntityInfo"
             :normalizer="normalizerEntitySearch"
             required
+          /> -->
+          <BFormInput
+            id="replace-entity-select"
+            v-model="replace_entity_input"
+            size="sm"
+            placeholder="Enter replacement entity ID (e.g., 123)"
+            type="number"
+            required
           />
         </div>
-      </b-modal>
+      </BModal>
       <!-- Deactivate entity modal -->
 
       <!-- Modify review modal -->
-      <b-modal
+      <BModal
         id="modifyReviewModal"
         ref="modifyReviewModal"
         size="xl"
@@ -290,17 +287,17 @@
         <template #modal-title>
           <h4>
             Modify review for entity:
-            <b-badge variant="primary">
+            <BBadge variant="primary">
               sysndd:{{ entity_info.entity_id }}
-            </b-badge>
+            </BBadge>
           </h4>
         </template>
 
-        <b-overlay
+        <BOverlay
           :show="loading_review_modal"
           rounded="sm"
         >
-          <b-form
+          <BForm
             ref="form"
             @submit.stop.prevent="submitReviewChange"
           >
@@ -309,7 +306,7 @@
               class="mr-sm-2 font-weight-bold"
               for="review-textarea-synopsis"
             >Synopsis</label>
-            <b-form-textarea
+            <BFormTextarea
               id="review-textarea-synopsis"
               v-model="review_info.synopsis"
               rows="3"
@@ -323,7 +320,9 @@
               for="review-phenotype-select"
             >Phenotypes</label>
 
-            <treeselect
+            <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
+            <!-- Multi-select temporarily disabled - using single select -->
+            <!-- <treeselect
               id="review-phenotype-select"
               v-model="select_phenotype"
               :multiple="true"
@@ -331,7 +330,20 @@
               :options="phenotypes_options"
               :normalizer="normalizePhenotypes"
               required
-            />
+            /> -->
+            <BFormSelect
+              v-if="phenotypes_options && phenotypes_options.length > 0"
+              id="review-phenotype-select"
+              v-model="select_phenotype[0]"
+              :options="normalizePhenotypesOptions(phenotypes_options)"
+              size="sm"
+            >
+              <template v-slot:first>
+                <BFormSelectOption :value="null">
+                  Select phenotype...
+                </BFormSelectOption>
+              </template>
+            </BFormSelect>
             <!-- Phenotype select -->
 
             <!-- Variation ontolog select -->
@@ -340,7 +352,9 @@
               for="review-variation-select"
             >Variation ontology</label>
 
-            <treeselect
+            <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
+            <!-- Multi-select temporarily disabled - using single select -->
+            <!-- <treeselect
               id="review-variation-select"
               v-model="select_variation"
               :multiple="true"
@@ -348,7 +362,20 @@
               :options="variation_ontology_options"
               :normalizer="normalizeVariationOntology"
               required
-            />
+            /> -->
+            <BFormSelect
+              v-if="variation_ontology_options && variation_ontology_options.length > 0"
+              id="review-variation-select"
+              v-model="select_variation[0]"
+              :options="normalizeVariationOntologyOptions(variation_ontology_options)"
+              size="sm"
+            >
+              <template v-slot:first>
+                <BFormSelectOption :value="null">
+                  Select variation...
+                </BFormSelectOption>
+              </template>
+            </BFormSelect>
             <!-- Variation ontolog select -->
 
             <!-- publications tag form with links out -->
@@ -356,7 +383,7 @@
               class="mr-sm-2 font-weight-bold"
               for="review-publications-select"
             >Publications</label>
-            <b-form-tags
+            <BFormTags
               v-model="select_additional_references"
               input-id="review-literature-select"
               no-outer-focus
@@ -368,35 +395,33 @@
               <template
                 v-slot="{ tags, inputAttrs, inputHandlers, addTag, removeTag }"
               >
-                <b-input-group class="my-0">
-                  <b-form-input
+                <BInputGroup class="my-0">
+                  <BFormInput
                     v-bind="inputAttrs"
                     placeholder="Enter PMIDs separated by comma or semicolon"
                     class="form-control"
                     size="sm"
                     v-on="inputHandlers"
                   />
-                  <b-input-group-append>
-                    <b-button
-                      variant="secondary"
-                      size="sm"
-                      @click="addTag()"
-                    >
-                      Add
-                    </b-button>
-                  </b-input-group-append>
-                </b-input-group>
+                  <BButton
+                    variant="secondary"
+                    size="sm"
+                    @click="addTag()"
+                  >
+                    Add
+                  </BButton>
+                </BInputGroup>
 
                 <div class="d-inline-block">
                   <h6>
-                    <b-form-tag
+                    <BFormTag
                       v-for="tag in tags"
                       :key="tag"
                       :title="tag"
                       variant="secondary"
                       @remove="removeTag(tag)"
                     >
-                      <b-link
+                      <BLink
                         :href="
                           'https://pubmed.ncbi.nlm.nih.gov/' +
                             tag.replace('PMID:', '')
@@ -404,17 +429,14 @@
                         target="_blank"
                         class="text-light"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.9"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         {{ tag }}
-                      </b-link>
-                    </b-form-tag>
+                      </BLink>
+                    </BFormTag>
                   </h6>
                 </div>
               </template>
-            </b-form-tags>
+            </BFormTags>
             <!-- publications tag form with links out -->
 
             <!-- genereviews tag form with links out -->
@@ -422,7 +444,7 @@
               class="mr-sm-2 font-weight-bold"
               for="review-genereviews-select"
             >Genereviews</label>
-            <b-form-tags
+            <BFormTags
               v-model="select_gene_reviews"
               input-id="review-genereviews-select"
               no-outer-focus
@@ -434,35 +456,33 @@
               <template
                 v-slot="{ tags, inputAttrs, inputHandlers, addTag, removeTag }"
               >
-                <b-input-group class="my-0">
-                  <b-form-input
+                <BInputGroup class="my-0">
+                  <BFormInput
                     v-bind="inputAttrs"
                     placeholder="Enter PMIDs separated by comma or semicolon"
                     class="form-control"
                     size="sm"
                     v-on="inputHandlers"
                   />
-                  <b-input-group-append>
-                    <b-button
-                      variant="secondary"
-                      size="sm"
-                      @click="addTag()"
-                    >
-                      Add
-                    </b-button>
-                  </b-input-group-append>
-                </b-input-group>
+                  <BButton
+                    variant="secondary"
+                    size="sm"
+                    @click="addTag()"
+                  >
+                    Add
+                  </BButton>
+                </BInputGroup>
 
                 <div class="d-inline-block">
                   <h6>
-                    <b-form-tag
+                    <BFormTag
                       v-for="tag in tags"
                       :key="tag"
                       :title="tag"
                       variant="secondary"
                       @remove="removeTag(tag)"
                     >
-                      <b-link
+                      <BLink
                         :href="
                           'https://pubmed.ncbi.nlm.nih.gov/' +
                             tag.replace('PMID:', '')
@@ -470,17 +490,14 @@
                         target="_blank"
                         class="text-light"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.9"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         {{ tag }}
-                      </b-link>
-                    </b-form-tag>
+                      </BLink>
+                    </BFormTag>
                   </h6>
                 </div>
               </template>
-            </b-form-tags>
+            </BFormTags>
             <!-- genereviews tag form with links out -->
 
             <!-- Review comment textarea -->
@@ -488,7 +505,7 @@
               class="mr-sm-2 font-weight-bold"
               for="review-textarea-comment"
             >Comment</label>
-            <b-form-textarea
+            <BFormTextarea
               id="review-textarea-comment"
               v-model="review_info.comment"
               rows="2"
@@ -496,13 +513,13 @@
               placeholder="Additional comments to this entity relevant for the curator."
             />
             <!-- Review comment textarea -->
-          </b-form>
-        </b-overlay>
-      </b-modal>
+          </BForm>
+        </BOverlay>
+      </BModal>
       <!-- Modify review modal -->
 
       <!-- Modify status modal -->
-      <b-modal
+      <BModal
         id="modifyStatusModal"
         ref="modifyStatusModal"
         size="lg"
@@ -518,27 +535,41 @@
         <template #modal-title>
           <h4>
             Modify status for entity:
-            <b-badge variant="primary">
+            <BBadge variant="primary">
               sysndd:{{ entity_info.entity_id }}
-            </b-badge>
+            </BBadge>
           </h4>
         </template>
 
-        <b-overlay
+        <BOverlay
           :show="loading_status_modal"
           rounded="sm"
         >
-          <b-form
+          <BForm
             ref="form"
             @submit.stop.prevent="submitStatusChange"
           >
-            <treeselect
+            <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
+            <!-- <treeselect
               id="status-select"
               v-model="status_info.category_id"
               :multiple="false"
               :options="status_options"
               :normalizer="normalizeStatus"
-            />
+            /> -->
+            <BFormSelect
+              v-if="status_options && status_options.length > 0"
+              id="status-select"
+              v-model="status_info.category_id"
+              :options="normalizeStatusOptions(status_options)"
+              size="sm"
+            >
+              <template v-slot:first>
+                <BFormSelectOption :value="null">
+                  Select status...
+                </BFormSelectOption>
+              </template>
+            </BFormSelect>
 
             <div class="custom-control custom-switch">
               <input
@@ -558,18 +589,18 @@
               class="mr-sm-2 font-weight-bold"
               for="status-textarea-comment"
             >Comment</label>
-            <b-form-textarea
+            <BFormTextarea
               id="status-textarea-comment"
               v-model="status_info.comment"
               rows="2"
               size="sm"
               placeholder="Why should this entities status be changed."
             />
-          </b-form>
-        </b-overlay>
-      </b-modal>
+          </BForm>
+        </BOverlay>
+      </BModal>
       <!-- Modify status modal -->
-    </b-container>
+    </BContainer>
   </div>
 </template>
 
@@ -577,10 +608,11 @@
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 
+// TODO: vue3-treeselect disabled pending Bootstrap-Vue-Next migration
 // import the Treeselect component
-import Treeselect from '@r2rka/vue3-treeselect';
+// import Treeselect from '@zanmato/vue3-treeselect';
 // import the Treeselect styles
-import '@r2rka/vue3-treeselect/dist/style.css';
+// import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
 
 import Submission from '@/assets/js/classes/submission/submissionSubmission';
 import Entity from '@/assets/js/classes/submission/submissionEntity';
@@ -592,8 +624,8 @@ import Literature from '@/assets/js/classes/submission/submissionLiterature';
 
 export default {
   name: 'ApproveStatus',
-  // register the Treeselect component
-  components: { Treeselect },
+  // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
+  components: {},
   mixins: [toastMixin, colorAndSymbolsMixin],
   data() {
     return {
@@ -832,6 +864,37 @@ export default {
         id: node.category_id,
         label: node.category,
       };
+    },
+    // Normalize status options for BFormSelect
+    normalizeStatusOptions(options) {
+      if (!options || !Array.isArray(options)) return [];
+      return options.map((opt) => ({
+        value: opt.category_id,
+        text: opt.category,
+      }));
+    },
+    // Normalize phenotypes options for BFormSelect
+    normalizePhenotypesOptions(options) {
+      if (!options || !Array.isArray(options)) return [];
+      return this.flattenTreeOptions(options);
+    },
+    // Normalize variation ontology options for BFormSelect
+    normalizeVariationOntologyOptions(options) {
+      if (!options || !Array.isArray(options)) return [];
+      return this.flattenTreeOptions(options);
+    },
+    // Flatten tree options for BFormSelect
+    flattenTreeOptions(options, result = []) {
+      options.forEach((opt) => {
+        result.push({
+          value: opt.id,
+          text: opt.label,
+        });
+        if (opt.children && opt.children.length > 0) {
+          this.flattenTreeOptions(opt.children, result);
+        }
+      });
+      return result;
     },
     async loadOntologyInfoTree({ searchQuery, callback }) {
       const apiSearchURL = `${process.env.VUE_APP_API_URL

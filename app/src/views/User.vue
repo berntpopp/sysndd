@@ -20,11 +20,7 @@
                       badge-offset="-12px"
                       badge-bottom
                     >
-                      <BIcon
-                        :icon="user_icon[user.user_role[0]]"
-                        font-scale="1.0"
-                        class="me-1"
-                      />
+                      <i :class="'bi bi-' + user_icon[user.user_role[0]] + ' me-1'" />
                       {{ user.abbreviation[0] }}
                       <template #badge>
                         {{ user.user_role[0] }}
@@ -89,10 +85,7 @@
                         pill
                         @click="refreshWithJWT"
                       >
-                        <BIcon
-                          icon="arrow-repeat"
-                          font-scale="1.0"
-                        />
+                        <i class="bi bi-arrow-repeat" />
                       </BBadge>
                     </BListGroupItem>
 

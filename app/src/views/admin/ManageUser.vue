@@ -1,16 +1,16 @@
 <!-- views/admin/ManageUser.vue -->
 <template>
   <div class="container-fluid">
-    <b-container fluid>
-      <b-row class="justify-content-md-center py-2">
-        <b-col md="12">
+    <BContainer fluid>
+      <BRow class="justify-content-md-center py-2">
+        <BCol md="12">
           <h3>Manage User Rights</h3>
-          <b-card
+          <BCard
             body-class="p-0"
             header-class="p-1"
             border-variant="dark"
           >
-            <b-spinner
+            <BSpinner
               v-if="isLoading"
               label="Loading..."
               class="m-5"
@@ -19,48 +19,42 @@
               v-else
               :items="users"
               :fields="fields"
-              :sort-by.sync="sortBy"
-              :sort-desc.sync="sortDesc"
+              :sort-by="sortBy"
+              @update:sort-by="handleSortByUpdate"
             >
               <template v-slot:cell-actions="{ row }">
                 <div>
-                  <b-button
+                  <BButton
                     v-b-tooltip.hover.top
                     size="sm"
                     class="me-1 btn-xs"
                     title="Edit user"
                     @click="editUser(row, $event.target)"
                   >
-                    <b-icon
-                      icon="pen"
-                      font-scale="0.9"
-                    />
-                  </b-button>
-                  <b-button
+                    <i class="bi bi-pen" />
+                  </BButton>
+                  <BButton
                     v-b-tooltip.hover.top
                     size="sm"
                     class="me-1 btn-xs"
                     title="Delete user"
                     @click="promptDeleteUser(row, $event.target)"
                   >
-                    <b-icon
-                      icon="x"
-                      font-scale="0.9"
-                    />
-                  </b-button>
+                    <i class="bi bi-x" />
+                  </BButton>
                 </div>
               </template>
               <template v-slot:cell-approved="{ row }">
-                <b-badge :variant="row.approved ? 'success' : 'danger'">
+                <BBadge :variant="row.approved ? 'success' : 'danger'">
                   {{ row.approved ? 'Approved' : 'Unapproved' }}
-                </b-badge>
+                </BBadge>
               </template>
             </GenericTable>
-          </b-card>
-        </b-col>
-      </b-row>
+          </BCard>
+        </BCol>
+      </BRow>
 
-      <b-modal
+      <BModal
         :id="deleteUserModal.id"
         title="Confirm Deletion"
         ok-title="Delete"
@@ -70,9 +64,9 @@
         @ok="confirmDeleteUser"
       >
         Are you sure you want to delete the user <strong>{{ userToDelete.user_name }}</strong>?
-      </b-modal>
+      </BModal>
 
-      <b-modal
+      <BModal
         :id="updateUserModal.id"
         title="Update User"
         ok-title="Update"
@@ -84,7 +78,7 @@
           ref="observer"
           v-slot="{ handleSubmit }"
         >
-          <b-form @submit.prevent="handleSubmit(validateAndUpdateUser)">
+          <BForm @submit.prevent="handleSubmit(validateAndUpdateUser)">
             <validation-provider
               v-for="field in editableFields"
               :key="field.key"
@@ -92,25 +86,25 @@
               :name="field.label"
               :rules="getValidationRules(field.key)"
             >
-              <b-form-group
+              <BFormGroup
                 :label="field.label + ':'"
                 :label-for="'input-' + field.key"
               >
-                <b-form-input
+                <BFormInput
                   :id="'input-' + field.key"
                   v-model="userToUpdate[field.key]"
                   :type="field.key === 'password' ? 'password' : 'text'"
                   :state="getValidationState({ validated, valid })"
                 />
-                <b-form-invalid-feedback v-if="errors.length">
+                <BFormInvalidFeedback v-if="errors.length">
                   {{ errors[0] }}
-                </b-form-invalid-feedback>
-              </b-form-group>
+                </BFormInvalidFeedback>
+              </BFormGroup>
             </validation-provider>
-          </b-form>
+          </BForm>
         </validation-observer>
-      </b-modal>
-    </b-container>
+      </BModal>
+    </BContainer>
   </div>
 </template>
 
@@ -164,8 +158,8 @@ export default {
         { key: 'actions', label: 'Actions', class: 'text-center' },
       ],
       isLoading: false,
-      sortBy: 'user_id',
-      sortDesc: false,
+      // Bootstrap-Vue-Next uses array-based sortBy format
+      sortBy: [{ key: 'user_id', order: 'asc' }],
       showDeleteModal: false,
       userToDelete: {},
       userToUpdate: {},
@@ -290,6 +284,13 @@ export default {
         this.makeToast(e.message, 'Error', 'danger');
       }
       this.userToUpdate = {};
+    },
+    /**
+     * Handles sortBy updates from Bootstrap-Vue-Next GenericTable
+     * @param {Array} newSortBy - Array of sort objects [{key, order}]
+     */
+    handleSortByUpdate(newSortBy) {
+      this.sortBy = newSortBy;
     },
   },
 };

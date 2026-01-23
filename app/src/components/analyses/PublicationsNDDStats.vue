@@ -1,7 +1,7 @@
 <!-- src/components/analyses/PublicationsNDDStats.vue -->
 <template>
-  <b-container fluid>
-    <b-card
+  <BContainer fluid>
+    <BCard
       header-tag="header"
       body-class="p-0"
       header-class="p-1"
@@ -17,15 +17,15 @@
             >
               (Bar Plots)
             </mark>
-            <b-badge
+            <BBadge
               id="popover-badge-help-publications-stats"
               pill
               href="#"
               variant="info"
             >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
-            <b-popover
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
+            <BPopover
               target="popover-badge-help-publications-stats"
               variant="info"
               triggers="focus"
@@ -34,41 +34,41 @@
                 Publications Statistics
               </template>
               This bar chart displays counts for selected categories (journal, author/lastname, or keywords).
-            </b-popover>
+            </BPopover>
           </h6>
         </div>
       </template>
 
       <!-- User Interface controls: category selection, minJournalCount, etc. -->
-      <b-row>
-        <b-col
+      <BRow>
+        <BCol
           class="my-1"
           sm="3"
         >
-          <b-input-group
+          <BInputGroup
             prepend="Category"
             class="mb-1"
             size="sm"
           >
-            <b-form-select
+            <BFormSelect
               v-model="selectedCategory"
               :options="categoryOptions"
               size="sm"
               @change="generateBarPlot"
             />
-          </b-input-group>
-        </b-col>
+          </BInputGroup>
+        </BCol>
 
-        <b-col
+        <BCol
           class="my-1"
           sm="3"
         >
-          <b-input-group
+          <BInputGroup
             prepend="Min Journal"
             class="mb-1"
             size="sm"
           >
-            <b-form-input
+            <BFormInput
               v-model="min_journal_count"
               type="number"
               min="1"
@@ -76,19 +76,19 @@
               debounce="500"
               @change="fetchStats"
             />
-          </b-input-group>
-        </b-col>
+          </BInputGroup>
+        </BCol>
 
-        <b-col
+        <BCol
           class="my-1"
           sm="3"
         >
-          <b-input-group
+          <BInputGroup
             prepend="Min Author"
             class="mb-1"
             size="sm"
           >
-            <b-form-input
+            <BFormInput
               v-model="min_lastname_count"
               type="number"
               min="1"
@@ -96,19 +96,19 @@
               debounce="500"
               @change="fetchStats"
             />
-          </b-input-group>
-        </b-col>
+          </BInputGroup>
+        </BCol>
 
-        <b-col
+        <BCol
           class="my-1"
           sm="3"
         >
-          <b-input-group
+          <BInputGroup
             prepend="Min Keyword"
             class="mb-1"
             size="sm"
           >
-            <b-form-input
+            <BFormInput
               v-model="min_keyword_count"
               type="number"
               min="1"
@@ -116,13 +116,13 @@
               debounce="500"
               @change="fetchStats"
             />
-          </b-input-group>
-        </b-col>
-      </b-row>
+          </BInputGroup>
+        </BCol>
+      </BRow>
 
       <!-- Content with overlay spinner -->
       <div class="position-relative">
-        <b-spinner
+        <BSpinner
           v-if="loadingCount"
           label="Loading..."
           class="spinner"
@@ -133,8 +133,8 @@
           class="svg-container"
         />
       </div>
-    </b-card>
-  </b-container>
+    </BCard>
+  </BContainer>
 </template>
 
 <script>

@@ -1,8 +1,8 @@
 <!-- src/components/analyses/AnalysesPhenotypeClusters.vue -->
 <template>
-  <b-container fluid>
+  <BContainer fluid>
     <!-- The main card -->
-    <b-card
+    <BCard
       header-tag="header"
       body-class="p-0"
       header-class="p-1"
@@ -19,15 +19,15 @@
               clustered using phenotype
             </mark>
             annotation.
-            <b-badge
+            <BBadge
               id="popover-badge-help-clusters"
               pill
               href="#"
               variant="info"
             >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
-            <b-popover
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
+            <BPopover
               target="popover-badge-help-clusters"
               variant="info"
               triggers="focus"
@@ -38,7 +38,7 @@
               This section provides an interactive visualization of entities grouped by phenotype annotations.
               The graphical part allows you to explore the clusters by clicking on the nodes, and the table
               displays detailed information about the variables within each cluster.
-            </b-popover>
+            </BPopover>
           </h6>
           <!-- Add download button for the cluster plot -->
           <DownloadImageButtons
@@ -49,12 +49,12 @@
       </template>
 
       <!-- Put both graph and table in ONE row -->
-      <b-row>
+      <BRow>
         <!-- LEFT COLUMN (Graph) -->
-        <b-col
+        <BCol
           md="4"
         >
-          <b-card
+          <BCard
             header-tag="header"
             class="my-3 mx-2 text-start"
             body-class="p-0"
@@ -66,9 +66,9 @@
               <h6 class="mb-0 font-weight-bold">
                 Selected cluster {{ selectedCluster.cluster }}
                 with
-                <b-badge variant="primary">
+                <BBadge variant="primary">
                   {{ selectedCluster.cluster_size }}
-                </b-badge>
+                </BBadge>
                 entities
               </h6>
             </template>
@@ -77,7 +77,7 @@
               id="cluster_dataviz"
               class="svg-container"
             >
-              <b-spinner
+              <BSpinner
                 v-if="loading"
                 label="Loading..."
                 class="spinner"
@@ -88,18 +88,18 @@
             </div>
 
             <template #footer>
-              <b-link :href="'/Entities/?filter=' + selectedCluster.hash_filter">
+              <BLink :href="'/Entities/?filter=' + selectedCluster.hash_filter">
                 Entities for cluster {{ selectedCluster.cluster }}
-              </b-link>
+              </BLink>
             </template>
-          </b-card>
-        </b-col>
+          </BCard>
+        </BCol>
 
         <!-- RIGHT COLUMN (Table) -->
-        <b-col
+        <BCol
           md="8"
         >
-          <b-card
+          <BCard
             header-tag="header"
             class="my-3 mx-2 text-start"
             body-class="p-0"
@@ -109,24 +109,24 @@
             <!-- TABLE HEADER CONTROLS (table type selector, search bar, pagination) -->
             <template #header>
               <div class="mb-0 font-weight-bold">
-                <b-row>
-                  <b-col
+                <BRow>
+                  <BCol
                     sm="6"
                     class="mb-1"
                   >
-                    <b-input-group
+                    <BInputGroup
                       prepend="Table type"
                       size="sm"
                     >
-                      <b-form-select
+                      <BFormSelect
                         v-model="tableType"
                         :options="tableOptions"
                         size="sm"
                       />
-                    </b-input-group>
-                  </b-col>
+                    </BInputGroup>
+                  </BCol>
 
-                  <b-col
+                  <BCol
                     sm="6"
                     class="mb-1 text-end"
                   >
@@ -137,13 +137,13 @@
                       :debounce-time="500"
                       @input="onFilterChange"
                     />
-                  </b-col>
-                </b-row>
+                  </BCol>
+                </BRow>
               </div>
             </template>
 
             <!-- MAIN TABLE -->
-            <b-card-text class="text-start">
+            <BCardText class="text-start">
               <GenericTable
                 :items="displayedItems"
                 :fields="fields"
@@ -157,7 +157,7 @@
                     v-for="field in fields"
                     :key="field.key"
                   >
-                    <b-form-input
+                    <BFormInput
                       v-if="field.key !== 'details'"
                       v-model="filter[field.key].content"
                       :placeholder="'Filter ' + field.label"
@@ -169,27 +169,27 @@
 
                 <!-- Optionally define custom column slots -->
                 <template #cell-variable="{ row }">
-                  <b-badge variant="primary">
+                  <BBadge variant="primary">
                     {{ row.variable }}
-                  </b-badge>
+                  </BBadge>
                 </template>
 
                 <template #cell-p.value="{ row }">
-                  <b-badge variant="info">
+                  <BBadge variant="info">
                     {{ row['p.value'] }}
-                  </b-badge>
+                  </BBadge>
                 </template>
 
                 <template #cell-v.test="{ row }">
-                  <b-badge variant="warning">
+                  <BBadge variant="warning">
                     {{ row['v.test'] }}
-                  </b-badge>
+                  </BBadge>
                 </template>
               </GenericTable>
 
               <!-- Bottom pagination controls (optional) -->
-              <b-row class="justify-content-end">
-                <b-col
+              <BRow class="justify-content-end">
+                <BCol
                   cols="12"
                   md="auto"
                   class="my-1"
@@ -201,14 +201,14 @@
                     @page-change="handlePageChange"
                     @per-page-change="handlePerPageChange"
                   />
-                </b-col>
-              </b-row>
-            </b-card-text>
-          </b-card>
-        </b-col>
-      </b-row>
-    </b-card>
-  </b-container>
+                </BCol>
+              </BRow>
+            </BCardText>
+          </BCard>
+        </BCol>
+      </BRow>
+    </BCard>
+  </BContainer>
 </template>
 
 <script>

@@ -1,10 +1,10 @@
 <template>
   <div class="container-fluid">
-    <b-container fluid>
-      <b-row class="justify-content-md-center py-2">
-        <b-col md="10">
+    <BContainer fluid>
+      <BRow class="justify-content-md-center py-2">
+        <BCol md="10">
           <h3>Admin Statistics</h3>
-          <b-card
+          <BCard
             header-tag="header"
             align="left"
             body-class="p-1"
@@ -17,35 +17,35 @@
                 Filter Statistics
               </h5>
             </template>
-            <b-form @submit.prevent="fetchStatistics">
-              <b-form-group label="Start Date">
-                <b-form-input
+            <BForm @submit.prevent="fetchStatistics">
+              <BFormGroup label="Start Date">
+                <BFormInput
                   v-model="startDate"
                   type="date"
                 />
-              </b-form-group>
-              <b-form-group label="End Date">
-                <b-form-input
+              </BFormGroup>
+              <BFormGroup label="End Date">
+                <BFormInput
                   v-model="endDate"
                   type="date"
                 />
-              </b-form-group>
-              <b-button
+              </BFormGroup>
+              <BButton
                 type="submit"
                 variant="primary"
               >
                 Get Statistics
-              </b-button>
-            </b-form>
-          </b-card>
-        </b-col>
-      </b-row>
-      <b-row
+              </BButton>
+            </BForm>
+          </BCard>
+        </BCol>
+      </BRow>
+      <BRow
         v-if="statistics"
         class="justify-content-md-center py-2"
       >
-        <b-col md="10">
-          <b-card
+        <BCol md="10">
+          <BCard
             header-tag="header"
             align="left"
             body-class="p-1"
@@ -62,15 +62,15 @@
             <p>Total new entities: <span class="stats-number">{{ statistics.total_new_entities[0] }}</span></p>
             <p>Unique genes: <span class="stats-number">{{ statistics.unique_genes[0] }}</span></p>
             <p>Average per day: <span class="stats-number">{{ statistics.average_per_day[0] }}</span></p>
-          </b-card>
-        </b-col>
-      </b-row>
-      <b-row
+          </BCard>
+        </BCol>
+      </BRow>
+      <BRow
         v-if="reReviewStatistics"
         class="justify-content-md-center py-2"
       >
-        <b-col md="10">
-          <b-card
+        <BCol md="10">
+          <BCard
             header-tag="header"
             align="left"
             body-class="p-1"
@@ -87,15 +87,15 @@
             <p>Total re-reviews: <span class="stats-number">{{ reReviewStatistics.total_rereviews[0] }}</span></p>
             <p>Percentage finished: <span class="stats-number">{{ reReviewStatistics.percentage_finished[0] }}%</span></p>
             <p>Average per day: <span class="stats-number">{{ reReviewStatistics.average_per_day[0] }}</span></p>
-          </b-card>
-        </b-col>
-      </b-row>
-      <b-row
+          </BCard>
+        </BCol>
+      </BRow>
+      <BRow
         v-if="updatedReviewsStatistics"
         class="justify-content-md-center py-2"
       >
-        <b-col md="10">
-          <b-card
+        <BCol md="10">
+          <BCard
             header-tag="header"
             align="left"
             body-class="p-1"
@@ -110,15 +110,15 @@
               </h5>
             </template>
             <p>Total updated reviews: <span class="stats-number">{{ updatedReviewsStatistics.total_updated_reviews }}</span></p>
-          </b-card>
-        </b-col>
-      </b-row>
-      <b-row
+          </BCard>
+        </BCol>
+      </BRow>
+      <BRow
         v-if="updatedStatusesStatistics"
         class="justify-content-md-center py-2"
       >
-        <b-col md="10">
-          <b-card
+        <BCol md="10">
+          <BCard
             header-tag="header"
             align="left"
             body-class="p-1"
@@ -133,10 +133,10 @@
               </h5>
             </template>
             <p>Total updated statuses: <span class="stats-number">{{ updatedStatusesStatistics.total_updated_statuses }}</span></p>
-          </b-card>
-        </b-col>
-      </b-row>
-    </b-container>
+          </BCard>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 

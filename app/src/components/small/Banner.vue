@@ -2,20 +2,17 @@
 <template>
   <div v-if="!banner_acknowledged">
     <!-- Banner display code -->
-    <b-alert
+    <BAlert
       class="position-fixed fixed-bottom m-0 rounded-0 text-start"
       style="z-index: 2000; font-size: 0.8rem"
       variant="danger"
       :show="!banner_acknowledged"
     >
-      <b-row>
-        <b-col md="1">
-          <b-icon
-            icon="exclamation-triangle"
-            font-scale="2.0"
-          />
-        </b-col>
-        <b-col md="10">
+      <BRow>
+        <BCol md="1">
+          <i class="bi bi-exclamation-triangle" />
+        </BCol>
+        <BCol md="10">
           <h6 class="alert-heading">
             Usage policy
           </h6>
@@ -34,25 +31,25 @@
           </h6>
           The SysNDD website does not use cookies and tries to be completely
           stateless for regular users. Our parent domain unibe.ch uses cookies
-          which we do not control (<b-link
+          which we do not control (<BLink
             href="https://www.unibe.ch/legal_notice/index_eng.html"
             target="_blank"
           >
             see legal notice here
-          </b-link>). Server side programs keep error logs to improve SysNDD. These are
+          </BLink>). Server side programs keep error logs to improve SysNDD. These are
           deleted regularly.
-        </b-col>
-        <b-col md="1">
-          <b-button
+        </BCol>
+        <BCol md="1">
+          <BButton
             variant="outline-dark"
             size="sm"
             @click="acknowledgeBanner()"
           >
             Dismiss
-          </b-button>
-        </b-col>
-      </b-row>
-    </b-alert>
+          </BButton>
+        </BCol>
+      </BRow>
+    </BAlert>
   </div>
 </template>
 

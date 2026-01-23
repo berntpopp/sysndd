@@ -1,8 +1,8 @@
 <!-- src/components/analyses/AnalysesCurationUpset.vue -->
 <template>
-  <b-container fluid>
+  <BContainer fluid>
     <!-- User Interface controls -->
-    <b-card
+    <BCard
       header-tag="header"
       body-class="p-0"
       header-class="p-1"
@@ -19,15 +19,15 @@
             </mark>
             showing the overlap between different selected curation efforts for
             neurodevelopmental disorders.
-            <b-badge
+            <BBadge
               id="popover-badge-help-upset"
               pill
               href="#"
               variant="info"
             >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
-            <b-popover
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
+            <BPopover
               target="popover-badge-help-upset"
               variant="info"
               triggers="focus"
@@ -43,7 +43,7 @@
               <strong>4) Gene2Phenotype</strong>: Gene to phenotype  database<br>
               <strong>5) PanelApp</strong>: Gene panels for genetic disorders<br>
               <strong>6) Geisinger DBD</strong>: Developmental disorder curation<br>
-            </b-popover>
+            </BPopover>
           </h6>
           <DownloadImageButtons
             :svg-id="'comparisons-upset-svg'"
@@ -52,23 +52,24 @@
         </div>
       </template>
 
-      <div v-if="!loadingUpset">
-        <b-row>
-          <b-col class="my-1">
-            <treeselect
+      <!-- TODO: treeselect disabled pending Bootstrap-Vue-Next migration -->
+      <div v-if="!loadingUpset && columns_list && columns_list.length > 0">
+        <BRow>
+          <BCol class="my-1">
+            <BFormSelect
               id="columns-select"
               v-model="selected_columns"
-              :multiple="true"
-              :options="columns_list"
-              :normalizer="normalizeLists"
+              :options="normalizeSelectOptions(columns_list)"
+              multiple
+              :select-size="4"
             />
-          </b-col>
-        </b-row>
+          </BCol>
+        </BRow>
       </div>
 
       <!-- Content with overlay spinner -->
       <div class="position-relative">
-        <b-spinner
+        <BSpinner
           v-if="loadingUpset"
           label="Loading..."
           class="spinner"
@@ -80,8 +81,8 @@
           class="upset-container"
         />
       </div>
-    </b-card>
-  </b-container>
+    </BCard>
+  </BContainer>
 </template>
 
 <script>
@@ -93,13 +94,15 @@ import {
 } from 'vue';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import { render, extractSets, UpSetDarkTheme } from '@upsetjs/bundle';
-import Treeselect from '@r2rka/vue3-treeselect';
-import '@r2rka/vue3-treeselect/dist/style.css';
+// TODO: vue3-treeselect disabled pending Bootstrap-Vue-Next migration
+// import Treeselect from '@zanmato/vue3-treeselect';
+// import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 
 export default {
   name: 'AnalysesCurationUpset',
-  components: { Treeselect, DownloadImageButtons },
+  // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
+  components: { DownloadImageButtons },
   mixins: [toastMixin],
   setup() {
     const upsetContainer = ref(null);
@@ -203,6 +206,16 @@ export default {
     },
     hover(s) {
       this.selection = s;
+    },
+    // Normalize select options for BFormSelect (replacement for treeselect normalizer)
+    normalizeSelectOptions(options) {
+      if (!options || !Array.isArray(options)) return [];
+      return options.map((opt) => {
+        if (typeof opt === 'object' && opt !== null) {
+          return { value: opt.list || opt.id || opt.value, text: opt.list || opt.label || opt.text || opt.id };
+        }
+        return { value: opt, text: opt };
+      });
     },
   },
 };

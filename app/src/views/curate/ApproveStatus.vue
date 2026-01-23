@@ -1,13 +1,13 @@
 <template>
   <div class="container-fluid">
-    <b-container fluid>
-      <b-row class="justify-content-md-center py-2">
-        <b-col
+    <BContainer fluid>
+      <BRow class="justify-content-md-center py-2">
+        <BCol
           col
           md="12"
         >
           <!-- User Interface controls -->
-          <b-card
+          <BCard
             header-tag="header"
             body-class="p-0"
             header-class="p-1"
@@ -21,64 +21,60 @@
             <!-- User Interface controls -->
 
             <!-- button for approve all -->
-            <b-form
+            <BForm
               ref="form"
+              class="p-1"
               @submit.stop.prevent="checkAllApprove"
             >
-              <b-input-group-append class="p-1">
-                <b-button
-                  size="sm"
-                  type="submit"
-                  variant="dark"
-                >
-                  <b-icon
-                    icon="check2-circle"
-                    class="mx-1"
-                  />
-                  Approve all status
-                </b-button>
-              </b-input-group-append>
-            </b-form>
+              <BButton
+                size="sm"
+                type="submit"
+                variant="dark"
+              >
+                <i class="bi bi-check2-circle mx-1" />
+                Approve all status
+              </BButton>
+            </BForm>
             <!-- button for approve all -->
 
             <!-- Table Interface controls -->
-            <b-row>
-              <b-col class="my-1">
-                <b-form-group class="mb-1">
-                  <b-input-group
+            <BRow>
+              <BCol class="my-1">
+                <BFormGroup class="mb-1">
+                  <BInputGroup
                     prepend="Search"
                     size="sm"
                   >
-                    <b-form-input
+                    <BFormInput
                       id="filter-input"
                       v-model="filter"
                       type="search"
                       placeholder="any field by typing here"
                       debounce="500"
                     />
-                  </b-input-group>
-                </b-form-group>
-              </b-col>
+                  </BInputGroup>
+                </BFormGroup>
+              </BCol>
 
-              <b-col class="my-1" />
+              <BCol class="my-1" />
 
-              <b-col class="my-1" />
+              <BCol class="my-1" />
 
-              <b-col class="my-1">
-                <b-input-group
+              <BCol class="my-1">
+                <BInputGroup
                   prepend="Per page"
                   class="mb-1"
                   size="sm"
                 >
-                  <b-form-select
+                  <BFormSelect
                     id="per-page-select"
                     v-model="perPage"
                     :options="pageOptions"
                     size="sm"
                   />
-                </b-input-group>
+                </BInputGroup>
 
-                <b-pagination
+                <BPagination
                   v-model="currentPage"
                   :total-rows="totalRows"
                   :per-page="perPage"
@@ -87,17 +83,17 @@
                   class="my-0"
                   last-number
                 />
-              </b-col>
-            </b-row>
+              </BCol>
+            </BRow>
             <!-- Table Interface controls -->
 
             <!-- Main table -->
-            <b-spinner
+            <BSpinner
               v-if="loading_status_approve"
               label="Loading..."
               class="float-center m-5"
             />
-            <b-table
+            <BTable
               v-else
               :items="items_StatusTable"
               :fields="fields_StatusTable"
@@ -106,9 +102,7 @@
               :per-page="perPage"
               :filter="filter"
               :filter-included-fields="filterOn"
-              :sort-by.sync="sortBy"
-              :sort-desc.sync="sortDesc"
-              :sort-direction="sortDirection"
+              :sort-by="sortBy"
               stacked="md"
               head-variant="light"
               show-empty
@@ -117,46 +111,47 @@
               striped
               hover
               sort-icon-left
+              @update:sort-by="handleSortByUpdate"
               @filtered="onFiltered"
             >
               <template #cell(entity_id)="data">
                 <div>
-                  <b-link :href="'/Entities/' + data.item.entity_id">
-                    <b-badge
+                  <BLink :href="'/Entities/' + data.item.entity_id">
+                    <BBadge
                       variant="primary"
                       style="cursor: pointer"
                     >
                       sysndd:{{ data.item.entity_id }}
-                    </b-badge>
-                  </b-link>
+                    </BBadge>
+                  </BLink>
                 </div>
               </template>
 
               <template #cell(symbol)="data">
                 <div class="font-italic">
-                  <b-link :href="'/Genes/' + data.item.hgnc_id">
-                    <b-badge
+                  <BLink :href="'/Genes/' + data.item.hgnc_id">
+                    <BBadge
                       v-b-tooltip.hover.leftbottom
                       pill
                       variant="success"
                       :title="data.item.hgnc_id"
                     >
                       {{ data.item.symbol }}
-                    </b-badge>
-                  </b-link>
+                    </BBadge>
+                  </BLink>
                 </div>
               </template>
 
               <template #cell(disease_ontology_name)="data">
                 <div class="overflow-hidden text-truncate">
-                  <b-link
+                  <BLink
                     :href="
                       '/Ontology/' +
                         data.item.disease_ontology_id_version.replace(/_.+/g, '')
                     "
                     target="_blank"
                   >
-                    <b-badge
+                    <BBadge
                       v-b-tooltip.hover.leftbottom
                       pill
                       variant="secondary"
@@ -167,14 +162,14 @@
                       "
                     >
                       {{ truncate(data.item.disease_ontology_name, 40) }}
-                    </b-badge>
-                  </b-link>
+                    </BBadge>
+                  </BLink>
                 </div>
               </template>
 
               <template #cell(hpo_mode_of_inheritance_term_name)="data">
                 <div class="overflow-hidden text-truncate">
-                  <b-badge
+                  <BBadge
                     v-b-tooltip.hover.leftbottom
                     pill
                     variant="info"
@@ -192,37 +187,39 @@
                         data.item.hpo_mode_of_inheritance_term_name
                       ]
                     }}
-                  </b-badge>
+                  </BBadge>
                 </div>
               </template>
 
               <template #cell(category)="data">
                 <div>
-                  <b-avatar
+                  <BAvatar
                     v-b-tooltip.hover.left
                     size="1.4em"
-                    icon="stoplights"
                     :variant="stoplights_style[data.item.category]"
                     :title="data.item.category"
-                  />
+                  >
+                    <i class="bi bi-stoplights" />
+                  </BAvatar>
                 </div>
               </template>
 
               <template #cell(problematic)="data">
                 <div>
-                  <b-avatar
+                  <BAvatar
                     v-b-tooltip.hover.left
                     size="1.4em"
-                    :icon="problematic_symbol[data.item.problematic]"
                     :variant="problematic_style[data.item.problematic]"
                     :title="problematic_text[data.item.problematic]"
-                  />
+                  >
+                    <i :class="'bi bi-' + problematic_symbol[data.item.problematic]" />
+                  </BAvatar>
                 </div>
               </template>
 
               <template #cell(comment)="data">
                 <div>
-                  <b-form-textarea
+                  <BFormTextarea
                     v-b-tooltip.hover.leftbottom
                     plaintext
                     size="sm"
@@ -235,53 +232,43 @@
 
               <template #cell(status_date)="data">
                 <div>
-                  <b-icon
-                    icon="stoplights"
-                    font-scale="0.7"
-                  />
-                  <b-badge
+                  <i class="bi bi-stoplights" />
+                  <BBadge
                     v-b-tooltip.hover.right
                     variant="light"
                     :title="data.item.status_date"
                     class="ms-1"
                   >
                     {{ data.item.status_date.substring(0,10) }}
-                  </b-badge>
+                  </BBadge>
                 </div>
               </template>
 
               <template #cell(status_user_name)="data">
                 <div>
-                  <b-icon
-                    :icon="user_icon[data.item.status_user_role]"
-                    :variant="user_style[data.item.status_user_role]"
-                    font-scale="1.0"
-                  />
-                  <b-badge
+                  <i :class="'bi bi-' + user_icon[data.item.status_user_role] + ' text-' + user_style[data.item.status_user_role]" />
+                  <BBadge
                     v-b-tooltip.hover.right
                     :variant="user_style[data.item.status_user_role]"
                     :title="data.item.status_user_role"
                     class="ms-1"
                   >
                     {{ data.item.status_user_name }}
-                  </b-badge>
+                  </BBadge>
                 </div>
               </template>
 
               <template #cell(actions)="row">
-                <b-button
+                <BButton
                   size="sm"
                   class="me-1 btn-xs"
                   variant="outline-primary"
                   @click="row.toggleDetails"
                 >
-                  <b-icon
-                    :icon="row.detailsShowing ? 'eye-slash' : 'eye'"
-                    font-scale="0.9"
-                  />
-                </b-button>
+                  <i :class="'bi bi-' + (row.detailsShowing ? 'eye-slash' : 'eye')" />
+                </BButton>
 
-                <b-button
+                <BButton
                   v-b-tooltip.hover.left
                   size="sm"
                   class="me-1 btn-xs"
@@ -289,13 +276,10 @@
                   title="Edit status"
                   @click="infoStatus(row.item, row.index, $event.target)"
                 >
-                  <b-icon
-                    icon="stoplights"
-                    font-scale="0.9"
-                  />
-                </b-button>
+                  <i class="bi bi-stoplights" />
+                </BButton>
 
-                <b-button
+                <BButton
                   v-b-tooltip.hover.right
                   size="sm"
                   class="me-1 btn-xs"
@@ -303,31 +287,28 @@
                   title="Approve status"
                   @click="infoApproveStatus(row.item, row.index, $event.target)"
                 >
-                  <b-icon
-                    icon="check2-circle"
-                    font-scale="0.9"
-                  />
-                </b-button>
+                  <i class="bi bi-check2-circle" />
+                </BButton>
               </template>
 
               <template #row-details="row">
-                <b-card>
-                  <b-table
+                <BCard>
+                  <BTable
                     :items="[row.item]"
                     :fields="fields_details_StatusTable"
                     stacked
                     small
                   />
-                </b-card>
+                </BCard>
               </template>
-            </b-table>
+            </BTable>
             <!-- Main table -->
-          </b-card>
-        </b-col>
-      </b-row>
+          </BCard>
+        </BCol>
+      </BRow>
 
       <!-- Approve modal -->
-      <b-modal
+      <BModal
         :id="approveModal.id"
         size="sm"
         centered
@@ -341,19 +322,19 @@
         <template #modal-title>
           <h4>
             Entity:
-            <b-badge variant="primary">
+            <BBadge variant="primary">
               {{ approveModal.title }}
-            </b-badge>
+            </BBadge>
           </h4>
         </template>
 
         You have finished checking this status and
         <span class="font-weight-bold">want to submit it</span>?
-      </b-modal>
+      </BModal>
       <!-- Approve modal -->
 
       <!-- Modify status modal -->
-      <b-modal
+      <BModal
         :id="statusModal.id"
         :ref="statusModal.id"
         size="lg"
@@ -369,35 +350,35 @@
         <template #modal-title>
           <h4>
             Modify status for entity:
-            <b-link
+            <BLink
               :href="'/Entities/' + status_info.entity_id"
               target="_blank"
             >
-              <b-badge variant="primary">
+              <BBadge variant="primary">
                 sysndd:{{ status_info.entity_id }}
-              </b-badge>
-            </b-link>
-            <b-link
+              </BBadge>
+            </BLink>
+            <BLink
               :href="'/Genes/' + entity_info.symbol"
               target="_blank"
             >
-              <b-badge
+              <BBadge
                 v-b-tooltip.hover.leftbottom
                 pill
                 variant="success"
                 :title="entity_info.hgnc_id"
               >
                 {{ entity_info.symbol }}
-              </b-badge>
-            </b-link>
-            <b-link
+              </BBadge>
+            </BLink>
+            <BLink
               :href="
                 '/Ontology/' +
                   entity_info.disease_ontology_id_version.replace(/_.+/g, '')
               "
               target="_blank"
             >
-              <b-badge
+              <BBadge
                 v-b-tooltip.hover.leftbottom
                 pill
                 variant="secondary"
@@ -408,9 +389,9 @@
                 "
               >
                 {{ truncate(entity_info.disease_ontology_name, 40) }}
-              </b-badge>
-            </b-link>
-            <b-badge
+              </BBadge>
+            </BLink>
+            <BBadge
               v-b-tooltip.hover.leftbottom
               pill
               variant="info"
@@ -428,7 +409,7 @@
                   entity_info.hpo_mode_of_inheritance_term_name
                 ]
               }}
-            </b-badge>
+            </BBadge>
           </h4>
         </template>
 
@@ -436,58 +417,68 @@
           <div class="w-100">
             <p class="float-start">
               Status by:
-              <b-icon
-                :icon="user_icon[status_info.status_user_role]"
-                :variant="user_style[status_info.status_user_role]"
-                font-scale="1.0"
-              />
-              <b-badge
+              <i :class="'bi bi-' + user_icon[status_info.status_user_role] + ' text-' + user_style[status_info.status_user_role]" />
+              <BBadge
                 :variant="user_style[status_info.status_user_role]"
                 class="ms-1"
               >
                 {{ status_info.status_user_name }}
-              </b-badge>
-              <b-badge
+              </BBadge>
+              <BBadge
                 :variant="user_style[status_info.status_user_role]"
                 class="ms-1"
               >
                 {{ status_info.status_user_role }}
-              </b-badge>
+              </BBadge>
             </p>
 
             <!-- Emulate built in modal footer ok and cancel button actions -->
-            <b-button
+            <BButton
               variant="primary"
               class="float-end me-2"
               @click="ok()"
             >
               Save status
-            </b-button>
-            <b-button
+            </BButton>
+            <BButton
               variant="secondary"
               class="float-end me-2"
               @click="cancel()"
             >
               Cancel
-            </b-button>
+            </BButton>
           </div>
         </template>
 
-        <b-overlay
+        <BOverlay
           :show="loading_status_modal"
           rounded="sm"
         >
-          <b-form
+          <BForm
             ref="form"
             @submit.stop.prevent="submitStatusChange"
           >
-            <treeselect
+            <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
+            <!-- <treeselect
               id="status-select"
               v-model="status_info.category_id"
               :multiple="false"
               :options="status_options"
               :normalizer="normalizeStatus"
-            />
+            /> -->
+            <BFormSelect
+              v-if="status_options && status_options.length > 0"
+              id="status-select"
+              v-model="status_info.category_id"
+              :options="normalizeStatusOptions(status_options)"
+              size="sm"
+            >
+              <template v-slot:first>
+                <BFormSelectOption :value="null">
+                  Select status...
+                </BFormSelectOption>
+              </template>
+            </BFormSelect>
 
             <div class="custom-control custom-switch">
               <input
@@ -507,20 +498,20 @@
               class="mr-sm-2 font-weight-bold"
               for="status-textarea-comment"
             >Comment</label>
-            <b-form-textarea
+            <BFormTextarea
               id="status-textarea-comment"
               v-model="status_info.comment"
               rows="2"
               size="sm"
               placeholder="Why should this entities status be changed."
             />
-          </b-form>
-        </b-overlay>
-      </b-modal>
+          </BForm>
+        </BOverlay>
+      </BModal>
       <!-- Modify status modal -->
 
       <!-- Check approve all modal -->
-      <b-modal
+      <BModal
         id="approveAllModal"
         ref="approveAllModal"
         size="lg"
@@ -550,17 +541,18 @@
             for="removeSwitch"
           ><b>{{ switch_approve_text[approve_all_selected] }}</b></label>
         </div>
-      </b-modal>
+      </BModal>
       <!-- Check approve all modal -->
-    </b-container>
+    </BContainer>
   </div>
 </template>
 
 <script>
+// TODO: vue3-treeselect disabled pending Bootstrap-Vue-Next migration
 // import the Treeselect component
-import Treeselect from '@r2rka/vue3-treeselect';
+// import Treeselect from '@zanmato/vue3-treeselect';
 // import the Treeselect styles
-import '@r2rka/vue3-treeselect/dist/style.css';
+// import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
 
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
@@ -577,8 +569,8 @@ import { useUiStore } from '@/stores/ui';
 
 export default {
   name: 'ApproveStatus',
-  // register the Treeselect component
-  components: { Treeselect },
+  // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
+  components: {},
   mixins: [toastMixin, colorAndSymbolsMixin, textMixin],
   data() {
     return {
@@ -717,11 +709,10 @@ export default {
       status_options: [],
       totalRows: 0,
       currentPage: 1,
-      perPage: '200',
-      pageOptions: ['10', '25', '50', '200'],
-      sortBy: 'status_user_name',
-      sortDesc: false,
-      sortDirection: 'asc',
+      perPage: 200,
+      pageOptions: [10, 25, 50, 200],
+      // Bootstrap-Vue-Next uses array-based sortBy format
+      sortBy: [{ key: 'status_user_name', order: 'asc' }],
       filter: null,
       filterOn: [],
       approveModal: {
@@ -923,6 +914,14 @@ export default {
         label: node.category,
       };
     },
+    // Normalize status options for BFormSelect
+    normalizeStatusOptions(options) {
+      if (!options || !Array.isArray(options)) return [];
+      return options.map((opt) => ({
+        value: opt.category_id,
+        text: opt.category,
+      }));
+    },
     checkAllApprove() {
       this.$refs.approveAllModal.show();
     },
@@ -937,6 +936,13 @@ export default {
     truncate(str, n) {
       // Use the utility function here
       return Utils.truncate(str, n);
+    },
+    /**
+     * Handles sortBy updates from Bootstrap-Vue-Next BTable
+     * @param {Array} newSortBy - Array of sort objects [{key, order}]
+     */
+    handleSortByUpdate(newSortBy) {
+      this.sortBy = newSortBy;
     },
   },
 };

@@ -1,7 +1,7 @@
 <!-- views/components/small/DownloadImageButtons.vue -->
 <template>
   <div class="download-buttons">
-    <b-button
+    <BButton
       v-b-tooltip.hover.bottom
       class="download-button"
       size="sm"
@@ -9,18 +9,17 @@
       :disabled="downloadingPNG"
       @click="downloadPNG"
     >
-      <b-icon
+      <i
         v-if="!downloadingPNG"
-        icon="image"
-        class="mx-1"
+        class="bi bi-image"
       />
-      <b-spinner
+      <BSpinner
         v-if="downloadingPNG"
         small
       />
       PNG
-    </b-button>
-    <b-button
+    </BButton>
+    <BButton
       v-b-tooltip.hover.bottom
       class="download-button"
       size="sm"
@@ -28,17 +27,16 @@
       :disabled="downloadingSVG"
       @click="downloadSVG"
     >
-      <b-icon
+      <i
         v-if="!downloadingSVG"
-        icon="file-earmark"
-        class="mx-1"
+        class="bi bi-file-earmark"
       />
-      <b-spinner
+      <BSpinner
         v-if="downloadingSVG"
         small
       />
       SVG
-    </b-button>
+    </BButton>
   </div>
 </template>
 

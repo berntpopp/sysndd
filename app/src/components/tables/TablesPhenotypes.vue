@@ -1,32 +1,32 @@
 <template>
   <div class="container-fluid">
-    <b-spinner
+    <BSpinner
       v-if="loading"
       label="Loading..."
       class="float-center m-5"
     />
-    <b-container
+    <BContainer
       v-else
       fluid
     >
-      <b-row class="justify-content-md-center py-2">
-        <b-col
+      <BRow class="justify-content-md-center py-2">
+        <BCol
           col
           md="12"
         >
           <!-- User Interface controls -->
-          <b-card
+          <BCard
             header-tag="header"
             body-class="p-0"
             header-class="p-1"
             border-variant="dark"
           >
             <template #header>
-              <b-row>
-                <b-col>
+              <BRow>
+                <BCol>
                   <h4 class="mb-1 text-start font-weight-bold">
                     Phenotype search
-                    <b-badge
+                    <BBadge
                       v-b-tooltip.hover.bottom
                       variant="primary"
                       :title="
@@ -39,37 +39,34 @@
                       "
                     >
                       Associated entities: {{ totalRows }}
-                    </b-badge>
+                    </BBadge>
                   </h4>
-                </b-col>
-                <b-col>
+                </BCol>
+                <BCol>
                   <h5
                     v-if="showFilterControls"
                     class="mb-1 text-end font-weight-bold"
                   >
-                    <b-button
+                    <BButton
                       v-b-tooltip.hover.bottom
                       class="me-1"
                       size="sm"
                       title="Download data as Excel file."
                       @click="requestSelectedExcel()"
                     >
-                      <b-icon
-                        icon="table"
-                        class="mx-1"
-                      />
-                      <b-icon
+                      <i class="bi bi-table mx-1" />
+                      <i
                         v-if="!downloading"
-                        icon="download"
+                        class="bi bi-download"
                       />
-                      <b-spinner
+                      <BSpinner
                         v-if="downloading"
                         small
                       />
                       .xlsx
-                    </b-button>
+                    </BButton>
 
-                    <b-button
+                    <BButton
                       v-b-tooltip.hover.bottom
                       class="me-1"
                       size="sm"
@@ -77,13 +74,10 @@
                       variant="success"
                       @click="copyLinkToClipboard()"
                     >
-                      <b-icon
-                        icon="link"
-                        font-scale="1.0"
-                      />
-                    </b-button>
+                      <i class="bi bi-link" />
+                    </BButton>
 
-                    <b-button
+                    <BButton
                       v-b-tooltip.hover.bottom
                       size="sm"
                       class="me-1"
@@ -98,18 +92,15 @@
                       :variant="(filter_string === '' || filter_string === null || filter_string === 'null') ? 'info' : 'warning'"
                       @click="removeFilters()"
                     >
-                      <b-icon
-                        icon="filter"
-                        font-scale="1.0"
-                      />
-                    </b-button>
+                      <i class="bi bi-filter" />
+                    </BButton>
                   </h5>
-                </b-col>
-              </b-row>
+                </BCol>
+              </BRow>
             </template>
 
-            <b-row>
-              <b-col
+            <BRow>
+              <BCol
                 class="my-1"
                 sm="6"
               >
@@ -117,57 +108,78 @@
                   for="phenotype_select"
                   aria-label="Phenotype select"
                 >
-                  <treeselect
-                    v-if="showFilterControls"
+                  <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
+                  <!-- Multi-select temporarily disabled - using single select -->
+                  <!-- <treeselect
+                    v-if="showFilterControls && phenotypes_options.length > 0"
                     id="phenotype_select"
                     v-model="filter.modifier_phenotype_id.content"
                     :multiple="true"
                     :options="phenotypes_options"
                     :normalizer="normalizerPhenotypes"
                     @input="filtered"
+                  /> -->
+                  <BFormSelect
+                    v-if="showFilterControls && phenotypes_options.length > 0"
+                    id="phenotype_select"
+                    v-model="filter.modifier_phenotype_id.content[0]"
+                    :options="normalizePhenotypesOptions(phenotypes_options)"
+                    size="sm"
+                    @change="filtered"
+                  >
+                    <template v-slot:first>
+                      <BFormSelectOption :value="null">
+                        Select phenotype...
+                      </BFormSelectOption>
+                    </template>
+                  </BFormSelect>
+                  <BSpinner
+                    v-else-if="showFilterControls && phenotypes_options.length === 0"
+                    small
+                    label="Loading phenotypes..."
                   />
                 </label>
-              </b-col>
+              </BCol>
 
-              <b-col
+              <BCol
                 class="my-1"
                 sm="2"
               >
-                <b-row>
-                  <b-col class="my-1">
-                    <b-form-checkbox
+                <BRow>
+                  <BCol class="my-1">
+                    <BFormCheckbox
                       v-model="checked"
                       switch
                       name="check-button"
                       @input="filtered"
                     >
                       <b>{{ switch_text[checked] }}</b>
-                    </b-form-checkbox>
-                  </b-col>
-                </b-row>
-              </b-col>
+                    </BFormCheckbox>
+                  </BCol>
+                </BRow>
+              </BCol>
 
-              <b-col
+              <BCol
                 class="my-1"
                 sm="4"
               >
-                <b-container
+                <BContainer
                   v-if="totalRows > perPage || showPaginationControls"
                 >
-                  <b-input-group
+                  <BInputGroup
                     prepend="Per page"
                     class="mb-1"
                     size="sm"
                   >
-                    <b-form-select
+                    <BFormSelect
                       id="per-page-select"
                       v-model="perPage"
                       :options="pageOptions"
                       size="sm"
                     />
-                  </b-input-group>
+                  </BInputGroup>
 
-                  <b-pagination
+                  <BPagination
                     v-model="currentPage"
                     :total-rows="totalRows"
                     :per-page="perPage"
@@ -177,9 +189,9 @@
                     limit="2"
                     @change="handlePageChange"
                   />
-                </b-container>
-              </b-col>
-            </b-row>
+                </BContainer>
+              </BCol>
+            </BRow>
             <!-- User Interface controls -->
 
             <!-- Main table element -->
@@ -228,119 +240,121 @@
                 </div>
               </template>
 
-              <!-- based on:  https://stackoverflow.com/questions/52959195/bootstrap-vue-b-table-with-filter-in-header -->
-              <template
-                v-if="showFilterControls"
-                slot="top-row"
-              >
-                <td
-                  v-for="field in fields"
-                  :key="field.key"
-                >
-                  <b-form-input
-                    v-if="field.filterable"
-                    v-model="filter[field.key].content"
-                    :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
-                    debounce="500"
-                    type="search"
-                    autocomplete="off"
-                    @click="removeSearch()"
-                    @update="filtered()"
-                  />
-
-                  <b-form-select
-                    v-if="field.selectable"
-                    v-model="filter[field.key].content"
-                    :options="field.selectOptions"
-                    type="search"
-                    @input="removeSearch()"
-                    @change="filtered()"
+              <!-- Filter row in table header - Bootstrap-Vue-Next uses #thead-top instead of slot="top-row" -->
+              <template #thead-top>
+                <tr v-if="showFilterControls">
+                  <td
+                    v-for="field in fields"
+                    :key="field.key"
                   >
-                    <template v-slot:first>
-                      <b-form-select-option value="null">
-                        .. {{ truncate(field.label, 20) }} ..
-                      </b-form-select-option>
-                    </template>
-                  </b-form-select>
-
-                  <label
-                    v-if="field.multi_selectable"
-                    :for="'select_' + field.key"
-                    :aria-label="field.label"
-                  >
-                    <treeselect
-                      v-if="field.multi_selectable"
-                      :id="'select_' + field.key"
+                    <BFormInput
+                      v-if="field.filterable"
                       v-model="filter[field.key].content"
-                      size="small"
-                      :multiple="true"
-                      :options="field.selectOptions"
-                      :normalizer="normalizer"
-                      :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
-                      @input="removeSearch();filtered();"
+                      :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
+                      debounce="500"
+                      type="search"
+                      autocomplete="off"
+                      @click="removeSearch()"
+                      @update="filtered()"
                     />
-                  </label>
-                </td>
+
+                    <BFormSelect
+                      v-if="field.selectable"
+                      v-model="filter[field.key].content"
+                      :options="field.selectOptions"
+                      size="sm"
+                      @input="removeSearch()"
+                      @change="filtered()"
+                    >
+                      <template v-slot:first>
+                        <BFormSelectOption value="null">
+                          .. {{ truncate(field.label, 20) }} ..
+                        </BFormSelectOption>
+                      </template>
+                    </BFormSelect>
+
+                    <!-- TODO: treeselect disabled pending Bootstrap-Vue-Next migration -->
+                    <label
+                      v-if="field.multi_selectable && field.selectOptions && field.selectOptions.length > 0"
+                      :for="'select_' + field.key"
+                      :aria-label="field.label"
+                    >
+                      <BFormSelect
+                        :id="'select_' + field.key"
+                        v-model="filter[field.key].content"
+                        :options="normalizeSelectOptions(field.selectOptions)"
+                        size="sm"
+                        @change="removeSearch();filtered();"
+                      >
+                        <template v-slot:first>
+                          <BFormSelectOption :value="null">
+                            .. {{ truncate(field.label, 20) }} ..
+                          </BFormSelectOption>
+                        </template>
+                      </BFormSelect>
+                    </label>
+                  </td>
+                </tr>
               </template>
 
               <template #cell(details)="row">
-                <b-button
+                <BButton
                   class="btn-xs"
                   variant="outline-primary"
                   @click="row.toggleDetails"
                 >
                   {{ row.detailsShowing ? "Hide" : "Show" }}
-                </b-button>
+                </BButton>
               </template>
 
               <template #row-details="row">
-                <b-card>
-                  <b-table
+                <BCard>
+                  <BTable
                     :items="[row.item]"
                     :fields="fields_details"
                     stacked
                     small
                   />
-                </b-card>
+                </BCard>
               </template>
 
               <template #cell(entity_id)="data">
                 <div>
-                  <b-link :href="'/Entities/' + data.item.entity_id">
-                    <b-badge
+                  <BLink :href="'/Entities/' + data.item.entity_id">
+                    <BBadge
                       variant="primary"
                       style="cursor: pointer"
                     >
                       sysndd:{{ data.item.entity_id }}
-                    </b-badge>
-                  </b-link>
+                    </BBadge>
+                  </BLink>
                 </div>
               </template>
 
               <template #cell(symbol)="data">
                 <div class="font-italic">
-                  <b-link :href="'/Genes/' + data.item.hgnc_id">
-                    <b-badge
+                  <BLink :href="'/Genes/' + data.item.hgnc_id">
+                    <BBadge
                       v-b-tooltip.hover.leftbottom
                       pill
                       variant="success"
                       :title="data.item.hgnc_id"
                     >
                       {{ data.item.symbol }}
-                    </b-badge>
-                  </b-link>
+                    </BBadge>
+                  </BLink>
                 </div>
               </template>
 
               <template #cell(disease_ontology_name)="data">
                 <div class="overflow-hidden text-truncate">
-                  <b-link
+                  <BLink
                     :href="
                       '/Ontology/' +
                         data.item.disease_ontology_id_version.replace(/_.+/g, '')
                     "
                   >
-                    <b-badge
+                    <BBadge
                       v-b-tooltip.hover.leftbottom
                       pill
                       variant="secondary"
@@ -351,14 +365,14 @@
                       "
                     >
                       {{ truncate(data.item.disease_ontology_name, 40) }}
-                    </b-badge>
-                  </b-link>
+                    </BBadge>
+                  </BLink>
                 </div>
               </template>
 
               <template #cell(hpo_mode_of_inheritance_term_name)="data">
                 <div>
-                  <b-badge
+                  <BBadge
                     v-b-tooltip.hover.leftbottom
                     pill
                     variant="info"
@@ -376,13 +390,13 @@
                         data.item.hpo_mode_of_inheritance_term_name
                       ]
                     }}
-                  </b-badge>
+                  </BBadge>
                 </div>
               </template>
 
               <template #cell(ndd_phenotype_word)="data">
                 <div>
-                  <b-avatar
+                  <BAvatar
                     v-b-tooltip.hover.left
                     size="1.4em"
                     :icon="ndd_icon[data.item.ndd_phenotype_word]"
@@ -394,7 +408,7 @@
 
               <template #cell(category)="data">
                 <div>
-                  <b-avatar
+                  <BAvatar
                     v-b-tooltip.hover.left
                     size="1.4em"
                     icon="stoplights"
@@ -404,18 +418,19 @@
                 </div>
               </template>
             </BTable>
-          </b-card>
-        </b-col>
-      </b-row>
-    </b-container>
+          </BCard>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 
 <script>
+// TODO: vue3-treeselect disabled pending Bootstrap-Vue-Next migration
 // import the Treeselect component
-import Treeselect from '@r2rka/vue3-treeselect';
+// import Treeselect from '@zanmato/vue3-treeselect';
 // import the Treeselect styles
-import '@r2rka/vue3-treeselect/dist/style.css';
+// import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
 
 // Import Bootstrap-Vue-Next BTable
 import { BTable } from 'bootstrap-vue-next';
@@ -433,8 +448,8 @@ import { useUiStore } from '@/stores/ui';
 
 export default {
   name: 'TablesPhenotypes',
-  // register the components
-  components: { BTable, Treeselect },
+  // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
+  components: { BTable },
   mixins: [toastMixin, urlParsingMixin, colorAndSymbolsMixin, textMixin],
   props: {
     showFilterControls: { type: Boolean, default: true },
@@ -521,7 +536,7 @@ export default {
       lastItemID: null,
       executionTime: 0,
       perPage: this.pageSizeInput,
-      pageOptions: ['10', '25', '50', '200'],
+      pageOptions: [10, 25, 50, 200],
       // Bootstrap-Vue-Next uses array-based sortBy
       sortBy: [{ key: 'entity_id', order: 'desc' }],
       sort: this.sortInput,
@@ -546,8 +561,11 @@ export default {
     };
   },
   watch: {
-    filter(value) {
-      this.filtered();
+    filter: {
+      handler(value) {
+        this.filtered();
+      },
+      deep: true, // Vue 3 requires deep:true for object mutation watching
     },
     // Watch for sortBy changes (deep watch for array)
     sortBy: {
@@ -798,6 +816,24 @@ export default {
     truncate(str, n) {
       // Use the utility function here
       return Utils.truncate(str, n);
+    },
+    // Normalize select options for BFormSelect (replacement for treeselect normalizer)
+    normalizeSelectOptions(options) {
+      if (!options || !Array.isArray(options)) return [];
+      return options.map((opt) => {
+        if (typeof opt === 'object' && opt !== null) {
+          return { value: opt.id || opt.value, text: opt.label || opt.text || opt.id };
+        }
+        return { value: opt, text: opt };
+      });
+    },
+    // Normalize phenotypes options for BFormSelect
+    normalizePhenotypesOptions(options) {
+      if (!options || !Array.isArray(options)) return [];
+      return options.map((opt) => ({
+        value: opt.phenotype_id,
+        text: opt.HPO_term,
+      }));
     },
   },
 };

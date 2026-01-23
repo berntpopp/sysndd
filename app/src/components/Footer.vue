@@ -20,7 +20,7 @@
   <!-- The footer component -->
   <div class="footer">
     <!-- Using bootstrap-vue navbar component to create the footer -->
-    <b-navbar
+    <BNavbar
       toggleable="sm"
       type="light"
       variant="light"
@@ -28,14 +28,14 @@
       class="py-0 bg-footer"
     >
       <!-- The navbar toggle button for smaller screen sizes -->
-      <b-navbar-toggle target="footer-collapse" />
+      <BNavbarToggle target="footer-collapse" />
       <!-- The collapsible part of the navbar -->
-      <b-collapse
+      <BCollapse
         id="footer-collapse"
         is-nav
       >
         <!-- The navbar items, distributed evenly across the navbar -->
-        <b-navbar-nav
+        <BNavbarNav
           justified
           class="flex-grow-1"
         >
@@ -45,18 +45,19 @@
             :key="index.id"
             :item="item"
           />
-        </b-navbar-nav>
-      </b-collapse>
-    </b-navbar>
+        </BNavbarNav>
+      </BCollapse>
+    </BNavbar>
   </div>
 </template>
 
 <script>
 // Importing URLs from a constants file to avoid hardcoding them in this component
 import FOOTER_NAV_CONSTANTS from '@/assets/js/constants/footer_nav_constants';
+import { defineAsyncComponent } from 'vue';
 
 // Lazy-loading the FooterNavItem component to optimize performance
-const FooterNavItem = () => import('@/components/small/FooterNavItem.vue');
+const FooterNavItem = defineAsyncComponent(() => import('@/components/small/FooterNavItem.vue'));
 
 export default {
   name: 'Footer',

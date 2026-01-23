@@ -19,12 +19,13 @@ export default {
       nextItemID: null,
       lastItemID: null,
       executionTime: 0,
-      perPage: this.pageSizeInput,
-      pageOptions: ['10', '25', '50', '100'],
+      perPage: Number(this.pageSizeInput) || 10,
+      pageOptions: [10, 25, 50, 100],
       // Bootstrap-Vue-Next uses array-based sortBy: [{ key: 'column', order: 'asc'|'desc' }]
       sortBy: [],
       sort: this.sortInput,
-      filter: { },
+      // Note: filter is defined in each component with its specific structure
+      // Do NOT define filter here to avoid Vue 3 OPTIONS_DATA_MERGE warning
       filter_string: '',
       filterOn: [],
       downloading: false,

@@ -1,22 +1,22 @@
 <!-- views/review/Review.vue -->
 <template>
   <div class="container-fluid">
-    <b-spinner
+    <BSpinner
       v-if="loading"
       label="Loading..."
       class="float-center m-5"
     />
-    <b-container
+    <BContainer
       v-else
       fluid
     >
-      <b-row class="justify-content-md-center py-2">
-        <b-col
+      <BRow class="justify-content-md-center py-2">
+        <BCol
           col
           md="12"
         >
           <!-- User Interface controls -->
-          <b-card
+          <BCard
             header-tag="header"
             body-class="p-0"
             header-class="p-1"
@@ -24,35 +24,31 @@
             :header-bg-variant="header_style[curation_selected]"
           >
             <template #header>
-              <b-row>
-                <b-col>
+              <BRow>
+                <BCol>
                   <h6 class="mb-1 text-start font-weight-bold">
                     Re-review table
-                    <b-badge variant="primary">
+                    <BBadge variant="primary">
                       Entities: {{ totalRows }}
-                    </b-badge>
+                    </BBadge>
                   </h6>
-                </b-col>
-                <b-col>
+                </BCol>
+                <BCol>
                   <h6 class="mb-1 text-end font-weight-bold">
-                    <b-icon
-                      :icon="user_icon[user.user_role[0]]"
-                      :variant="user_style[user.user_role[0]]"
-                      font-scale="1.0"
-                    />
-                    <b-badge
+                    <i :class="'bi bi-' + user_icon[user.user_role[0]] + ' text-' + user_style[user.user_role[0]]" />
+                    <BBadge
                       :variant="user_style[user.user_role[0]]"
                       class="ms-1"
                     >
                       {{ user.user_name[0] }}
-                    </b-badge>
-                    <b-badge
+                    </BBadge>
+                    <BBadge
                       :variant="user_style[user.user_role[0]]"
                       class="ms-1"
                     >
                       {{ user.user_role[0] }}
-                    </b-badge>
-                    <b-badge
+                    </BBadge>
+                    <BBadge
                       v-if="
                         (totalRows === 0) &
                           ((filter === null) | (filter === '')) &
@@ -64,7 +60,7 @@
                       @click="newBatchApplication()"
                     >
                       New batch
-                    </b-badge>
+                    </BBadge>
                     <div
                       v-if="curator_mode"
                       class="custom-control custom-switch"
@@ -82,47 +78,47 @@
                       >Switch to curation</label>
                     </div>
                   </h6>
-                </b-col>
-              </b-row>
+                </BCol>
+              </BRow>
             </template>
 
-            <b-row>
-              <b-col class="my-1">
-                <b-form-group class="mb-1">
-                  <b-input-group
+            <BRow>
+              <BCol class="my-1">
+                <BFormGroup class="mb-1">
+                  <BInputGroup
                     prepend="Search"
                     size="sm"
                   >
-                    <b-form-input
+                    <BFormInput
                       id="filter-input"
                       v-model="filter"
                       type="search"
                       placeholder="any field by typing here"
                       debounce="500"
                     />
-                  </b-input-group>
-                </b-form-group>
-              </b-col>
+                  </BInputGroup>
+                </BFormGroup>
+              </BCol>
 
-              <b-col class="my-1" />
+              <BCol class="my-1" />
 
-              <b-col class="my-1" />
+              <BCol class="my-1" />
 
-              <b-col class="my-1">
-                <b-input-group
+              <BCol class="my-1">
+                <BInputGroup
                   prepend="Per page"
                   class="mb-1"
                   size="sm"
                 >
-                  <b-form-select
+                  <BFormSelect
                     id="per-page-select"
                     v-model="perPage"
                     :options="pageOptions"
                     size="sm"
                   />
-                </b-input-group>
+                </BInputGroup>
 
-                <b-pagination
+                <BPagination
                   v-model="currentPage"
                   :total-rows="totalRows"
                   :per-page="perPage"
@@ -131,12 +127,12 @@
                   class="my-0"
                   last-number
                 />
-              </b-col>
-            </b-row>
+              </BCol>
+            </BRow>
             <!-- User Interface controls -->
 
             <!-- Main table element -->
-            <b-table
+            <BTable
               :items="items"
               :fields="fields"
               :busy="isBusy"
@@ -144,9 +140,7 @@
               :per-page="perPage"
               :filter="filter"
               :filter-included-fields="filterOn"
-              :sort-by.sync="sortBy"
-              :sort-desc.sync="sortDesc"
-              :sort-direction="sortDirection"
+              :sort-by="sortBy"
               stacked="md"
               head-variant="light"
               show-empty
@@ -156,10 +150,11 @@
               hover
               sort-icon-left
               :empty-text="empty_table_text[curation_selected]"
+              @update:sort-by="handleSortByUpdate"
               @filtered="onFiltered"
             >
               <template #cell(actions)="row">
-                <b-button
+                <BButton
                   v-b-tooltip.hover.left
                   size="sm"
                   class="me-1 btn-xs"
@@ -167,14 +162,13 @@
                   title="edit review"
                   @click="infoReview(row.item, row.index, $event.target)"
                 >
-                  <b-icon
-                    icon="pen"
-                    font-scale="0.9"
-                    :variant="review_style[saved(row.item.review_id)]"
+                  <i
+                    class="bi bi-pen"
+                    :class="'text-' + review_style[saved(row.item.review_id)]"
                   />
-                </b-button>
+                </BButton>
 
-                <b-button
+                <BButton
                   v-b-tooltip.hover.top
                   size="sm"
                   class="me-1 btn-xs"
@@ -182,15 +176,14 @@
                   title="edit status"
                   @click="infoStatus(row.item, row.index, $event.target)"
                 >
-                  <b-icon
-                    icon="stoplights"
-                    font-scale="0.9"
-                    :variant="status_style[saved(row.item.status_id)]"
+                  <i
+                    class="bi bi-stoplights"
+                    :class="'text-' + status_style[saved(row.item.status_id)]"
                   />
-                </b-button>
+                </BButton>
 
                 <!-- Button for review mode -->
-                <b-button
+                <BButton
                   v-if="!curation_selected"
                   v-b-tooltip.hover.top
                   size="sm"
@@ -199,14 +192,11 @@
                   title="submit entity review"
                   @click="infoSubmit(row.item, row.index, $event.target)"
                 >
-                  <b-icon
-                    icon="check2-circle"
-                    font-scale="0.9"
-                  />
-                </b-button>
+                  <i class="bi bi-check2-circle" />
+                </BButton>
 
                 <!-- Button for curation mode -->
-                <b-button
+                <BButton
                   v-if="curation_selected"
                   v-b-tooltip.hover.right
                   size="sm"
@@ -215,57 +205,54 @@
                   title="approve entity review/status"
                   @click="infoApprove(row.item, row.index, $event.target)"
                 >
-                  <b-icon
-                    icon="check2-circle"
-                    font-scale="0.9"
-                  />
-                </b-button>
+                  <i class="bi bi-check2-circle" />
+                </BButton>
               </template>
 
               <template #cell(entity_id)="data">
                 <div class="overflow-hidden text-truncate">
-                  <b-link
+                  <BLink
                     :href="'/Entities/' + data.item.entity_id"
                     target="_blank"
                   >
-                    <b-badge
+                    <BBadge
                       variant="primary"
                       style="cursor: pointer"
                     >
                       sysndd:{{ data.item.entity_id }}
-                    </b-badge>
-                  </b-link>
+                    </BBadge>
+                  </BLink>
                 </div>
               </template>
 
               <template #cell(symbol)="data">
                 <div class="font-italic overflow-hidden text-truncate">
-                  <b-link
+                  <BLink
                     :href="'/Genes/' + data.item.hgnc_id"
                     target="_blank"
                   >
-                    <b-badge
+                    <BBadge
                       v-b-tooltip.hover.leftbottom
                       pill
                       variant="success"
                       :title="data.item.hgnc_id"
                     >
                       {{ data.item.symbol }}
-                    </b-badge>
-                  </b-link>
+                    </BBadge>
+                  </BLink>
                 </div>
               </template>
 
               <template #cell(disease_ontology_name)="data">
                 <div class="overflow-hidden text-truncate">
-                  <b-link
+                  <BLink
                     :href="
                       '/Ontology/' +
                         data.item.disease_ontology_id_version.replace(/_.+/g, '')
                     "
                     target="_blank"
                   >
-                    <b-badge
+                    <BBadge
                       v-b-tooltip.hover.leftbottom
                       pill
                       variant="secondary"
@@ -276,14 +263,14 @@
                       "
                     >
                       {{ truncate(data.item.disease_ontology_name, 40) }}
-                    </b-badge>
-                  </b-link>
+                    </BBadge>
+                  </BLink>
                 </div>
               </template>
 
               <template #cell(hpo_mode_of_inheritance_term_name)="data">
                 <div class="overflow-hidden text-truncate">
-                  <b-badge
+                  <BBadge
                     v-b-tooltip.hover.leftbottom
                     pill
                     variant="info"
@@ -301,63 +288,57 @@
                         data.item.hpo_mode_of_inheritance_term_name
                       ]
                     }}
-                  </b-badge>
+                  </BBadge>
                 </div>
               </template>
 
               <template #cell(ndd_phenotype_word)="data">
                 <div class="overflow-hidden text-truncate">
-                  <b-avatar
+                  <BAvatar
                     v-b-tooltip.hover.left
                     size="1.4em"
-                    :icon="ndd_icon[data.item.ndd_phenotype_word]"
                     :variant="ndd_icon_style[data.item.ndd_phenotype_word]"
                     :title="ndd_icon_text[data.item.ndd_phenotype_word]"
-                  />
+                  >
+                    <i :class="'bi bi-' + ndd_icon[data.item.ndd_phenotype_word]" />
+                  </BAvatar>
                 </div>
               </template>
 
               <template #cell(review_date)="data">
                 <div>
-                  <b-icon
-                    icon="pen"
-                    font-scale="0.7"
-                  />
-                  <b-badge
+                  <i class="bi bi-pen" />
+                  <BBadge
                     v-b-tooltip.hover.right
                     :variant="data_age_style[dateYearAge(data.item.review_date, 3)]"
                     :title="data_age_text[dateYearAge(data.item.review_date, 3)]"
                     class="ms-1"
                   >
                     {{ data.item.review_date.substring(0,10) }}
-                  </b-badge>
+                  </BBadge>
                 </div>
               </template>
 
               <template #cell(review_user_name)="data">
                 <div>
-                  <b-icon
-                    :icon="user_icon[data.item.review_user_role]"
-                    :variant="user_style[data.item.review_user_role]"
-                    font-scale="1.0"
-                  />
-                  <b-badge
+                  <i :class="'bi bi-' + user_icon[data.item.review_user_role] + ' text-' + user_style[data.item.review_user_role]" />
+                  <BBadge
                     v-b-tooltip.hover.right
                     :variant="user_style[data.item.review_user_role]"
                     :title="data.item.review_user_role"
                     class="ms-1"
                   >
                     {{ data.item.review_user_name }}
-                  </b-badge>
+                  </BBadge>
                 </div>
               </template>
-            </b-table>
-          </b-card>
-        </b-col>
-      </b-row>
+            </BTable>
+          </BCard>
+        </BCol>
+      </BRow>
 
       <!-- 1) Review modal -->
-      <b-modal
+      <BModal
         :id="reviewModal.id"
         :ref="reviewModal.id"
         size="xl"
@@ -373,35 +354,35 @@
         <template #modal-title>
           <h4>
             Modify review for entity:
-            <b-link
+            <BLink
               :href="'/Entities/' + review_info.entity_id"
               target="_blank"
             >
-              <b-badge variant="primary">
+              <BBadge variant="primary">
                 sysndd:{{ review_info.entity_id }}
-              </b-badge>
-            </b-link>
-            <b-link
+              </BBadge>
+            </BLink>
+            <BLink
               :href="'/Genes/' + entity_info.symbol"
               target="_blank"
             >
-              <b-badge
+              <BBadge
                 v-b-tooltip.hover.leftbottom
                 pill
                 variant="success"
                 :title="entity_info.hgnc_id"
               >
                 {{ entity_info.symbol }}
-              </b-badge>
-            </b-link>
-            <b-link
+              </BBadge>
+            </BLink>
+            <BLink
               :href="
                 '/Ontology/' +
                   entity_info.disease_ontology_id_version.replace(/_.+/g, '')
               "
               target="_blank"
             >
-              <b-badge
+              <BBadge
                 v-b-tooltip.hover.leftbottom
                 pill
                 variant="secondary"
@@ -412,9 +393,9 @@
                 "
               >
                 {{ truncate(entity_info.disease_ontology_name, 40) }}
-              </b-badge>
-            </b-link>
-            <b-badge
+              </BBadge>
+            </BLink>
+            <BBadge
               v-b-tooltip.hover.leftbottom
               pill
               variant="info"
@@ -432,7 +413,7 @@
                   entity_info.hpo_mode_of_inheritance_term_name
                 ]
               }}
-            </b-badge>
+            </BBadge>
           </h4>
         </template>
 
@@ -440,54 +421,50 @@
           <div class="w-100">
             <p class="float-start">
               Review by:
-              <b-icon
-                :icon="user_icon[review_info.review_user_role]"
-                :variant="user_style[review_info.review_user_role]"
-                font-scale="1.0"
-              />
-              <b-badge
+              <i :class="'bi bi-' + user_icon[review_info.review_user_role] + ' text-' + user_style[review_info.review_user_role]" />
+              <BBadge
                 :variant="user_style[review_info.review_user_role]"
                 class="ms-1"
               >
                 {{ review_info.review_user_name }}
-              </b-badge>
-              <b-badge
+              </BBadge>
+              <BBadge
                 :variant="user_style[review_info.review_user_role]"
                 class="ms-1"
               >
                 {{ review_info.review_user_role }}
-              </b-badge>
-              <b-badge
+              </BBadge>
+              <BBadge
                 variant="dark"
                 class="ms-1"
               >
                 {{ review_info.review_date }}
-              </b-badge>
+              </BBadge>
             </p>
 
             <!-- Emulate built in modal footer ok and cancel button actions -->
-            <b-button
+            <BButton
               variant="primary"
               class="float-end me-2"
               @click="ok()"
             >
               Save review
-            </b-button>
-            <b-button
+            </BButton>
+            <BButton
               variant="secondary"
               class="float-end me-2"
               @click="cancel()"
             >
               Cancel
-            </b-button>
+            </BButton>
           </div>
         </template>
 
-        <b-overlay
+        <BOverlay
           :show="loading_review_modal"
           rounded="sm"
         >
-          <b-form
+          <BForm
             ref="form"
             @submit.stop.prevent="submitReviewChange"
           >
@@ -497,16 +474,16 @@
               for="review-textarea-synopsis"
             >Synopsis</label>
 
-            <b-badge
+            <BBadge
               id="popover-badge-help-synopsis"
               pill
               href="#"
               variant="info"
             >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
 
-            <b-popover
+            <BPopover
               target="popover-badge-help-synopsis"
               variant="info"
               triggers="focus"
@@ -524,9 +501,9 @@
               frequencies), <br>
               <strong>e)</strong> any valuable further information (e.g.
               genotype-phenotype correlations).<br>
-            </b-popover>
+            </BPopover>
 
-            <b-form-textarea
+            <BFormTextarea
               id="review-textarea-synopsis"
               v-model="review_info.synopsis"
               rows="3"
@@ -540,16 +517,16 @@
               for="review-phenotype-select"
             >Phenotypes</label>
 
-            <b-badge
+            <BBadge
               id="popover-badge-help-phenotypes"
               pill
               href="#"
               variant="info"
             >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
 
-            <b-popover
+            <BPopover
               target="popover-badge-help-phenotypes"
               variant="info"
               triggers="focus"
@@ -560,9 +537,11 @@
               Add or remove associated phenotypes. Only phenotypes that occur in
               20% or more of affected individuals should be included. Please
               also include information on severity of ID.
-            </b-popover>
+            </BPopover>
 
-            <treeselect
+            <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
+            <!-- Multi-select temporarily disabled - using single select -->
+            <!-- <treeselect
               id="review-phenotype-select"
               v-model="select_phenotype"
               :multiple="true"
@@ -570,7 +549,20 @@
               :options="phenotypes_options"
               :normalizer="normalizePhenotypes"
               required
-            />
+            /> -->
+            <BFormSelect
+              v-if="phenotypes_options && phenotypes_options.length > 0"
+              id="review-phenotype-select"
+              v-model="select_phenotype[0]"
+              :options="normalizePhenotypesOptions(phenotypes_options)"
+              size="sm"
+            >
+              <template v-slot:first>
+                <BFormSelectOption :value="null">
+                  Select phenotype...
+                </BFormSelectOption>
+              </template>
+            </BFormSelect>
             <!-- Phenotype select -->
 
             <!-- Variation ontology select -->
@@ -579,16 +571,16 @@
               for="review-variation-select"
             >Variation ontology</label>
 
-            <b-badge
+            <BBadge
               id="popover-badge-help-variation"
               pill
               href="#"
               variant="info"
             >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
 
-            <b-popover
+            <BPopover
               target="popover-badge-help-variation"
               variant="info"
               triggers="focus"
@@ -604,9 +596,11 @@
               If known, please also select the functional impact of these variations,
               i.e. if there is a protein <strong>"loss-of-function"</strong> or <strong>"gain-of-function"</strong>.
               <br>
-            </b-popover>
+            </BPopover>
 
-            <treeselect
+            <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
+            <!-- Multi-select temporarily disabled - using single select -->
+            <!-- <treeselect
               id="review-variation-select"
               v-model="select_variation"
               :multiple="true"
@@ -614,7 +608,20 @@
               :options="variation_ontology_options"
               :normalizer="normalizeVariationOntology"
               required
-            />
+            /> -->
+            <BFormSelect
+              v-if="variation_ontology_options && variation_ontology_options.length > 0"
+              id="review-variation-select"
+              v-model="select_variation[0]"
+              :options="normalizeVariationOntologyOptions(variation_ontology_options)"
+              size="sm"
+            >
+              <template v-slot:first>
+                <BFormSelectOption :value="null">
+                  Select variation...
+                </BFormSelectOption>
+              </template>
+            </BFormSelect>
             <!-- Variation ontology select -->
 
             <!-- publications tag form with links out -->
@@ -623,16 +630,16 @@
               for="review-publications-select"
             >Publications</label>
 
-            <b-badge
+            <BBadge
               id="popover-badge-help-publications"
               pill
               href="#"
               variant="info"
             >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
 
-            <b-popover
+            <BPopover
               target="popover-badge-help-publications"
               variant="info"
               triggers="focus"
@@ -647,9 +654,9 @@
               for the clinical synopsis. <br>
               - Input is only valid when starting with
               <strong>"PMID:"</strong> followed by a number
-            </b-popover>
+            </BPopover>
 
-            <b-form-tags
+            <BFormTags
               v-model="select_additional_references"
               input-id="review-literature-select"
               no-outer-focus
@@ -661,35 +668,33 @@
               <template
                 v-slot="{ tags, inputAttrs, inputHandlers, addTag, removeTag }"
               >
-                <b-input-group class="my-0">
-                  <b-form-input
+                <BInputGroup class="my-0">
+                  <BFormInput
                     v-bind="inputAttrs"
                     placeholder="Enter PMIDs separated by comma or semicolon"
                     class="form-control"
                     size="sm"
                     v-on="inputHandlers"
                   />
-                  <b-input-group-append>
-                    <b-button
-                      variant="secondary"
-                      size="sm"
-                      @click="addTag()"
-                    >
-                      Add
-                    </b-button>
-                  </b-input-group-append>
-                </b-input-group>
+                  <BButton
+                    variant="secondary"
+                    size="sm"
+                    @click="addTag()"
+                  >
+                    Add
+                  </BButton>
+                </BInputGroup>
 
                 <div class="d-inline-block">
                   <h6>
-                    <b-form-tag
+                    <BFormTag
                       v-for="tag in tags"
                       :key="tag"
                       :title="tag"
                       variant="secondary"
                       @remove="removeTag(tag)"
                     >
-                      <b-link
+                      <BLink
                         :href="
                           'https://pubmed.ncbi.nlm.nih.gov/' +
                             tag.replace('PMID:', '')
@@ -697,17 +702,14 @@
                         target="_blank"
                         class="text-light"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.9"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         {{ tag }}
-                      </b-link>
-                    </b-form-tag>
+                      </BLink>
+                    </BFormTag>
                   </h6>
                 </div>
               </template>
-            </b-form-tags>
+            </BFormTags>
             <!-- publications tag form with links out -->
 
             <!-- genereviews tag form with links out -->
@@ -716,16 +718,16 @@
               for="review-genereviews-select"
             >Genereviews</label>
 
-            <b-badge
+            <BBadge
               id="popover-badge-help-genereviews"
               pill
               href="#"
               variant="info"
             >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
 
-            <b-popover
+            <BPopover
               target="popover-badge-help-genereviews"
               variant="info"
               triggers="focus"
@@ -737,9 +739,9 @@
               entity. <br>
               - Input is only valid when starting with
               <strong>"PMID:"</strong> followed by a number
-            </b-popover>
+            </BPopover>
 
-            <b-form-tags
+            <BFormTags
               v-model="select_gene_reviews"
               input-id="review-genereviews-select"
               no-outer-focus
@@ -751,35 +753,33 @@
               <template
                 v-slot="{ tags, inputAttrs, inputHandlers, addTag, removeTag }"
               >
-                <b-input-group class="my-0">
-                  <b-form-input
+                <BInputGroup class="my-0">
+                  <BFormInput
                     v-bind="inputAttrs"
                     placeholder="Enter PMIDs separated by comma or semicolon"
                     class="form-control"
                     size="sm"
                     v-on="inputHandlers"
                   />
-                  <b-input-group-append>
-                    <b-button
-                      variant="secondary"
-                      size="sm"
-                      @click="addTag()"
-                    >
-                      Add
-                    </b-button>
-                  </b-input-group-append>
-                </b-input-group>
+                  <BButton
+                    variant="secondary"
+                    size="sm"
+                    @click="addTag()"
+                  >
+                    Add
+                  </BButton>
+                </BInputGroup>
 
                 <div class="d-inline-block">
                   <h6>
-                    <b-form-tag
+                    <BFormTag
                       v-for="tag in tags"
                       :key="tag"
                       :title="tag"
                       variant="secondary"
                       @remove="removeTag(tag)"
                     >
-                      <b-link
+                      <BLink
                         :href="
                           'https://pubmed.ncbi.nlm.nih.gov/' +
                             tag.replace('PMID:', '')
@@ -787,17 +787,14 @@
                         target="_blank"
                         class="text-light"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.9"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         {{ tag }}
-                      </b-link>
-                    </b-form-tag>
+                      </BLink>
+                    </BFormTag>
                   </h6>
                 </div>
               </template>
-            </b-form-tags>
+            </BFormTags>
             <!-- genereviews tag form with links out -->
 
             <!-- Review comment textarea -->
@@ -805,7 +802,7 @@
               class="mr-sm-2 font-weight-bold"
               for="review-textarea-comment"
             >Comment</label>
-            <b-form-textarea
+            <BFormTextarea
               id="review-textarea-comment"
               v-model="review_info.comment"
               rows="2"
@@ -813,13 +810,13 @@
               placeholder="Additional comments to this entity relevant for the curator."
             />
             <!-- Review comment textarea -->
-          </b-form>
-        </b-overlay>
-      </b-modal>
+          </BForm>
+        </BOverlay>
+      </BModal>
       <!-- 1) Review modal -->
 
       <!-- 2) Status modal -->
-      <b-modal
+      <BModal
         :id="statusModal.id"
         :ref="statusModal.id"
         size="lg"
@@ -835,35 +832,35 @@
         <template #modal-title>
           <h4>
             Modify status for entity:
-            <b-link
+            <BLink
               :href="'/Entities/' + status_info.entity_id"
               target="_blank"
             >
-              <b-badge variant="primary">
+              <BBadge variant="primary">
                 sysndd:{{ status_info.entity_id }}
-              </b-badge>
-            </b-link>
-            <b-link
+              </BBadge>
+            </BLink>
+            <BLink
               :href="'/Genes/' + entity_info.symbol"
               target="_blank"
             >
-              <b-badge
+              <BBadge
                 v-b-tooltip.hover.leftbottom
                 pill
                 variant="success"
                 :title="entity_info.hgnc_id"
               >
                 {{ entity_info.symbol }}
-              </b-badge>
-            </b-link>
-            <b-link
+              </BBadge>
+            </BLink>
+            <BLink
               :href="
                 '/Ontology/' +
                   entity_info.disease_ontology_id_version.replace(/_.+/g, '')
               "
               target="_blank"
             >
-              <b-badge
+              <BBadge
                 v-b-tooltip.hover.leftbottom
                 pill
                 variant="secondary"
@@ -874,9 +871,9 @@
                 "
               >
                 {{ truncate(entity_info.disease_ontology_name, 40) }}
-              </b-badge>
-            </b-link>
-            <b-badge
+              </BBadge>
+            </BLink>
+            <BBadge
               v-b-tooltip.hover.leftbottom
               pill
               variant="info"
@@ -894,7 +891,7 @@
                   entity_info.hpo_mode_of_inheritance_term_name
                 ]
               }}
-            </b-badge>
+            </BBadge>
           </h4>
         </template>
 
@@ -902,54 +899,50 @@
           <div class="w-100">
             <p class="float-start">
               Status by:
-              <b-icon
-                :icon="user_icon[status_info.status_user_role]"
-                :variant="user_style[status_info.status_user_role]"
-                font-scale="1.0"
-              />
-              <b-badge
+              <i :class="'bi bi-' + user_icon[status_info.status_user_role] + ' text-' + user_style[status_info.status_user_role]" />
+              <BBadge
                 :variant="user_style[status_info.status_user_role]"
                 class="ms-1"
               >
                 {{ status_info.status_user_name }}
-              </b-badge>
-              <b-badge
+              </BBadge>
+              <BBadge
                 :variant="user_style[status_info.status_user_role]"
                 class="ms-1"
               >
                 {{ status_info.status_user_role }}
-              </b-badge>
-              <b-badge
+              </BBadge>
+              <BBadge
                 variant="dark"
                 class="ms-1"
               >
                 {{ status_info.status_date }}
-              </b-badge>
+              </BBadge>
             </p>
 
             <!-- Emulate built in modal footer ok and cancel button actions -->
-            <b-button
+            <BButton
               variant="primary"
               class="float-end me-2"
               @click="ok()"
             >
               Save status
-            </b-button>
-            <b-button
+            </BButton>
+            <BButton
               variant="secondary"
               class="float-end me-2"
               @click="cancel()"
             >
               Cancel
-            </b-button>
+            </BButton>
           </div>
         </template>
 
-        <b-overlay
+        <BOverlay
           :show="loading_status_modal"
           rounded="sm"
         >
-          <b-form
+          <BForm
             ref="form"
             @submit.stop.prevent="submitStatusChange"
           >
@@ -959,16 +952,16 @@
               for="status-select"
             >Status</label>
 
-            <b-badge
+            <BBadge
               id="popover-badge-help-status"
               pill
               href="#"
               variant="info"
             >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
 
-            <b-popover
+            <BPopover
               target="popover-badge-help-status"
               variant="info"
               triggers="focus"
@@ -977,15 +970,29 @@
                 Status instructions
               </template>
               Please refer to the curation manual for details on the categories.
-            </b-popover>
+            </BPopover>
 
-            <treeselect
+            <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
+            <!-- <treeselect
               id="status-select"
               v-model="status_info.category_id"
               :multiple="false"
               :options="status_options"
               :normalizer="normalizeStatus"
-            />
+            /> -->
+            <BFormSelect
+              v-if="status_options && status_options.length > 0"
+              id="status-select"
+              v-model="status_info.category_id"
+              :options="normalizeStatusOptions(status_options)"
+              size="sm"
+            >
+              <template v-slot:first>
+                <BFormSelectOption :value="null">
+                  Select status...
+                </BFormSelectOption>
+              </template>
+            </BFormSelect>
             <!-- Status select -->
 
             <!-- Suggest removal switch -->
@@ -994,16 +1001,16 @@
               for="removeSwitch"
             >Removal</label>
 
-            <b-badge
+            <BBadge
               id="popover-badge-help-removal"
               pill
               href="#"
               variant="info"
             >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
 
-            <b-popover
+            <BPopover
               target="popover-badge-help-removal"
               variant="info"
               triggers="focus"
@@ -1015,7 +1022,7 @@
               but they can be deactivated. Deactivated entities will not be
               displayed on the website. Typically duplicate entities should be
               deactivated especially if there is a more specific disease name.
-            </b-popover>
+            </BPopover>
 
             <div class="custom-control custom-switch">
               <input
@@ -1036,20 +1043,20 @@
               class="mr-sm-2 font-weight-bold"
               for="status-textarea-comment"
             >Comment</label>
-            <b-form-textarea
+            <BFormTextarea
               id="status-textarea-comment"
               v-model="status_info.comment"
               rows="2"
               size="sm"
               placeholder="Why should this entities status be changed."
             />
-          </b-form>
-        </b-overlay>
-      </b-modal>
+          </BForm>
+        </BOverlay>
+      </BModal>
       <!-- 2) Status modal -->
 
       <!-- 3) Submit modal -->
-      <b-modal
+      <BModal
         :id="submitModal.id"
         size="sm"
         centered
@@ -1063,19 +1070,19 @@
         <template #modal-title>
           <h4>
             Entity:
-            <b-badge variant="primary">
+            <BBadge variant="primary">
               {{ submitModal.title }}
-            </b-badge>
+            </BBadge>
           </h4>
         </template>
 
         You have finished the re-review of this entity and
         <span class="font-weight-bold">want to submit it</span>?
-      </b-modal>
+      </BModal>
       <!-- 3) Submit modal -->
 
       <!-- 4) Approve modal -->
-      <b-modal
+      <BModal
         :id="approveModal.id"
         size="sm"
         centered
@@ -1089,9 +1096,9 @@
         <template #modal-title>
           <h4>
             Entity:
-            <b-badge variant="primary">
+            <BBadge variant="primary">
               {{ approveModal.title }}
-            </b-badge>
+            </BBadge>
           </h4>
         </template>
         What should be approved ?
@@ -1125,28 +1132,26 @@
         </div>
 
         <div>
-          <b-button
+          <BButton
             size="sm"
             variant="warning"
             @click="handleUnsetSubmission(), hideModal(approveModal.id)"
           >
-            <b-icon
-              icon="unlock"
-              font-scale="1.0"
-            /> Unsubmit
-          </b-button>
+            <i class="bi bi-unlock" /> Unsubmit
+          </BButton>
         </div>
-      </b-modal>
+      </BModal>
       <!-- 4) Approve modal -->
-    </b-container>
+    </BContainer>
   </div>
 </template>
 
 <script>
+// TODO: vue3-treeselect disabled pending Bootstrap-Vue-Next migration
 // import the Treeselect component
-import Treeselect from '@r2rka/vue3-treeselect';
+// import Treeselect from '@zanmato/vue3-treeselect';
 // import the Treeselect styles
-import '@r2rka/vue3-treeselect/dist/style.css';
+// import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
 
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
@@ -1164,8 +1169,8 @@ import Literature from '@/assets/js/classes/submission/submissionLiterature';
 
 export default {
   name: 'Review',
-  // register the Treeselect component
-  components: { Treeselect },
+  // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
+  components: {},
   mixins: [toastMixin, colorAndSymbolsMixin, textMixin],
   data() {
     return {
@@ -1230,11 +1235,10 @@ export default {
       ],
       totalRows: 1,
       currentPage: 1,
-      perPage: '10',
-      pageOptions: ['10', '25', '50', '200'],
-      sortBy: '',
-      sortDesc: false,
-      sortDirection: 'asc',
+      perPage: 10,
+      pageOptions: [10, 25, 50, 200],
+      // Bootstrap-Vue-Next uses array-based sortBy format
+      sortBy: [{ key: 'entity_id', order: 'asc' }],
       filter: null,
       filterOn: [],
       reviewModal: {
@@ -1384,6 +1388,37 @@ export default {
         id: node.category_id,
         label: node.category,
       };
+    },
+    // Normalize status options for BFormSelect
+    normalizeStatusOptions(options) {
+      if (!options || !Array.isArray(options)) return [];
+      return options.map((opt) => ({
+        value: opt.category_id,
+        text: opt.category,
+      }));
+    },
+    // Normalize phenotypes options for BFormSelect
+    normalizePhenotypesOptions(options) {
+      if (!options || !Array.isArray(options)) return [];
+      return this.flattenTreeOptions(options);
+    },
+    // Normalize variation ontology options for BFormSelect
+    normalizeVariationOntologyOptions(options) {
+      if (!options || !Array.isArray(options)) return [];
+      return this.flattenTreeOptions(options);
+    },
+    // Flatten tree options for BFormSelect
+    flattenTreeOptions(options, result = []) {
+      options.forEach((opt) => {
+        result.push({
+          value: opt.id,
+          text: opt.label,
+        });
+        if (opt.children && opt.children.length > 0) {
+          this.flattenTreeOptions(opt.children, result);
+        }
+      });
+      return result;
     },
     normalizeVariationOntology(node) {
       return {
@@ -1889,6 +1924,13 @@ export default {
         return false;
       }
       return array1.every((value, index) => value === array2[index]);
+    },
+    /**
+     * Handles sortBy updates from Bootstrap-Vue-Next BTable
+     * @param {Array} newSortBy - Array of sort objects [{key, order}]
+     */
+    handleSortByUpdate(newSortBy) {
+      this.sortBy = newSortBy;
     },
   },
 };

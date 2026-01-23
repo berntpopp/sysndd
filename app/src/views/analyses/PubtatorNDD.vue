@@ -1,54 +1,54 @@
 <!-- views/analyses/PubtatorNDD.vue -->
 <template>
   <div class="container-fluid bg-gradient">
-    <b-container fluid>
-      <b-row class="justify-content-md-center py-2">
-        <b-col md="12">
-          <b-card
+    <BContainer fluid>
+      <BRow class="justify-content-md-center py-2">
+        <BCol md="12">
+          <BCard
             title="PubTator Analysis"
             no-body
           >
             <!-- Tabs in the Card Header -->
-            <b-card-header header-tag="nav">
-              <b-nav
+            <BCardHeader header-tag="nav">
+              <BNav
                 card-header
                 tabs
               >
                 <!-- Example tabs: Table, Genes, Stats, etc. -->
-                <b-nav-item
+                <BNavItem
                   :to="{ name: 'PubtatorNDDTable' }"
                   exact
                   exact-active-class="active"
                 >
                   Table
-                </b-nav-item>
+                </BNavItem>
 
-                <b-nav-item
+                <BNavItem
                   :to="{ name: 'PubtatorNDDGenes' }"
                   exact
                   exact-active-class="active"
                 >
                   Genes
-                </b-nav-item>
+                </BNavItem>
 
-                <b-nav-item
+                <BNavItem
                   :to="{ name: 'PubtatorNDDStats' }"
                   exact
                   exact-active-class="active"
                 >
                   Stats
-                </b-nav-item>
-              </b-nav>
-            </b-card-header>
+                </BNavItem>
+              </BNav>
+            </BCardHeader>
 
             <!-- Child route content rendered here -->
-            <b-card-body>
+            <BCardBody>
               <router-view />
-            </b-card-body>
-          </b-card>
-        </b-col>
-      </b-row>
-    </b-container>
+            </BCardBody>
+          </BCard>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 

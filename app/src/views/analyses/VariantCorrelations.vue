@@ -1,47 +1,47 @@
 <template>
   <div class="container-fluid bg-gradient">
-    <b-container fluid>
-      <b-row class="justify-content-md-center py-2">
-        <b-col
+    <BContainer fluid>
+      <BRow class="justify-content-md-center py-2">
+        <BCol
           col
           md="12"
         >
           <div>
-            <b-card
+            <BCard
               title="Variant correlations"
               no-body
             >
-              <b-card-header header-tag="nav">
-                <b-nav
+              <BCardHeader header-tag="nav">
+                <BNav
                   card-header
                   tabs
                 >
                   <!-- Child routes for variant analyses -->
-                  <b-nav-item
+                  <BNavItem
                     to="/VariantCorrelations"
                     exact
                     exact-active-class="active"
                   >
                     Variant correlogram
-                  </b-nav-item>
-                  <b-nav-item
+                  </BNavItem>
+                  <BNavItem
                     to="/VariantCorrelations/VariantCounts"
                     exact
                     exact-active-class="active"
                   >
                     Variant counts
-                  </b-nav-item>
-                </b-nav>
-              </b-card-header>
+                  </BNavItem>
+                </BNav>
+              </BCardHeader>
 
-              <b-card-body>
+              <BCardBody>
                 <router-view />
-              </b-card-body>
-            </b-card>
+              </BCardBody>
+            </BCard>
           </div>
-        </b-col>
-      </b-row>
-    </b-container>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 

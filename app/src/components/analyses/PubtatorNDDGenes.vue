@@ -2,20 +2,20 @@
 <template>
   <div class="container-fluid">
     <!-- Loading spinner -->
-    <b-spinner
+    <BSpinner
       v-if="loading"
       label="Loading..."
       class="float-center m-5"
     />
     <!-- Main container -->
-    <b-container
+    <BContainer
       v-else
       fluid
     >
-      <b-row class="justify-content-md-center py-2">
-        <b-col md="12">
+      <BRow class="justify-content-md-center py-2">
+        <BCol md="12">
           <!-- b-card with header controls -->
-          <b-card
+          <BCard
             header-tag="header"
             body-class="p-0"
             header-class="p-1"
@@ -23,15 +23,15 @@
           >
             <!-- Card Header -->
             <template #header>
-              <b-row>
-                <b-col>
+              <BRow>
+                <BCol>
                   <TableHeaderLabel
                     :label="headerLabel"
                     :subtitle="'Genes: ' + totalRows"
                     :tool-tip-title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
                   />
-                </b-col>
-                <b-col>
+                </BCol>
+                <BCol>
                   <h5
                     v-if="showFilterControls"
                     class="mb-1 text-end font-weight-bold"
@@ -45,14 +45,14 @@
                       @remove-filters="removeFilters"
                     />
                   </h5>
-                </b-col>
-              </b-row>
+                </BCol>
+              </BRow>
             </template>
 
             <!-- Search + Pagination Controls -->
-            <b-row>
+            <BRow>
               <!-- Global "any" search -->
-              <b-col
+              <BCol
                 class="my-1"
                 sm="8"
               >
@@ -62,14 +62,14 @@
                   :debounce-time="500"
                   @input="filtered"
                 />
-              </b-col>
+              </BCol>
 
               <!-- Pagination controls -->
-              <b-col
+              <BCol
                 class="my-1"
                 sm="4"
               >
-                <b-container v-if="totalRows > perPage || showPaginationControls">
+                <BContainer v-if="totalRows > perPage || showPaginationControls">
                   <TablePaginationControls
                     :total-rows="totalRows"
                     :initial-per-page="perPage"
@@ -77,19 +77,18 @@
                     @page-change="handlePageChange"
                     @per-page-change="handlePerPageChange"
                   />
-                </b-container>
-              </b-col>
-            </b-row>
+                </BContainer>
+              </BCol>
+            </BRow>
             <!-- End Controls -->
 
             <!-- Main b-table -->
-            <b-table
+            <BTable
               :items="items"
               :fields="fields"
               :current-page="currentPage"
               :busy="isBusy"
-              :sort-by.sync="sortBy"
-              :sort-desc.sync="sortDesc"
+              :sort-by="sortBy"
               no-local-sorting
               no-local-pagination
               head-variant="light"
@@ -100,6 +99,7 @@
               hover
               sort-icon-left
               stacked="md"
+              @update:sort-by="handleSortByUpdate"
             >
               <!-- Optional: custom table header cell, showing tooltips or partial labels -->
               <template #head()="columnData">
@@ -125,7 +125,7 @@
                   :key="field.key"
                 >
                   <!-- If this field is filterable, show an input -->
-                  <b-form-input
+                  <BFormInput
                     v-if="field.filterable"
                     v-model="filter[field.key].content"
                     :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
@@ -137,7 +137,7 @@
                   />
 
                   <!-- If we want a select dropdown for exact matching, uncomment below:
-                  <b-form-select
+                  <BFormSelect
                     v-if="field.selectable"
                     v-model="filter[field.key].content"
                     :options="field.selectOptions"
@@ -146,20 +146,20 @@
                     @change="filtered()"
                   >
                     <template v-slot:first>
-                      <b-form-select-option value="null">
+                      <BFormSelectOption value="null">
                         .. {{ truncate(field.label, 20) }} ..
-                      </b-form-select-option>
+                      </BFormSelectOption>
                     </template>
-                  </b-form-select>
+                  </BFormSelect>
                   -->
                 </td>
               </template>
-            </b-table>
+            </BTable>
             <!-- End b-table -->
-          </b-card>
-        </b-col>
-      </b-row>
-    </b-container>
+          </BCard>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 
@@ -287,8 +287,8 @@ export default {
       currentPage: 1,
       perPage: 10,
       pageOptions: [10, 25, 50],
-      sortBy: 'gene_symbol',
-      sortDesc: false,
+      // Bootstrap-Vue-Next uses array-based sortBy format
+      sortBy: [{ key: 'gene_symbol', order: 'asc' }],
       sort: '+gene_symbol',
       filter_string: '',
 
@@ -312,13 +312,6 @@ export default {
     // Watch filter changes -> reload
     filter() {
       this.filtered();
-    },
-    // Watch sorting changes -> reload
-    sortBy() {
-      this.handleSortByOrDescChange();
-    },
-    sortDesc() {
-      this.handleSortByOrDescChange();
     },
   },
   mounted() {
@@ -433,11 +426,19 @@ export default {
       this.filter.any.content = null;
     },
 
-    // Called when user clicks a column header to sort
-    handleSortByOrDescChange() {
+    /**
+     * Handles sortBy updates from Bootstrap-Vue-Next BTable
+     * @param {Array} newSortBy - Array of sort objects [{key, order}]
+     */
+    handleSortByUpdate(newSortBy) {
+      this.sortBy = newSortBy;
       this.currentItemID = 0;
-      // e.g. +gene_symbol or -gene_symbol
-      this.sort = (!this.sortDesc ? '+' : '-') + this.sortBy;
+      // Extract sort string from array format for API
+      if (newSortBy && newSortBy.length > 0) {
+        const sortKey = newSortBy[0].key;
+        const sortDesc = newSortBy[0].order === 'desc';
+        this.sort = (sortDesc ? '-' : '+') + sortKey;
+      }
       this.filtered();
     },
 

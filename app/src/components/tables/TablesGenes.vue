@@ -1,37 +1,37 @@
 <!-- components/tables/TablesGenes.vue -->
 <template>
   <div class="container-fluid">
-    <b-spinner
+    <BSpinner
       v-if="loading"
       label="Loading..."
       class="float-center m-5"
     />
-    <b-container
+    <BContainer
       v-else
       fluid
     >
-      <b-row class="justify-content-md-center py-2">
-        <b-col
+      <BRow class="justify-content-md-center py-2">
+        <BCol
           col
           md="12"
         >
           <!-- User Interface controls -->
-          <b-card
+          <BCard
             header-tag="header"
             body-class="p-0"
             header-class="p-1"
             border-variant="dark"
           >
             <template #header>
-              <b-row>
-                <b-col>
+              <BRow>
+                <BCol>
                   <TableHeaderLabel
                     :label="headerLabel"
                     :subtitle="'Genes: ' + totalRows"
                     :tool-tip-title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
                   />
-                </b-col>
-                <b-col>
+                </BCol>
+                <BCol>
                   <h5
                     v-if="showFilterControls"
                     class="mb-1 text-end font-weight-bold"
@@ -45,12 +45,12 @@
                       @remove-filters="removeFilters"
                     />
                   </h5>
-                </b-col>
-              </b-row>
+                </BCol>
+              </BRow>
             </template>
 
-            <b-row>
-              <b-col
+            <BRow>
+              <BCol
                 class="my-1"
                 sm="8"
               >
@@ -60,13 +60,13 @@
                   :debounce-time="500"
                   @input="filtered"
                 />
-              </b-col>
+              </BCol>
 
-              <b-col
+              <BCol
                 class="my-1"
                 sm="4"
               >
-                <b-container
+                <BContainer
                   v-if="totalRows > perPage || showPaginationControls"
                 >
                   <TablePaginationControls
@@ -76,9 +76,9 @@
                     @page-change="handlePageChange"
                     @per-page-change="handlePerPageChange"
                   />
-                </b-container>
-              </b-col>
-            </b-row>
+                </BContainer>
+              </BCol>
+            </BRow>
             <!-- User Interface controls -->
 
             <!-- Main table element -->
@@ -127,15 +127,14 @@
                 </div>
               </template>
 
-              <!-- based on:  https://stackoverflow.com/questions/52959195/bootstrap-vue-b-table-with-filter-in-header -->
-              <template
-                slot="top-row"
-              >
-                <td
-                  v-for="field in fields"
-                  :key="field.key"
-                >
-                  <b-form-input
+              <!-- Filter row in table header - Bootstrap-Vue-Next uses #thead-top instead of slot="top-row" -->
+              <template #thead-top>
+                <tr>
+                  <td
+                    v-for="field in fields"
+                    :key="field.key"
+                  >
+                  <BFormInput
                     v-if="field.filterable"
                     v-model="filter[field.key].content"
                     :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
@@ -151,50 +150,54 @@
                     :for="'select_' + field.key"
                     :aria-label="field.label"
                   >
-                    <b-form-select
+                    <BFormSelect
                       id="'select_' + field.key"
                       v-model="filter[field.key].content"
                       :options="field.selectOptions"
-                      type="search"
+                      size="sm"
                       @input="removeSearch()"
                       @change="filtered()"
                     >
                       <template v-slot:first>
-                        <b-form-select-option value="null">
+                        <BFormSelectOption value="null">
                           .. {{ truncate(field.label, 20) }} ..
-                        </b-form-select-option>
+                        </BFormSelectOption>
                       </template>
-                    </b-form-select>
+                    </BFormSelect>
                   </label>
 
+                  <!-- TODO: treeselect disabled pending Bootstrap-Vue-Next migration -->
                   <label
-                    v-if="field.multi_selectable"
+                    v-if="field.multi_selectable && field.selectOptions && field.selectOptions.length > 0"
                     :for="'select_' + field.key"
                     :aria-label="field.label"
                   >
-                    <treeselect
-                      v-if="field.multi_selectable"
+                    <BFormSelect
                       :id="'select_' + field.key"
                       v-model="filter[field.key].content"
-                      size="small"
-                      :multiple="true"
-                      :options="field.selectOptions"
-                      :normalizer="normalizer"
-                      :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
-                      @input="removeSearch();filtered();"
-                    />
+                      :options="normalizeSelectOptions(field.selectOptions)"
+                      size="sm"
+                      @change="removeSearch();filtered();"
+                    >
+                      <template v-slot:first>
+                        <BFormSelectOption :value="null">
+                          .. {{ truncate(field.label, 20) }} ..
+                        </BFormSelectOption>
+                      </template>
+                    </BFormSelect>
                   </label>
-                </td>
+                  </td>
+                </tr>
               </template>
 
               <template #cell(details)="row">
-                <b-button
+                <BButton
                   class="btn-xs"
                   variant="outline-primary"
                   @click="row.toggleDetails"
                 >
                   {{ row.detailsShowing ? "Hide" : "Show" }}
-                </b-button>
+                </BButton>
               </template>
 
               <template #row-details="row">
@@ -211,20 +214,20 @@
                   >
                     <template #cell(entity_id)="data">
                       <div>
-                        <b-link :href="'/Entities/' + data.item.entity_id">
-                          <b-badge
+                        <BLink :href="'/Entities/' + data.item.entity_id">
+                          <BBadge
                             variant="primary"
                             style="cursor: pointer"
                           >
                             sysndd:{{ data.item.entity_id }}
-                          </b-badge>
-                        </b-link>
+                          </BBadge>
+                        </BLink>
                       </div>
                     </template>
 
                     <template #cell(disease_ontology_name)="data">
                       <div class="overflow-hidden text-truncate">
-                        <b-link
+                        <BLink
                           :href="
                             '/Ontology/' +
                               data.item.disease_ontology_id_version.replace(
@@ -233,7 +236,7 @@
                               )
                           "
                         >
-                          <b-badge
+                          <BBadge
                             v-b-tooltip.hover.leftbottom
                             pill
                             variant="secondary"
@@ -244,14 +247,14 @@
                             "
                           >
                             {{ truncate(data.item.disease_ontology_name, 40) }}
-                          </b-badge>
-                        </b-link>
+                          </BBadge>
+                        </BLink>
                       </div>
                     </template>
 
                     <template #cell(ndd_phenotype_word)="data">
                       <div>
-                        <b-avatar
+                        <BAvatar
                           v-b-tooltip.hover.left
                           size="1.4em"
                           :icon="ndd_icon[data.item.ndd_phenotype_word]"
@@ -265,7 +268,7 @@
 
                     <template #cell(category)="data">
                       <div>
-                        <b-avatar
+                        <BAvatar
                           v-b-tooltip.hover.left
                           icon="stoplights"
                           size="1.4em"
@@ -278,7 +281,7 @@
 
                     <template #cell(hpo_mode_of_inheritance_term_name)="data">
                       <div>
-                        <b-badge
+                        <BBadge
                           v-b-tooltip.hover.leftbottom
                           pill
                           variant="info"
@@ -296,7 +299,7 @@
                               data.item.hpo_mode_of_inheritance_term_name
                             ]
                           }}
-                        </b-badge>
+                        </BBadge>
                       </div>
                     </template>
                   </BTable>
@@ -305,22 +308,22 @@
 
               <template #cell(symbol)="data">
                 <div class="font-italic">
-                  <b-link :href="'/Genes/' + data.item.hgnc_id">
-                    <b-badge
+                  <BLink :href="'/Genes/' + data.item.hgnc_id">
+                    <BBadge
                       v-b-tooltip.hover.leftbottom
                       pill
                       variant="success"
                       :title="data.item.hgnc_id"
                     >
                       {{ data.item.symbol }}
-                    </b-badge>
-                  </b-link>
+                    </BBadge>
+                  </BLink>
                 </div>
               </template>
 
               <template #cell(hpo_mode_of_inheritance_term_name)="data">
                 <div>
-                  <b-badge
+                  <BBadge
                     v-for="item in data.item.entities"
                     :key="
                       item.hpo_mode_of_inheritance_term_name + item.entity_id
@@ -342,13 +345,13 @@
                         item.hpo_mode_of_inheritance_term_name
                       ]
                     }}
-                  </b-badge>
+                  </BBadge>
                 </div>
               </template>
 
               <template #cell(category)="data">
                 <div>
-                  <b-avatar
+                  <BAvatar
                     v-for="item in data.item.entities"
                     :key="item.category + item.entity_id"
                     v-b-tooltip.hover.left
@@ -363,7 +366,7 @@
 
               <template #cell(ndd_phenotype_word)="data">
                 <div>
-                  <b-avatar
+                  <BAvatar
                     v-for="item in data.item.entities"
                     :key="item.ndd_phenotype_word + item.entity_id"
                     v-b-tooltip.hover.left
@@ -377,27 +380,28 @@
               </template>
 
               <template #cell(entities_count)="data">
-                <b-avatar
+                <BAvatar
                   icon="stoplights"
                   size="1.2em"
                   class="px-0 mx-1"
                 >
                   {{ data.item.entities_count }}
-                </b-avatar>
+                </BAvatar>
               </template>
             </BTable>
-          </b-card>
-        </b-col>
-      </b-row>
-    </b-container>
+          </BCard>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 
 <script>
+// TODO: vue3-treeselect disabled pending Bootstrap-Vue-Next migration
 // import the Treeselect component
-import Treeselect from '@r2rka/vue3-treeselect';
+// import Treeselect from '@zanmato/vue3-treeselect';
 // import the Treeselect styles
-import '@r2rka/vue3-treeselect/dist/style.css';
+// import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
 
 // Import Bootstrap-Vue-Next components
 import { BTable, BCard } from 'bootstrap-vue-next';
@@ -425,10 +429,10 @@ import { useUiStore } from '@/stores/ui';
 
 export default {
   name: 'TablesGenes',
-  // register the components
+  // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
   components: {
     // Components used within TablesGenes
-    BTable, BCard, Treeselect, TablePaginationControls, TableDownloadLinkCopyButtons, TableHeaderLabel, TableSearchInput,
+    BTable, BCard, TablePaginationControls, TableDownloadLinkCopyButtons, TableHeaderLabel, TableSearchInput,
   },
   mixins: [
     // Mixins used within TablesEntities
@@ -540,8 +544,11 @@ export default {
   },
   watch: {
     // Watch for filter changes
-    filter(value) {
-      this.filtered();
+    filter: {
+      handler(value) {
+        this.filtered();
+      },
+      deep: true, // Vue 3 requires deep:true for object mutation watching
     },
     // Watch for sortBy changes (deep watch for array)
     sortBy: {
@@ -616,6 +623,16 @@ export default {
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
+    },
+    // Normalize select options for BFormSelect (replacement for treeselect normalizer)
+    normalizeSelectOptions(options) {
+      if (!options || !Array.isArray(options)) return [];
+      return options.map((opt) => {
+        if (typeof opt === 'object' && opt !== null) {
+          return { value: opt.id || opt.value, text: opt.label || opt.text || opt.id };
+        }
+        return { value: opt, text: opt };
+      });
     },
   },
 };

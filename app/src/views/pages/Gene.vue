@@ -1,25 +1,25 @@
 <!-- views/pages/Gene.vue -->
 <template>
   <div class="container-fluid bg-gradient">
-    <b-spinner
+    <BSpinner
       v-if="loading"
       label="Loading..."
       class="float-center m-5"
     />
-    <b-container
+    <BContainer
       v-else
       fluid
     >
-      <b-row
+      <BRow
         class="justify-content-md-center py-2"
         align-v="center"
       >
-        <b-col
+        <BCol
           col
           md="12"
         >
           <!-- Gene overview card -->
-          <b-card
+          <BCard
             header-tag="header"
             class="my-3 text-start"
             body-class="p-0"
@@ -29,31 +29,31 @@
             <template #header>
               <h3 class="mb-1 text-start font-weight-bold">
                 Gene:
-                <b-badge
+                <BBadge
                   pill
                   variant="success"
                 >
                   {{ $route.params.symbol }}
-                </b-badge>
+                </BBadge>
               </h3>
             </template>
 
-            <b-table
+            <BTable
               :items="gene"
               :fields="gene_fields"
               stacked
               small
             >
               <template #cell(symbol)="data">
-                <b-row>
-                  <b-row
+                <BRow>
+                  <BRow
                     v-for="id in data.item.symbol"
                     :key="id"
                   >
-                    <b-col>
+                    <BCol>
                       <div class="font-italic">
-                        <b-link :href="'/Genes/' + id">
-                          <b-badge
+                        <BLink :href="'/Genes/' + id">
+                          <BBadge
                             v-b-tooltip.hover.leftbottom
                             pill
                             variant="success"
@@ -61,12 +61,12 @@
                             :title="id"
                           >
                             {{ id }}
-                          </b-badge>
-                        </b-link>
+                          </BBadge>
+                        </BLink>
                       </div>
 
                       <!-- Link to HGNC -->
-                      <b-button
+                      <BButton
                         v-b-tooltip.hover.leftbottom
                         class="btn-xs mx-2"
                         variant="outline-primary"
@@ -78,15 +78,12 @@
                         :title="id + ' in the HGNC database'"
                         target="_blank"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         <span class="font-italic"> HGNC: {{ id }} </span>
-                      </b-button>
+                      </BButton>
 
                       <!-- Link to SFARI -->
-                      <b-button
+                      <BButton
                         v-b-tooltip.hover.leftbottom
                         class="btn-xs mx-2"
                         variant="outline-primary"
@@ -95,15 +92,12 @@
                         :title="id + ' in the SFARI database'"
                         target="_blank"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         <span class="font-italic"> SFARI: {{ id }} </span>
-                      </b-button>
+                      </BButton>
 
                       <!-- Link to gene2phenotype -->
-                      <b-button
+                      <BButton
                         v-b-tooltip.hover.leftbottom
                         class="btn-xs mx-2"
                         variant="outline-primary"
@@ -112,15 +106,12 @@
                         :title="id + ' in the gene2phenotype database'"
                         target="_blank"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         <span class="font-italic"> g2p: {{ id }} </span>
-                      </b-button>
+                      </BButton>
 
                       <!-- Link to PanelApp -->
-                      <b-button
+                      <BButton
                         v-b-tooltip.hover.leftbottom
                         class="btn-xs mx-2"
                         variant="outline-primary"
@@ -129,15 +120,12 @@
                         :title="id + ' in the PanelApp database'"
                         target="_blank"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         <span class="font-italic"> panelapp: {{ id }} </span>
-                      </b-button>
+                      </BButton>
 
                       <!-- Link to ClinGen using HGNC id -->
-                      <b-button
+                      <BButton
                         v-b-tooltip.hover.leftbottom
                         class="btn-xs mx-2"
                         variant="outline-primary"
@@ -146,38 +134,35 @@
                         :title="id + ' in the ClinGen database'"
                         target="_blank"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         <span class="font-italic"> ClinGen: {{ id }} </span>
-                      </b-button>
-                    </b-col>
-                  </b-row>
-                </b-row>
+                      </BButton>
+                    </BCol>
+                  </BRow>
+                </BRow>
               </template>
 
               <template #cell(name)="data">
-                <b-row>
-                  <b-row
+                <BRow>
+                  <BRow
                     v-for="id in data.item.name"
                     :key="id"
                   >
-                    <b-col>
+                    <BCol>
                       <span class="font-italic mx-2"> {{ id }} </span>
-                    </b-col>
-                  </b-row>
-                </b-row>
+                    </BCol>
+                  </BRow>
+                </BRow>
               </template>
 
               <template #cell(entrez_id)="data">
-                <b-row>
-                  <b-row
+                <BRow>
+                  <BRow
                     v-for="id in data.item.entrez_id"
                     :key="id"
                   >
-                    <b-col>
-                      <b-button
+                    <BCol>
+                      <BButton
                         v-if="id"
                         class="btn-xs mx-2"
                         variant="outline-primary"
@@ -185,25 +170,22 @@
                         :href="'https://www.ncbi.nlm.nih.gov/gene/' + id"
                         target="_blank"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         {{ id }}
-                      </b-button>
-                    </b-col>
-                  </b-row>
-                </b-row>
+                      </BButton>
+                    </BCol>
+                  </BRow>
+                </BRow>
               </template>
 
               <template #cell(ensembl_gene_id)="data">
-                <b-row>
-                  <b-row
+                <BRow>
+                  <BRow
                     v-for="id in data.item.ensembl_gene_id"
                     :key="id"
                   >
-                    <b-col>
-                      <b-button
+                    <BCol>
+                      <BButton
                         v-if="id"
                         class="btn-xs mx-2"
                         variant="outline-primary"
@@ -214,25 +196,22 @@
                         "
                         target="_blank"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         {{ id }}
-                      </b-button>
-                    </b-col>
-                  </b-row>
-                </b-row>
+                      </BButton>
+                    </BCol>
+                  </BRow>
+                </BRow>
               </template>
 
               <template #cell(ucsc_id)="data">
-                <b-row>
-                  <b-row
+                <BRow>
+                  <BRow
                     v-for="id in data.item.ucsc_id"
                     :key="id"
                   >
-                    <b-col>
-                      <b-button
+                    <BCol>
+                      <BButton
                         v-if="id"
                         class="btn-xs mx-2"
                         variant="outline-primary"
@@ -244,25 +223,22 @@
                         "
                         target="_blank"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         {{ id }}
-                      </b-button>
-                    </b-col>
-                  </b-row>
-                </b-row>
+                      </BButton>
+                    </BCol>
+                  </BRow>
+                </BRow>
               </template>
 
               <template #cell(ccds_id)="data">
-                <b-row>
-                  <b-row
+                <BRow>
+                  <BRow
                     v-for="id in data.item.ccds_id"
                     :key="id"
                   >
-                    <b-col>
-                      <b-button
+                    <BCol>
+                      <BButton
                         v-if="id"
                         class="btn-xs mx-2"
                         variant="outline-primary"
@@ -273,25 +249,22 @@
                         "
                         target="_blank"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         {{ id }}
-                      </b-button>
-                    </b-col>
-                  </b-row>
-                </b-row>
+                      </BButton>
+                    </BCol>
+                  </BRow>
+                </BRow>
               </template>
 
               <template #cell(uniprot_ids)="data">
-                <b-row>
-                  <b-row
+                <BRow>
+                  <BRow
                     v-for="id in data.item.uniprot_ids"
                     :key="id"
                   >
-                    <b-col>
-                      <b-button
+                    <BCol>
+                      <BButton
                         v-if="id"
                         class="btn-xs mx-2"
                         variant="outline-primary"
@@ -299,25 +272,22 @@
                         :href="'https://www.uniprot.org/uniprot/' + id"
                         target="_blank"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         {{ id }}
-                      </b-button>
-                    </b-col>
-                  </b-row>
-                </b-row>
+                      </BButton>
+                    </BCol>
+                  </BRow>
+                </BRow>
               </template>
 
               <template #cell(omim_id)="data">
-                <b-row>
-                  <b-row
+                <BRow>
+                  <BRow
                     v-for="id in data.item.omim_id"
                     :key="id"
                   >
-                    <b-col>
-                      <b-button
+                    <BCol>
+                      <BButton
                         v-if="id"
                         class="btn-xs mx-2"
                         variant="outline-primary"
@@ -325,25 +295,22 @@
                         :href="'https://www.omim.org/entry/' + id"
                         target="_blank"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         *{{ id }}
-                      </b-button>
-                    </b-col>
-                  </b-row>
-                </b-row>
+                      </BButton>
+                    </BCol>
+                  </BRow>
+                </BRow>
               </template>
 
               <template #cell(mgd_id)="data">
-                <b-row>
-                  <b-row
+                <BRow>
+                  <BRow
                     v-for="id in data.item.mgd_id"
                     :key="id"
                   >
-                    <b-col>
-                      <b-button
+                    <BCol>
+                      <BButton
                         v-if="id"
                         class="btn-xs mx-2"
                         variant="outline-primary"
@@ -351,25 +318,22 @@
                         :href="'http://www.informatics.jax.org/marker/' + id"
                         target="_blank"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         {{ id }}
-                      </b-button>
-                    </b-col>
-                  </b-row>
-                </b-row>
+                      </BButton>
+                    </BCol>
+                  </BRow>
+                </BRow>
               </template>
 
               <template #cell(rgd_id)="data">
-                <b-row>
-                  <b-row
+                <BRow>
+                  <BRow
                     v-for="id in data.item.rgd_id"
                     :key="id"
                   >
-                    <b-col>
-                      <b-button
+                    <BCol>
+                      <BButton
                         v-if="id"
                         class="btn-xs mx-2"
                         variant="outline-primary"
@@ -380,25 +344,22 @@
                         "
                         target="_blank"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         {{ id }}
-                      </b-button>
-                    </b-col>
-                  </b-row>
-                </b-row>
+                      </BButton>
+                    </BCol>
+                  </BRow>
+                </BRow>
               </template>
 
               <template #cell(STRING_id)="data">
-                <b-row>
-                  <b-row
+                <BRow>
+                  <BRow
                     v-for="id in data.item.STRING_id"
                     :key="id"
                   >
-                    <b-col>
-                      <b-button
+                    <BCol>
+                      <BButton
                         v-if="id"
                         class="btn-xs mx-2"
                         variant="outline-primary"
@@ -406,18 +367,15 @@
                         :href="'https://string-db.org/network/' + id"
                         target="_blank"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         {{ id }}
-                      </b-button>
-                    </b-col>
-                  </b-row>
-                </b-row>
+                      </BButton>
+                    </BCol>
+                  </BRow>
+                </BRow>
               </template>
-            </b-table>
-          </b-card>
+            </BTable>
+          </BCard>
           <!-- Gene overview card -->
 
           <!-- Associated entities table -->
@@ -431,9 +389,9 @@
           />
 
           <!-- Associated entities table -->
-        </b-col>
-      </b-row>
-    </b-container>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 

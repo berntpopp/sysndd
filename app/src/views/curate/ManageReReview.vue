@@ -1,14 +1,14 @@
 <!-- src/views/curate/ManageReReview.vue -->
 <template>
   <div class="container-fluid">
-    <b-container fluid>
-      <b-row class="justify-content-md-center py-2">
-        <b-col
+    <BContainer fluid>
+      <BRow class="justify-content-md-center py-2">
+        <BCol
           col
           md="12"
         >
           <!-- User Interface controls -->
-          <b-card
+          <BCard
             header-tag="header"
             body-class="p-0"
             header-class="p-1"
@@ -18,15 +18,15 @@
               <div class="d-flex justify-content-between align-items-center">
                 <h6 class="mb-1 text-start font-weight-bold">
                   Manage re-review submissions
-                  <b-badge
+                  <BBadge
                     id="popover-badge-help-manage"
                     pill
                     href="#"
                     variant="info"
                   >
-                    <b-icon icon="question-circle-fill" />
-                  </b-badge>
-                  <b-popover
+                    <i class="bi bi-question-circle-fill" />
+                  </BBadge>
+                  <BPopover
                     target="popover-badge-help-manage"
                     variant="info"
                     triggers="focus"
@@ -35,66 +35,61 @@
                       Re-review Submissions Management
                     </template>
                     Use this section to manage re-review submissions. You can assign new batches to users and view the details of each batch.
-                  </b-popover>
+                  </BPopover>
                 </h6>
               </div>
             </template>
 
-            <b-col>
-              <b-row>
-                <b-col class="my-1">
+            <BCol>
+              <BRow>
+                <BCol class="my-1">
                   <!-- button and select for new batch assignment -->
-                  <b-input-group
+                  <BInputGroup
                     prepend="Username"
                     size="sm"
                   >
-                    <b-form-select
+                    <BFormSelect
                       v-model="user_id_assignment"
                       :options="user_options"
                       class="username-select"
                     />
-                    <b-input-group-append>
-                      <b-button
-                        block
-                        size="sm"
-                        variant="primary"
-                        @click="handleNewBatchAssignment"
-                      >
-                        <b-icon
-                          icon="plus-square"
-                          class="mx-1"
-                        />
-                        Assign new batch
-                      </b-button>
-                    </b-input-group-append>
-                  </b-input-group>
+                    <BButton
+                      block
+                      size="sm"
+                      variant="primary"
+                      @click="handleNewBatchAssignment"
+                    >
+                      <i class="bi bi-plus-square mx-1" />
+                      Assign new batch
+                    </BButton>
+                  </BInputGroup>
                   <small class="text-muted">Select a user and click "Assign new batch" to assign a new re-review batch to the selected user.</small>
-                </b-col>
+                </BCol>
 
-                <b-col class="my-1" />
-              </b-row>
-            </b-col>
+                <BCol class="my-1" />
+              </BRow>
+            </BCol>
             <!-- User Interface controls -->
 
-            <b-row class="my-2">
-              <b-col>
-                <b-pagination
+            <BRow class="my-2">
+              <BCol>
+                <BPagination
                   v-model="currentPage"
                   :total-rows="totalRows"
                   :per-page="perPage"
                   align="fill"
                   size="sm"
                 />
-              </b-col>
-              <b-col class="text-end">
-                <b-form-select
+              </BCol>
+              <BCol class="text-end">
+                <BFormSelect
                   v-model="perPage"
                   :options="pageOptions"
                   size="sm"
                 />
-              </b-col>
-            </b-row>
-            <b-table
+              </BCol>
+            </BRow>
+            <BTable
               :items="items_ReReviewTable"
               :fields="fields_ReReviewTable"
               :per-page="perPage"
@@ -111,17 +106,14 @@
               @sort-changed="onSortChanged"
             >
               <template #cell(user_name)="row">
-                <b-icon
-                  icon="person-circle"
-                  font-scale="1.0"
-                />
-                <b-badge variant="dark">
+                <i class="bi bi-person-circle" />
+                <BBadge variant="dark">
                   {{ row.item.user_name }}
-                </b-badge>
+                </BBadge>
               </template>
 
               <template #cell(actions)="data">
-                <b-button
+                <BButton
                   v-b-tooltip.hover.top
                   size="sm"
                   class="me-1 btn-xs"
@@ -129,17 +121,14 @@
                   variant="danger"
                   @click="handleBatchUnAssignment(data.item.re_review_batch)"
                 >
-                  <b-icon
-                    icon="file-earmark-minus"
-                    font-scale="0.9"
-                  />
-                </b-button>
+                  <i class="bi bi-file-earmark-minus" />
+                </BButton>
               </template>
-            </b-table>
-          </b-card>
-        </b-col>
-      </b-row>
-    </b-container>
+            </BTable>
+          </BCard>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 

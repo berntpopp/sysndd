@@ -1,17 +1,17 @@
 <template>
   <div class="container-fluid">
-    <b-container fluid>
-      <b-overlay
+    <BContainer fluid>
+      <BOverlay
         :show="checking_entity"
         rounded="sm"
       >
-        <b-row class="justify-content-md-center py-2">
-          <b-col
+        <BRow class="justify-content-md-center py-2">
+          <BCol
             col
             md="12"
           >
             <!-- User Interface controls -->
-            <b-card
+            <BCard
               header-tag="header"
               align="left"
               body-class="p-0"
@@ -24,33 +24,30 @@
                 </h6>
               </template>
 
-              <b-container fluid>
+              <BContainer fluid>
                 <validation-observer
                   ref="observer"
                   v-slot="{ handleSubmit }"
                 >
-                  <b-form
+                  <BForm
                     ref="form"
                     @submit.stop.prevent="handleSubmit(checkSubmission)"
                   >
-                    <b-input-group-append class="py-1">
-                      <b-button
+                    <div class="py-1">
+                      <BButton
                         size="sm"
                         type="submit"
                         variant="dark"
                       >
-                        <b-icon
-                          icon="plus-square"
-                          class="mx-1"
-                        />
+                        <i class="bi bi-plus-square mx-1" />
                         Create new entity
-                      </b-button>
-                    </b-input-group-append>
+                      </BButton>
+                    </div>
 
                     <hr class="mt-2 mb-3">
 
                     <!-- Submission check modal -->
-                    <b-modal
+                    <BModal
                       id="submissionModal"
                       ref="submissionModal"
                       size="lg"
@@ -73,26 +70,26 @@
                         <div class="w-100">
                           <!-- Emulate built in modal footer ok and cancel button actions -->
                           <p class="float-end">
-                            <b-button
+                            <BButton
                               variant="primary"
                               class="float-end me-2"
                               @click="ok()"
                             >
                               Submit
-                            </b-button>
+                            </BButton>
                           </p>
                           <p class="float-end">
-                            <b-button
+                            <BButton
                               variant="secondary"
                               class="float-end me-2"
                               @click="cancel()"
                             >
                               Cancel
-                            </b-button>
+                            </BButton>
                           </p>
                           <!-- Emulate built in modal footer ok and cancel button actions -->
                           <p class="float-end">
-                            <b-button
+                            <BButton
                               v-b-tooltip.hover.top
                               title="It is not recommended to skip double review and should be performed only by very experienced curators."
                               variant="outline-warning"
@@ -111,22 +108,24 @@
                                   for="directApprovalSwitch"
                                 >Direct approval</label>
                               </div>
-                            </b-button>
+                            </BButton>
                           </p>
                         </div>
                       </template>
-                    </b-modal>
+                    </BModal>
                     <!-- Submission check modal -->
 
-                    <b-row>
+                    <BRow>
                       <!-- column 1 -->
-                      <b-col class="my-1">
+                      <BCol class="my-1">
                         <label
                           class="mr-sm-2 mb-0 font-weight-bold"
                           for="gene-select"
                         >Gene</label>
 
-                        <treeselect
+                        <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
+                        <!-- Async search temporarily disabled - use text input -->
+                        <!-- <treeselect
                           id="gene-select"
                           v-model="gene_input"
                           :multiple="false"
@@ -134,18 +133,27 @@
                           :load-options="loadGeneInfoTree"
                           :normalizer="normalizerGeneSearch"
                           required
+                        /> -->
+                        <BFormInput
+                          id="gene-select"
+                          v-model="gene_input"
+                          size="sm"
+                          placeholder="Enter HGNC ID (e.g., HGNC:1234)"
+                          required
                         />
-                      </b-col>
-                    </b-row>
-                    <b-row>
+                      </BCol>
+                    </BRow>
+                    <BRow>
                       <!-- column 2 -->
-                      <b-col class="my-1">
+                      <BCol class="my-1">
                         <label
                           class="mr-sm-2 mb-0 font-weight-bold"
                           for="ontology-select"
                         >Disease</label>
 
-                        <treeselect
+                        <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
+                        <!-- Async search temporarily disabled - use text input -->
+                        <!-- <treeselect
                           id="ontology-select"
                           v-model="ontology_input"
                           :multiple="false"
@@ -153,29 +161,51 @@
                           :load-options="loadOntologyInfoTree"
                           :normalizer="normalizerOntologySearch"
                           required
+                        /> -->
+                        <BFormInput
+                          id="ontology-select"
+                          v-model="ontology_input"
+                          size="sm"
+                          placeholder="Enter Ontology ID (e.g., OMIM:123456)"
+                          required
                         />
-                      </b-col>
-                    </b-row>
-                    <b-row>
+                      </BCol>
+                    </BRow>
+                    <BRow>
                       <!-- column 3 -->
-                      <b-col class="my-1">
+                      <BCol class="my-1">
                         <label
                           class="mr-sm-2 mb-0 font-weight-bold"
                           for="inheritance-select"
                         >Inheritance</label>
 
-                        <treeselect
+                        <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
+                        <!-- <treeselect
                           id="inheritance-select"
                           v-model="inheritance_input"
                           :multiple="false"
                           :options="inheritance_options"
                           required
-                        />
-                      </b-col>
-                    </b-row>
-                    <b-row>
+                        /> -->
+                        <BFormSelect
+                          v-if="inheritance_options && inheritance_options.length > 0"
+                          id="inheritance-select"
+                          v-model="inheritance_input"
+                          :options="normalizeInheritanceOptions(inheritance_options)"
+                          size="sm"
+                          required
+                        >
+                          <template v-slot:first>
+                            <BFormSelectOption :value="null">
+                              Select inheritance...
+                            </BFormSelectOption>
+                          </template>
+                        </BFormSelect>
+                      </BCol>
+                    </BRow>
+                    <BRow>
                       <!-- column 4 -->
-                      <b-col class="my-1">
+                      <BCol class="my-1">
                         <label
                           class="mr-sm-2 mb-0 font-weight-bold"
                           for="NDD-select"
@@ -188,16 +218,17 @@
                           size="sm"
                           required
                         />
-                      </b-col>
+                      </BCol>
 
                       <!-- column 5 -->
-                      <b-col class="my-1">
+                      <BCol class="my-1">
                         <label
                           class="mr-sm-2 mb-0 font-weight-bold"
                           for="status-select"
                         >Status</label>
 
-                        <treeselect
+                        <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
+                        <!-- <treeselect
                           id="status-select"
                           v-model="status_selected"
                           class="status-control"
@@ -205,9 +236,24 @@
                           :options="status_options"
                           :normalizer="normalizeStatus"
                           required
-                        />
-                      </b-col>
-                    </b-row>
+                        /> -->
+                        <BFormSelect
+                          v-if="status_options && status_options.length > 0"
+                          id="status-select"
+                          v-model="status_selected"
+                          class="status-control"
+                          :options="normalizeStatusOptions(status_options)"
+                          size="sm"
+                          required
+                        >
+                          <template v-slot:first>
+                            <BFormSelectOption :value="null">
+                              Select status...
+                            </BFormSelectOption>
+                          </template>
+                        </BFormSelect>
+                      </BCol>
+                    </BRow>
 
                     <hr class="mt-2 mb-3">
 
@@ -238,13 +284,28 @@
                       for="phenotype-select"
                     >Phenotypes</label>
 
-                    <treeselect
+                    <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
+                    <!-- Multi-select temporarily disabled - using single select -->
+                    <!-- <treeselect
                       v-model="phenotypes_review"
                       :multiple="true"
                       :flat="true"
                       :options="phenotypes_options"
                       :normalizer="normalizePhenotypes"
-                    />
+                    /> -->
+                    <BFormSelect
+                      v-if="phenotypes_options && phenotypes_options.length > 0"
+                      id="phenotype-select"
+                      v-model="phenotypes_review[0]"
+                      :options="normalizePhenotypesOptions(phenotypes_options)"
+                      size="sm"
+                    >
+                      <template v-slot:first>
+                        <BFormSelectOption :value="null">
+                          Select phenotype...
+                        </BFormSelectOption>
+                      </template>
+                    </BFormSelect>
                     <!-- Phenotype select -->
 
                     <!-- Variation ontology select -->
@@ -253,13 +314,28 @@
                       for="phenotype-select"
                     >Variation ontology</label>
 
-                    <treeselect
+                    <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
+                    <!-- Multi-select temporarily disabled - using single select -->
+                    <!-- <treeselect
                       v-model="variation_ontology_review"
                       :multiple="true"
                       :flat="true"
                       :options="variation_ontology_options"
                       :normalizer="normalizeVariationOntology"
-                    />
+                    /> -->
+                    <BFormSelect
+                      v-if="variation_ontology_options && variation_ontology_options.length > 0"
+                      id="variation-select"
+                      v-model="variation_ontology_review[0]"
+                      :options="normalizeVariationOntologyOptions(variation_ontology_options)"
+                      size="sm"
+                    >
+                      <template v-slot:first>
+                        <BFormSelectOption :value="null">
+                          Select variation...
+                        </BFormSelectOption>
+                      </template>
+                    </BFormSelect>
 
                     <!-- Variation ontology select -->
                     <hr class="mt-2 mb-3">
@@ -298,15 +374,13 @@
                             size="sm"
                             v-on="inputHandlers"
                           />
-                          <BInputGroupAppend>
-                            <BButton
-                              variant="secondary"
-                              size="sm"
-                              @click="addTag()"
-                            >
-                              Add
-                            </BButton>
-                          </BInputGroupAppend>
+                          <BButton
+                            variant="secondary"
+                            size="sm"
+                            @click="addTag()"
+                          >
+                            Add
+                          </BButton>
                         </BInputGroup>
 
                         <div class="d-inline-block">
@@ -326,10 +400,7 @@
                                 target="_blank"
                                 class="text-light"
                               >
-                                <BIcon
-                                  icon="box-arrow-up-right"
-                                  font-scale="0.9"
-                                />
+                                <i class="bi bi-box-arrow-up-right" />
                                 {{ tag }}
                               </BLink>
                             </BFormTag>
@@ -373,15 +444,13 @@
                             size="sm"
                             v-on="inputHandlers"
                           />
-                          <BInputGroupAppend>
-                            <BButton
-                              variant="secondary"
-                              size="sm"
-                              @click="addTag()"
-                            >
-                              Add
-                            </BButton>
-                          </BInputGroupAppend>
+                          <BButton
+                            variant="secondary"
+                            size="sm"
+                            @click="addTag()"
+                          >
+                            Add
+                          </BButton>
                         </BInputGroup>
 
                         <div class="d-inline-block">
@@ -401,10 +470,7 @@
                                 target="_blank"
                                 class="text-light"
                               >
-                                <BIcon
-                                  icon="box-arrow-up-right"
-                                  font-scale="0.9"
-                                />
+                                <i class="bi bi-box-arrow-up-right" />
                                 {{ tag }}
                               </BLink>
                             </BFormTag>
@@ -429,14 +495,14 @@
                       placeholder="Additional comments to this entity relevant for the curator."
                     />
                     <!-- Review comments -->
-                  </b-form>
+                  </BForm>
                 </validation-observer>
-              </b-container>
-            </b-card>
-          </b-col>
-        </b-row>
-      </b-overlay>
-    </b-container>
+              </BContainer>
+            </BCard>
+          </BCol>
+        </BRow>
+      </BOverlay>
+    </BContainer>
   </div>
 </template>
 
@@ -445,10 +511,11 @@ import toastMixin from '@/assets/js/mixins/toastMixin';
 import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
 import textMixin from '@/assets/js/mixins/textMixin';
 
+// TODO: vue3-treeselect disabled pending Bootstrap-Vue-Next migration
 // import the Treeselect component
-import Treeselect from '@r2rka/vue3-treeselect';
+// import Treeselect from '@zanmato/vue3-treeselect';
 // import the Treeselect styles
-import '@r2rka/vue3-treeselect/dist/style.css';
+// import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
 
 import Submission from '@/assets/js/classes/submission/submissionSubmission';
 import Entity from '@/assets/js/classes/submission/submissionEntity';
@@ -460,8 +527,8 @@ import Literature from '@/assets/js/classes/submission/submissionLiterature';
 
 export default {
   name: 'CreateEntity',
-  // register the Treeselect component
-  components: { Treeselect },
+  // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
+  components: {},
   mixins: [toastMixin, colorAndSymbolsMixin, textMixin],
   data() {
     return {
@@ -600,6 +667,42 @@ export default {
         id: node.category_id,
         label: node.category,
       };
+    },
+    // Normalize status options for BFormSelect
+    normalizeStatusOptions(options) {
+      if (!options || !Array.isArray(options)) return [];
+      return options.map((opt) => ({
+        value: opt.category_id,
+        text: opt.category,
+      }));
+    },
+    // Normalize inheritance options for BFormSelect
+    normalizeInheritanceOptions(options) {
+      if (!options || !Array.isArray(options)) return [];
+      return this.flattenTreeOptions(options);
+    },
+    // Normalize phenotypes options for BFormSelect
+    normalizePhenotypesOptions(options) {
+      if (!options || !Array.isArray(options)) return [];
+      return this.flattenTreeOptions(options);
+    },
+    // Normalize variation ontology options for BFormSelect
+    normalizeVariationOntologyOptions(options) {
+      if (!options || !Array.isArray(options)) return [];
+      return this.flattenTreeOptions(options);
+    },
+    // Flatten tree options for BFormSelect
+    flattenTreeOptions(options, result = []) {
+      options.forEach((opt) => {
+        result.push({
+          value: opt.id,
+          text: opt.label,
+        });
+        if (opt.children && opt.children.length > 0) {
+          this.flattenTreeOptions(opt.children, result);
+        }
+      });
+      return result;
     },
     infoEntity() {
       // define entity specific attributes as constants from inputs

@@ -1,23 +1,17 @@
 <!-- LogoutCountdownBadge.vue -->
 <template>
-  <b-badge variant="info">
+  <BBadge variant="info">
     {{ Math.floor(time_to_logout) }}m
     {{
       ((time_to_logout - Math.floor(time_to_logout)) * 60).toFixed(
         0
       )
     }}s
-  </b-badge>
+  </BBadge>
 </template>
 
 <script>
-import Vue from 'vue';
-
 import toastMixin from '@/assets/js/mixins/toastMixin';
-
-import { BBadge } from 'bootstrap-vue';
-
-Vue.component('b-badge', BBadge);
 
 export default {
   name: 'LogoutCountdownBadge',

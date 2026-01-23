@@ -1,22 +1,22 @@
 <!-- views/pages/Ontology.vue -->
 <template>
   <div class="container-fluid bg-gradient">
-    <b-spinner
+    <BSpinner
       v-if="loading"
       label="Loading..."
       class="float-center m-5"
     />
-    <b-container
+    <BContainer
       v-else
       fluid
     >
-      <b-row class="justify-content-md-center py-2">
-        <b-col
+      <BRow class="justify-content-md-center py-2">
+        <BCol
           col
           md="12"
         >
           <!-- Ontology overview card -->
-          <b-card
+          <BCard
             header-tag="header"
             class="my-3 text-start"
             body-class="p-0"
@@ -26,16 +26,16 @@
             <template #header>
               <h3 class="mb-1 text-start font-weight-bold">
                 Disease:
-                <b-badge
+                <BBadge
                   pill
                   variant="secondary"
                 >
                   {{ $route.params.disease_term }}
-                </b-badge>
+                </BBadge>
               </h3>
             </template>
 
-            <b-table
+            <BTable
               :items="ontology"
               :fields="ontology_fields"
               stacked
@@ -44,26 +44,26 @@
               style="width: 100%; white-space: nowrap"
             >
               <template #cell(disease_ontology_id_version)="data">
-                <b-row>
-                  <b-row
+                <BRow>
+                  <BRow
                     v-for="id in data.item.disease_ontology_id_version"
                     :key="id"
                   >
-                    <b-col>
+                    <BCol>
                       <div class="overflow-hidden text-truncate font-italic">
-                        <b-link :href="'/Ontology/' + id.replace(/_.+/g, '')">
-                          <b-badge
+                        <BLink :href="'/Ontology/' + id.replace(/_.+/g, '')">
+                          <BBadge
                             v-b-tooltip.hover.leftbottom
                             pill
                             class="mx-2"
                             variant="secondary"
                           >
                             {{ id }}
-                          </b-badge>
-                        </b-link>
+                          </BBadge>
+                        </BLink>
                       </div>
 
-                      <b-button
+                      <BButton
                         class="btn-xs mx-2"
                         variant="outline-primary"
                         :src="data.item.disease_ontology_id_version"
@@ -73,26 +73,23 @@
                         "
                         target="_blank"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         {{ id }}
-                      </b-button>
-                    </b-col>
-                  </b-row>
-                </b-row>
+                      </BButton>
+                    </BCol>
+                  </BRow>
+                </BRow>
               </template>
 
               <template #cell(disease_ontology_name)="data">
-                <b-row>
-                  <b-row
+                <BRow>
+                  <BRow
                     v-for="id in data.item.disease_ontology_name"
                     :key="id"
                   >
-                    <b-col>
-                      <b-link :href="'/Ontology/' + id">
-                        <b-badge
+                    <BCol>
+                      <BLink :href="'/Ontology/' + id">
+                        <BBadge
                           v-b-tooltip.hover.leftbottom
                           pill
                           class="mx-2"
@@ -100,21 +97,21 @@
                           :title="id"
                         >
                           {{ truncate(id, 40) }}
-                        </b-badge>
-                      </b-link>
-                    </b-col>
-                  </b-row>
-                </b-row>
+                        </BBadge>
+                      </BLink>
+                    </BCol>
+                  </BRow>
+                </BRow>
               </template>
 
               <template #cell(hpo_mode_of_inheritance_term_name)="data">
-                <b-row>
-                  <b-row
+                <BRow>
+                  <BRow
                     v-for="id in data.item.hpo_mode_of_inheritance_term_name"
                     :key="id"
                   >
-                    <b-col>
-                      <b-badge
+                    <BCol>
+                      <BBadge
                         v-if="id"
                         v-b-tooltip.hover.leftbottom
                         pill
@@ -129,20 +126,20 @@
                         "
                       >
                         {{ id }}
-                      </b-badge>
-                    </b-col>
-                  </b-row>
-                </b-row>
+                      </BBadge>
+                    </BCol>
+                  </BRow>
+                </BRow>
               </template>
 
               <template #cell(DOID)="data">
-                <b-row>
-                  <b-row
+                <BRow>
+                  <BRow
                     v-for="id in data.item.DOID"
                     :key="id"
                   >
-                    <b-col>
-                      <b-button
+                    <BCol>
+                      <BButton
                         v-if="id"
                         class="btn-xs mx-2"
                         variant="outline-primary"
@@ -150,25 +147,22 @@
                         :href="'https://disease-ontology.org/term/' + id"
                         target="_blank"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         {{ id }}
-                      </b-button>
-                    </b-col>
-                  </b-row>
-                </b-row>
+                      </BButton>
+                    </BCol>
+                  </BRow>
+                </BRow>
               </template>
 
               <template #cell(MONDO)="data">
-                <b-row>
-                  <b-row
+                <BRow>
+                  <BRow
                     v-for="id in data.item.MONDO"
                     :key="id"
                   >
-                    <b-col>
-                      <b-button
+                    <BCol>
+                      <BButton
                         v-if="id"
                         class="btn-xs mx-2"
                         variant="outline-primary"
@@ -179,25 +173,22 @@
                         "
                         target="_blank"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         {{ id }}
-                      </b-button>
-                    </b-col>
-                  </b-row>
-                </b-row>
+                      </BButton>
+                    </BCol>
+                  </BRow>
+                </BRow>
               </template>
 
               <template #cell(Orphanet)="data">
-                <b-row>
-                  <b-row
+                <BRow>
+                  <BRow
                     v-for="id in data.item.Orphanet"
                     :key="id"
                   >
-                    <b-col>
-                      <b-button
+                    <BCol>
+                      <BButton
                         v-if="id"
                         class="btn-xs mx-2"
                         variant="outline-primary"
@@ -209,18 +200,15 @@
                         "
                         target="_blank"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         {{ id }}
-                      </b-button>
-                    </b-col>
-                  </b-row>
-                </b-row>
+                      </BButton>
+                    </BCol>
+                  </BRow>
+                </BRow>
               </template>
-            </b-table>
-          </b-card>
+            </BTable>
+          </BCard>
           <!-- Ontology overview card -->
 
           <!-- Associated entities card -->
@@ -235,9 +223,9 @@
           />
 
           <!-- Associated entities card -->
-        </b-col>
-      </b-row>
-    </b-container>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 
@@ -304,8 +292,8 @@ export default {
       ],
       totalRows: 0,
       currentPage: 1,
-      perPage: '10',
-      pageOptions: ['10', '25', '50', '200'],
+      perPage: 10,
+      pageOptions: [10, 25, 50, 200],
       sortBy: '',
       sortDesc: false,
       sortDirection: 'asc',

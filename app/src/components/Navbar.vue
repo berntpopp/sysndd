@@ -1,14 +1,14 @@
 <!-- scr/components/Navbar.vue -->
 <template>
   <div>
-    <b-navbar
+    <BNavbar
       toggleable="lg"
       type="dark"
       variant="dark"
       fixed="top"
       class="py-0 bg-navbar"
     >
-      <b-navbar-brand
+      <BNavbarBrand
         to="/"
         class="py-0"
       >
@@ -30,16 +30,16 @@
             </div>
           </div>
         </div>
-      </b-navbar-brand>
+      </BNavbarBrand>
 
-      <b-navbar-toggle target="nav-collapse" />
+      <BNavbarToggle target="nav-collapse" />
 
-      <b-collapse
+      <BCollapse
         id="nav-collapse"
         is-nav
       >
         <!-- Left aligned nav items -->
-        <b-navbar-nav>
+        <BNavbarNav>
           <IconPairDropdownMenu
             v-for="(item, index) in dropdownItemsLeft"
             :key="index"
@@ -48,11 +48,11 @@
             :required="item.required"
             :items="item.items"
           />
-        </b-navbar-nav>
+        </BNavbarNav>
         <!-- Left aligned nav items -->
 
         <!-- Center aligned search bar -->
-        <b-navbar-nav
+        <BNavbarNav
           v-if="show_search"
           class="mx-auto d-none d-lg-flex"
         >
@@ -60,11 +60,11 @@
             placeholder-string="..."
             :in-navbar="true"
           />
-        </b-navbar-nav>
+        </BNavbarNav>
         <!-- Center aligned search bar -->
 
         <!-- Right aligned nav items -->
-        <b-navbar-nav
+        <BNavbarNav
           v-if="user"
           class="ms-auto"
         >
@@ -76,20 +76,20 @@
             :required="item.required"
             :items="item.items"
           />
-        </b-navbar-nav>
+        </BNavbarNav>
         <!-- Wrap Login button in ul for proper structure -->
         <ul
           v-else
           class="navbar-nav ms-auto"
         >
-          <b-nav-item to="/Login">
+          <BNavItem to="/Login">
             Login
-          </b-nav-item>
+          </BNavItem>
         </ul>
         <!-- Right aligned nav items -->
 
         <!-- Mobile search bar -->
-        <b-navbar-nav
+        <BNavbarNav
           v-if="show_search"
           class="d-lg-none ms-auto"
         >
@@ -97,10 +97,10 @@
             placeholder-string="..."
             :in-navbar="true"
           />
-        </b-navbar-nav>
+        </BNavbarNav>
         <!-- Mobile search bar -->
-      </b-collapse>
-    </b-navbar>
+      </BCollapse>
+    </BNavbar>
   </div>
 </template>
 

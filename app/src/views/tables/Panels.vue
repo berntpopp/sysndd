@@ -1,21 +1,21 @@
 <template>
   <div class="container-fluid">
-    <b-spinner
+    <BSpinner
       v-if="loading"
       label="Loading..."
       class="float-center m-5"
     />
-    <b-container
+    <BContainer
       v-else
       fluid
     >
-      <b-row class="justify-content-md-center py-2">
-        <b-col
+      <BRow class="justify-content-md-center py-2">
+        <BCol
           col
           md="12"
         >
           <!-- User Interface controls -->
-          <b-card
+          <BCard
             header-tag="header"
             body-class="p-0"
             header-class="p-1"
@@ -24,7 +24,7 @@
             <template #header>
               <h6 class="mb-1 text-start font-weight-bold">
                 Panel compilation and download
-                <b-badge
+                <BBadge
                   v-b-tooltip.hover.bottom
                   variant="primary"
                   :title="
@@ -37,19 +37,19 @@
                   "
                 >
                   Genes: {{ totalRows }}
-                </b-badge>
+                </BBadge>
 
-                <b-badge
+                <BBadge
                   id="popover-badge-help-comparisons"
                   class="m-1"
                   pill
                   href="#"
                   variant="info"
                 >
-                  <b-icon icon="question-circle-fill" />
-                </b-badge>
+                  <i class="bi bi-question-circle-fill" />
+                </BBadge>
 
-                <b-popover
+                <BPopover
                   target="popover-badge-help-comparisons"
                   variant="info"
                   triggers="focus"
@@ -62,22 +62,22 @@
                   E.g. if there are two entities for a gene with "Definitive"
                   and "Limited" category, respectively, the gene is assigned to
                   the Definitive panel.
-                </b-popover>
+                </BPopover>
               </h6>
             </template>
 
-            <b-row>
+            <BRow>
               <!-- column 1 -->
-              <b-col
+              <BCol
                 class="my-1"
                 sm="6"
               >
-                <b-input-group
+                <BInputGroup
                   prepend="Category"
                   class="mb-1"
                   size="sm"
                 >
-                  <b-form-select
+                  <BFormSelect
                     v-model="selected_category"
                     input-id="category-select"
                     :options="categories_list"
@@ -85,14 +85,14 @@
                     size="sm"
                     @input="requestSelected"
                   />
-                </b-input-group>
+                </BInputGroup>
 
-                <b-input-group
+                <BInputGroup
                   prepend="Inheritance"
                   class="mb-1"
                   size="sm"
                 >
-                  <b-form-select
+                  <BFormSelect
                     v-model="selected_inheritance"
                     input-id="inheritance-select"
                     :options="inheritance_list"
@@ -100,20 +100,20 @@
                     size="sm"
                     @input="requestSelected"
                   />
-                </b-input-group>
-              </b-col>
+                </BInputGroup>
+              </BCol>
 
               <!-- column 2 -->
-              <b-col
+              <BCol
                 class="my-1"
                 sm="6"
               >
-                <b-input-group
+                <BInputGroup
                   prepend="Columns"
                   class="mb-1"
                   size="sm"
                 >
-                  <b-form-select
+                  <BFormSelect
                     v-model="selected_columns"
                     input-id="columns-select"
                     :options="columns_list"
@@ -123,20 +123,20 @@
                     size="sm"
                     @input="requestSelected"
                   />
-                </b-input-group>
-              </b-col>
+                </BInputGroup>
+              </BCol>
 
               <!-- column 3 -->
-              <b-col
+              <BCol
                 class="my-1"
                 sm="6"
               >
-                <b-input-group
+                <BInputGroup
                   prepend="Sort"
                   class="mb-1"
                   size="sm"
                 >
-                  <b-form-select
+                  <BFormSelect
                     v-model="sortBy"
                     input-id="sort-select"
                     :options="sort_list"
@@ -144,48 +144,45 @@
                     size="sm"
                     @input="requestSelected"
                   />
-                </b-input-group>
+                </BInputGroup>
 
-                <b-button
+                <BButton
                   block
                   size="sm"
                   @click="requestExcel"
                 >
-                  <b-icon
-                    icon="table"
-                    class="mx-1"
-                  />
-                  <b-icon
+                  <i class="bi bi-table mx-1" />
+                  <i
                     v-if="!downloading"
-                    icon="download"
+                    class="bi bi-download"
                   />
-                  <b-spinner
+                  <BSpinner
                     v-if="downloading"
                     small
                   />
                   .xlsx
-                </b-button>
-              </b-col>
+                </BButton>
+              </BCol>
 
               <!-- column 4 -->
-              <b-col
+              <BCol
                 class="my-1"
                 sm="6"
               >
-                <b-input-group
+                <BInputGroup
                   prepend="Per page"
                   class="mb-1"
                   size="sm"
                 >
-                  <b-form-select
+                  <BFormSelect
                     id="per-page-select"
                     v-model="perPage"
                     :options="pageOptions"
                     size="sm"
                   />
-                </b-input-group>
+                </BInputGroup>
 
-                <b-pagination
+                <BPagination
                   v-model="currentPage"
                   :total-rows="totalRows"
                   :per-page="perPage"
@@ -195,17 +192,16 @@
                   limit="2"
                   @change="handlePageChange"
                 />
-              </b-col>
-            </b-row>
+              </BCol>
+            </BRow>
 
             <!-- Main table element -->
-            <b-table
+            <BTable
               :items="items"
               :fields="fields"
               :current-page="currentPage"
               :filter-included-fields="filterOn"
-              :sort-by.sync="sortBy"
-              :sort-desc.sync="sortDesc"
+              :sort-by="sortBy"
               :busy="isBusy"
               stacked="md"
               head-variant="light"
@@ -217,6 +213,7 @@
               sort-icon-left
               no-local-sorting
               no-local-pagination
+              @update:sort-by="handleSortByUpdate"
             >
               <template #cell(category)="data">
                 <div
@@ -307,11 +304,11 @@
                   {{ data.item.bed_hg38 }}
                 </div>
               </template>
-            </b-table>
-          </b-card>
-        </b-col>
-      </b-row>
-    </b-container>
+            </BTable>
+          </BCard>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 
@@ -355,11 +352,10 @@ export default {
       nextItemID: null,
       lastItemID: null,
       executionTime: 0,
-      perPage: '10',
-      pageOptions: ['10', '25', '50', '200'],
-      sortBy: 'symbol',
-      sortDesc: false,
-      sortDirection: 'asc',
+      perPage: 10,
+      pageOptions: [10, 25, 50, 200],
+      // Bootstrap-Vue-Next uses array-based sortBy format
+      sortBy: [{ key: 'symbol', order: 'asc' }],
       filter: null,
       filterOn: [],
       loading: true,
@@ -369,14 +365,15 @@ export default {
     };
   },
   watch: {
-    sortBy(value) {
-      this.handleSortChange();
+    // Deep watch for array-based sortBy
+    sortBy: {
+      handler() {
+        this.handleSortChange();
+      },
+      deep: true,
     },
     perPage(value) {
       this.handlePerPageChange();
-    },
-    sortDesc(value) {
-      this.handleSortChange();
     },
   },
   mounted() {
@@ -389,6 +386,13 @@ export default {
     handleSortChange() {
       this.currentItemID = 0;
       this.requestSelected();
+    },
+    /**
+     * Handle sort-by updates from Bootstrap-Vue-Next BTable.
+     * @param {Array} newSortBy - Array of sort objects: [{ key: 'column', order: 'asc'|'desc' }]
+     */
+    handleSortByUpdate(newSortBy) {
+      this.sortBy = newSortBy;
     },
     handlePerPageChange() {
       this.currentItemID = 0;
@@ -465,10 +469,14 @@ export default {
     async requestSelected() {
       this.isBusy = true;
 
+      // Extract sort column and order from array-based sortBy (Bootstrap-Vue-Next format)
+      const sortColumn = this.sortBy.length > 0 ? this.sortBy[0].key : 'symbol';
+      const sortOrder = this.sortBy.length > 0 ? this.sortBy[0].order : 'asc';
+
       const apiUrl = `${process.env.VUE_APP_API_URL
       }/api/panels/browse?sort=${
-        this.sortDesc ? '-' : '+'
-      }${this.sortBy
+        sortOrder === 'desc' ? '-' : '+'
+      }${sortColumn
       }&filter=any(category,${
         this.selected_category
       }),any(inheritance_filter,${
@@ -513,9 +521,13 @@ export default {
     async requestExcel() {
       this.downloading = true;
 
+      // Extract sort column and order from array-based sortBy (Bootstrap-Vue-Next format)
+      const sortColumn = this.sortBy.length > 0 ? this.sortBy[0].key : 'symbol';
+      const sortOrder = this.sortBy.length > 0 ? this.sortBy[0].order : 'asc';
+
       const urlParam = `sort=${
-        this.sortDesc ? '-' : '+'
-      }${this.sortBy
+        sortOrder === 'desc' ? '-' : '+'
+      }${sortColumn
       }&filter=any(category,${
         this.selected_category
       }),any(inheritance_filter,${

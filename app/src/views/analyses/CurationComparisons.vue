@@ -1,55 +1,55 @@
 <!-- views/analyses/CurationComparisons.vue -->
 <template>
   <div class="container-fluid bg-gradient">
-    <b-container fluid>
-      <b-row class="justify-content-md-center py-2">
-        <b-col
+    <BContainer fluid>
+      <BRow class="justify-content-md-center py-2">
+        <BCol
           col
           md="12"
         >
           <div>
-            <b-card
+            <BCard
               title="Curation comparisons"
               no-body
             >
-              <b-card-header header-tag="nav">
-                <b-nav
+              <BCardHeader header-tag="nav">
+                <BNav
                   card-header
                   tabs
                 >
-                  <!-- <b-nav-item>'s with child routes. Note the trailing slash on the first <b-nav-item> -->
-                  <b-nav-item
+                  <!-- <BNavItem>'s with child routes. Note the trailing slash on the first <BNavItem> -->
+                  <BNavItem
                     to="/CurationComparisons"
                     exact
                     exact-active-class="active"
                   >
                     Overlap
-                  </b-nav-item>
-                  <b-nav-item
+                  </BNavItem>
+                  <BNavItem
                     to="/CurationComparisons/Similarity"
                     exact
                     exact-active-class="active"
                   >
                     Similarity
-                  </b-nav-item>
-                  <b-nav-item
+                  </BNavItem>
+                  <BNavItem
                     to="/CurationComparisons/Table"
                     exact
                     exact-active-class="active"
                   >
                     Table
-                  </b-nav-item>
-                </b-nav>
-              </b-card-header>
+                  </BNavItem>
+                </BNav>
+              </BCardHeader>
 
-              <b-card-body>
+              <BCardBody>
                 <router-view />
-              </b-card-body>
-            </b-card>
+              </BCardBody>
+            </BCard>
           </div>
-        </b-col>
-      </b-row>
-    </b-container>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 

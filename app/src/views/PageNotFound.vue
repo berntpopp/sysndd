@@ -1,16 +1,16 @@
 <template>
   <div class="container-fluid centered">
-    <b-container>
-      <b-row class="justify-content-md-center py-4">
-        <b-col
+    <BContainer>
+      <BRow class="justify-content-md-center py-4">
+        <BCol
           md="6"
           align-self="center"
         >
           <h1>404</h1>
           <h2>Page Not Found</h2>
-        </b-col>
-      </b-row>
-    </b-container>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 

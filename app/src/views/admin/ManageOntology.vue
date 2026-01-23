@@ -20,19 +20,19 @@
 
 <template>
   <div class="container-fluid">
-    <b-container fluid>
-      <b-row class="justify-content-md-center py-2">
-        <b-col
+    <BContainer fluid>
+      <BRow class="justify-content-md-center py-2">
+        <BCol
           col
           md="12"
         >
           <h3>Manage Variation Ontology</h3>
-          <b-card
+          <BCard
             body-class="p-0"
             header-class="p-1"
             border-variant="dark"
           >
-            <b-spinner
+            <BSpinner
               v-if="isLoading"
               label="Loading..."
               class="m-5"
@@ -41,33 +41,30 @@
               v-else
               :items="ontologies"
               :fields="fields"
-              :sort-by.sync="sortBy"
-              :sort-desc.sync="sortDesc"
+              :sort-by="sortBy"
+              @update:sort-by="handleSortByUpdate"
             >
               <!-- Custom slot for the 'actions' column -->
               <template v-slot:cell-actions="{ row }">
                 <div>
-                  <b-button
+                  <BButton
                     v-b-tooltip.hover.top
                     size="sm"
                     class="me-1 btn-xs"
                     title="Edit ontology"
                     @click="editOntology(row, $event.target)"
                   >
-                    <b-icon
-                      icon="pen"
-                      font-scale="0.9"
-                    />
-                  </b-button>
+                    <i class="bi bi-pen" />
+                  </BButton>
                 </div>
               </template>
             </GenericTable>
-          </b-card>
-        </b-col>
-      </b-row>
+          </BCard>
+        </BCol>
+      </BRow>
 
       <!-- Update Ontology Modal -->
-      <b-modal
+      <BModal
         :id="updateOntologyModal.id"
         title="Update Ontology"
         ok-title="Update"
@@ -75,44 +72,44 @@
         cancel-title="Cancel"
         @ok="updateOntologyData"
       >
-        <b-form @submit.prevent="updateOntologyData">
+        <BForm @submit.prevent="updateOntologyData">
           <!-- Display vario_id as a read-only text field -->
-          <b-form-group
+          <BFormGroup
             label="Vario ID:"
             label-for="input-vario_id"
           >
-            <b-form-input
+            <BFormInput
               id="input-vario_id"
               v-model="ontologyToUpdate.vario_id"
               readonly
             />
-          </b-form-group>
+          </BFormGroup>
           <!-- Display update_date as a read-only text field -->
-          <b-form-group
+          <BFormGroup
             label="Last Update:"
             label-for="input-update_date"
           >
-            <b-form-input
+            <BFormInput
               id="input-update_date"
               v-model="ontologyToUpdate.update_date"
               readonly
             />
-          </b-form-group>
+          </BFormGroup>
           <!-- Dynamically create form inputs for each editable ontology attribute -->
-          <b-form-group
+          <BFormGroup
             v-for="field in editableFields"
             :key="field.key"
             :label="field.label + ':'"
             :label-for="'input-' + field.key"
           >
-            <b-form-input
+            <BFormInput
               :id="'input-' + field.key"
               v-model="ontologyToUpdate[field.key]"
             />
-          </b-form-group>
-        </b-form>
-      </b-modal>
-    </b-container>
+          </BFormGroup>
+        </BForm>
+      </BModal>
+    </BContainer>
   </div>
 </template>
 
@@ -190,8 +187,8 @@ export default {
         },
       ],
       isLoading: false,
-      sortBy: 'vario_id',
-      sortDesc: false,
+      // Bootstrap-Vue-Next uses array-based sortBy format
+      sortBy: [{ key: 'vario_id', order: 'asc' }],
       ontologyToUpdate: {},
       updateOntologyModal: {
         id: 'update-ontology-modal',
@@ -290,6 +287,13 @@ export default {
       hideModal(this.updateOntologyModal.id);
       // Reset the ontologyToUpdate object
       this.ontologyToUpdate = {};
+    },
+    /**
+     * Handles sortBy updates from Bootstrap-Vue-Next GenericTable
+     * @param {Array} newSortBy - Array of sort objects [{key, order}]
+     */
+    handleSortByUpdate(newSortBy) {
+      this.sortBy = newSortBy;
     },
   },
 };

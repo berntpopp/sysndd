@@ -2,10 +2,11 @@ import { useToast } from 'bootstrap-vue-next';
 
 /**
  * Composable for toast notifications using Bootstrap-Vue-Next
+ * Must be called within setup() context
  * @returns {Object} Toast notification methods
  */
 export default function useToastNotifications() {
-  const { show } = useToast();
+  const toast = useToast();
 
   /**
    * Show a toast notification
@@ -18,14 +19,12 @@ export default function useToastNotifications() {
   const makeToast = (message, title = null, variant = null, autoHide = true, autoHideDelay = 3000) => {
     const body = typeof message === 'object' && message.message ? message.message : message;
 
-    show({
-      props: {
-        title,
-        body,
-        variant,
-        pos: 'top-end',
-        value: autoHide ? autoHideDelay : 0, // 0 means no auto-hide
-      },
+    toast.create({
+      title,
+      body,
+      variant,
+      pos: 'top-end',
+      modelValue: autoHide ? autoHideDelay : 0, // 0 means no auto-hide
     });
   };
 

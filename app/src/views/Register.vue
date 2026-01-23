@@ -101,7 +101,10 @@
                     >
                       I accept the terms and use
                     </BFormCheckbox>
-                    <BFormInvalidFeedback v-if="termsError" class="d-block">
+                    <BFormInvalidFeedback
+                      v-if="termsError"
+                      class="d-block"
+                    >
                       {{ termsError }}
                     </BFormInvalidFeedback>
                   </BFormGroup>
@@ -129,11 +132,7 @@
 
               <template #overlay>
                 <div class="text-center">
-                  <BIcon
-                    icon="clipboard-check"
-                    font-scale="3"
-                    animation="cylon"
-                  />
+                  <i class="bi bi-clipboard-check fs-1" />
                   <p>Request send. Redirecting now...</p>
                 </div>
               </template>

@@ -21,10 +21,10 @@
  * @method createInternetArchiveSnapshot - Creates a snapshot of the URL using the Internet Archive API.
  */
 <template>
-  <b-container fluid>
+  <BContainer fluid>
     <!-- https://stackoverflow.com/questions/64487119/how-to-style-the-button-in-bootstrap-vue-dropdown-like-a-circle
    style based on https://codepen.io/Akrinu10/pen/vQJMVB -->
-    <b-dropdown
+    <BDropdown
       v-b-tooltip.hover.left
       variant="primary"
       toggle-class="rounded-circle px-2"
@@ -34,24 +34,18 @@
       title="Help us improve this page. We value your feedback."
     >
       <template #button-content>
-        <b-icon
-          icon="emoji-smile"
-          scale="1"
-        />
+        <i class="bi bi-emoji-smile" />
       </template>
 
-      <b-dropdown-item
+      <BDropdownItem
         v-b-tooltip.hover.left
         title="Cite this page."
         @click="copyURLCitation(path)"
       >
-        <b-icon
-          icon="chat-left-quote-fill"
-          scale="1"
-        />
-      </b-dropdown-item>
+        <i class="bi bi-chat-left-quote-fill" />
+      </BDropdownItem>
 
-      <b-dropdown-item
+      <BDropdownItem
         v-b-tooltip.hover.left
         title="Fill out our form and tell us why you like this entry."
         :href="
@@ -60,13 +54,10 @@
         "
         target="_blank"
       >
-        <b-icon
-          icon="hand-thumbs-up"
-          scale="1"
-        />
-      </b-dropdown-item>
+        <i class="bi bi-hand-thumbs-up" />
+      </BDropdownItem>
 
-      <b-dropdown-item
+      <BDropdownItem
         v-b-tooltip.hover.left
         title="Fill out our form and tell us how to improve this entry."
         :href="
@@ -75,37 +66,28 @@
         "
         target="_blank"
       >
-        <b-icon
-          icon="hand-thumbs-down"
-          scale="1"
-        />
-      </b-dropdown-item>
+        <i class="bi bi-hand-thumbs-down" />
+      </BDropdownItem>
 
-      <b-dropdown-item
+      <BDropdownItem
         v-b-tooltip.hover.left
         title="View our documentation."
         href="https://berntpopp.github.io/sysndd/"
         target="_blank"
       >
-        <b-icon
-          icon="book-fill"
-          scale="1"
-        />
-      </b-dropdown-item>
+        <i class="bi bi-book-fill" />
+      </BDropdownItem>
 
-      <b-dropdown-item
+      <BDropdownItem
         v-b-tooltip.hover.left
         title="Get help on our GitHub discussions page."
         href="https://github.com/berntpopp/sysndd/discussions"
         target="_blank"
       >
-        <b-icon
-          icon="question-circle-fill"
-          scale="1"
-        />
-      </b-dropdown-item>
-    </b-dropdown>
-  </b-container>
+        <i class="bi bi-question-circle-fill" />
+      </BDropdownItem>
+    </BDropdown>
+  </BContainer>
 </template>
 
 <script>

@@ -19,16 +19,14 @@
       :options="search_keys"
     />
 
-    <BInputGroupAppend>
-      <BButton
-        :variant="inNavbar ? 'outline-primary' : 'outline-dark'"
-        :size="inNavbar ? 'sm' : 'md'"
-        :disabled="search_input.length < 2"
-        @click="handleSearchInputKeydown"
-      >
-        <BIcon icon="search" />
-      </BButton>
-    </BInputGroupAppend>
+    <BButton
+      :variant="inNavbar ? 'outline-primary' : 'outline-dark'"
+      :size="inNavbar ? 'sm' : 'md'"
+      :disabled="search_input.length < 2"
+      @click="handleSearchInputKeydown"
+    >
+      <i class="bi bi-search" />
+    </BButton>
   </BInputGroup>
 </template>
 

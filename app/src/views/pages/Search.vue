@@ -1,21 +1,21 @@
 <template>
   <div class="container-fluid bg-gradient">
-    <b-spinner
+    <BSpinner
       v-if="loading"
       label="Loading..."
       class="float-center m-5"
     />
-    <b-container
+    <BContainer
       v-else
       fluid
     >
-      <b-row class="justify-content-md-center py-2">
-        <b-col
+      <BRow class="justify-content-md-center py-2">
+        <BCol
           col
           md="8"
         >
           <!-- Gene overview card -->
-          <b-card
+          <BCard
             header-tag="header"
             class="my-3 text-start"
             body-class="p-0"
@@ -25,47 +25,47 @@
             <template #header>
               <h3 class="mb-1 text-start font-weight-bold">
                 Top results for your search term:
-                <b-badge variant="dark">
+                <BBadge variant="dark">
                   {{ $route.params.search_term }}
-                </b-badge>
+                </BBadge>
               </h3>
             </template>
 
-            <b-table
+            <BTable
               :items="search"
               :fields="search_fields"
               small
             >
               <template #cell(results)="data">
-                <b-link :href="data.item.link">
+                <BLink :href="data.item.link">
                   <div>
-                    <b-badge
+                    <BBadge
                       :variant="result_variant[data.item.search]"
                       style="cursor: pointer"
                     >
                       {{ data.item.results }}
-                    </b-badge>
+                    </BBadge>
                   </div>
-                </b-link>
+                </BLink>
               </template>
 
               <template #cell(entity_id)="data">
                 <div>
-                  <b-link :href="'/Entities/' + data.item.entity_id">
-                    <b-badge
+                  <BLink :href="'/Entities/' + data.item.entity_id">
+                    <BBadge
                       variant="primary"
                       style="cursor: pointer"
                     >
                       sysndd:{{ data.item.entity_id }}
-                    </b-badge>
-                  </b-link>
+                    </BBadge>
+                  </BLink>
                 </div>
               </template>
-            </b-table>
-          </b-card>
-        </b-col>
-      </b-row>
-    </b-container>
+            </BTable>
+          </BCard>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 

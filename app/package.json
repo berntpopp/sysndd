@@ -10,12 +10,13 @@
     "start": "vue-cli-service serve --open"
   },
   "dependencies": {
-    "@r2rka/vue3-treeselect": "^0.2.4",
     "@unhead/vue": "^2.1.2",
     "@upsetjs/bundle": "^1.11.0",
     "@vee-validate/rules": "^4.15.1",
     "@vue/compat": "^3.5.25",
+    "@zanmato/vue3-treeselect": "^0.4.2",
     "bootstrap": "^5.3.8",
+    "bootstrap-icons": "^1.13.1",
     "bootstrap-vue": "^2.21.2",
     "bootstrap-vue-next": "^0.42.0",
     "core-js": "^3.6.5",

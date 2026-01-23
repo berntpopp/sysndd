@@ -1,56 +1,56 @@
 <!-- views/analyses/PublicationsNDD.vue -->
 <template>
   <div class="container-fluid bg-gradient">
-    <b-container fluid>
-      <b-row class="justify-content-md-center py-2">
-        <b-col md="12">
-          <b-card
+    <BContainer fluid>
+      <BRow class="justify-content-md-center py-2">
+        <BCol md="12">
+          <BCard
             title="NDD Publications"
             no-body
           >
             <!-- Card Header with tabs -->
-            <b-card-header header-tag="nav">
-              <b-nav
+            <BCardHeader header-tag="nav">
+              <BNav
                 card-header
                 tabs
               >
                 <!-- 1) All Publications Child -->
-                <b-nav-item
+                <BNavItem
                   :to="{ name: 'PublicationsNDDTable' }"
                   exact
                   exact-active-class="active"
                 >
                   SysNDD Curated
-                </b-nav-item>
+                </BNavItem>
 
                 <!-- 2) Time Plot Child -->
-                <b-nav-item
+                <BNavItem
                   :to="{ name: 'PublicationsNDDTimePlot' }"
                   exact
                   exact-active-class="active"
                 >
                   Time Plot
-                </b-nav-item>
+                </BNavItem>
 
                 <!-- 3) Stats Child -->
-                <b-nav-item
+                <BNavItem
                   :to="{ name: 'PublicationsNDDStats' }"
                   exact
                   exact-active-class="active"
                 >
                   Stats
-                </b-nav-item>
-              </b-nav>
-            </b-card-header>
+                </BNavItem>
+              </BNav>
+            </BCardHeader>
 
             <!-- Card Body where the child routes are rendered -->
-            <b-card-body>
+            <BCardBody>
               <router-view />
-            </b-card-body>
-          </b-card>
-        </b-col>
-      </b-row>
-    </b-container>
+            </BCardBody>
+          </BCard>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 

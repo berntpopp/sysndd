@@ -1,17 +1,17 @@
 <template>
   <div class="container-fluid">
-    <b-container
+    <BContainer
       fluid
     >
-      <b-row class="justify-content-md-center py-2">
-        <b-col
+      <BRow class="justify-content-md-center py-2">
+        <BCol
           col
           md="10"
         >
           <h3>Manage about page</h3>
-        </b-col>
-      </b-row>
-    </b-container>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 

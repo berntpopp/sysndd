@@ -1,16 +1,16 @@
 <template>
   <div class="container-fluid">
-    <b-spinner
+    <BSpinner
       v-if="loading"
       label="Loading..."
       class="float-center m-5"
     />
-    <b-container
+    <BContainer
       v-else
       fluid
     >
-      <b-row class="justify-content-md-center py-2">
-        <b-col
+      <BRow class="justify-content-md-center py-2">
+        <BCol
           col
           md="8"
         >
@@ -18,87 +18,87 @@
             class="accordion"
             role="tablist"
           >
-            <b-card
+            <BCard
               no-body
               class="mb-1"
             >
-              <b-card-header
+              <BCardHeader
                 header-tag="header"
                 class="p-1"
                 role="tab"
               >
-                <b-button
+                <BButton
                   v-b-toggle.accordion-6
                   block
                   variant="info"
                   class="text-start"
                 >
                   Instructions
-                </b-button>
-              </b-card-header>
-              <b-collapse
+                </BButton>
+              </BCardHeader>
+              <BCollapse
                 id="accordion-6"
                 visible
                 accordion="my-accordion"
                 role="tabpanel"
               >
-                <b-card-body>
-                  <b-container
+                <BCardBody>
+                  <BContainer
                     fluid="sm"
                     class="text-start py-2"
                   >
-                    <b-row>
-                      <b-col md="12">
+                    <BRow>
+                      <BCol md="12">
                         <span class="font-weight-bold">
                           1. Curation criteria
                         </span>
-                      </b-col>
-                    </b-row>
-                    <b-row>
-                      <b-col md="12">
-                        Please read the Curation criteria at <b-link href="https://berntpopp.github.io/sysndd/curation-criteria.html">
+                      </BCol>
+                    </BRow>
+                    <BRow>
+                      <BCol md="12">
+                        Please read the Curation criteria at <BLink href="https://berntpopp.github.io/sysndd/curation-criteria.html">
                           The SysNDD Documentation - Chapter | 5 Curation criteria
-                        </b-link>.<br><br>
-                      </b-col>
-                    </b-row>
+                        </BLink>.<br><br>
+                      </BCol>
+                    </BRow>
 
-                    <b-row>
-                      <b-col md="12">
+                    <BRow>
+                      <BCol md="12">
                         <span class="font-weight-bold">
                           2. Re-review instructions
                         </span>
-                      </b-col>
-                    </b-row>
-                    <b-row>
-                      <b-col md="12">
-                        Please read the Re-review instructions at <b-link href="https://berntpopp.github.io/sysndd/re-review-instructions.html">
+                      </BCol>
+                    </BRow>
+                    <BRow>
+                      <BCol md="12">
+                        Please read the Re-review instructions at <BLink href="https://berntpopp.github.io/sysndd/re-review-instructions.html">
                           The SysNDD Documentation - Chapter | 6 Re-review instructions
-                        </b-link>.<br><br>
-                      </b-col>
-                    </b-row>
+                        </BLink>.<br><br>
+                      </BCol>
+                    </BRow>
 
-                    <b-row>
-                      <b-col md="12">
+                    <BRow>
+                      <BCol md="12">
                         <span class="font-weight-bold">
                           3. Tutorial videos
                         </span>
-                      </b-col>
-                    </b-row>
-                    <b-row>
-                      <b-col md="12">
-                        Please watch the tutorial videos at l<b-link href="https://berntpopp.github.io/sysndd/tutorial-videos.htm">
+                      </BCol>
+                    </BRow>
+                    <BRow>
+                      <BCol md="12">
+                        Please watch the tutorial videos at l<BLink href="https://berntpopp.github.io/sysndd/tutorial-videos.htm">
                           The SysNDD Documentation - Chapter | 7 Tutorial videos
-                        </b-link>.<br><br>
-                      </b-col>
-                    </b-row>
-                  </b-container>
-                </b-card-body>
-              </b-collapse>
-            </b-card>
+                        </BLink>.<br><br>
+                      </BCol>
+                    </BRow>
+                  </BContainer>
+                </BCardBody>
+              </BCollapse>
+            </BCard>
           </div>
-        </b-col>
-      </b-row>
-    </b-container>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 

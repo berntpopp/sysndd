@@ -27,16 +27,14 @@
 </template>
 
 <script>
-import { BApp } from 'bootstrap-vue-next';
+import { provide } from 'vue';
 import { useHead } from '@unhead/vue';
+import { useToast } from 'bootstrap-vue-next';
 import { useUiStore } from '@/stores/ui';
 import { mapState } from 'pinia';
 
 export default {
   name: 'SysNDD',
-  components: {
-    BApp,
-  },
   setup() {
     useHead({
       title: 'SysNDD',
@@ -52,6 +50,10 @@ export default {
         },
       ],
     });
+
+    // Initialize toast and provide to all child components
+    const toast = useToast();
+    provide('toast', toast);
   },
   computed: {
     ...mapState(useUiStore, ['scrollbarUpdateTrigger']),

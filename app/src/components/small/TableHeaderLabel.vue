@@ -3,13 +3,13 @@
   <div>
     <h4 class="mb-1 text-start font-weight-bold">
       {{ label }}
-      <b-badge
+      <BBadge
         v-b-tooltip.hover.bottom
         variant="primary"
         :title="toolTipTitle"
       >
         {{ subtitle }}
-      </b-badge>
+      </BBadge>
     </h4>
   </div>
 </template>

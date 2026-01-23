@@ -3,7 +3,7 @@
 <template>
   <div class="download-buttons">
     <!-- Download CSV Button -->
-    <b-button
+    <BButton
       v-b-tooltip.hover.bottom
       class="download-button"
       size="sm"
@@ -11,24 +11,21 @@
       :disabled="downloading"
       @click="$emit('request-excel')"
     >
-      <b-icon
-        icon="table"
-        class="mx-1"
-      />
-      <b-icon
+      <i class="bi bi-table mx-1" />
+      <i
         v-if="!downloading"
-        icon="download"
+        class="bi bi-download"
       />
-      <b-spinner
+      <BSpinner
         v-if="downloading"
         small
       />
       .xlsx
-    </b-button>
+    </BButton>
     <!-- Download CSV Button -->
 
     <!-- Copy Link Button -->
-    <b-button
+    <BButton
       v-b-tooltip.hover.bottom
       class="download-button"
       size="sm"
@@ -36,15 +33,12 @@
       variant="success"
       @click="$emit('copy-link')"
     >
-      <b-icon
-        icon="link"
-        font-scale="1.0"
-      />
-    </b-button>
+      <i class="bi bi-link" />
+    </BButton>
     <!-- Copy Link Button -->
 
     <!-- Remove Filters Button -->
-    <b-button
+    <BButton
       v-b-tooltip.hover.bottom
       class="download-button"
       size="sm"
@@ -52,11 +46,8 @@
       :variant="removeFiltersVariant"
       @click="$emit('remove-filters')"
     >
-      <b-icon
-        icon="filter"
-        font-scale="1.0"
-      />
-    </b-button>
+      <i class="bi bi-filter" />
+    </BButton>
     <!-- Remove Filters Button -->
   </div>
 </template>

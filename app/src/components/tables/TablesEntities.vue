@@ -1,37 +1,37 @@
 <!-- components/tables/TablesEntities.vue -->
 <template>
   <div class="container-fluid">
-    <b-spinner
+    <BSpinner
       v-if="loading"
       label="Loading..."
       class="float-center m-5"
     />
-    <b-container
+    <BContainer
       v-else
       fluid
     >
-      <b-row class="justify-content-md-center py-2">
-        <b-col
+      <BRow class="justify-content-md-center py-2">
+        <BCol
           col
           md="12"
         >
           <!-- User Interface controls -->
-          <b-card
+          <BCard
             header-tag="header"
             body-class="p-0"
             header-class="p-1"
             border-variant="dark"
           >
             <template #header>
-              <b-row>
-                <b-col>
+              <BRow>
+                <BCol>
                   <TableHeaderLabel
                     :label="headerLabel"
                     :subtitle="'Entities: ' + totalRows"
                     :tool-tip-title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
                   />
-                </b-col>
-                <b-col>
+                </BCol>
+                <BCol>
                   <h5
                     v-if="showFilterControls"
                     class="mb-1 text-end font-weight-bold"
@@ -45,12 +45,12 @@
                       @remove-filters="removeFilters"
                     />
                   </h5>
-                </b-col>
-              </b-row>
+                </BCol>
+              </BRow>
             </template>
 
-            <b-row>
-              <b-col
+            <BRow>
+              <BCol
                 class="my-1"
                 sm="8"
               >
@@ -60,13 +60,13 @@
                   :debounce-time="500"
                   @input="filtered"
                 />
-              </b-col>
+              </BCol>
 
-              <b-col
+              <BCol
                 class="my-1"
                 sm="4"
               >
-                <b-container
+                <BContainer
                   v-if="totalRows > perPage || showPaginationControls"
                 >
                   <TablePaginationControls
@@ -76,9 +76,9 @@
                     @page-change="handlePageChange"
                     @per-page-change="handlePerPageChange"
                   />
-                </b-container>
-              </b-col>
-            </b-row>
+                </BContainer>
+              </BCol>
+            </BRow>
             <!-- User Interface controls -->
 
             <!-- Main table element -->
@@ -98,7 +98,7 @@
                   v-for="field in fields"
                   :key="field.key"
                 >
-                  <b-form-input
+                  <BFormInput
                     v-if="field.filterable"
                     v-model="filter[field.key].content"
                     :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
@@ -109,79 +109,86 @@
                     @update="filtered()"
                   />
 
-                  <b-form-select
-                    v-if="field.selectable"
+                  <BFormSelect
+                    v-if="field.selectable && field.selectOptions && field.selectOptions.length > 0"
                     v-model="filter[field.key].content"
                     :options="field.selectOptions"
-                    type="search"
+                    size="sm"
                     @input="removeSearch()"
                     @change="filtered()"
                   >
                     <template v-slot:first>
-                      <b-form-select-option value="null">
+                      <BFormSelectOption value="null">
                         .. {{ truncate(field.label, 20) }} ..
-                      </b-form-select-option>
+                      </BFormSelectOption>
                     </template>
-                  </b-form-select>
+                  </BFormSelect>
+                  <BSpinner
+                    v-else-if="field.selectable && (!field.selectOptions || field.selectOptions.length === 0)"
+                    small
+                    label="Loading..."
+                  />
 
-                  <label
-                    v-if="field.multi_selectable"
-                    :for="'select_' + field.key"
-                    :aria-label="field.label"
+                  <!-- Multi-select: temporarily use BFormSelect instead of treeselect for compatibility -->
+                  <BFormSelect
+                    v-if="field.multi_selectable && field.selectOptions && field.selectOptions.length > 0"
+                    v-model="filter[field.key].content"
+                    :options="normalizeSelectOptions(field.selectOptions)"
+                    size="sm"
+                    @change="removeSearch();filtered();"
                   >
-                    <treeselect
-                      v-if="field.multi_selectable"
-                      :id="'select_' + field.key"
-                      v-model="filter[field.key].content"
-                      size="small"
-                      :multiple="true"
-                      :options="field.selectOptions"
-                      :normalizer="normalizer"
-                      :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
-                      @input="removeSearch();filtered();"
-                    />
-                  </label>
+                    <template v-slot:first>
+                      <BFormSelectOption :value="null">
+                        .. {{ truncate(field.label, 20) }} ..
+                      </BFormSelectOption>
+                    </template>
+                  </BFormSelect>
+                  <BSpinner
+                    v-else-if="field.multi_selectable && (!field.selectOptions || field.selectOptions.length === 0)"
+                    small
+                    label="Loading..."
+                  />
                 </td>
               </template>
               <!-- Custom filter fields slot -->
 
               <template v-slot:cell-entity_id="{ row }">
                 <div>
-                  <b-link :href="'/Entities/' + row.entity_id">
-                    <b-badge
+                  <BLink :href="'/Entities/' + row.entity_id">
+                    <BBadge
                       variant="primary"
                       style="cursor: pointer"
                     >
                       sysndd:{{ row.entity_id }}
-                    </b-badge>
-                  </b-link>
+                    </BBadge>
+                  </BLink>
                 </div>
               </template>
 
               <template v-slot:cell-symbol="{ row }">
                 <div class="font-italic">
-                  <b-link :href="'/Genes/' + row.hgnc_id">
-                    <b-badge
+                  <BLink :href="'/Genes/' + row.hgnc_id">
+                    <BBadge
                       v-b-tooltip.hover.leftbottom
                       pill
                       variant="success"
                       :title="row.hgnc_id"
                     >
                       {{ row.symbol }}
-                    </b-badge>
-                  </b-link>
+                    </BBadge>
+                  </BLink>
                 </div>
               </template>
 
               <template v-slot:cell-disease_ontology_name="{ row }">
                 <div class="overflow-hidden text-truncate">
-                  <b-link
+                  <BLink
                     :href="
                       '/Ontology/' +
                         row.disease_ontology_id_version.replace(/_.+/g, '')
                     "
                   >
-                    <b-badge
+                    <BBadge
                       v-b-tooltip.hover.leftbottom
                       pill
                       variant="secondary"
@@ -192,15 +199,15 @@
                       "
                     >
                       {{ row.disease_ontology_name }}
-                    </b-badge>
-                  </b-link>
+                    </BBadge>
+                  </BLink>
                 </div>
               </template>
 
               <!-- Custom slot for the 'hpo_mode_of_inheritance_term_name' column -->
               <template v-slot:cell-hpo_mode_of_inheritance_term_name="{ row }">
                 <div>
-                  <b-badge
+                  <BBadge
                     v-b-tooltip.hover.leftbottom
                     pill
                     variant="info"
@@ -218,38 +225,49 @@
                         row.hpo_mode_of_inheritance_term_name
                       ]
                     }}
-                  </b-badge>
+                  </BBadge>
                 </div>
               </template>
 
               <!-- Custom slot for the 'ndd_phenotype_word' column -->
               <template v-slot:cell-ndd_phenotype_word="{ row }">
-                <b-avatar
+                <span
                   v-b-tooltip.hover.left
-                  size="1.4em"
-                  :icon="ndd_icon[row.ndd_phenotype_word]"
-                  :variant="ndd_icon_style[row.ndd_phenotype_word]"
+                  class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                  :class="'bg-' + ndd_icon_style[row.ndd_phenotype_word]"
                   :title="ndd_icon_text[row.ndd_phenotype_word]"
-                />
+                  style="width: 1.5em; height: 1.5em;"
+                >
+                  <i
+                    :class="'bi bi-' + ndd_icon[row.ndd_phenotype_word]"
+                    class="text-white"
+                    style="font-size: 0.9em;"
+                  />
+                </span>
               </template>
 
               <!-- Custom slot for the 'category' column -->
               <template v-slot:cell-category="{ row }">
-                <b-avatar
+                <span
                   v-b-tooltip.hover.left
-                  size="1.4em"
-                  icon="stoplights"
-                  :variant="stoplights_style[row.category]"
+                  class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                  :class="'bg-' + stoplights_style[row.category]"
                   :title="row.category"
-                />
+                  style="width: 1.5em; height: 1.5em;"
+                >
+                  <i
+                    class="bi bi-stoplights-fill text-white"
+                    style="font-size: 0.8em;"
+                  />
+                </span>
               </template>
               <!-- Custom slot for the 'category' column -->
             </GenericTable>
             <!-- Main table element -->
-          </b-card>
-        </b-col>
-      </b-row>
-    </b-container>
+          </BCard>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 
@@ -274,10 +292,10 @@
  * />
  */
 
-// import the Treeselect component
-import Treeselect from '@r2rka/vue3-treeselect';
-// import the Treeselect styles
-import '@r2rka/vue3-treeselect/dist/style.css';
+// Treeselect temporarily disabled due to Vue 3 compatibility issues
+// TODO: Re-enable when vue3-treeselect compatibility is fixed
+// import Treeselect from '@zanmato/vue3-treeselect';
+// import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
 
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
@@ -303,10 +321,10 @@ import { useUiStore } from '@/stores/ui';
 
 export default {
   name: 'TablesEntities',
-  // register the Treeselect component
   components: {
     // Components used within TablesEntities
-    Treeselect, TablePaginationControls, TableDownloadLinkCopyButtons, TableHeaderLabel, TableSearchInput, GenericTable,
+    // Treeselect temporarily disabled
+    TablePaginationControls, TableDownloadLinkCopyButtons, TableHeaderLabel, TableSearchInput, GenericTable,
   },
   mixins: [
     // Mixins used within TablesEntities
@@ -412,9 +430,12 @@ export default {
     };
   },
   watch: {
-    // Watch for filter changes
-    filter(value) {
-      this.filtered();
+    // Watch for filter changes (deep required for Vue 3 behavior)
+    filter: {
+      handler(value) {
+        this.filtered();
+      },
+      deep: true,
     },
     // Watch for sortBy changes (deep watch for array)
     sortBy: {
@@ -489,6 +510,26 @@ export default {
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
+    },
+    /**
+     * Normalize select options for BFormSelect
+     * Converts simple string arrays to { value, text } format
+     * @param {Array} options - Array of option values
+     * @returns {Array} - Array of { value, text } objects
+     */
+    normalizeSelectOptions(options) {
+      if (!options || !Array.isArray(options)) {
+        return [];
+      }
+      return options.map((opt) => {
+        if (typeof opt === 'string') {
+          return { value: opt, text: opt };
+        }
+        if (typeof opt === 'object' && opt !== null) {
+          return { value: opt.value || opt.id || opt, text: opt.text || opt.label || opt.name || opt };
+        }
+        return { value: opt, text: String(opt) };
+      });
     },
   },
 };

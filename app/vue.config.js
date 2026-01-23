@@ -3,6 +3,8 @@
 // Will be removed entirely in Phase 11 (Bootstrap-Vue-Next migration)
 // const BootstrapVueLoader = require('bootstrap-vue-loader');
 
+const webpack = require('webpack');
+
 // based on https://www.npmjs.com/package/vue-cli-plugin-sitemap#installation
 // NOTE: esm package not compatible with Node.js 18+, using dynamic import instead
 let routes = [];
@@ -21,7 +23,14 @@ try {
 // module in webpack for pinia import based on: https://github.com/vuejs/pinia/issues/675
 module.exports = {
   configureWebpack: {
-    plugins: [],
+    plugins: [
+      // Vue 3 feature flags for proper tree-shaking
+      new webpack.DefinePlugin({
+        __VUE_OPTIONS_API__: true,
+        __VUE_PROD_DEVTOOLS__: false,
+        __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
+      }),
+    ],
     resolve: {
       alias: {
         vue: '@vue/compat',
@@ -151,27 +160,23 @@ module.exports = {
     config.module
       .rule('vue')
       .use('vue-loader')
-      .tap((options) => {
-        return {
-          ...options,
-          compilerOptions: {
-            compatConfig: {
-              MODE: 2  // Vue 2 mode - maximum compatibility
-            }
-          }
-        };
-      });
+      .tap((options) => ({
+        ...options,
+        compilerOptions: {
+          compatConfig: {
+            MODE: 2, // Vue 2 mode - maximum compatibility
+          },
+        },
+      }));
 
     // Configure babel-loader cache to use /tmp to avoid permission issues
     config.module
       .rule('js')
       .use('babel-loader')
-      .tap((options) => {
-        return {
-          ...options,
-          cacheDirectory: '/tmp/babel-cache',
-        };
-      });
+      .tap((options) => ({
+        ...options,
+        cacheDirectory: '/tmp/babel-cache',
+      }));
   },
   css: {
     loaderOptions: {

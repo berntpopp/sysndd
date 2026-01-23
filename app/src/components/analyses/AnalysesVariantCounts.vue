@@ -1,7 +1,7 @@
 <template>
-  <b-container fluid>
+  <BContainer fluid>
     <!-- User Interface controls -->
-    <b-card
+    <BCard
       header-tag="header"
       body-class="p-0"
       header-class="p-1"
@@ -17,15 +17,15 @@
             >
               variant counts
             </mark>.
-            <b-badge
+            <BBadge
               id="popover-badge-help-variant-counts"
               pill
               href="#"
               variant="info"
             >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
-            <b-popover
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
+            <BPopover
               target="popover-badge-help-variant-counts"
               variant="info"
               triggers="focus"
@@ -35,7 +35,7 @@
               </template>
               This bar plot displays the counts of different variants observed in the data set.
               The x-axis represents the different variants, and the y-axis shows the count of each variant.
-            </b-popover>
+            </BPopover>
           </h6>
           <DownloadImageButtons
             :svg-id="'variant-svg'"
@@ -46,7 +46,7 @@
 
       <!-- Content with overlay spinner -->
       <div class="position-relative">
-        <b-spinner
+        <BSpinner
           v-if="loadingCount"
           label="Loading..."
           class="spinner"
@@ -57,9 +57,9 @@
           class="svg-container"
         />
       </div>
-    </b-card>
+    </BCard>
     <!-- User Interface controls -->
-  </b-container>
+  </BContainer>
 </template>
 
 <script>

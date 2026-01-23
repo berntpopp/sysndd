@@ -24,6 +24,7 @@ export default {
         Moderate: 'primary',
         Limited: 'warning',
         Refuted: 'danger',
+        'not applicable': 'secondary',
       },
       /**
        * Style definitions for saved status.

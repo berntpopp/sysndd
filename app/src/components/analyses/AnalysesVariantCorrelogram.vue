@@ -1,7 +1,7 @@
 <template>
-  <b-container fluid>
+  <BContainer fluid>
     <!-- User Interface controls -->
-    <b-card
+    <BCard
       header-tag="header"
       body-class="p-0"
       header-class="p-1"
@@ -17,15 +17,15 @@
             >
               variant correlations
             </mark>.
-            <b-badge
+            <BBadge
               id="popover-badge-help-variant"
               pill
               href="#"
               variant="info"
             >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
-            <b-popover
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
+            <BPopover
               target="popover-badge-help-variant"
               variant="info"
               triggers="focus"
@@ -41,7 +41,7 @@
                 <li><strong>White:</strong> No correlation</li>
               </ul>
               Click on the cells to explore the detailed variant relationships.
-            </b-popover>
+            </BPopover>
           </h6>
           <DownloadImageButtons
             :svg-id="'matrix-svg'"
@@ -52,7 +52,7 @@
 
       <!-- Content with overlay spinner -->
       <div class="position-relative">
-        <b-spinner
+        <BSpinner
           v-if="loadingMatrix"
           label="Loading..."
           class="spinner"
@@ -63,8 +63,8 @@
           class="svg-container"
         />
       </div>
-    </b-card>
-  </b-container>
+    </BCard>
+  </BContainer>
 </template>
 
 <script>

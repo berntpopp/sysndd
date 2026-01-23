@@ -3,7 +3,6 @@
   <BTable
     :items="items"
     :fields="fields"
-    :current-page="currentPage"
     :busy="isBusy"
     :sort-by="localSortBy"
     stacked="md"
@@ -15,52 +14,78 @@
     hover
     sort-icon-left
     no-local-sorting
-    no-local-pagination
     @update:sort-by="handleSortByUpdate"
   >
     <!-- Slot for custom filter fields -->
-    <template #top-row>
-      <slot name="filter-controls" />
+    <!-- Bootstrap-Vue-Next uses #thead-top instead of #top-row -->
+    <template #thead-top>
+      <tr v-if="$slots['filter-controls']">
+        <slot name="filter-controls" />
+      </tr>
     </template>
 
     <!-- Entity ID column -->
     <template #cell(entity_id)="data">
-      <slot name="cell-entity_id" :row="data.item" :index="data.index">
+      <slot
+        name="cell-entity_id"
+        :row="data.item"
+        :index="data.index"
+      >
         {{ data.item.entity_id }}
       </slot>
     </template>
 
     <!-- Symbol column -->
     <template #cell(symbol)="data">
-      <slot name="cell-symbol" :row="data.item" :index="data.index">
+      <slot
+        name="cell-symbol"
+        :row="data.item"
+        :index="data.index"
+      >
         {{ data.item.symbol }}
       </slot>
     </template>
 
     <!-- Disease ontology name column -->
     <template #cell(disease_ontology_name)="data">
-      <slot name="cell-disease_ontology_name" :row="data.item" :index="data.index">
+      <slot
+        name="cell-disease_ontology_name"
+        :row="data.item"
+        :index="data.index"
+      >
         {{ data.item.disease_ontology_name }}
       </slot>
     </template>
 
     <!-- HPO mode of inheritance column -->
     <template #cell(hpo_mode_of_inheritance_term_name)="data">
-      <slot name="cell-hpo_mode_of_inheritance_term_name" :row="data.item" :index="data.index">
+      <slot
+        name="cell-hpo_mode_of_inheritance_term_name"
+        :row="data.item"
+        :index="data.index"
+      >
         {{ data.item.hpo_mode_of_inheritance_term_name }}
       </slot>
     </template>
 
     <!-- Category column -->
     <template #cell(category)="data">
-      <slot name="cell-category" :row="data.item" :index="data.index">
+      <slot
+        name="cell-category"
+        :row="data.item"
+        :index="data.index"
+      >
         {{ data.item.category }}
       </slot>
     </template>
 
     <!-- NDD phenotype column -->
     <template #cell(ndd_phenotype_word)="data">
-      <slot name="cell-ndd_phenotype_word" :row="data.item" :index="data.index">
+      <slot
+        name="cell-ndd_phenotype_word"
+        :row="data.item"
+        :index="data.index"
+      >
         {{ data.item.ndd_phenotype_word }}
       </slot>
     </template>
@@ -122,7 +147,8 @@ export default {
       default: false,
     },
     sortBy: {
-      type: Array,
+      // Accept both string (legacy) and array (Bootstrap-Vue-Next) formats
+      type: [String, Array],
       default: () => [],
     },
     sortDesc: {
@@ -132,8 +158,25 @@ export default {
   },
   emits: ['update-sort', 'update:sort-by'],
   computed: {
+    /**
+     * Converts sortBy prop to Bootstrap-Vue-Next array format.
+     * Handles both legacy string format and new array format.
+     * @returns {Array} Array of { key, order } objects
+     */
     localSortBy() {
-      return this.sortBy;
+      // If already an array, return as-is
+      if (Array.isArray(this.sortBy)) {
+        return this.sortBy;
+      }
+      // Convert string to array format for Bootstrap-Vue-Next
+      if (typeof this.sortBy === 'string' && this.sortBy) {
+        return [{
+          key: this.sortBy,
+          order: this.sortDesc ? 'desc' : 'asc',
+        }];
+      }
+      // Default to empty array
+      return [];
     },
   },
   methods: {

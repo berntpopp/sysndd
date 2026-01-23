@@ -1,8 +1,8 @@
 <!-- src/components/analyses/AnalysesCurationMatrixPlot.vue -->
 <template>
-  <b-container fluid>
+  <BContainer fluid>
     <!-- User Interface controls -->
-    <b-card
+    <BCard
       header-tag="header"
       body-class="p-0"
       header-class="p-1"
@@ -17,15 +17,15 @@
               title="This is a measure of similarity between two sequences of numbers used to quantify the similarity between two word lists."
             >cosine similarity</mark>
             between different curation efforts for neurodevelopmental disorders.
-            <b-badge
+            <BBadge
               id="popover-badge-help-similarity"
               pill
               href="#"
               variant="info"
             >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
-            <b-popover
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
+            <BPopover
               target="popover-badge-help-similarity"
               variant="info"
               triggers="focus"
@@ -34,7 +34,7 @@
                 Cosine Similarity Analysis
               </template>
               Cosine similarity measures the cosine of the angle between two non-zero vectors. It is used to calculate the similarity between different curation efforts by comparing their respective gene lists. The values range from -1 (completely dissimilar) to 1 (completely similar), with 0 indicating orthogonality (no similarity).
-            </b-popover>
+            </BPopover>
           </h6>
           <DownloadImageButtons
             :svg-id="'matrix-svg'"
@@ -42,16 +42,16 @@
           />
         </div>
       </template>
-      <b-row>
+      <BRow>
         <!-- column 1 -->
-        <b-col class="my-1" />
+        <BCol class="my-1" />
         <!-- column 2 -->
-        <b-col class="my-1" />
+        <BCol class="my-1" />
         <!-- column 3 -->
-        <b-col class="my-1" />
+        <BCol class="my-1" />
         <!-- column 4 -->
-        <b-col class="my-1" />
-      </b-row>
+        <BCol class="my-1" />
+      </BRow>
       <!-- User Interface controls -->
 
       <!-- Content with overlay spinner -->
@@ -64,14 +64,14 @@
           v-show="loadingMatrix"
           class="float-center m-5"
         >
-          <b-spinner
+          <BSpinner
             label="Loading..."
             class="spinner"
           />
         </div>
       </div>
-    </b-card>
-  </b-container>
+    </BCard>
+  </BContainer>
 </template>
 
 <script>

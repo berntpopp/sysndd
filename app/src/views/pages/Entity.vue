@@ -1,21 +1,21 @@
 <template>
   <div class="container-fluid bg-gradient">
-    <b-spinner
+    <BSpinner
       v-if="loading"
       label="Loading..."
       class="float-center m-5"
     />
-    <b-container
+    <BContainer
       v-else
       fluid
     >
-      <b-row class="justify-content-md-center py-2">
-        <b-col
+      <BRow class="justify-content-md-center py-2">
+        <BCol
           col
           md="12"
         >
           <!-- Entity overview card -->
-          <b-card
+          <BCard
             header-tag="header"
             class="my-3 text-start"
             body-class="p-0"
@@ -25,13 +25,13 @@
             <template #header>
               <h3 class="mb-1 text-start font-weight-bold">
                 Entity:
-                <b-badge variant="primary">
+                <BBadge variant="primary">
                   sysndd:{{ $route.params.entity_id }}
-                </b-badge>
+                </BBadge>
               </h3>
             </template>
 
-            <b-table
+            <BTable
               :items="entity"
               :fields="entity_fields"
               stacked
@@ -41,28 +41,28 @@
             >
               <template #cell(symbol)="data">
                 <div class="overflow-hidden text-truncate font-italic">
-                  <b-link :href="'/Genes/' + data.item.hgnc_id">
-                    <b-badge
+                  <BLink :href="'/Genes/' + data.item.hgnc_id">
+                    <BBadge
                       v-b-tooltip.hover.leftbottom
                       pill
                       variant="success"
                       :title="data.item.hgnc_id"
                     >
                       {{ data.item.symbol }}
-                    </b-badge>
-                  </b-link>
+                    </BBadge>
+                  </BLink>
                 </div>
               </template>
 
               <template #cell(disease_ontology_name)="data">
                 <div class="overflow-hidden text-truncate">
-                  <b-link
+                  <BLink
                     :href="
                       '/Ontology/' +
                         data.item.disease_ontology_id_version.replace(/_.+/g, '')
                     "
                   >
-                    <b-badge
+                    <BBadge
                       v-b-tooltip.hover.leftbottom
                       pill
                       variant="secondary"
@@ -73,11 +73,11 @@
                       "
                     >
                       {{ data.item.disease_ontology_name }}
-                    </b-badge>
-                  </b-link>
+                    </BBadge>
+                  </BLink>
                 </div>
 
-                <b-button
+                <BButton
                   v-if="data.item.disease_ontology_id_version.includes('OMIM')"
                   class="btn-xs mx-2"
                   variant="outline-primary"
@@ -89,16 +89,13 @@
                   "
                   target="_blank"
                 >
-                  <b-icon
-                    icon="box-arrow-up-right"
-                    font-scale="0.8"
-                  />
+                  <i class="bi bi-box-arrow-up-right" />
                   {{
                     data.item.disease_ontology_id_version.replace(/_.+/g, "")
                   }}
-                </b-button>
+                </BButton>
 
-                <b-button
+                <BButton
                   v-if="data.item.disease_ontology_id_version.includes('MONDO')"
                   class="btn-xs mx-2"
                   variant="outline-primary"
@@ -108,17 +105,14 @@
                   "
                   target="_blank"
                 >
-                  <b-icon
-                    icon="box-arrow-up-right"
-                    font-scale="0.8"
-                  />
+                  <i class="bi bi-box-arrow-up-right" />
                   {{ data.item.disease_ontology_id_version }}
-                </b-button>
+                </BButton>
               </template>
 
               <template #cell(hpo_mode_of_inheritance_term_name)="data">
                 <div class="overflow-hidden text-truncate">
-                  <b-badge
+                  <BBadge
                     v-b-tooltip.hover.leftbottom
                     pill
                     variant="info"
@@ -136,24 +130,25 @@
                         data.item.hpo_mode_of_inheritance_term_name
                       ]
                     }}
-                  </b-badge>
+                  </BBadge>
                 </div>
               </template>
 
               <template #cell(ndd_phenotype_word)="data">
                 <div>
-                  <b-avatar
+                  <BAvatar
                     v-b-tooltip.hover.left
                     size="1.4em"
-                    :icon="ndd_icon[data.item.ndd_phenotype_word]"
                     :variant="ndd_icon_style[data.item.ndd_phenotype_word]"
                     :title="ndd_icon_text[data.item.ndd_phenotype_word]"
-                  />
+                  >
+                    <i :class="'bi bi-' + ndd_icon[data.item.ndd_phenotype_word]" />
+                  </BAvatar>
                 </div>
               </template>
-            </b-table>
+            </BTable>
 
-            <b-table
+            <BTable
               :items="status"
               :fields="status_fields"
               stacked
@@ -161,48 +156,49 @@
             >
               <template #cell(category)="data">
                 <div>
-                  <b-avatar
+                  <BAvatar
                     v-b-tooltip.hover.left
                     size="1.4em"
-                    icon="stoplights"
                     :variant="stoplights_style[data.item.category]"
                     :title="data.item.category"
-                  />
+                  >
+                    <i class="bi bi-stoplights" />
+                  </BAvatar>
                 </div>
               </template>
-            </b-table>
+            </BTable>
 
-            <b-table
+            <BTable
               :items="review"
               :fields="review_fields"
               stacked
               small
             >
               <template #cell(synopsis)="data">
-                <b-card
+                <BCard
                   border-variant="dark"
                   align="left"
                 >
-                  <b-card-text>
+                  <BCardText>
                     {{ data.item.synopsis }}
-                  </b-card-text>
-                </b-card>
+                  </BCardText>
+                </BCard>
               </template>
-            </b-table>
+            </BTable>
 
-            <b-table
+            <BTable
               :items="publications_table"
               stacked
               small
             >
               <template #cell(publications)>
-                <b-row>
-                  <b-row
+                <BRow>
+                  <BRow
                     v-for="publication in publications"
                     :key="publication.publication_id"
                   >
-                    <b-col>
-                      <b-button
+                    <BCol>
+                      <BButton
                         v-b-tooltip.hover.bottom
                         class="btn-xs mx-2"
                         :variant="publication_style[publication.publication_type]"
@@ -213,31 +209,28 @@
                         target="_blank"
                         :title="publication_hover_text[publication.publication_type]"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         {{ publication.publication_id }}
-                      </b-button>
-                    </b-col>
-                  </b-row>
-                </b-row>
+                      </BButton>
+                    </BCol>
+                  </BRow>
+                </BRow>
               </template>
-            </b-table>
+            </BTable>
 
-            <b-table
+            <BTable
               :items="genereviews_table"
               stacked
               small
             >
               <template #cell(genereviews)>
-                <b-row>
-                  <b-row
+                <BRow>
+                  <BRow
                     v-for="publication in genereviews"
                     :key="publication.publication_id"
                   >
-                    <b-col>
-                      <b-button
+                    <BCol>
+                      <BButton
                         v-b-tooltip.hover.bottom
                         class="btn-xs mx-2"
                         :variant="publication_style[publication.publication_type]"
@@ -248,31 +241,28 @@
                         target="_blank"
                         :title="publication_hover_text[publication.publication_type]"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         {{ publication.publication_id }}
-                      </b-button>
-                    </b-col>
-                  </b-row>
-                </b-row>
+                      </BButton>
+                    </BCol>
+                  </BRow>
+                </BRow>
               </template>
-            </b-table>
+            </BTable>
 
-            <b-table
+            <BTable
               :items="phenotypes_table"
               stacked
               small
             >
               <template #cell(phenotypes)>
-                <b-row>
-                  <b-row
+                <BRow>
+                  <BRow
                     v-for="phenotype in phenotypes"
                     :key="phenotype.phenotype_id"
                   >
-                    <b-col>
-                      <b-button
+                    <BCol>
+                      <BButton
                         v-b-tooltip.hover.bottom
                         class="btn-xs mx-2"
                         :variant="modifier_style[phenotype.modifier_id]"
@@ -283,31 +273,28 @@
                         target="_blank"
                         :title="modifier_text[phenotype.modifier_id] + '; ' + phenotype.phenotype_id"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         {{ phenotype.HPO_term }}
-                      </b-button>
-                    </b-col>
-                  </b-row>
-                </b-row>
+                      </BButton>
+                    </BCol>
+                  </BRow>
+                </BRow>
               </template>
-            </b-table>
+            </BTable>
 
-            <b-table
+            <BTable
               :items="variation_table"
               stacked
               small
             >
               <template #cell(variation)>
-                <b-row>
-                  <b-row
+                <BRow>
+                  <BRow
                     v-for="variant in variation"
                     :key="variant.vario_id"
                   >
-                    <b-col>
-                      <b-button
+                    <BCol>
+                      <BButton
                         v-b-tooltip.hover.bottom
                         class="btn-xs mx-2"
                         :variant="modifier_style[variant.modifier_id]"
@@ -318,22 +305,19 @@
                         target="_blank"
                         :title="modifier_text[variant.modifier_id] + '; ' + variant.vario_id"
                       >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.8"
-                        />
+                        <i class="bi bi-box-arrow-up-right" />
                         {{ variant.vario_name }}
-                      </b-button>
-                    </b-col>
-                  </b-row>
-                </b-row>
+                      </BButton>
+                    </BCol>
+                  </BRow>
+                </BRow>
               </template>
-            </b-table>
-          </b-card>
+            </BTable>
+          </BCard>
           <!-- Entity overview card -->
-        </b-col>
-      </b-row>
-    </b-container>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 

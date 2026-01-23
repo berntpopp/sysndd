@@ -1,8 +1,8 @@
 <!-- src/components/analyses/AnalysesTimePlot.vue -->
 <template>
-  <b-container fluid>
+  <BContainer fluid>
     <!-- User Interface controls -->
-    <b-card
+    <BCard
       header-tag="header"
       body-class="p-0"
       header-class="p-1"
@@ -16,15 +16,15 @@
               v-b-tooltip.hover.leftbottom
               title="This plot shows the number of NDD entities and genes over time, categorized by different criteria. It provides an interactive way to explore trends and patterns in the data."
             >over time</mark>.
-            <b-badge
+            <BBadge
               id="popover-badge-help-timeplot"
               pill
               href="#"
               variant="info"
             >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
-            <b-popover
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
+            <BPopover
               target="popover-badge-help-timeplot"
               variant="info"
               triggers="focus"
@@ -33,7 +33,7 @@
                 Time Plot Details
               </template>
               This section provides a dynamic visualization of the number of neurodevelopmental disorder (NDD) entities and genes over time. The plot can be customized by aggregation type and grouping criteria. Hover over the points to see detailed information, and use the legend to filter the categories displayed.
-            </b-popover>
+            </BPopover>
           </h6>
           <DownloadImageButtons
             :svg-id="'timeplot-svg'"
@@ -41,43 +41,43 @@
           />
         </div>
       </template>
-      <b-row>
+      <BRow>
         <!-- column 1 -->
-        <b-col class="my-1">
-          <b-input-group
+        <BCol class="my-1">
+          <BInputGroup
             prepend="Aggregation"
             class="mb-1"
             size="sm"
           >
-            <b-form-select
+            <BFormSelect
               v-model="selected_aggregate"
               input-id="aggregate-select"
               :options="aggregate_list"
               text-field="text"
               size="sm"
             />
-          </b-input-group>
+          </BInputGroup>
 
-          <b-input-group
+          <BInputGroup
             prepend="Grouping"
             class="mb-1"
             size="sm"
           >
-            <b-form-select
+            <BFormSelect
               v-model="selected_group"
               input-id="group-select"
               :options="filteredGroupList"
               text-field="text"
               size="sm"
             />
-          </b-input-group>
-        </b-col>
-      </b-row>
+          </BInputGroup>
+        </BCol>
+      </BRow>
       <!-- User Interface controls -->
 
       <!-- Content with overlay spinner -->
       <div class="position-relative">
-        <b-spinner
+        <BSpinner
           v-if="loadingData"
           label="Loading..."
           class="spinner"
@@ -88,8 +88,8 @@
           class="svg-container"
         />
       </div>
-    </b-card>
-  </b-container>
+    </BCard>
+  </BContainer>
 </template>
 
 <script>

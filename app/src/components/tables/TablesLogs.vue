@@ -1,37 +1,37 @@
 <!-- src/components/tables/TablesLogs.vue -->
 <template>
   <div class="container-fluid">
-    <b-spinner
+    <BSpinner
       v-if="loading"
       label="Loading..."
       class="float-center m-5"
     />
-    <b-container
+    <BContainer
       v-else
       fluid
     >
-      <b-row class="justify-content-md-center py-2">
-        <b-col
+      <BRow class="justify-content-md-center py-2">
+        <BCol
           col
           md="12"
         >
           <!-- User Interface controls -->
-          <b-card
+          <BCard
             header-tag="header"
             body-class="p-0"
             header-class="p-1"
             border-variant="dark"
           >
             <template #header>
-              <b-row>
-                <b-col>
+              <BRow>
+                <BCol>
                   <TableHeaderLabel
                     :label="headerLabel"
                     :subtitle="'Log entries: ' + totalRows"
                     :tool-tip-title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
                   />
-                </b-col>
-                <b-col>
+                </BCol>
+                <BCol>
                   <h5
                     v-if="showFilterControls"
                     class="mb-1 text-end font-weight-bold"
@@ -45,12 +45,12 @@
                       @remove-filters="removeFilters"
                     />
                   </h5>
-                </b-col>
-              </b-row>
+                </BCol>
+              </BRow>
             </template>
 
-            <b-row>
-              <b-col
+            <BRow>
+              <BCol
                 class="my-1"
                 sm="8"
               >
@@ -60,13 +60,13 @@
                   :debounce-time="500"
                   @input="filtered"
                 />
-              </b-col>
+              </BCol>
 
-              <b-col
+              <BCol
                 class="my-1"
                 sm="4"
               >
-                <b-container v-if="totalRows > perPage || showPaginationControls">
+                <BContainer v-if="totalRows > perPage || showPaginationControls">
                   <TablePaginationControls
                     :total-rows="totalRows"
                     :initial-per-page="perPage"
@@ -74,9 +74,9 @@
                     @page-change="handlePageChange"
                     @per-page-change="handlePerPageChange"
                   />
-                </b-container>
-              </b-col>
-            </b-row>
+                </BContainer>
+              </BCol>
+            </BRow>
             <!-- User Interface controls -->
 
             <!-- Main table element -->
@@ -96,7 +96,7 @@
                   v-for="field in fields"
                   :key="field.key"
                 >
-                  <b-form-input
+                  <BFormInput
                     v-if="field.filterable"
                     v-model="filter[field.key].content"
                     :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
@@ -107,37 +107,40 @@
                     @update="filtered()"
                   />
 
-                  <b-form-select
+                  <BFormSelect
                     v-if="field.selectable"
                     v-model="filter[field.key].content"
                     :options="field.selectOptions"
-                    type="search"
+                    size="sm"
                     @input="removeSearch()"
                     @change="filtered()"
                   >
                     <template v-slot:first>
-                      <b-form-select-option value="null">
+                      <BFormSelectOption value="null">
                         .. {{ truncate(field.label, 20) }} ..
-                      </b-form-select-option>
+                      </BFormSelectOption>
                     </template>
-                  </b-form-select>
+                  </BFormSelect>
 
+                  <!-- TODO: treeselect disabled pending Bootstrap-Vue-Next migration -->
                   <label
-                    v-if="field.multi_selectable"
+                    v-if="field.multi_selectable && field.selectOptions && field.selectOptions.length > 0"
                     :for="'select_' + field.key"
                     :aria-label="field.label"
                   >
-                    <treeselect
-                      v-if="field.multi_selectable"
+                    <BFormSelect
                       :id="'select_' + field.key"
                       v-model="filter[field.key].content"
-                      size="small"
-                      :multiple="true"
-                      :options="field.selectOptions"
-                      :normalizer="normalizer"
-                      :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
-                      @input="removeSearch();filtered();"
-                    />
+                      :options="normalizeSelectOptions(field.selectOptions)"
+                      size="sm"
+                      @change="removeSearch();filtered();"
+                    >
+                      <template v-slot:first>
+                        <BFormSelectOption :value="null">
+                          .. {{ truncate(field.label, 20) }} ..
+                        </BFormSelectOption>
+                      </template>
+                    </BFormSelect>
                   </label>
                 </td>
               </template>
@@ -145,12 +148,12 @@
 
               <template v-slot:cell-id="{ row }">
                 <div>
-                  <b-badge
+                  <BBadge
                     variant="primary"
                     style="cursor: pointer"
                   >
                     {{ row.id }}
-                  </b-badge>
+                  </BBadge>
                 </div>
               </template>
 
@@ -160,25 +163,25 @@
                   class="overflow-hidden text-truncate"
                   :title="row.agent"
                 >
-                  <b-badge
+                  <BBadge
                     pill
                     variant="info"
                   >
                     {{ truncate(row.agent, 50) }}
-                  </b-badge>
+                  </BBadge>
                 </div>
               </template>
 
               <template v-slot:cell-status="{ row }">
-                <b-badge :variant="row.status === 200 ? 'success' : 'danger'">
+                <BBadge :variant="row.status === 200 ? 'success' : 'danger'">
                   {{ row.status }}
-                </b-badge>
+                </BBadge>
               </template>
 
               <template v-slot:cell-request_method="{ row }">
-                <b-badge :variant="getMethodVariant(row.request_method)">
+                <BBadge :variant="getMethodVariant(row.request_method)">
                   {{ row.request_method }}
-                </b-badge>
+                </BBadge>
               </template>
 
               <template v-slot:cell-query="{ row }">
@@ -212,16 +215,17 @@
               </template>
             </GenericTable>
             <!-- Main table element -->
-          </b-card>
-        </b-col>
-      </b-row>
-    </b-container>
+          </BCard>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 
 <script>
-import Treeselect from '@r2rka/vue3-treeselect';
-import '@r2rka/vue3-treeselect/dist/style.css';
+// TODO: vue3-treeselect disabled pending Bootstrap-Vue-Next migration
+// import Treeselect from '@zanmato/vue3-treeselect';
+// import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
 
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
@@ -242,8 +246,8 @@ import { useUiStore } from '@/stores/ui';
 
 export default {
   name: 'TablesLogs',
+  // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
   components: {
-    Treeselect,
     TablePaginationControls,
     TableDownloadLinkCopyButtons,
     TableHeaderLabel,
@@ -302,7 +306,7 @@ export default {
       nextItemID: null,
       lastItemID: null,
       executionTime: 0,
-      pageOptions: ['10', '25', '50', '200'],
+      pageOptions: [10, 25, 50, 200],
       // sortBy is now provided by tableDataMixin (array-based format)
       // sortDesc is computed from sortBy in tableDataMixin
       sort: this.sortInput,
@@ -329,8 +333,11 @@ export default {
     };
   },
   watch: {
-    filter(value) {
-      this.filtered();
+    filter: {
+      handler(value) {
+        this.filtered();
+      },
+      deep: true, // Vue 3 requires deep:true for object mutation watching
     },
     // Watch for sortBy changes (deep watch for array)
     sortBy: {
@@ -503,6 +510,16 @@ export default {
         OPTIONS: 'info',
       };
       return methodVariants[method] || 'secondary';
+    },
+    // Normalize select options for BFormSelect (replacement for treeselect normalizer)
+    normalizeSelectOptions(options) {
+      if (!options || !Array.isArray(options)) return [];
+      return options.map((opt) => {
+        if (typeof opt === 'object' && opt !== null) {
+          return { value: opt.id || opt.value, text: opt.label || opt.text || opt.id };
+        }
+        return { value: opt, text: opt };
+      });
     },
   },
 };

@@ -1,7 +1,7 @@
 <!-- src/components/analyses/AnalysesPhenotypeFunctionalCorrelation.vue -->
 <template>
-  <b-container fluid>
-    <b-card
+  <BContainer fluid>
+    <BCard
       header-tag="header"
       body-class="p-0"
       header-class="p-1"
@@ -18,16 +18,16 @@
             >
               correlation
             </mark>.
-            <b-badge
+            <BBadge
               id="popover-badge-help-correlations"
               pill
               href="#"
               variant="info"
             >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
             <!-- The popover with more details -->
-            <b-popover
+            <BPopover
               target="popover-badge-help-correlations"
               variant="info"
               triggers="focus"
@@ -43,7 +43,7 @@
               A correlation of <strong>+1</strong> indicates strong similarity,
               whereas <strong>-1</strong> implies opposite patterns.
               Hover over cells to see exact values.
-            </b-popover>
+            </BPopover>
           </h6>
 
           <!-- Example DownloadImageButtons if you want to capture the SVG -->
@@ -66,15 +66,15 @@
           v-show="loadingCorrelation"
           class="m-3 text-center"
         >
-          <b-spinner
+          <BSpinner
             label="Loading..."
             class="spinner"
           />
           <p>Loading correlation data...</p>
         </div>
       </div>
-    </b-card>
-  </b-container>
+    </BCard>
+  </BContainer>
 </template>
 
 <script>

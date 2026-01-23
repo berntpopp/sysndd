@@ -7,12 +7,16 @@
  * different components for consistent toast behavior. The method allows customization of the message,
  * title, style variant, and auto-hide behavior of the toast.
  *
- * Updated for Bootstrap-Vue-Next: Now delegates to useToastNotifications composable.
+ * Updated for Bootstrap-Vue-Next: Uses injected toast from App.vue setup.
  */
 
-import useToastNotifications from '@/composables/useToastNotifications';
-
 export default {
+  inject: {
+    toast: {
+      from: 'toast',
+      default: null,
+    },
+  },
   methods: {
     /**
      * Displays a toast notification.
@@ -25,13 +29,24 @@ export default {
      * @param {number} [autoHideDelay=3000] - Delay in milliseconds before the toast disappears.
      */
     makeToast(message, title = null, variant = null, autoHide = true, autoHideDelay = 3000) {
-      const { makeToast: showToast } = useToastNotifications();
+      if (!this.toast) {
+        console.warn('Toast not available - ensure component is a child of BApp');
+        return;
+      }
+
+      const body = typeof message === 'object' && message.message ? message.message : message;
 
       // For error toasts (danger variant), disable auto-hide per CONTEXT.md requirements
       // This ensures users don't miss important error messages in a medical application
       const shouldAutoHide = variant === 'danger' ? false : autoHide;
 
-      showToast(message, title, variant, shouldAutoHide, autoHideDelay);
+      this.toast.create({
+        title,
+        body,
+        variant,
+        pos: 'top-end',
+        modelValue: shouldAutoHide ? autoHideDelay : 0, // 0 means no auto-hide
+      });
     },
   },
 };

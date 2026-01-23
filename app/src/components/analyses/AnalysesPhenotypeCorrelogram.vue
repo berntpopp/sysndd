@@ -1,8 +1,8 @@
 <!-- src/components/analyses/AnalysesPhenotypeCorrelogram.vue -->
 <template>
-  <b-container fluid>
+  <BContainer fluid>
     <!-- User Interface controls -->
-    <b-card
+    <BCard
       header-tag="header"
       body-class="p-0"
       header-class="p-1"
@@ -16,15 +16,15 @@
               v-b-tooltip.hover.leftbottom
               title="This plot shows the correlation coefficients between various phenotypes."
             >phenotype correlations</mark>.
-            <b-badge
+            <BBadge
               id="popover-badge-help-phenotype"
               pill
               href="#"
               variant="info"
             >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
-            <b-popover
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
+            <BPopover
               target="popover-badge-help-phenotype"
               variant="info"
               triggers="focus"
@@ -40,7 +40,7 @@
                 <li><strong>White:</strong> No correlation</li>
               </ul>
               Click on the cells to explore the detailed phenotype relationships.
-            </b-popover>
+            </BPopover>
           </h6>
           <DownloadImageButtons
             :svg-id="'matrix-svg'"
@@ -51,7 +51,7 @@
 
       <!-- Content with overlay spinner -->
       <div class="position-relative">
-        <b-spinner
+        <BSpinner
           v-if="loadingMatrix"
           label="Loading..."
           class="spinner"
@@ -62,8 +62,8 @@
           class="svg-container"
         />
       </div>
-    </b-card>
-  </b-container>
+    </BCard>
+  </BContainer>
 </template>
 
 <script>

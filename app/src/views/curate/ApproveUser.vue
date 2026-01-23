@@ -1,14 +1,14 @@
 <!-- views/curate/ApproveUser.vue -->
 <template>
   <div class="container-fluid">
-    <b-container fluid>
-      <b-row class="justify-content-md-center py-2">
-        <b-col
+    <BContainer fluid>
+      <BRow class="justify-content-md-center py-2">
+        <BCol
           col
           md="12"
         >
           <!-- User Interface controls -->
-          <b-card
+          <BCard
             header-tag="header"
             body-class="p-0"
             header-class="p-1"
@@ -22,33 +22,33 @@
             <!-- User Interface controls -->
 
             <!-- Pagination Controls -->
-            <b-row class="my-2">
-              <b-col>
-                <b-pagination
+            <BRow class="my-2">
+              <BCol>
+                <BPagination
                   v-model="currentPage"
                   :total-rows="totalRows_UsersTable"
                   :per-page="perPage"
                   align="fill"
                   size="sm"
                 />
-              </b-col>
-              <b-col class="text-end">
+              </BCol>
+              <BCol class="text-end">
                 <BFormSelect
                   v-model="perPage"
                   :options="pageOptions"
                   size="sm"
                 />
-              </b-col>
-            </b-row>
+              </BCol>
+            </BRow>
             <!-- Pagination Controls -->
 
             <!-- Main table -->
-            <b-spinner
+            <BSpinner
               v-if="loadingUsersApprove"
               label="Loading..."
               class="float-center m-5"
             />
-            <b-table
+            <BTable
               v-else
               :items="items_UsersTable"
               :fields="fields_UsersTable"
@@ -75,7 +75,7 @@
               </template>
 
               <template #cell(approved)="row">
-                <b-button
+                <BButton
                   v-b-tooltip.hover.top
                   size="sm"
                   class="me-1 btn-xs"
@@ -83,23 +83,17 @@
                   :variant="user_approval_style[row.item.approved]"
                   @click="infoApproveUser(row.item, row.index, $event.target)"
                 >
-                  <b-icon
-                    icon="hand-thumbs-up"
-                    font-scale="0.9"
-                  />
-                  <b-icon
-                    icon="hand-thumbs-down"
-                    font-scale="0.9"
-                  />
-                </b-button>
+                  <i class="bi bi-hand-thumbs-up" />
+                  <i class="bi bi-hand-thumbs-down" />
+                </BButton>
               </template>
-            </b-table>
-          </b-card>
-        </b-col>
-      </b-row>
+            </BTable>
+          </BCard>
+        </BCol>
+      </BRow>
 
       <!-- Manage user approval modal -->
-      <b-modal
+      <BModal
         :id="approveUserModal.id"
         size="lg"
         centered
@@ -114,9 +108,9 @@
         <template #modal-title>
           <h4>
             Manage application from:
-            <b-badge variant="primary">
+            <BBadge variant="primary">
               {{ approveUserModal.title }}
-            </b-badge>
+            </BBadge>
           </h4>
         </template>
         What should happen to this user ?
@@ -136,9 +130,9 @@
             <b>{{ switch_user_approval_text[user_approved] }}</b>
           </label>
         </div>
-      </b-modal>
+      </BModal>
       <!-- Manage user approval modal -->
-    </b-container>
+    </BContainer>
   </div>
 </template>
 

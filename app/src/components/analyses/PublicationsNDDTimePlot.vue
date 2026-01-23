@@ -1,7 +1,7 @@
 <!-- src/components/analyses/PublicationsNDDTimePlot.vue -->
 <template>
-  <b-container fluid>
-    <b-card
+  <BContainer fluid>
+    <BCard
       header-tag="header"
       body-class="p-0"
       header-class="p-1"
@@ -17,15 +17,15 @@
             >
               (Interactive)
             </mark>
-            <b-badge
+            <BBadge
               id="popover-badge-help-timeplot"
               pill
               href="#"
               variant="info"
             >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
-            <b-popover
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
+            <BPopover
               target="popover-badge-help-timeplot"
               variant="info"
               triggers="focus"
@@ -37,34 +37,34 @@
               update_date_aggregated line graphs or a bar chart of
               publication_type_counts. Hover over the points/bars to see
               the details.
-            </b-popover>
+            </BPopover>
           </h6>
         </div>
       </template>
 
       <!-- Controls row -->
-      <b-row>
-        <b-col
+      <BRow>
+        <BCol
           class="my-1"
           sm="4"
         >
-          <b-input-group
+          <BInputGroup
             prepend="Display"
             size="sm"
             class="mb-1"
           >
-            <b-form-select
+            <BFormSelect
               v-model="plotMode"
               :options="plotModeOptions"
               @change="generateGraph"
             />
-          </b-input-group>
-        </b-col>
-      </b-row>
+          </BInputGroup>
+        </BCol>
+      </BRow>
 
       <!-- Overlay spinner & SVG container -->
       <div class="position-relative">
-        <b-spinner
+        <BSpinner
           v-if="loading"
           label="Loading..."
           class="spinner"
@@ -75,8 +75,8 @@
           class="svg-container"
         />
       </div>
-    </b-card>
-  </b-container>
+    </BCard>
+  </BContainer>
 </template>
 
 <script>

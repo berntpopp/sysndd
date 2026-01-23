@@ -1,30 +1,29 @@
 <!-- src/components/small/IconPairDropdownMenu.vue -->
 <template>
-  <b-nav-item-dropdown
+  <BNavItemDropdown
     :text="title"
-    :right="align === 'right'"
+    :end="align === 'right' || undefined"
     menu-class="dropdown-menu-center"
   >
-    <b-dropdown-item
+    <BDropdownItem
       v-for="(item, index) in items"
       :key="index"
       :to="item.path"
       class="text-center"
       @click="handleItemClick(item)"
     >
-      <b-icon
+      <i
         v-for="(icon, iconIndex) in item.icons"
         :key="iconIndex"
-        :icon="icon"
-        font-scale="1.0"
+        :class="'bi bi-' + icon"
       />
       {{ item.text }}
       <component
         :is="item.component"
         v-if="item.component"
       />
-    </b-dropdown-item>
-  </b-nav-item-dropdown>
+    </BDropdownItem>
+  </BNavItemDropdown>
 </template>
 
 <script>

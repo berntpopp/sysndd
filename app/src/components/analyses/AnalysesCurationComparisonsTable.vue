@@ -1,16 +1,16 @@
 <!-- src/components/analyses/AnalysesCurationComparisonsTable.vue -->
 <template>
-  <b-container fluid>
+  <BContainer fluid>
     <!-- User Interface controls -->
-    <b-card
+    <BCard
       header-tag="header"
       body-class="p-0"
       header-class="p-1"
       border-variant="dark"
     >
       <template #header>
-        <b-row>
-          <b-col>
+        <BRow>
+          <BCol>
             <h6 class="mb-1 text-start font-weight-bold">
               Comparing the presence of a gene in different
               <mark
@@ -19,16 +19,16 @@
               >curation efforts</mark>
               for NDDs.
 
-              <b-badge
+              <BBadge
                 id="popover-badge-help-comparisons"
                 pill
                 href="#"
                 variant="info"
               >
-                <b-icon icon="question-circle-fill" />
-              </b-badge>
+                <i class="bi bi-question-circle-fill" />
+              </BBadge>
 
-              <b-popover
+              <BPopover
                 target="popover-badge-help-comparisons"
                 variant="info"
                 triggers="focus"
@@ -61,70 +61,64 @@
                 and genemap2
                 (https://data.omim.org/downloads/9GJLEFvqSmWaImCijeRdVA/genemap2.txt),
                 <br>
-              </b-popover>
+              </BPopover>
             </h6>
 
             <h6 class="mb-1 text-start font-weight-bold">
-              <b-badge
+              <BBadge
                 v-b-tooltip.hover.bottom
                 variant="success"
                 :title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
               >
                 Genes: {{ totalRows }}
-              </b-badge>
+              </BBadge>
             </h6>
-          </b-col>
-          <b-col>
+          </BCol>
+          <BCol>
             <h5
               v-if="showFilterControls"
               class="mb-1 text-end font-weight-bold"
             >
-              <b-button
+              <BButton
                 v-b-tooltip.hover.bottom
                 class="me-1"
                 size="sm"
                 title="Download data as Excel file."
                 @click="requestExcel()"
               >
-                <b-icon
-                  icon="table"
-                  class="mx-1"
-                />
-                <b-icon
+                <i class="bi bi-table mx-1" />
+                <i
                   v-if="!downloading"
-                  icon="download"
+                  class="bi bi-download"
                 />
-                <b-spinner
+                <BSpinner
                   v-if="downloading"
                   small
                 />
                 .xlsx
-              </b-button>
-              <b-button
+              </BButton>
+              <BButton
                 v-b-tooltip.hover.bottom
                 size="sm"
                 :title="'The table is ' + (filter_string === '' ? 'not' : '') + ' filtered.' + (filter_string === '' ? '' : ' Click to remove all filters.')"
                 :variant="filter_string === '' ? 'info' : 'warning'"
                 @click="removeFilters()"
               >
-                <b-icon
-                  icon="filter"
-                  font-scale="1.0"
-                />
-              </b-button>
+                <i class="bi bi-filter" />
+              </BButton>
             </h5>
-          </b-col>
-        </b-row>
+          </BCol>
+        </BRow>
       </template>
 
       <div v-if="!loadingTable">
-        <b-row>
-          <b-col
+        <BRow>
+          <BCol
             class="my-1"
             sm="6"
           >
-            <b-form-group class="mb-1 border-dark">
-              <b-form-input
+            <BFormGroup class="mb-1 border-dark">
+              <BFormInput
                 v-if="showFilterControls"
                 id="filter-input"
                 v-model="filter['any'].content"
@@ -136,31 +130,31 @@
                 @click="removeFilters()"
                 @update="filtered()"
               />
-            </b-form-group>
-          </b-col>
+            </BFormGroup>
+          </BCol>
 
-          <b-col
+          <BCol
             class="my-1"
             sm="4"
           >
-            <b-container
+            <BContainer
               v-if="totalRows > perPage || showPaginationControls"
             >
-              <b-input-group
+              <BInputGroup
                 prepend="Per page"
                 class="mb-1"
                 size="sm"
               >
-                <b-form-select
+                <BFormSelect
                   id="per-page-select"
                   v-model="perPage"
                   :options="pageOptions"
                   class="filter-input"
                   size="sm"
                 />
-              </b-input-group>
+              </BInputGroup>
 
-              <b-pagination
+              <BPagination
                 v-model="currentPage"
                 :total-rows="totalRows"
                 :per-page="perPage"
@@ -170,13 +164,13 @@
                 limit="2"
                 @change="handlePageChange"
               />
-            </b-container>
-          </b-col>
-        </b-row>
+            </BContainer>
+          </BCol>
+        </BRow>
       </div>
 
       <div class="position-relative">
-        <b-spinner
+        <BSpinner
           v-if="loadingTable"
           label="Loading..."
           class="spinner"
@@ -196,7 +190,7 @@
               v-for="field in fields"
               :key="field.key"
             >
-              <b-form-input
+              <BFormInput
                 v-if="field.filterable"
                 v-model="filter[field.key].content"
                 class="filter-input"
@@ -208,164 +202,185 @@
                 @update="filtered()"
               />
 
-              <b-form-select
-                v-if="field.selectable"
+              <BFormSelect
+                v-if="field.selectable && field.selectOptions && field.selectOptions.length > 0"
                 v-model="filter[field.key].content"
                 class="filter-input"
-                :options="field.selectOptions"
-                type="search"
+                :options="normalizeSelectOptions(field.selectOptions)"
+                size="sm"
                 @input="removeSearch()"
                 @change="filtered()"
               >
                 <template v-slot:first>
-                  <b-form-select-option value="null">
+                  <BFormSelectOption :value="null">
                     .. {{ truncate(field.label, 20) }} ..
-                  </b-form-select-option>
+                  </BFormSelectOption>
                 </template>
-              </b-form-select>
+              </BFormSelect>
 
-              <label
-                v-if="field.multi_selectable"
-                :for="'select_' + field.key"
-                :aria-label="field.label"
+              <!-- Multi-select: temporarily use BFormSelect instead of treeselect for compatibility -->
+              <BFormSelect
+                v-if="field.multi_selectable && field.selectOptions && field.selectOptions.length > 0"
+                v-model="filter[field.key].content"
+                class="filter-input"
+                :options="normalizeSelectOptions(field.selectOptions)"
+                size="sm"
+                @change="removeSearch();filtered();"
               >
-                <treeselect
-                  v-if="field.multi_selectable"
-                  :id="'select_' + field.key"
-                  v-model="filter[field.key].content"
-                  class="filter-input"
-                  size="small"
-                  :multiple="true"
-                  :options="field.selectOptions"
-                  :normalizer="normalizer"
-                  :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
-                  @input="removeSearch();filtered();"
-                />
-              </label>
+                <template v-slot:first>
+                  <BFormSelectOption :value="null">
+                    .. {{ truncate(field.label, 20) }} ..
+                  </BFormSelectOption>
+                </template>
+              </BFormSelect>
             </td>
           </template>
 
           <template v-slot:cell-symbol="{ row }">
             <div class="font-italic">
-              <b-link :href="'/Genes/' + row.hgnc_id">
-                <b-badge
+              <BLink :href="'/Genes/' + row.hgnc_id">
+                <BBadge
                   v-b-tooltip.hover.leftbottom
                   pill
                   variant="success"
                   :title="row.hgnc_id"
                 >
                   {{ row.symbol }}
-                </b-badge>
-              </b-link>
+                </BBadge>
+              </BLink>
             </div>
           </template>
 
           <template v-slot:cell-SysNDD="{ row }">
-            <div>
-              <b-avatar
-                v-b-tooltip.hover.left
-                size="1.4em"
-                icon="stoplights"
-                :variant="stoplights_style[row.SysNDD]"
-                :title="row.SysNDD"
+            <span
+              v-b-tooltip.hover.left
+              class="d-inline-flex align-items-center justify-content-center rounded-circle"
+              :class="'bg-' + (stoplights_style[row.SysNDD] || 'secondary')"
+              :title="row.SysNDD"
+              style="width: 1.5em; height: 1.5em;"
+            >
+              <i
+                class="bi bi-stoplights-fill text-white"
+                style="font-size: 0.8em;"
               />
-            </div>
+            </span>
           </template>
 
           <template v-slot:cell-radboudumc_ID="{ row }">
-            <div>
-              <b-avatar
-                v-b-tooltip.hover.left
-                size="1.4em"
-                icon="stoplights"
-                :variant="stoplights_style[row.radboudumc_ID]"
-                :title="row.radboudumc_ID"
+            <span
+              v-b-tooltip.hover.left
+              class="d-inline-flex align-items-center justify-content-center rounded-circle"
+              :class="'bg-' + (stoplights_style[row.radboudumc_ID] || 'secondary')"
+              :title="row.radboudumc_ID"
+              style="width: 1.5em; height: 1.5em;"
+            >
+              <i
+                class="bi bi-stoplights-fill text-white"
+                style="font-size: 0.8em;"
               />
-            </div>
+            </span>
           </template>
 
           <template v-slot:cell-gene2phenotype="{ row }">
-            <div>
-              <b-avatar
-                v-b-tooltip.hover.left
-                size="1.4em"
-                icon="stoplights"
-                :variant="stoplights_style[row.gene2phenotype]"
-                :title="row.gene2phenotype"
+            <span
+              v-b-tooltip.hover.left
+              class="d-inline-flex align-items-center justify-content-center rounded-circle"
+              :class="'bg-' + (stoplights_style[row.gene2phenotype] || 'secondary')"
+              :title="row.gene2phenotype"
+              style="width: 1.5em; height: 1.5em;"
+            >
+              <i
+                class="bi bi-stoplights-fill text-white"
+                style="font-size: 0.8em;"
               />
-            </div>
+            </span>
           </template>
 
           <template v-slot:cell-panelapp="{ row }">
-            <div>
-              <b-avatar
-                v-b-tooltip.hover.left
-                size="1.4em"
-                icon="stoplights"
-                :variant="stoplights_style[row.panelapp]"
-                :title="row.panelapp"
+            <span
+              v-b-tooltip.hover.left
+              class="d-inline-flex align-items-center justify-content-center rounded-circle"
+              :class="'bg-' + (stoplights_style[row.panelapp] || 'secondary')"
+              :title="row.panelapp"
+              style="width: 1.5em; height: 1.5em;"
+            >
+              <i
+                class="bi bi-stoplights-fill text-white"
+                style="font-size: 0.8em;"
               />
-            </div>
+            </span>
           </template>
 
           <template v-slot:cell-sfari="{ row }">
-            <div>
-              <b-avatar
-                v-b-tooltip.hover.left
-                size="1.4em"
-                icon="stoplights"
-                :variant="stoplights_style[row.sfari]"
-                :title="row.sfari"
+            <span
+              v-b-tooltip.hover.left
+              class="d-inline-flex align-items-center justify-content-center rounded-circle"
+              :class="'bg-' + (stoplights_style[row.sfari] || 'secondary')"
+              :title="row.sfari"
+              style="width: 1.5em; height: 1.5em;"
+            >
+              <i
+                class="bi bi-stoplights-fill text-white"
+                style="font-size: 0.8em;"
               />
-            </div>
+            </span>
           </template>
 
           <template v-slot:cell-geisinger_DBD="{ row }">
-            <div>
-              <b-avatar
-                v-b-tooltip.hover.left
-                size="1.4em"
-                icon="stoplights"
-                :variant="stoplights_style[row.geisinger_DBD]"
-                :title="row.geisinger_DBD"
+            <span
+              v-b-tooltip.hover.left
+              class="d-inline-flex align-items-center justify-content-center rounded-circle"
+              :class="'bg-' + (stoplights_style[row.geisinger_DBD] || 'secondary')"
+              :title="row.geisinger_DBD"
+              style="width: 1.5em; height: 1.5em;"
+            >
+              <i
+                class="bi bi-stoplights-fill text-white"
+                style="font-size: 0.8em;"
               />
-            </div>
+            </span>
           </template>
 
           <template v-slot:cell-omim_ndd="{ row }">
-            <div>
-              <b-avatar
-                v-b-tooltip.hover.left
-                size="1.4em"
-                icon="stoplights"
-                :variant="stoplights_style[row.omim_ndd]"
-                :title="row.omim_ndd"
+            <span
+              v-b-tooltip.hover.left
+              class="d-inline-flex align-items-center justify-content-center rounded-circle"
+              :class="'bg-' + (stoplights_style[row.omim_ndd] || 'secondary')"
+              :title="row.omim_ndd"
+              style="width: 1.5em; height: 1.5em;"
+            >
+              <i
+                class="bi bi-stoplights-fill text-white"
+                style="font-size: 0.8em;"
               />
-            </div>
+            </span>
           </template>
 
           <template v-slot:cell-orphanet_id="{ row }">
-            <div>
-              <b-avatar
-                v-b-tooltip.hover.left
-                size="1.4em"
-                icon="stoplights"
-                :variant="stoplights_style[row.orphanet_id]"
-                :title="row.orphanet_id"
+            <span
+              v-b-tooltip.hover.left
+              class="d-inline-flex align-items-center justify-content-center rounded-circle"
+              :class="'bg-' + (stoplights_style[row.orphanet_id] || 'secondary')"
+              :title="row.orphanet_id"
+              style="width: 1.5em; height: 1.5em;"
+            >
+              <i
+                class="bi bi-stoplights-fill text-white"
+                style="font-size: 0.8em;"
               />
-            </div>
+            </span>
           </template>
         </GenericTable>
       </div>
-    </b-card>
-  </b-container>
+    </BCard>
+  </BContainer>
 </template>
 
 <script>
-// import the Treeselect component
-import Treeselect from '@r2rka/vue3-treeselect';
-// import the Treeselect styles
-import '@r2rka/vue3-treeselect/dist/style.css';
+// Treeselect temporarily disabled due to Vue 3 compatibility issues
+// TODO: Re-enable when vue3-treeselect compatibility is fixed
+// import Treeselect from '@zanmato/vue3-treeselect';
+// import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
 
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
@@ -379,8 +394,8 @@ import GenericTable from '@/components/small/GenericTable.vue';
 
 export default {
   name: 'AnalysesCurationComparisonsTable',
-  // register the Treeselect component and GenericTable component
-  components: { Treeselect, GenericTable },
+  // register the GenericTable component (Treeselect temporarily disabled)
+  components: { GenericTable },
   mixins: [toastMixin, urlParsingMixin, colorAndSymbolsMixin],
   props: {
     showFilterControls: { type: Boolean, default: true },
@@ -472,7 +487,7 @@ export default {
       lastItemID: null,
       executionTime: 0,
       perPage: this.pageSizeInput,
-      pageOptions: ['10', '25', '50', '200'],
+      pageOptions: [10, 25, 50, 200],
       sortBy: 'symbol',
       sortDesc: false,
       sort: this.sortInput,
@@ -496,8 +511,11 @@ export default {
     };
   },
   watch: {
-    filter(value) {
-      this.filtered();
+    filter: {
+      handler(value) {
+        this.filtered();
+      },
+      deep: true, // Vue 3 requires deep:true for object mutation watching
     },
     sortBy() {
       this.handleSortByOrDescChange();
@@ -612,8 +630,18 @@ export default {
     },
     handleSortByOrDescChange() {
       this.currentItemID = 0;
-      this.sort = (!this.sortDesc ? '-' : '+') + this.sortBy;
+      // Ensure sortBy is a string for the API URL
+      const sortColumn = typeof this.sortBy === 'string' ? this.sortBy : (this.sortBy[0]?.key || 'symbol');
+      this.sort = (!this.sortDesc ? '-' : '+') + sortColumn;
       this.filtered();
+    },
+    /**
+     * Handle sort updates from GenericTable component
+     * @param {Object} ctx - Sort context with sortBy (string) and sortDesc (boolean)
+     */
+    handleSortUpdate(ctx) {
+      this.sortBy = ctx.sortBy;
+      this.sortDesc = ctx.sortDesc;
     },
     handlePerPageChange() {
       this.currentItemID = 0;
@@ -665,6 +693,26 @@ export default {
         id: node,
         label: node,
       };
+    },
+    /**
+     * Normalize select options for BFormSelect
+     * Converts simple string arrays to { value, text } format
+     * @param {Array} options - Array of option values
+     * @returns {Array} - Array of { value, text } objects
+     */
+    normalizeSelectOptions(options) {
+      if (!options || !Array.isArray(options)) {
+        return [];
+      }
+      return options.map((opt) => {
+        if (typeof opt === 'string') {
+          return { value: opt, text: opt };
+        }
+        if (typeof opt === 'object' && opt !== null) {
+          return { value: opt.value || opt.id || opt, text: opt.text || opt.label || opt.name || opt };
+        }
+        return { value: opt, text: String(opt) };
+      });
     },
     // Function to truncate a string to a specified length.
     // If the string is longer than the specified length, it adds '...' to the end.
