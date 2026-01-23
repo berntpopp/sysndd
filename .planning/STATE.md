@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 16 - UI/UX Modernization (IN PROGRESS)
-**Plan:** 6 of ~8 plans complete
+**Plan:** 7 of ~8 plans complete
 **Status:** In progress
-**Last activity:** 2026-01-23 — Completed 16-06 Search and Filter UX Enhancement
+**Last activity:** 2026-01-23 — Completed 16-07 Mobile Responsive Refinements
 
 ```
 v3 Frontend Modernization: PHASE 16 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables), Phase 14 (TypeScript), Phase 15 (Testing)
-Phase 16 progress: Design tokens (16-01), Card styling (16-02), Table styling (16-03), Form styling (16-04), Button styling (16-05), Search UX (16-06)
-Last completed: 16-06 Search and Filter UX Enhancement
-Progress: █████████████████████████████ 47/~50 plans in v3 milestone
+Phase 16 progress: Design tokens (16-01), Card styling (16-02), Table styling (16-03), Form styling (16-04), Button styling (16-05), Search UX (16-06), Mobile responsive (16-07)
+Last completed: 16-07 Mobile Responsive Refinements
+Progress: █████████████████████████████▓ 48/~50 plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -202,6 +202,13 @@ See PROJECT.md for full decisions table.
 - Loading states use skeleton-shimmer class from _loading.scss
 - Empty states follow icon + title + message + optional action pattern
 - Accessibility: aria-label and role=status on loading components
+- Enhanced Bootstrap-Vue-Next stacked tables with card styling (shadows, borders, padding)
+- 44x44px minimum touch targets throughout for WCAG 2.2 compliance
+- Full-width search and filters on mobile with vertical stacking
+- Flexbox layout for label-value pairs in stacked table cells
+- Comprehensive breakpoint coverage from 320px (small phones) to 1024px+ (desktop)
+- Mobile card transformation: Each table row becomes visually distinct card
+- Data label pattern: ::before pseudo-element with attr(data-label) shows column headers
 
 ## Archive Location
 
@@ -211,8 +218,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 16-05 Loading Skeleton and Empty State Components
+**Stopped at:** Completed 16-07 Mobile Responsive Refinements
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 16 in progress, 16-05 complete (loading skeletons with shimmer animation, empty states with icons)*
+*Last updated: 2026-01-23 — Phase 16 in progress, 16-07 complete (mobile responsive refinements with table-to-card transformation)*
