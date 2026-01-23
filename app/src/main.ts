@@ -1,4 +1,6 @@
-import Vue, { createApp, configureCompat } from 'vue';
+import { createApp } from 'vue';
+import type { App as VueApp } from 'vue';
+import { configureCompat } from '@vue/compat';
 import { createHead } from '@unhead/vue/client';
 import { createPinia } from 'pinia';
 
@@ -69,7 +71,7 @@ configureCompat({
 // Create Vue 3 app instance
 const pinia = createPinia();
 const head = createHead();
-const app = createApp(App);
+const app: VueApp = createApp(App);
 
 // Register axios on Vue 3 app instance (VueAxios via Vue.use doesn't fully transfer)
 app.config.globalProperties.axios = axios;

@@ -143,10 +143,10 @@ export default defineConfig({
   css: {
     preprocessorOptions: {
       scss: {
-        api: 'modern-compiler', // For @use support
+        api: 'modern-compiler' as const, // For @use support
         // Note: additionalData removed - was causing circular import in custom.scss
         // SCSS variables are imported explicitly where needed
-      },
+      } as any, // Temporary: Vite types don't include 'api' option yet
     },
   },
 
