@@ -12,15 +12,15 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 17 - Cleanup & Polish (IN PROGRESS)
-**Plan:** 1 of 8 plans complete
+**Plan:** 2 of 8 plans complete
 **Status:** Executing cleanup and optimization
-**Last activity:** 2026-01-23 — Completed 17-01-PLAN.md (Bundle Analysis Baseline)
+**Last activity:** 2026-01-23 — Completed 17-02-PLAN.md (Remove Vue 2 Compatibility Layer)
 
 ```
 v3 Frontend Modernization: PHASE 17 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables), Phase 14 (TypeScript), Phase 15 (Testing), Phase 16 (UI/UX Modernization)
-Phase 17 progress: Bundle baseline established (492 KB gzipped, 24.6% of 2MB target)
-Progress: ██████████████████████████████▓█ 50/~57 plans in v3 milestone
+Phase 17 progress: Vue 2 compat removed, pure Vue 3 application (492 KB gzipped baseline)
+Progress: ███████████████████████████████▓ 51/~57 plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -213,6 +213,9 @@ See PROJECT.md for full decisions table.
 - High contrast mode: @media (prefers-contrast: more) increases border widths to 2px
 - Text-muted uses neutral-600 (#757575) for verified 4.54:1 contrast ratio
 - Links in prose content underlined; UI links distinguishable by context
+- Removed @vue/compat compatibility layer completely for pure Vue 3 operation
+- Used --legacy-peer-deps for @vue/compat removal (peer dep conflicts with legacy Vue CLI plugins)
+- Pre-existing test failures (23 tests) confirmed unrelated to Vue 2 compat removal
 
 ## Archive Location
 
@@ -222,8 +225,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 17-01 Bundle Analysis Baseline
+**Stopped at:** Completed 17-02 Remove Vue 2 Compatibility Layer
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 17 in progress, 17-01 complete (Bundle analysis baseline: 492 KB gzipped, optimization roadmap established)*
+*Last updated: 2026-01-23 — Phase 17 in progress, 17-02 complete (Vue 2 compat removed, pure Vue 3 application)*
