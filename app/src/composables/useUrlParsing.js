@@ -48,7 +48,15 @@ export default function useUrlParsing() {
       .filter((key) => filter_object[key].content !== null) // <-- remove null values
       .filter((key) => filter_object[key].content !== 'null') // <-- remove null values
       .filter((key) => filter_object[key].content !== '') // <-- remove empty values
-      .filter((key) => filter_object[key].content.length !== 0) // <-- remove empty array values
+      .filter((key) => {
+        // <-- remove empty array values (defensive: check length property exists)
+        const { content } = filter_object[key];
+        if (content === undefined) return false;
+        if (typeof content === 'string' || Array.isArray(content)) {
+          return content.length !== 0;
+        }
+        return true; // Keep non-string/non-array values (e.g., numbers, booleans)
+      })
       .reduce((obj, key) => Object.assign(obj, {
         [key]: filter_object[key],
       }), {});

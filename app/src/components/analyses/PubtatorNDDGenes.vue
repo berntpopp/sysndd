@@ -166,7 +166,6 @@
 <script>
 // Import Vue utilities
 import { ref, inject } from 'vue';
-import { useRoute } from 'vue-router';
 
 // Import composables
 import {
@@ -175,7 +174,6 @@ import {
   useColorAndSymbols,
   useText,
   useTableData,
-  useTableMethods,
 } from '@/composables';
 
 // Small reusable components
@@ -242,20 +240,10 @@ export default {
       entities_count: { content: null, join_char: null, operator: 'contains' },
     });
 
-    // Inject axios and route
+    // Inject axios
     const axios = inject('axios');
-    const route = useRoute();
 
-    // Table methods composable
-    const tableMethods = useTableMethods(tableData, {
-      filter,
-      filterObjToStr,
-      apiEndpoint: 'pubtator_genes',
-      axios,
-      route,
-    });
-
-    // Return all needed properties
+    // Return all needed properties (this component has its own method implementations)
     return {
       makeToast,
       filterObjToStr,
@@ -264,7 +252,6 @@ export default {
       ...colorAndSymbols,
       ...text,
       ...tableData,
-      ...tableMethods,
       filter,
       axios,
     };
@@ -318,26 +305,12 @@ export default {
         },
       ],
 
-      // Table data (items and other properties now in setup())
-      // Bootstrap-Vue-Next uses array-based sortBy format
-      sortBy: [{ key: 'gene_symbol', order: 'asc' }],
-      sort: '+gene_symbol',
-      filter_string: '',
+      // Note: Table state (items, totalRows, perPage, sortBy, sortDesc, loading, isBusy,
+      // downloading, currentItemID, prevItemID, nextItemID, lastItemID, executionTime,
+      // filter_string, sort, etc.) is provided by useTableData composable in setup()
 
-      // Cursor pagination
-      prevItemID: null,
-      currentItemID: 0,
-      nextItemID: null,
-      lastItemID: null,
+      // Component-specific cursor pagination info (not in useTableData)
       totalPages: 0,
-
-      // Execution
-      executionTime: 0,
-
-      // UI states
-      loading: true,
-      isBusy: false,
-      downloading: false,
     };
   },
   watch: {

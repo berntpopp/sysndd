@@ -205,7 +205,6 @@
 <script>
 // Import Vue utilities
 import { ref, inject } from 'vue';
-import { useRoute } from 'vue-router';
 
 // Import composables
 import {
@@ -214,7 +213,6 @@ import {
   useColorAndSymbols,
   useText,
   useTableData,
-  useTableMethods,
 } from '@/composables';
 
 // Small reusable components
@@ -279,18 +277,8 @@ export default {
 
     // Inject axios and route
     const axios = inject('axios');
-    const route = useRoute();
 
-    // Table methods composable
-    const tableMethods = useTableMethods(tableData, {
-      filter,
-      filterObjToStr,
-      apiEndpoint: props.apiEndpoint,
-      axios,
-      route,
-    });
-
-    // Return all needed properties
+    // Return all needed properties (this component has its own method implementations)
     return {
       makeToast,
       filterObjToStr,
@@ -299,7 +287,6 @@ export default {
       ...colorAndSymbols,
       ...text,
       ...tableData,
-      ...tableMethods,
       filter,
       axios,
     };
@@ -341,22 +328,12 @@ export default {
       // Additional hidden or detail fields can go here:
       fields_details: [],
 
-      // Table state now in setup()
+      // Note: Table state (items, totalRows, perPage, sortBy, sortDesc, loading, isBusy,
+      // downloading, currentItemID, prevItemID, nextItemID, lastItemID, executionTime,
+      // filter_string, etc.) is provided by useTableData composable in setup()
 
-      // Cursor pagination info
-      prevItemID: null,
-      currentItemID: 0,
-      nextItemID: null,
-      lastItemID: null,
+      // Component-specific cursor pagination info (not in useTableData)
       totalPages: 0,
-
-      // Execution time
-      executionTime: 0,
-
-      // UI states
-      loading: true, // spinner overlay
-      isBusy: false, // table busy
-      downloading: false,
     };
   },
   watch: {
