@@ -249,53 +249,26 @@ Plans:
 
 **Requirements:** FR-07 (all), NFR-01 (DRY), NFR-03 (Accessibility)
 
-### Plans
+**Plans:** 8 plans in 4 waves
 
-#### 16-01: CSS Custom Properties System
-- Define color palette variables
-- Define spacing scale
-- Define shadow depth system
-- Define typography scale
+Plans:
+- [ ] 16-01-PLAN.md — CSS Custom Properties System (Wave 1)
+- [ ] 16-02-PLAN.md — Card and Container Styling (Wave 2)
+- [ ] 16-03-PLAN.md — Table Enhancement (Wave 2)
+- [ ] 16-04-PLAN.md — Form Styling (Wave 2)
+- [ ] 16-05-PLAN.md — Loading and Empty States (Wave 3)
+- [ ] 16-06-PLAN.md — Search and Filter UX (Wave 3)
+- [ ] 16-07-PLAN.md — Mobile Responsive Refinements (Wave 4)
+- [ ] 16-08-PLAN.md — Accessibility Polish (Wave 4)
 
-#### 16-02: Card and Container Styling
-- Implement softer card shadows
-- Add rounded corners
-- Improve section spacing
-- Add subtle background colors
+### Wave Structure
 
-#### 16-03: Table Enhancement
-- Improve table hover states
-- Add better border styling
-- Improve header styling
-- Add row selection indicators
-
-#### 16-04: Form Styling
-- Consistent input spacing
-- Improved focus states
-- Better label styling
-- Form validation feedback
-
-#### 16-05: Loading and Empty States
-- Create loading skeleton components
-- Create empty state components
-- Add to data-heavy views
-
-#### 16-06: Search and Filter UX
-- Improve search feedback
-- Add clear buttons
-- Improve filter controls
-- Add instant feedback
-
-#### 16-07: Mobile Responsive Refinements
-- Table → card view on small screens
-- Improve navigation on mobile
-- Test all breakpoints
-
-#### 16-08: Accessibility Polish
-- Verify color contrast (4.5:1)
-- Add focus indicators
-- Test keyboard navigation
-- Add reduced motion support
+| Wave | Plans | Dependencies |
+|------|-------|--------------|
+| 1 | 16-01 | None (foundation) |
+| 2 | 16-02, 16-03, 16-04 | 16-01 (parallel execution) |
+| 3 | 16-05, 16-06 | 16-01, 16-02/16-04 (parallel execution) |
+| 4 | 16-07, 16-08 | 16-03/all previous (parallel execution) |
 
 ### Success Criteria
 - Visual refresh complete
