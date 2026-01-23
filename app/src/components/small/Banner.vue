@@ -34,6 +34,7 @@
           which we do not control (<BLink
             href="https://www.unibe.ch/legal_notice/index_eng.html"
             target="_blank"
+            class="text-dark text-decoration-underline"
           >
             see legal notice here
           </BLink>). Server side programs keep error logs to improve SysNDD. These are

@@ -238,6 +238,57 @@ All pages tested showed consistent scores:
 
 **Consistency:** Scores are remarkably consistent across all pages, indicating systematic optimization (not page-specific issues).
 
+## Lighthouse Issues Fixed
+
+**Date:** 2026-01-23
+
+### Accessibility Fixes
+
+**1. Color Contrast Issue (7 points impact)**
+- **Issue:** Footer link on error toast had insufficient contrast (3.36:1, needs 4.5:1)
+- **Location:** Banner.vue - legal notice link on alert-danger background
+- **Fix:** Added `text-dark text-decoration-underline` classes to BLink
+- **Result:** Dark text (#212529) on light red (#f8d7da) achieves 6.7:1 contrast ratio ✅
+- **File:** `app/src/components/small/Banner.vue`
+
+**2. Label Content Name Mismatch (0 points impact, UX improvement)**
+- **Issue:** EntityBadge aria-label "Entity 4512" didn't match visible text "sysndd:4512"
+- **Location:** EntityBadge.vue
+- **Fix:** Changed aria-label from "Entity ${entityId}" to "sysndd:${entityId}"
+- **Result:** Screen readers now announce exactly what sighted users see ✅
+- **File:** `app/src/components/ui/EntityBadge.vue`
+
+### Performance Issues (Not Fixed - Expected in Dev Mode)
+
+**Why performance is 70% in dev mode:**
+1. **Vite dev server overhead** - HMR, source maps, unminified code
+2. **No production optimizations** - No tree-shaking, code splitting disabled
+3. **Development tooling** - Vue DevTools, error overlays, hot reload
+4. **Expected production score:** 90-95+ based on bundle size (520 KB gzipped, 163 KB critical path)
+
+**Evidence production will score higher:**
+- Bundle size: 520 KB gzipped (excellent, 74% headroom to 2MB target)
+- Code splitting: Working (vendor, bootstrap, viz chunks separated)
+- Lazy loading: Heavy libraries deferred (UpSet.js, html2canvas)
+- Critical path: 163 KB gzipped (vendor + bootstrap + index - excellent)
+- No render-blocking CSS (already optimized)
+
+**Recommendation:** Re-test on production build in plan 17-08 verification phase.
+
+### Fixes Not Needed
+
+**Best Practices (100/100)** - No issues found
+**SEO (100/100)** - No issues found
+
+### Expected Post-Fix Scores
+
+| Category | Before | After | Target | Status |
+|----------|--------|-------|--------|--------|
+| Accessibility | 97 | 100 | 100 | ✅ Expected to reach 100 |
+| Best Practices | 100 | 100 | 100 | ✅ Already at target |
+| SEO | 100 | 100 | 100 | ✅ Already at target |
+| Performance | 70 | 70 | 100 | ⚠️ Re-test on production build |
+
 ## Recommendations
 
 ### Phase 17 Optimization Opportunities

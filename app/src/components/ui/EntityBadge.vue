@@ -11,7 +11,7 @@
       :class="[`entity-badge--${variant}`, `entity-badge--${size}`]"
       :title="showTitle ? fullTitle : ''"
       role="link"
-      :aria-label="`Entity ${entityId}`"
+      :aria-label="`sysndd:${entityId}`"
     >
       <span class="entity-badge__prefix">sysndd:</span>
       <span class="entity-badge__id">{{ entityId }}</span>
