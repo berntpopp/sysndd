@@ -14,13 +14,13 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 **Phase:** 15 - Testing Infrastructure (IN PROGRESS)
 **Plan:** 5/6 plans complete
 **Status:** In progress
-**Last activity:** 2026-01-23 — Completed 15-06 Accessibility Testing Setup
+**Last activity:** 2026-01-23 — Completed 15-05 Component Test Examples
 
 ```
 v3 Frontend Modernization: PHASE 15 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables), Phase 14 (TypeScript)
-Phase 15: 5/6 plans complete (Vitest + Vue Test Utils + MSW + Composable Tests + A11y Testing)
-Last completed: 15-06 Accessibility Testing Setup (vitest-axe, 11 a11y tests)
+Phase 15: 5/6 plans complete (Vitest + Vue Test Utils + MSW + Composable Tests + Component Tests + A11y Testing)
+Last completed: 15-05 Component Test Examples (FooterNavItem, Banner, Footer)
 Progress: ███████████████████████████░ 40/~50 plans in v3 milestone
 ```
 
@@ -162,6 +162,9 @@ See PROJECT.md for full decisions table.
 - Disable axe region rule for isolated component tests (not within page landmarks)
 - Disable axe blink rule for Vue compat stub rendering issues
 - *.a11y.spec.ts naming convention for accessibility test files
+- shallowMount with explicit stubs for Bootstrap-Vue-Next component isolation in tests
+- Test component methods directly when DOM interaction unreliable with stubs
+- vi.mock for constants decouples tests from actual constant values
 
 ## Archive Location
 
@@ -171,8 +174,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 15-06 Accessibility Testing Setup
+**Stopped at:** Completed 15-05 Component Test Examples
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 15 in progress (5/6 plans complete, accessibility testing added)*
+*Last updated: 2026-01-23 — Phase 15 in progress (5/6 plans complete, component test examples added)*
