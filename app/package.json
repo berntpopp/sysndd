@@ -17,7 +17,6 @@
     "@zanmato/vue3-treeselect": "^0.4.2",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
-    "bootstrap-vue": "^2.21.2",
     "bootstrap-vue-next": "^0.42.0",
     "core-js": "^3.6.5",
     "d3": "^7.4.2",
