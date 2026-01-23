@@ -11,17 +11,17 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 **Milestone:** v3 Frontend Modernization
-**Phase:** 12 - Vite Migration (COMPLETE)
-**Plan:** All 6 plans complete
-**Status:** Phase verified ✓
-**Last activity:** 2026-01-23 — Phase 12 verified, Vite migration complete
+**Phase:** 13 - Mixin Composable Conversion (IN PROGRESS)
+**Plan:** 1 of TBD plans complete
+**Status:** In progress
+**Last activity:** 2026-01-23 — Completed 13-01-PLAN.md (Foundation Composables)
 
 ```
-v3 Frontend Modernization: PHASE 12 COMPLETE ✓
+v3 Frontend Modernization: PHASE 13 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite)
-All 6 plans: 12-01 Install, 12-02 Index, 12-03 Env, 12-04 Imports, 12-05 Docker, 12-06 Verify
-Verification: 5/5 must-haves passed (164ms dev startup, HMR works, prod build OK)
-Progress: ██████████████████ 18/18 plans in Phases 10-12 (100%)
+Phase 13 (Mixin Composable Conversion): 1 plan complete (Foundation Composables)
+Last completed: 13-01 Foundation Composables (3 stateless composables + barrel export)
+Progress: ███████████████████ 19/TBD plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -105,6 +105,9 @@ See PROJECT.md for full decisions table.
 - Node 24 LTS for Docker images (Vite 7 compatibility)
 - Port 5173 for Vite dev server in Docker (differentiates from webpack 8080)
 - Reduced memory limits for Vite Docker (2GB vs 4GB for webpack)
+- Stateless composables return plain objects (no reactive/ref for constant mappings)
+- Barrel export pattern for composables (composables/index.js)
+- Convert stateless mixins first (no external dependencies, constant data)
 
 ## Archive Location
 
@@ -114,8 +117,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 12-05-PLAN.md (Docker Configuration)
+**Stopped at:** Completed 13-01-PLAN.md (Foundation Composables)
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 12 in progress (5/6 plans: Vite Installation, Index HTML, Environment Variables, Vite-Compatible Imports, Docker Configuration)*
+*Last updated: 2026-01-23 — Phase 13 in progress (1/TBD plans: Foundation Composables)*
