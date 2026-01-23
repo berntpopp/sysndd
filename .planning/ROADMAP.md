@@ -18,7 +18,7 @@ The v4 Backend Overhaul modernizes the R/Plumber API through a strict phase sequ
 - Integer phases (18, 19, 20): Planned milestone work
 - Decimal phases (18.1, 18.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 18: Foundation** - Upgrade R 4.1.2 to 4.4.3 with renv migration
+- [x] **Phase 18: Foundation** - Upgrade R 4.1.2 to 4.4.3 with renv migration ✓
 - [ ] **Phase 19: Security Hardening** - Fix SQL injection and implement password hashing
 - [ ] **Phase 20: Async/Non-blocking** - Add mirai for long-running operations
 - [ ] **Phase 21: Repository Layer** - Create database access layer with domain repositories
@@ -40,8 +40,8 @@ The v4 Backend Overhaul modernizes the R/Plumber API through a strict phase sequ
 **Plans**: 2 plans in 2 waves
 
 Plans:
-- [ ] 18-01-PLAN.md - Create fresh renv.lock on R 4.4.x with complete dependencies
-- [ ] 18-02-PLAN.md - Update Dockerfile to R 4.4.3, remove workarounds, verify build
+- [x] 18-01-PLAN.md - Create fresh renv.lock on R 4.4.x with complete dependencies ✓
+- [x] 18-02-PLAN.md - Update Dockerfile to R 4.4.3, remove workarounds, verify build ✓
 
 ### Phase 19: Security Hardening
 **Goal**: Zero SQL injection vulnerabilities and secure password storage
@@ -151,7 +151,7 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 18. Foundation | 0/2 | Planned | - |
+| 18. Foundation | 2/2 | Complete ✓ | 2026-01-23 |
 | 19. Security Hardening | 0/5 | Planned | - |
 | 20. Async/Non-blocking | 0/3 | Planned | - |
 | 21. Repository Layer | 0/8 | Planned | - |
@@ -182,4 +182,4 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 
 ---
 *Roadmap created: 2026-01-23*
-*Last updated: 2026-01-23 - Phase 21 planned (8 plans in 4 waves)*
+*Last updated: 2026-01-23 - Phase 18 Foundation complete (R 4.4.3 upgrade)*
