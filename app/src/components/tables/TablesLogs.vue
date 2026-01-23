@@ -221,7 +221,7 @@
 
 <script>
 import Treeselect from '@r2rka/vue3-treeselect';
-import '@r2rka/vue3-treeselect/dist/vue3-treeselect.css';
+import '@r2rka/vue3-treeselect/dist/style.css';
 
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';

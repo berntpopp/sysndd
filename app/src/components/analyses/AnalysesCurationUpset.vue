@@ -89,7 +89,7 @@ import { ref, onMounted, watch, nextTick } from 'vue';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import { render, extractSets, UpSetDarkTheme } from '@upsetjs/bundle';
 import Treeselect from '@r2rka/vue3-treeselect';
-import '@r2rka/vue3-treeselect/dist/vue3-treeselect.css';
+import '@r2rka/vue3-treeselect/dist/style.css';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 
 export default {

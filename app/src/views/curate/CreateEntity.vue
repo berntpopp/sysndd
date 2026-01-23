@@ -448,7 +448,7 @@ import textMixin from '@/assets/js/mixins/textMixin';
 // import the Treeselect component
 import Treeselect from '@r2rka/vue3-treeselect';
 // import the Treeselect styles
-import '@r2rka/vue3-treeselect/dist/vue3-treeselect.css';
+import '@r2rka/vue3-treeselect/dist/style.css';
 
 import Submission from '@/assets/js/classes/submission/submissionSubmission';
 import Entity from '@/assets/js/classes/submission/submissionEntity';
