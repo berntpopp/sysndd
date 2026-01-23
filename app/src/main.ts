@@ -25,9 +25,6 @@ import axios from 'axios';
 // Import all Bootstrap-Vue-Next components for global registration
 import * as BvnComponents from './bootstrap-vue-next-components';
 
-// Import global async components (will be registered on app instance later)
-import globalComponents from './global-components';
-
 import App from './App.vue';
 
 // import router
@@ -58,11 +55,6 @@ app.directive('b-toggle', vBToggle);
 // Register all Bootstrap-Vue-Next components globally
 Object.entries(BvnComponents).forEach(([name, component]) => {
   app.component(name, component as Component);
-});
-
-// Register all custom global components (async components wrapped with defineAsyncComponent)
-Object.entries(globalComponents).forEach(([name, component]) => {
-  app.component(name, component);
 });
 
 // Register @unhead/vue for head management
