@@ -13,6 +13,11 @@ MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 
 # =============================================================================
+# Project Root (auto-detected)
+# =============================================================================
+ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+
+# =============================================================================
 # ANSI Color Codes
 # =============================================================================
 GREEN := \033[0;32m
@@ -29,7 +34,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev test-api test-api-full coverage lint-api lint-app format-api format-app pre-commit docker-build docker-up docker-down
+.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-full coverage lint-api lint-app format-api format-app pre-commit docker-build docker-up docker-down docker-dev
 
 # =============================================================================
 # Help Target (Self-documenting)
@@ -73,44 +78,58 @@ check-docker:
 # =============================================================================
 install-api: check-r ## [dev] Install R dependencies with renv::restore()
 	@printf "$(CYAN)==> Installing R dependencies...$(RESET)\n"
-	@cd /mnt/c/development/sysndd/api && R -e "renv::restore(prompt = FALSE)" && \
+	@cd $(ROOT_DIR)/api && R -e "renv::restore(prompt = FALSE)" && \
 		printf "$(GREEN)✓ install-api complete$(RESET)\n" || \
 		(printf "$(RED)✗ install-api failed$(RESET)\n" && exit 1)
 
 install-app: check-npm ## [dev] Install frontend dependencies with npm install
 	@printf "$(CYAN)==> Installing frontend dependencies...$(RESET)\n"
-	@cd /mnt/c/development/sysndd/app && npm install && \
+	@cd $(ROOT_DIR)/app && npm install && \
 		printf "$(GREEN)✓ install-app complete$(RESET)\n" || \
 		(printf "$(RED)✗ install-app failed$(RESET)\n" && exit 1)
 
-dev: check-docker ## [dev] Start development database containers
+dev: check-docker ## [dev] Start development database containers only
 	@printf "$(CYAN)==> Starting development databases...$(RESET)\n"
-	@docker compose -f /mnt/c/development/sysndd/docker-compose.dev.yml up -d && \
+	@cd $(ROOT_DIR) && docker compose -f docker-compose.dev.yml up -d && \
 		printf "$(GREEN)✓ Databases started on ports 7654 (dev) and 7655 (test)$(RESET)\n" || \
 		(printf "$(RED)✗ dev failed$(RESET)\n" && exit 1)
 	@printf "\n$(CYAN)Next steps:$(RESET)\n"
 	@printf "  Start API:      cd api && Rscript start_sysndd_api.R\n"
-	@printf "  Start frontend: cd app && npm run serve\n"
+	@printf "  Start frontend: make serve-app\n"
+
+serve-app: check-npm ## [dev] Start Vue development server with hot reload
+	@printf "$(CYAN)==> Starting Vue development server...$(RESET)\n"
+	@cd $(ROOT_DIR)/app && npm run serve
+
+build-app: check-npm ## [dev] Build frontend for production
+	@printf "$(CYAN)==> Building frontend for production...$(RESET)\n"
+	@cd $(ROOT_DIR)/app && npm run build && \
+		printf "$(GREEN)✓ build-app complete$(RESET)\n" || \
+		(printf "$(RED)✗ build-app failed$(RESET)\n" && exit 1)
+
+watch-app: check-docker ## [dev] Start Docker Compose watch for frontend hot-reload
+	@printf "$(CYAN)==> Starting Docker Compose watch mode...$(RESET)\n"
+	@cd $(ROOT_DIR) && docker compose watch
 
 # =============================================================================
 # Testing Targets
 # =============================================================================
 test-api: check-r ## [test] Run R API tests with testthat
 	@printf "$(CYAN)==> Running R API tests...$(RESET)\n"
-	@cd /mnt/c/development/sysndd/api && Rscript -e "testthat::test_dir('tests/testthat')" && \
+	@cd $(ROOT_DIR)/api && Rscript -e "testthat::test_dir('tests/testthat')" && \
 		printf "$(GREEN)✓ test-api complete$(RESET)\n" || \
 		(printf "$(RED)✗ test-api failed$(RESET)\n" && exit 1)
 
 test-api-full: check-r ## [test] Run full R API test suite including slow tests
 	@printf "$(CYAN)==> Running full R API test suite (including slow tests)...$(RESET)\n"
-	@cd /mnt/c/development/sysndd/api && RUN_SLOW_TESTS=true Rscript -e "testthat::test_dir('tests/testthat')" && \
+	@cd $(ROOT_DIR)/api && RUN_SLOW_TESTS=true Rscript -e "testthat::test_dir('tests/testthat')" && \
 		printf "$(GREEN)✓ test-api-full complete$(RESET)\n" || \
 		(printf "$(RED)✗ test-api-full failed$(RESET)\n" && exit 1)
 
 coverage: check-r ## [test] Generate test coverage report with covr
 	@printf "$(CYAN)==> Calculating test coverage...$(RESET)\n"
-	@mkdir -p /mnt/c/development/sysndd/coverage
-	@cd /mnt/c/development/sysndd/api && Rscript scripts/coverage.R && \
+	@mkdir -p $(ROOT_DIR)/coverage
+	@cd $(ROOT_DIR)/api && Rscript scripts/coverage.R && \
 		printf "$(GREEN)✓ coverage complete$(RESET)\n" || \
 		(printf "$(RED)✗ coverage failed$(RESET)\n" && exit 1)
 
@@ -119,25 +138,25 @@ coverage: check-r ## [test] Generate test coverage report with covr
 # =============================================================================
 lint-api: check-r ## [lint] Check R code with lintr
 	@printf "$(CYAN)==> Checking R code with lintr...$(RESET)\n"
-	@cd /mnt/c/development/sysndd/api && Rscript scripts/lint-check.R && \
+	@cd $(ROOT_DIR)/api && Rscript scripts/lint-check.R && \
 		printf "$(GREEN)✓ lint-api complete$(RESET)\n" || \
 		(printf "$(RED)✗ lint-api failed$(RESET)\n" && exit 1)
 
 lint-app: check-npm ## [lint] Check frontend code with ESLint
 	@printf "$(CYAN)==> Checking frontend code with ESLint...$(RESET)\n"
-	@cd /mnt/c/development/sysndd/app && npm run lint && \
+	@cd $(ROOT_DIR)/app && npm run lint && \
 		printf "$(GREEN)✓ lint-app complete$(RESET)\n" || \
 		(printf "$(RED)✗ lint-app failed$(RESET)\n" && exit 1)
 
 format-api: check-r ## [lint] Format R code with styler
 	@printf "$(CYAN)==> Formatting R code with styler...$(RESET)\n"
-	@cd /mnt/c/development/sysndd/api && Rscript scripts/style-code.R && \
+	@cd $(ROOT_DIR)/api && Rscript scripts/style-code.R && \
 		printf "$(GREEN)✓ format-api complete$(RESET)\n" || \
 		(printf "$(RED)✗ format-api failed$(RESET)\n" && exit 1)
 
 format-app: check-npm ## [lint] Format frontend code with ESLint --fix
 	@printf "$(CYAN)==> Formatting frontend code with ESLint --fix...$(RESET)\n"
-	@cd /mnt/c/development/sysndd/app && npm run lint -- --fix && \
+	@cd $(ROOT_DIR)/app && npm run lint -- --fix && \
 		printf "$(GREEN)✓ format-app complete$(RESET)\n" || \
 		(printf "$(RED)✗ format-app failed$(RESET)\n" && exit 1)
 
@@ -159,18 +178,29 @@ pre-commit: ## [quality] Run all quality checks before committing
 # =============================================================================
 docker-build: check-docker ## [docker] Build API Docker image
 	@printf "$(CYAN)==> Building API Docker image...$(RESET)\n"
-	@docker build -t sysndd-api /mnt/c/development/sysndd/api && \
+	@cd $(ROOT_DIR) && docker build -t sysndd-api api && \
 		printf "$(GREEN)✓ docker-build complete$(RESET)\n" || \
 		(printf "$(RED)✗ docker-build failed$(RESET)\n" && exit 1)
 
 docker-up: check-docker ## [docker] Start all production containers
 	@printf "$(CYAN)==> Starting production containers...$(RESET)\n"
-	@docker compose -f /mnt/c/development/sysndd/docker-compose.yml up -d && \
+	@cd $(ROOT_DIR) && docker compose up -d && \
 		printf "$(GREEN)✓ docker-up complete$(RESET)\n" || \
 		(printf "$(RED)✗ docker-up failed$(RESET)\n" && exit 1)
 
 docker-down: check-docker ## [docker] Stop all containers
 	@printf "$(CYAN)==> Stopping containers...$(RESET)\n"
-	@docker compose -f /mnt/c/development/sysndd/docker-compose.yml down && \
+	@cd $(ROOT_DIR) && docker compose down && \
 		printf "$(GREEN)✓ docker-down complete$(RESET)\n" || \
 		(printf "$(RED)✗ docker-down failed$(RESET)\n" && exit 1)
+
+docker-dev: check-docker ## [docker] Start full dev stack (db + api + app with hot-reload)
+	@printf "$(CYAN)==> Starting full Docker dev stack...$(RESET)\n"
+	@cd $(ROOT_DIR) && docker compose up -d && \
+		printf "$(GREEN)✓ Containers started$(RESET)\n" || \
+		(printf "$(RED)✗ docker-dev failed$(RESET)\n" && exit 1)
+	@printf "\n$(CYAN)Services:$(RESET)\n"
+	@printf "  App:      http://localhost\n"
+	@printf "  API:      http://localhost/api\n"
+	@printf "  Traefik:  http://localhost:8090\n"
+	@printf "\n$(CYAN)For hot-reload:$(RESET) make watch-app\n"
