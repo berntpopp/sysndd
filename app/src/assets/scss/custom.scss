@@ -19,6 +19,7 @@
 @use "./components/cards";
 @use "./components/forms";
 @use "./components/tables";
+@use "./components/loading";
 
 // Import utility classes
 @use "./utilities/spacing" as spacing-utilities;
