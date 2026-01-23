@@ -1,11 +1,9 @@
 # Build arguments
-ARG NODE_VERSION=20
+ARG NODE_VERSION=24
 ARG NGINX_VERSION=1.27.4
 ARG VUE_MODE=docker
 
-# Stage 1: Build Vue.js application
-# NOTE: Node.js 20 LTS required for Vue 2.7 + Vue CLI 5 + webpack 5 compatibility
-# Upgrade to node:24-alpine after Vue 3 migration (Phase 10+)
+# Stage 1: Build Vue.js application with Vite
 FROM node:${NODE_VERSION}-alpine AS builder
 
 # Build mode: docker (default), production, development
@@ -25,8 +23,8 @@ RUN --mount=type=cache,target=/root/.npm \
 # Copy application source
 COPY . .
 
-# Build production bundle
-RUN npm run build -- --mode ${VUE_MODE}
+# Build production bundle with Vite
+RUN npm run build:vite -- --mode ${VUE_MODE}
 
 
 # Stage 2: Production nginx server (using pre-built brotli image)
