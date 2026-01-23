@@ -16,6 +16,7 @@
     "build:production": "vite build --mode production"
   },
   "dependencies": {
+    "@popperjs/core": "^2.11.8",
     "@unhead/vue": "^2.1.2",
     "@upsetjs/bundle": "^1.11.0",
     "@vee-validate/rules": "^4.15.1",
