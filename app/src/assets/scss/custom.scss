@@ -20,4 +20,7 @@
 @use "./components/forms";
 @use "./components/tables";
 
+// Import utility classes
+@use "./utilities/spacing" as spacing-utilities;
+
 // Additional global styles can be added below

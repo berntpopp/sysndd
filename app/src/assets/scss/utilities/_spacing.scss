@@ -1,0 +1,117 @@
+// Spacing utility classes for consistent section and container spacing
+// Supports compact data-heavy layouts typical in medical database application
+
+// Section spacing classes
+// Use these for consistent vertical rhythm in page sections
+.section-compact {
+  padding: var(--spacing-compact); // 0.5rem - for dense sections
+}
+
+.section-base {
+  padding: var(--spacing-base); // 0.75rem - default spacing
+}
+
+.section-comfortable {
+  padding: var(--spacing-comfortable); // 1rem - for readability-focused sections
+}
+
+// Gap utilities for flexbox and grid layouts
+// These complement Bootstrap's built-in gap utilities with our design tokens
+.gap-compact {
+  gap: var(--spacing-compact) !important; // 0.5rem
+}
+
+.gap-base {
+  gap: var(--spacing-base) !important; // 0.75rem
+}
+
+.gap-comfortable {
+  gap: var(--spacing-comfortable) !important; // 1rem
+}
+
+// Container refinements
+// Compact container for data-heavy layouts (tables, gene lists, entity views)
+.container-compact {
+  max-width: 100%;
+  padding-right: var(--spacing-3); // 0.75rem
+  padding-left: var(--spacing-3);
+  margin-right: auto;
+  margin-left: auto;
+
+  // Tighter margins on mobile for maximum content area
+  @media (max-width: 576px) {
+    padding-right: var(--spacing-2); // 0.5rem on small screens
+    padding-left: var(--spacing-2);
+  }
+}
+
+// Margin utility classes using spacing tokens
+// These extend Bootstrap's spacing utilities with our design system
+.mt-compact {
+  margin-top: var(--spacing-compact) !important;
+}
+
+.mb-compact {
+  margin-bottom: var(--spacing-compact) !important;
+}
+
+.my-compact {
+  margin-top: var(--spacing-compact) !important;
+  margin-bottom: var(--spacing-compact) !important;
+}
+
+.mt-base {
+  margin-top: var(--spacing-base) !important;
+}
+
+.mb-base {
+  margin-bottom: var(--spacing-base) !important;
+}
+
+.my-base {
+  margin-top: var(--spacing-base) !important;
+  margin-bottom: var(--spacing-base) !important;
+}
+
+// Padding utility classes using spacing tokens
+.pt-compact {
+  padding-top: var(--spacing-compact) !important;
+}
+
+.pb-compact {
+  padding-bottom: var(--spacing-compact) !important;
+}
+
+.py-compact {
+  padding-top: var(--spacing-compact) !important;
+  padding-bottom: var(--spacing-compact) !important;
+}
+
+.pt-base {
+  padding-top: var(--spacing-base) !important;
+}
+
+.pb-base {
+  padding-bottom: var(--spacing-base) !important;
+}
+
+.py-base {
+  padding-top: var(--spacing-base) !important;
+  padding-bottom: var(--spacing-base) !important;
+}
+
+// Horizontal padding for inline elements
+.px-compact {
+  padding-left: var(--spacing-compact) !important;
+  padding-right: var(--spacing-compact) !important;
+}
+
+.px-base {
+  padding-left: var(--spacing-base) !important;
+  padding-right: var(--spacing-base) !important;
+}
+
+.px-comfortable {
+  padding-left: var(--spacing-comfortable) !important;
+  padding-right: var(--spacing-comfortable) !important;
+}
