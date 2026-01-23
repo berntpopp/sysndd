@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 16 - UI/UX Modernization (IN PROGRESS)
-**Plan:** 3 of ~6 plans complete
+**Plan:** 4 of ~8 plans complete
 **Status:** In progress
-**Last activity:** 2026-01-23 — Completed 16-03 Table Styling Enhancement
+**Last activity:** 2026-01-23 — Completed 16-02 Card and Container Styling
 
 ```
 v3 Frontend Modernization: PHASE 16 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables), Phase 14 (TypeScript), Phase 15 (Testing)
-Phase 16 progress: Design tokens (16-01), Table styling (16-03), Form styling (16-04)
-Last completed: 16-03 Table Styling Enhancement
-Progress: ████████████████████████████░ 44/~50 plans in v3 milestone
+Phase 16 progress: Design tokens (16-01), Card styling (16-02), Table styling (16-03), Form styling (16-04)
+Last completed: 16-02 Card and Container Styling
+Progress: ████████████████████████████░ 45/~50 plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -181,6 +181,11 @@ See PROJECT.md for full decisions table.
 - Active sort column: 8% background + font-weight 600 for clear visual feedback
 - Compact table variant (.table-compact) with tighter padding for genes/entities tables
 - Sortable headers styled via aria-sort attribute for semantic accessibility
+- Card hover elevation only for .card-interactive class (not all cards)
+- Compact card body variant (.card-body-compact) for data-heavy views
+- SCSS namespace aliases to avoid module name collisions (spacing-utilities)
+- Tighter mobile padding in .container-compact for maximum content area
+- Keyboard focus indicators on interactive cards for WCAG 2.2 compliance
 
 ## Archive Location
 
@@ -190,8 +195,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 16-03 Table Styling Enhancement
+**Stopped at:** Completed 16-02 Card and Container Styling
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 16 in progress, 16-03 complete (table styling with zebra striping, row hover, sort indicators)*
+*Last updated: 2026-01-23 — Phase 16 in progress, 16-02 complete (card styling with shadow elevation, rounded corners, spacing utilities)*
