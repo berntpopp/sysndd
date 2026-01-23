@@ -1,7 +1,11 @@
 // vitest.setup.ts
 // Global test setup - runs before each test file
 
-import { expect, vi } from 'vitest';
+import { vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
+
+// =============================================================================
+// Browser API Mocks (required for Bootstrap and Vue components)
+// =============================================================================
 
 // Extend expect with vitest-axe matchers (will be added in Plan 15-04)
 // import { toHaveNoViolations } from 'vitest-axe';
@@ -40,9 +44,22 @@ const localStorageMock = (() => {
 })();
 Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
-// Reset mocks between tests
-import { beforeEach, afterEach } from 'vitest';
+// =============================================================================
+// MSW Server Setup (network-level API mocking)
+// =============================================================================
 
+import { server } from './src/test-utils/mocks/server';
+
+// Start MSW server before all tests
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: 'warn' });
+});
+
+// =============================================================================
+// Per-test Cleanup
+// =============================================================================
+
+// Reset mocks and MSW handlers between tests
 beforeEach(() => {
   localStorageMock.clear();
   vi.clearAllMocks();
@@ -50,4 +67,15 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  // Reset MSW handlers to defaults after each test
+  server.resetHandlers();
+});
+
+// =============================================================================
+// Global Cleanup
+// =============================================================================
+
+// Close MSW server after all tests
+afterAll(() => {
+  server.close();
 });
