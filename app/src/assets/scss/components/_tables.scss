@@ -101,6 +101,87 @@
   }
 }
 
+// Sort indicator styling for table headers
+// Bootstrap-Vue-Next BTable adds aria-sort attributes automatically
+.table {
+  thead {
+    // Sortable column headers - base styling
+    th[aria-sort] {
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      padding-right: 1.5rem; // Extra space for sort icon
+      transition: background-color var(--transition-fast);
+
+      // Hover state for sortable headers
+      &:hover {
+        background-color: rgba(13, 71, 161, 0.03);
+      }
+
+      // Active sort column highlight (per CONTEXT: "Icon + highlight")
+      &:not([aria-sort="none"]) {
+        background-color: rgba(13, 71, 161, 0.08);
+        font-weight: 600;
+      }
+
+      // Sort icon using CSS pseudo-element
+      &::after {
+        content: "";
+        position: absolute;
+        right: 0.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        border-left: 0.25rem solid transparent;
+        border-right: 0.25rem solid transparent;
+        opacity: 0.3;
+      }
+
+      // Ascending sort icon (up arrow)
+      &[aria-sort="ascending"]::after {
+        border-bottom: 0.35rem solid currentColor;
+        opacity: 1;
+      }
+
+      // Descending sort icon (down arrow)
+      &[aria-sort="descending"]::after {
+        border-top: 0.35rem solid currentColor;
+        opacity: 1;
+      }
+
+      // Neutral/none state - show both arrows stacked
+      &[aria-sort="none"]::after {
+        border-bottom: 0.35rem solid currentColor;
+        margin-top: -0.2rem;
+      }
+
+      &[aria-sort="none"]::before {
+        content: "";
+        position: absolute;
+        right: 0.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        border-left: 0.25rem solid transparent;
+        border-right: 0.25rem solid transparent;
+        border-top: 0.35rem solid currentColor;
+        opacity: 0.3;
+        margin-top: 0.2rem;
+      }
+
+      // Focus state for keyboard navigation (WCAG 2.2)
+      &:focus-visible {
+        outline: var(--focus-ring-width) solid var(--focus-ring-color);
+        outline-offset: calc(-1 * var(--focus-ring-width)); // Inset focus ring
+        z-index: 1;
+      }
+
+      // Remove default focus for mouse users
+      &:focus:not(:focus-visible) {
+        outline: none;
+      }
+    }
+  }
+}
+
 // WCAG 2.2 NFR-03.6: Respect reduced motion preferences
 // Transitions already use var(--transition-fast) which becomes 0.01ms with prefers-reduced-motion
 // No additional overrides needed
