@@ -1,683 +1,935 @@
-# Feature Landscape: Vue 3 + TypeScript Migration
+# Feature Landscape: v4 Backend Overhaul
 
-**Domain:** Vue 2.7 to Vue 3 + TypeScript + Bootstrap-Vue-Next migration
-**Project:** SysNDD (medical/scientific database application)
-**Researched:** 2026-01-22
+**Domain:** R/Plumber API modernization (async, pagination, security, OMIM alternatives)
+**Project:** SysNDD (neurodevelopmental disorders database)
+**Researched:** 2026-01-23
+**Overall Confidence:** MEDIUM-HIGH (multiple authoritative sources verified)
 
 ---
 
 ## Executive Summary
 
-Vue 3 migrations are characterized by **mandatory breaking changes** (table stakes) and **optional modernization opportunities** (differentiators). For SysNDD's 50+ component codebase with 7 mixins, Bootstrap-Vue dependency, and D3/GSAP visualizations, success depends on:
+The v4 Backend Overhaul introduces six interconnected feature domains. This research maps expected behavior for each:
 
-1. **Breaking change compatibility** - Handling removed APIs, v-model changes, router updates
-2. **Component library migration** - Bootstrap-Vue → Bootstrap-Vue-Next (or alternative)
-3. **Composition API adoption** - Converting Options API and mixins to composables
-4. **TypeScript integration** - Adding type safety to untyped JavaScript codebase
-5. **Testing infrastructure** - Establishing Vitest + Vue Test Utils foundation
+1. **Async/Non-blocking patterns** - Required for long-running operations (clustering, ontology updates)
+2. **Pagination** - Required for 4200+ entity records in table endpoints
+3. **Password security** - Required to fix plaintext password storage vulnerability
+4. **OMIM data alternatives** - Required because genemap2 no longer provides needed fields
+5. **API versioning** - Required for GitHub #21, enables breaking change management
+6. **DRY/KISS/SOLID patterns** - Required to address 66 SQL injection points and code duplication
 
-**Key insight:** Migration features are NOT optional. The challenge is choosing *how* to implement them (incremental vs full rewrite, Options API vs Composition API, TypeScript strictness level).
+**Key insight:** These features are interdependent. Pagination requires consistent error handling. Async requires proper error propagation. Security hardening requires database access layer. Plan phases accordingly.
 
 ---
 
 ## Table Stakes Features
 
-Features that **must** be implemented for a Vue 3 migration to function. Missing these = broken application.
+Features users and developers **expect** from a modern API. Missing these = API feels incomplete or insecure.
 
-### 1. Vue 3 Core Breaking Changes Resolution
+### 1. Async/Non-blocking API Patterns
 
-**Why expected:** Vue 3 removed/changed APIs that Vue 2 code depends on. Non-negotiable compatibility requirement.
+**Why expected:** Blocking operations cause timeout failures. Users expect API responsiveness even during long operations.
 
-| Breaking Change | Complexity | Migration Path | Notes |
-|----------------|------------|----------------|-------|
-| `this.$set` / `this.$delete` removed | Low | Use direct assignment with Vue 3 reactivity | Vue 3 reactivity auto-tracks deep changes |
-| Event bus pattern (`$on`, `$off`, `$emit`) | Medium | Replace with mitt library or Pinia state | 7 mixins may use event bus |
-| Filters removed (e.g. `{{ value \| filter }}`) | Low | Convert to methods or computed properties | Text formatting only |
-| `v-model` behavior change | Medium | Update component bindings | Affects form components heavily |
-| Functional components syntax change | Low | Rewrite as `<script setup>` | If any functional components exist |
-| Async component API change | Low | Update `defineAsyncComponent()` syntax | Affects lazy-loaded routes |
+| Feature | Complexity | Current State | Expected Behavior |
+|---------|------------|---------------|-------------------|
+| Non-blocking ontology updates | High | Blocking, times out | Returns immediately, processes in background |
+| Non-blocking clustering analysis | High | Blocking, times out | Returns job ID, poll for results |
+| Concurrent request handling | Medium | Single-threaded blocks all | Multiple requests process in parallel |
+| Progress indication | Medium | None | WebSocket or polling endpoint for status |
+| Cancellation support | Low | None | Ability to cancel long-running jobs |
+
+**Implementation Approaches (R/Plumber):**
+
+**Option A: future + promises (Recommended)**
+```r
+library(future)
+library(promises)
+future::plan("multisession")
+
+#* @post /ontology/update
+function(req, res) {
+  promises::future_promise({
+    # Long-running ontology update
+    process_combine_ontology(hgnc_list, moi_list)
+  }) %...>% (function(result) {
+    list(status = "complete", data = result)
+  })
+}
+```
+
+**Option B: mirai for higher concurrency**
+```r
+library(mirai)
+daemons(4L, dispatcher = TRUE)  # 4 parallel workers
+
+#* @post /ontology/update
+function(req, res) {
+  mirai({
+    process_combine_ontology(hgnc_list, moi_list)
+  }) %...>% (function(result) {
+    res$status <- 200L
+    res$body <- list(status = "complete", data = result)
+  })
+}
+```
+
+**Expected Behavior:**
+- API returns HTTP 202 Accepted immediately for long operations
+- Client polls status endpoint or receives WebSocket notification
+- Multiple concurrent requests handled without blocking
+- Timeouts only for actual failures, not processing time
+
+**SysNDD Impact:**
+- `process_combine_ontology()` in ontology-functions.R
+- `calculate_entity_clustering()` in analyses-functions.R
+- Any endpoint fetching external APIs (HGNC, Ensembl, HPO)
 
 **Sources:**
-- [Vue 3 Migration Guide - Breaking Changes](https://v3-migration.vuejs.org/breaking-changes/)
-- [Vue 3 Migration Build](https://v3-migration.vuejs.org/migration-build.html)
+- [Plumber + future: Async Web APIs](https://posit.co/resources/videos/plumber-and-future-async-web-apis/)
+- [Mirai Promises Documentation](https://mirai.r-lib.org/articles/v3-promises.html)
+- [FvD/futureplumber GitHub](https://github.com/FvD/futureplumber)
+- [Plumber Package CRAN (Dec 2025)](https://cran.r-project.org/web/packages/plumber/plumber.pdf)
 
-**Confidence:** HIGH (official documentation, well-documented)
+**Confidence:** HIGH (official plumber documentation, CRAN packages)
 
 ---
 
-### 2. Vue Router 4 Migration
+### 2. Pagination for Tabular Endpoints
 
-**Why expected:** Vue Router 3 is incompatible with Vue 3. Router 4 is required.
+**Why expected:** 4200+ entities cannot load in single response. Users expect fast initial load and progressive data access.
 
-| Breaking Change | Complexity | Migration Impact | Notes |
-|----------------|------------|------------------|-------|
-| `new Router()` → `createRouter()` | Low | Single file change (router/index.js) | Instantiation API change |
-| `mode: 'history'` → `createWebHistory()` | Low | History mode API change | Hash mode: `createWebHashHistory()` |
-| `router.currentRoute` returns Ref | Low | Access via `.value` if used directly | Rare in practice |
-| `router.onReady()` → `router.isReady()` | Low | Returns Promise instead of callback | Affects App.vue initialization |
-| All navigations async | Medium | Await navigation guards properly | May affect sequential routing logic |
-| `router.go()` no return value | Low | Don't rely on return value | Rarely used |
-| ScrollBehavior `x`/`y` → `left`/`top` | Low | Rename properties | If custom scroll behavior exists |
-| `<router-view>` v-slot API change | Medium | Update scoped slot syntax | Affects nested routes |
+| Feature | Complexity | Current State | Expected Behavior |
+|---------|------------|---------------|-------------------|
+| Cursor-based pagination | Medium | Partially implemented | Consistent across all tabular endpoints |
+| Offset/limit fallback | Low | Mixed implementation | Available for simple use cases |
+| Page size limits | Low | No enforcement | Server enforces max 100-500 per page |
+| Total count in metadata | Low | Inconsistent | Always returned for UI pagination controls |
+| Stable sorting | Medium | Some endpoints inconsistent | Results stable across page requests |
+
+**Cursor vs Offset Comparison:**
+
+| Criterion | Cursor-Based | Offset/Limit |
+|-----------|--------------|--------------|
+| Performance at scale | Excellent (index lookup) | Poor (OFFSET scans N rows) |
+| Consistency with data changes | Good (no skips/duplicates) | Poor (rows shift) |
+| Implementation complexity | Higher | Lower |
+| Jump to arbitrary page | Not possible | Possible |
+| SysNDD recommendation | **Use for entities, genes** | Use for static lists |
+
+**Expected API Response Format:**
+```json
+{
+  "links": {
+    "self": "/api/entity?page_after=abc123&page_size=50",
+    "next": "/api/entity?page_after=xyz789&page_size=50",
+    "prev": "/api/entity?page_before=abc123&page_size=50"
+  },
+  "meta": {
+    "total_count": 4287,
+    "page_size": 50,
+    "has_next": true,
+    "has_prev": true,
+    "execution_time": "0.23 secs"
+  },
+  "data": [...]
+}
+```
+
+**Best Practices:**
+1. Enforce maximum page_size (100-500) to prevent DoS
+2. Return opaque cursors (Base64-encoded) to hide implementation
+3. Include total_count for pagination UI (cache if expensive)
+4. Validate cursor format, return 400 for malformed
+5. Support both forward and backward navigation
+6. Index database columns used for cursor sorting
+
+**SysNDD Impact:** Already partially implemented in entity_endpoints.R via `generate_cursor_pag_inf()`. Need to:
+- Standardize across all 21 endpoints
+- Add enforcement of page_size limits
+- Ensure stable sorting with composite keys
 
 **Sources:**
-- [Vue Router 4 Migration Guide](https://router.vuejs.org/guide/migration/)
-- [Vue Router 4 Breaking Changes Discussion](https://github.com/vuejs/router/discussions/1975)
+- [API Pagination Guide - Treblle](https://treblle.com/blog/api-pagination-guide-techniques-benefits-implementation)
+- [Offset vs Cursor-Based Pagination - Medium](https://medium.com/@maryam-bit/offset-vs-cursor-based-pagination-choosing-the-best-approach-2e93702a118b)
+- [API Design Basics: Pagination](https://apisyouwonthate.com/blog/api-design-basics-pagination/)
+- [Speakeasy Pagination Best Practices](https://www.speakeasy.com/api-design/pagination)
 
-**Confidence:** HIGH (official documentation)
-
-**SysNDD Impact:** 708 lines in routes.js with lazy loading. Expect ~50 lines of changes.
+**Confidence:** HIGH (established API design patterns, multiple authoritative sources)
 
 ---
 
-### 3. Bootstrap-Vue → Bootstrap-Vue-Next Component Migration
+### 3. Password Hashing and Security
 
-**Why expected:** Bootstrap-Vue has NO Vue 3 support. Bootstrap-Vue-Next is the only Vue 3 port.
+**Why expected:** Plaintext password storage is a critical vulnerability. Any security audit flags this immediately.
 
-| Component | Change Required | Complexity | Notes |
-|-----------|----------------|------------|-------|
-| `<b-table>` | API changes in 0.42.0+ | High | Server-side provider function syntax updated |
-| `<b-form-input>` | `v-model` prop changes | Medium | Vue 3 `modelValue` pattern |
-| `<b-modal>` | Event name changes | Medium | `@show` → `@show.once` patterns |
-| `<b-nav>` / `<b-navbar>` | Minimal changes | Low | Mostly compatible |
-| `<b-button>` | Minimal changes | Low | Mostly compatible |
-| `<b-badge>` | Minimal changes | Low | Mostly compatible |
-| `<b-card>` | Minimal changes | Low | Mostly compatible |
-| Directional props | `left`/`right` → `start`/`end` | Low | Bootstrap 5 RTL support |
-| `BFormFile` | Complete rewrite (VueUse) | Medium | Modern file upload, new API |
+| Feature | Complexity | Current State | Expected Behavior |
+|---------|------------|---------------|-------------------|
+| Password hashing | Low | Plaintext in DB | Argon2id or bcrypt hashed |
+| Hash verification | Low | Direct comparison | Timing-safe comparison |
+| Existing password migration | Medium | N/A | Batch update or migrate-on-login |
+| Password complexity rules | Low | None | Minimum requirements enforced |
+| Rate limiting on auth | Medium | None | Prevent brute force |
+
+**Algorithm Recommendations (2025 OWASP):**
+
+| Algorithm | Status | Work Factor | Notes |
+|-----------|--------|-------------|-------|
+| **Argon2id** | Recommended | 19 MiB memory, 2 iterations min | Best for new implementations |
+| **scrypt** | Second choice | 2^17 cost | If Argon2 unavailable |
+| **bcrypt** | Acceptable | Cost factor 12+ | Legacy systems, 72-byte limit |
+| PBKDF2 | FIPS only | 600,000+ iterations | Only for compliance requirements |
+| MD5, SHA-1 | NEVER | N/A | Insecure, trivially cracked |
+
+**R Implementation Options:**
+
+**Option A: sodium package (Argon2)**
+```r
+library(sodium)
+
+# Hash password for storage
+hash <- password_store("user_password")
+# Returns: "$argon2id$v=19$m=65536,t=2,p=1$..."
+
+# Verify on login
+password_verify(hash, "user_password")  # TRUE/FALSE
+```
+
+**Option B: bcrypt package**
+```r
+library(bcrypt)
+
+# Hash with cost factor 12
+hash <- hashpw("user_password", gensalt(log_rounds = 12))
+# Returns: "$2a$12$..."
+
+# Verify on login
+checkpw("user_password", hash)  # TRUE/FALSE
+```
+
+**Migration Strategy:**
+1. Add `password_hash` column to user table
+2. On login with plaintext match, hash and store, clear plaintext
+3. After migration period, remove plaintext column
+4. For immediate security, batch hash all passwords
+
+**SysNDD Current State (authentication_endpoints.R line 153):**
+```r
+# CURRENT: Plaintext comparison - INSECURE
+filter(user_name == check_user & password == check_pass & approved == 1)
+```
+
+**Expected Implementation:**
+```r
+# FIXED: Hash verification
+user <- pool %>%
+  tbl("user") %>%
+  filter(user_name == check_user & approved == 1) %>%
+  select(user_id, password_hash, ...) %>%
+  collect()
+
+if (nrow(user) == 1 && sodium::password_verify(user$password_hash, check_pass)) {
+  # Generate JWT
+}
+```
 
 **Sources:**
-- [Bootstrap-Vue-Next Migration Guide](https://bootstrap-vue-next.github.io/bootstrap-vue-next/docs/migration-guide)
-- [Bootstrap-Vue-Next Documentation](https://bootstrap-vue-next.github.io/bootstrap-vue-next/docs)
+- [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
+- [sodium R Package CRAN (July 2025)](https://cran.r-project.org/web/packages/sodium/sodium.pdf)
+- [bcrypt R Package CRAN (July 2025)](https://cran.r-project.org/web/packages/bcrypt/bcrypt.pdf)
+- [Password Security in 2025](https://clxon.com/en/blog/password-security-hashing-algorithms-2025)
 
-**Confidence:** MEDIUM (bootstrap-vue-next still 0.x alpha, API changes ongoing)
-
-**SysNDD Impact:** Heavy BTable usage in `TablesEntities.vue`, `TablesGenes.vue`, `TablesPhenotypes.vue`, `TablesLogs.vue`. Forms in `CreateEntity.vue`, `ModifyEntity.vue`.
-
-**Risk:** Bootstrap-Vue-Next is alpha (0.42.0). Breaking changes may occur in future releases. Mitigation: pin version, contribute fixes upstream.
+**Confidence:** HIGH (OWASP guidelines, official R packages)
 
 ---
 
-### 4. Deprecated Dependencies Replacement
+### 4. SQL Injection Prevention
 
-**Why expected:** Vue 2 ecosystem packages are incompatible with Vue 3.
+**Why expected:** 66 SQL injection vulnerabilities identified in code review. Critical security requirement.
 
-| Dependency | Vue 2 Version | Vue 3 Replacement | Complexity | Notes |
-|------------|---------------|-------------------|------------|-------|
-| `@vue/composition-api` | 1.7.0 | Remove (native in Vue 3) | Low | Backport no longer needed |
-| `vue-meta` | 2.4.0 | `@unhead/vue` or native `useHead` | Medium | SEO/meta tags management |
-| `vue-axios` | 3.4.1 | Native Axios + composables | Low | Wrapper not needed |
-| `vue2-perfect-scrollbar` | 1.5.56 | Alternative (OverlayScrollbars-Vue) | Medium | Custom scrollbar styling |
-| `vee-validate` | 3.4.14 | VeeValidate 4.x (Vue 3 compatible) | High | Form validation, major API change |
-| `@riophae/vue-treeselect` | 0.4.0 | Check Vue 3 compatibility or replace | Medium | Ontology hierarchy selection |
-| `bootstrap-vue` | 2.21.2 | `bootstrap-vue-next` 0.42+ | High | Component library (covered above) |
+| Feature | Complexity | Current State | Expected Behavior |
+|---------|------------|---------------|-------------------|
+| Parameterized queries | Medium | String concatenation | All queries use placeholders |
+| Identifier escaping | Low | None | Table/column names escaped |
+| Input validation | Low | Minimal | All inputs validated before query |
+| Query builder pattern | Medium | Manual SQL strings | Consistent query construction |
+
+**Current Vulnerable Pattern (database-functions.R line 145):**
+```r
+# VULNERABLE: String interpolation
+dbExecute(sysndd_db, paste0("UPDATE ndd_entity SET ",
+  "is_active = 0, ",
+  "replaced_by = ", replacement,  # INJECTION POINT
+  " WHERE entity_id = ", entity_id, ";"))  # INJECTION POINT
+```
+
+**Safe Patterns in R:**
+
+**Option A: DBI::dbBind() with placeholders (Recommended)**
+```r
+query <- dbSendQuery(con, "UPDATE ndd_entity SET is_active = 0, replaced_by = ? WHERE entity_id = ?")
+dbBind(query, list(replacement, entity_id))
+dbClearResult(query)
+```
+
+**Option B: glue::glue_sql() for dynamic queries**
+```r
+library(glue)
+query <- glue_sql("UPDATE ndd_entity SET is_active = 0,
+                   replaced_by = {replacement}
+                   WHERE entity_id = {entity_id}",
+                  .con = con)
+dbExecute(con, query)
+```
+
+**Option C: DBI::dbQuoteString() for manual escaping**
+```r
+safe_replacement <- dbQuoteString(con, as.character(replacement))
+safe_entity_id <- dbQuoteString(con, as.character(entity_id))
+# Use in query...
+```
+
+**Database Access Layer Pattern:**
+```r
+# functions/db-utils.R
+execute_query <- function(pool, query, params = list()) {
+  con <- pool::poolCheckout(pool)
+  on.exit(pool::poolReturn(con))
+
+  stmt <- DBI::dbSendStatement(con, query)
+  on.exit(DBI::dbClearResult(stmt), add = TRUE)
+
+  if (length(params) > 0) {
+    DBI::dbBind(stmt, params)
+  }
+
+  DBI::dbGetRowsAffected(stmt)
+}
+```
+
+**SysNDD Impact:** 66 occurrences of `paste0()` with SQL need conversion. Priority by risk:
+1. User input endpoints (authentication, forms)
+2. Admin endpoints with entity_id parameters
+3. Internal functions with less direct user input
 
 **Sources:**
-- [Vue 3 Migration Guide - Deprecated Packages](https://v3-migration.vuejs.org/)
-- [VeeValidate 4.x Migration](https://vee-validate.logaretm.com/v4/guide/migration/)
+- [Posit: Run Queries Safely](https://solutions.posit.co/connections/db/best-practices/run-queries-safely/)
+- [glue_sql Documentation](https://glue.tidyverse.org/reference/glue_sql.html)
+- [DBI Advanced Usage](https://cran.r-project.org/web/packages/DBI/vignettes/DBI-advanced.html)
+- [OWASP SQL Injection Prevention](https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html)
 
-**Confidence:** HIGH (official package documentation)
-
-**SysNDD Impact:** `vee-validate` used in forms (curation workflows). `vue-treeselect` used for phenotype/ontology selection.
+**Confidence:** HIGH (official R documentation, OWASP)
 
 ---
 
-### 5. Build Tooling Modernization
+### 5. RFC 7807 Problem Details for Errors
 
-**Why expected:** Vue CLI is in maintenance mode. Vite is the recommended build tool for Vue 3.
+**Why expected:** Consistent error responses enable client-side error handling. Ad-hoc error formats create fragile integrations.
 
-| Tool | Current | Target | Complexity | Impact |
-|------|---------|--------|------------|--------|
-| Build tool | Vue CLI 5 + Webpack 5 | Vite 6 | Medium | 10x faster dev server, ESM-native |
-| Config file | `vue.config.js` | `vite.config.ts` | Medium | Complete config rewrite |
-| Environment variables | `VUE_APP_*` | `VITE_*` | Low | Rename in `.env` files |
-| Public assets | `public/` | `public/` | Low | No change (compatible) |
-| Static imports | Webpack loaders | Vite plugins | Medium | PurgeCSS, sitemap generation |
-| Template compiler | `vue-template-compiler` | Built into Vue 3 | Low | Remove dependency |
-| HMR (Hot Module Reload) | Webpack HMR | Vite HMR (faster) | Low | Automatic improvement |
+| Feature | Complexity | Current State | Expected Behavior |
+|---------|------------|---------------|-------------------|
+| Structured error format | Low | Inconsistent JSON | RFC 7807/9457 compliant |
+| Error type URIs | Low | None | Unique type per error category |
+| HTTP status codes | Low | Sometimes inconsistent | Correct codes for error type |
+| Error middleware | Medium | None | Centralized error handling |
+
+**RFC 7807 Response Format:**
+```json
+{
+  "type": "https://api.sysndd.org/errors/validation",
+  "title": "Validation Error",
+  "status": 400,
+  "detail": "The entity_id field is required.",
+  "instance": "/api/entity/create",
+  "errors": [
+    {"field": "entity_id", "message": "Required field missing"}
+  ]
+}
+```
+
+**R Implementation with httpproblems package:**
+```r
+library(httpproblems)
+
+# In plumber setup
+pr() |>
+  pr_set_error(function(req, res, error) {
+    res$setHeader("Content-Type", "application/problem+json")
+    res$status <- 500
+    internal_error(detail = conditionMessage(error))
+  }) |>
+  pr_set_404(function(req, res) {
+    not_found(detail = paste0("Resource not found: ", req$PATH_INFO))
+  })
+
+# In endpoint
+#* @post /entity/create
+function(req, res) {
+  if (is.null(req$body$entity_id)) {
+    res$status <- 400
+    return(bad_request(
+      title = "Validation Error",
+      detail = "entity_id is required"
+    ))
+  }
+  # ...
+}
+```
+
+**Error Categories for SysNDD:**
+
+| Type URI | HTTP Status | Use Case |
+|----------|-------------|----------|
+| `/errors/validation` | 400 | Invalid input data |
+| `/errors/authentication` | 401 | Missing/invalid token |
+| `/errors/authorization` | 403 | Insufficient permissions |
+| `/errors/not-found` | 404 | Resource doesn't exist |
+| `/errors/conflict` | 409 | Duplicate entity |
+| `/errors/internal` | 500 | Server error |
 
 **Sources:**
-- [Vite Guide](https://vite.dev/guide/)
-- [Vue CLI to Vite Migration](https://vitejs.dev/guide/migration.html)
+- [RFC 7807 (IETF)](https://datatracker.ietf.org/doc/html/rfc7807)
+- [RFC 9457 (supersedes 7807)](https://www.rfc-editor.org/rfc/rfc9457.html)
+- [httpproblems R Package](https://github.com/atheriel/httpproblems)
+- [Introduction to RFC 7807 - Axway](https://blog.axway.com/learning-center/apis/api-design/introduction-to-rfc-7807)
 
-**Confidence:** HIGH (official Vite documentation)
-
-**SysNDD Impact:** Current Webpack config has PurgeCSS, PWA plugin, sitemap generation, bundle analyzer. Need Vite equivalents.
+**Confidence:** HIGH (IETF standard, dedicated R package)
 
 ---
 
-### 6. Pinia State Management Updates
+### 6. API Versioning
 
-**Why expected:** Pinia 2.0.14 is Vue 2 compatible but needs minor updates for Vue 3.
+**Why expected:** GitHub #21 requires version display. Breaking changes need migration path.
 
-| Change | Complexity | Notes |
-|--------|------------|-------|
-| Import from `pinia` (not `@pinia/vue2`) | Low | Package name change |
-| `createPinia()` in main.ts | Low | Instantiation unchanged |
-| Store composition API compatibility | Low | Already using Composition API style |
-| TypeScript support improvement | Low | Better inference in Vue 3 |
+| Feature | Complexity | Current State | Expected Behavior |
+|---------|------------|---------------|-------------------|
+| Version in response | Low | None | Version header or field |
+| URL path versioning | Medium | None | /api/v1/... prefix |
+| Version endpoint | Low | None | GET /api/version |
+| Deprecation headers | Low | None | Sunset header for old versions |
+
+**Versioning Strategies:**
+
+| Strategy | URL Example | Pros | Cons |
+|----------|-------------|------|------|
+| **URL Path** | `/api/v1/entity` | Visible, cacheable, simple | URL proliferation |
+| Header | `Accepts-version: 1.0` | Clean URLs | Hidden, harder to test |
+| Query param | `/api/entity?version=1` | Easy to test | Less RESTful |
+
+**Recommended: URL Path Versioning with Plumber mount()**
+```r
+# plumber.R
+pr_v1 <- plumber::plumb("endpoints_v1/")
+pr_v2 <- plumber::plumb("endpoints_v2/")
+
+pr() |>
+  pr_mount("/api/v1", pr_v1) |>
+  pr_mount("/api/v2", pr_v2) |>
+  pr_run()
+```
+
+**Version Endpoint:**
+```r
+#* @get /version
+function() {
+  list(
+    api_version = "1.2.0",
+    api_major = 1,
+    r_version = R.version.string,
+    build_date = "2026-01-23"
+  )
+}
+```
+
+**SysNDD Approach:**
+- Start with `/api/v1/` prefix for all current endpoints
+- Add `/api/version` endpoint returning version info
+- Use Semantic Versioning (MAJOR.MINOR.PATCH)
+- Document sunset policy for deprecated versions
 
 **Sources:**
-- [Pinia Migration Guide](https://pinia.vuejs.org/cookbook/migration-vuex.html)
+- [API Versioning Best Practices - getlate.dev](https://getlate.dev/blog/api-versioning-best-practices)
+- [Top 5 API Versioning Strategies 2025](https://blog.dreamfactory.com/top-5-api-versioning-strategies-2025-dreamfactory)
+- [API Versioning: URL vs Header](https://www.lonti.com/blog/api-versioning-url-vs-header-vs-media-type-versioning)
+- [Plumber Routing Documentation](https://www.rplumber.io/)
 
-**Confidence:** HIGH (SysNDD already using Pinia, minimal changes needed)
-
-**SysNDD Impact:** Pinia already adopted in v1. Migration is straightforward.
+**Confidence:** HIGH (established patterns, plumber supports mounting)
 
 ---
 
 ## Differentiators
 
-Features that set a **modern, well-executed** Vue 3 migration apart from a minimal "just make it work" migration.
+Features that set a **well-engineered** API apart from a minimal implementation.
 
-### 1. Composition API + `<script setup>` Adoption
+### 1. OMIM Data Source Migration (mim2gene.txt + HPO)
 
-**Value proposition:** Better code organization, improved TypeScript inference, reduced boilerplate.
+**Value proposition:** Current genemap2 dependency is broken. New approach uses freely available sources without OMIM license.
 
-| Feature | Complexity | When to Use | Notes |
-|---------|------------|-------------|-------|
-| Convert Options API → Composition API | Medium | All new components | Extract reusable logic |
-| Use `<script setup>` syntax | Low | All new components | Reduces boilerplate (no return object) |
-| Keep Options API | Low | Simple view components | Mixed approach acceptable |
-| Hybrid approach (both APIs in codebase) | Low | During migration | Incremental adoption path |
+| Feature | Complexity | Current Source | Target Source |
+|---------|------------|----------------|---------------|
+| Gene-disease mapping | Medium | genemap2 (broken) | mim2gene.txt (free) |
+| Disease names | High | genemap2 | HPO annotations or MONDO |
+| Mode of inheritance | Medium | genemap2 | HPO-OMIM mappings |
+| Cross-references | Low | Manual | MONDO ontology xrefs |
+
+**Current Problem (ontology-functions.R):**
+- genemap2 requires OMIM license for commercial use
+- genemap2 no longer provides all required fields reliably
+- Current code downloads from `omim_links.txt` file
+
+**Alternative Data Sources:**
+
+| Source | Access | Contains | Limitations |
+|--------|--------|----------|-------------|
+| **mim2gene.txt** | Free, no license | MIM number, gene symbols, Entrez ID | No disease names |
+| **HPO annotations** | Free, CC license | Disease-phenotype mappings | Need to join with MIM |
+| **MONDO ontology** | Free, CC license | Disease names, OMIM xrefs | Requires ontology parsing |
+| **MGI Disease Connection** | Free | Human-mouse disease mappings | Mouse focus |
+
+**Proposed Solution:**
+1. Use `mim2gene.txt` for gene-OMIM mappings (free, always available)
+2. Use MONDO ontology xrefs for OMIM-to-disease-name mapping
+3. Use HPO annotations for disease-phenotype relationships
+4. Store disease names from MONDO rather than OMIM directly
+
+**Implementation Pattern:**
+```r
+# 1. Load mim2gene.txt (free)
+mim2gene <- read_delim("https://omim.org/static/omim/data/mim2gene.txt",
+                       delim = "\t", comment = "#")
+
+# 2. Get disease names from MONDO ontology (already implemented)
+mondo_ontology <- get_ontology_object("mondo", config_vars)
+mondo_mappings <- get_mondo_mappings(mondo_ontology)
+
+# 3. Join to get disease names
+omim_with_names <- mim2gene %>%
+  left_join(mondo_mappings, by = c("MIM_Number" = "OMIM"))
+```
 
 **Sources:**
-- [Vue 3 Composition API FAQ](https://vuejs.org/guide/extras/composition-api-faq.html)
-- [Options API vs Composition API](https://vueschool.io/articles/vuejs-tutorials/options-api-vs-composition-api/)
+- [OMIM Downloads Page](https://www.omim.org/downloads/)
+- [Human Phenotype Ontology](https://hpo.jax.org/)
+- [MONDO Disease Ontology](https://mondo.monarchinitiative.org/)
+- [MGI Human-Mouse Disease Connection](https://www.informatics.jax.org/userhelp/disease_connection_help.shtml)
 
-**Confidence:** HIGH (official Vue recommendation for new code)
-
-**SysNDD Recommendation:** Hybrid approach. Convert during component refactoring, not as separate pass. Prioritize components with shared logic first.
-
-**Effort estimate:** ~30% of components benefit significantly (analyses, tables). ~70% can remain Options API without penalty.
+**Confidence:** MEDIUM (requires validation that all needed data is available)
 
 ---
 
-### 2. Mixin → Composable Refactoring
+### 2. Database Access Layer
 
-**Value proposition:** Eliminate mixin pain points (unclear property sources, namespace collisions, implicit coupling).
+**Value proposition:** Eliminates 17 `dbConnect` duplications, centralizes error handling, enables connection pooling.
 
-| Pattern | Complexity | Benefit | Notes |
-|---------|------------|---------|-------|
-| Extract mixin logic to composable function | Medium | Explicit imports, no collisions | Return reactive values |
-| Use `vue-mixable` for gradual migration | Low | Automated wrapper function | Temporary bridge |
-| Convert to Composition API in consuming components | Medium | Full benefits of Composition API | Required for composable use |
+| Feature | Complexity | Current State | Expected Behavior |
+|---------|------------|---------------|-------------------|
+| Single connection pattern | Low | 17 dbConnect calls | Use pool throughout |
+| Transaction support | Medium | None | `poolWithTransaction()` for multi-step operations |
+| Query helpers | Medium | Manual SQL | `execute_query()`, `fetch_one()`, `fetch_all()` |
+| Error wrapping | Low | Try-catch per call | Centralized error handler |
 
-**Sources:**
-- [Vue Composables Guide](https://vuejs.org/guide/reusability/composables.html)
-- [Converting Mixins to Composables](https://www.thisdot.co/blog/converting-your-vue-2-mixins-into-composables-using-the-composition-api)
-- [vue-mixable library](https://github.com/LinusBorg/vue-mixable)
+**Current Pattern (repeated 17 times):**
+```r
+sysndd_db <- dbConnect(RMariaDB::MariaDB(),
+  dbname = dw$dbname,
+  user = dw$user,
+  password = dw$password,
+  server = dw$server,
+  host = dw$host,
+  port = dw$port
+)
+# ... operations ...
+dbDisconnect(sysndd_db)
+```
 
-**Confidence:** HIGH (official Vue pattern, community consensus)
+**Recommended Database Access Layer:**
+```r
+# functions/db-access.R
 
-**SysNDD Impact:** 7 mixins currently. Likely candidates:
-- Authentication state mixin
-- Table pagination mixin
-- Form validation mixin
-- API request mixin
+#' Execute a parameterized query returning affected row count
+execute_query <- function(query, params = list()) {
+  pool::poolWithTransaction(pool, function(con) {
+    stmt <- DBI::dbSendStatement(con, query)
+    on.exit(DBI::dbClearResult(stmt))
+    if (length(params) > 0) DBI::dbBind(stmt, params)
+    DBI::dbGetRowsAffected(stmt)
+  })
+}
 
-**Effort estimate:** ~1-2 days per mixin (extract → test → update consuming components).
+#' Fetch single row, NULL if not found
+fetch_one <- function(query, params = list()) {
+  result <- fetch_all(query, params)
+  if (nrow(result) == 0) return(NULL)
+  if (nrow(result) > 1) warning("fetch_one returned multiple rows")
+  as.list(result[1, ])
+}
 
----
+#' Fetch all rows as tibble
+fetch_all <- function(query, params = list()) {
+  pool::poolWithTransaction(pool, function(con) {
+    stmt <- DBI::dbSendQuery(con, query)
+    on.exit(DBI::dbClearResult(stmt))
+    if (length(params) > 0) DBI::dbBind(stmt, params)
+    tibble::as_tibble(DBI::dbFetch(stmt))
+  })
+}
+```
 
-### 3. TypeScript Adoption
-
-**Value proposition:** Catch errors at compile time, improve IDE experience, document data shapes.
-
-| Feature | Complexity | Strictness Level | Notes |
-|---------|------------|------------------|-------|
-| `.vue` files with TypeScript `<script lang="ts">` | Low | Baseline | SFC TypeScript support |
-| Prop type definitions (`defineProps<T>()`) | Low | Component contracts | Better than PropTypes |
-| API response type definitions | Medium | Data shape safety | 21 API endpoints to type |
-| Store typing (Pinia) | Low | State management safety | Pinia has excellent TS support |
-| `strict: true` in tsconfig | High | Maximum safety | Requires all types defined |
-| `strict: false` with gradual adoption | Low | Incremental approach | Allow `any` during migration |
-
-**Sources:**
-- [Vue 3 TypeScript with Composition API](https://vuejs.org/guide/typescript/composition-api.html)
-- [TypeScript with Vue 3 Best Practices](https://medium.com/@davisaac8/design-patterns-and-best-practices-with-the-composition-api-in-vue-3-77ba95cb4d63)
-
-**Confidence:** HIGH (official Vue documentation, strong ecosystem support)
-
-**SysNDD Recommendation:** Start with `strict: false`, incrementally tighten. Prioritize:
-1. API response types (prevents runtime errors with database schemas)
-2. Component props (component contracts)
-3. Store types (state management safety)
-4. Utility functions (pure logic, easy to type)
-
-**Effort estimate:** ~2-3 weeks for baseline types, ~4-6 weeks for full strict mode.
-
----
-
-### 4. Vitest + Vue Test Utils Testing Infrastructure
-
-**Value proposition:** Catch regressions during migration, enable confident refactoring, establish testing culture.
-
-| Feature | Complexity | Value | Notes |
-|---------|------------|-------|-------|
-| Vitest setup with Browser Mode | Medium | Most accurate testing (real browsers) | Playwright-based |
-| Component testing with Vue Test Utils | Medium | Test user interactions | Focus on behavior, not internals |
-| Composable testing | Low | Unit test extracted logic | Wrap in test component for lifecycle |
-| Page Object pattern for tests | Medium | Reduce test duplication | Extract once 3+ tests use same pattern |
-| API mocking with MSW | Medium | Isolate frontend from backend | Modern mock service worker approach |
-| Snapshot testing (use sparingly) | Low | Catch unexpected changes | Avoid overuse, test behavior instead |
-
-**Sources:**
-- [Vue 3 Testing Pyramid with Vitest](https://alexop.dev/posts/vue3_testing_pyramid_vitest_browser_mode/)
-- [Vitest Component Testing](https://vitest.dev/guide/browser/component-testing)
-- [Testing Vue 3 Composables](https://dylanbritz.dev/writing/testing-vue-composables-lifecycle/)
-- [Vue.js Testing Guide](https://vuejs.org/guide/scaling-up/testing)
-
-**Confidence:** HIGH (Vitest is official recommendation for Vue 3 + Vite projects)
-
-**SysNDD Recommendation:** Modern testing pyramid approach:
-- 70% integration tests (component with mocked API)
-- 20% composable unit tests
-- 10% accessibility + visual regression
-
-**Effort estimate:** ~3-4 weeks for infrastructure + example tests. Testing is ongoing, not one-time.
+**Confidence:** HIGH (established patterns, pool package documentation)
 
 ---
 
-### 5. D3.js + GSAP Integration Modernization
+### 3. Authentication Middleware Refactoring
 
-**Value proposition:** Leverage Composition API for cleaner animation lifecycle, better reactivity integration.
+**Value proposition:** Extract duplicated JWT validation into reusable filters.
 
-| Feature | Complexity | Pattern | Notes |
-|---------|------------|---------|-------|
-| D3 with template refs + `onMounted` | Low | Vue 3 Composition API pattern | Cleaner than Options API |
-| `watchEffect` for D3 re-rendering | Medium | Reactive data → D3 updates | Automatic re-render on data change |
-| GSAP timeline in composable | Medium | Extract animation logic | Reusable, testable |
-| Proper cleanup in `onBeforeUnmount` | Low | Prevent memory leaks | Kill timelines, remove event listeners |
-| TypeScript types for D3/GSAP | Low | @types/d3, @types/gsap | Improve autocomplete |
+| Feature | Complexity | Current State | Expected Behavior |
+|---------|------------|---------------|-------------------|
+| Reusable auth filter | Medium | Inline in each endpoint | `require_auth()` filter |
+| Role-based access | Low | Inline role checks | `require_role("Administrator")` |
+| Token refresh handling | Low | Manual | Automatic in middleware |
 
-**Sources:**
-- [Using Vue 3 Composition API with D3](https://dev.to/muratkemaldar/using-vue-3-with-d3-composition-api-3h1g)
-- [Building Charts in Vue with D3](https://dev.to/jacobandrewsky/building-charts-in-vue-with-d3-38gl)
-- [GSAP with Vue 3 Composition API](https://gsap.com/community/forums/topic/27052-using-gsap-with-vuejs-3-composition-api/)
-- [Modern Web Animations with GSAP and Vue 3](https://blog.openreplay.com/modern-web-animations-with-gsap-and-vue-3/)
+**Current Pattern (repeated in many endpoints):**
+```r
+if (req$user_role %in% c("Administrator", "Curator")) {
+  # endpoint logic
+} else {
+  res$status <- 403
+  return(list(error = "Write access forbidden."))
+}
+```
 
-**Confidence:** MEDIUM (community patterns, not official Vue guidance)
+**Recommended Filter Pattern:**
+```r
+# filters/auth.R
 
-**SysNDD Impact:** 14 analysis components use D3 or GSAP:
-- D3: `AnalysesCurationUpset.vue`, `AnalysesPhenotypeCorrelogram.vue`, `AnalysesTimePlot.vue`, etc.
-- GSAP: Animation helpers for transitions
+#' Require authenticated user
+require_auth <- function(req, res) {
+  if (is.null(req$user_id)) {
+    res$status <- 401
+    return(list(error = "Authentication required"))
+  }
+  plumber::forward()
+}
 
-**Effort estimate:** ~1-2 days per visualization component to modernize patterns.
+#' Require specific role(s)
+require_role <- function(...) {
+  roles <- c(...)
+  function(req, res) {
+    if (!req$user_role %in% roles) {
+      res$status <- 403
+      return(list(error = paste("Required role:", paste(roles, collapse = " or "))))
+    }
+    plumber::forward()
+  }
+}
+
+# Usage in endpoint
+#* @filter require_role("Administrator", "Curator")
+#* @post /entity/create
+function(req, res) {
+  # No auth check needed here
+}
+```
+
+**Confidence:** HIGH (plumber filter documentation)
 
 ---
 
-### 6. UI/UX Modernization (Bonus Differentiator)
+### 4. Response Builder Helpers
 
-**Value proposition:** Migration is the perfect time to address visual debt without fear of regressions (you're already touching everything).
+**Value proposition:** Consistent response format across all endpoints.
 
-| Feature | Complexity | Impact | Notes |
-|---------|------------|--------|-------|
-| CSS variables for theming | Low | High | Easy color palette updates |
-| Shadow depth system | Low | High | Modern card/elevation feel |
-| Loading skeleton states | Medium | Medium | Better perceived performance |
-| Empty state illustrations | Low | Medium | User guidance, reduces confusion |
-| Mobile responsive refinements | Medium | Medium | Table → card view on small screens |
-| Accessibility improvements (WCAG 2.2) | Medium | High | Medical app requirement, legal compliance |
+```r
+# helpers/response.R
 
-**Sources:**
-- [Healthcare UX Best Practices 2026](https://www.eleken.co/blog-posts/user-interface-design-for-healthcare-applications)
-- [Bootstrap 5 Design System](https://getbootstrap.com/docs/5.3/customize/overview/)
+response_success <- function(data, meta = list(), status = 200) {
+  list(
+    status = status,
+    meta = c(meta, list(timestamp = Sys.time())),
+    data = data
+  )
+}
 
-**Confidence:** HIGH (established design patterns, Bootstrap 5 foundation)
+response_error <- function(title, detail, status = 400, type = NULL) {
+  list(
+    type = type %||% paste0("https://api.sysndd.org/errors/", status),
+    title = title,
+    status = status,
+    detail = detail,
+    timestamp = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ")
+  )
+}
 
-**SysNDD Context:** Frontend review identified dated gradient backgrounds, hard card borders, cramped spacing. Bootstrap-Vue-Next uses Bootstrap 5, already a visual upgrade.
+response_created <- function(data, location = NULL) {
+  list(
+    status = 201,
+    message = "Resource created",
+    data = data,
+    location = location
+  )
+}
+```
 
-**Effort estimate:** ~1-2 weeks for CSS refinements (parallel to migration work).
+**Confidence:** HIGH (common API pattern)
 
 ---
 
 ## Anti-Features
 
-Features to **explicitly avoid** during migration. Common mistakes that waste time or create technical debt.
+Features to **explicitly avoid**. Common mistakes that create technical debt or security issues.
 
-### 1. Big Bang Rewrite
+### 1. Synchronous Long-Running Operations
 
-**What:** Rewrite entire application from scratch in Vue 3 before deploying anything.
+**What:** Keeping blocking operations that timeout under load.
 
 **Why bad:**
-- Months without shipping value
-- Higher risk (no incremental validation)
-- Merge conflicts with ongoing Vue 2 development
-- "Works on my machine" surprises at the end
+- API becomes unresponsive during ontology updates
+- Users retry, creating more load
+- Kubernetes/load balancers kill hung requests
+- Poor user experience
 
-**Instead:** Incremental migration using Vue 3 migration build (`@vue/compat`).
+**Instead:** Implement job queue pattern:
+1. POST /jobs/ontology-update returns job_id immediately
+2. GET /jobs/{job_id}/status returns progress
+3. GET /jobs/{job_id}/result returns completed data
 
-**Detection:** If migration plan has no intermediate deployable states, you're doing a big bang rewrite.
-
-**Sources:**
-- [Vue 3 Migration Build Guide](https://v3-migration.vuejs.org/migration-build.html)
-- [Vue Mastery Migration Build Tutorial](https://www.vuemastery.com/blog/vue-3-migration-build/)
+**Detection:** If any endpoint takes >30 seconds, it needs async handling.
 
 ---
 
-### 2. Forcing Composition API Everywhere
+### 2. Partial Security Fixes
 
-**What:** Rewrite all Options API components to Composition API as part of migration.
+**What:** Fixing some SQL injections but leaving others. Adding password hashing without rate limiting.
 
 **Why bad:**
-- Options API is NOT deprecated (official statement)
-- Adds significant effort for little gain on simple components
-- Delays migration completion
-- Composition API only shines with complex logic or reuse
+- False sense of security
+- Attackers find the unfixed vulnerabilities
+- Inconsistent codebase is harder to audit
 
-**Instead:** Hybrid approach. Keep Options API for simple view components. Convert only:
-- Components with mixins (replace with composables)
-- Components with complex state logic
-- Components with reusable logic across multiple files
+**Instead:** Complete security hardening:
+1. Fix ALL 66 SQL injection points
+2. Add password hashing AND rate limiting
+3. Audit all input validation
+4. Document security measures
 
-**Detection:** If migration timeline includes "Convert all components to Composition API" as a separate phase, you're forcing it.
-
-**Sources:**
-- [Composition API FAQ - Is Options API Deprecated?](https://vuejs.org/guide/extras/composition-api-faq.html)
-- [When to Use Composition API](https://vueschool.io/articles/vuejs-tutorials/from-vue-js-options-api-to-composition-api-is-it-worth-it/)
+**Detection:** If code review shows mixed patterns (some parameterized, some not), you have partial fixes.
 
 ---
 
-### 3. TypeScript Strict Mode from Day 1
+### 3. Custom Error Formats per Endpoint
 
-**What:** Enable `strict: true` in tsconfig.json immediately, forcing all code to be fully typed.
+**What:** Each endpoint returns errors differently.
 
 **Why bad:**
-- Paralyzes migration progress (fighting compiler instead of migrating)
-- Forces typing decisions before understanding data shapes
-- Creates "any escape hatches" everywhere (defeats the purpose)
-- TypeScript is incremental by design
+- Frontend must handle multiple error formats
+- Documentation is inconsistent
+- New developers reinvent error handling
 
-**Instead:** Start with `strict: false`, incrementally tighten:
-1. Add `.ts` extensions and basic types
-2. Type API responses (prevents runtime errors)
-3. Type component props (component contracts)
-4. Enable `noImplicitAny` once comfortable
-5. Enable `strict` as final step (optional)
+**Instead:** Single RFC 7807 format everywhere via middleware.
 
-**Detection:** If tsconfig has `strict: true` and codebase has 100+ `any` types or `@ts-ignore` comments, you jumped the gun.
-
-**Sources:**
-- [TypeScript Handbook - Strict Mode](https://www.typescriptlang.org/docs/handbook/2/basic-types.html#strictness)
-- [Vue TypeScript Guide](https://vuejs.org/guide/typescript/overview.html)
+**Detection:** If grepping for `list(error =` shows different structures, you have inconsistent errors.
 
 ---
 
-### 4. Premature Component Library Switch
+### 4. Pagination Without Limits
 
-**What:** Switching from Bootstrap-Vue-Next to PrimeVue/Vuetify/Quasar without trying Bootstrap-Vue-Next first.
+**What:** Allowing `page_size=1000000` to return entire database.
 
 **Why bad:**
-- Visual disruption confuses users (medical researchers expect consistency)
-- Higher migration effort (rewrite all 50+ components)
-- Unnecessary bundle size increase (Bootstrap-Vue-Next is smallest at ~150KB)
-- "Grass is greener" trap (every library has tradeoffs)
+- Memory exhaustion
+- DoS vector
+- Slow queries
 
-**Instead:** Start with Bootstrap-Vue-Next (minimal visual change). Only switch if:
-- Critical feature missing (e.g., virtual scrolling for 100K+ rows)
-- Blocking bugs in Bootstrap-Vue-Next
-- Bootstrap aesthetic fundamentally wrong (not the case for SysNDD)
-
-**Detection:** If migration plan starts with "Evaluate component libraries" and doesn't prioritize visual consistency, you're premature.
-
-**Sources:**
-- [Bootstrap-Vue-Next Documentation](https://bootstrap-vue-next.github.io/bootstrap-vue-next/docs)
-- [SysNDD Frontend Review](https://github.com/bernt-popp/sysndd/blob/master/.planning/FRONTEND-REVIEW-REPORT.md)
+**Instead:** Enforce max_page_size (100-500), reject larger requests with 400.
 
 ---
 
-### 5. Testing Everything Before Shipping Anything
+### 5. Mixing Direct DB Connections with Pool
 
-**What:** Writing comprehensive test suite (80%+ coverage) before deploying migrated components.
+**What:** Using both `dbConnect()` and pool in same codebase.
 
 **Why bad:**
-- Testing is infinite work (diminishing returns after ~70%)
-- Blocks migration progress (waiting for perfect tests)
-- Tests may need rewriting anyway (understanding evolves)
-- Manual testing catches most migration issues
+- Connection leaks from missed `dbDisconnect()`
+- Inconsistent transaction handling
+- Pool benefits negated
 
-**Instead:** Test-Driven Migration (not Test-Driven Development):
-1. Migrate component
-2. Manually test critical paths
-3. Write tests for **bugs found** (regression prevention)
-4. Write tests for **complex logic** (composables, calculations)
-5. Skip tests for simple presentational components
+**Instead:** ALL database access goes through pool. Remove all `dbConnect()` calls.
 
-**Detection:** If "Write tests" is blocking "Deploy to production" in migration plan, you're over-testing.
-
-**Sources:**
-- [Vue Testing Guide - Testing Priorities](https://vuejs.org/guide/scaling-up/testing)
-- [Testing Pyramid for Vue](https://alexop.dev/posts/vue3_testing_pyramid_vitest_browser_mode/)
+**Detection:** If `grep -r "dbConnect"` finds results outside of pool setup, you have mixed patterns.
 
 ---
 
-### 6. Ignoring the Migration Build (`@vue/compat`)
+### 6. Storing API Secrets in Code
 
-**What:** Migrating without Vue 3's official migration build, going straight to Vue 3.
-
-**Why bad:**
-- No deprecation warnings (flying blind)
-- All breaking changes hit at once
-- Hard to isolate issues
-- Migration build exists specifically for smooth migrations
-
-**Instead:** Use `@vue/compat` for incremental migration:
-1. Install `@vue/compat` (Vue 3 with Vue 2 compatibility layer)
-2. Fix migration build errors (fatal issues)
-3. Fix migration build warnings one by one
-4. Disable compatibility mode per component/file
-5. Remove `@vue/compat` when all warnings resolved
-
-**Detection:** If migration plan doesn't mention `@vue/compat`, you're ignoring the migration build.
-
-**Sources:**
-- [Vue 3 Migration Build](https://v3-migration.vuejs.org/migration-build.html)
-- [Migration Build Best Practices](https://medium.com/@kilian.j.2005/vue-2-to-vue-3-a-nearly-painless-approach-d46c13cca63a)
-
----
-
-### 7. Relying on Vue 2 Internal APIs
-
-**What:** Using undocumented Vue 2 internals (`this.$children`, `this._uid`, VNode private properties).
+**What:** Hardcoding OMIM download URLs, API keys, or secrets in R files.
 
 **Why bad:**
-- Break silently in Vue 3 (no migration build warnings)
-- Hard to debug (no error messages, just broken behavior)
-- No migration path (internals changed completely)
+- Secrets committed to git
+- Can't change without code deploy
+- Security risk
 
 **Instead:**
-- Use refs (`this.$refs`) instead of `$children`
-- Use Pinia or props/emits instead of `$parent` chains
-- Use Vue DevTools instead of `_uid` for debugging
-- Refactor before migrating
-
-**Detection:** Search codebase for `$children`, `_uid`, `_vnode`. If found, you're using internals.
-
-**Sources:**
-- [Vue 3 Migration Guide - Removed Internal APIs](https://v3-migration.vuejs.org/breaking-changes/)
-- [Vue 3 Breaking Changes](https://v3-migration.vuejs.org/breaking-changes/)
+- Environment variables for secrets
+- Config files for non-secret configuration
+- Document required environment variables
 
 ---
 
 ## Feature Dependencies
 
 ```
-Vue 3 Core Migration
-  ├─ Breaking Changes Resolution (REQUIRED FIRST)
-  │   └─ Vue Router 4 (blocking: router.js changes)
-  │   └─ Bootstrap-Vue-Next (blocking: component rewrites)
-  │   └─ Deprecated Dependencies (blocking: build errors)
-  │
-  ├─ Build Tooling (Vite) (PARALLEL: independent of Vue 3)
-  │   └─ TypeScript Setup (enables: .ts files in Vite config)
-  │   └─ Vitest Setup (requires: Vite for native integration)
-  │
-  ├─ Composition API Adoption (AFTER CORE WORKING)
-  │   └─ Mixin → Composable (requires: Composition API understanding)
-  │
-  └─ TypeScript Adoption (PARALLEL: can start in Vue 2.7)
-      └─ Strict Mode (LAST: after all code typed)
+Security Hardening (FIRST - unblocks safe development)
+  ├── SQL Injection Prevention (blocking: all DB operations)
+  │   └── Database Access Layer (enables: parameterized queries)
+  └── Password Hashing (blocking: auth endpoints)
 
-D3/GSAP Modernization (AFTER COMPOSITION API)
+Pagination Standardization (PARALLEL with security)
+  └── Error Handling RFC 7807 (enables: consistent error responses)
 
-UI/UX Polish (PARALLEL: CSS-only, no JavaScript changes)
+Async Operations (AFTER security + pagination basics)
+  ├── future + promises setup (blocking: async endpoints)
+  └── Job queue pattern (enables: long-running operations)
 
-Testing Infrastructure (AFTER CORE MIGRATION WORKING)
+OMIM Migration (AFTER async, uses async for updates)
+
+API Versioning (LAST - labels the stable state)
 ```
 
-**Key insight:** Vue 3 core migration is blocking. Everything else can be done in parallel or deferred.
+**Key insight:** Security hardening must come first. Everything else builds on secure foundations.
 
 ---
 
-## MVP Migration Recommendation
+## Implementation Complexity Summary
 
-For SysNDD's Vue 3 migration, prioritize getting **functionally equivalent** application running in Vue 3, then iterate.
-
-### Phase 1: Core Migration (Must Have)
-1. ✅ Install `@vue/compat` and resolve fatal errors
-2. ✅ Migrate Vue Router 3 → 4
-3. ✅ Migrate Bootstrap-Vue → Bootstrap-Vue-Next (pin 0.42.0)
-4. ✅ Replace deprecated dependencies (`vue-meta`, `vue-axios`, `vee-validate`)
-5. ✅ Fix all migration build warnings
-6. ✅ Manual testing of critical paths (login, table view, create entity)
-
-**Estimated effort:** 2-3 weeks
-
-### Phase 2: Build Modernization (Should Have)
-1. ✅ Migrate Vue CLI → Vite
-2. ✅ Setup basic TypeScript (strict: false)
-3. ✅ Type API responses (21 endpoints)
-4. ✅ Convert environment variables (`VUE_APP_*` → `VITE_*`)
-
-**Estimated effort:** 1-2 weeks
-
-### Phase 3: Code Modernization (Nice to Have)
-1. ✅ Convert 7 mixins → composables
-2. ✅ Adopt `<script setup>` in new/refactored components
-3. ✅ Setup Vitest with example tests
-4. ✅ Modernize D3/GSAP patterns in 2-3 high-value components
-
-**Estimated effort:** 2-3 weeks
-
-### Phase 4: Polish (Can Defer to Later Milestone)
-1. Enable TypeScript strict mode incrementally
-2. UI/UX refinements (shadows, spacing, colors)
-3. Accessibility improvements (WCAG 2.2)
-4. Expand test coverage to 40-50%
-
-**Estimated effort:** 3-4 weeks
-
----
-
-## Effort Summary by Feature Category
-
-| Category | Complexity | Time Estimate | Blocking? | Notes |
-|----------|------------|---------------|-----------|-------|
+| Feature | Complexity | Time Estimate | Blocking? | Priority |
+|---------|------------|---------------|-----------|----------|
 | **Table Stakes** | | | | |
-| Vue 3 Breaking Changes | Medium | 1 week | ✅ Yes | Migration build helps |
-| Vue Router 4 | Low | 2-3 days | ✅ Yes | Well-documented |
-| Bootstrap-Vue-Next | High | 2-3 weeks | ✅ Yes | 50+ components to update |
-| Deprecated Dependencies | Medium | 1 week | ✅ Yes | VeeValidate most complex |
-| Vite Migration | Medium | 1 week | ❌ No | Webpack still works |
-| Pinia Updates | Low | 1 day | ❌ No | Already using Pinia |
+| SQL Injection Prevention | Medium | 1-2 weeks | Yes | P0 |
+| Password Hashing | Low | 2-3 days | Yes | P0 |
+| Database Access Layer | Medium | 1 week | No | P1 |
+| RFC 7807 Errors | Low | 3-4 days | No | P1 |
+| Pagination Standardization | Medium | 1 week | No | P1 |
+| API Versioning | Low | 2-3 days | No | P2 |
 | **Differentiators** | | | | |
-| Composition API | Medium | 2-3 weeks | ❌ No | Hybrid approach |
-| Mixin → Composable | Medium | 1-2 weeks | ❌ No | 7 mixins to convert |
-| TypeScript Adoption | High | 4-6 weeks | ❌ No | Incremental approach |
-| Vitest Testing | Medium | 3-4 weeks | ❌ No | Infrastructure + examples |
-| D3/GSAP Modernization | Medium | 1-2 weeks | ❌ No | 14 components affected |
-| UI/UX Modernization | Medium | 1-2 weeks | ❌ No | CSS-only, parallel work |
+| Async Operations | High | 2-3 weeks | No | P1 |
+| OMIM Migration | High | 2-3 weeks | No | P1 |
+| Auth Middleware | Medium | 3-4 days | No | P2 |
+| Response Builders | Low | 1-2 days | No | P2 |
 
-**Total MVP (Phase 1-2):** 4-5 weeks
-**Total with Code Modernization (Phase 1-3):** 6-8 weeks
-**Total with Polish (Phase 1-4):** 9-12 weeks
+**Total Estimate:** 8-12 weeks for comprehensive implementation
 
 ---
 
 ## SysNDD-Specific Considerations
 
-### High-Risk Components (Test Thoroughly)
+### Endpoints Requiring Async
 
-| Component | Why High-Risk | Migration Complexity |
-|-----------|---------------|---------------------|
-| `TablesEntities.vue` | Heavy BTable usage, 4200+ rows | High |
-| `CreateEntity.vue` | Complex form, VeeValidate | High |
-| `ModifyEntity.vue` | Complex form, VeeValidate | High |
-| `AnalysesCurationUpset.vue` | D3 + @upsetjs/vue integration | Medium |
-| `Login.vue` | Authentication critical path | Medium |
-| `User.vue` | User profile, session management | Medium |
+| Endpoint | Current Behavior | Why Async Needed |
+|----------|------------------|------------------|
+| POST /ontology/update | Blocks 2-5 minutes | External API calls, file processing |
+| GET /analyses/clustering | Blocks 1-2 minutes | CPU-intensive calculation |
+| POST /external/pubtator | Blocks 30-60 seconds | External API rate limits |
+| POST /external/hgnc | Blocks 10-30 seconds | External API calls |
 
-### Components with External Dependencies
+### Endpoints Requiring Pagination Audit
 
-| Component | External Dependency | Vue 3 Compatibility | Action Required |
-|-----------|-------------------|---------------------|-----------------|
-| `AnalysesCurationUpset.vue` | `@upsetjs/vue` 1.11.0 | ✅ Vue 3 compatible | Update to latest |
-| Multiple forms | `vee-validate` 3.x | ❌ Use v4 | Major API change |
-| Ontology selectors | `@riophae/vue-treeselect` 0.4.0 | ❓ Check compatibility | May need replacement |
-| Multiple views | `vue-meta` 2.4.0 | ❌ Use @unhead/vue | Migration path exists |
+| Endpoint | Current State | Action Needed |
+|----------|---------------|---------------|
+| GET /entity | Has cursor pagination | Audit consistency |
+| GET /gene | Needs verification | May need cursor params |
+| GET /phenotype | Unknown | Assess row counts |
+| GET /statistics | Likely fine | Probably no pagination needed |
 
-### Migration Sequence Recommendation
+### Database Functions Requiring Parameterized Queries
 
-**Order components by risk × impact:**
-
-1. **Low-risk utilities first** (Banner, Footer, HelperBadge) — validate migration process
-2. **Authentication next** (Login, Register, PasswordReset) — critical path
-3. **Table views** (TablesEntities, TablesGenes) — high impact, high complexity
-4. **Forms** (CreateEntity, ModifyEntity) — VeeValidate migration blocks these
-5. **Analysis views** (D3/GSAP components) — lower priority, can defer
-6. **Admin views last** (ManageUser, ViewLogs) — less frequently used
+All functions in `database-functions.R` using `paste0()` with SQL:
+- `post_db_entity()`
+- `put_db_entity_deactivation()`
+- `put_post_db_review()`
+- `put_post_db_pub_con()`
+- `put_post_db_phen_con()`
+- `put_post_db_var_ont_con()`
+- `put_post_db_status()`
+- `post_db_hash()`
+- `put_db_review_approve()`
+- `put_db_status_approve()`
 
 ---
 
 ## Validation Checklist
 
-Migration is complete when:
+Feature implementation is complete when:
 
-- [ ] All Vue 2 breaking changes resolved (no `@vue/compat` warnings)
-- [ ] Vue Router 4 installed and routes working
-- [ ] Bootstrap-Vue-Next components render correctly
-- [ ] All deprecated dependencies replaced
-- [ ] Forms submit successfully (VeeValidate 4)
-- [ ] Tables paginate/sort/filter (BTable provider functions)
-- [ ] D3 visualizations render and update reactively
-- [ ] GSAP animations play without memory leaks
-- [ ] Authentication flow works (login → protected route → logout)
-- [ ] Build completes without errors (Vite or Webpack)
-- [ ] Production bundle size reasonable (<2MB gzipped)
-- [ ] Manual testing of all critical paths passes
-- [ ] Browser console has no Vue warnings
+**Security:**
+- [ ] All 66 SQL injection points use parameterized queries
+- [ ] Password hashing implemented with Argon2id or bcrypt
+- [ ] Existing passwords migrated to hashed format
+- [ ] Rate limiting on authentication endpoints
+
+**Pagination:**
+- [ ] All tabular endpoints support pagination
+- [ ] Page size limits enforced (max 100-500)
+- [ ] Cursor pagination on high-volume endpoints
+- [ ] Consistent metadata (total_count, has_next, has_prev)
+
+**Async:**
+- [ ] Ontology update returns immediately
+- [ ] Job status endpoint functional
+- [ ] Multiple concurrent requests handled
+- [ ] Proper error propagation from async tasks
+
+**Error Handling:**
+- [ ] All errors use RFC 7807 format
+- [ ] Content-Type: application/problem+json
+- [ ] Consistent HTTP status codes
+
+**OMIM Migration:**
+- [ ] Uses mim2gene.txt instead of genemap2
+- [ ] Disease names from MONDO/HPO
+- [ ] All existing functionality preserved
+
+**API Versioning:**
+- [ ] /api/version endpoint returns version info
+- [ ] URL path versioning implemented (/api/v1/)
+- [ ] Version documented in OpenAPI spec
 
 ---
 
 ## Sources
 
 ### Official Documentation
-- [Vue 3 Migration Guide](https://v3-migration.vuejs.org/)
-- [Vue Router 4 Migration Guide](https://router.vuejs.org/guide/migration/)
-- [Pinia Migration from Vuex](https://pinia.vuejs.org/cookbook/migration-vuex.html)
-- [Bootstrap-Vue-Next Migration Guide](https://bootstrap-vue-next.github.io/bootstrap-vue-next/docs/migration-guide)
-- [Vue 3 Composition API](https://vuejs.org/guide/extras/composition-api-faq.html)
-- [Vue 3 TypeScript Guide](https://vuejs.org/guide/typescript/composition-api.html)
-- [Vitest Component Testing](https://vitest.dev/guide/browser/component-testing)
+- [Plumber Package CRAN (Dec 2025)](https://cran.r-project.org/web/packages/plumber/plumber.pdf)
+- [sodium R Package CRAN (July 2025)](https://cran.r-project.org/web/packages/sodium/sodium.pdf)
+- [bcrypt R Package CRAN (July 2025)](https://cran.r-project.org/web/packages/bcrypt/bcrypt.pdf)
+- [DBI Advanced Usage CRAN](https://cran.r-project.org/web/packages/DBI/vignettes/DBI-advanced.html)
+- [glue_sql Documentation](https://glue.tidyverse.org/reference/glue_sql.html)
+- [RFC 7807 (IETF)](https://datatracker.ietf.org/doc/html/rfc7807)
+- [RFC 9457 (IETF)](https://www.rfc-editor.org/rfc/rfc9457.html)
+- [OWASP Password Storage](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
+- [OWASP SQL Injection Prevention](https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html)
 
-### Community Resources
-- [A Comprehensive Vue 2 to Vue 3 Migration Guide](https://medium.com/simform-engineering/a-comprehensive-vue-2-to-vue-3-migration-guide-a00501bbc3f0)
-- [How to Migrate from Vue 2 to Vue 3: Risks & Key Benefits](https://epicmax.co/vue-3-migration-guide)
-- [Options API vs Composition API](https://vueschool.io/articles/vuejs-tutorials/options-api-vs-composition-api/)
-- [Converting Mixins to Composables](https://www.thisdot.co/blog/converting-your-vue-2-mixins-into-composables-using-the-composition-api)
-- [Vue 3 Testing Pyramid with Vitest](https://alexop.dev/posts/vue3_testing_pyramid_vitest_browser_mode/)
-- [Using Vue 3 Composition API with D3](https://dev.to/muratkemaldar/using-vue-3-with-d3-composition-api-3h1g)
-- [GSAP with Vue 3 Composition API](https://gsap.com/community/forums/topic/27052-using-gsap-with-vuejs-3-composition-api/)
-- [Common Vue 3 Migration Anti-Patterns](https://www.binarcode.com/blog/3-anti-patterns-to-avoid-in-vuejs)
-- [A Guide to Smooth Vue 3 Migration](https://dev.to/vinsay11/a-guide-to-smooth-vue-3-migration-guide-mistakes-to-watch-out-for-57m1)
+### API Design Resources
+- [API Pagination Guide - Treblle](https://treblle.com/blog/api-pagination-guide-techniques-benefits-implementation)
+- [Cursor vs Offset Pagination](https://medium.com/@maryam-bit/offset-vs-cursor-based-pagination-choosing-the-best-approach-2e93702a118b)
+- [API Versioning Best Practices](https://getlate.dev/blog/api-versioning-best-practices)
+- [Speakeasy Pagination](https://www.speakeasy.com/api-design/pagination)
 
-### SysNDD-Specific
-- [SysNDD Frontend Review Report](file:///home/bernt-popp/development/sysndd/.planning/FRONTEND-REVIEW-REPORT.md)
-- [SysNDD PROJECT.md](file:///home/bernt-popp/development/sysndd/.planning/PROJECT.md)
+### R Async Resources
+- [Plumber + future: Async Web APIs](https://posit.co/resources/videos/plumber-and-future-async-web-apis/)
+- [Mirai Promises](https://mirai.r-lib.org/articles/v3-promises.html)
+- [FvD/futureplumber GitHub](https://github.com/FvD/futureplumber)
+
+### Data Sources
+- [OMIM Downloads](https://www.omim.org/downloads/)
+- [Human Phenotype Ontology](https://hpo.jax.org/)
+- [Mouse Genome Informatics](https://www.informatics.jax.org/)
+
+### Clean Code
+- [Clean Code Principles - Codacy](https://blog.codacy.com/clean-code-principles)
+- [SOLID, DRY, KISS Guide](https://medium.com/@hlfdev/kiss-dry-solid-yagni-a-simple-guide-to-some-principles-of-software-engineering-and-clean-code-05e60233c79f)
 
 ---
 
-*Research completed: 2026-01-22*
-*Confidence: HIGH (official sources verified with Context7 and official documentation where available)*
+*Research completed: 2026-01-23*
+*Confidence: MEDIUM-HIGH (official sources verified, some OMIM migration details need validation)*
 *Researcher: GSD Project Researcher (Features dimension)*

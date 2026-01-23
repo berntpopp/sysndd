@@ -1,826 +1,1225 @@
-# Architecture Patterns: Vue 3 + TypeScript Migration
+# Architecture Patterns: v4 Backend Overhaul
 
-**Domain:** Vue 2.7 to Vue 3 + TypeScript + Bootstrap-Vue-Next migration
-**Researched:** 2026-01-22
-**Confidence:** HIGH
+**Domain:** R/Plumber API refactoring to DRY/KISS/SOLID compliance
+**Researched:** 2026-01-23
+**Confidence:** HIGH (Official documentation verified, multiple authoritative sources)
 
 ## Executive Summary
 
-SysNDD's migration from Vue 2.7 (Options API with mixins) to Vue 3 (Composition API with composables and TypeScript) requires systematic architectural reorganization. The current structure with 7 mixins, Options API components, and global component registration needs transformation to align with Vue 3 best practices: `<script setup>`, composables, TypeScript integration, and Bootstrap-Vue-Next.
+The SysNDD API's current architecture suffers from 8 identified SOLID violations, 66 SQL injection vulnerabilities, and significant code duplication across 21 endpoint files and 16 function files. The `database-functions.R` (1,234 lines) is a "god file" handling entity CRUD, reviews, publications, phenotypes, variation ontology, and approval workflows.
+
+This architecture document defines patterns for refactoring to DRY/KISS/SOLID compliance:
+- **Repository Pattern** for database access, eliminating 17 direct `dbConnect` calls
+- **Service Layer** for business logic isolation
+- **Middleware Chain** for cross-cutting concerns (auth, validation, error handling)
+- **Response Builder** for consistent API responses
+- **Parameterized Queries** for SQL injection prevention
 
 **Key architectural shifts:**
-- **Mixins → Composables**: Convert 7 mixins to composable functions with `use*` naming
-- **Options API → Composition API**: Migrate components to `<script setup lang="ts">`
-- **Global registration → Explicit imports**: Replace global-components.js with local imports
-- **Bootstrap-Vue → Bootstrap-Vue-Next**: Update component syntax and APIs
-
-This migration enables type safety, better code organization, improved developer experience, and positions SysNDD for long-term maintainability with modern Vue 3 ecosystem tooling.
+- Monolithic `database-functions.R` decomposed into 6 domain-specific repositories
+- Global state (`<<-`) eliminated via dependency injection through closures
+- 100+ inconsistent error patterns unified via centralized error handler
+- All SQL queries migrated to parameterized queries via `dbBind()` or `glue_sql()`
 
 ---
 
-## Recommended Architecture
+## Current Architecture Analysis
 
-### Target Directory Structure
+### Identified Issues
+
+| Issue | Count | Impact |
+|-------|-------|--------|
+| Direct `dbConnect` calls (bypass pool) | 17 | Connection leaks, performance degradation |
+| Global mutable state (`<<-`) | 15 | Testing difficulty, race conditions |
+| SQL injection vulnerabilities | 66 | Security critical |
+| Inconsistent error patterns | ~100 | Poor API UX, debugging difficulty |
+| SRP violations (god functions) | 5 | Maintenance burden, testing complexity |
+| DRY violations (auth checks) | 12 | Code duplication, inconsistent security |
+| Response pattern duplications | 50+ | Inconsistent API responses |
+
+### Current File Dependencies
 
 ```
-app/src/
-├── main.ts                          # Entry point (main.js → main.ts)
-├── App.vue
-├── assets/
-│   ├── scss/                        # Existing SCSS
-│   ├── css/                         # Existing CSS
-│   └── images/                      # Static assets
-├── components/
-│   ├── analyses/                    # Analysis components
-│   ├── small/                       # Reusable UI components
-│   ├── tables/                      # Table components
-│   ├── Navbar.vue
-│   └── Footer.vue
-├── composables/                     # NEW: Migrated from mixins
-│   ├── useColorAndSymbols.ts       # From colorAndSymbolsMixin.js
-│   ├── useScrollbar.ts             # From scrollbarMixin.js
-│   ├── useTableData.ts             # From tableDataMixin.js
-│   ├── useTableMethods.ts          # From tableMethodsMixin.js
-│   ├── useText.ts                  # From textMixin.js
-│   ├── useToast.ts                 # From toastMixin.js
-│   ├── useUrlParsing.ts            # From urlParsingMixin.js
-│   └── index.ts                    # Re-export all composables
-├── types/                           # NEW: TypeScript type definitions
-│   ├── api.ts                       # API response types
-│   ├── components.ts                # Component prop types
-│   ├── constants.ts                 # Constants types
-│   └── models.ts                    # Data model interfaces
-├── constants/                       # Renamed from assets/js/constants/
-│   ├── footerNav.ts                # From footer_nav_constants.js
-│   ├── initObjects.ts              # From init_obj_constants.js
-│   ├── mainNav.ts                  # From main_nav_constants.js
-│   ├── roles.ts                    # From role_constants.js
-│   └── urls.ts                     # From url_constants.js
-├── services/                        # Enhanced from assets/js/services/
-│   ├── api.ts                      # From apiService.js with TypeScript
-│   └── index.ts                    # Re-export all services
-├── utils/                           # NEW: Pure utility functions
-│   ├── formatters.ts               # Date, number formatting
-│   ├── validators.ts               # Validation helpers
-│   └── helpers.ts                  # Generic helper functions
-├── classes/                         # Enhanced from assets/js/classes/
-│   ├── submission/                 # Existing submission classes
-│   └── index.ts                    # Re-export with TypeScript
-├── views/
-│   ├── help/                       # Help pages
-│   ├── curate/                     # Curation views
-│   ├── analyses/                   # Analysis views
-│   ├── tables/                     # Table views
-│   ├── admin/                      # Admin views
-│   ├── review/                     # Review views
-│   └── pages/                      # Other pages
-├── router/
-│   └── index.ts                    # Vue Router 4 (from index.js)
-├── stores/                          # Pinia stores (already using Pinia)
-│   └── *.ts
-├── plugins/
-│   └── axios.ts                    # From axios.js
-└── config/
-    └── *.ts                        # Configuration files
+start_sysndd_api.R
+    |
+    +-- functions/ (16 files, sourced globally)
+    |       |
+    |       +-- database-functions.R (1,234 lines - GOD FILE)
+    |       +-- endpoint-functions.R (758 lines)
+    |       +-- helper-functions.R (1,010 lines)
+    |       +-- logging-functions.R (171 lines)
+    |       +-- publication-functions.R
+    |       +-- hpo-functions.R
+    |       +-- hgnc-functions.R
+    |       +-- ... (9 more)
+    |
+    +-- endpoints/ (22 files, mounted on router)
+            |
+            +-- entity_endpoints.R (uses database-functions, helper-functions)
+            +-- gene_endpoints.R (uses helper-functions, pool directly)
+            +-- review_endpoints.R (uses database-functions)
+            +-- ... (19 more)
 ```
 
-### Key Structural Changes
+### Problem Patterns in Current Code
 
-| Current Location | New Location | Rationale |
-|------------------|--------------|-----------|
-| `assets/js/mixins/*.js` | `composables/use*.ts` | Composition API pattern, TypeScript |
-| `assets/js/constants/*.js` | `constants/*.ts` | Flatter structure, TypeScript |
-| `assets/js/services/*.js` | `services/*.ts` | TypeScript, explicit exports |
-| `assets/js/classes/**/*.js` | `classes/**/*.ts` | TypeScript |
-| `global-components.js` | Component-local imports | Explicit dependencies, tree-shaking |
-| `*.vue` with Options API | `*.vue` with `<script setup>` | Composition API, TypeScript inference |
-| `main.js` | `main.ts` | TypeScript entry point |
-
----
-
-## Migration Patterns
-
-### Pattern 1: Mixin → Composable Conversion
-
-**Philosophy:** Mixins implicitly merge properties into components. Composables explicitly return reactive values.
-
-#### Example: colorAndSymbolsMixin → useColorAndSymbols
-
-**Before (Mixin):**
-```javascript
-// assets/js/mixins/colorAndSymbolsMixin.js
-export default {
-  data() {
-    return {
-      stoplights_style: {
-        1: 'success',
-        2: 'primary',
-        // ...
-      },
-      ndd_icon: {
-        No: 'x',
-        Yes: 'check',
-      },
-      // ... more properties
-    };
-  },
-};
+**1. God File (database-functions.R):**
+```r
+# Handles 8+ distinct responsibilities:
+# - Entity CRUD (post_db_entity, put_db_entity_deactivation)
+# - Review CRUD (put_post_db_review)
+# - Publication connections (put_post_db_pub_con)
+# - Phenotype connections (put_post_db_phen_con)
+# - Variation ontology (put_post_db_var_ont_con)
+# - Status management (put_post_db_status)
+# - Approval workflows (put_db_review_approve, put_db_status_approve)
+# - Hash generation (post_db_hash)
 ```
 
-**After (Composable):**
-```typescript
-// composables/useColorAndSymbols.ts
-import { readonly } from 'vue'
-import type { StoplightsStyle, NddIcon, UserIcon } from '@/types/components'
+**2. Bypassing Connection Pool:**
+```r
+# Current pattern (17 occurrences):
+sysndd_db <- dbConnect(RMariaDB::MariaDB(),
+  dbname = dw$dbname, user = dw$user, password = dw$password,
+  server = dw$server, host = dw$host, port = dw$port)
+# ... do work ...
+dbDisconnect(sysndd_db)
+```
 
-export function useColorAndSymbols() {
-  const stoplightsStyle: Readonly<StoplightsStyle> = {
-    1: 'success',
-    2: 'primary',
-    3: 'warning',
-    4: 'danger',
-    Definitive: 'success',
-    Moderate: 'primary',
-    Limited: 'warning',
-    Refuted: 'danger',
-  } as const
+**3. SQL Injection Vulnerability:**
+```r
+# Current pattern (66 occurrences):
+dbExecute(sysndd_db, paste0("UPDATE ndd_entity SET ",
+  "is_active = 0, replaced_by = ", replacement,  # VULNERABLE
+  " WHERE entity_id = ", entity_id, ";"))         # VULNERABLE
+```
 
-  const nddIcon: Readonly<NddIcon> = {
-    No: 'x',
-    Yes: 'check',
-  } as const
+**4. Inconsistent Error Handling:**
+```r
+# Pattern A (returns list):
+return(list(status = 200, message = "OK.", entry = id))
 
-  const userIcon: Readonly<UserIcon> = {
-    Viewer: 'person-circle',
-    Reviewer: 'emoji-smile',
-    Curator: 'emoji-heart-eyes',
-    Administrator: 'emoji-sunglasses',
-  } as const
+# Pattern B (sets res$status):
+res$status <- 403
+return(list(error = "Write access forbidden."))
 
-  // Helper function to get stoplight variant
-  const getStoplightVariant = (category: keyof StoplightsStyle): string => {
-    return stoplightsStyle[category] || 'secondary'
-  }
+# Pattern C (mixed):
+res$status <- response$status
+return(list(status = response$status, message = response$message))
+```
 
-  return {
-    stoplightsStyle: readonly(stoplightsStyle),
-    nddIcon: readonly(nddIcon),
-    userIcon: readonly(userIcon),
-    getStoplightVariant,
-  }
+**5. Duplicated Auth Checks:**
+```r
+# Repeated 12+ times across endpoints:
+if (req$user_role %in% c("Administrator", "Curator")) {
+  # ... business logic
+} else {
+  res$status <- 403
+  return(list(error = "Write access forbidden."))
 }
 ```
 
-**Component Usage:**
-```vue
-<!-- After: Composition API with composable -->
-<script setup lang="ts">
-import { ref } from 'vue'
-import { useColorAndSymbols } from '@/composables/useColorAndSymbols'
+---
 
-const { userIcon, userStyle, getUserIcon } = useColorAndSymbols()
-const role = ref<'Curator'>('Curator')
-</script>
+## Target Architecture
 
-<template>
-  <b-icon :icon="userIcon[role]" :variant="userStyle[role]" />
-</template>
+### Directory Structure
+
+```
+api/
+├── start_sysndd_api.R              # Entry point (simplified)
+├── config/
+│   ├── api_spec.json               # OpenAPI examples (existing)
+│   └── version_spec.json           # Version info (existing)
+├── core/                           # NEW: Core infrastructure
+│   ├── database.R                  # Connection pool factory
+│   ├── response.R                  # Response builder functions
+│   ├── errors.R                    # Error classes and handlers
+│   └── middleware.R                # Middleware chain builder
+├── repositories/                   # NEW: Domain repositories
+│   ├── entity_repository.R         # Entity CRUD
+│   ├── review_repository.R         # Review CRUD
+│   ├── status_repository.R         # Status CRUD
+│   ├── publication_repository.R    # Publication connections
+│   ├── phenotype_repository.R      # Phenotype connections
+│   ├── ontology_repository.R       # Variation ontology
+│   ├── user_repository.R           # User management
+│   └── hash_repository.R           # Hash storage
+├── services/                       # NEW: Business logic layer
+│   ├── entity_service.R            # Entity business rules
+│   ├── review_service.R            # Review workflows
+│   ├── approval_service.R          # Approval workflows
+│   ├── auth_service.R              # Authentication logic
+│   └── search_service.R            # Search/filter logic
+├── middleware/                     # NEW: Plumber filters
+│   ├── cors.R                      # CORS filter
+│   ├── auth.R                      # JWT authentication
+│   ├── logging.R                   # Request logging
+│   ├── validation.R                # Input validation
+│   └── error_handler.R             # Global error handler
+├── endpoints/                      # REFACTORED: Thin controllers
+│   ├── entity_endpoints.R          # Uses services, not DB directly
+│   ├── gene_endpoints.R
+│   ├── review_endpoints.R
+│   └── ... (19 more)
+├── functions/                      # REFACTORED: Pure utilities
+│   ├── helper-functions.R          # Pagination, sorting, filtering
+│   ├── file-functions.R            # File operations
+│   └── external/                   # External API clients
+│       ├── hgnc-client.R
+│       ├── hpo-client.R
+│       ├── ensembl-client.R
+│       └── pubtator-client.R
+└── tests/                          # ENHANCED: Test coverage
+    └── testthat/
+        ├── test-unit-repositories.R
+        ├── test-unit-services.R
+        ├── test-integration-endpoints.R
+        └── helper-*.R
+```
+
+### Component Boundaries
+
+| Layer | Responsibility | Dependencies | Depends On |
+|-------|---------------|--------------|------------|
+| **Endpoints** | HTTP routing, request parsing, response serialization | Services, Response Builder | Services |
+| **Middleware** | Cross-cutting: auth, logging, validation, errors | Core infrastructure | Core |
+| **Services** | Business logic, workflow orchestration | Repositories | Repositories |
+| **Repositories** | Database CRUD, query building | Pool, Core | Pool |
+| **Core** | Pool management, response formatting, error classes | Config | Config |
+
+### Data Flow
+
+```
+HTTP Request
+     |
+     v
++------------------------+
+|  Middleware Chain      |
+|  - CORS Filter         |
+|  - Auth Filter         |
+|  - Logging Filter      |
+|  - Validation Filter   |
++------------------------+
+     |
+     v
++------------------------+
+|  Endpoint Handler      |
+|  (Thin Controller)     |
++------------------------+
+     |
+     v
++------------------------+
+|  Service Layer         |
+|  (Business Logic)      |
++------------------------+
+     |
+     v
++------------------------+
+|  Repository Layer      |
+|  (Data Access)         |
++------------------------+
+     |
+     v
++------------------------+
+|  Connection Pool       |
+|  (Managed by core)     |
++------------------------+
+     |
+     v
++------------------------+
+|  MariaDB Database      |
++------------------------+
+```
+
+---
+
+## Pattern Implementation
+
+### Pattern 1: Repository Pattern
+
+**Purpose:** Encapsulate all database access for a domain, use parameterized queries, eliminate direct dbConnect calls.
+
+**Example: entity_repository.R**
+
+```r
+# repositories/entity_repository.R
+
+#' Create Entity Repository
+#'
+#' Factory function that returns repository functions with pool injected.
+#' Follows dependency injection via closures pattern.
+#'
+#' @param pool Database connection pool
+#' @return List of repository functions
+#' @export
+create_entity_repository <- function(pool) {
+
+  #' Find Entity by ID
+  #'
+  #' @param entity_id Integer entity ID
+  #' @return Tibble with entity data or NULL
+  find_by_id <- function(entity_id) {
+    pool %>%
+      tbl("ndd_entity_view") %>%
+      filter(entity_id == !!entity_id) %>%
+      collect()
+  }
+
+  #' Create New Entity
+  #'
+  #' @param entity_data Tibble with entity fields
+
+  #' @return Created entity ID
+  insert <- function(entity_data) {
+    # Use dbBind for parameterized insert
+    query <- "INSERT INTO ndd_entity (hgnc_id, hpo_mode_of_inheritance_term,
+              disease_ontology_id_version, ndd_phenotype, entry_user_id)
+              VALUES (?, ?, ?, ?, ?)"
+
+    conn <- pool::poolCheckout(pool)
+    on.exit(pool::poolReturn(conn))
+
+    stmt <- DBI::dbSendStatement(conn, query)
+    DBI::dbBind(stmt, list(
+      entity_data$hgnc_id,
+      entity_data$hpo_mode_of_inheritance_term,
+      entity_data$disease_ontology_id_version,
+      entity_data$ndd_phenotype,
+      entity_data$entry_user_id
+    ))
+    DBI::dbClearResult(stmt)
+
+    # Get last insert ID
+    result <- DBI::dbGetQuery(conn, "SELECT LAST_INSERT_ID() AS id")
+    result$id
+  }
+
+  #' Deactivate Entity
+  #'
+  #' @param entity_id Entity to deactivate
+  #' @param replacement_id Optional replacement entity
+  #' @return Number of affected rows
+  deactivate <- function(entity_id, replacement_id = NULL) {
+    query <- "UPDATE ndd_entity SET is_active = 0, replaced_by = ?
+              WHERE entity_id = ?"
+
+    conn <- pool::poolCheckout(pool)
+    on.exit(pool::poolReturn(conn))
+
+    stmt <- DBI::dbSendStatement(conn, query)
+    DBI::dbBind(stmt, list(replacement_id, entity_id))
+    affected <- DBI::dbGetRowsAffected(stmt)
+    DBI::dbClearResult(stmt)
+    affected
+  }
+
+  #' List Entities with Pagination
+  #'
+  #' @param sort_exprs Sorting expressions
+  #' @param filter_exprs Filter expressions
+  #' @param page_after Cursor position
+  #' @param page_size Number of results
+  #' @return Tibble with paginated results
+  list_paginated <- function(sort_exprs = "entity_id",
+                             filter_exprs = "",
+                             page_after = 0,
+                             page_size = 10) {
+    base_query <- pool %>%
+      tbl("ndd_entity_view")
+
+    if (filter_exprs != "") {
+      base_query <- base_query %>%
+        filter(!!!rlang::parse_exprs(filter_exprs))
+    }
+
+    base_query %>%
+      arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
+      collect()
+  }
+
+  # Return repository interface
+  list(
+    find_by_id = find_by_id,
+    insert = insert,
+    deactivate = deactivate,
+    list_paginated = list_paginated
+  )
+}
 ```
 
 **Benefits:**
-- **Type safety**: TypeScript knows the shape of all objects
-- **Explicit dependencies**: Clear what data comes from composable
-- **No namespace collisions**: No implicit property merging
-- **Tree-shakable**: Only import what you use
+- SQL injection prevented via parameterized queries
+- Connection pool always used (no direct dbConnect)
+- Single point of change for entity data access
+- Testable via mock pool injection
 
 ---
 
-### Pattern 2: Options API → Composition API with TypeScript
+### Pattern 2: Service Layer
 
-**Complete Component Transformation Example:**
+**Purpose:** Encapsulate business logic and workflow orchestration, separate from HTTP concerns.
 
-**Before (Options API):**
-```vue
-<script>
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin'
-import toastMixin from '@/assets/js/mixins/toastMixin'
+**Example: entity_service.R**
 
-export default {
-  name: 'UserCard',
-  mixins: [colorAndSymbolsMixin, toastMixin],
-  props: {
-    userId: {
-      type: Number,
-      required: true
+```r
+# services/entity_service.R
+
+#' Create Entity Service
+#'
+#' @param entity_repo Entity repository
+#' @param review_repo Review repository
+#' @param status_repo Status repository
+#' @param publication_repo Publication repository
+#' @param phenotype_repo Phenotype repository
+#' @param ontology_repo Variation ontology repository
+#' @return List of service functions
+#' @export
+create_entity_service <- function(entity_repo, review_repo, status_repo,
+                                   publication_repo, phenotype_repo,
+                                   ontology_repo) {
+
+  #' Create Complete Entity with Review and Status
+  #'
+  #' Orchestrates the complete entity creation workflow:
+  #' 1. Create entity record
+  #' 2. Create initial review with synopsis
+  #' 3. Create publication connections
+  #' 4. Create phenotype connections
+  #' 5. Create variation ontology connections
+  #' 6. Create initial status
+  #' 7. Optionally auto-approve
+  #'
+  #' @param create_data List with entity, review, status data
+  #' @param user_id ID of creating user
+  #' @param direct_approval Whether to auto-approve
+  #' @return List with status, message, and created entity_id
+  create_entity <- function(create_data, user_id, direct_approval = FALSE) {
+
+    # Validate required fields
+    validate_entity_input(create_data$entity)
+
+    # Set user IDs
+    create_data$entity$entry_user_id <- user_id
+
+    # Step 1: Create entity
+    entity_id <- entity_repo$insert(create_data$entity)
+
+    if (is.null(entity_id)) {
+      api_error("Failed to create entity", 500)
     }
-  },
-  data() {
-    return {
-      user: null,
-      loading: false,
-      error: null
+
+    # Step 2: Create review
+    review_data <- prepare_review_data(create_data$review, entity_id, user_id)
+    review_result <- review_repo$insert(review_data)
+
+    if (review_result$status != 200) {
+      # Rollback: deactivate entity
+      entity_repo$deactivate(entity_id)
+      api_error(review_result$message, review_result$status)
     }
-  },
-  computed: {
-    userRoleBadge() {
-      if (!this.user) return null
-      return {
-        icon: this.user_icon[this.user.role],
-        variant: this.user_style[this.user.role]
-      }
+
+    review_id <- review_result$entry$review_id
+
+    # Step 3: Create publication connections (if provided)
+    if (length(purrr::compact(create_data$review$literature)) > 0) {
+      publications <- prepare_publications(create_data$review$literature)
+      publication_repo$create_connections(publications, entity_id, review_id)
     }
-  },
-  watch: {
-    userId: {
-      immediate: true,
-      handler(newId) {
-        this.fetchUser(newId)
-      }
+
+    # Step 4: Create phenotype connections (if provided)
+    if (length(purrr::compact(create_data$review$phenotypes)) > 0) {
+      phenotype_repo$create_connections(
+        create_data$review$phenotypes, entity_id, review_id
+      )
     }
-  },
-  methods: {
-    async fetchUser(id) {
-      this.loading = true
-      try {
-        const response = await this.axios.get(`/api/users/${id}`)
-        this.user = response.data
-        this.makeToast('Success', 'User loaded', 'success')
-      } catch (error) {
-        this.makeToast('Error', 'Failed to load user', 'danger')
-      } finally {
-        this.loading = false
-      }
+
+    # Step 5: Create variation ontology connections (if provided)
+    if (length(purrr::compact(create_data$review$variation_ontology)) > 0) {
+      ontology_repo$create_connections(
+        create_data$review$variation_ontology, entity_id, review_id
+      )
+    }
+
+    # Step 6: Create status
+    status_data <- tibble::tibble(
+      entity_id = entity_id,
+      category_id = create_data$status$category_id,
+      status_user_id = user_id,
+      comment = create_data$status$comment,
+      problematic = create_data$status$problematic
+    )
+    status_result <- status_repo$insert(status_data)
+
+    # Step 7: Auto-approve if requested
+    if (direct_approval) {
+      review_repo$approve(review_id, user_id, TRUE)
+      status_repo$approve(status_result$entry, user_id, TRUE)
+    }
+
+    list(
+      status = 200,
+      message = "OK. Entity created.",
+      entry = list(entity_id = entity_id)
+    )
+  }
+
+  #' Validate Entity Input
+  validate_entity_input <- function(entity) {
+    required <- c("hgnc_id", "hpo_mode_of_inheritance_term",
+                  "disease_ontology_id_version", "ndd_phenotype")
+
+    missing <- required[!required %in% names(entity)]
+    if (length(missing) > 0) {
+      validation_error(paste("Missing required fields:", paste(missing, collapse = ", ")))
     }
   }
-}
-</script>
-```
 
-**After (Composition API + TypeScript):**
-```vue
-<script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { useColorAndSymbols } from '@/composables/useColorAndSymbols'
-import { useToast } from '@/composables/useToast'
-import { useApi } from '@/composables/useApi'
-import type { User } from '@/types/models'
-
-// Props
-interface Props {
-  userId: number
-}
-const props = defineProps<Props>()
-
-// Composables
-const { userIcon, userStyle } = useColorAndSymbols()
-const { showSuccess, showError } = useToast()
-const { get } = useApi()
-
-// State
-const user = ref<User | null>(null)
-const loading = ref(false)
-const error = ref<string | null>(null)
-
-// Computed
-const userRoleBadge = computed(() => {
-  if (!user.value) return null
-  const role = user.value.role
-  return {
-    icon: userIcon[role],
-    variant: userStyle[role]
+  #' Prepare Review Data
+  prepare_review_data <- function(review, entity_id, user_id) {
+    tibble::tibble(
+      entity_id = entity_id,
+      synopsis = review$synopsis %||% NA_character_,
+      review_user_id = user_id,
+      comment = review$comment %||% NA_character_
+    )
   }
-})
 
-// Methods
-const fetchUser = async (id: number) => {
-  loading.value = true
-  error.value = null
-  try {
-    const response = await get<User>(`/api/users/${id}`)
-    user.value = response
-    showSuccess('Success', 'User loaded')
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Unknown error'
-    showError('Error', 'Failed to load user')
-  } finally {
-    loading.value = false
-  }
+  # Return service interface
+  list(
+    create_entity = create_entity
+  )
 }
-
-// Watchers
-watch(
-  () => props.userId,
-  (newId) => fetchUser(newId),
-  { immediate: true }
-)
-</script>
-```
-
----
-
-### Pattern 3: Global Component Registration → Local Imports
-
-**Before:**
-```javascript
-// global-components.js
-import Vue from 'vue'
-
-const components = {
-  TablesEntities: () => import('@/components/tables/TablesEntities.vue'),
-  HelperBadge: () => import('@/components/HelperBadge.vue'),
-}
-
-Object.entries(components).forEach(([name, component]) =>
-  Vue.component(name, component)
-)
-```
-
-**After:**
-```vue
-<script setup lang="ts">
-import TablesEntities from '@/components/tables/TablesEntities.vue'
-import HelperBadge from '@/components/HelperBadge.vue'
-import type { FilterObject } from '@/types/components'
-
-const filter = ref<FilterObject>({})
-</script>
-
-<template>
-  <div>
-    <TablesEntities :filter="filter" />
-    <HelperBadge text="Help" />
-  </div>
-</template>
 ```
 
 **Benefits:**
-- **Tree-shaking**: Unused components removed from bundle
-- **Clear dependencies**: Easy to see what a component uses
-- **Better IDE support**: Jump to definition, find usages
+- Business logic isolated from HTTP concerns
+- Workflow orchestration in one place
+- Repositories injected (testable with mocks)
+- Clear transaction boundaries
 
 ---
 
-### Pattern 4: Bootstrap-Vue → Bootstrap-Vue-Next
+### Pattern 3: Middleware Chain
 
-**v-model Changes:**
-```vue
-<!-- Before -->
-<b-form-checkbox :indeterminate.sync="indeterminate" v-model="checked" />
+**Purpose:** Handle cross-cutting concerns (auth, validation, logging, errors) in reusable filters.
 
-<!-- After -->
-<BFormCheckbox v-model:indeterminate="indeterminate" v-model="checked" />
-```
+**Example: middleware/auth.R**
 
-**Directional Props:**
-```vue
-<!-- Before -->
-<b-card img-left img-src="image.jpg" />
+```r
+# middleware/auth.R
 
-<!-- After -->
-<BCard img-start img-src="image.jpg" />
-```
+#' Create Authentication Filter
+#'
+#' Factory that returns auth filter with config injected.
+#'
+#' @param secret JWT secret key
+#' @param public_paths Paths that don't require auth
+#' @return Plumber filter function
+#' @export
+create_auth_filter <- function(secret, public_paths = c()) {
 
-**Global API → Composables:**
-```vue
-<!-- Before (Options API) -->
-<script>
-export default {
-  methods: {
-    showModal() {
-      this.$bvModal.show('my-modal')
+  key <- charToRaw(secret)
+
+  function(req, res) {
+    # Public paths bypass auth
+    if (is_public_path(req, public_paths)) {
+      return(plumber::forward())
     }
+
+    # GET without auth is allowed (public read)
+    if (req$REQUEST_METHOD == "GET" && is.null(req$HTTP_AUTHORIZATION)) {
+      return(plumber::forward())
+    }
+
+    # All other requests require valid token
+    if (is.null(req$HTTP_AUTHORIZATION)) {
+      auth_error("Authorization header missing")
+    }
+
+    jwt <- stringr::str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
+
+    tryCatch({
+      user <- jose::jwt_decode_hmac(jwt, secret = key)
+
+      if (user$exp < as.numeric(Sys.time())) {
+        auth_error("Token expired")
+      }
+
+      # Attach user info to request
+      req$user_id <- as.integer(user$user_id)
+      req$user_role <- user$user_role
+      req$user_name <- user$user_name
+
+      plumber::forward()
+
+    }, error = function(e) {
+      auth_error("Invalid token")
+    })
   }
 }
-</script>
 
-<!-- After (Composition API) -->
-<script setup lang="ts">
-import { ref } from 'vue'
+#' Check if Path is Public
+is_public_path <- function(req, public_paths) {
+  path <- req$PATH_INFO
+  method <- req$REQUEST_METHOD
 
-const modalOpen = ref(false)
-const showModal = () => { modalOpen.value = true }
-</script>
+  for (public in public_paths) {
+    if (grepl(public$pattern, path) && method %in% public$methods) {
+      return(TRUE)
+    }
+  }
+  FALSE
+}
+```
 
-<template>
-  <BModal v-model="modalOpen" title="My Modal">Content</BModal>
-</template>
+**Example: middleware/error_handler.R**
+
+```r
+# middleware/error_handler.R
+
+#' Create Global Error Handler
+#'
+#' Handles all errors, distinguishing operational from programmer errors.
+#' Operational errors (api_error) return user-friendly messages.
+#' Programmer errors return generic 500 and are logged.
+#'
+#' @return Error handler function for pr_set_error()
+#' @export
+create_error_handler <- function() {
+
+  function(req, res, err) {
+
+    # Operational errors (user-facing)
+    if (inherits(err, "api_error")) {
+      res$status <- err$status
+      return(list(
+        status = err$status,
+        error = err$message
+      ))
+    }
+
+    # Programmer errors (log, return generic)
+    logger::log_error(paste(
+      "Unhandled error:",
+      conditionMessage(err),
+      "\nStack:",
+      paste(capture.output(traceback()), collapse = "\n")
+    ))
+
+    res$status <- 500
+    list(
+      status = 500,
+      error = "Internal server error"
+    )
+  }
+}
+```
+
+**Example: core/errors.R**
+
+```r
+# core/errors.R
+
+#' Create Operational API Error
+#'
+#' Signals an operational error that should be returned to the user.
+#' Classified as 4xx (client error) or specific 5xx.
+#'
+#' @param message Error message for user
+#' @param status HTTP status code (default 400)
+#' @export
+api_error <- function(message, status = 400) {
+  err <- structure(
+    list(message = message, status = status),
+    class = c("api_error", "error", "condition")
+  )
+  stop(err)
+}
+
+#' Authentication Error (401)
+#' @export
+auth_error <- function(message = "Authentication required") {
+  api_error(message, 401)
+}
+
+#' Authorization Error (403)
+#' @export
+forbidden_error <- function(message = "Access forbidden") {
+  api_error(message, 403)
+}
+
+#' Not Found Error (404)
+#' @export
+not_found_error <- function(message = "Resource not found") {
+  api_error(message, 404)
+}
+
+#' Validation Error (400)
+#' @export
+validation_error <- function(message = "Invalid input") {
+  api_error(message, 400)
+}
 ```
 
 ---
 
-## Component Organization Strategy
+### Pattern 4: Response Builder
 
-### Grouping Principles
+**Purpose:** Standardize all API responses with consistent structure.
 
-**By Feature/Domain:**
-```
-components/
-├── tables/           # All table-related components
-│   ├── TablesEntities.vue
-│   ├── TablesGenes.vue
-│   └── TablesPhenotypes.vue
-├── analyses/         # All analysis components
-│   ├── AnalyseGeneClusters.vue
-│   └── AnalysesPhenotypeClusters.vue
-├── small/           # Reusable UI components
-│   ├── GenericTable.vue
-│   ├── SearchBar.vue
-│   └── Banner.vue
-```
+**Example: core/response.R**
 
-### Component Naming Conventions
+```r
+# core/response.R
 
-| Type | Convention | Example |
-|------|-----------|---------|
-| Views | PascalCase + descriptive | `UserProfile.vue`, `EntitiesOverTime.vue` |
-| Components | PascalCase + context | `TablesEntities.vue`, `AnalyseGeneClusters.vue` |
-| Composables | camelCase + "use" prefix | `useColorAndSymbols.ts`, `useToast.ts` |
-| Utils | camelCase + descriptive | `formatDate.ts`, `validateEmail.ts` |
-| Types | PascalCase + interface/type | `interface User`, `type FilterObject` |
+#' Build Success Response
+#'
+#' @param data Response data
+#' @param message Optional message
+#' @param links Optional pagination links
+#' @param meta Optional metadata
+#' @return List with consistent structure
+#' @export
+success_response <- function(data, message = "OK", links = NULL, meta = NULL) {
+  response <- list(
+    status = 200,
+    message = message,
+    data = data
+  )
 
----
+  if (!is.null(links)) response$links <- links
+  if (!is.null(meta)) response$meta <- meta
 
-## TypeScript Integration Patterns
-
-### Type Definitions Structure
-
-```typescript
-// types/models.ts - Data models
-export interface User {
-  user_id: number
-  user_name: string
-  user_role: UserRole[]
-  abbreviation: string[]
-  active_reviews: number
-  active_status: number
+  response
 }
 
-export type UserRole = 'Viewer' | 'Reviewer' | 'Curator' | 'Administrator'
-
-export interface Entity {
-  entity_id: number
-  hgnc_id: string
-  gene_symbol: string
-  category: Category
-  ndd_phenotype: boolean
+#' Build Created Response
+#'
+#' @param entry Created entity/ID
+#' @param message Optional message
+#' @return List with 201 status
+#' @export
+created_response <- function(entry, message = "Resource created") {
+  list(
+    status = 201,
+    message = message,
+    entry = entry
+  )
 }
 
-export type Category = 'Definitive' | 'Moderate' | 'Limited' | 'Refuted'
-```
-
-```typescript
-// types/components.ts - Component-specific types
-export interface FilterObject {
-  [key: string]: string | number | boolean | null
+#' Build Paginated Response
+#'
+#' @param data Tibble of results
+#' @param pagination Pagination info from helper
+#' @param meta Additional metadata
+#' @return List with links, meta, and data
+#' @export
+paginated_response <- function(data, pagination, meta = list()) {
+  list(
+    links = pagination$links,
+    meta = c(pagination$meta, meta),
+    data = pagination$data
+  )
 }
-
-export interface SortConfig {
-  field: string
-  order: 'asc' | 'desc'
-}
-
-export type ToastVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info'
 ```
 
 ---
 
-## Migration Order & Strategy
+### Pattern 5: Thin Endpoint (Controller)
 
-### Phase 1: Foundation Setup
-**Goal:** Establish TypeScript infrastructure without breaking existing code
+**Purpose:** Endpoints become thin controllers that delegate to services.
 
-1. **Add TypeScript configuration**
-   - Install `typescript`, `@types/node`, `vue-tsc`
-   - Create `tsconfig.json` with strict mode
-   - Configure path aliases (`@/*` → `src/*`)
+**Example: endpoints/entity_endpoints.R (refactored)**
 
-2. **Create type definition files**
-   - `types/models.ts` - Core data models
-   - `types/components.ts` - Component prop types
-   - `types/api.ts` - API response types
+```r
+# endpoints/entity_endpoints.R
 
-3. **Rename entry point**
-   - `main.js` → `main.ts`
-   - Update build configuration
+#* @plumber
+function(pr) {
+  # Get injected dependencies
+  entity_service <- .GlobalEnv$services$entity
+  response <- .GlobalEnv$core$response
+
+  pr %>%
+
+    #* Get Paginated Entities
+    #* @tag entity
+    #* @serializer json list(na="string")
+    #* @get /
+    pr_get("/", function(req, res,
+                         sort = "entity_id",
+                         filter = "",
+                         fields = "",
+                         page_after = 0,
+                         page_size = "10",
+                         fspec = "entity_id,symbol,...") {
+
+      result <- entity_service$list_entities(
+        sort = sort,
+        filter = filter,
+        fields = fields,
+        page_after = page_after,
+        page_size = page_size,
+        fspec = fspec
+      )
+
+      response$paginated_response(result$data, result$pagination, result$meta)
+    }) %>%
+
+    #* Create New Entity
+    #* @tag entity
+    #* @serializer json list(na="string")
+    #* @post /create
+    pr_post("/create", function(req, res, direct_approval = FALSE) {
+
+      # Role check via middleware sets req$user_role
+      require_role(req, c("Administrator", "Curator"))
+
+      result <- entity_service$create_entity(
+        create_data = req$argsBody$create_json,
+        user_id = req$user_id,
+        direct_approval = as.logical(direct_approval)
+      )
+
+      res$status <- result$status
+      response$created_response(result$entry, result$message)
+    }) %>%
+
+    #* Deactivate Entity
+    #* @tag entity
+    #* @serializer json list(na="string")
+    #* @post /deactivate
+    pr_post("/deactivate", function(req, res) {
+
+      require_role(req, c("Administrator", "Curator"))
+
+      result <- entity_service$deactivate_entity(
+        deactivate_data = req$argsBody$deactivate_json,
+        user_id = req$user_id
+      )
+
+      res$status <- result$status
+      response$success_response(NULL, result$message)
+    })
+}
+
+#' Require User Role
+#' @param req Request object
+#' @param allowed_roles Vector of allowed role names
+require_role <- function(req, allowed_roles) {
+  if (is.null(req$user_role) || !(req$user_role %in% allowed_roles)) {
+    forbidden_error("Insufficient permissions")
+  }
+}
+```
+
+---
+
+### Pattern 6: Dependency Injection Setup
+
+**Purpose:** Wire all components together at startup.
+
+**Example: start_sysndd_api.R (refactored)**
+
+```r
+# start_sysndd_api.R
+
+# 1. Load configuration
+dw <- config::get(Sys.getenv("API_CONFIG"))
+
+# 2. Create database pool
+pool <- pool::dbPool(
+  drv = RMariaDB::MariaDB(),
+  dbname = dw$dbname,
+  host = dw$host,
+  user = dw$user,
+  password = dw$password,
+  port = dw$port
+)
+
+# 3. Source core modules
+source("core/database.R")
+source("core/errors.R")
+source("core/response.R")
+
+# 4. Create repositories (inject pool)
+repositories <- list(
+  entity = create_entity_repository(pool),
+  review = create_review_repository(pool),
+  status = create_status_repository(pool),
+  publication = create_publication_repository(pool),
+  phenotype = create_phenotype_repository(pool),
+  ontology = create_ontology_repository(pool),
+  user = create_user_repository(pool),
+  hash = create_hash_repository(pool)
+)
+
+# 5. Create services (inject repositories)
+services <- list(
+  entity = create_entity_service(
+    repositories$entity,
+    repositories$review,
+    repositories$status,
+    repositories$publication,
+    repositories$phenotype,
+    repositories$ontology
+  ),
+  review = create_review_service(repositories$review),
+  auth = create_auth_service(repositories$user, dw$secret)
+)
+
+# 6. Store in global env for endpoint access
+.GlobalEnv$pool <- pool
+.GlobalEnv$repositories <- repositories
+.GlobalEnv$services <- services
+.GlobalEnv$core <- list(
+  response = list(
+    success_response = success_response,
+    created_response = created_response,
+    paginated_response = paginated_response
+  )
+)
+
+# 7. Create middleware
+cors_filter <- create_cors_filter()
+auth_filter <- create_auth_filter(dw$secret, public_paths = list(
+  list(pattern = "^/health", methods = c("GET")),
+  list(pattern = "^/api/auth/authenticate", methods = c("GET")),
+  list(pattern = "^/api/gene/hash$", methods = c("POST"))
+))
+logging_filter <- create_logging_filter(pool)
+error_handler <- create_error_handler()
+
+# 8. Build router
+root <- pr() %>%
+  pr_set_api_spec(create_api_spec) %>%
+  pr_filter("cors", cors_filter) %>%
+  pr_filter("auth", auth_filter) %>%
+  pr_filter("logging", logging_filter) %>%
+  pr_set_error(error_handler) %>%
+  pr_hook("exit", function() { pool::poolClose(pool) }) %>%
+  # Mount endpoints
+  pr_mount("/health", pr("endpoints/health_endpoints.R")) %>%
+  pr_mount("/api/entity", pr("endpoints/entity_endpoints.R")) %>%
+  pr_mount("/api/gene", pr("endpoints/gene_endpoints.R")) %>%
+  # ... mount remaining endpoints
+  pr_run(host = "0.0.0.0", port = as.numeric(dw$port_self))
+```
+
+---
+
+## Migration Strategy
+
+### Phase-Based Incremental Approach
+
+**CRITICAL:** Do not attempt big-bang refactoring. Each phase should be independently deployable and testable.
+
+### Phase 1: Core Infrastructure (Foundation)
+
+**Goal:** Create core modules without breaking existing code.
+
+**Tasks:**
+1. Create `core/errors.R` with error classes
+2. Create `core/response.R` with response builders
+3. Create `middleware/error_handler.R`
+4. Add global error handler to `start_sysndd_api.R`
+5. Write unit tests for error handling
 
 **Dependencies:** None
-**Risk:** LOW - Additive changes only
+**Risk:** LOW - Additive only
+**Estimated Effort:** 1-2 days
 
----
+### Phase 2: Repository Layer (First Domain)
 
-### Phase 2: Migrate Constants & Services
-**Goal:** Convert pure JavaScript logic to TypeScript
+**Goal:** Extract entity repository, prove the pattern works.
 
-1. **Convert constants**
-   - `assets/js/constants/*.js` → `constants/*.ts`
-   - Add type annotations
-   - Export as const assertions
-
-2. **Convert services**
-   - `assets/js/services/apiService.js` → `services/api.ts`
-   - Add generic type support
+**Tasks:**
+1. Create `repositories/entity_repository.R`
+2. Migrate all entity queries to parameterized queries
+3. Update `database-functions.R` to use repository internally
+4. Keep existing API contract unchanged
+5. Add integration tests for repository
 
 **Dependencies:** Phase 1 complete
-**Risk:** LOW - No Vue-specific changes
+**Risk:** MEDIUM - First real refactoring
+**Estimated Effort:** 3-4 days
 
----
+### Phase 3: Remaining Repositories
 
-### Phase 3: Convert Mixins to Composables
-**Goal:** Create composables alongside mixins for gradual migration
+**Goal:** Extract all domain repositories.
 
-**Order of conversion (by dependency):**
-
-1. **useColorAndSymbols** (no dependencies)
-2. **useText** (no dependencies)
-3. **useScrollbar** (no dependencies)
-4. **useToast** (depends on Bootstrap-Vue-Next)
-5. **useTableData** (depends on useColorAndSymbols, useText)
-6. **useTableMethods** (depends on useTableData)
-7. **useUrlParsing** (depends on Vue Router)
+**Tasks:**
+1. Create `review_repository.R`
+2. Create `status_repository.R`
+3. Create `publication_repository.R`
+4. Create `phenotype_repository.R`
+5. Create `ontology_repository.R`
+6. Create `user_repository.R`
+7. Migrate all SQL to parameterized queries (eliminate 66 injection points)
 
 **Dependencies:** Phase 2 complete
-**Risk:** MEDIUM - Changes component behavior
+**Risk:** MEDIUM - Bulk migration
+**Estimated Effort:** 5-7 days
 
----
+### Phase 4: Service Layer
 
-### Phase 4: Migrate Bootstrap-Vue to Bootstrap-Vue-Next
-**Goal:** Update component library while maintaining functionality
+**Goal:** Extract business logic from endpoints to services.
 
-1. **Install Bootstrap-Vue-Next**
-2. **Update main.ts** - Replace imports
-3. **Create migration checklist** - Audit all components
-4. **Migrate components by category** - Forms, layout, content, modals
+**Tasks:**
+1. Create `entity_service.R` with workflow logic
+2. Create `review_service.R`
+3. Create `approval_service.R`
+4. Create `auth_service.R`
+5. Refactor endpoints to delegate to services
+6. Ensure consistent error handling via api_error()
 
-**Component migration priority:**
-1. Small, independent components first
-2. Shared components (high reuse)
-3. Form components (critical functionality)
-4. View-specific components last
+**Dependencies:** Phase 3 complete
+**Risk:** HIGH - Changes business logic location
+**Estimated Effort:** 5-7 days
 
-**Dependencies:** Phase 3 in progress (can overlap)
-**Risk:** HIGH - Visual and functional changes
+### Phase 5: Middleware Consolidation
 
----
+**Goal:** Centralize cross-cutting concerns.
 
-### Phase 5: Convert Components to Composition API + TypeScript
-**Goal:** Modernize all Vue components
+**Tasks:**
+1. Extract CORS filter to `middleware/cors.R`
+2. Extract auth filter to `middleware/auth.R`
+3. Extract logging to `middleware/logging.R`
+4. Create `middleware/validation.R` for input validation
+5. Remove duplicate auth checks from endpoints (12 occurrences)
 
-**Migration order:**
+**Dependencies:** Phase 4 complete
+**Risk:** MEDIUM - Auth logic changes
+**Estimated Effort:** 2-3 days
 
-1. **Leaf components** - `components/small/*.vue`
-2. **Shared components** - `components/tables/*.vue`, `components/analyses/*.vue`
-3. **View components** - Simple views first, complex forms last
-4. **Layout components** - `Navbar.vue`, `Footer.vue` (last)
+### Phase 6: Response Standardization
 
-**Per-component checklist:**
-- [ ] Add `lang="ts"` to script tag
-- [ ] Replace `export default` with `<script setup>`
-- [ ] Convert props to `defineProps<Props>()`
-- [ ] Convert data() to `ref()` or `reactive()`
-- [ ] Convert computed to `computed()`
-- [ ] Replace mixins with composables
-- [ ] Add explicit component imports
-- [ ] Test component
+**Goal:** Consistent API responses across all endpoints.
 
-**Dependencies:** Phases 3 & 4 complete
-**Risk:** MEDIUM to HIGH depending on component complexity
-
----
-
-### Phase 6: Clean Up Legacy Code
-**Goal:** Remove unused code and finalize migration
-
-1. **Remove mixins** - Delete `assets/js/mixins/` directory
-2. **Remove global-components.js**
-3. **Remove old JavaScript files**
-4. **Optimize bundle** - Remove unused dependencies
+**Tasks:**
+1. Audit all endpoints for response patterns
+2. Replace 100+ inconsistent patterns with response builders
+3. Update API documentation to reflect standard responses
+4. Add response validation tests
 
 **Dependencies:** Phase 5 complete
-**Risk:** LOW - Only deleting unused code
+**Risk:** LOW - Response format changes
+**Estimated Effort:** 3-4 days
+
+### Phase 7: Cleanup and Optimization
+
+**Goal:** Remove dead code, optimize performance.
+
+**Tasks:**
+1. Delete unused functions from `database-functions.R`
+2. Delete `database-functions.R` if completely migrated
+3. Review and remove unused helper functions
+4. Add comprehensive test coverage (target: 80%)
+5. Performance testing and optimization
+
+**Dependencies:** Phase 6 complete
+**Risk:** LOW - Cleanup only
+**Estimated Effort:** 2-3 days
 
 ---
 
-## Data Flow Patterns
+## Anti-Patterns to Avoid
 
-### State Management Architecture
+### Anti-Pattern 1: Over-Engineering with R6 Classes
 
+**What:** Using R6 for every component (repositories, services)
+**Why Bad:** R6 adds complexity, reference semantics confuse R users
+**Instead:** Use factory functions returning lists of closures (shown in patterns above)
+
+### Anti-Pattern 2: Global State for Convenience
+
+**What:** Using `<<-` to set package-level variables
+**Why Bad:** Testing difficulty, race conditions, hidden dependencies
+**Instead:** Inject dependencies via factory function parameters
+
+### Anti-Pattern 3: Mixing HTTP and Business Logic
+
+**What:** Response building inside service functions
+**Why Bad:** Services become untestable without HTTP context
+**Instead:** Services return data, endpoints build responses
+
+### Anti-Pattern 4: One Repository per Table
+
+**What:** Creating `ndd_entity_repository.R`, `ndd_entity_review_repository.R`, etc.
+**Why Bad:** Over-fragmentation, explosion of small files
+**Instead:** Domain-based repositories (entity_repository handles entity + related joins)
+
+### Anti-Pattern 5: Premature Abstraction
+
+**What:** Creating BaseRepository, AbstractService before needed
+**Why Bad:** YAGNI - adds complexity without solving problems
+**Instead:** Start concrete, extract abstractions when patterns repeat 3+ times
+
+---
+
+## Testing Strategy
+
+### Unit Tests for Repositories
+
+```r
+# tests/testthat/test-unit-entity-repository.R
+
+test_that("entity_repository$find_by_id returns entity", {
+  # Mock pool that returns canned data
+  mock_pool <- create_mock_pool(
+    ndd_entity_view = tibble::tibble(
+      entity_id = 1,
+      hgnc_id = "HGNC:123",
+      symbol = "TEST"
+    )
+  )
+
+  repo <- create_entity_repository(mock_pool)
+  result <- repo$find_by_id(1)
+
+  expect_equal(nrow(result), 1)
+  expect_equal(result$entity_id, 1)
+})
 ```
-┌─────────────────────────────────────────────────────┐
-│                   User Interaction                   │
-│                  (View Component)                    │
-└───────────────────┬─────────────────────────────────┘
-                    │
-                    ↓
-        ┌──────────────────────────┐
-        │  Local Component State   │
-        │  (ref, reactive, computed)│
-        └───────────┬──────────────┘
-                    │
-        ┌───────────┴────────────┐
-        │                        │
-        ↓                        ↓
-┌───────────────┐      ┌────────────────┐
-│  Composables  │      │  Pinia Stores  │
-│  (use*.ts)    │      │  (Global State)│
-└───────┬───────┘      └────────┬───────┘
-        │                       │
-        └──────────┬────────────┘
-                   │
-                   ↓
-         ┌─────────────────┐
-         │     Services     │
-         │   (API calls)    │
-         └─────────┬────────┘
-                   │
-                   ↓
-         ┌─────────────────┐
-         │   Backend API    │
-         │  (Plumber REST)  │
-         └──────────────────┘
+
+### Integration Tests for Endpoints
+
+```r
+# tests/testthat/test-integration-entity.R
+
+test_that("GET /api/entity returns paginated entities", {
+  # Use callr to spawn background API
+  bg <- callr::r_bg(function() {
+    source("start_sysndd_api.R")
+  })
+  on.exit(bg$kill())
+
+  Sys.sleep(2) # Wait for startup
+
+  resp <- httr::GET("http://localhost:8080/api/entity?page_size=5")
+
+  expect_equal(httr::status_code(resp), 200)
+  body <- httr::content(resp, as = "parsed")
+  expect_true("data" %in% names(body))
+  expect_true("links" %in% names(body))
+})
 ```
 
-### When to Use Each Pattern
+---
 
-| Pattern | Use Case | Example |
-|---------|----------|---------|
-| **Local ref/reactive** | Component-only state | Form input values, UI toggles |
-| **Composable** | Reusable logic across components | Table filtering, toast notifications |
-| **Pinia Store** | Global app state | User authentication, app configuration |
-| **Service** | API communication | HTTP requests, data transformation |
-| **Utils** | Pure functions, no state | Date formatting, validation |
+## Scalability Considerations
+
+| Concern | Current | At Scale | Recommendation |
+|---------|---------|----------|----------------|
+| **Connection Pool** | Single global pool | May exhaust connections | Configure pool size based on load testing |
+| **Query Caching** | Memoise at function level | Memory pressure | Move to Redis/external cache |
+| **Response Size** | Full tibbles returned | Large memory per request | Streaming responses for large datasets |
+| **Background Jobs** | None | Blocking for long operations | Use `future` for async processing |
 
 ---
 
 ## Integration Points
 
-### Vue Router 4 Integration
+### New Components to Create
 
-```typescript
-// router/index.ts
-import { createRouter, createWebHistory } from 'vue-router'
-import type { RouteRecordRaw } from 'vue-router'
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `core/errors.R` | NEW | Error classes (api_error, auth_error, etc.) |
+| `core/response.R` | NEW | Response builders |
+| `middleware/error_handler.R` | NEW | Global error handler |
+| `middleware/auth.R` | EXTRACTED | Auth filter (from start_sysndd_api.R) |
+| `repositories/*.R` | NEW (8 files) | Domain repositories |
+| `services/*.R` | NEW (5 files) | Business logic services |
 
-const routes: RouteRecordRaw[] = [
-  {
-    path: '/',
-    name: 'Home',
-    component: () => import('@/views/Home.vue')
-  },
-  {
-    path: '/entities',
-    name: 'Entities',
-    component: () => import('@/views/tables/EntitiesTable.vue'),
-    meta: {
-      requiresAuth: false,
-      title: 'Gene-Disease Entities'
-    }
-  }
-]
+### Modified Components
 
-const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
-  routes,
-})
+| Component | Changes |
+|-----------|---------|
+| `start_sysndd_api.R` | Wire DI, use new filters |
+| `endpoints/*.R` (22 files) | Delegate to services, use response builders |
+| `functions/database-functions.R` | Gradually empty as code moves to repositories |
+| `functions/helper-functions.R` | Keep pagination/filtering helpers, remove business logic |
 
-export default router
+### Components to Delete (after migration)
+
+| Component | Reason |
+|-----------|--------|
+| `functions/database-functions.R` | Replaced by repositories |
+| Direct dbConnect in functions | Replaced by pool via repositories |
+| Inline auth checks (12 occurrences) | Replaced by middleware |
+| Inconsistent error returns | Replaced by api_error() |
+
+---
+
+## Build Order
+
+The following order ensures each step has its dependencies satisfied:
+
+```
+Week 1:
+  Day 1-2: Phase 1 (Core Infrastructure)
+           - core/errors.R
+           - core/response.R
+           - middleware/error_handler.R
+
+Week 2:
+  Day 3-6: Phase 2 (Entity Repository - Proof of Pattern)
+           - repositories/entity_repository.R
+           - Migrate entity queries to parameterized
+           - Integration tests
+
+Week 3:
+  Day 7-13: Phase 3 (Remaining Repositories)
+            - All 7 remaining repositories
+            - All SQL injection points eliminated
+
+Week 4:
+  Day 14-20: Phase 4 (Service Layer)
+             - Extract business logic to services
+             - Refactor endpoint handlers
+
+Week 5:
+  Day 21-23: Phase 5 (Middleware Consolidation)
+             - Centralize auth, CORS, logging
+             - Remove duplicate auth checks
+
+Week 5-6:
+  Day 24-27: Phase 6 (Response Standardization)
+             - Consistent responses across all endpoints
+
+Week 6:
+  Day 28-30: Phase 7 (Cleanup)
+             - Remove dead code
+             - Performance optimization
+             - Documentation
 ```
 
 ---
 
-## Common Pitfalls & Solutions
-
-### Pitfall 1: Forgetting .value with refs
-
-**Problem:**
-```typescript
-const count = ref(0)
-console.log(count) // { value: 0 } - not the number!
-```
-
-**Solution:**
-```typescript
-const count = ref(0)
-console.log(count.value) // 0 - correct
-```
-
-### Pitfall 2: Bootstrap-Vue-Next v-model syntax
-
-**Problem:**
-```vue
-<!-- Old Bootstrap-Vue -->
-<b-form-input v-model="value" :state.sync="valid" />
-```
-
-**Solution:**
-```vue
-<!-- New Bootstrap-Vue-Next -->
-<BFormInput v-model="value" v-model:state="valid" />
-```
-
-### Pitfall 3: Incorrect composable usage timing
-
-**Problem:**
-```typescript
-export default {
-  mounted() {
-    const router = useRouter() // Error!
-  }
-}
-```
-
-**Solution:**
-```vue
-<script setup>
-// Correct: at top level of script setup
-const router = useRouter()
-
-onMounted(() => {
-  router.push('/')
-})
-</script>
-```
-
----
-
-## Performance Considerations
-
-### Code Splitting Strategy
-
-```typescript
-// router/index.ts - Lazy load views
-const routes = [
-  {
-    path: '/entities',
-    component: () => import('@/views/tables/EntitiesTable.vue')
-  }
-]
-
-// Component - Lazy load heavy components
-const AnalyseGeneClusters = defineAsyncComponent(() =>
-  import('@/components/analyses/AnalyseGeneClusters.vue')
-)
-```
-
----
-
-## Migration Success Criteria
-
-### Phase Completion Checklist
-
-**Phase 1: Foundation**
-- [ ] TypeScript compiles without errors
-- [ ] All type definition files created
-- [ ] Path aliases configured and working
-
-**Phase 2: Constants & Services**
-- [ ] All `.js` files converted to `.ts`
-- [ ] Type annotations added
-- [ ] No runtime errors
-
-**Phase 3: Composables**
-- [ ] All 7 composables created
-- [ ] At least one component using each composable
-- [ ] Tests written for each composable
-
-**Phase 4: Bootstrap-Vue-Next**
-- [ ] Bootstrap-Vue-Next installed
-- [ ] All Bootstrap components rendering
-- [ ] Forms functional with new v-model syntax
-
-**Phase 5: Component Migration**
-- [ ] 100% of components using `<script setup lang="ts">`
-- [ ] No mixins in use
-- [ ] All components have explicit imports
-
-**Phase 6: Cleanup**
-- [ ] Mixins directory deleted
-- [ ] global-components.js deleted
-- [ ] Old `.js` files removed
-
----
-
-## References & Resources
+## Sources
 
 ### Official Documentation (HIGH Confidence)
-- [Vue 3 Documentation](https://vuejs.org/)
-- [Vue 3 Migration Guide](https://v3-migration.vuejs.org/)
-- [Vue 3 Composition API](https://vuejs.org/guide/extras/composition-api-faq)
-- [Vue 3 TypeScript](https://vuejs.org/guide/typescript/overview)
-- [Vue 3 Composables](https://vuejs.org/guide/reusability/composables)
-- [Bootstrap-Vue-Next Documentation](https://bootstrap-vue-next.github.io/bootstrap-vue-next/)
-- [Bootstrap-Vue-Next Migration Guide](https://bootstrap-vue-next.github.io/bootstrap-vue-next/docs/migration-guide)
+- [Plumber Official Documentation](https://www.rplumber.io/)
+- [Plumber Programmatic Usage](https://www.rplumber.io/articles/programmatic-usage.html)
+- [Plumber Routing & Filters](https://rplumber.io/docs/routing-and-input.html#filters)
+- [DBI Parameterized Queries](https://dbi.r-dbi.org/articles/DBI-advanced.html)
+- [Posit: Run Queries Safely](https://solutions.posit.co/connections/db/best-practices/run-queries-safely/)
+- [R6 Introduction](https://r6.r-lib.org/articles/Introduction.html)
 
-### Migration Resources (HIGH-MEDIUM Confidence)
-- [The Ultimate Guide to Vue 3 Composition API](https://www.oreateai.com/blog/the-ultimate-guide-to-vue-3-composition-api-from-principles-to-enterpriselevel-practices/4432f14c4e7be8398acde6d5d5762d58)
-- [Vue 3 Best Practices](https://enterprisevue.dev/blog/vue-3-best-practices/)
-- [Converting Mixins to Composables](https://www.thisdot.co/blog/converting-your-vue-2-mixins-into-composables-using-the-composition-api)
-- [Vue 3 Migration Guide - Simform](https://medium.com/simform-engineering/a-comprehensive-vue-2-to-vue-3-migration-guide-a00501bbc3f0)
-- [Migrating from Vue 2 to Vue3](https://medium.com/@dwgray/migrating-from-vue-2-to-vue3-and-why-im-sticking-with-bootstrap-vue-next-8609baa99c3a)
+### Community Resources (MEDIUM Confidence)
+- [Practical Plumber Patterns (ppp)](https://github.com/blairj09-talks/ppp)
+- [sol-eng/plumbpkg](https://github.com/sol-eng/plumbpkg)
+- [Structured Errors in Plumber APIs](https://unconj.ca/blog/structured-errors-in-plumber-apis.html)
+- [R Plumber: Error Responses (Appsilon)](https://www.appsilon.com/post/api-oopsies-101)
+- [Advanced R: R6 Chapter](https://adv-r.hadley.nz/r6.html)
+- [JfrAziz/r-plumber Boilerplate](https://github.com/JfrAziz/r-plumber)
+- [Jafar Aziz Plumber Tutorial Series](https://jafaraziz.com/blog/rest-api-with-r-part-1/)
 
-### Architecture & Best Practices
-- [How to Efficiently Structure a Medium-Sized Vue 3 Project](https://medium.com/@mohandabdiche/building-efficient-frontends-a-vue-3-blueprint-for-modern-medium-sized-applications-671dd403ca62)
-- [Vue 3 Project Structure](https://vue-faq.org/en/development/project-structure.html)
-- [7 Best Practices for Structuring Large-Scale Vue.js Applications](https://medium.com/@alemrandev/7-best-practices-for-structuring-large-scale-vue-js-applications-cbf47beedb99)
+### Security Resources (HIGH Confidence)
+- [OWASP SQL Injection Prevention](https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html)
+- [DBI dbBind Documentation](https://search.r-project.org/CRAN/refmans/DBI/html/dbBind.html)
+- [glue_sql for Safe Interpolation](https://glue.tidyverse.org/reference/glue_sql.html)
 
 ---
 
@@ -828,13 +1227,15 @@ const AnalyseGeneClusters = defineAsyncComponent(() =>
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Vue 3 Architecture | HIGH | Official documentation verified, multiple authoritative sources |
-| TypeScript Integration | HIGH | Official Vue TypeScript guide, established patterns |
-| Composable Patterns | HIGH | Official composables guide, real-world examples |
-| Bootstrap-Vue-Next | HIGH | Official migration guide, component-by-component mapping |
-| Migration Strategy | HIGH | Multiple case studies, proven incremental approach |
-| Directory Structure | MEDIUM | Community conventions vary, adapted to SysNDD context |
+| Repository Pattern | HIGH | Well-established pattern, verified with DBI docs |
+| Parameterized Queries | HIGH | Official DBI documentation, OWASP recommendations |
+| Error Handling | HIGH | Plumber docs, multiple verified tutorials |
+| Middleware Pattern | HIGH | Official Plumber filter documentation |
+| Response Builder | MEDIUM | Community convention, adapted to R |
+| Service Layer | MEDIUM | Adapted from OOP patterns, not R-specific |
+| Migration Strategy | MEDIUM | Based on incremental refactoring principles |
+| Build Order | HIGH | Dependency-based ordering |
 
-**Overall Migration Confidence:** HIGH
+**Overall Architecture Confidence:** HIGH
 
-The architecture recommendations are based on official Vue.js documentation, Bootstrap-Vue-Next migration guides, and verified community best practices. The phased migration approach is proven in production environments and allows for incremental risk mitigation.
+The architecture recommendations are based on official Plumber documentation, DBI parameterized query specifications, and verified community patterns. The phased migration approach allows for incremental risk mitigation and independent deployment of each phase.
