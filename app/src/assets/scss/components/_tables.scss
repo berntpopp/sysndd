@@ -31,6 +31,23 @@
     }
   }
 
+  // Fixed layout tables - ensure header text truncation
+  &.b-table-fixed,
+  &[style*="table-layout: fixed"] {
+    thead th {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    // Cell truncation for fixed layout
+    td {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
   // Light header variant (commonly used in application)
   .thead-light th {
     background-color: var(--neutral-100);

@@ -91,7 +91,14 @@
 
 // Link styling for accessibility
 // Links must be distinguishable by more than color alone (WCAG 2.2)
-a:not(.btn):not(.nav-link):not(.dropdown-item) {
+// For a data-heavy medical app, we apply underlines only in prose/content areas
+// UI links (navigation, tables, cards) are distinguishable by context
+
+// Links within paragraphs and text content should be underlined
+p a,
+.prose a,
+.content a,
+.text-content a {
   text-decoration: underline;
   text-decoration-color: currentColor;
   text-underline-offset: 0.15em;
@@ -99,11 +106,12 @@ a:not(.btn):not(.nav-link):not(.dropdown-item) {
   &:hover {
     text-decoration-thickness: 2px;
   }
+}
 
-  &:focus-visible {
-    outline: var(--focus-ring-width) solid var(--focus-ring-color);
-    outline-offset: var(--focus-ring-offset);
-  }
+// All interactive links should have visible focus indicator
+a:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
 }
 
 // Ensure sufficient color contrast for muted text

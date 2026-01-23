@@ -25,14 +25,10 @@
               </template>
 
               <BContainer fluid>
-                <validation-observer
-                  ref="observer"
-                  v-slot="{ handleSubmit }"
+                <form
+                  ref="form"
+                  @submit.prevent="onFormSubmit"
                 >
-                  <BForm
-                    ref="form"
-                    @submit.stop.prevent="handleSubmit(checkSubmission)"
-                  >
                     <div class="py-1">
                       <BButton
                         size="sm"
@@ -263,19 +259,16 @@
                       for="textarea-synopsis"
                     >Synopsis</label>
 
-                    <validation-provider
-                      v-slot="validationContext"
-                      name="validation-synopsis"
-                      :rules="{ required: true, min: 10, max: 2000 }"
-                    >
-                      <BFormTextarea
-                        id="textarea-synopsis"
-                        v-model="synopsis_review"
-                        rows="3"
-                        size="sm"
-                        :state="getValidationState(validationContext)"
-                      />
-                    </validation-provider>
+                    <BFormTextarea
+                      id="textarea-synopsis"
+                      v-model="synopsis_review"
+                      rows="3"
+                      size="sm"
+                      :state="synopsisMeta.touched ? (synopsisError ? false : true) : null"
+                    />
+                    <BFormInvalidFeedback v-if="synopsisError">
+                      {{ synopsisError }}
+                    </BFormInvalidFeedback>
                     <!-- Sysnopsis input -->
 
                     <!-- Phenotype select -->
@@ -495,8 +488,7 @@
                       placeholder="Additional comments to this entity relevant for the curator."
                     />
                     <!-- Review comments -->
-                  </BForm>
-                </validation-observer>
+                </form>
               </BContainer>
             </BCard>
           </BCol>
@@ -507,6 +499,8 @@
 </template>
 
 <script>
+import { useForm, useField, defineRule } from 'vee-validate';
+import { required, min, max } from '@vee-validate/rules';
 import { useToast, useColorAndSymbols, useText } from '@/composables';
 
 // TODO: vue3-treeselect disabled pending Bootstrap-Vue-Next migration
@@ -523,6 +517,11 @@ import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
 import Variation from '@/assets/js/classes/submission/submissionVariation';
 import Literature from '@/assets/js/classes/submission/submissionLiterature';
 
+// Define validation rules globally
+defineRule('required', required);
+defineRule('min', min);
+defineRule('max', max);
+
 export default {
   name: 'CreateEntity',
   // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
@@ -532,10 +531,25 @@ export default {
     const colorAndSymbols = useColorAndSymbols();
     const text = useText();
 
+    // Setup form validation with vee-validate 4
+    const { handleSubmit, resetForm } = useForm();
+
+    // Synopsis field with validation
+    const {
+      value: synopsisValue,
+      errorMessage: synopsisError,
+      meta: synopsisMeta,
+    } = useField('synopsis', 'required|min:10|max:2000');
+
     return {
       makeToast,
       ...colorAndSymbols,
       ...text,
+      handleSubmit,
+      resetForm,
+      synopsisValue,
+      synopsisError,
+      synopsisMeta,
     };
   },
   data() {
@@ -571,8 +585,10 @@ export default {
     this.loadInheritanceList();
   },
   methods: {
-    getValidationState({ dirty, validated, valid = null }) {
-      return dirty || validated ? valid : null;
+    onFormSubmit() {
+      this.handleSubmit(() => {
+        this.checkSubmission();
+      })();
     },
     async loadPhenotypesList() {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/phenotype?tree=true`;

@@ -90,6 +90,28 @@
       </slot>
     </template>
 
+    <!-- Actions column -->
+    <template #cell(actions)="data">
+      <slot
+        name="cell-actions"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.actions }}
+      </slot>
+    </template>
+
+    <!-- Approved column -->
+    <template #cell(approved)="data">
+      <slot
+        name="cell-approved"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.approved }}
+      </slot>
+    </template>
+
     <!-- Details column -->
     <template #cell(details)="row">
       <BButton

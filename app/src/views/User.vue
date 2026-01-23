@@ -104,88 +104,63 @@
                         id="collapse-pass-change"
                         v-model="pass_change_visible"
                       >
-                        <validation-observer
-                          ref="observer"
-                          v-slot="{ handleSubmit }"
-                        >
-                          <BForm
-                            @submit.stop.prevent="handleSubmit(changePassword)"
+                        <form @submit.prevent="onPasswordSubmit">
+                          <BFormGroup
+                            description="Enter your current password"
                           >
-                            <validation-provider
-                              v-slot="validationContext"
-                              name="password"
-                              :rules="{ required: true, min: 5, max: 50 }"
-                            >
-                              <BFormGroup
-                                description="Enter your current password"
-                              >
-                                <BFormInput
-                                  v-model="current_password"
-                                  placeholder="Current password"
-                                  type="password"
-                                  :state="getValidationState(validationContext)"
-                                />
-                              </BFormGroup>
-                            </validation-provider>
+                            <BFormInput
+                              v-model="currentPassword"
+                              placeholder="Current password"
+                              type="password"
+                              :state="currentPasswordMeta.touched ? (currentPasswordError ? false : true) : null"
+                            />
+                            <BFormInvalidFeedback v-if="currentPasswordError">
+                              {{ currentPasswordError }}
+                            </BFormInvalidFeedback>
+                          </BFormGroup>
 
-                            <validation-provider
-                              v-slot="validationContext"
-                              vid="newPassword"
-                              :rules="{ required: true,
-                                        min: 8,
-                                        max: 50,
-                                        regex: /(?=.*[!@#$%^&*])(?=.*[A-Z])(?=.*[a-z])(?=.*[\d])/,
-                              }"
-                            >
-                              <BFormGroup
-                                v-b-tooltip.hover.right
-                                description="Enter your new password"
-                                title="Rules: >7 characters, at least one upper character, one lower character, one decimal number and one special character (!@#$%^&*)."
-                              >
-                                <BFormInput
-                                  v-model="new_password_entry"
-                                  placeholder="Enter new password"
-                                  type="password"
-                                  :state="getValidationState(validationContext)"
-                                />
-                              </BFormGroup>
-                            </validation-provider>
+                          <BFormGroup
+                            v-b-tooltip.hover.right
+                            description="Enter your new password"
+                            title="Rules: >7 characters, at least one upper character, one lower character, one decimal number and one special character (!@#$%^&*)."
+                          >
+                            <BFormInput
+                              v-model="newPasswordEntry"
+                              placeholder="Enter new password"
+                              type="password"
+                              :state="newPasswordMeta.touched ? (newPasswordError ? false : true) : null"
+                            />
+                            <BFormInvalidFeedback v-if="newPasswordError">
+                              {{ newPasswordError }}
+                            </BFormInvalidFeedback>
+                          </BFormGroup>
 
-                            <validation-provider
-                              v-slot="validationContext"
-                              vid="confirmPassword"
-                              :rules="{ required: true,
-                                        min: 8,
-                                        max: 50,
-                                        regex: /(?=.*[!@#$%^&*])(?=.*[A-Z])(?=.*[a-z])(?=.*[\d])/,
-                                        confirmed: 'newPassword',
-                              }"
-                            >
-                              <BFormGroup
-                                v-b-tooltip.hover.right
-                                description="Repeat your new password"
-                                title="Rules: must match first input."
-                              >
-                                <BFormInput
-                                  v-model="new_password_repeat"
-                                  placeholder="Repeat new password"
-                                  type="password"
-                                  :state="getValidationState(validationContext)"
-                                />
-                              </BFormGroup>
-                            </validation-provider>
+                          <BFormGroup
+                            v-b-tooltip.hover.right
+                            description="Repeat your new password"
+                            title="Rules: must match first input."
+                          >
+                            <BFormInput
+                              v-model="newPasswordRepeat"
+                              placeholder="Repeat new password"
+                              type="password"
+                              :state="confirmPasswordMeta.touched ? (confirmPasswordError ? false : true) : null"
+                            />
+                            <BFormInvalidFeedback v-if="confirmPasswordError">
+                              {{ confirmPasswordError }}
+                            </BFormInvalidFeedback>
+                          </BFormGroup>
 
-                            <BFormGroup>
-                              <BButton
-                                class="ms-2"
-                                type="submit"
-                                variant="dark"
-                              >
-                                Submit change
-                              </BButton>
-                            </BFormGroup>
-                          </BForm>
-                        </validation-observer>
+                          <BFormGroup>
+                            <BButton
+                              class="ms-2"
+                              type="submit"
+                              variant="dark"
+                            >
+                              Submit change
+                            </BButton>
+                          </BFormGroup>
+                        </form>
                       </BCollapse>
                     </BListGroupItem>
                   </BListGroup>
@@ -200,7 +175,25 @@
 </template>
 
 <script>
+import { useForm, useField, defineRule } from 'vee-validate';
+import { required, min, max, confirmed } from '@vee-validate/rules';
 import { useToast, useColorAndSymbols } from '@/composables';
+
+// Define validation rules globally
+defineRule('required', required);
+defineRule('min', min);
+defineRule('max', max);
+defineRule('confirmed', confirmed);
+
+// Custom password complexity rule
+defineRule('password_complexity', (value) => {
+  if (!value) return true;
+  const regex = /(?=.*[!@#$%^&*])(?=.*[A-Z])(?=.*[a-z])(?=.*[\d])/;
+  if (!regex.test(value)) {
+    return 'Password must contain at least one uppercase, one lowercase, one number, and one special character (!@#$%^&*)';
+  }
+  return true;
+});
 
 export default {
   name: 'User',
@@ -208,9 +201,42 @@ export default {
     const { makeToast } = useToast();
     const colorAndSymbols = useColorAndSymbols();
 
+    // Setup form validation with vee-validate 4
+    const { handleSubmit, resetForm } = useForm();
+
+    // Define fields with validation
+    const {
+      value: currentPassword,
+      errorMessage: currentPasswordError,
+      meta: currentPasswordMeta,
+    } = useField('current_password', 'required|min:5|max:50');
+
+    const {
+      value: newPasswordEntry,
+      errorMessage: newPasswordError,
+      meta: newPasswordMeta,
+    } = useField('new_password', 'required|min:8|max:50|password_complexity');
+
+    const {
+      value: newPasswordRepeat,
+      errorMessage: confirmPasswordError,
+      meta: confirmPasswordMeta,
+    } = useField('confirm_password', 'required|min:8|max:50|confirmed:@new_password');
+
     return {
       makeToast,
       ...colorAndSymbols,
+      handleSubmit,
+      resetForm,
+      currentPassword,
+      currentPasswordError,
+      currentPasswordMeta,
+      newPasswordEntry,
+      newPasswordError,
+      newPasswordMeta,
+      newPasswordRepeat,
+      confirmPasswordError,
+      confirmPasswordMeta,
     };
   },
   data() {
@@ -229,9 +255,6 @@ export default {
       },
       time_to_logout: 0,
       pass_change_visible: false,
-      current_password: '',
-      new_password_entry: '',
-      new_password_repeat: '',
     };
   },
   mounted() {
@@ -250,8 +273,10 @@ export default {
     clearInterval(this.interval);
   },
   methods: {
-    getValidationState({ dirty, validated, valid = null }) {
-      return dirty || validated ? valid : null;
+    onPasswordSubmit() {
+      this.handleSubmit(() => {
+        this.changePassword();
+      })();
     },
     // TODO: change function name to something more meaningful and non redundant
     updateDiffs() {
@@ -316,11 +341,11 @@ export default {
       }/api/user/password/update?user_id_pass_change=${
         this.user.user_id[0]
       }&old_pass=${
-        this.current_password
+        this.currentPassword
       }&new_pass_1=${
-        this.new_password_entry
+        this.newPasswordEntry
       }&new_pass_2=${
-        this.new_password_repeat}`;
+        this.newPasswordRepeat}`;
       try {
         const response_password_change = await this.axios.put(
           apiChangePasswordURL,
@@ -347,9 +372,7 @@ export default {
       this.resetPasswordForm();
     },
     resetPasswordForm() {
-      this.current_password = '';
-      this.new_password_entry = '';
-      this.new_password_repeat = '';
+      this.resetForm();
     },
   },
 };
