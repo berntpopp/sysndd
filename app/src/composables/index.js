@@ -28,3 +28,6 @@ export { default as useScrollbar } from './useScrollbar.js';
 
 // URL parsing utilities
 export { default as useUrlParsing } from './useUrlParsing.js';
+
+// Table state management
+export { default as useTableData } from './useTableData.js';

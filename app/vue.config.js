@@ -178,11 +178,4 @@ module.exports = {
         cacheDirectory: '/tmp/babel-cache',
       }));
   },
-  css: {
-    loaderOptions: {
-      sass: {
-        prependData: '@import "@/assets/scss/custom.scss";',
-      },
-    },
-  },
 };
