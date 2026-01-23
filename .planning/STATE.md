@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 14 - TypeScript Introduction (IN PROGRESS)
-**Plan:** 1 of TBD plans complete
+**Plan:** 2 of TBD plans complete
 **Status:** In progress
-**Last activity:** 2026-01-23 — Completed 14-01-PLAN.md (TypeScript Infrastructure Setup)
+**Last activity:** 2026-01-23 — Completed 14-05-PLAN.md (Store and Composables Conversion)
 
 ```
 v3 Frontend Modernization: PHASE 14 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables)
-Phase 14 (TypeScript Introduction): 1 plan complete (Infrastructure setup)
-Last completed: 14-01 TypeScript Infrastructure Setup (TS 5.7 + vue-tsc + typed env vars)
-Progress: ████████████████████░ 23/TBD plans in v3 milestone
+Phase 14 (TypeScript Introduction): 2 plans complete (Infrastructure, Store/Composables)
+Last completed: 14-05 Store and Composables Conversion (Pinia store + modal/toast composables)
+Progress: ████████████████████░ 24/TBD plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -123,6 +123,9 @@ See PROJECT.md for full decisions table.
 - allowJs: true enables .js/.ts coexistence during incremental migration
 - Separate type imports: import type { ... } from 'vue'
 - Type assertions (as any) acceptable for incomplete third-party types (e.g., Vite SCSS options)
+- Pinia setup syntax preferred over Options API for better TypeScript inference
+- Export store types (e.g., UIStoreType) for component usage
+- Explicit return types for composables improve type inference and IDE support
 
 ## Archive Location
 
@@ -132,8 +135,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 14-01-PLAN.md (TypeScript Infrastructure Setup)
+**Stopped at:** Completed 14-05-PLAN.md (Store and Composables Conversion)
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 14 in progress (1/TBD plans: TypeScript infrastructure ready)*
+*Last updated: 2026-01-23 — Phase 14 in progress (2/TBD plans: Infrastructure and core state management typed)*
