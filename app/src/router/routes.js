@@ -7,7 +7,7 @@ export const routes = [
   {
     path: '/',
     name: 'Home',
-    component: () => import(/* webpackChunkName: "Home", webpackPrefetch: 1 */ '@/views/Home.vue'),
+    component: () => import('@/views/Home.vue'),
     meta: {
       sitemap: {
         priority: 1.0,
@@ -18,7 +18,7 @@ export const routes = [
   {
     path: '/Entities',
     name: 'Entities',
-    component: () => import(/* webpackChunkName: "Tables" */ '@/views/tables/Entities.vue'),
+    component: () => import('@/views/tables/Entities.vue'),
     props: (route) => ({
       sort: route.query.sort,
       filter: route.query.filter,
@@ -37,7 +37,7 @@ export const routes = [
   {
     path: '/Genes',
     name: 'Genes',
-    component: () => import(/* webpackChunkName: "Tables" */ '@/views/tables/Genes.vue'),
+    component: () => import('@/views/tables/Genes.vue'),
     props: (route) => ({
       sort: route.query.sort,
       filter: route.query.filter,
@@ -56,7 +56,7 @@ export const routes = [
   {
     path: '/Phenotypes',
     name: 'Phenotypes',
-    component: () => import(/* webpackChunkName: "Tables" */ '@/views/tables/Phenotypes.vue'),
+    component: () => import('@/views/tables/Phenotypes.vue'),
     props: (route) => ({
       sort: route.query.sort,
       filter: route.query.filter,
@@ -74,25 +74,25 @@ export const routes = [
   },
   {
     path: '/CurationComparisons',
-    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/analyses/CurationComparisons.vue'),
+    component: () => import('@/views/analyses/CurationComparisons.vue'),
     children: [
       {
         path: '',
         component: () => import(
-          /* webpackChunkName: "AnalysesComponentsCuration" */ '@/components/analyses/AnalysesCurationUpset.vue'
+          '@/components/analyses/AnalysesCurationUpset.vue'
         ),
         name: 'CurationComparisons',
       },
       {
         path: 'Similarity',
         component: () => import(
-          /* webpackChunkName: "AnalysesCurationMatrixPlot" */ '@/components/analyses/AnalysesCurationMatrixPlot.vue'
+          '@/components/analyses/AnalysesCurationMatrixPlot.vue'
         ),
       },
       {
         path: 'Table',
         component: () => import(
-          /* webpackChunkName: "AnalysesCurationComparisonsTable" */ '@/components/analyses/AnalysesCurationComparisonsTable.vue'
+          '@/components/analyses/AnalysesCurationComparisonsTable.vue'
         ),
       },
     ],
@@ -105,25 +105,25 @@ export const routes = [
   },
   {
     path: '/PhenotypeCorrelations',
-    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/analyses/PhenotypeCorrelations.vue'),
+    component: () => import('@/views/analyses/PhenotypeCorrelations.vue'),
     children: [
       {
         path: '',
         component: () => import(
-          /* webpackChunkName: "AnalysesPhenotypeCorrelogram" */ '@/components/analyses/AnalysesPhenotypeCorrelogram.vue'
+          '@/components/analyses/AnalysesPhenotypeCorrelogram.vue'
         ),
         name: 'PhenotypeCorrelations',
       },
       {
         path: 'PhenotypeCounts',
         component: () => import(
-          /* webpackChunkName: "AnalysesPhenotypeCounts" */ '@/components/analyses/AnalysesPhenotypeCounts.vue'
+          '@/components/analyses/AnalysesPhenotypeCounts.vue'
         ),
       },
       {
         path: 'PhenotypeClusters',
         component: () => import(
-          /* webpackChunkName: "AnalysesPhenotypeClusters" */ '@/components/analyses/AnalysesPhenotypeClusters.vue'
+          '@/components/analyses/AnalysesPhenotypeClusters.vue'
         ),
       },
     ],
@@ -140,7 +140,7 @@ export const routes = [
   {
     path: '/PhenotypeFunctionalCorrelation',
     name: 'PhenotypeFunctionalCorrelation',
-    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/analyses/PhenotypeFunctionalCorrelation.vue'),
+    component: () => import('@/views/analyses/PhenotypeFunctionalCorrelation.vue'),
     meta: {
       sitemap: {
         priority: 0.8,
@@ -151,19 +151,19 @@ export const routes = [
   // ─────────────────────────────────────────────────────────────────────────────
   {
     path: '/VariantCorrelations',
-    component: () => import(/* webpackChunkName: "AnalysesVariants" */ '@/views/analyses/VariantCorrelations.vue'),
+    component: () => import('@/views/analyses/VariantCorrelations.vue'),
     children: [
       {
         path: '',
         component: () => import(
-          /* webpackChunkName: "AnalysesVariantCorrelogram" */ '@/components/analyses/AnalysesVariantCorrelogram.vue'
+          '@/components/analyses/AnalysesVariantCorrelogram.vue'
         ),
         name: 'VariantCorrelations',
       },
       {
         path: 'VariantCounts',
         component: () => import(
-          /* webpackChunkName: "AnalysesVariantCounts" */ '@/components/analyses/AnalysesVariantCounts.vue'
+          '@/components/analyses/AnalysesVariantCounts.vue'
         ),
       },
     ],
@@ -177,7 +177,7 @@ export const routes = [
   {
     path: '/EntriesOverTime',
     name: 'EntriesOverTime',
-    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/analyses/EntriesOverTime.vue'),
+    component: () => import('@/views/analyses/EntriesOverTime.vue'),
     meta: {
       sitemap: {
         priority: 0.7,
@@ -187,14 +187,14 @@ export const routes = [
   },
   {
     path: '/PublicationsNDD',
-    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/analyses/PublicationsNDD.vue'),
+    component: () => import('@/views/analyses/PublicationsNDD.vue'),
     children: [
       // 1) The "All" publications table from DB
       {
         path: '',
         name: 'PublicationsNDDTable',
         component: () => import(
-          /* webpackChunkName: "PublicationsNDDTable" */ '@/components/analyses/PublicationsNDDTable.vue'
+          '@/components/analyses/PublicationsNDDTable.vue'
         ),
       },
       // 2) The time plot
@@ -202,7 +202,7 @@ export const routes = [
         path: 'TimePlot',
         name: 'PublicationsNDDTimePlot',
         component: () => import(
-          /* webpackChunkName: "PublicationsNDDTimePlot" */ '@/components/analyses/PublicationsNDDTimePlot.vue'
+          '@/components/analyses/PublicationsNDDTimePlot.vue'
         ),
       },
       // 3) The stats bar plot
@@ -210,7 +210,7 @@ export const routes = [
         path: 'Stats',
         name: 'PublicationsNDDStats',
         component: () => import(
-          /* webpackChunkName: "PublicationsNDDStats" */ '@/components/analyses/PublicationsNDDStats.vue'
+          '@/components/analyses/PublicationsNDDStats.vue'
         ),
       },
     ],
@@ -223,23 +223,23 @@ export const routes = [
   },
   {
     path: '/PubtatorNDD',
-    component: () => import('@/views/analyses/PubtatorNDD.vue' /* webpackChunkName: "Analyses" */),
+    component: () => import('@/views/analyses/PubtatorNDD.vue' ),
     // Example children: your table, genes, stats, etc. Expand as needed:
     children: [
       {
         path: '',
         name: 'PubtatorNDDTable',
-        component: () => import('@/components/analyses/PubtatorNDDTable.vue' /* webpackChunkName: "PubtatorNDDTable" */),
+        component: () => import('@/components/analyses/PubtatorNDDTable.vue' ),
       },
       {
         path: 'PubtatorNDDGenes',
         name: 'PubtatorNDDGenes',
-        component: () => import('@/components/analyses/PubtatorNDDGenes.vue' /* webpackChunkName: "PubtatorNDDGenes" */),
+        component: () => import('@/components/analyses/PubtatorNDDGenes.vue' ),
       },
       {
         path: 'Stats',
         name: 'PubtatorNDDStats',
-        component: () => import('@/components/analyses/PubtatorNDDStats.vue' /* webpackChunkName: "PubtatorNDDStats" */),
+        component: () => import('@/components/analyses/PubtatorNDDStats.vue' ),
       },
     ],
     meta: {
@@ -249,7 +249,7 @@ export const routes = [
   {
     path: '/GeneNetworks',
     name: 'GeneNetworks',
-    component: () => import(/* webpackChunkName: "Analyses" */ '@/views/analyses/GeneNetworks.vue'),
+    component: () => import('@/views/analyses/GeneNetworks.vue'),
     meta: {
       sitemap: {
         priority: 0.7,
@@ -260,7 +260,7 @@ export const routes = [
   {
     path: '/Panels/:category_input?/:inheritance_input?',
     name: 'Panels',
-    component: () => import(/* webpackChunkName: "Tables" */ '@/views/tables/Panels.vue'),
+    component: () => import('@/views/tables/Panels.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       if (
@@ -284,7 +284,7 @@ export const routes = [
   {
     path: '/About',
     name: 'About',
-    component: () => import(/* webpackChunkName: "About" */ '@/views/help/About.vue'),
+    component: () => import('@/views/help/About.vue'),
     meta: {
       sitemap: {
         priority: 0.5,
@@ -295,7 +295,7 @@ export const routes = [
   {
     path: '/Documentation',
     name: 'Documentation',
-    component: () => import(/* webpackChunkName: "Documentation" */ '@/views/help/Documentation.vue'),
+    component: () => import('@/views/help/Documentation.vue'),
     meta: {
       sitemap: {
         priority: 0.5,
@@ -306,7 +306,7 @@ export const routes = [
   {
     path: '/Login',
     name: 'Login',
-    component: () => import(/* webpackChunkName: "User" */ '@/views/Login.vue'),
+    component: () => import('@/views/Login.vue'),
     meta: {
       sitemap: {
         priority: 0.5,
@@ -317,7 +317,7 @@ export const routes = [
   {
     path: '/Register',
     name: 'Register',
-    component: () => import(/* webpackChunkName: "User" */ '@/views/Register.vue'),
+    component: () => import('@/views/Register.vue'),
     meta: {
       sitemap: {
         priority: 0.5,
@@ -328,7 +328,7 @@ export const routes = [
   {
     path: '/User',
     name: 'User',
-    component: () => import(/* webpackChunkName: "User" */ '@/views/User.vue'),
+    component: () => import('@/views/User.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator', 'Curator', 'Reviewer'];
@@ -350,13 +350,13 @@ export const routes = [
   {
     path: '/PasswordReset/:request_jwt?',
     name: 'PasswordReset',
-    component: () => import(/* webpackChunkName: "User" */ '@/views/PasswordReset.vue'),
+    component: () => import('@/views/PasswordReset.vue'),
     meta: { sitemap: { ignoreRoute: true } },
   },
   {
     path: '/Review',
     name: 'Review',
-    component: () => import(/* webpackChunkName: "DataEntry" */ '@/views/review/Review.vue'),
+    component: () => import('@/views/review/Review.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator', 'Curator', 'Reviewer'];
@@ -378,7 +378,7 @@ export const routes = [
   {
     path: '/ReviewInstructions',
     name: 'ReviewInstructions',
-    component: () => import(/* webpackChunkName: "DataEntry" */ '@/views/review/Instructions.vue'),
+    component: () => import('@/views/review/Instructions.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator', 'Curator', 'Reviewer'];
@@ -400,7 +400,7 @@ export const routes = [
   {
     path: '/CreateEntity',
     name: 'CreateEntity',
-    component: () => import(/* webpackChunkName: "DataEntry" */ '@/views/curate/CreateEntity.vue'),
+    component: () => import('@/views/curate/CreateEntity.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator', 'Curator'];
@@ -422,7 +422,7 @@ export const routes = [
   {
     path: '/ModifyEntity',
     name: 'ModifyEntity',
-    component: () => import(/* webpackChunkName: "DataEntry" */ '@/views/curate/ModifyEntity.vue'),
+    component: () => import('@/views/curate/ModifyEntity.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator', 'Curator'];
@@ -444,7 +444,7 @@ export const routes = [
   {
     path: '/ApproveReview',
     name: 'ApproveReview',
-    component: () => import(/* webpackChunkName: "DataEntry" */ '@/views/curate/ApproveReview.vue'),
+    component: () => import('@/views/curate/ApproveReview.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator', 'Curator'];
@@ -466,7 +466,7 @@ export const routes = [
   {
     path: '/ApproveStatus',
     name: 'ApproveStatus',
-    component: () => import(/* webpackChunkName: "DataEntry" */ '@/views/curate/ApproveStatus.vue'),
+    component: () => import('@/views/curate/ApproveStatus.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator', 'Curator'];
@@ -488,7 +488,7 @@ export const routes = [
   {
     path: '/ApproveUser',
     name: 'ApproveUser',
-    component: () => import(/* webpackChunkName: "DataEntry" */ '@/views/curate/ApproveUser.vue'),
+    component: () => import('@/views/curate/ApproveUser.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator', 'Curator'];
@@ -510,7 +510,7 @@ export const routes = [
   {
     path: '/ManageReReview',
     name: 'ManageReReview',
-    component: () => import(/* webpackChunkName: "DataEntry" */ '@/views/curate/ManageReReview.vue'),
+    component: () => import('@/views/curate/ManageReReview.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator', 'Curator'];
@@ -532,7 +532,7 @@ export const routes = [
   {
     path: '/ManageUser',
     name: 'ManageUser',
-    component: () => import(/* webpackChunkName: "Administration" */ '@/views/admin/ManageUser.vue'),
+    component: () => import('@/views/admin/ManageUser.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator'];
@@ -554,7 +554,7 @@ export const routes = [
   {
     path: '/ManageAnnotations',
     name: 'ManageAnnotations',
-    component: () => import(/* webpackChunkName: "Administration" */ '@/views/admin/ManageAnnotations.vue'),
+    component: () => import('@/views/admin/ManageAnnotations.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator'];
@@ -576,7 +576,7 @@ export const routes = [
   {
     path: '/ManageOntology',
     name: 'ManageOntology',
-    component: () => import(/* webpackChunkName: "Administration" */ '@/views/admin/ManageOntology.vue'),
+    component: () => import('@/views/admin/ManageOntology.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator'];
@@ -598,7 +598,7 @@ export const routes = [
   {
     path: '/ManageAbout',
     name: 'ManageAbout',
-    component: () => import(/* webpackChunkName: "Administration" */ '@/views/admin/ManageAbout.vue'),
+    component: () => import('@/views/admin/ManageAbout.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator'];
@@ -620,7 +620,7 @@ export const routes = [
   {
     path: '/ViewLogs',
     name: 'ViewLogs',
-    component: () => import(/* webpackChunkName: "Administration" */ '@/views/admin/ViewLogs.vue'),
+    component: () => import('@/views/admin/ViewLogs.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator'];
@@ -644,7 +644,7 @@ export const routes = [
   {
     path: '/AdminStatistics',
     name: 'AdminStatistics',
-    component: () => import(/* webpackChunkName: "Administration" */ '@/views/admin/AdminStatistics.vue'),
+    component: () => import('@/views/admin/AdminStatistics.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to, from, next) => {
       const allowed_roles = ['Administrator'];
@@ -668,36 +668,36 @@ export const routes = [
   {
     path: '/Entities/:entity_id',
     name: 'Entity',
-    component: () => import(/* webpackChunkName: "Pages" */ '@/views/pages/Entity.vue'),
+    component: () => import('@/views/pages/Entity.vue'),
     meta: { sitemap: { ignoreRoute: true } },
   },
   {
     path: '/Genes/:symbol',
     name: 'Gene',
-    component: () => import(/* webpackChunkName: "Pages" */ '@/views/pages/Gene.vue'),
+    component: () => import('@/views/pages/Gene.vue'),
     meta: { sitemap: { ignoreRoute: true } },
   },
   {
     path: '/Ontology/:disease_term',
     name: 'Ontology',
-    component: () => import(/* webpackChunkName: "Pages" */ '@/views/pages/Ontology.vue'),
+    component: () => import('@/views/pages/Ontology.vue'),
     meta: { sitemap: { ignoreRoute: true } },
   },
   {
     path: '/Search/:search_term',
     name: 'Search',
-    component: () => import(/* webpackChunkName: "Pages" */ '@/views/pages/Search.vue'),
+    component: () => import('@/views/pages/Search.vue'),
     meta: { sitemap: { ignoreRoute: true } },
   },
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
-    component: () => import(/* webpackChunkName: "Pages" */ '@/views/PageNotFound.vue'),
+    component: () => import('@/views/PageNotFound.vue'),
   },
   {
     path: '/API',
     name: 'API',
-    component: () => import(/* webpackChunkName: "API" */ '@/views/API.vue'),
+    component: () => import('@/views/API.vue'),
     meta: {
       sitemap: {
         priority: 0.8,
