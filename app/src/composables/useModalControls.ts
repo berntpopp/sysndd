@@ -1,17 +1,18 @@
 import { useModal } from 'bootstrap-vue-next';
+import type { ModalControls } from '@/types/components';
 
 /**
  * Composable for modal controls using Bootstrap-Vue-Next
- * @returns {Object} Modal control methods
+ * @returns {ModalControls} Modal control methods
  */
-export default function useModalControls() {
+export default function useModalControls(): ModalControls {
   const modal = useModal();
 
   /**
    * Show a modal by ID
    * @param {string} id - Modal ID to show
    */
-  const showModal = (id) => {
+  const showModal = (id: string): void => {
     modal.show(id);
   };
 
@@ -19,7 +20,7 @@ export default function useModalControls() {
    * Hide a modal by ID
    * @param {string} id - Modal ID to hide
    */
-  const hideModal = (id) => {
+  const hideModal = (id: string): void => {
     modal.hide(id);
   };
 
@@ -28,7 +29,7 @@ export default function useModalControls() {
    * @param {object} options - Modal options
    * @returns {Promise} - Resolves with user's choice
    */
-  const confirm = async (options) => modal.confirm(options);
+  const confirm = async (options: unknown): Promise<boolean> => modal.confirm(options);
 
   return { showModal, hideModal, confirm };
 }

@@ -1,11 +1,12 @@
 import { useToast } from 'bootstrap-vue-next';
+import type { ToastNotifications, ToastVariant } from '@/types/components';
 
 /**
  * Composable for toast notifications using Bootstrap-Vue-Next
  * Must be called within setup() context
- * @returns {Object} Toast notification methods
+ * @returns {ToastNotifications} Toast notification methods
  */
-export default function useToastNotifications() {
+export default function useToastNotifications(): ToastNotifications {
   const toast = useToast();
 
   /**
@@ -16,7 +17,13 @@ export default function useToastNotifications() {
    * @param {boolean} autoHide - Whether to auto-dismiss (default: true)
    * @param {number} autoHideDelay - Delay in ms before auto-hide (default: 3000)
    */
-  const makeToast = (message, title = null, variant = null, autoHide = true, autoHideDelay = 3000) => {
+  const makeToast = (
+    message: string | { message: string },
+    title: string | null = null,
+    variant: ToastVariant | null = null,
+    autoHide: boolean = true,
+    autoHideDelay: number = 3000,
+  ): void => {
     const body = typeof message === 'object' && message.message ? message.message : message;
 
     toast.create({
