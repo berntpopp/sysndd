@@ -2,6 +2,8 @@ import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { VitePWA } from 'vite-plugin-pwa';
+import { visualizer } from 'rollup-plugin-visualizer';
+import type { PluginOption } from 'vite';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -101,6 +103,13 @@ export default defineConfig({
         ],
       },
     }),
+    visualizer({
+      filename: './dist/stats.html',
+      open: process.env.ANALYZE === 'true',
+      gzipSize: true,
+      brotliSize: true,
+      template: 'treemap',
+    }) as PluginOption,
   ],
 
   resolve: {

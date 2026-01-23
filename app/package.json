@@ -84,6 +84,7 @@
     "msw": "^2.12.7",
     "postcss": "^8.4.14",
     "prettier": "^3.8.1",
+    "rollup-plugin-visualizer": "^6.0.5",
     "sass": "^1.53.0",
     "sass-loader": "^8.0.2",
     "typescript": "^5.9.3",
