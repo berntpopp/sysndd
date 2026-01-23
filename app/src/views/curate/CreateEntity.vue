@@ -507,9 +507,7 @@
 </template>
 
 <script>
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
-import textMixin from '@/assets/js/mixins/textMixin';
+import { useToast, useColorAndSymbols, useText } from '@/composables';
 
 // TODO: vue3-treeselect disabled pending Bootstrap-Vue-Next migration
 // import the Treeselect component
@@ -529,7 +527,17 @@ export default {
   name: 'CreateEntity',
   // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
   components: {},
-  mixins: [toastMixin, colorAndSymbolsMixin, textMixin],
+  setup() {
+    const { makeToast } = useToast();
+    const colorAndSymbols = useColorAndSymbols();
+    const text = useText();
+
+    return {
+      makeToast,
+      ...colorAndSymbols,
+      ...text,
+    };
+  },
   data() {
     return {
       entity_submission: {},

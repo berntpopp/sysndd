@@ -529,9 +529,7 @@
 import { gsap } from 'gsap';
 
 import { useHead } from '@unhead/vue';
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
-import textMixin from '@/assets/js/mixins/textMixin';
+import { useToast, useColorAndSymbols, useText } from '@/composables';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
@@ -544,8 +542,11 @@ import apiService from '@/assets/js/services/apiService';
 
 export default {
   name: 'Home',
-  mixins: [toastMixin, colorAndSymbolsMixin, textMixin],
   setup() {
+    const { makeToast } = useToast();
+    const colorAndSymbols = useColorAndSymbols();
+    const text = useText();
+
     useHead({
       title: 'Home',
       meta: [
@@ -562,6 +563,12 @@ export default {
         { name: 'author', content: 'SysNDD database' },
       ],
     });
+
+    return {
+      makeToast,
+      ...colorAndSymbols,
+      ...text,
+    };
   },
   data() {
     return {

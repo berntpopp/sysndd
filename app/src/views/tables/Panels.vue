@@ -314,15 +314,16 @@
 
 <script>
 import { useHead } from '@unhead/vue';
-import toastMixin from '@/assets/js/mixins/toastMixin';
+import { useToast } from '@/composables';
 
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
 
 export default {
   name: 'Panels',
-  mixins: [toastMixin],
   setup() {
+    const { makeToast } = useToast();
+
     useHead({
       title: 'Panels',
       meta: [
@@ -333,6 +334,10 @@ export default {
         },
       ],
     });
+
+    return {
+      makeToast,
+    };
   },
   data() {
     return {

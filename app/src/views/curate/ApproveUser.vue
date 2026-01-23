@@ -137,8 +137,7 @@
 </template>
 
 <script>
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
+import { useToast, useColorAndSymbols } from '@/composables';
 import useModalControls from '@/composables/useModalControls';
 
 // Import the Pinia store
@@ -146,7 +145,15 @@ import { useUiStore } from '@/stores/ui';
 
 export default {
   name: 'ApproveStatus',
-  mixins: [toastMixin, colorAndSymbolsMixin],
+  setup() {
+    const { makeToast } = useToast();
+    const colorAndSymbols = useColorAndSymbols();
+
+    return {
+      makeToast,
+      ...colorAndSymbols,
+    };
+  },
   data() {
     return {
       role_options: [],

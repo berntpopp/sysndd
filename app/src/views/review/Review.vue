@@ -1153,9 +1153,7 @@
 // import the Treeselect styles
 // import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
 
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
-import textMixin from '@/assets/js/mixins/textMixin';
+import { useToast, useColorAndSymbols, useText } from '@/composables';
 import useModalControls from '@/composables/useModalControls';
 
 // Import the utilities file
@@ -1171,7 +1169,17 @@ export default {
   name: 'Review',
   // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
   components: {},
-  mixins: [toastMixin, colorAndSymbolsMixin, textMixin],
+  setup() {
+    const { makeToast } = useToast();
+    const colorAndSymbols = useColorAndSymbols();
+    const text = useText();
+
+    return {
+      makeToast,
+      ...colorAndSymbols,
+      ...text,
+    };
+  },
   data() {
     return {
       items: [],

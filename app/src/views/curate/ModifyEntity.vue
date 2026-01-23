@@ -605,8 +605,7 @@
 </template>
 
 <script>
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
+import { useToast, useColorAndSymbols } from '@/composables';
 
 // TODO: vue3-treeselect disabled pending Bootstrap-Vue-Next migration
 // import the Treeselect component
@@ -626,7 +625,15 @@ export default {
   name: 'ApproveStatus',
   // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
   components: {},
-  mixins: [toastMixin, colorAndSymbolsMixin],
+  setup() {
+    const { makeToast } = useToast();
+    const colorAndSymbols = useColorAndSymbols();
+
+    return {
+      makeToast,
+      ...colorAndSymbols,
+    };
+  },
   data() {
     return {
       status_options: [],

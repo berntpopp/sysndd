@@ -397,16 +397,17 @@
 
 <script>
 import { useHead } from '@unhead/vue';
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
+import { useToast, useColorAndSymbols } from '@/composables';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
 
 export default {
   name: 'Gene',
-  mixins: [toastMixin, colorAndSymbolsMixin],
   setup() {
+    const { makeToast } = useToast();
+    const colorAndSymbols = useColorAndSymbols();
+
     useHead({
       title: 'Gene',
       meta: [
@@ -416,6 +417,11 @@ export default {
         },
       ],
     });
+
+    return {
+      makeToast,
+      ...colorAndSymbols,
+    };
   },
   data() {
     return {

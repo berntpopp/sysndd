@@ -323,14 +323,15 @@
 
 <script>
 import { useHead } from '@unhead/vue';
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
-import textMixin from '@/assets/js/mixins/textMixin';
+import { useToast, useColorAndSymbols, useText } from '@/composables';
 
 export default {
   name: 'Entity',
-  mixins: [toastMixin, colorAndSymbolsMixin, textMixin],
   setup() {
+    const { makeToast } = useToast();
+    const colorAndSymbols = useColorAndSymbols();
+    const text = useText();
+
     useHead({
       title: 'Entity',
       meta: [
@@ -340,6 +341,12 @@ export default {
         },
       ],
     });
+
+    return {
+      makeToast,
+      ...colorAndSymbols,
+      ...text,
+    };
   },
   data() {
     return {

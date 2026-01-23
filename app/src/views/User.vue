@@ -200,12 +200,19 @@
 </template>
 
 <script>
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
+import { useToast, useColorAndSymbols } from '@/composables';
 
 export default {
   name: 'User',
-  mixins: [toastMixin, colorAndSymbolsMixin],
+  setup() {
+    const { makeToast } = useToast();
+    const colorAndSymbols = useColorAndSymbols();
+
+    return {
+      makeToast,
+      ...colorAndSymbols,
+    };
+  },
   data() {
     return {
       user: {

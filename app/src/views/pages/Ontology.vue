@@ -231,16 +231,17 @@
 
 <script>
 import { useHead } from '@unhead/vue';
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
+import { useToast, useColorAndSymbols } from '@/composables';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
 
 export default {
   name: 'Ontology',
-  mixins: [toastMixin, colorAndSymbolsMixin],
   setup() {
+    const { makeToast } = useToast();
+    const colorAndSymbols = useColorAndSymbols();
+
     useHead({
       title: 'Ontology',
       meta: [
@@ -250,6 +251,11 @@ export default {
         },
       ],
     });
+
+    return {
+      makeToast,
+      ...colorAndSymbols,
+    };
   },
   data() {
     return {
