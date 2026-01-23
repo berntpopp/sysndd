@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 14 - TypeScript Introduction (IN PROGRESS)
-**Plan:** 2 of TBD plans complete
+**Plan:** 1 of TBD plans complete
 **Status:** In progress
-**Last activity:** 2026-01-23 — Completed 14-02-PLAN.md (Type Definition Creation)
+**Last activity:** 2026-01-23 — Completed 14-01-PLAN.md (TypeScript Infrastructure Setup)
 
 ```
 v3 Frontend Modernization: PHASE 14 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables)
-Phase 14 (TypeScript Introduction): 2 plans complete (Infrastructure setup + Type definitions)
-Last completed: 14-02 Type Definition Creation (comprehensive type system with branded IDs)
-Progress: ████████████████████░ 24/TBD plans in v3 milestone
+Phase 14 (TypeScript Introduction): 1 plan complete (Infrastructure setup)
+Last completed: 14-01 TypeScript Infrastructure Setup (TS 5.7 + vue-tsc + typed env vars)
+Progress: ████████████████████░ 23/TBD plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -118,10 +118,11 @@ See PROJECT.md for full decisions table.
 - Reorder functions to avoid use-before-define ESLint errors
 - Remove duplicate filtered() methods when components already have implementations
 - Extend existing setup() functions in view components rather than replacing
-- Branded types for domain IDs (GeneId, EntityId, etc.) prevent compile-time ID mixing
-- Generic API response wrappers (ApiResponse<T>, PaginatedResponse<T>) for type-safe endpoints
-- Central barrel export pattern for types (types/index.ts)
-- Factory functions for branded ID creation (createGeneId, createEntityId)
+- TypeScript relaxed strict mode (strict: false) for gradual migration
+- Single tsconfig.json approach (no project references) for simplicity
+- allowJs: true enables .js/.ts coexistence during incremental migration
+- Separate type imports: import type { ... } from 'vue'
+- Type assertions (as any) acceptable for incomplete third-party types (e.g., Vite SCSS options)
 
 ## Archive Location
 
@@ -131,8 +132,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 14-02-PLAN.md (Type Definition Creation)
+**Stopped at:** Completed 14-01-PLAN.md (TypeScript Infrastructure Setup)
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 14 in progress (2/TBD plans: TypeScript infrastructure + types ready)*
+*Last updated: 2026-01-23 — Phase 14 in progress (1/TBD plans: TypeScript infrastructure ready)*
