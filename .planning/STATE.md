@@ -6,20 +6,20 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v4 Backend Overhaul — API modernization, security fixes, OMIM migration, R upgrade
+**Current focus:** v4 Backend Overhaul - Phase 18 Foundation (R upgrade)
 
 ## Current Position
 
 **Milestone:** v4 Backend Overhaul
-**Phase:** Not started (defining requirements)
-**Plan:** —
-**Status:** Defining requirements
-**Last activity:** 2026-01-23 — Milestone v4 started
+**Phase:** 18 of 24 (Foundation)
+**Plan:** Not started
+**Status:** Ready to plan
+**Last activity:** 2026-01-23 - Roadmap created, 7 phases defined
 
 ```
-v4 Backend Overhaul: DEFINING REQUIREMENTS
+v4 Backend Overhaul: ROADMAP COMPLETE
 Goal: Modernize R/Plumber API with security, async, OMIM fix, R upgrade, DRY/KISS/SOLID
-Progress: ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ Not started
+Progress: ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 0% (0/7 phases)
 ```
 
 ## Completed Milestones
@@ -39,42 +39,50 @@ Progress: ░░░░░░░░░░░░░░░░░░░░░░░�
 
 ## Tech Debt (from API_CODE_REVIEW_REPORT.md)
 
-**Critical (Security):**
+**Critical (Security) - Addressed in Phase 19:**
 - 66 SQL injection vulnerabilities via string concatenation
 - Plaintext password storage/comparison
 - Passwords visible in logs
 
-**High:**
+**High - Addressed in Phases 20-22:**
 - 17 `dbConnect` calls bypassing connection pool
 - Missing `on.exit(dbDisconnect(...))` cleanup
 - OMIM genemap2 no longer provides required fields
 
-**Medium:**
+**Medium - Addressed in Phases 22-24:**
 - 15 global mutable state (`<<-`) usages
 - 5 god functions (>200 lines)
 - ~100 inconsistent error handling patterns
 - 30 incomplete TODO comments
 - 1240 lintr issues
 
-**Low:**
-- 259 hard-coded configuration accesses
-- Magic numbers/strings throughout
-
 ## Key Decisions
 
-See PROJECT.md for full decisions table (48 decisions across v1-v3).
+See PROJECT.md for full decisions table. Pending v4 decisions will be logged as they are made.
 
-## Archive Location
+## Accumulated Context
 
-- v1 artifacts: `.planning/milestones/01-developer-experience/`
-- v2 artifacts: `.planning/milestones/02-docker-infrastructure/`
-- v3 artifacts: `.planning/milestones/03-frontend-modernization/`
+### Decisions
+
+None yet for v4. Decisions logged in PROJECT.md Key Decisions table.
+
+### Pending Todos
+
+None yet.
+
+### Blockers/Concerns
+
+**From Research:**
+- Matrix ABI breaking change (must upgrade Matrix to 1.6.3+ BEFORE R upgrade)
+- Password migration requires dual-hash verification (avoid user lockout)
+- mim2gene.txt lacks disease names (need MONDO/HPO integration)
 
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Starting v4 milestone, gathering requirements
+**Stopped at:** Roadmap created for v4 Backend Overhaul
 **Resume file:** None
+**Next action:** `/gsd:plan-phase 18` to plan Foundation phase
 
 ---
-*Last updated: 2026-01-23 — v4 Backend Overhaul started, defining requirements*
+*Last updated: 2026-01-23 - v4 roadmap created with 7 phases (18-24)*

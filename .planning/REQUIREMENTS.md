@@ -159,6 +159,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SEC-05 | Phase 19 | Pending |
 | SEC-06 | Phase 19 | Pending |
 | SEC-07 | Phase 19 | Pending |
+| ERR-01 | Phase 19 | Pending |
+| ERR-02 | Phase 19 | Pending |
+| ERR-03 | Phase 19 | Pending |
+| ERR-04 | Phase 19 | Pending |
 | ASYNC-01 | Phase 20 | Pending |
 | ASYNC-02 | Phase 20 | Pending |
 | ASYNC-03 | Phase 20 | Pending |
@@ -185,6 +189,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ARCH-18 | Phase 22 | Pending |
 | ARCH-19 | Phase 22 | Pending |
 | ARCH-20 | Phase 22 | Pending |
+| QA-01 | Phase 22 | Pending |
+| QA-02 | Phase 22 | Pending |
+| QA-03 | Phase 22 | Pending |
+| QA-04 | Phase 22 | Pending |
+| QA-05 | Phase 22 | Pending |
 | OMIM-01 | Phase 23 | Pending |
 | OMIM-02 | Phase 23 | Pending |
 | OMIM-03 | Phase 23 | Pending |
@@ -200,10 +209,6 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VER-02 | Phase 24 | Pending |
 | VER-03 | Phase 24 | Pending |
 | VER-04 | Phase 24 | Pending |
-| ERR-01 | Phase 19 | Pending |
-| ERR-02 | Phase 19 | Pending |
-| ERR-03 | Phase 19 | Pending |
-| ERR-04 | Phase 19 | Pending |
 | TEST-01 | Phase 24 | Pending |
 | TEST-02 | Phase 24 | Pending |
 | TEST-03 | Phase 24 | Pending |
@@ -211,9 +216,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TEST-05 | Phase 24 | Pending |
 
 **Coverage:**
-- v4 requirements: 66 total
-- Mapped to phases: 66
-- Unmapped: 0 ✓
+- v4 requirements: 68 total
+- Mapped to phases: 68
+- Unmapped: 0
 
 ## Reference APIs
 
@@ -231,4 +236,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-23*
-*Last updated: 2026-01-23 after initial definition*
+*Last updated: 2026-01-23 after roadmap creation*
