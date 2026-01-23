@@ -3,7 +3,7 @@
  * Test utilities barrel export
  *
  * Import all test utilities from here:
- * import { withSetup, mountWithRouter, bootstrapStubs } from '@/test-utils';
+ * import { withSetup, mountWithRouter, bootstrapStubs, expectNoA11yViolations } from '@/test-utils';
  */
 
 export { withSetup } from './with-setup';
@@ -14,6 +14,14 @@ export {
   mountWithPlugins,
   bootstrapStubs,
 } from './mount-helpers';
+
+// Accessibility testing helpers
+export {
+  expectNoA11yViolations,
+  runAxe,
+  logViolations,
+  defaultAxeConfig,
+} from './a11y-helpers';
 
 // Re-export common testing utilities for convenience
 export { mount, shallowMount } from '@vue/test-utils';

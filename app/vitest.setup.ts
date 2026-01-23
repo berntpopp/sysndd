@@ -1,6 +1,8 @@
 // vitest.setup.ts
 // Global test setup - runs before each test file
 
+/// <reference types="vitest-axe/extend-expect" />
+
 import { vi, beforeEach, afterEach, beforeAll, afterAll, expect } from 'vitest';
 import * as matchers from 'vitest-axe/matchers';
 
