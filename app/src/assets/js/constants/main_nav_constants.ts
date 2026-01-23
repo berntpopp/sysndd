@@ -1,24 +1,45 @@
+// main_nav_constants.ts
+
 /**
- * @fileoverview Constants for main navigation elements.
+ * Constants for main navigation elements.
  */
 
-export default {
-  // An array of dropdown menus items to be displayed in the navbar.
-  // Each item has an id, title, items for the dropdown with text and path.
-  // Additionally includes conditional properties for the user, admin, curate, and review permissions.
+/** Navigation menu item with optional path or action */
+export interface NavMenuItem {
+  /** Display text for the menu item */
+  text: string;
+  /** Navigation path (for route links) */
+  path?: string;
+  /** Action method name (for function calls) */
+  action?: string;
+  /** Bootstrap icons to display */
+  icons?: string[];
+  /** Component to render alongside the item */
+  component?: string;
+}
+
+/** Dropdown menu configuration */
+export interface NavDropdown {
+  /** Unique identifier for the dropdown */
+  id: string;
+  /** Title displayed in the navbar */
+  title: string;
+  /** Required permissions to view this dropdown */
+  required: string[];
+  /** Dropdown alignment */
+  align: 'left' | 'right';
+  /** Menu items in the dropdown */
+  items: NavMenuItem[];
+}
+
+/**
+ * Main navigation configuration
+ */
+const MAIN_NAV = {
+  /**
+   * Left-aligned dropdown menus (public sections)
+   */
   DROPDOWN_ITEMS_LEFT: [
-    /**
-     * Represents a dropdown item in the main navigation.
-     * @type {Object}
-     * @property {string} id - Unique identifier for the dropdown item.
-     * @property {string} title - Title of the dropdown to be displayed.
-     * @property {Array} required - Array of strings indicating required permissions to view this dropdown.
-     * @property {string} align - Alignment of the dropdown, typically 'left' or 'right'.
-     * @property {Array} items - Array of objects representing individual menu items in the dropdown.
-     * Each menu item object contains:
-     * @property {string} items.text - Display text for the menu item.
-     * @property {string} items.path - Navigation path associated with the menu item.
-     */
     {
       id: 'tables_dropdown',
       title: 'Tables',
@@ -57,20 +78,12 @@ export default {
         { text: 'Docs and FAQ', path: '/Documentation' },
       ],
     },
-  ],
+  ] satisfies NavDropdown[],
+
+  /**
+   * Right-aligned dropdown menus (role-based sections)
+   */
   DROPDOWN_ITEMS_RIGHT: [
-    /**
-     * Represents a dropdown item in the main navigation on the right side.
-     * @type {Object}
-     * @property {string} id - Unique identifier for the dropdown item.
-     * @property {string} title - Title of the dropdown to be displayed.
-     * @property {Array} required - Array of strings indicating required permissions to view this dropdown.
-     * @property {string} align - Alignment of the dropdown, typically 'left' or 'right'.
-     * @property {Array} items - Array of objects representing individual menu items in the dropdown.
-     * Each menu item object contains:
-     * @property {string} items.text - Display text for the menu item.
-     * @property {string} items.path - Navigation path associated with the menu item.
-     */
     {
       id: 'administration_dropdown',
       title: 'Administration',
@@ -125,5 +138,10 @@ export default {
         { text: 'Sign out', action: 'doUserLogOut', icons: ['x-circle'] },
       ],
     },
-  ],
-};
+  ] satisfies NavDropdown[],
+} as const;
+
+export default MAIN_NAV;
+
+/** Type for accessing main navigation configuration */
+export type MainNavConfig = typeof MAIN_NAV;

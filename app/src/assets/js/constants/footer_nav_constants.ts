@@ -1,28 +1,41 @@
-// footer_nav_constants.js
-
-// Importing URLs from a constants file to avoid hardcoding them in this component
-import URLS from '@/assets/js/constants/url_constants';
+// footer_nav_constants.ts
 
 /**
- * @fileoverview This file defines constants for the footer navigation,
- * including navigation items with their respective links, attributes,
- * and other relevant properties.
+ * Constants for footer navigation elements.
+ * Includes external links with logos for partners, licenses, and resources.
  */
 
-export default {
+// Importing URLs from a constants file to avoid hardcoding them
+import URLS from '@/assets/js/constants/url_constants';
+
+/** Footer link item configuration */
+export interface FooterLink {
+  /** Unique identifier for the navigation item */
+  id: string;
+  /** The URL to which the navigation item points */
+  link: string;
+  /** Additional attributes for the link element (e.g., aria-label) */
+  linkAttr: Record<string, string>;
+  /** Source path for the navigation item's image */
+  imgSrc: string;
+  /** Alt text for the navigation item's image */
+  alt: string;
+  /** Width of the navigation item's image (in pixels) */
+  width: string;
+  /** Specifies where to open the linked document */
+  target: '_blank' | '_self' | '_parent' | '_top';
+}
+
+/**
+ * Footer navigation configuration
+ */
+const FOOTER_NAV = {
   /**
    * Navigation items to be displayed in the footer.
-   * @type {Object[]}
-   * @property {string} id - The unique identifier for the navigation item.
-   * @property {string} link - The URL to which the navigation item points.
-   * @property {Object} linkAttr - Additional attributes for the link element, such as aria-label.
-   * @property {string} [imgSrc] - Optional. The source path for the navigation item's image.
-   * @property {string} [altText] - Optional. Alt text for the navigation item's image.
-   * @property {number} [width] - Optional. Width of the navigation item's image.
-   * @property {string} [target] - Optional. Specifies where to open the linked document.
+   * Includes logos for CC license, GitHub, OpenAPI, funding organizations, and partners.
    */
   NAV_ITEMS: [
-    // cc license
+    // Creative Commons license
     {
       id: 'cc-license',
       link: URLS.COMMON_LICENSE,
@@ -32,7 +45,7 @@ export default {
       width: '96.52',
       target: '_blank',
     },
-    // GitHub
+    // GitHub repository
     {
       id: 'github',
       link: URLS.GITHUB,
@@ -42,7 +55,7 @@ export default {
       width: '34',
       target: '_blank',
     },
-    // OpenAPI
+    // OpenAPI documentation
     {
       id: 'openapi',
       link: URLS.API_LINK,
@@ -52,7 +65,7 @@ export default {
       width: '34',
       target: '_self',
     },
-    // DFG
+    // German Research Foundation (DFG)
     {
       id: 'dfg',
       link: URLS.DFG,
@@ -62,7 +75,7 @@ export default {
       width: '120',
       target: '_blank',
     },
-    // UniBe
+    // University of Bern
     {
       id: 'unibe',
       link: URLS.UNIBE,
@@ -72,7 +85,7 @@ export default {
       width: '107',
       target: '_blank',
     },
-    // ITHACA
+    // European Reference Network ITHACA
     {
       id: 'ern-ithaca',
       link: URLS.ERN_ITHACA,
@@ -82,6 +95,10 @@ export default {
       width: '120',
       target: '_blank',
     },
-  ],
-  // add the rest of your constants here
-};
+  ] satisfies FooterLink[],
+} as const;
+
+export default FOOTER_NAV;
+
+/** Type for accessing footer navigation configuration */
+export type FooterNavConfig = typeof FOOTER_NAV;
