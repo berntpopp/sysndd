@@ -93,8 +93,7 @@
 </template>
 
 <script>
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import textMixin from '@/assets/js/mixins/textMixin';
+import { useToast, useText } from '@/composables';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 import * as d3 from 'd3';
 
@@ -103,7 +102,15 @@ export default {
   components: {
     DownloadImageButtons,
   },
-  mixins: [toastMixin, textMixin],
+  setup() {
+    const { makeToast } = useToast();
+    const text = useText();
+
+    return {
+      makeToast,
+      ...text,
+    };
+  },
   data() {
     return {
       aggregate_list: [

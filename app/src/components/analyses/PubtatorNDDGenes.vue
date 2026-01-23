@@ -164,14 +164,19 @@
 </template>
 
 <script>
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
-import textMixin from '@/assets/js/mixins/textMixin';
+// Import Vue utilities
+import { ref, inject } from 'vue';
+import { useRoute } from 'vue-router';
 
-// Table/pagination/data mixins
-import tableMethodsMixin from '@/assets/js/mixins/tableMethodsMixin';
-import tableDataMixin from '@/assets/js/mixins/tableDataMixin';
+// Import composables
+import {
+  useToast,
+  useUrlParsing,
+  useColorAndSymbols,
+  useText,
+  useTableData,
+  useTableMethods,
+} from '@/composables';
 
 // Small reusable components
 import TableHeaderLabel from '@/components/small/TableHeaderLabel.vue';
@@ -189,14 +194,6 @@ export default {
     TablePaginationControls,
     TableDownloadLinkCopyButtons,
   },
-  mixins: [
-    toastMixin,
-    urlParsingMixin,
-    colorAndSymbolsMixin,
-    textMixin,
-    tableMethodsMixin,
-    tableDataMixin,
-  ],
   props: {
     showFilterControls: { type: Boolean, default: true },
     showPaginationControls: { type: Boolean, default: true },
@@ -219,6 +216,58 @@ export default {
       type: String,
       default: 'gene_name,gene_symbol,gene_normalized_id,hgnc_id,publication_count,entities_count',
     },
+  },
+  setup(props) {
+    // Independent composables
+    const { makeToast } = useToast();
+    const { filterObjToStr, filterStrToObj, sortStringToVariables } = useUrlParsing();
+    const colorAndSymbols = useColorAndSymbols();
+    const text = useText();
+
+    // Table state composable
+    const tableData = useTableData({
+      pageSizeInput: props.pageSizeInput,
+      sortInput: props.sortInput,
+      pageAfterInput: props.pageAfterInput,
+    });
+
+    // Component-specific filter
+    const filter = ref({
+      any: { content: null, join_char: null, operator: 'contains' },
+      gene_name: { content: null, join_char: null, operator: 'contains' },
+      gene_symbol: { content: null, join_char: null, operator: 'contains' },
+      gene_normalized_id: { content: null, join_char: null, operator: 'contains' },
+      hgnc_id: { content: null, join_char: null, operator: 'contains' },
+      publication_count: { content: null, join_char: null, operator: 'contains' },
+      entities_count: { content: null, join_char: null, operator: 'contains' },
+    });
+
+    // Inject axios and route
+    const axios = inject('axios');
+    const route = useRoute();
+
+    // Table methods composable
+    const tableMethods = useTableMethods(tableData, {
+      filter,
+      filterObjToStr,
+      apiEndpoint: 'pubtator_genes',
+      axios,
+      route,
+    });
+
+    // Return all needed properties
+    return {
+      makeToast,
+      filterObjToStr,
+      filterStrToObj,
+      sortStringToVariables,
+      ...colorAndSymbols,
+      ...text,
+      ...tableData,
+      ...tableMethods,
+      filter,
+      axios,
+    };
   },
   data() {
     return {
@@ -269,24 +318,7 @@ export default {
         },
       ],
 
-      // Filter object. Each field has content=null to avoid "undefined" reference.
-      // 'any' is for global search across all fields if you want that.
-      filter: {
-        any: { content: null, join_char: null, operator: 'contains' },
-        gene_name: { content: null, join_char: null, operator: 'contains' },
-        gene_symbol: { content: null, join_char: null, operator: 'contains' },
-        gene_normalized_id: { content: null, join_char: null, operator: 'contains' },
-        hgnc_id: { content: null, join_char: null, operator: 'contains' },
-        publication_count: { content: null, join_char: null, operator: 'contains' },
-        entities_count: { content: null, join_char: null, operator: 'contains' },
-      },
-
-      // Table data
-      items: [],
-      totalRows: 0,
-      currentPage: 1,
-      perPage: 10,
-      pageOptions: [10, 25, 50],
+      // Table data (items and other properties now in setup())
       // Bootstrap-Vue-Next uses array-based sortBy format
       sortBy: [{ key: 'gene_symbol', order: 'asc' }],
       sort: '+gene_symbol',

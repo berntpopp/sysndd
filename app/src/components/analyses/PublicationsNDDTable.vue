@@ -203,14 +203,19 @@
 </template>
 
 <script>
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
-import textMixin from '@/assets/js/mixins/textMixin';
+// Import Vue utilities
+import { ref, inject } from 'vue';
+import { useRoute } from 'vue-router';
 
-// Table/pagination/data mixins
-import tableMethodsMixin from '@/assets/js/mixins/tableMethodsMixin';
-import tableDataMixin from '@/assets/js/mixins/tableDataMixin';
+// Import composables
+import {
+  useToast,
+  useUrlParsing,
+  useColorAndSymbols,
+  useText,
+  useTableData,
+  useTableMethods,
+} from '@/composables';
 
 // Small reusable components
 import TableHeaderLabel from '@/components/small/TableHeaderLabel.vue';
@@ -231,14 +236,6 @@ export default {
     TableDownloadLinkCopyButtons,
     GenericTable,
   },
-  mixins: [
-    toastMixin,
-    urlParsingMixin,
-    colorAndSymbolsMixin,
-    textMixin,
-    tableMethodsMixin,
-    tableDataMixin,
-  ],
   props: {
     apiEndpoint: {
       type: String,
@@ -256,6 +253,56 @@ export default {
       type: String,
       default: 'publication_id,Title,Journal,Publication_date',
     },
+  },
+  setup(props) {
+    // Independent composables
+    const { makeToast } = useToast();
+    const { filterObjToStr, filterStrToObj, sortStringToVariables } = useUrlParsing();
+    const colorAndSymbols = useColorAndSymbols();
+    const text = useText();
+
+    // Table state composable
+    const tableData = useTableData({
+      pageSizeInput: props.pageSizeInput,
+      sortInput: props.sortInput,
+      pageAfterInput: props.pageAfterInput,
+    });
+
+    // Component-specific filter
+    const filter = ref({
+      any: { content: null, join_char: null, operator: 'contains' },
+      publication_id: { content: null, join_char: null, operator: 'contains' },
+      Title: { content: null, join_char: null, operator: 'contains' },
+      Journal: { content: null, join_char: null, operator: 'contains' },
+      Publication_date: { content: null, join_char: null, operator: 'contains' },
+    });
+
+    // Inject axios and route
+    const axios = inject('axios');
+    const route = useRoute();
+
+    // Table methods composable
+    const tableMethods = useTableMethods(tableData, {
+      filter,
+      filterObjToStr,
+      apiEndpoint: props.apiEndpoint,
+      axios,
+      route,
+    });
+
+    // Return all needed properties
+    return {
+      makeToast,
+      filterObjToStr,
+      filterStrToObj,
+      sortStringToVariables,
+      ...colorAndSymbols,
+      ...text,
+      ...tableData,
+      ...tableMethods,
+      filter,
+      axios,
+    };
   },
   data() {
     return {
@@ -294,24 +341,7 @@ export default {
       // Additional hidden or detail fields can go here:
       fields_details: [],
 
-      // Basic data or filter state
-      filter: {
-        any: { content: null, join_char: null, operator: 'contains' },
-        publication_id: { content: null, join_char: null, operator: 'contains' },
-        Title: { content: null, join_char: null, operator: 'contains' },
-        Journal: { content: null, join_char: null, operator: 'contains' },
-        Publication_date: { content: null, join_char: null, operator: 'contains' },
-      },
-      // Table items
-      items: [],
-      totalRows: 0,
-      currentPage: 1,
-      perPage: 10,
-      pageOptions: [10, 25, 50],
-      sortBy: 'publication_id',
-      // Note: sortDesc is handled by tableDataMixin computed property
-      sort: '+publication_id',
-      filter_string: '',
+      // Table state now in setup()
 
       // Cursor pagination info
       prevItemID: null,

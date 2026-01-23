@@ -303,8 +303,7 @@
 
 <script>
 import * as d3 from 'd3';
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
+import { useToast, useColorAndSymbols } from '@/composables';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 
 // Import small table components
@@ -320,7 +319,15 @@ export default {
     TableSearchInput,
     TablePaginationControls,
   },
-  mixins: [toastMixin, colorAndSymbolsMixin],
+  setup() {
+    const { makeToast } = useToast();
+    const colorAndSymbols = useColorAndSymbols();
+
+    return {
+      makeToast,
+      ...colorAndSymbols,
+    };
+  },
   data() {
     return {
       /* --------------------------------------

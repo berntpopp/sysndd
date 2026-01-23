@@ -382,9 +382,7 @@
 // import Treeselect from '@zanmato/vue3-treeselect';
 // import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
 
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
+import { useToast, useUrlParsing, useColorAndSymbols } from '@/composables';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
@@ -396,7 +394,6 @@ export default {
   name: 'AnalysesCurationComparisonsTable',
   // register the GenericTable component (Treeselect temporarily disabled)
   components: { GenericTable },
-  mixins: [toastMixin, urlParsingMixin, colorAndSymbolsMixin],
   props: {
     showFilterControls: { type: Boolean, default: true },
     showPaginationControls: { type: Boolean, default: true },
@@ -410,6 +407,19 @@ export default {
       default:
           'symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id',
     },
+  },
+  setup() {
+    const { makeToast } = useToast();
+    const { filterObjToStr, filterStrToObj, sortStringToVariables } = useUrlParsing();
+    const colorAndSymbols = useColorAndSymbols();
+
+    return {
+      makeToast,
+      filterObjToStr,
+      filterStrToObj,
+      sortStringToVariables,
+      ...colorAndSymbols,
+    };
   },
   data() {
     return {
