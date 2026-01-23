@@ -7,7 +7,13 @@
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "sitemap": "vue-cli-service sitemap",
-    "start": "vue-cli-service serve --open"
+    "start": "vue-cli-service serve --open",
+    "dev": "vite",
+    "build:vite": "vite build",
+    "preview": "vite preview",
+    "dev:docker": "vite --mode docker",
+    "build:docker": "vite build --mode docker",
+    "build:production": "vite build --mode production"
   },
   "dependencies": {
     "@unhead/vue": "^2.1.2",
