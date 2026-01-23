@@ -141,14 +141,10 @@ put_db_entity_deactivation <- function(entity_id,
     port = dw$port
     )
 
-    # perform the entity update
-    dbExecute(sysndd_db, paste0("UPDATE ndd_entity SET ",
-    "is_active = 0, ",
-    "replaced_by = ",
-    replacement,
-    " WHERE entity_id = ",
-    entity_id,
-    ";")
+    # perform the entity update (parameterized query for SQL injection prevention)
+    dbExecute(sysndd_db,
+      "UPDATE ndd_entity SET is_active = 0, replaced_by = ? WHERE entity_id = ?",
+      params = list(replacement, entity_id)
     )
 
     # disconnect from database
@@ -249,13 +245,9 @@ put_post_db_review <- function(request_method,
       # saving status and status_id if re_review is TRUE
       if (re_review) {
         dbExecute(sysndd_db,
-          paste0("UPDATE re_review_entity_connect SET ",
-            "re_review_review_saved = 1, ",
-            "review_id=",
-            submitted_review_id$review_id,
-            " WHERE entity_id = ",
-            review_data$entity_id,
-            ";"))
+          "UPDATE re_review_entity_connect SET re_review_review_saved = 1, review_id = ? WHERE entity_id = ?",
+          params = list(submitted_review_id$review_id, review_data$entity_id)
+        )
       }
 
       # disconnect from database
@@ -271,17 +263,26 @@ put_post_db_review <- function(request_method,
                ("review_id" %in% colnames(review_received))) {
       ##-------------------------------------------------------------------##
       ## for the put request we update the review and set it's status to 0
-      # generate update query, we remove entity_id
-      # to not allow changing the review entity connection
-      update_query <- review_received %>%
+      # prepare update data, remove entity_id to not allow changing the review entity connection
+      # and remove review_id (used in WHERE clause)
+      update_data <- review_received %>%
         select(-entity_id) %>%
-        mutate(row = row_number()) %>%
-        mutate(across(where(is.logical), as.integer)) %>%
-        mutate(across(where(is.numeric), as.character)) %>%
-        pivot_longer(-row) %>%
-        mutate(query = paste0(name, "='", value, "'")) %>%
-        select(query) %>%
-        summarize(query = str_c(query, collapse = ", "))
+        mutate(across(where(is.logical), as.integer))
+
+      # get review_id for WHERE clause
+      review_id_for_update <- update_data$review_id
+
+      # remove review_id from update columns
+      update_data <- update_data %>% select(-review_id)
+
+      # build parameterized query: column names from code (safe), values via params
+      col_names <- colnames(update_data)
+      set_clause <- paste0(col_names, " = ?", collapse = ", ")
+      update_query <- paste0("UPDATE ndd_entity_review SET ", set_clause, " WHERE review_id = ?")
+
+      # prepare params list: all column values + review_id for WHERE
+      params_list <- as.list(update_data[1, ])
+      params_list <- c(params_list, list(review_id_for_update))
 
       # connect to database
       sysndd_db <- dbConnect(RMariaDB::MariaDB(),
@@ -293,28 +294,19 @@ put_post_db_review <- function(request_method,
         port = dw$port
         )
 
-      # perform the review update
-      dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review SET ",
-        update_query,
-        " WHERE review_id = ",
-        review_received$review_id,
-        ";")
+      # perform the review update (parameterized)
+      dbExecute(sysndd_db, update_query, params = params_list)
+
+      # reset approval status (parameterized)
+      dbExecute(sysndd_db,
+        "UPDATE ndd_entity_review SET review_approved = 0 WHERE review_id = ?",
+        params = list(review_id_for_update)
         )
 
-      # reset approval status
+      # reset approval user (parameterized)
       dbExecute(sysndd_db,
-        paste0("UPDATE ndd_entity_review ",
-        "SET review_approved=0 WHERE review_id = ",
-        review_received$review_id,
-        ";")
-        )
-
-      # reset approval user
-      dbExecute(sysndd_db,
-        paste0("UPDATE ndd_entity_review ",
-        "SET approving_user_id=NULL WHERE review_id = ",
-        review_received$review_id,
-        ";")
+        "UPDATE ndd_entity_review SET approving_user_id = NULL WHERE review_id = ?",
+        params = list(review_id_for_update)
         )
 
       # disconnect from database
@@ -323,7 +315,7 @@ put_post_db_review <- function(request_method,
       # return OK
       return(list(status = 200,
         message = "OK. Entry created.",
-        entry = review_received$review_id))
+        entry = review_id_for_update))
       ##-------------------------------------------------------------------##
     } else {
       # return Method Not Allowed
