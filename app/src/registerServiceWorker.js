@@ -2,12 +2,19 @@
 
 import { register } from 'register-service-worker';
 
-// Only register service worker in production mode and not in docker
-// VITE_MODE is set in .env files (docker mode doesn't need service worker)
-const isDocker = import.meta.env.VITE_MODE === 'docker';
+// Support both Vite (import.meta.env) and Vue CLI (process.env) during migration
+// eslint-disable-next-line no-undef
+const isVite = typeof import.meta !== 'undefined' && import.meta.env;
+const isProd = isVite ? import.meta.env.PROD : process.env.NODE_ENV === 'production';
+const baseUrl = isVite ? import.meta.env.BASE_URL : process.env.BASE_URL;
+const viteMode = isVite ? import.meta.env.VITE_MODE : process.env.VUE_APP_MODE;
 
-if (import.meta.env.PROD && !isDocker) {
-  register(`${import.meta.env.BASE_URL}service-worker.js`, {
+// Only register service worker in production mode and not in docker
+// VITE_MODE/VUE_APP_MODE is set in .env files (docker mode doesn't need service worker)
+const isDocker = viteMode === 'docker';
+
+if (isProd && !isDocker) {
+  register(`${baseUrl}service-worker.js`, {
     ready() {
       console.log(
         'App is being served from cache by a service worker.\n'
