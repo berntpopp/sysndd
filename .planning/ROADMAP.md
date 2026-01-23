@@ -133,47 +133,33 @@ Plans:
 
 ## Phase 13: Mixin → Composable Conversion
 
-**Goal:** All 7 mixins converted to TypeScript composables
+**Goal:** All 7 mixins converted to Vue 3 composables
 
 **Requirements:** FR-04 (all), NFR-01 (DRY, SOLID)
 
-### Plans
+**Plans:** 6 plans in 5 waves
 
-#### 13-01: Composables Directory Setup
-- Create src/composables/ directory
-- Create composables/index.ts
-- Set up composable file template
+Plans:
+- [ ] 13-01-PLAN.md — Foundation + Independent Composables (Wave 1)
+- [ ] 13-02-PLAN.md — Toast Composable + Toast-Only Component Updates (Wave 2)
+- [ ] 13-03-PLAN.md — URL Parsing Composable (Wave 2)
+- [ ] 13-04-PLAN.md — Table Composables (useTableData + useTableMethods) (Wave 3)
+- [ ] 13-05-PLAN.md — Multi-Mixin Component Migration (Wave 4)
+- [ ] 13-06-PLAN.md — Cleanup and Verification (Wave 5)
 
-#### 13-02: Independent Composables
-- Convert colorAndSymbolsMixin → useColorAndSymbols
-- Convert textMixin → useText
-- Convert scrollbarMixin → useScrollbar
-- Update components using these mixins
+### Wave Structure
 
-#### 13-03: Toast Composable
-- Convert toastMixin → useToast
-- Integrate with Bootstrap-Vue-Next toast
-- Update all toast usages
-
-#### 13-04: Table Composables
-- Convert tableDataMixin → useTableData
-- Convert tableMethodsMixin → useTableMethods
-- Update table components
-
-#### 13-05: URL Parsing Composable
-- Convert urlParsingMixin → useUrlParsing
-- Integrate with Vue Router 4
-- Update route-dependent components
-
-#### 13-06: Mixin Cleanup
-- Verify no mixin imports remain
-- Delete mixins directory
-- Remove global-components.js
-- Update component imports to explicit
+| Wave | Plans | Dependencies |
+|------|-------|--------------|
+| 1 | 13-01 | None (foundation) |
+| 2 | 13-02, 13-03 | 13-01 (parallel execution) |
+| 3 | 13-04 | 13-02, 13-03 |
+| 4 | 13-05 | 13-01, 13-02, 13-03, 13-04 |
+| 5 | 13-06 | 13-05 |
 
 ### Success Criteria
-- All 7 composables created
-- All components using composables
+- All 7 composables created (useColorAndSymbols, useText, useScrollbar, useToast, useUrlParsing, useTableData, useTableMethods)
+- All 50+ components using composables
 - No mixin imports in codebase
 - Mixins directory deleted
 
