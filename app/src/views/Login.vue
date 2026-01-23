@@ -90,7 +90,7 @@ import { ref } from 'vue';
 import { useHead } from '@unhead/vue';
 import { useForm, useField, defineRule } from 'vee-validate';
 import { required, min, max } from '@vee-validate/rules';
-import toastMixin from '@/assets/js/mixins/toastMixin';
+import useToast from '@/composables/useToast';
 
 // Define validation rules globally
 defineRule('required', required);
@@ -99,8 +99,8 @@ defineRule('max', max);
 
 export default {
   name: 'Login',
-  mixins: [toastMixin],
   setup() {
+    const { makeToast } = useToast();
     useHead({
       title: 'Login',
       meta: [
@@ -141,6 +141,7 @@ export default {
       animated,
       handleSubmit,
       resetVeeForm,
+      makeToast,
     };
   },
   mounted() {

@@ -155,7 +155,7 @@ import {
   email,
   regex,
 } from '@vee-validate/rules';
-import toastMixin from '@/assets/js/mixins/toastMixin';
+import useToast from '@/composables/useToast';
 
 // Define validation rules
 defineRule('required', required);
@@ -167,8 +167,8 @@ defineRule('is', (value, [target]) => value === target || 'You must accept the t
 
 export default {
   name: 'Register',
-  mixins: [toastMixin],
   setup() {
+    const { makeToast } = useToast();
     useHead({
       title: 'Register',
       meta: [
@@ -266,6 +266,7 @@ export default {
       loading,
       handleSubmit,
       resetVeeForm,
+      makeToast,
     };
   },
   mounted() {

@@ -141,11 +141,14 @@
 </template>
 
 <script>
-import toastMixin from '@/assets/js/mixins/toastMixin';
+import useToast from '@/composables/useToast';
 
 export default {
   name: 'AdminStatistics',
-  mixins: [toastMixin],
+  setup() {
+    const { makeToast } = useToast();
+    return { makeToast };
+  },
   data() {
     return {
       startDate: '',

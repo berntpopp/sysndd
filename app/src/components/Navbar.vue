@@ -108,12 +108,15 @@
 import MAIN_NAV_CONSTANTS from '@/assets/js/constants/main_nav_constants';
 import URLS from '@/assets/js/constants/url_constants';
 import ROLES from '@/assets/js/constants/role_constants';
-import toastMixin from '@/assets/js/mixins/toastMixin';
+import useToast from '@/composables/useToast';
 import packageInfo from '../../package.json';
 
 export default {
   name: 'Navbar',
-  mixins: [toastMixin],
+  setup() {
+    const { makeToast } = useToast();
+    return { makeToast };
+  },
   data() {
     return {
       dropdownItemsLeft: MAIN_NAV_CONSTANTS.DROPDOWN_ITEMS_LEFT,

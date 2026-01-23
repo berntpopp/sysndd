@@ -133,14 +133,17 @@
 </template>
 
 <script>
-import toastMixin from '@/assets/js/mixins/toastMixin';
+import useToast from '@/composables/useToast';
 
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
 
 export default {
   name: 'ApproveStatus',
-  mixins: [toastMixin],
+  setup() {
+    const { makeToast } = useToast();
+    return { makeToast };
+  },
   data() {
     return {
       user_options: [],

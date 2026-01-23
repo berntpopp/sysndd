@@ -55,11 +55,10 @@
 
 <script>
 import { useHead } from '@unhead/vue';
-import toastMixin from '@/assets/js/mixins/toastMixin';
+import useToast from '@/composables/useToast';
 
 export default {
   name: 'CurationComparisons',
-  mixins: [toastMixin],
   props: {
     sort: { type: String, default: '+symbol' },
     filter: { type: String, default: 'filter=' },
@@ -73,6 +72,7 @@ export default {
     },
   },
   setup() {
+    const { makeToast } = useToast();
     useHead({
       title: 'Curation comparisons',
       meta: [
@@ -83,6 +83,8 @@ export default {
         },
       ],
     });
+
+    return { makeToast };
   },
   data() {
     return {

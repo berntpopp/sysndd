@@ -55,14 +55,14 @@
 
 <script>
 import { useHead } from '@unhead/vue';
-import toastMixin from '@/assets/js/mixins/toastMixin';
+import useToast from '@/composables/useToast';
 
 import * as d3 from 'd3';
 
 export default {
   name: 'PhenotypeCorrelations',
-  mixins: [toastMixin],
   setup() {
+    const { makeToast } = useToast();
     useHead({
       title: 'Phenotype correlations',
       meta: [
@@ -73,6 +73,8 @@ export default {
         },
       ],
     });
+
+    return { makeToast };
   },
   data() {
     return {

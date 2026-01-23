@@ -104,7 +104,7 @@ import {
   max,
   email,
 } from '@vee-validate/rules';
-import toastMixin from '@/assets/js/mixins/toastMixin';
+import useToast from '@/composables/useToast';
 
 // Define validation rules
 defineRule('required', required);
@@ -114,8 +114,8 @@ defineRule('email', email);
 
 export default {
   name: 'PasswordReset',
-  mixins: [toastMixin],
   setup() {
+    const { makeToast } = useToast();
     useHead({
       title: 'Password Reset',
       meta: [
@@ -173,6 +173,7 @@ export default {
       handleRequestSubmit,
       resetChangeVeeForm,
       resetRequestVeeForm,
+      makeToast,
     };
   },
   mounted() {

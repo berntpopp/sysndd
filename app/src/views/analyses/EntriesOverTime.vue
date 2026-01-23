@@ -15,12 +15,12 @@
 
 <script>
 import { useHead } from '@unhead/vue';
-import toastMixin from '@/assets/js/mixins/toastMixin';
+import useToast from '@/composables/useToast';
 
 export default {
   name: 'EntriesOverTime',
-  mixins: [toastMixin],
   setup() {
+    const { makeToast } = useToast();
     useHead({
       title: 'Entries over time',
       meta: [
@@ -31,6 +31,8 @@ export default {
         },
       ],
     });
+
+    return { makeToast };
   },
   data() {
     return {

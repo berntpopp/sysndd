@@ -71,12 +71,12 @@
 
 <script>
 import { useHead } from '@unhead/vue';
-import toastMixin from '@/assets/js/mixins/toastMixin';
+import useToast from '@/composables/useToast';
 
 export default {
   name: 'Search',
-  mixins: [toastMixin],
   setup() {
+    const { makeToast } = useToast();
     useHead({
       title: 'Search',
       meta: [
@@ -87,6 +87,8 @@ export default {
         },
       ],
     });
+
+    return { makeToast };
   },
   data() {
     return {

@@ -13,7 +13,7 @@
 
 <script>
 import { useHead } from '@unhead/vue';
-import toastMixin from '@/assets/js/mixins/toastMixin';
+import useToast from '@/composables/useToast';
 // IMPORTANT: Import your child
 import AnalysesPhenotypeFunctionalCorrelation from '@/components/analyses/AnalysesPhenotypeFunctionalCorrelation.vue';
 
@@ -22,8 +22,8 @@ export default {
   components: {
     AnalysesPhenotypeFunctionalCorrelation,
   },
-  mixins: [toastMixin],
   setup() {
+    const { makeToast } = useToast();
     useHead({
       title: 'Pheno-Func Correlation',
       meta: [
@@ -34,6 +34,8 @@ export default {
         },
       ],
     });
+
+    return { makeToast };
   },
   data() {
     return {

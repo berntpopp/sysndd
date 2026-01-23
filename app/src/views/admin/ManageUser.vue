@@ -110,7 +110,7 @@
 
 <script>
 import GenericTable from '@/components/small/GenericTable.vue';
-import toastMixin from '@/assets/js/mixins/toastMixin';
+import useToast from '@/composables/useToast';
 import useModalControls from '@/composables/useModalControls';
 
 // Import the Pinia store
@@ -121,7 +121,10 @@ export default {
   components: {
     GenericTable,
   },
-  mixins: [toastMixin],
+  setup() {
+    const { makeToast } = useToast();
+    return { makeToast };
+  },
   data() {
     return {
       role_options: [],

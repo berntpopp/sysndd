@@ -79,11 +79,14 @@
 </template>
 
 <script>
-import toastMixin from '@/assets/js/mixins/toastMixin';
+import useToast from '@/composables/useToast';
 
 export default {
   name: 'ManageAnnotations',
-  mixins: [toastMixin],
+  setup() {
+    const { makeToast } = useToast();
+    return { makeToast };
+  },
   data() {
     return {
       loading: false, // Indicates the loading state of the API call
