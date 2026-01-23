@@ -61,6 +61,22 @@
           flex: 1;
           min-width: 0; // Allow text truncation
           text-align: right;
+
+          // Badges should not stretch - keep intrinsic width
+          &.badge,
+          & .badge,
+          &[class*="badge-"] {
+            flex: 0 0 auto;
+            width: auto !important;
+          }
+        }
+
+        // Badges container should not stretch
+        > .badge,
+        > span:has(.badge),
+        > div:has(.badge) {
+          flex: 0 0 auto;
+          width: auto !important;
         }
       }
     }
@@ -157,6 +173,46 @@
 }
 
 // ============================================================================
+// BADGE AND ICON PROTECTION
+// ============================================================================
+// Prevent badges, icons, and small UI elements from stretching on mobile
+
+@media (max-width: 767px) {
+  // Specific badge components that should never stretch
+  .category-icon,
+  .inheritance-badge,
+  .gene-badge,
+  .entity-badge,
+  .disease-badge,
+  .ndd-icon,
+  .badge {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: auto !important;
+    max-width: max-content !important;
+  }
+
+  // Badge links should also not stretch
+  .gene-badge-link,
+  .entity-badge-link,
+  .disease-badge-link {
+    flex: 0 0 auto !important;
+    width: auto !important;
+  }
+
+  // Badge containers in flex layouts
+  .d-flex .badge,
+  .d-flex .category-icon,
+  .d-flex .inheritance-badge,
+  .d-flex .gene-badge,
+  .d-flex .entity-badge,
+  .d-flex .disease-badge {
+    flex-shrink: 0;
+    width: auto !important;
+  }
+}
+
+// ============================================================================
 // SEARCH AND FILTER CONTROLS
 // ============================================================================
 
@@ -172,8 +228,29 @@
 
   // Stack filter controls vertically on mobile
   .filter-controls,
-  .filters-row,
-  .d-flex.gap-2 {
+  .filters-row {
+    flex-direction: column !important;
+    width: 100%;
+
+    > * {
+      width: 100% !important;
+      margin-bottom: 0.5rem;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      // Badges should keep their natural width
+      &.badge,
+      &[class*="badge-"] {
+        width: auto !important;
+      }
+    }
+  }
+
+  // Only apply flex-column to specific gap containers, not all
+  // This prevents badges from stretching in home page statistics
+  .d-flex.gap-2:not(.badge-container):not(:has(.badge)) {
     flex-direction: column !important;
     width: 100%;
 

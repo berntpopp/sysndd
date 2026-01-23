@@ -142,4 +142,29 @@ export default {
     transition: none;
   }
 }
+
+/* Mobile fix - prevent flex stretching */
+@media (max-width: 767px) {
+  .category-icon {
+    flex: 0 0 auto !important;
+    width: 1.5rem !important;
+    height: 1.5rem !important;
+    min-width: 1.5rem !important;
+    max-width: 1.5rem !important;
+  }
+
+  .category-icon--sm {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+    min-width: 1.25rem !important;
+    max-width: 1.25rem !important;
+  }
+
+  .category-icon--lg {
+    width: 2rem !important;
+    height: 2rem !important;
+    min-width: 2rem !important;
+    max-width: 2rem !important;
+  }
+}
 </style>
