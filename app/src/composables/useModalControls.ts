@@ -29,7 +29,8 @@ export default function useModalControls(): ModalControls {
    * @param {object} options - Modal options
    * @returns {Promise} - Resolves with user's choice
    */
-  const confirm = async (options: unknown): Promise<boolean> => modal.confirm(options);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const confirm = async (options: unknown): Promise<boolean> => (modal as any).confirm(options);
 
   return { showModal, hideModal, confirm };
 }

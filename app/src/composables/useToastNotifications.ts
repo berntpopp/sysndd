@@ -24,7 +24,7 @@ export default function useToastNotifications(): ToastNotifications {
     autoHide: boolean = true,
     autoHideDelay: number = 3000,
   ): void => {
-    const body = typeof message === 'object' && message.message ? message.message : message;
+    const body: string = typeof message === 'object' && message.message ? message.message : message as string;
 
     toast.create({
       title,
