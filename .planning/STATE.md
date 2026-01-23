@@ -6,22 +6,21 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v3 Frontend Modernization — Phase 15 complete, ready for Phase 16
+**Current focus:** v3 Frontend Modernization — Phase 16 complete, ready for Phase 17
 
 ## Current Position
 
 **Milestone:** v3 Frontend Modernization
-**Phase:** 16 - UI/UX Modernization (IN PROGRESS)
-**Plan:** 8 of ~8 plans complete
-**Status:** Phase 16 nearly complete
-**Last activity:** 2026-01-23 — Completed 16-08 Accessibility Polish
+**Phase:** 17 - Cleanup & Polish (NOT STARTED)
+**Plan:** 0 of 8 plans complete
+**Status:** Ready to plan
+**Last activity:** 2026-01-23 — Completed Phase 16 UI/UX Modernization
 
 ```
-v3 Frontend Modernization: PHASE 16 IN PROGRESS
-Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables), Phase 14 (TypeScript), Phase 15 (Testing)
-Phase 16 progress: Design tokens (16-01), Card styling (16-02), Table styling (16-03), Form styling (16-04), Button styling (16-05), Search UX (16-06), Mobile responsive (16-07), Accessibility (16-08)
-Last completed: 16-08 Accessibility Polish
-Progress: █████████████████████████████▓ 49/~50 plans in v3 milestone
+v3 Frontend Modernization: PHASE 16 COMPLETE ✓
+Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables), Phase 14 (TypeScript), Phase 15 (Testing), Phase 16 (UI/UX Modernization)
+Phase 16 delivered: Design tokens, card/table/form styling, loading states, search UX, mobile responsive, accessibility polish (WCAG 2.2 AA)
+Progress: ██████████████████████████████▓ 49/~57 plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
