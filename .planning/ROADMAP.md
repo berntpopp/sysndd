@@ -173,16 +173,18 @@ Plans:
 
 **Requirements:** FR-05 (all), NFR-01 (SOLID LSP, ISP), NFR-04 (DX)
 
-**Plans:** 7 plans in 3 waves
+**Plans:** 9 plans in 4 waves
 
 Plans:
-- [ ] 14-01-PLAN.md — TypeScript Setup (Wave 1)
-- [ ] 14-02-PLAN.md — Type Definitions (Wave 1)
-- [ ] 14-03-PLAN.md — Constants Conversion (Wave 2)
-- [ ] 14-04-PLAN.md — Services and Router Conversion (Wave 2)
-- [ ] 14-05-PLAN.md — Store and Composables Conversion (Wave 2)
-- [ ] 14-06-PLAN.md — ESLint and Prettier Setup (Wave 3)
-- [ ] 14-07-PLAN.md — Pre-commit Hooks Setup (Wave 3)
+- [x] 14-01-PLAN.md — TypeScript Setup (Wave 1)
+- [x] 14-02-PLAN.md — Type Definitions (Wave 1)
+- [x] 14-03-PLAN.md — Constants Conversion (Wave 2)
+- [x] 14-04-PLAN.md — Services and Router Conversion (Wave 2)
+- [x] 14-05-PLAN.md — Store and Composables Conversion (Wave 2)
+- [x] 14-06-PLAN.md — ESLint and Prettier Setup (Wave 3)
+- [x] 14-07-PLAN.md — Pre-commit Hooks Setup (Wave 3)
+- [ ] 14-08-PLAN.md — Fix TypeScript Compilation Error (Wave 4, gap closure)
+- [ ] 14-09-PLAN.md — Convert Remaining Composables to TypeScript (Wave 4, gap closure)
 
 ### Wave Structure
 
@@ -191,6 +193,7 @@ Plans:
 | 1 | 14-01, 14-02 | None (foundation, parallel) |
 | 2 | 14-03, 14-04, 14-05 | 14-01, 14-02 (parallel) |
 | 3 | 14-06, 14-07 | Wave 2 complete |
+| 4 | 14-08, 14-09 | Wave 3 complete (gap closure, parallel) |
 
 ### Success Criteria
 - TypeScript compiles without errors
