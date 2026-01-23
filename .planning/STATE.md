@@ -150,6 +150,9 @@ See PROJECT.md for full decisions table.
 - MSW onUnhandledRequest: 'warn' logs unmocked endpoints instead of failing tests
 - MSW generic fallback handler returns 500 for unmocked /api/* requests
 - MSW handlers reset after each test via server.resetHandlers() in afterEach
+- AnyComponent type alias for Vue Test Utils generic constraints (DefineComponent<any, any, any>)
+- withSetup returns [result!, app] tuple for composable lifecycle testing
+- Barrel export in test-utils/index.ts re-exports common testing utilities
 
 ## Archive Location
 
