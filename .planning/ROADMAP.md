@@ -285,56 +285,36 @@ Plans:
 
 **Requirements:** FR-08 (all), NFR-02 (Performance), NFR-06 (Browser)
 
-### Plans
+**Plans:** 8 plans in 6 waves
 
-#### 17-01: Remove @vue/compat
-- Remove @vue/compat dependency
-- Remove compat configuration
-- Fix any remaining Vue 3 issues
-- Verify app works without compat
+Plans:
+- [ ] 17-01-PLAN.md — Bundle Analysis Baseline (Wave 1)
+- [ ] 17-02-PLAN.md — Remove @vue/compat (Wave 2)
+- [ ] 17-03-PLAN.md — Legacy Code Removal (Wave 2)
+- [ ] 17-04-PLAN.md — Dependency Cleanup (Wave 3)
+- [ ] 17-05-PLAN.md — Bundle Optimization (Wave 4)
+- [ ] 17-06-PLAN.md — Performance Audit (Wave 5)
+- [ ] 17-07-PLAN.md — Browser Testing (Wave 5)
+- [ ] 17-08-PLAN.md — Documentation Update (Wave 6)
 
-#### 17-02: Legacy Code Removal
-- Delete mixins directory (if not done)
-- Delete global-components.js (if not done)
-- Remove commented-out code
-- Remove unused imports
+### Wave Structure
 
-#### 17-03: Dependency Cleanup
-- Remove unused packages from package.json
-- Update outdated packages
-- Run npm audit fix
-- Verify no security vulnerabilities
-
-#### 17-04: Bundle Optimization
-- Analyze bundle with rollup-plugin-visualizer
-- Optimize large dependencies
-- Verify code splitting works
-- Target < 2MB gzipped
-
-#### 17-05: Performance Audit
-- Run Lighthouse audit
-- Fix performance issues
-- Target Performance score > 80
-- Document any remaining issues
-
-#### 17-06: Browser Testing
-- Test Chrome (last 2 versions)
-- Test Firefox (last 2 versions)
-- Test Safari (last 2 versions)
-- Test Edge (last 2 versions)
-
-#### 17-07: Documentation Update
-- Update README with new stack
-- Document new development workflow
-- Document testing approach
-- Update Docker documentation
+| Wave | Plans | Dependencies |
+|------|-------|--------------|
+| 1 | 17-01 | None (baseline measurement) |
+| 2 | 17-02, 17-03 | 17-01 (parallel - compat removal and legacy cleanup) |
+| 3 | 17-04 | 17-02, 17-03 (dependency cleanup after code changes) |
+| 4 | 17-05 | 17-04 (bundle optimization after deps removed) |
+| 5 | 17-06, 17-07 | 17-05 (parallel - performance audit and browser testing) |
+| 6 | 17-08 | 17-06, 17-07 (documentation after all verified) |
 
 ### Success Criteria
 - No @vue/compat dependency
-- Bundle < 2MB gzipped
-- Lighthouse Performance > 80
-- All browsers work
-- Documentation updated
+- global-components.js deleted
+- Bundle < 2MB gzipped (or documented exception)
+- Lighthouse target: 100 all categories (or documented issues)
+- All browsers work (Chrome, Firefox, Safari, Edge)
+- README, CHANGELOG, developer docs updated
 
 ---
 
