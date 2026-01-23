@@ -21,6 +21,7 @@
 @use "./components/tables";
 @use "./components/search";
 @use "./components/loading";
+@use "./components/responsive";
 
 // Import utility classes
 @use "./utilities/spacing" as spacing-utilities;
