@@ -57,17 +57,17 @@ services:
 
   # FRONT-04, DEV-01, DEV-02: Frontend development with hot-reload
   app:
-    # Expose webpack-dev-server directly for development
-    # Use http://localhost:8080 to bypass Traefik routing issues
+    # Expose Vite dev server directly for development
+    # Use http://localhost:5173 to bypass Traefik routing issues
     ports:
-      - "127.0.0.1:8080:8080"
-    # Override healthcheck for development (longer start-period for webpack compilation)
+      - "127.0.0.1:5173:5173"
+    # Override healthcheck for development
     healthcheck:
-      test: ["CMD", "wget", "--spider", "--tries=1", "--no-verbose", "http://127.0.0.1:8080/"]
+      test: ["CMD", "wget", "--spider", "--tries=1", "--no-verbose", "http://127.0.0.1:5173/"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 120s
+      start_period: 60s
     # Override build to use development Dockerfile
     build:
       context: ./app
@@ -81,14 +81,12 @@ services:
       - /app/node_modules
     environment:
       NODE_ENV: development
-      # Increase Node heap for webpack-dev-server with large codebase
-      NODE_OPTIONS: "--max-old-space-size=4096"
     # Override memory limit from docker-compose.yml (256M is for nginx in prod)
-    # webpack-dev-server needs more memory for compilation and HMR
+    # Vite dev server needs less memory than webpack but still more than nginx
     deploy:
       resources:
         limits:
-          memory: 4096M
+          memory: 2048M
     # DEV-05: Compose Watch configuration for frontend
     # Syncs source changes without full container restart
     develop:
@@ -106,6 +104,6 @@ services:
         # Rebuild on dependency changes
         - action: rebuild
           path: ./app/package.json
-        # Rebuild on config changes
+        # Rebuild on Vite config changes (was vue.config.js)
         - action: rebuild
-          path: ./app/vue.config.js
+          path: ./app/vite.config.js
