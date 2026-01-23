@@ -17,7 +17,8 @@
     "dev:docker": "vite --mode docker",
     "build:docker": "vite build --mode docker",
     "build:production": "vite build --mode production",
-    "type-check": "vue-tsc --noEmit"
+    "type-check": "vue-tsc --noEmit",
+    "prepare": "husky"
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
@@ -67,6 +68,8 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-vue": "^10.7.0",
     "globals": "^17.1.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "postcss": "^8.4.14",
     "prettier": "^3.8.1",
     "sass": "^1.53.0",
@@ -89,5 +92,18 @@
     "> 1%",
     "last 2 versions",
     "not dead"
-  ]
+  ],
+  "lint-staged": {
+    "*.{ts,tsx,vue}": [
+      "eslint --fix --max-warnings=50",
+      "prettier --write"
+    ],
+    "*.{js}": [
+      "eslint --fix --max-warnings=50",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml,css,scss}": [
+      "prettier --write"
+    ]
+  }
 }
