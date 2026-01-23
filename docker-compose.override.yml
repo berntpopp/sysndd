@@ -53,7 +53,11 @@ services:
   # IMPORTANT: Keep ENVIRONMENT=production for API in Docker
   # The start_sysndd_api.R maps "development" to sysndd_db_local (Windows paths)
   # Production config uses Docker-compatible paths (/app)
-  api: {}
+  api:
+    # Expose API directly for local frontend development (npm run dev on host)
+    # Matches VITE_API_URL in .env.development: http://localhost:7778/api
+    ports:
+      - "127.0.0.1:7778:7777"
 
   # FRONT-04, DEV-01, DEV-02: Frontend development with hot-reload
   app:
