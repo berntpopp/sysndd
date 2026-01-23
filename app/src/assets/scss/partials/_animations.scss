@@ -1,0 +1,56 @@
+// Animation and transition tokens
+// Includes WCAG 2.2 reduced-motion support (NFR-03.6 compliance)
+
+:root {
+  // Transition durations with easing
+  // Using cubic-bezier for smooth, natural motion
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  // Transition properties (common use cases)
+  --transition-colors: background-color 250ms, border-color 250ms, color 250ms;
+  --transition-shadow: box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-transform: transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  // Focus ring tokens (WCAG 2.2 keyboard navigation)
+  --focus-ring-width: 0.25rem;
+  --focus-ring-color: rgba(13, 71, 161, 0.25); // Medical blue with transparency
+  --focus-ring-offset: 2px;
+}
+
+// WCAG 2.2 NFR-03.6: Respect user's motion preferences
+// Disable all animations and transitions for users who prefer reduced motion
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    // Set transitions to near-instant (0.01ms minimum for browser compatibility)
+    --transition-fast: 0.01ms;
+    --transition-base: 0.01ms;
+    --transition-slow: 0.01ms;
+    --transition-colors: none;
+    --transition-shadow: none;
+    --transition-transform: none;
+  }
+
+  // Disable all animations globally
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+// Focus visible utility (modern focus management)
+// Only show focus ring for keyboard navigation, not mouse clicks
+.focus-visible:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+  box-shadow: none;
+}
+
+// Remove default focus styles for mouse users
+.focus-visible:focus:not(:focus-visible) {
+  outline: none;
+}
