@@ -11,17 +11,17 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 **Milestone:** v3 Frontend Modernization
-**Phase:** 14 - TypeScript Introduction (COMPLETE)
-**Plan:** 10/10 plans complete
-**Status:** Complete
-**Last activity:** 2026-01-23 — Completed Phase 14 (TypeScript Introduction)
+**Phase:** 15 - Testing Infrastructure (IN PROGRESS)
+**Plan:** 3/6 plans complete
+**Status:** In progress
+**Last activity:** 2026-01-23 — Completed 15-03 MSW API Mocking Setup
 
 ```
-v3 Frontend Modernization: PHASE 14 COMPLETE
+v3 Frontend Modernization: PHASE 15 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables), Phase 14 (TypeScript)
-Phase 14 verified: 7/7 success criteria passed
-Last completed: 14-10 Fix API URL Double Prefix (gap closure)
-Progress: ██████████████████████░ 35/~50 plans in v3 milestone
+Phase 15: 3/6 plans complete (Vitest + Vue Test Utils + MSW)
+Last completed: 15-03 MSW API Mocking Setup
+Progress: ██████████████████████████░ 38/~50 plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -147,6 +147,9 @@ See PROJECT.md for full decisions table.
 - FilterField interface defines content as string | string[] | null for flexible filtering
 - TableDataState exported as type for component usage (dependency injection pattern)
 - ScrollbarControls types scrollRef as Ref<{ update: () => void }> | null for optional usage
+- MSW onUnhandledRequest: 'warn' logs unmocked endpoints instead of failing tests
+- MSW generic fallback handler returns 500 for unmocked /api/* requests
+- MSW handlers reset after each test via server.resetHandlers() in afterEach
 
 ## Archive Location
 
@@ -156,8 +159,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed Phase 14 (TypeScript Introduction)
+**Stopped at:** Completed 15-03 MSW API Mocking Setup
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 14 complete (10/10 plans, 7/7 success criteria verified)*
+*Last updated: 2026-01-23 — Phase 15 in progress (3/6 plans complete, MSW configured)*
