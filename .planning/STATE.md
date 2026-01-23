@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 14 - TypeScript Introduction (IN PROGRESS)
-**Plan:** 8 of TBD plans complete
+**Plan:** 10 of TBD plans complete
 **Status:** In progress
-**Last activity:** 2026-01-23 — Completed 14-08-PLAN.md (TypeScript main.ts Type Error Fix)
+**Last activity:** 2026-01-23 — Completed 14-10-PLAN.md (Fix API URL Double Prefix)
 
 ```
 v3 Frontend Modernization: PHASE 14 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables)
-Phase 14 (TypeScript Introduction): 8 plans complete (Infrastructure, Types, Constants, Services, Router, Linting, Pre-commit, main.ts fix)
-Last completed: 14-08 TypeScript main.ts Type Error Fix (Type-safe component registration)
-Progress: █████████████████████░ 30/TBD plans in v3 milestone
+Phase 14 (TypeScript Introduction): 10 plans complete (Infrastructure, Types, Constants, Services, Router, Linting, Pre-commit, main.ts fix, API URL verification gaps)
+Last completed: 14-10 Fix API URL Double Prefix (Corrected environment configuration eliminating double /api/api/ prefix)
+Progress: █████████████████████░ 32/TBD plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -142,6 +142,7 @@ See PROJECT.md for full decisions table.
 - --max-warnings=50 during TypeScript migration allows commits while fixing warnings
 - Separate lint-staged rules: TS/Vue get ESLint+Prettier, other files Prettier only
 - Type assertion (as Component) for Bootstrap-Vue-Next component registration (BFormDatalist generic slot types)
+- Environment variables contain base URL only, code adds /api/ prefix for consistency
 
 ## Archive Location
 
@@ -151,8 +152,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 14-08-PLAN.md (TypeScript main.ts Type Error Fix)
+**Stopped at:** Completed 14-10-PLAN.md (Fix API URL Double Prefix)
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 14 in progress (8/TBD plans: Infrastructure, types, constants, services, router, linting, pre-commit, main.ts fix complete)*
+*Last updated: 2026-01-23 — Phase 14 in progress (10/TBD plans: Infrastructure, types, constants, services, router, linting, pre-commit, main.ts fix, API URL gaps complete)*
