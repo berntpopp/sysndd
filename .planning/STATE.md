@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 13 - Mixin Composable Conversion (IN PROGRESS)
-**Plan:** 3 of TBD plans complete
+**Plan:** 2 of TBD plans complete
 **Status:** In progress
-**Last activity:** 2026-01-23 — Completed 13-03-PLAN.md (URL Parsing Composable)
+**Last activity:** 2026-01-23 — Completed 13-02-PLAN.md (Toast Composable Migration)
 
 ```
 v3 Frontend Modernization: PHASE 13 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite)
-Phase 13 (Mixin Composable Conversion): 3 plans complete (Wave 2 in progress)
-Last completed: 13-03 URL Parsing Composable (filter/sort URL utilities)
-Progress: ███████████████████ 21/TBD plans in v3 milestone
+Phase 13 (Mixin Composable Conversion): 2 plans complete (Wave 2 in progress)
+Last completed: 13-02 Toast Composable Migration (29 components migrated)
+Progress: ███████████████████ 20/TBD plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -108,6 +108,9 @@ See PROJECT.md for full decisions table.
 - Stateless composables return plain objects (no reactive/ref for constant mappings)
 - Barrel export pattern for composables (composables/index.js)
 - Convert stateless mixins first (no external dependencies, constant data)
+- useToast differs from useToastNotifications: danger toasts never auto-hide (medical app requirement)
+- Components with existing setup() functions extended rather than replaced
+- Medical app error handling pattern: critical errors force manual user acknowledgment
 
 ## Archive Location
 
@@ -117,8 +120,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 13-03-PLAN.md (URL Parsing Composable)
+**Stopped at:** Completed 13-02-PLAN.md (Toast Composable Migration)
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 13 in progress (3/TBD plans: Wave 2 URL Parsing Composable)*
+*Last updated: 2026-01-23 — Phase 13 in progress (2/TBD plans: Toast Composable Migration)*
