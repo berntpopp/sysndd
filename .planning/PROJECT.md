@@ -8,6 +8,22 @@ Developer experience infrastructure for SysNDD, a neurodevelopmental disorders d
 
 A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
+## Current Milestone: v4 Backend Overhaul
+
+**Goal:** Modernize the R/Plumber API with security fixes, async processing, OMIM data source migration, R/package upgrades, and DRY/KISS/SOLID refactoring.
+
+**Target features:**
+- Fix OMIM annotation update (genemap2 no longer provides required fields — migrate to mim2gene.txt + JAX ontology API)
+- Implement async/non-blocking processing for intensive endpoints (clustering, annotation updates)
+- Upgrade R from 4.1.2 to 4.4.x and all packages to latest versions
+- Fix 66 SQL injection vulnerabilities (parameterized queries)
+- Implement password hashing with bcrypt/sodium
+- Refactor to DRY/KISS/SOLID principles per API_CODE_REVIEW_REPORT.md
+- Create database access layer (eliminate 17 `dbConnect` duplications)
+- Add consistent error handling (RFC 7807)
+- Resolve 30 TODO comments
+- Clean up 1240 lintr issues
+
 ## Current State (v3 shipped 2026-01-23)
 
 **Frontend Stack:** 10/10 (up from 6/10)
@@ -98,7 +114,23 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 ### Active
 
-<!-- v4 scope TBD -->
+<!-- v4 Backend Overhaul scope -->
+
+- [ ] Fix OMIM annotation update (migrate to mim2gene.txt + JAX ontology API for disease names)
+- [ ] Implement async/non-blocking processing with future + promises packages
+- [ ] Upgrade R to 4.4.x and all packages to latest compatible versions
+- [ ] Fix SQL injection vulnerabilities (parameterized queries for all 66 occurrences)
+- [ ] Implement password hashing (bcrypt or sodium)
+- [ ] Create database access layer (poolWithTransaction, execute_query helpers)
+- [ ] Implement consistent error handling middleware (RFC 7807)
+- [ ] Extract authentication logic into reusable require_auth/require_role filters
+- [ ] Create response builder helpers (response_success, response_error)
+- [ ] Refactor database-functions.R into domain-specific repositories
+- [ ] Resolve 30 TODO comments across codebase
+- [ ] Clean up 1240 lintr issues
+- [ ] Update renv.lock to complete state (remove Dockerfile workarounds)
+
+### Deferred to v5
 
 - [ ] CI/CD pipeline (GitHub Actions)
 - [ ] Trivy security scanning
@@ -108,10 +140,12 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 ### Out of Scope
 
-- R/Plumber replacement — keeping current stack
-- Database changes — MySQL 8.0.40 works well
+- R/Plumber replacement — keeping current stack, modernizing it instead
+- Database schema changes — MySQL 8.0.40 works well
 - Server-side rendering — SPA approach sufficient
 - PWA features — keep existing
+- Frontend test coverage expansion — deferred to v5
+- CI/CD pipeline — deferred to v5
 
 ## Context
 
@@ -137,13 +171,15 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 ## Constraints
 
-- **Stack**: R/Plumber API unchanged, Vue 3 + TypeScript for frontend
+- **Stack**: R/Plumber API (modernized), Vue 3 + TypeScript for frontend
+- **R Version**: Upgrade from 4.1.2 to 4.4.x (LTS)
 - **Database**: MySQL 8.0.40 (unchanged from v2)
-- **Docker**: rocker/r-ver:4.1.2 base image (unchanged from v2)
+- **Docker**: rocker/r-ver base image (version bump for R upgrade)
 - **Compatibility**: Must work on Windows (WSL2), macOS, and Linux
 - **Node.js**: Node 24 LTS (Vue 3 + Vite)
 - **Component Library**: Bootstrap-Vue-Next 0.42.0
 - **Browser Support**: Modern browsers (Chrome, Firefox, Safari, Edge — last 2 versions)
+- **OMIM Data**: Must use freely available sources (mim2gene.txt, JAX API) — no OMIM license required
 
 ## Key Decisions
 
@@ -170,4 +206,4 @@ A new developer can clone the repo and be productive within minutes, with confid
 | Branded domain types | GeneId, EntityId prevent ID confusion | ✓ Good |
 
 ---
-*Last updated: 2026-01-23 after v3 milestone shipped*
+*Last updated: 2026-01-23 after v4 Backend Overhaul milestone started*

@@ -6,21 +6,20 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** Planning next milestone (v4)
+**Current focus:** v4 Backend Overhaul — API modernization, security fixes, OMIM migration, R upgrade
 
 ## Current Position
 
-**Milestone:** v4 (not started)
-**Phase:** Not started
-**Plan:** Not started
-**Status:** v3 shipped, ready for v4 planning
-**Last activity:** 2026-01-23 — Completed v3 Frontend Modernization milestone
+**Milestone:** v4 Backend Overhaul
+**Phase:** Not started (defining requirements)
+**Plan:** —
+**Status:** Defining requirements
+**Last activity:** 2026-01-23 — Milestone v4 started
 
 ```
-v3 Frontend Modernization: SHIPPED 2026-01-23
-Delivered: Vue 3.5 + TypeScript + Bootstrap-Vue-Next + Vite + WCAG 2.2 AA
-Final bundle: 520 KB gzipped (74% under 2MB target)
-Progress: █████████████████████████████████ 53/53 plans complete
+v4 Backend Overhaul: DEFINING REQUIREMENTS
+Goal: Modernize R/Plumber API with security, async, OMIM fix, R upgrade, DRY/KISS/SOLID
+Progress: ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ Not started
 ```
 
 ## Completed Milestones
@@ -38,14 +37,28 @@ Progress: ███████████████████████�
 | #109 | Refactor sysndd_plumber.R into smaller endpoint files | Ready for PR |
 | #123 | Implement comprehensive testing | Foundation complete, integration tests deferred |
 
-## Tech Debt (from v3 audit)
+## Tech Debt (from API_CODE_REVIEW_REPORT.md)
 
-- Vue components still .vue JavaScript (not .vue TypeScript)
-- Frontend test coverage ~1.5% (target 40-50%)
-- 1240 lintr issues in R codebase
-- renv.lock incomplete (Dockerfile workarounds)
-- No HTTP endpoint integration tests
-- 23 pre-existing accessibility test failures (FooterNavItem listitem)
+**Critical (Security):**
+- 66 SQL injection vulnerabilities via string concatenation
+- Plaintext password storage/comparison
+- Passwords visible in logs
+
+**High:**
+- 17 `dbConnect` calls bypassing connection pool
+- Missing `on.exit(dbDisconnect(...))` cleanup
+- OMIM genemap2 no longer provides required fields
+
+**Medium:**
+- 15 global mutable state (`<<-`) usages
+- 5 god functions (>200 lines)
+- ~100 inconsistent error handling patterns
+- 30 incomplete TODO comments
+- 1240 lintr issues
+
+**Low:**
+- 259 hard-coded configuration accesses
+- Magic numbers/strings throughout
 
 ## Key Decisions
 
@@ -60,8 +73,8 @@ See PROJECT.md for full decisions table (48 decisions across v1-v3).
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** v3 milestone shipped
+**Stopped at:** Starting v4 milestone, gathering requirements
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — v3 shipped, ready for v4 planning*
+*Last updated: 2026-01-23 — v4 Backend Overhaul started, defining requirements*
