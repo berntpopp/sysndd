@@ -1,6 +1,5 @@
 import { createApp } from 'vue';
 import type { App as VueApp, Component } from 'vue';
-import { configureCompat } from '@vue/compat';
 import { createHead } from '@unhead/vue/client';
 import { createPinia } from 'pinia';
 
@@ -37,36 +36,6 @@ import './registerServiceWorker';
 
 // import custom css
 import './assets/css/custom.css';
-
-// Configure @vue/compat runtime behavior
-// MODE: 2 enables full Vue 2 compatibility as baseline
-// Set specific features to false to use Vue 3 behavior (required by Bootstrap-Vue-Next)
-configureCompat({
-  MODE: 2,
-  // Vue 2 compat features still needed by legacy code
-  INSTANCE_CHILDREN: true,
-  INSTANCE_LISTENERS: true,
-  INSTANCE_EVENT_EMITTER: true,
-  INSTANCE_EVENT_HOOKS: true,
-  OPTIONS_BEFORE_DESTROY: true,
-  OPTIONS_DESTROYED: true,
-  COMPONENT_ASYNC: true,
-  GLOBAL_PROTOTYPE: true,
-  GLOBAL_EXTEND: true,
-  GLOBAL_MOUNT: true,
-  RENDER_FUNCTION: true,
-  // Use Vue 3 behavior for these features (required by Bootstrap-Vue-Next)
-  // ATTR_FALSE_VALUE: false = Vue 3 behavior where false renders as "false" attribute
-  ATTR_FALSE_VALUE: false,
-  // COMPONENT_V_MODEL: false = Vue 3 v-model using modelValue/update:modelValue
-  COMPONENT_V_MODEL: false,
-  // INSTANCE_ATTRS_CLASS_STYLE: false = Vue 3 behavior where class/style are in $attrs
-  INSTANCE_ATTRS_CLASS_STYLE: false,
-  // WATCH_ARRAY: false = Vue 3 behavior requiring deep:true for array mutation watching
-  WATCH_ARRAY: false,
-  // TRANSITION_GROUP_ROOT: false = Vue 3 behavior where TransitionGroup doesn't render root span
-  TRANSITION_GROUP_ROOT: false,
-});
 
 // Create Vue 3 app instance
 const pinia = createPinia();
