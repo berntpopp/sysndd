@@ -778,16 +778,12 @@ put_post_db_status <- function(request_method,
           select(status_id = `LAST_INSERT_ID()`)
 
         # execute update query for re_review_entity_connect
-        # saving status and status_id if re_review is TRUE
+        # saving status and status_id if re_review is TRUE (parameterized)
         if (re_review) {
           dbExecute(sysndd_db,
-            paste0("UPDATE re_review_entity_connect SET ",
-              "re_review_status_saved = 1, ",
-              "status_id=",
-              submitted_status_id$status_id,
-              " WHERE entity_id = ",
-              status_data$entity_id,
-              ";"))
+            "UPDATE re_review_entity_connect SET re_review_status_saved = 1, status_id = ? WHERE entity_id = ?",
+            params = list(submitted_status_id$status_id, status_data$entity_id)
+          )
         }
 
         # disconnect from database
@@ -810,15 +806,21 @@ put_post_db_status <- function(request_method,
           status_received
         })
 
-        # generate update query
-        update_query <- as_tibble(status_received_data) %>%
-          mutate(row = row_number()) %>%
-          mutate(across(where(is.logical), as.integer)) %>%
-          mutate(across(where(is.numeric), as.character)) %>%
-          pivot_longer(-row) %>%
-          mutate(query = paste0(name, "='", value, "'")) %>%
-          select(query) %>%
-          summarize(query = str_c(query, collapse = ", "))
+        # get status_id for WHERE clause
+        status_id_for_update <- status_received$status_id
+
+        # prepare data for parameterized query
+        update_data <- as_tibble(status_received_data) %>%
+          mutate(across(where(is.logical), as.integer))
+
+        # build parameterized query: column names from code (safe), values via params
+        col_names <- colnames(update_data)
+        set_clause <- paste0(col_names, " = ?", collapse = ", ")
+        update_query <- paste0("UPDATE ndd_entity_status SET ", set_clause, " WHERE status_id = ?")
+
+        # prepare params list: all column values + status_id for WHERE
+        params_list <- as.list(update_data[1, ])
+        params_list <- c(params_list, list(status_id_for_update))
 
         # connect to database
         sysndd_db <- dbConnect(RMariaDB::MariaDB(),
@@ -830,13 +832,8 @@ put_post_db_status <- function(request_method,
           port = dw$port
           )
 
-        # submit the new status
-        dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_status SET ",
-          update_query,
-          " WHERE status_id = ",
-          status_received$status_id, ";")
-          )
+        # submit the new status (parameterized)
+        dbExecute(sysndd_db, update_query, params = params_list)
 
         # disconnect from database
         dbDisconnect(sysndd_db)
@@ -844,7 +841,7 @@ put_post_db_status <- function(request_method,
         # return OK
         return(list(status = 200,
           message = "OK. Entry updated.",
-          entry = status_received$status_id)
+          entry = status_id_for_update)
         )
       } else {
       # return Method Not Allowed
@@ -1036,49 +1033,54 @@ put_db_review_approve <- function(review_id_requested,
         host = dw$host,
         port = dw$port)
 
-      # set review if confirmed
+      # set review if confirmed (parameterized queries for SQL injection prevention)
       if (review_ok) {
-        # reset all reviews in ndd_entity_review to not primary
-        dbExecute(sysndd_db, paste0("UPDATE ndd_entity_review ",
-          "SET is_primary = 0 ",
-          "WHERE entity_id IN (",
-          str_c(ndd_entity_review_data$entity_id, collapse = ", "),
-          ");"))
+        # build parameterized IN clause for entity_ids
+        entity_ids <- unique(ndd_entity_review_data$entity_id)
+        entity_placeholders <- paste(rep("?", length(entity_ids)), collapse = ", ")
 
-        # set the review from ndd_entity_review_data to primary,
-        # add approving_user_id and set review_approved status to approved
+        # build parameterized IN clause for review_ids
+        review_ids <- ndd_entity_review_data$review_id
+        review_placeholders <- paste(rep("?", length(review_ids)), collapse = ", ")
+
+        # reset all reviews in ndd_entity_review to not primary
         dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_review SET is_primary = 1 ",
-            "WHERE review_id IN (",
-            str_c(ndd_entity_review_data$review_id, collapse = ", "),
-            ");"))
+          paste0("UPDATE ndd_entity_review SET is_primary = 0 WHERE entity_id IN (", entity_placeholders, ")"),
+          params = as.list(entity_ids)
+        )
+
+        # set the review from ndd_entity_review_data to primary
         dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_review SET approving_user_id = ",
-            submit_user_id,
-            " WHERE review_id IN (",
-            str_c(ndd_entity_review_data$review_id, collapse = ", "),
-            ");"))
+          paste0("UPDATE ndd_entity_review SET is_primary = 1 WHERE review_id IN (", review_placeholders, ")"),
+          params = as.list(review_ids)
+        )
+
+        # add approving_user_id
         dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_review ",
-          "SET review_approved = 1 ",
-          "WHERE review_id IN (",
-          str_c(ndd_entity_review_data$review_id, collapse = ", "),
-          ");"))
+          paste0("UPDATE ndd_entity_review SET approving_user_id = ? WHERE review_id IN (", review_placeholders, ")"),
+          params = c(list(submit_user_id), as.list(review_ids))
+        )
+
+        # set review_approved status to approved
+        dbExecute(sysndd_db,
+          paste0("UPDATE ndd_entity_review SET review_approved = 1 WHERE review_id IN (", review_placeholders, ")"),
+          params = as.list(review_ids)
+        )
       } else {
+        # build parameterized IN clause for review_ids
+        review_ids <- ndd_entity_review_data$review_id
+        review_placeholders <- paste(rep("?", length(review_ids)), collapse = ", ")
+
         # add approving_user_id and set review_approved status to unapproved
         dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_review ",
-            "SET approving_user_id = ",
-            submit_user_id,
-            " WHERE review_id IN (",
-            str_c(ndd_entity_review_data$review_id, collapse = ", "),
-            ");"))
+          paste0("UPDATE ndd_entity_review SET approving_user_id = ? WHERE review_id IN (", review_placeholders, ")"),
+          params = c(list(submit_user_id), as.list(review_ids))
+        )
+
         dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_review ",
-            "SET review_approved = 0 ",
-            "WHERE review_id IN (",
-            str_c(ndd_entity_review_data$review_id, collapse = ", "),
-            ");"))
+          paste0("UPDATE ndd_entity_review SET review_approved = 0 WHERE review_id IN (", review_placeholders, ")"),
+          params = as.list(review_ids)
+        )
       }
 
       # disconnect from database
@@ -1157,51 +1159,55 @@ put_db_status_approve <- function(status_id_requested,
         host = dw$host,
         port = dw$port)
 
-      # set status if confirmed
+      # set status if confirmed (parameterized queries for SQL injection prevention)
       if (status_ok) {
+        # build parameterized IN clause for entity_ids
+        entity_ids <- unique(ndd_entity_status_data$entity_id)
+        entity_placeholders <- paste(rep("?", length(entity_ids)), collapse = ", ")
+
+        # build parameterized IN clause for status_ids
+        status_ids <- ndd_entity_status_data$status_id
+        status_placeholders <- paste(rep("?", length(status_ids)), collapse = ", ")
+
         # reset all status in ndd_entity_status to inactive
         dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_status SET is_active = 0 ",
-            "WHERE entity_id IN (",
-            str_c(ndd_entity_status_data$entity_id, collapse = ", "),
-            ");"))
+          paste0("UPDATE ndd_entity_status SET is_active = 0 WHERE entity_id IN (", entity_placeholders, ")"),
+          params = as.list(entity_ids)
+        )
 
-        # set status of the new status from ndd_entity_status_data to active,
-        # add approving_user_id and set approved status to approved
+        # set status of the new status from ndd_entity_status_data to active
         dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_status SET is_active = 1 ",
-          "WHERE status_id IN (",
-            str_c(ndd_entity_status_data$status_id, collapse = ", "),
-            ");"))
+          paste0("UPDATE ndd_entity_status SET is_active = 1 WHERE status_id IN (", status_placeholders, ")"),
+          params = as.list(status_ids)
+        )
 
+        # add approving_user_id
         dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_status SET approving_user_id = ",
-            submit_user_id,
-            " WHERE status_id IN (",
-            str_c(ndd_entity_status_data$status_id, collapse = ", "),
-            ");"))
+          paste0("UPDATE ndd_entity_status SET approving_user_id = ? WHERE status_id IN (", status_placeholders, ")"),
+          params = c(list(submit_user_id), as.list(status_ids))
+        )
 
-        dbExecute(sysndd_db, paste0("UPDATE ndd_entity_status ",
-          "SET status_approved = 1 ",
-          "WHERE status_id IN (",
-            str_c(ndd_entity_status_data$status_id, collapse = ", "),
-            ");"))
+        # set status_approved to approved
+        dbExecute(sysndd_db,
+          paste0("UPDATE ndd_entity_status SET status_approved = 1 WHERE status_id IN (", status_placeholders, ")"),
+          params = as.list(status_ids)
+        )
 
       } else {
+        # build parameterized IN clause for status_ids
+        status_ids <- ndd_entity_status_data$status_id
+        status_placeholders <- paste(rep("?", length(status_ids)), collapse = ", ")
+
         # add approving_user_id and set approved status to unapproved
         dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_status SET approving_user_id = ",
-            submit_user_id,
-            " WHERE status_id IN (",
-            str_c(ndd_entity_status_data$status_id, collapse = ", "),
-            ");"))
+          paste0("UPDATE ndd_entity_status SET approving_user_id = ? WHERE status_id IN (", status_placeholders, ")"),
+          params = c(list(submit_user_id), as.list(status_ids))
+        )
 
         dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_status ",
-            "SET status_approved = 0 ",
-            "WHERE status_id IN (",
-            str_c(ndd_entity_status_data$status_id, collapse = ", "),
-            ");"))
+          paste0("UPDATE ndd_entity_status SET status_approved = 0 WHERE status_id IN (", status_placeholders, ")"),
+          params = as.list(status_ids)
+        )
       }
 
       # disconnect from database
