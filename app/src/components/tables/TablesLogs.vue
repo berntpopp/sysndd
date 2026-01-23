@@ -220,8 +220,8 @@
 </template>
 
 <script>
-import Treeselect from '@riophae/vue-treeselect';
-import '@riophae/vue-treeselect/dist/vue-treeselect.css';
+import Treeselect from '@r2rka/vue3-treeselect';
+import '@r2rka/vue3-treeselect/dist/vue3-treeselect.css';
 
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';

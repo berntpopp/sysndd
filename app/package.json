@@ -10,6 +10,7 @@
     "start": "vue-cli-service serve --open"
   },
   "dependencies": {
+    "@r2rka/vue3-treeselect": "^0.2.4",
     "@riophae/vue-treeselect": "^0.4.0",
     "@unhead/vue": "^2.1.2",
     "@upsetjs/vue": "^1.11.0",
