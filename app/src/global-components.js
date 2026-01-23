@@ -24,6 +24,10 @@ const globalComponents = {
   Banner: defineAsyncComponent(() => import('@/components/small/Banner.vue')),
   LogoutCountdownBadge: defineAsyncComponent(() => import('@/components/small/LogoutCountdownBadge.vue')),
   IconPairDropdownMenu: defineAsyncComponent(() => import('@/components/small/IconPairDropdownMenu.vue')),
+  // UI components for loading states and empty states
+  LoadingSkeleton: defineAsyncComponent(() => import('@/components/ui/LoadingSkeleton.vue')),
+  TableSkeleton: defineAsyncComponent(() => import('@/components/ui/TableSkeleton.vue')),
+  EmptyState: defineAsyncComponent(() => import('@/components/ui/EmptyState.vue')),
 };
 
 export default globalComponents;
