@@ -339,7 +339,7 @@ export default {
     filterInput: { type: String, default: 'filter=' },
     fieldsInput: { type: String, default: null },
     pageAfterInput: { type: String, default: '' },
-    pageSizeInput: { type: String, default: '10' },
+    pageSizeInput: { type: Number, default: 10 },
     fspecInput: {
       type: String,
       default:

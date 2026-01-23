@@ -108,6 +108,6 @@ services:
         # Rebuild on dependency changes
         - action: rebuild
           path: ./app/package.json
-        # Rebuild on Vite config changes (was vue.config.js)
+        # Rebuild on Vite config changes
         - action: rebuild
-          path: ./app/vite.config.js
+          path: ./app/vite.config.ts

@@ -207,7 +207,7 @@ export default {
     fieldsInput: { type: String, default: null },
 
     pageAfterInput: { type: String, default: '' },
-    pageSizeInput: { type: String, default: '10' },
+    pageSizeInput: { type: Number, default: 10 },
 
     // The server might expect these fields in the "fspec"
     fspecInput: {

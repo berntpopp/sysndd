@@ -6,7 +6,7 @@
       :filter-input="filter"
       :fields-input="fields"
       :page-after-input="pageAfter"
-      :page-size-input="pageSize"
+      :page-size-input="Number(pageSize)"
       :fspec-input="fspec"
     />
     <!-- Load Phenotypes table component element -->

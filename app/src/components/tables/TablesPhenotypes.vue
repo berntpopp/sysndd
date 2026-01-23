@@ -408,7 +408,7 @@ export default {
     filterInput: { type: String, default: 'all(modifier_phenotype_id,HP:0001249)' },
     fieldsInput: { type: String, default: null },
     pageAfterInput: { type: String, default: '' },
-    pageSizeInput: { type: String, default: '10' },
+    pageSizeInput: { type: Number, default: 10 },
     fspecInput: {
       type: String,
       default:

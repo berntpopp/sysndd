@@ -281,23 +281,25 @@ Plans:
 
 ---
 
-## Phase 17: Cleanup & Polish
+## Phase 17: Cleanup & Polish ✓
 
 **Goal:** Production-ready Vue 3 + TypeScript app
 
 **Requirements:** FR-08 (all), NFR-02 (Performance), NFR-06 (Browser)
 
+**Status:** COMPLETE (2026-01-23)
+
 **Plans:** 8 plans in 6 waves
 
 Plans:
-- [ ] 17-01-PLAN.md — Bundle Analysis Baseline (Wave 1)
-- [ ] 17-02-PLAN.md — Remove @vue/compat (Wave 2)
-- [ ] 17-03-PLAN.md — Legacy Code Removal (Wave 2)
-- [ ] 17-04-PLAN.md — Dependency Cleanup (Wave 3)
-- [ ] 17-05-PLAN.md — Bundle Optimization (Wave 4)
-- [ ] 17-06-PLAN.md — Performance Audit (Wave 5)
-- [ ] 17-07-PLAN.md — Browser Testing (Wave 5)
-- [ ] 17-08-PLAN.md — Documentation Update (Wave 6)
+- [x] 17-01-PLAN.md — Bundle Analysis Baseline (Wave 1)
+- [x] 17-02-PLAN.md — Remove @vue/compat (Wave 2)
+- [x] 17-03-PLAN.md — Legacy Code Removal (Wave 2)
+- [x] 17-04-PLAN.md — Dependency Cleanup (Wave 3)
+- [x] 17-05-PLAN.md — Bundle Optimization (Wave 4)
+- [x] 17-06-PLAN.md — Performance Audit (Wave 5)
+- [x] 17-07-PLAN.md — Browser Testing (Wave 5)
+- [x] 17-08-PLAN.md — Documentation Update (Wave 6)
 
 ### Wave Structure
 
@@ -311,12 +313,12 @@ Plans:
 | 6 | 17-08 | 17-06, 17-07 (documentation after all verified) |
 
 ### Success Criteria
-- No @vue/compat dependency
-- global-components.js deleted
-- Bundle < 2MB gzipped (or documented exception)
-- Lighthouse target: 100 all categories (or documented issues)
-- All browsers work (Chrome, Firefox, Safari, Edge)
-- README, CHANGELOG, developer docs updated
+- No @vue/compat dependency ✓
+- global-components.js deleted ✓
+- Bundle < 2MB gzipped ✓ (520 KB gzipped, 74.6% headroom)
+- Lighthouse target: 100 all categories ✓ (Performance 100, Accessibility 100, Best Practices 100, SEO 100)
+- All browsers work (Chrome, Firefox, Safari, Edge) ✓
+- README, CHANGELOG, developer docs updated ✓
 
 ---
 
