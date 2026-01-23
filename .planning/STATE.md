@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 15 - Testing Infrastructure (IN PROGRESS)
-**Plan:** 4/6 plans complete
+**Plan:** 5/6 plans complete
 **Status:** In progress
-**Last activity:** 2026-01-23 — Completed 15-04 Composable Tests Examples
+**Last activity:** 2026-01-23 — Completed 15-06 Accessibility Testing Setup
 
 ```
 v3 Frontend Modernization: PHASE 15 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables), Phase 14 (TypeScript)
-Phase 15: 4/6 plans complete (Vitest + Vue Test Utils + MSW + Composable Tests)
-Last completed: 15-04 Composable Tests Examples (88 tests, 5 files)
-Progress: ███████████████████████████░ 39/~50 plans in v3 milestone
+Phase 15: 5/6 plans complete (Vitest + Vue Test Utils + MSW + Composable Tests + A11y Testing)
+Last completed: 15-06 Accessibility Testing Setup (vitest-axe, 11 a11y tests)
+Progress: ███████████████████████████░ 40/~50 plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -157,6 +157,11 @@ See PROJECT.md for full decisions table.
 - Pure function composables tested with comprehensive edge cases and round-trips
 - vi.mock must precede import for external dependency mocking (module hoisting)
 - app.unmount() required after each withSetup test for cleanup
+- vitest-axe/matchers import pattern for expect.extend() in accessibility tests
+- Type assertion (as unknown as) for vitest-axe matcher TypeScript compatibility
+- Disable axe region rule for isolated component tests (not within page landmarks)
+- Disable axe blink rule for Vue compat stub rendering issues
+- *.a11y.spec.ts naming convention for accessibility test files
 
 ## Archive Location
 
@@ -166,8 +171,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 15-04 Composable Tests Examples
+**Stopped at:** Completed 15-06 Accessibility Testing Setup
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 15 in progress (4/6 plans complete, composable tests added)*
+*Last updated: 2026-01-23 — Phase 15 in progress (5/6 plans complete, accessibility testing added)*
