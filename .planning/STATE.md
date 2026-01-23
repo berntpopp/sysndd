@@ -12,14 +12,14 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Milestone:** v4 Backend Overhaul
 **Phase:** 19 of 24 (Security Hardening)
-**Plan:** 3/8 complete
+**Plan:** 4/8 complete
 **Status:** In progress
-**Last activity:** 2026-01-23 - Completed 19-02-PLAN.md (Database Functions SQL Injection)
+**Last activity:** 2026-01-23 - Completed 19-04-PLAN.md (Error Middleware Integration)
 
 ```
 v4 Backend Overhaul: PHASE 19 IN PROGRESS
 Goal: Modernize R/Plumber API with security, async, OMIM fix, R upgrade, DRY/KISS/SOLID
-Progress: █████░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 18% (1/7 phases + 3/8 plans)
+Progress: █████░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 19% (1/7 phases + 4/8 plans)
 ```
 
 ## Completed Milestones
@@ -42,7 +42,7 @@ Progress: █████░░░░░░░░░░░░░░░░░░�
 **Critical (Security) - Addressed in Phase 19:**
 - 66 SQL injection vulnerabilities via string concatenation
 - Plaintext password storage/comparison - **UTILITIES READY** (19-01)
-- Passwords visible in logs - **SANITIZER READY** (19-01)
+- Passwords visible in logs - **SANITIZED** (19-04)
 
 **High - Addressed in Phases 20-22:**
 - 17 `dbConnect` calls bypassing connection pool
@@ -74,6 +74,8 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-23 | 19-02 | Dynamic IN clause with placeholder generation | paste(rep("?", n)) pattern for batch operations |
 | 2026-01-23 | 19-03 | Combined UPDATE statements in user approval | Single parameterized query more efficient than 3 separate |
 | 2026-01-23 | 19-03 | Silent password upgrade on login | No user notification needed for transparent migration |
+| 2026-01-23 | 19-04 | Sanitize JSON body by parsing then sanitize_object | More reliable than regex replacement |
+| 2026-01-23 | 19-04 | Generic 500 for unhandled exceptions | Don't expose stack traces or internal error messages |
 
 ### Pending Todos
 
@@ -89,9 +91,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 19-02-PLAN.md
+**Stopped at:** Completed 19-04-PLAN.md
 **Resume file:** None
-**Next action:** Execute 19-04-PLAN.md for entity endpoints hardening
+**Next action:** Execute 19-05-PLAN.md for remaining entity endpoints hardening
 
 ---
-*Last updated: 2026-01-23 - Phase 19 Plan 02 complete (Database Functions SQL Injection)*
+*Last updated: 2026-01-23 - Phase 19 Plan 04 complete (Error Middleware Integration)*
