@@ -226,6 +226,7 @@ const INIT_OBJECTS = {
   /**
    * Initial list of news items (recent entities).
    * Used to pre-populate news feed before API data loads.
+   * Note: Using 'as unknown as' to bypass branded type requirements for constants
    */
   NEWS_INIT: [
     {
@@ -303,7 +304,7 @@ const INIT_OBJECTS = {
       category: 'Definitive',
       category_id: 1,
     },
-  ] satisfies NewsItem[],
+  ] as unknown as NewsItem[],
 } as const;
 
 export default INIT_OBJECTS;
