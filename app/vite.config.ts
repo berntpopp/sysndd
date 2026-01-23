@@ -152,11 +152,14 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: 'hidden', // Security: no public source maps
+    chunkSizeWarningLimit: 500, // Warn on chunks > 500KB (bootstrap is close at 300KB raw)
     rollupOptions: {
       output: {
         manualChunks: {
+          // Critical path chunks (loaded on initial page load)
           vendor: ['vue', 'vue-router', 'pinia'],
           bootstrap: ['bootstrap', 'bootstrap-vue-next'],
+          // Heavy visualization libraries (lazy-loaded)
           viz: ['d3', '@upsetjs/bundle', 'gsap'],
         },
       },
