@@ -87,10 +87,17 @@ Plans:
   2. All database operations use execute_query/fetch_all helpers
   3. Each domain has dedicated repository (entity, review, status, publication, phenotype, ontology, user, hash)
   4. Connection pool used consistently (no connection leaks under load)
-**Plans**: TBD
+**Plans**: 8 plans in 4 waves
 
 Plans:
-- [ ] 21-01: TBD (to be determined during planning)
+- [ ] 21-01-PLAN.md - Create db-helpers.R with query execution functions (db_execute_query, db_execute_statement, db_with_transaction)
+- [ ] 21-02-PLAN.md - Create entity-repository.R and review-repository.R
+- [ ] 21-03-PLAN.md - Create status-repository.R and publication-repository.R
+- [ ] 21-04-PLAN.md - Create phenotype-repository.R and ontology-repository.R
+- [ ] 21-05-PLAN.md - Create user-repository.R and hash-repository.R
+- [ ] 21-06-PLAN.md - Refactor database-functions.R to use repositories (eliminate 16 dbConnect calls)
+- [ ] 21-07-PLAN.md - Refactor user_endpoints.R and re_review_endpoints.R (eliminate 15 dbConnect calls)
+- [ ] 21-08-PLAN.md - Refactor remaining files (eliminate 7 scattered dbConnect calls)
 
 ### Phase 22: Service Layer & Middleware
 **Goal**: Clean separation of HTTP handling, business logic, and cross-cutting concerns
@@ -147,7 +154,7 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 | 18. Foundation | 0/2 | Planned | - |
 | 19. Security Hardening | 0/5 | Planned | - |
 | 20. Async/Non-blocking | 0/3 | Planned | - |
-| 21. Repository Layer | 0/TBD | Not started | - |
+| 21. Repository Layer | 0/8 | Planned | - |
 | 22. Service Layer & Middleware | 0/TBD | Not started | - |
 | 23. OMIM Migration | 0/TBD | Not started | - |
 | 24. Versioning, Pagination & Cleanup | 0/TBD | Not started | - |
@@ -175,4 +182,4 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 
 ---
 *Roadmap created: 2026-01-23*
-*Last updated: 2026-01-23 - Phase 20 planned (3 plans in 3 waves)*
+*Last updated: 2026-01-23 - Phase 21 planned (8 plans in 4 waves)*
