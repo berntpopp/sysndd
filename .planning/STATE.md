@@ -6,20 +6,20 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v4 Backend Overhaul - Phase 18 Foundation complete, ready for Phase 19
+**Current focus:** v4 Backend Overhaul - Phase 19 Security Hardening in progress
 
 ## Current Position
 
 **Milestone:** v4 Backend Overhaul
-**Phase:** 18 of 24 (Foundation) - COMPLETE
-**Plan:** 2/2 complete
-**Status:** Phase 18 executed, awaiting verification
-**Last activity:** 2026-01-23 - Phase 18 Foundation executed (R 4.4.3 upgrade)
+**Phase:** 19 of 24 (Security Hardening)
+**Plan:** 1/8 complete
+**Status:** In progress
+**Last activity:** 2026-01-23 - Completed 19-01-PLAN.md (Core Security Infrastructure)
 
 ```
-v4 Backend Overhaul: PHASE 18 COMPLETE
+v4 Backend Overhaul: PHASE 19 IN PROGRESS
 Goal: Modernize R/Plumber API with security, async, OMIM fix, R upgrade, DRY/KISS/SOLID
-Progress: ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 14% (1/7 phases)
+Progress: █████░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 16% (1/7 phases + 1/8 plans)
 ```
 
 ## Completed Milestones
@@ -41,8 +41,8 @@ Progress: ████░░░░░░░░░░░░░░░░░░░�
 
 **Critical (Security) - Addressed in Phase 19:**
 - 66 SQL injection vulnerabilities via string concatenation
-- Plaintext password storage/comparison
-- Passwords visible in logs
+- Plaintext password storage/comparison - **UTILITIES READY** (19-01)
+- Passwords visible in logs - **SANITIZER READY** (19-01)
 
 **High - Addressed in Phases 20-22:**
 - 17 `dbConnect` calls bypassing connection pool
@@ -64,7 +64,12 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 
 ### Decisions
 
-None yet for v4. Decisions logged in PROJECT.md Key Decisions table.
+| Date | Phase | Decision | Rationale |
+|------|-------|----------|-----------|
+| 2026-01-23 | 19-01 | Use sodium::password_store for Argon2id | OWASP recommended, superior to bcrypt for new implementations |
+| 2026-01-23 | 19-01 | Progressive migration via dual-verification | Zero-downtime migration without forcing password resets |
+| 2026-01-23 | 19-01 | Use httpproblems for RFC 9457 errors | Industry standard Problem Details format |
+| 2026-01-23 | 19-01 | Centralize sensitive fields in constant | Consistent sanitization across all logging |
 
 ### Pending Todos
 
@@ -73,16 +78,16 @@ None yet.
 ### Blockers/Concerns
 
 **From Research:**
-- ~~Matrix ABI breaking change (must upgrade Matrix to 1.6.3+ BEFORE R upgrade)~~ ✓ RESOLVED - Matrix 1.7.2 in R 4.4.3
-- Password migration requires dual-hash verification (avoid user lockout)
+- ~~Matrix ABI breaking change (must upgrade Matrix to 1.6.3+ BEFORE R upgrade)~~ RESOLVED - Matrix 1.7.2 in R 4.4.3
+- ~~Password migration requires dual-hash verification (avoid user lockout)~~ RESOLVED - verify_password() supports both modes
 - mim2gene.txt lacks disease names (need MONDO/HPO integration)
 
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Phase 18 Foundation executed, awaiting verification
+**Stopped at:** Completed 19-01-PLAN.md
 **Resume file:** None
-**Next action:** Verify Phase 18 goal achievement, then `/gsd:plan-phase 19` for Security Hardening
+**Next action:** Execute 19-02-PLAN.md for authentication endpoints hardening
 
 ---
-*Last updated: 2026-01-23 - Phase 18 Foundation complete (R 4.4.3 upgrade)*
+*Last updated: 2026-01-23 - Phase 19 Plan 01 complete (Core Security Infrastructure)*
