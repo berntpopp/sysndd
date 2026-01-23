@@ -1,0 +1,40 @@
+// Bootstrap variable overrides (compilation time)
+// These are SCSS variables that Bootstrap uses during compilation
+
+// Primary color: Medical blue
+$primary: #0d47a1;
+
+// Enable/disable features
+$enable-shadows: true;
+$enable-gradients: false; // Modern scientific, not clinical gradient style
+
+// Text color
+$text-main: #2c3e50;
+
+// Shadow overrides - subtle medical aesthetic
+$box-shadow-sm: 0 0.125rem 0.25rem rgba(13, 71, 161, 0.075);
+$box-shadow: 0 0.25rem 0.5rem rgba(13, 71, 161, 0.1);
+$box-shadow-lg: 0 0.5rem 1rem rgba(13, 71, 161, 0.15);
+
+// Base colors (maintain Bootstrap defaults)
+$blue: #007bff !default;
+$indigo: #6610f2 !default;
+$purple: #6f42c1 !default;
+$pink: #e83e8c !default;
+$red: #dc3545 !default;
+$orange: #fd7e14 !default;
+$yellow: #ffc107 !default;
+$green: #28a745 !default;
+$teal: #20c997 !default;
+$cyan: #17a2b8 !default;
+$darkgoldenrod: #B8860B !default;
+$darkgreen: #006400 !default;
+$darkmagenta: #8B008B !default;
+$indianred: #CD5C5C !default;
+$hotpink: #FF69B4 !default;
+$lightskyblue: #87CEFA !default;
+
+// Theme colors override
+$theme-colors: (
+  "primary": #1565c0,
+);
