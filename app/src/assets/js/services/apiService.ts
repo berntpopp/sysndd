@@ -33,7 +33,7 @@ class ApiService {
    * @returns A promise resolving to the statistical data.
    */
   async fetchStatistics(type: string): Promise<StatisticsResponse> {
-    const url = `${URLS.API_URL}/statistics/category_count?type=${type}`;
+    const url = `${URLS.API_URL}/api/statistics/category_count?type=${type}`;
     const response: AxiosResponse<StatisticsResponse> = await axios.get(url);
     return response.data;
   }
@@ -45,7 +45,7 @@ class ApiService {
    * @returns A promise resolving to the latest news items.
    */
   async fetchNews(n: number): Promise<NewsResponse> {
-    const url = `${URLS.API_URL}/statistics/news?n=${n}`;
+    const url = `${URLS.API_URL}/api/statistics/news?n=${n}`;
     const response: AxiosResponse<NewsResponse> = await axios.get(url);
     return response.data;
   }
@@ -57,7 +57,7 @@ class ApiService {
    * @returns A promise resolving to the search results.
    */
   async fetchSearchInfo(searchInput: string): Promise<SearchResponse> {
-    const url = `${URLS.API_URL}/search/${searchInput}?helper=true`;
+    const url = `${URLS.API_URL}/api/search/${searchInput}?helper=true`;
     const response: AxiosResponse<SearchResponse> = await axios.get(url);
     return response.data;
   }
