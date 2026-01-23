@@ -6,22 +6,22 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v3 Frontend Modernization — Phase 14 complete, ready for Phase 15
+**Current focus:** v3 Frontend Modernization — Phase 15 complete, ready for Phase 16
 
 ## Current Position
 
 **Milestone:** v3 Frontend Modernization
-**Phase:** 15 - Testing Infrastructure (IN PROGRESS)
-**Plan:** 5/6 plans complete
-**Status:** In progress
-**Last activity:** 2026-01-23 — Completed 15-05 Component Test Examples
+**Phase:** 15 - Testing Infrastructure (COMPLETE)
+**Plan:** 6/6 plans complete
+**Status:** Complete
+**Last activity:** 2026-01-23 — Completed Phase 15 (Testing Infrastructure)
 
 ```
-v3 Frontend Modernization: PHASE 15 IN PROGRESS
-Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables), Phase 14 (TypeScript)
-Phase 15: 5/6 plans complete (Vitest + Vue Test Utils + MSW + Composable Tests + Component Tests + A11y Testing)
-Last completed: 15-05 Component Test Examples (FooterNavItem, Banner, Footer)
-Progress: ███████████████████████████░ 40/~50 plans in v3 milestone
+v3 Frontend Modernization: PHASE 15 COMPLETE
+Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables), Phase 14 (TypeScript), Phase 15 (Testing)
+Phase 15 verified: 5/5 success criteria passed (144 tests passing)
+Last completed: 15-06 Accessibility Testing
+Progress: ████████████████████████████░ 41/~50 plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -174,8 +174,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 15-05 Component Test Examples
+**Stopped at:** Completed Phase 15 (Testing Infrastructure)
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 15 in progress (5/6 plans complete, component test examples added)*
+*Last updated: 2026-01-23 — Phase 15 complete (6/6 plans, 5/5 success criteria verified, 144 tests passing)*
