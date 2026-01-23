@@ -11,7 +11,12 @@
 @use "./partials/colors";
 @use "./partials/shadows";
 @use "./partials/spacing";
+@use "./partials/radius";
 @use "./partials/typography";
 @use "./partials/animations";
+
+// Import component styles
+@use "./components/forms";
+@use "./components/tables";
 
 // Additional global styles can be added below
