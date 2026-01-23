@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 14 - TypeScript Introduction (IN PROGRESS)
-**Plan:** 3 of TBD plans complete
+**Plan:** 7 of TBD plans complete
 **Status:** In progress
-**Last activity:** 2026-01-23 — Completed 14-03-PLAN.md (Constants Conversion)
+**Last activity:** 2026-01-23 — Completed 14-07-PLAN.md (Pre-commit Hooks Setup)
 
 ```
 v3 Frontend Modernization: PHASE 14 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables)
-Phase 14 (TypeScript Introduction): 3 plans complete (Infrastructure, Types, Constants)
-Last completed: 14-03 Constants Conversion (Type-safe constants with const assertions)
-Progress: ████████████████████░ 25/TBD plans in v3 milestone
+Phase 14 (TypeScript Introduction): 7 plans complete (Infrastructure, Types, Constants, Services, Router, Linting, Pre-commit)
+Last completed: 14-07 Pre-commit Hooks Setup (Husky 9 + lint-staged for automated code quality)
+Progress: █████████████████████░ 29/TBD plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -134,6 +134,13 @@ See PROJECT.md for full decisions table.
 - 'satisfies' operator validates types while preserving literal types
 - Export type aliases alongside default exports (XConfig = typeof X pattern)
 - Type assertion ('as unknown as') acceptable for branded type constants
+- ESLint 9 flat config format for modern linting infrastructure
+- TypeScript/Vue rules set to 'warn' during migration (not 'error')
+- Prettier for code formatting, eslint-config-prettier disables conflicts
+- vue-eslint-parser required for eslint-plugin-vue@10.x compatibility
+- Husky 9 pre-commit hooks with lint-staged for automated code quality
+- --max-warnings=50 during TypeScript migration allows commits while fixing warnings
+- Separate lint-staged rules: TS/Vue get ESLint+Prettier, other files Prettier only
 
 ## Archive Location
 
@@ -143,8 +150,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 14-03-PLAN.md (Constants Conversion)
+**Stopped at:** Completed 14-07-PLAN.md (Pre-commit Hooks Setup)
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 14 in progress (3/TBD plans: Infrastructure, types, constants typed)*
+*Last updated: 2026-01-23 — Phase 14 in progress (7/TBD plans: Infrastructure, types, constants, services, router, linting, pre-commit complete)*
