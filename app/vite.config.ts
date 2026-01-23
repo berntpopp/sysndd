@@ -101,7 +101,7 @@ export default defineConfig({
       gzipSize: true,
       brotliSize: true,
       template: 'treemap',
-    }) as PluginOption,
+    }) as unknown as PluginOption,
   ],
 
   resolve: {
