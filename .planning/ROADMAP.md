@@ -171,55 +171,33 @@ Plans:
 
 **Requirements:** FR-05 (all), NFR-01 (SOLID LSP, ISP), NFR-04 (DX)
 
-### Plans
+**Plans:** 7 plans in 3 waves
 
-#### 14-01: TypeScript Setup
-- Install typescript, vue-tsc
-- Create tsconfig.json (strict: false initially)
-- Rename main.js → main.ts
-- Configure path aliases in tsconfig
+Plans:
+- [ ] 14-01-PLAN.md — TypeScript Setup (Wave 1)
+- [ ] 14-02-PLAN.md — Type Definitions (Wave 1)
+- [ ] 14-03-PLAN.md — Constants Conversion (Wave 2)
+- [ ] 14-04-PLAN.md — Services and Router Conversion (Wave 2)
+- [ ] 14-05-PLAN.md — Store and Composables Conversion (Wave 2)
+- [ ] 14-06-PLAN.md — ESLint and Prettier Setup (Wave 3)
+- [ ] 14-07-PLAN.md — Pre-commit Hooks Setup (Wave 3)
 
-#### 14-02: Type Definitions - Models
-- Create types/models.ts
-- Define Entity, User, Gene, Phenotype interfaces
-- Define Category, UserRole types
-- Export all from types/index.ts
+### Wave Structure
 
-#### 14-03: Type Definitions - API
-- Create types/api.ts
-- Define API response types for 21 endpoints
-- Define request payload types
-- Add generic API helper types
-
-#### 14-04: Type Definitions - Components
-- Create types/components.ts
-- Define common prop types
-- Define emit types
-- Define slot types
-
-#### 14-05: Convert Services and Constants
-- Convert constants/*.js → constants/*.ts
-- Convert services/*.js → services/*.ts
-- Add type annotations
-- Export as const assertions
-
-#### 14-06: Composable Type Safety
-- Add TypeScript to all composables
-- Define return types
-- Add generic type parameters where needed
-
-#### 14-07: ESLint and Prettier Setup
-- Install eslint@9, typescript-eslint
-- Create eslint.config.js (flat config)
-- Install prettier
-- Create .prettierrc.json
-- Configure IDE integration
+| Wave | Plans | Dependencies |
+|------|-------|--------------|
+| 1 | 14-01, 14-02 | None (foundation, parallel) |
+| 2 | 14-03, 14-04, 14-05 | 14-01, 14-02 (parallel) |
+| 3 | 14-06, 14-07 | Wave 2 complete |
 
 ### Success Criteria
 - TypeScript compiles without errors
-- All composables typed
-- API responses have types
-- ESLint and Prettier working
+- All infrastructure files converted (main, router, stores, services, composables, constants)
+- Type definitions for models and API responses
+- Branded types for domain IDs (GeneId, EntityId)
+- ESLint 9 flat config with TypeScript support
+- Prettier formatting configured
+- Pre-commit hooks with lint-staged
 
 ---
 
