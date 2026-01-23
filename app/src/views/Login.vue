@@ -18,7 +18,7 @@
             header-text-variant="white"
           >
             <BCardText>
-              <BForm @submit.prevent="onSubmit">
+              <form @submit.prevent="onSubmit">
                 <!-- Username Field -->
                 <BFormGroup description="Enter your user name">
                   <BFormInput
@@ -62,7 +62,7 @@
                     Login
                   </BButton>
                 </BFormGroup>
-              </BForm>
+              </form>
 
               <!-- Additional Links -->
               <div>
