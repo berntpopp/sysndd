@@ -160,7 +160,7 @@ describe('FooterNavItem', () => {
       const customItem = {
         id: 'custom-item',
         link: 'https://custom.example.com',
-        linkAttr: {},
+        linkAttr: { 'aria-label': 'Custom Link' },
         imgSrc: '/custom-image.svg',
         alt: 'Custom Alt Text',
         width: 150,
