@@ -6,22 +6,21 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v3 Frontend Modernization — Phase 11 complete, ready for Phase 12
+**Current focus:** v3 Frontend Modernization — Phase 12 in progress (Vite Migration)
 
 ## Current Position
 
 **Milestone:** v3 Frontend Modernization
-**Phase:** 11 - Bootstrap-Vue-Next Migration (COMPLETE)
-**Plan:** All 6 plans complete
-**Status:** Phase verified ✓
-**Last activity:** 2026-01-23 — Phase 11 verified, Bootstrap-Vue-Next migration complete
+**Phase:** 12 - Vite Migration (IN PROGRESS)
+**Plan:** 1 of 4 complete
+**Status:** In progress
+**Last activity:** 2026-01-23 — Completed 12-01-PLAN.md (Vite Installation)
 
 ```
-v3 Frontend Modernization: PHASE 11 COMPLETE ✓
+v3 Frontend Modernization: PHASE 12 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next)
-All 6 plans: 11-01 Foundation, 11-02 Modal/Toast, 11-03 Tables, 11-04 Forms, 11-05 CSS, 11-06 Third-Party
-Verification: 19/19 must-haves passed
-Progress: ████████████░ 12/16 plans (75%)
+Phase 12: 1/4 plans complete (12-01 Vite Installation)
+Progress: █████████████░ 13/16 plans (81%)
 ```
 
 ## v3 Milestone Scope
@@ -94,6 +93,9 @@ See PROJECT.md for full decisions table.
 - @r2rka/vue3-treeselect for hierarchical selection (replaces @riophae/vue-treeselect)
 - Native scrollbars instead of vue2-perfect-scrollbar
 - @upsetjs/bundle for set visualization (replaces @upsetjs/vue)
+- @vitejs/plugin-vue@6.0.3 required for Vite 7 support (5.x only supports Vite 5-6)
+- SCSS uses @use syntax with modern-compiler API for Vite compatibility
+- Dual build system during migration: npm run dev (Vite) vs npm run serve (Vue CLI)
 
 ## Archive Location
 
@@ -103,8 +105,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Phase 11 complete — Bootstrap-Vue-Next migration verified
+**Stopped at:** Completed 12-01-PLAN.md (Vite Installation)
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 11 complete, ready for Phase 12 (Vite)*
+*Last updated: 2026-01-23 — Phase 12 plan 01 complete (Vite Installation)*
