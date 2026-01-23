@@ -265,9 +265,16 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/tables/Panels.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+      const categoryInput = Array.isArray(to.params.category_input)
+        ? to.params.category_input[0]
+        : to.params.category_input;
+      const inheritanceInput = Array.isArray(to.params.inheritance_input)
+        ? to.params.inheritance_input[0]
+        : to.params.inheritance_input;
+
       if (
         ['All', 'Limited', 'Definitive', 'Moderate', 'Refuted'].includes(
-          to.params.category_input,
+          categoryInput as string,
         )
         && [
           'All',
@@ -275,7 +282,7 @@ export const routes: RouteRecordRaw[] = [
           'Other',
           'Autosomal recessive',
           'X-linked',
-        ].includes(to.params.inheritance_input)
+        ].includes(inheritanceInput as string)
       ) {
         next(); // everything good, proceed
       } else {

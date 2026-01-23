@@ -9,7 +9,8 @@
  * It leverages axios for making HTTP requests and uses constants for API URLs to avoid hardcoding.
  */
 
-import axios, { AxiosResponse } from 'axios';
+import axios from 'axios';
+import type { AxiosResponse } from 'axios';
 
 // Importing URLs from a constants file to avoid hardcoding them in this component
 import URLS from '@/assets/js/constants/url_constants';
