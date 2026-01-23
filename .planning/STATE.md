@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 13 - Mixin Composable Conversion (IN PROGRESS)
-**Plan:** 2 of TBD plans complete
+**Plan:** 4 of TBD plans complete
 **Status:** In progress
-**Last activity:** 2026-01-23 — Completed 13-02-PLAN.md (Toast Composable Migration)
+**Last activity:** 2026-01-23 — Completed 13-04-PLAN.md (Table Composables)
 
 ```
 v3 Frontend Modernization: PHASE 13 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite)
-Phase 13 (Mixin Composable Conversion): 2 plans complete (Wave 2 in progress)
-Last completed: 13-02 Toast Composable Migration (29 components migrated)
-Progress: ███████████████████ 20/TBD plans in v3 milestone
+Phase 13 (Mixin Composable Conversion): 4 plans complete (Wave 3 in progress)
+Last completed: 13-04 Table Composables (useTableData, useTableMethods)
+Progress: ███████████████████ 21/TBD plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -111,6 +111,9 @@ See PROJECT.md for full decisions table.
 - useToast differs from useToastNotifications: danger toasts never auto-hide (medical app requirement)
 - Components with existing setup() functions extended rather than replaced
 - Medical app error handling pattern: critical errors force manual user acknowledgment
+- useTableData creates fresh state per call (per-instance pattern for independent tables)
+- useTableMethods uses dependency injection (accepts tableData and options parameters)
+- Dependency injection pattern for composables requiring external component state
 
 ## Archive Location
 
@@ -120,8 +123,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 13-02-PLAN.md (Toast Composable Migration)
+**Stopped at:** Completed 13-04-PLAN.md (Table Composables)
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 13 in progress (2/TBD plans: Toast Composable Migration)*
+*Last updated: 2026-01-23 — Phase 13 in progress (4/TBD plans: Table Composables)*
