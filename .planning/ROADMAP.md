@@ -48,15 +48,19 @@ Plans:
 **Depends on**: Phase 18 (Foundation)
 **Requirements**: SEC-01, SEC-02, SEC-03, SEC-04, SEC-05, SEC-06, SEC-07, ERR-01, ERR-02, ERR-03, ERR-04
 **Success Criteria** (what must be TRUE):
-  1. All 66 SQL injection points use parameterized queries (dbBind)
+  1. All SQL injection points use parameterized queries (dbBind)
   2. New user registrations store Argon2id-hashed passwords
   3. Existing plaintext users can log in (dual-hash verification)
-  4. API errors return RFC 7807 format with consistent HTTP status codes
+  4. API errors return RFC 9457 format with consistent HTTP status codes
   5. Logs contain no passwords, tokens, or sensitive data
-**Plans**: TBD
+**Plans**: 5 plans in 4 waves
 
 Plans:
-- [ ] 19-01: TBD (to be determined during planning)
+- [ ] 19-01-PLAN.md - Create core security infrastructure (security.R, errors.R, responses.R, logging_sanitizer.R)
+- [ ] 19-02-PLAN.md - Fix SQL injection in database-functions.R (22 vulnerabilities)
+- [ ] 19-03-PLAN.md - Fix SQL injection in user_endpoints.R and implement password hashing
+- [ ] 19-04-PLAN.md - Integrate error handler middleware and log sanitization
+- [ ] 19-05-PLAN.md - Add package dependencies, create tests, verify integration
 
 ### Phase 20: Async/Non-blocking
 **Goal**: Long-running operations complete without blocking other API requests
@@ -139,7 +143,7 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 18. Foundation | 0/2 | Planned | - |
-| 19. Security Hardening | 0/TBD | Not started | - |
+| 19. Security Hardening | 0/5 | Planned | - |
 | 20. Async/Non-blocking | 0/TBD | Not started | - |
 | 21. Repository Layer | 0/TBD | Not started | - |
 | 22. Service Layer & Middleware | 0/TBD | Not started | - |
@@ -169,4 +173,4 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 
 ---
 *Roadmap created: 2026-01-23*
-*Last updated: 2026-01-23 - Phase 18 planned (2 plans)*
+*Last updated: 2026-01-23 - Phase 19 planned (5 plans in 4 waves)*
