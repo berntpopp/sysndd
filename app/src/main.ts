@@ -1,5 +1,5 @@
 import { createApp } from 'vue';
-import type { App as VueApp } from 'vue';
+import type { App as VueApp, Component } from 'vue';
 import { configureCompat } from '@vue/compat';
 import { createHead } from '@unhead/vue/client';
 import { createPinia } from 'pinia';
@@ -88,7 +88,7 @@ app.directive('b-toggle', vBToggle);
 
 // Register all Bootstrap-Vue-Next components globally
 Object.entries(BvnComponents).forEach(([name, component]) => {
-  app.component(name, component);
+  app.component(name, component as Component);
 });
 
 // Register all custom global components (async components wrapped with defineAsyncComponent)
