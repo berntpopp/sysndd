@@ -614,7 +614,7 @@ export default {
         this.perPage}`;
 
       navigator.clipboard.writeText(
-        `${process.env.VUE_APP_URL + this.$route.path}?${urlParam}`,
+        `${import.meta.env.VITE_URL + this.$route.path}?${urlParam}`,
       );
     },
     handleSortByOrDescChange() {
@@ -694,7 +694,7 @@ export default {
       }
     },
     async loadPhenotypesList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/phenotype`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/phenotype`;
       try {
         const response = await this.axios.get(apiUrl);
         this.phenotypes_options = response.data;
@@ -727,7 +727,7 @@ export default {
       }&page_size=${
         this.perPage}`;
 
-      const apiUrl = `${process.env.VUE_APP_API_URL
+      const apiUrl = `${import.meta.env.VITE_API_URL
       }/api/phenotype/entities/browse?${
         urlParam}`;
 
@@ -785,7 +785,7 @@ export default {
         + 'all'
         + '&format=xlsx';
 
-      const apiUrl = `${process.env.VUE_APP_API_URL
+      const apiUrl = `${import.meta.env.VITE_API_URL
       }/api/phenotype/entities/browse?${
         urlParam}`;
 

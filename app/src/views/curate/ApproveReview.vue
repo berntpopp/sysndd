@@ -1246,7 +1246,7 @@ export default {
   methods: {
     async loadStatusList() {
       this.loading_status_approve = true;
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/status?tree=true`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/status?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
         this.status_options = response.data;
@@ -1255,7 +1255,7 @@ export default {
       }
     },
     async loadPhenotypesList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/phenotype?tree=true`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/phenotype?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
         this.phenotypes_options = response.data;
@@ -1264,7 +1264,7 @@ export default {
       }
     },
     async loadVariationOntologyList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/variation_ontology?tree=true`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/variation_ontology?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
         this.variation_ontology_options = response.data;
@@ -1289,7 +1289,7 @@ export default {
       // TODO: need to replace with server side pagination
       // TODO: implement saved user settings for table configs
       this.isBusy = true;
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/review`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/review`;
       try {
         const response = await this.axios.get(apiUrl, {
           headers: {
@@ -1311,13 +1311,13 @@ export default {
     async loadReviewInfo(review_id) {
       this.loading_review_modal = true;
 
-      const apiGetReviewURL = `${process.env.VUE_APP_API_URL}/api/review/${review_id}`;
-      const apiGetPhenotypesURL = `${process.env.VUE_APP_API_URL
+      const apiGetReviewURL = `${import.meta.env.VITE_API_URL}/api/review/${review_id}`;
+      const apiGetPhenotypesURL = `${import.meta.env.VITE_API_URL
       }/api/review/${
         review_id
       }/phenotypes`;
-      const apiGetVariationURL = `${process.env.VUE_APP_API_URL}/api/review/${review_id}/variation`;
-      const apiGetPublicationsURL = `${process.env.VUE_APP_API_URL
+      const apiGetVariationURL = `${import.meta.env.VITE_API_URL}/api/review/${review_id}/variation`;
+      const apiGetPublicationsURL = `${import.meta.env.VITE_API_URL
       }/api/review/${
         review_id
       }/publications`;
@@ -1375,7 +1375,7 @@ export default {
     async loadStatusInfo(status_id) {
       this.loading_status_modal = true;
 
-      const apiGetURL = `${process.env.VUE_APP_API_URL}/api/status/${status_id}`;
+      const apiGetURL = `${import.meta.env.VITE_API_URL}/api/status/${status_id}`;
 
       try {
         const response = await this.axios.get(apiGetURL);
@@ -1400,7 +1400,7 @@ export default {
       }
     },
     async getEntity(entity_input) {
-      const apiGetURL = `${process.env.VUE_APP_API_URL
+      const apiGetURL = `${import.meta.env.VITE_API_URL
       }/api/entity?filter=equals(entity_id,${
         entity_input
       })`;
@@ -1414,7 +1414,7 @@ export default {
     },
     async submitReviewChange() {
       this.isBusy = true;
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/review/update`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/review/update`;
 
       // define literature specific attributes as constants from inputs
       // first clean the arrays
@@ -1473,7 +1473,7 @@ export default {
     async submitStatusChange() {
       if (this.status_info.status_approved === 0) {
         // PUT to update if not approved
-        const apiUrl = `${process.env.VUE_APP_API_URL}/api/status/update`;
+        const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/update`;
 
         // remove additional data before submission
         // TODO: replace this workaround
@@ -1511,7 +1511,7 @@ export default {
         }
       } else if (this.status_info.status_approved === 1) {
         // POST to create new status if approved
-        const apiUrl = `${process.env.VUE_APP_API_URL}/api/status/create`;
+        const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/create`;
 
         // remove additional data before submission
         // TODO: replace this workaround
@@ -1563,7 +1563,7 @@ export default {
       showModal(this.approveModal.id);
     },
     async handleApproveOk(bvModalEvt) {
-      const apiUrlReview = `${process.env.VUE_APP_API_URL
+      const apiUrlReview = `${import.meta.env.VITE_API_URL
       }/api/review/approve/${
         this.entity.review_id
       }?review_ok=true`;
@@ -1584,7 +1584,7 @@ export default {
 
       // only call status EP if status should be approved too
       if (this.status_approved === true && this.entity.status_change === 1) {
-        const apiUrlStatus = `${process.env.VUE_APP_API_URL
+        const apiUrlStatus = `${import.meta.env.VITE_API_URL
         }/api/status/approve/${
           this.entity.newest_status
         }?status_ok=true`;
@@ -1609,7 +1609,7 @@ export default {
     },
     async handleAllReviewsOk() {
       if (this.approve_all_selected) {
-        const apiUrl = `${process.env.VUE_APP_API_URL
+        const apiUrl = `${import.meta.env.VITE_API_URL
         }/api/review/approve/all?review_ok=true`;
         try {
           const response = this.axios.put(

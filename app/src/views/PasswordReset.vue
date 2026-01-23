@@ -216,7 +216,7 @@ export default {
       }
     },
     async requestPasswordReset() {
-      const apiPasswordResetRequest = `${process.env.VUE_APP_API_URL
+      const apiPasswordResetRequest = `${import.meta.env.VITE_API_URL
       }/api/user/password/reset/request?email_request=${
         this.emailEntry}`;
 
@@ -240,7 +240,7 @@ export default {
       }, 1000);
     },
     async doPasswordChange() {
-      const apiUrl = `${process.env.VUE_APP_API_URL
+      const apiUrl = `${import.meta.env.VITE_API_URL
       }/api/user/password/reset/change?new_pass_1=${
         this.newPasswordEntry
       }&new_pass_2=${

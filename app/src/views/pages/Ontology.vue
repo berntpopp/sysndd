@@ -306,11 +306,11 @@ export default {
   methods: {
     async loadOntologyInfo() {
       this.loading = true;
-      const apiDiseaseOntologyURL = `${process.env.VUE_APP_API_URL
+      const apiDiseaseOntologyURL = `${import.meta.env.VITE_API_URL
       }/api/ontology/${
         encodeURIComponent(this.$route.params.disease_term)
       }?input_type=ontology_id`;
-      const apiDiseaseNameURL = `${process.env.VUE_APP_API_URL
+      const apiDiseaseNameURL = `${import.meta.env.VITE_API_URL
       }/api/ontology/${
         encodeURIComponent(this.$route.params.disease_term)
       }?input_type=ontology_name`;

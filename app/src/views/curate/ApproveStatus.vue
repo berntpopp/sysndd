@@ -733,7 +733,7 @@ export default {
   methods: {
     async loadStatusList() {
       this.loading_status_approve = true;
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/status?tree=true`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/status?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
         this.status_options = response.data;
@@ -745,7 +745,7 @@ export default {
     },
     async loadStatusTableData() {
       this.isBusy = true;
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/status`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/status`;
       try {
         const response = await this.axios.get(apiUrl, {
           headers: {
@@ -767,7 +767,7 @@ export default {
     async loadStatusInfo(status_id) {
       this.loading_status_modal = true;
 
-      const apiGetURL = `${process.env.VUE_APP_API_URL}/api/status/${status_id}`;
+      const apiGetURL = `${import.meta.env.VITE_API_URL}/api/status/${status_id}`;
 
       try {
         const response = await this.axios.get(apiGetURL);
@@ -790,7 +790,7 @@ export default {
       }
     },
     async getEntity(entity_input) {
-      const apiGetURL = `${process.env.VUE_APP_API_URL
+      const apiGetURL = `${import.meta.env.VITE_API_URL
       }/api/entity?filter=equals(entity_id,${
         entity_input
       })`;
@@ -804,7 +804,7 @@ export default {
       }
     },
     async submitStatusChange() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/status/update`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/update`;
 
       // remove additional data before submission
       // TODO: replace this workaround
@@ -866,7 +866,7 @@ export default {
       showModal(this.statusModal.id);
     },
     async handleStatusOk(bvModalEvt) {
-      const apiUrl = `${process.env.VUE_APP_API_URL
+      const apiUrl = `${import.meta.env.VITE_API_URL
       }/api/status/approve/${
         this.status_info.status_id
       }?status_ok=true`;
@@ -889,7 +889,7 @@ export default {
     },
     async handleAllStatusOk() {
       if (this.approve_all_selected) {
-        const apiUrl = `${process.env.VUE_APP_API_URL
+        const apiUrl = `${import.meta.env.VITE_API_URL
         }/api/status/approve/all?status_ok=true`;
         try {
           const response = this.axios.put(

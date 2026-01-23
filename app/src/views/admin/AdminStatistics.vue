@@ -159,28 +159,28 @@ export default {
   methods: {
     async fetchStatistics() {
       try {
-        const updatesResponse = await this.axios.get(`${process.env.VUE_APP_API_URL}/api/statistics/updates?start_date=${this.startDate}&end_date=${this.endDate}`, {
+        const updatesResponse = await this.axios.get(`${import.meta.env.VITE_API_URL}/api/statistics/updates?start_date=${this.startDate}&end_date=${this.endDate}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
         this.statistics = updatesResponse.data;
 
-        const reReviewResponse = await this.axios.get(`${process.env.VUE_APP_API_URL}/api/statistics/rereview?start_date=${this.startDate}&end_date=${this.endDate}`, {
+        const reReviewResponse = await this.axios.get(`${import.meta.env.VITE_API_URL}/api/statistics/rereview?start_date=${this.startDate}&end_date=${this.endDate}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
         this.reReviewStatistics = reReviewResponse.data;
 
-        const updatedReviewsResponse = await this.axios.get(`${process.env.VUE_APP_API_URL}/api/statistics/updated_reviews?start_date=${this.startDate}&end_date=${this.endDate}`, {
+        const updatedReviewsResponse = await this.axios.get(`${import.meta.env.VITE_API_URL}/api/statistics/updated_reviews?start_date=${this.startDate}&end_date=${this.endDate}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
         this.updatedReviewsStatistics = updatedReviewsResponse.data;
 
-        const updatedStatusesResponse = await this.axios.get(`${process.env.VUE_APP_API_URL}/api/statistics/updated_statuses?start_date=${this.startDate}&end_date=${this.endDate}`, {
+        const updatedStatusesResponse = await this.axios.get(`${import.meta.env.VITE_API_URL}/api/statistics/updated_statuses?start_date=${this.startDate}&end_date=${this.endDate}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },

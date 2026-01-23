@@ -179,7 +179,7 @@ export default {
       this.loadingCount = true;
 
       // build query string
-      const baseUrl = `${process.env.VUE_APP_API_URL}/api/statistics/publication_stats`;
+      const baseUrl = `${import.meta.env.VITE_API_URL}/api/statistics/publication_stats`;
       const params = new URLSearchParams();
       params.set('min_journal_count', this.min_journal_count);
       params.set('min_lastname_count', this.min_lastname_count);

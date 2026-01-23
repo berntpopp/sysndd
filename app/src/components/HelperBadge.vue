@@ -147,7 +147,7 @@ export default {
     async createInternetArchiveSnapshot(url) {
       try {
         // compose API URL
-        const apiUrl = `${process.env.VUE_APP_API_URL}/api/external/internet_archive?parameter_url=${url}`;
+        const apiUrl = `${import.meta.env.VITE_API_URL}/api/external/internet_archive?parameter_url=${url}`;
 
         // make the API call
         const response = await this.axios.get(apiUrl);

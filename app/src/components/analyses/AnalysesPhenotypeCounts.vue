@@ -90,7 +90,7 @@ export default {
     async loadCountData() {
       this.loadingCount = true;
 
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/phenotype/count`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/phenotype/count`;
 
       try {
         const response = await this.axios.get(apiUrl);

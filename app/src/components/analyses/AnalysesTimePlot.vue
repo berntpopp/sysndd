@@ -148,7 +148,7 @@ export default {
   methods: {
     async loadData() {
       this.loadingData = true;
-      const apiUrl = `${process.env.VUE_APP_API_URL
+      const apiUrl = `${import.meta.env.VITE_API_URL
       }/api/statistics/entities_over_time?aggregate=${
         this.selected_aggregate
       }&group=${

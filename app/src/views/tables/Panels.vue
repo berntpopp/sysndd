@@ -442,7 +442,7 @@ export default {
     async loadOptionsData() {
       this.loading = true;
 
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/panels/options`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/panels/options`;
       try {
         const response = await this.axios.get(apiUrl);
         this.categories_list = response.data[0].options;
@@ -473,7 +473,7 @@ export default {
       const sortColumn = this.sortBy.length > 0 ? this.sortBy[0].key : 'symbol';
       const sortOrder = this.sortBy.length > 0 ? this.sortBy[0].order : 'asc';
 
-      const apiUrl = `${process.env.VUE_APP_API_URL
+      const apiUrl = `${import.meta.env.VITE_API_URL
       }/api/panels/browse?sort=${
         sortOrder === 'desc' ? '-' : '+'
       }${sortColumn
@@ -538,7 +538,7 @@ export default {
         + 'all'
         + '&format=xlsx';
 
-      const apiUrl = `${process.env.VUE_APP_API_URL
+      const apiUrl = `${import.meta.env.VITE_API_URL
       }/api/panels/browse?${
         urlParam}`;
 

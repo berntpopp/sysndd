@@ -550,7 +550,7 @@ export default {
       }&page_size=${
         this.perPage}`;
       navigator.clipboard.writeText(
-        `${process.env.VUE_APP_URL + this.$route.path}?${urlParam}`,
+        `${import.meta.env.VITE_URL + this.$route.path}?${urlParam}`,
       );
     },
     async loadTableData() {
@@ -565,7 +565,7 @@ export default {
       }&page_size=${
         this.perPage}`;
 
-      const apiUrl = `${process.env.VUE_APP_API_URL
+      const apiUrl = `${import.meta.env.VITE_API_URL
       }/api/comparisons/browse?${
         urlParam}`;
 
@@ -603,7 +603,7 @@ export default {
           + 'all'
           + '&format=xlsx';
 
-      const apiUrl = `${process.env.VUE_APP_API_URL
+      const apiUrl = `${import.meta.env.VITE_API_URL
       }/api/comparisons/browse?${
         urlParam}`;
 

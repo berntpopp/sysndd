@@ -216,7 +216,7 @@ export default {
   },
   methods: {
     async loadUserList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/list?roles=Curator,Reviewer`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/list?roles=Curator,Reviewer`;
       try {
         const response = await this.axios.get(apiUrl, {
           headers: {
@@ -234,7 +234,7 @@ export default {
     },
     async loadReReviewTableData() {
       this.loadingReReviewManagment = true;
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/re_review/assignment_table`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/assignment_table`;
       try {
         const response = await this.axios.get(apiUrl, {
           headers: {
@@ -253,7 +253,7 @@ export default {
       this.loadingReReviewManagment = false;
     },
     async handleNewBatchAssignment() {
-      const apiUrl = `${process.env.VUE_APP_API_URL
+      const apiUrl = `${import.meta.env.VITE_API_URL
       }/api/re_review/batch/assign?user_id=${
         this.user_id_assignment}`;
 
@@ -274,7 +274,7 @@ export default {
       this.loadReReviewTableData();
     },
     async handleBatchUnAssignment(batch_id) {
-      const apiUrl = `${process.env.VUE_APP_API_URL
+      const apiUrl = `${import.meta.env.VITE_API_URL
       }/api/re_review/batch/unassign?re_review_batch=${
         batch_id}`;
 

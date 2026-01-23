@@ -657,7 +657,7 @@ export default {
   },
   methods: {
     async loadPhenotypesList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/phenotype?tree=true`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/phenotype?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
         this.phenotypes_options = response.data;
@@ -672,7 +672,7 @@ export default {
       };
     },
     async loadVariationOntologyList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/variation_ontology?tree=true`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/variation_ontology?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
         this.variation_ontology_options = response.data;
@@ -687,7 +687,7 @@ export default {
       };
     },
     async loadStatusList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/status?tree=true`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/status?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
         this.status_options = response.data;
@@ -696,7 +696,7 @@ export default {
       }
     },
     async searchEntityInfo({ searchQuery, callback }) {
-      const apiSearchURL = `${process.env.VUE_APP_API_URL
+      const apiSearchURL = `${import.meta.env.VITE_API_URL
       }/api/entity?filter=contains(any,${
         searchQuery
       })`;
@@ -710,7 +710,7 @@ export default {
       }
     },
     async getEntity() {
-      const apiGetURL = `${process.env.VUE_APP_API_URL
+      const apiGetURL = `${import.meta.env.VITE_API_URL
       }/api/entity?filter=equals(entity_id,${
         this.modify_entity_input
       })`;
@@ -735,19 +735,19 @@ export default {
     async getReview() {
       this.loading_review_modal = true;
 
-      const apiGetReviewURL = `${process.env.VUE_APP_API_URL
+      const apiGetReviewURL = `${import.meta.env.VITE_API_URL
       }/api/entity/${
         this.modify_entity_input
       }/review`;
-      const apiGetPhenotypesURL = `${process.env.VUE_APP_API_URL
+      const apiGetPhenotypesURL = `${import.meta.env.VITE_API_URL
       }/api/entity/${
         this.modify_entity_input
       }/phenotypes`;
-      const apiGetVariationURL = `${process.env.VUE_APP_API_URL
+      const apiGetVariationURL = `${import.meta.env.VITE_API_URL
       }/api/entity/${
         this.modify_entity_input
       }/variation`;
-      const apiGetPublicationsURL = `${process.env.VUE_APP_API_URL
+      const apiGetPublicationsURL = `${import.meta.env.VITE_API_URL
       }/api/entity/${
         this.modify_entity_input
       }/publications`;
@@ -813,7 +813,7 @@ export default {
     async getStatus() {
       this.loading_status_modal = true;
 
-      const apiGetURL = `${process.env.VUE_APP_API_URL
+      const apiGetURL = `${import.meta.env.VITE_API_URL
       }/api/entity/${
         this.modify_entity_input
       }/status`;
@@ -897,7 +897,7 @@ export default {
       return result;
     },
     async loadOntologyInfoTree({ searchQuery, callback }) {
-      const apiSearchURL = `${process.env.VUE_APP_API_URL
+      const apiSearchURL = `${import.meta.env.VITE_API_URL
       }/api/search/ontology/${
         searchQuery
       }?tree=true`;
@@ -928,7 +928,7 @@ export default {
       this.$refs.modifyStatusModal.show();
     },
     async submitEntityRename() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/entity/rename`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/entity/rename`;
 
       // assign new disease_ontology_id
       this.entity_info.disease_ontology_id_version = this.ontology_input;
@@ -963,7 +963,7 @@ export default {
       }
     },
     async submitEntityDeactivation() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/entity/deactivate`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/entity/deactivate`;
 
       // assign new is_active
       this.entity_info.is_active = this.deactivate_check ? '0' : '1';
@@ -1001,7 +1001,7 @@ export default {
       }
     },
     async submitReviewChange() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/review/create`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/review/create`;
 
       // define literature specific attributes as constants from inputs
       // first clean the arrays
@@ -1055,7 +1055,7 @@ export default {
       }
     },
     async submitStatusChange() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/status/create`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/create`;
 
       // perform update POST request
       try {

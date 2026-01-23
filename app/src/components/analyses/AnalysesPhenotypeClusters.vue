@@ -341,7 +341,7 @@ export default {
      * Load cluster data from API
      * ------------------------------------ */
     async loadClusterData() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/analysis/phenotype_clustering`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/analysis/phenotype_clustering`;
       this.loading = true;
       try {
         const response = await this.axios.get(apiUrl);

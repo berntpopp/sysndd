@@ -104,7 +104,7 @@ export default {
     async loadMatrixData() {
       this.loadingMatrix = true;
 
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/comparisons/similarity`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/comparisons/similarity`;
 
       try {
         const response = await this.axios.get(apiUrl);

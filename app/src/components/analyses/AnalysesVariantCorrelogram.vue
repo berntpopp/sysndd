@@ -97,7 +97,7 @@ export default {
       this.loadingMatrix = true;
 
       // Point to your variant correlation endpoint
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/variant/correlation`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/variant/correlation`;
 
       try {
         const response = await this.axios.get(apiUrl);

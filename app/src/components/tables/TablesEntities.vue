@@ -481,7 +481,7 @@ export default {
       }&page_size=${
         this.perPage}`;
 
-      const apiUrl = `${process.env.VUE_APP_API_URL
+      const apiUrl = `${import.meta.env.VITE_API_URL
       }/api/entity?${
         urlParam}`;
 

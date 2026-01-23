@@ -157,7 +157,7 @@ export default {
     async fetchStats() {
       this.loading = true;
 
-      const baseUrl = `${process.env.VUE_APP_API_URL}/api/pubtator`;
+      const baseUrl = `${import.meta.env.VITE_API_URL}/api/pubtator`;
       const params = new URLSearchParams();
       params.set('page_size', '1000'); // Get enough data for stats
 

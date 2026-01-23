@@ -3,11 +3,11 @@
 import { register } from 'register-service-worker';
 
 // Only register service worker in production mode and not in docker
-// VUE_APP_MODE is set in .env files (docker mode doesn't need service worker)
-const isDocker = process.env.VUE_APP_MODE === 'docker';
+// VITE_MODE is set in .env files (docker mode doesn't need service worker)
+const isDocker = import.meta.env.VITE_MODE === 'docker';
 
-if (process.env.NODE_ENV === 'production' && !isDocker) {
-  register(`${process.env.BASE_URL}service-worker.js`, {
+if (import.meta.env.PROD && !isDocker) {
+  register(`${import.meta.env.BASE_URL}service-worker.js`, {
     ready() {
       console.log(
         'App is being served from cache by a service worker.\n'

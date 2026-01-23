@@ -90,7 +90,7 @@ export default {
     async loadMatrixData() {
       this.loadingMatrix = true;
 
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/phenotype/correlation`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/phenotype/correlation`;
 
       try {
         const response = await this.axios.get(apiUrl);

@@ -400,7 +400,7 @@ export default {
     async loadEntity() {
       this.loading = true;
 
-      const apiEntityURL = `${process.env.VUE_APP_API_URL
+      const apiEntityURL = `${import.meta.env.VITE_API_URL
       }/api/entity?filter=equals(entity_id,${
         this.$route.params.entity_id
       })`;
@@ -419,27 +419,27 @@ export default {
       }
     },
     async loadEntityInfo() {
-      const apiStatusURL = `${process.env.VUE_APP_API_URL
+      const apiStatusURL = `${import.meta.env.VITE_API_URL
       }/api/entity/${
         this.$route.params.entity_id
       }/status`;
 
-      const apiReviewURL = `${process.env.VUE_APP_API_URL
+      const apiReviewURL = `${import.meta.env.VITE_API_URL
       }/api/entity/${
         this.$route.params.entity_id
       }/review`;
 
-      const apiPublicationsURL = `${process.env.VUE_APP_API_URL
+      const apiPublicationsURL = `${import.meta.env.VITE_API_URL
       }/api/entity/${
         this.$route.params.entity_id
       }/publications`;
 
-      const apiPhenotypesURL = `${process.env.VUE_APP_API_URL
+      const apiPhenotypesURL = `${import.meta.env.VITE_API_URL
       }/api/entity/${
         this.$route.params.entity_id
       }/phenotypes`;
 
-      const apiVariationURL = `${process.env.VUE_APP_API_URL
+      const apiVariationURL = `${import.meta.env.VITE_API_URL
       }/api/entity/${
         this.$route.params.entity_id
       }/variation`;

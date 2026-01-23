@@ -2,7 +2,7 @@ import Vue from 'vue';
 import axios from 'axios';
 
 // Full config:  https://github.com/axios/axios#request-config
-axios.defaults.baseURL = process.env.VUE_APP_BASE_URL || process.env.apiUrl || '';
+axios.defaults.baseURL = import.meta.env.VITE_BASE_URL || '';
 axios.defaults.headers.common.Authorization = `Bearer ${localStorage.getItem('token')}`;
 // axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded';
 

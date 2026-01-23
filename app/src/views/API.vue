@@ -38,7 +38,7 @@ export default {
       try {
         // Dynamic import to avoid bundling issues
         const SwaggerUI = (await import('swagger-ui')).default;
-        const apiURL = `${process.env.VUE_APP_API_URL}/api/admin/openapi.json`;
+        const apiURL = `${import.meta.env.VITE_API_URL}/api/admin/openapi.json`;
         SwaggerUI({
           dom_id: '#swagger',
           url: apiURL,

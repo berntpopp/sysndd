@@ -220,7 +220,7 @@ export default {
   methods: {
     async loadUserTableData() {
       this.loadingUsersApprove = true;
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/table`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/table`;
       try {
         const response = await this.axios.get(apiUrl, {
           headers: {
@@ -239,7 +239,7 @@ export default {
       this.loadingUsersApprove = false;
     },
     async loadRoleList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/role_list`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/role_list`;
       try {
         const response = await this.axios.get(apiUrl, {
           headers: {
@@ -252,7 +252,7 @@ export default {
       }
     },
     async loadUserList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/list?roles=Curator,Reviewer`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/list?roles=Curator,Reviewer`;
       try {
         const response = await this.axios.get(apiUrl, {
           headers: {
@@ -285,7 +285,7 @@ export default {
       this.user_approved = false;
     },
     async handleUserApproveOk(bvModalEvt) {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/approval?user_id=${this.approve_user[0].user_id}&status_approval=${this.user_approved}`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/approval?user_id=${this.approve_user[0].user_id}&status_approval=${this.user_approved}`;
 
       try {
         const response = await this.axios.put(
@@ -305,7 +305,7 @@ export default {
       this.loadUserTableData();
     },
     async handleUserChangeRole(user_id, user_role) {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/change_role?user_id=${user_id}&role_assigned=${user_role}`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/change_role?user_id=${user_id}&role_assigned=${user_role}`;
 
       try {
         const response = await this.axios.put(

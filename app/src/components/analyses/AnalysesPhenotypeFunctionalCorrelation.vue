@@ -109,7 +109,7 @@ export default {
      */
     async loadCorrelationData() {
       this.loadingCorrelation = true;
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/analysis/phenotype_functional_cluster_correlation`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/analysis/phenotype_functional_cluster_correlation`;
       try {
         const resp = await this.axios.get(apiUrl);
         this.correlationMatrix = resp.data.correlation_matrix;

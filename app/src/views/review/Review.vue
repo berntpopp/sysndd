@@ -1351,7 +1351,7 @@ export default {
   },
   methods: {
     async loadPhenotypesList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/phenotype?tree=true`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/phenotype?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
         this.phenotypes_options = response.data;
@@ -1360,7 +1360,7 @@ export default {
       }
     },
     async loadVariationOntologyList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/variation_ontology?tree=true`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/variation_ontology?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
         this.variation_ontology_options = response.data;
@@ -1369,7 +1369,7 @@ export default {
       }
     },
     async loadStatusList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/status?tree=true`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/status?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
         this.status_options = response.data;
@@ -1465,7 +1465,7 @@ export default {
     },
     async loadReReviewData() {
       this.isBusy = true;
-      const apiUrl = `${process.env.VUE_APP_API_URL
+      const apiUrl = `${import.meta.env.VITE_API_URL
       }/api/re_review/table?curate=${
         this.curation_selected}`;
       try {
@@ -1484,7 +1484,7 @@ export default {
       this.loading = false;
     },
     async getEntity(entity_input) {
-      const apiGetURL = `${process.env.VUE_APP_API_URL
+      const apiGetURL = `${import.meta.env.VITE_API_URL
       }/api/entity?filter=equals(entity_id,${
         entity_input
       })`;
@@ -1500,13 +1500,13 @@ export default {
     async loadReviewInfo(review_id, re_review_review_saved) {
       this.loading_review_modal = true;
 
-      const apiGetReviewURL = `${process.env.VUE_APP_API_URL}/api/review/${review_id}`;
-      const apiGetPhenotypesURL = `${process.env.VUE_APP_API_URL
+      const apiGetReviewURL = `${import.meta.env.VITE_API_URL}/api/review/${review_id}`;
+      const apiGetPhenotypesURL = `${import.meta.env.VITE_API_URL
       }/api/review/${
         review_id
       }/phenotypes`;
-      const apiGetVariationURL = `${process.env.VUE_APP_API_URL}/api/review/${review_id}/variation`;
-      const apiGetPublicationsURL = `${process.env.VUE_APP_API_URL
+      const apiGetVariationURL = `${import.meta.env.VITE_API_URL}/api/review/${review_id}/variation`;
+      const apiGetPublicationsURL = `${import.meta.env.VITE_API_URL
       }/api/review/${
         review_id
       }/publications`;
@@ -1566,7 +1566,7 @@ export default {
     async loadStatusInfo(status_id, re_review_status_saved) {
       this.loading_status_modal = true;
 
-      const apiGetURL = `${process.env.VUE_APP_API_URL}/api/status/${status_id}`;
+      const apiGetURL = `${import.meta.env.VITE_API_URL}/api/status/${status_id}`;
 
       try {
         const response = await this.axios.get(apiGetURL);
@@ -1602,7 +1602,7 @@ export default {
       if (status_saved === 1) {
         // perform update PUT request
         try {
-          const apiUrl = `${process.env.VUE_APP_API_URL}/api/status/update?re_review=true`;
+          const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/update?re_review=true`;
           const response = await this.axios.put(
             apiUrl,
             { status_json: this.status_info },
@@ -1629,7 +1629,7 @@ export default {
           this.makeToast(e, 'Error', 'danger');
         }
       } else {
-        const apiUrl = `${process.env.VUE_APP_API_URL}/api/status/create?re_review=true`;
+        const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/create?re_review=true`;
         // perform update POST request
         try {
           const response = await this.axios.post(
@@ -1697,7 +1697,7 @@ export default {
       this.review_info.variation_ontology = replace_variation_ontology;
 
       if (review_saved === 1) {
-        const apiUrl = `${process.env.VUE_APP_API_URL}/api/review/update?re_review=true`;
+        const apiUrl = `${import.meta.env.VITE_API_URL}/api/review/update?re_review=true`;
 
         // perform update POST request
         try {
@@ -1727,7 +1727,7 @@ export default {
           this.makeToast(e, 'Error', 'danger');
         }
       } else {
-        const apiUrl = `${process.env.VUE_APP_API_URL}/api/review/create?re_review=true`;
+        const apiUrl = `${import.meta.env.VITE_API_URL}/api/review/create?re_review=true`;
 
         // perform update POST request
         try {
@@ -1784,7 +1784,7 @@ export default {
       re_review_submission.re_review_entity_id = this.entity[0].re_review_entity_id;
       re_review_submission.re_review_submitted = 1;
 
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/re_review/submit`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/submit`;
       try {
         const response = await this.axios.put(
           apiUrl,
@@ -1802,7 +1802,7 @@ export default {
       this.loadReReviewData();
     },
     async handleApproveOk(bvModalEvt) {
-      const apiUrl = `${process.env.VUE_APP_API_URL
+      const apiUrl = `${import.meta.env.VITE_API_URL
       }/api/re_review/approve/${
         this.entity[0].re_review_entity_id
       }?status_ok=${
@@ -1828,7 +1828,7 @@ export default {
       this.loadReReviewData();
     },
     async handleUnsetSubmission(bvModalEvt) {
-      const apiUrl = `${process.env.VUE_APP_API_URL
+      const apiUrl = `${import.meta.env.VITE_API_URL
       }/api/re_review/unsubmit/${
         this.entity[0].re_review_entity_id}`;
 
@@ -1850,7 +1850,7 @@ export default {
       this.loadReReviewData();
     },
     async newBatchApplication() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/re_review/batch/apply`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/batch/apply`;
 
       try {
         const response = await this.axios.get(apiUrl, {

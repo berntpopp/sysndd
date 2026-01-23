@@ -92,7 +92,7 @@ export default {
       this.loadingCount = true;
 
       // Point to your variant count endpoint
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/variant/count`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/variant/count`;
 
       try {
         const response = await this.axios.get(apiUrl);

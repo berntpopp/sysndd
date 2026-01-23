@@ -94,7 +94,7 @@ export default {
     async updateOntologyAnnotations() {
       this.loading = true; // Set loading to true to show spinner and disable button
       try {
-        const response = await this.axios.put(`${process.env.VUE_APP_API_URL}/api/admin/update_ontology`, {}, {
+        const response = await this.axios.put(`${import.meta.env.VITE_API_URL}/api/admin/update_ontology`, {}, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
@@ -109,7 +109,7 @@ export default {
     async updateHgncData() {
       this.loadingHgnc = true;
       try {
-        const response = await this.axios.put(`${process.env.VUE_APP_API_URL}/api/admin/update_hgnc_data`, {}, {
+        const response = await this.axios.put(`${import.meta.env.VITE_API_URL}/api/admin/update_hgnc_data`, {}, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },

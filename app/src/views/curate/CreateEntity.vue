@@ -567,7 +567,7 @@ export default {
       return dirty || validated ? valid : null;
     },
     async loadPhenotypesList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/phenotype?tree=true`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/phenotype?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
         this.phenotypes_options = response.data;
@@ -582,7 +582,7 @@ export default {
       };
     },
     async loadVariationOntologyList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/variation_ontology?tree=true`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/variation_ontology?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
         this.variation_ontology_options = response.data;
@@ -597,7 +597,7 @@ export default {
       };
     },
     async loadStatusList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/status?tree=true`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/status?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
         this.status_options = response.data;
@@ -606,7 +606,7 @@ export default {
       }
     },
     async loadInheritanceList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/inheritance?tree=true`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/inheritance?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
         this.inheritance_options = response.data;
@@ -625,7 +625,7 @@ export default {
       );
     },
     async loadGeneInfoTree({ searchQuery, callback }) {
-      const apiSearchURL = `${process.env.VUE_APP_API_URL
+      const apiSearchURL = `${import.meta.env.VITE_API_URL
       }/api/search/gene/${
         searchQuery
       }?tree=true`;
@@ -638,7 +638,7 @@ export default {
       }
     },
     async loadOntologyInfoTree({ searchQuery, callback }) {
-      const apiSearchURL = `${process.env.VUE_APP_API_URL
+      const apiSearchURL = `${import.meta.env.VITE_API_URL
       }/api/search/ontology/${
         searchQuery
       }?tree=true`;
@@ -764,7 +764,7 @@ export default {
       this.entity_submission = new_submission;
     },
     async submitEntity() {
-      const apiUrl = `${process.env.VUE_APP_API_URL
+      const apiUrl = `${import.meta.env.VITE_API_URL
       }/api/entity/create?direct_approval=${
         this.direct_approval}`;
 

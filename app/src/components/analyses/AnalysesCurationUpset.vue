@@ -156,7 +156,7 @@ export default {
   },
   methods: {
     async loadOptionsData() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/comparisons/options`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/comparisons/options`;
       try {
         const response = await this.axios.get(apiUrl);
         this.columns_list = response.data.list;
@@ -167,7 +167,7 @@ export default {
     },
     async loadComparisonsUpsetData() {
       this.loadingUpset = true;
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/comparisons/upset?fields=${this.selected_columns.join()}`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/comparisons/upset?fields=${this.selected_columns.join()}`;
       try {
         const response = await this.axios.get(apiUrl);
         this.elems = response.data;

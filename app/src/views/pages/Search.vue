@@ -124,7 +124,7 @@ export default {
   methods: {
     async loadSearchInfo() {
       this.loading = true;
-      const apiSearchURL = `${process.env.VUE_APP_API_URL
+      const apiSearchURL = `${import.meta.env.VITE_API_URL
       }/api/search/${
         this.$route.params.search_term
       }?helper=false`;

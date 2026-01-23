@@ -483,11 +483,11 @@ export default {
   methods: {
     async loadGeneInfo() {
       this.loading = true;
-      const apiGeneURL = `${process.env.VUE_APP_API_URL
+      const apiGeneURL = `${import.meta.env.VITE_API_URL
       }/api/gene/${
         this.$route.params.symbol
       }?input_type=hgnc`;
-      const apiGeneSymbolURL = `${process.env.VUE_APP_API_URL
+      const apiGeneSymbolURL = `${import.meta.env.VITE_API_URL
       }/api/gene/${
         this.$route.params.symbol
       }?input_type=symbol`;

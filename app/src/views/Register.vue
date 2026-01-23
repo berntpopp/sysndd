@@ -281,7 +281,7 @@ export default {
       })();
     },
     async sendRegistration() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/auth/signup?signup_data=`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/auth/signup?signup_data=`;
 
       const registration_form = {
         user_name: this.user_name,

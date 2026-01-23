@@ -255,7 +255,7 @@ export default {
       }
     },
     async getUserContributions() {
-      const apiContributionsURL = `${process.env.VUE_APP_API_URL
+      const apiContributionsURL = `${import.meta.env.VITE_API_URL
       }/api/user/${
         this.user.user_id[0]
       }/contributions`;
@@ -274,7 +274,7 @@ export default {
       }
     },
     async refreshWithJWT() {
-      const apiAuthenticateURL = `${process.env.VUE_APP_API_URL}/api/auth/refresh`;
+      const apiAuthenticateURL = `${import.meta.env.VITE_API_URL}/api/auth/refresh`;
 
       try {
         const response_refresh = await this.axios.get(apiAuthenticateURL, {
@@ -290,7 +290,7 @@ export default {
       }
     },
     async signinWithJWT() {
-      const apiAuthenticateURL = `${process.env.VUE_APP_API_URL}/api/auth/signin`;
+      const apiAuthenticateURL = `${import.meta.env.VITE_API_URL}/api/auth/signin`;
 
       try {
         const response_signin = await this.axios.get(apiAuthenticateURL, {
@@ -305,7 +305,7 @@ export default {
       }
     },
     async changePassword() {
-      const apiChangePasswordURL = `${process.env.VUE_APP_API_URL
+      const apiChangePasswordURL = `${import.meta.env.VITE_API_URL
       }/api/user/password/update?user_id_pass_change=${
         this.user.user_id[0]
       }&old_pass=${

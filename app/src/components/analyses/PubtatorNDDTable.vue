@@ -457,7 +457,7 @@ export default {
         + `&page_size=${this.perPage}`
         + `&fields=${this.fspecInput}`;
 
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/${this.apiEndpoint}?${urlParam}`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/${this.apiEndpoint}?${urlParam}`;
 
       try {
         const response = await this.axios.get(apiUrl);
@@ -560,7 +560,7 @@ export default {
         + '&page_size=all'
         + '&format=xlsx'
         + `&fields=${this.fspecInput}`;
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/${this.apiEndpoint}?${urlParam}`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/${this.apiEndpoint}?${urlParam}`;
 
       try {
         const response = await this.axios({
@@ -586,7 +586,7 @@ export default {
         + `&filter=${this.filter_string}`
         + `&page_after=${this.currentItemID}`
         + `&page_size=${this.perPage}`;
-      const fullUrl = `${process.env.VUE_APP_URL + this.$route.path}?${urlParam}`;
+      const fullUrl = `${import.meta.env.VITE_URL + this.$route.path}?${urlParam}`;
       navigator.clipboard.writeText(fullUrl);
       this.makeToast('Link copied to clipboard', 'Info', 'info');
     },

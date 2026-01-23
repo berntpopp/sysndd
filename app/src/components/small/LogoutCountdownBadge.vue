@@ -53,7 +53,7 @@ export default {
     },
     // TODO: move to a mixin to be used in other components (DRY)
     async refreshWithJWT() {
-      const apiAuthenticateURL = `${process.env.VUE_APP_API_URL}/api/auth/refresh`;
+      const apiAuthenticateURL = `${import.meta.env.VITE_API_URL}/api/auth/refresh`;
       try {
         const response_refresh = await this.axios.get(apiAuthenticateURL, {
           headers: {
@@ -68,7 +68,7 @@ export default {
     },
     // TODO: move to a mixin to be used in other components (DRY)
     async signinWithJWT() {
-      const apiAuthenticateURL = `${process.env.VUE_APP_API_URL}/api/auth/signin`;
+      const apiAuthenticateURL = `${import.meta.env.VITE_API_URL}/api/auth/signin`;
 
       try {
         const response_signin = await this.axios.get(apiAuthenticateURL, {

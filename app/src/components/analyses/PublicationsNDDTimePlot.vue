@@ -109,7 +109,7 @@ export default {
       this.loading = true;
 
       // Example: GET /api/statistics/publication_stats
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/statistics/publication_stats`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/statistics/publication_stats`;
       try {
         const response = await this.axios.get(apiUrl);
         this.statsData = response.data;

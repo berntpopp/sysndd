@@ -60,6 +60,6 @@ export default {
    * @description The base URL for API calls, dynamically set from the environment variables.
    * This ensures that the application can adapt to different environments (development, production, etc.).
    */
-  API_URL: process.env.VUE_APP_API_URL,
+  API_URL: import.meta.env.VITE_API_URL,
   // add the rest of your constants here
 };

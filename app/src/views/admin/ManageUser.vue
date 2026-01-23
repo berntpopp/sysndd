@@ -190,7 +190,7 @@ export default {
     },
     async loadUserTableData() {
       this.isLoading = true;
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/table`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/table`;
       try {
         const response = await this.axios.get(apiUrl, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
@@ -206,7 +206,7 @@ export default {
       this.isLoading = false;
     },
     async loadRoleList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/role_list`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/role_list`;
       try {
         const response = await this.axios.get(apiUrl, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
@@ -217,7 +217,7 @@ export default {
       }
     },
     async loadUserList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/list?roles=Curator,Reviewer`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/list?roles=Curator,Reviewer`;
       try {
         const response = await this.axios.get(apiUrl, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
@@ -234,7 +234,7 @@ export default {
       showModal(this.deleteUserModal.id);
     },
     async confirmDeleteUser() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/delete`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/delete`;
       try {
         const response = await this.axios.delete(apiUrl, {
           data: { user_id: this.userToDelete.user_id },
@@ -269,7 +269,7 @@ export default {
       });
     },
     async updateUserData() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/update`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/update`;
       try {
         const response = await this.axios.put(apiUrl, { user_details: this.userToUpdate }, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },

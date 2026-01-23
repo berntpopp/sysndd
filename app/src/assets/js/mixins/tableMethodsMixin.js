@@ -22,7 +22,7 @@ export default {
       }&page_size=${
         this.perPage}`;
       navigator.clipboard.writeText(
-        `${process.env.VUE_APP_URL + this.$route.path}?${urlParam}`,
+        `${import.meta.env.VITE_URL + this.$route.path}?${urlParam}`,
       );
     },
 
@@ -111,7 +111,7 @@ export default {
       const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=0&page_size=all&format=xlsx`;
 
       // Build the API URL using the provided endpoint
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/${this.apiEndpoint}?${urlParam}`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/${this.apiEndpoint}?${urlParam}`;
 
       try {
         const response = await this.axios({

@@ -371,7 +371,7 @@ export default {
       this.isBusy = true;
 
       try {
-        const response = await this.axios.get(`${process.env.VUE_APP_API_URL}/api/logs`, {
+        const response = await this.axios.get(`${import.meta.env.VITE_API_URL}/api/logs`, {
           params: {
             sort: this.sort,
             filter: this.filter_string,
@@ -408,7 +408,7 @@ export default {
     },
     copyLinkToClipboard() {
       const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${this.currentItemID}&page_size=${this.perPage}`;
-      navigator.clipboard.writeText(`${process.env.VUE_APP_URL + this.$route.path}?${urlParam}`);
+      navigator.clipboard.writeText(`${import.meta.env.VITE_URL + this.$route.path}?${urlParam}`);
     },
     handleSortByOrDescChange() {
       this.currentItemID = 0;
@@ -467,7 +467,7 @@ export default {
       this.downloading = true;
 
       try {
-        const response = await this.axios.get(`${process.env.VUE_APP_API_URL}/api/logs`, {
+        const response = await this.axios.get(`${import.meta.env.VITE_API_URL}/api/logs`, {
           params: {
             page_after: 0,
             page_size: 'all',
