@@ -5312,6 +5312,27 @@
       "Maintainer": "Hadley Wickham <hadley@posit.co>",
       "Repository": "RSPM"
     },
+    "httpproblems": {
+      "Package": "httpproblems",
+      "Version": "1.0.1",
+      "Source": "Repository",
+      "Type": "Package",
+      "Title": "Report Errors in Web Applications with 'RFC 9457'",
+      "Description": "Report structured, machine-readable details of errors in HTTP response. This format is defined in 'RFC 9457' <https://www.rfc-editor.org/rfc/rfc9457.html>.",
+      "License": "MIT + file LICENSE",
+      "URL": "https://github.com/dmphillippo/httpproblems, https://dmphillippo.github.io/httpproblems/",
+      "BugReports": "https://github.com/dmphillippo/httpproblems/issues",
+      "Encoding": "UTF-8",
+      "RoxygenNote": "7.3.2",
+      "Suggests": [
+        "testthat (>= 3.0.0)"
+      ],
+      "Config/testthat/edition": "3",
+      "NeedsCompilation": "no",
+      "Author": "David M. Phillippo [aut, cre, cph] (<https://orcid.org/0000-0003-2672-7841>)",
+      "Maintainer": "David M. Phillippo <david.phillippo@bristol.ac.uk>",
+      "Repository": "RSPM"
+    },
     "ids": {
       "Package": "ids",
       "Version": "1.0.1",
