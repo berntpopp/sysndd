@@ -125,7 +125,7 @@
                     v-model="filter.modifier_phenotype_id.content[0]"
                     :options="normalizePhenotypesOptions(phenotypes_options)"
                     size="sm"
-                    @change="filtered"
+                    @update:model-value="filtered"
                   >
                     <template v-slot:first>
                       <BFormSelectOption :value="null">
@@ -151,7 +151,7 @@
                       v-model="checked"
                       switch
                       name="check-button"
-                      @input="filtered"
+                      @update:model-value="filtered"
                     >
                       <b>{{ switch_text[checked] }}</b>
                     </BFormCheckbox>
@@ -166,28 +166,12 @@
                 <BContainer
                   v-if="totalRows > perPage || showPaginationControls"
                 >
-                  <BInputGroup
-                    prepend="Per page"
-                    class="mb-1"
-                    size="sm"
-                  >
-                    <BFormSelect
-                      id="per-page-select"
-                      v-model="perPage"
-                      :options="pageOptions"
-                      size="sm"
-                    />
-                  </BInputGroup>
-
-                  <BPagination
-                    v-model="currentPage"
+                  <TablePaginationControls
                     :total-rows="totalRows"
-                    :per-page="perPage"
-                    align="fill"
-                    size="sm"
-                    class="my-0"
-                    limit="2"
-                    @change="handlePageChange"
+                    :initial-per-page="perPage"
+                    :page-options="pageOptions"
+                    @page-change="handlePageChange"
+                    @per-page-change="handlePerPageChange"
                   />
                 </BContainer>
               </BCol>
@@ -198,7 +182,6 @@
             <BTable
               :items="items"
               :fields="fields"
-              :current-page="currentPage"
               :sort-by="sortBy"
               :busy="isBusy"
               stacked="md"
@@ -210,7 +193,6 @@
               hover
               sort-icon-left
               no-local-sorting
-              no-local-pagination
               @update:sort-by="handleSortByUpdate"
             >
               <!-- custom formatted header -->
@@ -255,7 +237,7 @@
                       type="search"
                       autocomplete="off"
                       @click="removeSearch()"
-                      @update="filtered()"
+                      @update:model-value="filtered()"
                     />
 
                     <BFormSelect
@@ -263,11 +245,10 @@
                       v-model="filter[field.key].content"
                       :options="field.selectOptions"
                       size="sm"
-                      @input="removeSearch()"
-                      @change="filtered()"
+                      @update:model-value="removeSearch();filtered();"
                     >
                       <template v-slot:first>
-                        <BFormSelectOption value="null">
+                        <BFormSelectOption :value="null">
                           .. {{ truncate(field.label, 20) }} ..
                         </BFormSelectOption>
                       </template>
@@ -284,7 +265,7 @@
                         v-model="filter[field.key].content"
                         :options="normalizeSelectOptions(field.selectOptions)"
                         size="sm"
-                        @change="removeSearch();filtered();"
+                        @update:model-value="removeSearch();filtered();"
                       >
                         <template v-slot:first>
                           <BFormSelectOption :value="null">
@@ -398,6 +379,9 @@ import GeneBadge from '@/components/ui/GeneBadge.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 
+// Import table components
+import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
+
 // Import the utilities file
 import Utils from '@/assets/js/utils';
 
@@ -414,6 +398,7 @@ export default {
     GeneBadge,
     DiseaseBadge,
     InheritanceBadge,
+    TablePaginationControls,
   },
   props: {
     showFilterControls: { type: Boolean, default: true },

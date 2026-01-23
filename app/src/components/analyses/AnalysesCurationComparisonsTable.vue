@@ -128,7 +128,7 @@
                 placeholder="Search any field by typing here"
                 debounce="500"
                 @click="removeFilters()"
-                @update="filtered()"
+                @update:model-value="filtered()"
               />
             </BFormGroup>
           </BCol>
@@ -147,22 +147,23 @@
               >
                 <BFormSelect
                   id="per-page-select"
-                  v-model="perPage"
+                  :model-value="perPage"
                   :options="pageOptions"
                   class="filter-input"
                   size="sm"
+                  @update:model-value="handlePerPageChange"
                 />
               </BInputGroup>
 
               <BPagination
-                v-model="currentPage"
+                :model-value="currentPage"
                 :total-rows="totalRows"
                 :per-page="perPage"
                 align="fill"
                 size="sm"
                 class="my-0"
                 limit="2"
-                @change="handlePageChange"
+                @update:model-value="handlePageChange"
               />
             </BContainer>
           </BCol>
@@ -199,7 +200,7 @@
                 type="search"
                 autocomplete="off"
                 @click="removeSearch()"
-                @update="filtered()"
+                @update:model-value="filtered()"
               />
 
               <BFormSelect
@@ -208,8 +209,7 @@
                 class="filter-input"
                 :options="normalizeSelectOptions(field.selectOptions)"
                 size="sm"
-                @input="removeSearch()"
-                @change="filtered()"
+                @update:model-value="removeSearch();filtered();"
               >
                 <template v-slot:first>
                   <BFormSelectOption :value="null">
@@ -225,7 +225,7 @@
                 class="filter-input"
                 :options="normalizeSelectOptions(field.selectOptions)"
                 size="sm"
-                @change="removeSearch();filtered();"
+                @update:model-value="removeSearch();filtered();"
               >
                 <template v-slot:first>
                   <BFormSelectOption :value="null">
@@ -592,7 +592,10 @@ export default {
       this.sortBy = ctx.sortBy;
       this.sortDesc = ctx.sortDesc;
     },
-    handlePerPageChange() {
+    handlePerPageChange(newPerPage) {
+      if (newPerPage !== undefined) {
+        this.perPage = typeof newPerPage === 'string' ? parseInt(newPerPage, 10) : newPerPage;
+      }
       this.currentItemID = 0;
       this.filtered();
     },

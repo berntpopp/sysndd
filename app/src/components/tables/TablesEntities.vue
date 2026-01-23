@@ -58,7 +58,7 @@
                   v-model="filter['any'].content"
                   :placeholder="'Search any field by typing here'"
                   :debounce-time="500"
-                  @input="filtered"
+                  @update:model-value="filtered"
                 />
               </BCol>
 
@@ -106,7 +106,7 @@
                     type="search"
                     autocomplete="off"
                     @click="removeSearch()"
-                    @update="filtered()"
+                    @update:model-value="filtered()"
                   />
 
                   <BFormSelect
@@ -114,11 +114,10 @@
                     v-model="filter[field.key].content"
                     :options="field.selectOptions"
                     size="sm"
-                    @input="removeSearch()"
-                    @change="filtered()"
+                    @update:model-value="removeSearch();filtered();"
                   >
                     <template v-slot:first>
-                      <BFormSelectOption value="null">
+                      <BFormSelectOption :value="null">
                         .. {{ truncate(field.label, 20) }} ..
                       </BFormSelectOption>
                     </template>
@@ -135,7 +134,7 @@
                     v-model="filter[field.key].content"
                     :options="normalizeSelectOptions(field.selectOptions)"
                     size="sm"
-                    @change="removeSearch();filtered();"
+                    @update:model-value="removeSearch();filtered();"
                   >
                     <template v-slot:first>
                       <BFormSelectOption :value="null">
@@ -334,6 +333,10 @@ export default {
       route,
     });
 
+    // Destructure to exclude functions we override in methods
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { filtered: _filtered, handlePageChange: _handlePageChange, handlePerPageChange: _handlePerPageChange, handleSortByOrDescChange: _handleSortByOrDescChange, ...restTableMethods } = tableMethods;
+
     // Return all needed properties
     return {
       makeToast,
@@ -343,7 +346,7 @@ export default {
       ...colorAndSymbols,
       ...text,
       ...tableData,
-      ...tableMethods,
+      ...restTableMethods,
       filter,
       axios,
     };
@@ -469,6 +472,36 @@ export default {
       }
 
       this.loadData();
+    },
+    // Override handlePageChange to properly update currentItemID and call loadData
+    handlePageChange(value) {
+      if (value === 1) {
+        this.currentItemID = 0;
+      } else if (value === this.totalPages) {
+        this.currentItemID = this.lastItemID;
+      } else if (value > this.currentPage) {
+        this.currentItemID = this.nextItemID;
+      } else if (value < this.currentPage) {
+        this.currentItemID = this.prevItemID;
+      }
+      this.filtered();
+    },
+    // Override handlePerPageChange to reset pagination and reload
+    handlePerPageChange(newPerPage) {
+      this.perPage = parseInt(newPerPage, 10);
+      this.currentItemID = 0;
+      this.filtered();
+    },
+    // Override handleSortByOrDescChange to call the component's filtered method
+    handleSortByOrDescChange() {
+      this.currentItemID = 0;
+      // Extract sort column and order from array-based sortBy (Bootstrap-Vue-Next format)
+      const sortColumn = this.sortBy.length > 0 ? this.sortBy[0].key : '';
+      const sortOrder = this.sortBy.length > 0 ? this.sortBy[0].order : 'asc';
+      const isDesc = sortOrder === 'desc';
+      // Build sort string for API: +column for asc, -column for desc
+      this.sort = (isDesc ? '-' : '+') + sortColumn;
+      this.filtered();
     },
     async loadData() {
       this.isBusy = true;

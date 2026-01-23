@@ -83,7 +83,7 @@
                     :options="categories_list"
                     text-field="value"
                     size="sm"
-                    @input="requestSelected"
+                    @update:model-value="requestSelected"
                   />
                 </BInputGroup>
 
@@ -98,7 +98,7 @@
                     :options="inheritance_list"
                     text-field="value"
                     size="sm"
-                    @input="requestSelected"
+                    @update:model-value="requestSelected"
                   />
                 </BInputGroup>
               </BCol>
@@ -121,7 +121,7 @@
                     multiple
                     :select-size="3"
                     size="sm"
-                    @input="requestSelected"
+                    @update:model-value="requestSelected"
                   />
                 </BInputGroup>
               </BCol>
@@ -142,7 +142,7 @@
                     :options="sort_list"
                     text-field="value"
                     size="sm"
-                    @input="requestSelected"
+                    @update:model-value="requestSelected"
                   />
                 </BInputGroup>
 
@@ -176,21 +176,22 @@
                 >
                   <BFormSelect
                     id="per-page-select"
-                    v-model="perPage"
+                    :model-value="perPage"
                     :options="pageOptions"
                     size="sm"
+                    @update:model-value="handlePerPageChange"
                   />
                 </BInputGroup>
 
                 <BPagination
-                  v-model="currentPage"
+                  :model-value="currentPage"
                   :total-rows="totalRows"
                   :per-page="perPage"
                   align="fill"
                   size="sm"
                   class="my-0"
                   limit="2"
-                  @change="handlePageChange"
+                  @update:model-value="handlePageChange"
                 />
               </BCol>
             </BRow>
@@ -199,7 +200,6 @@
             <BTable
               :items="items"
               :fields="fields"
-              :current-page="currentPage"
               :filter-included-fields="filterOn"
               :sort-by="sortBy"
               :busy="isBusy"
@@ -212,7 +212,6 @@
               hover
               sort-icon-left
               no-local-sorting
-              no-local-pagination
               @update:sort-by="handleSortByUpdate"
             >
               <template #cell(category)="data">
@@ -399,7 +398,8 @@ export default {
     handleSortByUpdate(newSortBy) {
       this.sortBy = newSortBy;
     },
-    handlePerPageChange() {
+    handlePerPageChange(newPerPage) {
+      this.perPage = typeof newPerPage === 'string' ? parseInt(newPerPage, 10) : newPerPage;
       this.currentItemID = 0;
       this.requestSelected();
     },
