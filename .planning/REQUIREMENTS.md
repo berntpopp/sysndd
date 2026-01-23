@@ -19,10 +19,16 @@ Requirements for v4 Backend Overhaul. Each maps to roadmap phases.
 ### Security
 
 - [ ] **SEC-01**: All 66 SQL injection vulnerabilities fixed with parameterized queries (dbBind)
-- [ ] **SEC-02**: Password hashing implemented with sodium/Argon2id
-- [ ] **SEC-03**: Dual-hash verification for existing user migration
+- [ ] **SEC-02**: Password hashing implemented with sodium/Argon2id for new registrations
+- [ ] **SEC-03**: Progressive re-hash on login for existing plaintext passwords (production-compatible)
+  - Detect hash type by prefix (`$argon2` = hashed, else = plaintext)
+  - If plaintext: verify with direct comparison, then immediately hash and update DB
+  - If hashed: verify with `sodium::password_verify()`
+  - No schema change needed (same `password` column stores both formats)
+  - Users transparently upgraded on next login
 - [ ] **SEC-04**: Logging sanitized to exclude passwords, tokens, and sensitive data
-- [ ] **SEC-05**: bcrypt::checkpw comparison removed from authentication_endpoints.R
+- [ ] **SEC-05**: Plaintext password comparison removed from authentication_endpoints.R:153
+- [ ] **SEC-05a**: Password change endpoint (user_endpoints.R:426) updated to support both formats
 - [ ] **SEC-06**: core/errors.R created with RFC 7807 error format helpers
 - [ ] **SEC-07**: Response builder helpers (response_success, response_error) created
 
@@ -233,6 +239,32 @@ Which phases cover which requirements. Updated during roadmap creation.
 4. curl endpoint AFTER refactoring
 5. Compare responses for regressions
 6. Test edge cases and error conditions
+
+## Password Migration Strategy
+
+**Progressive Re-hash on Login** (production-compatible):
+- No forced password resets for active users
+- No database schema changes required
+- Existing plaintext passwords continue to work
+- Passwords silently upgraded to Argon2id on next login
+- Hash type detected by prefix (`$argon2id$` vs plaintext)
+
+**Implementation:**
+1. On login: check if `password` starts with `$argon2`
+2. If hashed → `sodium::password_verify(stored_hash, submitted_password)`
+3. If plaintext → direct comparison, then immediately:
+   - `new_hash <- sodium::password_store(submitted_password)`
+   - Update user record with new hash
+4. New registrations always use Argon2id
+
+**For inactive accounts (optional):**
+- Consider forced password reset after 6+ months of inactivity
+- Send email notification before forcing reset
+
+**Sources:**
+- [Upgrading Existing Password Hashes](https://www.michalspacek.com/upgrading-existing-password-hashes)
+- [Vaadata: Migrate to Argon2](https://www.vaadata.com/blog/how-to-update-passwords-in-database-to-secure-their-storage-with-argon2/)
+- [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
 
 ---
 *Requirements defined: 2026-01-23*
