@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Milestone:** v3 Frontend Modernization
 **Phase:** 16 - UI/UX Modernization (IN PROGRESS)
-**Plan:** 1 of ~6 plans complete
+**Plan:** 2 of ~6 plans complete
 **Status:** In progress
-**Last activity:** 2026-01-23 — Completed 16-01 Design Token Foundation
+**Last activity:** 2026-01-23 — Completed 16-04 Form Styling Enhancement
 
 ```
 v3 Frontend Modernization: PHASE 16 IN PROGRESS
 Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables), Phase 14 (TypeScript), Phase 15 (Testing)
-Phase 16 started: Design token foundation complete
-Last completed: 16-01 Design Token Foundation
-Progress: ████████████████████████████░ 42/~50 plans in v3 milestone
+Phase 16 progress: Design tokens (16-01), Form styling (16-04)
+Last completed: 16-04 Form Styling Enhancement
+Progress: ████████████████████████████░ 43/~50 plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -171,6 +171,10 @@ See PROJECT.md for full decisions table.
 - Colorblind-safe status colors for medical context (WCAG 2.2 AAA compliance)
 - Compact spacing scale (0.5rem base) for dense data tables
 - Transition tokens with prefers-reduced-motion for accessibility (NFR-03.6)
+- Form focus states: colored border (medical-blue-500) + glow using design tokens
+- Validation feedback: inline below field using status-danger/success colors
+- Required fields: red asterisk with aria-label for accessibility
+- Disabled inputs: not-allowed cursor with reduced opacity for clear indication
 
 ## Archive Location
 
@@ -180,8 +184,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 16-01 Design Token Foundation
+**Stopped at:** Completed 16-04 Form Styling Enhancement
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 16 started, 16-01 complete (design token foundation with CSS custom properties)*
+*Last updated: 2026-01-23 — Phase 16 in progress, 16-04 complete (form styling with enhanced focus states and validation feedback)*
