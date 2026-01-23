@@ -8,15 +8,7 @@ import type { PluginOption } from 'vite';
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    vue({
-      template: {
-        compilerOptions: {
-          compatConfig: {
-            MODE: 2, // Vue 2 mode - maximum compatibility during migration
-          },
-        },
-      },
-    }),
+    vue(),
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
@@ -115,8 +107,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-      // CRITICAL: maintain compat mode during migration
-      vue: '@vue/compat',
     },
   },
 
