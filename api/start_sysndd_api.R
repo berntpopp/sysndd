@@ -62,6 +62,7 @@ library(vctrs)
 library(httr)
 library(ellipsis)
 library(ontologyIndex)
+library(httpproblems)
 
 ## -------------------------------------------------------------------##
 # set redirect to trailing slash
@@ -116,6 +117,12 @@ source("functions/hgnc-functions.R", local = TRUE)
 source("functions/ontology-functions.R", local = TRUE)
 source("functions/pubtator-functions.R", local = TRUE)
 source("functions/ensembl-functions.R", local = TRUE)
+
+# Core security and error handling modules
+source("core/security.R", local = TRUE)
+source("core/errors.R", local = TRUE)
+source("core/responses.R", local = TRUE)
+source("core/logging_sanitizer.R", local = TRUE)
 
 ## -------------------------------------------------------------------##
 # 5) Load the API spec for OpenAPI (optional)
@@ -288,9 +295,70 @@ cleanupHook <- function(pr) {
 }
 
 ## -------------------------------------------------------------------##
-# 12) Create root plumber router with doc lines for the entire API
+# 12) Define error handler middleware for RFC 9457 compliance
+## -------------------------------------------------------------------##
+#* @plumber
+errorHandler <- function(req, res, err) {
+  # Log all errors with sanitized request info (internal - full details)
+  log_error(
+    "API error",
+    error_class = class(err)[1],
+    error_message = conditionMessage(err),
+    endpoint = req$PATH_INFO,
+    request = sanitize_request(req)
+  )
+
+  # Handle HTTP problem errors (from httpproblems package)
+  if (inherits(err, "http_problem_error")) {
+    res$status <- err$status
+    res$serializer <- plumber::serializer_unboxed_json()
+    res$setHeader("Content-Type", "application/problem+json")
+    return(err)
+  }
+
+  # Handle custom classed errors from core/errors.R
+  if (inherits(err, "error_400")) {
+    res$status <- 400
+    res$serializer <- plumber::serializer_unboxed_json()
+    res$setHeader("Content-Type", "application/problem+json")
+    return(bad_request(detail = conditionMessage(err)))
+  }
+
+  if (inherits(err, "error_401")) {
+    res$status <- 401
+    res$serializer <- plumber::serializer_unboxed_json()
+    res$setHeader("Content-Type", "application/problem+json")
+    return(unauthorized(detail = conditionMessage(err)))
+  }
+
+  if (inherits(err, "error_403")) {
+    res$status <- 403
+    res$serializer <- plumber::serializer_unboxed_json()
+    res$setHeader("Content-Type", "application/problem+json")
+    return(forbidden(detail = conditionMessage(err)))
+  }
+
+  if (inherits(err, "error_404")) {
+    res$status <- 404
+    res$serializer <- plumber::serializer_unboxed_json()
+    res$setHeader("Content-Type", "application/problem+json")
+    return(not_found(detail = conditionMessage(err)))
+  }
+
+  # Unhandled exception = 500 Internal Server Error
+  # Don't expose internal details to client
+  res$status <- 500
+  res$serializer <- plumber::serializer_unboxed_json()
+  res$setHeader("Content-Type", "application/problem+json")
+  return(internal_server_error(detail = "An unexpected error occurred"))
+}
+
+## -------------------------------------------------------------------##
+# 13) Create root plumber router with doc lines for the entire API
 ## -------------------------------------------------------------------##
 root <- pr() %>%
+  # Install error handler middleware
+  pr_set_error(errorHandler) %>%
   # Insert doc info in pr_set_api_spec
   pr_set_api_spec(function(spec) {
     # -----------------------------------------------------------------
@@ -398,7 +466,7 @@ root <- pr() %>%
   })
 
 ## -------------------------------------------------------------------##
-# 13) Finally, run the API
+# 14) Finally, run the API
 ## -------------------------------------------------------------------##
 # For example, you could do port = as.numeric(dw$port_self) if that’s in your config
 root %>% pr_run(host = "0.0.0.0", port = as.numeric(dw$port_self))
