@@ -149,7 +149,13 @@
 import { ref } from 'vue';
 import { useHead } from '@unhead/vue';
 import { useForm, useField, defineRule } from 'vee-validate';
-import { required, min, max, email, regex } from '@vee-validate/rules';
+import {
+  required,
+  min,
+  max,
+  email,
+  regex,
+} from '@vee-validate/rules';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
 // Define validation rules
@@ -158,9 +164,7 @@ defineRule('min', min);
 defineRule('max', max);
 defineRule('email', email);
 defineRule('regex', regex);
-defineRule('is', (value, [target]) => {
-  return value === target || 'You must accept the terms';
-});
+defineRule('is', (value, [target]) => value === target || 'You must accept the terms');
 
 export default {
   name: 'Register',

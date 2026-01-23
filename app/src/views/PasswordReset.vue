@@ -98,7 +98,12 @@
 import { ref } from 'vue';
 import { useHead } from '@unhead/vue';
 import { useForm, useField, defineRule } from 'vee-validate';
-import { required, min, max, email } from '@vee-validate/rules';
+import {
+  required,
+  min,
+  max,
+  email,
+} from '@vee-validate/rules';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 
 // Define validation rules

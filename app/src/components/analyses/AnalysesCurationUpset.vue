@@ -85,7 +85,12 @@
 </template>
 
 <script>
-import { ref, onMounted, watch, nextTick } from 'vue';
+import {
+  ref,
+  onMounted,
+  watch,
+  nextTick,
+} from 'vue';
 import toastMixin from '@/assets/js/mixins/toastMixin';
 import { render, extractSets, UpSetDarkTheme } from '@upsetjs/bundle';
 import Treeselect from '@r2rka/vue3-treeselect';
