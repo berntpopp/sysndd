@@ -71,10 +71,12 @@ Plans:
   2. Clustering analysis endpoint returns HTTP 202 with job ID immediately
   3. Job status polling returns current progress and completion state
   4. Other API requests respond normally during long-running operations
-**Plans**: TBD
+**Plans**: 3 plans in 3 waves
 
 Plans:
-- [ ] 20-01: TBD (to be determined during planning)
+- [ ] 20-01-PLAN.md - Create job manager and mirai daemon pool infrastructure
+- [ ] 20-02-PLAN.md - Add async clustering endpoints and job status polling
+- [ ] 20-03-PLAN.md - Add async ontology update endpoint and background cleanup
 
 ### Phase 21: Repository Layer
 **Goal**: Single point of database access with parameterized queries
@@ -144,7 +146,7 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 |-------|----------------|--------|-----------|
 | 18. Foundation | 0/2 | Planned | - |
 | 19. Security Hardening | 0/5 | Planned | - |
-| 20. Async/Non-blocking | 0/TBD | Not started | - |
+| 20. Async/Non-blocking | 0/3 | Planned | - |
 | 21. Repository Layer | 0/TBD | Not started | - |
 | 22. Service Layer & Middleware | 0/TBD | Not started | - |
 | 23. OMIM Migration | 0/TBD | Not started | - |
@@ -173,4 +175,4 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 
 ---
 *Roadmap created: 2026-01-23*
-*Last updated: 2026-01-23 - Phase 19 planned (5 plans in 4 waves)*
+*Last updated: 2026-01-23 - Phase 20 planned (3 plans in 3 waves)*
