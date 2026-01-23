@@ -167,13 +167,15 @@ Plans:
 
 ---
 
-## Phase 14: TypeScript Introduction
+## Phase 14: TypeScript Introduction ✓
 
 **Goal:** TypeScript enabled with type safety for API responses, props, stores
 
 **Requirements:** FR-05 (all), NFR-01 (SOLID LSP, ISP), NFR-04 (DX)
 
-**Plans:** 9 plans in 4 waves
+**Status:** COMPLETE (2026-01-23)
+
+**Plans:** 10 plans in 4 waves
 
 Plans:
 - [x] 14-01-PLAN.md — TypeScript Setup (Wave 1)
@@ -183,8 +185,9 @@ Plans:
 - [x] 14-05-PLAN.md — Store and Composables Conversion (Wave 2)
 - [x] 14-06-PLAN.md — ESLint and Prettier Setup (Wave 3)
 - [x] 14-07-PLAN.md — Pre-commit Hooks Setup (Wave 3)
-- [ ] 14-08-PLAN.md — Fix TypeScript Compilation Error (Wave 4, gap closure)
-- [ ] 14-09-PLAN.md — Convert Remaining Composables to TypeScript (Wave 4, gap closure)
+- [x] 14-08-PLAN.md — Fix TypeScript Compilation Error (Wave 4, gap closure)
+- [x] 14-09-PLAN.md — Convert Remaining Composables to TypeScript (Wave 4, gap closure)
+- [x] 14-10-PLAN.md — Fix API URL Double Prefix (Wave 4, gap closure)
 
 ### Wave Structure
 
@@ -193,16 +196,16 @@ Plans:
 | 1 | 14-01, 14-02 | None (foundation, parallel) |
 | 2 | 14-03, 14-04, 14-05 | 14-01, 14-02 (parallel) |
 | 3 | 14-06, 14-07 | Wave 2 complete |
-| 4 | 14-08, 14-09 | Wave 3 complete (gap closure, parallel) |
+| 4 | 14-08, 14-09, 14-10 | Wave 3 complete (gap closure, parallel) |
 
 ### Success Criteria
-- TypeScript compiles without errors
-- All infrastructure files converted (main, router, stores, services, composables, constants)
-- Type definitions for models and API responses
-- Branded types for domain IDs (GeneId, EntityId)
-- ESLint 9 flat config with TypeScript support
-- Prettier formatting configured
-- Pre-commit hooks with lint-staged
+- TypeScript compiles without errors ✓
+- All infrastructure files converted (main, router, stores, services, composables, constants) ✓
+- Type definitions for models and API responses ✓
+- Branded types for domain IDs (GeneId, EntityId) ✓
+- ESLint 9 flat config with TypeScript support ✓
+- Prettier formatting configured ✓
+- Pre-commit hooks with lint-staged ✓
 
 ---
 

@@ -6,22 +6,22 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v3 Frontend Modernization — Phase 12 complete, ready for Phase 13
+**Current focus:** v3 Frontend Modernization — Phase 14 complete, ready for Phase 15
 
 ## Current Position
 
 **Milestone:** v3 Frontend Modernization
-**Phase:** 14 - TypeScript Introduction (IN PROGRESS)
-**Plan:** 11 of TBD plans complete
-**Status:** In progress
-**Last activity:** 2026-01-23 — Completed 14-09-PLAN.md (Composables TypeScript Conversion)
+**Phase:** 14 - TypeScript Introduction (COMPLETE)
+**Plan:** 10/10 plans complete
+**Status:** Complete
+**Last activity:** 2026-01-23 — Completed Phase 14 (TypeScript Introduction)
 
 ```
-v3 Frontend Modernization: PHASE 14 IN PROGRESS
-Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables)
-Phase 14 (TypeScript Introduction): 11 plans complete (Infrastructure, Types, Constants, Services, Router, Linting, Pre-commit, main.ts fix, Composables conversion, API URL verification gaps)
-Last completed: 14-09 Composables TypeScript Conversion (All 10 composables converted to TypeScript with explicit types)
-Progress: █████████████████████░ 33/TBD plans in v3 milestone
+v3 Frontend Modernization: PHASE 14 COMPLETE
+Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables), Phase 14 (TypeScript)
+Phase 14 verified: 7/7 success criteria passed
+Last completed: 14-10 Fix API URL Double Prefix (gap closure)
+Progress: ██████████████████████░ 35/~50 plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -156,8 +156,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 14-09-PLAN.md (Composables TypeScript Conversion)
+**Stopped at:** Completed Phase 14 (TypeScript Introduction)
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 14 in progress (11/TBD plans: Infrastructure, types, constants, services, router, linting, pre-commit, main.ts fix, composables conversion, API URL gaps complete)*
+*Last updated: 2026-01-23 — Phase 14 complete (10/10 plans, 7/7 success criteria verified)*
