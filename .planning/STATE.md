@@ -11,17 +11,17 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 **Milestone:** v3 Frontend Modernization
-**Phase:** 13 - Mixin Composable Conversion (IN PROGRESS)
-**Plan:** 5 of TBD plans complete
+**Phase:** 14 - TypeScript Introduction (IN PROGRESS)
+**Plan:** 2 of TBD plans complete
 **Status:** In progress
-**Last activity:** 2026-01-23 — Completed 13-05-PLAN.md (Complete Mixin Migration - 23 components)
+**Last activity:** 2026-01-23 — Completed 14-02-PLAN.md (Type Definition Creation)
 
 ```
-v3 Frontend Modernization: PHASE 13 IN PROGRESS
-Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite)
-Phase 13 (Mixin Composable Conversion): 5 plans complete (Wave 4 complete)
-Last completed: 13-05 Complete Migration (all components composable-based, no mixins remain)
-Progress: ████████████████████ 22/TBD plans in v3 milestone
+v3 Frontend Modernization: PHASE 14 IN PROGRESS
+Completed: Phase 10 (Vue 3 Core), Phase 11 (Bootstrap-Vue-Next), Phase 12 (Vite), Phase 13 (Composables)
+Phase 14 (TypeScript Introduction): 2 plans complete (Infrastructure setup + Type definitions)
+Last completed: 14-02 Type Definition Creation (comprehensive type system with branded IDs)
+Progress: ████████████████████░ 24/TBD plans in v3 milestone
 ```
 
 ## v3 Milestone Scope
@@ -118,6 +118,10 @@ See PROJECT.md for full decisions table.
 - Reorder functions to avoid use-before-define ESLint errors
 - Remove duplicate filtered() methods when components already have implementations
 - Extend existing setup() functions in view components rather than replacing
+- Branded types for domain IDs (GeneId, EntityId, etc.) prevent compile-time ID mixing
+- Generic API response wrappers (ApiResponse<T>, PaginatedResponse<T>) for type-safe endpoints
+- Central barrel export pattern for types (types/index.ts)
+- Factory functions for branded ID creation (createGeneId, createEntityId)
 
 ## Archive Location
 
@@ -127,8 +131,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 13-05-PLAN.md (Complete Mixin Migration)
+**Stopped at:** Completed 14-02-PLAN.md (Type Definition Creation)
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 13 in progress (5/TBD plans: All components migrated to composables)*
+*Last updated: 2026-01-23 — Phase 14 in progress (2/TBD plans: TypeScript infrastructure + types ready)*
