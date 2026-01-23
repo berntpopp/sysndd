@@ -4,12 +4,16 @@
 import { vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 
 // =============================================================================
-// Browser API Mocks (required for Bootstrap and Vue components)
+// Accessibility Testing Matchers (vitest-axe)
 // =============================================================================
 
-// Extend expect with vitest-axe matchers (will be added in Plan 15-04)
-// import { toHaveNoViolations } from 'vitest-axe';
-// expect.extend(toHaveNoViolations);
+// Note: vitest-axe provides axe() function for accessibility testing
+// Custom matchers can be added here if needed
+// import { axe } from 'vitest-axe';
+
+// =============================================================================
+// Browser API Mocks (required for Bootstrap and Vue components)
+// =============================================================================
 
 // Mock window.matchMedia (required for Bootstrap components)
 Object.defineProperty(window, 'matchMedia', {
