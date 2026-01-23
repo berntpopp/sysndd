@@ -212,40 +212,22 @@ Plans:
 
 **Requirements:** FR-06 (all), NFR-01 (KISS), NFR-03 (Accessibility)
 
-### Plans
+**Plans:** 6 plans in 2 waves
 
-#### 15-01: Vitest Setup
-- Install vitest, @vitest/ui, @vitest/coverage-v8
-- Install jsdom
-- Create vitest.config.ts
-- Add test scripts to package.json
+Plans:
+- [ ] 15-01-PLAN.md — Vitest Setup (Wave 1)
+- [ ] 15-02-PLAN.md — Vue Test Utils Setup (Wave 1)
+- [ ] 15-03-PLAN.md — MSW API Mocking Setup (Wave 1)
+- [ ] 15-04-PLAN.md — Composable Test Examples (Wave 2)
+- [ ] 15-05-PLAN.md — Component Test Examples (Wave 2)
+- [ ] 15-06-PLAN.md — Accessibility Testing (Wave 2)
 
-#### 15-02: Vue Test Utils Setup
-- Install @vue/test-utils@2
-- Install @testing-library/vue@8
-- Create test setup file
-- Configure component mounting helpers
+### Wave Structure
 
-#### 15-03: Component Test Examples
-- Write tests for 3-5 simple components
-- Demonstrate mounting, props, events
-- Demonstrate async testing
-
-#### 15-04: Composable Test Examples
-- Write tests for 3-5 composables
-- Demonstrate reactive testing
-- Demonstrate API mocking
-
-#### 15-05: Accessibility Testing
-- Install vitest-axe
-- Create accessibility test helpers
-- Write accessibility tests for 3-5 components
-- Document WCAG 2.2 testing patterns
-
-#### 15-06: Coverage Configuration
-- Configure coverage reporting
-- Set up coverage thresholds (40-50%)
-- Generate coverage reports
+| Wave | Plans | Dependencies |
+|------|-------|--------------|
+| 1 | 15-01, 15-02, 15-03 | None (foundation, parallel) |
+| 2 | 15-04, 15-05, 15-06 | Wave 1 complete (parallel) |
 
 ### Success Criteria
 - Vitest running successfully
