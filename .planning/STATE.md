@@ -193,6 +193,15 @@ See PROJECT.md for full decisions table.
 - Instant feedback uses subtle border color change (medical-blue-500)
 - Search component pattern: container with relative positioning, clear button absolute
 - Conditional UI elements based on state (clearable, loading, has value)
+- Shimmer animation using CSS gradient with background-position animation
+- prefers-reduced-motion media query disables animation for accessibility (WCAG 2.2)
+- EmptyState uses Bootstrap Icons (bi-) without 'bi-' prefix in prop
+- ColorVariant PropType for type-safe button variants
+- Global registration via defineAsyncComponent for performance
+- UI component directory structure: app/src/components/ui/
+- Loading states use skeleton-shimmer class from _loading.scss
+- Empty states follow icon + title + message + optional action pattern
+- Accessibility: aria-label and role=status on loading components
 
 ## Archive Location
 
@@ -202,8 +211,8 @@ See PROJECT.md for full decisions table.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 16-06 Search and Filter UX Enhancement
+**Stopped at:** Completed 16-05 Loading Skeleton and Empty State Components
 **Resume file:** None
 
 ---
-*Last updated: 2026-01-23 — Phase 16 in progress, 16-06 complete (search/filter UX with clear button, instant feedback, loading states)*
+*Last updated: 2026-01-23 — Phase 16 in progress, 16-05 complete (loading skeletons with shimmer animation, empty states with icons)*
