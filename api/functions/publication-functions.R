@@ -78,20 +78,12 @@ new_publication <- function(publications_received) {
     publications_list_collected_info <- bind_rows(get0("pub_list_coll_gr_info"),
       get0("pub_list_coll_other_info"))
 
-    # connect to database
-    sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-      dbname = dw$dbname,
-      user = dw$user,
-      password = dw$password,
-      server = dw$server,
-      host = dw$host,
-      port = dw$port)
     # add new publications to database table "publication" if present and not NA
     if (nrow(publications_list_collected_info) > 0) {
-      dbAppendTable(sysndd_db, "publication", publications_list_collected_info)
+      poolWithTransaction(pool, function(conn) {
+        dbAppendTable(conn, "publication", publications_list_collected_info)
+      })
     }
-    # disconnect from database
-    dbDisconnect(sysndd_db)
 
     # return OK
     return(list(status = 200, message = "OK. Entry created."))

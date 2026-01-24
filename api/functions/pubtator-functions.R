@@ -92,21 +92,14 @@ pubtator_db_update <- function(
     max_pages      = 10,
     do_full_update = FALSE
 ) {
-  # 1) Connect
-  db_conn <- DBI::dbConnect(
-    RMariaDB::MariaDB(),
-    host     = db_host,
-    port     = db_port,
-    dbname   = db_name,
-    user     = db_user,
-    password = db_password
-  )
+  # 1) Get connection from pool
+  db_conn <- poolCheckout(pool)
   on.exit({
     tryCatch({
-      DBI::dbDisconnect(db_conn)
-      log_info("pubtator_db_update: Database connection closed.")
+      poolReturn(db_conn)
+      log_info("pubtator_db_update: Database connection returned to pool.")
     }, error = function(e) {
-      log_warn("pubtator_db_update: Error closing DB connection: {e$message}")
+      log_warn("pubtator_db_update: Error returning DB connection: {e$message}")
     })
   }, add = TRUE)
 

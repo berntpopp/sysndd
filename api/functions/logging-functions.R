@@ -151,19 +151,11 @@ convert_empty <- function(string) {
 #'
 #' @export
 log_message_to_db <- function(address, agent, host, request_method, path, query, post, status, duration, file, modified) {
-  con <- NULL
   tryCatch({
-    con <- dbConnect(RMariaDB::MariaDB(),
-                     dbname = dw$dbname,
-                     user = dw$user,
-                     password = dw$password,
-                     host = dw$host,
-                     port = dw$port)
-
-    # Use parameterized query to prevent SQL injection
+    # Use db_execute_statement for parameterized INSERT
     sql <- "INSERT INTO logging (timestamp, address, agent, host, request_method, path, query, post, status, duration, file, modified) VALUES (NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
-    dbExecute(con, sql, params = list(
+    db_execute_statement(sql, list(
       address,
       agent,
       host,
@@ -178,9 +170,5 @@ log_message_to_db <- function(address, agent, host, request_method, path, query,
     ))
   }, error = function(e) {
     warning(sprintf("Failed to log message to database: %s", e$message))
-  }, finally = {
-    if (!is.null(con)) {
-      dbDisconnect(con)
-    }
   })
 }
