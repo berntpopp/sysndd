@@ -12,14 +12,14 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Milestone:** v4 Backend Overhaul
 **Phase:** 20 of 24 (Async/Non-blocking)
-**Plan:** 1/4 complete
+**Plan:** 2/4 complete
 **Status:** In progress
-**Last activity:** 2026-01-24 - Completed 20-01-PLAN.md (Async Infrastructure Core)
+**Last activity:** 2026-01-24 - Completed 20-02-PLAN.md (Jobs API Endpoints)
 
 ```
 v4 Backend Overhaul: PHASE 20 IN PROGRESS
 Goal: Modernize R/Plumber API with security, async, OMIM fix, R upgrade, DRY/KISS/SOLID
-Progress: █████████░░░░░░░░░░░░░░░░░░░░░░░░ 32% (2.25/7 phases)
+Progress: █████████░░░░░░░░░░░░░░░░░░░░░░░░ 35% (2.5/7 phases)
 ```
 
 ## Completed Milestones
@@ -83,6 +83,9 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 20-01 | 30-minute job timeout (1800000ms) | Sufficient for STRING-db clustering and ontology updates |
 | 2026-01-24 | 20-01 | Promise pipe (%...>%) for status updates | Non-blocking callback pattern from mirai/promises integration |
 | 2026-01-24 | 20-01 | Recursive later() for hourly cleanup | Workaround for later package lacking loop=TRUE parameter |
+| 2026-01-24 | 20-02 | Pre-fetch database data before mirai call | DB connections cannot cross process boundaries |
+| 2026-01-24 | 20-02 | Entity count hash for phenotype clustering dedup | Stable identifier since endpoint takes no parameters |
+| 2026-01-24 | 20-02 | Preserve sync endpoints for backward compatibility | New clients should use async, existing clients still work |
 
 ### Pending Todos
 
@@ -98,9 +101,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 20-01-PLAN.md
+**Stopped at:** Completed 20-02-PLAN.md
 **Resume file:** None
-**Next action:** Execute 20-02-PLAN.md (Jobs API Endpoint)
+**Next action:** Execute 20-03-PLAN.md (Frontend Polling Integration)
 
 ---
-*Last updated: 2026-01-24 - Phase 20 Plan 01 complete (mirai daemon pool, job-manager module)*
+*Last updated: 2026-01-24 - Phase 20 Plan 02 complete (jobs API endpoints)*
