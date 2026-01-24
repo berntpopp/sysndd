@@ -12,14 +12,14 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Milestone:** v4 Backend Overhaul
 **Phase:** 20 of 24 (Async/Non-blocking)
-**Plan:** 2/4 complete
-**Status:** In progress
-**Last activity:** 2026-01-24 - Completed 20-02-PLAN.md (Jobs API Endpoints)
+**Plan:** 3/3 complete (Phase 20 complete)
+**Status:** Phase complete
+**Last activity:** 2026-01-24 - Completed 20-03-PLAN.md (Frontend Polling Integration)
 
 ```
-v4 Backend Overhaul: PHASE 20 IN PROGRESS
+v4 Backend Overhaul: PHASE 20 COMPLETE
 Goal: Modernize R/Plumber API with security, async, OMIM fix, R upgrade, DRY/KISS/SOLID
-Progress: █████████░░░░░░░░░░░░░░░░░░░░░░░░ 35% (2.5/7 phases)
+Progress: ███████████░░░░░░░░░░░░░░░░░░░░░░ 43% (3/7 phases)
 ```
 
 ## Completed Milestones
@@ -86,6 +86,10 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 20-02 | Pre-fetch database data before mirai call | DB connections cannot cross process boundaries |
 | 2026-01-24 | 20-02 | Entity count hash for phenotype clustering dedup | Stable identifier since endpoint takes no parameters |
 | 2026-01-24 | 20-02 | Preserve sync endpoints for backward compatibility | New clients should use async, existing clients still work |
+| 2026-01-24 | 20-03 | Pre-fetch HGNC/MOI data for ontology_update | DB data must be collected before mirai submission |
+| 2026-01-24 | 20-03 | Administrator role required for ontology updates | Ontology updates are administrative operations |
+| 2026-01-24 | 20-03 | Auth filter allowlist for /api/jobs | Endpoints need authentication filter bypass pattern |
+| 2026-01-24 | 20-03 | Daemon package exports via .packages param | Worker processes need explicit package access |
 
 ### Pending Todos
 
@@ -98,12 +102,15 @@ None yet.
 - ~~Password migration requires dual-hash verification (avoid user lockout)~~ RESOLVED - verify_password() supports both modes
 - mim2gene.txt lacks disease names (need MONDO/HPO integration)
 
+**From Phase 20:**
+- Analysis functions (gen_string_clust_obj) use global `pool` for DB queries - daemon workers cannot access this. Future refactoring needed for full async execution.
+
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 20-02-PLAN.md
+**Stopped at:** Completed 20-03-PLAN.md (Phase 20 complete)
 **Resume file:** None
-**Next action:** Execute 20-03-PLAN.md (Frontend Polling Integration)
+**Next action:** Begin Phase 21 planning
 
 ---
-*Last updated: 2026-01-24 - Phase 20 Plan 02 complete (jobs API endpoints)*
+*Last updated: 2026-01-24 - Phase 20 complete (async/non-blocking infrastructure)*
