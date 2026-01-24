@@ -95,6 +95,10 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 21-01 | Redact strings > 50 chars in DEBUG logs | Balance debugging utility with security |
 | 2026-01-24 | 21-01 | Structured error classes with rlang::abort() | Type-safe error handling in repositories and endpoints |
 | 2026-01-24 | 21-01 | Pool checkout for transactions, direct use for single queries | Transactions need connection stability, single queries use pool's automatic management |
+| 2026-01-24 | 21-02 | Use rlang::abort with structured error classes for validation | Type-safe error handling allows endpoints to catch specific error classes |
+| 2026-01-24 | 21-02 | Escape single quotes in synopsis using str_replace_all | Prevents SQL syntax errors from single quotes in user-provided text |
+| 2026-01-24 | 21-02 | Use db_with_transaction for review_approve atomicity | Multi-statement approval workflow must be all-or-nothing |
+| 2026-01-24 | 21-02 | Reset approval status on review_update | Business rule enforcement - any modification requires re-approval |
 | 2026-01-24 | 21-05 | user_find_for_auth includes password hash (auth only) | Authentication requires password verification, but must be isolated from general user queries |
 | 2026-01-24 | 21-05 | user_update_password isolated from user_update | Clear separation makes password handling explicit and prevents accidental logging |
 | 2026-01-24 | 21-05 | Public user queries use users_view (excludes password) | Database-level protection against password exposure in non-auth queries |
@@ -103,6 +107,9 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 21-03 | Status approval uses transaction for atomicity | Approving status requires multiple DB operations (reset all entity statuses, set new active) |
 | 2026-01-24 | 21-03 | Publication validation uses pool with dplyr | Cleaner than raw SQL, type-safe with dplyr's collect() |
 | 2026-01-24 | 21-03 | Status update prevents entity_id changes | Changing entity association would break referential integrity |
+| 2026-01-24 | 21-04 | Validate against allowed lists before database operations | Prevents invalid HPO/VARIO terms from being inserted |
+| 2026-01-24 | 21-04 | Enforce entity_id matching for review connections | Prevent changing entity association of existing reviews |
+| 2026-01-24 | 21-04 | Parallel domain structure for phenotype/ontology repositories | Same connection pattern for different term types reduces cognitive load |
 
 ### Pending Todos
 
