@@ -6,6 +6,9 @@ if (!exists("info_from_genereviews_pmid", mode = "function")) {
   source("functions/genereviews-functions.R", local = TRUE)
 }
 
+# Load database helper functions for repository layer access
+source("functions/db-helpers.R", local = TRUE)
+
 #' A function that checks whether all PMIDs in a list are valid
 #' and can be found in pubmed, returns true if all are and
 #' false if one is invalid
@@ -80,9 +83,16 @@ new_publication <- function(publications_received) {
 
     # add new publications to database table "publication" if present and not NA
     if (nrow(publications_list_collected_info) > 0) {
-      poolWithTransaction(pool, function(conn) {
-        dbAppendTable(conn, "publication", publications_list_collected_info)
-      })
+      # Insert each publication using parameterized query
+      # Use names(tibble) to ensure column order matches INSERT statement
+      cols <- names(publications_list_collected_info)
+      placeholders <- paste(rep("?", length(cols)), collapse = ", ")
+      sql <- sprintf("INSERT INTO publication (%s) VALUES (%s)", paste(cols, collapse = ", "), placeholders)
+
+      for (i in seq_len(nrow(publications_list_collected_info))) {
+        row <- publications_list_collected_info[i, ]
+        db_execute_statement(sql, as.list(row))
+      }
     }
 
     # return OK
