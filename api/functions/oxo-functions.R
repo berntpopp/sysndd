@@ -23,22 +23,30 @@ require(stringr) # For string manipulation
 oxo_mapping_from_ontology_id <- function(ontology_id) {
   url <- paste0("https://www.ebi.ac.uk/spot/oxo/api/mappings?fromId=", ontology_id)
 
-  # Retry logic for intermittent OXO API failures
-  # Implemented April 2023 due to internal server errors (500)
-  # Neo4j connection issues on OXO backend
-  # TODO(future): Implement exponential backoff retry strategy
-  # Current: fixed 0.2s delay, infinite retries
-  # Enhancement: max_retries parameter, exponential backoff (0.2s, 0.4s, 0.8s, 1.6s)
-  # based on https://stackoverflow.com/questions/66133261/how-to-make-a-new-request-while-there-is-an-error-fromjson
+  # Exponential backoff retry strategy for intermittent OXO API failures
+  # Handles Neo4j connection issues on OXO backend (internal server errors)
+  # Implements: max 5 retries, exponential backoff (0.2s, 0.4s, 0.8s, 1.6s, 3.2s)
+  max_retries <- 5
+  retry_count <- 0
+  base_delay <- 0.2
+
   oxo_request <- tryCatch(fromJSON(url), error = function(e) {
     return(NA)
   })
 
-  while (all(is.na(oxo_request))) {
-    Sys.sleep(0.2) # Change as per requirement.
+  while (all(is.na(oxo_request)) && retry_count < max_retries) {
+    retry_count <- retry_count + 1
+    delay <- base_delay * (2^(retry_count - 1))
+    message(sprintf("OXO API retry %d/%d after %.1fs delay", retry_count, max_retries, delay))
+    Sys.sleep(delay)
     oxo_request <- tryCatch(fromJSON(url), error = function(e) {
       return(NA)
     })
+  }
+
+  # If still failed after retries, log and return NA
+  if (all(is.na(oxo_request))) {
+    warning(sprintf("OXO API failed after %d retries for ID: %s", max_retries, ontology_id))
   }
 
   oxo_request_tibble <- as_tibble(oxo_request$`_embedded`$mappings$fromTerm$curie)
