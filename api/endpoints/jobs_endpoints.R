@@ -226,6 +226,113 @@ function(req, res) {
 }
 
 ## -------------------------------------------------------------------##
+## Ontology Update Submission
+## -------------------------------------------------------------------##
+
+#* Submit Ontology Update Job
+#*
+#* Submits an async job to update disease ontology data from MONDO and OMIM sources.
+#* Requires Administrator role.
+#* Returns immediately with job ID for status polling.
+#*
+#* @tag jobs
+#* @serializer json list(na="string")
+#* @post /ontology_update/submit
+function(req, res) {
+  # Check authentication - require Administrator
+  if (is.null(req$user_id)) {
+    res$status <- 401
+    return(list(error = "UNAUTHORIZED", message = "Authentication required"))
+  }
+
+  if (req$user_role != "Administrator") {
+    res$status <- 403
+    return(list(error = "FORBIDDEN", message = "Administrator role required"))
+  }
+
+  # CRITICAL: Extract all database data BEFORE mirai
+  # Database connections cannot cross process boundaries
+
+  # Get HGNC list
+  hgnc_list <- pool %>%
+    tbl("non_alt_loci_set") %>%
+    select(symbol, hgnc_id) %>%
+    collect()
+
+  # Get mode of inheritance list
+  mode_of_inheritance_list <- pool %>%
+    tbl("mode_of_inheritance_list") %>%
+    filter(is_active == 1) %>%
+    select(hpo_mode_of_inheritance_term, hpo_mode_of_inheritance_term_name) %>%
+    collect()
+
+  # Check for duplicate job (ontology update has no params variation)
+  dup_check <- check_duplicate_job("ontology_update", list(operation = "ontology_update"))
+  if (dup_check$duplicate) {
+    res$status <- 409
+    res$setHeader("Location", paste0("/api/jobs/", dup_check$existing_job_id, "/status"))
+    return(list(
+      error = "DUPLICATE_JOB",
+      message = "Ontology update job already running",
+      existing_job_id = dup_check$existing_job_id,
+      status_url = paste0("/api/jobs/", dup_check$existing_job_id, "/status")
+    ))
+  }
+
+  # Create async job
+  result <- create_job(
+    operation = "ontology_update",
+    params = list(
+      hgnc_list = hgnc_list,
+      mode_of_inheritance_list = mode_of_inheritance_list
+    ),
+    executor_fn = function(params) {
+      # This runs in mirai daemon
+      # The process_combine_ontology function handles:
+      # - Downloading MONDO ontology
+      # - Downloading OMIM genemap2
+      # - Processing and combining data
+      # - Saving results to CSV
+
+      # Call the ontology processing function
+      disease_ontology_set <- process_combine_ontology(
+        hgnc_list = params$hgnc_list,
+        mode_of_inheritance_list = params$mode_of_inheritance_list,
+        max_file_age = 0,  # Force regeneration
+        output_path = "data/"
+      )
+
+      # Return summary
+      list(
+        status = "completed",
+        rows_processed = nrow(disease_ontology_set),
+        sources = c("MONDO", "OMIM"),
+        output_file = paste0("data/disease_ontology_set.", format(Sys.Date(), "%Y-%m-%d"), ".csv")
+      )
+    }
+  )
+
+  # Check capacity
+  if (!is.null(result$error)) {
+    res$status <- 503
+    res$setHeader("Retry-After", as.character(result$retry_after))
+    return(result)
+  }
+
+  # Success - return HTTP 202 Accepted
+  res$status <- 202
+  res$setHeader("Location", paste0("/api/jobs/", result$job_id, "/status"))
+  res$setHeader("Retry-After", "30")  # Longer polling interval for ontology update
+
+  list(
+    job_id = result$job_id,
+    status = result$status,
+    estimated_seconds = 300,  # Ontology update is slow (5+ minutes)
+    status_url = paste0("/api/jobs/", result$job_id, "/status")
+  )
+}
+
+## -------------------------------------------------------------------##
 ## Job Status Polling
 ## -------------------------------------------------------------------##
 
