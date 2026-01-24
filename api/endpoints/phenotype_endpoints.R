@@ -2,18 +2,18 @@
 #
 # This file contains all Phenotype-related endpoints, extracted from
 # the original sysndd_plumber.R. It follows the Google R Style Guide
-# conventions where possible (e.g., two-space indentation, meaningful 
+# conventions where possible (e.g., two-space indentation, meaningful
 # function names, etc.).
 
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 ## Phenotype endpoints
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 
 #* Get a List of Entities Associated with a List of Phenotypes
 #*
 #* # `Details`
 #* This endpoint retrieves a list of entities associated with specified phenotypes
-#* based on the data in the database. It uses helper functions like 
+#* based on the data in the database. It uses helper functions like
 #* generate_phenotype_entities_list() to filter and paginate results.
 #*
 #* # `Return`
@@ -75,8 +75,8 @@ function(req,
 #* based on the data in the database.
 #*
 #* # `Details`
-#* It first gathers entity-phenotype associations via 
-#* generate_phenotype_entities_list(), then compiles a correlation matrix 
+#* It first gathers entity-phenotype associations via
+#* generate_phenotype_entities_list(), then compiles a correlation matrix
 #* (long format) with columns "x", "x_id", "y", "y_id", and "value".
 #*
 #* # `Return`
@@ -85,7 +85,7 @@ function(req,
 #* @tag phenotype
 #* @serializer json list(na="string")
 #*
-#* @param filter:str A string representing a filter query to use 
+#* @param filter:str A string representing a filter query to use
 #*                  when selecting data from the database.
 #*
 #* @get correlation
@@ -137,7 +137,7 @@ function(res,
 #* based on data in the database.
 #*
 #* # `Details`
-#* Similar approach to the correlation endpoint, but instead of computing 
+#* Similar approach to the correlation endpoint, but instead of computing
 #* correlation, it simply tallies how many times each phenotype appears.
 #*
 #* # `Return`

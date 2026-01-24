@@ -21,12 +21,14 @@
 #' list generated.
 #'
 #' @export
-generate_comparisons_list <- function(sort = "symbol",
+generate_comparisons_list <- function(
+  sort = "symbol",
   filter = "",
   fields = "",
   `page_after` = "0",
   `page_size` = "10",
-  fspec = "symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id") {
+  fspec = "symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id"
+) {
   # set start time
   start_time <- Sys.time()
 
@@ -83,15 +85,18 @@ generate_comparisons_list <- function(sort = "symbol",
   ndd_database_comparison_table <- ndd_database_comparison_table_norm %>%
     select(symbol, hgnc_id, list, category = max_category) %>%
     unique() %>%
-    pivot_wider(names_from = list,
+    pivot_wider(
+      names_from = list,
       values_from = category,
-      values_fill = "not listed")
+      values_fill = "not listed"
+    )
 
   # use the helper generate_tibble_fspec to
   # generate fields specs from a tibble
   comparison_view_fspec <- generate_tibble_fspec(
     ndd_database_comparison_table,
-    fspec)
+    fspec
+  )
 
   # arrange and apply filters according to input
   ndd_database_comparison_table <- ndd_database_comparison_table %>%
@@ -103,7 +108,8 @@ generate_comparisons_list <- function(sort = "symbol",
   ndd_database_comparison_table <- select_tibble_fields(
     ndd_database_comparison_table,
     fields,
-    "symbol")
+    "symbol"
+  )
 
   # use the helper generate_cursor_pag_inf
   # to generate cursor pagination information from a tibble
@@ -111,47 +117,56 @@ generate_comparisons_list <- function(sort = "symbol",
     ndd_database_comparison_table,
     `page_size`,
     `page_after`,
-    "symbol")
+    "symbol"
+  )
 
   # compute execution time
   end_time <- Sys.time()
-  execution_time <- as.character(paste0(round(end_time - start_time, 2),
-  " secs"))
+  execution_time <- as.character(paste0(
+    round(end_time - start_time, 2),
+    " secs"
+  ))
 
   # add columns to the meta information from generate
   # cursor_pagination_info function return
   meta <- ndd_database_comp_table_info$meta %>%
-    add_column(as_tibble(list("sort" = sort,
+    add_column(as_tibble(list(
+      "sort" = sort,
       "filter" = filter,
       "fields" = fields,
       "fspec" = comparison_view_fspec,
-      "executionTime" = execution_time)))
+      "executionTime" = execution_time
+    )))
 
   # add host, port and other information to links from the link
   # information from generate_cursor_pag_inf function return
   links <- ndd_database_comp_table_info$links %>%
-      pivot_longer(everything(), names_to = "type", values_to = "link") %>%
+    pivot_longer(everything(), names_to = "type", values_to = "link") %>%
     mutate(link = case_when(
       link != "null" ~ paste0(
         dw$api_base_url,
         "/api/comparisons/table?sort=",
         sort, ifelse(filter != "",
-        paste0("&filter=", filter),
-        ""),
+          paste0("&filter=", filter),
+          ""
+        ),
         ifelse(fields != "", paste0("&fields=", fields), ""),
-        link),
+        link
+      ),
       link == "null" ~ "null"
     )) %>%
-      pivot_wider(id_cols = everything(), names_from = "type", values_from = "link")
+    pivot_wider(id_cols = everything(), names_from = "type", values_from = "link")
 
   # generate object to return
-  return_list <- list(links = links,
+  return_list <- list(
+    links = links,
     meta = meta,
-    data = ndd_database_comp_table_info$data)
+    data = ndd_database_comp_table_info$data
+  )
 
   # return the list
   return(return_list)
-  }
+}
 
 
 #' Generate phenotype entities list
@@ -172,12 +187,14 @@ generate_comparisons_list <- function(sort = "symbol",
 #' entities list generated.
 #'
 #' @export
-generate_phenotype_entities_list <- function(sort = "entity_id",
+generate_phenotype_entities_list <- function(
+  sort = "entity_id",
   filter = "",
   fields = "",
   `page_after` = "0",
   `page_size` = "all",
-  fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details") {
+  fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details"
+) {
   # set start time
   start_time <- Sys.time()
 
@@ -197,7 +214,8 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
     group_by(entity_id) %>%
     arrange(entity_id, modifier_phenotype_id) %>%
     mutate(modifier_phenotype_id = paste0(modifier_phenotype_id,
-      collapse = ",")) %>%
+      collapse = ","
+    )) %>%
     ungroup() %>%
     unique()
 
@@ -217,10 +235,12 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
   # generate fields specs from a tibble
   entity_phenotype_table_fspec <- generate_tibble_fspec_mem(
     entity_phenotype_table,
-    fspec)
+    fspec
+  )
   sysndd_db_entity_phenotype_table_fspec <- generate_tibble_fspec_mem(
     sysndd_db_entity_phenotype_table,
-    fspec)
+    fspec
+  )
   entity_phenotype_table_fspec$fspec$count_filtered <-
     sysndd_db_entity_phenotype_table_fspec$fspec$count
 
@@ -229,33 +249,39 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
   sysndd_db_entity_phenotype_table <- select_tibble_fields(
     sysndd_db_entity_phenotype_table,
     fields,
-    "entity_id")
+    "entity_id"
+  )
 
   # use the helper generate_cursor_pag_inf
   # to generate cursor pagination information from a tibble
   entity_phenotype_table_pag_info <- generate_cursor_pag_inf(
     sysndd_db_entity_phenotype_table,
     `page_size`, `page_after`,
-    "entity_id")
+    "entity_id"
+  )
 
   # compute execution time
   end_time <- Sys.time()
-  execution_time <- as.character(paste0(round(end_time - start_time, 2),
-  " secs"))
+  execution_time <- as.character(paste0(
+    round(end_time - start_time, 2),
+    " secs"
+  ))
 
   # add columns to the meta information from
   # generate_cursor_pag_inf function return
   meta <- entity_phenotype_table_pag_info$meta %>%
-    add_column(as_tibble(list("sort" = sort,
+    add_column(as_tibble(list(
+      "sort" = sort,
       "filter" = filter,
       "fields" = fields,
       "fspec" = entity_phenotype_table_fspec,
-      "executionTime" = execution_time)))
+      "executionTime" = execution_time
+    )))
 
   # add host, port and other information to links from the link
   # information from generate_cursor_pag_inf function return
   links <- entity_phenotype_table_pag_info$links %>%
-      pivot_longer(everything(), names_to = "type", values_to = "link") %>%
+    pivot_longer(everything(), names_to = "type", values_to = "link") %>%
     mutate(link = case_when(
       link != "null" ~ paste0(
         dw$api_base_url,
@@ -263,15 +289,18 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
         sort,
         ifelse(filter != "", paste0("&filter=", filter), ""),
         ifelse(fields != "", paste0("&fields=", fields), ""),
-        link),
+        link
+      ),
       link == "null" ~ "null"
     )) %>%
-      pivot_wider(id_cols = everything(), names_from = "type", values_from = "link")
+    pivot_wider(id_cols = everything(), names_from = "type", values_from = "link")
 
   # generate object to return
-  return_list <- list(links = links,
+  return_list <- list(
+    links = links,
     meta = meta,
-    data = entity_phenotype_table_pag_info$data)
+    data = entity_phenotype_table_pag_info$data
+  )
 
   # return the list
   return(return_list)
@@ -296,13 +325,14 @@ generate_phenotype_entities_list <- function(sort = "entity_id",
 #' list generated.
 #'
 #' @export
-generate_panels_list <- function(sort = "symbol",
+generate_panels_list <- function(
+  sort = "symbol",
   filter = "equals(category,'Definitive'),any(inheritance_filter,'Autosomal dominant','Autosomal recessive','X-linked','Other')",
   fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38",
   `page_after` = 0,
   `page_size` = "all",
-  max_category = TRUE) {
-
+  max_category = TRUE
+) {
   # set start time
   start_time <- Sys.time()
 
@@ -315,36 +345,58 @@ generate_panels_list <- function(sort = "symbol",
   # get allowed values for inheritance
   mode_of_inheritance_list <- pool %>%
     tbl("mode_of_inheritance_list") %>%
-        filter(is_active) %>%
+    filter(is_active) %>%
     select(inheritance_filter) %>%
     collect() %>%
-        unique()
+    unique()
 
   # if max_category is true replace category in filter
   if (max_category) {
-  filter <- str_replace(filter,
-    "category",
-    "max_category")
+    filter <- str_replace(
+      filter,
+      "category",
+      "max_category"
+    )
   }
 
   # replace "All" with respective allowed values
-  filter <- str_replace(filter,
+  filter <- str_replace(
+    filter,
     "category,'All'",
-    paste0("category,",
+    paste0(
+      "category,",
       str_c(entity_status_categories_list$category,
-        collapse = ","))) %>%
-    str_replace("category,All",
-    paste0("category,",
-      str_c(entity_status_categories_list$category,
-        collapse = ","))) %>%
-    str_replace("inheritance_filter,'All'",
-    paste0("inheritance_filter,",
-      str_c(mode_of_inheritance_list$inheritance_filter,
-        collapse = ","))) %>%
-    str_replace("inheritance_filter,All",
-    paste0("inheritance_filter,",
-      str_c(mode_of_inheritance_list$inheritance_filter,
-        collapse = ",")))
+        collapse = ","
+      )
+    )
+  ) %>%
+    str_replace(
+      "category,All",
+      paste0(
+        "category,",
+        str_c(entity_status_categories_list$category,
+          collapse = ","
+        )
+      )
+    ) %>%
+    str_replace(
+      "inheritance_filter,'All'",
+      paste0(
+        "inheritance_filter,",
+        str_c(mode_of_inheritance_list$inheritance_filter,
+          collapse = ","
+        )
+      )
+    ) %>%
+    str_replace(
+      "inheritance_filter,All",
+      paste0(
+        "inheritance_filter,",
+        str_c(mode_of_inheritance_list$inheritance_filter,
+          collapse = ","
+        )
+      )
+    )
 
   # generate sort expression based on sort input
   sort_exprs <- generate_sort_expressions(sort, unique_id = "symbol")
@@ -380,7 +432,8 @@ generate_panels_list <- function(sort = "symbol",
       inheritance = hpo_mode_of_inheritance_term_name,
       inheritance_filter,
       category,
-      category_id) %>%
+      category_id
+    ) %>%
     collect() %>%
     # following section computes the max category for a gene
     group_by(symbol) %>%
@@ -399,14 +452,14 @@ generate_panels_list <- function(sort = "symbol",
 
   disease_genes_filter <- sysndd_db_disease_genes %>%
     filter(!!!rlang::parse_exprs(filter_exprs)) %>%
-        select(-inheritance_filter) %>%
+    select(-inheritance_filter) %>%
     unique() %>%
-        arrange(symbol, category, inheritance) %>%
-        group_by(symbol) %>%
-        mutate(inheritance = str_c(unique(inheritance), collapse = "; ")) %>%
-        mutate(category = str_c(unique(category), collapse = "; ")) %>%
-        ungroup() %>%
-        unique() %>%
+    arrange(symbol, category, inheritance) %>%
+    group_by(symbol) %>%
+    mutate(inheritance = str_c(unique(inheritance), collapse = "; ")) %>%
+    mutate(category = str_c(unique(category), collapse = "; ")) %>%
+    ungroup() %>%
+    unique() %>%
     arrange(!!!rlang::parse_exprs(sort_exprs))
 
   # select fields from table based on input using
@@ -414,7 +467,8 @@ generate_panels_list <- function(sort = "symbol",
   sysndd_db_disease_genes_panel <- select_tibble_fields(
     disease_genes_filter,
     fields,
-    "symbol")
+    "symbol"
+  )
 
   # use the helper generate_cursor_pag_inf to
   # generate cursor pagination information from a tibble
@@ -422,25 +476,30 @@ generate_panels_list <- function(sort = "symbol",
     sysndd_db_disease_genes_panel,
     `page_size`,
     `page_after`,
-    "symbol")
+    "symbol"
+  )
 
   # compute execution time
   end_time <- Sys.time()
-  execution_time <- as.character(paste0(round(end_time - start_time, 2),
-    " secs"))
+  execution_time <- as.character(paste0(
+    round(end_time - start_time, 2),
+    " secs"
+  ))
 
   # add columns to the meta information from
   # generate_cursor_pag_inf function return
   meta <- disease_genes_panel_pag_inf$meta %>%
-    add_column(as_tibble(list("sort" = sort,
+    add_column(as_tibble(list(
+      "sort" = sort,
       "filter" = filter,
       "fields" = fields,
-      "executionTime" = execution_time)))
+      "executionTime" = execution_time
+    )))
 
   # add host, port and other information to links from the
   # link information from generate_cursor_pag_inf function return
   links <- disease_genes_panel_pag_inf$links %>%
-      pivot_longer(everything(), names_to = "type", values_to = "link") %>%
+    pivot_longer(everything(), names_to = "type", values_to = "link") %>%
     mutate(link = case_when(
       link != "null" ~ paste0(
         dw$api_base_url,
@@ -448,20 +507,25 @@ generate_panels_list <- function(sort = "symbol",
         sort,
         ifelse(filter != "",
           paste0("&filter=", filter),
-          ""),
+          ""
+        ),
         ifelse(fields != "",
           paste0("&fields=", fields),
-          ""),
-        link),
+          ""
+        ),
+        link
+      ),
       link == "null" ~ "null"
     )) %>%
-      pivot_wider(id_cols = everything(), names_from = "type", values_from = "link")
+    pivot_wider(id_cols = everything(), names_from = "type", values_from = "link")
 
   # generate object to return
-  return_list <- list(links = links,
+  return_list <- list(
+    links = links,
     meta = meta,
     fields = fields_tibble,
-    data = disease_genes_panel_pag_inf$data)
+    data = disease_genes_panel_pag_inf$data
+  )
 
   # return the list
   return(return_list)
@@ -502,9 +566,11 @@ generate_panels_list <- function(sort = "symbol",
 #'
 #' @seealso https://www.tidyverse.org/ for more information on the tidyverse packages used in this function
 #' @seealso https://db.rstudio.com/pool/ for more information on the RStudio Pool package
-generate_stat_tibble <- function(sort = "category_id,-n",
+generate_stat_tibble <- function(
+  sort = "category_id,-n",
   type = "gene",
-  max_category = TRUE) {
+  max_category = TRUE
+) {
   # set start time
   start_time <- Sys.time()
 
@@ -520,20 +586,28 @@ generate_stat_tibble <- function(sort = "category_id,-n",
     filter(!(category_id %in% c(4, 5))) %>%
     collect() %>%
     arrange(entity_id) %>%
-    {if (type == "gene")
-      select(., symbol,
-        inheritance = hpo_mode_of_inheritance_term_name,
-        category,
-        category_id)
-     else .
-     } %>%
-    {if (type == "entity")
-      select(., entity_id,
-        inheritance = hpo_mode_of_inheritance_term_name,
-        category,
-        category_id)
-     else .
-     }
+    {
+      if (type == "gene") {
+        select(., symbol,
+          inheritance = hpo_mode_of_inheritance_term_name,
+          category,
+          category_id
+        )
+      } else {
+        .
+      }
+    } %>%
+    {
+      if (type == "entity") {
+        select(., entity_id,
+          inheritance = hpo_mode_of_inheritance_term_name,
+          category,
+          category_id
+        )
+      } else {
+        .
+      }
+    }
 
   # if max_category is true replace category in filter
   if (max_category) {
@@ -545,14 +619,20 @@ generate_stat_tibble <- function(sort = "category_id,-n",
 
     # following section computes the max category for a gene
     sysndd_db_disease_types <- sysndd_db_disease_types %>%
-        {if (type == "gene")
+      {
+        if (type == "gene") {
           group_by(., symbol)
-        else .
-        } %>%
-        {if (type == "entity")
+        } else {
+          .
+        }
+      } %>%
+      {
+        if (type == "entity") {
           group_by(., entity_id)
-        else .
-        } %>%
+        } else {
+          .
+        }
+      } %>%
       mutate(category_id = min(category_id)) %>%
       ungroup() %>%
       select(-category) %>%
@@ -591,7 +671,8 @@ generate_stat_tibble <- function(sort = "category_id,-n",
 
   disease_types_statistics <- disease_types_group_category %>%
     left_join(disease_types_group_cat_inh,
-     by = c("category")) %>%
+      by = c("category")
+    ) %>%
     select(-category_id)
 
   # get data for last entry from database as meta
@@ -605,19 +686,23 @@ generate_stat_tibble <- function(sort = "category_id,-n",
 
   # compute execution time
   end_time <- Sys.time()
-  execution_time <- as.character(paste0(round(end_time - start_time, 2),
-  " secs"))
+  execution_time <- as.character(paste0(
+    round(end_time - start_time, 2),
+    " secs"
+  ))
 
   # add columns to the meta information from generate
   # cursor_pagination_info function return
   meta <- as_tibble(list(
-      "last_update" = disease_entry_date_last$last_update,
-      "executionTime" = execution_time))
+    "last_update" = disease_entry_date_last$last_update,
+    "executionTime" = execution_time
+  ))
 
   # generate object to return
   return_list <- list(
     meta = meta,
-    data = disease_types_statistics)
+    data = disease_types_statistics
+  )
 
   # return the list
   return(return_list)

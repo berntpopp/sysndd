@@ -4,8 +4,8 @@
 #' Read and Combine Log Files into a Tibble
 #'
 #' @description
-#' `read_log_files` reads log files from a specified folder, combines them into a tibble, 
-#' and adds metadata including the filename and last modification time. It allows for 
+#' `read_log_files` reads log files from a specified folder, combines them into a tibble,
+#' and adds metadata including the filename and last modification time. It allows for
 #' customizable regular expressions, delimiters, quotes, and column names.
 #' The function performs the following operations:
 #' 1. Validates the folder path and the regular expression for file selection.
@@ -18,11 +18,11 @@
 #' @param regexp Regular expression pattern to match log file names. Default is "plumber_*".
 #' @param delim The field delimiter in the log files. Default is ";".
 #' @param quote The quoting character in the log files. Default is "'".
-#' @param col_names A comma-separated string of column names for the log files. 
+#' @param col_names A comma-separated string of column names for the log files.
 #'   Default includes standard log fields: "remote_addr,http_user_agent,http_host,
 #'   request_method,path_info,query_string,postbody,status,duration".
 #'
-#' @return A tibble where each row is a log entry, augmented with columns for the file name 
+#' @return A tibble where each row is a log entry, augmented with columns for the file name
 #'   and last modified time. The tibble is sorted by the last modification time in descending order.
 #'
 #' @examples
@@ -35,7 +35,7 @@
 #' )
 #'
 #' @export
-read_log_files <- function(folder_path, regexp = "plumber_*", delim = ";", quote = "'", 
+read_log_files <- function(folder_path, regexp = "plumber_*", delim = ";", quote = "'",
                            col_names = "remote_addr,http_user_agent,http_host,request_method,path_info,query_string,postbody,status,duration") {
   # Parameter Validation
   if (!dir.exists(folder_path)) {
@@ -59,28 +59,33 @@ read_log_files <- function(folder_path, regexp = "plumber_*", delim = ";", quote
 
   # Function to read a single log file and return a tibble
   read_log_file <- function(file_path) {
-    tryCatch({
-      file_name <- fs::path_file(file_path)
-      file_mod_time <- fs::file_info(file_path)$modification_time
+    tryCatch(
+      {
+        file_name <- fs::path_file(file_path)
+        file_mod_time <- fs::file_info(file_path)$modification_time
 
-      # Read the log file into a tibble with show_col_types set to FALSE
-      log_data <- read_delim(file_path, delim = delim, quote = quote, 
-                            escape_double = FALSE, col_names = FALSE, 
-                            trim_ws = TRUE, show_col_types = FALSE)
+        # Read the log file into a tibble with show_col_types set to FALSE
+        log_data <- read_delim(file_path,
+          delim = delim, quote = quote,
+          escape_double = FALSE, col_names = FALSE,
+          trim_ws = TRUE, show_col_types = FALSE
+        )
 
-      # Handle missing columns
-      if (ncol(log_data) != length(col_names_vec)) {
-        warning(sprintf("Column count mismatch in file '%s'", file_path))
+        # Handle missing columns
+        if (ncol(log_data) != length(col_names_vec)) {
+          warning(sprintf("Column count mismatch in file '%s'", file_path))
+          return(NULL)
+        }
+
+        # Assign column names
+        setNames(log_data, col_names_vec) %>%
+          mutate(filename = file_name, last_modified = file_mod_time)
+      },
+      error = function(e) {
+        warning(sprintf("Failed to read file '%s': %s", file_path, e$message))
         return(NULL)
       }
-
-      # Assign column names
-      setNames(log_data, col_names_vec) %>%
-        mutate(filename = file_name, last_modified = file_mod_time)
-    }, error = function(e) {
-      warning(sprintf("Failed to read file '%s': %s", file_path, e$message))
-      return(NULL)
-    })
+    )
   }
 
   # Read all files, combine into a single tibble, and sort by last_modified
@@ -88,11 +93,11 @@ read_log_files <- function(folder_path, regexp = "plumber_*", delim = ";", quote
     arrange(desc(last_modified))
 
   # Add a unique identifier (row number) as the first column
-  combined_logs <- combined_logs %>% 
+  combined_logs <- combined_logs %>%
     mutate(row_id = row_number())
 
   # Rearrange columns to move row_id to the first position
-  combined_logs <- combined_logs %>% 
+  combined_logs <- combined_logs %>%
     select(row_id, everything())
 
   return(combined_logs)
@@ -151,24 +156,27 @@ convert_empty <- function(string) {
 #'
 #' @export
 log_message_to_db <- function(address, agent, host, request_method, path, query, post, status, duration, file, modified) {
-  tryCatch({
-    # Use db_execute_statement for parameterized INSERT
-    sql <- "INSERT INTO logging (timestamp, address, agent, host, request_method, path, query, post, status, duration, file, modified) VALUES (NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+  tryCatch(
+    {
+      # Use db_execute_statement for parameterized INSERT
+      sql <- "INSERT INTO logging (timestamp, address, agent, host, request_method, path, query, post, status, duration, file, modified) VALUES (NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
-    db_execute_statement(sql, list(
-      address,
-      agent,
-      host,
-      request_method,
-      path,
-      query,
-      post,
-      status,
-      duration,
-      file,
-      as.character(modified)
-    ))
-  }, error = function(e) {
-    warning(sprintf("Failed to log message to database: %s", e$message))
-  })
+      db_execute_statement(sql, list(
+        address,
+        agent,
+        host,
+        request_method,
+        path,
+        query,
+        post,
+        status,
+        duration,
+        file,
+        as.character(modified)
+      ))
+    },
+    error = function(e) {
+      warning(sprintf("Failed to log message to database: %s", e$message))
+    }
+  )
 }

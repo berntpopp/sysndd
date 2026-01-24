@@ -4,9 +4,9 @@
 # original sysndd_plumber.R. It follows the Google R Style Guide
 # conventions where possible.
 
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 ## Publication endpoints
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 
 #* Fetch Publication by PMID
 #*
@@ -14,7 +14,7 @@
 #* Returns metadata: title, abstract, authors, etc.
 #*
 #* # `Details`
-#* Looks up the publication table for the matching PMID. 
+#* Looks up the publication table for the matching PMID.
 #* Returns metadata: title, abstract, authors, etc.
 #*
 #* # `Return`
@@ -84,7 +84,7 @@ function(req, res, pmid) {
 #* Queries the PubTator API for publications matching a set query. Allows pagination.
 #*
 #* # `Details`
-#* Returns a list of publication metadata (PMIDs, titles, etc.). 
+#* Returns a list of publication metadata (PMIDs, titles, etc.).
 #* Also returns meta (e.g., total pages).
 #*
 #* # `Return`
@@ -147,7 +147,7 @@ function(req, res, current_page = 1) {
 #* @param fields:str Comma-separated list of output columns (e.g. "publication_id,Title").
 #* @param page_after:str Cursor after which entries are shown. Defaults to 0.
 #* @param page_size:str Page size in cursor pagination. Defaults to "10".
-#* @param fspec:str Fields to generate field specification for. Defaults to 
+#* @param fspec:str Fields to generate field specification for. Defaults to
 #*   "publication_id,Title,Abstract,Lastname,Firstname,Publication_date,Journal,Keywords".
 #* @param format:str Format of output. Defaults to "json". Another example is "xlsx".
 #*
@@ -276,7 +276,7 @@ function(req,
 
 #* Get a Cursor-Pagination Object of All Rows from pubtator_search_cache
 #*
-#* This endpoint returns a cursor pagination object of all rows in the 
+#* This endpoint returns a cursor pagination object of all rows in the
 #* `pubtator_search_cache` table, supporting the usual query parameters:
 #* - sort
 #* - filter
@@ -290,11 +290,11 @@ function(req,
 #* @serializer json list(na="string")
 #*
 #* @param sort:str  Which columns to sort on, e.g. "search_id" or "pmid". Default "search_id".
-#* @param filter:str Comma-separated filters, e.g. "pmid=='123456'". 
+#* @param filter:str Comma-separated filters, e.g. "pmid=='123456'".
 #* @param fields:str Comma-separated columns, e.g. "search_id,pmid,date".
 #* @param page_after:str The cursor to start results after. Default "0".
 #* @param page_size:str How many rows per page. Default "10".
-#* @param fspec:str Comma-separated columns for field spec generation. 
+#* @param fspec:str Comma-separated columns for field spec generation.
 #*        Example: "search_id,pmid,date,score".
 #* @param format:str Output format, "json" or "xlsx". Default "json".
 #*
@@ -330,7 +330,7 @@ function(req,
   table_data <- select_tibble_fields(
     table_data,
     fields,
-    unique_id = "search_id"  # always include
+    unique_id = "search_id" # always include
   )
 
   # Cursor pagination
@@ -406,7 +406,7 @@ function(req,
 #* - `publication_count`: how many valid publication rows
 #* - `entities_count`: how many valid entity rows
 #*
-#* If the nested list-column has rows that are all NA in the key column 
+#* If the nested list-column has rows that are all NA in the key column
 #* (e.g. `entity_id` == NA), those get filtered out => count becomes 0.
 #*
 #* @tag publication
@@ -414,10 +414,10 @@ function(req,
 #*
 #* @param sort:str    Which columns to sort on, e.g. "gene_symbol".
 #* @param filter:str  Comma-separated filters, e.g. "gene_symbol=='BRCA1'".
-#* @param fields:str  Comma-separated columns to return 
+#* @param fields:str  Comma-separated columns to return
 #* @param page_after:str The cursor to start results after. Default "0".
 #* @param page_size:str  Page size. Default "10".
-#* @param fspec:str   Field spec for meta info. 
+#* @param fspec:str   Field spec for meta info.
 #* @param format:str  "json" or "xlsx". Default "json".
 #*
 #* @response 200 OK - a cursor-paginated list of nested gene rows
@@ -432,7 +432,6 @@ function(req,
          page_size = "10",
          fspec = "gene_name,gene_symbol,gene_normalized_id,hgnc_id,publication_count,entities_count,publications,entities",
          format = "json") {
-
   # 1) Set serializer
   res$serializer <- serializers[[format]]
 
@@ -440,7 +439,7 @@ function(req,
   start_time <- Sys.time()
 
   # 3) Generate sort/filter expressions
-  sort_exprs   <- generate_sort_expressions(sort, unique_id = "gene_symbol")
+  sort_exprs <- generate_sort_expressions(sort, unique_id = "gene_symbol")
   filter_exprs <- generate_filter_expressions(filter)
 
   # 4) Fetch from DB => apply filter & sorting
@@ -454,18 +453,16 @@ function(req,
 
   # 5) Nest the data => one row per gene
   df_nested <- nest_pubtator_gene_tibble_mem(df_filtered)
-  
+
   # 6) Add publication_count & entities_count
   #    For publications, we check `pmid` is non-NA.
   #    For entities, we check `entity_id` is non-NA.
   df_counts <- df_nested %>%
     mutate(
       publication_count = purrr::map_int(publications, ~
-        dplyr::filter(.x, !is.na(pmid)) %>% nrow()
-      ),
+        dplyr::filter(.x, !is.na(pmid)) %>% nrow()),
       entities_count = purrr::map_int(entities, ~
-        dplyr::filter(.x, !is.na(entity_id)) %>% nrow()
-      )
+        dplyr::filter(.x, !is.na(entity_id)) %>% nrow())
     )
 
   # 7) Field selection

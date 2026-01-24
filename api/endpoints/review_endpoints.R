@@ -4,12 +4,12 @@
 # sysndd_plumber.R. It follows the Google R Style Guide conventions where
 # possible (e.g., two-space indentation, meaningful function names, etc.).
 #
-# Make sure to source any required helpers if needed (e.g., 
+# Make sure to source any required helpers if needed (e.g.,
 # source("functions/database-functions.R", local = TRUE)).
 
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 ## Review endpoints
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 
 #* Get Review List
 #*
@@ -175,7 +175,7 @@ function(req, res, filter_review_approved = FALSE) {
 #* Handles creating or updating a clinical synopsis for a specified entity ID.
 #*
 #* # `Details`
-#* POST to create a new review, PUT to update an existing one. 
+#* POST to create a new review, PUT to update an existing one.
 #* Also handles publications, phenotypes, variation ontology.
 #*
 #* # `Return`
@@ -186,7 +186,7 @@ function(req, res, filter_review_approved = FALSE) {
 #*
 #* @param re_review Boolean: indicates if it's a re-review scenario.
 #*
-#* @response 200 OK. 
+#* @response 200 OK.
 #* @response 400 Bad Request if synopsis data is empty.
 #* @response 403 Forbidden if no write access.
 #* @response 405 Method Not Allowed for invalid HTTP method.
@@ -200,191 +200,189 @@ function(req, res, re_review = FALSE) {
   review_user_id <- req$user_id
   review_data <- req$argsBody$review_json
 
-    if (!is.null(review_data$synopsis) &&
-        !is.null(review_data$entity_id) &&
-        nchar(review_data$synopsis) > 0) {
+  if (!is.null(review_data$synopsis) &&
+    !is.null(review_data$entity_id) &&
+    nchar(review_data$synopsis) > 0) {
+    # Publications
+    if (length(compact(review_data$literature)) > 0) {
+      publications_received <- bind_rows(
+        tibble::as_tibble(compact(review_data$literature$additional_references)),
+        tibble::as_tibble(compact(review_data$literature$gene_review)),
+        .id = "publication_type"
+      ) %>%
+        dplyr::select(publication_id = value, publication_type) %>%
+        mutate(
+          publication_type = case_when(
+            publication_type == 1 ~ "additional_references",
+            publication_type == 2 ~ "gene_review"
+          )
+        ) %>%
+        unique() %>%
+        arrange(publication_id) %>%
+        mutate(publication_id = str_replace_all(publication_id, "\\s", "")) %>%
+        rowwise() %>%
+        mutate(gr_check = genereviews_from_pmid(publication_id, check = TRUE)) %>%
+        ungroup() %>%
+        mutate(
+          publication_type = case_when(
+            publication_type == "additional_references" & gr_check ~ "gene_review",
+            publication_type == "gene_review" & !gr_check ~ "additional_references",
+            TRUE ~ publication_type
+          )
+        ) %>%
+        dplyr::select(-gr_check)
+    } else {
+      publications_received <- tibble::as_tibble_row(
+        c(publication_id = NA, publication_type = NA)
+      )
+    }
+
+    # Synopsis
+    if (!is.null(review_data$comment)) {
+      sysnopsis_received <- tibble::as_tibble(review_data$synopsis) %>%
+        add_column(review_data$entity_id) %>%
+        add_column(review_data$comment) %>%
+        add_column(review_user_id) %>%
+        dplyr::select(
+          entity_id = `review_data$entity_id`,
+          synopsis = value,
+          review_user_id,
+          comment = `review_data$comment`
+        )
+    } else {
+      sysnopsis_received <- tibble::as_tibble(review_data$synopsis) %>%
+        add_column(review_data$entity_id) %>%
+        add_column(review_user_id) %>%
+        dplyr::select(
+          entity_id = `review_data$entity_id`,
+          synopsis = value,
+          review_user_id,
+          comment = NULL
+        )
+    }
+
+    # phenotypes
+    phenotypes_received <- tibble::as_tibble(review_data$phenotypes)
+    # variation ontology
+    variation_received <- tibble::as_tibble(review_data$variation_ontology)
+
+    # Check request method (POST -> new review, PUT -> update existing)
+    if (req$REQUEST_METHOD == "POST") {
+      response_review <- put_post_db_review(
+        req$REQUEST_METHOD,
+        sysnopsis_received,
+        re_review
+      )
+
       # Publications
       if (length(compact(review_data$literature)) > 0) {
-        publications_received <- bind_rows(
-          tibble::as_tibble(compact(review_data$literature$additional_references)),
-          tibble::as_tibble(compact(review_data$literature$gene_review)),
-          .id = "publication_type"
-        ) %>%
-          dplyr::select(publication_id = value, publication_type) %>%
-          mutate(
-            publication_type = case_when(
-              publication_type == 1 ~ "additional_references",
-              publication_type == 2 ~ "gene_review"
-            )
-          ) %>%
-          unique() %>%
-          arrange(publication_id) %>%
-          mutate(publication_id = str_replace_all(publication_id, "\\s", "")) %>%
-          rowwise() %>%
-          mutate(gr_check = genereviews_from_pmid(publication_id, check = TRUE)) %>%
-          ungroup() %>%
-          mutate(
-            publication_type = case_when(
-              publication_type == "additional_references" & gr_check ~ "gene_review",
-              publication_type == "gene_review" & !gr_check ~ "additional_references",
-              TRUE ~ publication_type
-            )
-          ) %>%
-          dplyr::select(-gr_check)
-      } else {
-        publications_received <- tibble::as_tibble_row(
-          c(publication_id = NA, publication_type = NA)
-        )
-      }
-
-      # Synopsis
-      if (!is.null(review_data$comment)) {
-        sysnopsis_received <- tibble::as_tibble(review_data$synopsis) %>%
-          add_column(review_data$entity_id) %>%
-          add_column(review_data$comment) %>%
-          add_column(review_user_id) %>%
-          dplyr::select(
-            entity_id = `review_data$entity_id`,
-            synopsis = value,
-            review_user_id,
-            comment = `review_data$comment`
-          )
-      } else {
-        sysnopsis_received <- tibble::as_tibble(review_data$synopsis) %>%
-          add_column(review_data$entity_id) %>%
-          add_column(review_user_id) %>%
-          dplyr::select(
-            entity_id = `review_data$entity_id`,
-            synopsis = value,
-            review_user_id,
-            comment = NULL
-          )
-      }
-
-      # phenotypes
-      phenotypes_received <- tibble::as_tibble(review_data$phenotypes)
-      # variation ontology
-      variation_received <- tibble::as_tibble(review_data$variation_ontology)
-
-      # Check request method (POST -> new review, PUT -> update existing)
-      if (req$REQUEST_METHOD == "POST") {
-        response_review <- put_post_db_review(
+        response_publication <- new_publication(publications_received)
+        response_publication_conn <- put_post_db_pub_con(
           req$REQUEST_METHOD,
-          sysnopsis_received,
-          re_review
+          publications_received,
+          as.integer(sysnopsis_received$entity_id),
+          as.integer(response_review$entry$review_id)
         )
-
-        # Publications
-        if (length(compact(review_data$literature)) > 0) {
-          response_publication <- new_publication(publications_received)
-          response_publication_conn <- put_post_db_pub_con(
-            req$REQUEST_METHOD,
-            publications_received,
-            as.integer(sysnopsis_received$entity_id),
-            as.integer(response_review$entry$review_id)
-          )
-        } else {
-          response_publication <- list(status = 200, message = "OK. Skipped.")
-          response_publication_conn <- list(status = 200, message = "OK. Skipped.")
-        }
-
-        # Phenotypes
-        if (length(compact(phenotypes_received)) > 0) {
-          response_phenotype_connections <- put_post_db_phen_con(
-            req$REQUEST_METHOD,
-            phenotypes_received,
-            as.integer(sysnopsis_received$entity_id),
-            as.integer(response_review$entry$review_id)
-          )
-        } else {
-          response_phenotype_connections <- list(status = 200, message = "OK. Skipped.")
-        }
-
-        # Variation
-        if (length(compact(variation_received)) > 0) {
-          resp_variation_ontology_conn <- put_post_db_var_ont_con(
-            req$REQUEST_METHOD,
-            variation_received,
-            as.integer(sysnopsis_received$entity_id),
-            as.integer(response_review$entry$review_id)
-          )
-        } else {
-          resp_variation_ontology_conn <- list(status = 200, message = "OK. Skipped.")
-        }
-
-        # Summarize response
-        response <- tibble::as_tibble(response_publication) %>%
-          bind_rows(tibble::as_tibble(response_review)) %>%
-          bind_rows(tibble::as_tibble(response_publication_conn)) %>%
-          bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
-          bind_rows(tibble::as_tibble(resp_variation_ontology_conn)) %>%
-          dplyr::select(status, message) %>%
-          unique() %>%
-          mutate(status = max(status)) %>%
-          mutate(message = str_c(message, collapse = "; "))
-        return(list(status = response$status, message = response$message))
-
-      } else if (req$REQUEST_METHOD == "PUT") {
-        sysnopsis_received$review_id <- review_data$review_id
-        response_review <- put_post_db_review(
-          req$REQUEST_METHOD,
-          sysnopsis_received,
-          re_review
-        )
-
-        if (length(compact(review_data$literature)) > 0) {
-          response_publication <- new_publication(publications_received)
-          response_publication_conn <- put_post_db_pub_con(
-            req$REQUEST_METHOD,
-            publications_received,
-            sysnopsis_received$entity_id,
-            review_data$review_id
-          )
-        } else {
-          response_publication <- list(status = 200, message = "OK. Skipped.")
-          response_publication_conn <- list(status = 200, message = "OK. Skipped.")
-        }
-
-        if (length(compact(phenotypes_received)) > 0) {
-          response_phenotype_connections <- put_post_db_phen_con(
-            req$REQUEST_METHOD,
-            phenotypes_received,
-            as.integer(sysnopsis_received$entity_id),
-            as.integer(review_data$review_id)
-          )
-        } else {
-          response_phenotype_connections <- list(status = 200, message = "OK. Skipped.")
-        }
-
-        if (length(compact(variation_received)) > 0) {
-          resp_variation_ontology_conn <- put_post_db_var_ont_con(
-            req$REQUEST_METHOD,
-            variation_received,
-            as.integer(sysnopsis_received$entity_id),
-            as.integer(review_data$review_id)
-          )
-        } else {
-          resp_variation_ontology_conn <- list(status = 200, message = "OK. Skipped.")
-        }
-
-        response <- tibble::as_tibble(response_publication) %>%
-          bind_rows(tibble::as_tibble(response_review)) %>%
-          bind_rows(tibble::as_tibble(response_publication_conn)) %>%
-          bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
-          bind_rows(tibble::as_tibble(resp_variation_ontology_conn)) %>%
-          dplyr::select(status, message) %>%
-          unique() %>%
-          mutate(status = max(status)) %>%
-          mutate(message = str_c(message, collapse = "; "))
-        return(list(status = response$status, message = response$message))
-
       } else {
-        return(list(status = 405, message = "Method Not Allowed."))
+        response_publication <- list(status = 200, message = "OK. Skipped.")
+        response_publication_conn <- list(status = 200, message = "OK. Skipped.")
       }
+
+      # Phenotypes
+      if (length(compact(phenotypes_received)) > 0) {
+        response_phenotype_connections <- put_post_db_phen_con(
+          req$REQUEST_METHOD,
+          phenotypes_received,
+          as.integer(sysnopsis_received$entity_id),
+          as.integer(response_review$entry$review_id)
+        )
+      } else {
+        response_phenotype_connections <- list(status = 200, message = "OK. Skipped.")
+      }
+
+      # Variation
+      if (length(compact(variation_received)) > 0) {
+        resp_variation_ontology_conn <- put_post_db_var_ont_con(
+          req$REQUEST_METHOD,
+          variation_received,
+          as.integer(sysnopsis_received$entity_id),
+          as.integer(response_review$entry$review_id)
+        )
+      } else {
+        resp_variation_ontology_conn <- list(status = 200, message = "OK. Skipped.")
+      }
+
+      # Summarize response
+      response <- tibble::as_tibble(response_publication) %>%
+        bind_rows(tibble::as_tibble(response_review)) %>%
+        bind_rows(tibble::as_tibble(response_publication_conn)) %>%
+        bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
+        bind_rows(tibble::as_tibble(resp_variation_ontology_conn)) %>%
+        dplyr::select(status, message) %>%
+        unique() %>%
+        mutate(status = max(status)) %>%
+        mutate(message = str_c(message, collapse = "; "))
+      return(list(status = response$status, message = response$message))
+    } else if (req$REQUEST_METHOD == "PUT") {
+      sysnopsis_received$review_id <- review_data$review_id
+      response_review <- put_post_db_review(
+        req$REQUEST_METHOD,
+        sysnopsis_received,
+        re_review
+      )
+
+      if (length(compact(review_data$literature)) > 0) {
+        response_publication <- new_publication(publications_received)
+        response_publication_conn <- put_post_db_pub_con(
+          req$REQUEST_METHOD,
+          publications_received,
+          sysnopsis_received$entity_id,
+          review_data$review_id
+        )
+      } else {
+        response_publication <- list(status = 200, message = "OK. Skipped.")
+        response_publication_conn <- list(status = 200, message = "OK. Skipped.")
+      }
+
+      if (length(compact(phenotypes_received)) > 0) {
+        response_phenotype_connections <- put_post_db_phen_con(
+          req$REQUEST_METHOD,
+          phenotypes_received,
+          as.integer(sysnopsis_received$entity_id),
+          as.integer(review_data$review_id)
+        )
+      } else {
+        response_phenotype_connections <- list(status = 200, message = "OK. Skipped.")
+      }
+
+      if (length(compact(variation_received)) > 0) {
+        resp_variation_ontology_conn <- put_post_db_var_ont_con(
+          req$REQUEST_METHOD,
+          variation_received,
+          as.integer(sysnopsis_received$entity_id),
+          as.integer(review_data$review_id)
+        )
+      } else {
+        resp_variation_ontology_conn <- list(status = 200, message = "OK. Skipped.")
+      }
+
+      response <- tibble::as_tibble(response_publication) %>%
+        bind_rows(tibble::as_tibble(response_review)) %>%
+        bind_rows(tibble::as_tibble(response_publication_conn)) %>%
+        bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
+        bind_rows(tibble::as_tibble(resp_variation_ontology_conn)) %>%
+        dplyr::select(status, message) %>%
+        unique() %>%
+        mutate(status = max(status)) %>%
+        mutate(message = str_c(message, collapse = "; "))
+      return(list(status = response$status, message = response$message))
     } else {
-      res$status <- 400
-      return(list(error = "Submitted synopsis data can not be empty."))
+      return(list(status = 405, message = "Method Not Allowed."))
     }
+  } else {
+    res$status <- 400
+    return(list(error = "Submitted synopsis data can not be empty."))
+  }
 }
 
 

@@ -20,16 +20,20 @@ function(req, res) {
 
   if (commit == "") {
     # Try to get commit from git command (development environment)
-    tryCatch({
-      commit <- system2("git", c("rev-parse", "--short", "HEAD"),
-                       stdout = TRUE, stderr = FALSE)
-      # system2 returns character(0) if git not available
-      if (length(commit) == 0 || commit == "") {
-        commit <- "unknown"
+    tryCatch(
+      {
+        commit <- system2("git", c("rev-parse", "--short", "HEAD"),
+          stdout = TRUE, stderr = FALSE
+        )
+        # system2 returns character(0) if git not available
+        if (length(commit) == 0 || commit == "") {
+          commit <- "unknown"
+        }
+      },
+      error = function(e) {
+        commit <<- "unknown"
       }
-    }, error = function(e) {
-      commit <<- "unknown"
-    })
+    )
   }
 
   list(

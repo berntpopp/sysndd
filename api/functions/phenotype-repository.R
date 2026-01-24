@@ -73,7 +73,8 @@ phenotype_validate_ids <- function(phenotype_ids) {
 
   if (length(invalid_ids) > 0) {
     log_warn("Phenotype validation failed: {length(invalid_ids)} invalid IDs",
-             invalid_ids = paste(invalid_ids, collapse = ", "))
+      invalid_ids = paste(invalid_ids, collapse = ", ")
+    )
 
     rlang::abort(
       message = paste0(

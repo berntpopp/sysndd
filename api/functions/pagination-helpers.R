@@ -12,7 +12,7 @@
 #   - generate_cursor_pag_inf_safe: Safe wrapper with max limit enforcement
 
 # Global configuration constant
-PAGINATION_MAX_SIZE <- 500  # PAG-02 requirement
+PAGINATION_MAX_SIZE <- 500 # PAG-02 requirement
 
 #' Validate Page Size
 #'

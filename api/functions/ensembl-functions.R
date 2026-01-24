@@ -40,14 +40,14 @@ gene_coordinates_from_symbol <- function(gene_symbols, reference = "hg19") {
 
   values <- list(hgnc_symbol = gene_symbol_list$hgnc_symbol)
 
-  gene_coordinates_hg19 <- getBM(attributes=attributes, filters=filters, values=values, mart=mart) %>%
+  gene_coordinates_hg19 <- getBM(attributes = attributes, filters = filters, values = values, mart = mart) %>%
     group_by(hgnc_symbol) %>%
     summarise(hgnc_symbol = max(hgnc_symbol), chromosome_name = max(chromosome_name), start_position = max(start_position), end_position = max(end_position)) %>%
     mutate(bed_format = paste0("chr", chromosome_name, ":", start_position, "-", end_position)) %>%
     dplyr::select(hgnc_symbol, bed_format)
 
   gene_symbol_list_return <- gene_symbol_list %>%
-  left_join(gene_coordinates_hg19, by = ("hgnc_symbol"))
+    left_join(gene_coordinates_hg19, by = ("hgnc_symbol"))
 
   return(gene_symbol_list_return)
 }
@@ -92,14 +92,14 @@ gene_coordinates_from_ensembl <- function(ensembl_id, reference = "hg19") {
 
   values <- list(ensembl_gene_id = ensembl_id_list$ensembl_gene_id)
 
-  gene_coordinates_hg19 <- getBM(attributes=attributes, filters=filters, values=values, mart=mart) %>%
+  gene_coordinates_hg19 <- getBM(attributes = attributes, filters = filters, values = values, mart = mart) %>%
     group_by(ensembl_gene_id) %>%
     summarise(ensembl_gene_id = max(ensembl_gene_id), chromosome_name = max(chromosome_name), start_position = max(start_position), end_position = max(end_position)) %>%
     mutate(bed_format = paste0("chr", chromosome_name, ":", start_position, "-", end_position)) %>%
     dplyr::select(ensembl_gene_id, bed_format)
 
   ensembl_id_list_return <- ensembl_id_list %>%
-  left_join(gene_coordinates_hg19, by = ("ensembl_gene_id"))
+    left_join(gene_coordinates_hg19, by = ("ensembl_gene_id"))
 
   return(ensembl_id_list_return)
 }
@@ -124,15 +124,18 @@ gene_coordinates_from_ensembl <- function(ensembl_id, reference = "hg19") {
 gene_id_version_from_ensembl <- function(ensembl_id, reference = "hg19") {
   ensembl_id_list <- enframe(ensembl_id,
     name = NULL,
-    value = "ensembl_gene_id")
+    value = "ensembl_gene_id"
+  )
 
   # Define mart
   if (reference == "hg19") {
     mart <- useMart("ensembl",
-      dataset = "hsapiens_gene_ensembl", host = "grch37.ensembl.org")
+      dataset = "hsapiens_gene_ensembl", host = "grch37.ensembl.org"
+    )
   } else {
     mart <- useMart("ensembl",
-      dataset = "hsapiens_gene_ensembl", host = "ensembl.org")
+      dataset = "hsapiens_gene_ensembl", host = "ensembl.org"
+    )
   }
 
   # Define the attributes and filters
@@ -140,8 +143,10 @@ gene_id_version_from_ensembl <- function(ensembl_id, reference = "hg19") {
   filters <- "ensembl_gene_id"
 
   # Retrieve the data
-  gene_id_version <- getBM(attributes = attributes, filters = filters,
-    values = ensembl_id_list$ensembl_gene_id, mart = mart)
+  gene_id_version <- getBM(
+    attributes = attributes, filters = filters,
+    values = ensembl_id_list$ensembl_gene_id, mart = mart
+  )
 
   # Join the data back to the input list to ensure all input IDs are in the output
   ensembl_id_list_return <- ensembl_id_list %>%

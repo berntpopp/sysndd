@@ -1,7 +1,7 @@
 # functions/ontology-functions.R
 
 require(ontologyIndex) # Needed to read ontology files
-require(tidyverse)     # For data manipulation
+require(tidyverse) # For data manipulation
 
 # Source OMIM and MONDO functions for new data source workflow
 # Uses conditional sourcing for portability (Plumber vs standalone execution)
@@ -49,18 +49,22 @@ identify_critical_ontology_changes <- function(disease_ontology_set_update, dise
   # Add columns for logic checks in the updated set
   disease_ontology_set_update_extra <- disease_ontology_set_update %>%
     select(disease_ontology_id_version, disease_ontology_id, hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_name) %>%
-    mutate(id_hgnc_hpo = paste0(disease_ontology_id, "_", hgnc_id, "_", hpo_mode_of_inheritance_term),
-           name_hgnc_hpo = paste0(disease_ontology_name, "_", hgnc_id, "_", hpo_mode_of_inheritance_term),
-           has_id_version = str_detect(disease_ontology_id_version, "_")) %>%
+    mutate(
+      id_hgnc_hpo = paste0(disease_ontology_id, "_", hgnc_id, "_", hpo_mode_of_inheritance_term),
+      name_hgnc_hpo = paste0(disease_ontology_name, "_", hgnc_id, "_", hpo_mode_of_inheritance_term),
+      has_id_version = str_detect(disease_ontology_id_version, "_")
+    ) %>%
     group_by(disease_ontology_id) %>%
     mutate(id_same_name = length(unique(disease_ontology_name))) %>%
     ungroup()
 
   # Add columns for logic checks in the current set
   disease_ontology_set_current <- disease_ontology_set %>%
-    mutate(id_hgnc_hpo = paste0(disease_ontology_id, "_", hgnc_id, "_", hpo_mode_of_inheritance_term),
-           name_hgnc_hpo = paste0(disease_ontology_name, "_", hgnc_id, "_", hpo_mode_of_inheritance_term),
-           has_id_version = str_detect(disease_ontology_id_version, "_")) %>%
+    mutate(
+      id_hgnc_hpo = paste0(disease_ontology_id, "_", hgnc_id, "_", hpo_mode_of_inheritance_term),
+      name_hgnc_hpo = paste0(disease_ontology_name, "_", hgnc_id, "_", hpo_mode_of_inheritance_term),
+      has_id_version = str_detect(disease_ontology_id_version, "_")
+    ) %>%
     group_by(disease_ontology_id) %>%
     mutate(id_same_name = length(unique(disease_ontology_name))) %>%
     ungroup()
@@ -78,23 +82,27 @@ identify_critical_ontology_changes <- function(disease_ontology_set_update, dise
   # - check_id_fingerprint: (id + hgnc + inheritance) fingerprint match
   # - check_name_fingerprint: (name + hgnc + inheritance) fingerprint match
   disease_ontology_set_current_used_check <- disease_ontology_set_current_used %>%
-    mutate(check_ontology_id_version = disease_ontology_id_version %in% disease_ontology_set_update_extra$disease_ontology_id_version,
-           check_ontology_name = disease_ontology_name %in% disease_ontology_set_update_extra$disease_ontology_name,
-           check_id_fingerprint = id_hgnc_hpo %in% disease_ontology_set_update_extra$id_hgnc_hpo,
-           check_name_fingerprint = name_hgnc_hpo %in% disease_ontology_set_update_extra$name_hgnc_hpo)
+    mutate(
+      check_ontology_id_version = disease_ontology_id_version %in% disease_ontology_set_update_extra$disease_ontology_id_version,
+      check_ontology_name = disease_ontology_name %in% disease_ontology_set_update_extra$disease_ontology_name,
+      check_id_fingerprint = id_hgnc_hpo %in% disease_ontology_set_update_extra$id_hgnc_hpo,
+      check_name_fingerprint = name_hgnc_hpo %in% disease_ontology_set_update_extra$name_hgnc_hpo
+    )
 
   disease_ontology_set_current_used_check_filter <- disease_ontology_set_current_used_check %>%
     filter(!check_ontology_id_version | !check_ontology_name)
 
   # Compute if a mismatch is critical or not
   critical <- disease_ontology_set_current_used_check_filter %>%
-    mutate(critical = case_when(
-      !has_id_version & check_ontology_id_version & !check_ontology_name ~ FALSE,
-      has_id_version & check_ontology_id_version & !check_ontology_name & id_same_name == 1 ~ FALSE,
-      TRUE ~ TRUE
-    ),
-    automatic_assignment_version = !check_ontology_id_version & !check_ontology_name & check_id_fingerprint,
-    automatic_assignment_name = !check_ontology_id_version & check_ontology_name) %>%
+    mutate(
+      critical = case_when(
+        !has_id_version & check_ontology_id_version & !check_ontology_name ~ FALSE,
+        has_id_version & check_ontology_id_version & !check_ontology_name & id_same_name == 1 ~ FALSE,
+        TRUE ~ TRUE
+      ),
+      automatic_assignment_version = !check_ontology_id_version & !check_ontology_name & check_id_fingerprint,
+      automatic_assignment_name = !check_ontology_id_version & check_ontology_name
+    ) %>%
     filter(critical)
 
   return(critical)
@@ -170,7 +178,7 @@ process_combine_ontology <- function(hgnc_list, mode_of_inheritance_list, max_fi
         DOID = ifelse(all(is.na(DOID)), NA, paste0(na.omit(unique(DOID)), collapse = ";")),
         Orphanet = ifelse(all(is.na(Orphanet)), NA, paste0(na.omit(unique(Orphanet)), collapse = ";")),
         EFO = ifelse(all(is.na(EFO)), NA, paste0(na.omit(unique(EFO)), collapse = ";")),
-        .groups = 'drop'
+        .groups = "drop"
       )
 
     # Combine data
@@ -239,7 +247,7 @@ get_mondo_mappings <- function(mondo_ontology, max_age = 1, output_path = "data/
 
     mappings_tibble <- all_terms_tibble_mapping %>%
       unnest(mappings) %>%
-      mutate(ontology = str_split(mappings, ":", simplify = TRUE)[,1]) %>%
+      mutate(ontology = str_split(mappings, ":", simplify = TRUE)[, 1]) %>%
       pivot_wider(names_from = ontology, values_from = mappings, values_fn = function(x) paste(x, collapse = ";"))
 
     # Save the result as a CSV file
@@ -270,7 +278,6 @@ get_mondo_mappings <- function(mondo_ontology, max_age = 1, output_path = "data/
 #'
 #' @export
 process_mondo_ontology <- function(mondo_file = "data/mondo_terms/mondo_terms.txt") {
-
   # Get current date in YYYY-MM-DD format
   mondo_file_date <- format(Sys.Date(), "%Y-%m-%d")
 
@@ -396,10 +403,11 @@ process_omim_ontology <- function(hgnc_list, moi_list, max_file_age = 3, progres
 get_ontology_object <- function(ontology_type, config_vars, tags = "everything", max_age = 1) {
   # Determine file prefix based on ontology type
   file_prefix <- switch(ontology_type,
-                        "hpo" = "hpo_obo",
-                        "mpo" = "mpo_obo",
-                        "mondo" = "mondo_obo",
-                        stop("Invalid ontology type"))
+    "hpo" = "hpo_obo",
+    "mpo" = "mpo_obo",
+    "mondo" = "mondo_obo",
+    stop("Invalid ontology type")
+  )
 
   # Check if the current ontology file is older than max_age
   if (check_file_age(file_prefix, config_vars$download_path, max_age)) {

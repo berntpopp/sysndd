@@ -214,197 +214,197 @@ function(req, res, direct_approval = FALSE) {
   # Block to post new entity
   response_entity <- post_db_entity(create_data$entity)
 
-    if (response_entity$status == 200) {
-      # Prepare data for review
-      if (length(compact(create_data$review$literature)) > 0) {
-        publications_received <- bind_rows(
-          tibble::as_tibble(compact(
-            create_data$review$literature$additional_references
-          )),
-          tibble::as_tibble(compact(
-            create_data$review$literature$gene_review
-          )),
-          .id = "publication_type"
+  if (response_entity$status == 200) {
+    # Prepare data for review
+    if (length(compact(create_data$review$literature)) > 0) {
+      publications_received <- bind_rows(
+        tibble::as_tibble(compact(
+          create_data$review$literature$additional_references
+        )),
+        tibble::as_tibble(compact(
+          create_data$review$literature$gene_review
+        )),
+        .id = "publication_type"
+      ) %>%
+        dplyr::select(publication_id = value, publication_type) %>%
+        mutate(
+          publication_type = case_when(
+            publication_type == 1 ~ "additional_references",
+            publication_type == 2 ~ "gene_review"
+          )
         ) %>%
-          dplyr::select(publication_id = value, publication_type) %>%
-          mutate(
-            publication_type = case_when(
-              publication_type == 1 ~ "additional_references",
-              publication_type == 2 ~ "gene_review"
-            )
-          ) %>%
-          unique() %>%
-          arrange(publication_id) %>%
-          mutate(publication_id = str_replace_all(publication_id, "\\s", "")) %>%
-          rowwise() %>%
-          mutate(gr_check = genereviews_from_pmid(publication_id, check = TRUE)) %>%
-          ungroup() %>%
-          mutate(
-            publication_type = case_when(
-              publication_type == "additional_references" & gr_check ~ "gene_review",
-              publication_type == "gene_review" & !gr_check ~ "additional_references",
-              TRUE ~ publication_type
-            )
-          ) %>%
-          dplyr::select(-gr_check)
-      } else {
-        publications_received <- tibble::as_tibble_row(c(
-          publication_id = NA, publication_type = NA
-        ))
-      }
-
-      if (!is.null(create_data$review$comment)) {
-        sysnopsis_received <- tibble::as_tibble(create_data$review$synopsis) %>%
-          add_column(response_entity$entry$entity_id) %>%
-          add_column(create_data$review$comment) %>%
-          add_column(review_user_id) %>%
-          dplyr::select(
-            entity_id = `response_entity$entry$entity_id`,
-            synopsis = value,
-            review_user_id,
-            comment = `create_data$review$comment`
+        unique() %>%
+        arrange(publication_id) %>%
+        mutate(publication_id = str_replace_all(publication_id, "\\s", "")) %>%
+        rowwise() %>%
+        mutate(gr_check = genereviews_from_pmid(publication_id, check = TRUE)) %>%
+        ungroup() %>%
+        mutate(
+          publication_type = case_when(
+            publication_type == "additional_references" & gr_check ~ "gene_review",
+            publication_type == "gene_review" & !gr_check ~ "additional_references",
+            TRUE ~ publication_type
           )
-      } else {
-        sysnopsis_received <- tibble::as_tibble(create_data$review$synopsis) %>%
-          add_column(response_entity$entry$entity_id) %>%
-          add_column(review_user_id) %>%
-          dplyr::select(
-            entity_id = `response_entity$entry$entity_id`,
-            synopsis = value,
-            review_user_id,
-            comment = NULL
-          )
-      }
-
-      phenotypes_received <- tibble::as_tibble(create_data$review$phenotypes)
-      variation_ontology_received <- tibble::as_tibble(
-        create_data$review$variation_ontology
-      )
-
-      # Use put_post_db_review to add the review
-      response_review <- put_post_db_review("POST", sysnopsis_received)
-
-      # Submit publications if not empty
-      if (length(compact(create_data$review$literature)) > 0) {
-        response_publication <- new_publication(publications_received)
-        response_publication_conn <- put_post_db_pub_con(
-          "POST",
-          publications_received,
-          as.integer(sysnopsis_received$entity_id),
-          as.integer(response_review$entry$review_id)
-        )
-      } else {
-        response_publication <- list(status = 200, message = "OK. Skipped.")
-        response_publication_conn <- list(status = 200, message = "OK. Skipped.")
-      }
-
-      # Submit phenotype connections if not empty
-      if (length(compact(create_data$review$phenotypes)) > 0) {
-        response_phenotype_connections <- put_post_db_phen_con(
-          "POST",
-          phenotypes_received,
-          as.integer(sysnopsis_received$entity_id),
-          as.integer(response_review$entry$review_id)
-        )
-      } else {
-        response_phenotype_connections <- list(status = 200, message = "OK. Skipped.")
-      }
-
-      # Submit variation ontology if not empty
-      if (length(compact(create_data$review$variation_ontology)) > 0) {
-        resp_variation_ontology_conn <- put_post_db_var_ont_con(
-          "POST",
-          variation_ontology_received,
-          as.integer(sysnopsis_received$entity_id),
-          as.integer(response_review$entry$review_id)
-        )
-      } else {
-        resp_variation_ontology_conn <- list(status = 200, message = "OK. Skipped.")
-      }
-
-      if (direct_approval) {
-        response_review_approve <- put_db_review_approve(
-          response_review$entry$review_id,
-          review_user_id,
-          TRUE
-        )
-      }
-
-      response_review_post <- tibble::as_tibble(response_publication) %>%
-        bind_rows(tibble::as_tibble(response_review)) %>%
-        bind_rows(tibble::as_tibble(response_publication_conn)) %>%
-        bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
-        bind_rows(tibble::as_tibble(resp_variation_ontology_conn)) %>%
-        dplyr::select(status, message) %>%
-        mutate(status = max(status)) %>%
-        mutate(message = str_c(message, collapse = "; ")) %>%
-        unique()
+        ) %>%
+        dplyr::select(-gr_check)
     } else {
-      res$status <- response_entity$status
-      return(list(
-        status = response_entity$status,
-        message = response_entity$message,
-        error = response_entity$error
+      publications_received <- tibble::as_tibble_row(c(
+        publication_id = NA, publication_type = NA
       ))
     }
 
-    if (response_entity$status == 200 && response_review_post$status == 200) {
-      create_data$status <- tibble::as_tibble(create_data$status) %>%
+    if (!is.null(create_data$review$comment)) {
+      sysnopsis_received <- tibble::as_tibble(create_data$review$synopsis) %>%
         add_column(response_entity$entry$entity_id) %>%
-        add_column(status_user_id) %>%
+        add_column(create_data$review$comment) %>%
+        add_column(review_user_id) %>%
         dplyr::select(
           entity_id = `response_entity$entry$entity_id`,
-          category_id,
-          status_user_id,
-          comment,
-          problematic
+          synopsis = value,
+          review_user_id,
+          comment = `create_data$review$comment`
         )
-
-      create_data$status$status_user_id <- status_user_id
-      response_status_post <- put_post_db_status("POST", create_data$status)
-
-      if (direct_approval) {
-        response_status_approve <- put_db_status_approve(
-          response_status_post$entry,
-          status_user_id,
-          TRUE
-        )
-      }
     } else {
-      response_entity_review_post <- tibble::as_tibble(response_entity) %>%
-        bind_rows(tibble::as_tibble(response_review_post)) %>%
-        dplyr::select(status, message) %>%
-        unique() %>%
-        mutate(status = max(status)) %>%
-        mutate(message = str_c(message, collapse = "; "))
-
-      res$status <- response_entity_review_post$status
-      return(list(
-        status = response_entity_review_post$status,
-        message = response_entity_review_post$message
-      ))
+      sysnopsis_received <- tibble::as_tibble(create_data$review$synopsis) %>%
+        add_column(response_entity$entry$entity_id) %>%
+        add_column(review_user_id) %>%
+        dplyr::select(
+          entity_id = `response_entity$entry$entity_id`,
+          synopsis = value,
+          review_user_id,
+          comment = NULL
+        )
     }
 
-    if (response_entity$status == 200 &&
-      response_review_post$status == 200 &&
-      response_status_post$status == 200) {
-      res$status <- response_entity$status
-      return(response_entity)
-    } else {
-      response <- tibble::as_tibble(response_entity) %>%
-        bind_rows(tibble::as_tibble(response_review_post)) %>%
-        bind_rows(tibble::as_tibble(response_status_post)) %>%
-        dplyr::select(status, message) %>%
-        unique() %>%
-        mutate(status = max(status)) %>%
-        mutate(message = str_c(message, collapse = "; "))
+    phenotypes_received <- tibble::as_tibble(create_data$review$phenotypes)
+    variation_ontology_received <- tibble::as_tibble(
+      create_data$review$variation_ontology
+    )
 
-      res$status <- response$status
-      return(list(
-        status = response$status,
-        message = response$message
-      ))
+    # Use put_post_db_review to add the review
+    response_review <- put_post_db_review("POST", sysnopsis_received)
+
+    # Submit publications if not empty
+    if (length(compact(create_data$review$literature)) > 0) {
+      response_publication <- new_publication(publications_received)
+      response_publication_conn <- put_post_db_pub_con(
+        "POST",
+        publications_received,
+        as.integer(sysnopsis_received$entity_id),
+        as.integer(response_review$entry$review_id)
+      )
+    } else {
+      response_publication <- list(status = 200, message = "OK. Skipped.")
+      response_publication_conn <- list(status = 200, message = "OK. Skipped.")
     }
+
+    # Submit phenotype connections if not empty
+    if (length(compact(create_data$review$phenotypes)) > 0) {
+      response_phenotype_connections <- put_post_db_phen_con(
+        "POST",
+        phenotypes_received,
+        as.integer(sysnopsis_received$entity_id),
+        as.integer(response_review$entry$review_id)
+      )
+    } else {
+      response_phenotype_connections <- list(status = 200, message = "OK. Skipped.")
+    }
+
+    # Submit variation ontology if not empty
+    if (length(compact(create_data$review$variation_ontology)) > 0) {
+      resp_variation_ontology_conn <- put_post_db_var_ont_con(
+        "POST",
+        variation_ontology_received,
+        as.integer(sysnopsis_received$entity_id),
+        as.integer(response_review$entry$review_id)
+      )
+    } else {
+      resp_variation_ontology_conn <- list(status = 200, message = "OK. Skipped.")
+    }
+
+    if (direct_approval) {
+      response_review_approve <- put_db_review_approve(
+        response_review$entry$review_id,
+        review_user_id,
+        TRUE
+      )
+    }
+
+    response_review_post <- tibble::as_tibble(response_publication) %>%
+      bind_rows(tibble::as_tibble(response_review)) %>%
+      bind_rows(tibble::as_tibble(response_publication_conn)) %>%
+      bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
+      bind_rows(tibble::as_tibble(resp_variation_ontology_conn)) %>%
+      dplyr::select(status, message) %>%
+      mutate(status = max(status)) %>%
+      mutate(message = str_c(message, collapse = "; ")) %>%
+      unique()
+  } else {
+    res$status <- response_entity$status
+    return(list(
+      status = response_entity$status,
+      message = response_entity$message,
+      error = response_entity$error
+    ))
+  }
+
+  if (response_entity$status == 200 && response_review_post$status == 200) {
+    create_data$status <- tibble::as_tibble(create_data$status) %>%
+      add_column(response_entity$entry$entity_id) %>%
+      add_column(status_user_id) %>%
+      dplyr::select(
+        entity_id = `response_entity$entry$entity_id`,
+        category_id,
+        status_user_id,
+        comment,
+        problematic
+      )
+
+    create_data$status$status_user_id <- status_user_id
+    response_status_post <- put_post_db_status("POST", create_data$status)
+
+    if (direct_approval) {
+      response_status_approve <- put_db_status_approve(
+        response_status_post$entry,
+        status_user_id,
+        TRUE
+      )
+    }
+  } else {
+    response_entity_review_post <- tibble::as_tibble(response_entity) %>%
+      bind_rows(tibble::as_tibble(response_review_post)) %>%
+      dplyr::select(status, message) %>%
+      unique() %>%
+      mutate(status = max(status)) %>%
+      mutate(message = str_c(message, collapse = "; "))
+
+    res$status <- response_entity_review_post$status
+    return(list(
+      status = response_entity_review_post$status,
+      message = response_entity_review_post$message
+    ))
+  }
+
+  if (response_entity$status == 200 &&
+    response_review_post$status == 200 &&
+    response_status_post$status == 200) {
+    res$status <- response_entity$status
+    return(response_entity)
+  } else {
+    response <- tibble::as_tibble(response_entity) %>%
+      bind_rows(tibble::as_tibble(response_review_post)) %>%
+      bind_rows(tibble::as_tibble(response_status_post)) %>%
+      dplyr::select(status, message) %>%
+      unique() %>%
+      mutate(status = max(status)) %>%
+      mutate(message = str_c(message, collapse = "; "))
+
+    res$status <- response$status
+    return(list(
+      status = response$status,
+      message = response$message
+    ))
+  }
 }
 
 
@@ -446,147 +446,147 @@ function(req, res) {
   new_entry_user_id <- req$user_id
   rename_data <- req$argsBody$rename_json
 
-    ndd_entity_original <- pool %>%
-      tbl("ndd_entity") %>%
-      collect() %>%
-      filter(entity_id == rename_data$entity$entity_id)
+  ndd_entity_original <- pool %>%
+    tbl("ndd_entity") %>%
+    collect() %>%
+    filter(entity_id == rename_data$entity$entity_id)
 
-    ndd_entity_replaced <- ndd_entity_original %>%
-      mutate(
-        disease_ontology_id_version = rename_data$entity$disease_ontology_id_version,
-        entry_user_id = new_entry_user_id
-      ) %>%
-      dplyr::select(-entity_id)
+  ndd_entity_replaced <- ndd_entity_original %>%
+    mutate(
+      disease_ontology_id_version = rename_data$entity$disease_ontology_id_version,
+      entry_user_id = new_entry_user_id
+    ) %>%
+    dplyr::select(-entity_id)
+
+  if (
+    rename_data$entity$hgnc_id == ndd_entity_replaced$hgnc_id &&
+      rename_data$entity$hpo_mode_of_inheritance_term == ndd_entity_replaced$hpo_mode_of_inheritance_term &&
+      rename_data$entity$ndd_phenotype == ndd_entity_replaced$ndd_phenotype &&
+      rename_data$entity$disease_ontology_id_version !=
+        ndd_entity_original$disease_ontology_id_version
+  ) {
+    response_new_entity <- post_db_entity(ndd_entity_replaced)
+    response_deactivate <- put_db_entity_deactivation(
+      ndd_entity_original$entity_id,
+      response_new_entity$entry$entity_id
+    )
+
+    ndd_entity_review_original <- pool %>%
+      tbl("ndd_entity_review") %>%
+      collect() %>%
+      filter(entity_id == rename_data$entity$entity_id, is_primary == 1)
+
+    ndd_entity_review_replaced <- ndd_entity_review_original %>%
+      mutate(entity_id = response_new_entity$entry$entity_id) %>%
+      dplyr::select(-review_id)
+
+    review_publication_join_ori <- pool %>%
+      tbl("ndd_review_publication_join") %>%
+      collect() %>%
+      filter(review_id == ndd_entity_review_original$review_id) %>%
+      dplyr::select(publication_id, publication_type)
+
+    review_phenotype_connect_ori <- pool %>%
+      tbl("ndd_review_phenotype_connect") %>%
+      collect() %>%
+      filter(review_id == ndd_entity_review_original$review_id) %>%
+      dplyr::select(phenotype_id, modifier_id)
+
+    review_variation_ontology_conn_ori <- pool %>%
+      tbl("ndd_review_variation_ontology_connect") %>%
+      collect() %>%
+      filter(review_id == ndd_entity_review_original$review_id) %>%
+      dplyr::select(vario_id, modifier_id)
+
+    response_review <- put_post_db_review(
+      "POST",
+      ndd_entity_review_replaced
+    )
+
+    if (length(compact(review_publication_join_ori)) > 0) {
+      response_publication_conn <- put_post_db_pub_con(
+        "POST",
+        review_publication_join_ori,
+        as.integer(response_new_entity$entry$entity_id),
+        as.integer(response_review$entry$review_id)
+      )
+    } else {
+      response_publication_conn <- list(status = 200, message = "OK. Skipped.")
+    }
+
+    if (length(compact(review_phenotype_connect_ori)) > 0) {
+      response_phenotype_connections <- put_post_db_phen_con(
+        "POST",
+        review_phenotype_connect_ori,
+        as.integer(response_new_entity$entry$entity_id),
+        as.integer(response_review$entry$review_id)
+      )
+    } else {
+      response_phenotype_connections <- list(status = 200, message = "OK. Skipped.")
+    }
+
+    if (length(compact(review_variation_ontology_conn_ori)) > 0) {
+      resp_variation_ontology_conn <- put_post_db_var_ont_con(
+        "POST",
+        review_variation_ontology_conn_ori,
+        as.integer(response_new_entity$entry$entity_id),
+        as.integer(response_review$entry$review_id)
+      )
+    } else {
+      resp_variation_ontology_conn <- list(status = 200, message = "OK. Skipped.")
+    }
+
+    response_review_post <- tibble::as_tibble(response_review) %>%
+      bind_rows(tibble::as_tibble(response_publication_conn)) %>%
+      bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
+      bind_rows(tibble::as_tibble(resp_variation_ontology_conn)) %>%
+      dplyr::select(status, message) %>%
+      unique() %>%
+      mutate(status = max(status)) %>%
+      mutate(message = str_c(message, collapse = "; ")) %>%
+      unique()
+
+    ndd_entity_status_original <- pool %>%
+      tbl("ndd_entity_status") %>%
+      collect() %>%
+      filter(entity_id == rename_data$entity$entity_id, is_active == 1)
+
+    ndd_entity_status_replaced <- ndd_entity_status_original %>%
+      mutate(entity_id = response_new_entity$entry$entity_id) %>%
+      dplyr::select(-status_id)
+
+    response_status_post <- put_post_db_status(
+      "POST",
+      ndd_entity_status_replaced
+    )
 
     if (
-      rename_data$entity$hgnc_id == ndd_entity_replaced$hgnc_id &&
-        rename_data$entity$hpo_mode_of_inheritance_term == ndd_entity_replaced$hpo_mode_of_inheritance_term &&
-        rename_data$entity$ndd_phenotype == ndd_entity_replaced$ndd_phenotype &&
-        rename_data$entity$disease_ontology_id_version !=
-          ndd_entity_original$disease_ontology_id_version
+      response_new_entity$status == 200 &&
+        response_review_post$status == 200 &&
+        response_status_post$status == 200
     ) {
-      response_new_entity <- post_db_entity(ndd_entity_replaced)
-      response_deactivate <- put_db_entity_deactivation(
-        ndd_entity_original$entity_id,
-        response_new_entity$entry$entity_id
-      )
-
-      ndd_entity_review_original <- pool %>%
-        tbl("ndd_entity_review") %>%
-        collect() %>%
-        filter(entity_id == rename_data$entity$entity_id, is_primary == 1)
-
-      ndd_entity_review_replaced <- ndd_entity_review_original %>%
-        mutate(entity_id = response_new_entity$entry$entity_id) %>%
-        dplyr::select(-review_id)
-
-      review_publication_join_ori <- pool %>%
-        tbl("ndd_review_publication_join") %>%
-        collect() %>%
-        filter(review_id == ndd_entity_review_original$review_id) %>%
-        dplyr::select(publication_id, publication_type)
-
-      review_phenotype_connect_ori <- pool %>%
-        tbl("ndd_review_phenotype_connect") %>%
-        collect() %>%
-        filter(review_id == ndd_entity_review_original$review_id) %>%
-        dplyr::select(phenotype_id, modifier_id)
-
-      review_variation_ontology_conn_ori <- pool %>%
-        tbl("ndd_review_variation_ontology_connect") %>%
-        collect() %>%
-        filter(review_id == ndd_entity_review_original$review_id) %>%
-        dplyr::select(vario_id, modifier_id)
-
-      response_review <- put_post_db_review(
-        "POST",
-        ndd_entity_review_replaced
-      )
-
-      if (length(compact(review_publication_join_ori)) > 0) {
-        response_publication_conn <- put_post_db_pub_con(
-          "POST",
-          review_publication_join_ori,
-          as.integer(response_new_entity$entry$entity_id),
-          as.integer(response_review$entry$review_id)
-        )
-      } else {
-        response_publication_conn <- list(status = 200, message = "OK. Skipped.")
-      }
-
-      if (length(compact(review_phenotype_connect_ori)) > 0) {
-        response_phenotype_connections <- put_post_db_phen_con(
-          "POST",
-          review_phenotype_connect_ori,
-          as.integer(response_new_entity$entry$entity_id),
-          as.integer(response_review$entry$review_id)
-        )
-      } else {
-        response_phenotype_connections <- list(status = 200, message = "OK. Skipped.")
-      }
-
-      if (length(compact(review_variation_ontology_conn_ori)) > 0) {
-        resp_variation_ontology_conn <- put_post_db_var_ont_con(
-          "POST",
-          review_variation_ontology_conn_ori,
-          as.integer(response_new_entity$entry$entity_id),
-          as.integer(response_review$entry$review_id)
-        )
-      } else {
-        resp_variation_ontology_conn <- list(status = 200, message = "OK. Skipped.")
-      }
-
-      response_review_post <- tibble::as_tibble(response_review) %>%
-        bind_rows(tibble::as_tibble(response_publication_conn)) %>%
-        bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
-        bind_rows(tibble::as_tibble(resp_variation_ontology_conn)) %>%
+      res$status <- response_new_entity$status
+      return(response_new_entity)
+    } else {
+      response <- tibble::as_tibble(response_new_entity) %>%
+        bind_rows(tibble::as_tibble(response_review_post)) %>%
+        bind_rows(tibble::as_tibble(response_status_post)) %>%
         dplyr::select(status, message) %>%
         unique() %>%
         mutate(status = max(status)) %>%
-        mutate(message = str_c(message, collapse = "; ")) %>%
-        unique()
+        mutate(message = str_c(message, collapse = "; "))
 
-      ndd_entity_status_original <- pool %>%
-        tbl("ndd_entity_status") %>%
-        collect() %>%
-        filter(entity_id == rename_data$entity$entity_id, is_active == 1)
-
-      ndd_entity_status_replaced <- ndd_entity_status_original %>%
-        mutate(entity_id = response_new_entity$entry$entity_id) %>%
-        dplyr::select(-status_id)
-
-      response_status_post <- put_post_db_status(
-        "POST",
-        ndd_entity_status_replaced
-      )
-
-      if (
-        response_new_entity$status == 200 &&
-          response_review_post$status == 200 &&
-          response_status_post$status == 200
-      ) {
-        res$status <- response_new_entity$status
-        return(response_new_entity)
-      } else {
-        response <- tibble::as_tibble(response_new_entity) %>%
-          bind_rows(tibble::as_tibble(response_review_post)) %>%
-          bind_rows(tibble::as_tibble(response_status_post)) %>%
-          dplyr::select(status, message) %>%
-          unique() %>%
-          mutate(status = max(status)) %>%
-          mutate(message = str_c(message, collapse = "; "))
-
-        res$status <- response$status
-        return(list(status = response$status, message = response$message))
-      }
-    } else {
-      res$status <- 400
-      return(list(
-        error = paste0(
-          "This endpoint only allows renaming the disease ontology of an entity."
-        )
-      ))
+      res$status <- response$status
+      return(list(status = response$status, message = response$message))
     }
+  } else {
+    res$status <- 400
+    return(list(
+      error = paste0(
+        "This endpoint only allows renaming the disease ontology of an entity."
+      )
+    ))
+  }
 }
 
 
@@ -621,39 +621,39 @@ function(req, res) {
   deactivate_user_id <- req$user_id
   deactivate_data <- req$argsBody$deactivate_json
 
-    ndd_entity_original <- pool %>%
-      tbl("ndd_entity") %>%
-      collect() %>%
-      filter(entity_id == deactivate_data$entity$entity_id)
+  ndd_entity_original <- pool %>%
+    tbl("ndd_entity") %>%
+    collect() %>%
+    filter(entity_id == deactivate_data$entity$entity_id)
 
-    ndd_entity_replaced <- ndd_entity_original %>%
-      mutate(is_active = deactivate_data$entity$is_active) %>%
-      mutate(replaced_by = deactivate_data$entity$replaced_by)
+  ndd_entity_replaced <- ndd_entity_original %>%
+    mutate(is_active = deactivate_data$entity$is_active) %>%
+    mutate(replaced_by = deactivate_data$entity$replaced_by)
 
-    if (
-      deactivate_data$entity$hgnc_id == ndd_entity_replaced$hgnc_id &&
-        deactivate_data$entity$hpo_mode_of_inheritance_term ==
-          ndd_entity_replaced$hpo_mode_of_inheritance_term &&
-        deactivate_data$entity$ndd_phenotype ==
-          ndd_entity_replaced$ndd_phenotype &&
-        deactivate_data$entity$is_active != ndd_entity_original$is_active
-    ) {
-      response_new_entity <- put_db_entity_deactivation(
-        deactivate_data$entity$entity_id,
-        ndd_entity_replaced$replaced_by
-      )
+  if (
+    deactivate_data$entity$hgnc_id == ndd_entity_replaced$hgnc_id &&
+      deactivate_data$entity$hpo_mode_of_inheritance_term ==
+        ndd_entity_replaced$hpo_mode_of_inheritance_term &&
+      deactivate_data$entity$ndd_phenotype ==
+        ndd_entity_replaced$ndd_phenotype &&
+      deactivate_data$entity$is_active != ndd_entity_original$is_active
+  ) {
+    response_new_entity <- put_db_entity_deactivation(
+      deactivate_data$entity$entity_id,
+      ndd_entity_replaced$replaced_by
+    )
 
-      res$status <- response_new_entity$status
-      return(list(
-        status = response_new_entity$status,
-        message = response_new_entity$message
-      ))
-    } else {
-      res$status <- 400
-      return(list(
-        error = "This endpoint only allows deactivating an entity."
-      ))
-    }
+    res$status <- response_new_entity$status
+    return(list(
+      status = response_new_entity$status,
+      message = response_new_entity$message
+    ))
+  } else {
+    res$status <- 400
+    return(list(
+      error = "This endpoint only allows deactivating an entity."
+    ))
+  }
 }
 
 

@@ -139,50 +139,57 @@ function(req, res) {
     select(-entity_quadruple, -number, -entity_quadruple_unique, -sum_number)
 
   # Use transaction for atomic ontology update
-  tryCatch({
-    db_with_transaction({
-      db_execute_statement("SET FOREIGN_KEY_CHECKS = 0")
-      db_execute_statement("TRUNCATE TABLE disease_ontology_set")
+  tryCatch(
+    {
+      db_with_transaction({
+        db_execute_statement("SET FOREIGN_KEY_CHECKS = 0")
+        db_execute_statement("TRUNCATE TABLE disease_ontology_set")
 
-      # Insert disease_ontology_set rows using dynamic column names
-      if (nrow(disease_ontology_set_update) > 0) {
-        cols <- names(disease_ontology_set_update)
-        placeholders <- paste(rep("?", length(cols)), collapse = ", ")
-        sql <- sprintf("INSERT INTO disease_ontology_set (%s) VALUES (%s)",
-                       paste(cols, collapse = ", "), placeholders)
-        for (i in seq_len(nrow(disease_ontology_set_update))) {
-          db_execute_statement(sql, as.list(disease_ontology_set_update[i, ]))
+        # Insert disease_ontology_set rows using dynamic column names
+        if (nrow(disease_ontology_set_update) > 0) {
+          cols <- names(disease_ontology_set_update)
+          placeholders <- paste(rep("?", length(cols)), collapse = ", ")
+          sql <- sprintf(
+            "INSERT INTO disease_ontology_set (%s) VALUES (%s)",
+            paste(cols, collapse = ", "), placeholders
+          )
+          for (i in seq_len(nrow(disease_ontology_set_update))) {
+            db_execute_statement(sql, as.list(disease_ontology_set_update[i, ]))
+          }
         }
-      }
 
-      db_execute_statement("TRUNCATE TABLE ndd_entity")
+        db_execute_statement("TRUNCATE TABLE ndd_entity")
 
-      # Insert ndd_entity rows using dynamic column names
-      if (nrow(ndd_entity_mutated) > 0) {
-        cols <- names(ndd_entity_mutated)
-        placeholders <- paste(rep("?", length(cols)), collapse = ", ")
-        sql <- sprintf("INSERT INTO ndd_entity (%s) VALUES (%s)",
-                       paste(cols, collapse = ", "), placeholders)
-        for (i in seq_len(nrow(ndd_entity_mutated))) {
-          db_execute_statement(sql, as.list(ndd_entity_mutated[i, ]))
+        # Insert ndd_entity rows using dynamic column names
+        if (nrow(ndd_entity_mutated) > 0) {
+          cols <- names(ndd_entity_mutated)
+          placeholders <- paste(rep("?", length(cols)), collapse = ", ")
+          sql <- sprintf(
+            "INSERT INTO ndd_entity (%s) VALUES (%s)",
+            paste(cols, collapse = ", "), placeholders
+          )
+          for (i in seq_len(nrow(ndd_entity_mutated))) {
+            db_execute_statement(sql, as.list(ndd_entity_mutated[i, ]))
+          }
         }
-      }
 
-      db_execute_statement("SET FOREIGN_KEY_CHECKS = 1")
-    })
+        db_execute_statement("SET FOREIGN_KEY_CHECKS = 1")
+      })
 
-    # Return success
-    list(
-      status = "Success",
-      message = "Ontology update process completed."
-    )
-  }, error = function(e) {
-    res$status <- 500
-    list(
-      error = "An error occurred during the update process. Transaction rolled back.",
-      details = e$message
-    )
-  })
+      # Return success
+      list(
+        status = "Success",
+        message = "Ontology update process completed."
+      )
+    },
+    error = function(e) {
+      res$status <- 500
+      list(
+        error = "An error occurred during the update process. Transaction rolled back.",
+        details = e$message
+      )
+    }
+  )
 }
 
 
@@ -307,18 +314,21 @@ function(req, res) {
       on.exit(DBI::dbDisconnect(sysndd_db), add = TRUE)
 
       DBI::dbBegin(sysndd_db)
-      tryCatch({
-        DBI::dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 0;")
-        DBI::dbExecute(sysndd_db, "TRUNCATE TABLE disease_ontology_set;")
-        DBI::dbAppendTable(sysndd_db, "disease_ontology_set", disease_ontology_set_update)
-        DBI::dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 1;")
+      tryCatch(
+        {
+          DBI::dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 0;")
+          DBI::dbExecute(sysndd_db, "TRUNCATE TABLE disease_ontology_set;")
+          DBI::dbAppendTable(sysndd_db, "disease_ontology_set", disease_ontology_set_update)
+          DBI::dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 1;")
 
-        DBI::dbCommit(sysndd_db)
-        list(status = "Success", rows_written = nrow(disease_ontology_set_update))
-      }, error = function(e) {
-        DBI::dbRollback(sysndd_db)
-        stop(paste("Database write failed:", e$message))
-      })
+          DBI::dbCommit(sysndd_db)
+          list(status = "Success", rows_written = nrow(disease_ontology_set_update))
+        },
+        error = function(e) {
+          DBI::dbRollback(sysndd_db)
+          stop(paste("Database write failed:", e$message))
+        }
+      )
     }
   )
 
@@ -365,8 +375,10 @@ function(req, res) {
         if (nrow(hgnc_data) > 0) {
           cols <- names(hgnc_data)
           placeholders <- paste(rep("?", length(cols)), collapse = ", ")
-          sql <- sprintf("INSERT INTO non_alt_loci_set (%s) VALUES (%s)",
-                         paste(cols, collapse = ", "), placeholders)
+          sql <- sprintf(
+            "INSERT INTO non_alt_loci_set (%s) VALUES (%s)",
+            paste(cols, collapse = ", "), placeholders
+          )
           for (i in seq_len(nrow(hgnc_data))) {
             db_execute_statement(sql, as.list(hgnc_data[i, ]))
           }
@@ -431,10 +443,14 @@ function() {
   # Helper to get most recent file date matching a pattern
   get_latest_file_date <- function(pattern) {
     files <- list.files(data_dir, pattern = pattern, full.names = TRUE)
-    if (length(files) == 0) return(NA)
+    if (length(files) == 0) {
+      return(NA)
+    }
     # Get file info and find most recent
     file_info <- file.info(files)
-    if (nrow(file_info) == 0) return(NA)
+    if (nrow(file_info) == 0) {
+      return(NA)
+    }
     latest <- files[which.max(file_info$mtime)]
     format(file_info[latest, "mtime"], "%Y-%m-%d %H:%M:%S")
   }
@@ -442,10 +458,14 @@ function() {
   # Extract date from filename pattern like mim2gene.YYYY-MM-DD.txt
   get_date_from_filename <- function(pattern) {
     files <- list.files(data_dir, pattern = pattern, full.names = FALSE)
-    if (length(files) == 0) return(NA)
+    if (length(files) == 0) {
+      return(NA)
+    }
     # Extract date from filename
     dates <- regmatches(files, regexpr("\\d{4}-\\d{2}-\\d{2}", files))
-    if (length(dates) == 0) return(NA)
+    if (length(dates) == 0) {
+      return(NA)
+    }
     max(dates)
   }
 
@@ -513,91 +533,94 @@ function(req, res) {
   if (length(mim2gene_date) == 0) mim2gene_date <- NA
 
   # Parse mim2gene with moved/removed entries
-  tryCatch({
-    mim2gene_data <- parse_mim2gene(latest_file, include_moved_removed = TRUE)
+  tryCatch(
+    {
+      mim2gene_data <- parse_mim2gene(latest_file, include_moved_removed = TRUE)
 
-    # Get deprecated MIM numbers
-    deprecated_mims <- get_deprecated_mim_numbers(mim2gene_data)
+      # Get deprecated MIM numbers
+      deprecated_mims <- get_deprecated_mim_numbers(mim2gene_data)
 
-    if (length(deprecated_mims) == 0) {
-      return(list(
-        deprecated_count = 0,
-        affected_entity_count = 0,
-        affected_entities = list(),
-        mim2gene_date = mim2gene_date,
-        message = "No deprecated MIM numbers found."
-      ))
-    }
+      if (length(deprecated_mims) == 0) {
+        return(list(
+          deprecated_count = 0,
+          affected_entity_count = 0,
+          affected_entities = list(),
+          mim2gene_date = mim2gene_date,
+          message = "No deprecated MIM numbers found."
+        ))
+      }
 
-    # Check entities for deprecation
-    affected <- check_entities_for_deprecation(pool, deprecated_mims)
+      # Check entities for deprecation
+      affected <- check_entities_for_deprecation(pool, deprecated_mims)
 
-    if (nrow(affected) == 0) {
-      return(list(
+      if (nrow(affected) == 0) {
+        return(list(
+          deprecated_count = length(deprecated_mims),
+          affected_entity_count = 0,
+          affected_entities = list(),
+          mim2gene_date = mim2gene_date,
+          message = "No entities affected by deprecated OMIM IDs."
+        ))
+      }
+
+      # Get unique OMIM IDs to look up (avoid duplicate API calls)
+      unique_omim_ids <- unique(affected$disease_ontology_id)
+
+      # Look up MONDO deprecation info for each unique OMIM ID
+      # Use batch function with rate limiting
+      mondo_info_map <- ols_get_deprecated_omim_info_batch(unique_omim_ids)
+
+      # Enrich affected entities with MONDO info
+      affected_enriched <- affected %>%
+        dplyr::rowwise() %>%
+        dplyr::mutate(
+          mondo_info = list(mondo_info_map[[disease_ontology_id]]),
+          mondo_id = if (!is.null(mondo_info)) mondo_info$mondo_id else NA_character_,
+          mondo_label = if (!is.null(mondo_info)) mondo_info$mondo_label else NA_character_,
+          deprecation_reason = if (!is.null(mondo_info)) mondo_info$deprecation_reason else NA_character_,
+          replacement_mondo_id = if (!is.null(mondo_info)) mondo_info$replacement_mondo_id else NA_character_,
+          replacement_mondo_label = if (!is.null(mondo_info)) mondo_info$replacement_mondo_label else NA_character_,
+          replacement_omim_id = if (!is.null(mondo_info)) mondo_info$replacement_omim_id else NA_character_
+        ) %>%
+        dplyr::ungroup() %>%
+        dplyr::select(
+          entity_id,
+          symbol,
+          hgnc_id,
+          disease_ontology_id,
+          disease_ontology_id_version,
+          disease_ontology_name,
+          category,
+          ndd_phenotype,
+          mondo_id,
+          mondo_label,
+          deprecation_reason,
+          replacement_mondo_id,
+          replacement_mondo_label,
+          replacement_omim_id
+        )
+
+      # Convert to list for JSON serialization
+      affected_list <- affected_enriched %>%
+        as.list() %>%
+        purrr::transpose()
+
+      list(
         deprecated_count = length(deprecated_mims),
-        affected_entity_count = 0,
-        affected_entities = list(),
-        mim2gene_date = mim2gene_date,
-        message = "No entities affected by deprecated OMIM IDs."
-      ))
-    }
-
-    # Get unique OMIM IDs to look up (avoid duplicate API calls)
-    unique_omim_ids <- unique(affected$disease_ontology_id)
-
-    # Look up MONDO deprecation info for each unique OMIM ID
-    # Use batch function with rate limiting
-    mondo_info_map <- ols_get_deprecated_omim_info_batch(unique_omim_ids)
-
-    # Enrich affected entities with MONDO info
-    affected_enriched <- affected %>%
-      dplyr::rowwise() %>%
-      dplyr::mutate(
-        mondo_info = list(mondo_info_map[[disease_ontology_id]]),
-        mondo_id = if (!is.null(mondo_info)) mondo_info$mondo_id else NA_character_,
-        mondo_label = if (!is.null(mondo_info)) mondo_info$mondo_label else NA_character_,
-        deprecation_reason = if (!is.null(mondo_info)) mondo_info$deprecation_reason else NA_character_,
-        replacement_mondo_id = if (!is.null(mondo_info)) mondo_info$replacement_mondo_id else NA_character_,
-        replacement_mondo_label = if (!is.null(mondo_info)) mondo_info$replacement_mondo_label else NA_character_,
-        replacement_omim_id = if (!is.null(mondo_info)) mondo_info$replacement_omim_id else NA_character_
-      ) %>%
-      dplyr::ungroup() %>%
-      dplyr::select(
-        entity_id,
-        symbol,
-        hgnc_id,
-        disease_ontology_id,
-        disease_ontology_id_version,
-        disease_ontology_name,
-        category,
-        ndd_phenotype,
-        mondo_id,
-        mondo_label,
-        deprecation_reason,
-        replacement_mondo_id,
-        replacement_mondo_label,
-        replacement_omim_id
+        affected_entity_count = nrow(affected),
+        affected_entities = affected_list,
+        mim2gene_date = mim2gene_date
       )
-
-    # Convert to list for JSON serialization
-    affected_list <- affected_enriched %>%
-      as.list() %>%
-      purrr::transpose()
-
-    list(
-      deprecated_count = length(deprecated_mims),
-      affected_entity_count = nrow(affected),
-      affected_entities = affected_list,
-      mim2gene_date = mim2gene_date
-    )
-  }, error = function(e) {
-    logger::log_error("Failed to check deprecated entities: {e$message}")
-    res$status <- 500
-    list(
-      error = "Failed to check deprecated entities",
-      details = e$message
-    )
-  })
+    },
+    error = function(e) {
+      logger::log_error("Failed to check deprecated entities: {e$message}")
+      res$status <- 500
+      list(
+        error = "Failed to check deprecated entities",
+        details = e$message
+      )
+    }
+  )
 }
 
 

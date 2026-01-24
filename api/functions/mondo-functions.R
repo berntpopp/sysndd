@@ -42,8 +42,8 @@ require(lubridate)
 #'
 #' @export
 download_mondo_sssom <- function(output_path = "data/mondo_mappings/",
-                                  force = FALSE,
-                                  max_age_months = 1) {
+                                 force = FALSE,
+                                 max_age_months = 1) {
   # MONDO exactMatch OMIM SSSOM file URL
   sssom_url <- "https://github.com/monarch-initiative/mondo/raw/master/src/ontology/mappings/mondo_exactmatch_omim.sssom.tsv"
 
@@ -67,23 +67,28 @@ download_mondo_sssom <- function(output_path = "data/mondo_mappings/",
   current_date <- format(Sys.Date(), "%Y-%m-%d")
   output_file <- file.path(output_path, paste0(file_basename, ".", current_date, ".sssom.tsv"))
 
-  tryCatch({
-    response <- httr2::request(sssom_url) |>
-      httr2::req_retry(max_tries = 3, backoff = ~ 2) |>
-      httr2::req_error(is_error = ~ FALSE) |>
-      httr2::req_perform()
+  tryCatch(
+    {
+      response <- httr2::request(sssom_url) |>
+        httr2::req_retry(max_tries = 3, backoff = ~2) |>
+        httr2::req_error(is_error = ~FALSE) |>
+        httr2::req_perform()
 
-    if (httr2::resp_status(response) == 200) {
-      content <- httr2::resp_body_string(response)
-      writeLines(content, output_file)
-      return(output_file)
-    } else {
-      stop(paste("Failed to download MONDO SSSOM file. HTTP status:",
-                 httr2::resp_status(response)))
+      if (httr2::resp_status(response) == 200) {
+        content <- httr2::resp_body_string(response)
+        writeLines(content, output_file)
+        return(output_file)
+      } else {
+        stop(paste(
+          "Failed to download MONDO SSSOM file. HTTP status:",
+          httr2::resp_status(response)
+        ))
+      }
+    },
+    error = function(e) {
+      stop(paste("Error downloading MONDO SSSOM file:", e$message))
     }
-  }, error = function(e) {
-    stop(paste("Error downloading MONDO SSSOM file:", e$message))
-  })
+  )
 }
 
 
@@ -234,8 +239,10 @@ add_mondo_mappings_to_ontology <- function(disease_ontology_set, mondo_mappings)
   required_cols <- c("disease_ontology_id", "disease_ontology_source")
   missing_cols <- setdiff(required_cols, names(disease_ontology_set))
   if (length(missing_cols) > 0) {
-    stop(paste("Missing required columns in disease_ontology_set:",
-               paste(missing_cols, collapse = ", ")))
+    stop(paste(
+      "Missing required columns in disease_ontology_set:",
+      paste(missing_cols, collapse = ", ")
+    ))
   }
 
   # Add MONDO equivalent column

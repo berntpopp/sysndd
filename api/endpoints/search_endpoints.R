@@ -1,12 +1,12 @@
 # api/endpoints/search_endpoints.R
 #
 # This file contains all search-related endpoints, extracted from the original
-# sysndd_plumber.R. It follows the Google R Style Guide conventions 
+# sysndd_plumber.R. It follows the Google R Style Guide conventions
 # where possible.
 
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 ## Search endpoints
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 
 #* Search Entity View by Multiple Columns
 #*
@@ -14,7 +14,7 @@
 #* etc., possibly using fuzzy matching (stringdist).
 #*
 #* # `Details`
-#* If there's a near-perfect match, it returns that. Otherwise returns 
+#* If there's a near-perfect match, it returns that. Otherwise returns
 #* the top matches, up to 10 by default.
 #*
 #* # `Return`
@@ -67,11 +67,14 @@ function(searchterm, helper = TRUE) {
     filter(searchdist < 0.1) %>%
     tally()
 
-  return_count <- if (sysndd_db_entity_search_length$n > 10)
-    sysndd_db_entity_search_length$n else 10
+  return_count <- if (sysndd_db_entity_search_length$n > 10) {
+    sysndd_db_entity_search_length$n
+  } else {
+    10
+  }
 
   if (sysndd_db_entity_search$searchdist[1] == 0 &&
-      is.na(suppressWarnings(as.integer(sysndd_db_entity_search$results[1])))) {
+    is.na(suppressWarnings(as.integer(sysndd_db_entity_search$results[1])))) {
     sysndd_db_entity_search_return <- sysndd_db_entity_search %>%
       slice_head(n = 1)
   } else {
@@ -99,7 +102,7 @@ function(searchterm, helper = TRUE) {
 #* Fuzzy matching search within the disease_ontology_set table.
 #*
 #* # `Details`
-#* If tree=TRUE, format output for treeselect library. Otherwise 
+#* If tree=TRUE, format output for treeselect library. Otherwise
 #* pivot wide if multiple results.
 #*
 #* @tag search
@@ -130,8 +133,11 @@ function(searchterm, tree = FALSE) {
     filter(searchdist < 0.1) %>%
     tally()
 
-  return_count <- if (do_set_search_length$n > 10)
-    do_set_search_length$n else 10
+  return_count <- if (do_set_search_length$n > 10) {
+    do_set_search_length$n
+  } else {
+    10
+  }
 
   do_set_search_return <- do_set_search %>%
     slice_head(n = return_count)
@@ -197,8 +203,11 @@ function(searchterm, tree = FALSE) {
     filter(searchdist < 0.1) %>%
     tally()
 
-  return_count <- if (non_alt_loci_set_search_length$n > 10)
-    non_alt_loci_set_search_length$n else 10
+  return_count <- if (non_alt_loci_set_search_length$n > 10) {
+    non_alt_loci_set_search_length$n
+  } else {
+    10
+  }
 
   non_alt_loci_set_search_return <- non_alt_loci_set_search %>%
     slice_head(n = return_count)
@@ -230,7 +239,7 @@ function(searchterm, tree = FALSE) {
 
 #* Search Mode of Inheritance by Term Name or Term
 #*
-#* Fuzzy matching in mode_of_inheritance_list. 
+#* Fuzzy matching in mode_of_inheritance_list.
 #*
 #* # `Details`
 #* If tree=TRUE, arrays for treeselect. Otherwise pivot wide.
@@ -268,8 +277,11 @@ function(searchterm, tree = FALSE) {
     filter(searchdist < 0.1) %>%
     tally()
 
-  return_count <- if (moi_list_search_length$n > 10)
-    moi_list_search_length$n else 10
+  return_count <- if (moi_list_search_length$n > 10) {
+    moi_list_search_length$n
+  } else {
+    10
+  }
 
   moi_list_search_return <- moi_list_search %>%
     slice_head(n = return_count)

@@ -73,7 +73,8 @@ variation_ontology_validate_ids <- function(vario_ids) {
 
   if (length(invalid_ids) > 0) {
     log_warn("Variation ontology validation failed: {length(invalid_ids)} invalid IDs",
-             invalid_ids = paste(invalid_ids, collapse = ", "))
+      invalid_ids = paste(invalid_ids, collapse = ", ")
+    )
 
     rlang::abort(
       message = paste0(

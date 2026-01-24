@@ -21,7 +21,7 @@ require(logger)
 OLS4_BASE_URL <- "https://www.ebi.ac.uk/ols4/api"
 OLS4_TIMEOUT_SECONDS <- 30
 OLS4_MAX_RETRIES <- 3
-OLS4_BATCH_DELAY_MS <- 200  # Delay between batch requests to be API-friendly
+OLS4_BATCH_DELAY_MS <- 200 # Delay between batch requests to be API-friendly
 
 
 # =============================================================================
@@ -41,32 +41,35 @@ ols_request <- function(endpoint, query_params = list()) {
   url <- paste0(OLS4_BASE_URL, endpoint)
 
 
-  tryCatch({
-    response <- request(url) |>
-      req_url_query(!!!query_params) |>
-      req_retry(
-        max_tries = OLS4_MAX_RETRIES,
-        backoff = ~ 2^.x
-      ) |>
-      req_timeout(OLS4_TIMEOUT_SECONDS) |>
-      req_error(is_error = ~ FALSE) |>
-      req_perform()
+  tryCatch(
+    {
+      response <- request(url) |>
+        req_url_query(!!!query_params) |>
+        req_retry(
+          max_tries = OLS4_MAX_RETRIES,
+          backoff = ~ 2^.x
+        ) |>
+        req_timeout(OLS4_TIMEOUT_SECONDS) |>
+        req_error(is_error = ~FALSE) |>
+        req_perform()
 
-    status <- resp_status(response)
+      status <- resp_status(response)
 
-    if (status == 200) {
-      return(resp_body_json(response))
-    } else if (status == 404) {
-      # Not found is expected for some queries
-      return(NULL)
-    } else {
-      log_warn("OLS4 API returned status {status} for {endpoint}")
+      if (status == 200) {
+        return(resp_body_json(response))
+      } else if (status == 404) {
+        # Not found is expected for some queries
+        return(NULL)
+      } else {
+        log_warn("OLS4 API returned status {status} for {endpoint}")
+        return(NULL)
+      }
+    },
+    error = function(e) {
+      log_warn("OLS4 API request failed: {e$message}")
       return(NULL)
     }
-  }, error = function(e) {
-    log_warn("OLS4 API request failed: {e$message}")
-    return(NULL)
-  })
+  )
 }
 
 
@@ -289,8 +292,8 @@ ols_get_deprecated_omim_info <- function(omim_id) {
   descriptions <- term$description %||% term$annotation$definition %||% list()
   for (desc in descriptions) {
     if (is.character(desc) && (grepl("deprecated", desc, ignore.case = TRUE) ||
-                                grepl("reclassified", desc, ignore.case = TRUE) ||
-                                grepl("obsolete", desc, ignore.case = TRUE))) {
+      grepl("reclassified", desc, ignore.case = TRUE) ||
+      grepl("obsolete", desc, ignore.case = TRUE))) {
       result$deprecation_reason <- desc
 
       # Try to extract replacement MONDO ID from the text
@@ -393,7 +396,6 @@ ols_get_deprecated_omim_info_batch <- function(omim_ids, delay_ms = OLS4_BATCH_D
 #'
 #' @export
 ols_has_mondo_equivalent <- function(omim_id) {
-
   mapping <- ols_get_mondo_for_omim(omim_id)
 
   if (is.null(mapping)) {

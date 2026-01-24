@@ -6,7 +6,7 @@ require(tidyverse)
 require(jsonlite)
 require(logger)
 require(DBI)
-require(digest)  # for hashing
+require(digest) # for hashing
 log_threshold(INFO)
 
 # Load database helper functions for repository layer access (if not already loaded)
@@ -48,20 +48,23 @@ pubtator_v3_total_pages_from_query <- function(query,
   url_search <- paste0(api_base_url, endpoint_search, query_parameter, query, "&page=1")
   log_info("Fetching total pages for query: {query} with URL: {url_search}")
 
-  tryCatch({
-    response_search <- fromJSON(URLencode(url_search), flatten = TRUE)
-    total_pages <- response_search$total_pages
-    log_info("Successfully retrieved total_pages = {total_pages} for query: {query}")
-    return(total_pages)
-  }, error = function(e) {
-    warning_msg <- paste(
-      "Failed to fetch the total pages for the query:",
-      query, "Error:", e$message
-    )
-    log_warn(warning_msg)
-    warning(warning_msg)
-    return(NULL)
-  })
+  tryCatch(
+    {
+      response_search <- fromJSON(URLencode(url_search), flatten = TRUE)
+      total_pages <- response_search$total_pages
+      log_info("Successfully retrieved total_pages = {total_pages} for query: {query}")
+      return(total_pages)
+    },
+    error = function(e) {
+      warning_msg <- paste(
+        "Failed to fetch the total pages for the query:",
+        query, "Error:", e$message
+      )
+      log_warn(warning_msg)
+      warning(warning_msg)
+      return(NULL)
+    }
+  )
 }
 
 #------------------------------------------------------------------------------
@@ -70,7 +73,7 @@ pubtator_v3_total_pages_from_query <- function(query,
 #------------------------------------------------------------------------------
 generate_query_hash <- function(query_string) {
   q_squish <- stringr::str_squish(query_string)
-  q_hash   <- digest::digest(q_squish, algo = "sha256", serialize = FALSE)
+  q_hash <- digest::digest(q_squish, algo = "sha256", serialize = FALSE)
   return(q_hash)
 }
 
@@ -90,20 +93,20 @@ generate_query_hash <- function(query_string) {
 #' @return The `query_id` used in the DB, or NULL on error
 #' @export
 pubtator_db_update <- function(
-    db_host,
-    db_port,
-    db_name,
-    db_user,
-    db_password,
-    query,
-    max_pages      = 10,
-    do_full_update = FALSE
+  db_host,
+  db_port,
+  db_name,
+  db_user,
+  db_password,
+  query,
+  max_pages = 10,
+  do_full_update = FALSE
 ) {
   # A) Retrieve total_pages BEFORE transaction (no DB write needed)
   total_pages <- pubtator_v3_total_pages_from_query(query)
   if (is.null(total_pages) || total_pages == 0) {
     log_warn("No pages found for query: {query}. Aborting.")
-    return(NULL)  # Early return - no DB operations started
+    return(NULL) # Early return - no DB operations started
   }
 
   if (max_pages > total_pages) {
@@ -116,167 +119,170 @@ pubtator_db_update <- function(
   log_info("Query hash = {q_hash}")
 
   # C) Wrap ALL database operations in a single transaction
-  result <- tryCatch({
-    db_with_transaction({
-      # Check if query exists
-      existing_query <- db_execute_query(
-        "SELECT query_id, queried_page_number, total_page_number, page_size
+  result <- tryCatch(
+    {
+      db_with_transaction({
+        # Check if query exists
+        existing_query <- db_execute_query(
+          "SELECT query_id, queried_page_number, total_page_number, page_size
          FROM pubtator_query_cache WHERE query_hash = ?",
-        list(q_hash)
-      )
+          list(q_hash)
+        )
 
-      query_id <- NA_integer_
-      old_queried_number <- 0
+        query_id <- NA_integer_
+        old_queried_number <- 0
 
-      if (nrow(existing_query) == 0) {
-        # Insert new row
-        log_info("No record for query_hash={q_hash}, inserting new row.")
-        db_execute_statement(
-          "INSERT INTO pubtator_query_cache
+        if (nrow(existing_query) == 0) {
+          # Insert new row
+          log_info("No record for query_hash={q_hash}, inserting new row.")
+          db_execute_statement(
+            "INSERT INTO pubtator_query_cache
             (query_text, query_hash, total_page_number, queried_page_number, page_size)
            VALUES (?, ?, ?, ?, ?)",
-          list(query, q_hash, total_pages, max_pages, 10)
-        )
-        query_id <- db_execute_query("SELECT LAST_INSERT_ID() AS id")$id[1]
-
-      } else {
-        # Found existing row
-        query_id <- existing_query$query_id[1]
-        old_queried_number <- existing_query$queried_page_number[1]
-        old_total_number <- existing_query$total_page_number[1]
-
-        log_info("Found existing query_id={query_id}, old_queried_number={old_queried_number}")
-
-        if (do_full_update) {
-          log_info("do_full_update=TRUE => removing old records.")
-          db_execute_statement(
-            "DELETE FROM pubtator_search_cache WHERE query_id = ?",
-            list(query_id)
+            list(query, q_hash, total_pages, max_pages, 10)
           )
-          db_execute_statement(
-            "DELETE a FROM pubtator_annotation_cache a
+          query_id <- db_execute_query("SELECT LAST_INSERT_ID() AS id")$id[1]
+        } else {
+          # Found existing row
+          query_id <- existing_query$query_id[1]
+          old_queried_number <- existing_query$queried_page_number[1]
+          old_total_number <- existing_query$total_page_number[1]
+
+          log_info("Found existing query_id={query_id}, old_queried_number={old_queried_number}")
+
+          if (do_full_update) {
+            log_info("do_full_update=TRUE => removing old records.")
+            db_execute_statement(
+              "DELETE FROM pubtator_search_cache WHERE query_id = ?",
+              list(query_id)
+            )
+            db_execute_statement(
+              "DELETE a FROM pubtator_annotation_cache a
              JOIN pubtator_search_cache s ON a.search_id = s.search_id
              WHERE s.query_id = ?",
-            list(query_id)
-          )
-          db_execute_statement(
-            "UPDATE pubtator_query_cache
+              list(query_id)
+            )
+            db_execute_statement(
+              "UPDATE pubtator_query_cache
              SET total_page_number=?, queried_page_number=?, page_size=?
              WHERE query_id=?",
-            list(total_pages, max_pages, 10, query_id)
-          )
-          old_queried_number <- 0
-
-        } else {
-          # Partial update check
-          if (max_pages <= old_queried_number) {
-            log_info("Already up to page={old_queried_number}, no new fetch needed.")
-            # Return query_id - transaction will auto-commit
-            return(query_id)  # Early return WITH commit
+              list(total_pages, max_pages, 10, query_id)
+            )
+            old_queried_number <- 0
+          } else {
+            # Partial update check
+            if (max_pages <= old_queried_number) {
+              log_info("Already up to page={old_queried_number}, no new fetch needed.")
+              # Return query_id - transaction will auto-commit
+              return(query_id) # Early return WITH commit
+            }
+            log_info("Partial update: old_queried_number={old_queried_number}, new max_pages={max_pages}")
           }
-          log_info("Partial update: old_queried_number={old_queried_number}, new max_pages={max_pages}")
         }
-      }
 
-      # D) Fetch new pages
-      start_page <- if (!do_full_update && nrow(existing_query) > 0) {
-        existing_query$queried_page_number[1] + 1
-      } else {
-        1
-      }
+        # D) Fetch new pages
+        start_page <- if (!do_full_update && nrow(existing_query) > 0) {
+          existing_query$queried_page_number[1] + 1
+        } else {
+          1
+        }
 
-      if (start_page <= max_pages) {
-        df_results <- pubtator_v3_pmids_from_request(
-          query = query, start_page = start_page,
-          max_pages = (max_pages - start_page + 1)
-        )
+        if (start_page <= max_pages) {
+          df_results <- pubtator_v3_pmids_from_request(
+            query = query, start_page = start_page,
+            max_pages = (max_pages - start_page + 1)
+          )
 
-        if (!is.null(df_results) && nrow(df_results) > 0) {
-          log_info("Inserting {nrow(df_results)} rows => pubtator_search_cache")
+          if (!is.null(df_results) && nrow(df_results) > 0) {
+            log_info("Inserting {nrow(df_results)} rows => pubtator_search_cache")
 
-          df_insert <- df_results %>%
-            mutate(
-              query_id = query_id,
-              id = if (!"id" %in% names(.)) NA_character_ else id,
-              date = if ("date" %in% names(.)) sub("T.*", "", date) else NA_character_
-            ) %>%
-            select(query_id, id, pmid, doi, title, journal, date, score, text_hl)
+            df_insert <- df_results %>%
+              mutate(
+                query_id = query_id,
+                id = if (!"id" %in% names(.)) NA_character_ else id,
+                date = if ("date" %in% names(.)) sub("T.*", "", date) else NA_character_
+              ) %>%
+              select(query_id, id, pmid, doi, title, journal, date, score, text_hl)
 
-          for (r in seq_len(nrow(df_insert))) {
-            db_execute_statement(
-              "INSERT INTO pubtator_search_cache
+            for (r in seq_len(nrow(df_insert))) {
+              db_execute_statement(
+                "INSERT INTO pubtator_search_cache
                 (query_id, id, pmid, doi, title, journal, date, score, text_hl)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-              unname(as.list(df_insert[r, ]))
+                unname(as.list(df_insert[r, ]))
+              )
+            }
+
+            db_execute_statement(
+              "UPDATE pubtator_query_cache
+             SET queried_page_number=?, total_page_number=? WHERE query_id=?",
+              list(max_pages, total_pages, query_id)
             )
           }
-
-          db_execute_statement(
-            "UPDATE pubtator_query_cache
-             SET queried_page_number=?, total_page_number=? WHERE query_id=?",
-            list(max_pages, total_pages, query_id)
-          )
         }
-      }
 
-      # E) Gather PMIDs and fetch annotations
-      pmid_rows <- db_execute_query(
-        "SELECT pmid FROM pubtator_search_cache
+        # E) Gather PMIDs and fetch annotations
+        pmid_rows <- db_execute_query(
+          "SELECT pmid FROM pubtator_search_cache
          WHERE query_id=? AND pmid IS NOT NULL GROUP BY pmid",
-        list(query_id)
-      )
+          list(query_id)
+        )
 
-      if (nrow(pmid_rows) == 0) {
-        log_info("No PMIDs in search_cache => skip annotation fetch.")
-        return(query_id)  # Early return WITH commit
-      }
+        if (nrow(pmid_rows) == 0) {
+          log_info("No PMIDs in search_cache => skip annotation fetch.")
+          return(query_id) # Early return WITH commit
+        }
 
-      pmid_vector <- pmid_rows$pmid
-      log_info("Found {length(pmid_vector)} PMIDs => fetching annotations...")
+        pmid_vector <- pmid_rows$pmid
+        log_info("Found {length(pmid_vector)} PMIDs => fetching annotations...")
 
-      # F) Fetch and insert annotations
-      doc_list <- pubtator_v3_data_from_pmids(pmid_vector)
-      if (is.null(doc_list) || length(doc_list) == 0) {
-        log_warn("No annotation data => skipping annotation_cache insert.")
-        return(query_id)  # Early return WITH commit
-      }
+        # F) Fetch and insert annotations
+        doc_list <- pubtator_v3_data_from_pmids(pmid_vector)
+        if (is.null(doc_list) || length(doc_list) == 0) {
+          log_warn("No annotation data => skipping annotation_cache insert.")
+          return(query_id) # Early return WITH commit
+        }
 
-      flat_df <- flatten_pubtator_passages(doc_list) %>%
-        mutate(pmid = as.integer(pmid))
+        flat_df <- flatten_pubtator_passages(doc_list) %>%
+          mutate(pmid = as.integer(pmid))
 
-      srch_map <- db_execute_query(
-        "SELECT search_id, pmid FROM pubtator_search_cache WHERE query_id=?",
-        list(query_id)
-      )
+        srch_map <- db_execute_query(
+          "SELECT search_id, pmid FROM pubtator_search_cache WHERE query_id=?",
+          list(query_id)
+        )
 
-      flat_df_j <- flat_df %>%
-        left_join(srch_map, by = "pmid", relationship = "many-to-many")
+        flat_df_j <- flat_df %>%
+          left_join(srch_map, by = "pmid", relationship = "many-to-many")
 
-      log_info("Inserting {nrow(flat_df_j)} annotation rows")
+        log_info("Inserting {nrow(flat_df_j)} annotation rows")
 
-      df_ann <- flat_df_j %>%
-        mutate(valid = if_else(valid == "TRUE", 1, 0, missing = 0)) %>%
-        select(search_id, pmid, id, text, identifier, type, ncbi_homologene,
-               valid, normalized, `database`, normalized_id, biotype, name, accession)
+        df_ann <- flat_df_j %>%
+          mutate(valid = if_else(valid == "TRUE", 1, 0, missing = 0)) %>%
+          select(
+            search_id, pmid, id, text, identifier, type, ncbi_homologene,
+            valid, normalized, `database`, normalized_id, biotype, name, accession
+          )
 
-      for (r in seq_len(nrow(df_ann))) {
-        db_execute_statement(
-          "INSERT INTO pubtator_annotation_cache
+        for (r in seq_len(nrow(df_ann))) {
+          db_execute_statement(
+            "INSERT INTO pubtator_annotation_cache
             (search_id, pmid, id, text, identifier, type, ncbi_homologene, valid,
              normalized, `database`, normalized_id, biotype, name, accession)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-          unname(as.list(df_ann[r, ]))
-        )
-      }
+            unname(as.list(df_ann[r, ]))
+          )
+        }
 
-      log_info("All done => returning query_id={query_id}")
-      query_id  # Return value - transaction auto-commits
-    })
-  }, error = function(e) {
-    # Transaction auto-rolled back by db_with_transaction
-    log_error("pubtator_db_update: Error => {e$message}")
-    return(NULL)
-  })
+        log_info("All done => returning query_id={query_id}")
+        query_id # Return value - transaction auto-commits
+      })
+    },
+    error = function(e) {
+      # Transaction auto-rolled back by db_with_transaction
+      log_error("pubtator_db_update: Error => {e$message}")
+      return(NULL)
+    }
+  )
 
   return(result)
 }
@@ -334,54 +340,56 @@ pubtator_v3_pmids_from_request <- function(query,
 
     retries <- 0
     while (retries <= max_retries) {
-      tryCatch({
-        response_search <- jsonlite::fromJSON(URLencode(url_search), flatten = TRUE)
+      tryCatch(
+        {
+          response_search <- jsonlite::fromJSON(URLencode(url_search), flatten = TRUE)
 
-        page_data <- response_search$results %>%
-          tibble::as_tibble() %>%
-          dplyr::select(
-            dplyr::any_of(c(
-              "id",
-              "pmid",
-              "doi",
-              "title",
-              "journal",
-              "date",
-              "score",
-              "text_hl"
-            ))
+          page_data <- response_search$results %>%
+            tibble::as_tibble() %>%
+            dplyr::select(
+              dplyr::any_of(c(
+                "id",
+                "pmid",
+                "doi",
+                "title",
+                "journal",
+                "date",
+                "score",
+                "text_hl"
+              ))
+            )
+
+          all_data <- dplyr::bind_rows(all_data, page_data)
+          log_info(
+            "Page {page} fetched successfully; found {nrow(page_data)} records."
           )
 
-        all_data <- dplyr::bind_rows(all_data, page_data)
-        log_info(
-          "Page {page} fetched successfully; found {nrow(page_data)} records."
-        )
-
-        if (page >= response_search$total_pages) {
-          log_info("Reached the last available page {page} for query: {query}.")
+          if (page >= response_search$total_pages) {
+            log_info("Reached the last available page {page} for query: {query}.")
+            break
+          }
           break
-        }
-        break
-
-      }, error = function(e) {
-        retries <- retries + 1
-        warning_msg <- paste(
-          "Error fetching PMIDs at page", page,
-          "Attempt:", retries, "/", max_retries,
-          "Error:", e$message
-        )
-        log_warn(warning_msg)
-
-        if (retries > max_retries) {
-          final_warning <- paste(
-            "Failed to fetch PMIDs at page", page, "after",
-            max_retries, "attempts."
+        },
+        error = function(e) {
+          retries <- retries + 1
+          warning_msg <- paste(
+            "Error fetching PMIDs at page", page,
+            "Attempt:", retries, "/", max_retries,
+            "Error:", e$message
           )
-          log_warn(final_warning)
-          warning(final_warning)
-          break
+          log_warn(warning_msg)
+
+          if (retries > max_retries) {
+            final_warning <- paste(
+              "Failed to fetch PMIDs at page", page, "after",
+              max_retries, "attempts."
+            )
+            log_warn(final_warning)
+            warning(final_warning)
+            break
+          }
         }
-      })
+      )
     }
   }
 
@@ -438,40 +446,43 @@ pubtator_v3_data_from_pmids <- function(pmids,
     retries <- 0
     success <- FALSE
     while (retries <= max_retries && !success) {
-      tryCatch({
-        annotations_content <- suppressWarnings(
-          readLines(URLencode(url_annotations))
-        )
-        parsed_json <- pubtator_v3_parse_nonstandard_json(annotations_content)
-
-        docs <- reassemble_pubtator_docs(parsed_json)
-        all_documents <- c(all_documents, docs)
-
-        success <- TRUE
-        log_info(
-          "Successfully fetched data for {length(group)} PMIDs. doc count so far: {length(all_documents)}."
-        )
-      }, error = function(e) {
-        retries <- retries + 1
-        warning_msg <- paste(
-          "Error fetching data for PMIDs:", paste(group, collapse=","),
-          "Attempt:", retries, "/", max_retries,
-          "Error:", e$message
-        )
-        log_warn(warning_msg)
-
-        if (retries > max_retries) {
-          final_warn <- paste(
-            "Failed to fetch data for PMIDs group after",
-            max_retries, "attempts:", paste(group, collapse=",")
+      tryCatch(
+        {
+          annotations_content <- suppressWarnings(
+            readLines(URLencode(url_annotations))
           )
-          log_warn(final_warn)
-          warning(final_warn)
-        } else {
-          log_info("Retrying in 1 second...")
-          Sys.sleep(1)
+          parsed_json <- pubtator_v3_parse_nonstandard_json(annotations_content)
+
+          docs <- reassemble_pubtator_docs(parsed_json)
+          all_documents <- c(all_documents, docs)
+
+          success <- TRUE
+          log_info(
+            "Successfully fetched data for {length(group)} PMIDs. doc count so far: {length(all_documents)}."
+          )
+        },
+        error = function(e) {
+          retries <- retries + 1
+          warning_msg <- paste(
+            "Error fetching data for PMIDs:", paste(group, collapse = ","),
+            "Attempt:", retries, "/", max_retries,
+            "Error:", e$message
+          )
+          log_warn(warning_msg)
+
+          if (retries > max_retries) {
+            final_warn <- paste(
+              "Failed to fetch data for PMIDs group after",
+              max_retries, "attempts:", paste(group, collapse = ",")
+            )
+            log_warn(final_warn)
+            warning(final_warn)
+          } else {
+            log_info("Retrying in 1 second...")
+            Sys.sleep(1)
+          }
         }
-      })
+      )
     }
   }
 
@@ -535,30 +546,35 @@ fix_doc_id <- function(doc) {
 #' Parse Non-standard JSON => reassemble => fromJSON
 #' @export
 pubtator_v3_parse_nonstandard_json <- function(json_content) {
-  tryCatch({
-    if (is.null(json_content) || length(json_content) == 0) {
-      log_warn("pubtator_v3_parse_nonstandard_json got NULL or empty json_content => returning NULL.")
+  tryCatch(
+    {
+      if (is.null(json_content) || length(json_content) == 0) {
+        log_warn("pubtator_v3_parse_nonstandard_json got NULL or empty json_content => returning NULL.")
+        return(NULL)
+      }
+      json_strings <- strsplit(paste(json_content, collapse = " "), "} ")[[1]]
+      if (is.null(json_strings)) {
+        log_warn("Failed to split JSON content => returning NULL.")
+        return(NULL)
+      }
+      json_strings <- ifelse(grepl("}$", json_strings),
+        json_strings,
+        paste0(json_strings, "}")
+      )
+      json_with_ids <- paste0('"', seq_along(json_strings), '":', json_strings,
+        collapse = ", "
+      )
+      valid_json_string <- paste0("{", json_with_ids, "}")
+      parsed_json <- fromJSON(valid_json_string)
+      return(parsed_json)
+    },
+    error = function(e) {
+      warning_msg <- paste("Error in parsing JSON content:", e$message)
+      log_warn(warning_msg)
+      warning(warning_msg)
       return(NULL)
     }
-    json_strings <- strsplit(paste(json_content, collapse = " "), "} ")[[1]]
-    if (is.null(json_strings)) {
-      log_warn("Failed to split JSON content => returning NULL.")
-      return(NULL)
-    }
-    json_strings <- ifelse(grepl("}$", json_strings),
-                           json_strings,
-                           paste0(json_strings, "}"))
-    json_with_ids <- paste0('"', seq_along(json_strings), '":', json_strings,
-                            collapse = ", ")
-    valid_json_string <- paste0("{", json_with_ids, "}")
-    parsed_json <- fromJSON(valid_json_string)
-    return(parsed_json)
-  }, error = function(e) {
-    warning_msg <- paste("Error in parsing JSON content:", e$message)
-    log_warn(warning_msg)
-    warning(warning_msg)
-    return(NULL)
-  })
+  )
 }
 
 #------------------------------------------------------------------------------
@@ -613,24 +629,24 @@ flatten_pubtator_passages <- function(master_obj) {
 build_pmid_annotations_table <- function(master_obj) {
   if (!is.list(master_obj)) {
     log_warn("master_obj not a list => returning empty tibble.")
-    return(tibble(pmid=character(), annotations=list()))
+    return(tibble(pmid = character(), annotations = list()))
   }
-  if (!all(c("id","passages") %in% names(master_obj))) {
+  if (!all(c("id", "passages") %in% names(master_obj))) {
     log_warn("master_obj missing 'id' or 'passages' => empty tibble.")
-    return(tibble(pmid=character(), annotations=list()))
+    return(tibble(pmid = character(), annotations = list()))
   }
 
   pmids_vec <- master_obj$id
   pass_list <- master_obj$passages
   if (!is.vector(pmids_vec) || !is.list(pass_list) || length(pmids_vec) != length(pass_list)) {
     log_warn("mismatch lengths => empty tibble.")
-    return(tibble(pmid=character(), annotations=list()))
+    return(tibble(pmid = character(), annotations = list()))
   }
 
   all_rows <- list()
   for (i in seq_along(pmids_vec)) {
     pmid_str <- as.character(pmids_vec[i])
-    pass_df  <- pass_list[[i]]
+    pass_df <- pass_list[[i]]
     if (!is.data.frame(pass_df)) {
       log_warn("passages[[{i}]] is not a data frame => skip.")
       next
@@ -649,7 +665,7 @@ build_pmid_annotations_table <- function(master_obj) {
   }
 
   if (length(all_rows) == 0) {
-    return(tibble(pmid=character(), annotations=list()))
+    return(tibble(pmid = character(), annotations = list()))
   }
   tib_out <- dplyr::bind_rows(all_rows)
   return(tib_out)
@@ -705,14 +721,19 @@ flatten_annotation_row <- function(one_annot) {
 # 12) safe_as_json
 #------------------------------------------------------------------------------
 safe_as_json <- function(x) {
-  if (is.null(x)) return("")
+  if (is.null(x)) {
+    return("")
+  }
   if (is.atomic(x) && length(x) == 1) {
     return(as.character(x))
   }
-  out <- tryCatch({
-    jsonlite::toJSON(x, auto_unbox=TRUE)
-  }, error=function(e) {
-    as.character(x)
-  })
+  out <- tryCatch(
+    {
+      jsonlite::toJSON(x, auto_unbox = TRUE)
+    },
+    error = function(e) {
+      as.character(x)
+    }
+  )
   return(out)
 }

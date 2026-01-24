@@ -7,22 +7,22 @@ require(ontologyIndex) # Load the ontologyIndex package before using the functio
 #### This file holds analyses functions for HPO request
 #' Retrieve the HPO children terms for a given HPO term ID.
 #'
-#' This function retrieves the immediate children terms of a specified term 
-#' from the Human Phenotype Ontology (HPO). It uses the `ontologyIndex` package 
+#' This function retrieves the immediate children terms of a specified term
+#' from the Human Phenotype Ontology (HPO). It uses the `ontologyIndex` package
 #' to interact with the ontology and the `tidyr` package to format the results.
 #'
-#' @param term_input_id The HPO term ID for which to retrieve the children terms. 
+#' @param term_input_id The HPO term ID for which to retrieve the children terms.
 #'   This should be a valid HPO term ID string.
 #'
-#' @details The function starts by querying the ontology for the children of the 
-#'   given term using `get_term_property()`. The result is then transformed into 
-#'   a tibble. Additionally, the current system date is added as an attribute 
+#' @details The function starts by querying the ontology for the children of the
+#'   given term using `get_term_property()`. The result is then transformed into
+#'   a tibble. Additionally, the current system date is added as an attribute
 #'   to each term, representing the date of the query.
 #'
 #' @importFrom ontologyIndex get_term_property
 #' @importFrom tidyr as_tibble
 #'
-#' @return A tibble with two columns: 
+#' @return A tibble with two columns:
 #'   - `term`: Contains the HPO children terms corresponding to the input HPO term ID.
 #'   - `query_date`: Contains the date when the query was made.
 #'
@@ -62,7 +62,6 @@ hpo_children_from_term <- function(term_input_id, hpo_input = hpo_ontology) {
 #' }
 #' @export
 hpo_all_children_from_term <- function(term_input_id, hpo_input = hpo_ontology, all_children_list = tibble()) {
-
   # Retrieve the immediate children of the current term
   children_tibble <- hpo_children_from_term(term_input_id, hpo_input)
 
@@ -99,27 +98,33 @@ hpo_all_children_from_term <- function(term_input_id, hpo_input = hpo_ontology, 
 #'
 #' @export
 hpo_name_from_term <- function(term_input_id) {
-  retries <- 3  # Number of retries before giving up
-  retry_delay <- 5  # Delay in seconds between retries
+  retries <- 3 # Number of retries before giving up
+  retry_delay <- 5 # Delay in seconds between retries
 
   for (attempt in 1:retries) {
-    tryCatch({
-      hpo_term_response <- jsonlite::fromJSON(
-        paste0("https://hpo.jax.org/api/hpo/term/",
-               URLencode(term_input_id, reserved = TRUE)))
+    tryCatch(
+      {
+        hpo_term_response <- jsonlite::fromJSON(
+          paste0(
+            "https://hpo.jax.org/api/hpo/term/",
+            URLencode(term_input_id, reserved = TRUE)
+          )
+        )
 
-      hpo_term_name <- tidyr::as_tibble(hpo_term_response$details$name) %>%
-        dplyr::select(hpo_mode_of_inheritance_term_name = value)
+        hpo_term_name <- tidyr::as_tibble(hpo_term_response$details$name) %>%
+          dplyr::select(hpo_mode_of_inheritance_term_name = value)
 
-      return(hpo_term_name)
-    }, error = function(e) {
-      if (attempt < retries) {
-        message("Retrying after error:", conditionMessage(e))
-        Sys.sleep(retry_delay)
-      } else {
-        stop("Failed after multiple retries:", conditionMessage(e))
+        return(hpo_term_name)
+      },
+      error = function(e) {
+        if (attempt < retries) {
+          message("Retrying after error:", conditionMessage(e))
+          Sys.sleep(retry_delay)
+        } else {
+          stop("Failed after multiple retries:", conditionMessage(e))
+        }
       }
-    })
+    )
   }
 }
 
@@ -142,27 +147,33 @@ hpo_name_from_term <- function(term_input_id) {
 #'
 #' @export
 hpo_definition_from_term <- function(term_input_id) {
-  retries <- 3  # Number of retries before giving up
-  retry_delay <- 5  # Delay in seconds between retries
+  retries <- 3 # Number of retries before giving up
+  retry_delay <- 5 # Delay in seconds between retries
 
   for (attempt in 1:retries) {
-    tryCatch({
-      hpo_term_response <- jsonlite::fromJSON(
-        paste0("https://hpo.jax.org/api/hpo/term/",
-               URLencode(term_input_id, reserved = TRUE)))
+    tryCatch(
+      {
+        hpo_term_response <- jsonlite::fromJSON(
+          paste0(
+            "https://hpo.jax.org/api/hpo/term/",
+            URLencode(term_input_id, reserved = TRUE)
+          )
+        )
 
-      hpo_term_definition <- tidyr::as_tibble(hpo_term_response$details$definition) %>%
-        dplyr::select(hpo_mode_of_inheritance_term_definition = value)
+        hpo_term_definition <- tidyr::as_tibble(hpo_term_response$details$definition) %>%
+          dplyr::select(hpo_mode_of_inheritance_term_definition = value)
 
-      return(hpo_term_definition)
-    }, error = function(e) {
-      if (attempt < retries) {
-        message("Retrying after error:", conditionMessage(e))
-        Sys.sleep(retry_delay)
-      } else {
-        stop("Failed after multiple retries:", conditionMessage(e))
+        return(hpo_term_definition)
+      },
+      error = function(e) {
+        if (attempt < retries) {
+          message("Retrying after error:", conditionMessage(e))
+          Sys.sleep(retry_delay)
+        } else {
+          stop("Failed after multiple retries:", conditionMessage(e))
+        }
       }
-    })
+    )
   }
 }
 
@@ -185,26 +196,32 @@ hpo_definition_from_term <- function(term_input_id) {
 #'
 #' @export
 hpo_children_count_from_term <- function(term_input_id) {
-  retries <- 3  # Number of retries before giving up
-  retry_delay <- 5  # Delay in seconds between retries
+  retries <- 3 # Number of retries before giving up
+  retry_delay <- 5 # Delay in seconds between retries
 
   for (attempt in 1:retries) {
-    tryCatch({
-      hpo_term_response <- jsonlite::fromJSON(
-        paste0("https://hpo.jax.org/api/hpo/term/",
-               URLencode(term_input_id, reserved = TRUE)))
+    tryCatch(
+      {
+        hpo_term_response <- jsonlite::fromJSON(
+          paste0(
+            "https://hpo.jax.org/api/hpo/term/",
+            URLencode(term_input_id, reserved = TRUE)
+          )
+        )
 
-      hpo_term_children_count <- length(hpo_term_response$relations$children)
+        hpo_term_children_count <- length(hpo_term_response$relations$children)
 
-      return(hpo_term_children_count)
-    }, error = function(e) {
-      if (attempt < retries) {
-        message("Retrying after error:", conditionMessage(e))
-        Sys.sleep(retry_delay)
-      } else {
-        stop("Failed after multiple retries:", conditionMessage(e))
+        return(hpo_term_children_count)
+      },
+      error = function(e) {
+        if (attempt < retries) {
+          message("Retrying after error:", conditionMessage(e))
+          Sys.sleep(retry_delay)
+        } else {
+          stop("Failed after multiple retries:", conditionMessage(e))
+        }
       }
-    })
+    )
   }
 }
 
@@ -225,26 +242,32 @@ hpo_children_count_from_term <- function(term_input_id) {
 #'
 #' @export
 hpo_children_from_term_api <- function(term_input_id) {
-  retries <- 3  # Number of retries before giving up
-  retry_delay <- 5  # Delay in seconds between retries
+  retries <- 3 # Number of retries before giving up
+  retry_delay <- 5 # Delay in seconds between retries
 
   for (attempt in 1:retries) {
-    tryCatch({
-      hpo_term_response <- jsonlite::fromJSON(
-        paste0("https://hpo.jax.org/api/hpo/term/",
-               URLencode(term_input_id, reserved = TRUE)))
+    tryCatch(
+      {
+        hpo_term_response <- jsonlite::fromJSON(
+          paste0(
+            "https://hpo.jax.org/api/hpo/term/",
+            URLencode(term_input_id, reserved = TRUE)
+          )
+        )
 
-      hpo_term_children <- tidyr::as_tibble(hpo_term_response$relations$children)
+        hpo_term_children <- tidyr::as_tibble(hpo_term_response$relations$children)
 
-      return(hpo_term_children)
-    }, error = function(e) {
-      if (attempt < retries) {
-        message("Retrying after error:", conditionMessage(e))
-        Sys.sleep(retry_delay)
-      } else {
-        stop("Failed after multiple retries:", conditionMessage(e))
+        return(hpo_term_children)
+      },
+      error = function(e) {
+        if (attempt < retries) {
+          message("Retrying after error:", conditionMessage(e))
+          Sys.sleep(retry_delay)
+        } else {
+          stop("Failed after multiple retries:", conditionMessage(e))
+        }
       }
-    })
+    )
   }
 }
 
@@ -265,7 +288,6 @@ hpo_children_from_term_api <- function(term_input_id) {
 #'
 #' @export
 hpo_all_children_from_term_api <- function(term_input, all_children_list = list()) {
-
   children_list <- hpo_children_from_term_api(term_input)
 
   # Combine all_children_list and term_input
@@ -273,8 +295,8 @@ hpo_all_children_from_term_api <- function(term_input, all_children_list = list(
 
   if (length(children_list) != 0) {
     for (p in children_list$ontologyId) {
-        # Update all_children_list with each recursive call
-        all_children_list <- hpo_all_children_from_term_api(p, all_children_list)
+      # Update all_children_list with each recursive call
+      all_children_list <- hpo_all_children_from_term_api(p, all_children_list)
     }
   }
 

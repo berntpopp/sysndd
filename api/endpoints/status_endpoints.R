@@ -1,12 +1,12 @@
 # api/endpoints/status_endpoints.R
 #
-# This file contains all Status-related endpoints, extracted from the 
-# original sysndd_plumber.R. It follows the Google R Style Guide 
+# This file contains all Status-related endpoints, extracted from the
+# original sysndd_plumber.R. It follows the Google R Style Guide
 # conventions where possible.
 
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 ## Status endpoints
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 
 #* Get the Status List
 #*
@@ -285,7 +285,7 @@ function(req, res, re_review = FALSE) {
 #* @tag status
 #* @serializer json list(na="string")
 #*
-#* @response 200 OK. 
+#* @response 200 OK.
 #* @response 401 or 403 if not authenticated or unauthorized.
 #*
 #* @put /approve/<status_id_requested>

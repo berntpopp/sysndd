@@ -2,12 +2,12 @@
 #
 # This file contains all Variant-related endpoints, extracted from
 # the original sysndd_plumber.R. It follows the Google R Style Guide
-# conventions where possible (e.g., two-space indentation, meaningful 
+# conventions where possible (e.g., two-space indentation, meaningful
 # function names, etc.).
 
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 ## Variant endpoints
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 
 #* Browse Entities by Variant
 #*
@@ -40,7 +40,6 @@ function(req,
          page_size = "10",
          fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,modifier_variant_id,details",
          format = "json") {
-
   # Set response serializer
   res$serializer <- serializers[[format]]
 
@@ -66,7 +65,6 @@ function(req,
 
     bin <- generate_xlsx_bin(variant_entities_list, base_filename)
     as_attachment(bin, filename)
-
   } else {
     variant_entities_list
   }
@@ -79,24 +77,23 @@ function(req,
 #* based on the data in the database.
 #*
 #* # `Details`
-#* It first gathers entity-variant associations via 
-#* `generate_variant_entities_list()`, then constructs a matrix 
+#* It first gathers entity-variant associations via
+#* `generate_variant_entities_list()`, then constructs a matrix
 #* of presence/absence to compute correlation (or another metric).
 #*
 #* # `Return`
-#* A data frame (long format) containing columns like "x", "x_id", 
+#* A data frame (long format) containing columns like "x", "x_id",
 #* "y", "y_id", and "value" for the correlation matrix.
 #*
 #* @tag variant
 #* @serializer json list(na="string")
 #*
-#* @param filter:str A string representing a filter query to use 
+#* @param filter:str A string representing a filter query to use
 #*                  when selecting data from the database.
 #*
 #* @get correlation
 function(res,
          filter = "contains(ndd_phenotype_word,Yes),any(category,Definitive)") {
-
   # 1) Use helper to get a data frame with columns (entity_id, modifier_variant_id, etc.)
   variant_entities_data <- generate_variant_entities_list(filter = filter)$data %>%
     # Convert comma-separated variant IDs to separate rows
@@ -106,7 +103,7 @@ function(res,
   # 2) Get the variation_ontology_list so we can match vario_id -> vario_name
   variation_ontology_list_tbl <- pool %>%
     tbl("variation_ontology_list") %>%
-    collect()   # columns: vario_id, vario_name, definition, etc.
+    collect() # columns: vario_id, vario_name, definition, etc.
 
   # 3) Parse out the vario_id from e.g. "1-VariO:0001" (leading digits-dash)
   db_variants <- variant_entities_data %>%
@@ -186,7 +183,6 @@ function(res,
 #* @get count
 function(res,
          filter = "contains(ndd_phenotype_word,Yes),any(category,Definitive)") {
-
   # 1) Use helper to get entity-variant associations
   variant_entities_data <- generate_variant_entities_list(filter = filter)$data %>%
     separate_rows(modifier_variant_id, sep = ",") %>%

@@ -7,9 +7,9 @@
 # Be sure to source any required helper files at the top (e.g.,
 # source("functions/database-functions.R", local = TRUE)) if needed.
 
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 ## Statistics section
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 
 #* Get Category Count Statistics
 #*
@@ -80,7 +80,7 @@ function(res,
 
   # Validate input for 'aggregate' and 'group'
   if (!(aggregate %in% c("entity_id", "symbol")) ||
-      !(group %in% c("category", "inheritance_filter", "inheritance_multiple"))) {
+    !(group %in% c("category", "inheritance_filter", "inheritance_multiple"))) {
     res$status <- 400
     res$body <- jsonlite::toJSON(
       auto_unbox = TRUE,
@@ -122,7 +122,8 @@ function(res,
           mutate(inheritance_filter_count = n_distinct(inheritance_filter)) %>%
           mutate(
             inheritance_multiple = str_c(
-              unique(inheritance_filter), collapse = " | "
+              unique(inheritance_filter),
+              collapse = " | "
             )
           ) %>%
           ungroup()
@@ -228,10 +229,10 @@ function(req, res, start_date, end_date) {
     dplyr::filter(is_active == 1) %>%
     dplyr::filter(entry_date >= as.Date(start_date) & entry_date <= as.Date(end_date))
 
-  total_new  <- nrow(sysndd_ndd_entity)
+  total_new <- nrow(sysndd_ndd_entity)
   unique_gns <- n_distinct(sysndd_ndd_entity$hgnc_id)
-  day_diff   <- as.numeric(difftime(as.Date(end_date), as.Date(start_date), units = "days"))
-  avg_day    <- ifelse(day_diff > 0, total_new / day_diff, NA)
+  day_diff <- as.numeric(difftime(as.Date(end_date), as.Date(start_date), units = "days"))
+  avg_day <- ifelse(day_diff > 0, total_new / day_diff, NA)
 
   list(
     total_new_entities = total_new,
@@ -286,8 +287,8 @@ function(req, res, start_date, end_date) {
   total_rr <- nrow(sysndd_re_review_entity_connect)
   # Example placeholder: dividing total by 3650 for demonstration
   percent_finished <- (total_rr / 3650) * 100
-  day_diff         <- as.numeric(difftime(as.Date(end_date), as.Date(start_date), units = "days"))
-  avg_day          <- ifelse(day_diff > 0, total_rr / day_diff, NA)
+  day_diff <- as.numeric(difftime(as.Date(end_date), as.Date(start_date), units = "days"))
+  avg_day <- ifelse(day_diff > 0, total_rr / day_diff, NA)
 
   list(
     total_rereviews       = total_rr,
@@ -327,7 +328,7 @@ function(req, res, start_date, end_date) {
     dplyr::filter(n() > 1) %>%
     summarise(latest_review_date = max(review_date, na.rm = TRUE)) %>%
     dplyr::filter(latest_review_date >= as.Date(start_date) &
-                  latest_review_date <= as.Date(end_date))
+      latest_review_date <= as.Date(end_date))
 
   list(
     total_updated_reviews = nrow(updated_reviews)
@@ -365,7 +366,7 @@ function(req, res, start_date, end_date) {
     dplyr::filter(n() > 1) %>%
     summarise(latest_status_date = max(status_date, na.rm = TRUE)) %>%
     dplyr::filter(latest_status_date >= as.Date(start_date) &
-                  latest_status_date <= as.Date(end_date))
+      latest_status_date <= as.Date(end_date))
 
   list(
     total_updated_statuses = nrow(updated_statuses)
@@ -373,9 +374,9 @@ function(req, res, start_date, end_date) {
 }
 
 
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 ## Additional Endpoint: Publication Statistics
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 
 #* Get Publication Statistics
 #*
@@ -408,14 +409,13 @@ function(req, res, start_date, end_date) {
 #* @response 500 Internal server error
 #*
 #* @get /publication_stats
-function(req, 
-         res, 
-         time_aggregate = "year", 
-         filter = "", 
+function(req,
+         res,
+         time_aggregate = "year",
+         filter = "",
          min_journal_count = 1,
          min_lastname_count = 1,
          min_keyword_count = 1) {
-
   # 1) Generate filter expressions from the user-provided 'filter' string
   filter_exprs <- generate_filter_expressions(filter)
 

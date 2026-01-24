@@ -28,7 +28,7 @@
 function(req, res) {
   # CRITICAL: Extract request data BEFORE mirai call
 
-# Connection objects cannot cross process boundaries
+  # Connection objects cannot cross process boundaries
   genes_list <- NULL
   if (!is.null(req$argsBody$genes)) {
     genes_list <- req$argsBody$genes
@@ -114,13 +114,23 @@ function(req, res) {
   categories <- c("Definitive")
 
   # Gather all data from database
-  ndd_entity_view_tbl <- pool %>% tbl("ndd_entity_view") %>% collect()
-  ndd_entity_review_tbl <- pool %>% tbl("ndd_entity_review") %>% collect() %>%
-    filter(is_primary == 1) %>% select(review_id)
+  ndd_entity_view_tbl <- pool %>%
+    tbl("ndd_entity_view") %>%
+    collect()
+  ndd_entity_review_tbl <- pool %>%
+    tbl("ndd_entity_review") %>%
+    collect() %>%
+    filter(is_primary == 1) %>%
+    select(review_id)
   ndd_review_phenotype_connect_tbl <- pool %>%
-    tbl("ndd_review_phenotype_connect") %>% collect()
-  modifier_list_tbl <- pool %>% tbl("modifier_list") %>% collect()
-  phenotype_list_tbl <- pool %>% tbl("phenotype_list") %>% collect()
+    tbl("ndd_review_phenotype_connect") %>%
+    collect()
+  modifier_list_tbl <- pool %>%
+    tbl("modifier_list") %>%
+    collect()
+  phenotype_list_tbl <- pool %>%
+    tbl("phenotype_list") %>%
+    collect()
 
   # Create params hash based on entity count (stable identifier)
   params_hash_input <- list(
@@ -168,8 +178,10 @@ function(req, res) {
         filter(category %in% params$categories) %>%
         filter(modifier_name == "present") %>%
         filter(review_id %in% params$ndd_entity_review_tbl$review_id) %>%
-        select(entity_id, hpo_mode_of_inheritance_term_name, phenotype_id,
-               HPO_term, hgnc_id) %>%
+        select(
+          entity_id, hpo_mode_of_inheritance_term_name, phenotype_id,
+          HPO_term, hgnc_id
+        ) %>%
         group_by(entity_id) %>%
         mutate(
           phenotype_non_id_count = sum(!(phenotype_id %in% params$id_phenotype_ids)),
@@ -291,7 +303,7 @@ function(req, res) {
       disease_ontology_set <- process_combine_ontology(
         hgnc_list = params$hgnc_list,
         mode_of_inheritance_list = params$mode_of_inheritance_list,
-        max_file_age = 0,  # Force regeneration
+        max_file_age = 0, # Force regeneration
         output_path = "data/"
       )
 
@@ -315,12 +327,12 @@ function(req, res) {
   # Success - return HTTP 202 Accepted
   res$status <- 202
   res$setHeader("Location", paste0("/api/jobs/", result$job_id, "/status"))
-  res$setHeader("Retry-After", "30")  # Longer polling interval for ontology update
+  res$setHeader("Retry-After", "30") # Longer polling interval for ontology update
 
   list(
     job_id = result$job_id,
     status = result$status,
-    estimated_seconds = 300,  # Ontology update is slow (5+ minutes)
+    estimated_seconds = 300, # Ontology update is slow (5+ minutes)
     status_url = paste0("/api/jobs/", result$job_id, "/status")
   )
 }

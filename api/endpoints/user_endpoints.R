@@ -8,9 +8,9 @@
 # are sourced by start_sysndd_api.R before endpoints are loaded.
 # Functions are available in the global environment.
 
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 ## User endpoint section
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 
 #* Retrieves a summary table of users based on role permissions.
 #*
@@ -343,33 +343,33 @@ function(
     return(list(error = "Please authenticate."))
   } else if (
     (req$user_role %in% c("Administrator") || user == user_id_pass_change) &&
-    !user_id_pass_change_exists &&
-    (old_pass_match || req$user_role %in% c("Administrator")) &&
-    new_pass_match_and_valid
+      !user_id_pass_change_exists &&
+      (old_pass_match || req$user_role %in% c("Administrator")) &&
+      new_pass_match_and_valid
   ) {
     res$status <- 409
     return(list(error = "User account does not exist."))
   } else if (
     (req$user_role %in% c("Administrator") || user == user_id_pass_change) &&
-    user_id_pass_change_exists && !user_id_pass_change_approved &&
-    (old_pass_match || req$user_role %in% c("Administrator")) &&
-    new_pass_match_and_valid
+      user_id_pass_change_exists && !user_id_pass_change_approved &&
+      (old_pass_match || req$user_role %in% c("Administrator")) &&
+      new_pass_match_and_valid
   ) {
     res$status <- 409
     return(list(error = "User account not approved."))
   } else if (
     (req$user_role %in% c("Administrator") || user == user_id_pass_change) &&
-    (!(old_pass_match || req$user_role %in% c("Administrator")) ||
-     !new_pass_match_and_valid)
+      (!(old_pass_match || req$user_role %in% c("Administrator")) ||
+        !new_pass_match_and_valid)
   ) {
     res$status <- 409
     return(list(error = "Password input problem."))
   } else if (
     (req$user_role %in% c("Administrator") || user == user_id_pass_change) &&
-    user_id_pass_change_exists &&
-    user_id_pass_change_approved &&
-    (old_pass_match || req$user_role %in% c("Administrator")) &&
-    new_pass_match_and_valid
+      user_id_pass_change_exists &&
+      user_id_pass_change_approved &&
+      (old_pass_match || req$user_role %in% c("Administrator")) &&
+      new_pass_match_and_valid
   ) {
     # Hash new password with Argon2id before storing
     hashed_new_password <- hash_password(new_pass_1)
@@ -452,7 +452,7 @@ function(req, res, email_request = "") {
 #* Does password reset
 #*
 #* # `Details`
-#* This endpoint is called with a Bearer token that includes a 
+#* This endpoint is called with a Bearer token that includes a
 #* password_reset_date-based JWT. If valid and not expired, updates the password.
 #*
 #* @tag user
@@ -543,14 +543,17 @@ function(req, res, user_id) {
   }
 
   # Delete user
-  delete_result <- tryCatch({
-    db_execute_statement(
-      "DELETE FROM user WHERE user_id = ?",
-      list(user_id)
-    )
-  }, error = function(e) {
-    NULL
-  })
+  delete_result <- tryCatch(
+    {
+      db_execute_statement(
+        "DELETE FROM user WHERE user_id = ?",
+        list(user_id)
+      )
+    },
+    error = function(e) {
+      NULL
+    }
+  )
 
   if (is.null(delete_result)) {
     res$status <- 500
@@ -617,12 +620,15 @@ function(req, res) {
   fields_to_update <- names(user_details)[names(user_details) != "user_id"]
   updates <- user_details[fields_to_update]
 
-  result <- tryCatch({
-    user_update(user_details$user_id, updates)
-    TRUE
-  }, error = function(e) {
-    list(error = e$message)
-  })
+  result <- tryCatch(
+    {
+      user_update(user_details$user_id, updates)
+      TRUE
+    },
+    error = function(e) {
+      list(error = e$message)
+    }
+  )
 
   if (is.list(result) && !is.null(result$error)) {
     res$status <- 500

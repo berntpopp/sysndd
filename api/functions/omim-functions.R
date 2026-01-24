@@ -163,44 +163,47 @@ parse_mim2gene <- function(file_path, include_moved_removed = TRUE) {
 fetch_jax_disease_name <- function(mim_number) {
   url <- paste0("https://ontology.jax.org/api/network/annotation/OMIM:", mim_number)
 
-  tryCatch({
-    response <- request(url) |>
-      req_retry(
-        max_tries = 5,
-        max_seconds = 120,
-        backoff = ~ 2^.x,
-        is_transient = ~ resp_status(.x) %in% c(429, 503, 504)
-      ) |>
-      req_timeout(30) |>
-      req_error(is_error = ~ FALSE) |>
-      req_perform()
+  tryCatch(
+    {
+      response <- request(url) |>
+        req_retry(
+          max_tries = 5,
+          max_seconds = 120,
+          backoff = ~ 2^.x,
+          is_transient = ~ resp_status(.x) %in% c(429, 503, 504)
+        ) |>
+        req_timeout(30) |>
+        req_error(is_error = ~FALSE) |>
+        req_perform()
 
-    # Handle 404 - not found in JAX database (expected for ~18% of entries)
-    if (resp_status(response) == 404) {
-      return(NA_character_)
-    }
+      # Handle 404 - not found in JAX database (expected for ~18% of entries)
+      if (resp_status(response) == 404) {
+        return(NA_character_)
+      }
 
-    # Handle other non-200 responses
-    if (resp_status(response) != 200) {
+      # Handle other non-200 responses
+      if (resp_status(response) != 200) {
+        warning(sprintf(
+          "JAX API error %d for OMIM:%s",
+          resp_status(response), mim_number
+        ))
+        return(NA_character_)
+      }
+
+      # Extract disease name
+      data <- resp_body_json(response)
+      disease_name <- pluck(data, "disease", "name", .default = NA_character_)
+
+      return(disease_name)
+    },
+    error = function(e) {
       warning(sprintf(
-        "JAX API error %d for OMIM:%s",
-        resp_status(response), mim_number
+        "Failed to fetch disease name for OMIM:%s - %s",
+        mim_number, e$message
       ))
       return(NA_character_)
     }
-
-    # Extract disease name
-    data <- resp_body_json(response)
-    disease_name <- pluck(data, "disease", "name", .default = NA_character_)
-
-    return(disease_name)
-  }, error = function(e) {
-    warning(sprintf(
-      "Failed to fetch disease name for OMIM:%s - %s",
-      mim_number, e$message
-    ))
-    return(NA_character_)
-  })
+  )
 }
 
 

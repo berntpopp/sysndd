@@ -284,7 +284,6 @@ review_approve <- function(review_ids, approving_user_id, approved = TRUE) {
         ")"
       )
       db_execute_statement(sql_set_approved, as.list(review_ids))
-
     } else {
       # Rejection: add approving_user_id and set review_approved to 0
       sql_set_user <- paste0(

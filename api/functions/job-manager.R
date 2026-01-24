@@ -80,7 +80,7 @@ create_job <- function(operation, params, executor_fn) {
 
   # Generate unique job ID
 
-job_id <- uuid::UUIDgenerate()
+  job_id <- uuid::UUIDgenerate()
 
   # Create mirai task with 30-minute timeout (in milliseconds)
   m <- mirai::mirai(
@@ -89,7 +89,7 @@ job_id <- uuid::UUIDgenerate()
     },
     params = params,
     executor_fn = executor_fn,
-    .timeout = 1800000  # 30 minutes in ms
+    .timeout = 1800000 # 30 minutes in ms
   )
 
   # Store job state
@@ -160,7 +160,7 @@ get_job_status <- function(job_id) {
   if (mirai::unresolved(m)) {
     # Job still running - calculate estimated remaining time
     elapsed <- as.numeric(difftime(Sys.time(), job$submitted_at, units = "secs"))
-    remaining <- max(0, 1800 - elapsed)  # 30 min = 1800 sec
+    remaining <- max(0, 1800 - elapsed) # 30 min = 1800 sec
 
     return(list(
       job_id = job_id,
@@ -231,8 +231,8 @@ check_duplicate_job <- function(operation, params) {
     job <- jobs_env[[job_id]]
 
     if (job$operation == operation &&
-        job$params_hash == params_hash &&
-        job$status %in% c("pending", "running")) {
+      job$params_hash == params_hash &&
+      job$status %in% c("pending", "running")) {
       return(list(
         duplicate = TRUE,
         existing_job_id = job_id
@@ -256,7 +256,7 @@ check_duplicate_job <- function(operation, params) {
 #' }
 #' @export
 cleanup_old_jobs <- function() {
-  cutoff_time <- Sys.time() - (24 * 3600)  # 24 hours ago
+  cutoff_time <- Sys.time() - (24 * 3600) # 24 hours ago
   removed <- 0
 
   job_ids <- ls(jobs_env)
@@ -266,27 +266,30 @@ cleanup_old_jobs <- function() {
   }
 
   for (job_id in job_ids) {
-    tryCatch({
-      job <- jobs_env[[job_id]]
+    tryCatch(
+      {
+        job <- jobs_env[[job_id]]
 
-      if (is.null(job)) {
-        # Orphaned entry, remove it
-        rm(list = job_id, envir = jobs_env)
-        removed <- removed + 1
-        next
-      }
-
-      if (job$status %in% c("completed", "failed")) {
-        end_time <- job$completed_at %||% job$submitted_at
-
-        if (!is.null(end_time) && end_time < cutoff_time) {
+        if (is.null(job)) {
+          # Orphaned entry, remove it
           rm(list = job_id, envir = jobs_env)
           removed <- removed + 1
+          next
         }
+
+        if (job$status %in% c("completed", "failed")) {
+          end_time <- job$completed_at %||% job$submitted_at
+
+          if (!is.null(end_time) && end_time < cutoff_time) {
+            rm(list = job_id, envir = jobs_env)
+            removed <- removed + 1
+          }
+        }
+      },
+      error = function(e) {
+        message(sprintf("[%s] Error cleaning job %s: %s", Sys.time(), job_id, e$message))
       }
-    }, error = function(e) {
-      message(sprintf("[%s] Error cleaning job %s: %s", Sys.time(), job_id, e$message))
-    })
+    )
   }
 
   if (removed > 0) {

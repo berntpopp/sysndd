@@ -7,13 +7,13 @@
 # Note: db-helpers.R is sourced by start_sysndd_api.R before endpoints are loaded
 # Functions like db_execute_statement are available in the global environment
 
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 ## Re-review endpoints
-##-------------------------------------------------------------------##
+## -------------------------------------------------------------------##
 
 #* Submit a Re-Review Entry
 #*
-#* Allows users with roles (Administrator, Curator, Reviewer) to submit a 
+#* Allows users with roles (Administrator, Curator, Reviewer) to submit a
 #* re-review entry in the DB.
 #*
 #* # `Details`
@@ -97,78 +97,78 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
   submit_user_id <- req$user_id
   re_review_id <- as.integer(re_review_id)
 
-    re_review_entity_connect_data <- pool %>%
-      tbl("re_review_entity_connect") %>%
-      filter(re_review_entity_id == re_review_id) %>%
-      collect()
+  re_review_entity_connect_data <- pool %>%
+    tbl("re_review_entity_connect") %>%
+    filter(re_review_entity_id == re_review_id) %>%
+    collect()
 
-    # If status_ok, set new status active, reset older ones.
-    if (status_ok) {
-      db_execute_statement(
-        "UPDATE ndd_entity_status SET is_active = 0 WHERE entity_id = ?",
-        list(re_review_entity_connect_data$entity_id)
-      )
-      db_execute_statement(
-        "UPDATE ndd_entity_status SET is_active = 1 WHERE status_id = ?",
-        list(re_review_entity_connect_data$status_id)
-      )
-      db_execute_statement(
-        "UPDATE ndd_entity_status SET approving_user_id = ? WHERE status_id = ?",
-        list(submit_user_id, re_review_entity_connect_data$status_id)
-      )
-      db_execute_statement(
-        "UPDATE ndd_entity_status SET status_approved = 1 WHERE status_id = ?",
-        list(re_review_entity_connect_data$status_id)
-      )
-    } else {
-      db_execute_statement(
-        "UPDATE ndd_entity_status SET approving_user_id = ? WHERE status_id = ?",
-        list(submit_user_id, re_review_entity_connect_data$status_id)
-      )
-      db_execute_statement(
-        "UPDATE ndd_entity_status SET status_approved = 0 WHERE status_id = ?",
-        list(re_review_entity_connect_data$status_id)
-      )
-    }
-
-    # If review_ok, reset old primary, set new primary
-    if (review_ok) {
-      db_execute_statement(
-        "UPDATE ndd_entity_review SET is_primary = 0 WHERE entity_id = ?",
-        list(re_review_entity_connect_data$entity_id)
-      )
-      db_execute_statement(
-        "UPDATE ndd_entity_review SET is_primary = 1 WHERE review_id = ?",
-        list(re_review_entity_connect_data$review_id)
-      )
-      db_execute_statement(
-        "UPDATE ndd_entity_review SET approving_user_id = ? WHERE review_id = ?",
-        list(submit_user_id, re_review_entity_connect_data$review_id)
-      )
-      db_execute_statement(
-        "UPDATE ndd_entity_review SET review_approved = 1 WHERE review_id = ?",
-        list(re_review_entity_connect_data$review_id)
-      )
-    } else {
-      db_execute_statement(
-        "UPDATE ndd_entity_review SET approving_user_id = ? WHERE review_id = ?",
-        list(submit_user_id, re_review_entity_connect_data$review_id)
-      )
-      db_execute_statement(
-        "UPDATE ndd_entity_review SET review_approved = 0 WHERE review_id = ?",
-        list(re_review_entity_connect_data$review_id)
-      )
-    }
-
-    # Mark re_review_approved
+  # If status_ok, set new status active, reset older ones.
+  if (status_ok) {
     db_execute_statement(
-      "UPDATE re_review_entity_connect SET re_review_approved = 1 WHERE re_review_entity_id = ?",
-      list(re_review_id)
+      "UPDATE ndd_entity_status SET is_active = 0 WHERE entity_id = ?",
+      list(re_review_entity_connect_data$entity_id)
     )
     db_execute_statement(
-      "UPDATE re_review_entity_connect SET approving_user_id = ? WHERE re_review_entity_id = ?",
-      list(submit_user_id, re_review_id)
+      "UPDATE ndd_entity_status SET is_active = 1 WHERE status_id = ?",
+      list(re_review_entity_connect_data$status_id)
     )
+    db_execute_statement(
+      "UPDATE ndd_entity_status SET approving_user_id = ? WHERE status_id = ?",
+      list(submit_user_id, re_review_entity_connect_data$status_id)
+    )
+    db_execute_statement(
+      "UPDATE ndd_entity_status SET status_approved = 1 WHERE status_id = ?",
+      list(re_review_entity_connect_data$status_id)
+    )
+  } else {
+    db_execute_statement(
+      "UPDATE ndd_entity_status SET approving_user_id = ? WHERE status_id = ?",
+      list(submit_user_id, re_review_entity_connect_data$status_id)
+    )
+    db_execute_statement(
+      "UPDATE ndd_entity_status SET status_approved = 0 WHERE status_id = ?",
+      list(re_review_entity_connect_data$status_id)
+    )
+  }
+
+  # If review_ok, reset old primary, set new primary
+  if (review_ok) {
+    db_execute_statement(
+      "UPDATE ndd_entity_review SET is_primary = 0 WHERE entity_id = ?",
+      list(re_review_entity_connect_data$entity_id)
+    )
+    db_execute_statement(
+      "UPDATE ndd_entity_review SET is_primary = 1 WHERE review_id = ?",
+      list(re_review_entity_connect_data$review_id)
+    )
+    db_execute_statement(
+      "UPDATE ndd_entity_review SET approving_user_id = ? WHERE review_id = ?",
+      list(submit_user_id, re_review_entity_connect_data$review_id)
+    )
+    db_execute_statement(
+      "UPDATE ndd_entity_review SET review_approved = 1 WHERE review_id = ?",
+      list(re_review_entity_connect_data$review_id)
+    )
+  } else {
+    db_execute_statement(
+      "UPDATE ndd_entity_review SET approving_user_id = ? WHERE review_id = ?",
+      list(submit_user_id, re_review_entity_connect_data$review_id)
+    )
+    db_execute_statement(
+      "UPDATE ndd_entity_review SET review_approved = 0 WHERE review_id = ?",
+      list(re_review_entity_connect_data$review_id)
+    )
+  }
+
+  # Mark re_review_approved
+  db_execute_statement(
+    "UPDATE re_review_entity_connect SET re_review_approved = 1 WHERE re_review_entity_id = ?",
+    list(re_review_id)
+  )
+  db_execute_statement(
+    "UPDATE re_review_entity_connect SET approving_user_id = ? WHERE re_review_entity_id = ?",
+    list(submit_user_id, re_review_id)
+  )
 }
 
 
@@ -212,94 +212,99 @@ function(req,
   filter_exprs <- generate_filter_expressions(filter)
   user <- req$user_id
 
-    re_review_entity_connect <- pool %>%
-      tbl("re_review_entity_connect") %>%
-      filter(re_review_approved == 0) %>%
-      {if (curate)
+  re_review_entity_connect <- pool %>%
+    tbl("re_review_entity_connect") %>%
+    filter(re_review_approved == 0) %>%
+    {
+      if (curate) {
         filter(., re_review_submitted == 1)
-       else
+      } else {
         filter(., re_review_submitted == 0)
       }
+    }
 
-    re_review_assignment <- pool %>%
-      tbl("re_review_assignment") %>%
-      {if (!curate)
+  re_review_assignment <- pool %>%
+    tbl("re_review_assignment") %>%
+    {
+      if (!curate) {
         filter(., user_id == user)
-       else .
+      } else {
+        .
       }
+    }
 
-    ndd_entity_view <- pool %>%
-      tbl("ndd_entity_view")
+  ndd_entity_view <- pool %>%
+    tbl("ndd_entity_view")
 
-    ndd_entity_status_category <- pool %>%
-      tbl("ndd_entity_status") %>%
-      select(status_id, category_id)
+  ndd_entity_status_category <- pool %>%
+    tbl("ndd_entity_status") %>%
+    select(status_id, category_id)
 
-    ndd_entity_status_categories_list <- pool %>%
-      tbl("ndd_entity_status_categories_list")
+  ndd_entity_status_categories_list <- pool %>%
+    tbl("ndd_entity_status_categories_list")
 
-    user_table <- pool %>%
-      tbl("user") %>%
-      select(user_id, user_name, user_role)
+  user_table <- pool %>%
+    tbl("user") %>%
+    select(user_id, user_name, user_role)
 
-    review_user_collected <- pool %>%
-      tbl("ndd_entity_review") %>%
-      left_join(user_table, by = c("review_user_id" = "user_id")) %>%
-      select(
-        review_id,
-        review_date,
-        review_user_id,
-        review_user_name = user_name,
-        review_user_role = user_role,
-        review_approving_user_id = approving_user_id
-      )
-
-    status_user_collected <- pool %>%
-      tbl("ndd_entity_status") %>%
-      left_join(user_table, by = c("status_user_id" = "user_id")) %>%
-      select(
-        status_id,
-        status_date,
-        status_user_id,
-        status_user_name = user_name,
-        status_user_role = user_role,
-        status_approving_user_id = approving_user_id
-      )
-
-    re_review_user_list <- re_review_entity_connect %>%
-      inner_join(re_review_assignment, by = c("re_review_batch")) %>%
-      select(
-        re_review_entity_id,
-        entity_id,
-        re_review_review_saved,
-        re_review_status_saved,
-        re_review_submitted,
-        status_id,
-        review_id,
-        created_at
-      ) %>%
-      inner_join(ndd_entity_view, by = c("entity_id")) %>%
-      select(-category_id, -category) %>%
-      inner_join(ndd_entity_status_category, by = c("status_id")) %>%
-      inner_join(review_user_collected, by = c("review_id")) %>%
-      inner_join(status_user_collected, by = c("status_id")) %>%
-      collect() %>%
-      arrange(created_at, re_review_entity_id) %>%
-      filter(!!!rlang::parse_exprs(filter_exprs))
-
-    # Apply pagination
-    pagination_info <- generate_cursor_pag_inf_safe(
-      re_review_user_list,
-      page_size,
-      page_after,
-      "re_review_entity_id"
+  review_user_collected <- pool %>%
+    tbl("ndd_entity_review") %>%
+    left_join(user_table, by = c("review_user_id" = "user_id")) %>%
+    select(
+      review_id,
+      review_date,
+      review_user_id,
+      review_user_name = user_name,
+      review_user_role = user_role,
+      review_approving_user_id = approving_user_id
     )
 
-    list(
-      links = pagination_info$links,
-      meta = pagination_info$meta,
-      data = pagination_info$data
+  status_user_collected <- pool %>%
+    tbl("ndd_entity_status") %>%
+    left_join(user_table, by = c("status_user_id" = "user_id")) %>%
+    select(
+      status_id,
+      status_date,
+      status_user_id,
+      status_user_name = user_name,
+      status_user_role = user_role,
+      status_approving_user_id = approving_user_id
     )
+
+  re_review_user_list <- re_review_entity_connect %>%
+    inner_join(re_review_assignment, by = c("re_review_batch")) %>%
+    select(
+      re_review_entity_id,
+      entity_id,
+      re_review_review_saved,
+      re_review_status_saved,
+      re_review_submitted,
+      status_id,
+      review_id,
+      created_at
+    ) %>%
+    inner_join(ndd_entity_view, by = c("entity_id")) %>%
+    select(-category_id, -category) %>%
+    inner_join(ndd_entity_status_category, by = c("status_id")) %>%
+    inner_join(review_user_collected, by = c("review_id")) %>%
+    inner_join(status_user_collected, by = c("status_id")) %>%
+    collect() %>%
+    arrange(created_at, re_review_entity_id) %>%
+    filter(!!!rlang::parse_exprs(filter_exprs))
+
+  # Apply pagination
+  pagination_info <- generate_cursor_pag_inf_safe(
+    re_review_user_list,
+    page_size,
+    page_after,
+    "re_review_entity_id"
+  )
+
+  list(
+    links = pagination_info$links,
+    meta = pagination_info$meta,
+    data = pagination_info$data
+  )
 }
 
 
@@ -309,7 +314,7 @@ function(req,
 #* by emailing curators.
 #*
 #* # `Details`
-#* Sends an email to curators with the user info. 
+#* Sends an email to curators with the user info.
 #*
 #* # `Return`
 #* 200 OK if email successfully sent, else error.
@@ -355,7 +360,7 @@ function(req, res) {
 
 #* Assign New Re-Review Batch
 #*
-#* Allows Admin/Curator to assign a new batch of entities for re-review 
+#* Allows Admin/Curator to assign a new batch of entities for re-review
 #* to a specified user.
 #*
 #* # `Details`
@@ -416,7 +421,7 @@ function(req, res, user_id) {
 
 #* Unassign Re-Review Batch
 #*
-#* Allows Admin/Curator to unassign a re-review batch based on the provided 
+#* Allows Admin/Curator to unassign a re-review batch based on the provided
 #* re_review_batch.
 #*
 #* # `Details`

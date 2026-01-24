@@ -68,52 +68,56 @@ db_execute_query <- function(sql, params = list(), conn = NULL) {
   })
 
   log_debug("Executing query: {sql}",
-            params = paste(sanitized_params, collapse = ", "))
+    params = paste(sanitized_params, collapse = ", ")
+  )
 
-  tryCatch({
-    # Determine if we have a pool or a direct connection
-    use_pool <- if (is.null(conn)) pool else conn
-    is_pool_obj <- inherits(use_pool, "Pool")
+  tryCatch(
+    {
+      # Determine if we have a pool or a direct connection
+      use_pool <- if (is.null(conn)) pool else conn
+      is_pool_obj <- inherits(use_pool, "Pool")
 
-    if (is_pool_obj) {
-      # For pool objects: checkout connection, use it, return it
-      use_conn <- pool::poolCheckout(use_pool)
-      on.exit(pool::poolReturn(use_conn), add = TRUE)
-    } else {
-      # Direct connection provided
-      use_conn <- use_pool
+      if (is_pool_obj) {
+        # For pool objects: checkout connection, use it, return it
+        use_conn <- pool::poolCheckout(use_pool)
+        on.exit(pool::poolReturn(use_conn), add = TRUE)
+      } else {
+        # Direct connection provided
+        use_conn <- use_pool
+      }
+
+      # Send parameterized query to connection
+      result <- DBI::dbSendQuery(use_conn, sql)
+
+      # Register cleanup on exit (even if error occurs)
+      on.exit(DBI::dbClearResult(result), add = TRUE)
+
+      # Bind parameters if provided
+      if (length(params) > 0) {
+        DBI::dbBind(result, params)
+      }
+
+      # Fetch all results
+      data <- DBI::dbFetch(result)
+
+      # Convert to tibble and ensure we return tibble even if empty
+      # (DBI returns data.frame, we want consistent tibble interface)
+      return(tibble::as_tibble(data))
+    },
+    error = function(e) {
+      log_error("Query execution failed: {e$message}",
+        sql = sql,
+        params = paste(sanitized_params, collapse = ", ")
+      )
+
+      rlang::abort(
+        message = paste("Database query failed:", e$message),
+        class = "db_query_error",
+        sql = sql,
+        original_error = e$message
+      )
     }
-
-    # Send parameterized query to connection
-    result <- DBI::dbSendQuery(use_conn, sql)
-
-    # Register cleanup on exit (even if error occurs)
-    on.exit(DBI::dbClearResult(result), add = TRUE)
-
-    # Bind parameters if provided
-    if (length(params) > 0) {
-      DBI::dbBind(result, params)
-    }
-
-    # Fetch all results
-    data <- DBI::dbFetch(result)
-
-    # Convert to tibble and ensure we return tibble even if empty
-    # (DBI returns data.frame, we want consistent tibble interface)
-    return(tibble::as_tibble(data))
-
-  }, error = function(e) {
-    log_error("Query execution failed: {e$message}",
-              sql = sql,
-              params = paste(sanitized_params, collapse = ", "))
-
-    rlang::abort(
-      message = paste("Database query failed:", e$message),
-      class = "db_query_error",
-      sql = sql,
-      original_error = e$message
-    )
-  })
+  )
 }
 
 #' Execute an INSERT/UPDATE/DELETE statement and return affected row count
@@ -174,52 +178,56 @@ db_execute_statement <- function(sql, params = list(), conn = NULL) {
   })
 
   log_debug("Executing statement: {sql}",
-            params = paste(sanitized_params, collapse = ", "))
+    params = paste(sanitized_params, collapse = ", ")
+  )
 
-  tryCatch({
-    # Determine if we have a pool or a direct connection
-    use_pool <- if (is.null(conn)) pool else conn
-    is_pool_obj <- inherits(use_pool, "Pool")
+  tryCatch(
+    {
+      # Determine if we have a pool or a direct connection
+      use_pool <- if (is.null(conn)) pool else conn
+      is_pool_obj <- inherits(use_pool, "Pool")
 
-    if (is_pool_obj) {
-      # For pool objects: checkout connection, use it, return it
-      use_conn <- pool::poolCheckout(use_pool)
-      on.exit(pool::poolReturn(use_conn), add = TRUE)
-    } else {
-      # Direct connection provided
-      use_conn <- use_pool
+      if (is_pool_obj) {
+        # For pool objects: checkout connection, use it, return it
+        use_conn <- pool::poolCheckout(use_pool)
+        on.exit(pool::poolReturn(use_conn), add = TRUE)
+      } else {
+        # Direct connection provided
+        use_conn <- use_pool
+      }
+
+      # Send parameterized statement to connection
+      result <- DBI::dbSendStatement(use_conn, sql)
+
+      # Register cleanup on exit (even if error occurs)
+      on.exit(DBI::dbClearResult(result), add = TRUE)
+
+      # Bind parameters if provided
+      if (length(params) > 0) {
+        DBI::dbBind(result, params)
+      }
+
+      # Get affected row count
+      affected <- DBI::dbGetRowsAffected(result)
+
+      log_debug("Statement affected {affected} rows")
+
+      return(affected)
+    },
+    error = function(e) {
+      log_error("Statement execution failed: {e$message}",
+        sql = sql,
+        params = paste(sanitized_params, collapse = ", ")
+      )
+
+      rlang::abort(
+        message = paste("Database statement failed:", e$message),
+        class = "db_statement_error",
+        sql = sql,
+        original_error = e$message
+      )
     }
-
-    # Send parameterized statement to connection
-    result <- DBI::dbSendStatement(use_conn, sql)
-
-    # Register cleanup on exit (even if error occurs)
-    on.exit(DBI::dbClearResult(result), add = TRUE)
-
-    # Bind parameters if provided
-    if (length(params) > 0) {
-      DBI::dbBind(result, params)
-    }
-
-    # Get affected row count
-    affected <- DBI::dbGetRowsAffected(result)
-
-    log_debug("Statement affected {affected} rows")
-
-    return(affected)
-
-  }, error = function(e) {
-    log_error("Statement execution failed: {e$message}",
-              sql = sql,
-              params = paste(sanitized_params, collapse = ", "))
-
-    rlang::abort(
-      message = paste("Database statement failed:", e$message),
-      class = "db_statement_error",
-      sql = sql,
-      original_error = e$message
-    )
-  })
+  )
 }
 
 #' Execute code within a database transaction
@@ -279,26 +287,28 @@ db_with_transaction <- function(code, pool_obj = NULL) {
   # Register return on exit (even if error occurs)
   on.exit(pool::poolReturn(conn), add = TRUE)
 
-  tryCatch({
-    # Execute code within transaction
-    # dbWithTransaction handles BEGIN, COMMIT, and ROLLBACK automatically
-    result <- DBI::dbWithTransaction(conn, {
-      log_debug("Executing code within transaction")
-      force(code)
-    })
+  tryCatch(
+    {
+      # Execute code within transaction
+      # dbWithTransaction handles BEGIN, COMMIT, and ROLLBACK automatically
+      result <- DBI::dbWithTransaction(conn, {
+        log_debug("Executing code within transaction")
+        force(code)
+      })
 
-    log_debug("Transaction committed successfully")
+      log_debug("Transaction committed successfully")
 
-    return(result)
+      return(result)
+    },
+    error = function(e) {
+      # Transaction automatically rolled back by dbWithTransaction
+      log_warn("Transaction rolled back due to error: {e$message}")
 
-  }, error = function(e) {
-    # Transaction automatically rolled back by dbWithTransaction
-    log_warn("Transaction rolled back due to error: {e$message}")
-
-    rlang::abort(
-      message = paste("Transaction failed:", e$message),
-      class = "db_transaction_error",
-      original_error = e$message
-    )
-  })
+      rlang::abort(
+        message = paste("Transaction failed:", e$message),
+        class = "db_transaction_error",
+        original_error = e$message
+      )
+    }
+  )
 }
