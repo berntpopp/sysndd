@@ -12,9 +12,9 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Milestone:** v4 Backend Overhaul
 **Phase:** 21 of 24 (Repository Layer)
-**Plan:** 3 of 8 complete
+**Plan:** 2 of 8 complete
 **Status:** In progress
-**Last activity:** 2026-01-24 - Completed 21-03-PLAN.md (Status and Publication Repositories)
+**Last activity:** 2026-01-24 - Completed 21-02-PLAN.md (Entity and Review Repositories)
 
 ```
 v4 Backend Overhaul: PHASE 21 IN PROGRESS
@@ -95,6 +95,11 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 21-01 | Redact strings > 50 chars in DEBUG logs | Balance debugging utility with security |
 | 2026-01-24 | 21-01 | Structured error classes with rlang::abort() | Type-safe error handling in repositories and endpoints |
 | 2026-01-24 | 21-01 | Pool checkout for transactions, direct use for single queries | Transactions need connection stability, single queries use pool's automatic management |
+| 2026-01-24 | 21-05 | user_find_for_auth includes password hash (auth only) | Authentication requires password verification, but must be isolated from general user queries |
+| 2026-01-24 | 21-05 | user_update_password isolated from user_update | Clear separation makes password handling explicit and prevents accidental logging |
+| 2026-01-24 | 21-05 | Public user queries use users_view (excludes password) | Database-level protection against password exposure in non-auth queries |
+| 2026-01-24 | 21-05 | hash_create returns hash_value (not hash_id) | Existing API contract expects hash value back, maintaining consistency |
+| 2026-01-24 | 21-05 | hash_validate_columns enforces whitelist | Prevents malicious hash requests from accessing arbitrary tables/columns |
 | 2026-01-24 | 21-03 | Status approval uses transaction for atomicity | Approving status requires multiple DB operations (reset all entity statuses, set new active) |
 | 2026-01-24 | 21-03 | Publication validation uses pool with dplyr | Cleaner than raw SQL, type-safe with dplyr's collect() |
 | 2026-01-24 | 21-03 | Status update prevents entity_id changes | Changing entity association would break referential integrity |
@@ -116,9 +121,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 21-03-PLAN.md (Status and Publication Repositories)
+**Stopped at:** Completed 21-05-PLAN.md (User and Hash Repositories)
 **Resume file:** None
-**Next action:** Continue Phase 21 repository layer implementation
+**Next action:** Continue Phase 21 repository layer implementation (plans 06-08)
 
 ---
-*Last updated: 2026-01-24 - Phase 21 plan 3 of 8 complete (status and publication repositories)*
+*Last updated: 2026-01-24 - Phase 21 plan 5 of 8 complete (user and hash repositories)*
