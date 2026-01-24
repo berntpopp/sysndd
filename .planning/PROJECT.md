@@ -42,6 +42,18 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 **Automation:** 13 Makefile targets across 5 categories
 
+## Current Milestone: v5.0 Analysis Modernization
+
+**Goal:** Transform the analysis pages (Phenotype Clusters, Gene Networks, Correlation) into a fast, interconnected, and modern visualization experience with true network graphs and professional UI/UX.
+
+**Target features:**
+- Performance optimization: cold start from ~15s to <5s (Leiden algorithm, HCPC pre-partition, SQL push-down)
+- True network visualization: Cytoscape.js with actual protein-protein interaction edges
+- Gene search: wildcard pattern matching with highlighting
+- Hybrid views: compound nodes showing genes within cluster containers
+- UI/UX: interlinking between pages, click-through navigation, rich tooltips
+- Filter improvements: numeric comparisons, dropdown selects for categories
+
 ## Requirements
 
 ### Validated
@@ -135,11 +147,37 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 ### Active
 
-<!-- v5 scope - to be defined -->
+<!-- v5 scope - Analysis Modernization -->
 
-(None - v4 complete, v5 scope to be defined)
+**Performance:**
+- [ ] Replace Walktrap with Leiden algorithm for clustering (2-3x faster)
+- [ ] HCPC pre-partitioning with kk parameter (50-70% faster)
+- [ ] Push database joins to SQL (single collect(), 4x faster)
+- [ ] Reduce MCA principal components from 15 to 8
+- [ ] Pre-warm cache on API startup
+- [ ] Paginate large responses (functional_clustering 8.6MB → <500KB)
 
-### Deferred to v5
+**Network Visualization:**
+- [ ] New `/api/analysis/functional_network` endpoint returning Cytoscape JSON
+- [ ] Extract STRING network edges (currently discarded)
+- [ ] Cytoscape.js integration with cose-bilkent layout
+- [ ] Gene search with wildcard support and highlighting
+- [ ] Compound nodes for hybrid cluster/network view
+- [ ] Multiple layout algorithms (COSE, circle, grid)
+- [ ] WebGL renderer for large networks (>500 nodes)
+
+**UI/UX:**
+- [ ] Navigation tabs across all analysis pages
+- [ ] Click-through from correlation heatmap to clusters
+- [ ] Numeric column filters with comparison operators
+- [ ] Dropdown filters for categories
+- [ ] URL state sync for bookmarking/sharing
+- [ ] Enhanced tooltips with context and navigation
+- [ ] Color legends for heatmaps
+- [ ] Fix `filter=undefined` bug in cluster links
+- [ ] Enable download buttons (PNG/SVG)
+
+### Deferred to v6
 
 - [ ] CI/CD pipeline (GitHub Actions)
 - [ ] Trivy security scanning
@@ -222,4 +260,4 @@ A new developer can clone the repo and be productive within minutes, with confid
 | require_auth middleware | Centralized auth, eliminates duplicated checks | ✓ Good |
 
 ---
-*Last updated: 2026-01-24 after v4 Backend Overhaul milestone complete*
+*Last updated: 2026-01-24 after starting v5 Analysis Modernization milestone*

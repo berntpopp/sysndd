@@ -6,20 +6,20 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v4 Backend Overhaul COMPLETE - Ready for v5 milestone planning
+**Current focus:** v5 Analysis Modernization - Defining requirements
 
 ## Current Position
 
-**Milestone:** v4 Backend Overhaul - COMPLETE
-**Phase:** Milestone shipped
-**Plan:** N/A
-**Status:** Milestone archived
-**Last activity:** 2026-01-24 — v4 milestone complete, tagged v4.0
+**Milestone:** v5.0 Analysis Modernization
+**Phase:** Not started (defining requirements)
+**Plan:** —
+**Status:** Defining requirements
+**Last activity:** 2026-01-24 — Milestone v5 started
 
 ```
-v4 Backend Overhaul: MILESTONE COMPLETE
-Goal: Modernize R/Plumber API with security, async, OMIM fix, R upgrade, DRY/KISS/SOLID
-Progress: ████████████████████████████████ 100% (7/7 phases, 42/42 plans)
+v5 Analysis Modernization: DEFINING REQUIREMENTS
+Goal: Transform analysis pages with performance, network viz, and modern UI/UX
+Progress: ░░░░░░░░░░ 0% (0/? phases)
 ```
 
 ## Completed Milestones
@@ -47,7 +47,7 @@ Progress: ███████████████████████�
 - Vue components still .vue JavaScript (not TypeScript)
 - Frontend test coverage ~1.5%
 
-**Deferred to v5:**
+**Deferred to v6:**
 - CI/CD pipeline (GitHub Actions)
 - Trivy security scanning
 - URL path versioning (/api/v1/)
@@ -66,17 +66,25 @@ See PROJECT.md for full decisions table.
 | 2026-01-23 | v4 Phase 18-19 | Foundation + Security complete |
 | 2026-01-24 | v4 Phase 20-24 | Async, Repository, Service, OMIM, Cleanup complete |
 | 2026-01-24 | Milestone completion | v4 archived, tagged |
+| 2026-01-24 | v5 milestone start | Gathered goals from analysis debug reports |
+
+### v5 Context Files
+
+Pre-existing analysis documents informing this milestone:
+- `.plan/ANALYSIS-ENDPOINTS-DEBUG-REPORT.md` — Performance bottlenecks, algorithm recommendations
+- `.plan/NETWORK-VISUALIZATION-RESEARCH.md` — Cytoscape.js architecture, edge extraction
+- `.plan/UI-UX-ANALYSIS-REVIEW.md` — Interlinking, filters, tooltips, navigation
 
 ### Blockers/Concerns
 
-None active. All blockers from v4 resolved.
+None active.
 
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Milestone v4 completion
+**Stopped at:** Gathering milestone goals
 **Resume file:** None
-**Next action:** Start v5 milestone with `/gsd:new-milestone`
+**Next action:** Continue with research or requirements definition
 
 ---
-*Last updated: 2026-01-24 — v4 Backend Overhaul milestone complete*
+*Last updated: 2026-01-24 — v5 Analysis Modernization milestone started*
