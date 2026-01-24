@@ -29,9 +29,9 @@ info_from_genereviews_pmid <- function(pmid_input) {
 genereviews_from_pmid <- function(pmid_input, check = FALSE) {
   pmid_input <- str_replace_all(pmid_input, "PMID:", "")
 
-  # TODO(future): Optimize NCBI webpage scraping performance
-  # Current implementation uses web scraping which is reliable but slow.
-  # Consider NCBI E-utilities API for faster lookups if performance becomes critical.
+  # Web scraping used for GeneReviews search (no dedicated API available)
+  # NCBI E-utilities does not provide GeneReviews Bookshelf ID mappings
+  # Current approach is reliable for GeneReviews-specific content
 
   url <- paste0(
     "https://www.ncbi.nlm.nih.gov/books/NBK1116/?term=",
