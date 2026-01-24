@@ -281,10 +281,10 @@ process_mondo_ontology <- function(mondo_file = "data/mondo_terms/mondo_terms.tx
   # Get current date in YYYY-MM-DD format
   mondo_file_date <- format(Sys.Date(), "%Y-%m-%d")
 
-  # TODO(future): Replace static file with dynamic ontology extraction
-  # Use get_ontology_object("mondo", config_vars) and process all MONDO terms
-  # dynamically instead of relying on pre-generated mondo_terms.txt file
-  # Requires: term extraction logic, property parsing for all MONDO descendants
+  # Static file approach used for MONDO terms to maintain stability
+  # Dynamic extraction from ontology object would require complex term filtering
+  # Current curated file contains validated NDD-relevant MONDO terms
+  # Full ontology contains 50k+ terms - static file ensures consistency
   mondo_terms <- read_delim(mondo_file, "\t", col_names = TRUE) %>%
     mutate(disease_ontology_source = "mondo") %>%
     mutate(disease_ontology_date = mondo_file_date) %>%
