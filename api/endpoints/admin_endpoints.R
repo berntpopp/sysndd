@@ -136,29 +136,21 @@ function(req, res) {
     )) %>%
     select(-entity_quadruple, -number, -entity_quadruple_unique, -sum_number)
 
-  # Connect to database, begin transaction
-  sysndd_db <- dbConnect(
-    RMariaDB::MariaDB(),
-    dbname = dw$dbname,
-    user = dw$user,
-    password = dw$password,
-    server = dw$server,
-    host = dw$host,
-    port = dw$port
-  )
-
-  dbBegin(sysndd_db)
-
+  # Use transaction for atomic ontology update
   tryCatch({
-    dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 0;")
-    dbExecute(sysndd_db, "TRUNCATE TABLE disease_ontology_set;")
-    dbAppendTable(sysndd_db, "disease_ontology_set", disease_ontology_set_update)
+    db_with_transaction({
+      # Get connection from transaction context
+      conn <- poolCheckout(pool)
+      on.exit(poolReturn(conn), add = TRUE)
 
-    dbExecute(sysndd_db, "TRUNCATE TABLE ndd_entity;")
-    dbAppendTable(sysndd_db, "ndd_entity", ndd_entity_mutated)
-    dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 1;")
+      dbExecute(conn, "SET FOREIGN_KEY_CHECKS = 0;")
+      dbExecute(conn, "TRUNCATE TABLE disease_ontology_set;")
+      dbAppendTable(conn, "disease_ontology_set", disease_ontology_set_update)
 
-    dbCommit(sysndd_db)
+      dbExecute(conn, "TRUNCATE TABLE ndd_entity;")
+      dbAppendTable(conn, "ndd_entity", ndd_entity_mutated)
+      dbExecute(conn, "SET FOREIGN_KEY_CHECKS = 1;")
+    })
 
     # Return success
     list(
@@ -166,14 +158,11 @@ function(req, res) {
       message = "Ontology update process completed."
     )
   }, error = function(e) {
-    dbRollback(sysndd_db)
     res$status <- 500
     list(
       error = "An error occurred during the update process. Transaction rolled back.",
       details = e$message
     )
-  }, finally = {
-    dbDisconnect(sysndd_db)
   })
 }
 
@@ -207,32 +196,23 @@ function(req, res) {
   # Call the function to update the HGNC data
   hgnc_data <- update_process_hgnc_data()
 
-  sysndd_db <- dbConnect(
-    RMariaDB::MariaDB(),
-    dbname = dw$dbname,
-    user = dw$user,
-    password = dw$password,
-    server = dw$server,
-    host = dw$host,
-    port = dw$port
-  )
-
-  dbBegin(sysndd_db)
-
-  on.exit(dbDisconnect(sysndd_db), add = TRUE)
-
+  # Use transaction for atomic HGNC update
   tryCatch(
     {
-      dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 0;")
-      dbExecute(sysndd_db, "TRUNCATE TABLE non_alt_loci_set;")
-      dbWriteTable(sysndd_db, "non_alt_loci_set", hgnc_data, append = TRUE)
-      dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 1;")
+      db_with_transaction({
+        # Get connection from transaction context
+        conn <- poolCheckout(pool)
+        on.exit(poolReturn(conn), add = TRUE)
 
-      dbCommit(sysndd_db)
+        dbExecute(conn, "SET FOREIGN_KEY_CHECKS = 0;")
+        dbExecute(conn, "TRUNCATE TABLE non_alt_loci_set;")
+        dbWriteTable(conn, "non_alt_loci_set", hgnc_data, append = TRUE)
+        dbExecute(conn, "SET FOREIGN_KEY_CHECKS = 1;")
+      })
+
       list(status = "Success", message = "HGNC data update process completed.")
     },
     error = function(e) {
-      dbRollback(sysndd_db)
       res$status <- 500
       list(
         error = "An error occurred during the HGNC update process. Transaction rolled back.",

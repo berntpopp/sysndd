@@ -148,26 +148,14 @@ function(req, res) {
     return(list(error = "The vario_id field is required."))
   }
 
-  # Connect to database
-  sysndd_db <- dbConnect(
-    RMariaDB::MariaDB(),
-    dbname = dw$dbname,
-    user = dw$user,
-    password = dw$password,
-    server = dw$server,
-    host = dw$host,
-    port = dw$port
+  # Fetch current data to check if ontology exists
+  current_data <- db_execute_query(
+    "SELECT * FROM variation_ontology_list WHERE vario_id = ?",
+    list(ontology_details$vario_id)
   )
-
-  query_current_data <- sprintf(
-    "SELECT * FROM variation_ontology_list WHERE vario_id = '%s';",
-    ontology_details$vario_id
-  )
-  current_data <- dbGetQuery(sysndd_db, query_current_data)
 
   if (nrow(current_data) == 0) {
     res$status <- 404
-    dbDisconnect(sysndd_db)
     return(list(error = "Ontology with the given vario_id not found."))
   }
 
@@ -177,7 +165,6 @@ function(req, res) {
 
   if (length(fields_to_update) == 0) {
     res$status <- 400
-    dbDisconnect(sysndd_db)
     return(list(error = "No valid fields to update."))
   }
 
@@ -189,31 +176,34 @@ function(req, res) {
 
   if (!any(changes)) {
     res$status <- 200
-    dbDisconnect(sysndd_db)
     return(list(message = "No changes detected, ontology details remain unchanged."))
   }
 
-  set_clause <- paste(
+  # Build SET clause with placeholders
+  set_assignments <- paste(
     sapply(fields_to_update, function(field) {
-      paste0(field, " = '", ontology_details[[field]], "'")
+      paste0(field, " = ?")
     }, USE.NAMES = FALSE),
     collapse = ", "
   )
-  set_clause <- paste0(set_clause, ", update_date = NOW()")
+  set_clause <- paste0(set_assignments, ", update_date = NOW()")
 
-  query_update <- sprintf(
-    "UPDATE variation_ontology_list SET %s WHERE vario_id = '%s';",
-    set_clause, 
-    ontology_details[["vario_id"]]
+  # Build parameterized UPDATE query
+  query_update <- paste0(
+    "UPDATE variation_ontology_list SET ", set_clause, " WHERE vario_id = ?"
+  )
+
+  # Build parameter list: field values + vario_id at end
+  params <- c(
+    lapply(fields_to_update, function(field) ontology_details[[field]]),
+    list(ontology_details$vario_id)
   )
 
   result <- tryCatch({
-    dbExecute(sysndd_db, query_update)
+    db_execute_statement(query_update, params)
   }, error = function(e) {
     list(error = e$message)
   })
-
-  dbDisconnect(sysndd_db)
 
   if (is.list(result) && !is.null(result$error)) {
     res$status <- 500

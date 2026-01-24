@@ -79,19 +79,10 @@ function(signup_data) {
     select(valid)
 
   if (input_validation$valid) {
-    # Insert user into DB
-    sysndd_db <- dbConnect(
-      RMariaDB::MariaDB(),
-      dbname = dw$dbname,
-      user = dw$user,
-      password = dw$password,
-      server = dw$server,
-      host = dw$host,
-      port = dw$port
-    )
-
-    dbAppendTable(sysndd_db, "user", user)
-    dbDisconnect(sysndd_db)
+    # Insert user into DB using pool
+    poolWithTransaction(pool, function(conn) {
+      dbAppendTable(conn, "user", user)
+    })
 
     # Send email
     send_noreply_email(
