@@ -1,8 +1,12 @@
 # api/endpoints/re_review_endpoints.R
 #
-# This file contains all Re-review-related endpoints, extracted from 
-# the original sysndd_plumber.R. It follows the Google R Style Guide 
+# This file contains all Re-review-related endpoints, extracted from
+# the original sysndd_plumber.R. It follows the Google R Style Guide
 # conventions where possible.
+
+# Load db-helpers for parameterized queries
+db_helpers_path <- file.path(find.package("plumber"), "..", "..", "api", "functions", "db-helpers.R")
+source(db_helpers_path, local = TRUE)
 
 ##-------------------------------------------------------------------##
 ## Re-review endpoints
@@ -28,35 +32,15 @@ function(req, res) {
     submit_user_id <- req$user_id
     submit_data <- req$argsBody$submit_json
 
-    update_query <- tibble::as_tibble(submit_data) %>%
-      dplyr::select(-re_review_entity_id) %>%
-      mutate(row = row_number()) %>%
-      pivot_longer(-row) %>%
-      mutate(query = paste0(name, "='", value, "'")) %>%
-      dplyr::select(query) %>%
-      summarize(query = str_c(query, collapse = ", "))
+    # Build parameterized UPDATE query dynamically
+    fields_to_update <- names(submit_data)[names(submit_data) != "re_review_entity_id"]
+    set_clause <- paste(paste0(fields_to_update, " = ?"), collapse = ", ")
+    sql <- paste0("UPDATE re_review_entity_connect SET ", set_clause, " WHERE re_review_entity_id = ?")
 
-    sysndd_db <- dbConnect(
-      RMariaDB::MariaDB(),
-      dbname = dw$dbname,
-      user = dw$user,
-      password = dw$password,
-      server = dw$server,
-      host = dw$host,
-      port = dw$port
-    )
+    # Parameters: field values + re_review_entity_id
+    params <- c(as.list(submit_data[fields_to_update]), list(submit_data$re_review_entity_id))
 
-    dbExecute(sysndd_db,
-      paste0(
-        "UPDATE re_review_entity_connect SET ",
-        update_query,
-        " WHERE re_review_entity_id = ",
-        submit_data$re_review_entity_id,
-        ";"
-      )
-    )
-
-    dbDisconnect(sysndd_db)
+    db_execute_statement(sql, params)
   } else {
     res$status <- 403
     return(list(error = "Write access forbidden."))
@@ -86,26 +70,10 @@ function(req, res, re_review_id) {
     submit_user_id <- req$user_id
     re_review_id <- as.integer(re_review_id)
 
-    sysndd_db <- dbConnect(
-      RMariaDB::MariaDB(),
-      dbname = dw$dbname,
-      user = dw$user,
-      password = dw$password,
-      server = dw$server,
-      host = dw$host,
-      port = dw$port
+    db_execute_statement(
+      "UPDATE re_review_entity_connect SET re_review_submitted = 0 WHERE re_review_entity_id = ?",
+      list(re_review_id)
     )
-
-    dbExecute(sysndd_db,
-      paste0(
-        "UPDATE re_review_entity_connect SET re_review_submitted = 0 ",
-        "WHERE re_review_entity_id = ",
-        re_review_id,
-        ";"
-      )
-    )
-
-    dbDisconnect(sysndd_db)
   } else {
     res$status <- 403
     return(list(error = "Write access forbidden."))
@@ -147,145 +115,73 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
       filter(re_review_entity_id == re_review_id) %>%
       collect()
 
-    sysndd_db <- dbConnect(
-      RMariaDB::MariaDB(),
-      dbname = dw$dbname,
-      user = dw$user,
-      password = dw$password,
-      server = dw$server,
-      host = dw$host,
-      port = dw$port
-    )
-
     # If status_ok, set new status active, reset older ones.
     if (status_ok) {
-      dbExecute(sysndd_db,
-        paste0(
-          "UPDATE ndd_entity_status SET is_active = 0 WHERE entity_id = ",
-          re_review_entity_connect_data$entity_id,
-          ";"
-        )
+      db_execute_statement(
+        "UPDATE ndd_entity_status SET is_active = 0 WHERE entity_id = ?",
+        list(re_review_entity_connect_data$entity_id)
       )
-      dbExecute(sysndd_db,
-        paste0(
-          "UPDATE ndd_entity_status SET is_active = 1 ",
-          "WHERE status_id = ",
-          re_review_entity_connect_data$status_id,
-          ";"
-        )
+      db_execute_statement(
+        "UPDATE ndd_entity_status SET is_active = 1 WHERE status_id = ?",
+        list(re_review_entity_connect_data$status_id)
       )
-      dbExecute(sysndd_db,
-        paste0(
-          "UPDATE ndd_entity_status SET approving_user_id = ",
-          submit_user_id,
-          " WHERE status_id = ",
-          re_review_entity_connect_data$status_id,
-          ";"
-        )
+      db_execute_statement(
+        "UPDATE ndd_entity_status SET approving_user_id = ? WHERE status_id = ?",
+        list(submit_user_id, re_review_entity_connect_data$status_id)
       )
-      dbExecute(sysndd_db,
-        paste0(
-          "UPDATE ndd_entity_status SET status_approved = 1 ",
-          "WHERE status_id = ",
-          re_review_entity_connect_data$status_id,
-          ";"
-        )
+      db_execute_statement(
+        "UPDATE ndd_entity_status SET status_approved = 1 WHERE status_id = ?",
+        list(re_review_entity_connect_data$status_id)
       )
     } else {
-      dbExecute(sysndd_db,
-        paste0(
-          "UPDATE ndd_entity_status SET approving_user_id = ",
-          submit_user_id,
-          " WHERE status_id = ",
-          re_review_entity_connect_data$status_id,
-          ";"
-        )
+      db_execute_statement(
+        "UPDATE ndd_entity_status SET approving_user_id = ? WHERE status_id = ?",
+        list(submit_user_id, re_review_entity_connect_data$status_id)
       )
-      dbExecute(sysndd_db,
-        paste0(
-          "UPDATE ndd_entity_status SET status_approved = 0 ",
-          "WHERE status_id = ",
-          re_review_entity_connect_data$status_id,
-          ";"
-        )
+      db_execute_statement(
+        "UPDATE ndd_entity_status SET status_approved = 0 WHERE status_id = ?",
+        list(re_review_entity_connect_data$status_id)
       )
     }
 
     # If review_ok, reset old primary, set new primary
     if (review_ok) {
-      dbExecute(sysndd_db,
-        paste0(
-          "UPDATE ndd_entity_review SET is_primary = 0 ",
-          "WHERE entity_id = ",
-          re_review_entity_connect_data$entity_id,
-          ";"
-        )
+      db_execute_statement(
+        "UPDATE ndd_entity_review SET is_primary = 0 WHERE entity_id = ?",
+        list(re_review_entity_connect_data$entity_id)
       )
-      dbExecute(sysndd_db,
-        paste0(
-          "UPDATE ndd_entity_review SET is_primary = 1 ",
-          "WHERE review_id = ",
-          re_review_entity_connect_data$review_id,
-          ";"
-        )
+      db_execute_statement(
+        "UPDATE ndd_entity_review SET is_primary = 1 WHERE review_id = ?",
+        list(re_review_entity_connect_data$review_id)
       )
-      dbExecute(sysndd_db,
-        paste0(
-          "UPDATE ndd_entity_review SET approving_user_id = ",
-          submit_user_id,
-          " WHERE review_id = ",
-          re_review_entity_connect_data$review_id,
-          ";"
-        )
+      db_execute_statement(
+        "UPDATE ndd_entity_review SET approving_user_id = ? WHERE review_id = ?",
+        list(submit_user_id, re_review_entity_connect_data$review_id)
       )
-      dbExecute(sysndd_db,
-        paste0(
-          "UPDATE ndd_entity_review SET review_approved = 1 ",
-          "WHERE review_id = ",
-          re_review_entity_connect_data$review_id,
-          ";"
-        )
+      db_execute_statement(
+        "UPDATE ndd_entity_review SET review_approved = 1 WHERE review_id = ?",
+        list(re_review_entity_connect_data$review_id)
       )
     } else {
-      dbExecute(sysndd_db,
-        paste0(
-          "UPDATE ndd_entity_review SET approving_user_id = ",
-          submit_user_id,
-          " WHERE review_id = ",
-          re_review_entity_connect_data$review_id,
-          ";"
-        )
+      db_execute_statement(
+        "UPDATE ndd_entity_review SET approving_user_id = ? WHERE review_id = ?",
+        list(submit_user_id, re_review_entity_connect_data$review_id)
       )
-      dbExecute(sysndd_db,
-        paste0(
-          "UPDATE ndd_entity_review SET review_approved = 0 ",
-          "WHERE review_id = ",
-          re_review_entity_connect_data$review_id,
-          ";"
-        )
+      db_execute_statement(
+        "UPDATE ndd_entity_review SET review_approved = 0 WHERE review_id = ?",
+        list(re_review_entity_connect_data$review_id)
       )
     }
 
     # Mark re_review_approved
-    dbExecute(sysndd_db,
-      paste0(
-        "UPDATE re_review_entity_connect SET re_review_approved = 1 ",
-        "WHERE re_review_entity_id = ",
-        re_review_id,
-        ";"
-      )
+    db_execute_statement(
+      "UPDATE re_review_entity_connect SET re_review_approved = 1 WHERE re_review_entity_id = ?",
+      list(re_review_id)
     )
-    dbExecute(sysndd_db,
-      paste0(
-        "UPDATE re_review_entity_connect SET approving_user_id = ",
-        submit_user_id,
-        " WHERE re_review_entity_id = ",
-        re_review_id,
-        ";"
-      )
+    db_execute_statement(
+      "UPDATE re_review_entity_connect SET approving_user_id = ? WHERE re_review_entity_id = ?",
+      list(submit_user_id, re_review_id)
     )
-
-    dbDisconnect(sysndd_db)
   } else {
     res$status <- 403
     return(list(error = "Write access forbidden."))
@@ -521,18 +417,10 @@ function(req, res, user_id) {
     res$status <- 409
     return(list(error = "User account does not exist."))
   } else if (req$user_role %in% c("Administrator", "Curator") && user_id_assign_exists) {
-    sysndd_db <- dbConnect(
-      RMariaDB::MariaDB(),
-      dbname = dw$dbname,
-      user = dw$user,
-      password = dw$password,
-      server = dw$server,
-      host = dw$host,
-      port = dw$port
+    db_execute_statement(
+      "INSERT INTO re_review_assignment (user_id, re_review_batch) VALUES (?, ?)",
+      list(user_id_assign, re_review_batch_next)
     )
-
-    dbAppendTable(sysndd_db, "re_review_assignment", assignment_table)
-    dbDisconnect(sysndd_db)
   } else {
     res$status <- 403
     return(list(error = "Read access forbidden."))
@@ -584,40 +472,10 @@ function(req, res, re_review_batch) {
     req$user_role %in% c("Administrator", "Curator") &&
     re_review_batch_unassign_ex
   ) {
-    sysndd_db <- dbConnect(
-      RMariaDB::MariaDB(),
-      dbname = dw$dbname,
-      user = dw$user,
-      password = dw$password,
-      server = dw$server,
-      host = dw$host,
-      port = dw$port
+    db_execute_statement(
+      "DELETE FROM re_review_assignment WHERE re_review_batch = ?",
+      list(re_review_batch_unassign)
     )
-
-    dbExecute(sysndd_db,
-      paste0(
-        "DELETE FROM re_review_assignment WHERE re_review_batch = ",
-        re_review_batch_unassign,
-        ";"
-      )
-    )
-
-    dbDisconnect(sysndd_db)
-  } else {
-    res$status <- 403
-    return(list(error = "Read access forbidden."))
-  }
-}
-
-
-#* Get Re-Review Assignment Table
-#*
-#* Returns a summary table of currently assigned re-review batches 
-#* for administrators and curators.
-#*
-#* # `Details`
-#* Joins re_review_entity_connect and re_review_assignment to 
-#* produce summary stats on how many entities have been submitted, 
 #* reviewed, etc.
 #*
 #* # `Return`
