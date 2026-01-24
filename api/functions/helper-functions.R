@@ -1008,19 +1008,35 @@ generate_xlsx_bin <- function(data_object, file_base_name) {
     paste0(file_base_name, ".xlsx")
   )
 
-  write.xlsx(data_object$data,
+  # Convert nested data columns to JSON strings for Excel compatibility
+  data_export <- data_object$data %>%
+    mutate(across(where(is.list), ~ sapply(., function(x) {
+      if (is.null(x) || (is.atomic(x) && length(x) == 1)) {
+        as.character(x)
+      } else {
+        jsonlite::toJSON(x, auto_unbox = TRUE)
+      }
+    })))
+
+  write.xlsx(data_export,
     xlsx_file,
     sheetName = "data",
     append = FALSE
   )
 
-  # Unselect nested column 'fspec' before writing to Excel
-  # Excel doesn't support nested data structures, so we exclude them
-  # TODO(future): Convert nested columns to JSON strings for Excel export
-  # This would preserve all metadata but requires JSON parsing on import
+  # Convert nested fspec column to JSON string for Excel export
+  # This preserves all metadata - requires JSON parsing on import
+  meta_export <- data_object$meta %>%
+    mutate(across(where(is.list), ~ sapply(., function(x) {
+      if (is.null(x) || (is.atomic(x) && length(x) == 1)) {
+        as.character(x)
+      } else {
+        jsonlite::toJSON(x, auto_unbox = TRUE)
+      }
+    })))
+
   write.xlsx(
-    data_object$meta %>%
-      select(-any_of(c("fspec"))),
+    meta_export,
     xlsx_file,
     sheetName = "meta",
     append = TRUE
