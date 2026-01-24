@@ -29,7 +29,9 @@ info_from_genereviews_pmid <- function(pmid_input) {
 genereviews_from_pmid <- function(pmid_input, check = FALSE) {
   pmid_input <- str_replace_all(pmid_input, "PMID:", "")
 
-## TODO: find a faster implementation of the check
+  # TODO(future): Optimize NCBI webpage scraping performance
+  # Current implementation uses web scraping which is reliable but slow.
+  # Consider NCBI E-utilities API for faster lookups if performance becomes critical.
 
   url <- paste0("https://www.ncbi.nlm.nih.gov/books/NBK1116/?term=",
     pmid_input,
@@ -120,8 +122,14 @@ info_from_genereviews <- function(Bookshelf_ID) {
     html_attr("content") %>%
     str_c(collapse = "; ")
 
-## TODO: some error here with title now having multiple matches,
-## seems to work in the import script check solution there
+  # Handle multiple title matches by taking the first one
+  # Multiple matches can occur when title extraction finds multiple elements
+  if (length(title) > 1) {
+    log_warn("Multiple title matches found",
+      bookshelf_id = Bookshelf_ID,
+      count = length(title))
+    title <- title[1]
+  }
 
   return_tibble <- as_tibble_row(c("publication_id" = pmid,
       "Bookshelf_ID" = Bookshelf_ID,
