@@ -20,6 +20,12 @@
             <template #header>
               <h5 class="mb-0 text-start font-weight-bold">
                 Updating Ontology Annotations
+                <span
+                  v-if="annotationDates.omim_update"
+                  class="badge bg-secondary ms-2 fw-normal"
+                >
+                  Last: {{ formatDate(annotationDates.omim_update) }}
+                </span>
               </h5>
             </template>
 
@@ -54,15 +60,16 @@
 
               <BProgress
                 v-if="loading"
-                :value="progressPercent"
+                :value="hasRealProgress ? progressPercent : 100"
                 :max="100"
-                show-progress
-                animated
+                :animated="true"
+                :striped="!hasRealProgress"
                 :variant="progressVariant"
                 height="1.5rem"
               >
                 <template #default>
-                  {{ progressPercent }}% - {{ currentStepLabel }}
+                  <span v-if="hasRealProgress">{{ progressPercent }}% - {{ currentStepLabel }}</span>
+                  <span v-else>{{ currentStepLabel }} ({{ elapsedTimeDisplay }})</span>
                 </template>
               </BProgress>
 
@@ -71,6 +78,12 @@
                 class="small text-muted mt-1"
               >
                 Step {{ jobProgress.current }} of {{ jobProgress.total }}
+              </div>
+              <div
+                v-else-if="loading"
+                class="small text-muted mt-1"
+              >
+                Elapsed: {{ elapsedTimeDisplay }} — This may take several minutes...
               </div>
             </div>
           </BCard>
@@ -94,6 +107,12 @@
             <template #header>
               <h5 class="mb-0 text-start font-weight-bold">
                 Updating HGNC Data
+                <span
+                  v-if="annotationDates.hgnc_update"
+                  class="badge bg-secondary ms-2 fw-normal"
+                >
+                  Last: {{ formatDate(annotationDates.hgnc_update) }}
+                </span>
               </h5>
             </template>
 
@@ -138,28 +157,36 @@ export default {
         current: 0,
         total: 0,
       },
+      jobStartTime: null,
+      elapsedSeconds: 0,
+      elapsedTimer: null,
+      // Last update dates for annotations
+      annotationDates: {
+        omim_update: null,
+        hgnc_update: null,
+        mondo_update: null,
+        disease_ontology_update: null,
+      },
     };
   },
   computed: {
+    hasRealProgress() {
+      return this.jobProgress.total > 0;
+    },
     progressPercent() {
       if (this.jobProgress.total > 0) {
         return Math.round((this.jobProgress.current / this.jobProgress.total) * 100);
       }
-      // Estimate progress based on step name
-      const stepProgress = {
-        'Starting update...': 5,
-        'Job submitted, starting...': 10,
-        'Downloading mim2gene.txt': 15,
-        'Parsing mim2gene.txt': 25,
-        'Fetching disease names from JAX API': 40,
-        'Downloading MONDO SSSOM': 60,
-        'Parsing MONDO mappings': 70,
-        'Building ontology set': 80,
-        'Validating data': 85,
-        'Writing to database': 90,
-        'Completed': 100,
-      };
-      return stepProgress[this.jobStep] || 50;
+      // No real progress data - return null to trigger indeterminate mode
+      return null;
+    },
+    elapsedTimeDisplay() {
+      const mins = Math.floor(this.elapsedSeconds / 60);
+      const secs = this.elapsedSeconds % 60;
+      if (mins > 0) {
+        return `${mins}m ${secs}s`;
+      }
+      return `${secs}s`;
     },
     progressVariant() {
       if (this.jobStatus === 'failed') return 'danger';
@@ -184,15 +211,51 @@ export default {
       return this.jobStep;
     },
   },
+  mounted() {
+    this.fetchAnnotationDates();
+  },
   beforeUnmount() {
     this.stopPolling();
+    this.stopElapsedTimer();
   },
   methods: {
+    async fetchAnnotationDates() {
+      try {
+        const response = await this.axios.get(
+          `${import.meta.env.VITE_API_URL}/api/admin/annotation_dates`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          },
+        );
+        const data = response.data;
+        this.annotationDates = {
+          omim_update: Array.isArray(data.omim_update) ? data.omim_update[0] : data.omim_update,
+          hgnc_update: Array.isArray(data.hgnc_update) ? data.hgnc_update[0] : data.hgnc_update,
+          mondo_update: Array.isArray(data.mondo_update) ? data.mondo_update[0] : data.mondo_update,
+          disease_ontology_update: Array.isArray(data.disease_ontology_update) ? data.disease_ontology_update[0] : data.disease_ontology_update,
+        };
+      } catch (error) {
+        // Silently fail - dates are optional enhancement
+        console.warn('Failed to fetch annotation dates:', error);
+      }
+    },
+    formatDate(dateString) {
+      if (!dateString) return '';
+      // Handle both date-only (YYYY-MM-DD) and datetime formats
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return dateString;
+      return date.toLocaleDateString();
+    },
     async updateOntologyAnnotations() {
       this.loading = true;
       this.jobStatus = null;
       this.jobStep = 'Starting update...';
       this.jobProgress = { current: 0, total: 0 };
+      this.jobStartTime = Date.now();
+      this.elapsedSeconds = 0;
+      this.startElapsedTimer();
 
       try {
         // Call async endpoint
@@ -234,6 +297,18 @@ export default {
         clearInterval(this.pollInterval);
         this.pollInterval = null;
       }
+      this.stopElapsedTimer();
+    },
+    startElapsedTimer() {
+      this.elapsedTimer = setInterval(() => {
+        this.elapsedSeconds = Math.floor((Date.now() - this.jobStartTime) / 1000);
+      }, 1000);
+    },
+    stopElapsedTimer() {
+      if (this.elapsedTimer) {
+        clearInterval(this.elapsedTimer);
+        this.elapsedTimer = null;
+      }
     },
     async checkJobStatus() {
       if (!this.jobId) return;
@@ -274,6 +349,8 @@ export default {
           this.stopPolling();
           this.loading = false;
           this.makeToast('Ontology annotations updated successfully', 'Success', 'success');
+          // Refresh annotation dates after successful update
+          this.fetchAnnotationDates();
         } else if (data.status === 'failed') {
           this.stopPolling();
           this.loading = false;
@@ -296,6 +373,8 @@ export default {
           },
         });
         this.makeToast('HGNC data updated successfully', 'Success', 'success');
+        // Refresh annotation dates after successful update
+        this.fetchAnnotationDates();
       } catch (error) {
         this.makeToast('Failed to update HGNC data', 'Error', 'danger');
       } finally {

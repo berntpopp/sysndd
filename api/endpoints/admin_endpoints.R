@@ -414,5 +414,49 @@ function() {
 }
 
 
+#* Get annotation update dates
+#*
+#* Returns the last update dates for various annotation sources based on
+#* file modification times in the data directory.
+#*
+#* # `Return`
+#* Returns dates for OMIM (mim2gene), MONDO mappings, and HGNC updates.
+#*
+#* @tag admin
+#* @serializer json list(na="string")
+#* @get annotation_dates
+function() {
+  data_dir <- "data/"
+
+  # Helper to get most recent file date matching a pattern
+  get_latest_file_date <- function(pattern) {
+    files <- list.files(data_dir, pattern = pattern, full.names = TRUE)
+    if (length(files) == 0) return(NA)
+    # Get file info and find most recent
+    file_info <- file.info(files)
+    if (nrow(file_info) == 0) return(NA)
+    latest <- files[which.max(file_info$mtime)]
+    format(file_info[latest, "mtime"], "%Y-%m-%d %H:%M:%S")
+  }
+
+  # Extract date from filename pattern like mim2gene.YYYY-MM-DD.txt
+  get_date_from_filename <- function(pattern) {
+    files <- list.files(data_dir, pattern = pattern, full.names = FALSE)
+    if (length(files) == 0) return(NA)
+    # Extract date from filename
+    dates <- regmatches(files, regexpr("\\d{4}-\\d{2}-\\d{2}", files))
+    if (length(dates) == 0) return(NA)
+    max(dates)
+  }
+
+  list(
+    omim_update = get_date_from_filename("^mim2gene\\..*\\.txt$"),
+    mondo_update = get_latest_file_date("^mondo"),
+    hgnc_update = get_latest_file_date("^hgnc|^non_alt_loci"),
+    disease_ontology_update = get_date_from_filename("^disease_ontology_set\\..*\\.csv$")
+  )
+}
+
+
 ## Administration section
 ## -------------------------------------------------------------------##
