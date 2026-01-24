@@ -461,8 +461,8 @@ function() {
 #* Get entities using deprecated OMIM IDs
 #*
 #* Returns entities that reference OMIM IDs marked as "moved/removed" in the
-#* latest mim2gene.txt file. These entities should be reviewed by curators
-#* to update their disease ontology references.
+#* latest mim2gene.txt file. Each entity is enriched with MONDO mapping info
+#* and replacement suggestions from the EBI OLS4 API.
 #*
 #* # `Authorization`
 #* Restricted to Administrator role.
@@ -470,8 +470,17 @@ function() {
 #* # `Return`
 #* Returns a list with:
 #* - deprecated_count: Number of deprecated MIM numbers found
-#* - affected_entities: Array of entities using deprecated OMIM IDs
+#* - affected_entity_count: Number of entities using deprecated OMIM IDs
+#* - affected_entities: Array of entities with MONDO deprecation info
 #* - mim2gene_date: Date of the mim2gene.txt file used
+#*
+#* Each affected entity includes:
+#* - entity_id, symbol, hgnc_id, disease_ontology_id, disease_ontology_name, category
+#* - mondo_id: MONDO term referencing this OMIM (if found)
+#* - mondo_label: Label of the MONDO term
+#* - deprecation_reason: Reason for deprecation from MONDO
+#* - replacement_mondo_id: Suggested replacement MONDO term
+#* - replacement_omim_id: Suggested replacement OMIM ID
 #*
 #* @tag admin
 #* @serializer json list(na="string")
@@ -488,6 +497,7 @@ function(req, res) {
   if (length(mim2gene_files) == 0) {
     return(list(
       deprecated_count = 0,
+      affected_entity_count = 0,
       affected_entities = list(),
       mim2gene_date = NA,
       message = "No mim2gene.txt file found. Run ontology update first."
@@ -512,6 +522,7 @@ function(req, res) {
     if (length(deprecated_mims) == 0) {
       return(list(
         deprecated_count = 0,
+        affected_entity_count = 0,
         affected_entities = list(),
         mim2gene_date = mim2gene_date,
         message = "No deprecated MIM numbers found."
@@ -521,24 +532,57 @@ function(req, res) {
     # Check entities for deprecation
     affected <- check_entities_for_deprecation(pool, deprecated_mims)
 
-    # If there are affected entities, convert to list for JSON serialization
-    if (nrow(affected) > 0) {
-      affected_list <- affected %>%
-        dplyr::select(
-          entity_id,
-          symbol,
-          hgnc_id,
-          disease_ontology_id,
-          disease_ontology_id_version,
-          disease_ontology_name,
-          category,
-          ndd_phenotype
-        ) %>%
-        as.list() %>%
-        purrr::transpose()
-    } else {
-      affected_list <- list()
+    if (nrow(affected) == 0) {
+      return(list(
+        deprecated_count = length(deprecated_mims),
+        affected_entity_count = 0,
+        affected_entities = list(),
+        mim2gene_date = mim2gene_date,
+        message = "No entities affected by deprecated OMIM IDs."
+      ))
     }
+
+    # Get unique OMIM IDs to look up (avoid duplicate API calls)
+    unique_omim_ids <- unique(affected$disease_ontology_id)
+
+    # Look up MONDO deprecation info for each unique OMIM ID
+    # Use batch function with rate limiting
+    mondo_info_map <- ols_get_deprecated_omim_info_batch(unique_omim_ids)
+
+    # Enrich affected entities with MONDO info
+    affected_enriched <- affected %>%
+      dplyr::rowwise() %>%
+      dplyr::mutate(
+        mondo_info = list(mondo_info_map[[disease_ontology_id]]),
+        mondo_id = if (!is.null(mondo_info)) mondo_info$mondo_id else NA_character_,
+        mondo_label = if (!is.null(mondo_info)) mondo_info$mondo_label else NA_character_,
+        deprecation_reason = if (!is.null(mondo_info)) mondo_info$deprecation_reason else NA_character_,
+        replacement_mondo_id = if (!is.null(mondo_info)) mondo_info$replacement_mondo_id else NA_character_,
+        replacement_mondo_label = if (!is.null(mondo_info)) mondo_info$replacement_mondo_label else NA_character_,
+        replacement_omim_id = if (!is.null(mondo_info)) mondo_info$replacement_omim_id else NA_character_
+      ) %>%
+      dplyr::ungroup() %>%
+      dplyr::select(
+        entity_id,
+        symbol,
+        hgnc_id,
+        disease_ontology_id,
+        disease_ontology_id_version,
+        disease_ontology_name,
+        category,
+        ndd_phenotype,
+        mondo_id,
+        mondo_label,
+        deprecation_reason,
+        replacement_mondo_id,
+        replacement_mondo_label,
+        replacement_omim_id
+      )
+
+    # Convert to list for JSON serialization
+    affected_list <- affected_enriched %>%
+      as.list() %>%
+      purrr::transpose()
 
     list(
       deprecated_count = length(deprecated_mims),
@@ -547,6 +591,7 @@ function(req, res) {
       mim2gene_date = mim2gene_date
     )
   }, error = function(e) {
+    logger::log_error("Failed to check deprecated entities: {e$message}")
     res$status <- 500
     list(
       error = "Failed to check deprecated entities",

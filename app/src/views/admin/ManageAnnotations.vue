@@ -202,7 +202,7 @@
             <div v-if="deprecatedData.affected_entities?.length > 0">
               <p class="text-muted small mb-2">
                 The following entities reference OMIM IDs that have been marked as moved/removed.
-                Click on an entity to review and update its disease ontology reference.
+                MONDO mappings and replacement suggestions are fetched from the EBI OLS4 API.
               </p>
               <BTable
                 :items="deprecatedData.affected_entities"
@@ -230,14 +230,91 @@
                   </router-link>
                 </template>
                 <template #cell(disease_ontology_id)="data">
-                  <a
-                    :href="`https://omim.org/entry/${data.value.replace('OMIM:', '')}`"
-                    target="_blank"
-                    class="text-danger text-decoration-none"
+                  <div class="d-flex flex-column">
+                    <a
+                      :href="`https://omim.org/entry/${data.value.replace('OMIM:', '')}`"
+                      target="_blank"
+                      class="text-danger text-decoration-none"
+                    >
+                      {{ data.value }}
+                      <small class="text-muted">(deprecated)</small>
+                    </a>
+                    <small
+                      v-if="data.item.mondo_id"
+                      class="text-muted"
+                    >
+                      <a
+                        :href="`https://monarchinitiative.org/disease/${data.item.mondo_id}`"
+                        target="_blank"
+                        class="text-decoration-none"
+                      >
+                        {{ data.item.mondo_id }}
+                      </a>
+                    </small>
+                  </div>
+                </template>
+                <template #cell(replacement_suggestion)="data">
+                  <div
+                    v-if="data.item.replacement_omim_id || data.item.replacement_mondo_id"
+                    class="d-flex flex-column"
                   >
-                    {{ data.value }}
-                    <small class="text-muted">(deprecated)</small>
-                  </a>
+                    <span
+                      v-if="data.item.replacement_omim_id"
+                      class="d-flex align-items-center"
+                    >
+                      <span class="badge bg-success me-1">Suggested</span>
+                      <a
+                        :href="`https://omim.org/entry/${data.item.replacement_omim_id.replace('OMIM:', '')}`"
+                        target="_blank"
+                        class="text-decoration-none text-success fw-bold"
+                      >
+                        {{ data.item.replacement_omim_id }}
+                      </a>
+                    </span>
+                    <small
+                      v-if="data.item.replacement_mondo_id"
+                      class="text-muted"
+                    >
+                      via
+                      <a
+                        :href="`https://monarchinitiative.org/disease/${data.item.replacement_mondo_id}`"
+                        target="_blank"
+                        class="text-decoration-none"
+                      >
+                        {{ data.item.replacement_mondo_id }}
+                      </a>
+                      <span v-if="data.item.replacement_mondo_label">
+                        ({{ truncateText(data.item.replacement_mondo_label, 30) }})
+                      </span>
+                    </small>
+                  </div>
+                  <span
+                    v-else-if="data.item.mondo_id"
+                    class="text-muted small"
+                  >
+                    No replacement found
+                  </span>
+                  <span
+                    v-else
+                    class="text-muted small"
+                  >
+                    No MONDO mapping
+                  </span>
+                </template>
+                <template #cell(deprecation_reason)="data">
+                  <small
+                    v-if="data.value"
+                    class="text-muted deprecation-reason"
+                    :title="data.value"
+                  >
+                    {{ truncateText(data.value, 80) }}
+                  </small>
+                  <span
+                    v-else
+                    class="text-muted small"
+                  >
+                    —
+                  </span>
                 </template>
                 <template #cell(category)="data">
                   <span
@@ -300,8 +377,9 @@ export default {
       deprecatedTableFields: [
         { key: 'entity_id', label: 'Entity', sortable: true },
         { key: 'symbol', label: 'Gene', sortable: true },
-        { key: 'disease_ontology_id', label: 'OMIM ID', sortable: true },
-        { key: 'disease_ontology_name', label: 'Disease Name', sortable: true },
+        { key: 'disease_ontology_id', label: 'Deprecated OMIM', sortable: true },
+        { key: 'replacement_suggestion', label: 'Replacement', sortable: false },
+        { key: 'deprecation_reason', label: 'Reason', sortable: false },
         { key: 'category', label: 'Category', sortable: true },
       ],
     };
@@ -393,6 +471,11 @@ export default {
         Refuted: 'bg-danger',
       };
       return classes[category] || 'bg-secondary';
+    },
+    // Truncate text with ellipsis for display
+    truncateText(text, maxLength) {
+      if (!text || text.length <= maxLength) return text;
+      return `${text.substring(0, maxLength)}...`;
     },
     // Helper to unwrap R/Plumber array values (scalars come as single-element arrays)
     unwrapValue(val) {
@@ -584,5 +667,14 @@ export default {
     font-size: .875rem;
     line-height: .5;
     border-radius: .2rem;
+  }
+
+  .deprecation-reason {
+    display: block;
+    max-width: 250px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: help;
   }
 </style>

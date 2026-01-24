@@ -129,6 +129,7 @@ source("functions/ontology-functions.R", local = TRUE)
 source("functions/pubtator-functions.R", local = TRUE)
 source("functions/ensembl-functions.R", local = TRUE)
 source("functions/job-manager.R", local = TRUE)
+source("functions/ols-functions.R", local = TRUE)
 
 # Core security and error handling modules
 source("core/security.R", local = TRUE)
