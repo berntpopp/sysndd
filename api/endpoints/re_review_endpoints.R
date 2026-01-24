@@ -180,6 +180,7 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
 #* The function filters the re-review data based on the provided `filter` and
 #* `curate` parameters. Admin/Curators can see curated or uncurated sets.
 #* Reviewers see only unsubmitted sets assigned to them.
+#* Supports cursor pagination for large re-review lists.
 #*
 #* # `Return`
 #* Returns a re-review overview table if successful, or an error message.
@@ -189,12 +190,16 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
 #*
 #* @param filter Condition for the re-review data.
 #* @param curate Boolean indicating whether to see curated or not.
+#* @param page_after Cursor after which entries are shown (default: 0)
+#* @param page_size Page size in cursor pagination (default: "all")
 #*
 #* @get table
 function(req,
          res,
          filter = "or(lessOrEqual(review_date,2020-01-01),equals(re_review_review_saved,1)",
-         curate = FALSE) {
+         curate = FALSE,
+         page_after = 0,
+         page_size = "all") {
   curate <- as.logical(curate)
 
   # Curate mode requires Curator+, non-curate requires Reviewer+
@@ -270,7 +275,8 @@ function(req,
         re_review_status_saved,
         re_review_submitted,
         status_id,
-        review_id
+        review_id,
+        created_at
       ) %>%
       inner_join(ndd_entity_view, by = c("entity_id")) %>%
       select(-category_id, -category) %>%
@@ -278,10 +284,22 @@ function(req,
       inner_join(review_user_collected, by = c("review_id")) %>%
       inner_join(status_user_collected, by = c("status_id")) %>%
       collect() %>%
-      arrange(entity_id) %>%
+      arrange(created_at, re_review_entity_id) %>%
       filter(!!!rlang::parse_exprs(filter_exprs))
 
-    re_review_user_list
+    # Apply pagination
+    pagination_info <- generate_cursor_pag_inf_safe(
+      re_review_user_list,
+      page_size,
+      page_after,
+      "re_review_entity_id"
+    )
+
+    list(
+      links = pagination_info$links,
+      meta = pagination_info$meta,
+      data = pagination_info$data
+    )
 }
 
 
