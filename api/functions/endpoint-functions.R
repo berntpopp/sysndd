@@ -352,9 +352,11 @@ generate_panels_list <- function(sort = "symbol",
   # generate filter expression based on filter input
   filter_exprs <- generate_filter_expressions(filter)
 
-  # generate table with field information for display
-  # TODO: this has to be updated through some logic based
-  # on field types in MySQL table in a function
+  # Generate field metadata for display
+  # TODO(future): Auto-generate field metadata from MySQL schema
+  # Current implementation uses manual field specification
+  # Enhancement: Query INFORMATION_SCHEMA.COLUMNS for field types,
+  # determine sortable/filterable based on MySQL column type
   fields_tibble <- as_tibble(str_split(fields, ",")[[1]]) %>%
     select(key = value) %>%
     mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%

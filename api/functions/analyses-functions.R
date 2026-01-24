@@ -156,12 +156,14 @@ gen_mca_clust_obj <- function(wide_phenotypes_df,
 
   } else {
 
-    # compute MCA
-    # TODO: add logic to find ncp with >70% information
-    # TODO: ideas: http://www.sthda.com/english/articles/
-    # TODO: 31-principal-component-methods-in-r-practical-guide/
-    # TODO: 117-hcpc-hierarchical-clustering-on-principal-components-essentials/
-    # TODO: #case-3-clustering-on-mixed-data
+    # Compute Multiple Correspondence Analysis (MCA)
+    # TODO(future-ML): Optimize ncp (number of components) selection
+    # Current: Fixed ncp=15, may not capture >70% information variance
+    # Enhancement ideas from STHDA:
+    # - http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/
+    # - http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/117-hcpc-hierarchical-clustering-on-principal-components-essentials/
+    # - Specifically: #case-3-clustering-on-mixed-data
+    # Implementation: Calculate cumulative variance explained, set ncp to reach 70% threshold
     mca_phenotypes <- MCA(wide_phenotypes_df,
         ncp = 15,
         quali.sup = quali_sup_var,

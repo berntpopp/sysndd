@@ -27,9 +27,11 @@
 post_url_archive <- function(parameter_url,
     parameter_capture_screenshot = "on") {
 
-    # check if provided URL is valid
-    # TODO: implement more sanity checks
-    url_valid <- str_detect(parameter_url, dw$archive_base_url)
+    # Validate URL is from SysNDD domain
+    # Additional checks: URL format, protocol (https), domain whitelist
+    url_valid <- str_detect(parameter_url, dw$archive_base_url) &&
+      str_starts(parameter_url, "https://") &&
+      nchar(parameter_url) < 2048  # URL length sanity check
 
     if (url_valid) {
     # based on https://docs.google.com/document/
@@ -43,9 +45,22 @@ post_url_archive <- function(parameter_url,
           ":",
           dw$archive_secret_key)))
 
-    # TODO: more meaningful response
-    # TODO: wait for and get success message
-    return(content(response))
+    # TODO(future): Enhance response handling for Internet Archive API
+    # Current implementation returns raw API response
+    # Enhancement: Poll job_id for completion status, return archive URL when ready
+    # Archive API is async - full implementation requires polling logic
+    response_content <- content(response)
+
+    # Basic response validation
+    if (response$status_code >= 400) {
+      return(list(
+        status = response$status_code,
+        message = "Internet Archive request failed",
+        details = response_content
+      ))
+    }
+
+    return(response_content)
 
     } else {
     # return Bad Request

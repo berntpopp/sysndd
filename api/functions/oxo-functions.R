@@ -24,12 +24,13 @@ oxo_mapping_from_ontology_id <- function(ontology_id)  {
 
   url <- paste0("https://www.ebi.ac.uk/spot/oxo/api/mappings?fromId=", ontology_id)
 
-  # try again while error
-  # implemented in April 2023 because of
-  # There was an unexpected error (type=Internal Server Error, status=500).
-  # http://neo4j:dba@localhost:7474/db/data/transaction/commit: Connect to localhost:7474 [localhost/127.0.0.1] failed: Connection refused
+  # Retry logic for intermittent OXO API failures
+  # Implemented April 2023 due to internal server errors (500)
+  # Neo4j connection issues on OXO backend
+  # TODO(future): Implement exponential backoff retry strategy
+  # Current: fixed 0.2s delay, infinite retries
+  # Enhancement: max_retries parameter, exponential backoff (0.2s, 0.4s, 0.8s, 1.6s)
   # based on https://stackoverflow.com/questions/66133261/how-to-make-a-new-request-while-there-is-an-error-fromjson
-  # TODO: implement other retries
   oxo_request <- tryCatch(fromJSON(url), error = function(e) {return(NA)})
 
   while(all(is.na(oxo_request))) {

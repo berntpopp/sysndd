@@ -71,8 +71,12 @@ identify_critical_ontology_changes <- function(disease_ontology_set_update, dise
     filter(used_in_entity) %>%
     select(-used_in_entity)
 
-  # Generate a tibble of potentially problematic entities and filter these
-  # TODO: define columns for check function to understand logic
+  # Check for ontology changes that affect existing entities
+  # Columns check for:
+  # - check_ontology_id_version: exact version match exists in update
+  # - check_ontology_name: disease name still exists in update
+  # - check_id_fingerprint: (id + hgnc + inheritance) fingerprint match
+  # - check_name_fingerprint: (name + hgnc + inheritance) fingerprint match
   disease_ontology_set_current_used_check <- disease_ontology_set_current_used %>%
     mutate(check_ontology_id_version = disease_ontology_id_version %in% disease_ontology_set_update_extra$disease_ontology_id_version,
            check_ontology_name = disease_ontology_name %in% disease_ontology_set_update_extra$disease_ontology_name,
@@ -267,10 +271,13 @@ get_mondo_mappings <- function(mondo_ontology, max_age = 1, output_path = "data/
 #' @export
 process_mondo_ontology <- function(mondo_file = "data/mondo_terms/mondo_terms.txt") {
 
-  # TODO: replace with function
-  mondo_file_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"), "%Y-%m-%d")
+  # Get current date in YYYY-MM-DD format
+  mondo_file_date <- format(Sys.Date(), "%Y-%m-%d")
 
-  # TODO: use the get_ontology_object function and a list of mondo identifiers to compute this table
+  # TODO(future): Replace static file with dynamic ontology extraction
+  # Use get_ontology_object("mondo", config_vars) and process all MONDO terms
+  # dynamically instead of relying on pre-generated mondo_terms.txt file
+  # Requires: term extraction logic, property parsing for all MONDO descendants
   mondo_terms <- read_delim(mondo_file, "\t", col_names = TRUE) %>%
     mutate(disease_ontology_source = "mondo") %>%
     mutate(disease_ontology_date = mondo_file_date) %>%

@@ -222,8 +222,8 @@ symbol_from_hgnc_id_grouped <- function(input_tibble, request_max = 150) {
 update_process_hgnc_data <- function(hgnc_link = "http://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/tsv/non_alt_loci_set.txt",
                                       output_path = "data/",
                                       max_file_age = 1) {
-  # TODO: replace with function
-  current_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"), "%Y-%m-%d")
+  # Get current date in YYYY-MM-DD format
+  current_date <- format(Sys.Date(), "%Y-%m-%d")
 
   # define the file base name
   hgnc_file_basename <- "non_alt_loci_set"
