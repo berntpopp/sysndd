@@ -12,14 +12,14 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Milestone:** v4 Backend Overhaul
 **Phase:** 24 of 24 (Versioning, Pagination & Cleanup) - IN PROGRESS
-**Plan:** 2 of 7 complete
-**Status:** Wave 1 in progress - Version endpoint and pagination safety complete
-**Last activity:** 2026-01-24 - Completed 24-01 Version endpoint and 24-02 Pagination safety
+**Plan:** 3 of 7 complete
+**Status:** Wave 2 in progress - User and re-review table pagination complete
+**Last activity:** 2026-01-24 - Completed 24-03 User/re-review table pagination
 
 ```
 v4 Backend Overhaul: PHASE 24 IN PROGRESS
 Goal: Modernize R/Plumber API with security, async, OMIM fix, R upgrade, DRY/KISS/SOLID
-Progress: ██████████████████████████████░░░ 97% (7.0/7.2 phases)
+Progress: ██████████████████████████████░░░ 97% (7.1/7.2 phases)
 ```
 
 ## Completed Milestones
@@ -174,6 +174,9 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 24-02 | Return validated page_size as character | Maintains consistency with existing generate_cursor_pag_inf API |
 | 2026-01-24 | 24-02 | Log warnings for invalid page_size values | Security monitoring for potential DoS attempts via log_warn |
 | 2026-01-24 | 24-02 | Default to 10 for invalid/below-minimum page_size | Reasonable default prevents empty results, non-breaking fallback |
+| 2026-01-24 | 24-03 | Composite key sorting (created_at, unique_id) for pagination | Ensures stable pagination across API restarts and concurrent updates |
+| 2026-01-24 | 24-03 | Default page_size="all" for table endpoints | Maintains backward compatibility with existing API consumers |
+| 2026-01-24 | 24-03 | Pagination applied in both role-based branches | Administrator and Curator see different data but both get paginated response |
 
 ### Pending Todos
 
@@ -195,9 +198,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 24-01-PLAN.md (Version endpoint) and 24-02-PLAN.md (Pagination safety)
+**Stopped at:** Completed 24-03-PLAN.md (User/re-review table pagination)
 **Resume file:** None
-**Next action:** Continue Phase 24 Wave 1 - Plans 03-07
+**Next action:** Continue Phase 24 Wave 2 - Plans 04-07 (remaining table endpoints)
 
 ---
-*Last updated: 2026-01-24 - Phase 24 IN PROGRESS (Wave 1: 2 of 7 plans complete - version endpoint, pagination safety wrapper)*
+*Last updated: 2026-01-24 - Phase 24 IN PROGRESS (Wave 2: 3 of 7 plans complete - version, pagination safety, user/re-review table pagination)*
