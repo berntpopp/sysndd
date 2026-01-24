@@ -1,23 +1,19 @@
 # tests/testthat/test-database-functions.R
 # Tests for api/functions/database-functions.R
 #
-# These tests verify input validation and return structure.
-# Database operations are tested via input validation (validation-only testing).
+# NOTE: database-functions.R was deleted in Phase 22 as part of the service layer
+# refactoring. These tests are now obsolete. The functionality has been migrated
+# to the repository and service layers.
+#
+# TODO: Delete this file or migrate tests to test the new service/repository layer.
 
 library(testthat)
 library(dplyr)
 library(tibble)
 library(stringr)
 
-# Source functions - use path resolution for testthat context
-api_dir <- if (basename(getwd()) == "api") {
-  getwd()
-} else if (file.exists("../../functions/database-functions.R")) {
-  normalizePath("../..")
-} else {
-  stop("Cannot find api directory")
-}
-source(file.path(api_dir, "functions", "database-functions.R"))
+# Skip all tests - database-functions.R no longer exists
+skip("database-functions.R was deleted in Phase 22 - tests obsolete")
 
 # =============================================================================
 # post_db_entity() tests

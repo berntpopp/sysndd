@@ -8,17 +8,6 @@
 # First run: Records live API responses to fixtures/pubtator/
 # Subsequent runs: Replays recorded responses
 
-# Determine api directory path (handles testthat working directory changes)
-api_dir <- if (basename(getwd()) == "testthat") {
-  normalizePath(file.path(getwd(), "..", ".."))
-} else if (basename(getwd()) == "tests") {
-  normalizePath(file.path(getwd(), ".."))
-} else if (file.exists("functions/pubtator-functions.R")) {
-  getwd()
-} else {
-  normalizePath(file.path(getwd(), "api"))
-}
-
 # Load required packages (individual packages, not tidyverse meta-package)
 library(dplyr)
 library(tibble)
@@ -28,8 +17,11 @@ library(jsonlite)
 library(digest)
 library(logger)
 
-# Source required files
-source(file.path(api_dir, "functions/pubtator-functions.R"))
+# Source required files using helper-paths.R (loaded automatically by setup.R)
+# Use local = FALSE to make functions available in test scope
+# Note: pubtator-functions.R depends on db-helpers.R
+source_api_file("functions/db-helpers.R", local = FALSE)
+source_api_file("functions/pubtator-functions.R", local = FALSE)
 
 # Skip tests if required packages not available
 skip_if_not_installed("httptest2")

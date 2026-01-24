@@ -4,8 +4,9 @@
 # These tests verify the password hashing and verification functions
 # used for Argon2id-based authentication with legacy plaintext support.
 
-# Source the security module
-source(test_path("../../core/security.R"), local = TRUE)
+# Source the security module using the helper
+# Use local = FALSE to make functions available in test scope
+source_api_file("core/security.R", local = FALSE)
 
 # ============================================================================
 # is_hashed() tests

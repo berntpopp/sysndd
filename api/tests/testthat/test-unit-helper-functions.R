@@ -11,16 +11,9 @@ library(tibble)
 library(stringr)
 library(tidyr)
 
-# Source the functions being tested
-# Use here::here() approach - find api/ directory and go from there
-api_dir <- if (basename(getwd()) == "api") {
-  getwd()
-} else if (file.exists("../../functions/helper-functions.R")) {
-  normalizePath("../..")
-} else {
-  stop("Cannot find api directory")
-}
-source(file.path(api_dir, "functions", "helper-functions.R"))
+# Source the functions being tested using the helper
+# Use local = FALSE to make functions available in test scope
+source_api_file("functions/helper-functions.R", local = FALSE)
 
 # =============================================================================
 # is_valid_email() tests

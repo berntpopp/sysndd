@@ -9,17 +9,6 @@
 # First run: Records live API responses to fixtures/pubmed/
 # Subsequent runs: Replays recorded responses
 
-# Determine api directory path (handles testthat working directory changes)
-api_dir <- if (basename(getwd()) == "testthat") {
-  normalizePath(file.path(getwd(), "..", ".."))
-} else if (basename(getwd()) == "tests") {
-  normalizePath(file.path(getwd(), ".."))
-} else if (file.exists("functions/publication-functions.R")) {
-  getwd()
-} else {
-  normalizePath(file.path(getwd(), "api"))
-}
-
 # Load required packages for testing (individual packages, not tidyverse meta-package)
 library(dplyr)
 library(tibble)
@@ -28,9 +17,10 @@ library(purrr)
 library(xml2)
 library(rvest)
 
-# Source required files
-source(file.path(api_dir, "functions/genereviews-functions.R"))
-source(file.path(api_dir, "functions/publication-functions.R"))
+# Source required files using helper-paths.R (loaded automatically by setup.R)
+# Use local = FALSE to make functions available in test scope
+source_api_file("functions/genereviews-functions.R", local = FALSE)
+source_api_file("functions/publication-functions.R", local = FALSE)
 
 # Skip tests if required packages not available
 skip_if_not_installed("httptest2")

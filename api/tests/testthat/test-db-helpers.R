@@ -2,13 +2,12 @@
 # Unit tests for functions/db-helpers.R
 #
 # These tests verify the database helper functions that provide the foundation
-# for the repository layer. Tests use mocked database connections since we're
-# testing the helper logic, not actual database operations.
+# for the repository layer. Tests use mocked DBI functions and dependency
+# injection via the conn parameter to avoid needing the global pool.
 
-# Source the db-helpers module
-# Note: We can't use test_path() here because db-helpers is in functions/, not core/
-# Instead, we'll use relative path from test working directory
-source(file.path("../../functions/db-helpers.R"), local = TRUE)
+# Source the db-helpers module using helper-paths.R
+# Use local = FALSE to make functions available in test scope
+source_api_file("functions/db-helpers.R", local = FALSE)
 
 # ============================================================================
 # db_execute_query() tests
@@ -17,11 +16,8 @@ source(file.path("../../functions/db-helpers.R"), local = TRUE)
 describe("db_execute_query", {
 
   it("returns tibble for successful query", {
-    # Mock pool and DBI functions
-    local_mocked_bindings(
-      pool = list(),  # Mock pool object
-      .package = "base"
-    )
+    # Create mock connection object
+    mock_conn <- structure(list(), class = "MockConnection")
 
     mock_result <- structure(
       list(),
@@ -34,6 +30,7 @@ describe("db_execute_query", {
       stringsAsFactors = FALSE
     )
 
+    # Mock DBI functions
     local_mocked_bindings(
       dbSendQuery = function(conn, sql) mock_result,
       dbBind = function(result, params) invisible(NULL),
@@ -42,7 +39,12 @@ describe("db_execute_query", {
       .package = "DBI"
     )
 
-    result <- db_execute_query("SELECT * FROM ndd_entity WHERE entity_id = ?", list(1))
+    # Call with explicit connection (dependency injection)
+    result <- db_execute_query(
+      "SELECT * FROM ndd_entity WHERE entity_id = ?",
+      list(1),
+      conn = mock_conn
+    )
 
     expect_s3_class(result, "tbl_df")
     expect_equal(nrow(result), 3)
@@ -50,11 +52,7 @@ describe("db_execute_query", {
   })
 
   it("returns empty tibble with correct structure when no rows match", {
-    local_mocked_bindings(
-      pool = list(),
-      .package = "base"
-    )
-
+    mock_conn <- structure(list(), class = "MockConnection")
     mock_result <- structure(list(), class = c("MariaDBResult", "DBIResult"))
 
     # Empty data.frame with correct column structure
@@ -72,7 +70,11 @@ describe("db_execute_query", {
       .package = "DBI"
     )
 
-    result <- db_execute_query("SELECT * FROM ndd_entity WHERE entity_id = ?", list(999))
+    result <- db_execute_query(
+      "SELECT * FROM ndd_entity WHERE entity_id = ?",
+      list(999),
+      conn = mock_conn
+    )
 
     expect_s3_class(result, "tbl_df")
     expect_equal(nrow(result), 0)
@@ -81,10 +83,7 @@ describe("db_execute_query", {
   })
 
   it("throws db_query_error on database error", {
-    local_mocked_bindings(
-      pool = list(),
-      .package = "base"
-    )
+    mock_conn <- structure(list(), class = "MockConnection")
 
     local_mocked_bindings(
       dbSendQuery = function(conn, sql) {
@@ -94,17 +93,13 @@ describe("db_execute_query", {
     )
 
     expect_error(
-      db_execute_query("SELECT * FROM ndd_entity", list()),
+      db_execute_query("SELECT * FROM ndd_entity", list(), conn = mock_conn),
       class = "db_query_error"
     )
   })
 
   it("sanitizes long parameters in logs", {
-    local_mocked_bindings(
-      pool = list(),
-      .package = "base"
-    )
-
+    mock_conn <- structure(list(), class = "MockConnection")
     mock_result <- structure(list(), class = c("MariaDBResult", "DBIResult"))
     mock_data <- data.frame(id = 1, stringsAsFactors = FALSE)
 
@@ -128,18 +123,18 @@ describe("db_execute_query", {
 
     # Execute query with long string parameter
     long_string <- paste(rep("x", 100), collapse = "")
-    result <- db_execute_query("SELECT * FROM test WHERE val = ?", list(long_string))
+    result <- db_execute_query(
+      "SELECT * FROM test WHERE val = ?",
+      list(long_string),
+      conn = mock_conn
+    )
 
     # Verify log was called (at least once)
     expect_true(length(log_messages) > 0)
   })
 
   it("handles NULL parameters correctly", {
-    local_mocked_bindings(
-      pool = list(),
-      .package = "base"
-    )
-
+    mock_conn <- structure(list(), class = "MockConnection")
     mock_result <- structure(list(), class = c("MariaDBResult", "DBIResult"))
     mock_data <- data.frame(id = 1, stringsAsFactors = FALSE)
 
@@ -157,9 +152,39 @@ describe("db_execute_query", {
       .package = "DBI"
     )
 
-    result <- db_execute_query("SELECT * FROM test WHERE val = ?", list(NULL))
+    result <- db_execute_query(
+      "SELECT * FROM test WHERE val = ?",
+      list(NULL),
+      conn = mock_conn
+    )
 
     expect_s3_class(result, "tbl_df")
+  })
+
+  it("works without parameters", {
+    mock_conn <- structure(list(), class = "MockConnection")
+    mock_result <- structure(list(), class = c("MariaDBResult", "DBIResult"))
+    mock_data <- data.frame(count = 42L, stringsAsFactors = FALSE)
+
+    bind_called <- FALSE
+
+    local_mocked_bindings(
+      dbSendQuery = function(conn, sql) mock_result,
+      dbBind = function(result, params) {
+        bind_called <<- TRUE
+        invisible(NULL)
+      },
+      dbFetch = function(result) mock_data,
+      dbClearResult = function(result) invisible(NULL),
+      .package = "DBI"
+    )
+
+    result <- db_execute_query("SELECT COUNT(*) as count FROM test", conn = mock_conn)
+
+    expect_s3_class(result, "tbl_df")
+    expect_equal(result$count[1], 42L)
+    # dbBind should not be called when no params
+    expect_false(bind_called)
   })
 })
 
@@ -170,11 +195,7 @@ describe("db_execute_query", {
 describe("db_execute_statement", {
 
   it("returns affected row count for INSERT", {
-    local_mocked_bindings(
-      pool = list(),
-      .package = "base"
-    )
-
+    mock_conn <- structure(list(), class = "MockConnection")
     mock_result <- structure(list(), class = c("MariaDBResult", "DBIResult"))
 
     local_mocked_bindings(
@@ -187,7 +208,8 @@ describe("db_execute_statement", {
 
     affected <- db_execute_statement(
       "INSERT INTO ndd_entity (hgnc_id) VALUES (?)",
-      list(1234)
+      list(1234),
+      conn = mock_conn
     )
 
     expect_type(affected, "integer")
@@ -195,11 +217,7 @@ describe("db_execute_statement", {
   })
 
   it("returns affected row count for UPDATE", {
-    local_mocked_bindings(
-      pool = list(),
-      .package = "base"
-    )
-
+    mock_conn <- structure(list(), class = "MockConnection")
     mock_result <- structure(list(), class = c("MariaDBResult", "DBIResult"))
 
     local_mocked_bindings(
@@ -212,18 +230,15 @@ describe("db_execute_statement", {
 
     affected <- db_execute_statement(
       "UPDATE ndd_entity SET is_active = ? WHERE hgnc_id > ?",
-      list(FALSE, 1000)
+      list(FALSE, 1000),
+      conn = mock_conn
     )
 
     expect_equal(affected, 5L)
   })
 
   it("returns 0 when no rows affected", {
-    local_mocked_bindings(
-      pool = list(),
-      .package = "base"
-    )
-
+    mock_conn <- structure(list(), class = "MockConnection")
     mock_result <- structure(list(), class = c("MariaDBResult", "DBIResult"))
 
     local_mocked_bindings(
@@ -236,17 +251,15 @@ describe("db_execute_statement", {
 
     affected <- db_execute_statement(
       "DELETE FROM ndd_entity WHERE entity_id = ?",
-      list(999999)
+      list(999999),
+      conn = mock_conn
     )
 
     expect_equal(affected, 0L)
   })
 
   it("throws db_statement_error on database error", {
-    local_mocked_bindings(
-      pool = list(),
-      .package = "base"
-    )
+    mock_conn <- structure(list(), class = "MockConnection")
 
     local_mocked_bindings(
       dbSendStatement = function(conn, sql) {
@@ -256,17 +269,17 @@ describe("db_execute_statement", {
     )
 
     expect_error(
-      db_execute_statement("INSERT INTO ndd_entity (hgnc_id) VALUES (?)", list(1234)),
+      db_execute_statement(
+        "INSERT INTO ndd_entity (hgnc_id) VALUES (?)",
+        list(1234),
+        conn = mock_conn
+      ),
       class = "db_statement_error"
     )
   })
 
   it("logs statement and affected row count", {
-    local_mocked_bindings(
-      pool = list(),
-      .package = "base"
-    )
-
+    mock_conn <- structure(list(), class = "MockConnection")
     mock_result <- structure(list(), class = c("MariaDBResult", "DBIResult"))
 
     local_mocked_bindings(
@@ -287,7 +300,11 @@ describe("db_execute_statement", {
       .package = "logger"
     )
 
-    affected <- db_execute_statement("UPDATE test SET val = ?", list(1))
+    affected <- db_execute_statement(
+      "UPDATE test SET val = ?",
+      list(1),
+      conn = mock_conn
+    )
 
     # Should have at least 2 log calls (statement + affected rows)
     expect_true(length(log_messages) >= 2)
@@ -301,8 +318,9 @@ describe("db_execute_statement", {
 describe("db_with_transaction", {
 
   it("commits transaction on success", {
-    # Mock pool checkout/return
-    mock_conn <- list(class = "MockConnection")
+    # Create a mock pool object
+    mock_pool <- structure(list(), class = "MockPool")
+    mock_conn <- structure(list(), class = "MockConnection")
 
     local_mocked_bindings(
       poolCheckout = function(pool) mock_conn,
@@ -322,14 +340,15 @@ describe("db_with_transaction", {
 
     result <- db_with_transaction({
       "test_result"
-    })
+    }, pool_obj = mock_pool)
 
     expect_true(transaction_executed)
     expect_equal(result, "test_result")
   })
 
   it("rolls back transaction on error", {
-    mock_conn <- list(class = "MockConnection")
+    mock_pool <- structure(list(), class = "MockPool")
+    mock_conn <- structure(list(), class = "MockConnection")
 
     local_mocked_bindings(
       poolCheckout = function(pool) mock_conn,
@@ -355,13 +374,14 @@ describe("db_with_transaction", {
     expect_error(
       db_with_transaction({
         stop("Simulated error in transaction")
-      }),
+      }, pool_obj = mock_pool),
       class = "db_transaction_error"
     )
   })
 
   it("returns connection to pool even on error", {
-    mock_conn <- list(class = "MockConnection")
+    mock_pool <- structure(list(), class = "MockPool")
+    mock_conn <- structure(list(), class = "MockConnection")
     pool_returned <- FALSE
 
     local_mocked_bindings(
@@ -381,7 +401,7 @@ describe("db_with_transaction", {
     )
 
     expect_error(
-      db_with_transaction({ "code" }),
+      db_with_transaction({ "code" }, pool_obj = mock_pool),
       class = "db_transaction_error"
     )
 
@@ -390,7 +410,8 @@ describe("db_with_transaction", {
   })
 
   it("logs transaction lifecycle", {
-    mock_conn <- list(class = "MockConnection")
+    mock_pool <- structure(list(), class = "MockPool")
+    mock_conn <- structure(list(), class = "MockConnection")
 
     local_mocked_bindings(
       poolCheckout = function(pool) mock_conn,
@@ -416,14 +437,15 @@ describe("db_with_transaction", {
       .package = "logger"
     )
 
-    result <- db_with_transaction({ "success" })
+    result <- db_with_transaction({ "success" }, pool_obj = mock_pool)
 
     # Should have logged: start, executing, and commit
     expect_true(length(log_messages) >= 3)
   })
 
   it("can execute multiple statements in transaction", {
-    mock_conn <- list(class = "MockConnection")
+    mock_pool <- structure(list(), class = "MockPool")
+    mock_conn <- structure(list(), class = "MockConnection")
 
     local_mocked_bindings(
       poolCheckout = function(pool) mock_conn,
@@ -446,7 +468,7 @@ describe("db_with_transaction", {
       statements_executed <- statements_executed + 1
       statements_executed <- statements_executed + 1
       statements_executed
-    })
+    }, pool_obj = mock_pool)
 
     expect_equal(result, 3)
   })

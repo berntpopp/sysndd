@@ -10,8 +10,9 @@ library(tibble)
 library(stringr)
 
 # Source the helper functions used by entity endpoints
-# Use absolute path to avoid working directory issues
-source("/mnt/c/development/sysndd/api/functions/helper-functions.R")
+# Uses helper-paths.R (loaded automatically by setup.R)
+# Use local = FALSE to make functions available in test scope
+source_api_file("functions/helper-functions.R", local = FALSE)
 
 # =============================================================================
 # Entity Data Structure Tests

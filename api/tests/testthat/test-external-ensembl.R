@@ -8,17 +8,6 @@
 # First run: May require live API access for biomaRt
 # Subsequent runs: Attempt to use recorded responses
 
-# Determine api directory path (handles testthat working directory changes)
-api_dir <- if (basename(getwd()) == "testthat") {
-  normalizePath(file.path(getwd(), "..", ".."))
-} else if (basename(getwd()) == "tests") {
-  normalizePath(file.path(getwd(), ".."))
-} else if (file.exists("functions/ensembl-functions.R")) {
-  getwd()
-} else {
-  normalizePath(file.path(getwd(), "api"))
-}
-
 # Load required packages
 library(dplyr)
 library(tibble)
@@ -28,8 +17,9 @@ library(stringr)
 skip_if_not_installed("httptest2")
 skip_if_not_installed("biomaRt")
 
-# Source required files
-source(file.path(api_dir, "functions/ensembl-functions.R"))
+# Source required files using helper-paths.R (loaded automatically by setup.R)
+# Use local = FALSE to make functions available in test scope
+source_api_file("functions/ensembl-functions.R", local = FALSE)
 
 # biomaRt requires network access - it doesn't use standard httr/httr2
 # These tests are more integration-focused and may skip without network

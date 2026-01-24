@@ -8,25 +8,15 @@
 # First run: Records live API responses to fixtures/rest.genenames.org/
 # Subsequent runs: Replays recorded responses (no network calls)
 
-# Determine api directory path (handles testthat working directory changes)
-api_dir <- if (basename(getwd()) == "testthat") {
-  normalizePath(file.path(getwd(), "..", ".."))
-} else if (basename(getwd()) == "tests") {
-  normalizePath(file.path(getwd(), ".."))
-} else if (file.exists("functions/hgnc-functions.R")) {
-  getwd()
-} else {
-  normalizePath(file.path(getwd(), "api"))
-}
-
 # Load required packages
 library(dplyr)
 library(tibble)
 library(stringr)
 library(jsonlite)
 
-# Source required files
-source(file.path(api_dir, "functions/hgnc-functions.R"))
+# Source required files using helper-paths.R (loaded automatically by setup.R)
+# Use local = FALSE to make functions available in test scope
+source_api_file("functions/hgnc-functions.R", local = FALSE)
 
 # Skip if required packages not available
 skip_if_not_installed("httptest2")
