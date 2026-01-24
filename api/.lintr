@@ -1,11 +1,18 @@
 linters: linters_with_defaults(
-    line_length_linter = line_length_linter(100L),
-    object_length_linter = NULL,
+    # Keep magrittr pipe - codebase uses it consistently
+    pipe_consistency_linter = pipe_consistency_linter(pipe = "%>%"),
+    # Increase line length to 120 (modern standard)
+    line_length_linter = line_length_linter(120L),
+    # Allow explicit returns (Google style, clearer for complex functions)
+    return_linter = NULL,
+    # Allow SCREAMING_SNAKE_CASE for constants
     object_name_linter = NULL,
+    # NSE variables handled via globalVariables()
     object_usage_linter = NULL,
-    unused_import_linter = NULL,
-    namespace_linter = NULL,
-    todo_comment_linter = NULL,
-    multiple_dots_linter = NULL
+    # Allow longer object names
+    object_length_linter = NULL,
+    # Too many false positives with roxygen/plumber examples
+    commented_code_linter = NULL
   )
-exclusions: list("_old", "data/", "logs/", "results/")
+exclusions: list("_old", "data/", "logs/", "results/", "renv/", "tests/")
+encoding: "UTF-8"
