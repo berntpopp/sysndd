@@ -7,6 +7,10 @@
 # Load security utilities for password hashing and verification
 source("../core/security.R", local = TRUE)
 
+# Load user repository for database operations
+user_repo_path <- file.path(find.package("plumber"), "..", "..", "api", "functions", "user-repository.R")
+source(user_repo_path, local = TRUE)
+
 ##-------------------------------------------------------------------##
 ## User endpoint section
 ##-------------------------------------------------------------------##
@@ -169,25 +173,12 @@ function(req, res, user_id = 0, status_approval = FALSE) {
         user_table$family_name
       )
 
-      sysndd_db <- dbConnect(
-        RMariaDB::MariaDB(),
-        dbname = dw$dbname,
-        user = dw$user,
-        password = dw$password,
-        server = dw$server,
-        host = dw$host,
-        port = dw$port
-      )
-
       # Hash password with Argon2id before storing
       hashed_password <- hash_password(user_password)
-      dbExecute(
-        sysndd_db,
-        "UPDATE user SET approved = 1, password = ?, abbreviation = ? WHERE user_id = ?",
-        params = list(hashed_password, user_initials, user_id_approval)
-      )
 
-      dbDisconnect(sysndd_db)
+      # Update user approval status, password, and abbreviation
+      user_update(user_id_approval, list(approved = 1, abbreviation = user_initials))
+      user_update_password(user_id_approval, hashed_password)
 
       send_noreply_email(
         c(
@@ -200,23 +191,11 @@ function(req, res, user_id = 0, status_approval = FALSE) {
         "curator@sysndd.org"
       )
     } else {
-      sysndd_db <- dbConnect(
-        RMariaDB::MariaDB(),
-        dbname = dw$dbname,
-        user = dw$user,
-        password = dw$password,
-        server = dw$server,
-        host = dw$host,
-        port = dw$port
-      )
-
-      dbExecute(
-        sysndd_db,
+      # Rejection - delete user using db_execute_statement
+      db_execute_statement(
         "DELETE FROM user WHERE user_id = ?",
-        params = list(user_id_approval)
+        list(user_id_approval)
       )
-
-      dbDisconnect(sysndd_db)
     }
   } else {
     res$status <- 403
@@ -241,45 +220,15 @@ function(req, res, user_id, role_assigned = "Viewer") {
     res$status <- 401
     return(list(error = "Please authenticate."))
   } else if (req$user_role %in% c("Administrator")) {
-    sysndd_db <- dbConnect(
-      RMariaDB::MariaDB(),
-      dbname = dw$dbname,
-      user = dw$user,
-      password = dw$password,
-      server = dw$server,
-      host = dw$host,
-      port = dw$port
-    )
-
-    dbExecute(
-      sysndd_db,
-      "UPDATE user SET user_role = ? WHERE user_id = ?",
-      params = list(role_assigned, user_id_role)
-    )
-
-    dbDisconnect(sysndd_db)
+    # Admin can assign any role
+    user_update(user_id_role, list(user_role = role_assigned))
 
   } else if (
     req$user_role %in% c("Curator") &&
     role_assigned %in% c("Curator", "Reviewer", "Viewer")
   ) {
-    sysndd_db <- dbConnect(
-      RMariaDB::MariaDB(),
-      dbname = dw$dbname,
-      user = dw$user,
-      password = dw$password,
-      server = dw$server,
-      host = dw$host,
-      port = dw$port
-    )
-
-    dbExecute(
-      sysndd_db,
-      "UPDATE user SET user_role = ? WHERE user_id = ?",
-      params = list(role_assigned, user_id_role)
-    )
-
-    dbDisconnect(sysndd_db)
+    # Curator can assign non-Administrator roles
+    user_update(user_id_role, list(user_role = role_assigned))
   } else if (
     req$user_role %in% c("Curator") && 
     role_assigned %in% c("Administrator")
@@ -382,6 +331,7 @@ function(
   user <- req$user_id
   user_id_pass_change <- as.integer(user_id_pass_change)
 
+  # Get user info including password for verification
   user_table <- pool %>%
     tbl("user") %>%
     select(
@@ -441,25 +391,9 @@ function(
     (old_pass_match || req$user_role %in% c("Administrator")) &&
     new_pass_match_and_valid
   ) {
-    sysndd_db <- dbConnect(
-      RMariaDB::MariaDB(),
-      dbname = dw$dbname,
-      user = dw$user,
-      password = dw$password,
-      server = dw$server,
-      host = dw$host,
-      port = dw$port
-    )
-
     # Hash new password with Argon2id before storing
     hashed_new_password <- hash_password(new_pass_1)
-    dbExecute(
-      sysndd_db,
-      "UPDATE user SET password = ? WHERE user_id = ?",
-      params = list(hashed_new_password, user_id_pass_change)
-    )
-
-    dbDisconnect(sysndd_db)
+    user_update_password(user_id_pass_change, hashed_new_password)
 
     res$status <- 201
     return(list(message = "Password successfully changed."))
@@ -503,23 +437,8 @@ function(req, res, email_request = "") {
     timestamp_exp <- as.integer(timestamp_request) + dw$refresh
     key <- charToRaw(dw$secret)
 
-    sysndd_db <- dbConnect(
-      RMariaDB::MariaDB(),
-      dbname = dw$dbname,
-      user = dw$user,
-      password = dw$password,
-      server = dw$server,
-      host = dw$host,
-      port = dw$port
-    )
-
-    dbExecute(
-      sysndd_db,
-      "UPDATE user SET password_reset_date = ? WHERE user_id = ?",
-      params = list(as.character(timestamp_request), user_id_from_email[1])
-    )
-
-    dbDisconnect(sysndd_db)
+    # Update password reset timestamp
+    user_update(user_id_from_email[1], list(password_reset_date = as.character(timestamp_request)))
 
     claim <- jwt_claim(
       user_id = user_table$user_id,
@@ -598,30 +517,10 @@ function(req, res, new_pass_1 = "", new_pass_2 = "") {
       grepl("[!@#$%^&*]", new_pass_1)
 
     if (jwt_match && new_pass_match_and_valid) {
-      sysndd_db <- dbConnect(
-        RMariaDB::MariaDB(),
-        dbname = dw$dbname,
-        user = dw$user,
-        password = dw$password,
-        server = dw$server,
-        host = dw$host,
-        port = dw$port
-      )
-
       # Hash new password with Argon2id before storing
       hashed_new_password <- hash_password(new_pass_1)
-      dbExecute(
-        sysndd_db,
-        "UPDATE user SET password = ? WHERE user_id = ?",
-        params = list(hashed_new_password, user_jwt$user_id)
-      )
-      dbExecute(
-        sysndd_db,
-        "UPDATE user SET password_reset_date = NULL WHERE user_id = ?",
-        params = list(user_jwt$user_id)
-      )
-
-      dbDisconnect(sysndd_db)
+      user_update_password(user_jwt$user_id, hashed_new_password)
+      user_update(user_jwt$user_id, list(password_reset_date = NULL))
 
       res$status <- 201
       return(list(message = "Password successfully changed."))
@@ -654,39 +553,26 @@ function(req, res, user_id) {
     return(list(error = "Invalid user_id provided."))
   }
 
-  sysndd_db <- dbConnect(
-    RMariaDB::MariaDB(),
-    dbname = dw$dbname,
-    user = dw$user,
-    password = dw$password,
-    server = dw$server,
-    host = dw$host,
-    port = dw$port
-  )
-
-  exist_result <- dbGetQuery(
-    sysndd_db,
+  # Check if user exists
+  exist_result <- db_execute_query(
     "SELECT COUNT(*) as count FROM user WHERE user_id = ?",
-    params = list(user_id)
+    list(user_id)
   )
 
   if (exist_result$count == 0) {
-    dbDisconnect(sysndd_db)
     res$status <- 404
     return(list(error = "User not found."))
   }
 
+  # Delete user
   delete_result <- tryCatch({
-    dbExecute(
-      sysndd_db,
+    db_execute_statement(
       "DELETE FROM user WHERE user_id = ?",
-      params = list(user_id)
+      list(user_id)
     )
   }, error = function(e) {
     NULL
   })
-
-  dbDisconnect(sysndd_db)
 
   if (is.null(delete_result)) {
     res$status <- 500
@@ -751,29 +637,16 @@ function(req, res) {
     }
   }
 
-  sysndd_db <- dbConnect(
-    RMariaDB::MariaDB(),
-    dbname = dw$dbname,
-    user = dw$user,
-    password = dw$password,
-    server = dw$server,
-    host = dw$host,
-    port = dw$port
-  )
-
-  # Build parameterized query to prevent SQL injection
+  # Build updates list for user_update
   fields_to_update <- names(user_details)[names(user_details) != "user_id"]
-  placeholders <- paste0(fields_to_update, " = ?", collapse = ", ")
-  query <- paste0("UPDATE user SET ", placeholders, " WHERE user_id = ?")
-  params <- c(as.list(user_details[fields_to_update]), list(user_details[["user_id"]]))
+  updates <- user_details[fields_to_update]
 
   result <- tryCatch({
-    dbExecute(sysndd_db, query, params = params)
+    user_update(user_details$user_id, updates)
+    TRUE
   }, error = function(e) {
     list(error = e$message)
   })
-
-  dbDisconnect(sysndd_db)
 
   if (is.list(result) && !is.null(result$error)) {
     res$status <- 500
@@ -792,25 +665,10 @@ function(req, res) {
         user_password <- random_password()
         user_initials <- generate_initials(user_table$first_name, user_table$family_name)
 
-        sysndd_db <- dbConnect(
-          RMariaDB::MariaDB(),
-          dbname = dw$dbname,
-          user = dw$user,
-          password = dw$password,
-          server = dw$server,
-          host = dw$host,
-          port = dw$port
-        )
-
         # Hash password with Argon2id before storing
         hashed_password <- hash_password(user_password)
-        dbExecute(
-          sysndd_db,
-          "UPDATE user SET password = ?, abbreviation = ? WHERE user_id = ?",
-          params = list(hashed_password, user_initials, user_details$user_id)
-        )
-
-        dbDisconnect(sysndd_db)
+        user_update_password(user_details$user_id, hashed_password)
+        user_update(user_details$user_id, list(abbreviation = user_initials))
 
         send_noreply_email(
           email_body = paste0(
