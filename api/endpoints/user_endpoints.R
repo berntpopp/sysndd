@@ -7,6 +7,10 @@
 # Load security utilities for password hashing and verification
 source("../core/security.R", local = TRUE)
 
+# Load middleware for authorization
+middleware_path <- file.path(find.package("plumber"), "..", "..", "api", "core", "middleware.R")
+source(middleware_path, local = TRUE)
+
 # Load user repository for database operations
 user_repo_path <- file.path(find.package("plumber"), "..", "..", "api", "functions", "user-repository.R")
 source(user_repo_path, local = TRUE)
@@ -24,12 +28,10 @@ source(user_repo_path, local = TRUE)
 #* @serializer json list(na="null")
 #* @get table
 function(req, res) {
-  user <- req$user_id
+  # Require Curator role or higher
+  require_role(req, res, "Curator")
 
-  if (length(user) == 0) {
-    res$status <- 401
-    return(list(error = "Please authenticate."))
-  } else if (req$user_role %in% c("Administrator")) {
+  if (req$user_role == "Administrator") {
     user_table <- pool %>%
       tbl("user") %>%
       select(
@@ -49,7 +51,8 @@ function(req, res) {
       collect()
 
     user_table
-  } else if (req$user_role %in% c("Curator")) {
+  } else {
+    # Curator sees only unapproved users
     user_table <- pool %>%
       tbl("user") %>%
       select(
@@ -70,9 +73,6 @@ function(req, res) {
       collect()
 
     user_table
-  } else {
-    res$status <- 403
-    return(list(error = "Read access forbidden."))
   }
 }
 
@@ -86,40 +86,34 @@ function(req, res) {
 #* @serializer json list(na="string")
 #* @get <user_id>/contributions
 function(req, res, user_id) {
+  # Require Reviewer role or higher
+  require_role(req, res, "Reviewer")
+
   user_requested <- user_id
-  user <- req$user_id
 
-  if (length(user) == 0) {
-    res$status <- 401
-    return(list(error = "Please authenticate."))
-  } else if (req$user_role %in% c("Administrator", "Curator", "Reviewer")) {
-    active_user_reviews <- pool %>%
-      tbl("ndd_entity_review") %>%
-      filter(is_primary == 1) %>%
-      filter(review_user_id == user_requested) %>%
-      select(review_id) %>%
-      collect() %>%
-      tally() %>%
-      select(active_reviews = n)
+  active_user_reviews <- pool %>%
+    tbl("ndd_entity_review") %>%
+    filter(is_primary == 1) %>%
+    filter(review_user_id == user_requested) %>%
+    select(review_id) %>%
+    collect() %>%
+    tally() %>%
+    select(active_reviews = n)
 
-    active_user_status <- pool %>%
-      tbl("ndd_entity_status") %>%
-      filter(is_active == 1) %>%
-      filter(status_user_id == user_requested) %>%
-      select(status_id) %>%
-      collect() %>%
-      tally() %>%
-      select(active_status = n)
+  active_user_status <- pool %>%
+    tbl("ndd_entity_status") %>%
+    filter(is_active == 1) %>%
+    filter(status_user_id == user_requested) %>%
+    select(status_id) %>%
+    collect() %>%
+    tally() %>%
+    select(active_status = n)
 
-    list(
-      user_id = user_requested,
-      active_status = active_user_status$active_status,
-      active_reviews = active_user_reviews$active_reviews
-    )
-  } else {
-    res$status <- 403
-    return(list(error = "Read access forbidden."))
-  }
+  list(
+    user_id = user_requested,
+    active_status = active_user_status$active_status,
+    active_reviews = active_user_reviews$active_reviews
+  )
 }
 
 
@@ -133,7 +127,9 @@ function(req, res, user_id) {
 #* @serializer json list(na="string")
 #* @put approval
 function(req, res, user_id = 0, status_approval = FALSE) {
-  user <- req$user_id
+  # Require Curator role or higher
+  require_role(req, res, "Curator")
+
   user_id_approval <- as.integer(user_id)
   status_approval <- as.logical(status_approval)
 
@@ -145,27 +141,13 @@ function(req, res, user_id = 0, status_approval = FALSE) {
   user_id_approval_exists <- as.logical(length(user_table$user_id))
   user_id_approval_approved <- as.logical(user_table$approved[1])
 
-  if (length(user) == 0) {
-    res$status <- 401
-    return(list(error = "Please authenticate."))
-  } else if (
-    req$user_role %in% c("Administrator", "Curator") &&
-    !user_id_approval_exists
-  ) {
+  if (!user_id_approval_exists) {
     res$status <- 409
     return(list(error = "User account does not exist."))
-  } else if (
-    req$user_role %in% c("Administrator", "Curator") &&
-    user_id_approval_exists &&
-    user_id_approval_approved
-  ) {
+  } else if (user_id_approval_exists && user_id_approval_approved) {
     res$status <- 409
     return(list(error = "User account already active."))
-  } else if (
-    req$user_role %in% c("Administrator", "Curator") &&
-    user_id_approval_exists &&
-    !user_id_approval_approved
-  ) {
+  } else if (user_id_approval_exists && !user_id_approval_approved) {
     if (status_approval) {
       user_password <- random_password()
       user_initials <- generate_initials(
@@ -197,9 +179,6 @@ function(req, res, user_id = 0, status_approval = FALSE) {
         list(user_id_approval)
       )
     }
-  } else {
-    res$status <- 403
-    return(list(error = "Read access forbidden."))
   }
 }
 
@@ -207,37 +186,26 @@ function(req, res, user_id = 0, status_approval = FALSE) {
 #* Allows administrators to change the roles of users.
 #*
 #* # `Details`
-#* If admin, can set any role. If curator, can only set certain roles. 
+#* If admin, can set any role. If curator, can only set certain roles.
 #*
 #* @tag user
 #* @put change_role
 function(req, res, user_id, role_assigned = "Viewer") {
-  user <- req$user_id
+  # Require Curator role or higher
+  require_role(req, res, "Curator")
+
   user_id_role <- as.integer(user_id)
   role_assigned <- as.character(role_assigned)
 
-  if (length(user) == 0) {
-    res$status <- 401
-    return(list(error = "Please authenticate."))
-  } else if (req$user_role %in% c("Administrator")) {
+  if (req$user_role == "Administrator") {
     # Admin can assign any role
     user_update(user_id_role, list(user_role = role_assigned))
-
-  } else if (
-    req$user_role %in% c("Curator") &&
-    role_assigned %in% c("Curator", "Reviewer", "Viewer")
-  ) {
+  } else if (role_assigned %in% c("Curator", "Reviewer", "Viewer")) {
     # Curator can assign non-Administrator roles
     user_update(user_id_role, list(user_role = role_assigned))
-  } else if (
-    req$user_role %in% c("Curator") && 
-    role_assigned %in% c("Administrator")
-  ) {
-    res$status <- 403
-    return(list(error = "Insufficient rights."))
   } else {
     res$status <- 403
-    return(list(error = "Write access forbidden."))
+    return(list(error = "Insufficient rights. Curators cannot assign Administrator role."))
   }
 }
 
@@ -250,23 +218,19 @@ function(req, res, user_id, role_assigned = "Viewer") {
 #* @tag user
 #* @get role_list
 function(req, res) {
-  user <- req$user_id
+  # Require Curator role or higher
+  require_role(req, res, "Curator")
 
-  if (length(user) == 0) {
-    res$status <- 401
-    return(list(error = "Please authenticate."))
-  } else if (req$user_role %in% c("Administrator")) {
+  if (req$user_role == "Administrator") {
     role_list <- tibble::as_tibble(user_status_allowed) %>%
       select(role = value)
     role_list
-  } else if (req$user_role %in% c("Curator")) {
+  } else {
+    # Curator sees all except Administrator
     role_list <- tibble::as_tibble(user_status_allowed) %>%
       select(role = value) %>%
       filter(role != "Administrator")
     role_list
-  } else {
-    res$status <- 403
-    return(list(error = "Read access forbidden."))
   }
 }
 
@@ -274,12 +238,14 @@ function(req, res) {
 #* Retrieves a list of users based on their roles.
 #*
 #* # `Details`
-#* Admin/Curator can filter users by roles. 
+#* Admin/Curator can filter users by roles.
 #*
 #* @tag user
 #* @get list
 function(req, res, roles = "Viewer") {
-  user <- req$user_id
+  # Require Curator role or higher
+  require_role(req, res, "Curator")
+
   roles_list <- str_trim(str_split(str_squish(roles), ",")[[1]])
   roles_allowed_check <- all(roles_list %in% user_status_allowed)
 
@@ -295,21 +261,13 @@ function(req, res, roles = "Viewer") {
     return(res)
   }
 
-  if (length(user) == 0) {
-    res$status <- 401
-    return(list(error = "Please authenticate."))
-  } else if (req$user_role %in% c("Administrator", "Curator")) {
-    user_table_roles <- pool %>%
-      tbl("user") %>%
-      filter(approved == 1) %>%
-      filter(user_role %in% roles_list) %>%
-      select(user_id, user_name, user_role) %>%
-      collect()
-    user_table_roles
-  } else {
-    res$status <- 403
-    return(list(error = "Read access forbidden."))
-  }
+  user_table_roles <- pool %>%
+    tbl("user") %>%
+    filter(approved == 1) %>%
+    filter(user_role %in% roles_list) %>%
+    select(user_id, user_name, user_role) %>%
+    collect()
+  user_table_roles
 }
 
 
@@ -541,12 +499,10 @@ function(req, res, new_pass_1 = "", new_pass_2 = "") {
 #* @serializer json list(na="string")
 #* @delete delete
 function(req, res, user_id) {
-  user_id <- as.integer(user_id)
+  # Require Administrator role
+  require_role(req, res, "Administrator")
 
-  if (req$user_role != "Administrator") {
-    res$status <- 403
-    return(list(error = "Administrative privileges required for this action."))
-  }
+  user_id <- as.integer(user_id)
 
   if (!is.numeric(user_id) || user_id <= 0) {
     res$status <- 400
@@ -587,17 +543,15 @@ function(req, res, user_id) {
 #*
 #* # `Details`
 #* Admin can modify user attributes. If approved, checks for existing password
-#* else generates one and sends email. 
+#* else generates one and sends email.
 #*
 #* @tag user
 #* @serializer json list(na="string")
 #* @accept json
 #* @put update
 function(req, res) {
-  if (req$user_role != "Administrator") {
-    res$status <- 403
-    return(list(error = "Administrative privileges required for this action."))
-  }
+  # Require Administrator role
+  require_role(req, res, "Administrator")
 
   user_details <- req$argsBody$user_details
 
