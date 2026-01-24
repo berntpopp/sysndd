@@ -1007,3 +1007,87 @@ nest_pubtator_gene_tibble <- function(df) {
     ) %>%
     dplyr::ungroup()
 }
+
+
+#' Calculate and post a hash for a series of column values
+#'
+#' This function calculates and posts a hash for a series of column values
+#' given as a JSON input. The column names in the JSON input can be
+#' controlled with the 'allowed_columns' parameter. The resulting hash is
+#' stored in the 'table_hash' table in the database.
+#'
+#' @param json_data JSON input containing the data to hash
+#' @param allowed_columns comma-separated list of column names to allow
+#' in the JSON input, defaults to "symbol,hgnc_id,entity_id"
+#' @param endpoint endpoint to hash, defaults to "/api/gene"
+#'
+#' @return A list object with the following components:
+#' \item{links}{a tibble with a link to the stored hash in the format
+#' "equals(hash, hash_value)"}
+#' \item{status}{HTTP status code}
+#' \item{message}{message related to the request status}
+#' \item{data}{the resulting hash value}
+#'
+#' @export
+#' @seealso generate_json_hash()
+post_db_hash <- function(json_data,
+    allowed_columns = "symbol,hgnc_id,entity_id",
+    endpoint = "/api/gene") {
+
+    # generate list of allowed term from input
+    allowed_col_list <- (allowed_columns %>%
+        str_split(pattern = ","))[[1]]
+
+    ##-------------------------------------------------------------------##
+    # block to convert the json list into tibble
+    # then sort it
+    # check if the column name is in the allowed identifier list
+    # then convert back to JSON and hash it
+    # '!!!' in arrange needed to evaluate the external variable as column name
+    json_tibble <- as_tibble(json_data)
+    json_tibble <- json_tibble %>%
+        arrange(!!!rlang::parse_exprs((json_tibble %>% colnames())[1]))
+
+    # validate columns using hash repository
+    hash_validate_columns(colnames(json_tibble), allowed_col_list)
+
+    json_sort <- toJSON(json_tibble)
+    ##-------------------------------------------------------------------##
+
+
+    ##-------------------------------------------------------------------##
+    # block to generate hash and check if present in data
+    json_sort_hash <- as.character(generate_json_hash(json_sort))
+
+    # check if hash exists using repository
+    hash_already_exists <- hash_exists(json_sort_hash)
+    ##-------------------------------------------------------------------##
+
+    if (!hash_already_exists) {
+      # use hash repository to create hash
+      hash_create(json_sort_hash, as.character(json_sort), endpoint)
+
+      # generate links object
+      links <- as_tibble(list("hash" =
+        paste0("equals(hash,", json_sort_hash, ")")))
+
+      # generate object to return
+      return(list(links = links,
+        status = 200,
+        message = "OK. Hash created.",
+        data = json_sort_hash))
+
+    } else {
+
+      # generate links object
+      links <- as_tibble(list("hash" =
+        paste0("equals(hash,", json_sort_hash, ")")))
+
+      # generate object to return
+      return(list(links = links,
+        status = 200,
+        message = "OK. Hash already present.",
+        data = json_sort_hash))
+
+    }
+}
