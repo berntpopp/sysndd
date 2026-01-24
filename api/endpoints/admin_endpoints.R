@@ -7,6 +7,8 @@
 # Be sure to source any required helper files at the top (e.g.,
 # source("functions/database-functions.R", local = TRUE)) if needed.
 
+source("functions/db-helpers.R", local = TRUE)
+
 ## -------------------------------------------------------------------##
 ## Administration section
 ## -------------------------------------------------------------------##
@@ -139,17 +141,34 @@ function(req, res) {
   # Use transaction for atomic ontology update
   tryCatch({
     db_with_transaction({
-      # Get connection from transaction context
-      conn <- poolCheckout(pool)
-      on.exit(poolReturn(conn), add = TRUE)
+      db_execute_statement("SET FOREIGN_KEY_CHECKS = 0")
+      db_execute_statement("TRUNCATE TABLE disease_ontology_set")
 
-      dbExecute(conn, "SET FOREIGN_KEY_CHECKS = 0;")
-      dbExecute(conn, "TRUNCATE TABLE disease_ontology_set;")
-      dbAppendTable(conn, "disease_ontology_set", disease_ontology_set_update)
+      # Insert disease_ontology_set rows using dynamic column names
+      if (nrow(disease_ontology_set_update) > 0) {
+        cols <- names(disease_ontology_set_update)
+        placeholders <- paste(rep("?", length(cols)), collapse = ", ")
+        sql <- sprintf("INSERT INTO disease_ontology_set (%s) VALUES (%s)",
+                       paste(cols, collapse = ", "), placeholders)
+        for (i in seq_len(nrow(disease_ontology_set_update))) {
+          db_execute_statement(sql, as.list(disease_ontology_set_update[i, ]))
+        }
+      }
 
-      dbExecute(conn, "TRUNCATE TABLE ndd_entity;")
-      dbAppendTable(conn, "ndd_entity", ndd_entity_mutated)
-      dbExecute(conn, "SET FOREIGN_KEY_CHECKS = 1;")
+      db_execute_statement("TRUNCATE TABLE ndd_entity")
+
+      # Insert ndd_entity rows using dynamic column names
+      if (nrow(ndd_entity_mutated) > 0) {
+        cols <- names(ndd_entity_mutated)
+        placeholders <- paste(rep("?", length(cols)), collapse = ", ")
+        sql <- sprintf("INSERT INTO ndd_entity (%s) VALUES (%s)",
+                       paste(cols, collapse = ", "), placeholders)
+        for (i in seq_len(nrow(ndd_entity_mutated))) {
+          db_execute_statement(sql, as.list(ndd_entity_mutated[i, ]))
+        }
+      }
+
+      db_execute_statement("SET FOREIGN_KEY_CHECKS = 1")
     })
 
     # Return success
@@ -200,14 +219,21 @@ function(req, res) {
   tryCatch(
     {
       db_with_transaction({
-        # Get connection from transaction context
-        conn <- poolCheckout(pool)
-        on.exit(poolReturn(conn), add = TRUE)
+        db_execute_statement("SET FOREIGN_KEY_CHECKS = 0")
+        db_execute_statement("TRUNCATE TABLE non_alt_loci_set")
 
-        dbExecute(conn, "SET FOREIGN_KEY_CHECKS = 0;")
-        dbExecute(conn, "TRUNCATE TABLE non_alt_loci_set;")
-        dbWriteTable(conn, "non_alt_loci_set", hgnc_data, append = TRUE)
-        dbExecute(conn, "SET FOREIGN_KEY_CHECKS = 1;")
+        # Insert hgnc_data rows using dynamic column names
+        if (nrow(hgnc_data) > 0) {
+          cols <- names(hgnc_data)
+          placeholders <- paste(rep("?", length(cols)), collapse = ", ")
+          sql <- sprintf("INSERT INTO non_alt_loci_set (%s) VALUES (%s)",
+                         paste(cols, collapse = ", "), placeholders)
+          for (i in seq_len(nrow(hgnc_data))) {
+            db_execute_statement(sql, as.list(hgnc_data[i, ]))
+          }
+        }
+
+        db_execute_statement("SET FOREIGN_KEY_CHECKS = 1")
       })
 
       list(status = "Success", message = "HGNC data update process completed.")
