@@ -7,14 +7,7 @@
           col
           md="12"
         >
-          <div>
-            <BTab
-              title="Functional clusters"
-              active
-            >
-              <AnalyseGeneClusters />
-            </BTab>
-          </div>
+          <AnalyseGeneClusters />
         </BCol>
       </BRow>
     </BContainer>
