@@ -144,6 +144,9 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 22-04 | Service layer accepts pool despite repositories using global pool | Dependency injection pattern for future testability - even though current repositories access global pool, services structured for future refactoring |
 | 2026-01-24 | 22-04 | Support batch approval via "all" parameter | Matches existing database-functions.R behavior - enables admin workflows to approve all pending reviews/statuses at once |
 | 2026-01-24 | 22-04 | Maintain quote escaping at service layer | Repository also escapes quotes - duplication exists for backward compatibility with database-functions.R during migration |
+| 2026-01-24 | 22-06 | Keep password/update complex self-vs-admin logic inline | Complex self-vs-admin authorization doesn't fit cleanly into require_role pattern - deferred to later service layer refactoring |
+| 2026-01-24 | 22-06 | Maintain backward compatibility in auth endpoints | auth service returns structured response, but existing endpoints return plain JWT string - extract access_token for compatibility |
+| 2026-01-24 | 22-06 | Use require_role for simple checks, keep == checks for differentiation | require_role enforces minimum role, explicit == checks needed for differentiated behavior (e.g., Admin sees all, Curator sees subset) |
 | 2026-01-24 | 22-07 | Remove inline authorization from endpoints | Middleware provides consistent authorization, eliminates duplicated role checks |
 | 2026-01-24 | 22-07 | Delegate approval operations to service layer | Service layer provides batch operation support and consistent business logic |
 
@@ -164,9 +167,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 22-07b-PLAN.md (admin & specialized endpoint middleware migration)
+**Stopped at:** Completed 22-06-PLAN.md (user/admin/auth endpoint middleware migration)
 **Resume file:** None
-**Next action:** Continue Phase 22 - plan 22-08 remaining (final endpoint migrations)
+**Next action:** Continue Phase 22 - plans 22-07 through 22-10 remaining
 
 ---
-*Last updated: 2026-01-24 - Completed 22-07b (admin & specialized endpoint middleware migration)*
+*Last updated: 2026-01-24 - Completed 22-06 (user/admin/auth endpoint middleware migration)*
