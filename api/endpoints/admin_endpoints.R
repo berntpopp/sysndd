@@ -458,5 +458,103 @@ function() {
 }
 
 
+#* Get entities using deprecated OMIM IDs
+#*
+#* Returns entities that reference OMIM IDs marked as "moved/removed" in the
+#* latest mim2gene.txt file. These entities should be reviewed by curators
+#* to update their disease ontology references.
+#*
+#* # `Authorization`
+#* Restricted to Administrator role.
+#*
+#* # `Return`
+#* Returns a list with:
+#* - deprecated_count: Number of deprecated MIM numbers found
+#* - affected_entities: Array of entities using deprecated OMIM IDs
+#* - mim2gene_date: Date of the mim2gene.txt file used
+#*
+#* @tag admin
+#* @serializer json list(na="string")
+#* @get deprecated_entities
+function(req, res) {
+  # Require Administrator role
+  require_role(req, res, "Administrator")
+
+  data_dir <- "data/"
+
+  # Find the latest mim2gene file
+  mim2gene_files <- list.files(data_dir, pattern = "^mim2gene\\..*\\.txt$", full.names = TRUE)
+
+  if (length(mim2gene_files) == 0) {
+    return(list(
+      deprecated_count = 0,
+      affected_entities = list(),
+      mim2gene_date = NA,
+      message = "No mim2gene.txt file found. Run ontology update first."
+    ))
+  }
+
+  # Get the newest file
+  file_info <- file.info(mim2gene_files)
+  latest_file <- mim2gene_files[which.max(file_info$mtime)]
+
+  # Extract date from filename
+  mim2gene_date <- regmatches(basename(latest_file), regexpr("\\d{4}-\\d{2}-\\d{2}", basename(latest_file)))
+  if (length(mim2gene_date) == 0) mim2gene_date <- NA
+
+  # Parse mim2gene with moved/removed entries
+  tryCatch({
+    mim2gene_data <- parse_mim2gene(latest_file, include_moved_removed = TRUE)
+
+    # Get deprecated MIM numbers
+    deprecated_mims <- get_deprecated_mim_numbers(mim2gene_data)
+
+    if (length(deprecated_mims) == 0) {
+      return(list(
+        deprecated_count = 0,
+        affected_entities = list(),
+        mim2gene_date = mim2gene_date,
+        message = "No deprecated MIM numbers found."
+      ))
+    }
+
+    # Check entities for deprecation
+    affected <- check_entities_for_deprecation(pool, deprecated_mims)
+
+    # If there are affected entities, convert to list for JSON serialization
+    if (nrow(affected) > 0) {
+      affected_list <- affected %>%
+        dplyr::select(
+          entity_id,
+          symbol,
+          hgnc_id,
+          disease_ontology_id,
+          disease_ontology_id_version,
+          disease_ontology_name,
+          category,
+          ndd_phenotype
+        ) %>%
+        as.list() %>%
+        purrr::transpose()
+    } else {
+      affected_list <- list()
+    }
+
+    list(
+      deprecated_count = length(deprecated_mims),
+      affected_entity_count = nrow(affected),
+      affected_entities = affected_list,
+      mim2gene_date = mim2gene_date
+    )
+  }, error = function(e) {
+    res$status <- 500
+    list(
+      error = "Failed to check deprecated entities",
+      details = e$message
+    )
+  })
+}
+
+
 ## Administration section
 ## -------------------------------------------------------------------##

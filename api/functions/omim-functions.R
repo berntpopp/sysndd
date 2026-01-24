@@ -440,15 +440,18 @@ check_entities_for_deprecation <- function(pool, deprecated_mim_numbers) {
   if (nrow(affected_entities) > 0) {
     entity_usage <- tbl(pool, "ndd_entity_view") |>
       filter(disease_ontology_id_version %in% !!affected_entities$disease_ontology_id_version) |>
-      select(
+      dplyr::select(
         entity_id,
         disease_ontology_id_version,
-        is_active
+        symbol,
+        hgnc_id,
+        category,
+        ndd_phenotype
       ) |>
       collect()
 
     # Combine information
-    result <- left_join(
+    result <- dplyr::left_join(
       entity_usage,
       affected_entities,
       by = "disease_ontology_id_version"
@@ -461,7 +464,10 @@ check_entities_for_deprecation <- function(pool, deprecated_mim_numbers) {
   return(tibble(
     entity_id = integer(),
     disease_ontology_id_version = character(),
-    is_active = logical(),
+    symbol = character(),
+    hgnc_id = character(),
+    category = character(),
+    ndd_phenotype = integer(),
     disease_ontology_id = character(),
     disease_ontology_name = character()
   ))

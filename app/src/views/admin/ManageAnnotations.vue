@@ -131,6 +131,127 @@
           </BCard>
         </BCol>
       </BRow>
+
+      <!-- Deprecated OMIM Entities Section -->
+      <BRow class="justify-content-md-center py-2">
+        <BCol
+          col
+          md="10"
+        >
+          <BCard
+            header-tag="header"
+            align="left"
+            body-class="p-2"
+            header-class="p-1"
+            border-variant="dark"
+            class="mb-3"
+          >
+            <template #header>
+              <h5 class="mb-0 text-start font-weight-bold d-flex align-items-center">
+                Deprecated OMIM Entities
+                <span
+                  v-if="deprecatedData.mim2gene_date"
+                  class="badge bg-secondary ms-2 fw-normal"
+                >
+                  mim2gene: {{ deprecatedData.mim2gene_date }}
+                </span>
+                <span
+                  v-if="deprecatedData.affected_entity_count > 0"
+                  class="badge bg-warning text-dark ms-2 fw-normal"
+                >
+                  {{ deprecatedData.affected_entity_count }} entities need review
+                </span>
+                <span
+                  v-else-if="!loadingDeprecated && deprecatedData.deprecated_count !== null"
+                  class="badge bg-success ms-2 fw-normal"
+                >
+                  No affected entities
+                </span>
+              </h5>
+            </template>
+
+            <div class="mb-3">
+              <BButton
+                variant="outline-secondary"
+                size="sm"
+                :disabled="loadingDeprecated"
+                @click="fetchDeprecatedEntities"
+              >
+                <BSpinner
+                  v-if="loadingDeprecated"
+                  small
+                  type="grow"
+                  class="me-1"
+                />
+                {{ loadingDeprecated ? 'Checking...' : 'Check for Deprecated Entities' }}
+              </BButton>
+              <small class="text-muted ms-2">
+                Compares database entities against OMIM moved/removed entries
+              </small>
+            </div>
+
+            <div v-if="deprecatedData.message && !deprecatedData.affected_entities?.length">
+              <BAlert
+                variant="info"
+                show
+              >
+                {{ deprecatedData.message }}
+              </BAlert>
+            </div>
+
+            <div v-if="deprecatedData.affected_entities?.length > 0">
+              <p class="text-muted small mb-2">
+                The following entities reference OMIM IDs that have been marked as moved/removed.
+                Click on an entity to review and update its disease ontology reference.
+              </p>
+              <BTable
+                :items="deprecatedData.affected_entities"
+                :fields="deprecatedTableFields"
+                striped
+                hover
+                small
+                responsive
+                class="mb-0"
+              >
+                <template #cell(entity_id)="data">
+                  <router-link
+                    :to="{ name: 'Entity', params: { entity_id: data.value } }"
+                    class="text-decoration-none"
+                  >
+                    <span class="badge bg-primary">sysndd:{{ data.value }}</span>
+                  </router-link>
+                </template>
+                <template #cell(symbol)="data">
+                  <router-link
+                    :to="{ name: 'Gene', params: { symbol: data.value } }"
+                    class="text-decoration-none fw-bold"
+                  >
+                    {{ data.value }}
+                  </router-link>
+                </template>
+                <template #cell(disease_ontology_id)="data">
+                  <a
+                    :href="`https://omim.org/entry/${data.value.replace('OMIM:', '')}`"
+                    target="_blank"
+                    class="text-danger text-decoration-none"
+                  >
+                    {{ data.value }}
+                    <small class="text-muted">(deprecated)</small>
+                  </a>
+                </template>
+                <template #cell(category)="data">
+                  <span
+                    class="badge"
+                    :class="categoryBadgeClass(data.value)"
+                  >
+                    {{ data.value }}
+                  </span>
+                </template>
+              </BTable>
+            </div>
+          </BCard>
+        </BCol>
+      </BRow>
     </BContainer>
   </div>
 </template>
@@ -167,6 +288,22 @@ export default {
         mondo_update: null,
         disease_ontology_update: null,
       },
+      // Deprecated entities data
+      loadingDeprecated: false,
+      deprecatedData: {
+        deprecated_count: null,
+        affected_entity_count: 0,
+        affected_entities: [],
+        mim2gene_date: null,
+        message: null,
+      },
+      deprecatedTableFields: [
+        { key: 'entity_id', label: 'Entity', sortable: true },
+        { key: 'symbol', label: 'Gene', sortable: true },
+        { key: 'disease_ontology_id', label: 'OMIM ID', sortable: true },
+        { key: 'disease_ontology_name', label: 'Disease Name', sortable: true },
+        { key: 'category', label: 'Category', sortable: true },
+      ],
     };
   },
   computed: {
@@ -247,6 +384,62 @@ export default {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return dateString;
       return date.toLocaleDateString();
+    },
+    categoryBadgeClass(category) {
+      const classes = {
+        Definitive: 'bg-success',
+        Moderate: 'bg-info',
+        Limited: 'bg-warning text-dark',
+        Refuted: 'bg-danger',
+      };
+      return classes[category] || 'bg-secondary';
+    },
+    // Helper to unwrap R/Plumber array values (scalars come as single-element arrays)
+    unwrapValue(val) {
+      return Array.isArray(val) && val.length === 1 ? val[0] : val;
+    },
+    async fetchDeprecatedEntities() {
+      this.loadingDeprecated = true;
+      try {
+        const response = await this.axios.get(
+          `${import.meta.env.VITE_API_URL}/api/admin/deprecated_entities`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          },
+        );
+        const data = response.data;
+        // Unwrap entity fields (R/Plumber returns scalars as single-element arrays)
+        const unwrappedEntities = (data.affected_entities || []).map((entity) => {
+          const unwrapped = {};
+          Object.keys(entity).forEach((key) => {
+            unwrapped[key] = this.unwrapValue(entity[key]);
+          });
+          return unwrapped;
+        });
+        this.deprecatedData = {
+          deprecated_count: this.unwrapValue(data.deprecated_count),
+          affected_entity_count: this.unwrapValue(data.affected_entity_count) || 0,
+          affected_entities: unwrappedEntities,
+          mim2gene_date: this.unwrapValue(data.mim2gene_date),
+          message: this.unwrapValue(data.message),
+        };
+        if (this.deprecatedData.affected_entity_count > 0) {
+          this.makeToast(
+            `Found ${this.deprecatedData.affected_entity_count} entities using deprecated OMIM IDs`,
+            'Review Needed',
+            'warning',
+          );
+        } else {
+          this.makeToast('No entities affected by deprecated OMIM IDs', 'Check Complete', 'success');
+        }
+      } catch (error) {
+        this.makeToast('Failed to check deprecated entities', 'Error', 'danger');
+        console.error('Failed to fetch deprecated entities:', error);
+      } finally {
+        this.loadingDeprecated = false;
+      }
     },
     async updateOntologyAnnotations() {
       this.loading = true;
