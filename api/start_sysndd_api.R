@@ -140,6 +140,9 @@ source("core/middleware.R", local = TRUE)
 
 # Service layer
 source("services/auth-service.R", local = TRUE)
+source("services/user-service.R", local = TRUE)
+source("services/status-service.R", local = TRUE)
+source("services/search-service.R", local = TRUE)
 source("services/entity-service.R", local = TRUE)
 
 ## -------------------------------------------------------------------##
