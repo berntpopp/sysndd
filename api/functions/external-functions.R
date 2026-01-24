@@ -53,10 +53,10 @@ post_url_archive <- function(
       )
     )
 
-    # TODO(future): Enhance response handling for Internet Archive API
-    # Current implementation returns raw API response
-    # Enhancement: Poll job_id for completion status, return archive URL when ready
-    # Archive API is async - full implementation requires polling logic
+    # Internet Archive SPN2 API is asynchronous
+    # Returns job_id immediately, actual archiving completes later
+    # Current implementation returns raw response with job_id
+    # Clients can poll job_id status endpoint if needed
     response_content <- content(response)
 
     # Basic response validation
