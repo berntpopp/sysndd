@@ -136,6 +136,10 @@ source("core/security.R", local = TRUE)
 source("core/errors.R", local = TRUE)
 source("core/responses.R", local = TRUE)
 source("core/logging_sanitizer.R", local = TRUE)
+source("core/middleware.R", local = TRUE)
+
+# Service layer
+source("services/auth-service.R", local = TRUE)
 
 ## -------------------------------------------------------------------##
 # 5) Load the API spec for OpenAPI (optional)
@@ -271,6 +275,8 @@ corsFilter <- function(req, res) {
 }
 
 #* @filter check_signin
+# DEPRECATED: Use require_auth filter instead.
+# This will be removed after Phase 22 endpoint migration.
 checkSignInFilter <- function(req, res) {
   key <- charToRaw(dw$secret)
 
@@ -453,7 +459,7 @@ root <- pr() %>%
   # Attach filters
   ####################################################################
   pr_filter("cors", corsFilter) %>%
-  pr_filter("check_signin", checkSignInFilter) %>%
+  pr_filter("require_auth", require_auth) %>%
   ####################################################################
   # Attach exit hook
   ####################################################################
