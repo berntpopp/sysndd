@@ -16,24 +16,37 @@
 ## Analyses endpoints
 ## -------------------------------------------------------------------##
 
-#* Retrieve Available Functional Clustering Categories
+#* Retrieve Functional Clustering Data with Pagination
 #*
-#* This endpoint fetches the available functional clustering categories
-#* for genes, linking them to their respective sources.
+#* This endpoint fetches functional clustering data for genes with NDD phenotype.
+#* Results are paginated to reduce response size and improve performance.
 #*
 #* # `Details`
-#* Retrieves functional clustering categories with source links.
+#* - Returns clusters sorted by cluster number for stable pagination
+#* - Use `page_after` cursor to fetch subsequent pages
+#* - Default page size is 10 clusters, maximum is 50
+#* - Categories are returned in full (small dataset, not paginated)
+#*
+#* # `Pagination`
+#* - First page: omit `page_after` or pass empty string
+#* - Next page: use `next_cursor` from previous response as `page_after`
+#* - Last page: `has_more` will be `false` and `next_cursor` will be `null`
 #*
 #* # `Return`
-#* Returns a list of functional clustering categories and their source links.
+#* Returns categories, paginated clusters, and pagination metadata.
 #*
 #* @tag analysis
 #* @serializer json list(na="string")
+#* @param page_after:str Cursor for pagination (hash_filter of last item, empty for first page)
+#* @param page_size:str Number of clusters per page (default "10", max "50")
 #*
-#* @response 200 OK. Returns functional clustering categories and source links.
+#* @response 200 OK. Returns object with:
+#*   - categories: Full list of enrichment categories with links
+#*   - clusters: Array of cluster objects (paginated)
+#*   - pagination: {page_size, page_after, next_cursor, total_count, has_more}
 #*
 #* @get functional_clustering
-function() {
+function(page_after = "", page_size = "10") {
   # Define link sources
   value <- c(
     "COMPARTMENTS",
@@ -75,6 +88,15 @@ function() {
 
   links <- tibble(value, link)
 
+  # NOTE: Backward compatibility
+  # - Clients not using pagination get first 10 clusters (was all clusters)
+  # - To get all clusters, iterate using next_cursor until has_more=false
+  # - Categories still returned in full (not paginated)
+
+  # Validate and parse pagination parameters
+  page_size_int <- min(max(as.integer(page_size), 1), 50)
+  page_after_clean <- if (is.null(page_after) || page_after == "") "" else page_after
+
   # Get data from database
   genes_from_entity_table <- pool %>%
     tbl("ndd_entity_view") %>%
@@ -103,10 +125,44 @@ function() {
     select(value = category, text) %>%
     left_join(links, by = c("value"))
 
-  # Generate the object to return
+  # Sort clusters deterministically for stable pagination
+  # (prevents duplicates/gaps across pages)
+  clusters_sorted <- functional_clusters %>%
+    arrange(cluster) %>%
+    mutate(row_num = row_number())
+
+  # Find cursor position
+  if (page_after_clean == "") {
+    start_idx <- 1
+  } else {
+    cursor_pos <- which(clusters_sorted$hash_filter == page_after_clean)
+    start_idx <- if (length(cursor_pos) > 0) cursor_pos[1] + 1 else 1
+  }
+
+  # Extract page slice
+  end_idx <- min(start_idx + page_size_int - 1, nrow(clusters_sorted))
+  clusters_page <- clusters_sorted %>%
+    slice(start_idx:end_idx) %>%
+    select(-row_num)  # Remove internal field
+
+  # Generate next cursor (hash_filter of last item in page)
+  next_cursor <- if (end_idx < nrow(clusters_sorted)) {
+    clusters_page %>% slice(n()) %>% pull(hash_filter)
+  } else {
+    NULL
+  }
+
+  # Generate the object to return with pagination metadata
   list(
     categories = categories,
-    clusters = functional_clusters
+    clusters = clusters_page,  # Paginated clusters (was functional_clusters)
+    pagination = list(
+      page_size = page_size_int,
+      page_after = page_after_clean,
+      next_cursor = next_cursor,
+      total_count = nrow(clusters_sorted),
+      has_more = !is.null(next_cursor)
+    )
   )
 }
 
