@@ -12,9 +12,9 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Milestone:** v4 Backend Overhaul
 **Phase:** 22 of 24 (Service Layer & Middleware)
-**Plan:** 6 of 9 complete
-**Status:** In progress - review and approval services complete
-**Last activity:** 2026-01-24 - Completed 22-04-PLAN.md (review and approval service layer)
+**Plan:** 7 of 9 complete
+**Status:** In progress - core data endpoints refactored
+**Last activity:** 2026-01-24 - Completed 22-07-PLAN.md (entity/review/status endpoint middleware migration)
 
 ```
 v4 Backend Overhaul: PHASE 22 IN PROGRESS
@@ -144,6 +144,8 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 22-04 | Service layer accepts pool despite repositories using global pool | Dependency injection pattern for future testability - even though current repositories access global pool, services structured for future refactoring |
 | 2026-01-24 | 22-04 | Support batch approval via "all" parameter | Matches existing database-functions.R behavior - enables admin workflows to approve all pending reviews/statuses at once |
 | 2026-01-24 | 22-04 | Maintain quote escaping at service layer | Repository also escapes quotes - duplication exists for backward compatibility with database-functions.R during migration |
+| 2026-01-24 | 22-07 | Remove inline authorization from endpoints | Middleware provides consistent authorization, eliminates duplicated role checks |
+| 2026-01-24 | 22-07 | Delegate approval operations to service layer | Service layer provides batch operation support and consistent business logic |
 
 ### Pending Todos
 
@@ -162,9 +164,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 22-04-PLAN.md (review and approval service layer)
+**Stopped at:** Completed 22-07-PLAN.md (core data endpoint refactoring)
 **Resume file:** None
-**Next action:** Continue Phase 22 - plans 22-05 through 22-09 remaining
+**Next action:** Continue Phase 22 - plans 22-08 and 22-09 remaining
 
 ---
-*Last updated: 2026-01-24 - Completed 22-04 (review and approval service layer with batch operation support)*
+*Last updated: 2026-01-24 - Completed 22-07 (entity/review/status endpoint middleware migration)*
