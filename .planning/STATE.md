@@ -12,9 +12,9 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Milestone:** v4 Backend Overhaul
 **Phase:** 21 of 24 (Repository Layer)
-**Plan:** 2 of 8 complete
+**Plan:** 6 of 8 complete
 **Status:** In progress
-**Last activity:** 2026-01-24 - Completed 21-02-PLAN.md (Entity and Review Repositories)
+**Last activity:** 2026-01-24 - Completed 21-06-PLAN.md (Database Functions Repository Migration)
 
 ```
 v4 Backend Overhaul: PHASE 21 IN PROGRESS
@@ -45,8 +45,8 @@ Progress: ██████████████░░░░░░░░░�
 - ~~Passwords visible in logs~~ Sanitized logging
 
 **High - Addressed in Phases 20-22:**
-- 17 `dbConnect` calls bypassing connection pool
-- Missing `on.exit(dbDisconnect(...))` cleanup
+- ~~17 `dbConnect` calls bypassing connection pool~~ RESOLVED - 19 calls eliminated in Phase 21-06
+- ~~Missing `on.exit(dbDisconnect(...))` cleanup~~ RESOLVED - Repository layer handles all connections
 - OMIM genemap2 no longer provides required fields
 
 **Medium - Addressed in Phases 22-24:**
@@ -110,6 +110,9 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 21-04 | Validate against allowed lists before database operations | Prevents invalid HPO/VARIO terms from being inserted |
 | 2026-01-24 | 21-04 | Enforce entity_id matching for review connections | Prevent changing entity association of existing reviews |
 | 2026-01-24 | 21-04 | Parallel domain structure for phenotype/ontology repositories | Same connection pattern for different term types reduces cognitive load |
+| 2026-01-24 | 21-06 | Keep existing function signatures unchanged for backward compatibility | Legacy API functions act as thin wrappers, endpoints can migrate gradually |
+| 2026-01-24 | 21-06 | Delegate validation to repositories | Centralized validation logic in repository layer |
+| 2026-01-24 | 21-06 | Maintain quote escaping in database-functions.R for synopsis fields | Escaping still needed at API layer before passing to repositories |
 
 ### Pending Todos
 
@@ -128,9 +131,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 21-02-PLAN.md (Entity and Review Repositories)
+**Stopped at:** Completed 21-06-PLAN.md (Database Functions Repository Migration)
 **Resume file:** None
 **Next action:** Continue Phase 21 repository layer implementation
 
 ---
-*Last updated: 2026-01-24 - Phase 21 plan 5 of 8 complete (user and hash repositories)*
+*Last updated: 2026-01-24 - Phase 21 plan 6 of 8 complete (database-functions.R refactored)*
