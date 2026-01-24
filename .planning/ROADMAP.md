@@ -154,10 +154,14 @@ Plans:
 5. Filter state persists in URL for bookmarkable/shareable analysis views
 6. Navigation tabs connect all analysis pages (Phenotype Clusters, Gene Networks, Correlation)
 
-**Plans:** TBD
+**Plans:** 5 plans
 
 Plans:
-- [ ] 27-01: [Plan details will be created during planning phase]
+- [ ] 27-01-PLAN.md — Core composables: useFilterSync, useWildcardSearch, useNetworkHighlight (NAVL-06)
+- [ ] 27-02-PLAN.md — Reusable filter components: CategoryFilter, ScoreSlider, TermSearch (FILT-06, FILT-07, FILT-08)
+- [ ] 27-03-PLAN.md — Navigation tabs + AnalysisView + router + bug fix (NAVL-01, NAVL-03, NAVL-04, NAVL-07)
+- [ ] 27-04-PLAN.md — Search highlighting + heatmap navigation + bidirectional hover (FILT-04, FILT-05, NAVL-02, NAVL-05)
+- [ ] 27-05-PLAN.md — UI polish: ColorLegend, enhanced tooltips, loading/error states (UIUX-01 through UIUX-05)
 
 ## Progress
 
@@ -168,8 +172,8 @@ Phases execute in numeric order: 25 → 26 → 27
 |-------|----------------|--------|-----------|
 | 25. Performance Optimization | 3/3 | ✓ Complete | 2026-01-25 |
 | 26. Network Visualization | 0/3 | Ready for execution | - |
-| 27. Advanced Features & Filters | 0/TBD | Not started | - |
+| 27. Advanced Features & Filters | 0/5 | Planned | - |
 
 ---
 *Roadmap created: 2026-01-24*
-*Last updated: 2026-01-25 — Phase 26 planned (3 plans in 2 waves)*
+*Last updated: 2026-01-25 — Phase 27 planned (5 plans in 3 waves)*
