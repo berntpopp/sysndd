@@ -69,9 +69,9 @@ download_mondo_sssom <- function(output_path = "data/mondo_mappings/",
 
   tryCatch(
     {
-      response <- httr2::request(sssom_url) |>
-        httr2::req_retry(max_tries = 3, backoff = ~2) |>
-        httr2::req_error(is_error = ~FALSE) |>
+      response <- httr2::request(sssom_url) %>%
+        httr2::req_retry(max_tries = 3, backoff = ~2) %>%
+        httr2::req_error(is_error = ~FALSE) %>%
         httr2::req_perform()
 
       if (httr2::resp_status(response) == 200) {
@@ -145,12 +145,12 @@ parse_mondo_sssom <- function(file_path) {
   }
 
   # Filter for MONDO-to-OMIM mappings
-  mondo_omim_mappings <- sssom_data |>
+  mondo_omim_mappings <- sssom_data %>%
     dplyr::filter(
       stringr::str_detect(subject_id, "^MONDO:"),
       stringr::str_detect(object_id, "^OMIM:")
-    ) |>
-    dplyr::select(mondo_id = subject_id, omim_id = object_id) |>
+    ) %>%
+    dplyr::select(mondo_id = subject_id, omim_id = object_id) %>%
     dplyr::distinct()
 
   return(mondo_omim_mappings)
@@ -183,8 +183,8 @@ get_mondo_for_omim <- function(omim_id, mondo_mappings) {
     return(NA_character_)
   }
 
-  matching_mondos <- mondo_mappings |>
-    dplyr::filter(omim_id == !!omim_id) |>
+  matching_mondos <- mondo_mappings %>%
+    dplyr::filter(omim_id == !!omim_id) %>%
     dplyr::pull(mondo_id)
 
   if (length(matching_mondos) == 0) {
@@ -248,7 +248,7 @@ add_mondo_mappings_to_ontology <- function(disease_ontology_set, mondo_mappings)
   # Add MONDO equivalent column
   # For mim2gene entries, look up MONDO mapping using disease_ontology_id
   # For other sources (e.g., mondo), set to NA
-  enriched_set <- disease_ontology_set |>
+  enriched_set <- disease_ontology_set %>%
     dplyr::mutate(
       mondo_equivalent = purrr::map_chr(
         seq_len(dplyr::n()),

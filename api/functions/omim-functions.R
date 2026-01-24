@@ -52,13 +52,13 @@ download_mim2gene <- function(output_path = "data/", force = FALSE, max_age_mont
     dir_create(output_path)
   }
 
-  response <- request(url) |>
+  response <- request(url) %>%
     req_retry(
       max_tries = 3,
       max_seconds = 60,
       backoff = ~ 2^.x
-    ) |>
-    req_timeout(30) |>
+    ) %>%
+    req_timeout(30) %>%
     req_perform()
 
   if (resp_status(response) != 200) {
@@ -127,9 +127,9 @@ parse_mim2gene <- function(file_path, include_moved_removed = TRUE) {
     entry_types_to_include <- c(entry_types_to_include, "moved/removed")
   }
 
-  result <- mim_data |>
-    filter(mim_entry_type %in% entry_types_to_include) |>
-    mutate(is_deprecated = mim_entry_type == "moved/removed") |>
+  result <- mim_data %>%
+    filter(mim_entry_type %in% entry_types_to_include) %>%
+    mutate(is_deprecated = mim_entry_type == "moved/removed") %>%
     select(mim_number, mim_entry_type, gene_symbol, is_deprecated)
 
   return(result)
@@ -165,15 +165,15 @@ fetch_jax_disease_name <- function(mim_number) {
 
   tryCatch(
     {
-      response <- request(url) |>
+      response <- request(url) %>%
         req_retry(
           max_tries = 5,
           max_seconds = 120,
           backoff = ~ 2^.x,
           is_transient = ~ resp_status(.x) %in% c(429, 503, 504)
-        ) |>
-        req_timeout(30) |>
-        req_error(is_error = ~FALSE) |>
+        ) %>%
+        req_timeout(30) %>%
+        req_error(is_error = ~FALSE) %>%
         req_perform()
 
       # Handle 404 - not found in JAX database (expected for ~18% of entries)
@@ -299,8 +299,8 @@ validate_omim_data <- function(omim_data) {
   errors <- list()
 
   # Check for missing disease_ontology_id
-  missing_id <- omim_data |>
-    filter(is.na(disease_ontology_id)) |>
+  missing_id <- omim_data %>%
+    filter(is.na(disease_ontology_id)) %>%
     nrow()
 
   if (missing_id > 0) {
@@ -311,13 +311,13 @@ validate_omim_data <- function(omim_data) {
   }
 
   # Check for missing disease_ontology_name
-  missing_name_data <- omim_data |>
+  missing_name_data <- omim_data %>%
     filter(is.na(disease_ontology_name))
   missing_name <- nrow(missing_name_data)
 
   if (missing_name > 0) {
-    mim_numbers <- missing_name_data$disease_ontology_id |>
-      head(10) |>
+    mim_numbers <- missing_name_data$disease_ontology_id %>%
+      head(10) %>%
       paste(collapse = ", ")
     errors$missing_disease_ontology_name <- sprintf(
       "%d entries missing disease_ontology_name (e.g., %s%s)",
@@ -333,13 +333,13 @@ validate_omim_data <- function(omim_data) {
 
   # Check for duplicate disease_ontology_id_version
   if ("disease_ontology_id_version" %in% names(omim_data)) {
-    duplicates <- omim_data |>
-      count(disease_ontology_id_version) |>
+    duplicates <- omim_data %>%
+      count(disease_ontology_id_version) %>%
       filter(n > 1)
 
     if (nrow(duplicates) > 0) {
-      dup_ids <- duplicates$disease_ontology_id_version |>
-        head(10) |>
+      dup_ids <- duplicates$disease_ontology_id_version %>%
+        head(10) %>%
         paste(collapse = ", ")
       errors$duplicate_id_version <- sprintf(
         "%d duplicate disease_ontology_id_version values (e.g., %s%s)",
@@ -391,8 +391,8 @@ validate_omim_data <- function(omim_data) {
 #'
 #' @export
 get_deprecated_mim_numbers <- function(mim2gene_data) {
-  deprecated <- mim2gene_data |>
-    filter(mim_entry_type == "moved/removed") |>
+  deprecated <- mim2gene_data %>%
+    filter(mim_entry_type == "moved/removed") %>%
     pull(mim_number)
 
   return(deprecated)
@@ -430,19 +430,19 @@ check_entities_for_deprecation <- function(pool, deprecated_mim_numbers) {
 
   # Query for affected entities
   # Join disease_ontology_set with ndd_entity to find affected entities
-  affected_entities <- tbl(pool, "disease_ontology_set") |>
-    filter(disease_ontology_id %in% !!deprecated_omim_ids) |>
+  affected_entities <- tbl(pool, "disease_ontology_set") %>%
+    filter(disease_ontology_id %in% !!deprecated_omim_ids) %>%
     select(
       disease_ontology_id_version,
       disease_ontology_id,
       disease_ontology_name
-    ) |>
+    ) %>%
     collect()
 
   # If there are affected entries, join with entity view to get entity IDs
   if (nrow(affected_entities) > 0) {
-    entity_usage <- tbl(pool, "ndd_entity_view") |>
-      filter(disease_ontology_id_version %in% !!affected_entities$disease_ontology_id_version) |>
+    entity_usage <- tbl(pool, "ndd_entity_view") %>%
+      filter(disease_ontology_id_version %in% !!affected_entities$disease_ontology_id_version) %>%
       dplyr::select(
         entity_id,
         disease_ontology_id_version,
@@ -450,7 +450,7 @@ check_entities_for_deprecation <- function(pool, deprecated_mim_numbers) {
         hgnc_id,
         category,
         ndd_phenotype
-      ) |>
+      ) %>%
       collect()
 
     # Combine information
@@ -518,49 +518,49 @@ build_omim_ontology_set <- function(mim2gene_data, disease_names, hgnc_list, moi
   current_date <- format(Sys.Date(), "%Y-%m-%d")
 
   # Filter out deprecated entries - they shouldn't be added to ontology set
-  phenotype_data <- mim2gene_data |>
+  phenotype_data <- mim2gene_data %>%
     filter(!is_deprecated)
 
   # Join with disease names
-  combined <- phenotype_data |>
+  combined <- phenotype_data %>%
     left_join(disease_names, by = "mim_number")
 
   # Match gene symbols to HGNC IDs
   # Note: mim2gene phenotype entries often have NA gene_symbol
-  combined <- combined |>
+  combined <- combined %>%
     left_join(
-      hgnc_list |> select(symbol, hgnc_id),
+      hgnc_list %>% select(symbol, hgnc_id),
       by = c("gene_symbol" = "symbol")
     )
 
   # Create disease_ontology_id
-  combined <- combined |>
+  combined <- combined %>%
     mutate(disease_ontology_id = paste0("OMIM:", mim_number))
 
   # Apply versioning for duplicate MIM numbers (same MIM with different genes/MOI)
   # First, arrange to ensure consistent ordering
-  combined <- combined |>
+  combined <- combined %>%
     arrange(disease_ontology_id, hgnc_id)
 
   # Add version numbers
-  combined <- combined |>
-    group_by(disease_ontology_id) |>
+  combined <- combined %>%
+    group_by(disease_ontology_id) %>%
     mutate(
       n = 1,
       count = n(),
       version = cumsum(n)
-    ) |>
-    ungroup() |>
+    ) %>%
+    ungroup() %>%
     mutate(
       disease_ontology_id_version = case_when(
         count == 1 ~ disease_ontology_id,
         TRUE ~ paste0(disease_ontology_id, "_", version)
       )
-    ) |>
+    ) %>%
     select(-n, -count, -version)
 
   # Add remaining columns
-  result <- combined |>
+  result <- combined %>%
     mutate(
       disease_ontology_name = disease_name,
       disease_ontology_source = "mim2gene",
@@ -569,7 +569,7 @@ build_omim_ontology_set <- function(mim2gene_data, disease_names, hgnc_list, moi
       # hpo_mode_of_inheritance_term is NA for mim2gene
       # (mim2gene.txt doesn't include MOI information)
       hpo_mode_of_inheritance_term = NA_character_
-    ) |>
+    ) %>%
     select(
       disease_ontology_id_version,
       disease_ontology_id,

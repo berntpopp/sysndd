@@ -43,14 +43,14 @@ ols_request <- function(endpoint, query_params = list()) {
 
   tryCatch(
     {
-      response <- request(url) |>
-        req_url_query(!!!query_params) |>
+      response <- request(url) %>%
+        req_url_query(!!!query_params) %>%
         req_retry(
           max_tries = OLS4_MAX_RETRIES,
           backoff = ~ 2^.x
-        ) |>
-        req_timeout(OLS4_TIMEOUT_SECONDS) |>
-        req_error(is_error = ~FALSE) |>
+        ) %>%
+        req_timeout(OLS4_TIMEOUT_SECONDS) %>%
+        req_error(is_error = ~FALSE) %>%
         req_perform()
 
       status <- resp_status(response)

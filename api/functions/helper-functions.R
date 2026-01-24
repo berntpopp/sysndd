@@ -351,7 +351,7 @@ generate_filter_expressions <- function(
   # string immediately, indicating no filtering should be applied. This
   # handles cases where users input "null" as a literal string, which is
   # not valid for generating filter expressions.
-  if (filter_string == "" | filter_string == "null") {
+  if (filter_string == "" || filter_string == "null") {
     return("")
   }
 

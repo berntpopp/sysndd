@@ -1,0 +1,240 @@
+endpoints/entity_endpoints.R:51:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 128 characters.
+         fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details",
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~
+endpoints/entity_endpoints.R:389:4: style: [indentation_linter] Indentation should be 8 spaces but is 4 spaces.
+    response_review_post$status == 200 &&
+   ^~~~~
+endpoints/panels_endpoints.R:81:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 136 characters.
+         filter = "equals(category,'Definitive'),any(inheritance_filter,'Autosomal dominant','Autosomal recessive','X-linked','Other')",
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~
+endpoints/phenotype_endpoints.R:41:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 128 characters.
+         fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details",
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~
+endpoints/publication_endpoints.R:102:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 234 characters.
+  query <- '("intellectual disability" OR "mental retardation" OR "autism" OR "epilepsy" OR "neurodevelopmental disorder" OR "neurodevelopmental disease" OR "epileptic encephalopathy") AND (gene OR syndrome) AND (variant OR mutation)'
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+endpoints/publication_endpoints.R:433:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 123 characters.
+         fspec = "gene_name,gene_symbol,gene_normalized_id,hgnc_id,publication_count,entities_count,publications,entities",
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~
+endpoints/publication_endpoints.R:463:8: style: [indentation_linter] Indentation should be 43 spaces but is 8 spaces.
+        dplyr::filter(.x, !is.na(pmid)) %>% nrow()),
+       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+endpoints/publication_endpoints.R:465:8: style: [indentation_linter] Indentation should be 40 spaces but is 8 spaces.
+        dplyr::filter(.x, !is.na(entity_id)) %>% nrow())
+       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+endpoints/review_endpoints.R:204:4: style: [indentation_linter] Indentation should be 8 spaces but is 4 spaces.
+    !is.null(review_data$entity_id) &&
+   ^~~~~
+endpoints/search_endpoints.R:77:4: style: [indentation_linter] Indentation should be 8 spaces but is 4 spaces.
+    is.na(suppressWarnings(as.integer(sysndd_db_entity_search$results[1])))) {
+   ^~~~~
+endpoints/statistics_endpoints.R:72:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 150 characters.
+#* @param filter    Filters to apply, e.g. "contains(ndd_phenotype_word,Yes),any(inheritance_filter,Autosomal dominant,Autosomal recessive,X-linked)".
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+endpoints/statistics_endpoints.R:78:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 127 characters.
+         filter = "contains(ndd_phenotype_word,Yes),any(inheritance_filter,Autosomal dominant,Autosomal recessive,X-linked)") {
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
+endpoints/statistics_endpoints.R:83:4: style: [indentation_linter] Indentation should be 8 spaces but is 4 spaces.
+    !(group %in% c("category", "inheritance_filter", "inheritance_multiple"))) {
+   ^~~~~
+endpoints/statistics_endpoints.R:331:6: style: [indentation_linter] Indentation should be 20 spaces but is 6 spaces.
+      latest_review_date <= as.Date(end_date))
+     ^~~~~~~~~~~~~~~
+endpoints/statistics_endpoints.R:369:6: style: [indentation_linter] Indentation should be 20 spaces but is 6 spaces.
+      latest_status_date <= as.Date(end_date))
+     ^~~~~~~~~~~~~~~
+endpoints/user_endpoints.R:363:8: style: [indentation_linter] Indentation should be 9 spaces but is 8 spaces.
+        !new_pass_match_and_valid)
+       ^~
+endpoints/variant_endpoints.R:41:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 148 characters.
+         fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,modifier_variant_id,details",
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+endpoints/variant_endpoints.R:155:6: style: [indentation_linter] Indentation should be 16 spaces but is 6 spaces.
+      rename(y = x, y_vario_id = x_id), by = "y") %>%
+     ^~~~~~~~~~~
+functions/analyses-functions.R:90:16: style: [indentation_linter] Indentation should be 21 spaces but is 16 spaces.
+                mutate(term = str_replace(term, "GOCC", "GO")))
+               ^~~~~~
+functions/analyses-functions.R:181:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 166 characters.
+    # - http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/117-hcpc-hierarchical-clustering-on-principal-components-essentials/
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+functions/analyses-functions.R:210:10: style: [indentation_linter] Indentation should be 23 spaces but is 10 spaces.
+          purrr::pluck("entity_id"), "entity_id", "/api/entity")
+         ^~~~~~~~~~~~~~
+functions/config-functions.R:29:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 133 characters.
+      if (is.null(api_spec_json[[path]][[method]]$requestBody$content$`application/json`$schema$properties$create_json$example)) next
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~
+functions/config-functions.R:30:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 223 characters.
+      spec$paths[[path]][[method]]$requestBody$content$`application/json`$schema$properties$create_json$example <- api_spec_json[[path]][[method]]$requestBody$content$`application/json`$schema$properties$create_json$example
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+functions/endpoint-functions.R:330:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 129 characters.
+  filter = "equals(category,'Definitive'),any(inheritance_filter,'Autosomal dominant','Autosomal recessive','X-linked','Other')",
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~
+functions/endpoint-functions.R:755:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 184 characters.
+                                           fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,modifier_variant_id,details") {
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+functions/ensembl-functions.R:45:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 161 characters.
+    summarise(hgnc_symbol = max(hgnc_symbol), chromosome_name = max(chromosome_name), start_position = max(start_position), end_position = max(end_position)) %>%
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+functions/ensembl-functions.R:97:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 169 characters.
+    summarise(ensembl_gene_id = max(ensembl_gene_id), chromosome_name = max(chromosome_name), start_position = max(start_position), end_position = max(end_position)) %>%
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+functions/entity-repository.R:30:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 197 characters.
+  sql <- "SELECT entity_id, hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, ndd_phenotype, is_active, replaced_by, entry_date, entry_user_id FROM ndd_entity WHERE entity_id = ?"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+functions/entity-repository.R:88:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 155 characters.
+  sql <- "INSERT INTO ndd_entity (hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, ndd_phenotype, entry_user_id) VALUES (?, ?, ?, ?, ?)"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+functions/helper-functions.R:280:4: style: [indentation_linter] Indentation should be 10 spaces but is 4 spaces.
+    paste0("desc(", unique_id, ")") %in% sort_list)) {
+   ^~~~~~~
+functions/helper-functions.R:677:4: style: [indentation_linter] Indentation should be 31 spaces but is 4 spaces.
+    summarize(n = n()))$n
+   ^~~~~~~~~~~~~~~~~~~~~~~
+functions/helper-functions.R:694:4: style: [indentation_linter] Indentation should be 6 spaces but is 4 spaces.
+    mutate(row = row_number()) %>%
+   ^~~
+functions/helper-functions.R:701:6: style: [indentation_linter] Indentation should be 30 spaces but is 6 spaces.
+      filter(row_number() == page_after_row + page_size + 1) %>%
+     ^~~~~~~~~~~~~~~~~~~~~~~~~
+functions/helper-functions.R:705:6: style: [indentation_linter] Indentation should be 30 spaces but is 6 spaces.
+      filter(row_number() == page_after_row + page_size) %>%
+     ^~~~~~~~~~~~~~~~~~~~~~~~~
+functions/helper-functions.R:711:4: style: [indentation_linter] Indentation should be 28 spaces but is 4 spaces.
+    filter(row_number() == page_after_row - page_size) %>%
+   ^~~~~~~~~~~~~~~~~~~~~~~~~
+functions/helper-functions.R:714:4: style: [indentation_linter] Indentation should be 28 spaces but is 4 spaces.
+    filter(row_number() == page_size * (page_count - 1)) %>%
+   ^~~~~~~~~~~~~~~~~~~~~~~~~
+functions/helper-functions.R:720:6: style: [indentation_linter] Indentation should be 13 spaces but is 6 spaces.
+      (row_number() <= page_after_row + page_size))
+     ^~~~~~~~
+functions/helper-functions.R:999:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 178 characters.
+#' @param data_object A list containing three elements: 'data', 'meta', and 'links', each containing a data frame to be written to the respective sheets in the output Excel file.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+functions/helper-functions.R:1128:4: style: [indentation_linter] Indentation should be 25 spaces but is 4 spaces.
+    str_split(pattern = ","))[[1]]
+   ^~~~~~~~~~~~~~~~~~~~~~
+functions/hgnc-functions.R:78:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 133 characters.
+  symbol_request <- fromJSON(paste0("http://rest.genenames.org/search/symbol/", str_c(symbol_list_tibble$symbol, collapse = "+OR+")))
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~
+functions/hgnc-functions.R:157:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 137 characters.
+  hgnc_id_request <- fromJSON(paste0("http://rest.genenames.org/search/hgnc_id/", str_c(hgnc_id_list_tibble$hgnc_id, collapse = "+OR+")))
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+functions/hgnc-functions.R:224:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 126 characters.
+update_process_hgnc_data <- function(hgnc_link = "http://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/tsv/non_alt_loci_set.txt",
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+functions/hgnc-functions.R:249:4: style: [indentation_linter] Indentation should be 41 spaces but is 4 spaces.
+    mutate(update_date = current_date))
+   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+functions/job-manager.R:234:6: style: [indentation_linter] Indentation should be 10 spaces but is 6 spaces.
+      job$params_hash == params_hash &&
+     ^~~~~
+functions/logging-functions.R:39:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 144 characters.
+                           col_names = "remote_addr,http_user_agent,http_host,request_method,path_info,query_string,postbody,status,duration") {
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~
+functions/logging-functions.R:155:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 139 characters.
+#' log_message_to_db("127.0.0.1", "user_agent", "localhost", "GET", "/path", "query", "post_body", "200", 0.123, "logfile.log", Sys.time())
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~
+functions/logging-functions.R:158:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 122 characters.
+log_message_to_db <- function(address, agent, host, request_method, path, query, post, status, duration, file, modified) {
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~
+functions/logging-functions.R:162:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 185 characters.
+      sql <- "INSERT INTO logging (timestamp, address, agent, host, request_method, path, query, post, status, duration, file, modified) VALUES (NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+functions/mondo-functions.R:48:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 125 characters.
+  sssom_url <- "https://github.com/monarch-initiative/mondo/raw/master/src/ontology/mappings/mondo_exactmatch_omim.sssom.tsv"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+functions/ols-functions.R:295:6: style: [indentation_linter] Indentation should be 33 spaces but is 6 spaces.
+      grepl("reclassified", desc, ignore.case = TRUE) ||
+     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+functions/omim-functions.R:488:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 122 characters.
+#' @param moi_list Tibble with mode of inheritance terms (hpo_mode_of_inheritance_term_name, hpo_mode_of_inheritance_term)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~
+functions/ontology-functions.R:48:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 129 characters.
+identify_critical_ontology_changes <- function(disease_ontology_set_update, disease_ontology_set, ndd_entity_view_ontology_set) {
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~
+functions/ontology-functions.R:51:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 126 characters.
+    select(disease_ontology_id_version, disease_ontology_id, hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_name) %>%
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+functions/ontology-functions.R:74:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 122 characters.
+    mutate(used_in_entity = disease_ontology_id_version %in% ndd_entity_view_ontology_set$disease_ontology_id_version) %>%
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~
+functions/ontology-functions.R:86:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 129 characters.
+      check_ontology_id_version = disease_ontology_id_version %in% disease_ontology_set_update_extra$disease_ontology_id_version,
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~
+functions/ontology-functions.R:145:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 142 characters.
+process_combine_ontology <- function(hgnc_list, mode_of_inheritance_list, max_file_age = 3, output_path = "data/", progress_callback = NULL) {
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~
+functions/ontology-functions.R:150:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 125 characters.
+    return(read_csv(get_newest_file("disease_ontology_set", output_path), na = "NULL")) # Load and return the existing tibble
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+functions/ontology-functions.R:230:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 151 characters.
+get_mondo_mappings <- function(mondo_ontology, max_age = 1, output_path = "data/", columns_to_return = c("OMIM", "MONDO", "DOID", "Orphanet", "EFO")) {
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+functions/ontology-functions.R:235:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 127 characters.
+    mappings_tibble <- read_csv(get_newest_file("mondo_ontology_mapping", output_path), na = "NULL") # Load the existing tibble
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
+functions/ontology-functions.R:295:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 200 characters.
+    select(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, disease_ontology_source, disease_ontology_date, disease_ontology_is_specific, hgnc_id, hpo_mode_of_inheritance_term)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+functions/ontology-functions.R:387:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 136 characters.
+#' @param tags A character string specifying the type of tags to be extracted from the ontology ("minimal", "default", or "everything").
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~
+functions/publication-functions.R:131:4: style: [indentation_linter] Indentation should be 12 spaces but is 4 spaces.
+    xml_find_all("//ELocationID[@EIdType='doi']") %>%
+   ^~~~~~~~~
+functions/publication-functions.R:147:4: style: [indentation_linter] Indentation should be 15 spaces but is 4 spaces.
+    length(doi2) == 0 &&
+   ^~~~~~~~~~~~
+functions/publication-functions.R:151:4: style: [indentation_linter] Indentation should be 15 spaces but is 4 spaces.
+    length(doi2) == 0 &&
+   ^~~~~~~~~~~~
+functions/publication-functions.R:206:4: style: [indentation_linter] Indentation should be 9 spaces but is 4 spaces.
+    length(firstname) == 0) &&
+   ^~~~~~
+functions/publication-functions.R:207:4: style: [indentation_linter] Indentation should be 8 spaces but is 4 spaces.
+    length(collective) != 0) {
+   ^~~~~
+functions/publication-functions.R:213:4: style: [indentation_linter] Indentation should be 8 spaces but is 4 spaces.
+    length(month) == 0 ||
+   ^~~~~
+functions/review-repository.R:31:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 139 characters.
+  sql <- "SELECT review_id, entity_id, synopsis, is_primary, review_approved, approving_user_id FROM ndd_entity_review WHERE review_id = ?"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~
+functions/review-repository.R:50:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 163 characters.
+  sql <- "SELECT review_id, entity_id, synopsis, is_primary, review_approved, approving_user_id FROM ndd_entity_review WHERE entity_id = ? ORDER BY review_id DESC"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+functions/user-repository.R:83:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 121 characters.
+  sql <- paste0("SELECT user_id, user_name, user_email, user_role FROM users_view WHERE user_id IN (", placeholders, ")")
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+functions/user-repository.R:110:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 122 characters.
+  sql <- "SELECT user_id, user_name, user_email, user_role, password as user_password_hash FROM user WHERE user_email = ?"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~
+services/entity-service.R:109:121: style: [line_length_linter] Lines should not be more than 120 characters. This line is 159 characters.
+      sql <- "INSERT INTO ndd_entity (hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, ndd_phenotype, entry_user_id) VALUES (?, ?, ?, ?, ?)"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+services/review-service.R:157:4: style: [indentation_linter] Indentation should be 6 spaces but is 4 spaces.
+    tbl("ndd_entity_review") %>%
+   ^~~
+services/review-service.R:224:4: style: [indentation_linter] Indentation should be 6 spaces but is 4 spaces.
+    tbl("ndd_review_phenotype_connect") %>%
+   ^~~
+services/review-service.R:291:4: style: [indentation_linter] Indentation should be 6 spaces but is 4 spaces.
+    tbl("ndd_review_variation_ontology_connect") %>%
+   ^~~
+start_sysndd_api.R:295:3: style: [brace_linter] `else` should come on the same line as the previous `}`.
+  else if (req$REQUEST_METHOD == "GET" && !is.null(req$HTTP_AUTHORIZATION)) {
+  ^~~~
+start_sysndd_api.R:311:3: style: [brace_linter] `else` should come on the same line as the previous `}`.
+  else if (
+  ^~~~
+start_sysndd_api.R:319:3: style: [brace_linter] `else` should come on the same line as the previous `}`.
+  else if (
+  ^~~~
+start_sysndd_api.R:331:3: style: [brace_linter] `else` should come on the same line as the previous `}`.
+  else if (
+  ^~~~
+start_sysndd_api.R:338:3: style: [brace_linter] `else` should come on the same line as the previous `}`.
+  else {
+  ^~~~
