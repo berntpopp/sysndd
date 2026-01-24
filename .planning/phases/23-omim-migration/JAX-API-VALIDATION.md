@@ -218,6 +218,73 @@ validate_omim_data <- function(omim_data) {
 }
 ```
 
+## mim2gene.txt Entry Type Analysis
+
+The mim2gene.txt file provides important metadata about each MIM entry's status that can be used for entity deprecation workflows.
+
+### Entry Type Distribution
+
+| MIM Entry Type | Count | Description |
+|----------------|-------|-------------|
+| gene | 17,747 | Gene entries with Entrez/HGNC/Ensembl IDs |
+| phenotype | 8,585 | Disease phenotype entries (our primary interest) |
+| predominantly phenotypes | 1,735 | Entries that are mostly phenotype-related |
+| **moved/removed** | **1,383** | **Deprecated/obsolete entries** |
+
+### Moved/Removed Entries - Deprecation Workflow
+
+**Key finding:** 1,383 MIM numbers are marked as `moved/removed` in OMIM.
+
+These entries:
+- Have **no gene associations** (empty Entrez Gene ID, HGNC Symbol, Ensembl ID)
+- Represent OMIM IDs that have been deprecated, merged, or removed
+- **Should trigger re-review** if they exist in SysNDD's `disease_ontology_set`
+
+### Recommended Deprecation Workflow
+
+```r
+# 1. Parse mim2gene.txt and identify moved/removed entries
+moved_removed_mim <- mim2gene_data |>
+  filter(mim_entry_type == "moved/removed") |>
+  pull(mim_number)
+
+# 2. Check which moved/removed MIM numbers exist in SysNDD
+entities_to_deprecate <- tbl(pool, "disease_ontology_set") |>
+  filter(disease_ontology_id %in% !!moved_removed_mim) |>
+  collect()
+
+# 3. For each affected entity:
+#    - Flag for re-review
+#    - Suggest MONDO mapping as replacement
+#    - Notify curators
+```
+
+### Integration with OMIM Update Job
+
+The OMIM update function should:
+
+1. **Track entry types** - Store `mim_entry_type` for each MIM number
+2. **Flag moved/removed** - Add `is_deprecated = TRUE` column for moved/removed entries
+3. **Trigger re-review** - Create re-review requests for entities using deprecated OMIM IDs
+4. **Suggest replacements** - Use MONDO mappings to suggest replacement disease terms
+
+### Sample Moved/Removed MIM Numbers
+
+```
+100500, 100680, 100735, 100900, 102490, 102550, 102570, 102590,
+102640, 102710, 102730, 102777, 102800, 102920, 102930, 102940...
+```
+
+(Full list: 1,383 entries)
+
+### Database Schema Consideration
+
+Consider adding to `disease_ontology_set`:
+- `mim_entry_type` (enum: gene, phenotype, predominantly_phenotypes, moved_removed)
+- `is_deprecated` (boolean, default FALSE)
+- `deprecated_date` (date, when detected as moved/removed)
+- `suggested_replacement` (MONDO ID from mapping, if available)
+
 ## Next Steps for Plan 02
 
 1. **Implement JAX API fetcher** using parameters above
@@ -225,9 +292,12 @@ validate_omim_data <- function(omim_data) {
 3. **Handle 404s gracefully** - set disease_name to NA, log warning
 4. **Track completeness metrics** - report success/failure counts in job status
 5. **Consider MONDO fallback** - for MIM numbers not in JAX, check MONDO mappings
+6. **Parse entry types** - Extract mim_entry_type during mim2gene.txt parsing
+7. **Flag moved/removed** - Mark deprecated entries for re-review workflow
 
 ---
 
 *Validation performed: 2026-01-24*
 *Script: api/scripts/validate-jax-api.R*
 *Sample size: 100 random phenotype MIM numbers from 8,585 total*
+*mim2gene.txt analysis: 29,450 total entries across 4 entry types*
