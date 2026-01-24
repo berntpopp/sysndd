@@ -6,20 +6,20 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v4 Backend Overhaul - Phase 24 Versioning, Pagination & Cleanup IN PROGRESS
+**Current focus:** v4 Backend Overhaul - Phase 24 Versioning, Pagination & Cleanup COMPLETE
 
 ## Current Position
 
 **Milestone:** v4 Backend Overhaul
-**Phase:** 24 of 24 (Versioning, Pagination & Cleanup) - IN PROGRESS
-**Plan:** 6 of 7 complete
-**Status:** Wave 3 in progress - Lintr cleanup complete
-**Last activity:** 2026-01-24 - Completed 24-06 Lintr cleanup (692→85 issues)
+**Phase:** 24 of 24 (Versioning, Pagination & Cleanup) - COMPLETE
+**Plan:** 7 of 7 complete
+**Status:** Phase 24 complete - All waves complete
+**Last activity:** 2026-01-24 - Completed 24-07 Integration tests (version, pagination, async)
 
 ```
-v4 Backend Overhaul: PHASE 24 IN PROGRESS
+v4 Backend Overhaul: PHASE 24 COMPLETE
 Goal: Modernize R/Plumber API with security, async, OMIM fix, R upgrade, DRY/KISS/SOLID
-Progress: ██████████████████████████████░░░ 99% (7.25/7.2 phases)
+Progress: ████████████████████████████████ 100% (24/24 phases)
 ```
 
 ## Completed Milestones
@@ -35,7 +35,7 @@ Progress: ███████████████████████�
 | Issue | Description | Status |
 |-------|-------------|--------|
 | #109 | Refactor sysndd_plumber.R into smaller endpoint files | Ready for PR |
-| #123 | Implement comprehensive testing | Foundation complete, integration tests deferred |
+| #123 | Implement comprehensive testing | Foundation complete, integration tests added (Phase 24-07) |
 
 ## Tech Debt (from API_CODE_REVIEW_REPORT.md)
 
@@ -186,6 +186,10 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 24-06 | Target <200 lintr issues not zero | Diminishing returns - focus on high-value fixes not cosmetic perfection; 85 final issues are justified (long fspec strings, edge cases) |
 | 2026-01-24 | 24-06 | Fix pipe consistency to magrittr %>% | Project standard in .lintr config, consistency across codebase; newer code was using native pipe |
 | 2026-01-24 | 24-06 | Applied styler to bulk directories | Safe automated formatting, 80% of issues fixed automatically; verified no functional changes via git diff and health check |
+| 2026-01-24 | 24-07 | Use httr2::request for HTTP integration tests | Consistent with existing test-integration-auth.R pattern; leverages existing test infrastructure |
+| 2026-01-24 | 24-07 | Skip tests when API not running (CI flexibility) | skip_if_api_not_running() helper checks localhost:8000/health; tests run in dev, skip in CI without failures |
+| 2026-01-24 | 24-07 | Document authenticated endpoint tests rather than skip | Provides testing guide for manual verification; tests serve as API usage documentation |
+| 2026-01-24 | 24-07 | Leverage existing test-unit-security.R for password migration | Comprehensive coverage already exists (290 lines); avoid test duplication |
 
 ### Pending Todos
 
@@ -207,9 +211,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 24-06-PLAN.md (Lintr cleanup - 692→85 issues)
+**Stopped at:** Completed 24-07-PLAN.md (Integration tests - version, pagination, async)
 **Resume file:** None
-**Next action:** Continue Phase 24 Wave 3 - Plan 07 (Final testing and documentation)
+**Next action:** Phase 24 COMPLETE - Ready for PR submission (#109)
 
 ---
-*Last updated: 2026-01-24 - Phase 24 IN PROGRESS (Wave 3: 6 of 7 plans complete - version, pagination safety, user/re-review tables, list/status endpoints, TODO cleanup, lintr cleanup)*
+*Last updated: 2026-01-24 - Phase 24 COMPLETE (All 7 plans complete - version endpoint, pagination safety, user/re-review tables, list/status endpoints, TODO cleanup, lintr cleanup, integration tests)*
