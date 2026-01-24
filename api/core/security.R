@@ -6,6 +6,9 @@
 #   hash <- hash_password("mypassword")
 #   is_valid <- verify_password(stored_hash, "attempt")
 
+# Source db-helpers for parameterized query execution
+source(file.path(find.package("sysndd"), "functions", "db-helpers.R"), local = TRUE)
+
 #' Check if password is already hashed (sodium/libsodium format)
 #'
 #' Detects hashes by checking for sodium pwhash prefixes:
@@ -123,10 +126,9 @@ needs_upgrade <- function(password_from_db) {
 upgrade_password <- function(pool, user_id, password_plaintext) {
   tryCatch({
     new_hash <- hash_password(password_plaintext)
-    DBI::dbExecute(
-      pool,
+    db_execute_statement(
       "UPDATE user SET password = ? WHERE user_id = ?",
-      params = list(new_hash, user_id)
+      list(new_hash, user_id)
     )
     # Log success if logger is available
     if (requireNamespace("logger", quietly = TRUE)) {
