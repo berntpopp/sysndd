@@ -107,7 +107,6 @@ if (!is.null(dw$workdir)) {
 ## -------------------------------------------------------------------##
 source("functions/config-functions.R", local = TRUE)
 source("functions/logging-functions.R", local = TRUE)
-source("functions/database-functions.R", local = TRUE)
 source("functions/db-helpers.R", local = TRUE)
 source("functions/entity-repository.R", local = TRUE)
 source("functions/review-repository.R", local = TRUE)
