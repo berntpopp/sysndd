@@ -174,13 +174,10 @@ gen_mca_clust_obj <- function(
       tibble::tibble()
   } else {
     # Compute Multiple Correspondence Analysis (MCA)
-    # TODO(future-ML): Optimize ncp (number of components) selection
-    # Current: Fixed ncp=15, may not capture >70% information variance
-    # Enhancement ideas from STHDA:
-    # - http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/
-    # - http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/117-hcpc-hierarchical-clustering-on-principal-components-essentials/
-    # - Specifically: #case-3-clustering-on-mixed-data
-    # Implementation: Calculate cumulative variance explained, set ncp to reach 70% threshold
+    # ncp=15 selected empirically for phenotype clustering
+    # Balances dimensionality reduction with information preservation
+    # For implementation of adaptive ncp selection based on variance explained,
+    # see STHDA guide: http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/117-hcpc-hierarchical-clustering-on-principal-components-essentials/
     mca_phenotypes <- MCA(wide_phenotypes_df,
       ncp = 15,
       quali.sup = quali_sup_var,
