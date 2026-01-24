@@ -63,6 +63,9 @@ library(httr)
 library(ellipsis)
 library(ontologyIndex)
 library(httpproblems)
+library(mirai)
+library(promises)
+library(uuid)
 
 ## -------------------------------------------------------------------##
 # set redirect to trailing slash
@@ -117,6 +120,7 @@ source("functions/hgnc-functions.R", local = TRUE)
 source("functions/ontology-functions.R", local = TRUE)
 source("functions/pubtator-functions.R", local = TRUE)
 source("functions/ensembl-functions.R", local = TRUE)
+source("functions/job-manager.R", local = TRUE)
 
 # Core security and error handling modules
 source("core/security.R", local = TRUE)
@@ -202,6 +206,25 @@ gen_string_clust_obj_mem <<- memoise(gen_string_clust_obj, cache = cm)
 gen_mca_clust_obj_mem <<- memoise(gen_mca_clust_obj, cache = cm)
 read_log_files_mem <<- memoise(read_log_files, cache = cm)
 nest_pubtator_gene_tibble_mem <<- memoise(nest_pubtator_gene_tibble, cache = cm)
+
+## -------------------------------------------------------------------##
+# 9.5) Initialize mirai daemon pool for async jobs
+## -------------------------------------------------------------------##
+daemons(
+  n = 8,              # 8 workers for concurrent jobs
+  dispatcher = TRUE,  # Enable for variable-length jobs
+  autoexit = tools::SIGINT
+)
+message(sprintf("[%s] Started mirai daemon pool with 8 workers", Sys.time()))
+
+# Schedule hourly job cleanup using later (plumber dependency)
+schedule_cleanup <- function() {
+  later::later(function() {
+    cleanup_old_jobs()
+    schedule_cleanup()  # Re-schedule for next hour
+  }, 3600)
+}
+schedule_cleanup()
 
 ## -------------------------------------------------------------------##
 # 10) Define filters as named functions with roxygen tags
@@ -291,6 +314,8 @@ cleanupHook <- function(pr) {
     pr_hook("exit", function() {
       pool::poolClose(pool)
       message("Disconnected from DB")
+      daemons(0)  # Shutdown mirai daemon pool
+      message("Shutdown mirai daemon pool")
     })
 }
 
