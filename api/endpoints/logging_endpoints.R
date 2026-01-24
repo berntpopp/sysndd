@@ -47,11 +47,7 @@ function(req,
          page_size = 10,
          fspec = "id,timestamp,address,agent,host,request_method,path,query,post,status,duration,file,modified",
          format = "json") {
-  # Check if the user_role is Administrator
-  if (is.null(req$user_role) || req$user_role != "Administrator") {
-    res$status <- 403
-    return(list(error = "Access forbidden. Only administrators can access logs."))
-  }
+  require_role(req, res, "Administrator")
 
   # Set serializer
   res$serializer <- serializers[[format]]

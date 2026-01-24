@@ -241,16 +241,7 @@ function(req, res) {
 #* @serializer json list(na="string")
 #* @post /ontology_update/submit
 function(req, res) {
-  # Check authentication - require Administrator
-  if (is.null(req$user_id)) {
-    res$status <- 401
-    return(list(error = "UNAUTHORIZED", message = "Authentication required"))
-  }
-
-  if (req$user_role != "Administrator") {
-    res$status <- 403
-    return(list(error = "FORBIDDEN", message = "Administrator role required"))
-  }
+  require_role(req, res, "Administrator")
 
   # CRITICAL: Extract all database data BEFORE mirai
   # Database connections cannot cross process boundaries
