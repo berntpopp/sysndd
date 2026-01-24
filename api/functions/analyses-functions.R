@@ -7,6 +7,8 @@
 #' @param min_size A number defining the minimal cluster size to return
 #' @param subcluster Boolean value indicating whether to perform subclustering
 #' @param parent the parent cluster name used in the generation of subclusters
+#' @param enrichment Boolean value indicating whether to perform enrichment
+#' @param algorithm Clustering algorithm name (default: "leiden")
 #'
 #' @return The clusters tibble
 #' @export
@@ -15,17 +17,28 @@ gen_string_clust_obj <- function(
   min_size = 10,
   subcluster = TRUE,
   parent = NA,
-  enrichment = TRUE
+  enrichment = TRUE,
+  algorithm = "leiden"
 ) {
+  # Version constants for cache invalidation
+
+  string_version <- "11.5"  # Must match STRINGdb$new version below
+
+  cache_version <- Sys.getenv("CACHE_VERSION", "1")  # Manual invalidation
+
   # compute hashes for input
   panel_hash <- generate_panel_hash(hgnc_list)
   function_hash <- generate_function_hash(gen_string_clust_obj)
 
-  # generate result output filename
+  # generate result output filename with algorithm and version components
+  # This ensures cache invalidation when algorithm or STRING version changes
   filename_results <- paste0(
     "results/",
     panel_hash, ".",
     function_hash, ".",
+    algorithm, ".",
+    "string_v", string_version, ".",
+    "cache_v", cache_version, ".",
     min_size, ".",
     subcluster, ".json"
   )
@@ -158,15 +171,21 @@ gen_mca_clust_obj <- function(
   quanti_sup_var = 2:4,
   cutpoint = 5
 ) {
+  # Cache version for manual invalidation
+  cache_version <- Sys.getenv("CACHE_VERSION", "1")
+
   # compute hashes for input
   panel_hash <- generate_panel_hash(row.names(wide_phenotypes_df))
   function_hash <- generate_function_hash(gen_mca_clust_obj)
 
-  # generate result output filename
+  # generate result output filename with cache version
+  # Fixed double-dot bug from original implementation
   filename_results <- paste0(
     "results/",
     panel_hash, ".",
-    function_hash, ".", ".json"
+    function_hash, ".",
+    "mca.",
+    "cache_v", cache_version, ".json"
   )
 
   if (file.exists(filename_results)) {
