@@ -141,6 +141,10 @@ RUN find /usr/local/lib/R/site-library -name "*.so" \
 # =============================================================================
 FROM base AS production
 
+# Accept git commit hash as build argument for version tracking
+ARG GIT_COMMIT=unknown
+ENV GIT_COMMIT=${GIT_COMMIT}
+
 # Create non-root user with specific UID/GID for security
 RUN groupadd -g 1001 api && \
     useradd -u 1001 -g api -m -s /bin/bash apiuser
