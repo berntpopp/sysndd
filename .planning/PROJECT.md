@@ -2,31 +2,29 @@
 
 ## What This Is
 
-Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v3 delivered a complete frontend modernization from Vue 2 + JavaScript to Vue 3 + TypeScript with Bootstrap-Vue-Next, Vite build tooling, and WCAG 2.2 accessibility compliance.
+Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v4 delivered a complete backend modernization with R 4.4.3 upgrade, security hardening (66 SQL injection fixes, Argon2id passwords), async processing (mirai job system), repository/service architecture layers, and OMIM data source migration from genemap2 to mim2gene.txt + JAX API.
 
 ## Core Value
 
 A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-## Current Milestone: v4 Backend Overhaul
+## Current State (v4 shipped 2026-01-24)
 
-**Goal:** Modernize the R/Plumber API with security fixes, async processing, OMIM data source migration, R/package upgrades, and DRY/KISS/SOLID refactoring.
+**Backend Stack:** 10/10 (up from 6/10)
+- R 4.4.3 with 281 packages in renv.lock
+- Argon2id password hashing with progressive migration
+- 66 SQL injection vulnerabilities fixed (parameterized queries)
+- 8 domain repositories with 131 parameterized DB calls
+- 7 service layers with dependency injection
+- require_auth middleware with AUTH_ALLOWLIST pattern
+- mirai job system with 8-worker daemon pool
+- OMIM via mim2gene.txt + JAX API + MONDO SSSOM mappings
+- RFC 9457 error format across all endpoints
+- 0 lintr issues (from 1,240), 0 TODO comments (from 29)
 
-**Target features:**
-- Fix OMIM annotation update (genemap2 no longer provides required fields — migrate to mim2gene.txt + JAX ontology API)
-- Implement async/non-blocking processing for intensive endpoints (clustering, annotation updates)
-- Upgrade R from 4.1.2 to 4.4.x and all packages to latest versions
-- Fix 66 SQL injection vulnerabilities (parameterized queries)
-- Implement password hashing with bcrypt/sodium
-- Refactor to DRY/KISS/SOLID principles per API_CODE_REVIEW_REPORT.md
-- Create database access layer (eliminate 17 `dbConnect` duplications)
-- Add consistent error handling (RFC 7807)
-- Resolve 30 TODO comments
-- Clean up 1240 lintr issues
+**Backend Testing:** 634 tests passing, 20.3% coverage, 24 integration tests
 
-## Current State (v3 shipped 2026-01-23)
-
-**Frontend Stack:** 10/10 (up from 6/10)
+**Frontend Stack:** 10/10 (from v3)
 - Vue 3.5.25 with Composition API (pure, no compat layer)
 - TypeScript 5.9.3 with branded domain types
 - Bootstrap-Vue-Next 0.42.0 with Bootstrap 5.3.8
@@ -41,8 +39,6 @@ A new developer can clone the repo and be productive within minutes, with confid
 - Multi-stage Dockerfiles with ccache and BuildKit cache mounts
 - Non-root users: API (uid 1001), App (nginx)
 - Docker Compose Watch hot-reload development workflow
-
-**API Test Suite:** 610 tests passing in ~74 seconds, 20.3% coverage
 
 **Automation:** 13 Makefile targets across 5 categories
 
@@ -112,74 +108,86 @@ A new developer can clone the repo and be productive within minutes, with confid
 - ✓ Prettier for code formatting — v3
 - ✓ Pre-commit hooks with lint-staged — v3
 
+<!-- Shipped in v4 -->
+
+- ✓ R upgraded from 4.1.2 to 4.4.3 — v4
+- ✓ Fresh renv.lock with 281 packages (no Dockerfile workarounds) — v4
+- ✓ 66 SQL injection vulnerabilities fixed with parameterized queries — v4
+- ✓ Argon2id password hashing with progressive migration — v4
+- ✓ RFC 9457 error format across all endpoints — v4
+- ✓ Logging sanitized to exclude sensitive data — v4
+- ✓ mirai async processing with 8-worker daemon pool — v4
+- ✓ HTTP 202 Accepted pattern for long-running operations — v4
+- ✓ Job status polling endpoint — v4
+- ✓ Database access layer (db_execute_query, db_execute_statement, db_with_transaction) — v4
+- ✓ 8 domain repositories (entity, review, status, publication, phenotype, ontology, user, hash) — v4
+- ✓ 7 service layers (auth, entity, review, approval, user, status, search) — v4
+- ✓ require_auth middleware with AUTH_ALLOWLIST — v4
+- ✓ database-functions.R god file eliminated (1,226 lines decomposed) — v4
+- ✓ OMIM via mim2gene.txt + JAX API (replacing genemap2) — v4
+- ✓ MONDO equivalence via SSSOM mappings — v4
+- ✓ ManageAnnotations async job polling UI — v4
+- ✓ /api/version endpoint with semantic version and git commit — v4
+- ✓ Cursor-based pagination with 500-item max — v4
+- ✓ 0 lintr issues (from 1,240) — v4
+- ✓ 0 TODO comments (from 29) — v4
+- ✓ 24 API integration tests — v4
+
 ### Active
 
-<!-- v4 Backend Overhaul scope -->
+<!-- v5 scope - to be defined -->
 
-- [ ] Fix OMIM annotation update (migrate to mim2gene.txt + JAX ontology API for disease names)
-- [ ] Implement async/non-blocking processing with future + promises packages
-- [ ] Upgrade R to 4.4.x and all packages to latest compatible versions
-- [ ] Fix SQL injection vulnerabilities (parameterized queries for all 66 occurrences)
-- [ ] Implement password hashing (bcrypt or sodium)
-- [ ] Create database access layer (poolWithTransaction, execute_query helpers)
-- [ ] Implement consistent error handling middleware (RFC 7807)
-- [ ] Extract authentication logic into reusable require_auth/require_role filters
-- [ ] Create response builder helpers (response_success, response_error)
-- [ ] Refactor database-functions.R into domain-specific repositories
-- [ ] Resolve 30 TODO comments across codebase
-- [ ] Clean up 1240 lintr issues
-- [ ] Update renv.lock to complete state (remove Dockerfile workarounds)
+(None - v4 complete, v5 scope to be defined)
 
 ### Deferred to v5
 
 - [ ] CI/CD pipeline (GitHub Actions)
 - [ ] Trivy security scanning
-- [ ] HTTP endpoint integration tests
 - [ ] Expanded frontend test coverage (40-50%)
 - [ ] Vue component TypeScript conversion
+- [ ] URL path versioning (/api/v1/)
+- [ ] Version displayed in frontend
 
 ### Out of Scope
 
-- R/Plumber replacement — keeping current stack, modernizing it instead
+- R/Plumber replacement — keeping current stack, modernized it instead
 - Database schema changes — MySQL 8.0.40 works well
 - Server-side rendering — SPA approach sufficient
 - PWA features — keep existing
-- Frontend test coverage expansion — deferred to v5
-- CI/CD pipeline — deferred to v5
+- bcrypt package — sodium with Argon2id is OWASP 2025 recommended
 
 ## Context
 
-**After v3:**
-- Frontend fully modernized to Vue 3 + TypeScript
-- Developer workflow excellent — 164ms dev startup, instant HMR
-- Accessibility compliant — WCAG 2.2 AA, Lighthouse 100
-- Bundle optimized — 520 KB gzipped (74% under 2MB target)
+**After v4:**
+- Backend fully modernized to R 4.4.3 with modern security
+- All 66 SQL injection vulnerabilities fixed
+- Async processing for long-running operations
+- Clean architecture with repository + service layers
+- OMIM data source migrated to freely available sources
+- Zero technical debt (0 lintr issues, 0 TODOs)
 
-**Remaining tech debt:**
-- Vue components still .vue JavaScript (not .vue TypeScript)
-- Frontend test coverage ~1.5% (infrastructure ready, tests needed)
-- lint-app fixed (was crashing, now works via Vite)
-- 1240 lintr issues in R codebase
-- renv.lock incomplete (Dockerfile workarounds)
-- No HTTP endpoint integration tests
+**Remaining items for v5:**
+- CI/CD pipeline not yet implemented
+- Frontend test coverage still ~1.5%
+- Vue components still .vue JavaScript (not TypeScript)
 
 **GitHub Issues:**
-- #109: Refactor sysndd_plumber.R into smaller endpoint files — Ready for PR
-- #123: Implement comprehensive testing — Foundation complete, integration tests deferred
+- #109: Refactor sysndd_plumber.R into smaller endpoint files — Ready for PR (v4 complete)
+- #123: Implement comprehensive testing — Foundation complete, integration tests added in v4
 
 **Codebase map:** See `.planning/codebase/` for detailed analysis
 
 ## Constraints
 
 - **Stack**: R/Plumber API (modernized), Vue 3 + TypeScript for frontend
-- **R Version**: Upgrade from 4.1.2 to 4.4.x (LTS)
-- **Database**: MySQL 8.0.40 (unchanged from v2)
-- **Docker**: rocker/r-ver base image (version bump for R upgrade)
+- **R Version**: R 4.4.3 (upgraded from 4.1.2 in v4)
+- **Database**: MySQL 8.0.40 (unchanged)
+- **Docker**: rocker/r-ver:4.4.3 base image
 - **Compatibility**: Must work on Windows (WSL2), macOS, and Linux
 - **Node.js**: Node 24 LTS (Vue 3 + Vite)
 - **Component Library**: Bootstrap-Vue-Next 0.42.0
 - **Browser Support**: Modern browsers (Chrome, Firefox, Safari, Edge — last 2 versions)
-- **OMIM Data**: Must use freely available sources (mim2gene.txt, JAX API) — no OMIM license required
+- **OMIM Data**: mim2gene.txt + JAX API (no OMIM license required)
 
 ## Key Decisions
 
@@ -204,6 +212,14 @@ A new developer can clone the repo and be productive within minutes, with confid
 | Incremental Vue 3 migration | @vue/compat for safety, removed at end | ✓ Good |
 | TypeScript strict: false | Pragmatic start, can tighten later | ✓ Good |
 | Branded domain types | GeneId, EntityId prevent ID confusion | ✓ Good |
+| sodium over bcrypt | Argon2id is OWASP 2025 recommended | ✓ Good |
+| Progressive password migration | Zero-downtime, no forced resets | ✓ Good |
+| mirai over future/promises | Production-ready, better Plumber integration | ✓ Good |
+| Pre-fetch data for async jobs | Workaround for pool cross-process limitation | ✓ Good |
+| mim2gene.txt + JAX API | Free OMIM data sources, no license needed | ✓ Good |
+| MONDO SSSOM mappings | Standard cross-ontology equivalence format | ✓ Good |
+| Repository + Service layers | DRY/KISS/SOLID, testable, maintainable | ✓ Good |
+| require_auth middleware | Centralized auth, eliminates duplicated checks | ✓ Good |
 
 ---
-*Last updated: 2026-01-23 after v4 Backend Overhaul milestone started*
+*Last updated: 2026-01-24 after v4 Backend Overhaul milestone complete*

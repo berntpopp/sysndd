@@ -1,5 +1,37 @@
 # Project Milestones: SysNDD Developer Experience
 
+## v4 Backend Overhaul (Shipped: 2026-01-24)
+
+**Delivered:** Complete backend modernization with R 4.4.3 upgrade, security hardening (66 SQL injection fixes, Argon2id passwords), async processing (mirai job system), repository/service layers, and OMIM data source migration.
+
+**Phases completed:** 18-24 (42 plans total)
+
+**Key accomplishments:**
+
+- R upgraded from 4.1.2 to 4.4.3 with clean renv.lock (281 packages)
+- Fixed 66 SQL injection vulnerabilities with parameterized queries
+- Implemented Argon2id password hashing with progressive migration
+- Created mirai-based job manager with 8-worker daemon pool
+- Built 8 domain repositories with 131 parameterized database calls
+- Created 7 service layers and require_auth middleware
+- Eliminated 1,226-line database-functions.R god file
+- Migrated OMIM from genemap2 to mim2gene.txt + JAX API + MONDO
+- Achieved 0 lintr issues (from 1,240) and 0 TODO comments (from 29)
+
+**Stats:**
+
+- 23,552 lines of R code
+- 7 phases, 42 plans
+- 167 commits
+- 83 files modified (+11,417/-3,822 lines)
+- 2 days (2026-01-23 → 2026-01-24)
+
+**Git range:** `docs(18): create phase plan` → `docs(24): complete Versioning, Pagination & Cleanup phase`
+
+**What's next:** CI/CD pipeline (GitHub Actions), Trivy security scanning, expanded frontend test coverage
+
+---
+
 ## v3 Frontend Modernization (Shipped: 2026-01-23)
 
 **Delivered:** Complete frontend modernization from Vue 2 + JavaScript to Vue 3 + TypeScript with Bootstrap-Vue-Next, including Vite build tooling and WCAG 2.2 accessibility compliance.
