@@ -9,6 +9,8 @@ require(DBI)
 require(digest)  # for hashing
 log_threshold(INFO)
 
+source("functions/db-helpers.R", local = TRUE)
+
 #------------------------------------------------------------------------------
 # 1) Retrieve Total Number of Pages from PubTator API v3
 #   (unchanged from old code)
@@ -128,12 +130,11 @@ pubtator_db_update <- function(
     log_info("Query hash = {q_hash}")
 
     # C) Check if query exists in pubtator_query_cache
-    existing_query <- dbGetQuery(
-      db_conn,
+    existing_query <- db_execute_query(
       "SELECT query_id, queried_page_number, total_page_number, page_size
        FROM pubtator_query_cache
        WHERE query_hash = ?",
-      params = list(q_hash)
+      list(q_hash)
     )
 
     query_id <- NA_integer_
@@ -148,7 +149,7 @@ pubtator_db_update <- function(
       dbBind(rs_ins, list(query, q_hash, total_pages, max_pages, 10))
       dbClearResult(rs_ins)
 
-      query_id <- dbGetQuery(db_conn, "SELECT LAST_INSERT_ID() AS id;")$id[1]
+      query_id <- db_execute_query("SELECT LAST_INSERT_ID() AS id")$id[1]
 
     } else {
       # Found existing row
@@ -245,12 +246,10 @@ pubtator_db_update <- function(
     }
 
     # E) Gather PMIDs from pubtator_search_cache
-    pmid_rows <- dbGetQuery(db_conn, "
-      SELECT pmid
-      FROM pubtator_search_cache
-      WHERE query_id=? AND pmid IS NOT NULL
-      GROUP BY pmid
-    ", params = list(query_id))
+    pmid_rows <- db_execute_query(
+      "SELECT pmid FROM pubtator_search_cache WHERE query_id=? AND pmid IS NOT NULL GROUP BY pmid",
+      list(query_id)
+    )
     if (nrow(pmid_rows) == 0) {
       log_info("No PMIDs in search_cache => skip annotation fetch => commit + return.")
       dbCommit(db_conn)
@@ -271,11 +270,10 @@ pubtator_db_update <- function(
     flat_df <- flatten_pubtator_passages(doc_list) %>%
       mutate(pmid = as.integer(pmid))
 
-    srch_map <- dbGetQuery(db_conn, "
-      SELECT search_id, pmid
-      FROM pubtator_search_cache
-      WHERE query_id=?
-    ", params = list(query_id))
+    srch_map <- db_execute_query(
+      "SELECT search_id, pmid FROM pubtator_search_cache WHERE query_id=?",
+      list(query_id)
+    )
 
     flat_df_j <- flat_df %>%
       left_join(srch_map, by="pmid", relationship="many-to-many")
