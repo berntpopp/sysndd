@@ -6,6 +6,11 @@
 #
 # Be sure to source any required helper files at the top (e.g.,
 # source("functions/database-functions.R", local = TRUE)) if needed.
+#
+# Note: For long-running operations, consider using async endpoints:
+#   POST /api/jobs/clustering/submit - Async functional clustering
+#   POST /api/jobs/phenotype_clustering/submit - Async phenotype clustering
+#   GET /api/jobs/<job_id>/status - Poll job status
 
 ## -------------------------------------------------------------------##
 ## Analyses endpoints

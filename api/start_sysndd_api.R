@@ -438,6 +438,7 @@ root <- pr() %>%
   pr_mount("/api/panels", pr("endpoints/panels_endpoints.R")) %>%
   pr_mount("/api/comparisons", pr("endpoints/comparisons_endpoints.R")) %>%
   pr_mount("/api/analysis", pr("endpoints/analysis_endpoints.R")) %>%
+  pr_mount("/api/jobs", pr("endpoints/jobs_endpoints.R")) %>%
   pr_mount("/api/hash", pr("endpoints/hash_endpoints.R")) %>%
   pr_mount("/api/search", pr("endpoints/search_endpoints.R")) %>%
   pr_mount("/api/list", pr("endpoints/list_endpoints.R")) %>%
