@@ -140,6 +140,7 @@ source("core/middleware.R", local = TRUE)
 
 # Service layer
 source("services/auth-service.R", local = TRUE)
+source("services/entity-service.R", local = TRUE)
 
 ## -------------------------------------------------------------------##
 # 5) Load the API spec for OpenAPI (optional)
