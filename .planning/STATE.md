@@ -11,15 +11,15 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 **Milestone:** v4 Backend Overhaul
-**Phase:** 20 of 24 (Async/Non-blocking)
-**Plan:** 3/3 complete (Phase 20 complete)
+**Phase:** 21 of 24 (Repository Layer)
+**Plan:** 1 of 1 complete (Phase 21 complete - single plan phase)
 **Status:** Phase complete
-**Last activity:** 2026-01-24 - Completed 20-03-PLAN.md (Frontend Polling Integration)
+**Last activity:** 2026-01-24 - Completed 21-01-PLAN.md (Database Helpers)
 
 ```
-v4 Backend Overhaul: PHASE 20 COMPLETE
+v4 Backend Overhaul: PHASE 21 COMPLETE
 Goal: Modernize R/Plumber API with security, async, OMIM fix, R upgrade, DRY/KISS/SOLID
-Progress: ███████████░░░░░░░░░░░░░░░░░░░░░░ 43% (3/7 phases)
+Progress: ██████████████░░░░░░░░░░░░░░░░░░░ 57% (4/7 phases)
 ```
 
 ## Completed Milestones
@@ -90,6 +90,11 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 20-03 | Administrator role required for ontology updates | Ontology updates are administrative operations |
 | 2026-01-24 | 20-03 | Auth filter allowlist for /api/jobs | Endpoints need authentication filter bypass pattern |
 | 2026-01-24 | 20-03 | Daemon package exports via .packages param | Worker processes need explicit package access |
+| 2026-01-24 | 21-01 | Use positional ? placeholders for RMariaDB | RMariaDB only supports positional, not :name syntax |
+| 2026-01-24 | 21-01 | Return tibbles from db_execute_query (never NULL) | Consistent interface, avoids NULL checks downstream |
+| 2026-01-24 | 21-01 | Redact strings > 50 chars in DEBUG logs | Balance debugging utility with security |
+| 2026-01-24 | 21-01 | Structured error classes with rlang::abort() | Type-safe error handling in repositories and endpoints |
+| 2026-01-24 | 21-01 | Pool checkout for transactions, direct use for single queries | Transactions need connection stability, single queries use pool's automatic management |
 
 ### Pending Todos
 
@@ -108,9 +113,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 20-03-PLAN.md (Phase 20 complete)
+**Stopped at:** Completed 21-01-PLAN.md (Phase 21 complete)
 **Resume file:** None
-**Next action:** Begin Phase 21 planning
+**Next action:** Begin Phase 22 planning (Repository Implementation)
 
 ---
-*Last updated: 2026-01-24 - Phase 20 complete (async/non-blocking infrastructure)*
+*Last updated: 2026-01-24 - Phase 21 complete (database helper foundation)*
