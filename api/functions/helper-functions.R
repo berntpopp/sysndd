@@ -552,7 +552,7 @@ select_tibble_fields <- function(selection_tibble,
   # check if unique_id variable is in the column names,
   # if not prepend to the list for unique sorting
   if (!(unique_id %in% fields_requested)) {
-    fields_requested <- purrr::prepend(fields_requested, unique_id)
+    fields_requested <- append(fields_requested, unique_id, after = 0)
     fields_requested <- Filter(function(x) !identical("", x), fields_requested)
   }
 

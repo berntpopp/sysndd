@@ -9,7 +9,12 @@ require(DBI)
 require(digest)  # for hashing
 log_threshold(INFO)
 
-source("functions/db-helpers.R", local = TRUE)
+# Load database helper functions for repository layer access (if not already loaded)
+if (!exists("db_execute_query", mode = "function")) {
+  if (file.exists("functions/db-helpers.R")) {
+    source("functions/db-helpers.R", local = TRUE)
+  }
+}
 
 #------------------------------------------------------------------------------
 # 1) Retrieve Total Number of Pages from PubTator API v3

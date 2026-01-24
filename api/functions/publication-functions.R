@@ -3,11 +3,17 @@
 
 # load source files if not already loaded
 if (!exists("info_from_genereviews_pmid", mode = "function")) {
-  source("functions/genereviews-functions.R", local = TRUE)
+  if (file.exists("functions/genereviews-functions.R")) {
+    source("functions/genereviews-functions.R", local = TRUE)
+  }
 }
 
-# Load database helper functions for repository layer access
-source("functions/db-helpers.R", local = TRUE)
+# Load database helper functions for repository layer access (if not already loaded)
+if (!exists("db_execute_query", mode = "function")) {
+  if (file.exists("functions/db-helpers.R")) {
+    source("functions/db-helpers.R", local = TRUE)
+  }
+}
 
 #' A function that checks whether all PMIDs in a list are valid
 #' and can be found in pubmed, returns true if all are and
