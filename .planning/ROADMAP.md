@@ -147,11 +147,14 @@ Plans:
 ### Phase 24: Versioning, Pagination & Cleanup
 **Goal**: Production-ready API with versioning, pagination, and clean codebase
 **Depends on**: Phase 23 (OMIM Migration)
-**Requirements**: PAG-01, PAG-02, PAG-03, PAG-04, PAG-05, VER-01, VER-02, VER-03, VER-04, TEST-01, TEST-02, TEST-03, TEST-04, TEST-05
+**Requirements**: PAG-01, PAG-02, PAG-03, PAG-04, PAG-05, VER-01, VER-02, TEST-01, TEST-02, TEST-03, TEST-04, TEST-05
+**Deferred Requirements**:
+  - VER-03: URL path versioning (/api/v1/) - Requires dual-path mounting, deferred to future phase when v2 needed
+  - VER-04: Version displayed in frontend - Low priority, can be added after /api/version exists
 **Success Criteria** (what must be TRUE):
   1. /api/version endpoint returns semantic version and last commit
   2. All tabular endpoints support cursor-based pagination
-  3. 30 TODO comments resolved or documented as intentional
+  3. 23 TODO comments resolved or documented as intentional (updated from 30 - actual count)
   4. lintr issues reduced (target: <200 from current 1240)
   5. API integration tests pass for all refactored endpoints
 **Plans**: 7 plans in 4 waves
@@ -183,8 +186,8 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 ## Coverage Summary
 
 **v4 Requirements:** 71 total
-**Mapped to phases:** 71
-**Unmapped:** 0
+**Mapped to phases:** 69 (VER-03, VER-04 deferred)
+**Deferred:** 2 (VER-03, VER-04)
 
 | Category | Count | Phase |
 |----------|-------|-------|
@@ -198,9 +201,9 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 | OMIM | 6 | Phase 23 |
 | MONDO (optional) | 3 | Phase 23 |
 | Pagination (PAG) | 5 | Phase 24 |
-| Versioning (VER) | 4 | Phase 24 |
+| Versioning (VER) | 2 of 4 | Phase 24 (VER-03, VER-04 deferred) |
 | Testing (TEST) | 5 | Phase 24 |
 
 ---
 *Roadmap created: 2026-01-23*
-*Last updated: 2026-01-24 - Phase 24 planned (7 plans in 4 waves)*
+*Last updated: 2026-01-24 - Phase 24 revised (VER-03/VER-04 deferred, TEST-01 updated to 23 TODOs)*
