@@ -6,20 +6,20 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v4 Backend Overhaul - Phase 19 Security Hardening complete, ready for Phase 20
+**Current focus:** v4 Backend Overhaul - Phase 20 Async/Non-blocking in progress
 
 ## Current Position
 
 **Milestone:** v4 Backend Overhaul
-**Phase:** 19 of 24 (Security Hardening) - COMPLETE
-**Plan:** 5/5 complete
-**Status:** Phase 19 verified, ready for Phase 20
-**Last activity:** 2026-01-24 - Phase 19 Security Hardening complete
+**Phase:** 20 of 24 (Async/Non-blocking)
+**Plan:** 1/4 complete
+**Status:** In progress
+**Last activity:** 2026-01-24 - Completed 20-01-PLAN.md (Async Infrastructure Core)
 
 ```
-v4 Backend Overhaul: PHASE 19 COMPLETE
+v4 Backend Overhaul: PHASE 20 IN PROGRESS
 Goal: Modernize R/Plumber API with security, async, OMIM fix, R upgrade, DRY/KISS/SOLID
-Progress: ████████░░░░░░░░░░░░░░░░░░░░░░░░░ 29% (2/7 phases)
+Progress: █████████░░░░░░░░░░░░░░░░░░░░░░░░ 32% (2.25/7 phases)
 ```
 
 ## Completed Milestones
@@ -40,9 +40,9 @@ Progress: ████████░░░░░░░░░░░░░░░�
 ## Tech Debt (from API_CODE_REVIEW_REPORT.md)
 
 **Critical (Security) - RESOLVED in Phase 19:**
-- ~~66 SQL injection vulnerabilities via string concatenation~~ ✓ Parameterized queries
-- ~~Plaintext password storage/comparison~~ ✓ Argon2id hashing with progressive migration
-- ~~Passwords visible in logs~~ ✓ Sanitized logging
+- ~~66 SQL injection vulnerabilities via string concatenation~~ Parameterized queries
+- ~~Plaintext password storage/comparison~~ Argon2id hashing with progressive migration
+- ~~Passwords visible in logs~~ Sanitized logging
 
 **High - Addressed in Phases 20-22:**
 - 17 `dbConnect` calls bypassing connection pool
@@ -79,6 +79,10 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 19-05 | Use $7$ prefix for libsodium hash detection | sodium::password_store produces $7$ hashes, not $argon2 |
 | 2026-01-24 | 19-05 | Plumber sourcing via find.package path | Relative paths fail when Plumber sources endpoints |
 | 2026-01-24 | 19-05 | Mount core/ directory in Docker | Core modules must be accessible at container runtime |
+| 2026-01-24 | 20-01 | 8-worker daemon pool for async jobs | Matches MAX_CONCURRENT_JOBS limit for predictable capacity |
+| 2026-01-24 | 20-01 | 30-minute job timeout (1800000ms) | Sufficient for STRING-db clustering and ontology updates |
+| 2026-01-24 | 20-01 | Promise pipe (%...>%) for status updates | Non-blocking callback pattern from mirai/promises integration |
+| 2026-01-24 | 20-01 | Recursive later() for hourly cleanup | Workaround for later package lacking loop=TRUE parameter |
 
 ### Pending Todos
 
@@ -94,9 +98,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Phase 19 Security Hardening complete
+**Stopped at:** Completed 20-01-PLAN.md
 **Resume file:** None
-**Next action:** `/gsd:discuss-phase 20` or `/gsd:plan-phase 20` for Async/Non-blocking
+**Next action:** Execute 20-02-PLAN.md (Jobs API Endpoint)
 
 ---
-*Last updated: 2026-01-24 - Phase 19 Security Hardening complete (SQL injection fixes, password hashing, error handling, log sanitization)*
+*Last updated: 2026-01-24 - Phase 20 Plan 01 complete (mirai daemon pool, job-manager module)*
