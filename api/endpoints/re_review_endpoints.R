@@ -198,16 +198,15 @@ function(req,
          curate = FALSE) {
   curate <- as.logical(curate)
 
-  filter_exprs <- generate_filter_expressions(filter)
+  # Curate mode requires Curator+, non-curate requires Reviewer+
+  if (curate) {
+    require_role(req, res, "Curator")
+  } else {
+    require_role(req, res, "Reviewer")
+  }
 
-  if (length(req$user_id) == 0) {
-    res$status <- 401
-    return(list(error = "Please authenticate."))
-  } else if (
-    (req$user_role %in% c("Administrator", "Curator", "Reviewer") && !curate) ||
-    (req$user_role %in% c("Administrator", "Curator") && curate)
-  ) {
-    user <- req$user_id
+  filter_exprs <- generate_filter_expressions(filter)
+  user <- req$user_id
 
     re_review_entity_connect <- pool %>%
       tbl("re_review_entity_connect") %>%
@@ -284,10 +283,6 @@ function(req,
       filter(!!!rlang::parse_exprs(filter_exprs))
 
     re_review_user_list
-  } else {
-    res$status <- 403
-    return(list(error = "Read access forbidden."))
-  }
 }
 
 
@@ -307,43 +302,37 @@ function(req,
 #*
 #* @get batch/apply
 function(req, res) {
+  require_role(req, res, "Reviewer")
+
   user <- req$user_id
 
-  if (length(user) == 0) {
-    res$status <- 401
-    return(list(error = "Please authenticate."))
-  } else if (req$user_role %in% c("Administrator", "Curator", "Reviewer")) {
-    user_table <- pool %>%
-      tbl("user") %>%
-      collect()
+  user_table <- pool %>%
+    tbl("user") %>%
+    collect()
 
-    user_info <- user_table %>%
-      filter(user_id == user) %>%
-      select(user_id, user_name, email, orcid)
+  user_info <- user_table %>%
+    filter(user_id == user) %>%
+    select(user_id, user_name, email, orcid)
 
-    curator_mail <- user_table %>%
-      filter(user_role == "Curator") %>%
-      pull(email)
+  curator_mail <- user_table %>%
+    filter(user_role == "Curator") %>%
+    pull(email)
 
-    res_mail <- send_noreply_email(
-      c(
-        "Hello", user_info$user_name, "!<br />",
-        "<br />Your request for another **re-review batch** has been sent to the curators.",
-        "They will review and activate your application shortly.<br /><br />",
-        "Requesting user info:",
-        user_info %>% kable("html"),
-        "<br />",
-        "Best wishes,<br />The SysNDD team"
-      ),
-      "Your re-review batch request from SysNDD.org",
-      user_info$email,
-      curator_mail
-    )
-    res_mail
-  } else {
-    res$status <- 403
-    return(list(error = "Read access forbidden."))
-  }
+  res_mail <- send_noreply_email(
+    c(
+      "Hello", user_info$user_name, "!<br />",
+      "<br />Your request for another **re-review batch** has been sent to the curators.",
+      "They will review and activate your application shortly.<br /><br />",
+      "Requesting user info:",
+      user_info %>% kable("html"),
+      "<br />",
+      "Best wishes,<br />The SysNDD team"
+    ),
+    "Your re-review batch request from SysNDD.org",
+    user_info$email,
+    curator_mail
+  )
+  res_mail
 }
 
 
@@ -365,6 +354,8 @@ function(req, res) {
 #*
 #* @put batch/assign
 function(req, res, user_id) {
+  require_role(req, res, "Curator")
+
   user <- req$user_id
   user_id_assign <- as.integer(user_id)
 
@@ -394,21 +385,15 @@ function(req, res, user_id) {
     "re_review_batch" = re_review_batch_next
   )
 
-  if (length(user) == 0) {
-    res$status <- 401
-    return(list(error = "Please authenticate."))
-  } else if (req$user_role %in% c("Administrator", "Curator") && !user_id_assign_exists) {
+  if (!user_id_assign_exists) {
     res$status <- 409
     return(list(error = "User account does not exist."))
-  } else if (req$user_role %in% c("Administrator", "Curator") && user_id_assign_exists) {
-    db_execute_statement(
-      "INSERT INTO re_review_assignment (user_id, re_review_batch) VALUES (?, ?)",
-      list(user_id_assign, re_review_batch_next)
-    )
-  } else {
-    res$status <- 403
-    return(list(error = "Read access forbidden."))
   }
+
+  db_execute_statement(
+    "INSERT INTO re_review_assignment (user_id, re_review_batch) VALUES (?, ?)",
+    list(user_id_assign, re_review_batch_next)
+  )
 }
 
 
@@ -430,6 +415,8 @@ function(req, res, user_id) {
 #*
 #* @delete batch/unassign
 function(req, res, re_review_batch) {
+  require_role(req, res, "Curator")
+
   user <- req$user_id
   re_review_batch_unassign <- as.integer(re_review_batch)
 
@@ -443,23 +430,15 @@ function(req, res, re_review_batch) {
     length(re_review_assignment_table$re_review_batch)
   )
 
-  if (length(user) == 0) {
-    res$status <- 401
-    return(list(error = "Please authenticate."))
-  } else if (
-    req$user_role %in% c("Administrator", "Curator") &&
-    !re_review_batch_unassign_ex
-  ) {
+  if (!re_review_batch_unassign_ex) {
     res$status <- 409
     return(list(error = "Batch does not exist."))
-  } else if (
-    req$user_role %in% c("Administrator", "Curator") &&
-    re_review_batch_unassign_ex
-  ) {
-    db_execute_statement(
-      "DELETE FROM re_review_assignment WHERE re_review_batch = ?",
-      list(re_review_batch_unassign)
-    )
+  }
+
+  db_execute_statement(
+    "DELETE FROM re_review_assignment WHERE re_review_batch = ?",
+    list(re_review_batch_unassign)
+  )
 #* reviewed, etc.
 #*
 #* # `Return`
@@ -470,53 +449,47 @@ function(req, res, re_review_batch) {
 #*
 #* @get assignment_table
 function(req, res) {
+  require_role(req, res, "Curator")
+
   user <- req$user_id
 
-  if (length(user) == 0) {
-    res$status <- 401
-    return(list(error = "Please authenticate."))
-  } else if (req$user_role %in% c("Administrator", "Curator")) {
-    re_review_entity_connect_table <- pool %>%
-      tbl("re_review_entity_connect") %>%
-      select(
-        re_review_batch,
-        re_review_review_saved,
-        re_review_status_saved,
-        re_review_submitted,
-        re_review_approved
-      ) %>%
-      group_by(re_review_batch) %>%
-      collect() %>%
-      mutate(entity_count = 1) %>%
-      summarize_at(vars(re_review_review_saved:entity_count), sum)
+  re_review_entity_connect_table <- pool %>%
+    tbl("re_review_entity_connect") %>%
+    select(
+      re_review_batch,
+      re_review_review_saved,
+      re_review_status_saved,
+      re_review_submitted,
+      re_review_approved
+    ) %>%
+    group_by(re_review_batch) %>%
+    collect() %>%
+    mutate(entity_count = 1) %>%
+    summarize_at(vars(re_review_review_saved:entity_count), sum)
 
-    re_review_assignment_table <- pool %>%
-      tbl("re_review_assignment")
+  re_review_assignment_table <- pool %>%
+    tbl("re_review_assignment")
 
-    user_table <- pool %>%
-      tbl("user") %>%
-      select(user_id, user_name)
+  user_table <- pool %>%
+    tbl("user") %>%
+    select(user_id, user_name)
 
-    re_review_assign_table_user <- re_review_assignment_table %>%
-      left_join(user_table, by = c("user_id")) %>%
-      collect() %>%
-      left_join(re_review_entity_connect_table, by = c("re_review_batch")) %>%
-      select(
-        assignment_id,
-        user_id,
-        user_name,
-        re_review_batch,
-        re_review_review_saved,
-        re_review_status_saved,
-        re_review_submitted,
-        re_review_approved,
-        entity_count
-      ) %>%
-      arrange(user_id)
+  re_review_assign_table_user <- re_review_assignment_table %>%
+    left_join(user_table, by = c("user_id")) %>%
+    collect() %>%
+    left_join(re_review_entity_connect_table, by = c("re_review_batch")) %>%
+    select(
+      assignment_id,
+      user_id,
+      user_name,
+      re_review_batch,
+      re_review_review_saved,
+      re_review_status_saved,
+      re_review_submitted,
+      re_review_approved,
+      entity_count
+    ) %>%
+    arrange(user_id)
 
-    re_review_assign_table_user
-  } else {
-    res$status <- 403
-    return(list(error = "Read access forbidden."))
-  }
+  re_review_assign_table_user
 }
