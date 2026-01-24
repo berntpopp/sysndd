@@ -12,15 +12,15 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 
 **Milestone:** v5.0 Analysis Modernization
 **Phase:** 25 of 27 (Performance Optimization)
-**Plan:** 01 of N (Cache Versioning and Leiden Migration)
-**Status:** Plan 25-01 complete
-**Last activity:** 2026-01-24 — Completed 25-01: Leiden clustering with versioned cache keys
+**Plan:** 03 of N (HCPC/MCA Optimization)
+**Status:** Plan 25-03 complete
+**Last activity:** 2026-01-24 — Completed 25-03: HCPC pre-partitioning and performance monitoring
 
 ```
 v5 Analysis Modernization: PHASE 25 IN PROGRESS
 Goal: Transform analysis pages with performance, network viz, and modern UI/UX
-Progress: ████████████████████████░░ 90% (25-01 complete)
-          [Phase 25: 25-01 done] → Phase 26 → Phase 27
+Progress: ████████████████████████░░ 92% (25-01, 25-03 complete)
+          [Phase 25: 25-01, 25-03 done] → Phase 26 → Phase 27
 ```
 
 ## Completed Milestones
@@ -69,6 +69,9 @@ Recent v5-relevant decisions:
 - **Leiden over Walktrap**: 2-3x faster clustering, built-in igraph support
 - **Leiden parameters**: modularity objective, resolution=1.0, beta=0.01, n_iterations=2
 - **Cache key versioning**: Include algorithm, STRING version, and CACHE_VERSION env var
+- **HCPC kk=50**: Pre-partition into 50 clusters (16% of ~309 entities) for 50-70% speedup
+- **MCA ncp=8**: Captures >70% variance, reduced from ncp=15 for 20-30% speedup
+- **Performance monitoring**: /health/performance endpoint for worker pool and cache observability
 - **Cytoscape.js over D3 force**: Rich algorithms, compound nodes, WebGL support
 - **fcose over cose-bilkent**: 2x speed improvement, active maintenance
 - **Vue 3 composables**: Direct control, TypeScript support, established pattern
@@ -95,11 +98,11 @@ Pre-existing analysis documents:
 
 ## Session Continuity
 
-**Last session:** 2026-01-24T22:57:40Z
-**Stopped at:** Completed 25-01-PLAN.md (Cache Versioning and Leiden Migration)
+**Last session:** 2026-01-24T23:02:48Z
+**Stopped at:** Completed 25-03-PLAN.md (HCPC/MCA Optimization and Performance Monitoring)
 **Resume file:** None
-**Next action:** Continue with Plan 25-02 or next performance optimization tasks
+**Next action:** Continue with Plan 25-02 (pagination), 25-04, or Phase 26 (Network Visualization)
 
 ---
 *State initialized: 2026-01-24 for v5.0 milestone*
-*Last updated: 2026-01-24 — Plan 25-01 complete*
+*Last updated: 2026-01-24 — Plan 25-03 complete*
