@@ -211,21 +211,36 @@ function(status_id_requested) {
 #* Retrieves all status categories from ndd_entity_status_categories_list.
 #*
 #* # `Return`
-#* Returns the list of categories.
+#* Returns a paginated list of categories with links, meta, and data structure.
 #*
 #* @tag status
 #* @serializer json list(na="string")
 #*
-#* @response 200 OK. 
+#* @param page_after Cursor after which entries are shown (default: 0).
+#* @param page_size Page size in cursor pagination (default: "all").
+#*
+#* @response 200 OK. Returns paginated status categories.
 #*
 #* @get _list
-function() {
+function(page_after = 0, page_size = "all") {
   status_list_collected <- pool %>%
     tbl("ndd_entity_status_categories_list") %>%
     arrange(category_id) %>%
     collect()
 
-  status_list_collected
+  # Apply pagination
+  pagination_info <- generate_cursor_pag_inf_safe(
+    status_list_collected,
+    page_size,
+    page_after,
+    "category_id"
+  )
+
+  list(
+    links = pagination_info$links,
+    meta = pagination_info$meta,
+    data = pagination_info$data
+  )
 }
 
 
