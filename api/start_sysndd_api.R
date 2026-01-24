@@ -217,14 +217,8 @@ daemons(
 )
 message(sprintf("[%s] Started mirai daemon pool with 8 workers", Sys.time()))
 
-# Schedule hourly job cleanup using later (plumber dependency)
-schedule_cleanup <- function() {
-  later::later(function() {
-    cleanup_old_jobs()
-    schedule_cleanup()  # Re-schedule for next hour
-  }, 3600)
-}
-schedule_cleanup()
+# Schedule hourly job cleanup (uses schedule_cleanup from job-manager.R)
+schedule_cleanup(3600)  # 3600 seconds = 1 hour
 
 ## -------------------------------------------------------------------##
 # 10) Define filters as named functions with roxygen tags

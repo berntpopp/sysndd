@@ -198,7 +198,7 @@ get_progress_message <- function(operation) {
   messages <- list(
     clustering = "Fetching interaction data from STRING-db...",
     phenotype_clustering = "Running Multiple Correspondence Analysis...",
-    ontology_update = "Fetching ontology data from external sources..."
+    ontology_update = "Downloading and processing ontology data from MONDO/OMIM..."
   )
 
   messages[[operation]] %||% "Processing request..."
@@ -245,37 +245,72 @@ check_duplicate_job <- function(operation, params) {
 #' Clean up old completed/failed jobs
 #'
 #' Removes jobs that completed more than 24 hours ago to prevent
-#' memory leaks. Should be called periodically (e.g., hourly).
+#' memory leaks. Called periodically by schedule_cleanup().
 #'
-#' @return NULL (invisible). Logs cleanup count via message().
+#' @return Integer count of removed jobs (invisible).
 #'
 #' @examples
 #' \dontrun{
-#' # Schedule hourly cleanup
-#' later::later(cleanup_old_jobs, 3600)
+#' cleanup_old_jobs()
 #' }
+#' @export
 cleanup_old_jobs <- function() {
   cutoff_time <- Sys.time() - (24 * 3600)  # 24 hours ago
-  removed_count <- 0
+  removed <- 0
 
-  for (job_id in ls(jobs_env)) {
-    job <- jobs_env[[job_id]]
+  job_ids <- ls(jobs_env)
 
-    # Only clean up completed or failed jobs
-    if (job$status %in% c("completed", "failed")) {
-      # Use completed_at if available, fall back to submitted_at
-      end_time <- job$completed_at %||% job$submitted_at
+  if (length(job_ids) == 0) {
+    return(invisible(0))
+  }
 
-      if (end_time < cutoff_time) {
+  for (job_id in job_ids) {
+    tryCatch({
+      job <- jobs_env[[job_id]]
+
+      if (is.null(job)) {
+        # Orphaned entry, remove it
         rm(list = job_id, envir = jobs_env)
-        removed_count <- removed_count + 1
+        removed <- removed + 1
+        next
       }
-    }
+
+      if (job$status %in% c("completed", "failed")) {
+        end_time <- job$completed_at %||% job$submitted_at
+
+        if (!is.null(end_time) && end_time < cutoff_time) {
+          rm(list = job_id, envir = jobs_env)
+          removed <- removed + 1
+        }
+      }
+    }, error = function(e) {
+      message(sprintf("[%s] Error cleaning job %s: %s", Sys.time(), job_id, e$message))
+    })
   }
 
-  if (removed_count > 0) {
-    message(sprintf("[%s] Cleaned up %d old jobs", Sys.time(), removed_count))
+  if (removed > 0) {
+    message(sprintf("[%s] Cleaned up %d old jobs", Sys.time(), removed))
   }
 
-  invisible(NULL)
+  invisible(removed)
+}
+
+#' Schedule Recurring Job Cleanup
+#'
+#' Schedules the cleanup_old_jobs function to run periodically.
+#' Uses `later` package for non-blocking scheduling.
+#' Default interval is 1 hour (3600 seconds).
+#'
+#' @param interval_seconds Interval between cleanup runs in seconds
+#' @export
+schedule_cleanup <- function(interval_seconds = 3600) {
+  cleanup_and_reschedule <- function() {
+    cleanup_old_jobs()
+    # Reschedule
+    later::later(cleanup_and_reschedule, interval_seconds)
+  }
+
+  # Start the first cleanup cycle
+  later::later(cleanup_and_reschedule, interval_seconds)
+  message(sprintf("[%s] Scheduled job cleanup every %d seconds", Sys.time(), interval_seconds))
 }
