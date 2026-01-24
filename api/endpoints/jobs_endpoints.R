@@ -11,7 +11,7 @@
 # Dependencies:
 #   - pool (global database connection pool)
 #   - create_job, get_job_status, check_duplicate_job (from job-manager.R)
-#   - gen_string_clust_obj_mem, gen_mca_clust_obj_mem (memoized analysis functions)
+#   - gen_string_clust_obj, gen_mca_clust_obj (analysis functions - loaded in daemons via everywhere())
 
 ## -------------------------------------------------------------------##
 ## Job Submission Endpoints
@@ -66,7 +66,8 @@ function(req, res) {
     params = list(genes = genes_list),
     executor_fn = function(params) {
       # This runs in mirai daemon - use memoized version
-      gen_string_clust_obj_mem(params$genes)
+      # Use non-memoized version (memoized not available in daemon)
+      gen_string_clust_obj(params$genes)
     }
   )
 
@@ -193,7 +194,8 @@ function(req, res) {
 
       row.names(sysndd_db_phenotypes_wider_df) <- sysndd_db_phenotypes_wider$entity_id
 
-      phenotype_clusters <- gen_mca_clust_obj_mem(sysndd_db_phenotypes_wider_df)
+      # Use non-memoized version (memoized not available in daemon)
+      phenotype_clusters <- gen_mca_clust_obj(sysndd_db_phenotypes_wider_df)
 
       # Add back identifiers
       ndd_entity_view_tbl_sub <- params$ndd_entity_view_tbl %>%

@@ -217,6 +217,28 @@ daemons(
 )
 message(sprintf("[%s] Started mirai daemon pool with 8 workers", Sys.time()))
 
+# Export required packages and functions to all daemons
+everywhere({
+  library(dplyr)
+  library(tidyr)
+  library(tibble)
+  library(stringr)
+  library(digest)
+  library(jsonlite)
+  library(openssl)
+  library(purrr)
+  library(STRINGdb)
+  library(FactoMineR)
+  library(factoextra)
+  library(cluster)
+  library(igraph)
+  # Source helper functions first (generate_panel_hash, generate_function_hash)
+  source("/app/functions/helper-functions.R", local = FALSE)
+  # Source the analysis functions (gen_string_clust_obj, gen_mca_clust_obj)
+  source("/app/functions/analyses-functions.R", local = FALSE)
+})
+message(sprintf("[%s] Exported packages and functions to mirai daemons", Sys.time()))
+
 # Schedule hourly job cleanup (uses schedule_cleanup from job-manager.R)
 schedule_cleanup(3600)  # 3600 seconds = 1 hour
 
@@ -267,6 +289,19 @@ checkSignInFilter <- function(req, res) {
   else if (
     req$REQUEST_METHOD == "POST" &&
       (req$PATH_INFO == "/api/gene/hash" || req$PATH_INFO == "/api/entity/hash")
+  ) {
+    plumber::forward()
+  }
+  # POST to public async job endpoints => forward
+  # (clustering and phenotype_clustering are public, ontology_update requires auth handled internally)
+  else if (
+    req$REQUEST_METHOD == "POST" &&
+      (req$PATH_INFO %in% c(
+        "/api/jobs/clustering/submit",
+        "/api/jobs/clustering/submit/",
+        "/api/jobs/phenotype_clustering/submit",
+        "/api/jobs/phenotype_clustering/submit/"
+      ))
   ) {
     plumber::forward()
   }
