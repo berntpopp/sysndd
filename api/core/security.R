@@ -6,8 +6,8 @@
 #   hash <- hash_password("mypassword")
 #   is_valid <- verify_password(stored_hash, "attempt")
 
-# Source db-helpers for parameterized query execution
-source(file.path(find.package("sysndd"), "functions", "db-helpers.R"), local = TRUE)
+# Note: db-helpers.R is sourced by start_sysndd_api.R before core modules
+# The db_execute_statement function is available in the global environment
 
 #' Check if password is already hashed (sodium/libsodium format)
 #'

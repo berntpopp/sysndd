@@ -8,15 +8,9 @@
 # for example:
 # source("functions/database-functions.R", local = TRUE)
 
-# Load security utilities for password verification and progressive migration
-source("../core/security.R", local = TRUE)
-
-# Load database helper functions for repository layer access
-source("functions/db-helpers.R", local = TRUE)
-
-# Load authentication service layer
-auth_service_path <- file.path(find.package("plumber"), "..", "..", "api", "services", "auth-service.R")
-source(auth_service_path, local = TRUE)
+# Note: All required modules (security.R, db-helpers.R, auth-service.R)
+# are sourced by start_sysndd_api.R before endpoints are loaded.
+# Functions are available in the global environment.
 
 ## -------------------------------------------------------------------##
 ## Authentication section

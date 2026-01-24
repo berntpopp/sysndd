@@ -7,11 +7,9 @@
 # Be sure to source any required helper files at the top (e.g.,
 # source("functions/database-functions.R", local = TRUE)) if needed.
 
-source("functions/db-helpers.R", local = TRUE)
-
-# Load middleware for authorization
-middleware_path <- file.path(find.package("plumber"), "..", "..", "api", "core", "middleware.R")
-source(middleware_path, local = TRUE)
+# Note: All required modules (db-helpers.R, middleware.R)
+# are sourced by start_sysndd_api.R before endpoints are loaded.
+# Functions are available in the global environment.
 
 ## -------------------------------------------------------------------##
 ## Administration section

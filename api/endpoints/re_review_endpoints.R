@@ -4,9 +4,8 @@
 # the original sysndd_plumber.R. It follows the Google R Style Guide
 # conventions where possible.
 
-# Load db-helpers for parameterized queries
-db_helpers_path <- file.path(find.package("plumber"), "..", "..", "api", "functions", "db-helpers.R")
-source(db_helpers_path, local = TRUE)
+# Note: db-helpers.R is sourced by start_sysndd_api.R before endpoints are loaded
+# Functions like db_execute_statement are available in the global environment
 
 ##-------------------------------------------------------------------##
 ## Re-review endpoints
@@ -439,6 +438,12 @@ function(req, res, re_review_batch) {
     "DELETE FROM re_review_assignment WHERE re_review_batch = ?",
     list(re_review_batch_unassign)
   )
+}
+
+
+#* Get Re-Review Assignment Table
+#*
+#* Returns summary statistics of all re-review batch assignments - entities
 #* reviewed, etc.
 #*
 #* # `Return`

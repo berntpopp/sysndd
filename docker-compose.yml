@@ -104,7 +104,10 @@ services:
       - ./api/endpoints:/app/endpoints
       - ./api/functions:/app/functions
       - ./api/core:/app/core
+      - ./api/services:/app/services
+      - ./api/repository:/app/repository
       - ./api/config:/app/config
+      - ./api/data:/app/data
       - ./api/config.yml:/app/config.yml
       - ./api/version_spec.json:/app/version_spec.json
       - ./api/start_sysndd_api.R:/app/start_sysndd_api.R
@@ -136,6 +139,12 @@ services:
         - action: sync
           path: ./api/core
           target: /app/core
+        - action: sync
+          path: ./api/services
+          target: /app/services
+        - action: sync
+          path: ./api/repository
+          target: /app/repository
         - action: rebuild
           path: ./api/renv.lock
     labels:

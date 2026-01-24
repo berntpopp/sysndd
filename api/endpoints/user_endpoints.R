@@ -4,16 +4,9 @@
 # original sysndd_plumber.R. It follows the Google R Style Guide
 # conventions where possible.
 
-# Load security utilities for password hashing and verification
-source("../core/security.R", local = TRUE)
-
-# Load middleware for authorization
-middleware_path <- file.path(find.package("plumber"), "..", "..", "api", "core", "middleware.R")
-source(middleware_path, local = TRUE)
-
-# Load user repository for database operations
-user_repo_path <- file.path(find.package("plumber"), "..", "..", "api", "functions", "user-repository.R")
-source(user_repo_path, local = TRUE)
+# Note: All required modules (security.R, middleware.R, user-repository.R)
+# are sourced by start_sysndd_api.R before endpoints are loaded.
+# Functions are available in the global environment.
 
 ##-------------------------------------------------------------------##
 ## User endpoint section
