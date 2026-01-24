@@ -198,7 +198,8 @@ get_progress_message <- function(operation) {
   messages <- list(
     clustering = "Fetching interaction data from STRING-db...",
     phenotype_clustering = "Running Multiple Correspondence Analysis...",
-    ontology_update = "Downloading and processing ontology data from MONDO/OMIM..."
+    ontology_update = "Downloading and processing ontology data from MONDO/OMIM...",
+    omim_update = "Updating OMIM annotations from mim2gene.txt + JAX API..."
   )
 
   messages[[operation]] %||% "Processing request..."
