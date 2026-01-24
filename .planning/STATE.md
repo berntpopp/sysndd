@@ -12,14 +12,14 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Milestone:** v4 Backend Overhaul
 **Phase:** 19 of 24 (Security Hardening)
-**Plan:** 4/8 complete
+**Plan:** 5/8 complete
 **Status:** In progress
-**Last activity:** 2026-01-23 - Completed 19-04-PLAN.md (Error Middleware Integration)
+**Last activity:** 2026-01-24 - Completed 19-05-PLAN.md (Verification and Testing)
 
 ```
 v4 Backend Overhaul: PHASE 19 IN PROGRESS
 Goal: Modernize R/Plumber API with security, async, OMIM fix, R upgrade, DRY/KISS/SOLID
-Progress: █████░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 19% (1/7 phases + 4/8 plans)
+Progress: █████░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 21% (1/7 phases + 5/8 plans)
 ```
 
 ## Completed Milestones
@@ -76,6 +76,9 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-23 | 19-03 | Silent password upgrade on login | No user notification needed for transparent migration |
 | 2026-01-23 | 19-04 | Sanitize JSON body by parsing then sanitize_object | More reliable than regex replacement |
 | 2026-01-23 | 19-04 | Generic 500 for unhandled exceptions | Don't expose stack traces or internal error messages |
+| 2026-01-24 | 19-05 | Use $7$ prefix for libsodium hash detection | sodium::password_store produces $7$ hashes, not $argon2 |
+| 2026-01-24 | 19-05 | Plumber sourcing via find.package path | Relative paths fail when Plumber sources endpoints |
+| 2026-01-24 | 19-05 | Mount core/ directory in Docker | Core modules must be accessible at container runtime |
 
 ### Pending Todos
 
@@ -90,10 +93,10 @@ None yet.
 
 ## Session Continuity
 
-**Last session:** 2026-01-23
-**Stopped at:** Completed 19-04-PLAN.md
+**Last session:** 2026-01-24
+**Stopped at:** Completed 19-05-PLAN.md
 **Resume file:** None
-**Next action:** Execute 19-05-PLAN.md for remaining entity endpoints hardening
+**Next action:** Execute 19-06-PLAN.md for entity endpoints security hardening
 
 ---
-*Last updated: 2026-01-23 - Phase 19 Plan 04 complete (Error Middleware Integration)*
+*Last updated: 2026-01-24 - Phase 19 Plan 05 complete (Verification and Testing)*
