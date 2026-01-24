@@ -9,6 +9,10 @@
 
 source("functions/db-helpers.R", local = TRUE)
 
+# Load middleware for authorization
+middleware_path <- file.path(find.package("plumber"), "..", "..", "api", "core", "middleware.R")
+source(middleware_path, local = TRUE)
+
 ## -------------------------------------------------------------------##
 ## Administration section
 ## -------------------------------------------------------------------##
@@ -51,13 +55,8 @@ function(req, res) {
 #* @serializer json list(na="string")
 #* @put update_ontology
 function(req, res) {
-  # Check user role for Administrator access
-  if (req$user_role != "Administrator") {
-    res$status <- 403 # Forbidden
-    return(list(
-      error = "Access forbidden. Only administrators can perform this operation."
-    ))
-  }
+  # Require Administrator role
+  require_role(req, res, "Administrator")
 
   # Collect data from multiple tables
   mode_of_inheritance_list <- pool %>%
@@ -207,10 +206,8 @@ function(req, res) {
 #* @serializer json list(na="string")
 #* @put update_hgnc_data
 function(req, res) {
-  if (req$user_role != "Administrator") {
-    res$status <- 403
-    return(list(error = "Access forbidden. Only administrators can perform this operation."))
-  }
+  # Require Administrator role
+  require_role(req, res, "Administrator")
 
   # Call the function to update the HGNC data
   hgnc_data <- update_process_hgnc_data()

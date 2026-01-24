@@ -14,6 +14,10 @@ source("../core/security.R", local = TRUE)
 # Load database helper functions for repository layer access
 source("functions/db-helpers.R", local = TRUE)
 
+# Load authentication service layer
+auth_service_path <- file.path(find.package("plumber"), "..", "..", "api", "services", "auth-service.R")
+source(auth_service_path, local = TRUE)
+
 ## -------------------------------------------------------------------##
 ## Authentication section
 ## -------------------------------------------------------------------##
@@ -114,8 +118,8 @@ function(signup_data) {
 #* returns a JWT. Otherwise, returns an error.
 #*
 #* # `Details`
-#* Loads secret from environment (dw$secret), verifies user, role, and other
-#* details, and if successful, encodes a JWT with expiry time.
+#* Uses auth_signin service function for authentication logic.
+#* Returns JWT string for backward compatibility with existing clients.
 #*
 #* # `Return`
 #* JWT on success, error message otherwise.
@@ -131,70 +135,29 @@ function(signup_data) {
 #*
 #* @get authenticate
 function(req, res, user_name, password) {
-  check_user <- user_name
-  check_pass <- password
-
-  # Load secret
-  key <- charToRaw(dw$secret)
-
+  # Validate inputs before calling service
   if (
-    is.null(check_user) || nchar(check_user) < 5 || nchar(check_user) > 20 ||
-      is.null(check_pass) || nchar(check_pass) < 5 || nchar(check_pass) > 50
+    is.null(user_name) || nchar(user_name) < 5 || nchar(user_name) > 20 ||
+      is.null(password) || nchar(password) < 5 || nchar(password) > 50
   ) {
     res$status <- 404
     res$body <- "Please provide valid username and password."
     return(res)
   }
 
-  # Fetch user by username only (don't filter by password in SQL)
-  user_filtered <- pool %>%
-    tbl("user") %>%
-    filter(user_name == check_user & approved == 1) %>%
-    collect()
-
-  if (nrow(user_filtered) != 1) {
-    res$status <- 401
-    res$body <- "User or password wrong."
-    return(res)
-  }
-
-  # Verify password using dual-hash support (Argon2id or plaintext)
-  authenticated <- verify_password(user_filtered$password[1], check_pass)
-
-  if (!authenticated) {
-    res$status <- 401
-    res$body <- "User or password wrong."
-    return(res)
-  }
-
-  # Progressive password upgrade: migrate plaintext to Argon2id on successful login
-  if (needs_upgrade(user_filtered$password[1])) {
-    upgrade_password(pool, user_filtered$user_id[1], check_pass)
-  }
-
-  # Remove password and add JWT timestamps
-  user_filtered <- user_filtered %>%
-    select(-password) %>%
-    mutate(
-      iat = as.numeric(Sys.time()),
-      exp = as.numeric(Sys.time()) + dw$refresh
-    )
-
-  # If match found, create JWT
-  claim <- jwt_claim(
-    user_id = user_filtered$user_id,
-    user_name = user_filtered$user_name,
-    email = user_filtered$email,
-    user_role = user_filtered$user_role,
-    user_created = user_filtered$created_at,
-    abbreviation = user_filtered$abbreviation,
-    orcid = user_filtered$orcid,
-    iat = user_filtered$iat,
-    exp = user_filtered$exp
+  # Call auth service (returns structured response)
+  tryCatch(
+    {
+      result <- auth_signin(user_name, password, pool, dw)
+      # Return just the access token for backward compatibility
+      result$access_token
+    },
+    error = function(e) {
+      res$status <- 401
+      res$body <- "User or password wrong."
+      return(res)
+    }
   )
-
-  jwt <- jwt_encode_hmac(claim, secret = key)
-  jwt
 }
 
 
@@ -204,7 +167,7 @@ function(req, res, user_name, password) {
 #* not expired, returns the user data. Otherwise, returns an error.
 #*
 #* # `Details`
-#* Loads JWT from header, decodes it, checks expiration.
+#* Uses auth_verify service function to validate JWT token.
 #*
 #* # `Return`
 #* User info if token is valid; 401 otherwise.
@@ -217,9 +180,6 @@ function(req, res, user_name, password) {
 #*
 #* @get signin
 function(req, res) {
-  # Load secret
-  key <- charToRaw(dw$secret)
-
   if (is.null(req$HTTP_AUTHORIZATION)) {
     res$status <- 401
     return(list(error = "Authorization http header missing."))
@@ -227,44 +187,26 @@ function(req, res) {
 
   jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
 
-  user <- NULL
   tryCatch(
     {
-      user <- jwt_decode_hmac(jwt, secret = key)
-      user$token_expired <- (user$exp < as.numeric(Sys.time()))
+      # Call auth_verify service function
+      auth_verify(jwt, dw)
     },
     error = function(e) {
       res$status <- 401
       return(list(error = "Authentication not successful."))
     }
   )
-
-  if (is.null(jwt) || user$token_expired) {
-    res$status <- 401
-    return(list(error = "Authentication not successful."))
-  } else {
-    list(
-      user_id = user$user_id,
-      user_name = user$user_name,
-      email = user$email,
-      user_role = user$user_role,
-      user_created = user$user_created,
-      abbreviation = user$abbreviation,
-      orcid = user$orcid,
-      exp = user$exp
-    )
-  }
 }
 
 
 #* Refresh the Authentication Token
 #*
-#* If the user’s current token is valid and not expired, this endpoint returns a
+#* If the user's current token is valid and not expired, this endpoint returns a
 #* new, refreshed token with updated expiry. Otherwise, returns an error.
 #*
 #* # `Details`
-#* Similar to sign-in. Decodes the JWT, checks if it’s expired. If valid,
-#* regenerates the token with a fresh expiration time.
+#* Uses auth_refresh service function to generate new token.
 #*
 #* # `Return`
 #* Refreshed JWT or error message.
@@ -277,45 +219,23 @@ function(req, res) {
 #*
 #* @get refresh
 function(req, res) {
-  key <- charToRaw(dw$secret)
-
   if (is.null(req$HTTP_AUTHORIZATION)) {
     res$status <- 401
     return(list(error = "Authorization http header missing."))
   }
 
   jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
-  user <- NULL
 
   tryCatch(
     {
-      user <- jwt_decode_hmac(jwt, secret = key)
-      user$token_expired <- (user$exp < as.numeric(Sys.time()))
+      # Call auth_refresh service function (returns new JWT string)
+      auth_refresh(jwt, pool, dw)
     },
     error = function(e) {
       res$status <- 401
       return(list(error = "Authentication not successful."))
     }
   )
-
-  if (is.null(jwt) || user$token_expired) {
-    res$status <- 401
-    return(list(error = "Authentication not successful."))
-  } else {
-    claim <- jwt_claim(
-      user_id = user$user_id,
-      user_name = user$user_name,
-      email = user$email,
-      user_role = user$user_role,
-      user_created = user$user_created,
-      abbreviation = user$abbreviation,
-      orcid = user$orcid,
-      iat = as.numeric(Sys.time()),
-      exp = as.numeric(Sys.time()) + dw$refresh
-    )
-    jwt <- jwt_encode_hmac(claim, secret = key)
-    jwt
-  }
 }
 
 ## Authentication section
