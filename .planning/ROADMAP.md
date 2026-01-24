@@ -23,7 +23,7 @@ The v4 Backend Overhaul modernizes the R/Plumber API through a strict phase sequ
 - [x] **Phase 20: Async/Non-blocking** - Add mirai for long-running operations ✓
 - [x] **Phase 21: Repository Layer** - Create database access layer with domain repositories ✓
 - [x] **Phase 22: Service Layer & Middleware** - Extract business logic and auth middleware ✓
-- [ ] **Phase 23: OMIM Migration** - Switch from genemap2 to mim2gene.txt + MONDO/HPO
+- [x] **Phase 23: OMIM Migration** - Switch from genemap2 to mim2gene.txt + MONDO/HPO ✓
 - [ ] **Phase 24: Versioning, Pagination & Cleanup** - API versioning, cleanup, and testing
 
 ## Phase Details
@@ -138,11 +138,11 @@ Plans:
 **Plans**: 5 plans in 4 waves
 
 Plans:
-- [ ] 23-01-PLAN.md - Create JAX API validation script and document rate limits
-- [ ] 23-02-PLAN.md - Create omim-functions.R (mim2gene parsing, JAX API, validation)
-- [ ] 23-03-PLAN.md - Create mondo-functions.R (SSSOM parsing, MONDO mappings)
-- [ ] 23-04-PLAN.md - Integrate new functions into ontology update, create async endpoint
-- [ ] 23-05-PLAN.md - Update ManageAnnotations polling and add MONDO to entity views
+- [x] 23-01-PLAN.md - Create JAX API validation script and document rate limits ✓
+- [x] 23-02-PLAN.md - Create omim-functions.R (mim2gene parsing, JAX API, validation) ✓
+- [x] 23-03-PLAN.md - Create mondo-functions.R (SSSOM parsing, MONDO mappings) ✓
+- [x] 23-04-PLAN.md - Integrate new functions into ontology update, create async endpoint ✓
+- [x] 23-05-PLAN.md - OLS4 API integration and frontend MONDO display ✓
 
 ### Phase 24: Versioning, Pagination & Cleanup
 **Goal**: Production-ready API with versioning, pagination, and clean codebase
@@ -154,10 +154,16 @@ Plans:
   3. 30 TODO comments resolved or documented as intentional
   4. lintr issues reduced (target: <200 from current 1240)
   5. API integration tests pass for all refactored endpoints
-**Plans**: TBD
+**Plans**: 7 plans in 4 waves
 
 Plans:
-- [ ] 24-01: TBD (to be determined during planning)
+- [ ] 24-01-PLAN.md - Create /api/version endpoint with git commit integration
+- [ ] 24-02-PLAN.md - Create pagination safety wrapper with max page_size enforcement
+- [ ] 24-03-PLAN.md - Extend pagination to user and re_review endpoints
+- [ ] 24-04-PLAN.md - Extend pagination to list and status endpoints
+- [ ] 24-05-PLAN.md - Resolve TODO comments and fix identified bugs
+- [ ] 24-06-PLAN.md - Reduce lintr issues to under 200
+- [ ] 24-07-PLAN.md - Create integration tests for new features
 
 ## Progress
 
@@ -171,8 +177,8 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 | 20. Async/Non-blocking | 3/3 | Complete ✓ | 2026-01-24 |
 | 21. Repository Layer | 10/10 | Complete ✓ | 2026-01-24 |
 | 22. Service Layer & Middleware | 10/10 | Complete ✓ | 2026-01-24 |
-| 23. OMIM Migration | 0/5 | Planned | - |
-| 24. Versioning, Pagination & Cleanup | 0/TBD | Not started | - |
+| 23. OMIM Migration | 5/5 | Complete ✓ | 2026-01-24 |
+| 24. Versioning, Pagination & Cleanup | 0/7 | Planned | - |
 
 ## Coverage Summary
 
@@ -197,4 +203,4 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 
 ---
 *Roadmap created: 2026-01-23*
-*Last updated: 2026-01-24 - Phase 22 complete (10/10 plans, service layer and middleware refactoring verified)*
+*Last updated: 2026-01-24 - Phase 24 planned (7 plans in 4 waves)*
