@@ -18,11 +18,14 @@ library(tibble)
 
 #' Execute a SELECT query and return results as a tibble
 #'
-#' Uses the global pool object to execute parameterized SELECT queries.
-#' Automatically handles connection cleanup and provides structured error handling.
+#' Uses the global pool object (or provided connection) to execute parameterized
+#' SELECT queries. Automatically handles connection cleanup and provides
+#' structured error handling.
 #'
 #' @param sql Character string with SQL query. Use ? for positional placeholders.
 #' @param params Unnamed list of parameters in placeholder order. Default: list()
+#' @param conn Optional database connection or pool object. If NULL, uses global pool.
+#'   This parameter enables dependency injection for testing.
 #'
 #' @return Tibble of query results. Returns empty tibble (0 rows) if no matches,
 #'   never returns NULL.
@@ -46,10 +49,15 @@ library(tibble)
 #'
 #' # No parameters
 #' db_execute_query("SELECT COUNT(*) as total FROM ndd_entity")
+#'
+#' # With explicit connection (for testing)
+#' db_execute_query("SELECT 1", list(), conn = mock_conn)
 #' }
 #'
 #' @export
-db_execute_query <- function(sql, params = list()) {
+db_execute_query <- function(sql, params = list(), conn = NULL) {
+  # Use provided connection or fallback to global pool
+  use_conn <- if (is.null(conn)) pool else conn
   # Sanitize parameters for logging (redact long strings)
   sanitized_params <- lapply(params, function(p) {
     if (is.character(p) && nchar(p) > 50) {
@@ -65,8 +73,8 @@ db_execute_query <- function(sql, params = list()) {
             params = paste(sanitized_params, collapse = ", "))
 
   tryCatch({
-    # Send parameterized query to pool
-    result <- DBI::dbSendQuery(pool, sql)
+    # Send parameterized query to connection
+    result <- DBI::dbSendQuery(use_conn, sql)
 
     # Register cleanup on exit (even if error occurs)
     on.exit(DBI::dbClearResult(result), add = TRUE)
@@ -99,11 +107,14 @@ db_execute_query <- function(sql, params = list()) {
 
 #' Execute an INSERT/UPDATE/DELETE statement and return affected row count
 #'
-#' Uses the global pool object to execute parameterized DML statements.
-#' Automatically handles connection cleanup and provides structured error handling.
+#' Uses the global pool object (or provided connection) to execute parameterized
+#' DML statements. Automatically handles connection cleanup and provides
+#' structured error handling.
 #'
 #' @param sql Character string with SQL statement. Use ? for positional placeholders.
 #' @param params Unnamed list of parameters in placeholder order. Default: list()
+#' @param conn Optional database connection or pool object. If NULL, uses global pool.
+#'   This parameter enables dependency injection for testing.
 #'
 #' @return Integer count of rows affected by the statement
 #'
@@ -133,10 +144,15 @@ db_execute_query <- function(sql, params = list()) {
 #'   "DELETE FROM ndd_entity WHERE entity_id = ?",
 #'   list(5)
 #' )
+#'
+#' # With explicit connection (for testing)
+#' db_execute_statement("DELETE FROM test WHERE id = ?", list(1), conn = mock_conn)
 #' }
 #'
 #' @export
-db_execute_statement <- function(sql, params = list()) {
+db_execute_statement <- function(sql, params = list(), conn = NULL) {
+  # Use provided connection or fallback to global pool
+  use_conn <- if (is.null(conn)) pool else conn
   # Sanitize parameters for logging (redact long strings)
   sanitized_params <- lapply(params, function(p) {
     if (is.character(p) && nchar(p) > 50) {
@@ -152,8 +168,8 @@ db_execute_statement <- function(sql, params = list()) {
             params = paste(sanitized_params, collapse = ", "))
 
   tryCatch({
-    # Send parameterized statement to pool
-    result <- DBI::dbSendStatement(pool, sql)
+    # Send parameterized statement to connection
+    result <- DBI::dbSendStatement(use_conn, sql)
 
     # Register cleanup on exit (even if error occurs)
     on.exit(DBI::dbClearResult(result), add = TRUE)
@@ -187,14 +203,17 @@ db_execute_statement <- function(sql, params = list()) {
 #' Execute code within a database transaction
 #'
 #' Wraps code in a database transaction with automatic commit on success
-#' and automatic rollback on any error. Uses the global pool object.
+#' and automatic rollback on any error. Uses the global pool object or
+#' provided pool.
 #'
 #' @param code Expression to execute within the transaction
+#' @param pool_obj Optional pool object. If NULL, uses global pool.
+#'   This parameter enables dependency injection for testing.
 #'
 #' @return Result of the code execution
 #'
 #' @details
-#' - Checks out a connection from the global pool
+#' - Checks out a connection from the pool
 #' - Registers connection return via on.exit() for cleanup
 #' - Uses DBI::dbWithTransaction() for automatic commit/rollback
 #' - Logs transaction lifecycle (start/commit/rollback) at DEBUG level
@@ -226,11 +245,14 @@ db_execute_statement <- function(sql, params = list()) {
 #' }
 #'
 #' @export
-db_with_transaction <- function(code) {
+db_with_transaction <- function(code, pool_obj = NULL) {
+  # Use provided pool or fallback to global pool
+  use_pool <- if (is.null(pool_obj)) pool else pool_obj
+
   log_debug("Starting database transaction")
 
   # Check out a connection from the pool
-  conn <- pool::poolCheckout(pool)
+  conn <- pool::poolCheckout(use_pool)
 
   # Register return on exit (even if error occurs)
   on.exit(pool::poolReturn(conn), add = TRUE)
