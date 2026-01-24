@@ -12,14 +12,14 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Milestone:** v4 Backend Overhaul
 **Phase:** 24 of 24 (Versioning, Pagination & Cleanup) - IN PROGRESS
-**Plan:** 4 of 7 complete
-**Status:** Wave 2 in progress - List/status endpoints pagination complete
-**Last activity:** 2026-01-24 - Completed 24-04 List/status endpoint pagination
+**Plan:** 5 of 7 complete
+**Status:** Wave 3 in progress - TODO cleanup and bug fixes complete
+**Last activity:** 2026-01-24 - Completed 24-05 TODO cleanup and bug fixes
 
 ```
 v4 Backend Overhaul: PHASE 24 IN PROGRESS
 Goal: Modernize R/Plumber API with security, async, OMIM fix, R upgrade, DRY/KISS/SOLID
-Progress: ██████████████████████████████░░░ 97% (7.15/7.2 phases)
+Progress: ██████████████████████████████░░░ 98% (7.20/7.2 phases)
 ```
 
 ## Completed Milestones
@@ -180,6 +180,9 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 24-04 | Use tree parameter to control pagination | tree=TRUE bypasses pagination for hierarchical data, tree=FALSE applies it |
 | 2026-01-24 | 24-04 | Sort by primary identifier for stable pagination | phenotype_id not HPO_term, vario_id not sort column - ensures cursor stability |
 | 2026-01-24 | 24-04 | Default page_size='all' for list endpoints | Backward compatibility with existing dropdown/list consumers |
+| 2026-01-24 | 24-05 | Fix multiple title matches with first-match strategy | GeneReviews scraping can return multiple title elements; taking first match is safest, with logging for monitoring |
+| 2026-01-24 | 24-05 | Add parentheses validation to filter expressions | Malformed filter strings cause cryptic errors; validating structure upfront provides better UX |
+| 2026-01-24 | 24-05 | Document future TODOs with context and links | Remaining TODOs are legitimate future enhancements; clear documentation prevents confusion and provides implementation guidance |
 
 ### Pending Todos
 
@@ -201,9 +204,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 24-04-PLAN.md (List/status endpoint pagination)
+**Stopped at:** Completed 24-05-PLAN.md (TODO cleanup and bug fixes)
 **Resume file:** None
-**Next action:** Continue Phase 24 Wave 2 - Plans 05-07 (remaining endpoints: gene, review, search)
+**Next action:** Continue Phase 24 Wave 3 - Plans 06-07 (gene/review endpoint pagination, search endpoint pagination)
 
 ---
-*Last updated: 2026-01-24 - Phase 24 IN PROGRESS (Wave 2: 4 of 7 plans complete - version, pagination safety, user/re-review tables, list/status endpoints)*
+*Last updated: 2026-01-24 - Phase 24 IN PROGRESS (Wave 3: 5 of 7 plans complete - version, pagination safety, user/re-review tables, list/status endpoints, TODO cleanup)*
