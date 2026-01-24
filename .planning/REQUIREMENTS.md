@@ -34,12 +34,12 @@ Requirements for v4 Backend Overhaul. Each maps to roadmap phases.
 
 ### Async/Non-blocking
 
-- [ ] **ASYNC-01**: mirai package added to project dependencies
-- [ ] **ASYNC-02**: Connection pool properly configured for async operations
-- [ ] **ASYNC-03**: Ontology update endpoint made async/non-blocking
-- [ ] **ASYNC-04**: Clustering analysis endpoint made async/non-blocking
-- [ ] **ASYNC-05**: Job status polling endpoint implemented
-- [ ] **ASYNC-06**: HTTP 202 Accepted pattern for long-running operations
+- [x] **ASYNC-01**: mirai package added to project dependencies ✓
+- [x] **ASYNC-02**: Connection pool properly configured for async operations ✓
+- [x] **ASYNC-03**: Ontology update endpoint made async/non-blocking ✓
+- [x] **ASYNC-04**: Clustering analysis endpoint made async/non-blocking ✓
+- [x] **ASYNC-05**: Job status polling endpoint implemented ✓
+- [x] **ASYNC-06**: HTTP 202 Accepted pattern for long-running operations ✓
 
 ### OMIM Data Migration
 
@@ -178,12 +178,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ERR-02 | Phase 19 | Complete |
 | ERR-03 | Phase 19 | Complete |
 | ERR-04 | Phase 19 | Complete |
-| ASYNC-01 | Phase 20 | Pending |
-| ASYNC-02 | Phase 20 | Pending |
-| ASYNC-03 | Phase 20 | Pending |
-| ASYNC-04 | Phase 20 | Pending |
-| ASYNC-05 | Phase 20 | Pending |
-| ASYNC-06 | Phase 20 | Pending |
+| ASYNC-01 | Phase 20 | Complete |
+| ASYNC-02 | Phase 20 | Complete |
+| ASYNC-03 | Phase 20 | Complete |
+| ASYNC-04 | Phase 20 | Complete |
+| ASYNC-05 | Phase 20 | Complete |
+| ASYNC-06 | Phase 20 | Complete |
 | ARCH-01 | Phase 21 | Pending |
 | ARCH-02 | Phase 21 | Pending |
 | ARCH-03 | Phase 21 | Pending |

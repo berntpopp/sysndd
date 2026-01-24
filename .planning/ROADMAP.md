@@ -20,7 +20,7 @@ The v4 Backend Overhaul modernizes the R/Plumber API through a strict phase sequ
 
 - [x] **Phase 18: Foundation** - Upgrade R 4.1.2 to 4.4.3 with renv migration ✓
 - [x] **Phase 19: Security Hardening** - Fix SQL injection and implement password hashing ✓
-- [ ] **Phase 20: Async/Non-blocking** - Add mirai for long-running operations
+- [x] **Phase 20: Async/Non-blocking** - Add mirai for long-running operations ✓
 - [ ] **Phase 21: Repository Layer** - Create database access layer with domain repositories
 - [ ] **Phase 22: Service Layer & Middleware** - Extract business logic and auth middleware
 - [ ] **Phase 23: OMIM Migration** - Switch from genemap2 to mim2gene.txt + MONDO/HPO
@@ -74,9 +74,9 @@ Plans:
 **Plans**: 3 plans in 3 waves
 
 Plans:
-- [ ] 20-01-PLAN.md - Create job manager and mirai daemon pool infrastructure
-- [ ] 20-02-PLAN.md - Add async clustering endpoints and job status polling
-- [ ] 20-03-PLAN.md - Add async ontology update endpoint and background cleanup
+- [x] 20-01-PLAN.md - Create job manager and mirai daemon pool infrastructure ✓
+- [x] 20-02-PLAN.md - Add async clustering endpoints and job status polling ✓
+- [x] 20-03-PLAN.md - Add async ontology update endpoint and background cleanup ✓
 
 ### Phase 21: Repository Layer
 **Goal**: Single point of database access with parameterized queries
@@ -153,7 +153,7 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 |-------|----------------|--------|-----------|
 | 18. Foundation | 2/2 | Complete ✓ | 2026-01-23 |
 | 19. Security Hardening | 5/5 | Complete ✓ | 2026-01-24 |
-| 20. Async/Non-blocking | 0/3 | Planned | - |
+| 20. Async/Non-blocking | 3/3 | Complete ✓ | 2026-01-24 |
 | 21. Repository Layer | 0/8 | Planned | - |
 | 22. Service Layer & Middleware | 0/TBD | Not started | - |
 | 23. OMIM Migration | 0/TBD | Not started | - |
@@ -182,4 +182,4 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 
 ---
 *Roadmap created: 2026-01-23*
-*Last updated: 2026-01-24 - Phase 19 Security Hardening complete (SQL injection fixes, password hashing)*
+*Last updated: 2026-01-24 - Phase 20 Async/Non-blocking complete (mirai daemon pool, async job endpoints)*
