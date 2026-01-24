@@ -131,6 +131,10 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 22-02 | Progressive password upgrade integrated in signin flow | Transparently upgrades legacy plaintext passwords to Argon2id on successful login - zero user friction |
 | 2026-01-24 | 22-02 | JWT claims include comprehensive user info | Include user_id, user_name, email, user_role, abbreviation, orcid to avoid database lookups on every request |
 | 2026-01-24 | 22-02 | Token expiry configurable via config parameter | Uses config$refresh with fallback to 86400 seconds - production can adjust without code changes |
+| 2026-01-24 | 22-03 | Service layer uses pool parameter for dependency injection | Testability and SOLID principles - services accept dependencies rather than accessing global state |
+| 2026-01-24 | 22-03 | Entity duplicate checking via quadruple validation | Prevent duplicate entities with same hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, and ndd_phenotype - returns 409 Conflict |
+| 2026-01-24 | 22-03 | entity_get_full retrieves comprehensive entity data | Single function to get entity with all related data (reviews, status, phenotypes, publications, variation ontology) - reduces endpoint boilerplate |
+| 2026-01-24 | 22-03 | Direct db_execute_statement calls in service layer | Service layer directly uses db-helpers instead of going through repository layer - simpler stack, avoids naming conflicts |
 | 2026-01-24 | 22-05 | Service layer uses dependency injection (pool as parameter) | Services accept dependencies as parameters rather than accessing global state - enables testability and follows SOLID principles |
 | 2026-01-24 | 22-05 | Role-based user list filtering in service layer | Administrator sees all users with full details, Curator sees reviewers/viewers, Reviewer/Viewer sees limited info |
 | 2026-01-24 | 22-05 | Status service uses pool checkout/return for transactions | Re-review workflow requires multiple statements to be atomic - checkout connection for transaction control |
