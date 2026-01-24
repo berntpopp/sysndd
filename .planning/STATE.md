@@ -13,8 +13,8 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 **Milestone:** v4 Backend Overhaul
 **Phase:** 24 of 24 (Versioning, Pagination & Cleanup) - IN PROGRESS
 **Plan:** 2 of 7 complete
-**Status:** Wave 1 in progress - Pagination safety wrapper complete
-**Last activity:** 2026-01-24 - Completed 24-02 Pagination safety wrapper
+**Status:** Wave 1 in progress - Version endpoint and pagination safety complete
+**Last activity:** 2026-01-24 - Completed 24-01 Version endpoint and 24-02 Pagination safety
 
 ```
 v4 Backend Overhaul: PHASE 24 IN PROGRESS
@@ -167,6 +167,9 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 23-04 | Pre-fetch all DB data before create_job | Mirai daemon workers cannot access the pool; all data must be collected before submission |
 | 2026-01-24 | 23-04 | Use DBI:: prefix in executor function | Executor runs in daemon worker without loaded packages; explicit namespace required |
 | 2026-01-24 | 23-04 | Deprecate synchronous endpoint in docs only | Keep backward compatibility while encouraging async usage |
+| 2026-01-24 | 24-01 | Use GIT_COMMIT env var with git command fallback | Enables both Docker production (build arg) and local development (git command) |
+| 2026-01-24 | 24-01 | Public endpoint for version discovery | Version information is public metadata - no authentication required |
+| 2026-01-24 | 24-01 | Return "unknown" when git not available | Graceful degradation instead of errors in containerized environments |
 | 2026-01-24 | 24-02 | Set PAGINATION_MAX_SIZE to 500 | Upper end of PAG-02 100-500 range - balances DoS prevention with usability |
 | 2026-01-24 | 24-02 | Return validated page_size as character | Maintains consistency with existing generate_cursor_pag_inf API |
 | 2026-01-24 | 24-02 | Log warnings for invalid page_size values | Security monitoring for potential DoS attempts via log_warn |
@@ -192,9 +195,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 24-02-PLAN.md (Pagination safety wrapper)
+**Stopped at:** Completed 24-01-PLAN.md (Version endpoint) and 24-02-PLAN.md (Pagination safety)
 **Resume file:** None
-**Next action:** Continue Phase 24 Wave 1 - Next plan in wave
+**Next action:** Continue Phase 24 Wave 1 - Plans 03-07
 
 ---
 *Last updated: 2026-01-24 - Phase 24 IN PROGRESS (Wave 1: 2 of 7 plans complete - version endpoint, pagination safety wrapper)*
