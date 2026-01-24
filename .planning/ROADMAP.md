@@ -131,10 +131,12 @@ Plans:
 4. Clicking a node navigates to entity detail page maintaining existing integration
 5. Network component cleans up properly on navigation (no memory leaks from 100-300MB Cytoscape instances)
 
-**Plans:** TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 26-01: [Plan details will be created during planning phase]
+- [ ] 26-01-PLAN.md — Backend network_edges endpoint + TypeScript types (NETV-01, NETV-03)
+- [ ] 26-02-PLAN.md — useCytoscape + useNetworkData composables (NETV-08, NETV-09, NETV-10, NETV-11)
+- [ ] 26-03-PLAN.md — NetworkVisualization component + AnalyseGeneClusters integration (NETV-02, NETV-04, NETV-05, NETV-06, NETV-07)
 
 ### Phase 27: Advanced Features & Filters
 
@@ -165,9 +167,9 @@ Phases execute in numeric order: 25 → 26 → 27
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 25. Performance Optimization | 3/3 | ✓ Complete | 2026-01-25 |
-| 26. Network Visualization | 0/TBD | Ready for planning | - |
+| 26. Network Visualization | 0/3 | Ready for execution | - |
 | 27. Advanced Features & Filters | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-01-24*
-*Last updated: 2026-01-25 — Phase 25 complete*
+*Last updated: 2026-01-25 — Phase 26 planned (3 plans in 2 waves)*
