@@ -16,11 +16,14 @@
 #*
 #* # `Details`
 #* Admins see all users; Curators see only unapproved users; others are forbidden.
+#* Supports cursor pagination for large user lists.
 #*
 #* @tag user
 #* @serializer json list(na="null")
+#* @param page_after Cursor after which entries are shown (default: 0)
+#* @param page_size Page size in cursor pagination (default: "all")
 #* @get table
-function(req, res) {
+function(req, res, page_after = 0, page_size = "all") {
   # Require Curator role or higher
   require_role(req, res, "Curator")
 
@@ -41,9 +44,22 @@ function(req, res) {
         user_role,
         approved
       ) %>%
+      arrange(created_at, user_id) %>%
       collect()
 
-    user_table
+    # Apply pagination
+    pagination_info <- generate_cursor_pag_inf_safe(
+      user_table,
+      page_size,
+      page_after,
+      "user_id"
+    )
+
+    list(
+      links = pagination_info$links,
+      meta = pagination_info$meta,
+      data = pagination_info$data
+    )
   } else {
     # Curator sees only unapproved users
     user_table <- pool %>%
@@ -63,9 +79,22 @@ function(req, res) {
         approved
       ) %>%
       filter(approved == 0) %>%
+      arrange(created_at, user_id) %>%
       collect()
 
-    user_table
+    # Apply pagination
+    pagination_info <- generate_cursor_pag_inf_safe(
+      user_table,
+      page_size,
+      page_after,
+      "user_id"
+    )
+
+    list(
+      links = pagination_info$links,
+      meta = pagination_info$meta,
+      data = pagination_info$data
+    )
   }
 }
 
