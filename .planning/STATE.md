@@ -12,14 +12,14 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Milestone:** v4 Backend Overhaul
 **Phase:** 24 of 24 (Versioning, Pagination & Cleanup) - IN PROGRESS
-**Plan:** 3 of 7 complete
-**Status:** Wave 2 in progress - User and re-review table pagination complete
-**Last activity:** 2026-01-24 - Completed 24-03 User/re-review table pagination
+**Plan:** 4 of 7 complete
+**Status:** Wave 2 in progress - List/status endpoints pagination complete
+**Last activity:** 2026-01-24 - Completed 24-04 List/status endpoint pagination
 
 ```
 v4 Backend Overhaul: PHASE 24 IN PROGRESS
 Goal: Modernize R/Plumber API with security, async, OMIM fix, R upgrade, DRY/KISS/SOLID
-Progress: ██████████████████████████████░░░ 97% (7.1/7.2 phases)
+Progress: ██████████████████████████████░░░ 97% (7.15/7.2 phases)
 ```
 
 ## Completed Milestones
@@ -177,6 +177,9 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 24-03 | Composite key sorting (created_at, unique_id) for pagination | Ensures stable pagination across API restarts and concurrent updates |
 | 2026-01-24 | 24-03 | Default page_size="all" for table endpoints | Maintains backward compatibility with existing API consumers |
 | 2026-01-24 | 24-03 | Pagination applied in both role-based branches | Administrator and Curator see different data but both get paginated response |
+| 2026-01-24 | 24-04 | Use tree parameter to control pagination | tree=TRUE bypasses pagination for hierarchical data, tree=FALSE applies it |
+| 2026-01-24 | 24-04 | Sort by primary identifier for stable pagination | phenotype_id not HPO_term, vario_id not sort column - ensures cursor stability |
+| 2026-01-24 | 24-04 | Default page_size='all' for list endpoints | Backward compatibility with existing dropdown/list consumers |
 
 ### Pending Todos
 
@@ -198,9 +201,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 24-03-PLAN.md (User/re-review table pagination)
+**Stopped at:** Completed 24-04-PLAN.md (List/status endpoint pagination)
 **Resume file:** None
-**Next action:** Continue Phase 24 Wave 2 - Plans 04-07 (remaining table endpoints)
+**Next action:** Continue Phase 24 Wave 2 - Plans 05-07 (remaining endpoints: gene, review, search)
 
 ---
-*Last updated: 2026-01-24 - Phase 24 IN PROGRESS (Wave 2: 3 of 7 plans complete - version, pagination safety, user/re-review table pagination)*
+*Last updated: 2026-01-24 - Phase 24 IN PROGRESS (Wave 2: 4 of 7 plans complete - version, pagination safety, user/re-review tables, list/status endpoints)*
