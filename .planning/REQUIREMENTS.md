@@ -61,16 +61,16 @@ Requirements for v4 Backend Overhaul. Each maps to roadmap phases.
 
 ### Architecture Refactoring
 
-- [ ] **ARCH-01**: Database access layer created (execute_query, fetch_all helpers)
-- [ ] **ARCH-02**: Connection pool used consistently (17 dbConnect duplications eliminated)
-- [ ] **ARCH-03**: Entity repository created (domain-specific database operations)
-- [ ] **ARCH-04**: Review repository created
-- [ ] **ARCH-05**: Status repository created
-- [ ] **ARCH-06**: Publication repository created
-- [ ] **ARCH-07**: Phenotype repository created
-- [ ] **ARCH-08**: Ontology repository created
-- [ ] **ARCH-09**: User repository created
-- [ ] **ARCH-10**: Hash repository created
+- [x] **ARCH-01**: Database access layer created (execute_query, fetch_all helpers) ✓ Phase 21
+- [x] **ARCH-02**: Connection pool used consistently (34 dbConnect/DBI duplications eliminated) ✓ Phase 21
+- [x] **ARCH-03**: Entity repository created (domain-specific database operations) ✓ Phase 21
+- [x] **ARCH-04**: Review repository created ✓ Phase 21
+- [x] **ARCH-05**: Status repository created ✓ Phase 21
+- [x] **ARCH-06**: Publication repository created ✓ Phase 21
+- [x] **ARCH-07**: Phenotype repository created ✓ Phase 21
+- [x] **ARCH-08**: Ontology repository created ✓ Phase 21
+- [x] **ARCH-09**: User repository created ✓ Phase 21
+- [x] **ARCH-10**: Hash repository created ✓ Phase 21
 - [ ] **ARCH-11**: Authentication middleware created (require_auth, require_role filters)
 - [ ] **ARCH-12**: 12 duplicated auth checks consolidated into middleware
 - [ ] **ARCH-13**: Entity service layer created
