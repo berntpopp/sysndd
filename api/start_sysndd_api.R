@@ -121,6 +121,7 @@ source("functions/publication-functions.R", local = TRUE)
 source("functions/genereviews-functions.R", local = TRUE)
 source("functions/analyses-functions.R", local = TRUE)
 source("functions/helper-functions.R", local = TRUE)
+source("functions/pagination-helpers.R", local = TRUE)
 source("functions/external-functions.R", local = TRUE)
 source("functions/file-functions.R", local = TRUE)
 source("functions/hpo-functions.R", local = TRUE)
@@ -474,6 +475,10 @@ root <- pr() %>%
   # Mount health endpoint for Docker HEALTHCHECK
   ####################################################################
   pr_mount("/health", pr("endpoints/health_endpoints.R")) %>%
+  ####################################################################
+  # Mount version endpoint for API version discovery
+  ####################################################################
+  pr_mount("/api/version", pr("endpoints/version_endpoints.R")) %>%
   ####################################################################
   # Mount each endpoint file at /api/<subpath>
   ####################################################################
