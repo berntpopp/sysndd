@@ -153,6 +153,7 @@ COPY --from=packages /usr/local/lib/R/site-library /usr/local/lib/R/site-library
 # Copy application code with correct ownership
 COPY --chown=apiuser:api endpoints/ endpoints/
 COPY --chown=apiuser:api functions/ functions/
+COPY --chown=apiuser:api core/ core/
 COPY --chown=apiuser:api config/ config/
 COPY --chown=apiuser:api config.yml config.yml
 COPY --chown=apiuser:api version_spec.json version_spec.json

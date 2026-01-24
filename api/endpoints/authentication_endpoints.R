@@ -9,7 +9,7 @@
 # source("functions/database-functions.R", local = TRUE)
 
 # Load security utilities for password verification and progressive migration
-source("core/security.R", local = TRUE)
+source("../core/security.R", local = TRUE)
 
 ## -------------------------------------------------------------------##
 ## Authentication section

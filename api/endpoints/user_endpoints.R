@@ -5,7 +5,7 @@
 # conventions where possible.
 
 # Load security utilities for password hashing and verification
-source("core/security.R", local = TRUE)
+source("../core/security.R", local = TRUE)
 
 ##-------------------------------------------------------------------##
 ## User endpoint section

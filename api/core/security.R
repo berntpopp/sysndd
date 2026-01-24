@@ -6,14 +6,17 @@
 #   hash <- hash_password("mypassword")
 #   is_valid <- verify_password(stored_hash, "attempt")
 
-#' Check if password is already hashed (Argon2id format)
+#' Check if password is already hashed (sodium/libsodium format)
 #'
-#' Detects Argon2id hashes by checking for the $argon2 prefix
-#' (covers $argon2id$, $argon2i$, $argon2d$ variants).
+#' Detects hashes by checking for sodium pwhash prefixes:
+#' - $argon2id$, $argon2i$, $argon2d$ (Argon2 variants)
+#' - $7$ (libsodium pwhash scrypt format - default in sodium R package)
 #'
 #' @param password_from_db Password string from database
-#' @return TRUE if hashed (Argon2 format), FALSE if plaintext
+#' @return TRUE if hashed, FALSE if plaintext
 #' @examples
+#' is_hashed("$7$C6..../....salt$hash")
+#' # TRUE
 #' is_hashed("$argon2id$v=19$m=65536,t=3,p=1$...")
 #' # TRUE
 #' is_hashed("plaintext_password")
@@ -22,7 +25,8 @@ is_hashed <- function(password_from_db) {
   if (is.null(password_from_db) || is.na(password_from_db)) {
     return(FALSE)
   }
-  grepl("^\\$argon2", password_from_db)
+  # Match sodium pwhash formats: $7$ (scrypt) or $argon2 variants
+  grepl("^\\$7\\$|^\\$argon2", password_from_db)
 }
 
 #' Hash password with Argon2id

@@ -103,6 +103,7 @@ services:
     volumes:
       - ./api/endpoints:/app/endpoints
       - ./api/functions:/app/functions
+      - ./api/core:/app/core
       - ./api/config:/app/config
       - ./api/config.yml:/app/config.yml
       - ./api/version_spec.json:/app/version_spec.json
@@ -132,6 +133,9 @@ services:
         - action: sync
           path: ./api/functions
           target: /app/functions
+        - action: sync
+          path: ./api/core
+          target: /app/core
         - action: rebuild
           path: ./api/renv.lock
     labels:
