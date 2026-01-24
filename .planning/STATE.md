@@ -12,9 +12,9 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Milestone:** v4 Backend Overhaul
 **Phase:** 21 of 24 (Repository Layer)
-**Plan:** 8 of 8 complete
-**Status:** Phase complete
-**Last activity:** 2026-01-24 - Completed 21-08-PLAN.md (Remaining Files dbConnect Elimination)
+**Plan:** 9 of 10 complete (gap closure plans 09 done, 10 pending)
+**Status:** Gap closure in progress
+**Last activity:** 2026-01-24 - Completed 21-09-PLAN.md (Authentication and Publication dbAppendTable Elimination)
 
 ```
 v4 Backend Overhaul: PHASE 21 COMPLETE
@@ -117,6 +117,8 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 21-08 | Use parameterized queries with ? placeholders for all SQL statements | Prevents SQL injection across entire codebase |
 | 2026-01-24 | 21-08 | Use poolWithTransaction for single-table operations with AppendTable | Atomic inserts with automatic connection management |
 | 2026-01-24 | 21-08 | Use db_with_transaction for multi-statement atomic operations | Ensures consistency across complex database updates |
+| 2026-01-24 | 21-09 | Use dynamic column extraction for INSERT statements | names(tibble) guarantees column order matches parameter order |
+| 2026-01-24 | 21-09 | Replace poolWithTransaction + dbAppendTable with db_execute_statement | Consistency with repository layer security pattern |
 
 ### Pending Todos
 
@@ -135,9 +137,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 21-08-PLAN.md (Remaining Files dbConnect Elimination)
+**Stopped at:** Completed 21-09-PLAN.md (Authentication and Publication dbAppendTable Elimination)
 **Resume file:** None
-**Next action:** Phase 21 complete - proceed to Phase 22 OMIM Integration
+**Next action:** Execute 21-10-PLAN.md (final gap closure plan - pubtator and admin endpoints)
 
 ---
-*Last updated: 2026-01-24 - Phase 21 complete (Zero dbConnect in production code, repository layer migration finished)*
+*Last updated: 2026-01-24 - Plan 21-09 complete (Authentication and publication dbAppendTable eliminated, gap closure 9/10)*
