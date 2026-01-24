@@ -6,20 +6,20 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v4 Backend Overhaul - Phase 23 OMIM Migration COMPLETE
+**Current focus:** v4 Backend Overhaul - Phase 24 Versioning, Pagination & Cleanup IN PROGRESS
 
 ## Current Position
 
 **Milestone:** v4 Backend Overhaul
-**Phase:** 23 of 24 (OMIM Migration) - COMPLETE
-**Plan:** 4 of 4 complete
-**Status:** Phase 23 COMPLETE - Ontology integration finished, async OMIM update endpoint ready
-**Last activity:** 2026-01-24 - Completed 23-04 Ontology integration
+**Phase:** 24 of 24 (Versioning, Pagination & Cleanup) - IN PROGRESS
+**Plan:** 2 of 7 complete
+**Status:** Wave 1 in progress - Pagination safety wrapper complete
+**Last activity:** 2026-01-24 - Completed 24-02 Pagination safety wrapper
 
 ```
-v4 Backend Overhaul: PHASE 23 COMPLETE
+v4 Backend Overhaul: PHASE 24 IN PROGRESS
 Goal: Modernize R/Plumber API with security, async, OMIM fix, R upgrade, DRY/KISS/SOLID
-Progress: ██████████████████████████████░░░ 96% (6.9/7 phases)
+Progress: ██████████████████████████████░░░ 97% (7.0/7.2 phases)
 ```
 
 ## Completed Milestones
@@ -167,6 +167,10 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 23-04 | Pre-fetch all DB data before create_job | Mirai daemon workers cannot access the pool; all data must be collected before submission |
 | 2026-01-24 | 23-04 | Use DBI:: prefix in executor function | Executor runs in daemon worker without loaded packages; explicit namespace required |
 | 2026-01-24 | 23-04 | Deprecate synchronous endpoint in docs only | Keep backward compatibility while encouraging async usage |
+| 2026-01-24 | 24-02 | Set PAGINATION_MAX_SIZE to 500 | Upper end of PAG-02 100-500 range - balances DoS prevention with usability |
+| 2026-01-24 | 24-02 | Return validated page_size as character | Maintains consistency with existing generate_cursor_pag_inf API |
+| 2026-01-24 | 24-02 | Log warnings for invalid page_size values | Security monitoring for potential DoS attempts via log_warn |
+| 2026-01-24 | 24-02 | Default to 10 for invalid/below-minimum page_size | Reasonable default prevents empty results, non-breaking fallback |
 
 ### Pending Todos
 
@@ -188,9 +192,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 23-04-PLAN.md (Ontology integration)
+**Stopped at:** Completed 24-02-PLAN.md (Pagination safety wrapper)
 **Resume file:** None
-**Next action:** Execute Phase 24: R Upgrade and Final Polish
+**Next action:** Continue Phase 24 Wave 1 - Next plan in wave
 
 ---
-*Last updated: 2026-01-24 - Phase 23 COMPLETE (all 4 plans: JAX validation, OMIM functions, MONDO mappings, ontology integration)*
+*Last updated: 2026-01-24 - Phase 24 IN PROGRESS (Wave 1: 2 of 7 plans complete - version endpoint, pagination safety wrapper)*
