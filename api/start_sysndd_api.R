@@ -144,6 +144,8 @@ source("services/user-service.R", local = TRUE)
 source("services/status-service.R", local = TRUE)
 source("services/search-service.R", local = TRUE)
 source("services/entity-service.R", local = TRUE)
+source("services/review-service.R", local = TRUE)
+source("services/approval-service.R", local = TRUE)
 
 ## -------------------------------------------------------------------##
 # 5) Load the API spec for OpenAPI (optional)
