@@ -405,10 +405,8 @@ generate_panels_list <- function(
   filter_exprs <- generate_filter_expressions(filter)
 
   # Generate field metadata for display
-  # TODO(future): Auto-generate field metadata from MySQL schema
-  # Current implementation uses manual field specification
-  # Enhancement: Query INFORMATION_SCHEMA.COLUMNS for field types,
-  # determine sortable/filterable based on MySQL column type
+  # Manual specification used for panels endpoint to ensure consistent UI behavior
+  # All fields treated as sortable text for simplicity
   fields_tibble <- as_tibble(str_split(fields, ",")[[1]]) %>%
     select(key = value) %>%
     mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
