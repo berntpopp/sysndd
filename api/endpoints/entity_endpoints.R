@@ -200,18 +200,19 @@ function(req,
 #*
 #* @post /create
 function(req, res, direct_approval = FALSE) {
+  require_role(req, res, "Curator")
+
   direct_approval <- as.logical(direct_approval)
   create_data <- req$argsBody$create_json
 
-  if (req$user_role %in% c("Administrator", "Curator")) {
-    entry_user_id <- req$user_id
-    review_user_id <- req$user_id
-    status_user_id <- req$user_id
+  entry_user_id <- req$user_id
+  review_user_id <- req$user_id
+  status_user_id <- req$user_id
 
-    create_data$entity$entry_user_id <- entry_user_id
+  create_data$entity$entry_user_id <- entry_user_id
 
-    # Block to post new entity
-    response_entity <- post_db_entity(create_data$entity)
+  # Block to post new entity
+  response_entity <- post_db_entity(create_data$entity)
 
     if (response_entity$status == 200) {
       # Prepare data for review
@@ -404,10 +405,6 @@ function(req, res, direct_approval = FALSE) {
         message = response$message
       ))
     }
-  } else {
-    res$status <- 403
-    return(list(error = "Write access forbidden."))
-  }
 }
 
 
@@ -444,9 +441,10 @@ function(req, res, direct_approval = FALSE) {
 #*
 #* @post /rename
 function(req, res) {
-  if (req$user_role %in% c("Administrator", "Curator")) {
-    new_entry_user_id <- req$user_id
-    rename_data <- req$argsBody$rename_json
+  require_role(req, res, "Curator")
+
+  new_entry_user_id <- req$user_id
+  rename_data <- req$argsBody$rename_json
 
     ndd_entity_original <- pool %>%
       tbl("ndd_entity") %>%
@@ -589,10 +587,6 @@ function(req, res) {
         )
       ))
     }
-  } else {
-    res$status <- 403
-    return(list(error = "Write access forbidden."))
-  }
 }
 
 
@@ -622,9 +616,10 @@ function(req, res) {
 #*
 #* @post /deactivate
 function(req, res) {
-  if (req$user_role %in% c("Administrator", "Curator")) {
-    deactivate_user_id <- req$user_id
-    deactivate_data <- req$argsBody$deactivate_json
+  require_role(req, res, "Curator")
+
+  deactivate_user_id <- req$user_id
+  deactivate_data <- req$argsBody$deactivate_json
 
     ndd_entity_original <- pool %>%
       tbl("ndd_entity") %>%
@@ -659,10 +654,6 @@ function(req, res) {
         error = "This endpoint only allows deactivating an entity."
       ))
     }
-  } else {
-    res$status <- 403
-    return(list(error = "Write access forbidden."))
-  }
 }
 
 
