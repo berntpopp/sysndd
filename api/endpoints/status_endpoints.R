@@ -242,23 +242,20 @@ function() {
 #* @post /create
 #* @put /update
 function(req, res, re_review = FALSE) {
-  if (req$user_role %in% c("Administrator", "Curator", "Reviewer")) {
-    re_review <- as.logical(re_review)
-    status_data <- req$argsBody$status_json
-    status_data$status_user_id <- req$user_id
+  require_role(req, res, "Reviewer")
 
-    response <- put_post_db_status(
-      req$REQUEST_METHOD,
-      status_data,
-      re_review
-    )
+  re_review <- as.logical(re_review)
+  status_data <- req$argsBody$status_json
+  status_data$status_user_id <- req$user_id
 
-    res$status <- response$status
-    return(response)
-  } else {
-    res$status <- 403
-    return(list(error = "Write access forbidden."))
-  }
+  response <- put_post_db_status(
+    req$REQUEST_METHOD,
+    status_data,
+    re_review
+  )
+
+  res$status <- response$status
+  return(response)
 }
 
 
@@ -277,21 +274,16 @@ function(req, res, re_review = FALSE) {
 #*
 #* @put /approve/<status_id_requested>
 function(req, res, status_id_requested, status_ok = FALSE) {
-  status_ok <- as.logical(status_ok)
+  require_role(req, res, "Curator")
 
-  if (length(req$user_id) == 0) {
-    res$status <- 401
-    return(list(error = "Please authenticate."))
-  } else if (req$user_role %in% c("Administrator", "Curator")) {
-    submit_user_id <- req$user_id
-    response_status_approve <- put_db_status_approve(
-      status_id_requested,
-      submit_user_id,
-      status_ok
-    )
-    response_status_approve
-  } else {
-    res$status <- 403
-    return(list(error = "Write access forbidden."))
-  }
+  status_ok <- as.logical(status_ok)
+  submit_user_id <- req$user_id
+
+  response_status_approve <- svc_approval_status_approve(
+    status_id_requested,
+    submit_user_id,
+    status_ok,
+    pool
+  )
+  response_status_approve
 }

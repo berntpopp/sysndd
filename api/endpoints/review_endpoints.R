@@ -194,10 +194,11 @@ function(req, res, filter_review_approved = FALSE) {
 #* @post /create
 #* @put /update
 function(req, res, re_review = FALSE) {
-  if (req$user_role %in% c("Administrator", "Curator", "Reviewer")) {
-    re_review <- as.logical(re_review)
-    review_user_id <- req$user_id
-    review_data <- req$argsBody$review_json
+  require_role(req, res, "Reviewer")
+
+  re_review <- as.logical(re_review)
+  review_user_id <- req$user_id
+  review_data <- req$argsBody$review_json
 
     if (!is.null(review_data$synopsis) &&
         !is.null(review_data$entity_id) &&
@@ -384,10 +385,6 @@ function(req, res, re_review = FALSE) {
       res$status <- 400
       return(list(error = "Submitted synopsis data can not be empty."))
     }
-  } else {
-    res$status <- 403
-    return(list(error = "Write access forbidden."))
-  }
 }
 
 
@@ -587,21 +584,16 @@ function(review_id_requested) {
 #*
 #* @put /approve/<review_id_requested>
 function(req, res, review_id_requested, review_ok = FALSE) {
-  review_ok <- as.logical(review_ok)
+  require_role(req, res, "Curator")
 
-  if (length(req$user_id) == 0) {
-    res$status <- 401
-    return(list(error = "Please authenticate."))
-  } else if (req$user_role %in% c("Administrator", "Curator")) {
-    submit_user_id <- req$user_id
-    response_review_approve <- put_db_review_approve(
-      review_id_requested,
-      submit_user_id,
-      review_ok
-    )
-    response_review_approve
-  } else {
-    res$status <- 403
-    return(list(error = "Write access forbidden."))
-  }
+  review_ok <- as.logical(review_ok)
+  submit_user_id <- req$user_id
+
+  response_review_approve <- svc_approval_review_approve(
+    review_id_requested,
+    submit_user_id,
+    review_ok,
+    pool
+  )
+  response_review_approve
 }
