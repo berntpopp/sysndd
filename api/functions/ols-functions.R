@@ -78,8 +78,15 @@ ols_request <- function(endpoint, query_params = list()) {
 #' @return Double URL-encoded string
 #' @keywords internal
 ols_encode_iri <- function(iri) {
-  # Double encode: first encode, then encode the result
-  URLencode(URLencode(iri, reserved = TRUE), reserved = TRUE)
+  if (is.null(iri) || nchar(iri) == 0) {
+    return("")
+  }
+  # Double encode for OLS4 API path segments
+  # Step 1: First URL encode
+  first_encode <- URLencode(iri, reserved = TRUE)
+  # Step 2: Replace % with %25 to achieve true double-encoding
+  # (R's URLencode doesn't re-encode % in %XX sequences)
+  gsub("%", "%25", first_encode)
 }
 
 
@@ -193,26 +200,30 @@ ols_get_mondo_for_omim <- function(omim_id) {
   omim_pattern <- paste0("OMIM:", omim_number)
 
   for (doc in results) {
-    # Check obo_xref for OMIM cross-references
-    xrefs <- doc$obo_xref %||% list()
+    # Search results don't include xrefs, need to fetch full term details
+    term <- ols_get_mondo_term(doc$iri)
+    if (is.null(term)) {
+      next
+    }
+
+    # Check annotation.database_cross_reference for OMIM cross-references
+    xrefs <- term$annotation$database_cross_reference %||% list()
 
     for (xref in xrefs) {
-      xref_id <- xref$id %||% xref
-      if (is.character(xref_id) && xref_id == omim_pattern) {
-        # Found a match - determine if it's current or obsolete
-        database <- xref$database %||% NA
-        mapping_type <- if (!is.na(database) && grepl("Obsolete", database, ignore.case = TRUE)) {
+      if (is.character(xref) && xref == omim_pattern) {
+        # Found a match - check if term is obsolete
+        mapping_type <- if (isTRUE(term$is_obsolete)) {
           "equivalentObsolete"
         } else {
           "exactMatch"
         }
 
         return(list(
-          mondo_id = doc$obo_id %||% doc$short_form,
-          mondo_iri = doc$iri,
-          mondo_label = doc$label,
+          mondo_id = term$obo_id %||% term$short_form,
+          mondo_iri = term$iri,
+          mondo_label = term$label,
           mapping_type = mapping_type,
-          is_obsolete = doc$is_obsolete %||% FALSE
+          is_obsolete = term$is_obsolete %||% FALSE
         ))
       }
     }
@@ -316,16 +327,12 @@ ols_get_deprecated_omim_info <- function(omim_id) {
       result$replacement_mondo_label <- replacement_term$label
 
       # Find OMIM xref in replacement term
-      xrefs <- replacement_term$obo_xref %||% list()
+      # xrefs are in annotation$database_cross_reference as strings
+      xrefs <- replacement_term$annotation$database_cross_reference %||% list()
       for (xref in xrefs) {
-        xref_id <- xref$id %||% xref
-        if (is.character(xref_id) && grepl("^OMIM:", xref_id)) {
-          database <- xref$database %||% ""
-          # Only use non-obsolete OMIM mappings
-          if (!grepl("Obsolete", database, ignore.case = TRUE)) {
-            result$replacement_omim_id <- xref_id
-            break
-          }
+        if (is.character(xref) && grepl("^OMIM:", xref)) {
+          result$replacement_omim_id <- xref
+          break
         }
       }
     }

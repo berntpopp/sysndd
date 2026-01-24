@@ -31,14 +31,18 @@ source(file.path(api_dir, "functions/ols-functions.R"))
 
 test_that("ols_encode_iri double-encodes IRIs correctly", {
   # Standard MONDO IRI
-
   iri <- "http://purl.obolibrary.org/obo/MONDO_0033482"
   encoded <- ols_encode_iri(iri)
 
-  # Should be double-encoded
+  # Should be double-encoded: : becomes %3A then %253A
+  expect_true(grepl("%253A", encoded))  # : double-encoded
+  expect_true(grepl("%252F", encoded))  # / double-encoded
 
-  expect_true(grepl("%25", encoded))  # % becomes %25 in double encoding
-  expect_true(grepl("%253A", encoded))  # : becomes %3A then %253A
+  # Verify specific double-encoding
+  expect_equal(
+    encoded,
+    "http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FMONDO_0033482"
+  )
 })
 
 test_that("ols_encode_iri handles empty input", {
