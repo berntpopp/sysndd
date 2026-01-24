@@ -12,9 +12,9 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Milestone:** v4 Backend Overhaul
 **Phase:** 22 of 24 (Service Layer & Middleware)
-**Plan:** 2 of 4 complete
-**Status:** In progress - authentication service layer complete
-**Last activity:** 2026-01-24 - Completed 22-02-PLAN.md (authentication service layer)
+**Plan:** 2 of 9 complete
+**Status:** In progress - middleware and auth service complete
+**Last activity:** 2026-01-24 - Completed 22-01-PLAN.md (authentication middleware)
 
 ```
 v4 Backend Overhaul: PHASE 22 IN PROGRESS
@@ -123,6 +123,10 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 21-10 | Move total_pages check BEFORE transaction in pubtator_db_update | No database operations needed for PubTator API call, avoids unnecessary transaction overhead |
 | 2026-01-24 | 21-10 | Use early returns inside db_with_transaction for auto-commit | Cleaner than manual dbCommit calls - db_with_transaction handles commit automatically on successful return |
 | 2026-01-24 | 21-10 | Use dynamic column INSERT loops instead of dbAppendTable/dbWriteTable | Maintains parameterized query pattern while handling dynamic column sets - prevents SQL injection |
+| 2026-01-24 | 22-01 | Use AUTH_ALLOWLIST constant for public endpoints | Centralized list prevents scattered conditional logic - easier to audit and maintain security posture |
+| 2026-01-24 | 22-01 | Provide public read access for GET requests without authentication | SysNDD data is publicly accessible for research - GET without auth enables public browsing while requiring auth for modifications |
+| 2026-01-24 | 22-01 | Attach user context to req object (user_id, user_role, user_name) | Downstream endpoints need user info for logging/authorization - avoid re-decoding JWT in every endpoint |
+| 2026-01-24 | 22-01 | Use require_role as helper function (not filter) | Different endpoints require different roles - helper function provides more flexibility than per-endpoint filter configuration |
 | 2026-01-24 | 22-02 | Service layer uses dependency injection (pool, config as params) | Services accept dependencies as parameters rather than accessing global state - enables testability and follows SOLID principles |
 | 2026-01-24 | 22-02 | Progressive password upgrade integrated in signin flow | Transparently upgrades legacy plaintext passwords to Argon2id on successful login - zero user friction |
 | 2026-01-24 | 22-02 | JWT claims include comprehensive user info | Include user_id, user_name, email, user_role, abbreviation, orcid to avoid database lookups on every request |
@@ -145,9 +149,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 22-02-PLAN.md (authentication service layer)
+**Stopped at:** Completed 22-01-PLAN.md (authentication middleware)
 **Resume file:** None
-**Next action:** Continue Phase 22 - plans 22-03 and 22-04 remaining
+**Next action:** Continue Phase 22 - plans 22-03 through 22-09 remaining
 
 ---
-*Last updated: 2026-01-24 - Completed 22-02 (authentication service layer with JWT signin/verify/refresh)*
+*Last updated: 2026-01-24 - Completed 22-01 (authentication middleware with require_auth filter and require_role helper)*
