@@ -94,226 +94,186 @@ pubtator_db_update <- function(
     max_pages      = 10,
     do_full_update = FALSE
 ) {
-  # 1) Get connection from pool
-  db_conn <- poolCheckout(pool)
-  on.exit({
-    tryCatch({
-      poolReturn(db_conn)
-      log_info("pubtator_db_update: Database connection returned to pool.")
-    }, error = function(e) {
-      log_warn("pubtator_db_update: Error returning DB connection: {e$message}")
-    })
-  }, add = TRUE)
+  # A) Retrieve total_pages BEFORE transaction (no DB write needed)
+  total_pages <- pubtator_v3_total_pages_from_query(query)
+  if (is.null(total_pages) || total_pages == 0) {
+    log_warn("No pages found for query: {query}. Aborting.")
+    return(NULL)  # Early return - no DB operations started
+  }
 
-  # 2) Begin transaction
-  dbBegin(db_conn)
+  if (max_pages > total_pages) {
+    log_info("max_pages={max_pages} > total_pages={total_pages}, adjusting.")
+    max_pages <- total_pages
+  }
 
-  # 3) Use tryCatch => rollback on error
-  tryCatch({
+  # B) Query hash
+  q_hash <- generate_query_hash(query)
+  log_info("Query hash = {q_hash}")
 
-    # A) Retrieve total_pages
-    total_pages <- pubtator_v3_total_pages_from_query(query)
-    if (is.null(total_pages) || total_pages == 0) {
-      log_warn("No pages found for query: {query}. Aborting + rollback.")
-      dbRollback(db_conn)
-      return(NULL)
-    }
-    # max_pages is how many pages we *want* to fetch => store as queried_page_number
-    # total_pages is how many pages PubTator *says* are available => store as total_page_number
-    if (max_pages > total_pages) {
-      log_info("max_pages={max_pages} > total_pages={total_pages}, adjusting.")
-      max_pages <- total_pages
-    }
-
-    # B) Query hash
-    q_hash <- generate_query_hash(query)
-    log_info("Query hash = {q_hash}")
-
-    # C) Check if query exists in pubtator_query_cache
-    existing_query <- db_execute_query(
-      "SELECT query_id, queried_page_number, total_page_number, page_size
-       FROM pubtator_query_cache
-       WHERE query_hash = ?",
-      list(q_hash)
-    )
-
-    query_id <- NA_integer_
-    if (nrow(existing_query) == 0) {
-      # Insert new row
-      log_info("No record for query_hash={q_hash}, inserting new row into pubtator_query_cache.")
-      rs_ins <- dbSendQuery(db_conn, "
-        INSERT INTO pubtator_query_cache
-          (query_text, query_hash, total_page_number, queried_page_number, page_size)
-        VALUES (?, ?, ?, ?, ?)
-      ")
-      dbBind(rs_ins, list(query, q_hash, total_pages, max_pages, 10))
-      dbClearResult(rs_ins)
-
-      query_id <- db_execute_query("SELECT LAST_INSERT_ID() AS id")$id[1]
-
-    } else {
-      # Found existing row
-      query_id           <- existing_query$query_id[1]
-      old_queried_number <- existing_query$queried_page_number[1]
-      old_total_number   <- existing_query$total_page_number[1]
-      old_page_size      <- existing_query$page_size[1]
-
-      log_info("Found existing query_id={query_id}, old_queried_number={old_queried_number}, old_total_number={old_total_number}.")
-
-      if (do_full_update) {
-        log_info("do_full_update=TRUE => removing old records in search_cache & annotation_cache.")
-        dbExecute(db_conn, 
-          "DELETE FROM pubtator_search_cache
-           WHERE query_id = ?",
-          params = list(query_id)
-        )
-        dbExecute(db_conn, 
-          "DELETE a
-           FROM pubtator_annotation_cache a
-           JOIN pubtator_search_cache s ON a.search_id = s.search_id
-           WHERE s.query_id = ?",
-          params = list(query_id)
-        )
-        # set the new total + new "queried" in this row
-        dbExecute(db_conn, "
-          UPDATE pubtator_query_cache
-          SET total_page_number=?, queried_page_number=?, page_size=?
-          WHERE query_id=?
-        ", params = list(total_pages, max_pages, 10, query_id))
-        old_queried_number <- 0
-
-      } else {
-        # partial update
-        if (max_pages <= old_queried_number) {
-          log_info("Already up to page={old_queried_number}, new requested max={max_pages}. No new fetch => commit.")
-          dbCommit(db_conn)
-          return(query_id)
-        } else {
-          log_info("Partial update: old_queried_number={old_queried_number}, new max_pages={max_pages}.")
-        }
-      }
-    }
-
-    # D) Fetch new pages from pubtator_v3_pmids_from_request
-    start_page <- 1
-    if (!do_full_update && nrow(existing_query) > 0) {
-      start_page <- existing_query$queried_page_number[1] + 1
-    }
-
-    if (start_page <= max_pages) {
-      # Actually fetch
-      df_results <- pubtator_v3_pmids_from_request(
-        query      = query,
-        start_page = start_page,
-        max_pages  = (max_pages - start_page + 1)
+  # C) Wrap ALL database operations in a single transaction
+  result <- tryCatch({
+    db_with_transaction({
+      # Check if query exists
+      existing_query <- db_execute_query(
+        "SELECT query_id, queried_page_number, total_page_number, page_size
+         FROM pubtator_query_cache WHERE query_hash = ?",
+        list(q_hash)
       )
-      if (!is.null(df_results) && nrow(df_results) > 0) {
-        log_info("Inserting {nrow(df_results)} rows => pubtator_search_cache (query_id={query_id}).")
 
-        # format date => store only YYYY-MM-DD
-        df_insert <- df_results %>%
-          mutate(
-            query_id = query_id,
-            id   = if (!"id" %in% names(.)) NA_character_ else id,
-            date = if ("date" %in% names(.)) sub("T.*", "", date) else NA_character_
-          ) %>%
-          select(query_id, id, pmid, doi, title, journal, date, score, text_hl)
+      query_id <- NA_integer_
+      old_queried_number <- 0
 
-        sql_ins <- "
-          INSERT INTO pubtator_search_cache
-            (query_id, id, pmid, doi, title, journal, date, score, text_hl)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        "
-        rs_ins <- dbSendQuery(db_conn, sql_ins)
-        for (r in seq_len(nrow(df_insert))) {
-          vals <- unname(as.list(df_insert[r, ]))
-          dbBind(rs_ins, vals)
-        }
-        dbClearResult(rs_ins)
-
-        # update the pubtator_query_cache => new "queried_page_number" and also ensure total_page_number
-        dbExecute(db_conn, "
-          UPDATE pubtator_query_cache
-          SET queried_page_number=?, total_page_number=?
-          WHERE query_id=?
-        ", params = list(max_pages, total_pages, query_id))
+      if (nrow(existing_query) == 0) {
+        # Insert new row
+        log_info("No record for query_hash={q_hash}, inserting new row.")
+        db_execute_statement(
+          "INSERT INTO pubtator_query_cache
+            (query_text, query_hash, total_page_number, queried_page_number, page_size)
+           VALUES (?, ?, ?, ?, ?)",
+          list(query, q_hash, total_pages, max_pages, 10)
+        )
+        query_id <- db_execute_query("SELECT LAST_INSERT_ID() AS id")$id[1]
 
       } else {
-        log_info("No new records from pages {start_page}..{max_pages}.")
+        # Found existing row
+        query_id <- existing_query$query_id[1]
+        old_queried_number <- existing_query$queried_page_number[1]
+        old_total_number <- existing_query$total_page_number[1]
+
+        log_info("Found existing query_id={query_id}, old_queried_number={old_queried_number}")
+
+        if (do_full_update) {
+          log_info("do_full_update=TRUE => removing old records.")
+          db_execute_statement(
+            "DELETE FROM pubtator_search_cache WHERE query_id = ?",
+            list(query_id)
+          )
+          db_execute_statement(
+            "DELETE a FROM pubtator_annotation_cache a
+             JOIN pubtator_search_cache s ON a.search_id = s.search_id
+             WHERE s.query_id = ?",
+            list(query_id)
+          )
+          db_execute_statement(
+            "UPDATE pubtator_query_cache
+             SET total_page_number=?, queried_page_number=?, page_size=?
+             WHERE query_id=?",
+            list(total_pages, max_pages, 10, query_id)
+          )
+          old_queried_number <- 0
+
+        } else {
+          # Partial update check
+          if (max_pages <= old_queried_number) {
+            log_info("Already up to page={old_queried_number}, no new fetch needed.")
+            # Return query_id - transaction will auto-commit
+            return(query_id)  # Early return WITH commit
+          }
+          log_info("Partial update: old_queried_number={old_queried_number}, new max_pages={max_pages}")
+        }
       }
-    } else {
-      log_info("start_page={start_page} > max_pages={max_pages}, no new pages to fetch => skipping.")
-    }
 
-    # E) Gather PMIDs from pubtator_search_cache
-    pmid_rows <- db_execute_query(
-      "SELECT pmid FROM pubtator_search_cache WHERE query_id=? AND pmid IS NOT NULL GROUP BY pmid",
-      list(query_id)
-    )
-    if (nrow(pmid_rows) == 0) {
-      log_info("No PMIDs in search_cache => skip annotation fetch => commit + return.")
-      dbCommit(db_conn)
-      return(query_id)
-    }
-    pmid_vector <- pmid_rows$pmid
-    log_info("Found {length(pmid_vector)} PMIDs => fetching annotation docs...")
+      # D) Fetch new pages
+      start_page <- if (!do_full_update && nrow(existing_query) > 0) {
+        existing_query$queried_page_number[1] + 1
+      } else {
+        1
+      }
 
-    # F) fetch annotation => flatten => insert
-    doc_list <- pubtator_v3_data_from_pmids(pmid_vector)
-    if (is.null(doc_list) || length(doc_list) == 0) {
-      log_warn("No annotation data => skipping annotation_cache insert => commit + return.")
-      dbCommit(db_conn)
-      return(query_id)
-    }
+      if (start_page <= max_pages) {
+        df_results <- pubtator_v3_pmids_from_request(
+          query = query, start_page = start_page,
+          max_pages = (max_pages - start_page + 1)
+        )
 
-    # flatten
-    flat_df <- flatten_pubtator_passages(doc_list) %>%
-      mutate(pmid = as.integer(pmid))
+        if (!is.null(df_results) && nrow(df_results) > 0) {
+          log_info("Inserting {nrow(df_results)} rows => pubtator_search_cache")
 
-    srch_map <- db_execute_query(
-      "SELECT search_id, pmid FROM pubtator_search_cache WHERE query_id=?",
-      list(query_id)
-    )
+          df_insert <- df_results %>%
+            mutate(
+              query_id = query_id,
+              id = if (!"id" %in% names(.)) NA_character_ else id,
+              date = if ("date" %in% names(.)) sub("T.*", "", date) else NA_character_
+            ) %>%
+            select(query_id, id, pmid, doi, title, journal, date, score, text_hl)
 
-    flat_df_j <- flat_df %>%
-      left_join(srch_map, by="pmid", relationship="many-to-many")
+          for (r in seq_len(nrow(df_insert))) {
+            db_execute_statement(
+              "INSERT INTO pubtator_search_cache
+                (query_id, id, pmid, doi, title, journal, date, score, text_hl)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+              unname(as.list(df_insert[r, ]))
+            )
+          }
 
-    log_info("Inserting {nrow(flat_df_j)} annotation rows => pubtator_annotation_cache.")
+          db_execute_statement(
+            "UPDATE pubtator_query_cache
+             SET queried_page_number=?, total_page_number=? WHERE query_id=?",
+            list(max_pages, total_pages, query_id)
+          )
+        }
+      }
 
-    ins_sql <- "
-      INSERT INTO pubtator_annotation_cache
-      (search_id, pmid, id, text, identifier, type, ncbi_homologene, valid,
-       normalized, `database`, normalized_id, biotype, name, accession)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    "
-    rs_ins <- dbSendQuery(db_conn, ins_sql)
+      # E) Gather PMIDs and fetch annotations
+      pmid_rows <- db_execute_query(
+        "SELECT pmid FROM pubtator_search_cache
+         WHERE query_id=? AND pmid IS NOT NULL GROUP BY pmid",
+        list(query_id)
+      )
 
-    df_ann <- flat_df_j %>%
-      mutate(
-        valid = if_else(valid == "TRUE", 1, 0, missing=0)
-      ) %>%
-      select(search_id, pmid, id, text, identifier, type,
-             ncbi_homologene, valid, normalized,
-             `database`, normalized_id, biotype, name, accession)
+      if (nrow(pmid_rows) == 0) {
+        log_info("No PMIDs in search_cache => skip annotation fetch.")
+        return(query_id)  # Early return WITH commit
+      }
 
-    for (r in seq_len(nrow(df_ann))) {
-      vals <- unname(as.list(df_ann[r, ]))
-      dbBind(rs_ins, vals)
-    }
-    dbClearResult(rs_ins)
+      pmid_vector <- pmid_rows$pmid
+      log_info("Found {length(pmid_vector)} PMIDs => fetching annotations...")
 
-    # If we get here, everything succeeded => commit
-    dbCommit(db_conn)
-    log_info("All done => returning query_id={query_id}.")
+      # F) Fetch and insert annotations
+      doc_list <- pubtator_v3_data_from_pmids(pmid_vector)
+      if (is.null(doc_list) || length(doc_list) == 0) {
+        log_warn("No annotation data => skipping annotation_cache insert.")
+        return(query_id)  # Early return WITH commit
+      }
 
-    return(query_id)
+      flat_df <- flatten_pubtator_passages(doc_list) %>%
+        mutate(pmid = as.integer(pmid))
 
+      srch_map <- db_execute_query(
+        "SELECT search_id, pmid FROM pubtator_search_cache WHERE query_id=?",
+        list(query_id)
+      )
+
+      flat_df_j <- flat_df %>%
+        left_join(srch_map, by = "pmid", relationship = "many-to-many")
+
+      log_info("Inserting {nrow(flat_df_j)} annotation rows")
+
+      df_ann <- flat_df_j %>%
+        mutate(valid = if_else(valid == "TRUE", 1, 0, missing = 0)) %>%
+        select(search_id, pmid, id, text, identifier, type, ncbi_homologene,
+               valid, normalized, `database`, normalized_id, biotype, name, accession)
+
+      for (r in seq_len(nrow(df_ann))) {
+        db_execute_statement(
+          "INSERT INTO pubtator_annotation_cache
+            (search_id, pmid, id, text, identifier, type, ncbi_homologene, valid,
+             normalized, `database`, normalized_id, biotype, name, accession)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          unname(as.list(df_ann[r, ]))
+        )
+      }
+
+      log_info("All done => returning query_id={query_id}")
+      query_id  # Return value - transaction auto-commits
+    })
   }, error = function(e) {
-    # rollback
-    dbRollback(db_conn)
-    log_error("pubtator_db_update: Error => rolling back. {e$message}")
+    # Transaction auto-rolled back by db_with_transaction
+    log_error("pubtator_db_update: Error => {e$message}")
     return(NULL)
   })
+
+  return(result)
 }
 
 
