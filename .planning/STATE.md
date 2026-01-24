@@ -6,20 +6,20 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v4 Backend Overhaul - Phase 23 OMIM Migration in progress
+**Current focus:** v4 Backend Overhaul - Phase 23 OMIM Migration COMPLETE
 
 ## Current Position
 
 **Milestone:** v4 Backend Overhaul
-**Phase:** 23 of 24 (OMIM Migration) - IN PROGRESS
-**Plan:** 3 of 3 complete
-**Status:** Phase 23 COMPLETE - MONDO mapping functions ready, OMIM update workflow complete
-**Last activity:** 2026-01-24 - Completed 23-03 MONDO SSSOM mapping functions
+**Phase:** 23 of 24 (OMIM Migration) - COMPLETE
+**Plan:** 4 of 4 complete
+**Status:** Phase 23 COMPLETE - Ontology integration finished, async OMIM update endpoint ready
+**Last activity:** 2026-01-24 - Completed 23-04 Ontology integration
 
 ```
 v4 Backend Overhaul: PHASE 23 COMPLETE
 Goal: Modernize R/Plumber API with security, async, OMIM fix, R upgrade, DRY/KISS/SOLID
-Progress: ██████████████████████████████░░░ 93% (6.7/7 phases)
+Progress: ██████████████████████████████░░░ 96% (6.9/7 phases)
 ```
 
 ## Completed Milestones
@@ -49,7 +49,7 @@ Progress: ███████████████████████�
 - ~~Missing `on.exit(dbDisconnect(...))` cleanup~~ RESOLVED - Repository layer handles all connections
 - ~~Zero dbConnect in production code~~ RESOLVED - Only pool creation in start_sysndd_api.R
 - ~~19 direct DBI calls bypassing db-helpers~~ RESOLVED - Phase 21-09/10 eliminated all (4 in 21-09, 15 in 21-10)
-- ~~OMIM genemap2 no longer provides required fields~~ RESOLVED - mim2gene.txt + JAX API + MONDO mappings
+- ~~OMIM genemap2 no longer provides required fields~~ RESOLVED - mim2gene.txt + JAX API + MONDO mappings (Phase 23 complete)
 
 **Medium - Addressed in Phases 22-24:**
 - 15 global mutable state (`<<-`) usages
@@ -162,6 +162,11 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 23-03 | Semicolon-separate multiple MONDO matches | Consistent with existing ontology-functions.R pattern |
 | 2026-01-24 | 23-03 | Only mim2gene entries get MONDO lookups | mondo entries already have MONDO ID |
 | 2026-01-24 | 23-03 | Remove redundant source() calls in endpoints | All modules already loaded by start_sysndd_api.R |
+| 2026-01-24 | 23-04 | Conditional sourcing for omim/mondo functions | Plumber vs standalone have different working directories; conditional paths ensure portability |
+| 2026-01-24 | 23-04 | Pass progress_callback through nested function calls | process_combine_ontology passes to process_omim_ontology which passes to fetch_all_disease_names |
+| 2026-01-24 | 23-04 | Pre-fetch all DB data before create_job | Mirai daemon workers cannot access the pool; all data must be collected before submission |
+| 2026-01-24 | 23-04 | Use DBI:: prefix in executor function | Executor runs in daemon worker without loaded packages; explicit namespace required |
+| 2026-01-24 | 23-04 | Deprecate synchronous endpoint in docs only | Keep backward compatibility while encouraging async usage |
 
 ### Pending Todos
 
@@ -183,9 +188,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 23-03-PLAN.md (MONDO SSSOM mapping functions)
+**Stopped at:** Completed 23-04-PLAN.md (Ontology integration)
 **Resume file:** None
 **Next action:** Execute Phase 24: R Upgrade and Final Polish
 
 ---
-*Last updated: 2026-01-24 - Phase 23 COMPLETE (all 3 plans: JAX validation, OMIM functions, MONDO mappings)*
+*Last updated: 2026-01-24 - Phase 23 COMPLETE (all 4 plans: JAX validation, OMIM functions, MONDO mappings, ontology integration)*
