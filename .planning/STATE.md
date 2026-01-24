@@ -11,13 +11,13 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 **Milestone:** v4 Backend Overhaul
-**Phase:** 21 of 24 (Repository Layer) COMPLETE ✓
-**Plan:** 10 of 10 complete
-**Status:** Phase verified and complete
-**Last activity:** 2026-01-24 - Phase 21 verified (100% repository layer consistency)
+**Phase:** 22 of 24 (Service Layer & Middleware)
+**Plan:** 2 of 4 complete
+**Status:** In progress - authentication service layer complete
+**Last activity:** 2026-01-24 - Completed 22-02-PLAN.md (authentication service layer)
 
 ```
-v4 Backend Overhaul: PHASE 21 COMPLETE ✓
+v4 Backend Overhaul: PHASE 22 IN PROGRESS
 Goal: Modernize R/Plumber API with security, async, OMIM fix, R upgrade, DRY/KISS/SOLID
 Progress: ████████████████████░░░░░░░░░░░░░ 71% (5/7 phases)
 ```
@@ -123,6 +123,10 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 21-10 | Move total_pages check BEFORE transaction in pubtator_db_update | No database operations needed for PubTator API call, avoids unnecessary transaction overhead |
 | 2026-01-24 | 21-10 | Use early returns inside db_with_transaction for auto-commit | Cleaner than manual dbCommit calls - db_with_transaction handles commit automatically on successful return |
 | 2026-01-24 | 21-10 | Use dynamic column INSERT loops instead of dbAppendTable/dbWriteTable | Maintains parameterized query pattern while handling dynamic column sets - prevents SQL injection |
+| 2026-01-24 | 22-02 | Service layer uses dependency injection (pool, config as params) | Services accept dependencies as parameters rather than accessing global state - enables testability and follows SOLID principles |
+| 2026-01-24 | 22-02 | Progressive password upgrade integrated in signin flow | Transparently upgrades legacy plaintext passwords to Argon2id on successful login - zero user friction |
+| 2026-01-24 | 22-02 | JWT claims include comprehensive user info | Include user_id, user_name, email, user_role, abbreviation, orcid to avoid database lookups on every request |
+| 2026-01-24 | 22-02 | Token expiry configurable via config parameter | Uses config$refresh with fallback to 86400 seconds - production can adjust without code changes |
 
 ### Pending Todos
 
@@ -141,9 +145,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Phase 21 verified complete
+**Stopped at:** Completed 22-02-PLAN.md (authentication service layer)
 **Resume file:** None
-**Next action:** Proceed to Phase 22 Service Layer & Middleware
+**Next action:** Continue Phase 22 - plans 22-03 and 22-04 remaining
 
 ---
-*Last updated: 2026-01-24 - Phase 21 verified complete (10/10 plans, 100% repository layer consistency, zero DBI bypasses)*
+*Last updated: 2026-01-24 - Completed 22-02 (authentication service layer with JWT signin/verify/refresh)*
