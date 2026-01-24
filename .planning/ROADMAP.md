@@ -107,12 +107,20 @@ Plans:
   1. Authentication checks use require_auth/require_role middleware (no duplicated auth code)
   2. All endpoints verified with curl before and after refactoring
   3. Response format matches production API (https://sysndd.dbmr.unibe.ch/API)
-  4. database-functions.R eliminated (1,234-line god file decomposed)
+  4. database-functions.R eliminated (1,226-line god file decomposed)
   5. Global mutable state minimized (<<- usages reduced)
-**Plans**: TBD
+**Plans**: 9 plans in 4 waves
 
 Plans:
-- [ ] 22-01: TBD (to be determined during planning)
+- [ ] 22-01-PLAN.md - Create middleware infrastructure (require_auth filter, require_role helper)
+- [ ] 22-02-PLAN.md - Create auth-service.R (signin, verify, refresh, token generation)
+- [ ] 22-03-PLAN.md - Create entity-service.R (create, deactivate, get_full, validate)
+- [ ] 22-04-PLAN.md - Create review-service.R and approval-service.R
+- [ ] 22-05-PLAN.md - Create user-service.R, status-service.R, and search-service.R
+- [ ] 22-06-PLAN.md - Refactor user, admin, authentication endpoints to use middleware and services
+- [ ] 22-07-PLAN.md - Refactor entity, review, status, and remaining endpoints
+- [ ] 22-08-PLAN.md - Delete database-functions.R after migration verification
+- [ ] 22-09-PLAN.md - Comprehensive endpoint verification and human approval
 
 ### Phase 23: OMIM Migration
 **Goal**: OMIM annotations work without genemap2 dependency, with OMIM disease names preserved
@@ -155,7 +163,7 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 | 19. Security Hardening | 5/5 | Complete ✓ | 2026-01-24 |
 | 20. Async/Non-blocking | 3/3 | Complete ✓ | 2026-01-24 |
 | 21. Repository Layer | 0/8 | Planned | - |
-| 22. Service Layer & Middleware | 0/TBD | Not started | - |
+| 22. Service Layer & Middleware | 0/9 | Planned | - |
 | 23. OMIM Migration | 0/TBD | Not started | - |
 | 24. Versioning, Pagination & Cleanup | 0/TBD | Not started | - |
 
@@ -182,4 +190,4 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 
 ---
 *Roadmap created: 2026-01-23*
-*Last updated: 2026-01-24 - Phase 20 Async/Non-blocking complete (mirai daemon pool, async job endpoints)*
+*Last updated: 2026-01-24 - Phase 22 planning complete (9 plans in 4 waves)*
