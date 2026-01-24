@@ -12,14 +12,14 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Milestone:** v4 Backend Overhaul
 **Phase:** 21 of 24 (Repository Layer)
-**Plan:** 6 of 8 complete
-**Status:** In progress
-**Last activity:** 2026-01-24 - Completed 21-06-PLAN.md (Database Functions Repository Migration)
+**Plan:** 8 of 8 complete
+**Status:** Phase complete
+**Last activity:** 2026-01-24 - Completed 21-08-PLAN.md (Remaining Files dbConnect Elimination)
 
 ```
-v4 Backend Overhaul: PHASE 21 IN PROGRESS
+v4 Backend Overhaul: PHASE 21 COMPLETE
 Goal: Modernize R/Plumber API with security, async, OMIM fix, R upgrade, DRY/KISS/SOLID
-Progress: ██████████████░░░░░░░░░░░░░░░░░░░ 57% (4/7 phases)
+Progress: ████████████████░░░░░░░░░░░░░░░░░ 64% (4.5/7 phases)
 ```
 
 ## Completed Milestones
@@ -45,8 +45,9 @@ Progress: ██████████████░░░░░░░░░�
 - ~~Passwords visible in logs~~ Sanitized logging
 
 **High - Addressed in Phases 20-22:**
-- ~~17 `dbConnect` calls bypassing connection pool~~ RESOLVED - 19 calls eliminated in Phase 21-06
+- ~~17 `dbConnect` calls bypassing connection pool~~ RESOLVED - ALL eliminated (19 in Phase 21-06, 15 in Phase 21-07/08)
 - ~~Missing `on.exit(dbDisconnect(...))` cleanup~~ RESOLVED - Repository layer handles all connections
+- ~~Zero dbConnect in production code~~ RESOLVED - Only pool creation in start_sysndd_api.R
 - OMIM genemap2 no longer provides required fields
 
 **Medium - Addressed in Phases 22-24:**
@@ -113,6 +114,9 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 21-06 | Keep existing function signatures unchanged for backward compatibility | Legacy API functions act as thin wrappers, endpoints can migrate gradually |
 | 2026-01-24 | 21-06 | Delegate validation to repositories | Centralized validation logic in repository layer |
 | 2026-01-24 | 21-06 | Maintain quote escaping in database-functions.R for synopsis fields | Escaping still needed at API layer before passing to repositories |
+| 2026-01-24 | 21-08 | Use parameterized queries with ? placeholders for all SQL statements | Prevents SQL injection across entire codebase |
+| 2026-01-24 | 21-08 | Use poolWithTransaction for single-table operations with AppendTable | Atomic inserts with automatic connection management |
+| 2026-01-24 | 21-08 | Use db_with_transaction for multi-statement atomic operations | Ensures consistency across complex database updates |
 
 ### Pending Todos
 
@@ -131,9 +135,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 21-06-PLAN.md (Database Functions Repository Migration)
+**Stopped at:** Completed 21-08-PLAN.md (Remaining Files dbConnect Elimination)
 **Resume file:** None
-**Next action:** Continue Phase 21 repository layer implementation
+**Next action:** Phase 21 complete - proceed to Phase 22 OMIM Integration
 
 ---
-*Last updated: 2026-01-24 - Phase 21 plan 6 of 8 complete (database-functions.R refactored)*
+*Last updated: 2026-01-24 - Phase 21 complete (Zero dbConnect in production code, repository layer migration finished)*
