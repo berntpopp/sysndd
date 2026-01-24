@@ -183,40 +183,16 @@ put_post_db_review <- function(request_method,
     if (request_method == "POST" &&
         !("review_id" %in% colnames(review_received))) {
       ##-------------------------------------------------------------------##
-      ## for the post request we connect
-      ## to the database and then add the new synopsis
-      # connect to database
-      sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-        dbname = dw$dbname,
-        user = dw$user,
-        password = dw$password,
-        server = dw$server,
-        host = dw$host,
-        port = dw$port
-        )
+      ## for the post request use review repository
+      review_id <- review_create(review_received)
 
-      # submit the new synopsis and get the id of
-      # the last insert for association with other tables
-      dbAppendTable(sysndd_db, "ndd_entity_review", review_received)
-      submitted_review_id <- dbGetQuery(sysndd_db,
-          "SELECT LAST_INSERT_ID();"
-          ) %>%
-        tibble::as_tibble() %>%
-        select(review_id = `LAST_INSERT_ID()`)
-
-      # execute update query for re_review_entity_connect
-      # saving status and status_id if re_review is TRUE
+      # execute update query for re_review_entity_connect if re_review is TRUE
       if (re_review) {
-        dbExecute(sysndd_db,
-          "UPDATE re_review_entity_connect SET re_review_review_saved = 1, review_id = ? WHERE entity_id = ?",
-          params = list(submitted_review_id$review_id, review_data$entity_id)
-        )
+        review_update_re_review_status(review_data$entity_id, review_id)
       }
 
-      # disconnect from database
-      dbDisconnect(sysndd_db)
-
       # return OK
+      submitted_review_id <- tibble::tibble(review_id = review_id)
       return(list(status = 200,
         message = "OK. Entry created.",
         entry = submitted_review_id)
@@ -225,55 +201,16 @@ put_post_db_review <- function(request_method,
     } else if (request_method == "PUT" &&
                ("review_id" %in% colnames(review_received))) {
       ##-------------------------------------------------------------------##
-      ## for the put request we update the review and set it's status to 0
-      # prepare update data, remove entity_id to not allow changing the review entity connection
-      # and remove review_id (used in WHERE clause)
+      ## for the put request use review repository to update
+      # prepare update data, remove entity_id and review_id
       update_data <- review_received %>%
-        select(-entity_id) %>%
-        mutate(across(where(is.logical), as.integer))
+        select(-entity_id, -review_id)
 
-      # get review_id for WHERE clause
-      review_id_for_update <- update_data$review_id
+      # get review_id for update
+      review_id_for_update <- review_received$review_id
 
-      # remove review_id from update columns
-      update_data <- update_data %>% select(-review_id)
-
-      # build parameterized query: column names from code (safe), values via params
-      col_names <- colnames(update_data)
-      set_clause <- paste0(col_names, " = ?", collapse = ", ")
-      update_query <- paste0("UPDATE ndd_entity_review SET ", set_clause, " WHERE review_id = ?")
-
-      # prepare params list: all column values + review_id for WHERE
-      params_list <- as.list(update_data[1, ])
-      params_list <- c(params_list, list(review_id_for_update))
-
-      # connect to database
-      sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-        dbname = dw$dbname,
-        user = dw$user,
-        password = dw$password,
-        server = dw$server,
-        host = dw$host,
-        port = dw$port
-        )
-
-      # perform the review update (parameterized)
-      dbExecute(sysndd_db, update_query, params = params_list)
-
-      # reset approval status (parameterized)
-      dbExecute(sysndd_db,
-        "UPDATE ndd_entity_review SET review_approved = 0 WHERE review_id = ?",
-        params = list(review_id_for_update)
-        )
-
-      # reset approval user (parameterized)
-      dbExecute(sysndd_db,
-        "UPDATE ndd_entity_review SET approving_user_id = NULL WHERE review_id = ?",
-        params = list(review_id_for_update)
-        )
-
-      # disconnect from database
-      dbDisconnect(sysndd_db)
+      # use repository to update review
+      review_update(review_id_for_update, update_data)
 
       # return OK
       return(list(status = 200,
@@ -981,73 +918,8 @@ put_db_review_approve <- function(review_id_requested,
         review_id_requested <- as.integer(review_id_requested)
       }
 
-      # get table data from database
-      ndd_entity_review_data <- pool %>%
-        tbl("ndd_entity_review") %>%
-        filter(review_id %in% review_id_requested) %>%
-        collect()
-
-      # connect to database
-      sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-        dbname = dw$dbname,
-        user = dw$user,
-        password = dw$password,
-        server = dw$server,
-        host = dw$host,
-        port = dw$port)
-
-      # set review if confirmed (parameterized queries for SQL injection prevention)
-      if (review_ok) {
-        # build parameterized IN clause for entity_ids
-        entity_ids <- unique(ndd_entity_review_data$entity_id)
-        entity_placeholders <- paste(rep("?", length(entity_ids)), collapse = ", ")
-
-        # build parameterized IN clause for review_ids
-        review_ids <- ndd_entity_review_data$review_id
-        review_placeholders <- paste(rep("?", length(review_ids)), collapse = ", ")
-
-        # reset all reviews in ndd_entity_review to not primary
-        dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_review SET is_primary = 0 WHERE entity_id IN (", entity_placeholders, ")"),
-          params = as.list(entity_ids)
-        )
-
-        # set the review from ndd_entity_review_data to primary
-        dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_review SET is_primary = 1 WHERE review_id IN (", review_placeholders, ")"),
-          params = as.list(review_ids)
-        )
-
-        # add approving_user_id
-        dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_review SET approving_user_id = ? WHERE review_id IN (", review_placeholders, ")"),
-          params = c(list(submit_user_id), as.list(review_ids))
-        )
-
-        # set review_approved status to approved
-        dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_review SET review_approved = 1 WHERE review_id IN (", review_placeholders, ")"),
-          params = as.list(review_ids)
-        )
-      } else {
-        # build parameterized IN clause for review_ids
-        review_ids <- ndd_entity_review_data$review_id
-        review_placeholders <- paste(rep("?", length(review_ids)), collapse = ", ")
-
-        # add approving_user_id and set review_approved status to unapproved
-        dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_review SET approving_user_id = ? WHERE review_id IN (", review_placeholders, ")"),
-          params = c(list(submit_user_id), as.list(review_ids))
-        )
-
-        dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_review SET review_approved = 0 WHERE review_id IN (", review_placeholders, ")"),
-          params = as.list(review_ids)
-        )
-      }
-
-      # disconnect from database
-      dbDisconnect(sysndd_db)
+      # use review repository to approve/unapprove reviews
+      review_approve(review_id_requested, submit_user_id, review_ok)
 
       # return OK
       return(list(status = 200,
