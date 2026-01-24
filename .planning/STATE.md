@@ -6,20 +6,20 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v4 Backend Overhaul - Phase 22 Service Layer & Middleware complete, ready for Phase 23
+**Current focus:** v4 Backend Overhaul - Phase 23 OMIM Migration in progress
 
 ## Current Position
 
 **Milestone:** v4 Backend Overhaul
-**Phase:** 22 of 24 (Service Layer & Middleware) - COMPLETE
-**Plan:** 10 of 10 complete
-**Status:** Phase 22 verified - all endpoints working, frontend compatible
-**Last activity:** 2026-01-24 - Completed comprehensive API verification with curl and Playwright
+**Phase:** 23 of 24 (OMIM Migration) - IN PROGRESS
+**Plan:** 1 of 3 complete
+**Status:** JAX API validation complete, implementation parameters determined
+**Last activity:** 2026-01-24 - Completed 23-01 JAX API validation (82% data coverage, no rate limits)
 
 ```
-v4 Backend Overhaul: PHASE 22 COMPLETE
+v4 Backend Overhaul: PHASE 23 IN PROGRESS
 Goal: Modernize R/Plumber API with security, async, OMIM fix, R upgrade, DRY/KISS/SOLID
-Progress: ██████████████████████████░░░░░░░ 86% (6/7 phases)
+Progress: ██████████████████████████░░░░░░░ 87% (6.3/7 phases)
 ```
 
 ## Completed Milestones
@@ -149,6 +149,10 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 22-06 | Use require_role for simple checks, keep == checks for differentiation | require_role enforces minimum role, explicit == checks needed for differentiated behavior (e.g., Admin sees all, Curator sees subset) |
 | 2026-01-24 | 22-07 | Remove inline authorization from endpoints | Middleware provides consistent authorization, eliminates duplicated role checks |
 | 2026-01-24 | 22-07 | Delegate approval operations to service layer | Service layer provides batch operation support and consistent business logic |
+| 2026-01-24 | 23-01 | 50ms delay between JAX API requests | No rate limiting observed, but provides safety margin (20 req/sec max) |
+| 2026-01-24 | 23-01 | WARN on missing disease names, don't abort | 18% of phenotype MIMs return 404 - too high to abort, log and continue |
+| 2026-01-24 | 23-01 | Use req_error(is_error = ~ FALSE) for httr2 | Prevents throwing on HTTP errors, allows manual handling of 404s |
+| 2026-01-24 | 23-01 | max_tries=5, backoff=2^x, max_seconds=120 for retries | Conservative retry strategy for transient JAX API failures |
 
 ### Pending Todos
 
@@ -159,7 +163,10 @@ None yet.
 **From Research:**
 - ~~Matrix ABI breaking change (must upgrade Matrix to 1.6.3+ BEFORE R upgrade)~~ RESOLVED - Matrix 1.7.2 in R 4.4.3
 - ~~Password migration requires dual-hash verification (avoid user lockout)~~ RESOLVED - verify_password() supports both modes
-- mim2gene.txt lacks disease names (need MONDO/HPO integration)
+- ~~mim2gene.txt lacks disease names (need MONDO/HPO integration)~~ VALIDATED - JAX API provides 82% coverage, MONDO fallback may help remaining 18%
+
+**From Phase 23-01 Validation:**
+- 18% of phenotype MIM numbers not in JAX database (return 404) - need fallback strategy or accept gaps
 
 **From Phase 20:**
 - Analysis functions (gen_string_clust_obj) use global `pool` for DB queries - daemon workers cannot access this. Future refactoring needed for full async execution.
@@ -167,9 +174,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Phase 22 complete - all 10 plans executed and verified
+**Stopped at:** Completed 23-01-PLAN.md (JAX API validation)
 **Resume file:** None
-**Next action:** Start Phase 23: OMIM Migration
+**Next action:** Execute Phase 23-02: OMIM Update Implementation
 
 ---
-*Last updated: 2026-01-24 - Phase 22 complete (service layer, middleware, comprehensive verification)*
+*Last updated: 2026-01-24 - Phase 23-01 complete (JAX API validation, 82% data coverage confirmed)*
