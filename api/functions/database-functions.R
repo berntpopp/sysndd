@@ -43,51 +43,29 @@ post_db_entity <- function(entity_data) {
         )
 
     ##-------------------------------------------------------------------##
-    ## connect to the database and then add the new entity
-    # connect to database
-    sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-      dbname = dw$dbname,
-      user = dw$user,
-      password = dw$password,
-      server = dw$server,
-      host = dw$host,
-      port = dw$port)
-
-    # submit the new entity and get the id of the
-    # last insert for association with other tables
-    db_append <- tryCatch({
-      dbAppendTable(sysndd_db, "ndd_entity", entity_received)
+    ## use entity repository to create entity
+    entity_id <- tryCatch({
+      entity_create(entity_received)
     }, error = function(cond) {
-            # Choose a return value in case of error
-            return(cond$message)
+      # Return error information
+      return(list(error = TRUE, message = cond$message))
     })
 
-    if (db_append == 1) {
-    submitted_entity_id <- dbGetQuery(sysndd_db, "SELECT LAST_INSERT_ID();") %>%
-      tibble::as_tibble() %>%
-      select(entity_id = `LAST_INSERT_ID()`)
-    } else if (is.na(as.logical(db_append))) {
-    submitted_entity_id <- NA
-    db_error <- db_append
-    }
-
-    # disconnect from database
-    dbDisconnect(sysndd_db)
-
-    if (db_append == 1) {
-    # return OK
-    return(list(status = 200,
-      message = "OK. Entry created.",
-      entry = submitted_entity_id)
+    if (is.list(entity_id) && !is.null(entity_id$error)) {
+      # Error occurred
+      return(list(status = 500,
+        message = "Internal Server Error. Entry not created.",
+        entry = NA,
+        error = entity_id$message)
       )
-    } else if (is.na(as.logical(db_append))) {
-    return(list(status = 500,
-      message = "Internal Server Error. Entry not created.",
-      entry = submitted_entity_id,
-      error = db_error)
+    } else {
+      # Success
+      submitted_entity_id <- tibble::tibble(entity_id = entity_id)
+      return(list(status = 200,
+        message = "OK. Entry created.",
+        entry = submitted_entity_id)
       )
     }
-
     ##-------------------------------------------------------------------##
 
   } else {
@@ -131,24 +109,9 @@ put_db_entity_deactivation <- function(entity_id,
   if (!is.null(entity_id)
     ) {
     ##-------------------------------------------------------------------##
-    # connect to database
-    sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-    dbname = dw$dbname,
-    user = dw$user,
-    password = dw$password,
-    server = dw$server,
-    host = dw$host,
-    port = dw$port
-    )
-
-    # perform the entity update (parameterized query for SQL injection prevention)
-    dbExecute(sysndd_db,
-      "UPDATE ndd_entity SET is_active = 0, replaced_by = ? WHERE entity_id = ?",
-      params = list(replacement, entity_id)
-    )
-
-    # disconnect from database
-    dbDisconnect(sysndd_db)
+    # use entity repository to deactivate entity
+    replacement_id <- if (replacement == "NULL") NULL else as.integer(replacement)
+    entity_deactivate(entity_id, replacement_id)
 
     # return OK
     return(list(status = 200,
