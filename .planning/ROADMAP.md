@@ -132,10 +132,14 @@ Plans:
   3. Data completeness validated before database writes (no empty critical fields)
   4. ManageAnnotations admin view works with new data sources
   5. MONDO equivalence available in curation interface (optional enhancement)
-**Plans**: TBD
+**Plans**: 5 plans in 4 waves
 
 Plans:
-- [ ] 23-01: TBD (to be determined during planning)
+- [ ] 23-01-PLAN.md - Create JAX API validation script and document rate limits
+- [ ] 23-02-PLAN.md - Create omim-functions.R (mim2gene parsing, JAX API, validation)
+- [ ] 23-03-PLAN.md - Create mondo-functions.R (SSSOM parsing, MONDO mappings)
+- [ ] 23-04-PLAN.md - Integrate new functions into ontology update, create async endpoint
+- [ ] 23-05-PLAN.md - Update ManageAnnotations polling and add MONDO to entity views
 
 ### Phase 24: Versioning, Pagination & Cleanup
 **Goal**: Production-ready API with versioning, pagination, and clean codebase
@@ -164,7 +168,7 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 | 20. Async/Non-blocking | 3/3 | Complete ✓ | 2026-01-24 |
 | 21. Repository Layer | 0/8 | Planned | - |
 | 22. Service Layer & Middleware | 0/9 | Planned | - |
-| 23. OMIM Migration | 0/TBD | Not started | - |
+| 23. OMIM Migration | 0/5 | Planned | - |
 | 24. Versioning, Pagination & Cleanup | 0/TBD | Not started | - |
 
 ## Coverage Summary
@@ -190,4 +194,4 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 
 ---
 *Roadmap created: 2026-01-23*
-*Last updated: 2026-01-24 - Phase 22 planning complete (9 plans in 4 waves)*
+*Last updated: 2026-01-24 - Phase 23 planning complete (5 plans in 4 waves)*
