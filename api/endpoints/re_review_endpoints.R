@@ -28,23 +28,20 @@ source(db_helpers_path, local = TRUE)
 #*
 #* @put submit
 function(req, res) {
-  if (req$user_role %in% c("Administrator", "Curator", "Reviewer")) {
-    submit_user_id <- req$user_id
-    submit_data <- req$argsBody$submit_json
+  require_role(req, res, "Reviewer")
 
-    # Build parameterized UPDATE query dynamically
-    fields_to_update <- names(submit_data)[names(submit_data) != "re_review_entity_id"]
-    set_clause <- paste(paste0(fields_to_update, " = ?"), collapse = ", ")
-    sql <- paste0("UPDATE re_review_entity_connect SET ", set_clause, " WHERE re_review_entity_id = ?")
+  submit_user_id <- req$user_id
+  submit_data <- req$argsBody$submit_json
 
-    # Parameters: field values + re_review_entity_id
-    params <- c(as.list(submit_data[fields_to_update]), list(submit_data$re_review_entity_id))
+  # Build parameterized UPDATE query dynamically
+  fields_to_update <- names(submit_data)[names(submit_data) != "re_review_entity_id"]
+  set_clause <- paste(paste0(fields_to_update, " = ?"), collapse = ", ")
+  sql <- paste0("UPDATE re_review_entity_connect SET ", set_clause, " WHERE re_review_entity_id = ?")
 
-    db_execute_statement(sql, params)
-  } else {
-    res$status <- 403
-    return(list(error = "Write access forbidden."))
-  }
+  # Parameters: field values + re_review_entity_id
+  params <- c(as.list(submit_data[fields_to_update]), list(submit_data$re_review_entity_id))
+
+  db_execute_statement(sql, params)
 }
 
 
@@ -63,21 +60,15 @@ function(req, res) {
 #*
 #* @put unsubmit/<re_review_id>
 function(req, res, re_review_id) {
-  if (length(req$user_id) == 0) {
-    res$status <- 401
-    return(list(error = "Please authenticate."))
-  } else if (req$user_role %in% c("Administrator", "Curator")) {
-    submit_user_id <- req$user_id
-    re_review_id <- as.integer(re_review_id)
+  require_role(req, res, "Curator")
 
-    db_execute_statement(
-      "UPDATE re_review_entity_connect SET re_review_submitted = 0 WHERE re_review_entity_id = ?",
-      list(re_review_id)
-    )
-  } else {
-    res$status <- 403
-    return(list(error = "Write access forbidden."))
-  }
+  submit_user_id <- req$user_id
+  re_review_id <- as.integer(re_review_id)
+
+  db_execute_statement(
+    "UPDATE re_review_entity_connect SET re_review_submitted = 0 WHERE re_review_entity_id = ?",
+    list(re_review_id)
+  )
 }
 
 
@@ -100,15 +91,12 @@ function(req, res, re_review_id) {
 #*
 #* @put approve/<re_review_id>
 function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
+  require_role(req, res, "Curator")
+
   status_ok <- as.logical(status_ok)
   review_ok <- as.logical(review_ok)
-
-  if (length(req$user_id) == 0) {
-    res$status <- 401
-    return(list(error = "Please authenticate."))
-  } else if (req$user_role %in% c("Administrator", "Curator")) {
-    submit_user_id <- req$user_id
-    re_review_id <- as.integer(re_review_id)
+  submit_user_id <- req$user_id
+  re_review_id <- as.integer(re_review_id)
 
     re_review_entity_connect_data <- pool %>%
       tbl("re_review_entity_connect") %>%
@@ -182,10 +170,6 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
       "UPDATE re_review_entity_connect SET approving_user_id = ? WHERE re_review_entity_id = ?",
       list(submit_user_id, re_review_id)
     )
-  } else {
-    res$status <- 403
-    return(list(error = "Write access forbidden."))
-  }
 }
 
 
