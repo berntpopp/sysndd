@@ -260,16 +260,8 @@ put_post_db_pub_con <- function(request_method,
   entity_id,
   review_id) {
   ##-------------------------------------------------------------------##
-  # get publication_ids present in table
-  publication_list_collected <- pool %>%
-    tbl("publication") %>%
-    select(publication_id) %>%
-    arrange(publication_id) %>%
-    collect()
-
-  # check if received publications are in allowed publications
-  publications_allowed <- all(publication_data$publication_id %in%
-    publication_list_collected$publication_id)
+  # validate publications using repository
+  publication_validate_ids(publication_data$publication_id)
 
   # prepare publications tibble for submission
   publications_submission <- publication_data %>%
@@ -290,72 +282,24 @@ put_post_db_pub_con <- function(request_method,
 
   entity_id_match <- (review_publication_for_match == entity_id)
 
-  if (publications_allowed) {
-    if (request_method == "POST") {
-      # connect to database
-      sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-        dbname = dw$dbname,
-        user = dw$user,
-        password = dw$password,
-        server = dw$server,
-        host = dw$host,
-        port = dw$port
-        )
+  if (request_method == "POST") {
+    # use publication repository to connect
+    publication_connect_to_review(review_id, entity_id, publications_submission)
 
-      # submit publications from new review to database
-      dbAppendTable(sysndd_db,
-        "ndd_review_publication_join",
-        publications_submission
-        )
-
-      # disconnect from database
-      dbDisconnect(sysndd_db)
-
-      # return OK
-      return(list(status = 200,
-        message = "OK. Entry created.")
-        )
-    } else if (request_method == "PUT" &&
-        (entity_id_match || is.na(entity_id_match))) {
-      # connect to database
-      sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-        dbname = dw$dbname,
-        user = dw$user,
-        password = dw$password,
-        server = dw$server,
-        host = dw$host,
-        port = dw$port
-        )
-
-      # delete old publication connections for review_id (parameterized)
-      dbExecute(sysndd_db,
-        "DELETE FROM ndd_review_publication_join WHERE review_id = ?",
-        params = list(review_id)
-        )
-
-      # submit publications from new review to database
-      dbAppendTable(sysndd_db,
-        "ndd_review_publication_join",
-        publications_submission
-        )
-
-      # disconnect from database
-      dbDisconnect(sysndd_db)
-
-      # return OK
-      return(list(status = 200, message = "OK. Entry created."))
-    } else {
-      # return Method Not Allowed
-      return(list(status = 405, message = "Method not Allowed."))
-    }
-  } else {
-    # return Bad Request
-    return(list(status = 400,
-      message = paste0("Some of the submitted publications are not in",
-        " the allowed in the publications list. Add them there first."
-        )
+    # return OK
+    return(list(status = 200,
+      message = "OK. Entry created.")
       )
-    )
+  } else if (request_method == "PUT" &&
+      (entity_id_match || is.na(entity_id_match))) {
+    # use publication repository to replace
+    publication_replace_for_review(review_id, entity_id, publications_submission)
+
+    # return OK
+    return(list(status = 200, message = "OK. Entry created."))
+  } else {
+    # return Method Not Allowed
+    return(list(status = 405, message = "Method not Allowed."))
   }
   ##-------------------------------------------------------------------##
 }
@@ -384,15 +328,8 @@ put_post_db_phen_con <- function(request_method,
   entity_id,
   review_id) {
   ##-------------------------------------------------------------------##
-  # get allowed HPO terms
-  phenotype_list_collected <- pool %>%
-    tbl("phenotype_list") %>%
-    select(phenotype_id) %>%
-    collect()
-
-  # check if received phenotypes are in allowed phenotypes
-  phenotypes_allowed <- all(phenotypes_data$phenotype_id %in%
-    phenotype_list_collected$phenotype_id)
+  # validate phenotypes using repository
+  phenotype_validate_ids(phenotypes_data$phenotype_id)
 
   # prepare phenotype tibble for submission
   phenotypes_submission <- phenotypes_data %>%
@@ -413,74 +350,23 @@ put_post_db_phen_con <- function(request_method,
 
   entity_id_match <- (ndd_review_phenotype_for_match == entity_id)
 
-  if (phenotypes_allowed) {
-    if (request_method == "POST") {
-      # connect to database
-      sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-        dbname = dw$dbname,
-        user = dw$user,
-        password = dw$password,
-        server = dw$server,
-        host = dw$host,
-        port = dw$port
-        )
+  if (request_method == "POST") {
+    # use phenotype repository to connect
+    phenotype_connect_to_review(review_id, entity_id, phenotypes_submission)
 
-      # submit phenotypes from new review to database
-      dbAppendTable(sysndd_db,
-        "ndd_review_phenotype_connect",
-        phenotypes_submission
-        )
+    # return OK
+    return(list(status = 200, message = "OK. Entry created."))
+  } else if (request_method == "PUT" &&
+      (entity_id_match || is.na(entity_id_match))) {
+    # use phenotype repository to replace
+    phenotype_replace_for_review(review_id, entity_id, phenotypes_submission)
 
-      # disconnect from database
-      dbDisconnect(sysndd_db)
-
-      # return OK
-      return(list(status = 200, message = "OK. Entry created."))
-    } else if (request_method == "PUT" &&
-        (entity_id_match || is.na(entity_id_match))) {
-      # connect to database
-      sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-        dbname = dw$dbname,
-        user = dw$user,
-        password = dw$password,
-        server = dw$server,
-        host = dw$host,
-        port = dw$port
-        )
-
-      # used to delete the old phenotype
-      # connections for review_id here (until 2022-06-10)
-      # changed to inactivation (parameterized)
-      dbExecute(sysndd_db,
-        "DELETE FROM ndd_review_phenotype_connect WHERE review_id = ?",
-        params = list(review_id)
-        )
-
-      # submit phenotypes from new review to database
-      dbAppendTable(sysndd_db,
-        "ndd_review_phenotype_connect",
-        phenotypes_submission
-        )
-
-      # disconnect from database
-      dbDisconnect(sysndd_db)
-
-      # return OK
-      return(list(status = 200,
-      message = "OK. Entry created."))
-    } else {
-      # return Method Not Allowed
-      return(list(status = 405, message = "Method not Allowed."))
-    }
-
+    # return OK
+    return(list(status = 200,
+    message = "OK. Entry created."))
   } else {
-    # return Bad Request
-    return(list(status = 400,
-      message = paste0("Some of the submitted phenotypes are",
-      "not in the allowed phenotype_id list."
-      )
-      )
-    )
+    # return Method Not Allowed
+    return(list(status = 405, message = "Method not Allowed."))
   }
   ##-------------------------------------------------------------------##
 }
@@ -509,17 +395,8 @@ put_post_db_var_ont_con <- function(request_method,
   entity_id,
   review_id) {
   ##-------------------------------------------------------------------##
-  # get allowed variation ontology terms
-  variation_ontology_list <- pool %>%
-    tbl("variation_ontology_list") %>%
-    select(vario_id) %>%
-    arrange(vario_id) %>%
-    collect()
-
-  # check if received variation ontology terms are
-  # in allowed variation ontology terms
-  variation_ontology_allowed <- all(variation_ontology_data$vario_id %in%
-    variation_ontology_list$vario_id)
+  # validate variation ontology using repository
+  variation_ontology_validate_ids(variation_ontology_data$vario_id)
 
   # prepare variation ontology tibble for submission
   variation_ontology_submission <- variation_ontology_data %>%
@@ -540,73 +417,24 @@ put_post_db_var_ont_con <- function(request_method,
 
   entity_id_match <- (variation_ontology_match == entity_id)
 
-  if (variation_ontology_allowed) {
-    if (request_method == "POST") {
-      # connect to database
-      sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-        dbname = dw$dbname,
-        user = dw$user,
-        password = dw$password,
-        server = dw$server,
-        host = dw$host,
-        port = dw$port
-        )
+  if (request_method == "POST") {
+    # use variation ontology repository to connect
+    variation_ontology_connect_to_review(review_id, entity_id, variation_ontology_submission)
 
-      # submit variation ontology terms from new review to database
-      dbAppendTable(sysndd_db,
-        "ndd_review_variation_ontology_connect",
-        variation_ontology_submission
-        )
+    # return OK
+    return(list(status = 200, message = "OK. Entry created."))
+  } else if (request_method == "PUT" &&
+      (entity_id_match || is.na(entity_id_match))) {
+    # use variation ontology repository to replace
+    variation_ontology_replace_for_review(review_id, entity_id, variation_ontology_submission)
 
-      # disconnect from database
-      dbDisconnect(sysndd_db)
-
-      # return OK
-      return(list(status = 200, message = "OK. Entry created."))
-    } else if (request_method == "PUT" &&
-        (entity_id_match || is.na(entity_id_match))) {
-      # connect to database
-      sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-        dbname = dw$dbname,
-        user = dw$user,
-        password = dw$password,
-        server = dw$server,
-        host = dw$host,
-        port = dw$port
-        )
-
-      # delete old variation ontology connections for review_id first (parameterized)
-      dbExecute(sysndd_db,
-        "DELETE FROM ndd_review_variation_ontology_connect WHERE review_id = ?",
-        params = list(review_id)
-        )
-
-      # submit variation ontology terms from new review to database
-      dbAppendTable(sysndd_db,
-        "ndd_review_variation_ontology_connect",
-        variation_ontology_submission
-        )
-
-      # disconnect from database
-      dbDisconnect(sysndd_db)
-
-      # return OK
-      return(list(status = 200,
-        message = "OK. Entry created."))
-    } else {
-      # return Method Not Allowed
-      return(list(status = 405,
-        message = "Method not Allowed."))
-    }
-
+    # return OK
+    return(list(status = 200,
+      message = "OK. Entry created."))
   } else {
-    # return Bad Request
-    return(list(status = 400,
-      message = paste0("Some of the submitted variation ontology ",
-        "terms are not in the allowed vario_id list."
-        )
-      )
-    )
+    # return Method Not Allowed
+    return(list(status = 405,
+      message = "Method not Allowed."))
   }
   ##-------------------------------------------------------------------##
 }
@@ -656,43 +484,18 @@ put_post_db_status <- function(request_method,
           status_received
         })
 
-        # connect to database
-        sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-          dbname = dw$dbname,
-          user = dw$user,
-          password = dw$password,
-          server = dw$server,
-          host = dw$host,
-          port = dw$port
-          )
+        # use status repository to create
+        status_id <- status_create(status_received)
 
-        # submit the new status and disconnect from database
-        # and get the id of the last insert for association
-        # with other tables
-        dbAppendTable(sysndd_db, "ndd_entity_status", status_received)
-
-        # get the id of the last insert
-        submitted_status_id <- dbGetQuery(sysndd_db,
-            "SELECT LAST_INSERT_ID();") %>%
-          tibble::as_tibble() %>%
-          select(status_id = `LAST_INSERT_ID()`)
-
-        # execute update query for re_review_entity_connect
-        # saving status and status_id if re_review is TRUE (parameterized)
+        # execute update query for re_review_entity_connect if re_review is TRUE
         if (re_review) {
-          dbExecute(sysndd_db,
-            "UPDATE re_review_entity_connect SET re_review_status_saved = 1, status_id = ? WHERE entity_id = ?",
-            params = list(submitted_status_id$status_id, status_data$entity_id)
-          )
+          status_update_re_review_status(status_data$entity_id, status_id)
         }
-
-        # disconnect from database
-        dbDisconnect(sysndd_db)
 
         # return OK
         return(list(status = 200,
           message = "OK. Entry created.",
-          entry = submitted_status_id$status_id)
+          entry = status_id)
         )
 
       } else if (request_method == "PUT" &&
@@ -709,34 +512,8 @@ put_post_db_status <- function(request_method,
         # get status_id for WHERE clause
         status_id_for_update <- status_received$status_id
 
-        # prepare data for parameterized query
-        update_data <- as_tibble(status_received_data) %>%
-          mutate(across(where(is.logical), as.integer))
-
-        # build parameterized query: column names from code (safe), values via params
-        col_names <- colnames(update_data)
-        set_clause <- paste0(col_names, " = ?", collapse = ", ")
-        update_query <- paste0("UPDATE ndd_entity_status SET ", set_clause, " WHERE status_id = ?")
-
-        # prepare params list: all column values + status_id for WHERE
-        params_list <- as.list(update_data[1, ])
-        params_list <- c(params_list, list(status_id_for_update))
-
-        # connect to database
-        sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-          dbname = dw$dbname,
-          user = dw$user,
-          password = dw$password,
-          server = dw$server,
-          host = dw$host,
-          port = dw$port
-          )
-
-        # submit the new status (parameterized)
-        dbExecute(sysndd_db, update_query, params = params_list)
-
-        # disconnect from database
-        dbDisconnect(sysndd_db)
+        # use status repository to update
+        status_update(status_id_for_update, status_received_data)
 
         # return OK
         return(list(status = 200,
@@ -796,8 +573,8 @@ post_db_hash <- function(json_data,
     json_tibble <- json_tibble %>%
         arrange(!!!rlang::parse_exprs((json_tibble %>% colnames())[1]))
 
-    colnames_allowed <- all((json_tibble %>% colnames()) %in%
-        allowed_col_list)
+    # validate columns using hash repository
+    hash_validate_columns(colnames(json_tibble), allowed_col_list)
 
     json_sort <- toJSON(json_tibble)
     ##-------------------------------------------------------------------##
@@ -807,73 +584,36 @@ post_db_hash <- function(json_data,
     # block to generate hash and check if present in data
     json_sort_hash <- as.character(generate_json_hash(json_sort))
 
-    # get data from database and filter
-    table_hash <- pool %>%
-      tbl("table_hash") %>%
-      filter(hash_256 == json_sort_hash) %>%
-      collect()
+    # check if hash exists using repository
+    hash_already_exists <- hash_exists(json_sort_hash)
     ##-------------------------------------------------------------------##
 
+    if (!hash_already_exists) {
+      # use hash repository to create hash
+      hash_create(json_sort_hash, as.character(json_sort), endpoint)
 
-    if (colnames_allowed) {
+      # generate links object
+      links <- as_tibble(list("hash" =
+        paste0("equals(hash,", json_sort_hash, ")")))
 
-      if (nrow(table_hash) == 0) {
-
-        hash_tibble <- tibble::tibble(hash_256 = json_sort_hash,
-          json_text = as.character(json_sort),
-          target_endpoint = endpoint)
-
-        # connect to database
-        sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-          dbname = dw$dbname,
-          user = dw$user,
-          password = dw$password,
-          server = dw$server,
-          host = dw$host,
-          port = dw$port
-          )
-
-        # submit json string and hash to database
-        db_response <- dbAppendTable(sysndd_db,
-          "table_hash",
-          hash_tibble
-          )
-
-        # disconnect from database
-        dbDisconnect(sysndd_db)
-
-        # generate links object
-        links <- as_tibble(list("hash" =
-          paste0("equals(hash,", json_sort_hash, ")")))
-
-        # generate object to return
-        return(list(links = links,
-          status = 200,
-          message = "OK. Hash created.",
-          data = json_sort_hash))
-
-      } else {
-
-        # generate links object
-        links <- as_tibble(list("hash" =
-          paste0("equals(hash,", json_sort_hash, ")")))
-
-        # generate object to return
-        return(list(links = links,
-          status = 200,
-          message = "OK. Hash already present.",
-          data = json_sort_hash))
-
-      }
+      # generate object to return
+      return(list(links = links,
+        status = 200,
+        message = "OK. Hash created.",
+        data = json_sort_hash))
 
     } else {
-    # return Bad Request
-    return(list(status = 400,
-      message = paste0("The submitted column names are",
-      "not in the allowed allowed_columns list."
-                )
-            )
-        )
+
+      # generate links object
+      links <- as_tibble(list("hash" =
+        paste0("equals(hash,", json_sort_hash, ")")))
+
+      # generate object to return
+      return(list(links = links,
+        status = 200,
+        message = "OK. Hash already present.",
+        data = json_sort_hash))
+
     }
 }
 
@@ -979,74 +719,8 @@ put_db_status_approve <- function(status_id_requested,
         status_id_requested <- as.integer(status_id_requested)
       }
 
-      # get table data from database
-      ndd_entity_status_data <- pool %>%
-        tbl("ndd_entity_status") %>%
-        filter(status_id %in% status_id_requested) %>%
-        collect()
-
-      # connect to database
-      sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-        dbname = dw$dbname,
-        user = dw$user,
-        password = dw$password,
-        server = dw$server,
-        host = dw$host,
-        port = dw$port)
-
-      # set status if confirmed (parameterized queries for SQL injection prevention)
-      if (status_ok) {
-        # build parameterized IN clause for entity_ids
-        entity_ids <- unique(ndd_entity_status_data$entity_id)
-        entity_placeholders <- paste(rep("?", length(entity_ids)), collapse = ", ")
-
-        # build parameterized IN clause for status_ids
-        status_ids <- ndd_entity_status_data$status_id
-        status_placeholders <- paste(rep("?", length(status_ids)), collapse = ", ")
-
-        # reset all status in ndd_entity_status to inactive
-        dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_status SET is_active = 0 WHERE entity_id IN (", entity_placeholders, ")"),
-          params = as.list(entity_ids)
-        )
-
-        # set status of the new status from ndd_entity_status_data to active
-        dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_status SET is_active = 1 WHERE status_id IN (", status_placeholders, ")"),
-          params = as.list(status_ids)
-        )
-
-        # add approving_user_id
-        dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_status SET approving_user_id = ? WHERE status_id IN (", status_placeholders, ")"),
-          params = c(list(submit_user_id), as.list(status_ids))
-        )
-
-        # set status_approved to approved
-        dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_status SET status_approved = 1 WHERE status_id IN (", status_placeholders, ")"),
-          params = as.list(status_ids)
-        )
-
-      } else {
-        # build parameterized IN clause for status_ids
-        status_ids <- ndd_entity_status_data$status_id
-        status_placeholders <- paste(rep("?", length(status_ids)), collapse = ", ")
-
-        # add approving_user_id and set approved status to unapproved
-        dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_status SET approving_user_id = ? WHERE status_id IN (", status_placeholders, ")"),
-          params = c(list(submit_user_id), as.list(status_ids))
-        )
-
-        dbExecute(sysndd_db,
-          paste0("UPDATE ndd_entity_status SET status_approved = 0 WHERE status_id IN (", status_placeholders, ")"),
-          params = as.list(status_ids)
-        )
-      }
-
-      # disconnect from database
-      dbDisconnect(sysndd_db)
+      # use status repository to approve/unapprove statuses
+      status_approve(status_id_requested, submit_user_id, status_ok)
 
       # return OK
       return(list(status = 200,
