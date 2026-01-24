@@ -12,12 +12,12 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Milestone:** v4 Backend Overhaul
 **Phase:** 21 of 24 (Repository Layer)
-**Plan:** 1 of 1 complete (Phase 21 complete - single plan phase)
-**Status:** Phase complete
-**Last activity:** 2026-01-24 - Completed 21-01-PLAN.md (Database Helpers)
+**Plan:** 3 of 8 complete
+**Status:** In progress
+**Last activity:** 2026-01-24 - Completed 21-03-PLAN.md (Status and Publication Repositories)
 
 ```
-v4 Backend Overhaul: PHASE 21 COMPLETE
+v4 Backend Overhaul: PHASE 21 IN PROGRESS
 Goal: Modernize R/Plumber API with security, async, OMIM fix, R upgrade, DRY/KISS/SOLID
 Progress: ██████████████░░░░░░░░░░░░░░░░░░░ 57% (4/7 phases)
 ```
@@ -95,6 +95,9 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 21-01 | Redact strings > 50 chars in DEBUG logs | Balance debugging utility with security |
 | 2026-01-24 | 21-01 | Structured error classes with rlang::abort() | Type-safe error handling in repositories and endpoints |
 | 2026-01-24 | 21-01 | Pool checkout for transactions, direct use for single queries | Transactions need connection stability, single queries use pool's automatic management |
+| 2026-01-24 | 21-03 | Status approval uses transaction for atomicity | Approving status requires multiple DB operations (reset all entity statuses, set new active) |
+| 2026-01-24 | 21-03 | Publication validation uses pool with dplyr | Cleaner than raw SQL, type-safe with dplyr's collect() |
+| 2026-01-24 | 21-03 | Status update prevents entity_id changes | Changing entity association would break referential integrity |
 
 ### Pending Todos
 
@@ -113,9 +116,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 21-01-PLAN.md (Phase 21 complete)
+**Stopped at:** Completed 21-03-PLAN.md (Status and Publication Repositories)
 **Resume file:** None
-**Next action:** Begin Phase 22 planning (Repository Implementation)
+**Next action:** Continue Phase 21 repository layer implementation
 
 ---
-*Last updated: 2026-01-24 - Phase 21 complete (database helper foundation)*
+*Last updated: 2026-01-24 - Phase 21 plan 3 of 8 complete (status and publication repositories)*
