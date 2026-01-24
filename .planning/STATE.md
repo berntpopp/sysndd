@@ -12,15 +12,15 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 
 **Milestone:** v5.0 Analysis Modernization
 **Phase:** 25 of 27 (Performance Optimization)
-**Plan:** 02 of N (Paginate Functional Clustering)
-**Status:** Plan 25-02 complete
-**Last activity:** 2026-01-24 — Completed 25-02: cursor-based pagination for functional_clustering
+**Plan:** 01 of N (Cache Versioning and Leiden Migration)
+**Status:** Plan 25-01 complete
+**Last activity:** 2026-01-24 — Completed 25-01: Leiden clustering with versioned cache keys
 
 ```
 v5 Analysis Modernization: PHASE 25 IN PROGRESS
 Goal: Transform analysis pages with performance, network viz, and modern UI/UX
-Progress: ████████████████████████░░ 91% (25-01, 25-02 complete)
-          [Phase 25: 25-01 done, 25-02 done] → Phase 26 → Phase 27
+Progress: ████████████████████████░░ 90% (25-01 complete)
+          [Phase 25: 25-01 done] → Phase 26 → Phase 27
 ```
 
 ## Completed Milestones
@@ -67,19 +67,19 @@ See PROJECT.md for full decisions table.
 
 Recent v5-relevant decisions:
 - **Leiden over Walktrap**: 2-3x faster clustering, built-in igraph support
+- **Leiden parameters**: modularity objective, resolution=1.0, beta=0.01, n_iterations=2
+- **Cache key versioning**: Include algorithm, STRING version, and CACHE_VERSION env var
 - **Cytoscape.js over D3 force**: Rich algorithms, compound nodes, WebGL support
 - **fcose over cose-bilkent**: 2x speed improvement, active maintenance
 - **Vue 3 composables**: Direct control, TypeScript support, established pattern
 - **VueUse useUrlSearchParams**: Zero boilerplate URL state sync
-- **hash_filter as pagination cursor**: Already unique per cluster, no new fields needed
-- **page_size limits (1-50)**: Prevents abuse, default 10 for UI consumption
 
 ## Accumulated Context
 
 ### Blockers/Concerns
 
-**Pre-Phase 25 (CRITICAL):**
-- Cache invalidation: Existing memoise cache keys don't include algorithm name or STRING version
+**Pre-Phase 25 (RESOLVED):**
+- ~~Cache invalidation: Existing memoise cache keys don't include algorithm name or STRING version~~ FIXED in 25-01
 - Worker pool sizing: Current 8-worker pool may be insufficient with pagination
 - Cluster sizes: Need to validate actual max cluster sizes in production data
 
@@ -95,11 +95,11 @@ Pre-existing analysis documents:
 
 ## Session Continuity
 
-**Last session:** 2026-01-24T22:56:42Z
-**Stopped at:** Completed 25-02-PLAN.md (Paginate Functional Clustering)
+**Last session:** 2026-01-24T22:57:40Z
+**Stopped at:** Completed 25-01-PLAN.md (Cache Versioning and Leiden Migration)
 **Resume file:** None
-**Next action:** Continue with Phase 25 remaining plans or proceed to Phase 26
+**Next action:** Continue with Plan 25-02 or next performance optimization tasks
 
 ---
 *State initialized: 2026-01-24 for v5.0 milestone*
-*Last updated: 2026-01-24 — Plan 25-02 complete*
+*Last updated: 2026-01-24 — Plan 25-01 complete*
