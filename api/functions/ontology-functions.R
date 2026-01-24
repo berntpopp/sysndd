@@ -45,10 +45,12 @@ if (file.exists(mondo_functions_path)) source(mondo_functions_path)
 #' }
 #'
 #' @export
+# nolint start: line_length_linter
 identify_critical_ontology_changes <- function(disease_ontology_set_update, disease_ontology_set, ndd_entity_view_ontology_set) {
+# nolint end
   # Add columns for logic checks in the updated set
   disease_ontology_set_update_extra <- disease_ontology_set_update %>%
-    select(disease_ontology_id_version, disease_ontology_id, hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_name) %>%
+    select(disease_ontology_id_version, disease_ontology_id, hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_name) %>% # nolint: line_length_linter
     mutate(
       id_hgnc_hpo = paste0(disease_ontology_id, "_", hgnc_id, "_", hpo_mode_of_inheritance_term),
       name_hgnc_hpo = paste0(disease_ontology_name, "_", hgnc_id, "_", hpo_mode_of_inheritance_term),
@@ -71,7 +73,7 @@ identify_critical_ontology_changes <- function(disease_ontology_set_update, dise
 
   # Filter current ontology list for terms used in entities
   disease_ontology_set_current_used <- disease_ontology_set_current %>%
-    mutate(used_in_entity = disease_ontology_id_version %in% ndd_entity_view_ontology_set$disease_ontology_id_version) %>%
+    mutate(used_in_entity = disease_ontology_id_version %in% ndd_entity_view_ontology_set$disease_ontology_id_version) %>% # nolint: line_length_linter
     filter(used_in_entity) %>%
     select(-used_in_entity)
 
@@ -83,7 +85,7 @@ identify_critical_ontology_changes <- function(disease_ontology_set_update, dise
   # - check_name_fingerprint: (name + hgnc + inheritance) fingerprint match
   disease_ontology_set_current_used_check <- disease_ontology_set_current_used %>%
     mutate(
-      check_ontology_id_version = disease_ontology_id_version %in% disease_ontology_set_update_extra$disease_ontology_id_version,
+      check_ontology_id_version = disease_ontology_id_version %in% disease_ontology_set_update_extra$disease_ontology_id_version, # nolint: line_length_linter
       check_ontology_name = disease_ontology_name %in% disease_ontology_set_update_extra$disease_ontology_name,
       check_id_fingerprint = id_hgnc_hpo %in% disease_ontology_set_update_extra$id_hgnc_hpo,
       check_name_fingerprint = name_hgnc_hpo %in% disease_ontology_set_update_extra$name_hgnc_hpo
@@ -142,12 +144,14 @@ identify_critical_ontology_changes <- function(disease_ontology_set_update, dise
 #' }
 #'
 #' @export
+# nolint start: line_length_linter
 process_combine_ontology <- function(hgnc_list, mode_of_inheritance_list, max_file_age = 3, output_path = "data/", progress_callback = NULL) {
+# nolint end
   csv_file_name <- paste0(output_path, "disease_ontology_set.", format(Sys.Date(), "%Y-%m-%d"), ".csv")
 
   # Check if file exists and is not too old
   if (check_file_age("disease_ontology_set", output_path, 1)) {
-    return(read_csv(get_newest_file("disease_ontology_set", output_path), na = "NULL")) # Load and return the existing tibble
+    return(read_csv(get_newest_file("disease_ontology_set", output_path), na = "NULL")) # Load and return the existing tibble # nolint: line_length_linter
   } else {
     # Process ontology if file is too old or doesn't exist
     mondo_terms <- process_mondo_ontology()
@@ -223,16 +227,18 @@ process_combine_ontology <- function(hgnc_list, mode_of_inheritance_list, max_fi
 #' @examples
 #' \dontrun{
 #'   mondo_ontology <- get_ontology_object("mondo", config_vars, 1)
-#'   mondo_mappings <- get_mondo_mappings(mondo_ontology, 1, "data/", columns_to_return = c("MONDO", "DOID"))
+#'   mondo_mappings <- get_mondo_mappings(mondo_ontology, 1, "data/", columns_to_return = c("MONDO", "DOID")) # nolint: line_length_linter
 #' }
 #'
 #' @export
+# nolint start: line_length_linter
 get_mondo_mappings <- function(mondo_ontology, max_age = 1, output_path = "data/", columns_to_return = c("OMIM", "MONDO", "DOID", "Orphanet", "EFO")) {
+# nolint end
   csv_file_name <- paste0(output_path, "mondo_ontology_mapping.", format(Sys.Date(), "%Y-%m-%d"), ".csv")
 
   # Check if file exists and is not too old
   if (check_file_age("mondo_ontology_mapping", output_path, 1)) {
-    mappings_tibble <- read_csv(get_newest_file("mondo_ontology_mapping", output_path), na = "NULL") # Load the existing tibble
+    mappings_tibble <- read_csv(get_newest_file("mondo_ontology_mapping", output_path), na = "NULL") # Load the existing tibble # nolint: line_length_linter
   } else {
     # Process ontology if file is too old or doesn't exist
     all_terms <- get_descendants(ontology = mondo_ontology, roots = "MONDO:0000001")
@@ -292,7 +298,7 @@ process_mondo_ontology <- function(mondo_file = "data/mondo_terms/mondo_terms.tx
     mutate(hgnc_id = NA) %>%
     mutate(hpo_mode_of_inheritance_term = NA) %>%
     mutate(disease_ontology_id_version = disease_ontology_id) %>%
-    select(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, disease_ontology_source, disease_ontology_date, disease_ontology_is_specific, hgnc_id, hpo_mode_of_inheritance_term)
+    select(disease_ontology_id_version, disease_ontology_id, disease_ontology_name, disease_ontology_source, disease_ontology_date, disease_ontology_is_specific, hgnc_id, hpo_mode_of_inheritance_term) # nolint: line_length_linter
 }
 
 
@@ -379,12 +385,12 @@ process_omim_ontology <- function(hgnc_list, moi_list, max_file_age = 3, progres
 #' Download and Load an Ontology Based on Provided Parameters
 #'
 #' This function downloads an ontology file if it's older than a specified age
-#' and then loads it into an ontology object. It supports Human Phenotype Ontology (HPO),
+#' and then loads it into an ontology object. It supports Human Phenotype Ontology (HPO), # nolint: line_length_linter
 #' Mammalian Phenotype Ontology (MPO), and MONDO.
 #'
 #' @param ontology_type A character string specifying the type of ontology ("hpo", "mpo", or "mondo").
 #' @param config_vars List of configuration variables including the URL and file paths for each ontology type.
-#' @param tags A character string specifying the type of tags to be extracted from the ontology ("minimal", "default", or "everything").
+#' @param tags A character string specifying the type of tags to be extracted from the ontology ("minimal", "default", or "everything"). # nolint: line_length_linter
 #' @param max_age Integer, maximum age of the file in months before re-downloading.
 #' @return An ontology object loaded with the specified ontology data.
 #'

@@ -327,8 +327,8 @@ generate_phenotype_entities_list <- function(
 #' @export
 generate_panels_list <- function(
   sort = "symbol",
-  filter = "equals(category,'Definitive'),any(inheritance_filter,'Autosomal dominant','Autosomal recessive','X-linked','Other')",
-  fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38",
+  filter = "equals(category,'Definitive'),any(inheritance_filter,'Autosomal dominant','Autosomal recessive','X-linked','Other')", # nolint: line_length_linter
+  fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38", # nolint: line_length_linter
   `page_after` = 0,
   `page_size` = "all",
   max_category = TRUE
@@ -750,7 +750,7 @@ generate_variant_entities_list <- function(sort = "entity_id",
                                            fields = "",
                                            page_after = "0",
                                            page_size = "all",
-                                           fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,modifier_variant_id,details") {
+                                           fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,modifier_variant_id,details") { # nolint: line_length_linter
   start_time <- Sys.time()
   filter <- URLdecode(filter)
 

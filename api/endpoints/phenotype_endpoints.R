@@ -38,7 +38,7 @@ function(req,
          fields = "",
          `page_after` = "0",
          `page_size` = "10",
-         fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details",
+         fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details", # nolint: line_length_linter
          format = "json") {
   res$serializer <- serializers[[format]]
 

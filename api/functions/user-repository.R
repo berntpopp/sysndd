@@ -80,7 +80,9 @@ user_find_by_ids <- function(user_ids) {
 
   # Generate placeholders for IN clause
   placeholders <- paste(rep("?", length(user_ids)), collapse = ", ")
+  # nolint start: line_length_linter
   sql <- paste0("SELECT user_id, user_name, user_email, user_role FROM users_view WHERE user_id IN (", placeholders, ")")
+  # nolint end
 
   # Convert user_ids to list for parameterized query
   db_execute_query(sql, as.list(user_ids))
@@ -107,7 +109,9 @@ user_find_by_ids <- function(user_ids) {
 #'
 #' @export
 user_find_for_auth <- function(email) {
+  # nolint start: line_length_linter
   sql <- "SELECT user_id, user_name, user_email, user_role, password as user_password_hash FROM user WHERE user_email = ?"
+  # nolint end
 
   # Execute query - result will NOT be logged by db_execute_query (parameters only)
   # The password hash is in the result set but never appears in logs

@@ -99,7 +99,9 @@ function(req, res, pmid) {
 #*
 #* @get pubtator/search
 function(req, res, current_page = 1) {
+  # nolint start: line_length_linter
   query <- '("intellectual disability" OR "mental retardation" OR "autism" OR "epilepsy" OR "neurodevelopmental disorder" OR "neurodevelopmental disease" OR "epileptic encephalopathy") AND (gene OR syndrome) AND (variant OR mutation)'
+  # nolint end
 
   max_pages <- 1
   current_page <- as.numeric(current_page)
@@ -430,7 +432,7 @@ function(req,
          fields = "",
          page_after = "0",
          page_size = "10",
-         fspec = "gene_name,gene_symbol,gene_normalized_id,hgnc_id,publication_count,entities_count,publications,entities",
+         fspec = "gene_name,gene_symbol,gene_normalized_id,hgnc_id,publication_count,entities_count,publications,entities", # nolint: line_length_linter
          format = "json") {
   # 1) Set serializer
   res$serializer <- serializers[[format]]
@@ -460,9 +462,9 @@ function(req,
   df_counts <- df_nested %>%
     mutate(
       publication_count = purrr::map_int(publications, ~
-        dplyr::filter(.x, !is.na(pmid)) %>% nrow()),
+                                           dplyr::filter(.x, !is.na(pmid)) %>% nrow()),
       entities_count = purrr::map_int(entities, ~
-        dplyr::filter(.x, !is.na(entity_id)) %>% nrow())
+                                        dplyr::filter(.x, !is.na(entity_id)) %>% nrow())
     )
 
   # 7) Field selection

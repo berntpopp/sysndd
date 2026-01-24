@@ -38,7 +38,7 @@ function(req,
          fields = "",
          page_after = "0",
          page_size = "10",
-         fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,modifier_variant_id,details",
+         fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,modifier_variant_id,details", # nolint: line_length_linter
          format = "json") {
   # Set response serializer
   res$serializer <- serializers[[format]]
@@ -152,7 +152,7 @@ function(res,
     rename(x_vario_id = x_id) %>%
     # Join 'y' by a second rename
     left_join(local_vario_lookup %>%
-      rename(y = x, y_vario_id = x_id), by = "y") %>%
+                rename(y = x, y_vario_id = x_id), by = "y") %>%
     select(
       x, x_vario_id,
       y, y_vario_id,

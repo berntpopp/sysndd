@@ -45,7 +45,9 @@ download_mondo_sssom <- function(output_path = "data/mondo_mappings/",
                                  force = FALSE,
                                  max_age_months = 1) {
   # MONDO exactMatch OMIM SSSOM file URL
+  # nolint start: line_length_linter
   sssom_url <- "https://github.com/monarch-initiative/mondo/raw/master/src/ontology/mappings/mondo_exactmatch_omim.sssom.tsv"
+  # nolint end
 
   # Create output directory if it doesn't exist
   if (!dir.exists(output_path)) {

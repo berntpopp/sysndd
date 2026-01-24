@@ -292,8 +292,8 @@ ols_get_deprecated_omim_info <- function(omim_id) {
   descriptions <- term$description %||% term$annotation$definition %||% list()
   for (desc in descriptions) {
     if (is.character(desc) && (grepl("deprecated", desc, ignore.case = TRUE) ||
-      grepl("reclassified", desc, ignore.case = TRUE) ||
-      grepl("obsolete", desc, ignore.case = TRUE))) {
+                                 grepl("reclassified", desc, ignore.case = TRUE) ||
+                                 grepl("obsolete", desc, ignore.case = TRUE))) {
       result$deprecation_reason <- desc
 
       # Try to extract replacement MONDO ID from the text

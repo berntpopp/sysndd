@@ -27,7 +27,9 @@ library(rlang)
 #'
 #' @export
 entity_find_by_id <- function(entity_id) {
+  # nolint start: line_length_linter
   sql <- "SELECT entity_id, hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, ndd_phenotype, is_active, replaced_by, entry_date, entry_user_id FROM ndd_entity WHERE entity_id = ?"
+  # nolint end
 
   db_execute_query(sql, list(entity_id))
 }
@@ -85,7 +87,9 @@ entity_create <- function(entity_data) {
   }
 
   # Insert entity
+  # nolint start: line_length_linter
   sql <- "INSERT INTO ndd_entity (hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, ndd_phenotype, entry_user_id) VALUES (?, ?, ?, ?, ?)"
+  # nolint end
 
   params <- list(
     entity_data$hgnc_id,

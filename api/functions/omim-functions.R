@@ -485,7 +485,7 @@ check_entities_for_deprecation <- function(pool, deprecated_mim_numbers) {
 #' @param mim2gene_data Tibble from parse_mim2gene()
 #' @param disease_names Tibble from fetch_all_disease_names()
 #' @param hgnc_list Tibble with columns: symbol, hgnc_id
-#' @param moi_list Tibble with mode of inheritance terms (hpo_mode_of_inheritance_term_name, hpo_mode_of_inheritance_term)
+#' @param moi_list Tibble with mode of inheritance terms (hpo_mode_of_inheritance_term_name, hpo_mode_of_inheritance_term) # nolint: line_length_linter
 #' @return Tibble matching disease_ontology_set schema
 #'
 #' @details

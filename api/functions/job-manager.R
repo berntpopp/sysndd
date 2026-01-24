@@ -231,8 +231,8 @@ check_duplicate_job <- function(operation, params) {
     job <- jobs_env[[job_id]]
 
     if (job$operation == operation &&
-      job$params_hash == params_hash &&
-      job$status %in% c("pending", "running")) {
+          job$params_hash == params_hash &&
+          job$status %in% c("pending", "running")) {
       return(list(
         duplicate = TRUE,
         existing_job_id = job_id

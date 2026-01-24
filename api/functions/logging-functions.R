@@ -36,7 +36,7 @@
 #'
 #' @export
 read_log_files <- function(folder_path, regexp = "plumber_*", delim = ";", quote = "'",
-                           col_names = "remote_addr,http_user_agent,http_host,request_method,path_info,query_string,postbody,status,duration") {
+                           col_names = "remote_addr,http_user_agent,http_host,request_method,path_info,query_string,postbody,status,duration") { # nolint: line_length_linter
   # Parameter Validation
   if (!dir.exists(folder_path)) {
     stop("The specified folder does not exist.")
@@ -152,14 +152,16 @@ convert_empty <- function(string) {
 #' @param modified A POSIXct or character string containing the last modified time.
 #'
 #' @examples
-#' log_message_to_db("127.0.0.1", "user_agent", "localhost", "GET", "/path", "query", "post_body", "200", 0.123, "logfile.log", Sys.time())
+#' log_message_to_db("127.0.0.1", "user_agent", "localhost", "GET", "/path", "query", "post_body", "200", 0.123, "logfile.log", Sys.time()) # nolint: line_length_linter
 #'
 #' @export
-log_message_to_db <- function(address, agent, host, request_method, path, query, post, status, duration, file, modified) {
+log_message_to_db <- function(address, agent, host, request_method, path, query, post, status, duration, file, modified) { # nolint: line_length_linter
   tryCatch(
     {
       # Use db_execute_statement for parameterized INSERT
+      # nolint start: line_length_linter
       sql <- "INSERT INTO logging (timestamp, address, agent, host, request_method, path, query, post, status, duration, file, modified) VALUES (NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      # nolint end
 
       db_execute_statement(sql, list(
         address,

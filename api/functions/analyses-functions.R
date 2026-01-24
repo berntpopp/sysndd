@@ -87,7 +87,7 @@ gen_string_clust_obj <- function(
           mutate(.,
             term_enrichment =
               list(gen_string_enrich_tib(identifiers$hgnc_id) %>%
-                mutate(term = str_replace(term, "GOCC", "GO")))
+                     mutate(term = str_replace(term, "GOCC", "GO")))
           )
         } else {
           .
@@ -177,7 +177,7 @@ gen_mca_clust_obj <- function(
     # ncp=15 selected empirically for phenotype clustering
     # Balances dimensionality reduction with information preservation
     # For implementation of adaptive ncp selection based on variance explained,
-    # see STHDA guide: http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/117-hcpc-hierarchical-clustering-on-principal-components-essentials/
+    # see STHDA guide: http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/117-hcpc-hierarchical-clustering-on-principal-components-essentials/ # nolint: line_length_linter
     mca_phenotypes <- MCA(wide_phenotypes_df,
       ncp = 15,
       quali.sup = quali_sup_var,
@@ -204,7 +204,7 @@ gen_mca_clust_obj <- function(
       tidyr::nest(.by = c(cluster), .key = "identifiers") %>%
       mutate(hash_filter = list(
         post_db_hash(identifiers %>%
-          purrr::pluck("entity_id"), "entity_id", "/api/entity")
+                       purrr::pluck("entity_id"), "entity_id", "/api/entity")
       )) %>%
       mutate(hash_filter = hash_filter$links$hash) %>%
       ungroup() %>%

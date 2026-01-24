@@ -277,7 +277,7 @@ generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
   # and check if entity_id is in the resulting list,
   # if not append to the list for unique sorting
   if (!(unique_id %in% sort_list ||
-    paste0("desc(", unique_id, ")") %in% sort_list)) {
+          paste0("desc(", unique_id, ")") %in% sort_list)) {
     sort_list <- append(sort_list, unique_id)
   }
 
@@ -674,7 +674,7 @@ generate_cursor_pag_inf <- function(
 ) {
   # get number of rows in filtered ndd_entity_view
   pagination_tibble_rows <- (pagination_tibble %>%
-    summarize(n = n()))$n
+                               summarize(n = n()))$n
 
   # check if page_size is either "all" or
   # a valid integer and convert or assign values accordingly
@@ -691,33 +691,33 @@ generate_cursor_pag_inf <- function(
 
   # find the current row of the requested page_after entry
   page_after_row <- (pagination_tibble %>%
-    mutate(row = row_number()) %>%
-    filter(!!sym(pagination_identifier) == page_after)
+      mutate(row = row_number()) %>%
+      filter(!!sym(pagination_identifier) == page_after)
   )$row
 
   if (length(page_after_row) == 0) {
     page_after_row <- 0
     page_after_row_next <- (pagination_tibble %>%
-      filter(row_number() == page_after_row + page_size + 1) %>%
-      select(!!sym(pagination_identifier)))[[1]]
+                              filter(row_number() == page_after_row + page_size + 1) %>%
+                              select(!!sym(pagination_identifier)))[[1]]
   } else {
     page_after_row_next <- (pagination_tibble %>%
-      filter(row_number() == page_after_row + page_size) %>%
-      select(!!sym(pagination_identifier)))[[1]]
+                              filter(row_number() == page_after_row + page_size) %>%
+                              select(!!sym(pagination_identifier)))[[1]]
   }
 
   # find next and prev item row
   page_after_row_prev <- (pagination_tibble %>%
-    filter(row_number() == page_after_row - page_size) %>%
-    select(!!sym(pagination_identifier)))[[1]]
+                            filter(row_number() == page_after_row - page_size) %>%
+                            select(!!sym(pagination_identifier)))[[1]]
   page_after_row_last <- (pagination_tibble %>%
-    filter(row_number() == page_size * (page_count - 1)) %>%
-    select(!!sym(pagination_identifier)))[[1]]
+                            filter(row_number() == page_size * (page_count - 1)) %>%
+                            select(!!sym(pagination_identifier)))[[1]]
 
   # filter by row
   pagination_tibble <- pagination_tibble %>%
     filter((row_number() > page_after_row) &
-      (row_number() <= page_after_row + page_size))
+             (row_number() <= page_after_row + page_size))
 
   # generate links for self, next and prev pages
   self <- paste0("&page_after=", page_after, "&page_size=", page_size)
@@ -996,7 +996,7 @@ generate_function_hash <- function(function_input) {
 #' 6. Delete the temporary xlsx file.
 #' 7. Return the binary content of the file.
 #'
-#' @param data_object A list containing three elements: 'data', 'meta', and 'links', each containing a data frame to be written to the respective sheets in the output Excel file.
+#' @param data_object A list containing three elements: 'data', 'meta', and 'links', each containing a data frame to be written to the respective sheets in the output Excel file. # nolint: line_length_linter
 #' @param file_base_name A string representing the base name to be used for the temporary Excel file.
 #'
 #' @return The binary content of the generated xlsx file as a raw vector
@@ -1141,7 +1141,7 @@ post_db_hash <- function(
 ) {
   # generate list of allowed term from input
   allowed_col_list <- (allowed_columns %>%
-    str_split(pattern = ","))[[1]]
+                         str_split(pattern = ","))[[1]]
 
   ## -------------------------------------------------------------------##
   # block to convert the json list into tibble

@@ -128,8 +128,8 @@ table_articles_from_xml <- function(pubmed_xml_data) {
     xml_text()
 
   doi <- (pmid_xml %>%
-    xml_find_all("//ELocationID[@EIdType='doi']") %>%
-    xml_text())
+            xml_find_all("//ELocationID[@EIdType='doi']") %>%
+            xml_text())
 
   doi2 <- pmid_xml %>%
     xml_find_all("//ArticleId[@EIdType='doi']") %>%
@@ -144,12 +144,12 @@ table_articles_from_xml <- function(pubmed_xml_data) {
   if (length(doi) == 0 && length(doi2) != 0) {
     doi <- doi2
   } else if (length(doi) == 0 &&
-    length(doi2) == 0 &&
-    length(doi3) != 0) {
+               length(doi2) == 0 &&
+               length(doi3) != 0) {
     doi <- doi3
   } else if (length(doi) == 0 &&
-    length(doi2) == 0 &&
-    length(doi3) == 0) {
+               length(doi2) == 0 &&
+               length(doi3) == 0) {
     doi <- ""
   }
 
@@ -203,15 +203,15 @@ table_articles_from_xml <- function(pubmed_xml_data) {
     xml_text()
 
   if ((length(firstname) == 0 ||
-    length(firstname) == 0) &&
-    length(collective) != 0) {
+         length(firstname) == 0) &&
+        length(collective) != 0) {
     lastname <- collective
     firstname <- collective
   }
 
   if (length(year) == 0 ||
-    length(month) == 0 ||
-    length(day) == 0) {
+        length(month) == 0 ||
+        length(day) == 0) {
     year <- format(Sys.time(), "%Y")
     month <- format(Sys.time(), "%m")
     day <- format(Sys.time(), "%d")

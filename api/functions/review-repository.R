@@ -28,7 +28,9 @@ library(rlang)
 #'
 #' @export
 review_find_by_id <- function(review_id) {
+  # nolint start: line_length_linter
   sql <- "SELECT review_id, entity_id, synopsis, is_primary, review_approved, approving_user_id FROM ndd_entity_review WHERE review_id = ?"
+  # nolint end
 
   db_execute_query(sql, list(review_id))
 }
@@ -47,7 +49,9 @@ review_find_by_id <- function(review_id) {
 #'
 #' @export
 review_find_by_entity <- function(entity_id) {
+  # nolint start: line_length_linter
   sql <- "SELECT review_id, entity_id, synopsis, is_primary, review_approved, approving_user_id FROM ndd_entity_review WHERE entity_id = ? ORDER BY review_id DESC"
+  # nolint end
 
   db_execute_query(sql, list(entity_id))
 }

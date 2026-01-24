@@ -75,7 +75,9 @@ hgnc_id_from_symbol <- function(symbol_tibble) {
     dplyr::select(symbol = value) %>%
     mutate(symbol = toupper(symbol))
 
+  # nolint start: line_length_linter
   symbol_request <- fromJSON(paste0("http://rest.genenames.org/search/symbol/", str_c(symbol_list_tibble$symbol, collapse = "+OR+")))
+  # nolint end
 
   hgnc_id_from_symbol <- as_tibble(symbol_request$response$docs)
 
@@ -154,7 +156,9 @@ symbol_from_hgnc_id <- function(hgnc_id_tibble) {
     dplyr::select(hgnc_id = value) %>%
     mutate(hgnc_id = as.integer(hgnc_id))
 
+  # nolint start: line_length_linter
   hgnc_id_request <- fromJSON(paste0("http://rest.genenames.org/search/hgnc_id/", str_c(hgnc_id_list_tibble$hgnc_id, collapse = "+OR+")))
+  # nolint end
 
   hgnc_id_from_hgnc_id <- as_tibble(hgnc_id_request$response$docs)
 
@@ -221,7 +225,9 @@ symbol_from_hgnc_id_grouped <- function(input_tibble, request_max = 150) {
 #' }
 #'
 #' @export
+# nolint start: line_length_linter
 update_process_hgnc_data <- function(hgnc_link = "http://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/tsv/non_alt_loci_set.txt",
+# nolint end
                                      output_path = "data/",
                                      max_file_age = 1) {
   # Get current date in YYYY-MM-DD format
@@ -246,7 +252,7 @@ update_process_hgnc_data <- function(hgnc_link = "http://ftp.ebi.ac.uk/pub/datab
 
   # Load the downloaded HGNC file
   non_alt_loci_set <- suppressWarnings(read_delim(hgnc_file, "\t", col_names = TRUE, show_col_types = FALSE) %>%
-    mutate(update_date = current_date))
+                                         mutate(update_date = current_date))
 
   # get symbols for string db mapping
   non_alt_loci_set_table <- non_alt_loci_set %>%

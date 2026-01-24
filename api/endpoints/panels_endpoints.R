@@ -78,8 +78,8 @@ function() {
 function(req,
          res,
          sort = "symbol",
-         filter = "equals(category,'Definitive'),any(inheritance_filter,'Autosomal dominant','Autosomal recessive','X-linked','Other')",
-         fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38",
+         filter = "equals(category,'Definitive'),any(inheritance_filter,'Autosomal dominant','Autosomal recessive','X-linked','Other')", # nolint: line_length_linter
+         fields = "category,inheritance,symbol,hgnc_id,entrez_id,ensembl_gene_id,ucsc_id,bed_hg19,bed_hg38", # nolint: line_length_linter
          `page_after` = 0,
          `page_size` = "all",
          max_category = TRUE,

@@ -290,9 +290,8 @@ checkSignInFilter <- function(req, res) {
   # GET without auth => forward
   if (req$REQUEST_METHOD == "GET" && is.null(req$HTTP_AUTHORIZATION)) {
     plumber::forward()
-  }
-  # GET with Bearer token => decode
-  else if (req$REQUEST_METHOD == "GET" && !is.null(req$HTTP_AUTHORIZATION)) {
+  } else if (req$REQUEST_METHOD == "GET" && !is.null(req$HTTP_AUTHORIZATION)) {
+    # GET with Bearer token => decode
     jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
     tryCatch(
       {
@@ -306,36 +305,26 @@ checkSignInFilter <- function(req, res) {
     req$user_id <- as.integer(user$user_id)
     req$user_role <- user$user_role
     plumber::forward()
-  }
-  # POST to /api/entity/hash or /api/gene/hash => forward
-  else if (
-    req$REQUEST_METHOD == "POST" &&
-      (req$PATH_INFO == "/api/gene/hash" || req$PATH_INFO == "/api/entity/hash")
-  ) {
+  } else if (req$REQUEST_METHOD == "POST" &&
+               (req$PATH_INFO == "/api/gene/hash" || req$PATH_INFO == "/api/entity/hash")) {
+    # POST to /api/entity/hash or /api/gene/hash => forward
     plumber::forward()
-  }
-  # POST to public async job endpoints => forward
-  # (clustering and phenotype_clustering are public, ontology_update requires auth handled internally)
-  else if (
-    req$REQUEST_METHOD == "POST" &&
-      (req$PATH_INFO %in% c(
-        "/api/jobs/clustering/submit",
-        "/api/jobs/clustering/submit/",
-        "/api/jobs/phenotype_clustering/submit",
-        "/api/jobs/phenotype_clustering/submit/"
-      ))
-  ) {
+  } else if (req$REQUEST_METHOD == "POST" &&
+    (req$PATH_INFO %in% c(
+      "/api/jobs/clustering/submit",
+      "/api/jobs/clustering/submit/",
+      "/api/jobs/phenotype_clustering/submit",
+      "/api/jobs/phenotype_clustering/submit/"
+    ))) {
+    # POST to public async job endpoints => forward
+    # (clustering and phenotype_clustering are public, ontology_update requires auth handled internally)
     plumber::forward()
-  }
-  # PUT to /api/user/password/reset/request
-  else if (
-    req$REQUEST_METHOD == "PUT" &&
-      (req$PATH_INFO == "/api/user/password/reset/request")
-  ) {
+  } else if (req$REQUEST_METHOD == "PUT" &&
+               (req$PATH_INFO == "/api/user/password/reset/request")) {
+    # PUT to /api/user/password/reset/request
     plumber::forward()
-  }
-  # Otherwise require Bearer token
-  else {
+  } else {
+    # Otherwise require Bearer token
     if (is.null(req$HTTP_AUTHORIZATION)) {
       res$status <- 401
       return(list(error = "Authorization http header missing."))

@@ -106,7 +106,9 @@ entity_create <- function(entity_data, user_id, pool) {
       on.exit(pool::poolReturn(conn), add = TRUE)
 
       # Use db_execute_statement via repository pattern
+      # nolint start: line_length_linter
       sql <- "INSERT INTO ndd_entity (hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, ndd_phenotype, entry_user_id) VALUES (?, ?, ?, ?, ?)"
+      # nolint end
       params <- list(
         entity_data$hgnc_id,
         entity_data$hpo_mode_of_inheritance_term,

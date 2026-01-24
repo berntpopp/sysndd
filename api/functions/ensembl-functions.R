@@ -42,7 +42,7 @@ gene_coordinates_from_symbol <- function(gene_symbols, reference = "hg19") {
 
   gene_coordinates_hg19 <- getBM(attributes = attributes, filters = filters, values = values, mart = mart) %>%
     group_by(hgnc_symbol) %>%
-    summarise(hgnc_symbol = max(hgnc_symbol), chromosome_name = max(chromosome_name), start_position = max(start_position), end_position = max(end_position)) %>%
+    summarise(hgnc_symbol = max(hgnc_symbol), chromosome_name = max(chromosome_name), start_position = max(start_position), end_position = max(end_position)) %>% # nolint: line_length_linter
     mutate(bed_format = paste0("chr", chromosome_name, ":", start_position, "-", end_position)) %>%
     dplyr::select(hgnc_symbol, bed_format)
 
@@ -94,7 +94,7 @@ gene_coordinates_from_ensembl <- function(ensembl_id, reference = "hg19") {
 
   gene_coordinates_hg19 <- getBM(attributes = attributes, filters = filters, values = values, mart = mart) %>%
     group_by(ensembl_gene_id) %>%
-    summarise(ensembl_gene_id = max(ensembl_gene_id), chromosome_name = max(chromosome_name), start_position = max(start_position), end_position = max(end_position)) %>%
+    summarise(ensembl_gene_id = max(ensembl_gene_id), chromosome_name = max(chromosome_name), start_position = max(start_position), end_position = max(end_position)) %>% # nolint: line_length_linter
     mutate(bed_format = paste0("chr", chromosome_name, ":", start_position, "-", end_position)) %>%
     dplyr::select(ensembl_gene_id, bed_format)
 

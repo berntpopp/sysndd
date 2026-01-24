@@ -26,8 +26,8 @@ update_api_spec_examples <- function(spec, api_spec_json) {
     if (is.null(spec$paths[[path]])) next
     for (method in names(api_spec_json[[path]])) {
       if (is.null(spec$paths[[path]][[method]])) next
-      if (is.null(api_spec_json[[path]][[method]]$requestBody$content$`application/json`$schema$properties$create_json$example)) next
-      spec$paths[[path]][[method]]$requestBody$content$`application/json`$schema$properties$create_json$example <- api_spec_json[[path]][[method]]$requestBody$content$`application/json`$schema$properties$create_json$example
+      if (is.null(api_spec_json[[path]][[method]]$requestBody$content$`application/json`$schema$properties$create_json$example)) next # nolint: line_length_linter
+      spec$paths[[path]][[method]]$requestBody$content$`application/json`$schema$properties$create_json$example <- api_spec_json[[path]][[method]]$requestBody$content$`application/json`$schema$properties$create_json$example # nolint: line_length_linter
     }
   }
   return(spec)

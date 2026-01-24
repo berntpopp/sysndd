@@ -48,7 +48,7 @@ function(req,
          fields = "",
          page_after = 0,
          page_size = "10",
-         fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details",
+         fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details", # nolint: line_length_linter
          format = "json") {
   # Set serializers
   res$serializer <- serializers[[format]]
@@ -386,8 +386,8 @@ function(req, res, direct_approval = FALSE) {
   }
 
   if (response_entity$status == 200 &&
-    response_review_post$status == 200 &&
-    response_status_post$status == 200) {
+        response_review_post$status == 200 &&
+        response_status_post$status == 200) {
     res$status <- response_entity$status
     return(response_entity)
   } else {

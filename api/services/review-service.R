@@ -154,11 +154,11 @@ svc_review_add_publications <- function(publication_data, entity_id, review_id, 
 
   # For PUT request, verify entity_id matches (prevent changing entity association)
   review_publication_for_match <- (pool %>%
-    tbl("ndd_entity_review") %>%
-    select(review_id, entity_id) %>%
-    filter(review_id == {{ review_id }}) %>%
-    collect() %>%
-    unique()
+      tbl("ndd_entity_review") %>%
+      select(review_id, entity_id) %>%
+      filter(review_id == {{ review_id }}) %>%
+      collect() %>%
+      unique()
   )$entity_id[1]
 
   entity_id_match <- (review_publication_for_match == entity_id)
@@ -221,11 +221,11 @@ svc_review_add_phenotypes <- function(phenotypes_data, entity_id, review_id, poo
 
   # For PUT request, verify entity_id matches (prevent changing entity association)
   ndd_review_phenotype_for_match <- (pool %>%
-    tbl("ndd_review_phenotype_connect") %>%
-    select(review_id, entity_id) %>%
-    filter(review_id == {{ review_id }}) %>%
-    collect() %>%
-    unique()
+      tbl("ndd_review_phenotype_connect") %>%
+      select(review_id, entity_id) %>%
+      filter(review_id == {{ review_id }}) %>%
+      collect() %>%
+      unique()
   )$entity_id[1]
 
   entity_id_match <- (ndd_review_phenotype_for_match == entity_id)
@@ -288,11 +288,11 @@ svc_review_add_variation_ontology <- function(vario_data, entity_id, review_id, 
 
   # For PUT request, verify entity_id matches (prevent changing entity association)
   variation_ontology_match <- (pool %>%
-    tbl("ndd_review_variation_ontology_connect") %>%
-    select(review_id, entity_id) %>%
-    filter(review_id == {{ review_id }}) %>%
-    collect() %>%
-    unique()
+      tbl("ndd_review_variation_ontology_connect") %>%
+      select(review_id, entity_id) %>%
+      filter(review_id == {{ review_id }}) %>%
+      collect() %>%
+      unique()
   )$entity_id[1]
 
   entity_id_match <- (variation_ontology_match == entity_id)
