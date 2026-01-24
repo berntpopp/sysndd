@@ -9,28 +9,28 @@ Requirements for v4 Backend Overhaul. Each maps to roadmap phases.
 
 ### Foundation (R Upgrade)
 
-- [ ] **FOUND-01**: R upgraded from 4.1.2 to 4.4.3
-- [ ] **FOUND-02**: Matrix package upgraded to 1.6.3+ for ABI compatibility
-- [ ] **FOUND-03**: Docker base image updated to rocker/r-ver:4.4.3
-- [ ] **FOUND-04**: P3M URLs updated from focal to jammy
-- [ ] **FOUND-05**: Fresh renv.lock created on R 4.4.x
-- [ ] **FOUND-06**: FactoMineR/lme4 2022 snapshot workaround removed from Dockerfile
+- [x] **FOUND-01**: R upgraded from 4.1.2 to 4.4.3
+- [x] **FOUND-02**: Matrix package upgraded to 1.6.3+ for ABI compatibility
+- [x] **FOUND-03**: Docker base image updated to rocker/r-ver:4.4.3
+- [x] **FOUND-04**: P3M URLs updated from focal to jammy
+- [x] **FOUND-05**: Fresh renv.lock created on R 4.4.x
+- [x] **FOUND-06**: FactoMineR/lme4 2022 snapshot workaround removed from Dockerfile
 
 ### Security
 
-- [ ] **SEC-01**: All 66 SQL injection vulnerabilities fixed with parameterized queries (dbBind)
-- [ ] **SEC-02**: Password hashing implemented with sodium/Argon2id for new registrations
-- [ ] **SEC-03**: Progressive re-hash on login for existing plaintext passwords (production-compatible)
-  - Detect hash type by prefix (`$argon2` = hashed, else = plaintext)
+- [x] **SEC-01**: All 66 SQL injection vulnerabilities fixed with parameterized queries (dbBind)
+- [x] **SEC-02**: Password hashing implemented with sodium/Argon2id for new registrations
+- [x] **SEC-03**: Progressive re-hash on login for existing plaintext passwords (production-compatible)
+  - Detect hash type by prefix (`$argon2` or `$7$` = hashed, else = plaintext)
   - If plaintext: verify with direct comparison, then immediately hash and update DB
   - If hashed: verify with `sodium::password_verify()`
   - No schema change needed (same `password` column stores both formats)
   - Users transparently upgraded on next login
-- [ ] **SEC-04**: Logging sanitized to exclude passwords, tokens, and sensitive data
-- [ ] **SEC-05**: Plaintext password comparison removed from authentication_endpoints.R:153
-- [ ] **SEC-05a**: Password change endpoint (user_endpoints.R:426) updated to support both formats
-- [ ] **SEC-06**: core/errors.R created with RFC 7807 error format helpers
-- [ ] **SEC-07**: Response builder helpers (response_success, response_error) created
+- [x] **SEC-04**: Logging sanitized to exclude passwords, tokens, and sensitive data
+- [x] **SEC-05**: Plaintext password comparison removed from authentication_endpoints.R:153
+- [x] **SEC-05a**: Password change endpoint (user_endpoints.R:426) updated to support both formats
+- [x] **SEC-06**: core/errors.R created with RFC 7807 error format helpers
+- [x] **SEC-07**: Response builder helpers (response_success, response_error) created
 
 ### Async/Non-blocking
 
@@ -99,10 +99,10 @@ Requirements for v4 Backend Overhaul. Each maps to roadmap phases.
 
 ### Error Handling
 
-- [ ] **ERR-01**: RFC 7807 error format implemented across all endpoints
-- [ ] **ERR-02**: HTTP status codes consistent (4xx operational, 5xx programmer errors)
-- [ ] **ERR-03**: Error handler middleware created
-- [ ] **ERR-04**: Swallowed errors eliminated (tryCatch with proper handling)
+- [x] **ERR-01**: RFC 7807 error format implemented across all endpoints
+- [x] **ERR-02**: HTTP status codes consistent (4xx operational, 5xx programmer errors)
+- [x] **ERR-03**: Error handler middleware created
+- [x] **ERR-04**: Swallowed errors eliminated (tryCatch with proper handling)
 
 ### Quality Assurance
 
@@ -161,23 +161,23 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 | Phase 18 | Pending |
-| FOUND-02 | Phase 18 | Pending |
-| FOUND-03 | Phase 18 | Pending |
-| FOUND-04 | Phase 18 | Pending |
-| FOUND-05 | Phase 18 | Pending |
-| FOUND-06 | Phase 18 | Pending |
-| SEC-01 | Phase 19 | Pending |
-| SEC-02 | Phase 19 | Pending |
-| SEC-03 | Phase 19 | Pending |
-| SEC-04 | Phase 19 | Pending |
-| SEC-05 | Phase 19 | Pending |
-| SEC-06 | Phase 19 | Pending |
-| SEC-07 | Phase 19 | Pending |
-| ERR-01 | Phase 19 | Pending |
-| ERR-02 | Phase 19 | Pending |
-| ERR-03 | Phase 19 | Pending |
-| ERR-04 | Phase 19 | Pending |
+| FOUND-01 | Phase 18 | Complete |
+| FOUND-02 | Phase 18 | Complete |
+| FOUND-03 | Phase 18 | Complete |
+| FOUND-04 | Phase 18 | Complete |
+| FOUND-05 | Phase 18 | Complete |
+| FOUND-06 | Phase 18 | Complete |
+| SEC-01 | Phase 19 | Complete |
+| SEC-02 | Phase 19 | Complete |
+| SEC-03 | Phase 19 | Complete |
+| SEC-04 | Phase 19 | Complete |
+| SEC-05 | Phase 19 | Complete |
+| SEC-06 | Phase 19 | Complete |
+| SEC-07 | Phase 19 | Complete |
+| ERR-01 | Phase 19 | Complete |
+| ERR-02 | Phase 19 | Complete |
+| ERR-03 | Phase 19 | Complete |
+| ERR-04 | Phase 19 | Complete |
 | ASYNC-01 | Phase 20 | Pending |
 | ASYNC-02 | Phase 20 | Pending |
 | ASYNC-03 | Phase 20 | Pending |
@@ -280,4 +280,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-23*
-*Last updated: 2026-01-23 after roadmap creation*
+*Last updated: 2026-01-24 - Phase 18 Foundation and Phase 19 Security Hardening complete*
