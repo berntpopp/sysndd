@@ -156,7 +156,7 @@ svc_review_add_publications <- function(publication_data, entity_id, review_id, 
   review_publication_for_match <- (pool %>%
     tbl("ndd_entity_review") %>%
     select(review_id, entity_id) %>%
-    filter(review_id == {{review_id}}) %>%
+    filter(review_id == {{ review_id }}) %>%
     collect() %>%
     unique()
   )$entity_id[1]
@@ -223,7 +223,7 @@ svc_review_add_phenotypes <- function(phenotypes_data, entity_id, review_id, poo
   ndd_review_phenotype_for_match <- (pool %>%
     tbl("ndd_review_phenotype_connect") %>%
     select(review_id, entity_id) %>%
-    filter(review_id == {{review_id}}) %>%
+    filter(review_id == {{ review_id }}) %>%
     collect() %>%
     unique()
   )$entity_id[1]
@@ -290,7 +290,7 @@ svc_review_add_variation_ontology <- function(vario_data, entity_id, review_id, 
   variation_ontology_match <- (pool %>%
     tbl("ndd_review_variation_ontology_connect") %>%
     select(review_id, entity_id) %>%
-    filter(review_id == {{review_id}}) %>%
+    filter(review_id == {{ review_id }}) %>%
     collect() %>%
     unique()
   )$entity_id[1]

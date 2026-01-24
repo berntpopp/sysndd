@@ -89,63 +89,67 @@ entity_create <- function(entity_data, user_id, pool) {
   # Create entity using repository (from entity-repository.R)
   # Note: The repository function entity_create is already loaded globally
   # We need to prepare the entity_data with entry_user_id included
-  result <- tryCatch({
-    # Prepare entity tibble for repository
-    entity_tibble <- tibble::tibble(
-      hgnc_id = entity_data$hgnc_id,
-      hpo_mode_of_inheritance_term = entity_data$hpo_mode_of_inheritance_term,
-      disease_ontology_id_version = entity_data$disease_ontology_id_version,
-      ndd_phenotype = entity_data$ndd_phenotype,
-      entry_user_id = entity_data$entry_user_id
-    )
+  result <- tryCatch(
+    {
+      # Prepare entity tibble for repository
+      entity_tibble <- tibble::tibble(
+        hgnc_id = entity_data$hgnc_id,
+        hpo_mode_of_inheritance_term = entity_data$hpo_mode_of_inheritance_term,
+        disease_ontology_id_version = entity_data$disease_ontology_id_version,
+        ndd_phenotype = entity_data$ndd_phenotype,
+        entry_user_id = entity_data$entry_user_id
+      )
 
-    # Call repository layer (this is from functions/entity-repository.R)
-    # The repository returns integer entity_id on success
-    conn <- pool::poolCheckout(pool)
-    on.exit(pool::poolReturn(conn), add = TRUE)
+      # Call repository layer (this is from functions/entity-repository.R)
+      # The repository returns integer entity_id on success
+      conn <- pool::poolCheckout(pool)
+      on.exit(pool::poolReturn(conn), add = TRUE)
 
-    # Use db_execute_statement via repository pattern
-    sql <- "INSERT INTO ndd_entity (hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, ndd_phenotype, entry_user_id) VALUES (?, ?, ?, ?, ?)"
-    params <- list(
-      entity_data$hgnc_id,
-      entity_data$hpo_mode_of_inheritance_term,
-      entity_data$disease_ontology_id_version,
-      entity_data$ndd_phenotype,
-      entity_data$entry_user_id
-    )
-    db_execute_statement(sql, params)
+      # Use db_execute_statement via repository pattern
+      sql <- "INSERT INTO ndd_entity (hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, ndd_phenotype, entry_user_id) VALUES (?, ?, ?, ?, ?)"
+      params <- list(
+        entity_data$hgnc_id,
+        entity_data$hpo_mode_of_inheritance_term,
+        entity_data$disease_ontology_id_version,
+        entity_data$ndd_phenotype,
+        entity_data$entry_user_id
+      )
+      db_execute_statement(sql, params)
 
-    # Get last insert ID
-    result_id <- db_execute_query("SELECT LAST_INSERT_ID() as entity_id")
-    entity_id <- as.integer(result_id$entity_id[1])
+      # Get last insert ID
+      result_id <- db_execute_query("SELECT LAST_INSERT_ID() as entity_id")
+      entity_id <- as.integer(result_id$entity_id[1])
 
-    logger::log_info(
-      "Entity created",
-      entity_id = entity_id,
-      user_id = user_id,
-      hgnc_id = entity_data$hgnc_id
-    )
+      logger::log_info(
+        "Entity created",
+        entity_id = entity_id,
+        user_id = user_id,
+        hgnc_id = entity_data$hgnc_id
+      )
 
-    list(
-      status = 200,
-      message = "OK. Entry created.",
-      entry = tibble::tibble(entity_id = entity_id)
-    )
-  }, entity_validation_error = function(e) {
-    logger::log_error("Entity validation failed", error = e$message)
-    list(
-      status = 400,
-      message = "Bad Request. Entity validation failed.",
-      error = e$message
-    )
-  }, error = function(e) {
-    logger::log_error("Entity creation failed", error = e$message)
-    list(
-      status = 500,
-      message = "Internal Server Error. Entry not created.",
-      error = e$message
-    )
-  })
+      list(
+        status = 200,
+        message = "OK. Entry created.",
+        entry = tibble::tibble(entity_id = entity_id)
+      )
+    },
+    entity_validation_error = function(e) {
+      logger::log_error("Entity validation failed", error = e$message)
+      list(
+        status = 400,
+        message = "Bad Request. Entity validation failed.",
+        error = e$message
+      )
+    },
+    error = function(e) {
+      logger::log_error("Entity creation failed", error = e$message)
+      list(
+        status = 500,
+        message = "Internal Server Error. Entry not created.",
+        error = e$message
+      )
+    }
+  )
 
   result
 }
@@ -187,31 +191,34 @@ entity_deactivate <- function(entity_id, replacement = NULL, pool) {
   }
 
   # Deactivate using parameterized query
-  result <- tryCatch({
-    # Use parameterized UPDATE query
-    sql <- "UPDATE ndd_entity SET is_active = 0, replaced_by = ? WHERE entity_id = ?"
-    params <- list(replacement, entity_id)
-    db_execute_statement(sql, params)
+  result <- tryCatch(
+    {
+      # Use parameterized UPDATE query
+      sql <- "UPDATE ndd_entity SET is_active = 0, replaced_by = ? WHERE entity_id = ?"
+      params <- list(replacement, entity_id)
+      db_execute_statement(sql, params)
 
-    logger::log_info(
-      "Entity deactivated",
-      entity_id = entity_id,
-      replaced_by = replacement
-    )
+      logger::log_info(
+        "Entity deactivated",
+        entity_id = entity_id,
+        replaced_by = replacement
+      )
 
-    list(
-      status = 200,
-      message = "OK. Entity deactivated.",
-      entry = entity_id
-    )
-  }, error = function(e) {
-    logger::log_error("Entity deactivation failed", error = e$message, entity_id = entity_id)
-    list(
-      status = 500,
-      message = "Internal Server Error. Entity not deactivated.",
-      error = e$message
-    )
-  })
+      list(
+        status = 200,
+        message = "OK. Entity deactivated.",
+        entry = entity_id
+      )
+    },
+    error = function(e) {
+      logger::log_error("Entity deactivation failed", error = e$message, entity_id = entity_id)
+      list(
+        status = 500,
+        message = "Internal Server Error. Entity not deactivated.",
+        error = e$message
+      )
+    }
+  )
 
   result
 }

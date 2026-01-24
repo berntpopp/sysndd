@@ -40,10 +40,12 @@ search_entities <- function(query, pool) {
     tbl("ndd_entity_view") %>%
     filter(
       symbol %like% !!search_pattern |
-      disease_ontology_name %like% !!search_pattern
+        disease_ontology_name %like% !!search_pattern
     ) %>%
-    select(entity_id, hgnc_id, symbol, disease_ontology_id_version,
-           disease_ontology_name) %>%
+    select(
+      entity_id, hgnc_id, symbol, disease_ontology_id_version,
+      disease_ontology_name
+    ) %>%
     head(100) %>%
     collect()
 }
@@ -125,8 +127,10 @@ search_phenotypes <- function(query, pool) {
   pool %>%
     tbl("search_disease_ontology_set") %>%
     filter(result %like% !!search_pattern) %>%
-    select(disease_ontology_id_version, disease_ontology_id,
-           disease_ontology_name, result, search) %>%
+    select(
+      disease_ontology_id_version, disease_ontology_id,
+      disease_ontology_name, result, search
+    ) %>%
     head(100) %>%
     collect()
 }
@@ -167,8 +171,10 @@ search_inheritance <- function(query, pool) {
   pool %>%
     tbl("search_mode_of_inheritance_list_view") %>%
     filter(result %like% !!search_pattern) %>%
-    select(hpo_mode_of_inheritance_term, hpo_mode_of_inheritance_term_name,
-           result, search, sort) %>%
+    select(
+      hpo_mode_of_inheritance_term, hpo_mode_of_inheritance_term_name,
+      result, search, sort
+    ) %>%
     head(100) %>%
     collect()
 }

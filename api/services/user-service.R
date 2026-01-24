@@ -30,8 +30,10 @@ user_get_list <- function(requesting_role, pool) {
   if (requesting_role == "Administrator") {
     # Admins see all users with full details
     base_query %>%
-      select(user_id, user_name, email, user_role, orcid, abbreviation,
-             first_name, family_name, created_at) %>%
+      select(
+        user_id, user_name, email, user_role, orcid, abbreviation,
+        first_name, family_name, created_at
+      ) %>%
       collect()
   } else if (requesting_role == "Curator") {
     # Curators see reviewers and viewers
@@ -67,8 +69,10 @@ user_get_by_id <- function(user_id, pool) {
   pool %>%
     tbl("user") %>%
     filter(user_id == !!user_id) %>%
-    select(user_id, user_name, email, user_role, orcid, abbreviation,
-           first_name, family_name, account_status, created_at) %>%
+    select(
+      user_id, user_name, email, user_role, orcid, abbreviation,
+      first_name, family_name, account_status, created_at
+    ) %>%
     collect()
 }
 
@@ -102,8 +106,10 @@ user_approve <- function(user_id, approving_user_id, approve, pool) {
   user <- pool %>%
     tbl("user") %>%
     filter(user_id == !!user_id) %>%
-    select(user_id, user_name, email, first_name, family_name,
-           account_status, password) %>%
+    select(
+      user_id, user_name, email, first_name, family_name,
+      account_status, password
+    ) %>%
     collect()
 
   if (nrow(user) == 0) {
@@ -204,7 +210,6 @@ user_update_role <- function(user_id, new_role, requesting_role, pool) {
 
     logger::log_info("User role updated", user_id = user_id, new_role = new_role)
     list(status = 200, message = "Role updated successfully")
-
   } else if (requesting_role == "Curator" && new_role != "Administrator") {
     # Curator can assign Curator, Reviewer, or Viewer
     db_execute_statement(
@@ -214,10 +219,8 @@ user_update_role <- function(user_id, new_role, requesting_role, pool) {
 
     logger::log_info("User role updated", user_id = user_id, new_role = new_role)
     list(status = 200, message = "Role updated successfully")
-
   } else if (requesting_role == "Curator" && new_role == "Administrator") {
     stop("Insufficient permissions to assign Administrator role")
-
   } else {
     stop("Insufficient permissions to change user roles")
   }
@@ -261,7 +264,7 @@ user_update_role <- function(user_id, new_role, requesting_role, pool) {
 #'
 #' @export
 user_change_password <- function(user_id, old_password, new_password,
-                                  requesting_role, requesting_user_id, pool) {
+                                 requesting_role, requesting_user_id, pool) {
   # Get user info including password for verification
   user <- pool %>%
     tbl("user") %>%
@@ -296,8 +299,10 @@ user_change_password <- function(user_id, old_password, new_password,
   hashed_new_password <- hash_password(new_password)
   user_update_password(user_id, hashed_new_password)
 
-  logger::log_info("Password changed", user_id = user_id,
-                   changed_by = requesting_user_id)
+  logger::log_info("Password changed",
+    user_id = user_id,
+    changed_by = requesting_user_id
+  )
 
   list(status = 200, message = "Password changed successfully")
 }

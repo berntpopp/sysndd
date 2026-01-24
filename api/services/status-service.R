@@ -58,40 +58,49 @@ status_create <- function(status_data, pool, re_review = FALSE) {
   conn <- pool::poolCheckout(pool)
   on.exit(pool::poolReturn(conn), add = TRUE)
 
-  tryCatch({
-    # Insert status record
-    DBI::dbAppendTable(conn, "ndd_entity_status", status_tibble)
+  tryCatch(
+    {
+      # Insert status record
+      DBI::dbAppendTable(conn, "ndd_entity_status", status_tibble)
 
-    # Get newly created status_id
-    status_id <- DBI::dbGetQuery(conn, "SELECT LAST_INSERT_ID() as status_id")$status_id
+      # Get newly created status_id
+      status_id <- DBI::dbGetQuery(conn, "SELECT LAST_INSERT_ID() as status_id")$status_id
 
-    # Update re-review if requested
-    if (re_review) {
-      DBI::dbExecute(
-        conn,
-        "UPDATE re_review_entity_connect
+      # Update re-review if requested
+      if (re_review) {
+        DBI::dbExecute(
+          conn,
+          "UPDATE re_review_entity_connect
          SET re_review_status_saved = 1, status_id = ?
          WHERE entity_id = ?",
-        params = list(status_id, status_data$entity_id)
+          params = list(status_id, status_data$entity_id)
+        )
+
+        logger::log_info("Status created with re-review",
+          status_id = status_id,
+          entity_id = status_data$entity_id
+        )
+      } else {
+        logger::log_info("Status created",
+          status_id = status_id,
+          entity_id = status_data$entity_id
+        )
+      }
+
+      list(
+        status = 200,
+        message = "OK. Entry created.",
+        entry = status_id
       )
-
-      logger::log_info("Status created with re-review", status_id = status_id,
-                       entity_id = status_data$entity_id)
-    } else {
-      logger::log_info("Status created", status_id = status_id,
-                       entity_id = status_data$entity_id)
+    },
+    error = function(e) {
+      logger::log_error("Failed to create status",
+        error = e$message,
+        entity_id = status_data$entity_id
+      )
+      stop(paste("Failed to create status:", e$message))
     }
-
-    list(
-      status = 200,
-      message = "OK. Entry created.",
-      entry = status_id
-    )
-  }, error = function(e) {
-    logger::log_error("Failed to create status", error = e$message,
-                      entity_id = status_data$entity_id)
-    stop(paste("Failed to create status:", e$message))
-  })
+  )
 }
 
 
@@ -167,21 +176,28 @@ status_update <- function(status_data, pool) {
   conn <- pool::poolCheckout(pool)
   on.exit(pool::poolReturn(conn), add = TRUE)
 
-  tryCatch({
-    # Execute update
-    affected_rows <- DBI::dbExecute(conn, update_query, params = params_list)
+  tryCatch(
+    {
+      # Execute update
+      affected_rows <- DBI::dbExecute(conn, update_query, params = params_list)
 
-    logger::log_info("Status updated", status_id = status_id_for_update,
-                     affected_rows = affected_rows)
+      logger::log_info("Status updated",
+        status_id = status_id_for_update,
+        affected_rows = affected_rows
+      )
 
-    list(
-      status = 200,
-      message = "OK. Entry updated.",
-      entry = status_id_for_update
-    )
-  }, error = function(e) {
-    logger::log_error("Failed to update status", error = e$message,
-                      status_id = status_id_for_update)
-    stop(paste("Failed to update status:", e$message))
-  })
+      list(
+        status = 200,
+        message = "OK. Entry updated.",
+        entry = status_id_for_update
+      )
+    },
+    error = function(e) {
+      logger::log_error("Failed to update status",
+        error = e$message,
+        status_id = status_id_for_update
+      )
+      stop(paste("Failed to update status:", e$message))
+    }
+  )
 }
