@@ -42,8 +42,8 @@ auth_signin <- function(user_name, password, pool, config) {
 
   user <- user[1, ]
 
-  # Check account status
-  if (user$account_status != "active") {
+  # Check account status (approved column: 1 = active, 0 = pending)
+  if (is.null(user$approved) || user$approved != 1) {
     stop_for_unauthorized("Account is not active")
   }
 

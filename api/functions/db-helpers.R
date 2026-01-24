@@ -56,8 +56,6 @@ library(tibble)
 #'
 #' @export
 db_execute_query <- function(sql, params = list(), conn = NULL) {
-  # Use provided connection or fallback to global pool
-  use_conn <- if (is.null(conn)) pool else conn
   # Sanitize parameters for logging (redact long strings)
   sanitized_params <- lapply(params, function(p) {
     if (is.character(p) && nchar(p) > 50) {
@@ -73,6 +71,19 @@ db_execute_query <- function(sql, params = list(), conn = NULL) {
             params = paste(sanitized_params, collapse = ", "))
 
   tryCatch({
+    # Determine if we have a pool or a direct connection
+    use_pool <- if (is.null(conn)) pool else conn
+    is_pool_obj <- inherits(use_pool, "Pool")
+
+    if (is_pool_obj) {
+      # For pool objects: checkout connection, use it, return it
+      use_conn <- pool::poolCheckout(use_pool)
+      on.exit(pool::poolReturn(use_conn), add = TRUE)
+    } else {
+      # Direct connection provided
+      use_conn <- use_pool
+    }
+
     # Send parameterized query to connection
     result <- DBI::dbSendQuery(use_conn, sql)
 
@@ -151,8 +162,6 @@ db_execute_query <- function(sql, params = list(), conn = NULL) {
 #'
 #' @export
 db_execute_statement <- function(sql, params = list(), conn = NULL) {
-  # Use provided connection or fallback to global pool
-  use_conn <- if (is.null(conn)) pool else conn
   # Sanitize parameters for logging (redact long strings)
   sanitized_params <- lapply(params, function(p) {
     if (is.character(p) && nchar(p) > 50) {
@@ -168,6 +177,19 @@ db_execute_statement <- function(sql, params = list(), conn = NULL) {
             params = paste(sanitized_params, collapse = ", "))
 
   tryCatch({
+    # Determine if we have a pool or a direct connection
+    use_pool <- if (is.null(conn)) pool else conn
+    is_pool_obj <- inherits(use_pool, "Pool")
+
+    if (is_pool_obj) {
+      # For pool objects: checkout connection, use it, return it
+      use_conn <- pool::poolCheckout(use_pool)
+      on.exit(pool::poolReturn(use_conn), add = TRUE)
+    } else {
+      # Direct connection provided
+      use_conn <- use_pool
+    }
+
     # Send parameterized statement to connection
     result <- DBI::dbSendStatement(use_conn, sql)
 

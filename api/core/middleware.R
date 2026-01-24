@@ -62,19 +62,19 @@ require_auth <- function(req, res) {
   # OPTIONS requests (CORS preflight) always forward
   if (req$REQUEST_METHOD == "OPTIONS") {
     log_debug("require_auth: OPTIONS request, forwarding")
-    plumber::forward()
+    return(plumber::forward())
   }
 
   # Check if path is in allowlist (public endpoints)
   if (req$PATH_INFO %in% AUTH_ALLOWLIST) {
     log_debug("require_auth: Path in allowlist, forwarding", path = req$PATH_INFO)
-    plumber::forward()
+    return(plumber::forward())
   }
 
   # GET requests without auth get public read access
   if (req$REQUEST_METHOD == "GET" && is.null(req$HTTP_AUTHORIZATION)) {
     log_debug("require_auth: GET without auth, forwarding (public read)")
-    plumber::forward()
+    return(plumber::forward())
   }
 
   # All other cases require authentication
@@ -112,7 +112,7 @@ require_auth <- function(req, res) {
               user_role = req$user_role,
               path = req$PATH_INFO)
 
-    plumber::forward()
+    return(plumber::forward())
 
   }, error = function(e) {
     # JWT decode failed (invalid signature, malformed token, etc.)
