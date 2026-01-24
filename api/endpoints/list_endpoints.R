@@ -15,7 +15,9 @@
 #*
 #* # `Return`
 #* Returns a list of status categories. When tree=FALSE, returns paginated
-#* response with links, meta, and data structure.
+#* response with links (navigation URLs), meta (perPage, currentPage, totalPages),
+#* and data (actual status categories). When tree=TRUE, returns tree structure
+#* without pagination.
 #*
 #* @tag list
 #* @serializer json list(na="string")
@@ -64,9 +66,10 @@ function(tree = FALSE, page_after = 0, page_size = "all") {
 #* This endpoint retrieves a list of all phenotypes.
 #*
 #* # `Return`
-#* Returns a list of phenotypes. If 'tree' is TRUE,
-#* returns them in a nested structure with modifiers (no pagination).
-#* If tree=FALSE, returns paginated response with links, meta, and data.
+#* Returns a list of phenotypes. If tree=TRUE, returns them in a nested structure
+#* with modifiers (no pagination). If tree=FALSE, returns paginated response with
+#* links (navigation URLs), meta (perPage, currentPage, totalPages), and data
+#* (actual phenotype records).
 #*
 #* @tag list
 #* @serializer json list(na="string")
@@ -135,9 +138,10 @@ function(tree = FALSE, page_after = 0, page_size = "all") {
 #* This endpoint retrieves a list of all inheritance terms.
 #*
 #* # `Return`
-#* Returns a list of inheritance terms. If tree=TRUE, returns
-#* tree-formatted data (no pagination). If tree=FALSE, returns
-#* paginated response with links, meta, and data.
+#* Returns a list of inheritance terms. If tree=TRUE, returns tree-formatted data
+#* (no pagination). If tree=FALSE, returns paginated response with links
+#* (navigation URLs), meta (perPage, currentPage, totalPages), and data
+#* (actual inheritance term records).
 #*
 #* @tag list
 #* @serializer json list(na="string")
@@ -199,9 +203,10 @@ function(tree = FALSE, page_after = 0, page_size = "all") {
 #* This endpoint retrieves a list of all variation ontology terms.
 #*
 #* # `Return`
-#* Returns a list of variation ontology terms. If tree=TRUE, returns
-#* tree-formatted data with modifiers (no pagination). If tree=FALSE,
-#* returns paginated response with links, meta, and data.
+#* Returns a list of variation ontology terms. If tree=TRUE, returns tree-formatted
+#* data with modifiers (no pagination). If tree=FALSE, returns paginated response
+#* with links (navigation URLs), meta (perPage, currentPage, totalPages), and data
+#* (actual variation ontology records).
 #*
 #* @tag list
 #* @serializer json list(na="string")

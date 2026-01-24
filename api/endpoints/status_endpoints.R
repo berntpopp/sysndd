@@ -211,7 +211,8 @@ function(status_id_requested) {
 #* Retrieves all status categories from ndd_entity_status_categories_list.
 #*
 #* # `Return`
-#* Returns a paginated list of categories with links, meta, and data structure.
+#* Returns a paginated list of categories with links (navigation URLs),
+#* meta (perPage, currentPage, totalPages), and data (actual status category records).
 #*
 #* @tag status
 #* @serializer json list(na="string")
