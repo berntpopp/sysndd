@@ -51,7 +51,7 @@ export default function useToast(): ToastMethods {
       body,
       variant,
       pos: 'top-end',
-      modelValue: shouldAutoHide ? autoHideDelay : 0, // 0 means no auto-hide
+      modelValue: shouldAutoHide ? autoHideDelay : -1, // Negative value disables auto-hide
     });
   };
 

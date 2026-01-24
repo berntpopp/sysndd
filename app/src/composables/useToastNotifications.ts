@@ -31,7 +31,7 @@ export default function useToastNotifications(): ToastNotifications {
       body,
       variant,
       pos: 'top-end',
-      modelValue: autoHide ? autoHideDelay : 0, // 0 means no auto-hide
+      modelValue: autoHide ? autoHideDelay : -1, // Negative value disables auto-hide
     });
   };
 

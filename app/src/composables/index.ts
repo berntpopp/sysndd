@@ -33,3 +33,17 @@ export { default as useUrlParsing } from './useUrlParsing';
 export { default as useTableData } from './useTableData';
 // eslint-disable-next-line import/no-cycle
 export { default as useTableMethods } from './useTableMethods';
+
+// Entity form management
+export { default as useEntityForm } from './useEntityForm';
+export type {
+  EntityFormData,
+  GeneSearchResult,
+  OntologySearchResult,
+  SelectOption,
+  StepValidation,
+  WizardStep,
+} from './useEntityForm';
+
+// Form draft/auto-save utilities
+export { default as useFormDraft } from './useFormDraft';
