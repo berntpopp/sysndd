@@ -12,14 +12,14 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Milestone:** v4 Backend Overhaul
 **Phase:** 23 of 24 (OMIM Migration) - IN PROGRESS
-**Plan:** 1 of 3 complete
-**Status:** JAX API validation complete, implementation parameters determined
-**Last activity:** 2026-01-24 - Completed 23-01 JAX API validation (82% data coverage, no rate limits)
+**Plan:** 2 of 3 complete
+**Status:** OMIM functions module complete, ready for async job integration
+**Last activity:** 2026-01-24 - Completed 23-02 OMIM functions module (8 functions, unit tests)
 
 ```
 v4 Backend Overhaul: PHASE 23 IN PROGRESS
 Goal: Modernize R/Plumber API with security, async, OMIM fix, R upgrade, DRY/KISS/SOLID
-Progress: ██████████████████████████░░░░░░░ 87% (6.3/7 phases)
+Progress: ██████████████████████████░░░░░░░ 90% (6.5/7 phases)
 ```
 
 ## Completed Milestones
@@ -153,6 +153,11 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 23-01 | WARN on missing disease names, don't abort | 18% of phenotype MIMs return 404 - too high to abort, log and continue |
 | 2026-01-24 | 23-01 | Use req_error(is_error = ~ FALSE) for httr2 | Prevents throwing on HTTP errors, allows manual handling of 404s |
 | 2026-01-24 | 23-01 | max_tries=5, backoff=2^x, max_seconds=120 for retries | Conservative retry strategy for transient JAX API failures |
+| 2026-01-24 | 23-02 | Use check_file_age from file-functions.R | Consistent with existing file caching pattern |
+| 2026-01-24 | 23-02 | Return NA_character_ for JAX 404s (not abort) | 18% of MIMs not in JAX - too many to abort batch |
+| 2026-01-24 | 23-02 | Filter deprecated entries from ontology set | Deprecated entries tracked separately for re-review workflow |
+| 2026-01-24 | 23-02 | Versioning: OMIM:XXXXXX_N for duplicates | Same pattern as existing process_omim_ontology |
+| 2026-01-24 | 23-02 | MOI term is NA for mim2gene source | mim2gene.txt lacks inheritance information |
 
 ### Pending Todos
 
@@ -174,9 +179,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 23-01-PLAN.md (JAX API validation)
+**Stopped at:** Completed 23-02-PLAN.md (OMIM functions module)
 **Resume file:** None
-**Next action:** Execute Phase 23-02: OMIM Update Implementation
+**Next action:** Execute Phase 23-03: Async OMIM Update Job Integration
 
 ---
-*Last updated: 2026-01-24 - Phase 23-01 complete (JAX API validation, 82% data coverage confirmed)*
+*Last updated: 2026-01-24 - Phase 23-02 complete (OMIM functions module with 8 functions + unit tests)*
