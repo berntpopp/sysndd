@@ -22,7 +22,7 @@ The v4 Backend Overhaul modernizes the R/Plumber API through a strict phase sequ
 - [x] **Phase 19: Security Hardening** - Fix SQL injection and implement password hashing ✓
 - [x] **Phase 20: Async/Non-blocking** - Add mirai for long-running operations ✓
 - [x] **Phase 21: Repository Layer** - Create database access layer with domain repositories ✓
-- [ ] **Phase 22: Service Layer & Middleware** - Extract business logic and auth middleware
+- [x] **Phase 22: Service Layer & Middleware** - Extract business logic and auth middleware ✓
 - [ ] **Phase 23: OMIM Migration** - Switch from genemap2 to mim2gene.txt + MONDO/HPO
 - [ ] **Phase 24: Versioning, Pagination & Cleanup** - API versioning, cleanup, and testing
 
@@ -111,18 +111,19 @@ Plans:
   3. Response format matches production API (https://sysndd.dbmr.unibe.ch/API)
   4. database-functions.R eliminated (1,226-line god file decomposed)
   5. Global mutable state minimized (<<- usages reduced)
-**Plans**: 9 plans in 4 waves
+**Plans**: 10 plans in 4 waves
 
 Plans:
-- [ ] 22-01-PLAN.md - Create middleware infrastructure (require_auth filter, require_role helper)
-- [ ] 22-02-PLAN.md - Create auth-service.R (signin, verify, refresh, token generation)
-- [ ] 22-03-PLAN.md - Create entity-service.R (create, deactivate, get_full, validate)
-- [ ] 22-04-PLAN.md - Create review-service.R and approval-service.R
-- [ ] 22-05-PLAN.md - Create user-service.R, status-service.R, and search-service.R
-- [ ] 22-06-PLAN.md - Refactor user, admin, authentication endpoints to use middleware and services
-- [ ] 22-07-PLAN.md - Refactor entity, review, status, and remaining endpoints
-- [ ] 22-08-PLAN.md - Delete database-functions.R after migration verification
-- [ ] 22-09-PLAN.md - Comprehensive endpoint verification and human approval
+- [x] 22-01-PLAN.md - Create middleware infrastructure (require_auth filter, require_role helper) ✓
+- [x] 22-02-PLAN.md - Create auth-service.R (signin, verify, refresh, token generation) ✓
+- [x] 22-03-PLAN.md - Create entity-service.R (create, deactivate, get_full, validate) ✓
+- [x] 22-04-PLAN.md - Create review-service.R and approval-service.R ✓
+- [x] 22-05-PLAN.md - Create user-service.R, status-service.R, and search-service.R ✓
+- [x] 22-06-PLAN.md - Refactor user, admin, authentication endpoints to use middleware and services ✓
+- [x] 22-07-PLAN.md - Refactor entity, review, status, and remaining endpoints ✓
+- [x] 22-07b-PLAN.md - Refactor admin and specialized endpoints to use middleware ✓
+- [x] 22-08-PLAN.md - Delete database-functions.R after migration verification ✓
+- [x] 22-09-PLAN.md - Comprehensive endpoint verification and human approval ✓
 
 ### Phase 23: OMIM Migration
 **Goal**: OMIM annotations work without genemap2 dependency, with OMIM disease names preserved
@@ -169,7 +170,7 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 | 19. Security Hardening | 5/5 | Complete ✓ | 2026-01-24 |
 | 20. Async/Non-blocking | 3/3 | Complete ✓ | 2026-01-24 |
 | 21. Repository Layer | 10/10 | Complete ✓ | 2026-01-24 |
-| 22. Service Layer & Middleware | 0/9 | Planned | - |
+| 22. Service Layer & Middleware | 10/10 | Complete ✓ | 2026-01-24 |
 | 23. OMIM Migration | 0/5 | Planned | - |
 | 24. Versioning, Pagination & Cleanup | 0/TBD | Not started | - |
 
@@ -196,4 +197,4 @@ Phases execute in numeric order: 18 -> 18.1 (if inserted) -> 19 -> 20 -> 21 -> 2
 
 ---
 *Roadmap created: 2026-01-23*
-*Last updated: 2026-01-24 - Phase 21 complete (10/10 plans, 100% repo consistency), Phases 22-23 planned*
+*Last updated: 2026-01-24 - Phase 22 complete (10/10 plans, service layer and middleware refactoring verified)*
