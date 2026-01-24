@@ -11,6 +11,9 @@
 # Load security utilities for password verification and progressive migration
 source("../core/security.R", local = TRUE)
 
+# Load database helper functions for repository layer access
+source("functions/db-helpers.R", local = TRUE)
+
 ## -------------------------------------------------------------------##
 ## Authentication section
 ## -------------------------------------------------------------------##
@@ -79,10 +82,12 @@ function(signup_data) {
     select(valid)
 
   if (input_validation$valid) {
-    # Insert user into DB using pool
-    poolWithTransaction(pool, function(conn) {
-      dbAppendTable(conn, "user", user)
-    })
+    # Insert user into DB using parameterized query
+    # Build INSERT with explicit column names matching tibble structure
+    cols <- names(user)
+    placeholders <- paste(rep("?", length(cols)), collapse = ", ")
+    sql <- sprintf("INSERT INTO user (%s) VALUES (%s)", paste(cols, collapse = ", "), placeholders)
+    db_execute_statement(sql, as.list(user))
 
     # Send email
     send_noreply_email(
