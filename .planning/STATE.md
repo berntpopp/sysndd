@@ -12,9 +12,9 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Milestone:** v4 Backend Overhaul
 **Phase:** 22 of 24 (Service Layer & Middleware)
-**Plan:** 2 of 9 complete
-**Status:** In progress - middleware and auth service complete
-**Last activity:** 2026-01-24 - Completed 22-01-PLAN.md (authentication middleware)
+**Plan:** 5 of 9 complete
+**Status:** In progress - service layer infrastructure complete
+**Last activity:** 2026-01-24 - Completed 22-03-PLAN.md (entity service layer)
 
 ```
 v4 Backend Overhaul: PHASE 22 IN PROGRESS
@@ -131,6 +131,11 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 22-02 | Progressive password upgrade integrated in signin flow | Transparently upgrades legacy plaintext passwords to Argon2id on successful login - zero user friction |
 | 2026-01-24 | 22-02 | JWT claims include comprehensive user info | Include user_id, user_name, email, user_role, abbreviation, orcid to avoid database lookups on every request |
 | 2026-01-24 | 22-02 | Token expiry configurable via config parameter | Uses config$refresh with fallback to 86400 seconds - production can adjust without code changes |
+| 2026-01-24 | 22-05 | Service layer uses dependency injection (pool as parameter) | Services accept dependencies as parameters rather than accessing global state - enables testability and follows SOLID principles |
+| 2026-01-24 | 22-05 | Role-based user list filtering in service layer | Administrator sees all users with full details, Curator sees reviewers/viewers, Reviewer/Viewer sees limited info |
+| 2026-01-24 | 22-05 | Status service uses pool checkout/return for transactions | Re-review workflow requires multiple statements to be atomic - checkout connection for transaction control |
+| 2026-01-24 | 22-05 | Search functions validate minimum 2-character query | Prevents performance issues from single-character wildcard searches that would match too many records |
+| 2026-01-24 | 22-05 | User approval workflow integrated in service layer | Complex business logic (password generation, email sending, status updates) belongs in service layer, not endpoints |
 
 ### Pending Todos
 
@@ -149,9 +154,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 22-01-PLAN.md (authentication middleware)
+**Stopped at:** Completed 22-05-PLAN.md (user, status, search services)
 **Resume file:** None
-**Next action:** Continue Phase 22 - plans 22-03 through 22-09 remaining
+**Next action:** Continue Phase 22 - plans 22-06 through 22-09 remaining (endpoint refactoring)
 
 ---
-*Last updated: 2026-01-24 - Completed 22-01 (authentication middleware with require_auth filter and require_role helper)*
+*Last updated: 2026-01-24 - Completed 22-05 (user, status, search services - service layer infrastructure complete)*
