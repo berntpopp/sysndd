@@ -92,6 +92,43 @@
                 </div>
               </template>
 
+              <template #cell(mondo_equivalent)="data">
+                <template v-if="data.item.MONDO">
+                  <template v-if="data.item.MONDO.includes(';')">
+                    <!-- Multiple MONDO mappings -->
+                    <span
+                      v-for="(mondoId, index) in data.item.MONDO.split(';')"
+                      :key="mondoId"
+                    >
+                      <a
+                        :href="`https://monarchinitiative.org/disease/${mondoId.trim()}`"
+                        target="_blank"
+                        rel="noopener"
+                      >
+                        {{ mondoId.trim() }}
+                      </a>
+                      <span v-if="index < data.item.MONDO.split(';').length - 1">, </span>
+                    </span>
+                  </template>
+                  <template v-else>
+                    <a
+                      :href="`https://monarchinitiative.org/disease/${data.item.MONDO}`"
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      {{ data.item.MONDO }}
+                    </a>
+                  </template>
+                </template>
+                <span
+                  v-else-if="data.item.disease_ontology_source === 'mim2gene'"
+                  class="text-muted fst-italic"
+                >
+                  No mapping available
+                </span>
+                <span v-else />
+              </template>
+
               <template #cell(hpo_mode_of_inheritance_term_name)="data">
                 <InheritanceBadge
                   :full-name="data.item.hpo_mode_of_inheritance_term_name"
@@ -330,6 +367,12 @@ export default {
           class: 'text-start',
           sortByFormatted: true,
           filterByFormatted: true,
+        },
+        {
+          key: 'mondo_equivalent',
+          label: 'MONDO Equivalent',
+          sortable: false,
+          class: 'text-start',
         },
         {
           key: 'hpo_mode_of_inheritance_term_name',
