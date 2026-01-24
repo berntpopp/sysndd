@@ -12,9 +12,9 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Milestone:** v4 Backend Overhaul
 **Phase:** 22 of 24 (Service Layer & Middleware)
-**Plan:** 7 of 9 complete
-**Status:** In progress - core data endpoints refactored
-**Last activity:** 2026-01-24 - Completed 22-07-PLAN.md (entity/review/status endpoint middleware migration)
+**Plan:** 8 of 10 complete
+**Status:** In progress - admin/specialized endpoints migrated to middleware
+**Last activity:** 2026-01-24 - Completed 22-07b-PLAN.md (admin & specialized endpoint middleware migration)
 
 ```
 v4 Backend Overhaul: PHASE 22 IN PROGRESS
@@ -164,9 +164,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 22-07-PLAN.md (core data endpoint refactoring)
+**Stopped at:** Completed 22-07b-PLAN.md (admin & specialized endpoint middleware migration)
 **Resume file:** None
-**Next action:** Continue Phase 22 - plans 22-08 and 22-09 remaining
+**Next action:** Continue Phase 22 - plan 22-08 remaining (final endpoint migrations)
 
 ---
-*Last updated: 2026-01-24 - Completed 22-07 (entity/review/status endpoint middleware migration)*
+*Last updated: 2026-01-24 - Completed 22-07b (admin & specialized endpoint middleware migration)*
