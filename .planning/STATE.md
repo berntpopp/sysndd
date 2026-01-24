@@ -12,9 +12,9 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Milestone:** v4 Backend Overhaul
 **Phase:** 22 of 24 (Service Layer & Middleware)
-**Plan:** 5 of 9 complete
-**Status:** In progress - service layer infrastructure complete
-**Last activity:** 2026-01-24 - Completed 22-03-PLAN.md (entity service layer)
+**Plan:** 6 of 9 complete
+**Status:** In progress - review and approval services complete
+**Last activity:** 2026-01-24 - Completed 22-04-PLAN.md (review and approval service layer)
 
 ```
 v4 Backend Overhaul: PHASE 22 IN PROGRESS
@@ -140,6 +140,10 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 22-05 | Status service uses pool checkout/return for transactions | Re-review workflow requires multiple statements to be atomic - checkout connection for transaction control |
 | 2026-01-24 | 22-05 | Search functions validate minimum 2-character query | Prevents performance issues from single-character wildcard searches that would match too many records |
 | 2026-01-24 | 22-05 | User approval workflow integrated in service layer | Complex business logic (password generation, email sending, status updates) belongs in service layer, not endpoints |
+| 2026-01-24 | 22-04 | Use svc_ prefix for service functions to avoid repository conflicts | Both service and repository layers have functions like review_create - svc_ prefix prevents naming collisions and clarifies layer separation |
+| 2026-01-24 | 22-04 | Service layer accepts pool despite repositories using global pool | Dependency injection pattern for future testability - even though current repositories access global pool, services structured for future refactoring |
+| 2026-01-24 | 22-04 | Support batch approval via "all" parameter | Matches existing database-functions.R behavior - enables admin workflows to approve all pending reviews/statuses at once |
+| 2026-01-24 | 22-04 | Maintain quote escaping at service layer | Repository also escapes quotes - duplication exists for backward compatibility with database-functions.R during migration |
 
 ### Pending Todos
 
@@ -158,9 +162,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 22-05-PLAN.md (user, status, search services)
+**Stopped at:** Completed 22-04-PLAN.md (review and approval service layer)
 **Resume file:** None
-**Next action:** Continue Phase 22 - plans 22-06 through 22-09 remaining (endpoint refactoring)
+**Next action:** Continue Phase 22 - plans 22-05 through 22-09 remaining
 
 ---
-*Last updated: 2026-01-24 - Completed 22-05 (user, status, search services - service layer infrastructure complete)*
+*Last updated: 2026-01-24 - Completed 22-04 (review and approval service layer with batch operation support)*
