@@ -9,13 +9,13 @@ Requirements for v5.0 release. Each maps to roadmap phases.
 
 ### Performance Optimization
 
-- [ ] **PERF-01**: Clustering uses Leiden algorithm (2-3x faster than Walktrap)
-- [ ] **PERF-02**: HCPC uses kk=50 pre-partitioning (50-70% faster)
-- [ ] **PERF-03**: MCA uses ncp=8 dimensions (20-30% faster)
-- [ ] **PERF-04**: Cache keys include algorithm name and STRING version
-- [ ] **PERF-05**: functional_clustering endpoint paginated (8.6MB → <500KB per page)
-- [ ] **PERF-06**: Cold start reduced from ~15s to <7s
-- [ ] **PERF-07**: mirai dispatcher pattern for proper timeout handling
+- [x] **PERF-01**: Clustering uses Leiden algorithm (2-3x faster than Walktrap)
+- [x] **PERF-02**: HCPC uses kk=50 pre-partitioning (50-70% faster)
+- [x] **PERF-03**: MCA uses ncp=8 dimensions (20-30% faster)
+- [x] **PERF-04**: Cache keys include algorithm name and STRING version
+- [x] **PERF-05**: functional_clustering endpoint paginated (8.6MB → <500KB per page)
+- [x] **PERF-06**: Cold start reduced from ~15s to <7s
+- [x] **PERF-07**: mirai dispatcher pattern for proper timeout handling
 
 ### Network Visualization
 
@@ -104,13 +104,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PERF-01 | Phase 25 | Pending |
-| PERF-02 | Phase 25 | Pending |
-| PERF-03 | Phase 25 | Pending |
-| PERF-04 | Phase 25 | Pending |
-| PERF-05 | Phase 25 | Pending |
-| PERF-06 | Phase 25 | Pending |
-| PERF-07 | Phase 25 | Pending |
+| PERF-01 | Phase 25 | Complete |
+| PERF-02 | Phase 25 | Complete |
+| PERF-03 | Phase 25 | Complete |
+| PERF-04 | Phase 25 | Complete |
+| PERF-05 | Phase 25 | Complete |
+| PERF-06 | Phase 25 | Complete |
+| PERF-07 | Phase 25 | Complete |
 | NETV-01 | Phase 26 | Pending |
 | NETV-02 | Phase 26 | Pending |
 | NETV-03 | Phase 26 | Pending |
@@ -150,4 +150,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-24*
-*Last updated: 2026-01-24 after initial definition*
+*Last updated: 2026-01-25 — Phase 25 complete*
