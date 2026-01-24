@@ -32,16 +32,46 @@
                 v-if="loading"
                 small
                 type="grow"
+                class="me-2"
               />
-              {{ loading ? jobStep : 'Update Ontology Annotations' }}
+              {{ loading ? 'Updating...' : 'Update Ontology Annotations' }}
             </BButton>
 
+            <!-- Progress display -->
             <div
-              v-if="jobStatus"
-              class="mt-2 small text-muted"
+              v-if="loading || jobStatus"
+              class="mt-3"
             >
-              Status: {{ jobStatus }}
-              <span v-if="jobStep"> - {{ jobStep }}</span>
+              <div class="d-flex align-items-center mb-2">
+                <span
+                  class="badge me-2"
+                  :class="statusBadgeClass"
+                >
+                  {{ jobStatus || 'starting' }}
+                </span>
+                <span class="text-muted">{{ jobStep }}</span>
+              </div>
+
+              <BProgress
+                v-if="loading"
+                :value="progressPercent"
+                :max="100"
+                show-progress
+                animated
+                :variant="progressVariant"
+                height="1.5rem"
+              >
+                <template #default>
+                  {{ progressPercent }}% - {{ currentStepLabel }}
+                </template>
+              </BProgress>
+
+              <div
+                v-if="jobProgress.current && jobProgress.total"
+                class="small text-muted mt-1"
+              >
+                Step {{ jobProgress.current }} of {{ jobProgress.total }}
+              </div>
             </div>
           </BCard>
         </BCol>
@@ -104,7 +134,55 @@ export default {
       jobStatus: null,
       jobStep: '',
       pollInterval: null,
+      jobProgress: {
+        current: 0,
+        total: 0,
+      },
     };
+  },
+  computed: {
+    progressPercent() {
+      if (this.jobProgress.total > 0) {
+        return Math.round((this.jobProgress.current / this.jobProgress.total) * 100);
+      }
+      // Estimate progress based on step name
+      const stepProgress = {
+        'Starting update...': 5,
+        'Job submitted, starting...': 10,
+        'Downloading mim2gene.txt': 15,
+        'Parsing mim2gene.txt': 25,
+        'Fetching disease names from JAX API': 40,
+        'Downloading MONDO SSSOM': 60,
+        'Parsing MONDO mappings': 70,
+        'Building ontology set': 80,
+        'Validating data': 85,
+        'Writing to database': 90,
+        'Completed': 100,
+      };
+      return stepProgress[this.jobStep] || 50;
+    },
+    progressVariant() {
+      if (this.jobStatus === 'failed') return 'danger';
+      if (this.jobStatus === 'completed') return 'success';
+      return 'primary';
+    },
+    statusBadgeClass() {
+      const classes = {
+        accepted: 'bg-info',
+        running: 'bg-primary',
+        completed: 'bg-success',
+        failed: 'bg-danger',
+      };
+      return classes[this.jobStatus] || 'bg-secondary';
+    },
+    currentStepLabel() {
+      if (!this.jobStep) return 'Initializing...';
+      // Shorten long step names
+      if (this.jobStep.length > 40) {
+        return this.jobStep.substring(0, 37) + '...';
+      }
+      return this.jobStep;
+    },
   },
   beforeUnmount() {
     this.stopPolling();
@@ -114,6 +192,7 @@ export default {
       this.loading = true;
       this.jobStatus = null;
       this.jobStep = 'Starting update...';
+      this.jobProgress = { current: 0, total: 0 };
 
       try {
         // Call async endpoint
@@ -161,7 +240,7 @@ export default {
 
       try {
         const response = await this.axios.get(
-          `${import.meta.env.VITE_API_URL}/api/jobs/${this.jobId}`,
+          `${import.meta.env.VITE_API_URL}/api/jobs/${this.jobId}/status`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -178,8 +257,18 @@ export default {
           return;
         }
 
-        this.jobStatus = data.status;
-        this.jobStep = data.step || this.jobStep;
+        // Handle array values from R/Plumber API (extracts first element if array)
+        this.jobStatus = Array.isArray(data.status) ? data.status[0] : data.status;
+        const stepValue = Array.isArray(data.step) ? data.step[0] : data.step;
+        this.jobStep = stepValue || this.jobStep;
+
+        // Update progress if provided
+        if (data.progress) {
+          this.jobProgress = {
+            current: data.progress.current || 0,
+            total: data.progress.total || 0,
+          };
+        }
 
         if (data.status === 'completed') {
           this.stopPolling();
