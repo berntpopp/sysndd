@@ -215,11 +215,7 @@ function(res,
 #* @param end_date   End date for range (YYYY-MM-DD).
 #* @get /updates
 function(req, res, start_date, end_date) {
-  # Must be Administrator
-  if (is.null(req$user_role) || req$user_role != "Administrator") {
-    res$status <- 403
-    return(list(error = "Access forbidden. Only administrators can access this endpoint."))
-  }
+  require_role(req, res, "Administrator")
 
   sysndd_ndd_entity <- pool %>%
     tbl("ndd_entity") %>%
@@ -264,10 +260,7 @@ function(req, res, start_date, end_date) {
 #* @param end_date   End date (YYYY-MM-DD).
 #* @get /rereview
 function(req, res, start_date, end_date) {
-  if (is.null(req$user_role) || req$user_role != "Administrator") {
-    res$status <- 403
-    return(list(error = "Access forbidden. Only administrators can access this endpoint."))
-  }
+  require_role(req, res, "Administrator")
 
   sysndd_review_connect <- pool %>%
     tbl("ndd_entity_review") %>%
@@ -325,10 +318,7 @@ function(req, res, start_date, end_date) {
 #* @param end_date   End date (YYYY-MM-DD).
 #* @get /updated_reviews
 function(req, res, start_date, end_date) {
-  if (is.null(req$user_role) || req$user_role != "Administrator") {
-    res$status <- 403
-    return(list(error = "Access forbidden. Only administrators can access this endpoint."))
-  }
+  require_role(req, res, "Administrator")
 
   updated_reviews <- pool %>%
     tbl("ndd_entity_review") %>%
@@ -366,10 +356,7 @@ function(req, res, start_date, end_date) {
 #* @param end_date   End date (YYYY-MM-DD).
 #* @get /updated_statuses
 function(req, res, start_date, end_date) {
-  if (is.null(req$user_role) || req$user_role != "Administrator") {
-    res$status <- 403
-    return(list(error = "Access forbidden. Only administrators can access this endpoint."))
-  }
+  require_role(req, res, "Administrator")
 
   updated_statuses <- pool %>%
     tbl("ndd_entity_status") %>%

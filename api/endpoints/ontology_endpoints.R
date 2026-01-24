@@ -92,30 +92,24 @@ function(ontology_input, input_type = "ontology_id") {
 #* @serializer json list(na="string")
 #* @get variant/table
 function(req, res) {
+  require_role(req, res, "Administrator")
+
   user <- req$user_id
 
-  if (length(user) == 0) {
-    res$status <- 401
-    return(list(error = "Please authenticate."))
-  } else if (req$user_role %in% c("Administrator")) {
-    ontology_table <- pool %>%
-      tbl("variation_ontology_list") %>%
-      select(
-        vario_id,
-        vario_name,
-        definition,
-        obsolete,
-        is_active,
-        sort,
-        update_date
-      ) %>%
-      collect()
+  ontology_table <- pool %>%
+    tbl("variation_ontology_list") %>%
+    select(
+      vario_id,
+      vario_name,
+      definition,
+      obsolete,
+      is_active,
+      sort,
+      update_date
+    ) %>%
+    collect()
 
-    ontology_table
-  } else {
-    res$status <- 403
-    return(list(error = "Read access forbidden."))
-  }
+  ontology_table
 }
 
 
@@ -134,11 +128,7 @@ function(req, res) {
 #* @accept json
 #* @put variant/update
 function(req, res) {
-  # Check if the user has admin privileges
-  if (req$user_role != "Administrator") {
-    res$status <- 403
-    return(list(error = "Administrative privileges required for this action."))
-  }
+  require_role(req, res, "Administrator")
 
   # Parse JSON payload
   ontology_details <- req$argsBody$ontology_details
