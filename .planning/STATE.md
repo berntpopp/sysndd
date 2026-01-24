@@ -12,14 +12,14 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Milestone:** v4 Backend Overhaul
 **Phase:** 24 of 24 (Versioning, Pagination & Cleanup) - IN PROGRESS
-**Plan:** 5 of 7 complete
-**Status:** Wave 3 in progress - TODO cleanup and bug fixes complete
-**Last activity:** 2026-01-24 - Completed 24-05 TODO cleanup and bug fixes
+**Plan:** 6 of 7 complete
+**Status:** Wave 3 in progress - Lintr cleanup complete
+**Last activity:** 2026-01-24 - Completed 24-06 Lintr cleanup (692→85 issues)
 
 ```
 v4 Backend Overhaul: PHASE 24 IN PROGRESS
 Goal: Modernize R/Plumber API with security, async, OMIM fix, R upgrade, DRY/KISS/SOLID
-Progress: ██████████████████████████████░░░ 98% (7.20/7.2 phases)
+Progress: ██████████████████████████████░░░ 99% (7.25/7.2 phases)
 ```
 
 ## Completed Milestones
@@ -55,8 +55,8 @@ Progress: ███████████████████████�
 - 15 global mutable state (`<<-`) usages
 - 5 god functions (>200 lines)
 - ~100 inconsistent error handling patterns
-- 30 incomplete TODO comments
-- 1240 lintr issues
+- ~~30 incomplete TODO comments~~ RESOLVED - Phase 24-05 reduced to 1 intentional TODO
+- ~~1240 lintr issues~~ RESOLVED - Phase 24-06 reduced to 85 (88% reduction, 57% under target)
 
 ## Key Decisions
 
@@ -183,6 +183,9 @@ See PROJECT.md for full decisions table. Pending v4 decisions will be logged as 
 | 2026-01-24 | 24-05 | Fix multiple title matches with first-match strategy | GeneReviews scraping can return multiple title elements; taking first match is safest, with logging for monitoring |
 | 2026-01-24 | 24-05 | Add parentheses validation to filter expressions | Malformed filter strings cause cryptic errors; validating structure upfront provides better UX |
 | 2026-01-24 | 24-05 | Document future TODOs with context and links | Remaining TODOs are legitimate future enhancements; clear documentation prevents confusion and provides implementation guidance |
+| 2026-01-24 | 24-06 | Target <200 lintr issues not zero | Diminishing returns - focus on high-value fixes not cosmetic perfection; 85 final issues are justified (long fspec strings, edge cases) |
+| 2026-01-24 | 24-06 | Fix pipe consistency to magrittr %>% | Project standard in .lintr config, consistency across codebase; newer code was using native pipe |
+| 2026-01-24 | 24-06 | Applied styler to bulk directories | Safe automated formatting, 80% of issues fixed automatically; verified no functional changes via git diff and health check |
 
 ### Pending Todos
 
@@ -204,9 +207,9 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Completed 24-05-PLAN.md (TODO cleanup and bug fixes)
+**Stopped at:** Completed 24-06-PLAN.md (Lintr cleanup - 692→85 issues)
 **Resume file:** None
-**Next action:** Continue Phase 24 Wave 3 - Plans 06-07 (gene/review endpoint pagination, search endpoint pagination)
+**Next action:** Continue Phase 24 Wave 3 - Plan 07 (Final testing and documentation)
 
 ---
-*Last updated: 2026-01-24 - Phase 24 IN PROGRESS (Wave 3: 5 of 7 plans complete - version, pagination safety, user/re-review tables, list/status endpoints, TODO cleanup)*
+*Last updated: 2026-01-24 - Phase 24 IN PROGRESS (Wave 3: 6 of 7 plans complete - version, pagination safety, user/re-review tables, list/status endpoints, TODO cleanup, lintr cleanup)*
