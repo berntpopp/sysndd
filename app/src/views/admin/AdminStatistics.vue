@@ -70,8 +70,8 @@
 
     <!-- Contributor Leaderboard -->
     <BRow class="mb-4">
-      <BCol>
-        <BCard>
+      <BCol md="6">
+        <BCard class="h-100">
           <template #header>
             <div class="d-flex justify-content-between align-items-center">
               <h5 class="mb-0">Top Contributors</h5>
@@ -92,6 +92,31 @@
           <ContributorBarChart
             :contributors="leaderboardData"
             :loading="loading.leaderboard"
+          />
+        </BCard>
+      </BCol>
+      <BCol md="6">
+        <BCard class="h-100">
+          <template #header>
+            <div class="d-flex justify-content-between align-items-center">
+              <h5 class="mb-0">Top Re-Reviewers</h5>
+              <BFormRadioGroup
+                v-model="reReviewLeaderboardScope"
+                :options="reReviewLeaderboardScopeOptions"
+                button-variant="outline-primary"
+                size="sm"
+                buttons
+                @change="fetchReReviewLeaderboard"
+              />
+            </div>
+          </template>
+          <p class="text-muted small mb-2">
+            Reviewer leaderboard ranked by submitted re-reviews.
+            {{ reReviewLeaderboardScope === 'all_time' ? 'Cumulative all-time re-reviews.' : `Re-reviews within selected ${periodLengthDays} day period.` }}
+          </p>
+          <ReReviewBarChart
+            :reviewers="reReviewLeaderboardData"
+            :loading="loading.reReviewLeaderboard"
           />
         </BCard>
       </BCol>
@@ -206,6 +231,7 @@ import {
 import useToast from '@/composables/useToast';
 import EntityTrendChart from './components/charts/EntityTrendChart.vue';
 import ContributorBarChart from './components/charts/ContributorBarChart.vue';
+import ReReviewBarChart from './components/charts/ReReviewBarChart.vue';
 import StatCard from './components/statistics/StatCard.vue';
 
 // Types
@@ -217,6 +243,12 @@ interface TrendDataPoint {
 interface ContributorData {
   user_name: string;
   entity_count: number;
+}
+
+interface ReReviewLeaderboardData {
+  user_name: string;
+  submitted_count: number;
+  approved_count: number;
 }
 
 interface UpdatesStatistics {
@@ -258,12 +290,14 @@ const apiUrl = import.meta.env.VITE_API_URL;
 const loading = ref({
   trend: false,
   leaderboard: false,
+  reReviewLeaderboard: false,
   stats: false,
 });
 
 // Date range and granularity
 const granularity = ref<'month' | 'week' | 'day'>('month');
 const leaderboardScope = ref<'all_time' | 'range'>('all_time');
+const reReviewLeaderboardScope = ref<'all_time' | 'range'>('all_time');
 
 // Set default date range to last 12 months
 const today = new Date();
@@ -276,6 +310,7 @@ const lastUpdated = ref<Date | null>(null);
 // Chart data
 const trendData = ref<TrendDataPoint[]>([]);
 const leaderboardData = ref<ContributorData[]>([]);
+const reReviewLeaderboardData = ref<ReReviewLeaderboardData[]>([]);
 
 // KPI data
 const kpiStats = ref<KpiStats>({
@@ -301,6 +336,12 @@ const granularityOptions = [
 
 // Options for leaderboard scope toggle
 const leaderboardScopeOptions = [
+  { text: 'All Time', value: 'all_time' },
+  { text: 'Date Range', value: 'range' },
+];
+
+// Options for re-review leaderboard scope toggle
+const reReviewLeaderboardScopeOptions = [
   { text: 'All Time', value: 'all_time' },
   { text: 'Date Range', value: 'range' },
 ];
@@ -448,6 +489,46 @@ async function fetchLeaderboard(): Promise<void> {
     leaderboardData.value = [];
   } finally {
     loading.value.leaderboard = false;
+  }
+}
+
+// Fetch re-review leaderboard data from /rereview_leaderboard endpoint
+async function fetchReReviewLeaderboard(): Promise<void> {
+  if (!axios) return;
+
+  loading.value.reReviewLeaderboard = true;
+  try {
+    const params: Record<string, string | number> = {
+      top: 10,
+      scope: reReviewLeaderboardScope.value,
+    };
+
+    if (reReviewLeaderboardScope.value === 'range') {
+      params.start_date = startDate.value;
+      params.end_date = endDate.value;
+    }
+
+    const response = await axios.get(
+      `${apiUrl}/api/statistics/rereview_leaderboard`,
+      {
+        params,
+        headers: getAuthHeaders(),
+      }
+    );
+
+    // Map response to chart format
+    const data = response.data.data || [];
+    reReviewLeaderboardData.value = data.map((item: { display_name: string; submitted_count: number; approved_count: number }) => ({
+      user_name: item.display_name || 'Unknown',
+      submitted_count: item.submitted_count,
+      approved_count: item.approved_count,
+    }));
+  } catch (error) {
+    console.error('Failed to fetch re-review leaderboard:', error);
+    makeToast('Failed to fetch re-review leaderboard data', 'Error', 'danger');
+    reReviewLeaderboardData.value = [];
+  } finally {
+    loading.value.reReviewLeaderboard = false;
   }
 }
 
@@ -603,6 +684,7 @@ async function fetchStatistics(): Promise<void> {
   await Promise.all([
     fetchTrendData(),
     fetchLeaderboard(),
+    fetchReReviewLeaderboard(),
     fetchKPIStats(),
     fetchExistingStatistics(),
   ]);

@@ -593,3 +593,103 @@ function(req, res, top = 10, start_date = NULL, end_date = NULL, scope = "all_ti
     )
   )
 }
+
+
+#* Get Re-Review Leaderboard
+#*
+#* Returns the top reviewers by number of submitted re-reviews.
+#*
+#* # `Details`
+#* Aggregates re_review_entity_connect data by user, counting submitted
+#* re-reviews per reviewer. Optionally filters by date range.
+#*
+#* # `Authorization`
+#* Only Administrators can access this endpoint.
+#*
+#* # `Return`
+#* Returns a list with 'data' containing user_name and re-review counts.
+#*
+#* @tag statistics
+#* @serializer json list(na="string")
+#* @param top Number of top reviewers to return (default: 10)
+#* @param start_date Optional start date for filtering (YYYY-MM-DD)
+#* @param end_date Optional end date for filtering (YYYY-MM-DD)
+#* @param scope Either "all_time" or "range" - determines whether to use date filtering
+#* @get /rereview_leaderboard
+function(req, res, top = 10, start_date = NULL, end_date = NULL, scope = "all_time") {
+  require_role(req, res, "Administrator")
+
+  # Get review dates for filtering
+  review_dates <- pool %>%
+    tbl("ndd_entity_review") %>%
+    select(review_id, review_date) %>%
+    collect()
+
+  status_dates <- pool %>%
+    tbl("ndd_entity_status") %>%
+    select(status_id, status_date) %>%
+    collect()
+
+  # Get re-review data with assignments to determine which user did each re-review
+  re_review_data <- pool %>%
+    tbl("re_review_entity_connect") %>%
+    collect() %>%
+    filter(re_review_submitted == 1) %>%
+    left_join(review_dates, by = "review_id") %>%
+    left_join(status_dates, by = "status_id") %>%
+    rowwise() %>%
+    mutate(date = max(review_date, status_date, na.rm = TRUE)) %>%
+    ungroup()
+
+  # Get assignments to link batches to users
+  assignments <- pool %>%
+    tbl("re_review_assignment") %>%
+    select(re_review_batch, user_id) %>%
+    collect()
+
+  # Join to get user for each re-review
+  re_review_with_users <- re_review_data %>%
+    inner_join(assignments, by = "re_review_batch")
+
+  # Apply date range filter if scope is "range" and dates provided
+  if (scope == "range" && !is.null(start_date) && !is.null(end_date)) {
+    re_review_with_users <- re_review_with_users %>%
+      filter(date >= as.Date(start_date) & date <= as.Date(end_date))
+  }
+
+  # Get user table for names
+  user_data <- pool %>%
+    tbl("user") %>%
+    select(user_id, user_name, first_name, family_name) %>%
+    collect()
+
+  # Aggregate by user
+  leaderboard <- re_review_with_users %>%
+    group_by(user_id) %>%
+    summarise(
+      submitted_count = n(),
+      approved_count = sum(re_review_approved == 1, na.rm = TRUE)
+    ) %>%
+    arrange(desc(submitted_count)) %>%
+    head(as.integer(top)) %>%
+    left_join(user_data, by = "user_id") %>%
+    mutate(display_name = ifelse(
+      !is.na(first_name) & !is.na(family_name),
+      paste(first_name, family_name),
+      user_name
+    )) %>%
+    select(user_id, user_name, display_name, submitted_count, approved_count)
+
+  list(
+    data = leaderboard,
+    meta = list(
+      top = as.integer(top),
+      scope = scope,
+      start_date = start_date,
+      end_date = end_date,
+      total_reviewers = n_distinct(re_review_with_users$user_id),
+      total_submitted = nrow(re_review_with_users),
+      total_approved = sum(re_review_with_users$re_review_approved == 1, na.rm = TRUE)
+    )
+  )
+}
