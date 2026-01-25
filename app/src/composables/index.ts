@@ -47,3 +47,9 @@ export type {
 
 // Form draft/auto-save utilities
 export { default as useFormDraft } from './useFormDraft';
+
+// Network visualization composables (Cytoscape.js integration)
+export { default as useCytoscape } from './useCytoscape';
+export type { CytoscapeOptions, CytoscapeState } from './useCytoscape';
+export { default as useNetworkData } from './useNetworkData';
+export type { NetworkDataState } from './useNetworkData';

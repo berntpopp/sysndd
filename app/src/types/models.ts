@@ -164,3 +164,61 @@ export interface RouteMeta {
   requiresAuth?: boolean;
   allowedRoles?: UserRole[];
 }
+
+// ============================================================================
+// Network Visualization Types
+// ============================================================================
+
+/**
+ * Network node representing a gene in the PPI network
+ */
+export interface NetworkNode {
+  /** HGNC ID (e.g., "HGNC:1234") */
+  hgnc_id: string;
+  /** Gene symbol (e.g., "BRCA1") */
+  symbol: string;
+  /** Cluster assignment from Leiden algorithm */
+  cluster: number;
+  /** Node degree (number of connections) */
+  degree: number;
+}
+
+/**
+ * Network edge representing a protein-protein interaction
+ */
+export interface NetworkEdge {
+  /** Source node HGNC ID */
+  source: string;
+  /** Target node HGNC ID */
+  target: string;
+  /** STRING confidence score (0-1) */
+  confidence: number;
+}
+
+/**
+ * Network metadata for summary statistics
+ */
+export interface NetworkMetadata {
+  /** Total number of nodes */
+  node_count: number;
+  /** Total number of edges */
+  edge_count: number;
+  /** Number of clusters */
+  cluster_count: number;
+  /** STRING database version used */
+  string_version?: string;
+  /** Minimum confidence threshold used */
+  min_confidence?: number;
+}
+
+/**
+ * Full network response from the API
+ */
+export interface NetworkResponse {
+  /** Array of network nodes */
+  nodes: NetworkNode[];
+  /** Array of network edges */
+  edges: NetworkEdge[];
+  /** Network metadata */
+  metadata: NetworkMetadata;
+}
