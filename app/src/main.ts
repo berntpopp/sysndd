@@ -25,6 +25,9 @@ import axios from 'axios';
 // Import all Bootstrap-Vue-Next components for global registration
 import * as BvnComponents from './bootstrap-vue-next-components';
 
+// Import vue-dompurify-html for sanitized HTML rendering
+import VueDOMPurifyHTML from 'vue-dompurify-html';
+
 import App from './App.vue';
 
 // import router
@@ -56,6 +59,9 @@ app.directive('b-toggle', vBToggle);
 Object.entries(BvnComponents).forEach(([name, component]) => {
   app.component(name, component as Component);
 });
+
+// Register vue-dompurify-html for XSS-safe HTML rendering
+app.use(VueDOMPurifyHTML);
 
 // Register @unhead/vue for head management
 app.use(head);
