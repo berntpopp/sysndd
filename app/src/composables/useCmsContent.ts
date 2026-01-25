@@ -21,6 +21,7 @@ export function useCmsContent() {
   const lastSavedAt = ref<Date | null>(null);
   const currentVersion = ref<number | null>(null);
   const isDraft = ref(false);
+  const apiAvailable = ref(true);
 
   const hasUnsavedChanges = computed(() => {
     // Compare with last saved state (simplified: just track via lastSavedAt)
@@ -37,15 +38,16 @@ export function useCmsContent() {
 
   /**
    * Load draft or published content for editing.
+   * Returns true if API is available, false if not.
    */
-  async function loadDraft(): Promise<void> {
+  async function loadDraft(): Promise<boolean> {
     isLoading.value = true;
     error.value = null;
 
     try {
       const response = await axios.get<AboutContent>(
         `${API_URL}/api/about/draft`,
-        { headers: getAuthHeader() }
+        { headers: getAuthHeader(), timeout: 5000 }
       );
 
       if (response.data && response.data.sections) {
@@ -60,9 +62,21 @@ export function useCmsContent() {
         sections.value = [];
         isDraft.value = true;
       }
-    } catch (err) {
+      apiAvailable.value = true;
+      return true;
+    } catch (err: unknown) {
+      // Handle 404 gracefully - API not configured yet
+      const axiosError = err as { response?: { status?: number } };
+      if (axiosError.response?.status === 404) {
+        apiAvailable.value = false;
+        sections.value = [];
+        isDraft.value = true;
+        // Don't set error for 404 - it's expected when API isn't set up
+        return false;
+      }
       error.value = err instanceof Error ? err.message : 'Failed to load content';
-      console.error('Failed to load draft:', err);
+      apiAvailable.value = false;
+      return false;
     } finally {
       isLoading.value = false;
     }
@@ -204,6 +218,7 @@ export function useCmsContent() {
     currentVersion,
     isDraft,
     hasUnsavedChanges,
+    apiAvailable,
 
     // Methods
     loadDraft,
