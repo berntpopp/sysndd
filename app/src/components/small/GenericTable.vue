@@ -112,6 +112,17 @@
       </slot>
     </template>
 
+    <!-- User role column -->
+    <template #cell(user_role)="data">
+      <slot
+        name="cell-user_role"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.user_role }}
+      </slot>
+    </template>
+
     <!-- Cluster number column (for combined cluster data) -->
     <template #cell(cluster_num)="data">
       <slot

@@ -177,9 +177,19 @@
                     </BButton>
                   </div>
                 </template>
+                <template #cell-user_role="{ row }">
+                  <BBadge
+                    :variant="getRoleBadgeVariant(row.user_role)"
+                    class="d-inline-flex align-items-center gap-1"
+                  >
+                    <i :class="getRoleIcon(row.user_role)" />
+                    {{ row.user_role }}
+                  </BBadge>
+                </template>
                 <template #cell-approved="{ row }">
-                  <BBadge :variant="row.approved ? 'success' : 'danger'">
-                    {{ row.approved ? 'Approved' : 'Unapproved' }}
+                  <BBadge :variant="row.approved ? 'success' : 'warning'" class="d-inline-flex align-items-center gap-1">
+                    <i :class="row.approved ? 'bi bi-check-circle-fill' : 'bi bi-clock-fill'" />
+                    {{ row.approved ? 'Approved' : 'Pending' }}
                   </BBadge>
                 </template>
               </GenericTable>
@@ -190,161 +200,279 @@
 
       <BModal
         :id="deleteUserModal.id"
-        title="Confirm Deletion"
-        ok-title="Delete"
+        v-model="showDeleteModal"
+        header-bg-variant="danger"
+        header-text-variant="light"
+        ok-title="Delete User"
         ok-variant="danger"
         cancel-title="Cancel"
-        cancel-variant="secondary"
+        cancel-variant="outline-secondary"
         @ok="confirmDeleteUser"
       >
-        Are you sure you want to delete the user <strong>{{ userToDelete.user_name }}</strong>?
+        <template #title>
+          <i class="bi bi-exclamation-triangle-fill me-2" />
+          Confirm Deletion
+        </template>
+        <div class="text-center py-3">
+          <i class="bi bi-person-x-fill text-danger" style="font-size: 3rem;" />
+          <p class="mt-3 mb-0">
+            Are you sure you want to delete the user
+            <strong class="text-danger">{{ userToDelete.user_name }}</strong>?
+          </p>
+          <p class="text-muted small mt-2">
+            This action cannot be undone.
+          </p>
+        </div>
       </BModal>
 
       <BModal
         :id="updateUserModal.id"
-        title="Update User"
-        ok-title="Update"
+        v-model="showUpdateModal"
+        size="lg"
+        header-bg-variant="primary"
+        header-text-variant="light"
+        ok-title="Save Changes"
         ok-variant="primary"
         cancel-title="Cancel"
+        cancel-variant="outline-secondary"
         @ok="onUpdateSubmit"
       >
+        <template #title>
+          <i class="bi bi-person-gear me-2" />
+          Edit User: {{ userToUpdate.user_name }}
+        </template>
         <form @submit.prevent="onUpdateSubmit">
-          <!-- User name -->
-          <BFormGroup
-            label="User name:"
-            label-for="input-user_name"
-          >
-            <BFormInput
-              id="input-user_name"
-              v-model="userToUpdate.user_name"
-              type="text"
-              :state="userNameMeta.touched ? (userNameError ? false : true) : null"
-            />
-            <BFormInvalidFeedback v-if="userNameError">
-              {{ userNameError }}
-            </BFormInvalidFeedback>
-          </BFormGroup>
+          <!-- Account Information Section -->
+          <div class="mb-4">
+            <h6 class="text-muted border-bottom pb-2 mb-3">
+              <i class="bi bi-person-badge me-2" />Account Information
+            </h6>
+            <BRow>
+              <BCol md="6">
+                <BFormGroup
+                  label="Username"
+                  label-for="input-user_name"
+                  class="mb-3"
+                >
+                  <BInputGroup>
+                    <template #prepend>
+                      <BInputGroupText><i class="bi bi-at" /></BInputGroupText>
+                    </template>
+                    <BFormInput
+                      id="input-user_name"
+                      v-model="userToUpdate.user_name"
+                      type="text"
+                      placeholder="Enter username"
+                      :state="userNameMeta.touched ? (userNameError ? false : true) : null"
+                    />
+                  </BInputGroup>
+                  <BFormInvalidFeedback v-if="userNameError" :state="false">
+                    {{ userNameError }}
+                  </BFormInvalidFeedback>
+                </BFormGroup>
+              </BCol>
+              <BCol md="6">
+                <BFormGroup
+                  label="Email"
+                  label-for="input-email"
+                  class="mb-3"
+                >
+                  <BInputGroup>
+                    <template #prepend>
+                      <BInputGroupText><i class="bi bi-envelope" /></BInputGroupText>
+                    </template>
+                    <BFormInput
+                      id="input-email"
+                      v-model="userToUpdate.email"
+                      type="email"
+                      placeholder="user@example.com"
+                      :state="emailMeta.touched ? (emailError ? false : true) : null"
+                    />
+                  </BInputGroup>
+                  <BFormInvalidFeedback v-if="emailError" :state="false">
+                    {{ emailError }}
+                  </BFormInvalidFeedback>
+                </BFormGroup>
+              </BCol>
+            </BRow>
+            <BRow>
+              <BCol md="6">
+                <BFormGroup
+                  label="Abbreviation"
+                  label-for="input-abbreviation"
+                  class="mb-3"
+                >
+                  <BInputGroup>
+                    <template #prepend>
+                      <BInputGroupText><i class="bi bi-hash" /></BInputGroupText>
+                    </template>
+                    <BFormInput
+                      id="input-abbreviation"
+                      v-model="userToUpdate.abbreviation"
+                      type="text"
+                      placeholder="XX"
+                      maxlength="5"
+                      :state="abbreviationMeta.touched ? (abbreviationError ? false : true) : null"
+                    />
+                  </BInputGroup>
+                  <BFormInvalidFeedback v-if="abbreviationError" :state="false">
+                    {{ abbreviationError }}
+                  </BFormInvalidFeedback>
+                </BFormGroup>
+              </BCol>
+              <BCol md="6">
+                <BFormGroup
+                  label="ORCID"
+                  label-for="input-orcid"
+                  class="mb-3"
+                >
+                  <BInputGroup>
+                    <template #prepend>
+                      <BInputGroupText><i class="bi bi-link-45deg" /></BInputGroupText>
+                    </template>
+                    <BFormInput
+                      id="input-orcid"
+                      v-model="userToUpdate.orcid"
+                      type="text"
+                      placeholder="0000-0000-0000-0000"
+                      :state="orcidMeta.touched ? (orcidError ? false : true) : null"
+                    />
+                  </BInputGroup>
+                  <BFormInvalidFeedback v-if="orcidError" :state="false">
+                    {{ orcidError }}
+                  </BFormInvalidFeedback>
+                </BFormGroup>
+              </BCol>
+            </BRow>
+          </div>
 
-          <!-- Email -->
-          <BFormGroup
-            label="E-mail:"
-            label-for="input-email"
-          >
-            <BFormInput
-              id="input-email"
-              v-model="userToUpdate.email"
-              type="email"
-              :state="emailMeta.touched ? (emailError ? false : true) : null"
-            />
-            <BFormInvalidFeedback v-if="emailError">
-              {{ emailError }}
-            </BFormInvalidFeedback>
-          </BFormGroup>
+          <!-- Personal Information Section -->
+          <div class="mb-4">
+            <h6 class="text-muted border-bottom pb-2 mb-3">
+              <i class="bi bi-person me-2" />Personal Information
+            </h6>
+            <BRow>
+              <BCol md="6">
+                <BFormGroup
+                  label="First Name"
+                  label-for="input-first_name"
+                  class="mb-3"
+                >
+                  <BFormInput
+                    id="input-first_name"
+                    v-model="userToUpdate.first_name"
+                    type="text"
+                    placeholder="First name"
+                    :state="firstNameMeta.touched ? (firstNameError ? false : true) : null"
+                  />
+                  <BFormInvalidFeedback v-if="firstNameError">
+                    {{ firstNameError }}
+                  </BFormInvalidFeedback>
+                </BFormGroup>
+              </BCol>
+              <BCol md="6">
+                <BFormGroup
+                  label="Family Name"
+                  label-for="input-family_name"
+                  class="mb-3"
+                >
+                  <BFormInput
+                    id="input-family_name"
+                    v-model="userToUpdate.family_name"
+                    type="text"
+                    placeholder="Family name"
+                    :state="familyNameMeta.touched ? (familyNameError ? false : true) : null"
+                  />
+                  <BFormInvalidFeedback v-if="familyNameError">
+                    {{ familyNameError }}
+                  </BFormInvalidFeedback>
+                </BFormGroup>
+              </BCol>
+            </BRow>
+          </div>
 
-          <!-- ORCID -->
-          <BFormGroup
-            label="ORCID:"
-            label-for="input-orcid"
-          >
-            <BFormInput
-              id="input-orcid"
-              v-model="userToUpdate.orcid"
-              type="text"
-              :state="orcidMeta.touched ? (orcidError ? false : true) : null"
-            />
-            <BFormInvalidFeedback v-if="orcidError">
-              {{ orcidError }}
-            </BFormInvalidFeedback>
-          </BFormGroup>
-
-          <!-- Abbreviation -->
-          <BFormGroup
-            label="Abbreviation:"
-            label-for="input-abbreviation"
-          >
-            <BFormInput
-              id="input-abbreviation"
-              v-model="userToUpdate.abbreviation"
-              type="text"
-              :state="abbreviationMeta.touched ? (abbreviationError ? false : true) : null"
-            />
-            <BFormInvalidFeedback v-if="abbreviationError">
-              {{ abbreviationError }}
-            </BFormInvalidFeedback>
-          </BFormGroup>
-
-          <!-- First name -->
-          <BFormGroup
-            label="First name:"
-            label-for="input-first_name"
-          >
-            <BFormInput
-              id="input-first_name"
-              v-model="userToUpdate.first_name"
-              type="text"
-              :state="firstNameMeta.touched ? (firstNameError ? false : true) : null"
-            />
-            <BFormInvalidFeedback v-if="firstNameError">
-              {{ firstNameError }}
-            </BFormInvalidFeedback>
-          </BFormGroup>
-
-          <!-- Family name -->
-          <BFormGroup
-            label="Family name:"
-            label-for="input-family_name"
-          >
-            <BFormInput
-              id="input-family_name"
-              v-model="userToUpdate.family_name"
-              type="text"
-              :state="familyNameMeta.touched ? (familyNameError ? false : true) : null"
-            />
-            <BFormInvalidFeedback v-if="familyNameError">
-              {{ familyNameError }}
-            </BFormInvalidFeedback>
-          </BFormGroup>
-
-          <!-- Role -->
-          <BFormGroup
-            label="Role:"
-            label-for="input-user_role"
-          >
-            <BFormInput
-              id="input-user_role"
-              v-model="userToUpdate.user_role"
-              type="text"
-              :state="userRoleMeta.touched ? (userRoleError ? false : true) : null"
-            />
-            <BFormInvalidFeedback v-if="userRoleError">
-              {{ userRoleError }}
-            </BFormInvalidFeedback>
-          </BFormGroup>
-
-          <!-- Comment -->
-          <BFormGroup
-            label="Comment:"
-            label-for="input-comment"
-          >
-            <BFormInput
-              id="input-comment"
-              v-model="userToUpdate.comment"
-              type="text"
-            />
-          </BFormGroup>
-
-          <!-- Approved -->
-          <BFormGroup
-            label="Approved:"
-            label-for="input-approved"
-          >
-            <BFormCheckbox
-              id="input-approved"
-              v-model="userToUpdate.approved"
-            >
-              User is approved
-            </BFormCheckbox>
-          </BFormGroup>
+          <!-- Role & Status Section -->
+          <div class="mb-3">
+            <h6 class="text-muted border-bottom pb-2 mb-3">
+              <i class="bi bi-shield-check me-2" />Role & Status
+            </h6>
+            <BRow>
+              <BCol md="6">
+                <BFormGroup
+                  label="Role"
+                  label-for="input-user_role"
+                  class="mb-3"
+                >
+                  <BFormSelect
+                    id="input-user_role"
+                    v-model="userToUpdate.user_role"
+                    :options="roleSelectOptions"
+                    :state="userRoleMeta.touched ? (userRoleError ? false : true) : null"
+                  />
+                  <BFormInvalidFeedback v-if="userRoleError">
+                    {{ userRoleError }}
+                  </BFormInvalidFeedback>
+                </BFormGroup>
+              </BCol>
+              <BCol md="6">
+                <BFormGroup
+                  label="Account Status"
+                  label-for="input-approved"
+                  class="mb-3"
+                >
+                  <div class="d-flex flex-column gap-2">
+                    <!-- Current status display -->
+                    <div class="d-flex align-items-center">
+                      <span class="text-muted me-2">Current:</span>
+                      <span
+                        class="badge"
+                        :class="userToUpdate.approved ? 'bg-success' : 'bg-warning text-dark'"
+                      >
+                        <i :class="userToUpdate.approved ? 'bi bi-check-circle-fill' : 'bi bi-clock-fill'" class="me-1" />
+                        {{ userToUpdate.approved ? 'Approved' : 'Pending' }}
+                      </span>
+                    </div>
+                    <!-- Toggle buttons -->
+                    <BButtonGroup size="sm">
+                      <BButton
+                        :variant="userToUpdate.approved ? 'success' : 'outline-success'"
+                        @click="userToUpdate.approved = true"
+                      >
+                        <i class="bi bi-check-lg me-1" />
+                        Approve
+                      </BButton>
+                      <BButton
+                        :variant="!userToUpdate.approved ? 'warning' : 'outline-warning'"
+                        @click="userToUpdate.approved = false"
+                      >
+                        <i class="bi bi-clock me-1" />
+                        Set Pending
+                      </BButton>
+                    </BButtonGroup>
+                    <small class="text-muted">
+                      {{ userToUpdate.approved ? 'User can access the system.' : 'User cannot log in until approved.' }}
+                    </small>
+                  </div>
+                </BFormGroup>
+              </BCol>
+            </BRow>
+            <BRow>
+              <BCol>
+                <BFormGroup
+                  label="Comment"
+                  label-for="input-comment"
+                  class="mb-0"
+                >
+                  <BFormTextarea
+                    id="input-comment"
+                    v-model="userToUpdate.comment"
+                    placeholder="Add notes about this user..."
+                    rows="2"
+                  />
+                </BFormGroup>
+              </BCol>
+            </BRow>
+          </div>
         </form>
       </BModal>
     </BContainer>
@@ -358,7 +486,6 @@ import { required, min, max, email } from '@vee-validate/rules';
 import GenericTable from '@/components/small/GenericTable.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import useToast from '@/composables/useToast';
-import useModalControls from '@/composables/useModalControls';
 import { useUrlParsing, useTableData, useExcelExport } from '@/composables';
 
 // Import the Pinia store
@@ -427,7 +554,7 @@ export default {
       value: orcid,
       errorMessage: orcidError,
       meta: orcidMeta,
-    } = useField('orcid', 'required');
+    } = useField('orcid');
 
     const {
       value: abbreviation,
@@ -522,6 +649,7 @@ export default {
         { key: 'actions', label: 'Actions', class: 'text-center' },
       ],
       showDeleteModal: false,
+      showUpdateModal: false,
       userToDelete: {},
       userToUpdate: {},
       deleteUserModal: { id: 'delete-usermodal', title: '', content: [] },
@@ -549,6 +677,14 @@ export default {
         filters.push({ key: 'approved', label: 'Status', value: this.filter.approved.content === '1' ? 'Approved' : 'Pending' });
       }
       return filters;
+    },
+    roleSelectOptions() {
+      return [
+        { value: 'Administrator', text: 'Administrator' },
+        { value: 'Curator', text: 'Curator' },
+        { value: 'Reviewer', text: 'Reviewer' },
+        { value: 'Viewer', text: 'Viewer' },
+      ];
     },
   },
   watch: {
@@ -723,9 +859,18 @@ export default {
       this.executionTime = data.meta[0].executionTime;
 
       // Update fields from API fspec if available
+      // API fspec has arrays for key/label (e.g., ["user_id"]), extract single values
       if (data.meta[0].fspec) {
         const actionsField = this.fields.find(f => f.key === 'actions');
-        this.fields = [...data.meta[0].fspec, actionsField].filter(Boolean);
+        const transformedFields = data.meta[0].fspec.map(field => ({
+          ...field,
+          key: Array.isArray(field.key) ? field.key[0] : field.key,
+          label: Array.isArray(field.label) ? field.label[0] : field.label,
+          sortable: Array.isArray(field.sortable) ? field.sortable[0] : field.sortable,
+          filterable: Array.isArray(field.filterable) ? field.filterable[0] : field.filterable,
+          class: Array.isArray(field.class) ? field.class[0] : field.class,
+        }));
+        this.fields = [...transformedFields, actionsField].filter(Boolean);
       }
 
       const uiStore = useUiStore();
@@ -754,6 +899,26 @@ export default {
     handleSortUpdate(newSortBy) {
       this.sortBy = newSortBy;
       this.handleSortByOrDescChange();
+    },
+    // Get badge variant for user role
+    getRoleBadgeVariant(role) {
+      const variants = {
+        Administrator: 'danger',
+        Curator: 'primary',
+        Reviewer: 'info',
+        Viewer: 'secondary',
+      };
+      return variants[role] || 'secondary';
+    },
+    // Get icon class for user role
+    getRoleIcon(role) {
+      const icons = {
+        Administrator: 'bi bi-shield-fill-check',
+        Curator: 'bi bi-pencil-fill',
+        Reviewer: 'bi bi-eye-fill',
+        Viewer: 'bi bi-person-fill',
+      };
+      return icons[role] || 'bi bi-person-fill';
     },
     onUpdateSubmit() {
       this.handleSubmit(() => {
@@ -785,8 +950,7 @@ export default {
     promptDeleteUser(item, button) {
       this.deleteUserModal.title = `${item.user_name}`;
       this.userToDelete = item;
-      const { showModal } = useModalControls();
-      showModal(this.deleteUserModal.id);
+      this.showDeleteModal = true;
     },
     async confirmDeleteUser() {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/delete`;
@@ -804,8 +968,7 @@ export default {
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
-      const { hideModal } = useModalControls();
-      hideModal(this.deleteUserModal.id);
+      this.showDeleteModal = false;
       this.userToDelete = {};
     },
     editUser(item, button) {
@@ -821,13 +984,31 @@ export default {
         family_name: item.family_name,
         user_role: item.user_role,
       });
-      const { showModal } = useModalControls();
-      showModal(this.updateUserModal.id);
+      this.showUpdateModal = true;
     },
     async updateUserData() {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/update`;
+      // Only send the fields that should be updated, not the entire user object
+      // Filter out null/undefined/empty values to avoid API issues
+      const updatePayload = {
+        user_id: this.userToUpdate.user_id,
+        user_name: this.userToUpdate.user_name,
+        email: this.userToUpdate.email,
+        abbreviation: this.userToUpdate.abbreviation,
+        first_name: this.userToUpdate.first_name,
+        family_name: this.userToUpdate.family_name,
+        user_role: this.userToUpdate.user_role,
+        approved: this.userToUpdate.approved ? 1 : 0,
+      };
+      // Only include optional fields if they have values
+      if (this.userToUpdate.orcid) {
+        updatePayload.orcid = this.userToUpdate.orcid;
+      }
+      if (this.userToUpdate.comment) {
+        updatePayload.comment = this.userToUpdate.comment;
+      }
       try {
-        const response = await this.axios.put(apiUrl, { user_details: this.userToUpdate }, {
+        const response = await this.axios.put(apiUrl, { user_details: updatePayload }, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         });
         if (response.status === 200) {
@@ -839,6 +1020,7 @@ export default {
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
+      this.showUpdateModal = false;
       this.userToUpdate = {};
     },
   },
