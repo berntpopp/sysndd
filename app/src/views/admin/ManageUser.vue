@@ -570,6 +570,107 @@
               </BCol>
             </BRow>
           </div>
+
+          <!-- Password Reset Section (Admin Only) -->
+          <div class="mb-3">
+            <h6 class="text-muted border-bottom pb-2 mb-3">
+              <i class="bi bi-key me-2" />Password Reset
+            </h6>
+            <BAlert variant="info" :model-value="true" class="mb-3">
+              <i class="bi bi-info-circle me-2" />
+              As an administrator, you can set a new password for this user.
+              Password requirements: 8+ characters, uppercase, lowercase, number, and special character (!@#$%^&*).
+            </BAlert>
+            <BRow>
+              <BCol md="6">
+                <BFormGroup
+                  label="New Password"
+                  label-for="input-new-password"
+                  class="mb-3"
+                >
+                  <BInputGroup>
+                    <template #prepend>
+                      <BInputGroupText><i class="bi bi-lock" /></BInputGroupText>
+                    </template>
+                    <BFormInput
+                      id="input-new-password"
+                      v-model="passwordChange.newPassword"
+                      :type="passwordChange.showPassword ? 'text' : 'password'"
+                      placeholder="Enter new password"
+                      :state="passwordValidation.isValid"
+                      autocomplete="new-password"
+                    />
+                    <template #append>
+                      <BButton
+                        variant="outline-secondary"
+                        @click="passwordChange.showPassword = !passwordChange.showPassword"
+                      >
+                        <i :class="passwordChange.showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'" />
+                      </BButton>
+                    </template>
+                  </BInputGroup>
+                  <div v-if="passwordChange.newPassword" class="mt-2">
+                    <small
+                      v-for="(rule, key) in passwordValidation.rules"
+                      :key="key"
+                      class="d-block"
+                      :class="rule.valid ? 'text-success' : 'text-danger'"
+                    >
+                      <i :class="rule.valid ? 'bi bi-check-circle' : 'bi bi-x-circle'" class="me-1" />
+                      {{ rule.label }}
+                    </small>
+                  </div>
+                </BFormGroup>
+              </BCol>
+              <BCol md="6">
+                <BFormGroup
+                  label="Confirm Password"
+                  label-for="input-confirm-password"
+                  class="mb-3"
+                >
+                  <BInputGroup>
+                    <template #prepend>
+                      <BInputGroupText><i class="bi bi-lock-fill" /></BInputGroupText>
+                    </template>
+                    <BFormInput
+                      id="input-confirm-password"
+                      v-model="passwordChange.confirmPassword"
+                      :type="passwordChange.showPassword ? 'text' : 'password'"
+                      placeholder="Confirm new password"
+                      :state="passwordChange.confirmPassword ? (passwordChange.newPassword === passwordChange.confirmPassword) : null"
+                      autocomplete="new-password"
+                    />
+                  </BInputGroup>
+                  <BFormInvalidFeedback
+                    v-if="passwordChange.confirmPassword && passwordChange.newPassword !== passwordChange.confirmPassword"
+                    :state="false"
+                  >
+                    Passwords do not match
+                  </BFormInvalidFeedback>
+                </BFormGroup>
+              </BCol>
+            </BRow>
+            <BRow>
+              <BCol class="d-flex justify-content-between">
+                <BButton
+                  variant="outline-secondary"
+                  @click="generatePassword"
+                >
+                  <i class="bi bi-shuffle me-1" />
+                  Generate Password
+                </BButton>
+                <BButton
+                  variant="warning"
+                  :disabled="!passwordValidation.isValid || passwordChange.newPassword !== passwordChange.confirmPassword || passwordChange.isChanging"
+                  @click="changeUserPassword"
+                >
+                  <BSpinner v-if="passwordChange.isChanging" small class="me-1" />
+                  <i v-else class="bi bi-key-fill me-1" />
+                  {{ passwordChange.isChanging ? 'Changing...' : 'Change Password' }}
+                </BButton>
+              </BCol>
+            </BRow>
+          </div>
         </form>
       </BModal>
 
@@ -852,6 +953,13 @@ export default {
       showBulkRoleModalVisible: false,
       bulkRoleSelection: '',
       bulkRoleUsernames: [],
+      // Password change state
+      passwordChange: {
+        newPassword: '',
+        confirmPassword: '',
+        showPassword: false,
+        isChanging: false,
+      },
     };
   },
   computed: {
@@ -894,6 +1002,33 @@ export default {
     },
     removeFiltersButtonTitle() {
       return this.hasActiveFilters ? 'Clear all filters' : 'No active filters';
+    },
+    passwordValidation() {
+      const password = this.passwordChange.newPassword;
+      const rules = {
+        minLength: {
+          label: 'At least 8 characters',
+          valid: password.length >= 8,
+        },
+        hasUppercase: {
+          label: 'At least one uppercase letter',
+          valid: /[A-Z]/.test(password),
+        },
+        hasLowercase: {
+          label: 'At least one lowercase letter',
+          valid: /[a-z]/.test(password),
+        },
+        hasNumber: {
+          label: 'At least one number',
+          valid: /[0-9]/.test(password),
+        },
+        hasSpecial: {
+          label: 'At least one special character (!@#$%^&*)',
+          valid: /[!@#$%^&*]/.test(password),
+        },
+      };
+      const isValid = password.length > 0 && Object.values(rules).every(r => r.valid);
+      return { rules, isValid: password.length > 0 ? isValid : null };
     },
   },
   watch: {
@@ -1384,6 +1519,11 @@ export default {
         family_name: item.family_name,
         user_role: item.user_role,
       });
+      // Reset password change fields
+      this.passwordChange.newPassword = '';
+      this.passwordChange.confirmPassword = '';
+      this.passwordChange.showPassword = false;
+      this.passwordChange.isChanging = false;
       this.showUpdateModal = true;
     },
     async updateUserData() {
@@ -1449,6 +1589,93 @@ export default {
         // Save current filter state
         this.filterPresets.savePreset(name.trim(), JSON.parse(JSON.stringify(this.filter)));
         this.makeToast(`Saved preset: ${name.trim()}`, 'Filter Preset', 'success', true, 3000);
+      }
+    },
+    generatePassword() {
+      // Character sets that meet password requirements
+      const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+      const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const numbers = '0123456789';
+      const special = '!@#$%^&*';
+
+      // Ensure at least one character from each required set
+      const requiredChars = [
+        lowercase[Math.floor(Math.random() * lowercase.length)],
+        uppercase[Math.floor(Math.random() * uppercase.length)],
+        numbers[Math.floor(Math.random() * numbers.length)],
+        special[Math.floor(Math.random() * special.length)],
+      ];
+
+      // Fill remaining length with random characters from all sets
+      const allChars = lowercase + uppercase + numbers + special;
+      const passwordLength = 16; // Strong password length
+      const remainingLength = passwordLength - requiredChars.length;
+
+      for (let i = 0; i < remainingLength; i++) {
+        requiredChars.push(allChars[Math.floor(Math.random() * allChars.length)]);
+      }
+
+      // Shuffle the array using Fisher-Yates algorithm
+      for (let i = requiredChars.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [requiredChars[i], requiredChars[j]] = [requiredChars[j], requiredChars[i]];
+      }
+
+      const generatedPassword = requiredChars.join('');
+
+      // Set both password fields
+      this.passwordChange.newPassword = generatedPassword;
+      this.passwordChange.confirmPassword = generatedPassword;
+      this.passwordChange.showPassword = true; // Show password so user can see/copy it
+
+      this.makeToast(
+        'Password generated. Make sure to copy it before saving.',
+        'Password Generated',
+        'info',
+        true,
+        5000
+      );
+    },
+    async changeUserPassword() {
+      if (!this.passwordValidation.isValid) {
+        this.makeToast('Password does not meet requirements', 'Validation Error', 'warning');
+        return;
+      }
+      if (this.passwordChange.newPassword !== this.passwordChange.confirmPassword) {
+        this.makeToast('Passwords do not match', 'Validation Error', 'warning');
+        return;
+      }
+
+      this.passwordChange.isChanging = true;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/password/update`;
+
+      try {
+        const response = await this.axios.put(apiUrl, {
+          user_id_pass_change: this.userToUpdate.user_id,
+          old_pass: '', // Admin can change password without knowing old password
+          new_pass_1: this.passwordChange.newPassword,
+          new_pass_2: this.passwordChange.confirmPassword,
+        }, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        });
+
+        if (response.status === 200) {
+          this.makeToast(
+            `Password changed successfully for ${this.userToUpdate.user_name}`,
+            'Password Changed',
+            'success',
+            true,
+            5000
+          );
+          // Reset password fields
+          this.passwordChange.newPassword = '';
+          this.passwordChange.confirmPassword = '';
+        }
+      } catch (error) {
+        const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Failed to change password';
+        this.makeToast(errorMsg, 'Password Change Failed', 'danger');
+      } finally {
+        this.passwordChange.isChanging = false;
       }
     },
   },
