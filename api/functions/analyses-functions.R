@@ -430,9 +430,15 @@ gen_network_edges <- function(
   )
 
   # Build STRING ID to HGNC ID mapping
+  # Use distinct() and group_by to handle cases where multiple HGNC IDs map to same STRING ID
+  # Pick the first (alphabetically) HGNC ID for each STRING ID to ensure 1:1 mapping
   string_to_hgnc <- gene_table %>%
     select(STRING_id, hgnc_id, symbol) %>%
-    distinct()
+    distinct() %>%
+    group_by(STRING_id) %>%
+    arrange(hgnc_id) %>%
+    slice_head(n = 1) %>%
+    ungroup()
 
   # Calculate node degrees
   node_degrees <- igraph::degree(subgraph)
@@ -456,26 +462,31 @@ gen_network_edges <- function(
 
   # Build edges tibble
   if (nrow(edge_list) > 0) {
+    # Create lookup table for STRING to HGNC mapping
+    string_hgnc_lookup <- string_to_hgnc %>%
+      select(STRING_id, hgnc_id)
+
     edges <- tibble(
       source_string = edge_list[, 1],
       target_string = edge_list[, 2],
       combined_score = edge_scores
     ) %>%
-      # Map STRING IDs to HGNC IDs
+      # Map STRING IDs to HGNC IDs using the deduplicated lookup
       left_join(
-        string_to_hgnc %>% select(STRING_id, hgnc_id),
+        string_hgnc_lookup,
         by = c("source_string" = "STRING_id")
       ) %>%
       rename(source = hgnc_id) %>%
       left_join(
-        string_to_hgnc %>% select(STRING_id, hgnc_id),
+        string_hgnc_lookup,
         by = c("target_string" = "STRING_id")
       ) %>%
       rename(target = hgnc_id) %>%
       # Normalize confidence to 0-1 range
       mutate(confidence = combined_score / 1000) %>%
       select(source, target, confidence) %>%
-      filter(!is.na(source) & !is.na(target))
+      filter(!is.na(source) & !is.na(target)) %>%
+      distinct()  # Remove any duplicate edges
   } else {
     edges <- tibble(
       source = character(),
@@ -505,11 +516,5 @@ gen_network_edges <- function(
 }
 
 
-#' Memoized version of gen_network_edges
-#'
-#' Caches results to filesystem for performance. Cache key includes
-#' cluster_type and min_confidence parameters.
-gen_network_edges_mem <- memoise::memoise(
-  gen_network_edges,
-  cache = memoise::cache_filesystem("cache/network_edges")
-)
+# Note: gen_network_edges_mem is defined in start_sysndd_api.R
+# using in-memory cache (cachem::cache_mem) for consistency with other memoized functions

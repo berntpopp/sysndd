@@ -549,5 +549,64 @@ function() {
   )
 }
 
+
+#* Retrieve Network Edges for Cytoscape.js Visualization
+#*
+#* Returns protein-protein interaction edges from STRINGdb in Cytoscape.js format.
+#* Nodes include gene identifiers and cluster membership.
+#* Edges include STRING confidence scores.
+#*
+#* # `Details`
+#* - Nodes contain hgnc_id, symbol, cluster assignment, and degree (connection count)
+#* - Edges contain source, target (HGNC IDs), and confidence (0-1 normalized)
+#* - Metadata includes node_count, edge_count, cluster_count, string_version
+#* - Results are cached via memoise for performance
+#*
+#* # `Parameters`
+#* - cluster_type: Use "clusters" for main clusters or "subclusters" for nested
+#* - min_confidence: STRING confidence threshold (0-1000, higher = more stringent)
+#*
+#* @tag analysis
+#* @serializer json list(na="string")
+#* @param cluster_type:str Type of clusters: "clusters" (default) or "subclusters"
+#* @param min_confidence:str Minimum STRING confidence (0-1000, default "400")
+#*
+#* @response 200 OK. Returns nodes, edges, and metadata
+#*
+#* @get network_edges
+function(cluster_type = "clusters", min_confidence = "400") {
+  # Validate cluster_type parameter
+  cluster_type_clean <- tolower(cluster_type)
+  if (!cluster_type_clean %in% c("clusters", "subclusters")) {
+    cluster_type_clean <- "clusters"  # Default to main clusters
+  }
+
+  # Parse and validate min_confidence parameter
+  min_confidence_int <- as.integer(min_confidence)
+  if (is.na(min_confidence_int)) {
+    min_confidence_int <- 400  # Default if parsing fails
+  }
+  # Clamp to valid STRING confidence range (0-1000)
+  min_confidence_int <- min(max(min_confidence_int, 0), 1000)
+
+  # Track timing for performance monitoring
+  start_time <- Sys.time()
+
+  # Call memoized function to get network data
+  network_data <- gen_network_edges_mem(
+    cluster_type = cluster_type_clean,
+    min_confidence = min_confidence_int
+  )
+
+  # Calculate elapsed time
+  elapsed_seconds <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
+
+  # Add elapsed time to metadata
+  network_data$metadata$elapsed_seconds <- round(elapsed_seconds, 2)
+
+  # Return structured response
+  network_data
+}
+
 ## Analyses endpoints
 ## -------------------------------------------------------------------##
