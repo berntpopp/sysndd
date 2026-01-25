@@ -83,8 +83,25 @@ export interface CytoscapeState {
  */
 function getCytoscapeStyle(): CytoscapeStylesheet {
   return [
+    // Compound parent nodes (cluster containers)
     {
-      selector: 'node',
+      selector: 'node[?isClusterParent]',
+      style: {
+        'background-color': 'data(color)',
+        'background-opacity': 0.15,
+        'border-width': 3,
+        'border-color': 'data(color)',
+        'border-opacity': 0.6,
+        shape: 'round-rectangle',
+        // Don't show label for cleaner look (clusters shown in legend)
+        label: '',
+        // Padding inside the cluster
+        padding: '30px',
+      },
+    },
+    // Regular gene nodes (children of cluster parents)
+    {
+      selector: 'node[!isClusterParent]',
       style: {
         // Node size based on degree (pre-computed as 'size')
         width: 'data(size)',
@@ -217,6 +234,7 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
       style: getCytoscapeStyle(),
 
       // fcose layout for proper force-directed network visualization
+      // Optimized for compound graphs with cluster separation
       // Using animate: false for reliable fit/center (per GitHub issue #2559)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       layout: {
@@ -228,19 +246,30 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
         nodeDimensionsIncludeLabels: false,
         // fit and padding for proper centering
         fit: true,
-        padding: 30,
-        // Cluster separation
-        idealEdgeLength: 80,
-        nodeRepulsion: 8000,
+        padding: 50,
+        // Node separation within clusters
+        nodeSeparation: 100,
+        // Increased node repulsion for better cluster separation
+        nodeRepulsion: 15000,
+        // Ideal edge length for edges within clusters
+        idealEdgeLength: 100,
         edgeElasticity: 0.45,
-        nestingFactor: 0.1,
-        gravity: 0.25,
+        // IMPORTANT: nestingFactor controls inter-cluster edge length
+        // Higher values = more space between clusters
+        nestingFactor: 0.5,
+        // Gravity settings for compound graphs
+        gravity: 0.2,
         gravityRange: 3.8,
+        gravityCompound: 1.5,  // Gravity for compound parent nodes
+        gravityRangeCompound: 2.0,  // Range for compound gravity
         // Performance
         numIter: 2500,
+        // Tiling for isolated nodes
         tile: true,
-        tilingPaddingVertical: 10,
-        tilingPaddingHorizontal: 10,
+        tilingPaddingVertical: 20,
+        tilingPaddingHorizontal: 20,
+        // Pack disconnected components (clusters)
+        packComponents: true,
       } as any,
 
       // WebGL renderer for better performance

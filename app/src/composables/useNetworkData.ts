@@ -167,7 +167,8 @@ export function useNetworkData(): NetworkDataState {
    * PERFORMANCE OPTIMIZED:
    * - Uses pre-computed positions from server (no client layout needed)
    * - Pre-computes node size and edge width as data properties
-   * - Cytoscape uses 'preset' layout with these positions
+   * - Creates compound parent nodes for clusters to enable visual separation
+   * - Cytoscape uses fcose layout with compound node support
    *
    * Computed property that automatically updates when networkData changes.
    */
@@ -177,19 +178,52 @@ export function useNetworkData(): NetworkDataState {
     console.log(`[useNetworkData] Transforming ${networkData.value.nodes.length} nodes, ${networkData.value.edges.length} edges`);
     const startTime = performance.now();
 
-    // Transform nodes to Cytoscape format
-    const nodes: ElementDefinition[] = networkData.value.nodes.map((node: NetworkNode) => ({
+    // Collect unique cluster IDs
+    const clusterIds = new Set<number | string>();
+    networkData.value.nodes.forEach((node) => {
+      if (node.cluster !== undefined && node.cluster !== null) {
+        // Get main cluster number for grouping
+        const mainCluster = typeof node.cluster === 'string'
+          ? parseInt(node.cluster.split('.')[0], 10)
+          : node.cluster;
+        clusterIds.add(mainCluster);
+      }
+    });
+
+    // Create parent nodes for each cluster (compound nodes for fcose)
+    const clusterParentNodes: ElementDefinition[] = Array.from(clusterIds).map((clusterId) => ({
       data: {
-        id: node.hgnc_id,
-        symbol: node.symbol,
-        cluster: node.cluster,
-        degree: node.degree,
-        // Pre-compute size for performance (avoids function in style)
-        size: Math.max(15, Math.sqrt(node.degree || 1) * 6),
-        // Cluster color
-        color: getClusterColor(node.cluster),
+        id: `cluster-${clusterId}`,
+        label: `Cluster ${clusterId}`,
+        isClusterParent: true,
+        color: getClusterColor(clusterId),
       },
     }));
+
+    // Transform nodes to Cytoscape format with parent assignment
+    const nodes: ElementDefinition[] = networkData.value.nodes.map((node: NetworkNode) => {
+      // Get main cluster number for parent assignment
+      const mainCluster = typeof node.cluster === 'string'
+        ? parseInt(node.cluster.split('.')[0], 10)
+        : node.cluster;
+
+      return {
+        data: {
+          id: node.hgnc_id,
+          // Assign parent for compound graph (cluster grouping)
+          parent: mainCluster !== undefined ? `cluster-${mainCluster}` : undefined,
+          symbol: node.symbol,
+          cluster: node.cluster,
+          degree: node.degree,
+          // Include category for filtering (defaults to 'Definitive' if not provided)
+          category: node.category || 'Definitive',
+          // Pre-compute size for performance (avoids function in style)
+          size: Math.max(15, Math.sqrt(node.degree || 1) * 6),
+          // Cluster color
+          color: getClusterColor(node.cluster),
+        },
+      };
+    });
 
     // Transform edges to Cytoscape format with pre-computed width
     const edges: ElementDefinition[] = networkData.value.edges.map(
@@ -206,9 +240,10 @@ export function useNetworkData(): NetworkDataState {
     );
 
     const elapsed = performance.now() - startTime;
-    console.log(`[useNetworkData] Transform complete in ${elapsed.toFixed(0)}ms`);
+    console.log(`[useNetworkData] Transform complete in ${elapsed.toFixed(0)}ms (${clusterParentNodes.length} clusters)`);
 
-    return [...nodes, ...edges];
+    // Return cluster parents first, then nodes, then edges
+    return [...clusterParentNodes, ...nodes, ...edges];
   });
 
   /**

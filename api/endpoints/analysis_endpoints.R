@@ -567,7 +567,7 @@ function() {
 #* - min_confidence: STRING confidence threshold (0-1000, higher = more stringent)
 #*
 #* @tag analysis
-#* @serializer json list(na="string")
+#* @serializer json list(na="string", auto_unbox=TRUE)
 #* @param cluster_type:str Type of clusters: "clusters" (default) or "subclusters"
 #* @param min_confidence:str Minimum STRING confidence (0-1000, default "400")
 #* @param max_edges:str Maximum edges to return (default "10000", 0 for all). Higher confidence edges are prioritized.
@@ -617,6 +617,16 @@ function(cluster_type = "clusters", min_confidence = "400", max_edges = "10000")
     # Filter nodes to only those in remaining edges
     connected_nodes <- unique(c(network_data$edges$source, network_data$edges$target))
     network_data$nodes <- network_data$nodes[network_data$nodes$hgnc_id %in% connected_nodes, ]
+
+    # Recalculate category counts after node filtering
+    if (!is.null(network_data$nodes$category)) {
+      category_counts <- network_data$nodes %>%
+        dplyr::group_by(category) %>%
+        dplyr::summarise(count = dplyr::n()) %>%
+        tidyr::pivot_wider(names_from = category, values_from = count, values_fill = 0) %>%
+        as.list()
+      network_data$metadata$category_counts <- category_counts
+    }
 
     # Update metadata
     network_data$metadata$node_count <- nrow(network_data$nodes)

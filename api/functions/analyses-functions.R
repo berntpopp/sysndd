@@ -373,6 +373,23 @@ gen_network_edges <- function(
     collect() %>%
     unique()
 
+  # Get category for each gene (use highest confidence category per gene)
+  # Order: Definitive > Moderate > Limited > Refuted
+  gene_categories <- pool %>%
+    tbl("ndd_entity_view") %>%
+    filter(ndd_phenotype == 1) %>%
+    select(hgnc_id, category) %>%
+    distinct() %>%
+    collect() %>%
+    group_by(hgnc_id) %>%
+    summarise(
+      category = category[which.min(match(
+        category,
+        c("Definitive", "Moderate", "Limited", "Refuted")
+      ))]
+    ) %>%
+    ungroup()
+
   # Get clusters using existing function
   functional_clusters <- gen_string_clust_obj_mem(
     genes_from_entity_table$hgnc_id,
@@ -524,15 +541,23 @@ gen_network_edges <- function(
     y = round((layout_matrix[, 2] - y_range[1]) / (y_range[2] - y_range[1]) * 1000)
   )
 
-  # Add positions to nodes
+  # Add positions and category to nodes
   nodes <- nodes %>%
     left_join(
       string_to_hgnc %>% select(STRING_id, hgnc_id),
       by = "hgnc_id"
     ) %>%
     left_join(layout_normalized, by = "STRING_id") %>%
-    select(hgnc_id, symbol, cluster, degree, x, y) %>%
+    left_join(gene_categories, by = "hgnc_id") %>%
+    select(hgnc_id, symbol, cluster, degree, category, x, y) %>%
     distinct()
+
+  # Count genes by category for metadata
+  category_counts <- nodes %>%
+    group_by(category) %>%
+    summarise(count = n()) %>%
+    tidyr::pivot_wider(names_from = category, values_from = count, values_fill = 0) %>%
+    as.list()
 
   # Build metadata
   metadata <- list(
@@ -542,7 +567,13 @@ gen_network_edges <- function(
     string_version = string_version,
     min_confidence = min_confidence,
     layout_algorithm = "fruchterman_reingold",
-    layout_time_seconds = round(layout_time, 2)
+    layout_time_seconds = round(layout_time, 2),
+    # Add total NDD genes and genes with STRING data for UI display
+    total_ndd_genes = nrow(genes_from_entity_table),
+    genes_with_string = nrow(gene_table),
+    genes_in_clusters = nrow(cluster_map),
+    # Category breakdown
+    category_counts = category_counts
   )
 
   message(paste0("[gen_network_edges] Returning ", nrow(nodes), " nodes, ", nrow(edges), " edges"))

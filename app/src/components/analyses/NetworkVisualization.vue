@@ -10,23 +10,116 @@
     >
       <template #header>
         <div class="d-flex justify-content-between align-items-center flex-wrap">
-          <h6 class="mb-0 font-weight-bold">
-            Protein-Protein Interaction Network
+          <div class="d-flex align-items-center flex-wrap">
+            <h6 class="mb-0 font-weight-bold me-2">
+              Protein-Protein Interaction Network
+            </h6>
+            <!-- Visible / Total in network -->
             <BBadge
-              v-if="metadata"
+              v-if="isInitialized && visibleNodeCount > 0"
+              v-b-tooltip.hover
               variant="info"
-              class="ms-2"
+              class="me-1"
+              :title="networkCoverageTooltip"
+            >
+              {{ visibleNodeCount }} / {{ metadata?.node_count || 0 }} genes
+            </BBadge>
+            <BBadge
+              v-else-if="metadata"
+              v-b-tooltip.hover
+              variant="info"
+              class="me-1"
+              :title="networkCoverageTooltip"
             >
               {{ metadata.node_count }} genes
             </BBadge>
+            <!-- Edges with cap warning -->
             <BBadge
-              v-if="metadata"
+              v-if="isInitialized && visibleEdgeCount > 0"
+              v-b-tooltip.hover
               variant="secondary"
-              class="ms-1"
+              class="me-1"
+              :title="edgesFilteredTooltip"
+            >
+              {{ visibleEdgeCount }} / {{ metadata?.edge_count || 0 }} interactions
+            </BBadge>
+            <BBadge
+              v-else-if="metadata"
+              v-b-tooltip.hover
+              variant="secondary"
+              class="me-1"
+              :title="edgesFilteredTooltip"
             >
               {{ metadata.edge_count }} interactions
             </BBadge>
-          </h6>
+            <!-- Warning if edges capped -->
+            <BBadge
+              v-if="metadata?.edges_filtered"
+              v-b-tooltip.hover
+              variant="warning"
+              class="me-1"
+              title="Edges limited to 10,000 for performance. High confidence edges prioritized."
+            >
+              <i class="bi bi-exclamation-triangle-fill" />
+            </BBadge>
+
+            <!-- Filter controls -->
+            <div class="d-flex align-items-center gap-2 ms-3">
+              <!-- Category dropdown with counts -->
+              <BDropdown
+                size="sm"
+                :variant="hasCategoryData ? 'outline-secondary' : 'outline-warning'"
+                :text="categoryFilterLabel"
+                :disabled="!hasCategoryData"
+              >
+                <template v-if="!hasCategoryData">
+                  <BDropdownItemButton disabled>
+                    <small class="text-muted">
+                      Category data not available.<br>
+                      Server cache needs refresh.
+                    </small>
+                  </BDropdownItemButton>
+                </template>
+                <template v-else>
+                  <BDropdownItemButton
+                    v-for="opt in categoryOptionsWithCounts"
+                    :key="opt.value"
+                    :active="categoryLevel === opt.value"
+                    @click="setCategoryLevel(opt.value)"
+                  >
+                    {{ opt.label }} <small class="text-muted">({{ opt.count }})</small>
+                  </BDropdownItemButton>
+                </template>
+              </BDropdown>
+
+              <!-- Cluster dropdown -->
+              <BDropdown
+                size="sm"
+                variant="outline-secondary"
+                :text="clusterFilterLabel"
+              >
+                <BDropdownItemButton
+                  :active="showAllClusters"
+                  @click="setShowAllClusters(true)"
+                >
+                  All Clusters
+                </BDropdownItemButton>
+                <BDropdownDivider />
+                <BDropdownItemButton
+                  v-for="cluster in legendClusters"
+                  :key="cluster.id"
+                  :active="selectedClusters.has(cluster.id)"
+                  @click="toggleCluster(cluster.id)"
+                >
+                  <span
+                    class="legend-color me-2"
+                    :style="{ backgroundColor: cluster.color }"
+                  />
+                  Cluster {{ cluster.id }}
+                </BDropdownItemButton>
+              </BDropdown>
+            </div>
+          </div>
 
           <!-- Control buttons -->
           <div class="btn-group btn-group-sm mt-1 mt-md-0">
@@ -139,9 +232,17 @@
           <div class="tooltip-content">
             <strong>{{ tooltipData.symbol }}</strong>
             <div class="tooltip-details">
-              <span class="text-muted">HGNC:</span> {{ tooltipData.hgncId }}<br>
-              <span class="text-muted">Cluster:</span> {{ tooltipData.cluster }}<br>
-              <span class="text-muted">Connections:</span> {{ tooltipData.degree }}
+              <!-- Cluster parent tooltip -->
+              <template v-if="tooltipData.isClusterParent">
+                <span class="text-muted">Visible genes:</span> {{ tooltipData.degree }}
+              </template>
+              <!-- Gene node tooltip -->
+              <template v-else>
+                <span class="text-muted">HGNC:</span> {{ tooltipData.hgncId }}<br>
+                <span class="text-muted">Category:</span> {{ tooltipData.category }}<br>
+                <span class="text-muted">Cluster:</span> {{ tooltipData.cluster }}<br>
+                <span class="text-muted">Connections:</span> {{ tooltipData.degree }}
+              </template>
             </div>
           </div>
         </div>
@@ -172,8 +273,17 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
-import { BCard, BButton, BBadge, BSpinner } from 'bootstrap-vue-next';
-import { useCytoscape, useNetworkData } from '@/composables';
+import {
+  BCard,
+  BButton,
+  BBadge,
+  BSpinner,
+  BDropdown,
+  BDropdownItemButton,
+  BDropdownDivider,
+} from 'bootstrap-vue-next';
+import { useCytoscape, useNetworkData, useNetworkFilters } from '@/composables';
+import type { CategoryFilter } from '@/composables';
 
 // Props
 interface Props {
@@ -203,6 +313,8 @@ const tooltipData = ref({
   hgncId: '',
   cluster: '',
   degree: 0,
+  category: '',
+  isClusterParent: false,
 });
 
 // Network data composable
@@ -213,6 +325,20 @@ const {
   fetchNetworkData,
   cytoscapeElements,
 } = useNetworkData();
+
+// Network filters composable
+const {
+  categoryLevel,
+  selectedClusters,
+  showAllClusters,
+  applyFilters,
+  getVisibleNodeCount,
+  getVisibleEdgeCount,
+} = useNetworkFilters();
+
+// Visible counts (updated after filter application)
+const visibleNodeCount = ref(0);
+const visibleEdgeCount = ref(0);
 
 // Cytoscape composable
 const {
@@ -254,6 +380,94 @@ const legendClusters = computed(() => {
   }));
 });
 
+// Category filter options
+const categoryOptions = [
+  { value: 'Definitive' as CategoryFilter, label: 'Definitive only' },
+  { value: 'Moderate' as CategoryFilter, label: '+ Moderate' },
+  { value: 'Limited' as CategoryFilter, label: '+ Limited' },
+];
+
+// Category filter label for dropdown button
+const categoryFilterLabel = computed(() => {
+  const opt = categoryOptions.find((o) => o.value === categoryLevel.value);
+  return `Category: ${opt?.label || categoryLevel.value}`;
+});
+
+// Cluster filter label for dropdown button
+const clusterFilterLabel = computed(() => {
+  if (showAllClusters.value) {
+    return 'Clusters: All';
+  }
+  const count = selectedClusters.value.size;
+  return count === 0 ? 'Clusters: None' : `Clusters: ${count} selected`;
+});
+
+// Network coverage tooltip explaining why not all genes are shown
+const networkCoverageTooltip = computed(() => {
+  if (!metadata.value) return '';
+  const total = metadata.value.total_ndd_genes || 0;
+  const inNetwork = metadata.value.node_count || 0;
+  const withString = metadata.value.genes_with_string || 0;
+  if (total && inNetwork < total) {
+    return `${inNetwork} of ${total} NDD genes shown. Only genes with STRING protein-protein interaction data are included.`;
+  }
+  return `${inNetwork} genes with protein-protein interactions`;
+});
+
+// Edges tooltip
+const edgesFilteredTooltip = computed(() => {
+  if (!metadata.value) return '';
+  if (metadata.value.edges_filtered && metadata.value.total_edges) {
+    return `Showing ${metadata.value.edge_count} of ${metadata.value.total_edges} total edges. Limited to 10,000 for performance (high confidence prioritized).`;
+  }
+  return `${metadata.value.edge_count} protein-protein interactions`;
+});
+
+// Check if category data is available (from metadata or node data)
+const hasCategoryData = computed(() => {
+  // Check if metadata has category counts
+  if (metadata.value?.category_counts) {
+    const counts = metadata.value.category_counts;
+    return (counts.Definitive || 0) + (counts.Moderate || 0) + (counts.Limited || 0) > 0;
+  }
+  // Fallback: check if any node has category data
+  const cyInstance = cy();
+  if (cyInstance) {
+    const firstNode = cyInstance.nodes().first();
+    if (firstNode && firstNode.length > 0) {
+      const cat = firstNode.data('category');
+      return cat && cat !== 'Unknown';
+    }
+  }
+  return false;
+});
+
+// Category options with counts from metadata
+const categoryOptionsWithCounts = computed(() => {
+  const counts = metadata.value?.category_counts || {};
+  const defCount = counts.Definitive || 0;
+  const modCount = counts.Moderate || 0;
+  const limCount = counts.Limited || 0;
+
+  return [
+    {
+      value: 'Definitive' as CategoryFilter,
+      label: 'Definitive only',
+      count: defCount,
+    },
+    {
+      value: 'Moderate' as CategoryFilter,
+      label: '+ Moderate',
+      count: defCount + modCount,
+    },
+    {
+      value: 'Limited' as CategoryFilter,
+      label: '+ Limited',
+      count: defCount + modCount + limCount,
+    },
+  ];
+});
+
 // Setup tooltip event handlers after cytoscape is initialized
 function setupTooltipHandlers() {
   const cyInstance = cy();
@@ -266,12 +480,36 @@ function setupTooltipHandlers() {
     const containerRect = cytoscapeContainer.value?.getBoundingClientRect();
 
     if (containerRect) {
-      tooltipData.value = {
-        symbol: data.symbol || 'Unknown',
-        hgncId: data.id || '',
-        cluster: String(data.cluster || '?'),
-        degree: data.degree || 0,
-      };
+      // Check if this is a cluster parent node
+      const isClusterParent = data.isClusterParent === true;
+
+      if (isClusterParent) {
+        // Cluster parent node - show cluster info
+        // Extract cluster number from id like "cluster-1"
+        const clusterId = data.id?.replace('cluster-', '') || '?';
+        // Count children (genes in this cluster)
+        const children = cyInstance.nodes().filter((n) => n.data('parent') === data.id);
+        const visibleChildren = children.filter((n) => (n as any).visible());
+
+        tooltipData.value = {
+          symbol: `Cluster ${clusterId}`,
+          hgncId: '',
+          cluster: clusterId,
+          degree: visibleChildren.length,
+          category: '',
+          isClusterParent: true,
+        };
+      } else {
+        // Gene node - show gene info
+        tooltipData.value = {
+          symbol: data.symbol || 'Unknown',
+          hgncId: data.id || '',
+          cluster: String(data.cluster || '?'),
+          degree: data.degree || 0,
+          category: data.category || 'Unknown',
+          isClusterParent: false,
+        };
+      }
 
       // Position tooltip near the node
       tooltipPosition.value = {
@@ -291,6 +529,53 @@ function setupTooltipHandlers() {
   cyInstance.on('drag', 'node', () => {
     tooltipVisible.value = false;
   });
+}
+
+// Apply filters and update visible counts
+function handleApplyFilters() {
+  const cyInstance = cy();
+  if (!cyInstance) return;
+
+  // Always apply filters - the applyFilters function handles both category and cluster
+  // Category filtering is skipped internally when nodes don't have category data
+  applyFilters(cyInstance);
+
+  visibleNodeCount.value = getVisibleNodeCount(cyInstance);
+  visibleEdgeCount.value = getVisibleEdgeCount(cyInstance);
+}
+
+// Category level change handler
+function setCategoryLevel(level: CategoryFilter) {
+  categoryLevel.value = level;
+  handleApplyFilters();
+}
+
+// Toggle cluster selection
+function toggleCluster(clusterId: number) {
+  showAllClusters.value = false;
+  const newSet = new Set(selectedClusters.value);
+  if (newSet.has(clusterId)) {
+    newSet.delete(clusterId);
+  } else {
+    newSet.add(clusterId);
+  }
+  selectedClusters.value = newSet;
+
+  // If no clusters selected, show all
+  if (newSet.size === 0) {
+    showAllClusters.value = true;
+  }
+
+  handleApplyFilters();
+}
+
+// Show all clusters handler
+function setShowAllClusters(value: boolean) {
+  showAllClusters.value = value;
+  if (value) {
+    selectedClusters.value = new Set();
+  }
+  handleApplyFilters();
 }
 
 // Control handlers
@@ -357,6 +642,10 @@ onMounted(async () => {
   await nextTick();
   setupTooltipHandlers();
 
+  // Apply initial filters (defaults to Definitive only)
+  await nextTick();
+  handleApplyFilters();
+
   // Setup resize observer to refit graph when container is resized
   if (cytoscapeContainer.value) {
     resizeObserver = new ResizeObserver(() => {
@@ -383,8 +672,11 @@ onBeforeUnmount(() => {
 watch(cytoscapeElements, (newElements) => {
   if (isInitialized.value && newElements.length > 0) {
     updateElements(newElements);
-    // Re-setup tooltip handlers after elements update
-    nextTick(() => setupTooltipHandlers());
+    // Re-setup tooltip handlers and apply filters after elements update
+    nextTick(() => {
+      setupTooltipHandlers();
+      handleApplyFilters();
+    });
   }
 });
 

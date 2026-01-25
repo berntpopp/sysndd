@@ -53,3 +53,5 @@ export { default as useCytoscape } from './useCytoscape';
 export type { CytoscapeOptions, CytoscapeState } from './useCytoscape';
 export { default as useNetworkData } from './useNetworkData';
 export type { NetworkDataState } from './useNetworkData';
+export { default as useNetworkFilters } from './useNetworkFilters';
+export type { CategoryFilter, NetworkFiltersState } from './useNetworkFilters';

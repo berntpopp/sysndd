@@ -185,6 +185,8 @@ export interface NetworkNode {
   x?: number;
   /** Pre-computed Y position from server-side layout (0-1000 normalized) */
   y?: number;
+  /** Entity category (highest confidence category for this gene) */
+  category?: 'Definitive' | 'Moderate' | 'Limited' | 'Refuted';
 }
 
 /**
@@ -223,6 +225,19 @@ export interface NetworkMetadata {
   layout_algorithm?: string;
   /** Time taken for layout computation in seconds */
   layout_time_seconds?: number;
+  /** Total NDD genes in database */
+  total_ndd_genes?: number;
+  /** Genes with STRING protein data */
+  genes_with_string?: number;
+  /** Genes that belong to clusters */
+  genes_in_clusters?: number;
+  /** Breakdown of genes by category */
+  category_counts?: {
+    Definitive?: number;
+    Moderate?: number;
+    Limited?: number;
+    Refuted?: number;
+  };
 }
 
 /**
