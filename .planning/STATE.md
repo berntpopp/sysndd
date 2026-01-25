@@ -12,22 +12,22 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Milestone:** v6.0 Admin Panel Modernization
 **Phase:** 31 of 33 (Content Management)
-**Plan:** 02 of 04 complete
+**Plan:** 03 of 04 complete
 **Status:** In progress
-**Last activity:** 2026-01-25 — Completed 31-02-PLAN.md (CMS Foundation - Types & Composables)
+**Last activity:** 2026-01-25 — Completed 31-03-PLAN.md (CMS Editor Components)
 
 ```
-v6.0 Admin Panel Modernization: [████████████░░░░░░░░░░░░░░░░] 41%
+v6.0 Admin Panel Modernization: [█████████████░░░░░░░░░░░░░░░] 44%
 Phase 28 Table Foundation:     [██████████] 3/3 plans ✓
 Phase 29 User Management:      [██████████] 4/4 plans ✓
 Phase 30 Statistics Dashboard: [██████████] 3/3 plans ✓
-Phase 31 Content Management:   [█████░░░░░] 2/4 plans
+Phase 31 Content Management:   [███████░░░] 3/4 plans
 ```
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 144
+- Total plans completed: 145
 - Milestones shipped: 5 (v1-v5)
 - Phases completed: 28
 
@@ -42,9 +42,9 @@ Phase 31 Content Management:   [█████░░░░░] 2/4 plans
 | v5 Analysis Modernization | 25-27 | 16 | 2026-01-25 |
 
 **v6.0 Progress:**
-- Plans completed: 12
+- Plans completed: 13
 - Phases completed: 3 (Phases 28-30)
-- Average duration: 3.0min
+- Average duration: 2.9min
 - Trend: Strong velocity
 
 *Updated after each plan completion*
@@ -85,6 +85,10 @@ Recent v6-relevant decisions:
 - **Single draft per user** (31-01): Upsert pattern (DELETE + INSERT) enforces one active draft per user
 - **Version auto-increment** (31-01): MAX(version) + 1 query for explicit version numbers in published content
 - **Public CMS endpoint** (31-01): GET /published requires no auth for About.vue consumption
+- **Global vue-dompurify-html** (31-03): Registered VueDOMPurifyHTML plugin in main.ts for consistent XSS sanitization
+- **Side-by-side editor/preview** (31-03): Editor left, preview right at SectionEditor level (not page level)
+- **Drag handle pattern** (31-03): .drag-handle class with grab/grabbing cursors for vuedraggable integration
+- **Auto-expand new sections** (31-03): New sections added via "Add Section" auto-expand for immediate editing
 
 ### Pending Todos
 
@@ -100,11 +104,11 @@ None yet.
 
 ## Session Continuity
 
-**Last session:** 2026-01-25 22:30 UTC
-**Stopped at:** Completed 31-02-PLAN.md (CMS Foundation - Types & Composables)
+**Last session:** 2026-01-25 22:37 UTC
+**Stopped at:** Completed 31-03-PLAN.md (CMS Editor Components)
 **Resume file:** None
-**Next action:** Execute 31-03-PLAN.md (CMS Editor Component) or 31-04-PLAN.md (Public About Integration)
+**Next action:** Execute 31-04-PLAN.md (ManageAbout Integration & Public About)
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-25 — Completed 31-02 (CMS Foundation)*
+*Last updated: 2026-01-25 — Completed 31-03 (CMS Editor Components)*
