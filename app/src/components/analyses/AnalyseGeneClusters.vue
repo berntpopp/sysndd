@@ -286,12 +286,15 @@
                   <div
                     v-if="tableType === 'identifiers'"
                     class="overflow-hidden text-truncate"
+                    :title="row.STRING_id"
+                    v-b-tooltip.hover
                   >
                     <BButton
                       class="btn-xs mx-2"
                       variant="outline-primary"
                       :href="'https://string-db.org/network/' + row.STRING_id"
                       target="_blank"
+                      :title="'View ' + row.STRING_id + ' in STRING database'"
                     >
                       <i class="bi bi-box-arrow-up-right" />
                       {{ row.STRING_id }}
@@ -556,6 +559,13 @@ export default {
             key: 'fdr',
             label: 'FDR',
             sortable: true,
+            // Sort by numeric value (scientific notation strings like "1.23e-20")
+            sortByFormatted: false,
+            sortCompare: (aRow, bRow, key) => {
+              const a = parseFloat(aRow[key]) || 0;
+              const b = parseFloat(bRow[key]) || 0;
+              return a - b;
+            },
             thClass: 'text-start bg-light',
             tdClass: 'text-start',
           },
