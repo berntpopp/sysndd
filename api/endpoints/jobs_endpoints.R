@@ -494,6 +494,58 @@ function(req, res) {
 }
 
 ## -------------------------------------------------------------------##
+## Job History
+## -------------------------------------------------------------------##
+
+#* Get Job History
+#*
+#* Returns a list of recent jobs for admin review.
+#* Requires Administrator role.
+#*
+#* @tag jobs
+#* @serializer json list(na="string")
+#* @get /history
+function(req, res, limit = 20) {
+  require_role(req, res, "Administrator")
+
+  # Validate and constrain limit parameter
+  limit <- as.integer(limit)
+  if (is.na(limit) || limit < 1) {
+    limit <- 20
+  }
+  if (limit > 100) {
+    limit <- 100
+  }
+
+  # Get job history from job-manager
+  jobs <- get_job_history(limit)
+
+  # Return with metadata
+  list(
+    data = if (nrow(jobs) > 0) {
+      # Convert data frame to list of lists for JSON serialization
+      lapply(seq_len(nrow(jobs)), function(i) {
+        list(
+          job_id = jobs$job_id[i],
+          operation = jobs$operation[i],
+          status = jobs$status[i],
+          submitted_at = jobs$submitted_at[i],
+          completed_at = jobs$completed_at[i],
+          duration_seconds = jobs$duration_seconds[i],
+          error_message = jobs$error_message[i]
+        )
+      })
+    } else {
+      list()
+    },
+    meta = list(
+      count = nrow(jobs),
+      limit = limit
+    )
+  )
+}
+
+## -------------------------------------------------------------------##
 ## Job Status Polling
 ## -------------------------------------------------------------------##
 
