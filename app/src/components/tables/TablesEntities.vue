@@ -449,10 +449,8 @@ export default {
     // Use $nextTick to ensure Vue reactivity is fully initialized
     this.$nextTick(() => {
       if (this.filterInput && this.filterInput !== 'null' && this.filterInput !== '') {
-        // Directly set the filter_string from input and load
-        // This bypasses complex reactivity issues with the filter object
-        this.filter_string = this.filterInput;
-        this.loadData();
+        // Parse URL filter string into filter object for proper UI state
+        this.filter = this.filterStrToObj(this.filterInput, this.filter);
       } else {
         this.loadData();
       }
