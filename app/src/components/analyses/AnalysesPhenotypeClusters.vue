@@ -88,7 +88,7 @@
             </div>
 
             <template #footer>
-              <BLink :href="'/Entities/?filter=' + selectedCluster.hash_filter">
+              <BLink :href="entitiesLink">
                 Entities for cluster {{ selectedCluster.cluster }}
               </BLink>
             </template>
@@ -229,6 +229,16 @@ export default {
     TableSearchInput,
     TablePaginationControls,
   },
+  props: {
+    /**
+     * Optional filter state from parent AnalysisView
+     * Enables shared filter state across analysis views in 27-04
+     */
+    filterState: {
+      type: Object,
+      default: null,
+    },
+  },
   setup() {
     const { makeToast } = useToast();
     return { makeToast };
@@ -303,6 +313,18 @@ export default {
     };
   },
   computed: {
+    /**
+     * Computed URL for the Entities link (fixes NAVL-07 bug)
+     * Prevents 'filter=undefined' when hash_filter is not set
+     * @returns {string} URL to the Entities page with or without filter
+     */
+    entitiesLink() {
+      const base = '/Entities/';
+      if (this.selectedCluster?.hash_filter) {
+        return `${base}?filter=${this.selectedCluster.hash_filter}`;
+      }
+      return base;
+    },
     /**
      * The items currently being displayed in the table (filtered + paginated).
      * If you're hooking up to a back-end with query parameters, you may do so in

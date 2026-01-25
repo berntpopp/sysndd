@@ -313,6 +313,16 @@ export default {
     Splitpanes,
     Pane,
   },
+  props: {
+    /**
+     * Optional filter state from parent AnalysisView
+     * Enables shared filter state across analysis views in 27-04
+     */
+    filterState: {
+      type: Object,
+      default: null,
+    },
+  },
   setup() {
     const { makeToast } = useToast();
     const colorAndSymbols = useColorAndSymbols();
