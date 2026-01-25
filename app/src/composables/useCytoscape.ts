@@ -300,41 +300,24 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
     });
 
     // Layout complete handler
-    // Explicit centering since fcose fit:true often doesn't center properly
+    // Use cy.fit() for reliable centering after layout completes
     cy.on('layoutstop', () => {
       if (cy) {
+        // Small delay to ensure DOM is updated
         setTimeout(() => {
           if (!cy) return;
+
+          // Force resize to pick up any container dimension changes
           cy.resize();
 
-          // Get the model-coordinate bounding box of all elements
+          // Use Cytoscape's built-in fit which handles centering correctly
+          // Padding ensures the graph doesn't touch edges
+          cy.fit(undefined, 30);
+
+          // Log for debugging
           const bb = cy.elements().boundingBox();
-          const viewportW = cy.width();
-          const viewportH = cy.height();
-
-          // Calculate the zoom level to fit the graph with padding
-          const padding = 40;
-          const availableW = viewportW - padding * 2;
-          const availableH = viewportH - padding * 2;
-          const zoomW = availableW / bb.w;
-          const zoomH = availableH / bb.h;
-          const newZoom = Math.min(zoomW, zoomH, 2); // Cap at 2x zoom
-
-          // Calculate the center of the bounding box in model coordinates
-          const bbCenterX = (bb.x1 + bb.x2) / 2;
-          const bbCenterY = (bb.y1 + bb.y2) / 2;
-
-          // Set zoom and pan to center the graph
-          cy.viewport({
-            zoom: newZoom,
-            pan: {
-              x: viewportW / 2 - bbCenterX * newZoom,
-              y: viewportH / 2 - bbCenterY * newZoom
-            }
-          });
-
-          console.log(`[useCytoscape] Centered: viewport=${viewportW}x${viewportH}, bb=${bb.w.toFixed(0)}x${bb.h.toFixed(0)}, zoom=${newZoom.toFixed(3)}`);
-        }, 100);
+          console.log(`[useCytoscape] Layout complete: ${cy.nodes().length} nodes, bb=${bb.w.toFixed(0)}x${bb.h.toFixed(0)}, zoom=${cy.zoom().toFixed(3)}`);
+        }, 50);
       }
       isLoading.value = false;
     });
@@ -394,33 +377,12 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
    */
   const fitToScreen = (): void => {
     if (!cy) return;
+
+    // Force resize to pick up container dimension changes
     cy.resize();
 
-    // Get the model-coordinate bounding box of all elements
-    const bb = cy.elements().boundingBox();
-    const viewportW = cy.width();
-    const viewportH = cy.height();
-
-    // Calculate the zoom level to fit the graph with padding
-    const padding = 40;
-    const availableW = viewportW - padding * 2;
-    const availableH = viewportH - padding * 2;
-    const zoomW = availableW / bb.w;
-    const zoomH = availableH / bb.h;
-    const newZoom = Math.min(zoomW, zoomH, 2); // Cap at 2x zoom
-
-    // Calculate the center of the bounding box in model coordinates
-    const bbCenterX = (bb.x1 + bb.x2) / 2;
-    const bbCenterY = (bb.y1 + bb.y2) / 2;
-
-    // Set zoom and pan to center the graph
-    cy.viewport({
-      zoom: newZoom,
-      pan: {
-        x: viewportW / 2 - bbCenterX * newZoom,
-        y: viewportH / 2 - bbCenterY * newZoom
-      }
-    });
+    // Use Cytoscape's built-in fit for reliable centering
+    cy.fit(undefined, 30);
   };
 
   /**
