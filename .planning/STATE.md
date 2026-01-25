@@ -12,14 +12,14 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Milestone:** v6.0 Admin Panel Modernization
 **Phase:** 29 of 33 (User Management Workflows)
-**Plan:** 03 of 04 complete
-**Status:** In progress
-**Last activity:** 2026-01-25 — Completed 29-03-PLAN.md (Bulk Selection UI)
+**Plan:** 04 of 04 complete
+**Status:** Phase complete
+**Last activity:** 2026-01-25 — Completed 29-04-PLAN.md (Bulk Actions & Filter Presets)
 
 ```
-v6.0 Admin Panel Modernization: [█████░░░░░░░░░░░░░░░░░░░░░░░] 21%
+v6.0 Admin Panel Modernization: [██████░░░░░░░░░░░░░░░░░░░░░░] 24%
 Phase 28 Table Foundation: [██████████] 3/3 plans ✓
-Phase 29 User Management:   [███████░░░] 3/4 plans
+Phase 29 User Management:   [██████████] 4/4 plans ✓
 ```
 
 ## Performance Metrics
@@ -40,9 +40,9 @@ Phase 29 User Management:   [███████░░░] 3/4 plans
 | v5 Analysis Modernization | 25-27 | 16 | 2026-01-25 |
 
 **v6.0 Progress:**
-- Plans completed: 6
-- Phases completed: 1 (Phase 28)
-- Average duration: 2.8min
+- Plans completed: 7
+- Phases completed: 2 (Phases 28-29)
+- Average duration: 3.1min
 - Trend: Strong velocity
 
 *Updated after each plan completion*
@@ -71,6 +71,11 @@ Recent v6-relevant decisions:
 - **VueUse useLocalStorage** (29-02): Reactive localStorage binding for filter presets with custom serializer
 - **Deep copy on filter save/load** (29-02): JSON.parse(JSON.stringify()) prevents mutation bugs
 - **Selection limit returns false** (29-02): toggleSelection returns boolean (not throw) for non-blocking UX
+- **Bootstrap modal confirmation pattern** (29-04): All bulk actions use Bootstrap modals with username lists (not native confirm/prompt)
+- **Type-to-confirm for destructive actions** (29-04): Bulk delete requires exact "DELETE" text input to enable confirmation button
+- **Dropdown for role selection** (29-04): Use BFormSelect dropdown instead of prompt() for better UX and validation
+- **Frontend admin protection** (29-04): Block bulk delete if admins in selection before showing modal (fail fast)
+- **Default filter presets** (29-04): Initialize "Pending" and "Curators" presets on first mount for common workflows
 
 ### Pending Todos
 
@@ -81,15 +86,15 @@ None yet.
 **v6.0 planning:**
 - Need to verify mirai job cancellation support during Phase 32 planning
 - Bundle size validation needed during Phase 30-31 (Chart.js + TipTap adds ~130KB)
-- Role permission matrix needs stakeholder validation (Phase 29)
+- Bulk operation audit logging not yet implemented (planned for Phase 32)
 
 ## Session Continuity
 
-**Last session:** 2026-01-25 21:25 UTC
-**Stopped at:** Completed 29-03-PLAN.md (Bulk Selection UI)
+**Last session:** 2026-01-25 21:29 UTC
+**Stopped at:** Completed 29-04-PLAN.md (Bulk Actions & Filter Presets) — Phase 29 complete
 **Resume file:** None
-**Next action:** Execute 29-04-PLAN.md (Bulk Operations Implementation)
+**Next action:** Execute Phase 30 plans (Role Management) or continue with v6.0
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-25 — Phase 29 Plan 03 complete (User Management Workflows)*
+*Last updated: 2026-01-25 — Phase 29 complete (User Management Workflows)*
