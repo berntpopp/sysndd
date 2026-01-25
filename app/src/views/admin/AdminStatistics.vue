@@ -479,9 +479,10 @@ async function fetchLeaderboard(): Promise<void> {
       entity_count: item.entity_count,
     }));
 
-    // Update total contributors from meta
+    // Update total contributors from meta (unwrap R/Plumber array)
     if (response.data.meta?.total_contributors) {
-      kpiStats.value.totalContributors = response.data.meta.total_contributors;
+      const contributors = response.data.meta.total_contributors;
+      kpiStats.value.totalContributors = Array.isArray(contributors) ? contributors[0] : contributors;
     }
   } catch (error) {
     console.error('Failed to fetch leaderboard:', error);
