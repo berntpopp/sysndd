@@ -156,8 +156,34 @@
                     v-for="field in fieldsComputed"
                     :key="field.key"
                   >
+                    <!-- Cluster number: keep text filter -->
                     <BFormInput
-                      v-if="field.key !== 'details'"
+                      v-if="field.key === 'cluster_num'"
+                      v-model="filter[field.key].content"
+                      :placeholder="'Filter ' + field.label"
+                      debounce="500"
+                      @input="onFilterChange"
+                    />
+
+                    <!-- Category: use CategoryFilter dropdown -->
+                    <CategoryFilter
+                      v-else-if="field.key === 'category'"
+                      v-model="categoryFilter"
+                      :options="categoryOptions"
+                      placeholder="All categories"
+                      @update:modelValue="onFilterChange"
+                    />
+
+                    <!-- FDR: use ScoreSlider with presets -->
+                    <ScoreSlider
+                      v-else-if="field.key === 'fdr'"
+                      v-model="fdrThreshold"
+                      @update:modelValue="onFilterChange"
+                    />
+
+                    <!-- Other columns: text filter (symbol, STRING_id, description, etc.) -->
+                    <BFormInput
+                      v-else-if="field.key !== 'details' && field.key !== 'number_of_genes'"
                       v-model="filter[field.key].content"
                       :placeholder="'Filter ' + field.label"
                       debounce="500"
