@@ -491,6 +491,7 @@ root <- pr() %>%
   pr_mount("/api/logs", pr("endpoints/logging_endpoints.R")) %>%
   pr_mount("/api/user", pr("endpoints/user_endpoints.R")) %>%
   pr_mount("/api/auth", pr("endpoints/authentication_endpoints.R")) %>%
+  pr_mount("/api/about", pr("endpoints/about_endpoints.R")) %>%
   pr_mount("/api/admin", pr("endpoints/admin_endpoints.R")) %>%
   pr_mount("/api/external", pr("endpoints/external_endpoints.R")) %>%
   pr_mount("/api/statistics", pr("endpoints/statistics_endpoints.R")) %>%
