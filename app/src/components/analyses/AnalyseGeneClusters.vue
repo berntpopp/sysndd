@@ -38,121 +38,25 @@
               Users can explore various clusters/subclusters, and analyze the associated genes and their properties.
             </BPopover>
           </h6>
-          <DownloadImageButtons
-            :svg-id="'gene_cluster_dataviz-svg'"
-            :file-name="'gene_cluster_plot'"
-          />
+          <!-- Network export buttons now in NetworkVisualization component -->
         </div>
       </template>
 
       <!-- ROW: LEFT = Graph, RIGHT = Table -->
       <BRow>
-        <!-- LEFT COLUMN (Graph) -->
-        <BCol md="4">
-          <BCard
-            header-tag="header"
-            class="my-3 mx-2 text-start"
-            body-class="p-0"
-            header-class="p-1"
-            footer-class="p-1"
-            border-variant="dark"
-          >
-            <template #header>
-              <BRow>
-                <BCol>
-                  <h6 class="mb-0 font-weight-bold">
-                    Selected
-                    {{ selectType === 'clusters' ? 'cluster' : 'subcluster' }}
-                    {{
-                      selectType === 'clusters'
-                        ? selectedCluster.cluster
-                        : selectedCluster.parent_cluster + '.' + selectedCluster.cluster
-                    }}
-                    with
-                    <BBadge variant="success">
-                      {{ selectedCluster.cluster_size }} genes
-                    </BBadge>
-                  </h6>
-                </BCol>
-                <BCol>
-                  <BInputGroup
-                    prepend="Select"
-                    class="mb-1 text-end"
-                    size="sm"
-                  >
-                    <BFormSelect
-                      v-model="selectType"
-                      :options="selectOptions"
-                      size="sm"
-                    />
-                  </BInputGroup>
-                </BCol>
-              </BRow>
-              <BRow class="mt-1">
-                <BCol>
-                  <BInputGroup
-                    prepend="Algorithm"
-                    size="sm"
-                  >
-                    <BFormSelect
-                      v-model="algorithm"
-                      :options="algorithmOptions"
-                      :disabled="loading"
-                      size="sm"
-                      @change="reloadWithAlgorithm"
-                    />
-                  </BInputGroup>
-                </BCol>
-              </BRow>
-            </template>
-
-            <!-- Loading state - shown while fetching data -->
-            <div
-              v-if="loading"
-              class="svg-container loading-container"
-            >
-              <BSpinner
-                label="Loading..."
-                class="spinner"
-              />
-              <div class="loading-info mt-3">
-                <BProgress
-                  :value="loadingProgress"
-                  :max="100"
-                  show-progress
-                  animated
-                  class="mb-2"
-                />
-                <small class="text-muted">
-                  <span v-if="loadingStage === 'initializing'">Initializing...</span>
-                  <span v-else-if="loadingStage === 'submitting'">Submitting job...</span>
-                  <span v-else-if="loadingStage === 'processing'">
-                    Processing clusters (est. {{ estimatedSeconds }}s)...
-                  </span>
-                  <span v-else-if="loadingStage === 'loading_data'">Loading data...</span>
-                </small>
-              </div>
-            </div>
-            <!-- D3 graph container - uses key to force recreation on algorithm change -->
-            <div
-              v-else
-              :key="'graph-' + algorithm"
-              id="gene_cluster_dataviz"
-              class="svg-container"
-            >
-              <!-- Graph rendered by D3 here -->
-            </div>
-
-            <template #footer>
-              <BLink :href="'/Entities/?filter=' + selectedCluster.hash_filter">
-                Genes for cluster {{ selectedCluster.cluster }}
-              </BLink>
-            </template>
-          </BCard>
+        <!-- LEFT COLUMN (Network Visualization) -->
+        <BCol md="5">
+          <!-- NetworkVisualization component replaces D3.js bubble chart -->
+          <div class="my-3 mx-2">
+            <NetworkVisualization
+              :cluster-type="selectType"
+              @cluster-selected="handleClusterSelected"
+            />
+          </div>
         </BCol>
 
         <!-- RIGHT COLUMN (Table) -->
-        <BCol md="8">
+        <BCol md="7">
           <BCard
             header-tag="header"
             class="my-3 mx-2 text-start"
@@ -341,22 +245,23 @@
 </template>
 
 <script>
-import * as d3 from 'd3';
 import { useToast, useColorAndSymbols } from '@/composables';
-import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 
 // Import small table components
 import GenericTable from '@/components/small/GenericTable.vue';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 
+// Import NetworkVisualization component (replaces D3.js bubble chart)
+import NetworkVisualization from '@/components/analyses/NetworkVisualization.vue';
+
 export default {
   name: 'AnalyseGeneClusters',
   components: {
-    DownloadImageButtons,
     GenericTable,
     TableSearchInput,
     TablePaginationControls,
+    NetworkVisualization,
   },
   setup() {
     const { makeToast } = useToast();
@@ -514,13 +419,11 @@ export default {
     activeParentCluster() {
       if (this.selectType === 'clusters') {
         this.setActiveCluster();
-        this.$nextTick(() => this.generateClusterGraph());
       }
     },
     activeSubCluster() {
       if (this.selectType === 'subclusters') {
         this.setActiveCluster();
-        this.$nextTick(() => this.generateClusterGraph());
       }
     },
     tableType() {
@@ -651,14 +554,13 @@ export default {
               this.valueCategories = [];
             }
 
-            // Update loading state first, then render graph after DOM updates
+            // Update loading state
             this.loadingProgress = 100;
             this.loading = false;
 
-            // Use nextTick to ensure DOM is updated before D3 manipulates it
+            // Set active cluster for table display
             this.$nextTick(() => {
               this.setActiveCluster();
-              this.generateClusterGraph();
             });
             return;
           }
@@ -696,7 +598,6 @@ export default {
         this.itemsCluster = response.data.clusters;
         this.valueCategories = response.data.categories;
         this.setActiveCluster();
-        this.generateClusterGraph();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       } finally {
@@ -804,204 +705,24 @@ export default {
     },
 
     /* --------------------------------------
-     * Graph code for cluster viz
+     * Network visualization event handlers
      * ------------------------------------ */
-    generateClusterGraph() {
-      // Ensure container exists before D3 manipulation
-      const container = document.getElementById('gene_cluster_dataviz');
-      if (!container) {
-        console.warn('generateClusterGraph: container not found, skipping');
-        return;
-      }
-
-      const margin = {
-        top: 10, right: 10, bottom: 10, left: 10,
-      };
-      const width = 400 - margin.left - margin.right;
-      const height = 400 - margin.top - margin.bottom;
-
-      d3.select('#gene_cluster_dataviz').select('svg').remove();
-      d3.select('#gene_cluster_dataviz').select('div').remove();
-
-      const svg = d3
-        .select('#gene_cluster_dataviz')
-        .append('svg')
-        .attr('id', 'gene_cluster_dataviz-svg')
-        .attr('width', width)
-        .attr('height', height);
-
-      // Flatten subclusters
-      const data = this.itemsCluster
-        .map(({ subclusters }) => subclusters)
-        .flat();
-
-      const color = d3
-        .scaleOrdinal()
-        .domain([1, 2, 3, 4, 5, 6, 7])
-        .range(d3.schemeSet1);
-
-      const size = d3
-        .scaleLinear()
-        .domain([0, 1000])
-        .range([7, 55]);
-
-      const uniqueClusters = [...new Set(data.map((d) => d.parent_cluster))];
-      const x = d3
-        .scaleOrdinal()
-        .domain(uniqueClusters)
-        .range(uniqueClusters.map((c) => c * 30));
-
-      const Tooltip = d3
-        .select('#gene_cluster_dataviz')
-        .append('div')
-        .style('opacity', 0)
-        .attr('class', 'tooltip')
-        .style('background-color', 'white')
-        .style('border', 'solid 2px')
-        .style('border-radius', '5px')
-        .style('padding', '5px');
-
-      function mouseover(event, d) {
-        Tooltip.style('opacity', 1);
-        d3.select(this).style('stroke-width', 3);
-      }
-      function mousemove(event, d) {
-        Tooltip.html(
-          `<u>Cluster: ${d.parent_cluster}.${d.cluster}</u><br>${d.cluster_size} genes`,
-        )
-          .style('left', `${event.layerX + 20}px`)
-          .style('top', `${event.layerY + 20}px`);
-      }
-      function mouseleave() {
-        Tooltip.style('opacity', 0);
-        d3.select(this).style('stroke-width', 1);
-      }
-
-      const simulation = d3.forceSimulation()
-        .force('center', d3.forceCenter().x(width / 2).y(height / 2))
-        .force('charge', d3.forceManyBody().strength(0.1))
-        .force('collide', d3.forceCollide()
-          .strength(0.2)
-          .radius((d) => size(d.cluster_size) + 3)
-          .iterations(1))
-        .force('forceX', d3.forceX()
-          .strength(0.5)
-          .x((d) => x(d.parent_cluster)))
-        .force('forceY', d3.forceY()
-          .strength(0.1)
-          .y(height * 0.5));
-
-      function dragstartHandler(event, datum) {
-        if (!event.active) simulation.alphaTarget(0.03).restart();
-        datum.fx = datum.x;
-        datum.fy = datum.y;
-      }
-      function dragHandler(event, datum) {
-        datum.fx = event.x;
-        datum.fy = event.y;
-      }
-      function dragendHandler(event, datum) {
-        if (!event.active) simulation.alphaTarget(0.03);
-        datum.fx = null;
-        datum.fy = null;
-      }
-
-      const node = svg
-        .append('g')
-        .selectAll('circle')
-        .data(data)
-        .enter()
-        .append('a')
-        .append('circle')
-        .attr('class', 'node')
-        .attr('r', (d) => size(d.cluster_size))
-        .attr('cx', width / 2)
-        .attr('cy', height / 2)
-        .style('fill', (d) => color(d.parent_cluster))
-        .style('fill-opacity', 0.8)
-        .attr('stroke', '#696969')
-        .style('stroke-width', (d) => {
-          if (this.selectType === 'clusters' && d.parent_cluster === this.activeParentCluster) {
-            return 4;
-          }
-          if (
-            this.selectType === 'subclusters'
-            && d.parent_cluster === this.activeParentCluster
-            && d.cluster === this.activeSubCluster
-          ) {
-            return 4;
-          }
-          return 1;
-        })
-        .on('mouseover', mouseover)
-        .on('mousemove', mousemove)
-        .on('mouseleave', mouseleave)
-        .on('click', (event, datum) => {
-          this.activeParentCluster = datum.parent_cluster;
-          this.activeSubCluster = datum.cluster;
-          Tooltip.style('opacity', 0);
-        })
-        .call(
-          d3.drag()
-            .on('start', dragstartHandler)
-            .on('drag', dragHandler)
-            .on('end', dragendHandler),
-        );
-
-      simulation.nodes(data).on('tick', () => {
-        node
-          .attr('cx', (d) => d.x)
-          .attr('cy', (d) => d.y);
-      });
+    handleClusterSelected(hgncId) {
+      // Handle node click from NetworkVisualization
+      // This can be used for table synchronization or other interactions
+      console.log('Gene selected from network:', hgncId);
     },
   },
 };
 </script>
 
 <style scoped>
-.svg-container {
-  display: inline-block;
-  position: relative;
-  width: 100%;
-  max-width: 800px;
-  vertical-align: top;
-  overflow: hidden;
-}
-
-.svg-content {
-  display: inline-block;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
 .btn-group-xs > .btn,
 .btn-xs {
   padding: 0.25rem 0.4rem;
   font-size: 0.875rem;
   line-height: 0.5;
   border-radius: 0.2rem;
-}
-.spinner {
-  width: 2rem;
-  height: 2rem;
-  margin: 2rem auto 1rem;
-  display: block;
-}
-
-.loading-container {
-  text-align: center;
-  padding: 2rem;
-  min-height: 300px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.loading-info {
-  width: 80%;
-  max-width: 300px;
 }
 
 mark {
