@@ -659,7 +659,7 @@ import GenericTable from '@/components/small/GenericTable.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import useToast from '@/composables/useToast';
 import {
-  useUrlParsing, useTableData, useExcelExport, useBulkSelection,
+  useUrlParsing, useTableData, useExcelExport, useBulkSelection, useFilterPresets,
 } from '@/composables';
 
 // Import the Pinia store
@@ -696,6 +696,9 @@ export default {
 
     // Bulk selection state (20 user limit per context decisions)
     const bulkSelection = useBulkSelection(20);
+
+    // Filter presets for quick access to saved filters
+    const filterPresets = useFilterPresets('sysndd-manage-user-presets');
 
     // Filter object structure for user table
     const filter = ref({
@@ -791,6 +794,7 @@ export default {
       userRoleError,
       userRoleMeta,
       ...bulkSelection, // Spreads: selectedIds, selectionCount, isSelected, toggleSelection, clearSelection, getSelectedArray, selectMultiple
+      filterPresets,
     };
   },
   data() {

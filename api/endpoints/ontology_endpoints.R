@@ -175,18 +175,12 @@ function(req, res, filter = "", sort = "+vario_id", page_after = 0, page_size = 
     )
   })
 
-  # Build meta with total items, fspec, and execution time
-  meta <- list(list(
-    totalItems = total_items,
-    currentPage = pagination_info$meta[[1]]$currentPage,
-    totalPages = pagination_info$meta[[1]]$totalPages,
-    prevItemID = pagination_info$meta[[1]]$prevItemID,
-    currentItemID = pagination_info$meta[[1]]$currentItemID,
-    nextItemID = pagination_info$meta[[1]]$nextItemID,
-    lastItemID = pagination_info$meta[[1]]$lastItemID,
-    fspec = fspec_parsed,
-    executionTime = execution_time
-  ))
+  # Add execution time and fspec to meta (totalItems is already in pagination_info$meta)
+  meta <- pagination_info$meta %>%
+    add_column(tibble::as_tibble(list(
+      fspec = list(fspec_parsed),
+      executionTime = execution_time
+    )))
 
   list(
     links = pagination_info$links,

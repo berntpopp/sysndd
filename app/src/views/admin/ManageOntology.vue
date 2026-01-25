@@ -194,10 +194,11 @@
                       v-b-tooltip.hover.top
                       size="sm"
                       class="me-1 btn-xs"
+                      variant="outline-primary"
                       title="Edit ontology"
-                      @click="editOntology(row, $event.target)"
+                      @click="editOntology(row)"
                     >
-                      <i class="bi bi-pen" />
+                      <i class="bi bi-pencil-square" />
                     </BButton>
                   </div>
                 </template>
@@ -221,45 +222,120 @@
         </BCol>
       </BRow>
 
-      <!-- Update Ontology Modal -->
+      <!-- Update Ontology Modal - Modern Design with v-model -->
       <BModal
-        :id="updateOntologyModal.id"
-        title="Update Ontology"
-        ok-title="Update"
-        ok-variant="primary"
-        cancel-title="Cancel"
-        @ok="updateOntologyData"
+        v-model="showEditModal"
+        size="lg"
+        centered
+        header-class="border-bottom-0 pb-0"
+        footer-class="border-top-0 pt-0"
+        body-class="pt-2"
+        @hidden="ontologyToEdit = {}"
       >
+        <template #header>
+          <div class="w-100">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <h5 class="mb-1">
+                  <i class="bi bi-journal-text text-primary me-2" />
+                  Edit Ontology Term
+                </h5>
+                <p class="text-muted small mb-0">
+                  Modify the properties of this variation ontology entry
+                </p>
+              </div>
+              <BButton
+                variant="link"
+                class="p-0 text-muted"
+                @click="showEditModal = false"
+              >
+                <i class="bi bi-x-lg" />
+              </BButton>
+            </div>
+          </div>
+        </template>
+
         <BForm @submit.prevent="updateOntologyData">
-          <!-- Display vario_id as a read-only text field -->
-          <BFormGroup label="Vario ID:" label-for="input-vario_id">
-            <BFormInput
-              id="input-vario_id"
-              v-model="ontologyToUpdate.vario_id"
-              readonly
-            />
-          </BFormGroup>
-          <!-- Display update_date as a read-only text field -->
-          <BFormGroup label="Last Update:" label-for="input-update_date">
-            <BFormInput
-              id="input-update_date"
-              v-model="ontologyToUpdate.update_date"
-              readonly
-            />
-          </BFormGroup>
-          <!-- Dynamically create form inputs for each editable ontology attribute -->
+          <!-- Read-only info card -->
+          <BCard class="mb-3 bg-light border-0">
+            <BRow>
+              <BCol sm="6">
+                <small class="text-muted d-block">Vario ID</small>
+                <strong class="text-primary">{{ ontologyToEdit.vario_id }}</strong>
+              </BCol>
+              <BCol sm="6">
+                <small class="text-muted d-block">Last Updated</small>
+                <strong>{{ ontologyToEdit.update_date || 'Never' }}</strong>
+              </BCol>
+            </BRow>
+          </BCard>
+
+          <!-- Editable fields with improved styling -->
           <BFormGroup
             v-for="field in editableFields"
             :key="field.key"
-            :label="field.label + ':'"
             :label-for="'input-' + field.key"
+            class="mb-3"
           >
-            <BFormInput
+            <template #label>
+              <span class="fw-semibold">{{ field.label }}</span>
+            </template>
+            <!-- Use textarea for definition field -->
+            <BFormTextarea
+              v-if="field.key === 'definition'"
               :id="'input-' + field.key"
-              v-model="ontologyToUpdate[field.key]"
+              v-model="ontologyToEdit[field.key]"
+              rows="3"
+              placeholder="Enter definition..."
+            />
+            <!-- Use select for boolean fields -->
+            <BFormSelect
+              v-else-if="field.key === 'obsolete' || field.key === 'is_active'"
+              :id="'input-' + field.key"
+              v-model="ontologyToEdit[field.key]"
+            >
+              <BFormSelectOption :value="1">
+                {{ field.key === 'is_active' ? 'Active' : 'Yes (Obsolete)' }}
+              </BFormSelectOption>
+              <BFormSelectOption :value="0">
+                {{ field.key === 'is_active' ? 'Inactive' : 'No (Current)' }}
+              </BFormSelectOption>
+            </BFormSelect>
+            <!-- Use number input for sort -->
+            <BFormInput
+              v-else-if="field.key === 'sort'"
+              :id="'input-' + field.key"
+              v-model="ontologyToEdit[field.key]"
+              type="number"
+              min="0"
+            />
+            <!-- Default text input -->
+            <BFormInput
+              v-else
+              :id="'input-' + field.key"
+              v-model="ontologyToEdit[field.key]"
             />
           </BFormGroup>
         </BForm>
+
+        <template #footer>
+          <div class="d-flex justify-content-end gap-2 w-100">
+            <BButton
+              variant="outline-secondary"
+              @click="showEditModal = false"
+            >
+              <i class="bi bi-x-circle me-1" />
+              Cancel
+            </BButton>
+            <BButton
+              variant="primary"
+              @click="updateOntologyData"
+            >
+              <i class="bi bi-check-circle me-1" />
+              Save Changes
+            </BButton>
+          </div>
+        </template>
       </BModal>
     </BContainer>
   </div>
@@ -270,7 +346,6 @@ import { ref, inject } from 'vue';
 import GenericTable from '@/components/small/GenericTable.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import useToast from '@/composables/useToast';
-import useModalControls from '@/composables/useModalControls';
 import { useUrlParsing, useTableData, useExcelExport } from '@/composables';
 
 // Import the Pinia store
@@ -310,6 +385,10 @@ export default {
       is_active: { content: null, join_char: null, operator: 'equals' },
     });
 
+    // Modal visibility state - Bootstrap-Vue-Next uses v-model pattern
+    const showEditModal = ref(false);
+    const ontologyToEdit = ref({});
+
     const axios = inject('axios');
 
     return {
@@ -322,6 +401,8 @@ export default {
       isExporting,
       exportToExcel,
       axios,
+      showEditModal,
+      ontologyToEdit,
     };
   },
   data() {
@@ -388,12 +469,6 @@ export default {
           class: 'text-center',
         },
       ],
-      ontologyToUpdate: {},
-      updateOntologyModal: {
-        id: 'update-ontology-modal',
-        title: '',
-        content: [],
-      },
     };
   },
   computed: {
@@ -681,14 +756,12 @@ export default {
      *
      * @function editOntology
      * @param {Object} item - The selected ontology item
-     * @param {Object} button - The button that triggered the edit action
      * @returns {void}
      */
-    editOntology(item, button) {
-      this.updateOntologyModal.title = `${item.vario_id}`;
-      this.ontologyToUpdate = item;
-      const { showModal } = useModalControls();
-      showModal(this.updateOntologyModal.id);
+    editOntology(item) {
+      // Deep copy to prevent direct mutation of table data
+      this.ontologyToEdit = JSON.parse(JSON.stringify(item));
+      this.showEditModal = true;
     },
 
     /**
@@ -703,7 +776,7 @@ export default {
       try {
         const response = await this.axios.put(
           apiUrl,
-          { ontology_details: this.ontologyToUpdate },
+          { ontology_details: this.ontologyToEdit },
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -712,18 +785,17 @@ export default {
         );
         this.makeToast(response.data.message, 'Success', 'success');
         // Update the ontology in the local state
-        const index = this.ontologies.findIndex((o) => o.vario_id === this.ontologyToUpdate.vario_id);
+        const index = this.ontologies.findIndex((o) => o.vario_id === this.ontologyToEdit.vario_id);
         if (index !== -1) {
-          this.ontologies.splice(index, 1, this.ontologyToUpdate);
+          this.ontologies.splice(index, 1, { ...this.ontologyToEdit });
         }
+        // Close the modal after successful update
+        this.showEditModal = false;
+        // Reset the ontologyToEdit object
+        this.ontologyToEdit = {};
       } catch (e) {
-        this.makeToast(e.response.data.error || e.message, 'Error', 'danger');
+        this.makeToast(e.response?.data?.error || e.message, 'Error', 'danger');
       }
-      // Close the modal after the update
-      const { hideModal } = useModalControls();
-      hideModal(this.updateOntologyModal.id);
-      // Reset the ontologyToUpdate object
-      this.ontologyToUpdate = {};
     },
   },
 };
