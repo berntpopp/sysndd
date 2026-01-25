@@ -17,7 +17,7 @@ This roadmap tracks the current milestone and references completed milestones ar
 
 **Milestone Goal:** Transform admin views from basic CRUD forms into modern, feature-rich management interfaces with consistent UI/UX, pagination, search, and visualization.
 
-**Progress:** Phase 28 of 33 (complete) → Phase 29 next
+**Progress:** Phase 30 of 33 (complete) → Phase 31 next
 **Requirements:** 35 total (100% coverage)
 **Target:** 6 phases extending TablesEntities patterns to admin domain
 
@@ -55,10 +55,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 29-01-PLAN.md — Backend bulk endpoints (bulk_approve, bulk_delete, bulk_assign_role)
-- [ ] 29-02-PLAN.md — Frontend composables (useBulkSelection, useFilterPresets)
-- [ ] 29-03-PLAN.md — ManageUser.vue bulk selection UI (checkboxes, badge, action bar)
-- [ ] 29-04-PLAN.md — Bulk action implementation and filter presets
+- [x] 29-01-PLAN.md — Backend bulk endpoints (bulk_approve, bulk_delete, bulk_assign_role)
+- [x] 29-02-PLAN.md — Frontend composables (useBulkSelection, useFilterPresets)
+- [x] 29-03-PLAN.md — ManageUser.vue bulk selection UI (checkboxes, badge, action bar)
+- [x] 29-04-PLAN.md — Bulk action implementation and filter presets
 
 #### Phase 30: Statistics Dashboard
 **Goal**: Add Chart.js visualizations to AdminStatistics with scientific context
@@ -73,9 +73,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 30-01-PLAN.md — Install Chart.js and create reusable chart components
-- [ ] 30-02-PLAN.md — Add contributor leaderboard API endpoint
-- [ ] 30-03-PLAN.md — Modernize AdminStatistics.vue with charts and KPI cards
+- [x] 30-01-PLAN.md — Install Chart.js and create reusable chart components
+- [x] 30-02-PLAN.md — Add contributor leaderboard API endpoint
+- [x] 30-03-PLAN.md — Modernize AdminStatistics.vue with charts and KPI cards
 
 #### Phase 31: Content Management
 **Goal**: Build CMS editor for ManageAbout page with draft/publish workflow
@@ -138,8 +138,8 @@ Phases execute in numeric order: 28 → 29 → 30 → 31 → 32 → 33
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 28. Table Foundation | v6.0 | 3/3 | ✓ Complete | 2026-01-25 |
-| 29. User Management | v6.0 | 0/4 | Planned | - |
-| 30. Statistics Dashboard | v6.0 | 0/3 | Planned | - |
+| 29. User Management | v6.0 | 4/4 | ✓ Complete | 2026-01-25 |
+| 30. Statistics Dashboard | v6.0 | 3/3 | ✓ Complete | 2026-01-25 |
 | 31. Content Management | v6.0 | 0/4 | Planned | - |
 | 32. Async Jobs | v6.0 | 0/3 | Planned | - |
 | 33. Logging & Analytics | v6.0 | 0/3 | Planned | - |
@@ -158,4 +158,4 @@ Phases execute in numeric order: 28 → 29 → 30 → 31 → 32 → 33
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-01-25 — Phase 33 planned (3 plans)*
+*Last updated: 2026-01-25 — Phase 30 complete (Statistics Dashboard)*

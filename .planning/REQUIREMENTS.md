@@ -18,22 +18,22 @@ Requirements for Admin Panel Modernization. Each maps to roadmap phases.
 
 ### User Management
 
-- [ ] **USR-01**: Admin can bulk select users across multiple pages
-- [ ] **USR-02**: Admin can bulk approve selected users
-- [ ] **USR-03**: Admin can bulk delete selected users
-- [ ] **USR-04**: Admin can bulk assign roles to selected users
-- [ ] **USR-05**: Selection state persists across pagination (Set-based ID storage)
-- [ ] **USR-06**: Confirmation dialog shows all selected items before bulk action
-- [ ] **USR-07**: Admin can save filter combinations as named views ("Pending Approvals")
-- [ ] **USR-08**: Role selector uses dropdown instead of text input
+- [x] **USR-01**: Admin can bulk select users across multiple pages
+- [x] **USR-02**: Admin can bulk approve selected users
+- [x] **USR-03**: Admin can bulk delete selected users
+- [x] **USR-04**: Admin can bulk assign roles to selected users
+- [x] **USR-05**: Selection state persists across pagination (Set-based ID storage)
+- [x] **USR-06**: Confirmation dialog shows all selected items before bulk action
+- [x] **USR-07**: Admin can save filter combinations as named views ("Pending Approvals")
+- [x] **USR-08**: Role selector uses dropdown instead of text input
 
 ### Statistics Dashboard
 
-- [ ] **STAT-01**: AdminStatistics displays line chart for entities over time
-- [ ] **STAT-02**: AdminStatistics displays bar chart for user contributions
-- [ ] **STAT-03**: AdminStatistics uses Chart.js integration via vue-chartjs
-- [ ] **STAT-04**: Charts include scientific context (baselines, comparisons, "What this means" text)
-- [ ] **STAT-05**: Dashboard has card-based layout with loading states
+- [x] **STAT-01**: AdminStatistics displays line chart for entities over time
+- [x] **STAT-02**: AdminStatistics displays bar chart for user contributions
+- [x] **STAT-03**: AdminStatistics uses Chart.js integration via vue-chartjs
+- [x] **STAT-04**: Charts include scientific context (baselines, comparisons, "What this means" text)
+- [x] **STAT-05**: Dashboard has card-based layout with loading states
 
 ### Content Management
 
@@ -109,19 +109,19 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TBL-04 | Phase 28 | Complete |
 | TBL-05 | Phase 28 | Complete |
 | TBL-06 | Phase 28 | Complete |
-| USR-01 | Phase 29 | Pending |
-| USR-02 | Phase 29 | Pending |
-| USR-03 | Phase 29 | Pending |
-| USR-04 | Phase 29 | Pending |
-| USR-05 | Phase 29 | Pending |
-| USR-06 | Phase 29 | Pending |
-| USR-07 | Phase 29 | Pending |
-| USR-08 | Phase 29 | Pending |
-| STAT-01 | Phase 30 | Pending |
-| STAT-02 | Phase 30 | Pending |
-| STAT-03 | Phase 30 | Pending |
-| STAT-04 | Phase 30 | Pending |
-| STAT-05 | Phase 30 | Pending |
+| USR-01 | Phase 29 | Complete |
+| USR-02 | Phase 29 | Complete |
+| USR-03 | Phase 29 | Complete |
+| USR-04 | Phase 29 | Complete |
+| USR-05 | Phase 29 | Complete |
+| USR-06 | Phase 29 | Complete |
+| USR-07 | Phase 29 | Complete |
+| USR-08 | Phase 29 | Complete |
+| STAT-01 | Phase 30 | Complete |
+| STAT-02 | Phase 30 | Complete |
+| STAT-03 | Phase 30 | Complete |
+| STAT-04 | Phase 30 | Complete |
+| STAT-05 | Phase 30 | Complete |
 | CMS-01 | Phase 31 | Pending |
 | CMS-02 | Phase 31 | Pending |
 | CMS-03 | Phase 31 | Pending |
@@ -154,4 +154,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-25*
-*Last updated: 2026-01-25 — Phase 28 requirements complete (TBL-01 through TBL-06)*
+*Last updated: 2026-01-25 — Phase 30 requirements complete (STAT-01 through STAT-05)*
