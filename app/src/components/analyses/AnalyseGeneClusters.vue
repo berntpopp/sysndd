@@ -308,6 +308,8 @@ import TablePaginationControls from '@/components/small/TablePaginationControls.
 
 // Import filter components
 import TermSearch from '@/components/filters/TermSearch.vue';
+import CategoryFilter from '@/components/filters/CategoryFilter.vue';
+import ScoreSlider from '@/components/filters/ScoreSlider.vue';
 
 // Import NetworkVisualization component (replaces D3.js bubble chart)
 import NetworkVisualization from '@/components/analyses/NetworkVisualization.vue';
@@ -325,6 +327,8 @@ export default {
     GenericTable,
     TablePaginationControls,
     TermSearch,
+    CategoryFilter,
+    ScoreSlider,
     NetworkVisualization,
     Splitpanes,
     Pane,
