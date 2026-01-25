@@ -6,22 +6,23 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v6.0 Admin Panel Modernization — Phase 31 (Content Management) COMPLETE
+**Current focus:** v6.0 Admin Panel Modernization — Phase 32 (Async Jobs) IN PROGRESS
 
 ## Current Position
 
 **Milestone:** v6.0 Admin Panel Modernization
-**Phase:** 31 of 33 (Content Management) COMPLETE
-**Plan:** 04 of 04 complete
-**Status:** Phase complete
-**Last activity:** 2026-01-26 — Completed 31-04-PLAN.md (ManageAbout Integration)
+**Phase:** 32 of 33 (Async Jobs)
+**Plan:** 01 of 04 complete
+**Status:** In progress
+**Last activity:** 2026-01-26 — Completed 32-01-PLAN.md (useAsyncJob Composable)
 
 ```
-v6.0 Admin Panel Modernization: [████████████████░░░░░░░░░░░░] 52%
+v6.0 Admin Panel Modernization: [█████████████████░░░░░░░░░░░] 56%
 Phase 28 Table Foundation:     [██████████] 3/3 plans ✓
 Phase 29 User Management:      [██████████] 4/4 plans ✓
 Phase 30 Statistics Dashboard: [██████████] 3/3 plans ✓
 Phase 31 Content Management:   [██████████] 4/4 plans ✓
+Phase 32 Async Jobs:           [██░░░░░░░░] 1/4 plans
 ```
 
 ## Performance Metrics
@@ -42,7 +43,7 @@ Phase 31 Content Management:   [██████████] 4/4 plans ✓
 | v5 Analysis Modernization | 25-27 | 16 | 2026-01-25 |
 
 **v6.0 Progress:**
-- Plans completed: 14
+- Plans completed: 15
 - Phases completed: 4 (Phases 28-31)
 - Average duration: 2.9min
 - Trend: Strong velocity
@@ -89,6 +90,7 @@ Recent v6-relevant decisions:
 - **Side-by-side editor/preview** (31-03): Editor left, preview right at SectionEditor level (not page level)
 - **Drag handle pattern** (31-03): .drag-handle class with grab/grabbing cursors for vuedraggable integration
 - **Auto-expand new sections** (31-03): New sections added via "Add Section" auto-expand for immediate editing
+- **useAsyncJob composable** (32-01): VueUse useIntervalFn for auto-cleanup polling, provides reactive job state
 
 ### Pending Todos
 
@@ -104,11 +106,11 @@ None yet.
 
 ## Session Continuity
 
-**Last session:** 2026-01-26 00:20 UTC
-**Stopped at:** Completed Phase 31 (Content Management)
+**Last session:** 2026-01-26
+**Stopped at:** Completed 32-01-PLAN.md (useAsyncJob Composable)
 **Resume file:** None
-**Next action:** Start Phase 32 (Async Jobs)
+**Next action:** Continue Phase 32 (32-02-PLAN.md)
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-26 — Completed Phase 31 (Content Management)*
+*Last updated: 2026-01-26 — Completed 32-01-PLAN.md (useAsyncJob Composable)*
