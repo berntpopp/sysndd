@@ -40,11 +40,25 @@
               displays detailed information about the variables within each cluster.
             </BPopover>
           </h6>
-          <!-- Add download button for the cluster plot -->
-          <DownloadImageButtons
-            :svg-id="'cluster_dataviz-svg'"
-            :file-name="'cluster_plot'"
-          />
+          <!-- Add export buttons for Cytoscape network -->
+          <div class="btn-group btn-group-sm">
+            <BButton
+              variant="outline-secondary"
+              size="sm"
+              @click="exportPNG"
+              title="Export as PNG"
+            >
+              <i class="bi bi-image" />
+            </BButton>
+            <BButton
+              variant="outline-secondary"
+              size="sm"
+              @click="exportSVG"
+              title="Export as SVG"
+            >
+              <i class="bi bi-filetype-svg" />
+            </BButton>
+          </div>
         </div>
       </template>
 
@@ -238,7 +252,6 @@
 import { ref } from 'vue';
 import useToast from '@/composables/useToast';
 import { usePhenotypeCytoscape } from '@/composables';
-import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 
 // Import your small table components:
 import GenericTable from '@/components/small/GenericTable.vue';
@@ -248,7 +261,6 @@ import TablePaginationControls from '@/components/small/TablePaginationControls.
 export default {
   name: 'AnalysesPhenotypeClusters',
   components: {
-    DownloadImageButtons,
     GenericTable,
     TableSearchInput,
     TablePaginationControls,
@@ -516,6 +528,30 @@ export default {
       if (this.cyInstance && this.itemsCluster.length > 0) {
         this.cyInstance.updateElements(this.itemsCluster);
       }
+    },
+
+    /* --------------------------------------
+     * Export functions for Cytoscape network
+     * ------------------------------------ */
+    exportPNG() {
+      if (!this.cyInstance) return;
+      const png = this.cyInstance.exportPNG();
+      const link = document.createElement('a');
+      link.href = png;
+      link.download = 'phenotype_clusters.png';
+      link.click();
+    },
+
+    exportSVG() {
+      if (!this.cyInstance) return;
+      const svgContent = this.cyInstance.exportSVG();
+      const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'phenotype_clusters.svg';
+      link.click();
+      URL.revokeObjectURL(url);
     },
   },
 };
