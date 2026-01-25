@@ -39,14 +39,16 @@
 #* @serializer json list(na="string")
 #* @param page_after:str Cursor for pagination (hash_filter of last item, empty for first page)
 #* @param page_size:str Number of clusters per page (default "10", max "50")
+#* @param algorithm:str Clustering algorithm: "leiden" (default, fast) or "walktrap" (slower, legacy)
 #*
 #* @response 200 OK. Returns object with:
 #*   - categories: Full list of enrichment categories with links
 #*   - clusters: Array of cluster objects (paginated)
 #*   - pagination: {page_size, page_after, next_cursor, total_count, has_more}
+#*   - meta: {algorithm, cache_hit}
 #*
 #* @get functional_clustering
-function(page_after = "", page_size = "10") {
+function(page_after = "", page_size = "10", algorithm = "leiden") {
   # Define link sources
   value <- c(
     "COMPARTMENTS",
@@ -97,6 +99,15 @@ function(page_after = "", page_size = "10") {
   page_size_int <- min(max(as.integer(page_size), 1), 50)
   page_after_clean <- if (is.null(page_after) || page_after == "") "" else page_after
 
+  # Validate algorithm parameter
+  algorithm_clean <- tolower(algorithm)
+  if (!algorithm_clean %in% c("leiden", "walktrap")) {
+    algorithm_clean <- "leiden"  # Default to faster algorithm
+  }
+
+  # Track timing for performance monitoring
+  start_time <- Sys.time()
+
   # Get data from database
   genes_from_entity_table <- pool %>%
     tbl("ndd_entity_view") %>%
@@ -106,8 +117,14 @@ function(page_after = "", page_size = "10") {
     collect() %>%
     unique()
 
-  # Generate clusters for the retrieved HGNC IDs
-  functional_clusters <- gen_string_clust_obj_mem(genes_from_entity_table$hgnc_id)
+  # Generate clusters for the retrieved HGNC IDs with selected algorithm
+  functional_clusters <- gen_string_clust_obj_mem(
+    genes_from_entity_table$hgnc_id,
+    algorithm = algorithm_clean
+  )
+
+  # Calculate elapsed time
+  elapsed_seconds <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
 
   # Generate categories
   categories <- functional_clusters %>%
@@ -162,6 +179,12 @@ function(page_after = "", page_size = "10") {
       next_cursor = next_cursor,
       total_count = nrow(clusters_sorted),
       has_more = !is.null(next_cursor)
+    ),
+    meta = list(
+      algorithm = algorithm_clean,
+      elapsed_seconds = round(elapsed_seconds, 2),
+      gene_count = nrow(genes_from_entity_table),
+      cluster_count = nrow(clusters_sorted)
     )
   )
 }

@@ -1153,9 +1153,6 @@ post_db_hash <- function(
   json_tibble <- json_tibble %>%
     arrange(!!!rlang::parse_exprs((json_tibble %>% colnames())[1]))
 
-  # validate columns using hash repository
-  hash_validate_columns(colnames(json_tibble), allowed_col_list)
-
   json_sort <- toJSON(json_tibble)
   ## -------------------------------------------------------------------##
 
@@ -1163,6 +1160,29 @@ post_db_hash <- function(
   ## -------------------------------------------------------------------##
   # block to generate hash and check if present in data
   json_sort_hash <- as.character(generate_json_hash(json_sort))
+
+  # Check if database is available (pool exists)
+  # In mirai daemon context, pool is not available
+  db_available <- tryCatch({
+    exists("pool") && !is.null(pool)
+  }, error = function(e) FALSE)
+
+  if (!db_available) {
+    # Database not available (daemon context) - compute hash only
+    # The hash string is still usable, just not registered in database
+    links <- as_tibble(list(
+      "hash" = paste0("equals(hash,", json_sort_hash, ")")
+    ))
+    return(list(
+      links = links,
+      status = 200,
+      message = "OK. Hash computed (no database).",
+      data = json_sort_hash
+    ))
+  }
+
+  # validate columns using hash repository
+  hash_validate_columns(colnames(json_tibble), allowed_col_list)
 
   # check if hash exists using repository
   hash_already_exists <- hash_exists(json_sort_hash)

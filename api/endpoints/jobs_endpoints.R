@@ -34,6 +34,21 @@ function(req, res) {
     genes_list <- req$argsBody$genes
   }
 
+  # Extract algorithm parameter (default: leiden)
+  # Ensure we get a scalar value (JSON may pass arrays)
+  algorithm <- "leiden"
+  if (!is.null(req$argsBody$algorithm)) {
+    algo_input <- req$argsBody$algorithm
+    # Handle array input - always take first element if vector
+    if (is.list(algo_input) || length(algo_input) >= 1) {
+      algo_input <- algo_input[[1]]
+    }
+    algorithm <- tolower(as.character(algo_input))
+    if (!algorithm %in% c("leiden", "walktrap")) {
+      algorithm <- "leiden"
+    }
+  }
+
   # If no genes provided, use default (all NDD genes)
   # This matches current functional_clustering endpoint behavior
   if (is.null(genes_list) || length(genes_list) == 0) {
@@ -47,8 +62,16 @@ function(req, res) {
       pull(hgnc_id)
   }
 
-  # Check for duplicate job
-  dup_check <- check_duplicate_job("clustering", list(genes = genes_list))
+  # CRITICAL: Pre-fetch STRING ID table BEFORE mirai call
+  # Database connections cannot cross process boundaries (mirai best practice)
+  string_id_table <- pool %>%
+    tbl("non_alt_loci_set") %>%
+    filter(!is.na(STRING_id)) %>%
+    select(symbol, hgnc_id, STRING_id) %>%
+    collect()
+
+  # Check for duplicate job (include algorithm in check)
+  dup_check <- check_duplicate_job("clustering", list(genes = genes_list, algorithm = algorithm))
   if (dup_check$duplicate) {
     res$status <- 409
     res$setHeader("Location", paste0("/api/jobs/", dup_check$existing_job_id, "/status"))
@@ -60,14 +83,77 @@ function(req, res) {
     ))
   }
 
+  # Define category links (needed for result)
+  category_links <- tibble::tibble(
+    value = c(
+      "COMPARTMENTS", "Component", "DISEASES", "Function", "HPO",
+      "InterPro", "KEGG", "Keyword", "NetworkNeighborAL", "Pfam",
+      "PMID", "Process", "RCTM", "SMART", "TISSUES", "WikiPathways"
+    ),
+    link = c(
+      "https://www.ebi.ac.uk/QuickGO/term/",
+      "https://www.ebi.ac.uk/QuickGO/term/",
+      "https://disease-ontology.org/term/",
+      "https://www.ebi.ac.uk/QuickGO/term/",
+      "https://hpo.jax.org/app/browse/term/",
+      "http://www.ebi.ac.uk/interpro/entry/InterPro/",
+      "https://www.genome.jp/dbget-bin/www_bget?",
+      "https://www.uniprot.org/keywords/",
+      "https://string-db.org/cgi/network?input_query_species=9606&network_cluster_id=",
+      "https://www.ebi.ac.uk/interpro/entry/pfam/",
+      "https://www.ncbi.nlm.nih.gov/search/all/?term=",
+      "https://www.ebi.ac.uk/QuickGO/term/",
+      "https://reactome.org/content/detail/R-",
+      "http://www.ebi.ac.uk/interpro/entry/smart/",
+      "https://ontobee.org/ontology/BTO?iri=http://purl.obolibrary.org/obo/",
+      "https://www.wikipathways.org/index.php/Pathway:"
+    )
+  )
+
   # Create async job
   result <- create_job(
     operation = "clustering",
-    params = list(genes = genes_list),
+    params = list(
+      genes = genes_list,
+      algorithm = algorithm,
+      category_links = category_links,
+      string_id_table = string_id_table
+    ),
     executor_fn = function(params) {
-      # This runs in mirai daemon - use memoized version
-      # Use non-memoized version (memoized not available in daemon)
-      gen_string_clust_obj(params$genes)
+      # This runs in mirai daemon
+      # Pass pre-fetched string_id_table since daemon can't access pool
+      clusters <- gen_string_clust_obj(
+        params$genes,
+        algorithm = params$algorithm,
+        string_id_table = params$string_id_table
+      )
+
+      # Generate categories from clusters
+      categories <- clusters %>%
+        dplyr::select(term_enrichment) %>%
+        tidyr::unnest(cols = c(term_enrichment)) %>%
+        dplyr::select(category) %>%
+        unique() %>%
+        dplyr::arrange(category) %>%
+        dplyr::mutate(
+          text = dplyr::case_when(
+            nchar(category) <= 5 ~ category,
+            nchar(category) > 5 ~ stringr::str_to_sentence(category)
+          )
+        ) %>%
+        dplyr::select(value = category, text) %>%
+        dplyr::left_join(params$category_links, by = c("value"))
+
+      # Return both clusters and categories
+      list(
+        clusters = clusters,
+        categories = categories,
+        meta = list(
+          algorithm = params$algorithm,
+          gene_count = length(params$genes),
+          cluster_count = nrow(clusters)
+        )
+      )
     }
   )
 

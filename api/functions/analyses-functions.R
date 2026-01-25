@@ -9,6 +9,7 @@
 #' @param parent the parent cluster name used in the generation of subclusters
 #' @param enrichment Boolean value indicating whether to perform enrichment
 #' @param algorithm Clustering algorithm name (default: "leiden")
+#' @param string_id_table Pre-fetched STRING ID table (for daemon context)
 #'
 #' @return The clusters tibble
 #' @export
@@ -18,24 +19,25 @@ gen_string_clust_obj <- function(
   subcluster = TRUE,
   parent = NA,
   enrichment = TRUE,
-  algorithm = "leiden"
+  algorithm = "leiden",
+  string_id_table = NULL
 ) {
   # Version constants for cache invalidation
-
   string_version <- "11.5"  # Must match STRINGdb$new version below
-
   cache_version <- Sys.getenv("CACHE_VERSION", "1")  # Manual invalidation
+  # Stable format version - only bump when output structure changes
+  # (not when adding optional parameters or refactoring)
+  format_version <- "2"
 
-  # compute hashes for input
+  # compute hash for input gene panel
   panel_hash <- generate_panel_hash(hgnc_list)
-  function_hash <- generate_function_hash(gen_string_clust_obj)
 
-  # generate result output filename with algorithm and version components
-  # This ensures cache invalidation when algorithm or STRING version changes
+  # generate result output filename with stable version components
+  # This ensures cache invalidation when algorithm, STRING version, or format changes
   filename_results <- paste0(
     "results/",
     panel_hash, ".",
-    function_hash, ".",
+    "fmt_v", format_version, ".",
     algorithm, ".",
     "string_v", string_version, ".",
     "cache_v", cache_version, ".",
@@ -55,13 +57,19 @@ gen_string_clust_obj <- function(
       input_directory = "data"
     )
 
-    # load gene table from database and filter to input HGNC list
-    sysndd_db_string_id_table <- pool %>%
-      tbl("non_alt_loci_set") %>%
-      filter(!is.na(STRING_id)) %>%
-      select(symbol, hgnc_id, STRING_id) %>%
-      collect() %>%
-      filter(hgnc_id %in% hgnc_list)
+    # Load gene table from database and filter to input HGNC list
+    # If string_id_table is provided (for daemon context), use it; otherwise fetch from pool
+    if (!is.null(string_id_table)) {
+      sysndd_db_string_id_table <- string_id_table %>%
+        filter(hgnc_id %in% hgnc_list)
+    } else {
+      sysndd_db_string_id_table <- pool %>%
+        tbl("non_alt_loci_set") %>%
+        filter(!is.na(STRING_id)) %>%
+        select(symbol, hgnc_id, STRING_id) %>%
+        collect() %>%
+        filter(hgnc_id %in% hgnc_list)
+    }
 
     # convert to dataframe
     sysndd_db_string_id_df <- sysndd_db_string_id_table %>%
@@ -85,24 +93,36 @@ gen_string_clust_obj <- function(
       vids = which(igraph::V(string_graph)$name %in% genes_in_graph)
     )
 
-    # Run Leiden clustering (2-3x faster than Walktrap)
-    # Parameters optimized for PPI networks:
-    # - modularity: Standard objective for biological networks
-    # - resolution=1.0: Default, produces similar cluster sizes to Walktrap
-    # - beta=0.01: Low randomness ensures reproducible results
-    # - n_iterations=2: Default, balances quality and speed
-    leiden_result <- igraph::cluster_leiden(
-      subgraph,
-      objective_function = "modularity",
-      resolution_parameter = 1.0,
-      beta = 0.01,
-      n_iterations = 2
-    )
+    # Run clustering algorithm based on parameter
+    # Leiden: 2-3x faster, good for large networks
+    # Walktrap: Classic algorithm, uses random walks to detect communities
+    if (algorithm == "walktrap") {
+      # Walktrap clustering using random walks
+      # steps=4 is default and works well for PPI networks
+      cluster_result <- igraph::cluster_walktrap(
+        subgraph,
+        steps = 4
+      )
+    } else {
+      # Default: Leiden clustering (faster)
+      # Parameters optimized for PPI networks:
+      # - modularity: Standard objective for biological networks
+      # - resolution=1.0: Default, produces similar cluster sizes to Walktrap
+      # - beta=0.01: Low randomness ensures reproducible results
+      # - n_iterations=2: Default, balances quality and speed
+      cluster_result <- igraph::cluster_leiden(
+        subgraph,
+        objective_function = "modularity",
+        resolution_parameter = 1.0,
+        beta = 0.01,
+        n_iterations = 2
+      )
+    }
 
     # Convert to list format (compatible with existing downstream code)
     clusters_list <- split(
       igraph::V(subgraph)$name,
-      leiden_result$membership
+      cluster_result$membership
     )
 
     clusters_tibble <- tibble(clusters_list) %>%
@@ -143,7 +163,9 @@ gen_string_clust_obj <- function(
           mutate(., subclusters = list(gen_string_clust_obj(
             identifiers$hgnc_id,
             subcluster = FALSE,
-            parent = cluster
+            parent = cluster,
+            algorithm = algorithm,
+            string_id_table = string_id_table
           )))
         } else {
           .
@@ -205,17 +227,17 @@ gen_mca_clust_obj <- function(
 ) {
   # Cache version for manual invalidation
   cache_version <- Sys.getenv("CACHE_VERSION", "1")
+  # Stable format version - only bump when output structure changes
+  format_version <- "2"
 
-  # compute hashes for input
+  # compute hash for input
   panel_hash <- generate_panel_hash(row.names(wide_phenotypes_df))
-  function_hash <- generate_function_hash(gen_mca_clust_obj)
 
-  # generate result output filename with cache version
-  # Fixed double-dot bug from original implementation
+  # generate result output filename with stable version
   filename_results <- paste0(
     "results/",
     panel_hash, ".",
-    function_hash, ".",
+    "fmt_v", format_version, ".",
     "mca.",
     "cache_v", cache_version, ".json"
   )

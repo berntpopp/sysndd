@@ -88,20 +88,59 @@
                   </BInputGroup>
                 </BCol>
               </BRow>
+              <BRow class="mt-1">
+                <BCol>
+                  <BInputGroup
+                    prepend="Algorithm"
+                    size="sm"
+                  >
+                    <BFormSelect
+                      v-model="algorithm"
+                      :options="algorithmOptions"
+                      :disabled="loading"
+                      size="sm"
+                      @change="reloadWithAlgorithm"
+                    />
+                  </BInputGroup>
+                </BCol>
+              </BRow>
             </template>
 
+            <!-- Loading state - shown while fetching data -->
             <div
-              id="gene_cluster_dataviz"
-              class="svg-container"
+              v-if="loading"
+              class="svg-container loading-container"
             >
               <BSpinner
-                v-if="loading"
                 label="Loading..."
                 class="spinner"
               />
-              <div v-else>
-                <!-- Graph rendered by D3 here -->
+              <div class="loading-info mt-3">
+                <BProgress
+                  :value="loadingProgress"
+                  :max="100"
+                  show-progress
+                  animated
+                  class="mb-2"
+                />
+                <small class="text-muted">
+                  <span v-if="loadingStage === 'initializing'">Initializing...</span>
+                  <span v-else-if="loadingStage === 'submitting'">Submitting job...</span>
+                  <span v-else-if="loadingStage === 'processing'">
+                    Processing clusters (est. {{ estimatedSeconds }}s)...
+                  </span>
+                  <span v-else-if="loadingStage === 'loading_data'">Loading data...</span>
+                </small>
               </div>
+            </div>
+            <!-- D3 graph container - uses key to force recreation on algorithm change -->
+            <div
+              v-else
+              :key="'graph-' + algorithm"
+              id="gene_cluster_dataviz"
+              class="svg-container"
+            >
+              <!-- Graph rendered by D3 here -->
             </div>
 
             <template #footer>
@@ -390,6 +429,15 @@ export default {
       activeSubCluster: 1,
 
       loading: true,
+      loadingStage: 'initializing', // 'initializing' | 'submitting' | 'processing' | 'loading_data'
+      loadingProgress: 0,
+      estimatedSeconds: 15,
+      jobId: null,
+      algorithm: 'leiden', // 'leiden' (fast) or 'walktrap' (legacy)
+      algorithmOptions: [
+        { value: 'leiden', text: 'Leiden (Fast)' },
+        { value: 'walktrap', text: 'Walktrap (Legacy)' },
+      ],
     };
   },
   computed: {
@@ -456,7 +504,7 @@ export default {
       let dataArray = this.selectedCluster[this.tableType] || [];
       dataArray = this.applyFilters(dataArray);
 
-      // If you rely on GenericTable for sorting, skip local sorting here
+      // Pagination
       const start = (this.currentPage - 1) * this.perPage;
       const end = start + this.perPage;
       return dataArray.slice(start, end);
@@ -466,13 +514,13 @@ export default {
     activeParentCluster() {
       if (this.selectType === 'clusters') {
         this.setActiveCluster();
-        this.generateClusterGraph();
+        this.$nextTick(() => this.generateClusterGraph());
       }
     },
     activeSubCluster() {
       if (this.selectType === 'subclusters') {
         this.setActiveCluster();
-        this.generateClusterGraph();
+        this.$nextTick(() => this.generateClusterGraph());
       }
     },
     tableType() {
@@ -505,10 +553,144 @@ export default {
     },
 
     /* --------------------------------------
-     * Load cluster data from API
+     * Load cluster data from API using async job system
      * ------------------------------------ */
     async loadClusterData() {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/analysis/functional_clustering`;
+      this.loading = true;
+      this.loadingStage = 'submitting';
+      this.loadingProgress = 5;
+
+      const baseUrl = import.meta.env.VITE_API_URL;
+
+      try {
+        // Step 1: Submit async job
+        const submitResponse = await this.axios.post(
+          `${baseUrl}/api/jobs/clustering/submit`,
+          { algorithm: this.algorithm },
+        );
+
+        // Extract job info (R returns arrays for scalars)
+        const jobId = Array.isArray(submitResponse.data.job_id)
+          ? submitResponse.data.job_id[0]
+          : submitResponse.data.job_id;
+        const estSeconds = Array.isArray(submitResponse.data.estimated_seconds)
+          ? submitResponse.data.estimated_seconds[0]
+          : submitResponse.data.estimated_seconds;
+
+        this.jobId = jobId;
+        this.estimatedSeconds = estSeconds || 30;
+
+        this.loadingStage = 'processing';
+        this.loadingProgress = 15;
+
+        // Step 2: Poll for results
+        await this.pollJobStatus();
+      } catch (e) {
+        // Handle 409 Conflict (duplicate job) - silently use existing job
+        if (e.response && e.response.status === 409) {
+          const existingJobId = Array.isArray(e.response.data.existing_job_id)
+            ? e.response.data.existing_job_id[0]
+            : e.response.data.existing_job_id;
+          this.jobId = existingJobId;
+          this.loadingStage = 'processing';
+          this.loadingProgress = 15;
+          await this.pollJobStatus();
+          return;
+        }
+
+        // Other errors: show toast and fall back to sync endpoint
+        this.makeToast('Using synchronous loading (async unavailable)', 'Info', 'info');
+        await this.loadClusterDataSync();
+      }
+    },
+
+    /**
+     * Poll job status until complete
+     */
+    async pollJobStatus() {
+      const baseUrl = import.meta.env.VITE_API_URL;
+      const maxAttempts = 60; // 5 minutes max (60 * 5 seconds)
+      let attempts = 0;
+      const startTime = Date.now();
+
+      const poll = async () => {
+        attempts += 1;
+
+        try {
+          const statusResponse = await this.axios.get(
+            `${baseUrl}/api/jobs/${this.jobId}/status`,
+          );
+
+          const responseData = statusResponse.data;
+
+          // R/plumber may return scalars as single-element arrays
+          const status = Array.isArray(responseData.status)
+            ? responseData.status[0]
+            : responseData.status;
+          const result = responseData.result;
+          const progress = responseData.progress;
+
+          // Update progress based on elapsed time vs estimate
+          const elapsed = (Date.now() - startTime) / 1000;
+          const estimatedProgress = Math.min(90, 15 + (elapsed / this.estimatedSeconds) * 75);
+          this.loadingProgress = progress || estimatedProgress;
+
+          if (status === 'completed') {
+            this.loadingStage = 'loading_data';
+            this.loadingProgress = 95;
+
+            // Process result - handle both {clusters, categories} and flat array formats
+            if (result && result.clusters) {
+              this.itemsCluster = result.clusters;
+              this.valueCategories = result.categories || [];
+            } else if (Array.isArray(result)) {
+              this.itemsCluster = result;
+              this.valueCategories = [];
+            } else {
+              this.itemsCluster = result;
+              this.valueCategories = [];
+            }
+
+            // Update loading state first, then render graph after DOM updates
+            this.loadingProgress = 100;
+            this.loading = false;
+
+            // Use nextTick to ensure DOM is updated before D3 manipulates it
+            this.$nextTick(() => {
+              this.setActiveCluster();
+              this.generateClusterGraph();
+            });
+            return;
+          }
+
+          if (status === 'failed') {
+            throw new Error(responseData.error || 'Clustering job failed');
+          }
+
+          // Still running, poll again
+          if (attempts < maxAttempts) {
+            const retryAfter = parseInt(statusResponse.headers['retry-after'] || '5', 10) * 1000;
+            setTimeout(poll, retryAfter);
+          } else {
+            throw new Error('Job timed out after 5 minutes');
+          }
+        } catch (e) {
+          this.makeToast(e, 'Error', 'danger');
+          this.loading = false;
+        }
+      };
+
+      await poll();
+    },
+
+    /**
+     * Fallback: Synchronous data loading (for when async fails)
+     */
+    async loadClusterDataSync() {
+      this.loadingStage = 'loading_data';
+      this.loadingProgress = 50;
+
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/analysis/functional_clustering?algorithm=${this.algorithm}`;
       try {
         const response = await this.axios.get(apiUrl);
         this.itemsCluster = response.data.clusters;
@@ -520,6 +702,27 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+
+    /**
+     * Reload with different algorithm
+     * Note: v-model already updates this.algorithm before @change fires,
+     * so we just trigger a reload with the current (already updated) algorithm
+     */
+    async reloadWithAlgorithm() {
+      // Set loading first - Vue will hide D3 container and show loading spinner
+      this.loading = true;
+      this.loadingProgress = 0;
+      this.loadingStage = 'submitting';
+
+      // Wait for Vue to swap from D3 container to loading spinner
+      await this.$nextTick();
+
+      // v-model already updated this.algorithm, and :key="'graph-' + algorithm"
+      // will force container recreation when loading finishes
+
+      // Load new data with updated algorithm
+      await this.loadClusterData();
     },
 
     setActiveCluster() {
@@ -604,6 +807,13 @@ export default {
      * Graph code for cluster viz
      * ------------------------------------ */
     generateClusterGraph() {
+      // Ensure container exists before D3 manipulation
+      const container = document.getElementById('gene_cluster_dataviz');
+      if (!container) {
+        console.warn('generateClusterGraph: container not found, skipping');
+        return;
+      }
+
       const margin = {
         top: 10, right: 10, bottom: 10, left: 10,
       };
@@ -775,8 +985,23 @@ export default {
 .spinner {
   width: 2rem;
   height: 2rem;
-  margin: 5rem auto;
+  margin: 2rem auto 1rem;
   display: block;
+}
+
+.loading-container {
+  text-align: center;
+  padding: 2rem;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-info {
+  width: 80%;
+  max-width: 300px;
 }
 
 mark {
