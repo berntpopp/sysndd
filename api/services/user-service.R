@@ -306,3 +306,246 @@ user_change_password <- function(user_id, old_password, new_password,
 
   list(status = 200, message = "Password changed successfully")
 }
+
+
+#' Bulk approve multiple users atomically
+#'
+#' Approves multiple users in a single atomic transaction. All users
+#' are approved or none are (all-or-nothing guarantee).
+#'
+#' @param user_ids Integer vector of user IDs to approve
+#' @param approving_user_id Integer user ID performing the approval
+#' @param pool Database connection pool
+#' @return List with processed count and message
+#'
+#' @details
+#' - Validates array length <= 20 users
+#' - Wraps all operations in database transaction
+#' - For each user: sets account_status to "active", generates password, sends email
+#' - If ANY user fails (not found, already approved), rolls back ALL changes
+#' - Uses db_with_transaction for atomic semantics
+#'
+#' @examples
+#' \dontrun{
+#' result <- user_bulk_approve(c(42, 43, 44), 1, pool)
+#' }
+#'
+#' @export
+user_bulk_approve <- function(user_ids, approving_user_id, pool) {
+  # Validate array length
+  if (length(user_ids) == 0) {
+    stop("user_ids cannot be empty")
+  }
+  if (length(user_ids) > 20) {
+    stop("Cannot process more than 20 users at once")
+  }
+
+  # Execute all operations in a transaction
+  db_with_transaction({
+    processed <- 0
+
+    for (user_id in user_ids) {
+      # Get user details
+      user <- pool %>%
+        tbl("user") %>%
+        filter(user_id == !!user_id) %>%
+        select(
+          user_id, user_name, email, first_name, family_name,
+          account_status, password
+        ) %>%
+        collect()
+
+      if (nrow(user) == 0) {
+        stop(paste("User not found:", user_id))
+      }
+
+      if (user$account_status == "active") {
+        stop(paste("User account already active:", user_id))
+      }
+
+      # Update user account status
+      db_execute_statement(
+        "UPDATE user SET account_status = ?, approving_user_id = ? WHERE user_id = ?",
+        list("active", approving_user_id, user_id)
+      )
+
+      # Generate password if user doesn't have one
+      if (is.null(user$password) || user$password == "") {
+        user_password <- random_password()
+        user_initials <- generate_initials(user$first_name, user$family_name)
+
+        # Hash password with Argon2id before storing
+        hashed_password <- hash_password(user_password)
+        user_update_password(user_id, hashed_password)
+
+        # Update abbreviation
+        db_execute_statement(
+          "UPDATE user SET abbreviation = ? WHERE user_id = ?",
+          list(user_initials, user_id)
+        )
+
+        # Send approval email with password
+        send_noreply_email(
+          c(
+            "Your registration for sysndd.org has been approved by a curator.",
+            "Your password (please change after first login):",
+            user_password
+          ),
+          "Account approved for SysNDD.org",
+          user$email,
+          "curator@sysndd.org"
+        )
+      }
+
+      processed <- processed + 1
+    }
+
+    logger::log_info("Bulk approved users",
+                     count = processed,
+                     approving_user_id = approving_user_id)
+
+    list(processed = processed, message = paste(processed, "users approved successfully"))
+  }, pool_obj = pool)
+}
+
+
+#' Bulk delete multiple users atomically
+#'
+#' Deletes multiple users in a single atomic transaction. All users
+#' are deleted or none are (all-or-nothing guarantee).
+#'
+#' @param user_ids Integer vector of user IDs to delete
+#' @param requesting_user_id Integer user ID performing the deletion
+#' @param pool Database connection pool
+#' @return List with processed count and message
+#'
+#' @details
+#' - Validates array length <= 20 users
+#' - Checks if ANY user has role="Administrator" and rejects entire request if so
+#' - Wraps all deletions in database transaction
+#' - Protection against accidental admin deletion
+#'
+#' @examples
+#' \dontrun{
+#' result <- user_bulk_delete(c(42, 43), 1, pool)
+#' }
+#'
+#' @export
+user_bulk_delete <- function(user_ids, requesting_user_id, pool) {
+  # Validate array length
+  if (length(user_ids) == 0) {
+    stop("user_ids cannot be empty")
+  }
+  if (length(user_ids) > 20) {
+    stop("Cannot process more than 20 users at once")
+  }
+
+  # First, query all user_ids to get their roles (outside transaction)
+  users <- pool %>%
+    tbl("user") %>%
+    filter(user_id %in% !!user_ids) %>%
+    select(user_id, user_role) %>%
+    collect()
+
+  # Check if ANY user has Administrator role
+  admin_users <- users %>% filter(user_role == "Administrator")
+  if (nrow(admin_users) > 0) {
+    admin_ids <- paste(admin_users$user_id, collapse = ", ")
+    stop(paste("Cannot delete: selection contains admin users (IDs:", admin_ids, ")"))
+  }
+
+  # Execute all deletions in a transaction
+  db_with_transaction({
+    processed <- 0
+
+    for (user_id in user_ids) {
+      # Delete user
+      rows_affected <- db_execute_statement(
+        "DELETE FROM user WHERE user_id = ?",
+        list(user_id)
+      )
+
+      if (rows_affected == 0) {
+        stop(paste("User not found:", user_id))
+      }
+
+      processed <- processed + 1
+    }
+
+    logger::log_info("Bulk deleted users",
+                     count = processed,
+                     requesting_user_id = requesting_user_id)
+
+    list(processed = processed, message = paste(processed, "users deleted successfully"))
+  }, pool_obj = pool)
+}
+
+
+#' Bulk assign role to multiple users atomically
+#'
+#' Assigns a role to multiple users in a single atomic transaction.
+#' All users are updated or none are (all-or-nothing guarantee).
+#'
+#' @param user_ids Integer vector of user IDs to update
+#' @param new_role Character new role name
+#' @param requesting_role Character role of user making the request
+#' @param pool Database connection pool
+#' @return List with processed count and message
+#'
+#' @details
+#' - Validates array length <= 20 users
+#' - Validates new_role is valid (Administrator, Curator, Reviewer, Viewer)
+#' - Permission check: Curator cannot assign Administrator role
+#' - Wraps all role updates in database transaction
+#'
+#' @examples
+#' \dontrun{
+#' result <- user_bulk_assign_role(c(42, 43), "Curator", "Administrator", pool)
+#' }
+#'
+#' @export
+user_bulk_assign_role <- function(user_ids, new_role, requesting_role, pool) {
+  # Validate array length
+  if (length(user_ids) == 0) {
+    stop("user_ids cannot be empty")
+  }
+  if (length(user_ids) > 20) {
+    stop("Cannot process more than 20 users at once")
+  }
+
+  # Validate new role
+  allowed_roles <- c("Administrator", "Curator", "Reviewer", "Viewer")
+  if (!new_role %in% allowed_roles) {
+    stop("Invalid role specified")
+  }
+
+  # Check permissions
+  if (requesting_role == "Curator" && new_role == "Administrator") {
+    stop("Insufficient permissions to assign Administrator role")
+  }
+
+  # Execute all role updates in a transaction
+  db_with_transaction({
+    processed <- 0
+
+    for (user_id in user_ids) {
+      # Update user role
+      rows_affected <- db_execute_statement(
+        "UPDATE user SET user_role = ? WHERE user_id = ?",
+        list(new_role, user_id)
+      )
+
+      if (rows_affected == 0) {
+        stop(paste("User not found:", user_id))
+      }
+
+      processed <- processed + 1
+    }
+
+    logger::log_info("Bulk assigned role",
+                     count = processed,
+                     new_role = new_role)
+
+    list(processed = processed, message = paste(processed, "users assigned to", new_role, "role successfully"))
+  }, pool_obj = pool)
+}
