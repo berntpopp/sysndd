@@ -155,6 +155,17 @@
                   </td>
                 </template>
 
+                <!-- cluster_num cell (shown when viewing combined cluster data) -->
+                <template #cell-cluster_num="{ row }">
+                  <BBadge
+                    v-if="row.cluster_num"
+                    variant="secondary"
+                    :style="'background-color: ' + getClusterColor(row.cluster_num) + ';'"
+                  >
+                    {{ row.cluster_num }}
+                  </BBadge>
+                </template>
+
                 <!-- category cell -->
                 <template #cell-category="{ row }">
                   <!-- Render only if tableType === 'term_enrichment' -->
@@ -289,6 +300,9 @@ import NetworkVisualization from '@/components/analyses/NetworkVisualization.vue
 import { Splitpanes, Pane } from 'splitpanes';
 import 'splitpanes/dist/splitpanes.css';
 
+// Import shared cluster color utility for consistent colors
+import { getClusterColor } from '@/utils/clusterColors';
+
 export default {
   name: 'AnalyseGeneClusters',
   components: {
@@ -343,6 +357,7 @@ export default {
       // (in computed fieldsComputed below)
       filter: {
         any: { content: null, operator: 'contains' },
+        cluster_num: { content: null, operator: 'contains' },
         category: { content: null, operator: 'contains' },
         number_of_genes: { content: null, operator: 'contains' },
         fdr: { content: null, operator: 'contains' },
@@ -390,12 +405,28 @@ export default {
   },
   computed: {
     /**
+     * Whether we're showing combined data from multiple clusters
+     */
+    isShowingCombinedData() {
+      return this.showAllClustersInTable || this.displayedClusters.length > 1;
+    },
+
+    /**
      * fieldsComputed: Return fields array based on tableType
      * with thClass/tdClass for styling
+     * Adds cluster column when showing combined data from multiple clusters
      */
     fieldsComputed() {
+      const clusterColumn = {
+        key: 'cluster_num',
+        label: 'Cluster',
+        sortable: true,
+        thClass: 'text-start bg-light',
+        tdClass: 'text-start',
+      };
+
       if (this.tableType === 'term_enrichment') {
-        return [
+        const fields = [
           {
             key: 'category',
             label: 'Category',
@@ -425,9 +456,14 @@ export default {
             tdClass: 'text-start',
           },
         ];
+        // Add cluster column at the beginning if showing combined data
+        if (this.isShowingCombinedData) {
+          fields.unshift(clusterColumn);
+        }
+        return fields;
       }
       // 'identifiers' case
-      return [
+      const fields = [
         {
           key: 'symbol',
           label: 'Symbol',
@@ -443,6 +479,11 @@ export default {
           tdClass: 'text-start',
         },
       ];
+      // Add cluster column at the beginning if showing combined data
+      if (this.isShowingCombinedData) {
+        fields.unshift(clusterColumn);
+      }
+      return fields;
     },
 
     /**
@@ -509,6 +550,14 @@ export default {
     findCategoryLink(categoryVal, termVal) {
       const found = this.valueCategories.find((cat) => cat.value === categoryVal);
       return found ? found.link + termVal : '#';
+    },
+
+    /**
+     * Get cluster color by cluster number
+     * Uses shared utility for consistent colors across table and network
+     */
+    getClusterColor(clusterNum) {
+      return getClusterColor(clusterNum);
     },
 
     /* --------------------------------------
@@ -614,9 +663,16 @@ export default {
             this.loadingProgress = 100;
             this.loading = false;
 
-            // Set active cluster for table display
+            // Set table display - show combined data for all clusters by default
             this.$nextTick(() => {
-              this.setActiveCluster();
+              if (this.showAllClustersInTable) {
+                // Show combined data from all clusters
+                this.selectedCluster = this.combineClusterData(this.itemsCluster);
+                const arr = this.selectedCluster[this.tableType] || [];
+                this.totalRows = arr.length;
+              } else {
+                this.setActiveCluster();
+              }
             });
             return;
           }
@@ -653,7 +709,14 @@ export default {
         const response = await this.axios.get(apiUrl);
         this.itemsCluster = response.data.clusters;
         this.valueCategories = response.data.categories;
-        this.setActiveCluster();
+        // Show combined data from all clusters by default
+        if (this.showAllClustersInTable) {
+          this.selectedCluster = this.combineClusterData(this.itemsCluster);
+          const arr = this.selectedCluster[this.tableType] || [];
+          this.totalRows = arr.length;
+        } else {
+          this.setActiveCluster();
+        }
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       } finally {
@@ -803,6 +866,7 @@ export default {
 
     /**
      * Combine data from multiple clusters into a single object
+     * Adds cluster number to each row so users can see which cluster it belongs to
      */
     combineClusterData(clusterArray) {
       const combined = {
@@ -811,11 +875,22 @@ export default {
       };
 
       clusterArray.forEach((cluster) => {
+        const clusterNum = cluster.cluster;
         if (cluster.term_enrichment) {
-          combined.term_enrichment = combined.term_enrichment.concat(cluster.term_enrichment);
+          // Add cluster number to each enrichment row
+          const enrichmentWithCluster = cluster.term_enrichment.map((row) => ({
+            ...row,
+            cluster_num: clusterNum,
+          }));
+          combined.term_enrichment = combined.term_enrichment.concat(enrichmentWithCluster);
         }
         if (cluster.identifiers) {
-          combined.identifiers = combined.identifiers.concat(cluster.identifiers);
+          // Add cluster number to each identifier row
+          const identifiersWithCluster = cluster.identifiers.map((row) => ({
+            ...row,
+            cluster_num: clusterNum,
+          }));
+          combined.identifiers = combined.identifiers.concat(identifiersWithCluster);
         }
       });
 

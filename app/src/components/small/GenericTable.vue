@@ -112,6 +112,17 @@
       </slot>
     </template>
 
+    <!-- Cluster number column (for combined cluster data) -->
+    <template #cell(cluster_num)="data">
+      <slot
+        name="cell-cluster_num"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.cluster_num }}
+      </slot>
+    </template>
+
     <!-- Curation comparison columns -->
     <template #cell(SysNDD)="data">
       <slot

@@ -16,48 +16,7 @@ import { ref, computed, type Ref, type ComputedRef } from 'vue';
 import axios from 'axios';
 import type { ElementDefinition } from 'cytoscape';
 import type { NetworkNode, NetworkEdge, NetworkResponse, NetworkMetadata } from '../types/models';
-
-/**
- * Cluster colors - D3 category10 palette for distinct cluster visualization
- * User decision: categorical color palette for easy cluster differentiation
- */
-const CLUSTER_COLORS: string[] = [
-  '#1f77b4', // blue
-  '#ff7f0e', // orange
-  '#2ca02c', // green
-  '#d62728', // red
-  '#9467bd', // purple
-  '#8c564b', // brown
-  '#e377c2', // pink
-  '#7f7f7f', // gray
-  '#bcbd22', // olive
-  '#17becf', // cyan
-  '#aec7e8', // light blue
-  '#ffbb78', // light orange
-  '#98df8a', // light green
-  '#ff9896', // light red
-  '#c5b0d5', // light purple
-];
-
-/**
- * Get color for a cluster based on its index
- *
- * @param cluster - Cluster number or string ID (e.g., 1 or "1.2" for subclusters)
- * @returns Hex color string
- */
-function getClusterColor(cluster: number | string): string {
-  // Handle string cluster IDs (subclusters like "1.2")
-  // Extract the main cluster number from combined ID
-  let index: number;
-  if (typeof cluster === 'string') {
-    // Parse main cluster from combined ID (e.g., "1.2" -> 1)
-    const mainCluster = parseInt(cluster.split('.')[0], 10);
-    index = isNaN(mainCluster) ? 0 : mainCluster;
-  } else {
-    index = cluster >= 0 ? cluster : 0;
-  }
-  return CLUSTER_COLORS[index % CLUSTER_COLORS.length];
-}
+import { getClusterColor } from '../utils/clusterColors';
 
 /**
  * State returned by the useNetworkData composable

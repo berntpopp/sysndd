@@ -284,6 +284,7 @@ import {
 } from 'bootstrap-vue-next';
 import { useCytoscape, useNetworkData, useNetworkFilters } from '@/composables';
 import type { CategoryFilter } from '@/composables';
+import { getClusterColor } from '@/utils/clusterColors';
 
 // Props
 interface Props {
@@ -364,20 +365,14 @@ const {
   },
 });
 
-// Computed legend clusters
+// Computed legend clusters - uses shared getClusterColor for consistency
 const legendClusters = computed(() => {
-  // D3 category10 palette used in useNetworkData
-  const colors = [
-    '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
-    '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
-  ];
-
   if (!metadata.value || !metadata.value.cluster_count) return [];
 
   const count = Math.min(metadata.value.cluster_count, 10);
   return Array.from({ length: count }, (_, i) => ({
     id: i + 1,
-    color: colors[i % colors.length],
+    color: getClusterColor(i + 1), // Use shared utility for consistent colors
   }));
 });
 
