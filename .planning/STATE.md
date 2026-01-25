@@ -11,20 +11,21 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 ## Current Position
 
 **Milestone:** v6.0 Admin Panel Modernization
-**Phase:** 28 of 33 (Table Foundation) ✓ Complete
-**Plan:** —
-**Status:** Ready for Phase 29
-**Last activity:** 2026-01-25 — Phase 28 complete (3 plans, verified)
+**Phase:** 29 of 33 (User Management Workflows)
+**Plan:** 02 of 04 complete
+**Status:** In progress
+**Last activity:** 2026-01-25 — Completed 29-02-PLAN.md (Frontend Composables)
 
 ```
-v6.0 Admin Panel Modernization: [█████░░░░░░░░░░░░░░░░░░░░░░░] 17%
+v6.0 Admin Panel Modernization: [█████░░░░░░░░░░░░░░░░░░░░░░░] 18%
 Phase 28 Table Foundation: [██████████] 3/3 plans ✓
+Phase 29 User Management:   [█████░░░░░] 2/4 plans
 ```
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 138
+- Total plans completed: 140
 - Milestones shipped: 5 (v1-v5)
 - Phases completed: 27
 
@@ -39,9 +40,9 @@ Phase 28 Table Foundation: [██████████] 3/3 plans ✓
 | v5 Analysis Modernization | 25-27 | 16 | 2026-01-25 |
 
 **v6.0 Progress:**
-- Plans completed: 3
+- Plans completed: 5
 - Phases completed: 1 (Phase 28)
-- Average duration: 3.5min
+- Average duration: 2.9min
 - Trend: Strong velocity
 
 *Updated after each plan completion*
@@ -63,6 +64,9 @@ Recent v6-relevant decisions:
 - **Module-level API caching** (28-02): Prevents duplicate API calls on component remount using moduleLastApiParams, moduleApiCallInProgress
 - **URL state sync** (28-02): history.replaceState (not router.replace) avoids component remount during URL updates
 - **Initialization guard** (28-02): isInitializing flag prevents watchers from triggering during mounted() setup
+- **Bulk 20-user limit** (29-01): Enforce 20 user maximum per bulk request to prevent timeouts
+- **Admin deletion protection** (29-01): Reject bulk delete if any user is Administrator (prevents accidental admin deletion)
+- **Atomic transaction semantics** (29-01): Use all-or-nothing transactions for bulk operations (data consistency)
 
 ### Pending Todos
 
