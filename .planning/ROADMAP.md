@@ -52,10 +52,13 @@ Plans:
   4. Admin can bulk assign "Curator" role to 10 users at once
   5. Admin can save "Pending Approvals" filter preset and reload it with one click
   6. Admin assigns roles via dropdown (Curator/Reviewer/Admin) not text input
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 29-01: TBD
+- [ ] 29-01-PLAN.md — Backend bulk endpoints (bulk_approve, bulk_delete, bulk_assign_role)
+- [ ] 29-02-PLAN.md — Frontend composables (useBulkSelection, useFilterPresets)
+- [ ] 29-03-PLAN.md — ManageUser.vue bulk selection UI (checkboxes, badge, action bar)
+- [ ] 29-04-PLAN.md — Bulk action implementation and filter presets
 
 #### Phase 30: Statistics Dashboard
 **Goal**: Add Chart.js visualizations to AdminStatistics with scientific context
@@ -126,7 +129,7 @@ Phases execute in numeric order: 28 → 29 → 30 → 31 → 32 → 33
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 28. Table Foundation | v6.0 | 3/3 | ✓ Complete | 2026-01-25 |
-| 29. User Management | v6.0 | 0/TBD | Not started | - |
+| 29. User Management | v6.0 | 0/4 | Planned | - |
 | 30. Statistics Dashboard | v6.0 | 0/TBD | Not started | - |
 | 31. Content Management | v6.0 | 0/TBD | Not started | - |
 | 32. Async Jobs | v6.0 | 0/TBD | Not started | - |
@@ -146,4 +149,4 @@ Phases execute in numeric order: 28 → 29 → 30 → 31 → 32 → 33
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-01-25 — Phase 28 complete*
+*Last updated: 2026-01-25 — Phase 29 planned (4 plans)*
