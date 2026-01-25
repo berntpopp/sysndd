@@ -12,15 +12,15 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 
 **Milestone:** v5.0 Analysis Modernization
 **Phase:** 26 of 27 (Network Visualization)
-**Plan:** 2 of 5 complete
+**Plan:** 2 of 3 complete (26-01, 26-02)
 **Status:** In progress
-**Last activity:** 2026-01-25 — Completed 26-02-PLAN.md (Vue 3 Cytoscape.js Composables)
+**Last activity:** 2026-01-25 — Completed 26-01-PLAN.md (Backend Network Endpoint)
 
 ```
 v5 Analysis Modernization: PHASE 26 IN PROGRESS
 Goal: Transform analysis pages with performance, network viz, and modern UI/UX
-Progress: ████████████████░░░░░░░░░░ 47% (Phase 26 plan 2/5 done)
-          [Phase 25 ✓] → Phase 26 (2/5) → Phase 27
+Progress: ████████████████████░░░░░░ 53% (Phase 26 plan 2/3 done)
+          [Phase 25 ✓] → Phase 26 (2/3) → Phase 27
 ```
 
 ## Completed Milestones
@@ -78,6 +78,7 @@ Recent v5-relevant decisions:
 - **VueUse useUrlSearchParams**: Zero boilerplate URL state sync
 - **Non-reactive cy instance**: let cy (not ref()) prevents 100+ layout recalculations
 - **cy.destroy() cleanup**: Prevents 100-300MB memory leaks per navigation
+- **STRING ID deduplication**: Pick first HGNC ID alphabetically for deterministic 1:1 mapping
 
 ## Accumulated Context
 
@@ -102,16 +103,16 @@ Pre-existing analysis documents:
 
 | Plan | Name | Summary |
 |------|------|---------|
-| 26-01 | Backend Network Endpoint | /api/analysis/network_edges endpoint with STRINGdb PPI extraction |
+| 26-01 | Backend Network Endpoint | /api/analysis/network_edges endpoint with STRINGdb PPI extraction (3k+ nodes, 66k+ edges) |
 | 26-02 | Vue 3 Composables | useCytoscape lifecycle management, useNetworkData data fetching |
 
 ## Session Continuity
 
 **Last session:** 2026-01-25
-**Stopped at:** Completed 26-02-PLAN.md (Vue 3 Cytoscape.js Composables)
+**Stopped at:** Completed 26-01-PLAN.md (Backend Network Endpoint)
 **Resume file:** None
 **Next action:** Execute 26-03-PLAN.md (NetworkVisualization.vue component)
 
 ---
 *State initialized: 2026-01-24 for v5.0 milestone*
-*Last updated: 2026-01-25 — Phase 26 plan 2 complete, ready for plan 3*
+*Last updated: 2026-01-25 — Phase 26 plans 1 and 2 complete, ready for plan 3*
