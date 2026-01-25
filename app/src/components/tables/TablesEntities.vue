@@ -505,9 +505,7 @@ export default {
       if (currentId > 0) {
         searchParams.set('page_after', String(currentId));
       }
-      if (this.perPage !== 10) {
-        searchParams.set('page_size', String(this.perPage));
-      }
+      searchParams.set('page_size', String(this.perPage));
 
       // Use history.replaceState to update URL without triggering Vue Router navigation
       // This prevents component remount which was causing duplicate API calls
