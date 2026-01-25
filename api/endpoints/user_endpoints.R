@@ -715,3 +715,178 @@ function(req, res) {
 
   list(message = "User details updated successfully.")
 }
+
+
+#* Bulk approve multiple users
+#*
+#* # `Details`
+#* Approves multiple users in a single atomic transaction.
+#* Requires Curator role or higher. Max 20 users per request.
+#*
+#* @tag user
+#* @serializer json list(na="null")
+#* @accept json
+#* @post bulk_approve
+function(req, res) {
+  # Require Curator role or higher
+  require_role(req, res, "Curator")
+
+  user_ids <- req$argsBody$user_ids
+
+  # Validate input
+  if (is.null(user_ids) || length(user_ids) == 0) {
+    res$status <- 400
+    return(list(error = "user_ids array is required and cannot be empty"))
+  }
+
+  if (length(user_ids) > 20) {
+    res$status <- 400
+    return(list(error = "Cannot process more than 20 users at once"))
+  }
+
+  # Convert to integers
+  user_ids <- as.integer(user_ids)
+
+  # Call bulk approve service function
+  result <- tryCatch(
+    {
+      user_bulk_approve(user_ids, req$user_id, pool)
+    },
+    error = function(e) {
+      list(error = e$message)
+    }
+  )
+
+  if (!is.null(result$error)) {
+    res$status <- 409
+    return(list(error = result$error))
+  }
+
+  list(processed = result$processed, message = result$message)
+}
+
+
+#* Bulk delete multiple users
+#*
+#* # `Details`
+#* Deletes multiple users in a single atomic transaction.
+#* Requires Administrator role. Max 20 users per request.
+#* Rejects requests containing admin users.
+#*
+#* @tag user
+#* @serializer json list(na="null")
+#* @accept json
+#* @post bulk_delete
+function(req, res) {
+  # Require Administrator role
+  require_role(req, res, "Administrator")
+
+  user_ids <- req$argsBody$user_ids
+
+  # Validate input
+  if (is.null(user_ids) || length(user_ids) == 0) {
+    res$status <- 400
+    return(list(error = "user_ids array is required and cannot be empty"))
+  }
+
+  if (length(user_ids) > 20) {
+    res$status <- 400
+    return(list(error = "Cannot process more than 20 users at once"))
+  }
+
+  # Convert to integers
+  user_ids <- as.integer(user_ids)
+
+  # Call bulk delete service function
+  result <- tryCatch(
+    {
+      user_bulk_delete(user_ids, req$user_id, pool)
+    },
+    error = function(e) {
+      # Check if error is about admin users
+      if (grepl("Cannot delete: selection contains admin users", e$message)) {
+        res$status <- 403
+        return(list(error = e$message))
+      }
+      list(error = e$message)
+    }
+  )
+
+  if (!is.null(result$error)) {
+    if (res$status != 403) {
+      res$status <- 409
+    }
+    return(list(error = result$error))
+  }
+
+  list(processed = result$processed, message = result$message)
+}
+
+
+#* Bulk assign role to multiple users
+#*
+#* # `Details`
+#* Assigns a role to multiple users in a single atomic transaction.
+#* Requires Curator role or higher. Max 20 users per request.
+#* Curators cannot assign Administrator role.
+#*
+#* @tag user
+#* @serializer json list(na="null")
+#* @accept json
+#* @post bulk_assign_role
+function(req, res) {
+  # Require Curator role or higher
+  require_role(req, res, "Curator")
+
+  user_ids <- req$argsBody$user_ids
+  role <- req$argsBody$role
+
+  # Validate input
+  if (is.null(user_ids) || length(user_ids) == 0) {
+    res$status <- 400
+    return(list(error = "user_ids array is required and cannot be empty"))
+  }
+
+  if (is.null(role) || role == "") {
+    res$status <- 400
+    return(list(error = "role field is required"))
+  }
+
+  if (length(user_ids) > 20) {
+    res$status <- 400
+    return(list(error = "Cannot process more than 20 users at once"))
+  }
+
+  # Validate role
+  allowed_roles <- c("Administrator", "Curator", "Reviewer", "Viewer")
+  if (!role %in% allowed_roles) {
+    res$status <- 400
+    return(list(error = "Invalid role specified"))
+  }
+
+  # Check if Curator trying to assign Administrator role
+  if (req$user_role == "Curator" && role == "Administrator") {
+    res$status <- 403
+    return(list(error = "Insufficient permissions to assign Administrator role"))
+  }
+
+  # Convert to integers
+  user_ids <- as.integer(user_ids)
+
+  # Call bulk assign role service function
+  result <- tryCatch(
+    {
+      user_bulk_assign_role(user_ids, role, req$user_role, pool)
+    },
+    error = function(e) {
+      list(error = e$message)
+    }
+  )
+
+  if (!is.null(result$error)) {
+    res$status <- 409
+    return(list(error = result$error))
+  }
+
+  list(processed = result$processed, message = result$message)
+}
