@@ -55,3 +55,15 @@ export { default as useNetworkData } from './useNetworkData';
 export type { NetworkDataState } from './useNetworkData';
 export { default as useNetworkFilters } from './useNetworkFilters';
 export type { CategoryFilter, NetworkFiltersState } from './useNetworkFilters';
+
+// Filter and search utilities
+export { useFilterSync, resetFilterSyncInstance } from './useFilterSync';
+export type { FilterState, AnalysisTab, FilterSyncReturn } from './useFilterSync';
+
+// Wildcard search
+export { useWildcardSearch } from './useWildcardSearch';
+export type { GeneWithSymbol, WildcardSearchReturn } from './useWildcardSearch';
+
+// Network highlighting (bidirectional table-network hover)
+export { useNetworkHighlight } from './useNetworkHighlight';
+export type { HighlightState, HoverSource, NetworkHighlightReturn } from './useNetworkHighlight';
