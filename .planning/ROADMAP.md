@@ -123,10 +123,12 @@ Plans:
   3. Admin can export filtered logs to CSV for compliance reporting
   4. Admin can expand single log entry in modal to see full JSON payload
   5. ViewLogs has same filter/pagination/URL sync UX as TablesEntities
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 33-01: TBD
+- [ ] 33-01-PLAN.md — Module-level caching, URL sync, relative timestamps
+- [ ] 33-02-PLAN.md — User filter dropdown, action type filter, filter pills UI
+- [ ] 33-03-PLAN.md — Log detail drawer with copy to clipboard and keyboard navigation
 
 ## Progress
 
@@ -140,7 +142,7 @@ Phases execute in numeric order: 28 → 29 → 30 → 31 → 32 → 33
 | 30. Statistics Dashboard | v6.0 | 0/3 | Planned | - |
 | 31. Content Management | v6.0 | 0/4 | Planned | - |
 | 32. Async Jobs | v6.0 | 0/3 | Planned | - |
-| 33. Logging & Analytics | v6.0 | 0/TBD | Not started | - |
+| 33. Logging & Analytics | v6.0 | 0/3 | Planned | - |
 
 ## Completed Phases Summary
 
@@ -156,4 +158,4 @@ Phases execute in numeric order: 28 → 29 → 30 → 31 → 32 → 33
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-01-25 — Phase 32 planned (3 plans)*
+*Last updated: 2026-01-25 — Phase 33 planned (3 plans)*
