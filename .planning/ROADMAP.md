@@ -106,10 +106,12 @@ Plans:
   4. Job history table shows recent async jobs (type, status, duration, user) in GenericTable
   5. Failed jobs show specific error ("Network timeout" not "Job failed")
   6. All async jobs cleanup polling interval in beforeUnmount (no memory leaks)
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 32-01: TBD
+- [ ] 32-01-PLAN.md — Extract useAsyncJob composable with VueUse polling and cleanup
+- [ ] 32-02-PLAN.md — HGNC async job endpoint and ManageAnnotations composable refactor
+- [ ] 32-03-PLAN.md — Job history API endpoint and table UI
 
 #### Phase 33: Logging & Analytics
 **Goal**: Add advanced filtering and export to ViewLogs (feature parity with Entities table)
@@ -137,7 +139,7 @@ Phases execute in numeric order: 28 → 29 → 30 → 31 → 32 → 33
 | 29. User Management | v6.0 | 0/4 | Planned | - |
 | 30. Statistics Dashboard | v6.0 | 0/3 | Planned | - |
 | 31. Content Management | v6.0 | 0/4 | Planned | - |
-| 32. Async Jobs | v6.0 | 0/TBD | Not started | - |
+| 32. Async Jobs | v6.0 | 0/3 | Planned | - |
 | 33. Logging & Analytics | v6.0 | 0/TBD | Not started | - |
 
 ## Completed Phases Summary
@@ -154,4 +156,4 @@ Phases execute in numeric order: 28 → 29 → 30 → 31 → 32 → 33
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-01-25 — Phase 31 planned (4 plans)*
+*Last updated: 2026-01-25 — Phase 32 planned (3 plans)*
