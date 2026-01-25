@@ -533,17 +533,27 @@ function(req,
 function(req, res, top = 10, start_date = NULL, end_date = NULL, scope = "all_time") {
   require_role(req, res, "Administrator")
 
-  # Get entity data with user info
-  entity_data <- pool %>%
-    tbl("ndd_entity") %>%
-    select(entity_id, created_by, entry_date, is_active, ndd_phenotype) %>%
+  # Get entity data via status table (entities are linked to users via status_user_id)
+  # Use ndd_entity_status to find the initial submitter for each entity
+  entity_status <- pool %>%
+    tbl("ndd_entity_status") %>%
+    select(entity_id, status_user_id, status_date) %>%
     collect() %>%
-    filter(is_active == 1) %>%
-    mutate(ndd_phenotype = case_when(
-      ndd_phenotype == 1 ~ "Yes",
-      ndd_phenotype == 0 ~ "No"
-    )) %>%
+    group_by(entity_id) %>%
+    arrange(status_date) %>%
+    slice(1) %>%
+    ungroup()
+
+  # Get entity info for filtering
+  entity_info <- pool %>%
+    tbl("ndd_entity_view") %>%
+    select(entity_id, entry_date, ndd_phenotype) %>%
+    collect() %>%
     filter(ndd_phenotype == "Yes")
+
+  # Join to get entities with their creators
+  entity_data <- entity_info %>%
+    inner_join(entity_status, by = "entity_id")
 
   # Apply date range filter if scope is "range" and dates provided
   if (scope == "range" && !is.null(start_date) && !is.null(end_date)) {
@@ -557,19 +567,19 @@ function(req, res, top = 10, start_date = NULL, end_date = NULL, scope = "all_ti
     select(user_id, user_name, first_name, family_name) %>%
     collect()
 
-  # Aggregate by creator and join with user names
+  # Aggregate by creator (status_user_id) and join with user names
   leaderboard <- entity_data %>%
-    group_by(created_by) %>%
+    group_by(status_user_id) %>%
     summarise(entity_count = n()) %>%
     arrange(desc(entity_count)) %>%
     head(as.integer(top)) %>%
-    left_join(user_data, by = c("created_by" = "user_id")) %>%
+    left_join(user_data, by = c("status_user_id" = "user_id")) %>%
     mutate(display_name = ifelse(
       !is.na(first_name) & !is.na(family_name),
       paste(first_name, family_name),
       user_name
     )) %>%
-    select(user_id = created_by, user_name, display_name, entity_count)
+    select(user_id = status_user_id, user_name, display_name, entity_count)
 
   list(
     data = leaderboard,
@@ -578,7 +588,7 @@ function(req, res, top = 10, start_date = NULL, end_date = NULL, scope = "all_ti
       scope = scope,
       start_date = start_date,
       end_date = end_date,
-      total_contributors = nrow(entity_data %>% distinct(created_by))
+      total_contributors = n_distinct(entity_data$status_user_id)
     )
   )
 }

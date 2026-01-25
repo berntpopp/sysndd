@@ -344,9 +344,12 @@ function formatDateTime(date: Date): string {
   return date.toLocaleString();
 }
 
-function formatDecimal(value: number | undefined | null): string {
+function formatDecimal(value: number | number[] | undefined | null): string {
   if (value === undefined || value === null) return 'N/A';
-  return value.toFixed(2);
+  // Handle both array and scalar values from API
+  const numValue = Array.isArray(value) ? value[0] : value;
+  if (typeof numValue !== 'number' || isNaN(numValue)) return 'N/A';
+  return numValue.toFixed(2);
 }
 
 function getAuthHeaders() {
@@ -460,10 +463,13 @@ async function fetchUpdatesStats(start: string, end: string): Promise<UpdatesSta
         headers: getAuthHeaders(),
       }
     );
+    // API returns arrays, extract first element
+    const extractValue = (val: number | number[]): number =>
+      Array.isArray(val) ? val[0] ?? 0 : val ?? 0;
     return {
-      total_new_entities: response.data.total_new_entities,
-      unique_genes: response.data.unique_genes,
-      average_per_day: response.data.average_per_day,
+      total_new_entities: extractValue(response.data.total_new_entities),
+      unique_genes: extractValue(response.data.unique_genes),
+      average_per_day: extractValue(response.data.average_per_day),
     };
   } catch (error) {
     console.error('Failed to fetch updates stats:', error);
@@ -554,10 +560,13 @@ async function fetchExistingStatistics(): Promise<void> {
         headers: getAuthHeaders(),
       }
     );
+    // Helper to extract scalar from array-wrapped API responses
+    const extractVal = (val: number | number[]): number =>
+      Array.isArray(val) ? val[0] ?? 0 : val ?? 0;
     reReviewStatistics.value = {
-      total_rereviews: reReviewResponse.data.total_rereviews,
-      percentage_finished: reReviewResponse.data.percentage_finished,
-      average_per_day: reReviewResponse.data.average_per_day,
+      total_rereviews: extractVal(reReviewResponse.data.total_rereviews),
+      percentage_finished: extractVal(reReviewResponse.data.percentage_finished),
+      average_per_day: extractVal(reReviewResponse.data.average_per_day),
     };
 
     // Updated reviews statistics
@@ -569,7 +578,7 @@ async function fetchExistingStatistics(): Promise<void> {
       }
     );
     updatedReviewsStatistics.value = {
-      total_updated_reviews: updatedReviewsResponse.data.total_updated_reviews,
+      total_updated_reviews: extractVal(updatedReviewsResponse.data.total_updated_reviews),
     };
 
     // Updated statuses statistics
@@ -581,7 +590,7 @@ async function fetchExistingStatistics(): Promise<void> {
       }
     );
     updatedStatusesStatistics.value = {
-      total_updated_statuses: updatedStatusesResponse.data.total_updated_statuses,
+      total_updated_statuses: extractVal(updatedStatusesResponse.data.total_updated_statuses),
     };
   } catch (error) {
     console.error('Failed to fetch existing statistics:', error);

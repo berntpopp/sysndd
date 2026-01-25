@@ -37,7 +37,9 @@ const TREND_COLORS = {
 };
 
 const formattedValue = computed(() => {
-  const formatted = props.value.toLocaleString();
+  // Ensure value is a number for toLocaleString()
+  const numValue = typeof props.value === 'number' ? props.value : Number(props.value) || 0;
+  const formatted = numValue.toLocaleString();
   return props.unit ? `${formatted} ${props.unit}` : formatted;
 });
 
