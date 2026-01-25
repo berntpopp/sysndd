@@ -371,6 +371,96 @@
           </BCard>
         </BCol>
       </BRow>
+
+      <!-- Job History Section -->
+      <BRow class="justify-content-md-center py-2">
+        <BCol
+          col
+          md="10"
+        >
+          <BCard
+            header-tag="header"
+            body-class="p-2"
+            header-class="p-1"
+            border-variant="dark"
+            class="mb-3 text-start"
+          >
+            <template #header>
+              <h5 class="mb-0 text-start font-weight-bold d-flex align-items-center">
+                Job History
+                <BButton
+                  size="sm"
+                  variant="outline-secondary"
+                  class="ms-auto"
+                  :disabled="jobHistoryLoading"
+                  @click="fetchJobHistory"
+                >
+                  <BSpinner
+                    v-if="jobHistoryLoading"
+                    small
+                    class="me-1"
+                  />
+                  Refresh
+                </BButton>
+              </h5>
+            </template>
+
+            <GenericTable
+              :items="jobHistory"
+              :fields="jobHistoryFields"
+              :is-busy="jobHistoryLoading"
+              :sort-by="[{ key: 'submitted_at', order: 'desc' }]"
+            >
+              <template #cell-operation="{ row }">
+                <span class="badge bg-info text-dark">
+                  {{ formatOperationType(row.operation) }}
+                </span>
+              </template>
+
+              <template #cell-status="{ row }">
+                <span
+                  class="badge"
+                  :class="getStatusBadgeClass(row.status)"
+                >
+                  {{ row.status }}
+                </span>
+              </template>
+
+              <template #cell-submitted_at="{ row }">
+                {{ formatDateTime(row.submitted_at) }}
+              </template>
+
+              <template #cell-duration_seconds="{ row }">
+                {{ formatDuration(row.duration_seconds) }}
+              </template>
+
+              <template #cell-error_message="{ row }">
+                <span
+                  v-if="row.error_message"
+                  v-b-tooltip.hover.top
+                  class="text-danger error-text"
+                  :title="row.error_message"
+                >
+                  {{ truncateText(row.error_message, 50) }}
+                </span>
+                <span
+                  v-else
+                  class="text-muted"
+                >
+                  —
+                </span>
+              </template>
+            </GenericTable>
+
+            <div
+              v-if="!jobHistoryLoading && jobHistory.length === 0"
+              class="text-center text-muted py-3"
+            >
+              No job history available. Jobs appear here after they are submitted.
+            </div>
+          </BCard>
+        </BCol>
+      </BRow>
     </BContainer>
   </div>
 </template>
@@ -380,6 +470,18 @@ import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
 import useToast from '@/composables/useToast';
 import { useAsyncJob } from '@/composables/useAsyncJob';
+import GenericTable from '@/components/small/GenericTable.vue';
+
+// Types
+interface JobHistoryItem {
+  job_id: string;
+  operation: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  submitted_at: string;
+  completed_at: string | null;
+  duration_seconds: number;
+  error_message: string | null;
+}
 
 // Composables
 const { makeToast } = useToast();
@@ -418,6 +520,18 @@ const deprecatedTableFields = [
   { key: 'category', label: 'Category', sortable: true },
 ];
 
+// Job history state
+const jobHistory = ref<JobHistoryItem[]>([]);
+const jobHistoryLoading = ref(false);
+
+const jobHistoryFields = [
+  { key: 'operation', label: 'Job Type', sortable: true },
+  { key: 'status', label: 'Status', sortable: true },
+  { key: 'submitted_at', label: 'Started', sortable: true },
+  { key: 'duration_seconds', label: 'Duration', sortable: true },
+  { key: 'error_message', label: 'Error', sortable: false },
+];
+
 // Computed properties for step labels
 const ontologyStepLabel = computed(() => {
   if (!ontologyJob.step.value) return 'Initializing...';
@@ -442,9 +556,11 @@ watch(
     if (newStatus === 'completed') {
       makeToast('Ontology annotations updated successfully', 'Success', 'success');
       fetchAnnotationDates();
+      fetchJobHistory();
     } else if (newStatus === 'failed') {
       const errorMsg = ontologyJob.error.value || 'Ontology update failed';
       makeToast(errorMsg, 'Error', 'danger');
+      fetchJobHistory();
     }
   },
 );
@@ -455,9 +571,11 @@ watch(
     if (newStatus === 'completed') {
       makeToast('HGNC data updated successfully', 'Success', 'success');
       fetchAnnotationDates();
+      fetchJobHistory();
     } else if (newStatus === 'failed') {
       const errorMsg = hgncJob.error.value || 'HGNC update failed';
       makeToast(errorMsg, 'Error', 'danger');
+      fetchJobHistory();
     }
   },
 );
@@ -494,6 +612,82 @@ function formatDate(dateString: string | null): string {
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return dateString;
   return date.toLocaleDateString();
+}
+
+function formatDateTime(dateString: string | null): string {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString;
+  return date.toLocaleString();
+}
+
+function formatDuration(seconds: number | null): string {
+  if (seconds === null || seconds === undefined) return '—';
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  if (mins > 0) {
+    return `${mins}m ${secs}s`;
+  }
+  return `${secs}s`;
+}
+
+function formatOperationType(operation: string): string {
+  const labels: Record<string, string> = {
+    clustering: 'Clustering',
+    phenotype_clustering: 'Phenotype Clustering',
+    ontology_update: 'Ontology Update',
+    hgnc_update: 'HGNC Update',
+  };
+  return labels[operation] || operation;
+}
+
+function getStatusBadgeClass(status: string): string {
+  const classes: Record<string, string> = {
+    completed: 'bg-success',
+    failed: 'bg-danger',
+    running: 'bg-primary',
+    pending: 'bg-info',
+  };
+  return classes[status] || 'bg-secondary';
+}
+
+async function fetchJobHistory() {
+  jobHistoryLoading.value = true;
+  try {
+    const response = await axios.get(
+      `${import.meta.env.VITE_API_URL}/api/jobs/history`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        params: {
+          limit: 20,
+        },
+      },
+    );
+    // Handle R/Plumber response structure
+    const data = response.data;
+    if (data && Array.isArray(data.data)) {
+      // Unwrap single-element arrays from R/Plumber
+      jobHistory.value = data.data.map((job: Record<string, unknown>) => ({
+        job_id: unwrapValue(job.job_id),
+        operation: unwrapValue(job.operation),
+        status: unwrapValue(job.status),
+        submitted_at: unwrapValue(job.submitted_at),
+        completed_at: unwrapValue(job.completed_at),
+        duration_seconds: unwrapValue(job.duration_seconds),
+        error_message: unwrapValue(job.error_message),
+      })) as JobHistoryItem[];
+    } else {
+      jobHistory.value = [];
+    }
+  } catch (error) {
+    console.warn('Failed to fetch job history:', error);
+    // Don't show toast - job history is optional enhancement
+    jobHistory.value = [];
+  } finally {
+    jobHistoryLoading.value = false;
+  }
 }
 
 function categoryBadgeClass(category: string): string {
@@ -621,6 +815,7 @@ async function updateHgncData() {
 // Lifecycle
 onMounted(() => {
   fetchAnnotationDates();
+  fetchJobHistory();
 });
 </script>
 
@@ -635,6 +830,15 @@ onMounted(() => {
   .deprecation-reason {
     display: block;
     max-width: 250px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: help;
+  }
+
+  .error-text {
+    display: block;
+    max-width: 200px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
