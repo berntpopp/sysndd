@@ -156,15 +156,18 @@ export default {
 
       try {
         const response = await this.axios.get(apiUrl);
-
         this.itemsMatrix = response.data;
-
-        this.generateMatrixGraph();
       } catch (e) {
         this.error = e.message || 'Failed to load correlation data. Please try again.';
         this.makeToast(e, 'Error', 'danger');
       } finally {
-        this.loadingMatrix = false; // Set loading to false after data is fetched
+        this.loadingMatrix = false;
+        // Generate graph AFTER loadingMatrix is false so #matrix_dataviz exists in DOM
+        this.$nextTick(() => {
+          if (this.itemsMatrix.length > 0 && !this.error) {
+            this.generateMatrixGraph();
+          }
+        });
       }
     },
     /**
