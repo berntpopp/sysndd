@@ -6,11 +6,11 @@ The v5.0 Analysis Modernization milestone transforms SysNDD's analysis pages fro
 
 ## Milestones
 
-- ✅ **v1.0 Developer Experience** - Phases 1-5 (shipped 2026-01-21)
-- ✅ **v2.0 Docker Infrastructure** - Phases 6-9 (shipped 2026-01-22)
-- ✅ **v3.0 Frontend Modernization** - Phases 10-17 (shipped 2026-01-23)
-- ✅ **v4.0 Backend Overhaul** - Phases 18-24 (shipped 2026-01-24)
-- 🚧 **v5.0 Analysis Modernization** - Phases 25-27 (in progress)
+- **v1.0 Developer Experience** - Phases 1-5 (shipped 2026-01-21)
+- **v2.0 Docker Infrastructure** - Phases 6-9 (shipped 2026-01-22)
+- **v3.0 Frontend Modernization** - Phases 10-17 (shipped 2026-01-23)
+- **v4.0 Backend Overhaul** - Phases 18-24 (shipped 2026-01-24)
+- **v5.0 Analysis Modernization** - Phases 25-27 (in progress)
 
 ## Phases
 
@@ -27,7 +27,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 ## Phase Details
 
 <details>
-<summary>✅ v1.0 Developer Experience (Phases 1-5) - SHIPPED 2026-01-21</summary>
+<summary>v1.0 Developer Experience (Phases 1-5) - SHIPPED 2026-01-21</summary>
 
 **Key accomplishments:**
 - Completed API modularization: 21 endpoint files, 94 endpoints verified working
@@ -42,7 +42,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 </details>
 
 <details>
-<summary>✅ v2.0 Docker Infrastructure (Phases 6-9) - SHIPPED 2026-01-22</summary>
+<summary>v2.0 Docker Infrastructure (Phases 6-9) - SHIPPED 2026-01-22</summary>
 
 **Key accomplishments:**
 - Replaced abandoned dockercloud/haproxy with Traefik v3.6 reverse proxy
@@ -57,7 +57,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 </details>
 
 <details>
-<summary>✅ v3.0 Frontend Modernization (Phases 10-17) - SHIPPED 2026-01-23</summary>
+<summary>v3.0 Frontend Modernization (Phases 10-17) - SHIPPED 2026-01-23</summary>
 
 **Key accomplishments:**
 - Vue 3.5.25 running in pure mode (no compat layer)
@@ -73,7 +73,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 </details>
 
 <details>
-<summary>✅ v4.0 Backend Overhaul (Phases 18-24) - SHIPPED 2026-01-24</summary>
+<summary>v4.0 Backend Overhaul (Phases 18-24) - SHIPPED 2026-01-24</summary>
 
 **Key accomplishments:**
 - R upgraded from 4.1.2 to 4.4.3 with clean renv.lock (281 packages)
@@ -90,7 +90,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 </details>
 
-### 🚧 v5.0 Analysis Modernization (In Progress)
+### v5.0 Analysis Modernization (In Progress)
 
 **Milestone Goal:** Transform analysis pages into fast, interconnected, modern visualization experience with true network graphs and professional UI/UX
 
@@ -154,26 +154,32 @@ Plans:
 5. Filter state persists in URL for bookmarkable/shareable analysis views
 6. Navigation tabs connect all analysis pages (Phenotype Clusters, Gene Networks, Correlation)
 
-**Plans:** 5 plans
+**Plans:** 9 plans (5 core + 4 gap closure)
 
 Plans:
-- [ ] 27-01-PLAN.md — Core composables: useFilterSync, useWildcardSearch, useNetworkHighlight (NAVL-06)
-- [ ] 27-02-PLAN.md — Reusable filter components: CategoryFilter, ScoreSlider, TermSearch (FILT-06, FILT-07, FILT-08)
-- [ ] 27-03-PLAN.md — Navigation tabs + AnalysisView + router + bug fix (NAVL-01, NAVL-03, NAVL-04, NAVL-07)
-- [ ] 27-04-PLAN.md — Search highlighting + heatmap navigation + bidirectional hover (FILT-04, FILT-05, NAVL-02, NAVL-05)
-- [ ] 27-05-PLAN.md — UI polish: ColorLegend, enhanced tooltips, loading/error states (UIUX-01 through UIUX-05)
+- [x] 27-01-PLAN.md — Core composables: useFilterSync, useWildcardSearch, useNetworkHighlight (NAVL-06)
+- [x] 27-02-PLAN.md — Reusable filter components: CategoryFilter, ScoreSlider, TermSearch (FILT-06, FILT-07, FILT-08)
+- [x] 27-03-PLAN.md — Navigation tabs + AnalysisView + router + bug fix (NAVL-01, NAVL-03, NAVL-04, NAVL-07)
+- [x] 27-04-PLAN.md — Search highlighting + heatmap navigation + bidirectional hover (FILT-04, FILT-05, NAVL-02, NAVL-05)
+- [x] 27-05-PLAN.md — UI polish: ColorLegend, enhanced tooltips, loading/error states (UIUX-01 through UIUX-05)
+
+**Gap Closure Plans:**
+- [ ] 27-06-PLAN.md — Fix Entities URL parameter API (URGENT - shareable links broken)
+- [ ] 27-07-PLAN.md — Integrate CategoryFilter and ScoreSlider into AnalyseGeneClusters (FILT-06, FILT-07 wiring)
+- [ ] 27-08-PLAN.md — Refactor PhenotypeClusters to use Cytoscape network with edges
+- [ ] 27-09-PLAN.md — Add cluster_id to correlation API + heatmap click navigation (NAVL-02)
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 25 → 26 → 27
+Phases execute in numeric order: 25 -> 26 -> 27
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 25. Performance Optimization | 3/3 | ✓ Complete | 2026-01-25 |
-| 26. Network Visualization | 3/3 | ✓ Complete | 2026-01-25 |
-| 27. Advanced Features & Filters | 0/5 | Ready for execution | - |
+| 25. Performance Optimization | 3/3 | Complete | 2026-01-25 |
+| 26. Network Visualization | 3/3 | Complete | 2026-01-25 |
+| 27. Advanced Features & Filters | 5/9 | Gap closure in progress | - |
 
 ---
 *Roadmap created: 2026-01-24*
-*Last updated: 2026-01-25 — Phase 26 complete (3/3 plans, verified)*
+*Last updated: 2026-01-25 — Phase 27 gap closure plans created (4 plans: 27-06 through 27-09)*
