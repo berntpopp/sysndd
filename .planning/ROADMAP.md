@@ -17,7 +17,7 @@ This roadmap tracks the current milestone and references completed milestones ar
 
 **Milestone Goal:** Transform admin views from basic CRUD forms into modern, feature-rich management interfaces with consistent UI/UX, pagination, search, and visualization.
 
-**Progress:** Phase 30 of 33 (complete) → Phase 31 next
+**Progress:** Phase 32 of 33 (complete) → Phase 33 next
 **Requirements:** 35 total (100% coverage)
 **Target:** 6 phases extending TablesEntities patterns to admin domain
 
@@ -90,10 +90,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 31-01-PLAN.md — Database schema and API endpoints for draft/publish workflow
-- [ ] 31-02-PLAN.md — Install libraries, TypeScript types, and composables
-- [ ] 31-03-PLAN.md — CMS components (MarkdownEditor, MarkdownPreview, SectionEditor, SectionList)
-- [ ] 31-04-PLAN.md — ManageAbout.vue and About.vue integration
+- [x] 31-01-PLAN.md — Database schema and API endpoints for draft/publish workflow
+- [x] 31-02-PLAN.md — Install libraries, TypeScript types, and composables
+- [x] 31-03-PLAN.md — CMS components (MarkdownEditor, MarkdownPreview, SectionEditor, SectionList)
+- [x] 31-04-PLAN.md — ManageAbout.vue and About.vue integration
 
 #### Phase 32: Async Jobs
 **Goal**: Extract useAsyncJob composable and improve ManageAnnotations job UI
@@ -109,9 +109,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 32-01-PLAN.md — Extract useAsyncJob composable with VueUse polling and cleanup
-- [ ] 32-02-PLAN.md — HGNC async job endpoint and ManageAnnotations composable refactor
-- [ ] 32-03-PLAN.md — Job history API endpoint and table UI
+- [x] 32-01-PLAN.md — Extract useAsyncJob composable with VueUse polling and cleanup
+- [x] 32-02-PLAN.md — HGNC async job endpoint and ManageAnnotations composable refactor
+- [x] 32-03-PLAN.md — Job history API endpoint and table UI
 
 #### Phase 33: Logging & Analytics
 **Goal**: Add advanced filtering and export to ViewLogs (feature parity with Entities table)
@@ -140,8 +140,8 @@ Phases execute in numeric order: 28 → 29 → 30 → 31 → 32 → 33
 | 28. Table Foundation | v6.0 | 3/3 | ✓ Complete | 2026-01-25 |
 | 29. User Management | v6.0 | 4/4 | ✓ Complete | 2026-01-25 |
 | 30. Statistics Dashboard | v6.0 | 3/3 | ✓ Complete | 2026-01-25 |
-| 31. Content Management | v6.0 | 0/4 | Planned | - |
-| 32. Async Jobs | v6.0 | 0/3 | Planned | - |
+| 31. Content Management | v6.0 | 4/4 | ✓ Complete | 2026-01-26 |
+| 32. Async Jobs | v6.0 | 3/3 | ✓ Complete | 2026-01-26 |
 | 33. Logging & Analytics | v6.0 | 0/3 | Planned | - |
 
 ## Completed Phases Summary
@@ -158,4 +158,4 @@ Phases execute in numeric order: 28 → 29 → 30 → 31 → 32 → 33
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-01-25 — Phase 30 complete (Statistics Dashboard)*
+*Last updated: 2026-01-26 — Phase 32 complete (Async Jobs)*

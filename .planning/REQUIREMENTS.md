@@ -37,20 +37,20 @@ Requirements for Admin Panel Modernization. Each maps to roadmap phases.
 
 ### Content Management
 
-- [ ] **CMS-01**: ManageAbout has markdown textarea for content editing
-- [ ] **CMS-02**: ManageAbout has preview pane showing rendered markdown
-- [ ] **CMS-03**: ManageAbout has draft/save workflow (no accidental publishing)
-- [ ] **CMS-04**: About page content is stored in database (not hardcoded)
-- [ ] **CMS-05**: API endpoint for loading and saving About page content
+- [x] **CMS-01**: ManageAbout has markdown textarea for content editing
+- [x] **CMS-02**: ManageAbout has preview pane showing rendered markdown
+- [x] **CMS-03**: ManageAbout has draft/save workflow (no accidental publishing)
+- [x] **CMS-04**: About page content is stored in database (not hardcoded)
+- [x] **CMS-05**: API endpoint for loading and saving About page content
 
 ### Async Jobs
 
-- [ ] **JOB-01**: useAsyncJob composable extracted from ManageAnnotations pattern
-- [ ] **JOB-02**: HGNC update uses async job pattern with progress display
-- [ ] **JOB-03**: HGNC update shows last annotation date
-- [ ] **JOB-04**: Job history table shows recent async jobs (reuses GenericTable)
-- [ ] **JOB-05**: Enhanced error messaging with specific failure reasons
-- [ ] **JOB-06**: All async jobs have proper cleanup (no memory leaks on navigation)
+- [x] **JOB-01**: useAsyncJob composable extracted from ManageAnnotations pattern
+- [x] **JOB-02**: HGNC update uses async job pattern with progress display
+- [x] **JOB-03**: HGNC update shows last annotation date
+- [x] **JOB-04**: Job history table shows recent async jobs (reuses GenericTable)
+- [x] **JOB-05**: Enhanced error messaging with specific failure reasons
+- [x] **JOB-06**: All async jobs have proper cleanup (no memory leaks on navigation)
 
 ### Logging
 
@@ -122,17 +122,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STAT-03 | Phase 30 | Complete |
 | STAT-04 | Phase 30 | Complete |
 | STAT-05 | Phase 30 | Complete |
-| CMS-01 | Phase 31 | Pending |
-| CMS-02 | Phase 31 | Pending |
-| CMS-03 | Phase 31 | Pending |
-| CMS-04 | Phase 31 | Pending |
-| CMS-05 | Phase 31 | Pending |
-| JOB-01 | Phase 32 | Pending |
-| JOB-02 | Phase 32 | Pending |
-| JOB-03 | Phase 32 | Pending |
-| JOB-04 | Phase 32 | Pending |
-| JOB-05 | Phase 32 | Pending |
-| JOB-06 | Phase 32 | Pending |
+| CMS-01 | Phase 31 | Complete |
+| CMS-02 | Phase 31 | Complete |
+| CMS-03 | Phase 31 | Complete |
+| CMS-04 | Phase 31 | Complete |
+| CMS-05 | Phase 31 | Complete |
+| JOB-01 | Phase 32 | Complete |
+| JOB-02 | Phase 32 | Complete |
+| JOB-03 | Phase 32 | Complete |
+| JOB-04 | Phase 32 | Complete |
+| JOB-05 | Phase 32 | Complete |
+| JOB-06 | Phase 32 | Complete |
 | LOG-01 | Phase 33 | Pending |
 | LOG-02 | Phase 33 | Pending |
 | LOG-03 | Phase 33 | Pending |
@@ -154,4 +154,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-25*
-*Last updated: 2026-01-25 — Phase 30 requirements complete (STAT-01 through STAT-05)*
+*Last updated: 2026-01-26 — Phase 32 requirements complete (JOB-01 through JOB-06)*

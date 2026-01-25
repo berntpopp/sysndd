@@ -6,31 +6,31 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v6.0 Admin Panel Modernization — Phase 32 (Async Jobs) IN PROGRESS
+**Current focus:** v6.0 Admin Panel Modernization — Phase 32 (Async Jobs) COMPLETE
 
 ## Current Position
 
 **Milestone:** v6.0 Admin Panel Modernization
-**Phase:** 32 of 33 (Async Jobs)
-**Plan:** 03 of 04 complete
-**Status:** In progress
-**Last activity:** 2026-01-26 — Completed 32-03-PLAN.md (Job History API and UI)
+**Phase:** 32 of 33 (Async Jobs) COMPLETE
+**Plan:** 03 of 03 complete
+**Status:** Phase complete
+**Last activity:** 2026-01-26 — Completed Phase 32 (Async Jobs)
 
 ```
-v6.0 Admin Panel Modernization: [███████████████████░░░░░░░░░] 68%
+v6.0 Admin Panel Modernization: [██████████████████████████░░] 83%
 Phase 28 Table Foundation:     [██████████] 3/3 plans ✓
 Phase 29 User Management:      [██████████] 4/4 plans ✓
 Phase 30 Statistics Dashboard: [██████████] 3/3 plans ✓
 Phase 31 Content Management:   [██████████] 4/4 plans ✓
-Phase 32 Async Jobs:           [███████░░░] 3/4 plans
+Phase 32 Async Jobs:           [██████████] 3/3 plans ✓
 ```
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 147
+- Total plans completed: 148
 - Milestones shipped: 5 (v1-v5)
-- Phases completed: 28
+- Phases completed: 32
 
 **By Milestone:**
 
@@ -44,8 +44,8 @@ Phase 32 Async Jobs:           [███████░░░] 3/4 plans
 
 **v6.0 Progress:**
 - Plans completed: 17
-- Phases completed: 4 (Phases 28-31)
-- Average duration: 2.9min
+- Phases completed: 5 (Phases 28-32)
+- Average duration: 3.0min
 - Trend: Strong velocity
 
 *Updated after each plan completion*
@@ -90,9 +90,11 @@ Recent v6-relevant decisions:
 - **Side-by-side editor/preview** (31-03): Editor left, preview right at SectionEditor level (not page level)
 - **Drag handle pattern** (31-03): .drag-handle class with grab/grabbing cursors for vuedraggable integration
 - **Auto-expand new sections** (31-03): New sections added via "Add Section" auto-expand for immediate editing
-- **useAsyncJob composable** (32-01): VueUse useIntervalFn for auto-cleanup polling, provides reactive job state
-- **HGNC async job pattern** (32-02): Separate async endpoint for HGNC updates, uses same composable pattern as ontology
-- **Job history API** (32-03): GET /api/jobs/history returns recent jobs with metadata, sorted by submitted_at descending
+- **VueUse useIntervalFn for polling** (32-01): Auto-cleanup via tryOnCleanup instead of manual setInterval/clearInterval
+- **useAsyncJob composable** (32-01): Reactive job state (status, step, progress, error) with elapsed time display
+- **HGNC async job pattern** (32-02): POST /api/jobs/hgnc_update/submit with 202 Accepted response
+- **Composition API for ManageAnnotations** (32-02): Converted from Options API to <script setup>
+- **Job history in-memory storage** (32-03): jobs_env environment used as source for get_job_history()
 
 ### Pending Todos
 
@@ -101,18 +103,17 @@ None yet.
 ### Blockers/Concerns
 
 **v6.0 planning:**
-- Need to verify mirai job cancellation support during Phase 32 planning
 - Bundle size: Phase 31-02 added ~130KB (markdown-it ~80KB, dompurify ~45KB, vuedraggable ~5KB)
-- Bulk operation audit logging not yet implemented (planned for Phase 32)
+- Bulk operation audit logging not yet implemented (deferred to future milestone)
 - Need to verify markdown rendering performance with large content (>10KB markdown)
 
 ## Session Continuity
 
-**Last session:** 2026-01-26
-**Stopped at:** Completed 32-03-PLAN.md (Job History API and UI)
+**Last session:** 2026-01-26 01:00 UTC
+**Stopped at:** Completed Phase 32 (Async Jobs)
 **Resume file:** None
-**Next action:** Continue Phase 32 (32-04-PLAN.md if exists)
+**Next action:** Start Phase 33 (Logging & Analytics)
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-26 — Completed 32-03-PLAN.md (Job History API and UI)*
+*Last updated: 2026-01-26 — Completed Phase 32 (Async Jobs)*
