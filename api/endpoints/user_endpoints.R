@@ -16,17 +16,30 @@
 #*
 #* # `Details`
 #* Admins see all users; Curators see only unapproved users; others are forbidden.
-#* Supports cursor pagination for large user lists.
+#* Supports server-side filtering, sorting, and cursor pagination.
 #*
 #* @tag user
 #* @serializer json list(na="null")
+#* @param filter Filter string (e.g., "user_name:contains:john")
+#* @param sort Sort string (e.g., "+user_name" or "-email")
 #* @param page_after Cursor after which entries are shown (default: 0)
 #* @param page_size Page size in cursor pagination (default: "all")
+#* @param fspec Field specification for table columns
 #* @get table
-function(req, res, page_after = 0, page_size = "all") {
+function(req, res, filter = "", sort = "+user_id", page_after = 0, page_size = "all", fspec = "user_id,user_name,email,user_role,approved,abbreviation,first_name,family_name,comment,created_at") {
   # Require Curator role or higher
   require_role(req, res, "Curator")
 
+  # Start time tracking
+  start_time <- Sys.time()
+
+  # Generate sort expression based on sort input
+  sort_exprs <- generate_sort_expressions(sort, unique_id = "user_id")
+
+  # Generate filter expression based on filter input
+  filter_exprs <- generate_filter_expressions(filter)
+
+  # Retrieve base user data
   if (req$user_role == "Administrator") {
     user_table <- pool %>%
       tbl("user") %>%
@@ -44,22 +57,7 @@ function(req, res, page_after = 0, page_size = "all") {
         user_role,
         approved
       ) %>%
-      arrange(created_at, user_id) %>%
       collect()
-
-    # Apply pagination
-    pagination_info <- generate_cursor_pag_inf_safe(
-      user_table,
-      page_size,
-      page_after,
-      "user_id"
-    )
-
-    list(
-      links = pagination_info$links,
-      meta = pagination_info$meta,
-      data = pagination_info$data
-    )
   } else {
     # Curator sees only unapproved users
     user_table <- pool %>%
@@ -79,23 +77,73 @@ function(req, res, page_after = 0, page_size = "all") {
         approved
       ) %>%
       filter(approved == 0) %>%
-      arrange(created_at, user_id) %>%
       collect()
-
-    # Apply pagination
-    pagination_info <- generate_cursor_pag_inf_safe(
-      user_table,
-      page_size,
-      page_after,
-      "user_id"
-    )
-
-    list(
-      links = pagination_info$links,
-      meta = pagination_info$meta,
-      data = pagination_info$data
-    )
   }
+
+  # Apply filtering and sorting (if filter expression is not empty)
+  if (filter_exprs != "") {
+    user_table <- user_table %>%
+      filter(!!!rlang::parse_exprs(filter_exprs))
+  }
+
+  user_table <- user_table %>%
+    arrange(!!!rlang::parse_exprs(sort_exprs))
+
+  # Apply pagination
+  pagination_info <- generate_cursor_pag_inf_safe(
+    user_table,
+    page_size,
+    page_after,
+    "user_id"
+  )
+
+  # Calculate execution time
+  end_time <- Sys.time()
+  execution_time <- as.character(
+    paste0(round(end_time - start_time, 2), " secs")
+  )
+
+  # Build field specification metadata
+  fspec_fields <- strsplit(fspec, ",")[[1]]
+  fspec_parsed <- lapply(fspec_fields, function(field) {
+    field <- trimws(field)
+    # Define field labels
+    label <- switch(field,
+      user_id = "ID",
+      user_name = "Username",
+      email = "E-mail",
+      user_role = "Role",
+      approved = "Approved",
+      abbreviation = "Abbreviation",
+      first_name = "First Name",
+      family_name = "Family Name",
+      comment = "Comment",
+      created_at = "Created",
+      orcid = "ORCID",
+      terms_agreed = "Terms Agreed",
+      field  # default: use field name as label
+    )
+    list(
+      key = field,
+      label = label,
+      sortable = TRUE,
+      filterable = TRUE,
+      class = "text-start"
+    )
+  })
+
+  # Add execution time and fspec to meta
+  meta <- pagination_info$meta %>%
+    add_column(tibble::as_tibble(list(
+      fspec = list(fspec_parsed),
+      executionTime = execution_time
+    )))
+
+  list(
+    links = pagination_info$links,
+    meta = meta,
+    data = pagination_info$data
+  )
 }
 
 

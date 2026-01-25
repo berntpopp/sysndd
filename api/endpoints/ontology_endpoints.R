@@ -85,19 +85,32 @@ function(ontology_input, input_type = "ontology_id") {
 #* # `Details`
 #* This endpoint fetches summary information about the variation ontology list,
 #* such as IDs, labels, definitions, etc. Administrators have full access,
-#* otherwise request is forbidden.
+#* otherwise request is forbidden. Supports server-side filtering, sorting, and cursor pagination.
 #*
 #* # `Return`
-#* A JSON array containing the ontology table.
+#* A JSON object with paginated data, metadata, and links.
 #*
 #* @tag ontology
 #* @serializer json list(na="string")
+#* @param filter Filter string (e.g., "is_active:equals:1")
+#* @param sort Sort string (e.g., "+vario_name" or "-update_date")
+#* @param page_after Cursor after which entries are shown (default: 0)
+#* @param page_size Page size in cursor pagination (default: "all")
+#* @param fspec Field specification for table columns
 #* @get variant/table
-function(req, res) {
+function(req, res, filter = "", sort = "+vario_id", page_after = 0, page_size = "all", fspec = "vario_id,vario_name,definition,obsolete,is_active,sort,update_date") {
   require_role(req, res, "Administrator")
 
-  user <- req$user_id
+  # Start time tracking
+  start_time <- Sys.time()
 
+  # Generate sort expression based on sort input
+  sort_exprs <- generate_sort_expressions(sort, unique_id = "vario_id")
+
+  # Generate filter expression based on filter input
+  filter_exprs <- generate_filter_expressions(filter)
+
+  # Retrieve ontology data
   ontology_table <- pool %>%
     tbl("variation_ontology_list") %>%
     select(
@@ -111,7 +124,75 @@ function(req, res) {
     ) %>%
     collect()
 
-  ontology_table
+  # Apply filtering (if filter expression is not empty)
+  if (filter_exprs != "") {
+    ontology_table <- ontology_table %>%
+      filter(!!!rlang::parse_exprs(filter_exprs))
+  }
+
+  # Store total count before pagination
+  total_items <- nrow(ontology_table)
+
+  # Apply sorting
+  ontology_table <- ontology_table %>%
+    arrange(!!!rlang::parse_exprs(sort_exprs))
+
+  # Apply pagination
+  pagination_info <- generate_cursor_pag_inf_safe(
+    ontology_table,
+    page_size,
+    page_after,
+    "vario_id"
+  )
+
+  # Calculate execution time
+  end_time <- Sys.time()
+  execution_time <- as.character(
+    paste0(round(end_time - start_time, 2), " secs")
+  )
+
+  # Build field specification metadata
+  fspec_fields <- strsplit(fspec, ",")[[1]]
+  fspec_parsed <- lapply(fspec_fields, function(field) {
+    field <- trimws(field)
+    # Define field labels
+    label <- switch(field,
+      vario_id = "ID",
+      vario_name = "Name",
+      definition = "Definition",
+      obsolete = "Obsolete",
+      is_active = "Active",
+      sort = "Sort Order",
+      update_date = "Last Updated",
+      field  # default: use field name as label
+    )
+    list(
+      key = field,
+      label = label,
+      sortable = TRUE,
+      filterable = TRUE,
+      class = "text-start"
+    )
+  })
+
+  # Build meta with total items, fspec, and execution time
+  meta <- list(list(
+    totalItems = total_items,
+    currentPage = pagination_info$meta[[1]]$currentPage,
+    totalPages = pagination_info$meta[[1]]$totalPages,
+    prevItemID = pagination_info$meta[[1]]$prevItemID,
+    currentItemID = pagination_info$meta[[1]]$currentItemID,
+    nextItemID = pagination_info$meta[[1]]$nextItemID,
+    lastItemID = pagination_info$meta[[1]]$lastItemID,
+    fspec = fspec_parsed,
+    executionTime = execution_time
+  ))
+
+  list(
+    links = pagination_info$links,
+    meta = meta,
+    data = pagination_info$data
+  )
 }
 
 
