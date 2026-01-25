@@ -1,5 +1,42 @@
 # Project Milestones: SysNDD Developer Experience
 
+## v5.0 Analysis Modernization (Shipped: 2026-01-25)
+
+**Delivered:** Transform analysis pages from D3.js bubble charts to Cytoscape.js network visualization with real PPI edges, 50-65% performance improvement via Leiden clustering, and modern filter/navigation composables.
+
+**Phases completed:** 25-27 (16 plans total)
+
+**Key accomplishments:**
+
+- Migrated clustering from Walktrap to Leiden algorithm (2-3x faster)
+- Added cache key versioning with algorithm and STRING version
+- Created /api/analysis/network_edges endpoint (66k+ PPI edges)
+- Built Cytoscape.js NetworkVisualization component (807 lines) with fcose layout
+- Created URL-synced filter composables (useFilterSync, useWildcardSearch)
+- Added biologist-friendly wildcard search (PKD*, BRCA?)
+- Built AnalysisTabs navigation with bidirectional table-network interaction
+- Migrated PhenotypeClusters from D3 to Cytoscape
+- Proper memory leak prevention (cy.destroy() on navigation)
+
+**Stats:**
+
+- 42,376 lines Vue/TypeScript, 62,334 lines R
+- 3 phases, 16 plans
+- 99 commits
+- 102 files modified (+24,117/-4,991 lines)
+- 2 days (2026-01-24 → 2026-01-25)
+
+**Git range:** `a005da7` (docs: start milestone v5.0) → `06fa54b` (chore: add v5.0 milestone audit)
+
+**Tech debt (minor):**
+- FDR column sorting needs sortCompare for scientific notation
+- ScoreSlider presets need domain-specific values
+- Correlation heatmap → cluster navigation (architectural limitation)
+
+**What's next:** CI/CD pipeline (GitHub Actions), Trivy security scanning, frontend test coverage expansion
+
+---
+
 ## v4 Backend Overhaul (Shipped: 2026-01-24)
 
 **Delivered:** Complete backend modernization with R 4.4.3 upgrade, security hardening (66 SQL injection fixes, Argon2id passwords), async processing (mirai job system), repository/service layers, and OMIM data source migration.
