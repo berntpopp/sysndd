@@ -99,6 +99,7 @@
 </template>
 
 <script>
+import { useRouter } from 'vue-router';
 import useToast from '@/composables/useToast';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 import ColorLegend from '@/components/analyses/ColorLegend.vue';
@@ -127,12 +128,8 @@ export default {
   },
   setup() {
     const { makeToast } = useToast();
-    // TODO: Add useFilterSync when NAVL-02 cluster navigation is implemented (Plan 27-09)
-    // Currently, the correlation data contains phenotype pairs, not cluster data
-    // When backend adds cluster info to correlation response, this can be used for navigation:
-    // const { setTab, setCluster } = useFilterSync();
-    // For now, links go directly to /Phenotypes/ with filter parameters (see line 283)
-    return { makeToast };
+    const router = useRouter();
+    return { makeToast, router };
   },
   data() {
     return {
@@ -268,28 +265,33 @@ export default {
         d3.select(this).style('stroke', 'none');
       };
 
-      // add the squares
-      // NAVL-02: Click navigation for correlation cells
-      // Current behavior: Links to /Phenotypes/ filtered by phenotype pair
-      // Future enhancement: If backend adds cluster_id to correlation data,
-      // could use setCluster(d.cluster_id) and setTab('networks') to navigate
-      // to the gene network filtered by that cluster
+      // add the squares with click navigation
+      // NAVL-02: Click to navigate to phenotypes filtered by correlation pair
+      // Note: cluster_id is not available from backend (see api/endpoints/phenotype_endpoints.R)
+      // because phenotype pairs don't map directly to entity clusters.
+      // This implementation provides clickable cells that navigate to filtered phenotype table.
       svg
         .selectAll()
         .data(data, (d) => `${d.x}:${d.y}`)
         .enter()
-        .append('a')
-        .attr('xlink:href', (d) => `/Phenotypes/?sort=entity_id&filter=all(modifier_phenotype_id,${d.x_id},${d.y_id})&page_after=0&page_size=10`) // <- add links to the filtered phenotype table to the rects
-        .attr('aria-label', (d) => `Link to phenotypes table for combination ${d.x_id} and ${d.y_id}`)
         .append('rect')
         .attr('x', (d) => x(d.x))
         .attr('y', (d) => y(d.y))
         .attr('width', x.bandwidth())
         .attr('height', y.bandwidth())
         .style('fill', (d) => myColor(d.value))
+        .style('cursor', 'pointer')
+        .attr('role', 'button')
+        .attr('aria-label', (d) => `View phenotypes for ${d.x} and ${d.y} (correlation: ${d.value})`)
         .on('mouseover', mouseover)
         .on('mousemove', mousemove)
-        .on('mouseleave', mouseleave);
+        .on('mouseleave', mouseleave)
+        .on('click', (event, d) => {
+          // Navigate to Phenotypes page filtered by both phenotypes
+          const filterQuery = `all(modifier_phenotype_id,${d.x_id},${d.y_id})`;
+          const url = `/Phenotypes/?sort=entity_id&filter=${filterQuery}&page_after=0&page_size=10`;
+          this.$router.push(url);
+        });
     },
   },
 };
