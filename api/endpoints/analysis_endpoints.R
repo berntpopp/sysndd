@@ -570,11 +570,12 @@ function() {
 #* @serializer json list(na="string")
 #* @param cluster_type:str Type of clusters: "clusters" (default) or "subclusters"
 #* @param min_confidence:str Minimum STRING confidence (0-1000, default "400")
+#* @param max_edges:str Maximum edges to return (default "10000", 0 for all). Higher confidence edges are prioritized.
 #*
 #* @response 200 OK. Returns nodes, edges, and metadata
 #*
 #* @get network_edges
-function(cluster_type = "clusters", min_confidence = "400") {
+function(cluster_type = "clusters", min_confidence = "400", max_edges = "10000") {
   # Validate cluster_type parameter
   cluster_type_clean <- tolower(cluster_type)
   if (!cluster_type_clean %in% c("clusters", "subclusters")) {
@@ -589,6 +590,12 @@ function(cluster_type = "clusters", min_confidence = "400") {
   # Clamp to valid STRING confidence range (0-1000)
   min_confidence_int <- min(max(min_confidence_int, 0), 1000)
 
+  # Parse max_edges parameter (0 = unlimited)
+  max_edges_int <- as.integer(max_edges)
+  if (is.na(max_edges_int) || max_edges_int < 0) {
+    max_edges_int <- 10000  # Default to 10000 for browser performance
+  }
+
   # Track timing for performance monitoring
   start_time <- Sys.time()
 
@@ -597,6 +604,29 @@ function(cluster_type = "clusters", min_confidence = "400") {
     cluster_type = cluster_type_clean,
     min_confidence = min_confidence_int
   )
+
+  # Store total edge count before filtering
+  total_edges <- nrow(network_data$edges)
+
+  # Limit edges if max_edges > 0 (prioritize high confidence edges)
+  if (max_edges_int > 0 && nrow(network_data$edges) > max_edges_int) {
+    # Sort by confidence descending and take top N
+    network_data$edges <- network_data$edges[order(-network_data$edges$confidence), ]
+    network_data$edges <- head(network_data$edges, max_edges_int)
+
+    # Filter nodes to only those in remaining edges
+    connected_nodes <- unique(c(network_data$edges$source, network_data$edges$target))
+    network_data$nodes <- network_data$nodes[network_data$nodes$hgnc_id %in% connected_nodes, ]
+
+    # Update metadata
+    network_data$metadata$node_count <- nrow(network_data$nodes)
+    network_data$metadata$edge_count <- nrow(network_data$edges)
+    network_data$metadata$total_edges <- total_edges
+    network_data$metadata$edges_filtered <- TRUE
+  } else {
+    network_data$metadata$total_edges <- total_edges
+    network_data$metadata$edges_filtered <- FALSE
+  }
 
   # Calculate elapsed time
   elapsed_seconds <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))

@@ -128,11 +128,12 @@ export default defineConfig({
     hmr: {
       clientPort: 5173,
     },
-    // API Proxy - enables local development without Docker
-    // In Docker mode, Traefik handles routing
+    // API Proxy - routes /api requests to the backend
+    // In Docker: uses internal hostname 'api:7777'
+    // On host: set VITE_API_URL=http://localhost:7778
     proxy: {
       '/api': {
-        target: 'http://localhost:7778',
+        target: process.env.VITE_API_URL || 'http://api:7777',
         changeOrigin: true,
         // Keep /api prefix since backend expects it
       },

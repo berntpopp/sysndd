@@ -344,6 +344,12 @@ onMounted(async () => {
   // Initialize cytoscape
   initializeCytoscape();
 
+  // CRITICAL: Update elements after initialization
+  // The watch may have fired before isInitialized was true
+  if (cytoscapeElements.value.length > 0) {
+    updateElements(cytoscapeElements.value);
+  }
+
   // Setup tooltip handlers after a brief delay to ensure cy is ready
   await nextTick();
   setupTooltipHandlers();

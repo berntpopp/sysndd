@@ -120,22 +120,39 @@ export function useNetworkData(): NetworkDataState {
   /**
    * Fetch network data from the API
    *
+   * PERFORMANCE: Uses max_edges parameter (default 10000) to limit edges
+   * returned. This prevents browser from being overwhelmed with 66k+ edges.
+   * Higher confidence edges are prioritized when filtering.
+   *
    * @param clusterType - Type of clustering to use ('clusters' or 'subclusters')
+   * @param maxEdges - Maximum edges to return (default 10000, 0 for all)
    */
   const fetchNetworkData = async (
-    clusterType: 'clusters' | 'subclusters' = 'clusters'
+    clusterType: 'clusters' | 'subclusters' = 'clusters',
+    maxEdges: number = 10000
   ): Promise<void> => {
     isLoading.value = true;
     error.value = null;
+
+    console.log(`[useNetworkData] Fetching network data (cluster_type=${clusterType}, max_edges=${maxEdges})`);
+    const startTime = performance.now();
 
     try {
       const response = await axios.get<NetworkResponse>('/api/analysis/network_edges', {
         params: {
           cluster_type: clusterType,
-          include_metadata: true,
+          max_edges: maxEdges,
         },
       });
       networkData.value = response.data;
+
+      const elapsed = performance.now() - startTime;
+      console.log(`[useNetworkData] Fetch complete in ${elapsed.toFixed(0)}ms`);
+      console.log(`[useNetworkData] Received ${response.data.nodes?.length || 0} nodes, ${response.data.edges?.length || 0} edges`);
+
+      if (response.data.metadata?.edges_filtered) {
+        console.log(`[useNetworkData] Edges filtered: showing ${response.data.metadata.edge_count} of ${response.data.metadata.total_edges} total`);
+      }
     } catch (err) {
       error.value = err instanceof Error ? err : new Error('Failed to fetch network data');
       console.error('Network data fetch error:', err);
@@ -147,25 +164,39 @@ export function useNetworkData(): NetworkDataState {
   /**
    * Transform network data to Cytoscape.js ElementDefinition format
    *
+   * PERFORMANCE OPTIMIZED:
+   * - Uses pre-computed positions from server (no client layout needed)
+   * - Pre-computes node size and edge width as data properties
+   * - Cytoscape uses 'preset' layout with these positions
+   *
    * Computed property that automatically updates when networkData changes.
-   * Maps nodes and edges to the format expected by Cytoscape.js.
    */
   const cytoscapeElements = computed<ElementDefinition[]>(() => {
     if (!networkData.value) return [];
 
-    // Transform nodes to Cytoscape format
+    console.log(`[useNetworkData] Transforming ${networkData.value.nodes.length} nodes, ${networkData.value.edges.length} edges`);
+    const startTime = performance.now();
+
+    // Transform nodes to Cytoscape format with pre-computed positions
     const nodes: ElementDefinition[] = networkData.value.nodes.map((node: NetworkNode) => ({
       data: {
         id: node.hgnc_id,
         symbol: node.symbol,
         cluster: node.cluster,
         degree: node.degree,
-        // Cluster color - user decision: distinct colors for easy differentiation
+        // Pre-compute size for performance (avoids function in style)
+        size: Math.max(20, Math.sqrt(node.degree || 1) * 8),
+        // Cluster color
         color: getClusterColor(node.cluster),
+      },
+      // PRE-COMPUTED POSITION from server - no client layout needed!
+      position: {
+        x: (node as NetworkNode & { x?: number }).x ?? 500,
+        y: (node as NetworkNode & { y?: number }).y ?? 500,
       },
     }));
 
-    // Transform edges to Cytoscape format
+    // Transform edges to Cytoscape format with pre-computed width
     const edges: ElementDefinition[] = networkData.value.edges.map(
       (edge: NetworkEdge, idx: number) => ({
         data: {
@@ -173,9 +204,14 @@ export function useNetworkData(): NetworkDataState {
           source: edge.source,
           target: edge.target,
           confidence: edge.confidence,
+          // Pre-compute width for performance (avoids function in style)
+          width: Math.max(0.5, edge.confidence * 3),
         },
       })
     );
+
+    const elapsed = performance.now() - startTime;
+    console.log(`[useNetworkData] Transform complete in ${elapsed.toFixed(0)}ms`);
 
     return [...nodes, ...edges];
   });

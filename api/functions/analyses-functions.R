@@ -498,14 +498,54 @@ gen_network_edges <- function(
   # Count unique clusters
   cluster_count <- length(unique(nodes$cluster[!is.na(nodes$cluster)]))
 
+  # PRE-COMPUTE LAYOUT POSITIONS SERVER-SIDE
+  # Using igraph's Fruchterman-Reingold (fast, good quality)
+  # This is cached via gen_network_edges_mem, so only computed once
+  message(paste0("[gen_network_edges] Computing layout for ", nrow(nodes), " nodes..."))
+  layout_start <- Sys.time()
+
+  # Compute layout using igraph - much faster than browser-side JavaScript
+  # Use layout_with_fr (Fruchterman-Reingold) for good cluster separation
+  layout_matrix <- igraph::layout_with_fr(
+    subgraph,
+    niter = 500,  # Sufficient iterations for convergence
+    weights = igraph::E(subgraph)$combined_score / 1000  # Use edge weights
+  )
+
+  layout_time <- as.numeric(difftime(Sys.time(), layout_start, units = "secs"))
+  message(paste0("[gen_network_edges] Layout computed in ", round(layout_time, 2), "s"))
+
+  # Normalize layout to 0-1000 range for consistent client rendering
+  x_range <- range(layout_matrix[, 1])
+  y_range <- range(layout_matrix[, 2])
+  layout_normalized <- data.frame(
+    STRING_id = names(node_degrees),
+    x = round((layout_matrix[, 1] - x_range[1]) / (x_range[2] - x_range[1]) * 1000),
+    y = round((layout_matrix[, 2] - y_range[1]) / (y_range[2] - y_range[1]) * 1000)
+  )
+
+  # Add positions to nodes
+  nodes <- nodes %>%
+    left_join(
+      string_to_hgnc %>% select(STRING_id, hgnc_id),
+      by = "hgnc_id"
+    ) %>%
+    left_join(layout_normalized, by = "STRING_id") %>%
+    select(hgnc_id, symbol, cluster, degree, x, y) %>%
+    distinct()
+
   # Build metadata
   metadata <- list(
     node_count = nrow(nodes),
     edge_count = nrow(edges),
     cluster_count = cluster_count,
     string_version = string_version,
-    min_confidence = min_confidence
+    min_confidence = min_confidence,
+    layout_algorithm = "fruchterman_reingold",
+    layout_time_seconds = round(layout_time, 2)
   )
+
+  message(paste0("[gen_network_edges] Returning ", nrow(nodes), " nodes, ", nrow(edges), " edges"))
 
   # Return structured result
   list(

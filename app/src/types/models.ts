@@ -181,6 +181,10 @@ export interface NetworkNode {
   cluster: number | string;
   /** Node degree (number of connections) */
   degree: number;
+  /** Pre-computed X position from server-side layout (0-1000 normalized) */
+  x?: number;
+  /** Pre-computed Y position from server-side layout (0-1000 normalized) */
+  y?: number;
 }
 
 /**
@@ -211,6 +215,14 @@ export interface NetworkMetadata {
   min_confidence: number;
   /** Time taken to generate response in seconds */
   elapsed_seconds?: number;
+  /** Total edges before filtering (if max_edges was applied) */
+  total_edges?: number;
+  /** Whether edges were filtered by max_edges parameter */
+  edges_filtered?: boolean;
+  /** Layout algorithm used server-side */
+  layout_algorithm?: string;
+  /** Time taken for layout computation in seconds */
+  layout_time_seconds?: number;
 }
 
 /**
@@ -233,4 +245,6 @@ export interface NetworkEdgesParams {
   cluster_type?: 'clusters' | 'subclusters';
   /** Minimum STRING confidence (0-1000, default 400) */
   min_confidence?: number | string;
+  /** Maximum edges to return (default 10000, 0 for all). High confidence edges prioritized. */
+  max_edges?: number | string;
 }

@@ -77,49 +77,62 @@ export interface CytoscapeState {
 }
 
 /**
- * Get Cytoscape.js style configuration
+ * Get Cytoscape.js style configuration - PERFORMANCE OPTIMIZED
  *
- * Style configuration based on user decisions from CONTEXT.md:
- * - Node sizing by degree (connection count)
- * - Cluster colors via data(color) property
- * - Edge width from confidence score
- * - Highlighted state for hover interactions
+ * CRITICAL: This style is optimized for large graphs (10k+ elements)
+ * Following Cytoscape.js performance best practices:
+ * - NO function-based styles (use data() mappings instead)
+ * - Haystack edges (straight lines, 10x faster than bezier)
+ * - No labels by default (shown on zoom/hover)
+ * - Opaque edges (faster than semitransparent)
+ * - No text-outline (expensive)
+ *
+ * @see https://js.cytoscape.org/#performance
  */
 function getCytoscapeStyle(): CytoscapeStylesheet {
   return [
     {
       selector: 'node',
       style: {
-        label: 'data(symbol)',
+        // PERFORMANCE: Use data() mapping instead of function
+        // Node size pre-computed on server/client as 'size' data property
+        width: 'data(size)',
+        height: 'data(size)',
         'background-color': 'data(color)',
-        // Node sizing by degree - user decision: more connected genes appear larger
-        width: (ele: NodeSingular) => Math.max(30, Math.sqrt(ele.data('degree') || 1) * 10),
-        height: (ele: NodeSingular) => Math.max(30, Math.sqrt(ele.data('degree') || 1) * 10),
-        'font-size': '11px',
-        'text-valign': 'center',
-        'text-halign': 'center',
-        'border-width': 2,
-        'border-color': '#333',
-        color: '#000',
-        'text-outline-width': 2,
-        'text-outline-color': '#fff',
+        // PERFORMANCE: Hide labels by default (expensive to render)
+        label: '',
+        // PERFORMANCE: Simple border, no outline
+        'border-width': 1,
+        'border-color': '#666',
       },
     },
     {
       selector: 'edge',
       style: {
-        // Edge width from STRING confidence - user decision: thicker = higher confidence
-        width: (ele: NodeSingular) => Math.max(1, (ele.data('confidence') || 0.4) * 5),
-        'line-color': '#999',
-        'curve-style': 'bezier',
-        opacity: 0.6,
+        // PERFORMANCE: haystack edges are 10x faster than bezier
+        'curve-style': 'haystack',
+        'haystack-radius': 0.5,
+        // PERFORMANCE: Use data() mapping for width
+        width: 'data(width)',
+        'line-color': '#aaa',
+        // PERFORMANCE: Opaque edges are 2x faster than semitransparent
+        opacity: 1,
       },
     },
     {
-      selector: 'node.highlighted',
+      // Show labels on hover/select
+      selector: 'node:selected, node.highlighted',
       style: {
+        label: 'data(symbol)',
+        'font-size': '12px',
+        'text-valign': 'center',
+        'text-halign': 'center',
+        color: '#000',
+        'text-background-color': '#fff',
+        'text-background-opacity': 0.8,
+        'text-background-padding': '2px',
         'border-color': '#ff0',
-        'border-width': 4,
+        'border-width': 3,
         'z-index': 999,
       },
     },
@@ -128,19 +141,26 @@ function getCytoscapeStyle(): CytoscapeStylesheet {
       style: {
         'line-color': '#ff0',
         width: 3,
-        opacity: 1,
       },
     },
     {
       selector: 'node.dimmed',
       style: {
-        opacity: 0.3,
+        opacity: 0.2,
       },
     },
     {
       selector: 'edge.dimmed',
       style: {
-        opacity: 0.15,
+        opacity: 0.1,
+      },
+    },
+    {
+      // Minimum zoom level to show labels (performance)
+      selector: 'node[?showLabel]',
+      style: {
+        label: 'data(symbol)',
+        'font-size': '10px',
       },
     },
   ];
@@ -197,34 +217,36 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
     }
 
     isLoading.value = true;
+    console.log('[useCytoscape] Initializing with', options.elements?.length || 0, 'elements');
+    const startTime = performance.now();
 
     cy = cytoscapeFn({
       container: options.container.value,
       elements: options.elements || [],
 
-      // Style configuration
+      // Style configuration - PERFORMANCE OPTIMIZED
       style: getCytoscapeStyle(),
 
-      // Layout configuration - fcose for force-directed layout
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // PERFORMANCE: Use 'preset' layout - positions pre-computed server-side
+      // This eliminates expensive client-side layout computation entirely
+      // fcose/cose with 66k edges would take 30+ seconds and block the UI
       layout: {
-        name: 'fcose',
-        quality: 'default',
-        animate: true,
-        animationDuration: 1500,
-        animationEasing: 'ease-out-cubic',
-        randomize: false,
-        nodeDimensionsIncludeLabels: true,
-        // Force-separate clusters naturally - user decision
-        idealEdgeLength: 100,
-        nodeRepulsion: 4500,
-        edgeElasticity: 0.45,
-      } as any,
+        name: 'preset',  // Uses position property from each node
+        fit: true,
+        padding: 50,
+      },
 
-      // Performance optimizations
-      hideEdgesOnViewport: true, // Hide edges during pan/zoom for smooth interactions
-      textureOnViewport: false,
-      pixelRatio: 1, // Prevent 2-3x cost on high DPI displays
+      // WebGL renderer for 10x performance on large graphs
+      // Cytoscape 3.31+ supports this
+      renderer: {
+        name: 'canvas',
+        webgl: true,  // Enable GPU acceleration
+      },
+
+      // PERFORMANCE OPTIMIZATIONS for large graphs
+      hideEdgesOnViewport: true,  // Hide edges during pan/zoom
+      textureOnViewport: true,    // Cache as texture during interaction
+      pixelRatio: 1,              // Don't double pixels on retina
       motionBlur: false,
 
       // Interaction settings
@@ -232,6 +254,9 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
       userPanningEnabled: true,
       boxSelectionEnabled: false,
     });
+
+    const elapsed = performance.now() - startTime;
+    console.log(`[useCytoscape] Initialized in ${elapsed.toFixed(0)}ms`);
 
     // Event handlers - node click
     if (options.onNodeClick) {
@@ -282,7 +307,10 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
   };
 
   /**
-   * Update the graph elements and re-run layout
+   * Update the graph elements - PERFORMANCE OPTIMIZED
+   *
+   * Uses 'preset' layout since positions are pre-computed server-side.
+   * This avoids expensive client-side layout computation.
    */
   const updateElements = (elements: ElementDefinition[]): void => {
     if (!cy) {
@@ -290,27 +318,29 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
       return;
     }
 
+    console.log(`[useCytoscape] Updating with ${elements.length} elements`);
+    const startTime = performance.now();
     isLoading.value = true;
 
     // Remove existing elements
     cy.elements().remove();
 
-    // Add new elements
+    // Add new elements (positions already included from server)
     cy.add(elements);
 
-    // Run layout - user decision: data changes trigger full layout re-run
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // PERFORMANCE: Use 'preset' layout - positions pre-computed server-side
+    // No layout computation needed, just fit to viewport
     const layout = cy.layout({
-      name: 'fcose',
-      animate: true,
-      animationDuration: 1500,
-      idealEdgeLength: 100,
-      nodeRepulsion: 4500,
-      edgeElasticity: 0.45,
-      nodeDimensionsIncludeLabels: true,
-    } as any);
+      name: 'preset',
+      fit: true,
+      padding: 50,
+    });
 
     layout.run();
+
+    const elapsed = performance.now() - startTime;
+    console.log(`[useCytoscape] Update complete in ${elapsed.toFixed(0)}ms`);
+    isLoading.value = false;
   };
 
   /**
@@ -322,26 +352,27 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
   };
 
   /**
-   * Reset the layout (re-run fcose)
+   * Reset the layout - re-runs preset layout and fits to viewport
+   *
+   * NOTE: For large graphs, we use the pre-computed server-side positions.
+   * Running fcose on 60k+ edges would freeze the browser.
    */
   const resetLayout = (): void => {
     if (!cy) return;
 
+    console.log('[useCytoscape] Resetting layout');
     isLoading.value = true;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // Just re-run preset layout and fit to viewport
+    // The positions are already computed server-side
     const layout = cy.layout({
-      name: 'fcose',
-      animate: true,
-      animationDuration: 1500,
-      idealEdgeLength: 100,
-      nodeRepulsion: 4500,
-      edgeElasticity: 0.45,
-      randomize: true, // Randomize for fresh layout
-      nodeDimensionsIncludeLabels: true,
-    } as any);
+      name: 'preset',
+      fit: true,
+      padding: 50,
+    });
 
     layout.run();
+    isLoading.value = false;
   };
 
   /**
