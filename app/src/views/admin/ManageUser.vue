@@ -486,7 +486,9 @@ import { required, min, max, email } from '@vee-validate/rules';
 import GenericTable from '@/components/small/GenericTable.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import useToast from '@/composables/useToast';
-import { useUrlParsing, useTableData, useExcelExport } from '@/composables';
+import {
+  useUrlParsing, useTableData, useExcelExport, useBulkSelection,
+} from '@/composables';
 
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
@@ -519,6 +521,9 @@ export default {
       sortInput: '+user_name',
       pageAfterInput: '0',
     });
+
+    // Bulk selection state (20 user limit per context decisions)
+    const bulkSelection = useBulkSelection(20);
 
     // Filter object structure for user table
     const filter = ref({
@@ -613,6 +618,7 @@ export default {
       userRole,
       userRoleError,
       userRoleMeta,
+      ...bulkSelection, // Spreads: selectedIds, selectionCount, isSelected, toggleSelection, clearSelection, getSelectedArray, selectMultiple
     };
   },
   data() {
@@ -654,6 +660,15 @@ export default {
       userToUpdate: {},
       deleteUserModal: { id: 'delete-usermodal', title: '', content: [] },
       updateUserModal: { id: 'update-usermodal', title: '', content: [] },
+      // Bulk action modals
+      showBulkApproveModal: false,
+      bulkApproveUsernames: [],
+      showBulkDeleteModal: false,
+      bulkDeleteUsernames: [],
+      deleteConfirmText: '',
+      showBulkRoleModalVisible: false,
+      bulkRoleSelection: '',
+      bulkRoleUsernames: [],
     };
   },
   computed: {
@@ -685,6 +700,17 @@ export default {
         { value: 'Reviewer', text: 'Reviewer' },
         { value: 'Viewer', text: 'Viewer' },
       ];
+    },
+    // Check if all users on current page are selected
+    allOnPageSelected() {
+      if (this.users.length === 0) return false;
+      return this.users.every(user => this.isSelected(user.user_id));
+    },
+    removeFiltersButtonVariant() {
+      return this.hasActiveFilters ? 'outline-danger' : 'outline-secondary';
+    },
+    removeFiltersButtonTitle() {
+      return this.hasActiveFilters ? 'Clear all filters' : 'No active filters';
     },
   },
   watch: {
@@ -733,6 +759,49 @@ export default {
     });
   },
   methods: {
+    toggleSelectAllOnPage() {
+      if (this.allOnPageSelected) {
+        // Deselect all on current page
+        this.users.forEach(user => {
+          if (this.isSelected(user.user_id)) {
+            this.toggleSelection(user.user_id);
+          }
+        });
+      } else {
+        // Select all on current page (respects 20 limit)
+        const pageUserIds = this.users.map(u => u.user_id);
+        const added = this.selectMultiple(pageUserIds);
+        if (added < pageUserIds.length && this.selectionCount >= 20) {
+          this.makeToast(
+            `Selection limited to 20 users. ${added} users added.`,
+            'Selection Limit',
+            'warning'
+          );
+        }
+      }
+    },
+    handleRowSelect(userId) {
+      const success = this.toggleSelection(userId);
+      if (!success) {
+        this.makeToast(
+          'Maximum 20 users can be selected at once',
+          'Selection Limit Reached',
+          'warning'
+        );
+      }
+    },
+    handleBulkApprove() {
+      // Will be implemented in plan 04
+      console.log('Bulk approve:', this.getSelectedArray());
+    },
+    showBulkRoleModal() {
+      // Will be implemented in plan 04
+      console.log('Bulk role assign:', this.getSelectedArray());
+    },
+    handleBulkDelete() {
+      // Will be implemented in plan 04
+      console.log('Bulk delete:', this.getSelectedArray());
+    },
     // Update browser URL with current table state
     updateBrowserUrl() {
       if (this.isInitializing) return;
