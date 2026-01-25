@@ -169,6 +169,54 @@ function getCytoscapeStyle(): CytoscapeStylesheet {
         opacity: 0.05,
       },
     },
+    // Search highlighting styles (FILT-04, FILT-05)
+    {
+      selector: 'node.search-match',
+      style: {
+        'border-color': '#ffc107',
+        'border-width': 4,
+        'z-index': 999,
+      },
+    },
+    {
+      selector: 'node.search-no-match',
+      style: {
+        opacity: 0.3,
+      },
+    },
+    // Table hover highlight styles (NAVL-05)
+    {
+      selector: 'node.hover-highlight',
+      style: {
+        'border-color': '#28a745',
+        'border-width': 4,
+        'z-index': 1000,
+      },
+    },
+    {
+      selector: 'node.neighbor-highlight',
+      style: {
+        'border-color': '#6c757d',
+        'border-width': 2,
+        'z-index': 900,
+      },
+    },
+    {
+      selector: 'edge.neighbor-highlight',
+      style: {
+        'line-color': '#6c757d',
+        width: 2,
+        opacity: 0.8,
+      },
+    },
+    {
+      selector: 'node.table-hover-highlight',
+      style: {
+        'border-color': '#17a2b8',
+        'border-width': 4,
+        'z-index': 1000,
+      },
+    },
   ];
 }
 

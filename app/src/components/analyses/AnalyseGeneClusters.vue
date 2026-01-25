@@ -55,11 +55,21 @@
         >
           <!-- NetworkVisualization component replaces D3.js bubble chart -->
           <div class="pane-content">
+            <!-- Gene search input for network highlighting -->
+            <div class="mb-2">
+              <TermSearch
+                v-model="geneSearchPattern"
+                :match-count="searchMatchCount"
+                placeholder="Search genes (e.g., PKD*, BRCA?)"
+              />
+            </div>
             <NetworkVisualization
               ref="networkVisualization"
               :cluster-type="selectType"
               @cluster-selected="handleClusterSelected"
               @clusters-changed="handleClustersChanged"
+              @node-hover="handleNetworkNodeHover"
+              @search-match-count="handleSearchMatchCount"
             />
           </div>
         </Pane>
@@ -220,12 +230,15 @@
                   </div>
                 </template>
 
-                <!-- symbol cell -->
+                <!-- symbol cell with bidirectional hover highlighting -->
                 <template #cell-symbol="{ row }">
                   <!-- Render only if tableType === 'identifiers' -->
                   <div
                     v-if="tableType === 'identifiers'"
-                    class="font-italic"
+                    class="font-italic symbol-cell"
+                    :class="{ 'row-highlighted': isRowHighlighted(row.hgnc_id) }"
+                    @mouseenter="handleTableRowHover(row.hgnc_id)"
+                    @mouseleave="handleTableRowHover(null)"
                   >
                     <BLink :href="'/Genes/' + row.hgnc_id">
                       <BBadge
@@ -286,12 +299,15 @@
 </template>
 
 <script>
-import { useToast, useColorAndSymbols } from '@/composables';
+import { useToast, useColorAndSymbols, useFilterSync } from '@/composables';
 
 // Import small table components
 import GenericTable from '@/components/small/GenericTable.vue';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
+
+// Import filter components
+import TermSearch from '@/components/filters/TermSearch.vue';
 
 // Import NetworkVisualization component (replaces D3.js bubble chart)
 import NetworkVisualization from '@/components/analyses/NetworkVisualization.vue';
@@ -309,6 +325,7 @@ export default {
     GenericTable,
     TableSearchInput,
     TablePaginationControls,
+    TermSearch,
     NetworkVisualization,
     Splitpanes,
     Pane,
@@ -326,10 +343,13 @@ export default {
   setup() {
     const { makeToast } = useToast();
     const colorAndSymbols = useColorAndSymbols();
+    const { filterState, setSearch } = useFilterSync();
 
     return {
       makeToast,
       ...colorAndSymbols,
+      filterState,
+      setSearch,
     };
   },
   data() {
@@ -411,9 +431,28 @@ export default {
       // Track which clusters are displayed in table (synced from network filter)
       displayedClusters: [],
       showAllClustersInTable: true,
+
+      // Search highlighting state
+      searchMatchCount: 0,
+
+      // Bidirectional hover highlighting
+      hoveredRowId: null,
     };
   },
   computed: {
+    /**
+     * Computed property for gene search pattern (v-model binding)
+     * Gets/sets filterState.search via the composable
+     */
+    geneSearchPattern: {
+      get() {
+        return this.filterState?.search || '';
+      },
+      set(val) {
+        this.setSearch(val);
+      },
+    },
+
     /**
      * Whether we're showing combined data from multiple clusters
      */
@@ -856,6 +895,41 @@ export default {
     },
 
     /**
+     * Handle network node hover - highlight corresponding table row
+     * Part of bidirectional hover highlighting (NAVL-05)
+     */
+    handleNetworkNodeHover(nodeId) {
+      this.hoveredRowId = nodeId;
+    },
+
+    /**
+     * Handle search match count updates from network
+     * Updates the TermSearch component feedback
+     */
+    handleSearchMatchCount(count) {
+      this.searchMatchCount = count;
+    },
+
+    /**
+     * Handle table row hover - highlight corresponding network node
+     * Part of bidirectional hover highlighting (NAVL-05)
+     */
+    handleTableRowHover(hgncId) {
+      this.hoveredRowId = hgncId;
+      // Call network highlight method via ref
+      if (this.$refs.networkVisualization) {
+        this.$refs.networkVisualization.highlightNodeFromTable(hgncId);
+      }
+    },
+
+    /**
+     * Check if a table row should be highlighted (from network hover)
+     */
+    isRowHighlighted(hgncId) {
+      return this.hoveredRowId === hgncId;
+    },
+
+    /**
      * Handle cluster filter changes from NetworkVisualization
      * Updates the table to show data for selected cluster(s)
      */
@@ -999,5 +1073,17 @@ mark {
   color: white;
   font-weight: 600;
   font-size: 12px;
+}
+
+/* Bidirectional hover highlighting (NAVL-05) */
+.symbol-cell {
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+
+.row-highlighted {
+  background-color: rgba(var(--bs-warning-rgb), 0.25);
 }
 </style>

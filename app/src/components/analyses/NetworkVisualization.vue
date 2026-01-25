@@ -282,7 +282,14 @@ import {
   BDropdownItemButton,
   BDropdownDivider,
 } from 'bootstrap-vue-next';
-import { useCytoscape, useNetworkData, useNetworkFilters } from '@/composables';
+import {
+  useCytoscape,
+  useNetworkData,
+  useNetworkFilters,
+  useFilterSync,
+  useWildcardSearch,
+  useNetworkHighlight,
+} from '@/composables';
 import type { CategoryFilter } from '@/composables';
 import { getClusterColor } from '@/utils/clusterColors';
 
@@ -299,6 +306,8 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   (e: 'cluster-selected', hgncId: string): void;
   (e: 'clusters-changed', clusters: number[], showAll: boolean): void;
+  (e: 'node-hover', nodeId: string | null): void;
+  (e: 'search-match-count', count: number): void;
 }>();
 
 // Router
@@ -338,6 +347,15 @@ const {
   getVisibleEdgeCount,
 } = useNetworkFilters();
 
+// Filter sync composable for URL state management
+const { filterState } = useFilterSync();
+
+// Wildcard search composable
+const { pattern: searchPattern, regex: searchRegex, matches: searchMatches } = useWildcardSearch();
+
+// Track search match count for UI feedback
+const searchMatchCount = ref(0);
+
 // Visible counts (updated after filter application)
 const visibleNodeCount = ref(0);
 const visibleEdgeCount = ref(0);
@@ -364,6 +382,15 @@ const {
     emit('cluster-selected', nodeId);
   },
 });
+
+// Network highlight composable for bidirectional hover
+const {
+  highlightState,
+  setupNetworkListeners: setupHighlightListeners,
+  highlightNodeFromTable,
+  clearHighlights,
+  isRowHighlighted,
+} = useNetworkHighlight(cy);
 
 // Computed legend clusters - uses shared getClusterColor for consistency
 const legendClusters = computed(() => {
@@ -538,6 +565,45 @@ function handleApplyFilters() {
 
   visibleNodeCount.value = getVisibleNodeCount(cyInstance);
   visibleEdgeCount.value = getVisibleEdgeCount(cyInstance);
+
+  // Re-apply search highlighting after filters
+  updateSearchHighlighting();
+}
+
+/**
+ * Update search highlighting on network nodes
+ * Applies search-match and search-no-match classes based on wildcard pattern
+ */
+function updateSearchHighlighting() {
+  const cyInstance = cy();
+  if (!cyInstance) return;
+
+  const hasPattern = searchRegex.value !== null;
+  let matchCount = 0;
+
+  // Remove existing search classes
+  cyInstance.nodes().removeClass('search-match search-no-match');
+
+  if (hasPattern) {
+    cyInstance.nodes().forEach((node) => {
+      // Skip cluster parent nodes
+      if (node.data('isClusterParent')) return;
+
+      const symbol = node.data('symbol');
+      const isMatch = searchMatches(symbol);
+
+      if (isMatch) {
+        node.addClass('search-match');
+        matchCount += 1;
+      } else {
+        node.addClass('search-no-match');
+      }
+    });
+  }
+
+  // Update match count and emit for parent component
+  searchMatchCount.value = matchCount;
+  emit('search-match-count', matchCount);
 }
 
 // Category level change handler
@@ -623,6 +689,26 @@ function handleExportSVG() {
 // Resize observer to refit graph when container resizes
 let resizeObserver: ResizeObserver | null = null;
 
+// Watch for search pattern changes from URL state (filterState.search)
+watch(
+  () => filterState.value.search,
+  (newPattern) => {
+    searchPattern.value = newPattern;
+    if (isInitialized.value) {
+      updateSearchHighlighting();
+    }
+  },
+  { immediate: true }
+);
+
+// Emit node hover events for bidirectional table highlighting
+watch(
+  () => highlightState.value.hoveredNodeId,
+  (nodeId) => {
+    emit('node-hover', nodeId);
+  }
+);
+
 // Initialize on mount
 onMounted(async () => {
   // Fetch network data
@@ -643,6 +729,9 @@ onMounted(async () => {
   // Setup tooltip handlers after a brief delay to ensure cy is ready
   await nextTick();
   setupTooltipHandlers();
+
+  // Setup network highlight listeners for bidirectional hover
+  setupHighlightListeners();
 
   // Apply initial filters (defaults to Definitive only)
   await nextTick();
@@ -685,6 +774,14 @@ watch(cytoscapeElements, (newElements) => {
 // Watch for clusterType prop changes
 watch(() => props.clusterType, async (newType) => {
   await fetchNetworkData(newType);
+});
+
+// Expose methods for parent component (bidirectional highlighting)
+defineExpose({
+  highlightNodeFromTable,
+  isRowHighlighted,
+  clearHighlights,
+  searchMatchCount,
 });
 </script>
 
