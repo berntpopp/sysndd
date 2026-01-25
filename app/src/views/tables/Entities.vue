@@ -7,7 +7,7 @@
       :filter-input="filter"
       :fields-input="fields"
       :page-after-input="pageAfter"
-      :page-size-input="pageSize"
+      :page-size-input="Number(pageSize)"
       :fspec-input="fspec"
     />
     <!-- Load Entities table component element -->
@@ -28,7 +28,7 @@ export default {
     filter: { type: String, default: null },
     fields: { type: String, default: null },
     pageAfter: { type: String, default: '0' },
-    pageSize: { type: Number, default: 10 },
+    pageSize: { type: String, default: '10' },
     fspec: {
       type: String,
       default:

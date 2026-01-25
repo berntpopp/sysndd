@@ -22,12 +22,12 @@ export const routes: RouteRecordRaw[] = [
     name: 'Entities',
     component: () => import('@/views/tables/Entities.vue'),
     props: (route) => ({
-      sort: route.query.sort,
-      filter: route.query.filter,
-      fields: route.query.fields,
-      pageAfter: route.query.page_after,
-      pageSize: route.query.page_size,
-      fspec: route.query.fspec,
+      sort: route.query.sort || undefined,
+      filter: route.query.filter || undefined,
+      fields: route.query.fields || undefined,
+      pageAfter: route.query.page_after || undefined,
+      pageSize: route.query.page_size || undefined,
+      fspec: route.query.fspec || undefined,
     }),
     meta: {
       sitemap: {
@@ -41,12 +41,12 @@ export const routes: RouteRecordRaw[] = [
     name: 'Genes',
     component: () => import('@/views/tables/Genes.vue'),
     props: (route) => ({
-      sort: route.query.sort,
-      filter: route.query.filter,
-      fields: route.query.fields,
-      pageAfter: route.query.page_after,
-      pageSize: route.query.page_size,
-      fspec: route.query.fspec,
+      sort: route.query.sort || undefined,
+      filter: route.query.filter || undefined,
+      fields: route.query.fields || undefined,
+      pageAfter: route.query.page_after || undefined,
+      pageSize: route.query.page_size || undefined,
+      fspec: route.query.fspec || undefined,
     }),
     meta: {
       sitemap: {
@@ -60,12 +60,12 @@ export const routes: RouteRecordRaw[] = [
     name: 'Phenotypes',
     component: () => import('@/views/tables/Phenotypes.vue'),
     props: (route) => ({
-      sort: route.query.sort,
-      filter: route.query.filter,
-      fields: route.query.fields,
-      pageAfter: route.query.page_after,
-      pageSize: route.query.page_size,
-      fspec: route.query.fspec,
+      sort: route.query.sort || undefined,
+      filter: route.query.filter || undefined,
+      fields: route.query.fields || undefined,
+      pageAfter: route.query.page_after || undefined,
+      pageSize: route.query.page_size || undefined,
+      fspec: route.query.fspec || undefined,
     }),
     meta: {
       sitemap: {
