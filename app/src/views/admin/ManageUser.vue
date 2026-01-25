@@ -16,9 +16,59 @@
                   <h5 class="mb-1 text-start">
                     <strong>Manage Users</strong>
                     <BBadge variant="secondary" class="ms-2">{{ totalRows }} users</BBadge>
+                    <BBadge
+                      v-if="selectionCount > 0"
+                      variant="primary"
+                      class="ms-2"
+                    >
+                      {{ selectionCount }} selected
+                    </BBadge>
                   </h5>
                 </BCol>
                 <BCol class="text-end">
+                  <!-- Bulk action buttons (only visible when selection > 0) -->
+                  <template v-if="selectionCount > 0">
+                    <BButton
+                      v-b-tooltip.hover
+                      size="sm"
+                      variant="success"
+                      class="me-1"
+                      title="Approve selected users"
+                      @click="handleBulkApprove"
+                    >
+                      <i class="bi bi-check-circle" /> Approve
+                    </BButton>
+                    <BButton
+                      v-b-tooltip.hover
+                      size="sm"
+                      variant="primary"
+                      class="me-1"
+                      title="Assign role to selected users"
+                      @click="showBulkRoleModal"
+                    >
+                      <i class="bi bi-person-badge" /> Role
+                    </BButton>
+                    <BButton
+                      v-b-tooltip.hover
+                      size="sm"
+                      variant="danger"
+                      class="me-1"
+                      title="Delete selected users"
+                      @click="handleBulkDelete"
+                    >
+                      <i class="bi bi-trash" /> Delete
+                    </BButton>
+                    <BButton
+                      v-b-tooltip.hover
+                      size="sm"
+                      variant="link"
+                      title="Clear selection"
+                      @click="clearSelection"
+                    >
+                      <i class="bi bi-x-lg" />
+                    </BButton>
+                  </template>
+                  <!-- Existing buttons (export, filter) -->
                   <BButton
                     v-b-tooltip.hover
                     size="sm"
