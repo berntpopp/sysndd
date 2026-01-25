@@ -59,6 +59,7 @@
               ref="networkVisualization"
               :cluster-type="selectType"
               @cluster-selected="handleClusterSelected"
+              @clusters-changed="handleClustersChanged"
             />
           </div>
         </Pane>
@@ -81,7 +82,7 @@
               <div class="mb-0 font-weight-bold">
                 <BRow>
                   <BCol
-                    sm="6"
+                    sm="4"
                     class="mb-1"
                   >
                     <!-- Table type selector (term_enrichment vs. identifiers) -->
@@ -98,7 +99,23 @@
                   </BCol>
 
                   <BCol
-                    sm="6"
+                    sm="4"
+                    class="mb-1 text-center"
+                  >
+                    <!-- Cluster indicator showing which data is displayed -->
+                    <BBadge
+                      v-b-tooltip.hover
+                      :variant="showAllClustersInTable ? 'secondary' : 'primary'"
+                      class="py-1 px-2"
+                      title="Select clusters in the network to filter table data"
+                    >
+                      <i class="bi bi-diagram-3 me-1" />
+                      {{ clusterDisplayLabel }}
+                    </BBadge>
+                  </BCol>
+
+                  <BCol
+                    sm="4"
                     class="mb-1 text-end"
                   >
                     <!-- A global 'any' filter for searching all columns -->
@@ -365,6 +382,10 @@ export default {
 
       // Resizable pane size (percentage)
       leftPaneSize: 42,
+
+      // Track which clusters are displayed in table (synced from network filter)
+      displayedClusters: [],
+      showAllClustersInTable: true,
     };
   },
   computed: {
@@ -422,6 +443,19 @@ export default {
           tdClass: 'text-start',
         },
       ];
+    },
+
+    /**
+     * Label showing which cluster(s) data is displayed in the table
+     */
+    clusterDisplayLabel() {
+      if (this.showAllClustersInTable || this.displayedClusters.length === 0) {
+        return 'All Clusters';
+      }
+      if (this.displayedClusters.length === 1) {
+        return `Cluster ${this.displayedClusters[0]}`;
+      }
+      return `Clusters ${this.displayedClusters.sort((a, b) => a - b).join(', ')}`;
     },
 
     /**
@@ -733,6 +767,59 @@ export default {
       // Handle node click from NetworkVisualization
       // This can be used for table synchronization or other interactions
       console.log('Gene selected from network:', hgncId);
+    },
+
+    /**
+     * Handle cluster filter changes from NetworkVisualization
+     * Updates the table to show data for selected cluster(s)
+     */
+    handleClustersChanged(clusters, showAll) {
+      console.log('Clusters changed:', clusters, 'showAll:', showAll);
+
+      // Track which clusters are displayed for the label
+      this.displayedClusters = [...clusters];
+      this.showAllClustersInTable = showAll || clusters.length === 0;
+
+      if (showAll || clusters.length === 0) {
+        // Show combined data from all clusters
+        this.selectedCluster = this.combineClusterData(this.itemsCluster);
+      } else if (clusters.length === 1) {
+        // Single cluster selected - show that cluster's data
+        this.activeParentCluster = clusters[0];
+        this.setActiveCluster();
+      } else {
+        // Multiple clusters selected - combine their data
+        const selectedClusterData = this.itemsCluster.filter(
+          (item) => clusters.includes(item.cluster)
+        );
+        this.selectedCluster = this.combineClusterData(selectedClusterData);
+      }
+
+      // Update pagination
+      const arr = this.selectedCluster[this.tableType] || [];
+      this.totalRows = arr.length;
+      this.currentPage = 1;
+    },
+
+    /**
+     * Combine data from multiple clusters into a single object
+     */
+    combineClusterData(clusterArray) {
+      const combined = {
+        term_enrichment: [],
+        identifiers: [],
+      };
+
+      clusterArray.forEach((cluster) => {
+        if (cluster.term_enrichment) {
+          combined.term_enrichment = combined.term_enrichment.concat(cluster.term_enrichment);
+        }
+        if (cluster.identifiers) {
+          combined.identifiers = combined.identifiers.concat(cluster.identifiers);
+        }
+      });
+
+      return combined;
     },
 
     /**

@@ -297,6 +297,7 @@ const props = withDefaults(defineProps<Props>(), {
 // Emits
 const emit = defineEmits<{
   (e: 'cluster-selected', hgncId: string): void;
+  (e: 'clusters-changed', clusters: number[], showAll: boolean): void;
 }>();
 
 // Router
@@ -567,6 +568,9 @@ function toggleCluster(clusterId: number) {
   }
 
   handleApplyFilters();
+
+  // Emit cluster selection change for table sync
+  emit('clusters-changed', Array.from(selectedClusters.value), showAllClusters.value);
 }
 
 // Show all clusters handler
@@ -576,6 +580,9 @@ function setShowAllClusters(value: boolean) {
     selectedClusters.value = new Set();
   }
   handleApplyFilters();
+
+  // Emit cluster selection change for table sync
+  emit('clusters-changed', Array.from(selectedClusters.value), showAllClusters.value);
 }
 
 // Control handlers
