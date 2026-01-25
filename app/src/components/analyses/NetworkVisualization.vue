@@ -205,15 +205,22 @@
           </div>
         </div>
 
-        <!-- Error state -->
+        <!-- Error state with retry -->
         <div
           v-if="error && !isLoading"
-          class="error-container"
+          class="error-container text-center"
         >
-          <div class="alert alert-danger m-3">
-            <i class="bi bi-exclamation-triangle me-2" />
+          <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3 d-block" />
+          <p class="text-muted mb-3">
             Failed to load network: {{ error.message }}
-          </div>
+          </p>
+          <BButton
+            variant="primary"
+            @click="retryLoadNetwork"
+          >
+            <i class="bi bi-arrow-clockwise me-1" />
+            Retry
+          </BButton>
         </div>
 
         <!-- Cytoscape canvas -->
@@ -776,6 +783,22 @@ watch(() => props.clusterType, async (newType) => {
   await fetchNetworkData(newType);
 });
 
+/**
+ * Retry loading network data after an error
+ */
+const retryLoadNetwork = async () => {
+  await fetchNetworkData(props.clusterType);
+  await nextTick();
+  if (!isInitialized.value) {
+    initializeCytoscape();
+  }
+  if (cytoscapeElements.value.length > 0) {
+    updateElements(cytoscapeElements.value);
+    setupTooltipHandlers();
+    handleApplyFilters();
+  }
+};
+
 // Expose methods for parent component (bidirectional highlighting)
 defineExpose({
   highlightNodeFromTable,
@@ -849,6 +872,12 @@ defineExpose({
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: 1rem;
 }
 
 .network-tooltip {

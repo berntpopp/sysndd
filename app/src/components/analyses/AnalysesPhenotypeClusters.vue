@@ -77,11 +77,31 @@
               id="cluster_dataviz"
               class="svg-container"
             >
+              <!-- Error state with retry -->
+              <div
+                v-if="error"
+                class="error-state text-center p-4"
+              >
+                <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3 d-block" />
+                <p class="text-muted mb-3">
+                  {{ error }}
+                </p>
+                <BButton
+                  variant="primary"
+                  @click="retryLoad"
+                >
+                  <i class="bi bi-arrow-clockwise me-1" />
+                  Retry
+                </BButton>
+              </div>
+
+              <!-- Loading spinner -->
               <BSpinner
-                v-if="loading"
+                v-else-if="loading"
                 label="Loading..."
                 class="spinner"
               />
+
               <div v-else>
                 <!-- Cluster graph is rendered here by D3 -->
               </div>
@@ -256,6 +276,7 @@ export default {
       },
       activeCluster: '1',
       loading: false,
+      error: null, // Error state for retry functionality
 
       /* --------------------------------------
        * Table logic / fields
@@ -368,16 +389,24 @@ export default {
     async loadClusterData() {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/analysis/phenotype_clustering`;
       this.loading = true;
+      this.error = null;
       try {
         const response = await this.axios.get(apiUrl);
         this.itemsCluster = response.data;
         this.setActiveCluster();
         this.generateClusterGraph();
       } catch (e) {
+        this.error = e.message || 'Failed to load phenotype cluster data. Please try again.';
         this.makeToast(e, 'Error', 'danger');
       } finally {
         this.loading = false;
       }
+    },
+    /**
+     * Retry loading data after an error
+     */
+    retryLoad() {
+      this.loadClusterData();
     },
     setActiveCluster() {
       // Filter out the cluster matching activeCluster
@@ -634,6 +663,14 @@ export default {
   height: 2rem;
   margin: 5rem auto;
   display: block;
+}
+
+.error-state {
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 mark {
