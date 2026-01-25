@@ -42,12 +42,20 @@ const CLUSTER_COLORS: string[] = [
 /**
  * Get color for a cluster based on its index
  *
- * @param cluster - Cluster number (0-indexed or 1-indexed)
+ * @param cluster - Cluster number or string ID (e.g., 1 or "1.2" for subclusters)
  * @returns Hex color string
  */
-function getClusterColor(cluster: number): string {
-  // Handle both 0-indexed and 1-indexed cluster assignments
-  const index = cluster >= 0 ? cluster : 0;
+function getClusterColor(cluster: number | string): string {
+  // Handle string cluster IDs (subclusters like "1.2")
+  // Extract the main cluster number from combined ID
+  let index: number;
+  if (typeof cluster === 'string') {
+    // Parse main cluster from combined ID (e.g., "1.2" -> 1)
+    const mainCluster = parseInt(cluster.split('.')[0], 10);
+    index = isNaN(mainCluster) ? 0 : mainCluster;
+  } else {
+    index = cluster >= 0 ? cluster : 0;
+  }
   return CLUSTER_COLORS[index % CLUSTER_COLORS.length];
 }
 
