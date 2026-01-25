@@ -51,6 +51,8 @@ export { default as useFormDraft } from './useFormDraft';
 // Network visualization composables (Cytoscape.js integration)
 export { default as useCytoscape } from './useCytoscape';
 export type { CytoscapeOptions, CytoscapeState } from './useCytoscape';
+export { usePhenotypeCytoscape } from './usePhenotypeCytoscape';
+export type { PhenotypeCluster, PhenotypeCytoscapeOptions } from './usePhenotypeCytoscape';
 export { default as useNetworkData } from './useNetworkData';
 export type { NetworkDataState } from './useNetworkData';
 export { default as useNetworkFilters } from './useNetworkFilters';
