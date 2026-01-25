@@ -100,6 +100,7 @@
 
 <script>
 import useToast from '@/composables/useToast';
+import { useFilterSync } from '@/composables';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 import ColorLegend from '@/components/analyses/ColorLegend.vue';
 import * as d3 from 'd3';
@@ -127,7 +128,12 @@ export default {
   },
   setup() {
     const { makeToast } = useToast();
-    return { makeToast };
+    // useFilterSync for potential future cluster navigation (NAVL-02)
+    // Currently, the correlation data contains phenotype pairs, not cluster data
+    // When backend adds cluster info to correlation response, this can be used:
+    // const { setTab, setCluster } = useFilterSync();
+    const { setTab, setCluster } = useFilterSync();
+    return { makeToast, setTab, setCluster };
   },
   data() {
     return {
@@ -264,6 +270,11 @@ export default {
       };
 
       // add the squares
+      // NAVL-02: Click navigation for correlation cells
+      // Current behavior: Links to /Phenotypes/ filtered by phenotype pair
+      // Future enhancement: If backend adds cluster_id to correlation data,
+      // could use setCluster(d.cluster_id) and setTab('networks') to navigate
+      // to the gene network filtered by that cluster
       svg
         .selectAll()
         .data(data, (d) => `${d.x}:${d.y}`)
