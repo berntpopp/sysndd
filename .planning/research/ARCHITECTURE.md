@@ -1,986 +1,809 @@
-# Architecture Research: Analysis Modernization
+# Architecture Integration: Admin Panel Modernization
 
-**Domain:** Network visualization and clustering analysis integration
-**Researched:** 2026-01-24
+**Project:** SysNDD Admin Panel Modernization
+**Domain:** Admin dashboard/CMS integration with existing Vue 3 + R/Plumber architecture
+**Researched:** 2026-01-25
 **Confidence:** HIGH
 
-## Integration Overview
+## Executive Summary
 
-This milestone adds Cytoscape.js network visualization and optimized clustering to an existing Vue 3 + R/Plumber architecture. The integration extends existing patterns rather than replacing them.
+Admin panel modernization integrates seamlessly with SysNDD's existing composable-driven Vue 3 architecture and R/Plumber repository pattern. All established patterns remain valid:
+- **Frontend**: Reuse `useTableData`, `useTableMethods`, `GenericTable` for search/pagination
+- **Backend**: Extend existing repositories (user-repository.R, entity-repository.R) with admin operations
+- **Async jobs**: Leverage existing mirai job system for long-running operations
+- **New patterns needed**: Chart composables, rich text editor integration, CMS content storage
 
-### Current Architecture
+The architecture requires **minimal new patterns** because admin features primarily need existing patterns applied to different domains (users, ontology, logs, statistics).
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Vue 3 Frontend (app/)                     │
-├─────────────────────────────────────────────────────────────┤
-│  Views (views/analyses/)                                     │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │ PhenoFunc   │  │ GeneNetworks│  │ PhenoCorr   │         │
-│  │ Correlation │  │             │  │             │         │
-│  └─────┬───────┘  └──────┬──────┘  └──────┬──────┘         │
-│        │                 │                 │                │
-├────────┴─────────────────┴─────────────────┴────────────────┤
-│  Components (components/analyses/)                           │
-│  ┌────────────────────┐  ┌────────────────────┐             │
-│  │ AnalysesPhenotype  │  │ AnalyseGeneClusters│             │
-│  │ Clusters (D3.js)   │  │ (D3.js bubble)     │             │
-│  └────────┬───────────┘  └────────┬───────────┘             │
-│           │                       │                         │
-├───────────┴───────────────────────┴─────────────────────────┤
-│  Composables (composables/)                                  │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐                   │
-│  │useTable  │  │useUrlPars│  │useToast  │                   │
-│  │Data      │  │ing       │  │          │                   │
-│  └──────────┘  └──────────┘  └──────────┘                   │
-└─────────────────────────────────────────────────────────────┘
-                        ↓ HTTP (axios)
-┌─────────────────────────────────────────────────────────────┐
-│                  R/Plumber API (api/)                        │
-├─────────────────────────────────────────────────────────────┤
-│  Endpoints (endpoints/analysis_endpoints.R)                  │
-│  ┌────────────────┐  ┌────────────────┐                     │
-│  │ GET /phenotype │  │ GET /functional│                     │
-│  │ _clustering    │  │ _clustering    │                     │
-│  └────────┬───────┘  └────────┬───────┘                     │
-│           │                   │                             │
-├───────────┴───────────────────┴─────────────────────────────┤
-│  Functions (functions/analyses-functions.R)                  │
-│  ┌────────────────────────────────────────────┐             │
-│  │ gen_mca_clust_obj (MCA + HCPC)             │             │
-│  │ gen_string_clust_obj (STRINGdb walktrap)   │             │
-│  │ gen_string_enrich_tib (enrichment)         │             │
-│  └────────────────────────────────────────────┘             │
-├─────────────────────────────────────────────────────────────┤
-│  Caching Layer (memoise + file cache)                       │
-│  ┌────────────────────────────────────────────┐             │
-│  │ gen_mca_clust_obj_mem (cached MCA)         │             │
-│  │ gen_string_clust_obj_mem (cached STRING)   │             │
-│  └────────────────────────────────────────────┘             │
-└─────────────────────────────────────────────────────────────┘
-                        ↓
-┌─────────────────────────────────────────────────────────────┐
-│                    Database (pool)                           │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
-│  │ndd_entity_   │  │phenotype_    │  │non_alt_loci_ │       │
-│  │view          │  │list          │  │set           │       │
-│  └──────────────┘  └──────────────┘  └──────────────┘       │
-└─────────────────────────────────────────────────────────────┘
-```
+## Current Architecture Assessment
 
-### Target Architecture (After Milestone)
+### Frontend: Vue 3 Composable Architecture
+
+**Status:** Mature, well-established patterns
+
+#### Core Composables (Reusable for Admin)
+
+| Composable | Purpose | Admin Use Cases |
+|------------|---------|-----------------|
+| `useTableData` | Table state management (items, sorting, pagination) | ManageUser, ManageOntology, ViewLogs |
+| `useTableMethods` | Table actions (filter, sort, page, export) | All admin tables |
+| `useToast` | Toast notification system | All admin operations (success/error feedback) |
+| `useModalControls` | Modal show/hide state | Edit user modal, edit ontology modal |
+| `useFormDraft` | Form state persistence | Future admin form features |
+| `useExcelExport` | Excel download functionality | All admin table exports |
+
+**Assessment:** These composables are production-ready and used in `TablesEntities`, `TablesLogs`, `TablesPhenotypes`. Admin views should follow the same patterns.
+
+#### Existing Table Components (Reusable)
+
+| Component | Purpose | Current Usage | Admin Reuse |
+|-----------|---------|---------------|-------------|
+| `GenericTable.vue` | Base table with sorting, slots | All Tables* components | ManageUser, ManageOntology |
+| `TableSearchInput.vue` | Debounced search input | TablesEntities, TablesLogs | Admin search bars |
+| `TablePaginationControls.vue` | Cursor pagination UI | All Tables* components | Admin pagination |
+| `TableHeaderLabel.vue` | Table header with stats | All Tables* components | Admin table headers |
+| `TableDownloadLinkCopyButtons.vue` | Export/link/filter controls | TablesEntities, TablesLogs | Admin exports |
+
+**Assessment:** Admin views should leverage these components unchanged. No duplication needed.
+
+### Backend: R/Plumber Repository Architecture
+
+**Status:** Established repository pattern with parameterized queries
+
+#### Repository Pattern Structure
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Vue 3 Frontend (app/)                     │
-├─────────────────────────────────────────────────────────────┤
-│  Views (views/analyses/)                                     │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │ PhenoFunc   │  │ GeneNetworks│  │ PhenoCorr   │         │
-│  │ Correlation │  │ (NEW)       │  │             │         │
-│  └─────┬───────┘  └──────┬──────┘  └──────┬──────┘         │
-│        │                 │                 │                │
-├────────┴─────────────────┴─────────────────┴────────────────┤
-│  Components (components/analyses/)                           │
-│  ┌────────────────────┐  ┌────────────────────┐             │
-│  │ AnalysesPhenotype  │  │ GeneClusterNetwork │ (NEW)      │
-│  │ Clusters           │  │ (Cytoscape.js)     │             │
-│  │ (D3.js bubble)     │  └────────┬───────────┘             │
-│  └────────┬───────────┘           │                         │
-│           │                       │                         │
-│  ┌────────┴───────────────────────┴───────────┐             │
-│  │ Shared Filter Components (NEW)             │             │
-│  │ ┌──────────┐  ┌──────────┐  ┌──────────┐  │             │
-│  │ │Category  │  │Score     │  │Term      │  │             │
-│  │ │Filter    │  │Filter    │  │Search    │  │             │
-│  │ └──────────┘  └──────────┘  └──────────┘  │             │
-│  └────────────────────────────────────────────┘             │
-├─────────────────────────────────────────────────────────────┤
-│  Composables (composables/)                                  │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐    │
-│  │useTable  │  │useUrlPars│  │useNetwork│  │useFilter │    │
-│  │Data      │  │ing       │  │Data(NEW) │  │Sync(NEW) │    │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────┘    │
-└─────────────────────────────────────────────────────────────┘
-                        ↓ HTTP (axios)
-┌─────────────────────────────────────────────────────────────┐
-│                  R/Plumber API (api/)                        │
-├─────────────────────────────────────────────────────────────┤
-│  Endpoints (endpoints/analysis_endpoints.R)                  │
-│  ┌────────────────┐  ┌────────────────┐  ┌──────────────┐   │
-│  │ GET /phenotype │  │ GET /functional│  │ GET /network │   │
-│  │ _clustering    │  │ _clustering    │  │ _edges (NEW) │   │
-│  └────────┬───────┘  └────────┬───────┘  └──────┬───────┘   │
-│           │                   │                 │           │
-├───────────┴───────────────────┴─────────────────┴───────────┤
-│  Functions (functions/analyses-functions.R)                  │
-│  ┌────────────────────────────────────────────┐             │
-│  │ gen_mca_clust_obj (MCA + HCPC)             │             │
-│  │ gen_string_clust_obj (STRINGdb walktrap)   │             │
-│  │ gen_string_enrich_tib (enrichment)         │             │
-│  │ gen_network_edges (STRINGdb interactions)  │ (NEW)       │
-│  └────────────────────────────────────────────┘             │
-├─────────────────────────────────────────────────────────────┤
-│  Caching Layer (memoise + file cache)                       │
-│  ┌────────────────────────────────────────────┐             │
-│  │ gen_mca_clust_obj_mem (cached MCA)         │             │
-│  │ gen_string_clust_obj_mem (cached STRING)   │             │
-│  │ gen_network_edges_mem (cached edges)       │ (NEW)       │
-│  └────────────────────────────────────────────┘             │
-└─────────────────────────────────────────────────────────────┘
+functions/
+  user-repository.R         ← User CRUD operations
+  entity-repository.R       ← Entity CRUD operations
+  ontology-repository.R     ← Ontology data access
+  [domain]-repository.R     ← Domain-specific data access
+
+endpoints/
+  admin_endpoints.R         ← Admin-specific endpoints
+  logging_endpoints.R       ← Log access endpoints
+  jobs_endpoints.R          ← Async job endpoints
 ```
 
-## Integration Points with Existing Architecture
+**Key Pattern:** All repositories use `db_execute_query()` and `db_execute_statement()` from db-helpers.R for parameterized SQL, preventing injection attacks.
 
-### 1. Frontend Component Layer
+#### Current Admin Endpoints (Need Modernization)
 
-**Existing Pattern:**
-- Views in `views/analyses/` are simple wrappers
-- Components in `components/analyses/` contain visualization logic
-- D3.js visualizations use Options API pattern
-- Axios calls to API endpoints in `mounted()` hook
+| Endpoint File | Coverage | Status |
+|---------------|----------|--------|
+| `admin_endpoints.R` | Ontology updates, OpenAPI spec | Has async job support (mirai) |
+| `logging_endpoints.R` | Log retrieval | Works with TablesLogs |
+| `authentication_endpoints.R` | User auth | Production-ready |
 
-**Integration Approach:**
-- **Preserve wrapper pattern**: Create new view `views/analyses/GeneNetworks.vue` (already exists but needs update)
-- **New component**: `components/analyses/GeneClusterNetwork.vue` with Cytoscape.js
-- **Gradual migration**: New component uses Composition API, existing D3 components unchanged
-- **Shared filter components**: Extract reusable filter logic into separate components
+**Assessment:** Backend architecture is solid. Extension points are clear (add repository methods, add endpoints).
 
-**Data Flow:**
+### Async Job System (Established)
+
+**Status:** Production-ready mirai-based async job system
+
+#### Job System Architecture
+
 ```
-View (GeneNetworks.vue)
-  ↓
-Component (GeneClusterNetwork.vue)
-  ↓ onMounted
-useNetworkData composable
-  ↓ axios.get
-API endpoint (/api/analysis/network_edges)
-  ↓
-Cytoscape.js instance
+Async Job Flow:
+1. POST /api/jobs/{operation}/submit
+   → Create job record
+   → Launch mirai background task
+   → Return 202 Accepted + job_id
+
+2. GET /api/jobs/{job_id}/status (polling)
+   → Check mirai task status
+   → Return progress/results
+
+Frontend:
+- ManageAnnotations.vue already implements polling UI
+- Job progress tracking with elapsed time display
+- Success/error handling with toast notifications
 ```
 
-### 2. Composables Layer
+**Key Files:**
+- `api/functions/job-manager.R` - Job lifecycle management
+- `api/endpoints/jobs_endpoints.R` - Job submission/polling
+- `app/src/views/admin/ManageAnnotations.vue` - Reference implementation
 
-**Existing Composables:**
-- `useTableData.ts`: Per-instance state (pagination, sorting, filters)
-- `useUrlParsing.ts`: Filter object ↔ URL string conversion
-- `useToast.ts`: Toast notifications
-- `useColorAndSymbols.ts`: Color schemes and symbols
+**Assessment:** Async pattern is proven. ManageAnnotations shows polling UI works. Reuse for any long-running admin operations.
 
-**New Composables:**
+## Integration Architecture by Admin View
 
-#### useNetworkData.ts
+### 1. ManageUser (NEEDS MODERNIZATION)
+
+**Current State:** Basic GenericTable with edit/delete buttons. No search, no pagination, no filtering.
+
+**Target Architecture:**
+
+```
+Components:
+├── GenericTable (reuse)
+├── TableSearchInput (add)
+├── TablePaginationControls (add)
+├── TableHeaderLabel (add)
+└── TableDownloadLinkCopyButtons (add)
+
+Composables:
+├── useTableData (add)
+├── useTableMethods (add)
+├── useToast (existing)
+└── useModalControls (existing)
+
+Backend:
+├── user-repository.R (extend)
+│   ├── user_list_paginated() (NEW)
+│   ├── user_search() (NEW)
+│   └── user_update() (existing)
+└── admin_endpoints.R
+    ├── GET /admin/users (NEW - paginated/filtered)
+    └── PUT /admin/users/:id (extend existing)
+```
+
+**Integration Pattern:** Follow `TablesEntities.vue` pattern exactly. Replace current ManageUser with Table component structure.
+
+**Estimated Effort:** Low - copy structure from TablesEntities, adapt fields
+
+---
+
+### 2. ManageAnnotations (PARTIALLY MODERN)
+
+**Current State:** Has async job UI with polling. Needs minor polish.
+
+**Target Architecture:**
+
+```
+Current (Keep):
+├── Async job submission UI
+├── Progress bar with job polling
+├── Status badges (running/complete/error)
+└── Elapsed time display
+
+Polish Needed:
+├── Better error messaging
+├── Job history table (reuse GenericTable)
+└── Cancel job functionality (if mirai supports)
+
+Backend (Extend):
+├── jobs_endpoints.R
+│   └── DELETE /jobs/:id/cancel (NEW - if feasible)
+└── admin_endpoints.R
+    └── GET /admin/annotation_history (NEW - job audit log)
+```
+
+**Integration Pattern:** ManageAnnotations is reference implementation for async jobs. Minor enhancements only.
+
+**Estimated Effort:** Low - already modern, needs polish
+
+---
+
+### 3. ManageOntology (NEEDS SEARCH/PAGINATION)
+
+**Current State:** GenericTable with edit button. No search or pagination.
+
+**Target Architecture:**
+
+```
+Components (Same as ManageUser):
+├── GenericTable (reuse)
+├── TableSearchInput (add)
+├── TablePaginationControls (add)
+└── TableHeaderLabel (add)
+
+Composables:
+├── useTableData (add)
+├── useTableMethods (add)
+└── useModalControls (existing)
+
+Backend:
+├── ontology-repository.R (extend)
+│   ├── ontology_list_paginated() (NEW)
+│   └── ontology_search() (NEW)
+└── ontology_endpoints.R
+    └── GET /ontology/list (extend with pagination/filter)
+```
+
+**Integration Pattern:** Follow ManageUser modernization pattern. Ontology table is smaller but still benefits from search.
+
+**Estimated Effort:** Low - duplicate ManageUser structure, swap fields
+
+---
+
+### 4. ManageAbout (NEW PATTERN: CMS)
+
+**Current State:** Empty placeholder - only title.
+
+**Target Architecture (CMS Editor):**
+
+```
+NEW Pattern: Rich Text Editor + Content Storage
+├── Components:
+│   ├── RichTextEditor (NEW - wraps library)
+│   └── ContentPreview (NEW - markdown/HTML display)
+├── Composables:
+│   ├── useContentEditor (NEW)
+│   │   ├── loadContent()
+│   │   ├── saveContent()
+│   │   └── publishContent()
+│   └── useToast (existing)
+├── Backend:
+│   ├── content-repository.R (NEW)
+│   │   ├── content_get_by_key() (e.g., "about_page")
+│   │   ├── content_save_draft()
+│   │   └── content_publish()
+│   └── admin_endpoints.R
+│       ├── GET /admin/content/:key
+│       ├── PUT /admin/content/:key/draft
+│       └── PUT /admin/content/:key/publish
+
+Database (NEW):
+CREATE TABLE cms_content (
+  content_key VARCHAR(100) PRIMARY KEY,
+  content_html TEXT,
+  content_markdown TEXT,
+  draft_html TEXT,
+  draft_markdown TEXT,
+  published_at DATETIME,
+  updated_by INT,
+  FOREIGN KEY (updated_by) REFERENCES users(user_id)
+);
+```
+
+**Rich Text Editor Options (2026 Recommendations):**
+
+| Library | Pros | Cons | Recommendation |
+|---------|------|------|----------------|
+| **VueQuill** | Vue 3 native, TypeScript, lightweight | Fewer features than TinyMCE | **RECOMMENDED for MVP** |
+| **TinyMCE** | Feature-rich, enterprise-grade | Heavier, complex setup | Consider for v2 if advanced features needed |
+| **Tiptap** | Modern, extensible, ProseMirror-based | More low-level API | Overkill for basic CMS |
+
+**Integration Pattern:** New pattern. Create `useContentEditor` composable, integrate VueQuill, store in new `cms_content` table.
+
+**Estimated Effort:** Medium - new pattern, new database table, editor integration
+
+**Sources:**
+- [VueQuill Documentation](https://vueup.github.io/vue-quill/)
+- [TinyMCE Vue Integration](https://www.tiny.cloud/solutions/wysiwyg-vue-rich-text-editor/)
+- [Best WYSIWYG Editors 2026](https://www.vuescript.com/best-wysiwyg-rich-text-editor/)
+
+---
+
+### 5. AdminStatistics (NEW PATTERN: CHARTS)
+
+**Current State:** Basic statistics display with date filters. No charts.
+
+**Target Architecture (Dashboard Charts):**
+
+```
+NEW Pattern: Chart Composables + Dashboard Layout
+├── Components:
+│   ├── ChartCard (NEW - wrapper for chart libraries)
+│   ├── StatisticCard (existing - polish current cards)
+│   └── DateRangeFilter (existing - keep current form)
+├── Composables:
+│   ├── useChartData (NEW)
+│   │   ├── loadStatistics()
+│   │   ├── transformForChart()
+│   │   └── exportChartImage()
+│   └── useToast (existing)
+├── Backend:
+│   └── admin_endpoints.R (extend)
+│       ├── GET /admin/statistics/entities (enhance)
+│       ├── GET /admin/statistics/reviews (enhance)
+│       └── GET /admin/statistics/time_series (NEW)
+
+Chart Library Integration:
+└── ApexCharts (vue-apexcharts)
+    ├── Line charts (entities over time)
+    ├── Bar charts (reviews by user)
+    └── Donut charts (entity categories)
+```
+
+**Chart Library Options (2026 Recommendations):**
+
+| Library | Pros | Cons | Recommendation |
+|---------|------|------|----------------|
+| **ApexCharts** | Easy integration, responsive, 100+ samples | Not as feature-rich as ECharts | **RECOMMENDED for MVP** |
+| **ECharts** | 20+ chart types, powerful | Steeper learning curve | Consider for advanced dashboards |
+| **Unovis** | Modern, modular | Newer, smaller community | Future consideration |
+
+**Integration Pattern:** Create `useChartData` composable, integrate ApexCharts, add chart cards to AdminStatistics.
+
+**Estimated Effort:** Medium - new pattern, chart library integration, data transformation logic
+
+**Sources:**
+- [Best Chart Libraries Vue 2026](https://weavelinx.com/best-chart-libraries-for-vue-projects-in-2026/)
+- [ApexCharts for Vue](https://www.luzmo.com/blog/vue-chart-libraries)
+- [JavaScript Charting Libraries 2026](https://embeddable.com/blog/javascript-charting-libraries)
+
+---
+
+### 6. ViewLogs (ALREADY MODERN)
+
+**Current State:** Uses `TablesLogs.vue` with full search/pagination/filtering.
+
+**Target Architecture:**
+
+```
+Status: NO CHANGES NEEDED
+
+Current Implementation:
+├── TablesLogs.vue (complete)
+│   ├── GenericTable
+│   ├── TableSearchInput
+│   ├── TablePaginationControls
+│   └── TableDownloadLinkCopyButtons
+├── useTableData
+├── useTableMethods
+└── Backend: logging_endpoints.R (complete)
+```
+
+**Integration Pattern:** ViewLogs is reference implementation. Already follows all patterns.
+
+**Estimated Effort:** None - already complete
+
+---
+
+## New Components Needed
+
+### Required New Components
+
+| Component | Purpose | Used In |
+|-----------|---------|---------|
+| `ChartCard.vue` | Wrapper for chart library with title/loading/error | AdminStatistics |
+| `RichTextEditor.vue` | Wrapper for VueQuill with toolbar config | ManageAbout |
+| `ContentPreview.vue` | Markdown/HTML preview pane | ManageAbout |
+
+### Optional Enhancement Components
+
+| Component | Purpose | Used In |
+|-----------|---------|---------|
+| `JobHistoryTable.vue` | Reusable async job history | ManageAnnotations |
+| `DateRangePickerCard.vue` | Reusable date filter card | AdminStatistics (polish existing) |
+
+## New Composables Needed
+
+### Required New Composables
+
 ```typescript
-// Manages Cytoscape.js network state
-interface NetworkDataOptions {
-  clusterId?: string;
-  autoLoad?: boolean;
-}
-
-export default function useNetworkData(options: NetworkDataOptions = {}) {
-  const nodes = ref<Array<CytoscapeNode>>([]);
-  const edges = ref<Array<CytoscapeEdge>>([]);
+// composables/useChartData.ts
+export default function useChartData(options: {
+  endpoint: string;
+  transformFn?: (data: any) => ChartData;
+}) {
+  const chartData = ref<ChartData | null>(null);
   const loading = ref(false);
-  const cytoscapeInstance = ref<cytoscape.Core | null>(null);
+  const error = ref<Error | null>(null);
 
-  const loadNetworkData = async (clusterId: string) => { /* ... */ };
-  const initCytoscape = (container: HTMLElement, options: CytoscapeOptions) => { /* ... */ };
+  const loadChartData = async (params: Record<string, any>) => {
+    // Fetch from endpoint, transform, update chartData
+  };
+
+  const exportChart = (format: 'png' | 'svg') => {
+    // Export chart image
+  };
 
   return {
-    nodes,
-    edges,
+    chartData,
     loading,
-    cytoscapeInstance,
-    loadNetworkData,
-    initCytoscape
+    error,
+    loadChartData,
+    exportChart,
   };
 }
-```
 
-**Rationale:** Follows existing per-instance pattern from `useTableData.ts`. Each component instance gets independent state.
+// composables/useContentEditor.ts
+export default function useContentEditor(contentKey: string) {
+  const content = ref<string>('');
+  const draft = ref<string>('');
+  const saving = ref(false);
+  const publishing = ref(false);
 
-#### useFilterSync.ts
-```typescript
-// Syncs filter state with URL using VueUse
-import { useUrlSearchParams } from '@vueuse/core';
+  const loadContent = async () => {
+    // Fetch from /admin/content/:key
+  };
 
-export default function useFilterSync() {
-  const params = useUrlSearchParams('history');
+  const saveDraft = async () => {
+    // PUT /admin/content/:key/draft
+  };
 
-  const categoryFilter = computed({
-    get: () => params.category || '',
-    set: (val) => { params.category = val; }
-  });
-
-  const scoreFilter = computed({
-    get: () => Number(params.score) || 0.5,
-    set: (val) => { params.score = String(val); }
-  });
+  const publishContent = async () => {
+    // PUT /admin/content/:key/publish
+  };
 
   return {
-    categoryFilter,
-    scoreFilter,
-    clearFilters: () => { params.category = null; params.score = null; }
+    content,
+    draft,
+    saving,
+    publishing,
+    loadContent,
+    saveDraft,
+    publishContent,
   };
 }
 ```
 
-**Rationale:** VueUse `useUrlSearchParams` provides reactive URL state sync. Simpler than existing `useUrlParsing.ts` for new components, but both patterns coexist.
+## Backend Extensions Needed
 
-### 3. Backend API Layer
-
-**Existing Pattern:**
-- Endpoints in `api/endpoints/analysis_endpoints.R`
-- Functions in `api/functions/analyses-functions.R`
-- Memoise caching with file-based cache manager
-- JSON serialization via `jsonlite`
-
-**New Endpoint:**
-
-#### GET /api/analysis/network_edges
+### Repository Layer Extensions
 
 ```r
-#* Retrieve Network Edges for Cluster
-#*
-#* Returns Cytoscape.js formatted network data (nodes + edges)
-#* for protein-protein interactions from STRINGdb.
-#*
-#* @param cluster_id Cluster identifier (e.g., "1" for main cluster, "1.2" for subcluster)
-#* @param score_threshold Minimum interaction score (default: 0.4, range: 0-1)
-#*
-#* @tag analysis
-#* @serializer json list(na="string")
-#*
-#* @response 200 OK. Returns network data in Cytoscape.js format.
-#*
-#* @get network_edges
-function(cluster_id = "1", score_threshold = 0.4) {
-  # Get cluster identifiers from cached clustering result
-  functional_clusters <- gen_string_clust_obj_mem(genes_from_entity_table$hgnc_id)
+# functions/user-repository.R (extend)
+user_list_paginated <- function(page_after = 0, page_size = 10, sort = "+user_id", filter = NULL) {
+  # Use existing db_execute_query pattern
+  # Return paginated user list
+}
 
-  # Filter to requested cluster
-  cluster_data <- filter_cluster(functional_clusters, cluster_id)
+user_search <- function(search_term, page_size = 10) {
+  # Search users by name, email, role
+}
 
-  # Get network edges
-  network_data <- gen_network_edges_mem(
-    cluster_data$identifiers$hgnc_id,
-    score_threshold
-  )
+# functions/ontology-repository.R (extend)
+ontology_list_paginated <- function(page_after = 0, page_size = 10, sort = "+vario_id", filter = NULL) {
+  # Paginated ontology list
+}
 
-  return(network_data)
+ontology_search <- function(search_term, page_size = 10) {
+  # Search ontology by vario_id, vario_name
+}
+
+# functions/content-repository.R (NEW)
+content_get_by_key <- function(content_key) {
+  sql <- "SELECT * FROM cms_content WHERE content_key = ?"
+  db_execute_query(sql, list(content_key))
+}
+
+content_save_draft <- function(content_key, draft_html, draft_markdown, updated_by) {
+  sql <- "INSERT INTO cms_content (content_key, draft_html, draft_markdown, updated_by)
+          VALUES (?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE draft_html = ?, draft_markdown = ?, updated_by = ?"
+  db_execute_statement(sql, list(content_key, draft_html, draft_markdown, updated_by, draft_html, draft_markdown, updated_by))
+}
+
+content_publish <- function(content_key) {
+  sql <- "UPDATE cms_content
+          SET content_html = draft_html, content_markdown = draft_markdown,
+              published_at = NOW()
+          WHERE content_key = ?"
+  db_execute_statement(sql, list(content_key))
+}
+
+# functions/statistics-repository.R (NEW)
+statistics_time_series <- function(start_date, end_date, metric) {
+  # Return time series data for charts
+  # Metrics: entity_count, review_count, user_activity
+}
+
+statistics_entity_breakdown <- function(start_date, end_date) {
+  # Return entity counts by category for charts
 }
 ```
 
-**New Function:**
-
-#### gen_network_edges (in analyses-functions.R)
+### Endpoint Extensions
 
 ```r
-#' Generate network edges from STRINGdb interactions
-#'
-#' @param hgnc_list Vector of HGNC IDs
-#' @param score_threshold Minimum combined score (0-1)
-#'
-#' @return List with nodes and edges in Cytoscape.js format
-#' @export
-gen_network_edges <- function(hgnc_list, score_threshold = 0.4) {
-  # Load STRING database
-  string_db <- STRINGdb$new(
-    version = "11.5",
-    species = 9606,
-    score_threshold = as.integer(score_threshold * 1000),
-    input_directory = "data/"
-  )
+# endpoints/admin_endpoints.R (extend)
 
-  # Get gene table with STRING IDs
-  sysndd_db_string_id_table <- pool %>%
-    tbl("non_alt_loci_set") %>%
-    filter(!is.na(STRING_id)) %>%
-    select(symbol, hgnc_id, STRING_id) %>%
-    collect() %>%
-    filter(hgnc_id %in% hgnc_list)
+# User management endpoints
+#* @get /admin/users
+#* Paginated/filtered user list
+#* @param page_after:int
+#* @param page_size:int
+#* @param sort:string
+#* @param filter:string
 
-  # Get interactions
-  interactions_df <- string_db$get_interactions(
-    sysndd_db_string_id_table$STRING_id
-  )
+# Content management endpoints
+#* @get /admin/content/:key
+#* Get CMS content by key
 
-  # Transform to Cytoscape.js format
-  nodes <- sysndd_db_string_id_table %>%
-    transmute(
-      data = list(
-        id = STRING_id,
-        label = symbol,
-        hgnc_id = hgnc_id
-      )
-    )
+#* @put /admin/content/:key/draft
+#* Save content draft
 
-  edges <- interactions_df %>%
-    transmute(
-      data = list(
-        id = paste0(from, "_", to),
-        source = from,
-        target = to,
-        score = combined_score
-      )
-    )
+#* @put /admin/content/:key/publish
+#* Publish content
 
-  return(list(
-    elements = list(
-      nodes = nodes,
-      edges = edges
-    )
-  ))
-}
+# Statistics endpoints
+#* @get /admin/statistics/time_series
+#* Time series data for charts
+#* @param start_date:string
+#* @param end_date:string
+#* @param metric:string
 ```
 
-**Caching Strategy:**
-```r
-# In start_sysndd_api.R
-gen_network_edges_mem <<- memoise(gen_network_edges, cache = cm)
+## Database Schema Extensions
+
+### CMS Content Table (NEW)
+
+```sql
+CREATE TABLE cms_content (
+  content_key VARCHAR(100) PRIMARY KEY,
+  content_html TEXT,
+  content_markdown TEXT,
+  draft_html TEXT,
+  draft_markdown TEXT,
+  published_at DATETIME,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  updated_by INT,
+  FOREIGN KEY (updated_by) REFERENCES users(user_id),
+  INDEX idx_updated_at (updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Initial content keys
+INSERT INTO cms_content (content_key, content_html, content_markdown, updated_by)
+VALUES
+  ('about_page', '<p>Default about content</p>', '# About\nDefault about content', 1),
+  ('citation_policy', '<p>Citation policy</p>', '# Citation\nCitation policy', 1);
 ```
 
-**Integration with Existing Functions:**
-- Reuses `STRINGdb` initialization pattern from `gen_string_clust_obj`
-- Reuses database query pattern from existing functions
-- Returns Cytoscape.js compatible JSON structure
-- Leverages existing memoise caching infrastructure
+### Job History Enhancements (OPTIONAL)
 
-### 4. Data Transformation Layer
+```sql
+-- If job history doesn't track user, add column
+ALTER TABLE job_queue ADD COLUMN created_by INT;
+ALTER TABLE job_queue ADD FOREIGN KEY (created_by) REFERENCES users(user_id);
 
-**Challenge:** STRINGdb returns R data frames, Cytoscape.js expects specific JSON structure.
-
-**Transformation Pattern:**
-
-```r
-# R data frame (STRINGdb output)
-# protein1, protein2, combined_score
-# "9606.ENSP000001", "9606.ENSP000002", 0.85
-
-# Cytoscape.js JSON format
-{
-  "elements": {
-    "nodes": [
-      { "data": { "id": "9606.ENSP000001", "label": "BRCA1", "hgnc_id": "HGNC:1100" } }
-    ],
-    "edges": [
-      { "data": { "source": "9606.ENSP000001", "target": "9606.ENSP000002", "score": 0.85 } }
-    ]
-  }
-}
+-- Add index for admin job history queries
+CREATE INDEX idx_job_created_at ON job_queue(created_at);
 ```
 
-**Implementation:**
-- Use `tidyr::nest()` pattern (already used in existing clustering functions)
-- Transform nested data to list-of-lists for jsonlite serialization
-- Auto-boxing handled by Plumber's default `jsonlite::toJSON(auto_unbox=FALSE)`
+## Recommended Build Order
 
-## Architectural Patterns
+**Phase structure optimized for dependency minimization and early wins.**
 
-### Pattern 1: Composable-Based Cytoscape.js Integration
+### Phase 1: Foundation (Modernize Tables)
+**Goal:** Apply existing patterns to admin tables. Quick wins, no new patterns.
 
-**What:** Encapsulate Cytoscape.js lifecycle in a composable, not directly in component.
+1. **ManageUser** - Add search/pagination using TablesEntities pattern
+2. **ManageOntology** - Add search/pagination using TablesEntities pattern
 
-**When to use:** Network visualization components that need reactive data updates.
+**Why First:**
+- No new patterns required
+- Establishes consistency across admin views
+- Backend extensions are straightforward (add pagination to repositories)
+- Demonstrates pattern reuse to team
 
-**Trade-offs:**
-- **Pro:** Testable without DOM, reusable across components
-- **Pro:** Reactive state updates trigger Cytoscape re-renders automatically
-- **Con:** Adds abstraction layer (acceptable for better separation of concerns)
-
-**Example:**
-```typescript
-// In component
-import { useCytoscape } from '@/composables/useCytoscape';
-import { onMounted, ref } from 'vue';
-
-export default {
-  setup() {
-    const containerRef = ref<HTMLElement | null>(null);
-    const { initCytoscape, updateElements, cy } = useCytoscape();
+**Deliverables:**
+- Extended `user-repository.R` with pagination/search
+- Extended `ontology-repository.R` with pagination/search
+- Modernized ManageUser.vue and ManageOntology.vue
+- Backend endpoints for paginated user/ontology lists
 
-    onMounted(() => {
-      if (containerRef.value) {
-        initCytoscape(containerRef.value, {
-          layout: { name: 'cose' },
-          style: [/* ... */]
-        });
-      }
-    });
-
-    return { containerRef, updateElements, cy };
-  }
-}
-```
-
-### Pattern 2: Parallel Endpoint Strategy (Cluster + Network)
-
-**What:** Separate endpoints for cluster metadata and network edges, called in parallel.
-
-**When to use:** When cluster information and network data have different caching/performance characteristics.
-
-**Trade-offs:**
-- **Pro:** Cluster endpoint cached longer (clusters stable), network endpoint dynamic (filters change)
-- **Pro:** Client can request network edges independently for different score thresholds
-- **Con:** Two HTTP requests instead of one (mitigated by HTTP/2 multiplexing)
-
-**Example:**
-```typescript
-// Load cluster metadata (cached, stable)
-const clusterResponse = await axios.get('/api/analysis/functional_clustering');
-
-// Load network edges for selected cluster (dynamic, filtered)
-const networkResponse = await axios.get('/api/analysis/network_edges', {
-  params: { cluster_id: '1', score_threshold: 0.5 }
-});
-```
-
-### Pattern 3: Filter State in URL (VueUse Pattern)
-
-**What:** Use VueUse `useUrlSearchParams` for bidirectional URL state sync.
-
-**When to use:** New components that need shareable/bookmarkable filter states.
-
-**Trade-offs:**
-- **Pro:** Automatic reactivity, simpler than manual URL manipulation
-- **Pro:** Shareable URLs, browser back/forward support
-- **Pro:** No boilerplate for URL encode/decode
-- **Con:** Different pattern from existing `useUrlParsing.ts` (acceptable, gradual migration)
-
-**Example:**
-```typescript
-import { useUrlSearchParams } from '@vueuse/core';
-
-const params = useUrlSearchParams('history');
-
-// Reading from URL: ?category=GO&score=0.7
-const categoryFilter = computed(() => params.category || '');
-const scoreFilter = computed(() => Number(params.score) || 0.5);
-
-// Writing to URL: sets ?category=KEGG&score=0.8
-categoryFilter.value = 'KEGG';
-scoreFilter.value = 0.8;
-```
-
-### Pattern 4: Shared Filter Components
-
-**What:** Extract filter UI (dropdowns, sliders) into small reusable components.
-
-**When to use:** Multiple analysis components need same filter types.
-
-**Trade-offs:**
-- **Pro:** DRY principle, consistent UX across analysis views
-- **Pro:** Single source of truth for filter options
-- **Con:** Requires props/events wiring (acceptable, standard Vue pattern)
-
-**Example:**
-```vue
-<!-- components/filters/CategoryFilter.vue -->
-<template>
-  <BFormSelect
-    :model-value="modelValue"
-    :options="categoryOptions"
-    @update:model-value="$emit('update:modelValue', $event)"
-  />
-</template>
-
-<script setup>
-defineProps<{ modelValue: string }>();
-defineEmits<{ (e: 'update:modelValue', value: string): void }>();
-
-const categoryOptions = [
-  { value: '', text: 'All Categories' },
-  { value: 'GO', text: 'Gene Ontology' },
-  { value: 'KEGG', text: 'KEGG Pathways' }
-];
-</script>
-```
-
-## Data Flow Patterns
-
-### Request Flow: Network Visualization
-
-```
-User Action (select cluster)
-    ↓
-Component (GeneClusterNetwork.vue)
-    ↓ watch(selectedCluster)
-useNetworkData.loadNetworkData(clusterId)
-    ↓ axios.get
-Plumber Endpoint (/api/analysis/network_edges?cluster_id=1&score_threshold=0.5)
-    ↓
-gen_network_edges_mem (check cache)
-    ↓ cache miss
-gen_network_edges (compute)
-    ↓
-STRINGdb$get_interactions(string_ids)
-    ↓
-Transform to Cytoscape.js format
-    ↓ return JSON
-useCytoscape.updateElements(elements)
-    ↓
-Cytoscape.js re-renders network
-```
-
-### State Management: Filter Synchronization
-
-```
-URL (?category=GO&score=0.7)
-    ↓ (reactive sync)
-useFilterSync composable
-    ↓ computed refs
-categoryFilter.value = 'GO'
-scoreFilter.value = 0.7
-    ↓ v-model
-Filter Components (CategoryFilter, ScoreSlider)
-    ↓ @update:modelValue
-categoryFilter.value = 'KEGG' (user changes filter)
-    ↓ computed setter
-params.category = 'KEGG' (VueUse updates URL)
-    ↓ watch(categoryFilter)
-loadNetworkData({ category: 'KEGG' })
-```
-
-### Caching Flow: Multi-Level Strategy
-
-```
-Request: GET /api/analysis/network_edges?cluster_id=1&score_threshold=0.5
-    ↓
-Check memoise cache (gen_network_edges_mem)
-    ↓ hash(hgnc_list, score_threshold)
-Cache HIT? → Return cached JSON
-    ↓
-Cache MISS
-    ↓
-Compute gen_network_edges(hgnc_list, 0.5)
-    ↓
-Query STRINGdb (may hit STRINGdb file cache in data/)
-    ↓
-Transform to Cytoscape.js format
-    ↓
-Save to memoise cache (file: results/{hash}.json)
-    ↓
-Return JSON
-```
-
-**Cache Invalidation:**
-- Cluster data cache: Invalidated when database entities change (rare)
-- Network edges cache: Per score_threshold, long-lived (STRINGdb data stable)
-- Frontend cache: Browser HTTP cache headers (set by Plumber)
-
-## Scaling Considerations
-
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| **Current (< 1k entities)** | Existing memoise + file cache sufficient. D3.js bubble charts handle current cluster sizes. No changes needed. |
-| **1k-5k entities** | Cytoscape.js handles 1k-5k nodes efficiently with cose layout. Consider progressive loading (render visible nodes first). Monitor cluster computation time; may need async endpoints. |
-| **5k-10k entities** | Switch Cytoscape.js layout to `preset` or `circle` (faster than `cose`). Implement node aggregation (collapse low-score edges). Consider WebWorker for layout computation. Backend: Add async job endpoints for clustering (already mentioned in analysis_endpoints.R). |
-| **10k+ entities** | Virtualization required: Render only visible viewport nodes. Use Cytoscape.js with custom renderer or switch to WebGL-based library (e.g., sigma.js). Backend: Consider pre-computing network hierarchies, store in database. |
-
-### Scaling Priorities
-
-1. **First bottleneck: Cytoscape.js layout computation (5k+ nodes)**
-   - **Symptom:** Browser freezes during layout
-   - **Fix:** Switch to simpler layout (`circle`, `grid`), or use WebWorker
-   - **Timeline:** Unlikely before 5k entities (current: ~1k)
-
-2. **Second bottleneck: STRINGdb clustering computation (10k+ genes)**
-   - **Symptom:** API endpoint timeout (> 30s)
-   - **Fix:** Implement async job pattern (already designed in comments)
-   - **Pattern:**
-     ```
-     POST /api/jobs/clustering/submit → { job_id: "abc123" }
-     GET /api/jobs/abc123/status → { status: "running", progress: 45% }
-     GET /api/jobs/abc123/status → { status: "complete", result_url: "/results/abc123" }
-     ```
-   - **Timeline:** Consider when clustering takes > 10s
-
-3. **Third bottleneck: Network data transfer (large JSON payloads)**
-   - **Symptom:** Slow API response (>5MB JSON)
-   - **Fix:** Implement pagination/streaming or binary format
-   - **Timeline:** Unlikely with current data sizes
-
-## Anti-Patterns to Avoid
-
-### Anti-Pattern 1: Mixing D3.js and Cytoscape.js in Same Component
-
-**What people do:** Try to use D3.js for nodes and Cytoscape.js for edges, or vice versa.
-
-**Why it's wrong:**
-- Each library manages its own DOM rendering lifecycle
-- Conflicting event handlers and state management
-- Performance penalty from running two rendering engines
-
-**Do this instead:**
-- Use Cytoscape.js for network visualization exclusively
-- Use D3.js for non-network charts (bubble, heatmap) exclusively
-- If you need D3-style force simulation in Cytoscape, use Cytoscape's cola layout (based on WebCola, similar to D3 force)
-
-### Anti-Pattern 2: Fetching Full Network on Every Filter Change
-
-**What people do:**
-```typescript
-// BAD: Re-fetch all edges when score changes
-watch(scoreThreshold, async (newScore) => {
-  const response = await axios.get('/api/network_edges', {
-    params: { score_threshold: newScore }
-  });
-  updateNetwork(response.data);
-});
-```
-
-**Why it's wrong:**
-- Unnecessary API calls (data already on client)
-- Slow user experience
-- Server load for client-side filtering task
-
-**Do this instead:**
-```typescript
-// GOOD: Fetch once, filter client-side
-const allEdges = ref([]);
-
-onMounted(async () => {
-  const response = await axios.get('/api/network_edges', {
-    params: { score_threshold: 0.0 } // Get all edges
-  });
-  allEdges.value = response.data.edges;
-});
-
-const filteredEdges = computed(() => {
-  return allEdges.value.filter(edge => edge.data.score >= scoreThreshold.value);
-});
-
-watch(filteredEdges, (edges) => {
-  cy.value?.edges().remove();
-  cy.value?.add(edges);
-});
-```
-
-### Anti-Pattern 3: Initializing Cytoscape Multiple Times
-
-**What people do:**
-```typescript
-// BAD: Re-initialize Cytoscape on every data update
-watch(networkData, (data) => {
-  cytoscape({ container: document.getElementById('cy'), elements: data });
-});
-```
-
-**Why it's wrong:**
-- Memory leak (previous instance not destroyed)
-- Loss of user interactions (zoom, pan, selection)
-- Poor performance
-
-**Do this instead:**
-```typescript
-// GOOD: Initialize once, update elements
-const cy = ref<cytoscape.Core | null>(null);
-
-onMounted(() => {
-  cy.value = cytoscape({
-    container: document.getElementById('cy'),
-    elements: []
-  });
-});
-
-watch(networkData, (data) => {
-  if (cy.value) {
-    cy.value.elements().remove(); // Clear old elements
-    cy.value.add(data);           // Add new elements
-    cy.value.layout({ name: 'cose' }).run(); // Re-run layout
-  }
-});
-
-onUnmounted(() => {
-  cy.value?.destroy(); // Clean up
-});
-```
-
-### Anti-Pattern 4: Not Using Existing Composables
-
-**What people do:** Recreate pagination/sorting logic in new network component.
-
-**Why it's wrong:**
-- Code duplication
-- Inconsistent behavior across components
-- Misses existing features (filter state, URL sync patterns)
-
-**Do this instead:**
-```typescript
-// GOOD: Reuse existing composables for table portions
-import useTableData from '@/composables/useTableData';
-
-const {
-  perPage,
-  currentPage,
-  sortBy,
-  filter_string
-} = useTableData({
-  pageSizeInput: 25,
-  sortInput: '+score'
-});
-
-// Combine with network-specific state
-const { nodes, edges } = useNetworkData();
-```
-
-## Component Organization
-
-### Recommended File Structure
-
-```
-app/src/
-├── components/
-│   ├── analyses/
-│   │   ├── AnalysesPhenotypeClusters.vue       (existing, D3.js)
-│   │   ├── AnalyseGeneClusters.vue             (existing, D3.js)
-│   │   ├── AnalysesPhenotypeFunctionalCorrelation.vue (existing, D3.js)
-│   │   └── GeneClusterNetwork.vue              (NEW, Cytoscape.js)
-│   │
-│   ├── filters/                                (NEW)
-│   │   ├── CategoryFilter.vue                  (NEW)
-│   │   ├── ScoreSlider.vue                     (NEW)
-│   │   └── TermSearch.vue                      (NEW)
-│   │
-│   └── small/                                   (existing)
-│       ├── GenericTable.vue
-│       ├── TableSearchInput.vue
-│       └── TablePaginationControls.vue
-│
-├── composables/
-│   ├── useTableData.ts                          (existing)
-│   ├── useUrlParsing.ts                         (existing)
-│   ├── useToast.ts                              (existing)
-│   ├── useNetworkData.ts                        (NEW)
-│   ├── useCytoscape.ts                          (NEW)
-│   └── useFilterSync.ts                         (NEW)
-│
-├── views/
-│   └── analyses/
-│       ├── PhenotypeFunctionalCorrelation.vue   (existing)
-│       ├── GeneNetworks.vue                     (existing, needs update)
-│       └── PhenotypeCorrelations.vue            (existing)
-│
-└── types/
-    ├── components.ts                            (existing)
-    └── cytoscape.ts                             (NEW)
-```
-
-### Structure Rationale
-
-- **`components/filters/`**: Extracted filter components promote reuse across analysis views. Small, focused components (Single Responsibility Principle).
-
-- **`composables/useNetworkData.ts`**: Parallel to existing `useTableData.ts`. Encapsulates network-specific state management (nodes, edges, loading).
-
-- **`composables/useCytoscape.ts`**: Separates Cytoscape.js lifecycle from component logic. Enables testing without DOM, reusable across future network components.
-
-- **`composables/useFilterSync.ts`**: URL state synchronization using VueUse pattern. Cleaner API than manual URL parsing for new components (gradual migration from `useUrlParsing.ts`).
-
-- **`types/cytoscape.ts`**: TypeScript definitions for Cytoscape.js elements, matches existing pattern (`types/components.ts`).
-
-## Integration with Backend Caching
-
-### Current Caching Strategy
-
-**File:** `api/start_sysndd_api.R`
-
-```r
-# Existing memoization
-cm <- cache_mem(max_size = 1024 * 1024^2)  # 1GB cache
-gen_string_clust_obj_mem <<- memoise(gen_string_clust_obj, cache = cm)
-gen_mca_clust_obj_mem <<- memoise(gen_mca_clust_obj, cache = cm)
-```
-
-**Cache Storage:**
-- Results saved to `results/{panel_hash}.{function_hash}.{params}.json`
-- Panel hash: MD5 of input gene list
-- Function hash: Hash of function code (invalidates on function change)
-
-### New Network Endpoint Caching
-
-```r
-# Add to start_sysndd_api.R
-gen_network_edges_mem <<- memoise(gen_network_edges, cache = cm)
-```
-
-**Cache Key Components:**
-1. HGNC list (determines protein set)
-2. Score threshold (filters edges)
-
-**Cache Behavior:**
-- First request: Compute + cache (~5-10s for 100 genes)
-- Subsequent requests: Instant (< 100ms)
-- Cache invalidation: Only when gene list changes OR score threshold changes
-- Cache sharing: Multiple users share cache (same gene list + threshold)
-
-**Cache Size Estimates:**
-- 100 genes, 500 edges: ~50KB JSON
-- 1000 genes, 5000 edges: ~500KB JSON
-- 1GB cache: ~2000 network snapshots
-
-## Technology Choices
-
-### Frontend: Cytoscape.js vs Alternatives
-
-**Cytoscape.js** (Recommended)
-- **Pros:**
-  - Rich graph analysis algorithms (shortest path, centrality, etc.)
-  - Compound nodes support (nested clusters)
-  - Extensive layout options (cose, cola, dagre, etc.)
-  - Active development, large community
-  - Vue 3 wrappers available (`@orbifold/vue-cytoscape`)
-- **Cons:**
-  - Larger bundle size (~500KB) vs D3.js
-  - Learning curve for developers familiar with D3.js
-
-**D3.js force layout** (Already used, not recommended for networks)
-- **Pros:** Team already familiar, lightweight
-- **Cons:** No graph algorithms, manual edge routing, less performant for large graphs
-
-**Sigma.js** (Not recommended for this milestone)
-- **Pros:** WebGL rendering (faster for 10k+ nodes)
-- **Cons:** Less mature, fewer layout options, no compound nodes
-
-**Decision:** Cytoscape.js provides best balance of features, performance, and ecosystem support.
-
-### Backend: STRINGdb Package Integration
-
-**Existing Usage:**
-```r
-string_db <- STRINGdb$new(
-  version = "11.5",
-  species = 9606,
-  score_threshold = 200,
-  input_directory = "data"
-)
-```
-
-**For Network Edges:**
-- Use `string_db$get_interactions(string_ids)` method
-- Returns data frame: `protein1, protein2, combined_score`
-- Score range: 0-1000 (normalize to 0-1 for client)
-
-**Data File Caching:**
-- STRINGdb downloads protein links file (~1GB) to `data/`
-- Cached permanently (only re-downloads on version change)
-- No per-request overhead after initial download
-
-### URL State: VueUse vs Manual Parsing
-
-**VueUse `useUrlSearchParams`** (Recommended for new components)
-- **Pros:**
-  - Reactive URL sync with zero boilerplate
-  - Handles encoding/decoding automatically
-  - Type-safe with TypeScript
-  - Browser history support
-- **Cons:**
-  - External dependency (acceptable, widely used)
-  - Different pattern from existing `useUrlParsing.ts`
-
-**Existing `useUrlParsing.ts`** (Keep for existing components)
-- **Pros:**
-  - Custom filter format: `contains(symbol,BRCA),any(category,GO,KEGG)`
-  - Already integrated in table components
-- **Cons:**
-  - Manual encode/decode logic
-  - More verbose API
-
-**Decision:** Use VueUse for new network component, keep existing pattern in table components. Gradual migration acceptable.
-
-## Build Order Recommendation
-
-Based on dependencies and integration points:
-
-### Phase 1: Backend Network Endpoint (Foundational)
-1. Add `gen_network_edges()` function to `analyses-functions.R`
-2. Add memoization wrapper in `start_sysndd_api.R`
-3. Add GET `/api/analysis/network_edges` endpoint
-4. Test with Postman/curl: Verify Cytoscape.js JSON format
-
-**Rationale:** Frontend development blocked without working endpoint.
-
-### Phase 2: Frontend Composables (Core Logic)
-1. Create `useNetworkData.ts` (data fetching)
-2. Create `useCytoscape.ts` (Cytoscape lifecycle)
-3. Create `useFilterSync.ts` (URL state)
-4. Write unit tests for composables
-
-**Rationale:** Composables testable without UI, provides API contract for component.
-
-### Phase 3: Network Component (Visualization)
-1. Create `GeneClusterNetwork.vue` component
-2. Integrate composables from Phase 2
-3. Basic Cytoscape.js rendering (no filters yet)
-4. Test with existing cluster endpoint data
-
-**Rationale:** Incremental development, validates composable integration.
-
-### Phase 4: Filter Components (Enhancement)
-1. Extract `CategoryFilter.vue`, `ScoreSlider.vue`, `TermSearch.vue`
-2. Wire filters to `useFilterSync` composable
-3. Implement client-side filtering in `GeneClusterNetwork.vue`
-4. Test URL state synchronization
-
-**Rationale:** Filters depend on working network component.
-
-### Phase 5: View Integration (Polish)
-1. Update `GeneNetworks.vue` view to use new component
-2. Add routing if needed
-3. Style consistency with existing analysis views
-4. Cross-browser testing
-
-**Rationale:** View is thin wrapper, minimal risk.
-
-### Phase 6: Performance Optimization (Optional)
-1. Add progressive loading for large networks (>1k nodes)
-2. Optimize Cytoscape.js layout settings
-3. Add loading skeletons
-4. Monitor and tune memoise cache
-
-**Rationale:** Optimize after validating functionality with real usage.
+---
+
+### Phase 2: Charts (AdminStatistics)
+**Goal:** Introduce chart pattern before CMS complexity.
+
+3. **AdminStatistics** - Add charts with ApexCharts
+
+**Why Second:**
+- New pattern but simpler than CMS (read-only, no editor)
+- Visual impact for stakeholders
+- Chart composable will be reusable elsewhere
+- No new database tables needed (uses existing statistics endpoints)
+
+**Deliverables:**
+- `useChartData` composable
+- `ChartCard` component
+- ApexCharts integration
+- Enhanced AdminStatistics.vue with line/bar/donut charts
+- Backend time series endpoints
+
+---
+
+### Phase 3: CMS (ManageAbout)
+**Goal:** Most complex new pattern - editor + storage.
+
+4. **ManageAbout** - Rich text editor with draft/publish workflow
+
+**Why Third:**
+- Most complex (new database table, editor library, dual storage)
+- Benefits from team experience with previous phases
+- Requires content strategy decisions (what goes in CMS)
+- Less critical path than user/ontology management
+
+**Deliverables:**
+- `cms_content` database table
+- `content-repository.R`
+- `useContentEditor` composable
+- `RichTextEditor` and `ContentPreview` components
+- VueQuill integration
+- ManageAbout.vue with editor UI
+
+---
+
+### Phase 4: Polish (ManageAnnotations)
+**Goal:** Refine existing async job UI.
+
+5. **ManageAnnotations** - Add job history, better error handling
+
+**Why Last:**
+- Already mostly modern
+- Enhancements not critical
+- Good target for "nice to have" features
+- Can leverage patterns from earlier phases
+
+**Deliverables:**
+- Job history table (reuses GenericTable pattern from Phase 1)
+- Enhanced error messaging
+- Optional: Job cancellation (if mirai supports)
+
+---
+
+### ViewLogs: No Work Needed
+ViewLogs is already complete and modern. Leave as-is.
+
+---
+
+## Integration Risk Assessment
+
+### Low Risk (Reuse Existing Patterns)
+
+| Area | Risk Level | Mitigation |
+|------|------------|-----------|
+| ManageUser modernization | LOW | Copy TablesEntities pattern, swap data source |
+| ManageOntology modernization | LOW | Same as ManageUser |
+| ViewLogs | NONE | Already complete |
+| ManageAnnotations polish | LOW | Already 80% done |
+
+### Medium Risk (New Patterns, Known Solutions)
+
+| Area | Risk Level | Mitigation |
+|------|------------|-----------|
+| ApexCharts integration | MEDIUM | Well-documented library, Vue 3 support confirmed |
+| VueQuill integration | MEDIUM | Official Vue 3 package, TypeScript support |
+| Chart composable design | MEDIUM | Similar to useTableData, proven pattern |
+
+### Potential Issues
+
+#### 1. Chart Library Performance
+**Issue:** Large datasets may cause chart rendering delays.
+**Mitigation:**
+- Aggregate data server-side (don't send 10K points)
+- Use chart library's built-in data reduction
+- Add loading states
+
+#### 2. Rich Text Editor Security
+**Issue:** XSS vulnerabilities from HTML content.
+**Mitigation:**
+- Store both HTML and Markdown
+- Sanitize HTML server-side before display
+- Use VueQuill's built-in sanitization
+- Consider markdown-only storage with HTML rendering
+
+#### 3. CMS Content Versioning
+**Issue:** No version history in proposed schema.
+**Mitigation:**
+- Phase 1: Draft/publish workflow only
+- Phase 2: Add `cms_content_history` table if needed
+- Use `updated_at` timestamp for simple audit trail
+
+#### 4. Database Migration Coordination
+**Issue:** New `cms_content` table needs migration script.
+**Mitigation:**
+- Create migration script in `api/migrations/`
+- Include rollback script
+- Test on dev environment first
+
+## Architecture Decision Records
+
+### ADR-1: Reuse Existing Table Patterns
+**Decision:** Use `useTableData` + `useTableMethods` + `GenericTable` for admin tables.
+**Rationale:** Proven pattern, reduces code duplication, maintains consistency.
+**Alternatives Considered:** Build custom admin table components (rejected - unnecessary duplication).
+
+### ADR-2: ApexCharts for Dashboard
+**Decision:** Use ApexCharts via vue-apexcharts for AdminStatistics.
+**Rationale:** Easy Vue 3 integration, responsive, sufficient features for admin dashboard, lighter than ECharts.
+**Alternatives Considered:** ECharts (overkill), Chart.js (less Vue-friendly), Unovis (too new).
+
+### ADR-3: VueQuill for Rich Text Editor
+**Decision:** Use VueQuill for ManageAbout CMS editor.
+**Rationale:** Native Vue 3 support, TypeScript, lightweight, sufficient for basic CMS needs.
+**Alternatives Considered:** TinyMCE (too heavy for MVP), Tiptap (too low-level).
+
+### ADR-4: Draft/Publish Workflow for CMS
+**Decision:** Implement draft/publish workflow (not direct editing).
+**Rationale:** Prevents accidental publication, allows review before going live, standard CMS pattern.
+**Alternatives Considered:** Direct editing (rejected - too risky for public-facing content).
+
+### ADR-5: Extend Existing Repositories, Don't Replace
+**Decision:** Extend user-repository.R and ontology-repository.R with pagination methods.
+**Rationale:** Maintains existing patterns, backward compatible, minimal disruption.
+**Alternatives Considered:** Create admin-specific repositories (rejected - unnecessary indirection).
+
+## Technology Stack Summary
+
+### Frontend Stack (No Changes to Core)
+
+| Category | Technology | Version | Usage |
+|----------|-----------|---------|-------|
+| Framework | Vue 3 | 3.x | Existing |
+| Component Library | Bootstrap Vue Next | 0.x | Existing |
+| State Management | Pinia | 2.x | Existing |
+| HTTP Client | Axios | 1.x | Existing |
+| **NEW: Charts** | **vue-apexcharts** | **Latest** | **AdminStatistics** |
+| **NEW: Rich Text** | **@vueup/vue-quill** | **Latest** | **ManageAbout** |
+
+### Backend Stack (No Changes)
+
+| Category | Technology | Usage |
+|----------|-----------|-------|
+| API Framework | R Plumber | Existing |
+| Database | MariaDB | Existing |
+| Connection Pool | pool (R package) | Existing |
+| Async Jobs | mirai | Existing |
+| Query Builder | dplyr + parameterized SQL | Existing |
+
+### New Database Tables
+
+- `cms_content` - CMS content storage (draft/publish workflow)
+
+## Implementation Guidelines
+
+### 1. Follow Existing Patterns First
+Before creating new patterns, check if existing composables/components can be reused:
+- Table with search/pagination → Use `TablesEntities` pattern
+- Async operation → Use `ManageAnnotations` polling pattern
+- Form with validation → Use `useEntityForm` pattern
+- Toast notifications → Use `useToast`
+
+### 2. Maintain Consistency
+- File naming: `ManageX.vue` for admin management views
+- Composable naming: `useXData` for data fetching, `useXMethods` for actions
+- Endpoint naming: `/admin/X` for admin-only operations
+- Repository naming: `x-repository.R` for data access
+
+### 3. Security Considerations
+- All admin endpoints require `require_role(req, res, "Administrator")`
+- CMS content must be sanitized (use VueQuill's sanitization + server-side validation)
+- Excel exports use existing `useExcelExport` pattern (validated, uses format parameter)
+- User management endpoints use existing auth middleware
+
+### 4. Testing Strategy
+- **Unit tests:** Test new composables (`useChartData`, `useContentEditor`)
+- **Component tests:** Test new components (`ChartCard`, `RichTextEditor`)
+- **Integration tests:** Test admin endpoints with pagination/filtering
+- **E2E tests:** Test admin workflows (edit user → save → verify)
+
+### 5. Progressive Enhancement
+Each phase should be deployable independently:
+- **Phase 1:** ManageUser/ManageOntology work without Phase 2 charts
+- **Phase 2:** Charts work without Phase 3 CMS
+- **Phase 3:** CMS works independently
+- **Phase 4:** Enhancements are optional
+
+## Success Criteria
+
+Admin panel modernization is complete when:
+
+- [ ] ManageUser and ManageOntology use GenericTable pattern with search/pagination
+- [ ] AdminStatistics displays charts (line, bar, donut) with ApexCharts
+- [ ] ManageAbout has rich text editor with draft/publish workflow
+- [ ] ManageAnnotations has job history table and enhanced error handling
+- [ ] All admin views reuse existing composables (useTableData, useTableMethods, useToast)
+- [ ] All admin endpoints follow repository pattern with parameterized queries
+- [ ] CMS content table exists with draft/publish columns
+- [ ] Chart composable (`useChartData`) is reusable for future charts
+- [ ] No new global state (all state managed via composables)
+- [ ] All admin operations show toast notifications (success/error)
 
 ## Sources
 
-**Cytoscape.js Integration:**
-- [GitHub - rcarcasses/vue-cytoscape](https://github.com/rcarcasses/vue-cytoscape)
-- [vue-cytoscape documentation](https://rcarcasses.github.io/vue-cytoscape/)
-- [@orbifold/vue-cytoscape - npm](https://www.npmjs.com/package/@orbifold/vue-cytoscape)
-- [Cytoscape.js official documentation](https://js.cytoscape.org/)
+**Vue 3 Architecture Patterns:**
+- [Custom Composables in Vue 3: Clean Code Through Reusability](https://medium.com/@vasanthancomrads/custom-composables-in-vue-3-clean-code-through-reusability-part-3-d9011dfd1745)
+- [Vue.js Official Composables Guide](https://vuejs.org/guide/reusability/composables.html)
+- [Design Patterns with Composition API in Vue 3](https://medium.com/@davisaac8/design-patterns-and-best-practices-with-the-composition-api-in-vue-3-77ba95cb4d63)
+- [Vue Composables Design Patterns](https://dev.to/jacobandrewsky/good-practices-and-design-patterns-for-vue-composables-24lk)
 
-**Cytoscape.js Architecture:**
-- [Cytoscape.js GitHub](https://github.com/cytoscape/cytoscape.js)
-- [Cytoscape.js and Cytoscape Manual](https://manual.cytoscape.org/en/stable/Cytoscape.js_and_Cytoscape.html)
-- [Introduction to Cytoscape.js: Visualizing Graphs in the Browser](https://gili842.medium.com/introduction-to-cytoscape-js-visualizing-graphs-in-the-browser-ce09ad6aa610)
+**Chart Libraries:**
+- [Best Chart Libraries for Vue 2026](https://weavelinx.com/best-chart-libraries-for-vue-projects-in-2026/)
+- [Vue Chart Libraries Definitive Guide](https://www.luzmo.com/blog/vue-chart-libraries)
+- [8 Best Chart Libraries for Vue](https://blog.logrocket.com/8-best-chart-libraries-vue/)
+- [JavaScript Charting Libraries 2026](https://embeddable.com/blog/javascript-charting-libraries)
 
-**Cytoscape.js Data Format:**
-- [Cytoscape.js Data Model Documentation](https://js.cytoscape.org/)
-- [Elements JSON serialisation discussion](https://github.com/cytoscape/cytoscape.js/issues/2201)
-- [GraphSpace Network Model](http://manual.graphspace.org/en/latest/GraphSpace_Network_Model.html)
+**Rich Text Editors:**
+- [VueQuill Official Documentation](https://vueup.github.io/vue-quill/)
+- [TinyMCE Vue Rich Text Editor](https://www.tiny.cloud/solutions/wysiwyg-vue-rich-text-editor/)
+- [Best WYSIWYG Rich Text Editors 2026](https://www.vuescript.com/best-wysiwyg-rich-text-editor/)
+- [Building WYSIWYG Editors with Vue and TinyMCE](https://vueschool.io/articles/news/building-advanced-wysiwyg-editors-with-vue-and-tinymce-a-complete-guide/)
 
-**Vue 3 Composable Patterns:**
-- [Composables | Vue.js](https://vuejs.org/guide/reusability/composables.html)
-- [Design Patterns and best practices with the Composition API in Vue 3](https://medium.com/@davisaac8/design-patterns-and-best-practices-with-the-composition-api-in-vue-3-77ba95cb4d63)
-- [Good practices and Design Patterns for Vue Composables](https://dev.to/jacobandrewsky/good-practices-and-design-patterns-for-vue-composables-24lk)
-
-**VueUse URL State Sync:**
-- [useUrlSearchParams | VueUse](https://vueuse.org/core/useurlsearchparams/)
-- [VueUse GitHub - useUrlSearchParams source](https://github.com/vueuse/vueuse/blob/main/packages/core/useUrlSearchParams/index.ts)
-
-**R Plumber API:**
-- [Plumber Quickstart](https://www.rplumber.io/articles/quickstart.html)
-- [Rendering Output in Plumber](https://www.rplumber.io/articles/rendering-output.html)
-- [REST APIs with plumber Cheatsheet](https://rstudio.github.io/cheatsheets/html/plumber.html)
-
-**STRINGdb R Package:**
-- [STRINGdb R Documentation](https://www.rdocumentation.org/packages/STRINGdb/versions/1.8.1/topics/STRINGdb)
-- [STRINGdb Bioconductor Manual](https://bioc.r-universe.dev/STRINGdb/doc/manual.html)
-- [Network Analysis in Systems Biology with R/Bioconductor - PPI Networks](https://almeidasilvaf.github.io/NASB/chapters/04_analysis_of_PPI_networks.html)
-
-**D3.js vs Cytoscape.js Comparison:**
-- [CytoscapeJS vs. D3 graph drawing discussion](https://groups.google.com/g/cytoscape-discuss/c/Ny8_1HuT0vo)
-- [Best Libraries and Methods to Render Large Network Graphs](https://weber-stephen.medium.com/the-best-libraries-and-methods-to-render-large-network-graphs-on-the-web-d122ece2f4dc)
-- [Cytoscape tools for the web age: D3.js and Cytoscape.js exporters](https://www.researchgate.net/publication/269765189_Cytoscape_tools_for_the_web_age_D3js_and_Cytoscapejs_exporters)
-
----
-*Architecture research for: Analysis Modernization (Cytoscape.js + Clustering Optimization)*
-*Researched: 2026-01-24*
+**Confidence Assessment:** HIGH - Architecture analysis based on existing codebase patterns, established Vue 3 best practices, and proven library integrations.
