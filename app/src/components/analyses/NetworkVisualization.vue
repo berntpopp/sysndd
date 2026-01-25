@@ -580,6 +580,7 @@ function handleApplyFilters() {
 /**
  * Update search highlighting on network nodes
  * Applies search-match and search-no-match classes based on wildcard pattern
+ * Also pans/zooms to focus on matching nodes for better UX
  */
 function updateSearchHighlighting() {
   const cyInstance = cy();
@@ -587,6 +588,7 @@ function updateSearchHighlighting() {
 
   const hasPattern = searchRegex.value !== null;
   let matchCount = 0;
+  const matchingNodes = cyInstance.collection();
 
   // Remove existing search classes
   cyInstance.nodes().removeClass('search-match search-no-match');
@@ -601,11 +603,47 @@ function updateSearchHighlighting() {
 
       if (isMatch) {
         node.addClass('search-match');
+        matchingNodes.merge(node);
         matchCount += 1;
       } else {
         node.addClass('search-no-match');
       }
     });
+
+    // Focus on matching nodes with gentle animation (don't zoom in too hard)
+    if (matchingNodes.length > 0) {
+      // Calculate the bounding box of matching nodes
+      const bb = matchingNodes.boundingBox();
+      const padding = 150; // More padding for gentler zoom
+
+      // Get viewport dimensions
+      const containerWidth = cyInstance.width();
+      const containerHeight = cyInstance.height();
+
+      // Calculate zoom level that would fit the nodes
+      const zoomX = containerWidth / (bb.w + padding * 2);
+      const zoomY = containerHeight / (bb.h + padding * 2);
+      let targetZoom = Math.min(zoomX, zoomY);
+
+      // Limit max zoom to prevent zooming in too hard (max 1.5x)
+      const maxZoom = 1.5;
+      targetZoom = Math.min(targetZoom, maxZoom);
+
+      // Calculate center of matching nodes
+      const centerX = (bb.x1 + bb.x2) / 2;
+      const centerY = (bb.y1 + bb.y2) / 2;
+
+      // First pan to center, then zoom
+      cyInstance.animate({
+        pan: {
+          x: containerWidth / 2 - centerX * targetZoom,
+          y: containerHeight / 2 - centerY * targetZoom,
+        },
+        zoom: targetZoom,
+        duration: 400,
+        easing: 'ease-out-cubic',
+      });
+    }
   }
 
   // Update match count and emit for parent component

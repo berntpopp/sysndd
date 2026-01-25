@@ -55,11 +55,12 @@
         >
           <!-- NetworkVisualization component replaces D3.js bubble chart -->
           <div class="pane-content">
-            <!-- Gene search input for network highlighting -->
+            <!-- Gene search input for network highlighting with autocomplete -->
             <div class="mb-2">
               <TermSearch
                 v-model="geneSearchPattern"
                 :match-count="searchMatchCount"
+                :suggestions="allGeneSymbols"
                 placeholder="Search genes (e.g., PKD*, BRCA?)"
               />
             </div>
@@ -128,12 +129,12 @@
                     sm="4"
                     class="mb-1 text-end"
                   >
-                    <!-- A global 'any' filter for searching all columns -->
-                    <TableSearchInput
-                      v-model="filter.any.content"
-                      :placeholder="'Search any field...'"
-                      :debounce-time="500"
-                      @input="onFilterChange"
+                    <!-- Gene search synced with network (uses same geneSearchPattern) -->
+                    <TermSearch
+                      v-model="geneSearchPattern"
+                      :match-count="tableType === 'identifiers' ? searchMatchCount : null"
+                      :suggestions="allGeneSymbols"
+                      placeholder="Search genes..."
                     />
                   </BCol>
                 </BRow>
@@ -299,11 +300,10 @@
 </template>
 
 <script>
-import { useToast, useColorAndSymbols, useFilterSync } from '@/composables';
+import { useToast, useColorAndSymbols, useFilterSync, useWildcardSearch } from '@/composables';
 
 // Import small table components
 import GenericTable from '@/components/small/GenericTable.vue';
-import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 
 // Import filter components
@@ -323,7 +323,6 @@ export default {
   name: 'AnalyseGeneClusters',
   components: {
     GenericTable,
-    TableSearchInput,
     TablePaginationControls,
     TermSearch,
     NetworkVisualization,
@@ -345,11 +344,15 @@ export default {
     const colorAndSymbols = useColorAndSymbols();
     const { filterState, setSearch } = useFilterSync();
 
+    // Wildcard search for filtering table
+    const wildcardSearch = useWildcardSearch();
+
     return {
       makeToast,
       ...colorAndSymbols,
       filterState,
       setSearch,
+      wildcardSearch,
     };
   },
   data() {
@@ -461,6 +464,14 @@ export default {
     },
 
     /**
+     * All gene symbols for autocomplete suggestions
+     */
+    allGeneSymbols() {
+      const identifiers = this.selectedCluster?.identifiers || [];
+      return [...new Set(identifiers.map((row) => row.symbol))].sort();
+    },
+
+    /**
      * fieldsComputed: Return fields array based on tableType
      * with thClass/tdClass for styling
      * Adds cluster column when showing combined data from multiple clusters
@@ -569,13 +580,20 @@ export default {
       }
     },
     tableType() {
-      // When user changes tableType, re-check totalRows
-      const arr = this.selectedCluster[this.tableType] || [];
-      this.totalRows = arr.length;
+      // When user changes tableType, re-check totalRows with filters applied
+      this.updateFilteredTotalRows();
       this.currentPage = 1;
     },
     selectType() {
       this.resetCluster();
+    },
+    // Watch for search pattern changes to update table filtering
+    'filterState.search': {
+      handler() {
+        this.updateFilteredTotalRows();
+        this.currentPage = 1;
+      },
+      immediate: false,
     },
   },
   mounted() {
@@ -839,7 +857,20 @@ export default {
     applyFilters(items) {
       const anyVal = (this.filter.any.content || '').toLowerCase();
 
+      // Sync wildcard pattern from filterState
+      const searchPattern = this.filterState?.search || '';
+      if (searchPattern !== this.wildcardSearch.pattern.value) {
+        this.wildcardSearch.pattern.value = searchPattern;
+      }
+
       return items.filter((row) => {
+        // 0) Wildcard gene search filter (for identifiers table)
+        if (searchPattern && this.tableType === 'identifiers' && row.symbol) {
+          if (!this.wildcardSearch.matches(row.symbol)) {
+            return false;
+          }
+        }
+
         // 1) "any" filter
         if (anyVal) {
           const rowString = Object.values(row).join(' ').toLowerCase();
@@ -864,6 +895,21 @@ export default {
     },
     onFilterChange() {
       this.currentPage = 1;
+    },
+
+    /**
+     * Update totalRows based on filtered data
+     * Called when search pattern or tableType changes
+     */
+    updateFilteredTotalRows() {
+      const arr = this.selectedCluster[this.tableType] || [];
+      const filtered = this.applyFilters(arr);
+      this.totalRows = filtered.length;
+
+      // Update search match count for identifiers table
+      if (this.tableType === 'identifiers' && this.filterState?.search) {
+        this.searchMatchCount = filtered.length;
+      }
     },
 
     /* --------------------------------------
