@@ -94,6 +94,40 @@
               </BRow>
             </template>
 
+            <!-- Filter presets row -->
+            <BRow v-if="filterPresets.presets.value.length > 0 || hasActiveFilters" class="px-2 pt-2">
+              <BCol>
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                  <span class="text-muted small">Quick filters:</span>
+                  <BButton
+                    v-for="preset in filterPresets.presets.value"
+                    :key="preset.name"
+                    size="sm"
+                    variant="outline-secondary"
+                    class="py-0"
+                    @click="loadFilterPreset(preset.name)"
+                  >
+                    {{ preset.name }}
+                    <i
+                      class="bi bi-x-lg ms-1"
+                      @click.stop="deleteFilterPreset(preset.name)"
+                    />
+                  </BButton>
+                  <BButton
+                    v-if="hasActiveFilters"
+                    v-b-tooltip.hover
+                    size="sm"
+                    variant="outline-primary"
+                    class="py-0"
+                    title="Save current filter as preset"
+                    @click="showSavePresetPrompt"
+                  >
+                    <i class="bi bi-plus-lg" /> Save Preset
+                  </BButton>
+                </div>
+              </BCol>
+            </BRow>
+
             <BRow class="px-2 py-2">
               <BCol sm="8">
                 <BInputGroup>
@@ -538,6 +572,81 @@
           </div>
         </form>
       </BModal>
+
+      <!-- Bulk Approve Confirmation Modal -->
+      <BModal
+        v-model="showBulkApproveModal"
+        title="Approve Users"
+        ok-variant="success"
+        ok-title="Approve"
+        cancel-title="Cancel"
+        @ok="confirmBulkApprove"
+      >
+        <p>You are about to approve {{ getSelectedArray().length }} users:</p>
+        <div class="border rounded p-2 mb-3 bg-light" style="max-height: 200px; overflow-y: auto;">
+          <div v-for="username in bulkApproveUsernames" :key="username" class="small">
+            {{ username }}
+          </div>
+        </div>
+        <p class="text-muted small">This action will grant these users access to the system.</p>
+      </BModal>
+
+      <!-- Bulk Role Assignment Modal -->
+      <BModal
+        v-model="showBulkRoleModalVisible"
+        title="Assign Role"
+        ok-variant="primary"
+        ok-title="Assign Role"
+        cancel-title="Cancel"
+        :ok-disabled="!bulkRoleSelection"
+        @ok="confirmBulkRoleAssignment"
+      >
+        <p>Assign role to {{ getSelectedArray().length }} users:</p>
+        <div class="border rounded p-2 mb-3 bg-light" style="max-height: 150px; overflow-y: auto;">
+          <div v-for="username in bulkRoleUsernames" :key="username" class="small">
+            {{ username }}
+          </div>
+        </div>
+        <BFormGroup label="Select Role:" label-for="bulk-role-select">
+          <BFormSelect
+            id="bulk-role-select"
+            v-model="bulkRoleSelection"
+            :options="[
+              { value: '', text: 'Select a role...', disabled: true },
+              { value: 'Curator', text: 'Curator' },
+              { value: 'Reviewer', text: 'Reviewer' },
+              { value: 'Administrator', text: 'Administrator' }
+            ]"
+          />
+        </BFormGroup>
+      </BModal>
+
+      <!-- Bulk Delete Confirmation Modal -->
+      <BModal
+        v-model="showBulkDeleteModal"
+        title="Delete Users"
+        ok-variant="danger"
+        ok-title="Delete"
+        cancel-title="Cancel"
+        :ok-disabled="deleteConfirmText !== 'DELETE'"
+        @ok="confirmBulkDelete"
+      >
+        <p class="text-danger fw-bold">This action cannot be undone.</p>
+        <p>You are about to delete {{ bulkDeleteUsernames.length }} users:</p>
+        <div class="border rounded p-2 mb-3 bg-light" style="max-height: 200px; overflow-y: auto;">
+          <div v-for="username in bulkDeleteUsernames" :key="username" class="small">
+            {{ username }}
+          </div>
+        </div>
+        <BFormGroup label="Type DELETE to confirm:" label-for="delete-confirm-input">
+          <BFormInput
+            id="delete-confirm-input"
+            v-model="deleteConfirmText"
+            placeholder="DELETE"
+            autocomplete="off"
+          />
+        </BFormGroup>
+      </BModal>
     </BContainer>
   </div>
 </template>
@@ -820,6 +929,21 @@ export default {
 
     this.loadRoleList();
     this.loadUserList();
+
+    // Initialize default presets if none exist
+    if (this.filterPresets.presets.value.length === 0) {
+      // Add common presets
+      this.filterPresets.savePreset('Pending', {
+        any: { content: null, join_char: null, operator: 'contains' },
+        user_role: { content: null, join_char: ',', operator: 'any' },
+        approved: { content: '0', join_char: null, operator: 'equals' },
+      });
+      this.filterPresets.savePreset('Curators', {
+        any: { content: null, join_char: null, operator: 'contains' },
+        user_role: { content: 'Curator', join_char: ',', operator: 'any' },
+        approved: { content: null, join_char: null, operator: 'equals' },
+      });
+    }
 
     this.$nextTick(() => {
       this.loadData();
