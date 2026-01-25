@@ -12,14 +12,14 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 
 **Milestone:** v5.0 Analysis Modernization
 **Phase:** 27 of 27 (Advanced Features & Filters)
-**Plan:** 6 of 10 complete
+**Plan:** 7 of 10 complete
 **Status:** In progress
-**Last activity:** 2026-01-25 — Completed 27-06-PLAN.md (URL Parameter Fix)
+**Last activity:** 2026-01-25 — Completed 27-10-PLAN.md (Fix PhenotypeCorrelations Page)
 
 ```
 v5 Analysis Modernization: PHASE 27 IN PROGRESS
 Goal: Transform analysis pages with performance, network viz, and modern UI/UX
-Progress: ████████████████▓▓▓▓▓▓▓▓▓▓▓▓ 60% (6/10 plans complete)
+Progress: ████████████████████▓▓▓▓▓▓▓▓ 70% (7/10 plans complete)
           [Phase 25 ✓] → [Phase 26 ✓] → [Phase 27 ▶]
 ```
 
@@ -80,6 +80,7 @@ Recent v5-relevant decisions:
 - **cy.destroy() cleanup**: Prevents 100-300MB memory leaks per navigation
 - **STRING ID deduplication**: Pick first HGNC ID alphabetically for deterministic 1:1 mapping
 - **URL parameter pattern**: Use filterStrToObj for URL state initialization (matches TablesGenes.vue)
+- **Optional composable imports**: Only import composables where actually used, not speculatively
 
 ## Accumulated Context
 
@@ -118,14 +119,15 @@ Pre-existing analysis documents:
 | 27-04 | Filter Integration | Wildcard search highlighting in network, URL state persistence, correlation heatmap filter sync prep |
 | 27-05 | UI Polish | ColorLegend component, correlation interpretation tooltips, error states with retry buttons |
 | 27-06 | URL Parameter Fix | Fixed broken URL parameter handling on Entities page using filterStrToObj pattern |
+| 27-10 | Fix PhenotypeCorrelations | Removed unused useFilterSync import that was breaking /PhenotypeCorrelations page |
 
 ## Session Continuity
 
 **Last session:** 2026-01-25
-**Stopped at:** Completed 27-06-PLAN.md (URL Parameter Fix)
+**Stopped at:** Completed 27-10-PLAN.md (Fix PhenotypeCorrelations Page)
 **Resume file:** None
-**Next action:** Continue Phase 27 gap closure plans (27-07 through 27-10)
+**Next action:** Continue Phase 27 gap closure plans (27-07 through 27-09)
 
 ---
 *State initialized: 2026-01-24 for v5.0 milestone*
-*Last updated: 2026-01-25 — Plan 27-06 complete (URL Parameter Fix)*
+*Last updated: 2026-01-25 — Plan 27-10 complete (Fix PhenotypeCorrelations Page)*
