@@ -100,7 +100,6 @@
 
 <script>
 import useToast from '@/composables/useToast';
-import { useFilterSync } from '@/composables';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 import ColorLegend from '@/components/analyses/ColorLegend.vue';
 import * as d3 from 'd3';
@@ -128,12 +127,12 @@ export default {
   },
   setup() {
     const { makeToast } = useToast();
-    // useFilterSync for potential future cluster navigation (NAVL-02)
+    // TODO: Add useFilterSync when NAVL-02 cluster navigation is implemented (Plan 27-09)
     // Currently, the correlation data contains phenotype pairs, not cluster data
-    // When backend adds cluster info to correlation response, this can be used:
+    // When backend adds cluster info to correlation response, this can be used for navigation:
     // const { setTab, setCluster } = useFilterSync();
-    const { setTab, setCluster } = useFilterSync();
-    return { makeToast, setTab, setCluster };
+    // For now, links go directly to /Phenotypes/ with filter parameters (see line 283)
+    return { makeToast };
   },
   data() {
     return {
