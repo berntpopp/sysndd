@@ -12,23 +12,23 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Milestone:** v6.0 Admin Panel Modernization
 **Phase:** 32 of 33 (Async Jobs)
-**Plan:** 02 of 04 complete
+**Plan:** 03 of 04 complete
 **Status:** In progress
-**Last activity:** 2026-01-26 — Completed 32-02-PLAN.md (HGNC Async + ManageAnnotations Refactor)
+**Last activity:** 2026-01-26 — Completed 32-03-PLAN.md (Job History API and UI)
 
 ```
-v6.0 Admin Panel Modernization: [██████████████████░░░░░░░░░░] 63%
+v6.0 Admin Panel Modernization: [███████████████████░░░░░░░░░] 68%
 Phase 28 Table Foundation:     [██████████] 3/3 plans ✓
 Phase 29 User Management:      [██████████] 4/4 plans ✓
 Phase 30 Statistics Dashboard: [██████████] 3/3 plans ✓
 Phase 31 Content Management:   [██████████] 4/4 plans ✓
-Phase 32 Async Jobs:           [█████░░░░░] 2/4 plans
+Phase 32 Async Jobs:           [███████░░░] 3/4 plans
 ```
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 146
+- Total plans completed: 147
 - Milestones shipped: 5 (v1-v5)
 - Phases completed: 28
 
@@ -43,7 +43,7 @@ Phase 32 Async Jobs:           [█████░░░░░] 2/4 plans
 | v5 Analysis Modernization | 25-27 | 16 | 2026-01-25 |
 
 **v6.0 Progress:**
-- Plans completed: 16
+- Plans completed: 17
 - Phases completed: 4 (Phases 28-31)
 - Average duration: 2.9min
 - Trend: Strong velocity
@@ -92,6 +92,7 @@ Recent v6-relevant decisions:
 - **Auto-expand new sections** (31-03): New sections added via "Add Section" auto-expand for immediate editing
 - **useAsyncJob composable** (32-01): VueUse useIntervalFn for auto-cleanup polling, provides reactive job state
 - **HGNC async job pattern** (32-02): Separate async endpoint for HGNC updates, uses same composable pattern as ontology
+- **Job history API** (32-03): GET /api/jobs/history returns recent jobs with metadata, sorted by submitted_at descending
 
 ### Pending Todos
 
@@ -108,10 +109,10 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-26
-**Stopped at:** Completed 32-02-PLAN.md (HGNC Async + ManageAnnotations Refactor)
+**Stopped at:** Completed 32-03-PLAN.md (Job History API and UI)
 **Resume file:** None
-**Next action:** Continue Phase 32 (32-03-PLAN.md)
+**Next action:** Continue Phase 32 (32-04-PLAN.md if exists)
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-26 — Completed 32-02-PLAN.md (HGNC Async + ManageAnnotations Refactor)*
+*Last updated: 2026-01-26 — Completed 32-03-PLAN.md (Job History API and UI)*
