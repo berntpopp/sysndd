@@ -217,16 +217,18 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
       style: getCytoscapeStyle(),
 
       // fcose layout for proper force-directed network visualization
-      // With 10k edges (filtered), this runs in ~2-3 seconds
+      // Using animate: false for reliable fit/center (per GitHub issue #2559)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       layout: {
         name: 'fcose',
         quality: 'default',
         randomize: true,
-        animate: true,
-        animationDuration: 2000,
-        animationEasing: 'ease-out-cubic',
+        // CRITICAL: animate: false ensures synchronous layout for reliable fit
+        animate: false,
         nodeDimensionsIncludeLabels: false,
+        // fit and padding for proper centering
+        fit: true,
+        padding: 30,
         // Cluster separation
         idealEdgeLength: 80,
         nodeRepulsion: 8000,
@@ -298,7 +300,42 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
     });
 
     // Layout complete handler
+    // Explicit centering since fcose fit:true often doesn't center properly
     cy.on('layoutstop', () => {
+      if (cy) {
+        setTimeout(() => {
+          if (!cy) return;
+          cy.resize();
+
+          // Get the model-coordinate bounding box of all elements
+          const bb = cy.elements().boundingBox();
+          const viewportW = cy.width();
+          const viewportH = cy.height();
+
+          // Calculate the zoom level to fit the graph with padding
+          const padding = 40;
+          const availableW = viewportW - padding * 2;
+          const availableH = viewportH - padding * 2;
+          const zoomW = availableW / bb.w;
+          const zoomH = availableH / bb.h;
+          const newZoom = Math.min(zoomW, zoomH, 2); // Cap at 2x zoom
+
+          // Calculate the center of the bounding box in model coordinates
+          const bbCenterX = (bb.x1 + bb.x2) / 2;
+          const bbCenterY = (bb.y1 + bb.y2) / 2;
+
+          // Set zoom and pan to center the graph
+          cy.viewport({
+            zoom: newZoom,
+            pan: {
+              x: viewportW / 2 - bbCenterX * newZoom,
+              y: viewportH / 2 - bbCenterY * newZoom
+            }
+          });
+
+          console.log(`[useCytoscape] Centered: viewport=${viewportW}x${viewportH}, bb=${bb.w.toFixed(0)}x${bb.h.toFixed(0)}, zoom=${newZoom.toFixed(3)}`);
+        }, 100);
+      }
       isLoading.value = false;
     });
 
@@ -330,13 +367,15 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
     cy.add(elements);
 
     // Run fcose layout for proper force-directed visualization
+    // Using animate: false for reliable fit/center (per GitHub issue #2559)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const layout = cy.layout({
       name: 'fcose',
       quality: 'default',
       randomize: true,
-      animate: true,
-      animationDuration: 2000,
+      animate: false,
+      fit: true,
+      padding: 30,
       idealEdgeLength: 80,
       nodeRepulsion: 8000,
       edgeElasticity: 0.45,
@@ -351,11 +390,37 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
   };
 
   /**
-   * Fit the graph to the viewport
+   * Fit the graph to the viewport and center it
    */
   const fitToScreen = (): void => {
     if (!cy) return;
-    cy.fit(undefined, 50); // 50px padding
+    cy.resize();
+
+    // Get the model-coordinate bounding box of all elements
+    const bb = cy.elements().boundingBox();
+    const viewportW = cy.width();
+    const viewportH = cy.height();
+
+    // Calculate the zoom level to fit the graph with padding
+    const padding = 40;
+    const availableW = viewportW - padding * 2;
+    const availableH = viewportH - padding * 2;
+    const zoomW = availableW / bb.w;
+    const zoomH = availableH / bb.h;
+    const newZoom = Math.min(zoomW, zoomH, 2); // Cap at 2x zoom
+
+    // Calculate the center of the bounding box in model coordinates
+    const bbCenterX = (bb.x1 + bb.x2) / 2;
+    const bbCenterY = (bb.y1 + bb.y2) / 2;
+
+    // Set zoom and pan to center the graph
+    cy.viewport({
+      zoom: newZoom,
+      pan: {
+        x: viewportW / 2 - bbCenterX * newZoom,
+        y: viewportH / 2 - bbCenterY * newZoom
+      }
+    });
   };
 
   /**
@@ -372,8 +437,9 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
       name: 'fcose',
       quality: 'default',
       randomize: true,
-      animate: true,
-      animationDuration: 2000,
+      animate: false,
+      fit: true,
+      padding: 30,
       idealEdgeLength: 80,
       nodeRepulsion: 8000,
       edgeElasticity: 0.45,

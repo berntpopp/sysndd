@@ -42,28 +42,40 @@
         </div>
       </template>
 
-      <!-- ROW: LEFT = Graph, RIGHT = Table -->
-      <BRow>
-        <!-- LEFT COLUMN (Network Visualization) -->
-        <BCol md="5">
+      <!-- Resizable split panes: LEFT = Graph, RIGHT = Table -->
+      <Splitpanes
+        class="default-theme"
+        @resized="handlePaneResized"
+      >
+        <!-- LEFT PANE (Network Visualization) -->
+        <Pane
+          :size="leftPaneSize"
+          :min-size="25"
+          :max-size="75"
+        >
           <!-- NetworkVisualization component replaces D3.js bubble chart -->
-          <div class="my-3 mx-2">
+          <div class="pane-content">
             <NetworkVisualization
+              ref="networkVisualization"
               :cluster-type="selectType"
               @cluster-selected="handleClusterSelected"
             />
           </div>
-        </BCol>
+        </Pane>
 
-        <!-- RIGHT COLUMN (Table) -->
-        <BCol md="7">
-          <BCard
-            header-tag="header"
-            class="my-3 mx-2 text-start"
-            body-class="p-0"
-            header-class="p-1"
-            border-variant="dark"
-          >
+        <!-- RIGHT PANE (Table) -->
+        <Pane
+          :size="100 - leftPaneSize"
+          :min-size="25"
+        >
+          <div class="pane-content">
+            <BCard
+              header-tag="header"
+              class="text-start"
+              body-class="p-0"
+              header-class="p-1"
+              border-variant="dark"
+            >
             <!-- TABLE HEADER (Table type, Search input, etc.) -->
             <template #header>
               <div class="mb-0 font-weight-bold">
@@ -238,8 +250,9 @@
               </BRow>
             </BCardText>
           </BCard>
-        </BCol>
-      </BRow>
+          </div>
+        </Pane>
+      </Splitpanes>
     </BCard>
   </BContainer>
 </template>
@@ -255,6 +268,10 @@ import TablePaginationControls from '@/components/small/TablePaginationControls.
 // Import NetworkVisualization component (replaces D3.js bubble chart)
 import NetworkVisualization from '@/components/analyses/NetworkVisualization.vue';
 
+// Import Splitpanes for resizable layout
+import { Splitpanes, Pane } from 'splitpanes';
+import 'splitpanes/dist/splitpanes.css';
+
 export default {
   name: 'AnalyseGeneClusters',
   components: {
@@ -262,6 +279,8 @@ export default {
     TableSearchInput,
     TablePaginationControls,
     NetworkVisualization,
+    Splitpanes,
+    Pane,
   },
   setup() {
     const { makeToast } = useToast();
@@ -343,6 +362,9 @@ export default {
         { value: 'leiden', text: 'Leiden (Fast)' },
         { value: 'walktrap', text: 'Walktrap (Legacy)' },
       ],
+
+      // Resizable pane size (percentage)
+      leftPaneSize: 42,
     };
   },
   computed: {
@@ -712,6 +734,16 @@ export default {
       // This can be used for table synchronization or other interactions
       console.log('Gene selected from network:', hgncId);
     },
+
+    /**
+     * Handle pane resize events from Splitpanes
+     * Updates leftPaneSize and triggers network refit
+     */
+    handlePaneResized(panes) {
+      if (panes && panes.length > 0) {
+        this.leftPaneSize = panes[0].size;
+      }
+    },
   },
 };
 </script>
@@ -731,5 +763,42 @@ mark {
   padding-bottom: 0.5em;
   font-weight: bold;
   background-color: #eaadba;
+}
+
+/* Splitpanes layout */
+.splitpanes {
+  min-height: 650px;
+}
+
+.pane-content {
+  padding: 12px;
+  height: 100%;
+  overflow: auto;
+}
+
+/* Override splitpanes default theme for better visibility */
+/* Use :deep() for Vue 3 scoped styles to affect child components */
+:deep(.splitpanes.default-theme .splitpanes__splitter) {
+  background-color: #dee2e6;
+  min-width: 8px;
+  border-left: 1px solid #adb5bd;
+  border-right: 1px solid #adb5bd;
+  cursor: col-resize;
+  position: relative;
+}
+
+:deep(.splitpanes.default-theme .splitpanes__splitter:hover) {
+  background-color: #adb5bd;
+}
+
+:deep(.splitpanes.default-theme .splitpanes__splitter::before) {
+  content: '⋮';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 16px;
+  color: #6c757d;
+  font-weight: bold;
 }
 </style>

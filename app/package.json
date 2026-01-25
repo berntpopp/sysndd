@@ -38,6 +38,7 @@
     "html2canvas": "^1.4.1",
     "pinia": "^2.0.14",
     "register-service-worker": "^1.7.1",
+    "splitpanes": "^4.0.4",
     "swagger-ui": "^5.31.0",
     "swagger-ui-dist": "^5.31.0",
     "vee-validate": "^4.15.1",

@@ -333,6 +333,9 @@ function handleExportSVG() {
   }
 }
 
+// Resize observer to refit graph when container resizes
+let resizeObserver: ResizeObserver | null = null;
+
 // Initialize on mount
 onMounted(async () => {
   // Fetch network data
@@ -353,6 +356,27 @@ onMounted(async () => {
   // Setup tooltip handlers after a brief delay to ensure cy is ready
   await nextTick();
   setupTooltipHandlers();
+
+  // Setup resize observer to refit graph when container is resized
+  if (cytoscapeContainer.value) {
+    resizeObserver = new ResizeObserver(() => {
+      const cyInstance = cy();
+      if (cyInstance && isInitialized.value) {
+        // Use fitToScreen which handles resize, fit, and manual centering
+        fitToScreen();
+      }
+    });
+    resizeObserver.observe(cytoscapeContainer.value);
+  }
+});
+
+// Cleanup resize observer on unmount
+import { onBeforeUnmount } from 'vue';
+onBeforeUnmount(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
+  }
 });
 
 // Watch for element changes and update the graph
@@ -378,14 +402,31 @@ watch(() => props.clusterType, async (newType) => {
 .network-container {
   position: relative;
   width: 100%;
-  height: 500px;
+  height: 600px;
+  min-height: 400px;
+  /* CSS resize doesn't work with flexbox siblings - removed */
+  overflow: hidden;
 }
 
 .cytoscape-canvas {
   width: 100%;
   height: 100%;
-  background-color: #fafafa;
-  border: 1px solid #ddd;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  display: block;
+  /* CRITICAL: Position relative for canvas child positioning */
+  position: relative;
+}
+
+/* Fix Cytoscape.js canvas positioning issue (GitHub issue #14, #2401) */
+/* The canvas element created by Cytoscape needs explicit positioning */
+.cytoscape-canvas :deep(canvas) {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .loading-overlay {
