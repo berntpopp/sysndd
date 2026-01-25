@@ -408,7 +408,9 @@ export default {
         const response = await this.axios.get(apiUrl);
         this.itemsCluster = response.data;
         this.setActiveCluster();
-        this.generateClusterGraph();
+        this.$nextTick(() => {
+          this.updateClusterGraph();
+        });
       } catch (e) {
         this.error = e.message || 'Failed to load phenotype cluster data. Please try again.';
         this.makeToast(e, 'Error', 'danger');
@@ -492,171 +494,28 @@ export default {
     },
 
     /* --------------------------------------
-     * Graph code for cluster viz
+     * Graph code for cluster viz (Cytoscape)
      * ------------------------------------ */
-    generateClusterGraph() {
-      // Graph dimension
-      const margin = {
-        top: 10,
-        right: 10,
-        bottom: 10,
-        left: 10,
-      };
-      const width = 400 - margin.left - margin.right;
-      const height = 400 - margin.top - margin.bottom;
+    initializeCytoscape() {
+      if (!this.cytoscapeContainer) return;
 
-      // Remove existing svg and div
-      d3.select('#cluster_dataviz').select('svg').remove();
-      d3.select('#cluster_dataviz').select('div').remove();
-
-      // Create the svg area
-      const svg = d3
-        .select('#cluster_dataviz')
-        .append('svg')
-        .attr('id', 'cluster_dataviz-svg')
-        .attr('width', width)
-        .attr('height', height);
-
-      // Data from API call
-      const data = this.itemsCluster;
-
-      // Color palette for clusters
-      const color = d3
-        .scaleOrdinal()
-        .domain([1, 2, 3, 4, 5, 6])
-        .range(d3.schemeSet1);
-
-      // Size scale for clusters
-      const size = d3
-        .scaleLinear()
-        .domain([0, 1000])
-        .range([7, 55]);
-
-      // Unique cluster IDs
-      const uniqueClusters = [...new Set(data.map((d) => d.cluster))];
-
-      // X scale by cluster
-      const x = d3
-        .scaleOrdinal()
-        .domain(uniqueClusters)
-        .range(uniqueClusters.map((c) => c * 30));
-
-      // Tooltip
-      const Tooltip = d3
-        .select('#cluster_dataviz')
-        .append('div')
-        .style('opacity', 0)
-        .attr('class', 'tooltip')
-        .style('background-color', 'white')
-        .style('border', 'solid')
-        .style('border-width', '2px')
-        .style('border-radius', '5px')
-        .style('padding', '5px');
-
-      // Mouse event handlers
-      const mouseoverHandler = function mouseoverHandler() {
-        d3.select(this).style('cursor', 'pointer');
-        Tooltip.style('opacity', 1);
-        d3.select(this).style('stroke', 'black');
-      };
-      const mousemoveHandler = function mousemoveHandler(event, d) {
-        Tooltip.html(`<u>Cluster: ${d.cluster}</u><br>${d.cluster_size} entities`)
-          .style('left', `${event.layerX + 20}px`)
-          .style('top', `${event.layerY + 20}px`);
-      };
-      const mouseleaveHandler = function mouseleaveHandler() {
-        d3.select(this).style('cursor', 'default');
-        Tooltip.style('opacity', 0);
-        d3.select(this).style('stroke', '#696969');
-      };
-
-      // Force simulation
-      const simulation = d3
-        .forceSimulation()
-        .force('center', d3.forceCenter().x(width / 2).y(height / 2))
-        .force('charge', d3.forceManyBody().strength(0.1))
-        .force(
-          'collide',
-          d3
-            .forceCollide()
-            .strength(0.2)
-            .radius((d) => size(d.cluster_size) + 3)
-            .iterations(1),
-        )
-        .force(
-          'forceX',
-          d3
-            .forceX()
-            .strength(0.5)
-            .x((d) => x(d.cluster)),
-        )
-        .force(
-          'forceY',
-          d3
-            .forceY()
-            .strength(0.1)
-            .y(height * 0.5),
-        );
-
-      // Drag handlers
-      function dragstartHandler(event, d) {
-        if (!event.active) {
-          simulation.alphaTarget(0.03).restart();
-        }
-        d.fx = d.x;
-        d.fy = d.y;
-      }
-      function dragHandler(event, d) {
-        d.fx = event.x;
-        d.fy = event.y;
-      }
-      function dragendHandler(event, d) {
-        if (!event.active) {
-          simulation.alphaTarget(0.03);
-        }
-        d.fx = null;
-        d.fy = null;
-      }
-
-      // Create circles
-      const node = svg
-        .append('g')
-        .selectAll('circle')
-        .data(data)
-        .enter()
-        .append('a')
-        .append('circle')
-        .attr('class', 'node')
-        .attr('r', (d) => size(d.cluster_size))
-        .attr('cx', width / 2)
-        .attr('cy', height / 2)
-        .style('fill', (d) => color(d.cluster))
-        .style('fill-opacity', 0.8)
-        .attr('stroke', '#696969')
-        .style('stroke-width', (d) => (
-          d.cluster === this.activeCluster ? 4 : 1
-        ))
-        .on('mouseover', mouseoverHandler)
-        .on('mousemove', mousemoveHandler)
-        .on('mouseleave', mouseleaveHandler)
-        .on('click', (event, datum) => {
-          this.activeCluster = datum.cluster;
-          Tooltip.style('opacity', 0); // Hide tooltip on click
-        })
-        .call(
-          d3
-            .drag()
-            .on('start', dragstartHandler)
-            .on('drag', dragHandler)
-            .on('end', dragendHandler),
-        );
-
-      // Update positions each tick
-      simulation.nodes(data).on('tick', () => {
-        node
-          .attr('cx', (d) => d.x)
-          .attr('cy', (d) => d.y);
+      this.cyInstance = usePhenotypeCytoscape({
+        container: { value: this.cytoscapeContainer },
+        onClusterClick: (clusterId) => {
+          this.activeCluster = clusterId;
+        },
       });
+
+      this.cyInstance.initializeCytoscape();
+    },
+
+    updateClusterGraph() {
+      if (!this.cyInstance) {
+        this.initializeCytoscape();
+      }
+      if (this.cyInstance && this.itemsCluster.length > 0) {
+        this.cyInstance.updateElements(this.itemsCluster);
+      }
     },
   },
 };
@@ -670,6 +529,13 @@ export default {
   max-width: 800px;
   vertical-align: top;
   overflow: hidden;
+}
+
+.cytoscape-container {
+  width: 100%;
+  height: 380px;
+  background: #fafafa;
+  border-radius: 4px;
 }
 
 .spinner {
