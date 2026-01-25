@@ -258,6 +258,8 @@ everywhere({
   source("/app/functions/helper-functions.R", local = FALSE)
   # Source the analysis functions (gen_string_clust_obj, gen_mca_clust_obj)
   source("/app/functions/analyses-functions.R", local = FALSE)
+  # Source HGNC functions (update_process_hgnc_data)
+  source("/app/functions/hgnc-functions.R", local = FALSE)
 })
 message(sprintf("[%s] Exported packages and functions to mirai daemons", Sys.time()))
 
