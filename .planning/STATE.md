@@ -14,7 +14,7 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 **Phase:** 27 of 27 (Advanced Features & Filters)
 **Plan:** 8 of 10 complete
 **Status:** In progress
-**Last activity:** 2026-01-25 — Completed 27-07-PLAN.md (Filter Integration - Gene Clusters)
+**Last activity:** 2026-01-25 — Completed 27-08-PLAN.md (PhenotypeClusters Cytoscape Migration)
 
 ```
 v5 Analysis Modernization: PHASE 27 IN PROGRESS
@@ -81,6 +81,8 @@ Recent v5-relevant decisions:
 - **STRING ID deduplication**: Pick first HGNC ID alphabetically for deterministic 1:1 mapping
 - **URL parameter pattern**: Use filterStrToObj for URL state initialization (matches TablesGenes.vue)
 - **Optional composable imports**: Only import composables where actually used, not speculatively
+- **Simplified Cytoscape composables**: Not all use cases need compound node complexity (usePhenotypeCytoscape vs useCytoscape)
+- **Sequential cluster edges**: Connect adjacent clusters for network structure (prevents isolated bubbles in fcose layout)
 
 ## Accumulated Context
 
@@ -120,15 +122,16 @@ Pre-existing analysis documents:
 | 27-05 | UI Polish | ColorLegend component, correlation interpretation tooltips, error states with retry buttons |
 | 27-06 | URL Parameter Fix | Fixed broken URL parameter handling on Entities page using filterStrToObj pattern |
 | 27-07 | Filter Integration (Gene Clusters) | CategoryFilter dropdown and ScoreSlider FDR threshold integrated into AnalyseGeneClusters |
+| 27-08 | PhenotypeClusters Cytoscape Migration | D3.js bubble chart replaced with Cytoscape.js network, simplified usePhenotypeCytoscape composable (-134 lines) |
 | 27-10 | Fix PhenotypeCorrelations | Removed unused useFilterSync import that was breaking /PhenotypeCorrelations page |
 
 ## Session Continuity
 
 **Last session:** 2026-01-25
-**Stopped at:** Completed 27-07-PLAN.md (Filter Integration - Gene Clusters)
+**Stopped at:** Completed 27-08-PLAN.md (PhenotypeClusters Cytoscape Migration)
 **Resume file:** None
-**Next action:** Continue Phase 27 gap closure plans (27-08 through 27-09)
+**Next action:** Continue Phase 27 gap closure plans (27-09)
 
 ---
 *State initialized: 2026-01-24 for v5.0 milestone*
-*Last updated: 2026-01-25 — Plan 27-07 complete (Filter Integration - Gene Clusters)*
+*Last updated: 2026-01-25 — Plan 27-08 complete (PhenotypeClusters Cytoscape Migration)*
