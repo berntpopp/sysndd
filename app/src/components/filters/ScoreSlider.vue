@@ -16,13 +16,12 @@
       <!-- Custom value input (shown when "Custom" selected) -->
       <BFormInput
         v-if="selectedPreset === 'custom'"
-        v-model.number="customValue"
-        type="number"
-        step="0.001"
-        min="0"
-        max="1"
-        placeholder="0.05"
+        v-model="customValueText"
+        type="text"
+        placeholder="1e-5"
         class="custom-input"
+        @blur="parseCustomValue"
+        @keyup.enter="parseCustomValue"
       />
     </BInputGroup>
   </div>
@@ -39,9 +38,10 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   presets: () => [
+    { value: 1e-10, label: '< 1e-10 (very strict)' },
+    { value: 1e-5, label: '< 1e-5 (strict)' },
     { value: 0.01, label: '< 0.01' },
     { value: 0.05, label: '< 0.05' },
-    { value: 0.1, label: '< 0.1' },
   ],
 });
 
@@ -50,7 +50,17 @@ const emit = defineEmits<{
 }>();
 
 const customValue = ref<number | null>(null);
+const customValueText = ref<string>('');
 const selectedPreset = ref<number | 'custom' | null>(null);
+
+// Parse custom value from text input (supports scientific notation like "1e-5")
+function parseCustomValue() {
+  const parsed = parseFloat(customValueText.value);
+  if (!isNaN(parsed) && parsed > 0 && parsed <= 1) {
+    customValue.value = parsed;
+    emit('update:modelValue', parsed);
+  }
+}
 
 // Convert presets to dropdown options
 const presetOptions = computed(() => [
@@ -71,7 +81,9 @@ watch(selectedPreset, (preset) => {
 
 // Sync custom value changes
 watch(customValue, (value) => {
-  if (selectedPreset.value === 'custom') {
+  if (selectedPreset.value === 'custom' && value !== null) {
+    // Update text representation with scientific notation for very small values
+    customValueText.value = value < 0.001 ? value.toExponential() : String(value);
     emit('update:modelValue', value);
   }
 });
@@ -80,11 +92,14 @@ watch(customValue, (value) => {
 watch(() => props.modelValue, (value) => {
   if (value === null) {
     selectedPreset.value = null;
+    customValueText.value = '';
   } else if (props.presets.some(p => p.value === value)) {
     selectedPreset.value = value;
   } else {
     selectedPreset.value = 'custom';
     customValue.value = value;
+    // Display small values in scientific notation
+    customValueText.value = value < 0.001 ? value.toExponential() : String(value);
   }
 }, { immediate: true });
 </script>
