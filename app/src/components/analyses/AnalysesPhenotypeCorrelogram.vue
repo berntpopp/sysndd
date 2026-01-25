@@ -51,16 +51,48 @@
 
       <!-- Content with overlay spinner -->
       <div class="position-relative">
+        <!-- Error state with retry -->
+        <div
+          v-if="error"
+          class="error-state text-center p-4"
+        >
+          <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3 d-block" />
+          <p class="text-muted mb-3">
+            {{ error }}
+          </p>
+          <BButton
+            variant="primary"
+            @click="retryLoad"
+          >
+            <i class="bi bi-arrow-clockwise me-1" />
+            Retry
+          </BButton>
+        </div>
+
+        <!-- Loading spinner -->
         <BSpinner
-          v-if="loadingMatrix"
+          v-else-if="loadingMatrix"
           label="Loading..."
           class="spinner"
         />
-        <div
-          v-show="!loadingMatrix"
-          id="matrix_dataviz"
-          class="svg-container"
-        />
+
+        <!-- Visualization container -->
+        <template v-else>
+          <div
+            id="matrix_dataviz"
+            class="svg-container"
+          />
+          <!-- Color legend -->
+          <div class="d-flex justify-content-center mt-2 mb-3">
+            <ColorLegend
+              :min="-1"
+              :max="1"
+              :colors="['#000080', '#fff', '#B22222']"
+              title="Correlation Coefficient (R)"
+              :labels="correlationLabels"
+            />
+          </div>
+        </template>
       </div>
     </BCard>
   </BContainer>
@@ -69,12 +101,29 @@
 <script>
 import useToast from '@/composables/useToast';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
+import ColorLegend from '@/components/analyses/ColorLegend.vue';
 import * as d3 from 'd3';
+
+/**
+ * Get human-readable interpretation of a correlation coefficient
+ * @param {number} r - Correlation coefficient (-1 to 1)
+ * @returns {string} Human-readable interpretation
+ */
+function getCorrelationInterpretation(r) {
+  const absR = Math.abs(r);
+  const direction = r >= 0 ? 'positive' : 'negative';
+
+  if (absR >= 0.7) return `Strong ${direction} correlation`;
+  if (absR >= 0.4) return `Moderate ${direction} correlation`;
+  if (absR >= 0.2) return `Weak ${direction} correlation`;
+  return 'No significant correlation';
+}
 
 export default {
   name: 'AnalysesPhenotypeCorrelogram',
   components: {
     DownloadImageButtons,
+    ColorLegend,
   },
   setup() {
     const { makeToast } = useToast();
@@ -84,6 +133,13 @@ export default {
     return {
       itemsMatrix: [],
       loadingMatrix: true, // Added loading state
+      error: null, // Error state for retry functionality
+      // Labels for color legend
+      correlationLabels: [
+        { value: -1, text: '-1 (negative)' },
+        { value: 0, text: '0' },
+        { value: 1, text: '+1 (positive)' },
+      ],
     };
   },
   mounted() {
@@ -92,6 +148,7 @@ export default {
   methods: {
     async loadMatrixData() {
       this.loadingMatrix = true;
+      this.error = null;
 
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/phenotype/correlation`;
 
@@ -102,10 +159,17 @@ export default {
 
         this.generateMatrixGraph();
       } catch (e) {
+        this.error = e.message || 'Failed to load correlation data. Please try again.';
         this.makeToast(e, 'Error', 'danger');
       } finally {
         this.loadingMatrix = false; // Set loading to false after data is fetched
       }
+    },
+    /**
+     * Retry loading data after an error
+     */
+    retryLoad() {
+      this.loadMatrixData();
     },
     generateMatrixGraph() {
       // Graph dimension
@@ -182,8 +246,13 @@ export default {
       };
 
       const mousemove = function mousemove(event, d) {
+        const interpretation = getCorrelationInterpretation(d.value);
         tooltip
-          .html(`R: ${d.value}<br>(${d.x} &<br>${d.y})`)
+          .html(`
+            <strong>R: ${Number(d.value).toFixed(3)}</strong><br>
+            <em>${interpretation}</em><br>
+            <small>${d.x} &amp; ${d.y}</small>
+          `)
           .style('left', `${event.layerX + 20}px`)
           .style('top', `${event.layerY + 20}px`);
       };
@@ -243,5 +312,13 @@ mark {
   height: 2rem;
   margin: 5rem auto;
   display: block;
+}
+
+.error-state {
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 </style>
