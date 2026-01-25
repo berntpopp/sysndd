@@ -155,6 +155,19 @@
                 :class="{ 'opacity-50': isBusy }"
                 @update:sort-by="handleSortUpdate"
               >
+                <template #head-select>
+                  <BFormCheckbox
+                    :model-value="allOnPageSelected"
+                    :indeterminate="selectionCount > 0 && !allOnPageSelected"
+                    @update:model-value="toggleSelectAllOnPage"
+                  />
+                </template>
+                <template #cell-select="{ row }">
+                  <BFormCheckbox
+                    :model-value="isSelected(row.user_id)"
+                    @update:model-value="handleRowSelect(row.user_id)"
+                  />
+                </template>
                 <template #cell-actions="{ row }">
                   <div>
                     <BButton
@@ -634,6 +647,13 @@ export default {
       user_options: [],
       users: [],
       fields: [
+        {
+          key: 'select',
+          label: '',
+          class: 'text-center',
+          thStyle: { width: '40px' },
+          sortable: false,
+        },
         {
           key: 'user_name', label: 'User name', sortable: true, filterable: true, sortDirection: 'asc', class: 'text-start',
         },
