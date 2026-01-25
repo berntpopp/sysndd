@@ -45,7 +45,7 @@
                   {{ section.title }}
                 </span>
               </template>
-              <div class="py-2 about-content" v-dompurify-html="renderMarkdown(section.content)" />
+              <div v-dompurify-html="renderMarkdown(section.content)" class="py-2 about-content" />
             </BAccordionItem>
           </BAccordion>
 
