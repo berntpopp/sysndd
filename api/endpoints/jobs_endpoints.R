@@ -424,6 +424,76 @@ function(req, res) {
 }
 
 ## -------------------------------------------------------------------##
+## HGNC Data Update Submission
+## -------------------------------------------------------------------##
+
+#* Submit HGNC Data Update Job
+#*
+#* Submits an async job to download and update HGNC gene data.
+#* Requires Administrator role.
+#* Returns immediately with job ID for status polling.
+#*
+#* @tag jobs
+#* @serializer json list(na="string")
+#* @post /hgnc_update/submit
+function(req, res) {
+  require_role(req, res, "Administrator")
+
+  # Check for duplicate running job
+  dup_check <- check_duplicate_job("hgnc_update", list(operation = "hgnc_update"))
+  if (dup_check$duplicate) {
+    res$status <- 409
+    res$setHeader("Location", paste0("/api/jobs/", dup_check$existing_job_id, "/status"))
+    return(list(
+      error = "DUPLICATE_JOB",
+      message = "HGNC update job already running",
+      existing_job_id = dup_check$existing_job_id,
+      status_url = paste0("/api/jobs/", dup_check$existing_job_id, "/status")
+    ))
+  }
+
+  # HGNC update doesn't need database pre-fetch
+  # (it downloads from HGNC API and writes to files/DB directly)
+
+  # Create async job
+  result <- create_job(
+    operation = "hgnc_update",
+    params = list(),
+    executor_fn = function(params) {
+      # This runs in mirai daemon
+      # Call the HGNC update function (downloads data and returns processed tibble)
+      hgnc_data <- update_process_hgnc_data()
+
+      # Return summary
+      list(
+        status = "completed",
+        rows_processed = nrow(hgnc_data),
+        message = "HGNC data updated successfully"
+      )
+    }
+  )
+
+  # Check capacity
+  if (!is.null(result$error)) {
+    res$status <- 503
+    res$setHeader("Retry-After", as.character(result$retry_after))
+    return(result)
+  }
+
+  # Success - return HTTP 202 Accepted
+  res$status <- 202
+  res$setHeader("Location", paste0("/api/jobs/", result$job_id, "/status"))
+  res$setHeader("Retry-After", "10") # Shorter polling interval (faster job)
+
+  list(
+    job_id = result$job_id,
+    status = result$status,
+    estimated_seconds = 120, # HGNC update is faster than ontology (~2 min)
+    status_url = paste0("/api/jobs/", result$job_id, "/status")
+  )
+}
+
+## -------------------------------------------------------------------##
 ## Job Status Polling
 ## -------------------------------------------------------------------##
 
