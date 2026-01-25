@@ -150,6 +150,11 @@ export default defineConfig({
     },
   },
 
+  // Optimization for dependencies that need pre-bundling
+  optimizeDeps: {
+    include: ['xlsx'],
+  },
+
   build: {
     outDir: 'dist',
     sourcemap: 'hidden', // Security: no public source maps

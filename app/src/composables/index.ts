@@ -69,3 +69,7 @@ export type { GeneWithSymbol, WildcardSearchReturn } from './useWildcardSearch';
 // Network highlighting (bidirectional table-network hover)
 export { useNetworkHighlight } from './useNetworkHighlight';
 export type { HighlightState, HoverSource, NetworkHighlightReturn } from './useNetworkHighlight';
+
+// Excel export utilities
+export { useExcelExport } from './useExcelExport';
+export type { ExcelExportOptions, UseExcelExportReturn } from './useExcelExport';

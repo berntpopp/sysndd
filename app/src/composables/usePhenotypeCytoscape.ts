@@ -10,10 +10,14 @@ import type { Core, ElementDefinition } from 'cytoscape';
 import fcose from 'cytoscape-fcose';
 import svg from 'cytoscape-svg';
 
-// Register extensions once
-const cytoscapeFn = cytoscape as any;
-cytoscapeFn.use(fcose);
-cytoscapeFn.use(svg);
+// Register extensions once using global flag to handle HMR
+// @ts-ignore - using global to prevent re-registration during HMR
+if (!globalThis.__cytoscapeExtensionsRegistered) {
+  cytoscape.use(fcose);
+  cytoscape.use(svg);
+  // @ts-ignore
+  globalThis.__cytoscapeExtensionsRegistered = true;
+}
 
 export interface PhenotypeCluster {
   cluster: string | number;
@@ -26,9 +30,16 @@ export interface PhenotypeCytoscapeOptions {
   onClusterClick?: (clusterId: string | number) => void;
 }
 
+// Professional, accessible color palette (ColorBrewer Set2 - colorblind-safe)
 const CLUSTER_COLORS = [
-  '#e41a1c', '#377eb8', '#4daf4a', '#984ea3',
-  '#ff7f00', '#ffff33', '#a65628', '#f781bf',
+  '#66c2a5', // teal
+  '#fc8d62', // coral
+  '#8da0cb', // periwinkle
+  '#e78ac3', // pink
+  '#a6d854', // lime
+  '#ffd92f', // yellow
+  '#e5c494', // tan
+  '#b3b3b3', // gray
 ];
 
 function getClusterColor(index: number): string {
@@ -41,7 +52,9 @@ export function usePhenotypeCytoscape(options: PhenotypeCytoscapeOptions) {
   const isLoading = ref(false);
 
   function initializeCytoscape() {
-    if (!options.container.value) return;
+    if (!options.container.value) {
+      return;
+    }
 
     cy = cytoscape({
       container: options.container.value,
@@ -52,22 +65,38 @@ export function usePhenotypeCytoscape(options: PhenotypeCytoscapeOptions) {
             width: 'data(size)',
             height: 'data(size)',
             'background-color': 'data(color)',
-            'border-width': 2,
-            'border-color': '#696969',
+            'background-opacity': 0.9,
+            'border-width': 3,
+            'border-color': '#444',
             label: 'data(label)',
-            'font-size': '14px',
+            'font-size': '18px',
+            'font-weight': 'bold',
             'text-valign': 'center',
             'text-halign': 'center',
-            color: '#fff',
-            'text-outline-width': 2,
-            'text-outline-color': 'data(color)',
+            color: '#222',
+            'text-outline-width': 3,
+            'text-outline-color': '#fff',
+            // Transition for smooth hover effects
+            'transition-property': 'border-width, border-color, background-opacity',
+            'transition-duration': 150, // milliseconds
+          },
+        },
+        {
+          selector: 'node:active',
+          style: {
+            'overlay-opacity': 0.1,
           },
         },
         {
           selector: 'node:selected',
           style: {
-            'border-width': 4,
-            'border-color': '#000',
+            'border-width': 5,
+            'border-color': '#0d6efd',
+            'background-opacity': 1,
+            // Blue glow effect for selected cluster
+            'overlay-color': '#0d6efd',
+            'overlay-opacity': 0.15,
+            'overlay-padding': 8,
           },
         },
         {
@@ -75,18 +104,17 @@ export function usePhenotypeCytoscape(options: PhenotypeCytoscapeOptions) {
           style: {
             'curve-style': 'bezier',
             width: 2,
-            'line-color': '#ccc',
-            opacity: 0.5,
+            'line-color': '#999',
+            opacity: 0.4,
           },
         },
       ],
       layout: { name: 'preset' }, // We'll position manually or use fcose
       minZoom: 0.3,
       maxZoom: 3,
-      wheelSensitivity: 0.3,
     });
 
-    // Click handler
+    // Click handler for node selection
     cy.on('tap', 'node', (evt) => {
       const node = evt.target;
       const clusterId = node.data('clusterId');
@@ -102,21 +130,21 @@ export function usePhenotypeCytoscape(options: PhenotypeCytoscapeOptions) {
     if (!cy) return;
     isLoading.value = true;
 
-    // Calculate size scale
+    // Calculate size scale - larger nodes for better visibility
     const sizes = clusters.map(c => c.cluster_size);
     const maxSize = Math.max(...sizes);
     const minSize = Math.min(...sizes);
     const sizeScale = (size: number) => {
       const normalized = (size - minSize) / (maxSize - minSize || 1);
-      return 30 + normalized * 50; // 30-80px range
+      return 45 + normalized * 55; // 45-100px range for better visibility
     };
 
-    // Create node elements
+    // Create node elements with clean labels
     const elements: ElementDefinition[] = clusters.map((cluster, index) => ({
       data: {
         id: `cluster-${cluster.cluster}`,
         clusterId: cluster.cluster,
-        label: `C${cluster.cluster}\n(${cluster.cluster_size})`,
+        label: `${cluster.cluster}`,  // Just cluster number, size shown via node size
         size: sizeScale(cluster.cluster_size),
         color: getClusterColor(index),
         clusterSize: cluster.cluster_size,
@@ -157,6 +185,12 @@ export function usePhenotypeCytoscape(options: PhenotypeCytoscapeOptions) {
     cy?.fit(undefined, 30);
   }
 
+  function selectCluster(clusterId: string | number) {
+    if (!cy) return;
+    cy.nodes().unselect();
+    cy.$(`#cluster-${clusterId}`).select();
+  }
+
   function exportPNG(): string {
     return cy?.png({ full: true, scale: 2 }) || '';
   }
@@ -165,10 +199,21 @@ export function usePhenotypeCytoscape(options: PhenotypeCytoscapeOptions) {
     return (cy as any)?.svg({ full: true }) || '';
   }
 
-  onBeforeUnmount(() => {
+  function destroy() {
     cy?.destroy();
     cy = null;
-  });
+    isInitialized.value = false;
+  }
+
+  // Only register cleanup if called during component setup
+  // Check if we're in a component context
+  try {
+    onBeforeUnmount(() => {
+      destroy();
+    });
+  } catch (e) {
+    // Called outside setup() - caller must call destroy() manually
+  }
 
   return {
     cy: () => cy,
@@ -176,8 +221,10 @@ export function usePhenotypeCytoscape(options: PhenotypeCytoscapeOptions) {
     isLoading,
     initializeCytoscape,
     updateElements,
+    selectCluster,
     fitToScreen,
     exportPNG,
     exportSVG,
+    destroy,
   };
 }

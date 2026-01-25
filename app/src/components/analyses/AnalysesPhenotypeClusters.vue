@@ -125,9 +125,15 @@
             </div>
 
             <template #footer>
-              <BLink :href="entitiesLink">
-                Entities for cluster {{ selectedCluster.cluster }}
-              </BLink>
+              <div class="d-flex justify-content-between align-items-center">
+                <BLink :href="entitiesLink">
+                  Entities for cluster {{ selectedCluster.cluster }}
+                </BLink>
+                <small class="text-muted">
+                  <i class="bi bi-circle-fill" style="font-size: 6px;" /> = fewer entities |
+                  <i class="bi bi-circle-fill" style="font-size: 12px;" /> = more entities
+                </small>
+              </div>
             </template>
           </BCard>
         </BCol>
@@ -167,13 +173,35 @@
                     sm="6"
                     class="mb-1 text-end"
                   >
-                    <!-- A search input controlling the 'any' filter -->
-                    <TableSearchInput
-                      v-model="filter.any.content"
-                      :placeholder="'Search variables here...'"
-                      :debounce-time="500"
-                      @input="onFilterChange"
-                    />
+                    <div class="d-flex align-items-center justify-content-end gap-2">
+                      <!-- A search input controlling the 'any' filter -->
+                      <TableSearchInput
+                        v-model="filter.any.content"
+                        :placeholder="'Search variables here...'"
+                        :debounce-time="500"
+                        @input="onFilterChange"
+                      />
+                      <!-- Excel download button -->
+                      <BButton
+                        v-b-tooltip.hover.bottom
+                        size="sm"
+                        variant="outline-secondary"
+                        title="Download table data as Excel file"
+                        :disabled="isExporting"
+                        @click="downloadExcel"
+                      >
+                        <i class="bi bi-table me-1" />
+                        <i
+                          v-if="!isExporting"
+                          class="bi bi-download"
+                        />
+                        <BSpinner
+                          v-else
+                          small
+                        />
+                        .xlsx
+                      </BButton>
+                    </div>
                   </BCol>
                 </BRow>
               </div>
@@ -249,9 +277,9 @@
 </template>
 
 <script>
-import { ref } from 'vue';
+import { ref, onBeforeUnmount } from 'vue';
 import useToast from '@/composables/useToast';
-import { usePhenotypeCytoscape } from '@/composables';
+import { usePhenotypeCytoscape, useExcelExport } from '@/composables';
 
 // Import your small table components:
 import GenericTable from '@/components/small/GenericTable.vue';
@@ -275,12 +303,34 @@ export default {
       default: null,
     },
   },
-  setup() {
+  setup(props, { expose }) {
     const { makeToast } = useToast();
-    const cytoscapeContainer = ref<HTMLElement | null>(null);
+    const cytoscapeContainer = ref(null);
+    const activeClusterRef = ref('1');
+
+    // Initialize composable in setup() to properly register lifecycle hooks
+    const cytoscape = usePhenotypeCytoscape({
+      container: cytoscapeContainer,
+      onClusterClick: (clusterId) => {
+        activeClusterRef.value = String(clusterId);
+      },
+    });
+
+    // Excel export functionality
+    const { isExporting, exportToExcel } = useExcelExport();
+
+    // Cleanup on unmount
+    onBeforeUnmount(() => {
+      cytoscape.destroy();
+    });
+
     return {
       makeToast,
       cytoscapeContainer,
+      cytoscape,
+      activeClusterRef,
+      isExporting,
+      exportToExcel,
     };
   },
   data() {
@@ -294,10 +344,10 @@ export default {
         quali_sup_var: [],
         quanti_sup_var: [],
       },
-      activeCluster: '1',
+      // activeCluster moved to setup() as activeClusterRef
       loading: false,
       error: null, // Error state for retry functionality
-      cyInstance: null, // Cytoscape instance from composable
+      // cyInstance moved to setup() as 'cytoscape'
 
       /* --------------------------------------
        * Table logic / fields
@@ -344,7 +394,7 @@ export default {
       perPage: 10,
       totalRows: 1,
       currentPage: 1,
-      sortBy: 'variable',
+      sortBy: 'p.value',
       sortDesc: false,
       filter: {
         any: { content: null, join_char: null, operator: 'contains' },
@@ -355,6 +405,17 @@ export default {
     };
   },
   computed: {
+    /**
+     * Bridge between setup() ref and Options API
+     */
+    activeCluster: {
+      get() {
+        return this.activeClusterRef;
+      },
+      set(value) {
+        this.activeClusterRef = value;
+      },
+    },
     /**
      * Computed URL for the Entities link (fixes NAVL-07 bug)
      * Prevents 'filter=undefined' when hash_filter is not set
@@ -368,9 +429,7 @@ export default {
       return base;
     },
     /**
-     * The items currently being displayed in the table (filtered + paginated).
-     * If you're hooking up to a back-end with query parameters, you may do so in
-     * a loadData() function. Here, we do a local filter as an example.
+     * The items currently being displayed in the table (filtered + sorted + paginated).
      */
     displayedItems() {
       // 1. Start from the relevant cluster data
@@ -379,7 +438,34 @@ export default {
       // 2. Apply filtering
       dataArray = this.applyFilters(dataArray);
 
-      // 3. (Optional) Real-time sorting is handled by <GenericTable>
+      // 3. Apply sorting
+      if (this.sortBy) {
+        dataArray = [...dataArray].sort((a, b) => {
+          let aVal = a[this.sortBy];
+          let bVal = b[this.sortBy];
+
+          // Handle null/undefined - push to end
+          if (aVal == null && bVal == null) return 0;
+          if (aVal == null) return 1;
+          if (bVal == null) return -1;
+
+          // Handle numeric comparison (including scientific notation)
+          const aNum = typeof aVal === 'number' ? aVal : parseFloat(aVal);
+          const bNum = typeof bVal === 'number' ? bVal : parseFloat(bVal);
+
+          if (!isNaN(aNum) && !isNaN(bNum)) {
+            const diff = aNum - bNum;
+            return this.sortDesc ? -diff : diff;
+          }
+
+          // String comparison for non-numeric values
+          const aStr = String(aVal).toLowerCase();
+          const bStr = String(bVal).toLowerCase();
+          if (aStr < bStr) return this.sortDesc ? 1 : -1;
+          if (aStr > bStr) return this.sortDesc ? -1 : 1;
+          return 0;
+        });
+      }
 
       // 4. Paginate (client-side)
       const start = (this.currentPage - 1) * this.perPage;
@@ -389,13 +475,11 @@ export default {
   },
   watch: {
     // Update data whenever the user picks a new cluster
-    activeCluster() {
+    activeCluster(newCluster) {
       this.setActiveCluster();
-      // Highlight selected cluster in Cytoscape
-      if (this.cyInstance?.cy()) {
-        const cy = this.cyInstance.cy();
-        cy.nodes().unselect();
-        cy.$(`#cluster-${this.activeCluster}`).select();
+      // Highlight selected cluster in Cytoscape using the composable method
+      if (this.cytoscape?.isInitialized.value) {
+        this.cytoscape.selectCluster(newCluster);
       }
     },
     // Watch the tableType so we can update totalRows based on new array
@@ -510,32 +594,33 @@ export default {
      * ------------------------------------ */
     initializeCytoscape() {
       if (!this.cytoscapeContainer) return;
-
-      this.cyInstance = usePhenotypeCytoscape({
-        container: { value: this.cytoscapeContainer },
-        onClusterClick: (clusterId) => {
-          this.activeCluster = clusterId;
-        },
-      });
-
-      this.cyInstance.initializeCytoscape();
+      // Cytoscape composable initialized in setup(), just init the graph
+      this.cytoscape.initializeCytoscape();
     },
 
     updateClusterGraph() {
-      if (!this.cyInstance) {
+      if (!this.cytoscape.isInitialized.value) {
         this.initializeCytoscape();
       }
-      if (this.cyInstance && this.itemsCluster.length > 0) {
-        this.cyInstance.updateElements(this.itemsCluster);
+      if (this.cytoscape && this.itemsCluster.length > 0) {
+        this.cytoscape.updateElements(this.itemsCluster);
+        // Select the initial cluster after a short delay for layout to complete
+        setTimeout(() => {
+          this.cytoscape.selectCluster(this.activeCluster);
+        }, 600);
       }
+    },
+
+    handleClusterClick(clusterId) {
+      this.activeCluster = clusterId;
     },
 
     /* --------------------------------------
      * Export functions for Cytoscape network
      * ------------------------------------ */
     exportPNG() {
-      if (!this.cyInstance) return;
-      const png = this.cyInstance.exportPNG();
+      if (!this.cytoscape?.isInitialized.value) return;
+      const png = this.cytoscape.exportPNG();
       const link = document.createElement('a');
       link.href = png;
       link.download = 'phenotype_clusters.png';
@@ -543,8 +628,8 @@ export default {
     },
 
     exportSVG() {
-      if (!this.cyInstance) return;
-      const svgContent = this.cyInstance.exportSVG();
+      if (!this.cytoscape?.isInitialized.value) return;
+      const svgContent = this.cytoscape.exportSVG();
       const blob = new Blob([svgContent], { type: 'image/svg+xml' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -552,6 +637,48 @@ export default {
       link.download = 'phenotype_clusters.svg';
       link.click();
       URL.revokeObjectURL(url);
+    },
+
+    /**
+     * Download the current table data as Excel file
+     * Exports all filtered data (not just the current page)
+     */
+    downloadExcel() {
+      // Get all filtered data (not just paginated subset)
+      let dataArray = this.selectedCluster[this.tableType] || [];
+      dataArray = this.applyFilters(dataArray);
+
+      if (dataArray.length === 0) {
+        this.makeToast('No data to export', 'Warning', 'warning');
+        return;
+      }
+
+      // Define column headers based on table type
+      const tableTypeLabels = {
+        quali_inp_var: 'Qualitative Input Variables',
+        quali_sup_var: 'Qualitative Supplementary Variables',
+        quanti_sup_var: 'Quantitative Supplementary Variables',
+      };
+
+      const headers = {
+        variable: 'Variable',
+        'p.value': 'p-value',
+        'v.test': 'v-test',
+        // Additional columns that might be present
+        Mean_in_category: 'Mean in Category',
+        Overall_mean: 'Overall Mean',
+        sd_in_category: 'SD in Category',
+        Overall_sd: 'Overall SD',
+      };
+
+      // Generate filename with context
+      const filename = `sysndd_phenotype_cluster_${this.activeCluster}_${this.tableType}`;
+
+      this.exportToExcel(dataArray, {
+        filename,
+        sheetName: tableTypeLabels[this.tableType] || 'Data',
+        headers,
+      });
     },
   },
 };

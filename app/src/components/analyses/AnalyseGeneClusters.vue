@@ -129,13 +129,35 @@
                     sm="4"
                     class="mb-1 text-end"
                   >
-                    <!-- Gene search synced with network (uses same geneSearchPattern) -->
-                    <TermSearch
-                      v-model="geneSearchPattern"
-                      :match-count="tableType === 'identifiers' ? searchMatchCount : null"
-                      :suggestions="allGeneSymbols"
-                      placeholder="Search genes..."
-                    />
+                    <div class="d-flex align-items-center justify-content-end gap-2">
+                      <!-- Gene search synced with network (uses same geneSearchPattern) -->
+                      <TermSearch
+                        v-model="geneSearchPattern"
+                        :match-count="tableType === 'identifiers' ? searchMatchCount : null"
+                        :suggestions="allGeneSymbols"
+                        placeholder="Search genes..."
+                      />
+                      <!-- Excel download button -->
+                      <BButton
+                        v-b-tooltip.hover.bottom
+                        size="sm"
+                        variant="outline-secondary"
+                        title="Download table data as Excel file"
+                        :disabled="isExporting"
+                        @click="downloadExcel"
+                      >
+                        <i class="bi bi-table me-1" />
+                        <i
+                          v-if="!isExporting"
+                          class="bi bi-download"
+                        />
+                        <BSpinner
+                          v-else
+                          small
+                        />
+                        .xlsx
+                      </BButton>
+                    </div>
                   </BCol>
                 </BRow>
               </div>
@@ -242,18 +264,26 @@
                 <!-- description cell -->
                 <template #cell-description="{ row }">
                   <!-- Render only if tableType === 'term_enrichment' -->
-                  <div v-if="tableType === 'term_enrichment'">
+                  <div
+                    v-if="tableType === 'term_enrichment'"
+                    class="d-flex align-items-center"
+                  >
                     <BButton
-                      v-b-tooltip.hover.leftbottom
-                      class="btn-xs mx-2"
+                      class="btn-xs me-1 flex-shrink-0"
                       variant="outline-primary"
                       :href="findCategoryLink(row.category, row.term)"
-                      :title="row.term"
                       target="_blank"
+                      title="Open in external database"
                     >
                       <i class="bi bi-box-arrow-up-right" />
-                      {{ row.description }}
                     </BButton>
+                    <span
+                      v-b-tooltip.hover.top
+                      class="description-text text-truncate"
+                      :title="row.description"
+                    >
+                      {{ row.description }}
+                    </span>
                   </div>
                 </template>
 
@@ -329,7 +359,7 @@
 </template>
 
 <script>
-import { useToast, useColorAndSymbols, useFilterSync, useWildcardSearch } from '@/composables';
+import { useToast, useColorAndSymbols, useFilterSync, useWildcardSearch, useExcelExport } from '@/composables';
 
 // Import small table components
 import GenericTable from '@/components/small/GenericTable.vue';
@@ -380,12 +410,17 @@ export default {
     // Wildcard search for filtering table
     const wildcardSearch = useWildcardSearch();
 
+    // Excel export functionality
+    const { isExporting, exportToExcel } = useExcelExport();
+
     return {
       makeToast,
       ...colorAndSymbols,
       filterState,
       setSearch,
       wildcardSearch,
+      isExporting,
+      exportToExcel,
     };
   },
   data() {
@@ -434,7 +469,7 @@ export default {
       // Specialized filter values (separate from text filter object)
       categoryFilter: null, // Selected category (GO, KEGG, MONDO, or null for all)
       fdrThreshold: null,   // FDR threshold (0.01, 0.05, 0.1, or custom value)
-      sortBy: 'category',
+      sortBy: 'fdr',
       sortDesc: false,
 
       // Pagination
@@ -617,11 +652,43 @@ export default {
     },
 
     /**
-     * displayedItems: Filtered + paginated items for the current tableType
+     * displayedItems: Filtered + sorted + paginated items for the current tableType
      */
     displayedItems() {
       let dataArray = this.selectedCluster[this.tableType] || [];
       dataArray = this.applyFilters(dataArray);
+
+      // Apply sorting
+      if (this.sortBy) {
+        dataArray = [...dataArray].sort((a, b) => {
+          let aVal = a[this.sortBy];
+          let bVal = b[this.sortBy];
+
+          // Handle null/undefined - push to end
+          if (aVal == null && bVal == null) return 0;
+          if (aVal == null) return 1;
+          if (bVal == null) return -1;
+
+          // Handle numeric comparison (including scientific notation like FDR values)
+          // Convert to number - handles "0", "1e-94", 0, 1e-94, etc.
+          const aNum = typeof aVal === 'number' ? aVal : parseFloat(aVal);
+          const bNum = typeof bVal === 'number' ? bVal : parseFloat(bVal);
+
+          if (!isNaN(aNum) && !isNaN(bNum)) {
+            // Both are valid numbers - compare numerically
+            // This correctly handles 0 vs 1e-94 (0 < 1e-94)
+            const diff = aNum - bNum;
+            return this.sortDesc ? -diff : diff;
+          }
+
+          // String comparison for non-numeric values
+          const aStr = String(aVal).toLowerCase();
+          const bStr = String(bVal).toLowerCase();
+          if (aStr < bStr) return this.sortDesc ? 1 : -1;
+          if (aStr > bStr) return this.sortDesc ? -1 : 1;
+          return 0;
+        });
+      }
 
       // Pagination
       const start = (this.currentPage - 1) * this.perPage;
@@ -1134,6 +1201,50 @@ export default {
         this.leftPaneSize = panes[0].size;
       }
     },
+
+    /**
+     * Download the current table data as Excel file
+     * Exports all filtered data (not just the current page)
+     */
+    downloadExcel() {
+      // Get all filtered data (not just paginated subset)
+      let dataArray = this.selectedCluster[this.tableType] || [];
+      dataArray = this.applyFilters(dataArray);
+
+      if (dataArray.length === 0) {
+        this.makeToast('No data to export', 'Warning', 'warning');
+        return;
+      }
+
+      // Define column headers based on table type
+      const headers = this.tableType === 'term_enrichment'
+        ? {
+            cluster_num: 'Cluster',
+            category: 'Category',
+            number_of_genes: '# Genes',
+            fdr: 'FDR',
+            description: 'Description',
+            term: 'Term ID',
+          }
+        : {
+            cluster_num: 'Cluster',
+            symbol: 'Gene Symbol',
+            hgnc_id: 'HGNC ID',
+            STRING_id: 'STRING ID',
+          };
+
+      // Generate filename with context
+      const clusterLabel = this.showAllClustersInTable
+        ? 'all_clusters'
+        : `clusters_${this.displayedClusters.join('_')}`;
+      const filename = `sysndd_gene_${this.tableType}_${clusterLabel}`;
+
+      this.exportToExcel(dataArray, {
+        filename,
+        sheetName: this.tableType === 'term_enrichment' ? 'Enrichment' : 'Identifiers',
+        headers,
+      });
+    },
   },
 };
 </script>
@@ -1145,6 +1256,13 @@ export default {
   font-size: 0.875rem;
   line-height: 0.5;
   border-radius: 0.2rem;
+}
+
+/* Truncate description text with ellipsis, show full text on hover */
+.description-text {
+  max-width: 200px;
+  display: inline-block;
+  cursor: help;
 }
 
 mark {

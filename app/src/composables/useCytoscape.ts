@@ -32,9 +32,14 @@ type CytoscapeStylesheet = Array<{
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const cytoscapeFn = cytoscape as any;
 
-// Register extensions
-cytoscapeFn.use(fcose);
-cytoscapeFn.use(svg);
+// Register extensions once using global flag to handle HMR and multiple composables
+// @ts-ignore - using global to prevent re-registration
+if (!globalThis.__cytoscapeExtensionsRegistered) {
+  cytoscapeFn.use(fcose);
+  cytoscapeFn.use(svg);
+  // @ts-ignore
+  globalThis.__cytoscapeExtensionsRegistered = true;
+}
 
 /**
  * Options for the useCytoscape composable

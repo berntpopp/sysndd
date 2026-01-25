@@ -204,6 +204,23 @@
       </slot>
     </template>
 
+    <!-- Description column with truncation and tooltip -->
+    <template #cell(description)="data">
+      <slot
+        name="cell-description"
+        :row="data.item"
+        :index="data.index"
+      >
+        <span
+          v-b-tooltip.hover.top
+          class="description-text"
+          :title="data.item.description"
+        >
+          {{ data.item.description }}
+        </span>
+      </slot>
+    </template>
+
     <!-- Details column -->
     <template #cell(details)="row">
       <BButton

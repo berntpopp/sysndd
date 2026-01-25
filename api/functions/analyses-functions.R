@@ -199,9 +199,11 @@ gen_string_enrich_tib <- function(hgnc_list) {
   )
 
   # compute enrichment and convert to tibble
+  # Sort by FDR ascending so most significant terms appear first
   enrichment_tibble <- string_db$get_enrichment(hgnc_list) %>%
     tibble() %>%
-    select(-ncbiTaxonId, -inputGenes, -preferredNames)
+    select(-ncbiTaxonId, -inputGenes, -preferredNames) %>%
+    arrange(fdr)
 
   # return result
   return(enrichment_tibble)
@@ -278,6 +280,7 @@ gen_mca_clust_obj <- function(
     mca_hcpc$data.clust$entity_id <- row.names(mca_hcpc$data.clust)
 
     # generate cluster tibble
+    # Sort all variable tables by p.value ascending so most significant appear first
     clusters_tibble <- tibble(mca_hcpc$data.clust) %>%
       select(entity_id, cluster = clust) %>%
       tidyr::nest(.by = c(cluster), .key = "identifiers") %>%
@@ -298,7 +301,8 @@ gen_mca_clust_obj <- function(
       ) %>%
         filter(!str_detect(variable, "NA")) %>%
         filter(!str_detect(variable, "hpo")) %>%
-        mutate(variable = str_remove_all(variable, "^.+=|_yes")))) %>%
+        mutate(variable = str_remove_all(variable, "^.+=|_yes")) %>%
+        arrange(p.value))) %>%
       mutate(quali_sup_var = list(tibble::as_tibble(
         mca_hcpc$desc.var$category[[cluster]],
         rownames = "variable",
@@ -308,14 +312,16 @@ gen_mca_clust_obj <- function(
       ) %>%
         filter(!str_detect(variable, "NA")) %>%
         filter(str_detect(variable, "hpo")) %>%
-        mutate(variable = str_remove_all(variable, "^.+=|_yes")))) %>%
+        mutate(variable = str_remove_all(variable, "^.+=|_yes")) %>%
+        arrange(p.value))) %>%
       mutate(quanti_sup_var = list(tibble::as_tibble(
         mca_hcpc$desc.var$quanti[[cluster]],
         rownames = "variable",
         .name_repair = ~ vctrs::vec_as_names(...,
           repair = "universal", quiet = TRUE
         )
-      ))) %>%
+      ) %>%
+        arrange(p.value))) %>%
       ungroup()
 
     # save computation result
