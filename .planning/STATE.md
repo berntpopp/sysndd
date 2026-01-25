@@ -12,23 +12,23 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Milestone:** v6.0 Admin Panel Modernization
 **Phase:** 32 of 33 (Async Jobs)
-**Plan:** 01 of 04 complete
+**Plan:** 02 of 04 complete
 **Status:** In progress
-**Last activity:** 2026-01-26 — Completed 32-01-PLAN.md (useAsyncJob Composable)
+**Last activity:** 2026-01-26 — Completed 32-02-PLAN.md (HGNC Async + ManageAnnotations Refactor)
 
 ```
-v6.0 Admin Panel Modernization: [█████████████████░░░░░░░░░░░] 56%
+v6.0 Admin Panel Modernization: [██████████████████░░░░░░░░░░] 63%
 Phase 28 Table Foundation:     [██████████] 3/3 plans ✓
 Phase 29 User Management:      [██████████] 4/4 plans ✓
 Phase 30 Statistics Dashboard: [██████████] 3/3 plans ✓
 Phase 31 Content Management:   [██████████] 4/4 plans ✓
-Phase 32 Async Jobs:           [██░░░░░░░░] 1/4 plans
+Phase 32 Async Jobs:           [█████░░░░░] 2/4 plans
 ```
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 145
+- Total plans completed: 146
 - Milestones shipped: 5 (v1-v5)
 - Phases completed: 28
 
@@ -43,7 +43,7 @@ Phase 32 Async Jobs:           [██░░░░░░░░] 1/4 plans
 | v5 Analysis Modernization | 25-27 | 16 | 2026-01-25 |
 
 **v6.0 Progress:**
-- Plans completed: 15
+- Plans completed: 16
 - Phases completed: 4 (Phases 28-31)
 - Average duration: 2.9min
 - Trend: Strong velocity
@@ -91,6 +91,7 @@ Recent v6-relevant decisions:
 - **Drag handle pattern** (31-03): .drag-handle class with grab/grabbing cursors for vuedraggable integration
 - **Auto-expand new sections** (31-03): New sections added via "Add Section" auto-expand for immediate editing
 - **useAsyncJob composable** (32-01): VueUse useIntervalFn for auto-cleanup polling, provides reactive job state
+- **HGNC async job pattern** (32-02): Separate async endpoint for HGNC updates, uses same composable pattern as ontology
 
 ### Pending Todos
 
@@ -107,10 +108,10 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-26
-**Stopped at:** Completed 32-01-PLAN.md (useAsyncJob Composable)
+**Stopped at:** Completed 32-02-PLAN.md (HGNC Async + ManageAnnotations Refactor)
 **Resume file:** None
-**Next action:** Continue Phase 32 (32-02-PLAN.md)
+**Next action:** Continue Phase 32 (32-03-PLAN.md)
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-26 — Completed 32-01-PLAN.md (useAsyncJob Composable)*
+*Last updated: 2026-01-26 — Completed 32-02-PLAN.md (HGNC Async + ManageAnnotations Refactor)*
