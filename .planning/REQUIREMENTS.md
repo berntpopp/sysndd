@@ -9,12 +9,12 @@ Requirements for Admin Panel Modernization. Each maps to roadmap phases.
 
 ### Table Foundation
 
-- [ ] **TBL-01**: Admin tables (ManageUser, ManageOntology) have search functionality (global + per-column)
-- [ ] **TBL-02**: Admin tables have pagination controls (page size selector, jump to page)
-- [ ] **TBL-03**: Admin tables have advanced filtering (date ranges, multi-select dropdowns where applicable)
-- [ ] **TBL-04**: Admin tables have URL state sync (bookmarkable filter/sort/pagination state)
-- [ ] **TBL-05**: Admin tables have CSV export functionality
-- [ ] **TBL-06**: API endpoints support pagination and search for user and ontology data
+- [x] **TBL-01**: Admin tables (ManageUser, ManageOntology) have search functionality (global + per-column)
+- [x] **TBL-02**: Admin tables have pagination controls (page size selector, jump to page)
+- [x] **TBL-03**: Admin tables have advanced filtering (date ranges, multi-select dropdowns where applicable)
+- [x] **TBL-04**: Admin tables have URL state sync (bookmarkable filter/sort/pagination state)
+- [x] **TBL-05**: Admin tables have CSV export functionality
+- [x] **TBL-06**: API endpoints support pagination and search for user and ontology data
 
 ### User Management
 
@@ -103,12 +103,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TBL-01 | Phase 28 | Pending |
-| TBL-02 | Phase 28 | Pending |
-| TBL-03 | Phase 28 | Pending |
-| TBL-04 | Phase 28 | Pending |
-| TBL-05 | Phase 28 | Pending |
-| TBL-06 | Phase 28 | Pending |
+| TBL-01 | Phase 28 | Complete |
+| TBL-02 | Phase 28 | Complete |
+| TBL-03 | Phase 28 | Complete |
+| TBL-04 | Phase 28 | Complete |
+| TBL-05 | Phase 28 | Complete |
+| TBL-06 | Phase 28 | Complete |
 | USR-01 | Phase 29 | Pending |
 | USR-02 | Phase 29 | Pending |
 | USR-03 | Phase 29 | Pending |
@@ -154,4 +154,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-25*
-*Last updated: 2026-01-25 — Roadmap created with 100% coverage*
+*Last updated: 2026-01-25 — Phase 28 requirements complete (TBL-01 through TBL-06)*

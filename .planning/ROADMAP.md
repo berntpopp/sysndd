@@ -17,7 +17,7 @@ This roadmap tracks the current milestone and references completed milestones ar
 
 **Milestone Goal:** Transform admin views from basic CRUD forms into modern, feature-rich management interfaces with consistent UI/UX, pagination, search, and visualization.
 
-**Progress:** Phase 28 of 33 (0% complete)
+**Progress:** Phase 28 of 33 (complete) → Phase 29 next
 **Requirements:** 35 total (100% coverage)
 **Target:** 6 phases extending TablesEntities patterns to admin domain
 
@@ -37,9 +37,9 @@ This roadmap tracks the current milestone and references completed milestones ar
 **Plans**: 3 plans
 
 Plans:
-- [ ] 28-01-PLAN.md — Backend API pagination, filter, sort support for user and ontology endpoints
-- [ ] 28-02-PLAN.md — Modernize ManageUser.vue with TablesEntities pattern and CSV export
-- [ ] 28-03-PLAN.md — Modernize ManageOntology.vue with TablesEntities pattern and CSV export
+- [x] 28-01-PLAN.md — Backend API pagination, filter, sort support for user and ontology endpoints
+- [x] 28-02-PLAN.md — Modernize ManageUser.vue with TablesEntities pattern and CSV export
+- [x] 28-03-PLAN.md — Modernize ManageOntology.vue with TablesEntities pattern and CSV export
 
 #### Phase 29: User Management Workflows
 **Goal**: Implement bulk actions (approve, delete, role assignment) with cross-page selection
@@ -125,7 +125,7 @@ Phases execute in numeric order: 28 → 29 → 30 → 31 → 32 → 33
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 28. Table Foundation | v6.0 | 0/3 | Planned | - |
+| 28. Table Foundation | v6.0 | 3/3 | ✓ Complete | 2026-01-25 |
 | 29. User Management | v6.0 | 0/TBD | Not started | - |
 | 30. Statistics Dashboard | v6.0 | 0/TBD | Not started | - |
 | 31. Content Management | v6.0 | 0/TBD | Not started | - |
@@ -146,4 +146,4 @@ Phases execute in numeric order: 28 → 29 → 30 → 31 → 32 → 33
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-01-25 — Phase 28 planned*
+*Last updated: 2026-01-25 — Phase 28 complete*
