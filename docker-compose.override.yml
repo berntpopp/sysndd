@@ -65,6 +65,9 @@ services:
     # Use http://localhost:5173 to bypass Traefik routing issues
     ports:
       - "127.0.0.1:5173:5173"
+    # Override Traefik port for Vite dev server (production uses nginx on 8080)
+    labels:
+      - "traefik.http.services.app.loadbalancer.server.port=5173"
     # Override healthcheck for development
     healthcheck:
       test: ["CMD", "wget", "--spider", "--tries=1", "--no-verbose", "http://127.0.0.1:5173/"]
