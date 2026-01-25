@@ -6,29 +6,29 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v6.0 Admin Panel Modernization — Phase 30 (Statistics Dashboard)
+**Current focus:** v6.0 Admin Panel Modernization — Phase 30 (Statistics Dashboard) COMPLETE
 
 ## Current Position
 
 **Milestone:** v6.0 Admin Panel Modernization
-**Phase:** 30 of 33 (Statistics Dashboard)
-**Plan:** 01 of 03 complete
-**Status:** In progress
-**Last activity:** 2026-01-25 — Completed 30-01-PLAN.md (Statistics Dashboard Foundation)
+**Phase:** 30 of 33 (Statistics Dashboard) - COMPLETE
+**Plan:** 03 of 03 complete
+**Status:** Phase complete
+**Last activity:** 2026-01-25 — Completed 30-03-PLAN.md (Statistics Dashboard Integration)
 
 ```
-v6.0 Admin Panel Modernization: [██████░░░░░░░░░░░░░░░░░░░░░░] 26%
+v6.0 Admin Panel Modernization: [██████████░░░░░░░░░░░░░░░░░░] 35%
 Phase 28 Table Foundation:   [██████████] 3/3 plans ✓
 Phase 29 User Management:    [██████████] 4/4 plans ✓
-Phase 30 Statistics Dashboard: [███░░░░░░░] 1/3 plans
+Phase 30 Statistics Dashboard: [██████████] 3/3 plans ✓
 ```
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 140
+- Total plans completed: 142
 - Milestones shipped: 5 (v1-v5)
-- Phases completed: 27
+- Phases completed: 28
 
 **By Milestone:**
 
@@ -41,9 +41,9 @@ Phase 30 Statistics Dashboard: [███░░░░░░░] 1/3 plans
 | v5 Analysis Modernization | 25-27 | 16 | 2026-01-25 |
 
 **v6.0 Progress:**
-- Plans completed: 8
-- Phases completed: 2 (Phases 28-29)
-- Average duration: 2.8min
+- Plans completed: 10
+- Phases completed: 3 (Phases 28-30)
+- Average duration: 3.2min
 - Trend: Strong velocity
 
 *Updated after each plan completion*
@@ -78,6 +78,8 @@ Recent v6-relevant decisions:
 - **Frontend admin protection** (29-04): Block bulk delete if admins in selection before showing modal (fail fast)
 - **Default filter presets** (29-04): Initialize "Pending" and "Curators" presets on first mount for common workflows
 - **Tree-shaken Chart.js registration** (30-01): Manual component registration reduces bundle size ~30-40% vs registerables
+- **Trend delta comparison** (30-03): Compare equal-length periods for trend calculation (not calendar periods)
+- **Admin dashboard layout** (30-03): KPI cards row at top, then charts, then detail cards
 
 ### Pending Todos
 
@@ -87,16 +89,16 @@ None yet.
 
 **v6.0 planning:**
 - Need to verify mirai job cancellation support during Phase 32 planning
-- Bundle size validation needed during Phase 30-31 (Chart.js + TipTap adds ~130KB)
+- Bundle size validation needed during Phase 31 (Chart.js + TipTap adds ~130KB)
 - Bulk operation audit logging not yet implemented (planned for Phase 32)
 
 ## Session Continuity
 
-**Last session:** 2026-01-25 21:51 UTC
-**Stopped at:** Completed 30-01-PLAN.md (Statistics Dashboard Foundation)
+**Last session:** 2026-01-25 21:58 UTC
+**Stopped at:** Completed 30-03-PLAN.md (Statistics Dashboard Integration)
 **Resume file:** None
-**Next action:** Execute 30-02-PLAN.md (continue Statistics Dashboard)
+**Next action:** Execute Phase 31 (Content CMS) or Phase 32 (Async Jobs)
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-25 — Completed 30-01 (Statistics Dashboard Foundation)*
+*Last updated: 2026-01-25 — Completed Phase 30 (Statistics Dashboard)*
