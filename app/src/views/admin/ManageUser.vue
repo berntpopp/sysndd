@@ -861,16 +861,149 @@ export default {
       }
     },
     handleBulkApprove() {
-      // Will be implemented in plan 04
-      console.log('Bulk approve:', this.getSelectedArray());
+      const userIds = this.getSelectedArray();
+      if (userIds.length === 0) {
+        this.makeToast('No users selected', 'Bulk Approve', 'warning');
+        return;
+      }
+
+      // Get usernames for display (USR-06: show all selected items)
+      const selectedUsers = this.users.filter((u) => userIds.includes(u.user_id));
+      this.bulkApproveUsernames = selectedUsers.map((u) => u.user_name);
+
+      // Show Bootstrap modal
+      this.showBulkApproveModal = true;
+    },
+    async confirmBulkApprove() {
+      const userIds = this.getSelectedArray();
+
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/bulk_approve`;
+      try {
+        const response = await this.axios.post(apiUrl, {
+          user_ids: userIds,
+        }, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        });
+
+        if (response.status === 200) {
+          this.makeToast(
+            `Successfully approved ${response.data.processed || userIds.length} users`,
+            'Bulk Approve Complete',
+            'success',
+            true,
+            5000,
+          );
+          this.clearSelection();
+          this.loadData();
+        }
+      } catch (error) {
+        const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Unknown error';
+        this.makeToast(errorMsg, 'Bulk Approve Failed', 'danger');
+      }
     },
     showBulkRoleModal() {
-      // Will be implemented in plan 04
-      console.log('Bulk role assign:', this.getSelectedArray());
+      const userIds = this.getSelectedArray();
+      if (userIds.length === 0) {
+        this.makeToast('No users selected', 'Assign Role', 'warning');
+        return;
+      }
+
+      // Get usernames for display (USR-06: show all selected items)
+      const selectedUsers = this.users.filter((u) => userIds.includes(u.user_id));
+      this.bulkRoleUsernames = selectedUsers.map((u) => u.user_name);
+      this.bulkRoleSelection = ''; // Reset selection
+
+      // Show Bootstrap modal with dropdown (NOT prompt)
+      this.showBulkRoleModalVisible = true;
+    },
+    async confirmBulkRoleAssignment() {
+      const userIds = this.getSelectedArray();
+      const selectedRole = this.bulkRoleSelection;
+
+      if (!selectedRole) {
+        this.makeToast('Please select a role', 'Invalid Role', 'warning');
+        return;
+      }
+
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/bulk_assign_role`;
+      try {
+        const response = await this.axios.post(apiUrl, {
+          user_ids: userIds,
+          role: selectedRole,
+        }, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        });
+
+        if (response.status === 200) {
+          this.makeToast(
+            `Successfully assigned ${selectedRole} role to ${response.data.processed || userIds.length} users`,
+            'Bulk Role Assignment Complete',
+            'success',
+            true,
+            5000,
+          );
+          this.clearSelection();
+          this.loadData();
+        }
+      } catch (error) {
+        const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Unknown error';
+        this.makeToast(errorMsg, 'Bulk Role Assignment Failed', 'danger');
+      }
     },
     handleBulkDelete() {
-      // Will be implemented in plan 04
-      console.log('Bulk delete:', this.getSelectedArray());
+      const userIds = this.getSelectedArray();
+      if (userIds.length === 0) {
+        this.makeToast('No users selected', 'Bulk Delete', 'warning');
+        return;
+      }
+
+      // Get selected user details for display and admin check
+      const selectedUsers = this.users.filter((u) => userIds.includes(u.user_id));
+
+      // Frontend validation: Block if admins selected
+      const adminUsers = selectedUsers.filter((u) => u.user_role === 'Administrator');
+      if (adminUsers.length > 0) {
+        this.makeToast(
+          `Cannot delete: selection contains ${adminUsers.length} admin user(s)`,
+          'Delete Blocked',
+          'danger',
+        );
+        return;
+      }
+
+      // Store usernames for modal display (USR-06: show all selected items)
+      this.bulkDeleteUsernames = selectedUsers.map((u) => u.user_name);
+      this.deleteConfirmText = ''; // Reset confirm input
+
+      // Show Bootstrap modal
+      this.showBulkDeleteModal = true;
+    },
+    async confirmBulkDelete() {
+      const userIds = this.getSelectedArray();
+
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/bulk_delete`;
+      try {
+        const response = await this.axios.post(apiUrl, {
+          user_ids: userIds,
+        }, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        });
+
+        if (response.status === 200) {
+          this.makeToast(
+            `Successfully deleted ${response.data.processed || userIds.length} users`,
+            'Bulk Delete Complete',
+            'success',
+            true,
+            5000,
+          );
+          this.clearSelection();
+          this.loadData();
+        }
+      } catch (error) {
+        const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Unknown error';
+        this.makeToast(errorMsg, 'Bulk Delete Failed', 'danger');
+      }
     },
     // Update browser URL with current table state
     updateBrowserUrl() {
@@ -1161,6 +1294,34 @@ export default {
       }
       this.showUpdateModal = false;
       this.userToUpdate = {};
+    },
+    // Filter preset methods
+    loadFilterPreset(name) {
+      const presetFilter = this.filterPresets.loadPreset(name);
+      if (presetFilter) {
+        // Merge preset into current filter structure
+        Object.keys(presetFilter).forEach((key) => {
+          if (this.filter[key]) {
+            this.filter[key] = presetFilter[key];
+          }
+        });
+        this.filtered();
+        this.makeToast(`Loaded preset: ${name}`, 'Filter Preset', 'info', true, 2000);
+      }
+    },
+    deleteFilterPreset(name) {
+      if (confirm(`Delete preset "${name}"?`)) {
+        this.filterPresets.deletePreset(name);
+        this.makeToast(`Deleted preset: ${name}`, 'Filter Preset', 'info', true, 2000);
+      }
+    },
+    showSavePresetPrompt() {
+      const name = prompt('Enter a name for this filter preset:');
+      if (name && name.trim()) {
+        // Save current filter state
+        this.filterPresets.savePreset(name.trim(), JSON.parse(JSON.stringify(this.filter)));
+        this.makeToast(`Saved preset: ${name.trim()}`, 'Filter Preset', 'success', true, 3000);
+      }
     },
   },
 };
