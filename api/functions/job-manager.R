@@ -318,3 +318,116 @@ schedule_cleanup <- function(interval_seconds = 3600) {
   later::later(cleanup_and_reschedule, interval_seconds)
   message(sprintf("[%s] Scheduled job cleanup every %d seconds", Sys.time(), interval_seconds))
 }
+
+#' Get Job History
+#'
+#' Returns a list of recent jobs from the jobs environment.
+#' Includes both running and completed jobs, sorted by submission time (newest first).
+#'
+#' @param limit Integer maximum number of jobs to return (default 20)
+#' @return Data frame of job records with: job_id, operation, status,
+#'   submitted_at, completed_at, duration_seconds, error_message
+#'
+#' @examples
+#' \dontrun{
+#' history <- get_job_history(20)
+#' }
+#' @export
+get_job_history <- function(limit = 20) {
+  job_ids <- ls(jobs_env)
+
+  # Handle empty jobs_env
+
+  if (length(job_ids) == 0) {
+    return(data.frame(
+      job_id = character(0),
+      operation = character(0),
+      status = character(0),
+      submitted_at = character(0),
+      completed_at = character(0),
+      duration_seconds = integer(0),
+      error_message = character(0),
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  # Extract job data
+  jobs_list <- lapply(job_ids, function(id) {
+    job <- jobs_env[[id]]
+
+    # Skip if job is NULL or malformed
+    if (is.null(job) || is.null(job$submitted_at)) {
+      return(NULL)
+    }
+
+    # Calculate duration_seconds
+    end_time <- job$completed_at
+    if (is.null(end_time)) {
+      # For running jobs, use current time
+      end_time <- Sys.time()
+    }
+    duration <- as.numeric(difftime(end_time, job$submitted_at, units = "secs"))
+    duration_seconds <- as.integer(round(duration))
+
+    # Extract error message (handle complex error objects)
+    error_message <- NA_character_
+    if (!is.null(job$error)) {
+      if (is.list(job$error) && !is.null(job$error$message)) {
+        error_message <- as.character(job$error$message)
+      } else if (is.character(job$error)) {
+        error_message <- job$error
+      }
+    }
+
+    # Format timestamps as ISO 8601
+    submitted_at <- format(job$submitted_at, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    completed_at <- if (!is.null(job$completed_at)) {
+      format(job$completed_at, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    } else {
+      NA_character_
+    }
+
+    data.frame(
+      job_id = job$job_id,
+      operation = job$operation,
+      status = job$status,
+      submitted_at = submitted_at,
+      completed_at = completed_at,
+      duration_seconds = duration_seconds,
+      error_message = error_message,
+      stringsAsFactors = FALSE
+    )
+  })
+
+  # Remove NULL entries and combine
+  jobs_list <- Filter(Negate(is.null), jobs_list)
+
+  if (length(jobs_list) == 0) {
+    return(data.frame(
+      job_id = character(0),
+      operation = character(0),
+      status = character(0),
+      submitted_at = character(0),
+      completed_at = character(0),
+      duration_seconds = integer(0),
+      error_message = character(0),
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  result <- do.call(rbind, jobs_list)
+
+  # Sort by submitted_at descending (newest first)
+  result <- result[order(result$submitted_at, decreasing = TRUE), ]
+
+  # Apply limit
+  if (nrow(result) > limit) {
+    result <- result[seq_len(limit), ]
+  }
+
+  # Reset row names
+
+  rownames(result) <- NULL
+
+  return(result)
+}
