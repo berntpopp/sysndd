@@ -19,17 +19,17 @@ Requirements for v5.0 release. Each maps to roadmap phases.
 
 ### Network Visualization
 
-- [ ] **NETV-01**: New `/api/analysis/network_edges` endpoint returns Cytoscape.js JSON
-- [ ] **NETV-02**: Cytoscape.js renders force-directed network layout with fcose
-- [ ] **NETV-03**: Network shows actual protein-protein interaction edges
-- [ ] **NETV-04**: Interactive node/edge highlighting on hover
-- [ ] **NETV-05**: Pan and zoom controls for network navigation
-- [ ] **NETV-06**: Click node navigates to entity detail page
-- [ ] **NETV-07**: Rich contextual tooltips show gene symbol, HGNC ID, cluster, phenotypes
-- [ ] **NETV-08**: useCytoscape composable manages lifecycle (init/destroy)
-- [ ] **NETV-09**: useNetworkData composable handles data fetching
-- [ ] **NETV-10**: hideEdgesOnViewport optimization for smooth interactions
-- [ ] **NETV-11**: Proper cy.destroy() cleanup prevents memory leaks
+- [x] **NETV-01**: New `/api/analysis/network_edges` endpoint returns Cytoscape.js JSON
+- [x] **NETV-02**: Cytoscape.js renders force-directed network layout with fcose
+- [x] **NETV-03**: Network shows actual protein-protein interaction edges
+- [x] **NETV-04**: Interactive node/edge highlighting on hover
+- [x] **NETV-05**: Pan and zoom controls for network navigation
+- [x] **NETV-06**: Click node navigates to entity detail page
+- [x] **NETV-07**: Rich contextual tooltips show gene symbol, HGNC ID, cluster, phenotypes
+- [x] **NETV-08**: useCytoscape composable manages lifecycle (init/destroy)
+- [x] **NETV-09**: useNetworkData composable handles data fetching
+- [x] **NETV-10**: hideEdgesOnViewport optimization for smooth interactions
+- [x] **NETV-11**: Proper cy.destroy() cleanup prevents memory leaks
 
 ### Filters and Search
 
@@ -111,17 +111,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PERF-05 | Phase 25 | Complete |
 | PERF-06 | Phase 25 | Complete |
 | PERF-07 | Phase 25 | Complete |
-| NETV-01 | Phase 26 | Pending |
-| NETV-02 | Phase 26 | Pending |
-| NETV-03 | Phase 26 | Pending |
-| NETV-04 | Phase 26 | Pending |
-| NETV-05 | Phase 26 | Pending |
-| NETV-06 | Phase 26 | Pending |
-| NETV-07 | Phase 26 | Pending |
-| NETV-08 | Phase 26 | Pending |
-| NETV-09 | Phase 26 | Pending |
-| NETV-10 | Phase 26 | Pending |
-| NETV-11 | Phase 26 | Pending |
+| NETV-01 | Phase 26 | Complete |
+| NETV-02 | Phase 26 | Complete |
+| NETV-03 | Phase 26 | Complete |
+| NETV-04 | Phase 26 | Complete |
+| NETV-05 | Phase 26 | Complete |
+| NETV-06 | Phase 26 | Complete |
+| NETV-07 | Phase 26 | Complete |
+| NETV-08 | Phase 26 | Complete |
+| NETV-09 | Phase 26 | Complete |
+| NETV-10 | Phase 26 | Complete |
+| NETV-11 | Phase 26 | Complete |
 | FILT-01 | Phase 27 | Pending |
 | FILT-02 | Phase 27 | Pending |
 | FILT-03 | Phase 27 | Pending |
@@ -150,4 +150,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-24*
-*Last updated: 2026-01-25 — Phase 25 complete*
+*Last updated: 2026-01-25 — Phase 26 complete (NETV-01 through NETV-11)*
