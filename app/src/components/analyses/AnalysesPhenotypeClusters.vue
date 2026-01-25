@@ -102,9 +102,12 @@
                 class="spinner"
               />
 
-              <div v-else>
-                <!-- Cluster graph is rendered here by D3 -->
-              </div>
+              <div
+                v-else
+                ref="cytoscapeContainer"
+                class="cytoscape-container"
+                :style="{ height: '380px', width: '100%' }"
+              />
             </div>
 
             <template #footer>
@@ -232,8 +235,9 @@
 </template>
 
 <script>
-import * as d3 from 'd3';
+import { ref } from 'vue';
 import useToast from '@/composables/useToast';
+import { usePhenotypeCytoscape } from '@/composables';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 
 // Import your small table components:
@@ -261,7 +265,11 @@ export default {
   },
   setup() {
     const { makeToast } = useToast();
-    return { makeToast };
+    const cytoscapeContainer = ref<HTMLElement | null>(null);
+    return {
+      makeToast,
+      cytoscapeContainer,
+    };
   },
   data() {
     return {
@@ -277,6 +285,7 @@ export default {
       activeCluster: '1',
       loading: false,
       error: null, // Error state for retry functionality
+      cyInstance: null, // Cytoscape instance from composable
 
       /* --------------------------------------
        * Table logic / fields
@@ -370,7 +379,12 @@ export default {
     // Update data whenever the user picks a new cluster
     activeCluster() {
       this.setActiveCluster();
-      this.generateClusterGraph();
+      // Highlight selected cluster in Cytoscape
+      if (this.cyInstance?.cy()) {
+        const cy = this.cyInstance.cy();
+        cy.nodes().unselect();
+        cy.$(`#cluster-${this.activeCluster}`).select();
+      }
     },
     // Watch the tableType so we can update totalRows based on new array
     tableType() {

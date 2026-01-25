@@ -154,7 +154,7 @@ Plans:
 5. Filter state persists in URL for bookmarkable/shareable analysis views
 6. Navigation tabs connect all analysis pages (Phenotype Clusters, Gene Networks, Correlation)
 
-**Plans:** 9 plans (5 core + 4 gap closure)
+**Plans:** 10 plans (5 core + 5 gap closure)
 
 Plans:
 - [x] 27-01-PLAN.md — Core composables: useFilterSync, useWildcardSearch, useNetworkHighlight (NAVL-06)
@@ -168,6 +168,7 @@ Plans:
 - [ ] 27-07-PLAN.md — Integrate CategoryFilter and ScoreSlider into AnalyseGeneClusters (FILT-06, FILT-07 wiring)
 - [ ] 27-08-PLAN.md — Refactor PhenotypeClusters to use Cytoscape network with edges
 - [ ] 27-09-PLAN.md — Add cluster_id to correlation API + heatmap click navigation (NAVL-02)
+- [ ] 27-10-PLAN.md — Fix broken PhenotypeCorrelations page (regression from useFilterSync)
 
 ## Progress
 
@@ -178,8 +179,8 @@ Phases execute in numeric order: 25 -> 26 -> 27
 |-------|----------------|--------|-----------|
 | 25. Performance Optimization | 3/3 | Complete | 2026-01-25 |
 | 26. Network Visualization | 3/3 | Complete | 2026-01-25 |
-| 27. Advanced Features & Filters | 5/9 | Gap closure in progress | - |
+| 27. Advanced Features & Filters | 5/10 | Gap closure in progress | - |
 
 ---
 *Roadmap created: 2026-01-24*
-*Last updated: 2026-01-25 — Phase 27 gap closure plans created (4 plans: 27-06 through 27-09)*
+*Last updated: 2026-01-25 — Phase 27 gap closure plans created (5 plans: 27-06 through 27-10)*
