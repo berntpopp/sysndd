@@ -226,7 +226,7 @@ symbol_from_hgnc_id_grouped <- function(input_tibble, request_max = 150) {
 #'
 #' @export
 # nolint start: line_length_linter
-update_process_hgnc_data <- function(hgnc_link = "http://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/tsv/non_alt_loci_set.txt",
+update_process_hgnc_data <- function(hgnc_link = "https://storage.googleapis.com/public-download-files/hgnc/tsv/tsv/non_alt_loci_set.txt",
 # nolint end
                                      output_path = "data/",
                                      max_file_age = 1) {
