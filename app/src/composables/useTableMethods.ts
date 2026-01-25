@@ -1,5 +1,5 @@
 import type { AxiosInstance } from 'axios';
-import type { RouteLocationNormalizedLoaded } from 'vue-router';
+import { isRef, type Ref } from 'vue';
 import useToast from './useToast';
 import type { TableDataState } from './useTableData';
 
@@ -17,7 +17,7 @@ import type { TableDataState } from './useTableData';
  * @param options.loadData - Data loading function
  * @param options.apiEndpoint - API endpoint for Excel export
  * @param options.axios - Axios instance
- * @param options.route - Vue Router route object
+ * @param options.updateUrl - Whether to update URL (default true)
  * @returns Table action methods
  */
 
@@ -33,12 +33,12 @@ interface FilterObject {
 }
 
 interface TableMethodsOptions {
-  filter?: FilterObject;
+  filter?: FilterObject | Ref<FilterObject>;
   filterObjToStr?: (filter: FilterObject) => string;
   loadData?: () => void;
   apiEndpoint?: string;
   axios?: AxiosInstance;
-  route?: RouteLocationNormalizedLoaded;
+  updateUrl?: boolean;
 }
 
 interface TableMethods {
@@ -60,19 +60,61 @@ export default function useTableMethods(tableData: TableDataState, options: Tabl
   const { makeToast } = useToast();
 
   /**
+   * Helper to unwrap ref if needed.
+   * Vue refs passed from components need to be unwrapped to access .value
+   */
+  const getFilterValue = (): FilterObject | undefined => {
+    if (!options.filter) return undefined;
+    return isRef(options.filter) ? options.filter.value : options.filter;
+  };
+
+  /**
+   * Updates the browser URL with current table state.
+   * Uses history.replaceState to prevent Vue Router component remount.
+   * Enables shareable/bookmarkable URLs that reflect filter, sort, and pagination.
+   */
+  const updateBrowserUrl = (): void => {
+    if (options.updateUrl === false) return;
+
+    const searchParams = new URLSearchParams();
+
+    if (tableData.sort.value) {
+      searchParams.set('sort', tableData.sort.value);
+    }
+    if (tableData.filter_string.value) {
+      searchParams.set('filter', tableData.filter_string.value);
+    }
+    if (tableData.currentItemID.value > 0) {
+      searchParams.set('page_after', String(tableData.currentItemID.value));
+    }
+    if (tableData.perPage.value !== 10) {
+      searchParams.set('page_size', String(tableData.perPage.value));
+    }
+
+    // Use history.replaceState to update URL without triggering Vue Router navigation
+    // This prevents component remount which was causing duplicate API calls
+    const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
+    window.history.replaceState({ ...window.history.state }, '', newUrl);
+  };
+
+  /**
    * Filters the table data based on the current filter criteria.
    */
   const filtered = (): void => {
-    if (!options.filterObjToStr || !options.filter) {
+    const filterValue = getFilterValue();
+    if (!options.filterObjToStr || !filterValue) {
       console.warn('filterObjToStr or filter not provided to useTableMethods');
       return;
     }
 
-    const filter_string_loc = options.filterObjToStr(options.filter);
+    const filter_string_loc = options.filterObjToStr(filterValue);
 
     if (filter_string_loc !== tableData.filter_string.value) {
       tableData.filter_string.value = filter_string_loc;
     }
+
+    // Update browser URL to reflect current state
+    updateBrowserUrl();
 
     // Call a method to load data.
     // This method should be defined in each component.
@@ -94,7 +136,7 @@ export default function useTableMethods(tableData: TableDataState, options: Tabl
     }&page_size=${
       tableData.perPage.value}`;
     navigator.clipboard.writeText(
-      `${import.meta.env.VITE_URL + options.route?.path}?${urlParam}`,
+      `${import.meta.env.VITE_URL + window.location.pathname}?${urlParam}`,
     );
   };
 
@@ -112,15 +154,26 @@ export default function useTableMethods(tableData: TableDataState, options: Tabl
 
     // Build sort string for API: +column for asc, -column for desc
     tableData.sort.value = (isDesc ? '-' : '+') + sortColumn;
-    filtered();
+
+    // Update URL and reload data
+    updateBrowserUrl();
+    if (options.loadData) {
+      options.loadData();
+    }
   };
 
   /**
    * Resets the pagination to the first page.
    */
   const handlePerPageChange = (newPerPage: number | string): void => {
-    tableData.perPage.value = parseInt(String(newPerPage), 10); // Ensure it's a number
-    filtered();
+    tableData.perPage.value = parseInt(String(newPerPage), 10);
+    tableData.currentItemID.value = 0; // Reset to first page when changing page size
+
+    // Update URL and reload data
+    updateBrowserUrl();
+    if (options.loadData) {
+      options.loadData();
+    }
   };
 
   /**
@@ -140,20 +193,28 @@ export default function useTableMethods(tableData: TableDataState, options: Tabl
     } else if (value < tableData.currentPage.value) {
       tableData.currentItemID.value = tableData.prevItemID.value as number;
     }
-    filtered();
+
+    // Update URL and reload data
+    updateBrowserUrl();
+    if (options.loadData) {
+      options.loadData();
+    }
   };
 
   /**
    * Resets all filters to their default state.
    */
   const removeFilters = (): void => {
-    if (!options.filter) {
+    const filterValue = getFilterValue();
+    if (!filterValue) {
       console.warn('filter not provided to useTableMethods');
       return;
     }
 
-    Object.keys(options.filter).forEach((key) => {
-      options.filter![key].content = null;
+    Object.keys(filterValue).forEach((key) => {
+      if (filterValue[key] && typeof filterValue[key] === 'object' && 'content' in filterValue[key]) {
+        filterValue[key].content = null;
+      }
     });
     filtered();
   };
@@ -162,12 +223,13 @@ export default function useTableMethods(tableData: TableDataState, options: Tabl
    * Clears the global search filter.
    */
   const removeSearch = (): void => {
-    if (!options.filter || !options.filter.any) {
-      console.warn('filter.any not available in useTableMethods');
+    const filterValue = getFilterValue();
+    if (!filterValue || !filterValue.any) {
+      // Silently return if no 'any' filter exists - this is normal for some table configurations
       return;
     }
 
-    options.filter.any.content = null;
+    filterValue.any.content = null;
     filtered();
   };
 

@@ -73,6 +73,7 @@
                     :total-rows="totalRows"
                     :initial-per-page="perPage"
                     :page-options="pageOptions"
+                    :current-page="currentPage"
                     @page-change="handlePageChange"
                     @per-page-change="handlePerPageChange"
                   />
@@ -99,7 +100,7 @@
               @update:sort-by="handleSortByUpdate"
             >
               <!-- custom formatted header -->
-              <template v-slot:head()="data">
+              <template #head()="data">
                 <div
                   v-b-tooltip.hover.top
                   :data="data"
@@ -155,7 +156,7 @@
                       size="sm"
                       @update:model-value="removeSearch();filtered();"
                     >
-                      <template v-slot:first>
+                      <template #first>
                         <BFormSelectOption :value="null">
                           .. {{ truncate(field.label, 20) }} ..
                         </BFormSelectOption>
@@ -176,7 +177,7 @@
                       size="sm"
                       @update:model-value="removeSearch();filtered();"
                     >
-                      <template v-slot:first>
+                      <template #first>
                         <BFormSelectOption :value="null">
                           .. {{ truncate(field.label, 20) }} ..
                         </BFormSelectOption>
@@ -323,7 +324,6 @@
 
 // Import Vue utilities
 import { ref, inject } from 'vue';
-import { useRoute } from 'vue-router';
 
 // Import Bootstrap-Vue-Next components
 import { BTable, BCard } from 'bootstrap-vue-next';
@@ -352,11 +352,15 @@ import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 import EntityBadge from '@/components/ui/EntityBadge.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 
-// Import the utilities file
-import Utils from '@/assets/js/utils';
-
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
+
+// Module-level variables to track API calls across component remounts
+// This survives when Vue Router remounts the component on URL changes
+let moduleLastApiParams = null;
+let moduleApiCallInProgress = false;
+let moduleLastApiCallTime = 0;
+let moduleLastApiResponse = null;
 
 export default {
   name: 'TablesGenes',
@@ -413,9 +417,8 @@ export default {
       entities_count: { content: null, join_char: ',', operator: 'any' },
     });
 
-    // Inject axios and route
+    // Inject axios
     const axios = inject('axios');
-    const route = useRoute();
 
     // Note: loadData is not passed here because it's defined in methods
     // and will be available via this context when tableMethods.filtered() is called
@@ -424,7 +427,6 @@ export default {
       filterObjToStr,
       apiEndpoint: props.apiEndpoint,
       axios,
-      route,
     });
 
     // Destructure to exclude functions we override in methods
@@ -447,6 +449,12 @@ export default {
   },
   data() {
     return {
+      // Flag to prevent watchers from triggering during initialization
+      isInitializing: true,
+      // Debounce timer for loadData to prevent duplicate calls
+      loadDataDebounceTimer: null,
+      // Pagination state not in useTableData
+      totalPages: 0,
       // ... data properties with a brief description for each
       fields: [
         {
@@ -519,16 +527,20 @@ export default {
     };
   },
   watch: {
-    // Watch for filter changes
+    // Watch for filter changes (deep required for Vue 3 behavior)
+    // Skip during initialization to prevent multiple API calls
     filter: {
-      handler(value) {
+      handler() {
+        if (this.isInitializing) return;
         this.filtered();
       },
       deep: true,
     },
     // Watch for sortBy changes (deep watch for array)
+    // Skip during initialization to prevent multiple API calls
     sortBy: {
       handler() {
+        if (this.isInitializing) return;
         this.handleSortByOrDescChange();
       },
       deep: true,
@@ -539,25 +551,69 @@ export default {
   },
   mounted() {
     // Transform input sort string to Bootstrap-Vue-Next array format
-    const sort_object = this.sortStringToVariables(this.sortInput);
-    this.sortBy = sort_object.sortBy;
-
-    // Conditionally perform data load based on filter input
-    // Fixes double loading and update bugs
-    if (this.filterInput !== null && this.filterInput !== 'null' && this.filterInput !== '') {
-      // Transform input filter string from params to object and assign
-      this.filter = this.filterStrToObj(this.filterInput, this.filter);
-    } else {
-      // Initiate first data load
-      this.loadData();
+    if (this.sortInput) {
+      const sort_object = this.sortStringToVariables(this.sortInput);
+      this.sortBy = sort_object.sortBy;
+      this.sort = this.sortInput; // Also set the sort string for API calls
     }
+
+    // Initialize pagination from URL if provided
+    if (this.pageAfterInput && this.pageAfterInput !== '0' && this.pageAfterInput !== '') {
+      this.currentItemID = parseInt(this.pageAfterInput, 10) || 0;
+    }
+
+    // Transform input filter string to object and load data
+    // Use $nextTick to ensure Vue reactivity is fully initialized
+    this.$nextTick(() => {
+      if (this.filterInput && this.filterInput !== 'null' && this.filterInput !== '') {
+        // Parse URL filter string into filter object for proper UI state
+        this.filter = this.filterStrToObj(this.filterInput, this.filter);
+        // Also set filter_string so the API call uses the URL filter
+        this.filter_string = this.filterInput;
+      }
+      // Load data first while still in initializing state
+      this.loadData();
+      // Delay marking initialization complete to ensure watchers triggered
+      // by filter/sortBy changes above see isInitializing=true
+      this.$nextTick(() => {
+        this.isInitializing = false;
+      });
+    });
 
     setTimeout(() => {
       this.loading = false;
     }, 500);
   },
   methods: {
-    // Override filtered to call loadData
+    // Update browser URL with current table state
+    // Uses history.replaceState instead of router.replace to prevent component remount
+    updateBrowserUrl() {
+      // Don't update URL during initialization - preserves URL params from navigation
+      if (this.isInitializing) return;
+
+      const searchParams = new URLSearchParams();
+
+      if (this.sort) {
+        searchParams.set('sort', this.sort);
+      }
+      if (this.filter_string) {
+        searchParams.set('filter', this.filter_string);
+      }
+      // Genes uses string IDs (gene symbols like "ABCA5"), not numeric IDs
+      // Check if currentItemID is set and not the initial state (0 or falsy)
+      if (this.currentItemID && this.currentItemID !== 0) {
+        searchParams.set('page_after', String(this.currentItemID));
+      }
+      if (this.perPage !== 10) {
+        searchParams.set('page_size', String(this.perPage));
+      }
+
+      // Use history.replaceState to update URL without triggering Vue Router navigation
+      // This prevents component remount which was causing duplicate API calls
+      const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
+      window.history.replaceState({ ...window.history.state }, '', newUrl);
+    },
+    // Override filtered to call loadData (URL is updated AFTER API success to prevent remount)
     filtered() {
       const filter_string_loc = this.filterObjToStr(this.filter);
 
@@ -565,6 +621,8 @@ export default {
         this.filter_string = filter_string_loc;
       }
 
+      // Note: updateBrowserUrl() is now called in doLoadData() AFTER API success
+      // This prevents component remount during the API call
       this.loadData();
     },
     // Override handlePageChange to properly update currentItemID and call loadData
@@ -597,47 +655,84 @@ export default {
       this.sort = (isDesc ? '-' : '+') + sortColumn;
       this.filtered();
     },
-    async loadData() {
+    loadData() {
+      // Debounce to prevent duplicate calls from multiple triggers
+      if (this.loadDataDebounceTimer) {
+        clearTimeout(this.loadDataDebounceTimer);
+      }
+      this.loadDataDebounceTimer = setTimeout(() => {
+        this.loadDataDebounceTimer = null;
+        this.doLoadData();
+      }, 50);
+    },
+    async doLoadData() {
+      const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${this.currentItemID}&page_size=${this.perPage}`;
+
+      const now = Date.now();
+
+      // Prevent duplicate API calls using module-level tracking
+      // This works across component remounts caused by router.replace()
+      if (moduleLastApiParams === urlParam && (now - moduleLastApiCallTime) < 500) {
+        // Use cached response data for remounted component
+        if (moduleLastApiResponse) {
+          this.applyApiResponse(moduleLastApiResponse);
+          this.isBusy = false; // Clear busy state when using cached data
+        }
+        return;
+      }
+
+      // Also prevent if a call is already in progress with same params
+      if (moduleApiCallInProgress && moduleLastApiParams === urlParam) {
+        return;
+      }
+
+      moduleLastApiParams = urlParam;
+      moduleLastApiCallTime = now;
+      moduleApiCallInProgress = true;
       this.isBusy = true;
 
-      const urlParam = `sort=${
-        this.sort
-      }&filter=${
-        this.filter_string
-      }&page_after=${
-        this.currentItemID
-      }&page_size=${
-        this.perPage}`;
-
-      const apiUrl = `${import.meta.env.VITE_API_URL
-      }/api/gene?${
-        urlParam}`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/gene/?${urlParam}`;
 
       try {
         const response = await this.axios.get(apiUrl);
-        this.items = response.data.data;
+        moduleApiCallInProgress = false;
+        // Cache response for remounted components
+        moduleLastApiResponse = response.data;
+        this.applyApiResponse(response.data);
 
-        this.totalRows = response.data.meta[0].totalItems;
-        // this solves an update issue in b-pagination component
-        // based on https://github.com/bootstrap-vue/bootstrap-vue/issues/3541
-        this.$nextTick(() => {
-          this.currentPage = response.data.meta[0].currentPage;
-        });
-        this.totalPages = response.data.meta[0].totalPages;
-        this.prevItemID = response.data.meta[0].prevItemID;
-        this.currentItemID = response.data.meta[0].currentItemID;
-        this.nextItemID = response.data.meta[0].nextItemID;
-        this.lastItemID = response.data.meta[0].lastItemID;
-        this.executionTime = response.data.meta[0].executionTime;
-        this.fields = response.data.meta[0].fspec;
-
-        const uiStore = useUiStore();
-        uiStore.requestScrollbarUpdate();
+        // Update URL AFTER API success to prevent component remount during API call
+        this.updateBrowserUrl();
 
         this.isBusy = false;
       } catch (e) {
+        moduleApiCallInProgress = false;
         this.makeToast(e, 'Error', 'danger');
+        this.isBusy = false;
       }
+    },
+    /**
+     * Apply API response data to component state.
+     * Extracted to allow reuse when skipping duplicate API calls.
+     * @param {Object} data - API response data
+     */
+    applyApiResponse(data) {
+      this.items = data.data;
+      this.totalRows = data.meta[0].totalItems;
+      // this solves an update issue in b-pagination component
+      // based on https://github.com/bootstrap-vue/bootstrap-vue/issues/3541
+      this.$nextTick(() => {
+        this.currentPage = data.meta[0].currentPage;
+      });
+      this.totalPages = data.meta[0].totalPages;
+      this.prevItemID = data.meta[0].prevItemID;
+      this.currentItemID = data.meta[0].currentItemID;
+      this.nextItemID = data.meta[0].nextItemID;
+      this.lastItemID = data.meta[0].lastItemID;
+      this.executionTime = data.meta[0].executionTime;
+      this.fields = data.meta[0].fspec;
+
+      const uiStore = useUiStore();
+      uiStore.requestScrollbarUpdate();
     },
     // Normalize select options for BFormSelect (replacement for treeselect normalizer)
     normalizeSelectOptions(options) {

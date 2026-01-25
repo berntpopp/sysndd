@@ -40,20 +40,25 @@
  *
  * Uses Bootstrap-Vue-Next BPagination with explicit one-way binding
  * and @update:model-value event for Vue 3 compatibility.
+ *
+ * The parent component should pass currentPage prop to keep pagination
+ * synchronized with actual data state.
  */
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 
 // Props with TypeScript types
 interface Props {
-  totalRows: number;
+  totalRows?: number;
   initialPerPage?: number;
   pageOptions?: number[];
+  currentPage?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   totalRows: 0,
   initialPerPage: 10,
   pageOptions: () => [10, 25, 50, 100],
+  currentPage: 1,
 });
 
 // Emits
@@ -62,18 +67,25 @@ const emit = defineEmits<{
   'per-page-change': [perPage: number];
 }>();
 
-// Local state
-const localCurrentPage = ref(1);
+// Local state - initialize from prop
+const localCurrentPage = ref(props.currentPage);
 const localPerPage = ref(props.initialPerPage);
+
+// Watch for parent's currentPage changes and sync local state
+watch(() => props.currentPage, (newPage) => {
+  if (newPage !== localCurrentPage.value) {
+    localCurrentPage.value = newPage;
+  }
+});
 
 /**
  * Handle page update from BPagination
+ * Always emit to parent - let parent decide if reload is needed
  */
 function handlePageUpdate(newPage: number) {
-  if (newPage !== localCurrentPage.value) {
-    localCurrentPage.value = newPage;
-    emit('page-change', newPage);
-  }
+  // Always update local state and emit - parent handles the logic
+  localCurrentPage.value = newPage;
+  emit('page-change', newPage);
 }
 
 /**

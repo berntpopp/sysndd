@@ -127,7 +127,7 @@
                     size="sm"
                     @update:model-value="filtered"
                   >
-                    <template v-slot:first>
+                    <template #first>
                       <BFormSelectOption :value="null">
                         Select phenotype...
                       </BFormSelectOption>
@@ -170,6 +170,7 @@
                     :total-rows="totalRows"
                     :initial-per-page="perPage"
                     :page-options="pageOptions"
+                    :current-page="currentPage"
                     @page-change="handlePageChange"
                     @per-page-change="handlePerPageChange"
                   />
@@ -196,7 +197,7 @@
               @update:sort-by="handleSortByUpdate"
             >
               <!-- custom formatted header -->
-              <template v-slot:head()="data">
+              <template #head()="data">
                 <div
                   v-b-tooltip.hover.top
                   :data="data"
@@ -247,7 +248,7 @@
                       size="sm"
                       @update:model-value="removeSearch();filtered();"
                     >
-                      <template v-slot:first>
+                      <template #first>
                         <BFormSelectOption :value="null">
                           .. {{ truncate(field.label, 20) }} ..
                         </BFormSelectOption>
@@ -267,7 +268,7 @@
                         size="sm"
                         @update:model-value="removeSearch();filtered();"
                       >
-                        <template v-slot:first>
+                        <template #first>
                           <BFormSelectOption :value="null">
                             .. {{ truncate(field.label, 20) }} ..
                           </BFormSelectOption>
@@ -363,6 +364,9 @@
 // Import Bootstrap-Vue-Next BTable
 import { BTable } from 'bootstrap-vue-next';
 
+// Import Vue utilities
+import { inject } from 'vue';
+
 // Import composables
 import {
   useToast,
@@ -387,6 +391,17 @@ import Utils from '@/assets/js/utils';
 
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
+
+// Module-level variables to track API calls across component remounts
+// This survives when Vue Router remounts the component on URL changes
+let moduleLastApiParams = null;
+let moduleApiCallInProgress = false;
+let moduleLastApiCallTime = 0;
+let moduleLastApiResponse = null;
+
+// Module-level cache for phenotypes list (loaded once, reused across remounts)
+let modulePhenotypesListCache = null;
+let modulePhenotypesListLoading = false;
 
 export default {
   name: 'TablesPhenotypes',
@@ -422,6 +437,9 @@ export default {
     const colorAndSymbols = useColorAndSymbols();
     const text = useText();
 
+    // Inject axios
+    const axios = inject('axios');
+
     // Return all needed properties
     return {
       makeToast,
@@ -430,10 +448,15 @@ export default {
       sortStringToVariables,
       ...colorAndSymbols,
       ...text,
+      axios,
     };
   },
   data() {
     return {
+      // Flag to prevent watchers from triggering during initialization
+      isInitializing: true,
+      // Debounce timer for loadData to prevent duplicate calls
+      loadDataDebounceTimer: null,
       switch_text: { true: 'OR', false: 'AND' },
       phenotypes_options: [],
       items: [],
@@ -527,20 +550,26 @@ export default {
     };
   },
   watch: {
+    // Watch for filter changes (deep required for Vue 3 behavior)
+    // Skip during initialization to prevent multiple API calls
     filter: {
-      handler(value) {
+      handler() {
+        if (this.isInitializing) return;
         this.filtered();
       },
-      deep: true, // Vue 3 requires deep:true for object mutation watching
+      deep: true,
     },
     // Watch for sortBy changes (deep watch for array)
+    // Skip during initialization to prevent multiple API calls
     sortBy: {
       handler() {
+        if (this.isInitializing) return;
         this.handleSortByOrDescChange();
       },
       deep: true,
     },
-    perPage(value) {
+    perPage() {
+      if (this.isInitializing) return;
       this.handlePerPageChange();
     },
   },
@@ -550,24 +579,67 @@ export default {
   },
   mounted() {
     // Transform input sort string to Bootstrap-Vue-Next array format
-    const sort_object = this.sortStringToVariables(this.sortInput);
-    this.sortBy = sort_object.sortBy;
-
-    // conditionally perform data load based on filter input
-    // fixes double loading and update bugs
-    if (this.filterInput !== null && this.filterInput !== 'null' && this.filterInput !== '') {
-      // transform input filter string from params to object and assign
-      this.filter = this.filterStrToObj(this.filterInput, this.filter);
-    } else {
-      // initiate first data load
-      this.requestSelected();
+    if (this.sortInput) {
+      const sort_object = this.sortStringToVariables(this.sortInput);
+      this.sortBy = sort_object.sortBy;
+      this.sort = this.sortInput; // Also set the sort string for API calls
     }
+
+    // Initialize pagination from URL if provided
+    if (this.pageAfterInput && this.pageAfterInput !== '0' && this.pageAfterInput !== '') {
+      this.currentItemID = parseInt(this.pageAfterInput, 10) || 0;
+    }
+
+    // Transform input filter string to object and load data
+    // Use $nextTick to ensure Vue reactivity is fully initialized
+    this.$nextTick(() => {
+      if (this.filterInput && this.filterInput !== 'null' && this.filterInput !== '') {
+        // Parse URL filter string into filter object for proper UI state
+        this.filter = this.filterStrToObj(this.filterInput, this.filter);
+        // Also set filter_string so the API call uses the URL filter
+        this.filter_string = this.filterInput;
+      }
+      // Load data first while still in initializing state
+      this.requestSelected();
+      // Delay marking initialization complete to ensure watchers triggered
+      // by filter/sortBy changes above see isInitializing=true
+      this.$nextTick(() => {
+        this.isInitializing = false;
+      });
+    });
 
     setTimeout(() => {
       this.loading = false;
     }, 500);
   },
   methods: {
+    // Update browser URL with current table state
+    // Uses history.replaceState instead of router.replace to prevent component remount
+    updateBrowserUrl() {
+      // Don't update URL during initialization - preserves URL params from navigation
+      if (this.isInitializing) return;
+
+      const searchParams = new URLSearchParams();
+
+      if (this.sort) {
+        searchParams.set('sort', this.sort);
+      }
+      if (this.filter_string) {
+        searchParams.set('filter', this.filter_string);
+      }
+      const currentId = Number(this.currentItemID) || 0;
+      if (currentId > 0) {
+        searchParams.set('page_after', String(currentId));
+      }
+      if (this.perPage !== 10) {
+        searchParams.set('page_size', String(this.perPage));
+      }
+
+      // Use history.replaceState to update URL without triggering Vue Router navigation
+      // This prevents component remount which was causing duplicate API calls
+      const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
+      window.history.replaceState({ ...window.history.state }, '', newUrl);
+    },
     copyLinkToClipboard() {
       // compose URL param
       const urlParam = `sort=${
@@ -580,7 +652,7 @@ export default {
         this.perPage}`;
 
       navigator.clipboard.writeText(
-        `${import.meta.env.VITE_URL + this.$route.path}?${urlParam}`,
+        `${import.meta.env.VITE_URL + window.location.pathname}?${urlParam}`,
       );
     },
     handleSortByOrDescChange() {
@@ -605,21 +677,16 @@ export default {
     handlePageChange(value) {
       if (value === 1) {
         this.currentItemID = 0;
-        this.filtered();
       } else if (value === this.totalPages) {
-        this.currentItemID = this.lastItemID;
-        this.filtered();
+        this.currentItemID = Number(this.lastItemID) || 0;
       } else if (value > this.currentPage) {
-        this.currentItemID = this.nextItemID;
-        this.filtered();
+        this.currentItemID = Number(this.nextItemID) || 0;
       } else if (value < this.currentPage) {
-        this.currentItemID = this.prevItemID;
-        this.filtered();
+        this.currentItemID = Number(this.prevItemID) || 0;
       }
+      this.filtered();
     },
     filtered() {
-      const logical_operator = '';
-
       switch (this.checked) {
         case true:
           this.filter.modifier_phenotype_id.operator = 'any';
@@ -636,6 +703,8 @@ export default {
         this.filter_string = this.filterObjToStr(this.filter);
       }
 
+      // Note: updateBrowserUrl() is now called in doLoadEntitiesFromPhenotypes() AFTER API success
+      // This prevents component remount during the API call
       this.requestSelected();
     },
     removeFilters() {
@@ -660,12 +729,27 @@ export default {
       }
     },
     async loadPhenotypesList() {
+      // Use cached phenotypes list if available (prevents reload on component remount)
+      if (modulePhenotypesListCache) {
+        this.phenotypes_options = modulePhenotypesListCache;
+        return;
+      }
+
+      // Prevent duplicate loading if already in progress
+      if (modulePhenotypesListLoading) {
+        return;
+      }
+
+      modulePhenotypesListLoading = true;
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/phenotype`;
       try {
         const response = await this.axios.get(apiUrl);
+        modulePhenotypesListCache = response.data;
         this.phenotypes_options = response.data;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+      } finally {
+        modulePhenotypesListLoading = false;
       }
     },
     normalizerPhenotypes(node) {
@@ -680,49 +764,84 @@ export default {
         label: node,
       };
     },
-    async loadEntitiesFromPhenotypes() {
+    loadEntitiesFromPhenotypes() {
+      // Debounce to prevent duplicate calls from multiple triggers
+      if (this.loadDataDebounceTimer) {
+        clearTimeout(this.loadDataDebounceTimer);
+      }
+      this.loadDataDebounceTimer = setTimeout(() => {
+        this.loadDataDebounceTimer = null;
+        this.doLoadEntitiesFromPhenotypes();
+      }, 50);
+    },
+    async doLoadEntitiesFromPhenotypes() {
+      const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${this.currentItemID}&page_size=${this.perPage}`;
+
+      const now = Date.now();
+
+      // Prevent duplicate API calls using module-level tracking
+      // This works across component remounts caused by router.replace()
+      if (moduleLastApiParams === urlParam && (now - moduleLastApiCallTime) < 500) {
+        // Use cached response data for remounted component
+        if (moduleLastApiResponse) {
+          this.applyApiResponse(moduleLastApiResponse);
+          this.isBusy = false; // Clear busy state when using cached data
+        }
+        return;
+      }
+
+      // Also prevent if a call is already in progress with same params
+      if (moduleApiCallInProgress && moduleLastApiParams === urlParam) {
+        return;
+      }
+
+      moduleLastApiParams = urlParam;
+      moduleLastApiCallTime = now;
+      moduleApiCallInProgress = true;
       this.isBusy = true;
 
-      // compose URL param
-      const urlParam = `sort=${
-        this.sort
-      }&filter=${
-        this.filter_string
-      }&page_after=${
-        this.currentItemID
-      }&page_size=${
-        this.perPage}`;
-
-      const apiUrl = `${import.meta.env.VITE_API_URL
-      }/api/phenotype/entities/browse?${
-        urlParam}`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/phenotype/entities/browse?${urlParam}`;
 
       try {
         const response = await this.axios.get(apiUrl);
+        moduleApiCallInProgress = false;
+        // Cache response for remounted components
+        moduleLastApiResponse = response.data;
+        this.applyApiResponse(response.data);
 
-        this.fields = response.data.meta[0].fspec;
-        this.items = response.data.data;
-
-        this.totalRows = response.data.meta[0].totalItems;
-        // this solves an update issue in b-pagination component
-        // based on https://github.com/bootstrap-vue/bootstrap-vue/issues/3541
-        this.$nextTick(() => {
-          this.currentPage = response.data.meta[0].currentPage;
-        });
-        this.totalPages = response.data.meta[0].totalPages;
-        this.prevItemID = response.data.meta[0].prevItemID;
-        this.currentItemID = response.data.meta[0].currentItemID;
-        this.nextItemID = response.data.meta[0].nextItemID;
-        this.lastItemID = response.data.meta[0].lastItemID;
-        this.executionTime = response.data.meta[0].executionTime;
-
-        const uiStore = useUiStore();
-        uiStore.requestScrollbarUpdate();
+        // Update URL AFTER API success to prevent component remount during API call
+        this.updateBrowserUrl();
 
         this.isBusy = false;
       } catch (e) {
+        moduleApiCallInProgress = false;
         this.makeToast(e, 'Error', 'danger');
+        this.isBusy = false;
       }
+    },
+    /**
+     * Apply API response data to component state.
+     * Extracted to allow reuse when skipping duplicate API calls.
+     * @param {Object} data - API response data
+     */
+    applyApiResponse(data) {
+      this.fields = data.meta[0].fspec;
+      this.items = data.data;
+      this.totalRows = data.meta[0].totalItems;
+      // this solves an update issue in b-pagination component
+      // based on https://github.com/bootstrap-vue/bootstrap-vue/issues/3541
+      this.$nextTick(() => {
+        this.currentPage = data.meta[0].currentPage;
+      });
+      this.totalPages = data.meta[0].totalPages;
+      this.prevItemID = Number(data.meta[0].prevItemID) || 0;
+      this.currentItemID = Number(data.meta[0].currentItemID) || 0;
+      this.nextItemID = Number(data.meta[0].nextItemID) || 0;
+      this.lastItemID = Number(data.meta[0].lastItemID) || 0;
+      this.executionTime = data.meta[0].executionTime;
+
+      const uiStore = useUiStore();
+      uiStore.requestScrollbarUpdate();
     },
     requestSelected() {
       if (this.filter.modifier_phenotype_id.content.length > 0) {

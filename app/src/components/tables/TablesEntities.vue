@@ -73,6 +73,7 @@
                     :total-rows="totalRows"
                     :initial-per-page="perPage"
                     :page-options="pageOptions"
+                    :current-page="currentPage"
                     @page-change="handlePageChange"
                     @per-page-change="handlePerPageChange"
                   />
@@ -92,7 +93,7 @@
               <!-- Custom filter fields slot -->
               <template
                 v-if="showFilterControls"
-                v-slot:filter-controls
+                #filter-controls
               >
                 <td
                   v-for="field in fields"
@@ -116,7 +117,7 @@
                     size="sm"
                     @update:model-value="removeSearch();filtered();"
                   >
-                    <template v-slot:first>
+                    <template #first>
                       <BFormSelectOption :value="null">
                         .. {{ truncate(field.label, 20) }} ..
                       </BFormSelectOption>
@@ -136,7 +137,7 @@
                     size="sm"
                     @update:model-value="removeSearch();filtered();"
                   >
-                    <template v-slot:first>
+                    <template #first>
                       <BFormSelectOption :value="null">
                         .. {{ truncate(field.label, 20) }} ..
                       </BFormSelectOption>
@@ -151,7 +152,7 @@
               </template>
               <!-- Custom filter fields slot -->
 
-              <template v-slot:cell-entity_id="{ row }">
+              <template #cell-entity_id="{ row }">
                 <EntityBadge
                   :entity-id="row.entity_id"
                   :link-to="'/Entities/' + row.entity_id"
@@ -159,7 +160,7 @@
                 />
               </template>
 
-              <template v-slot:cell-symbol="{ row }">
+              <template #cell-symbol="{ row }">
                 <GeneBadge
                   :symbol="row.symbol"
                   :hgnc-id="row.hgnc_id"
@@ -168,7 +169,7 @@
                 />
               </template>
 
-              <template v-slot:cell-disease_ontology_name="{ row }">
+              <template #cell-disease_ontology_name="{ row }">
                 <DiseaseBadge
                   :name="row.disease_ontology_name"
                   :ontology-id="row.disease_ontology_id_version"
@@ -179,7 +180,7 @@
               </template>
 
               <!-- Custom slot for the 'hpo_mode_of_inheritance_term_name' column -->
-              <template v-slot:cell-hpo_mode_of_inheritance_term_name="{ row }">
+              <template #cell-hpo_mode_of_inheritance_term_name="{ row }">
                 <InheritanceBadge
                   :full-name="row.hpo_mode_of_inheritance_term_name"
                   :hpo-term="row.hpo_mode_of_inheritance_term"
@@ -188,14 +189,14 @@
               </template>
 
               <!-- Custom slot for the 'ndd_phenotype_word' column -->
-              <template v-slot:cell-ndd_phenotype_word="{ row }">
+              <template #cell-ndd_phenotype_word="{ row }">
                 <span v-b-tooltip.hover.left :title="ndd_icon_text[row.ndd_phenotype_word]">
                   <NddIcon :status="row.ndd_phenotype_word" size="sm" :show-title="false" />
                 </span>
               </template>
 
               <!-- Custom slot for the 'category' column -->
-              <template v-slot:cell-category="{ row }">
+              <template #cell-category="{ row }">
                 <span v-b-tooltip.hover.left :title="row.category">
                   <CategoryIcon :category="row.category" size="sm" :show-title="false" />
                 </span>
@@ -233,7 +234,6 @@
 
 // Import Vue utilities
 import { ref, inject } from 'vue';
-import { useRoute } from 'vue-router';
 
 // Import composables
 import {
@@ -260,11 +260,15 @@ import GeneBadge from '@/components/ui/GeneBadge.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 
-// Import the utilities file
-import Utils from '@/assets/js/utils';
-
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
+
+// Module-level variables to track API calls across component remounts
+// This survives when Vue Router remounts the component on URL changes
+let moduleLastApiParams = null;
+let moduleApiCallInProgress = false;
+let moduleLastApiCallTime = 0;
+let moduleLastApiResponse = null; // Cache last API response for remounted components
 
 export default {
   name: 'TablesEntities',
@@ -320,9 +324,8 @@ export default {
       entities_count: { content: null, join_char: ',', operator: 'any' },
     });
 
-    // Inject axios and route
+    // Inject axios
     const axios = inject('axios');
-    const route = useRoute();
 
     // Table methods composable
     const tableMethods = useTableMethods(tableData, {
@@ -330,12 +333,11 @@ export default {
       filterObjToStr,
       apiEndpoint: props.apiEndpoint,
       axios,
-      route,
     });
 
     // Destructure to exclude functions we override in methods
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { filtered: _filtered, handlePageChange: _handlePageChange, handlePerPageChange: _handlePerPageChange, handleSortByOrDescChange: _handleSortByOrDescChange, ...restTableMethods } = tableMethods;
+    const { filtered: _filtered, handlePageChange: _handlePageChange, handlePerPageChange: _handlePerPageChange, handleSortByOrDescChange: _handleSortByOrDescChange, removeFilters: _removeFilters, removeSearch: _removeSearch, ...restTableMethods } = tableMethods;
 
     // Return all needed properties
     return {
@@ -353,6 +355,12 @@ export default {
   },
   data() {
     return {
+      // Flag to prevent watchers from triggering during initialization
+      isInitializing: true,
+      // Debounce timer for loadData to prevent duplicate calls
+      loadDataDebounceTimer: null,
+      // Pagination state not in useTableData
+      totalPages: 0,
       // ... data properties with a brief description for each
       fields: [
         {
@@ -421,15 +429,19 @@ export default {
   },
   watch: {
     // Watch for filter changes (deep required for Vue 3 behavior)
+    // Skip during initialization to prevent multiple API calls
     filter: {
-      handler(value) {
+      handler() {
+        if (this.isInitializing) return;
         this.filtered();
       },
       deep: true,
     },
     // Watch for sortBy changes (deep watch for array)
+    // Skip during initialization to prevent multiple API calls
     sortBy: {
       handler() {
+        if (this.isInitializing) return;
         this.handleSortByOrDescChange();
       },
       deep: true,
@@ -439,11 +451,18 @@ export default {
   // Lifecycle hooks
   },
   mounted() {
-    // Lifecycle hooks
     // Transform input sort string to Bootstrap-Vue-Next array format
     // sortStringToVariables now returns { sortBy: [{ key: 'column', order: 'asc'|'desc' }] }
-    const sort_object = this.sortStringToVariables(this.sortInput);
-    this.sortBy = sort_object.sortBy;
+    if (this.sortInput) {
+      const sort_object = this.sortStringToVariables(this.sortInput);
+      this.sortBy = sort_object.sortBy;
+      this.sort = this.sortInput; // Also set the sort string for API calls
+    }
+
+    // Initialize pagination from URL if provided
+    if (this.pageAfterInput && this.pageAfterInput !== '0') {
+      this.currentItemID = parseInt(this.pageAfterInput, 10) || 0;
+    }
 
     // Transform input filter string to object and load data
     // Use $nextTick to ensure Vue reactivity is fully initialized
@@ -451,9 +470,16 @@ export default {
       if (this.filterInput && this.filterInput !== 'null' && this.filterInput !== '') {
         // Parse URL filter string into filter object for proper UI state
         this.filter = this.filterStrToObj(this.filterInput, this.filter);
-      } else {
-        this.loadData();
+        // Also set filter_string so the API call uses the URL filter
+        this.filter_string = this.filterInput;
       }
+      // Load data first while still in initializing state
+      this.loadData();
+      // Delay marking initialization complete to ensure watchers triggered
+      // by filter/sortBy changes above see isInitializing=true
+      this.$nextTick(() => {
+        this.isInitializing = false;
+      });
     });
 
     setTimeout(() => {
@@ -461,7 +487,34 @@ export default {
     }, 500);
   },
   methods: {
-    // Override filtered to call loadData
+    // Update browser URL with current table state
+    // Uses history.replaceState instead of router.replace to prevent component remount
+    updateBrowserUrl() {
+      // Don't update URL during initialization - preserves URL params from navigation
+      if (this.isInitializing) return;
+
+      const searchParams = new URLSearchParams();
+
+      if (this.sort) {
+        searchParams.set('sort', this.sort);
+      }
+      if (this.filter_string) {
+        searchParams.set('filter', this.filter_string);
+      }
+      const currentId = Number(this.currentItemID) || 0;
+      if (currentId > 0) {
+        searchParams.set('page_after', String(currentId));
+      }
+      if (this.perPage !== 10) {
+        searchParams.set('page_size', String(this.perPage));
+      }
+
+      // Use history.replaceState to update URL without triggering Vue Router navigation
+      // This prevents component remount which was causing duplicate API calls
+      const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
+      window.history.replaceState({ ...window.history.state }, '', newUrl);
+    },
+    // Override filtered to call loadData (URL is updated AFTER API success to prevent remount)
     filtered() {
       const filter_string_loc = this.filterObjToStr(this.filter);
 
@@ -469,6 +522,8 @@ export default {
         this.filter_string = filter_string_loc;
       }
 
+      // Note: updateBrowserUrl() is now called in doLoadData() AFTER API success
+      // This prevents component remount during the API call
       this.loadData();
     },
     // Override handlePageChange to properly update currentItemID and call loadData
@@ -476,11 +531,11 @@ export default {
       if (value === 1) {
         this.currentItemID = 0;
       } else if (value === this.totalPages) {
-        this.currentItemID = this.lastItemID;
+        this.currentItemID = Number(this.lastItemID) || 0;
       } else if (value > this.currentPage) {
-        this.currentItemID = this.nextItemID;
+        this.currentItemID = Number(this.nextItemID) || 0;
       } else if (value < this.currentPage) {
-        this.currentItemID = this.prevItemID;
+        this.currentItemID = Number(this.prevItemID) || 0;
       }
       this.filtered();
     },
@@ -501,9 +556,33 @@ export default {
       this.sort = (isDesc ? '-' : '+') + sortColumn;
       this.filtered();
     },
-    async loadData() {
-      this.isBusy = true;
-
+    // Override removeFilters to use component's filter and filtered method
+    removeFilters() {
+      Object.keys(this.filter).forEach((key) => {
+        if (this.filter[key] && typeof this.filter[key] === 'object' && 'content' in this.filter[key]) {
+          this.filter[key].content = null;
+        }
+      });
+      this.filtered();
+    },
+    // Override removeSearch to use component's filter and filtered method
+    removeSearch() {
+      if (this.filter.any) {
+        this.filter.any.content = null;
+      }
+      this.filtered();
+    },
+    loadData() {
+      // Debounce to prevent duplicate calls from multiple triggers
+      if (this.loadDataDebounceTimer) {
+        clearTimeout(this.loadDataDebounceTimer);
+      }
+      this.loadDataDebounceTimer = setTimeout(() => {
+        this.loadDataDebounceTimer = null;
+        this.doLoadData();
+      }, 50);
+    },
+    async doLoadData() {
       const urlParam = `sort=${
         this.sort
       }&filter=${
@@ -513,35 +592,71 @@ export default {
       }&page_size=${
         this.perPage}`;
 
-      const apiUrl = `${import.meta.env.VITE_API_URL
-      }/api/entity?${
-        urlParam}`;
+      const now = Date.now();
+
+      // Prevent duplicate API calls using module-level tracking
+      // This works across component remounts caused by router.replace()
+      if (moduleLastApiParams === urlParam && (now - moduleLastApiCallTime) < 500) {
+        // Use cached response data for remounted component
+        if (moduleLastApiResponse) {
+          this.applyApiResponse(moduleLastApiResponse);
+          this.isBusy = false; // Clear busy state when using cached data
+        }
+        return;
+      }
+
+      // Also prevent if a call is already in progress with same params
+      if (moduleApiCallInProgress && moduleLastApiParams === urlParam) {
+        return;
+      }
+
+      moduleLastApiParams = urlParam;
+      moduleLastApiCallTime = now;
+      moduleApiCallInProgress = true;
+      this.isBusy = true;
+
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/entity/?${urlParam}`;
 
       try {
         const response = await this.axios.get(apiUrl);
-        this.items = response.data.data;
+        moduleApiCallInProgress = false;
+        // Cache response for remounted components
+        moduleLastApiResponse = response.data;
+        this.applyApiResponse(response.data);
 
-        this.totalRows = response.data.meta[0].totalItems;
-        // this solves an update issue in b-pagination component
-        // based on https://github.com/bootstrap-vue/bootstrap-vue/issues/3541
-        this.$nextTick(() => {
-          this.currentPage = response.data.meta[0].currentPage;
-        });
-        this.totalPages = response.data.meta[0].totalPages;
-        this.prevItemID = response.data.meta[0].prevItemID;
-        this.currentItemID = response.data.meta[0].currentItemID;
-        this.nextItemID = response.data.meta[0].nextItemID;
-        this.lastItemID = response.data.meta[0].lastItemID;
-        this.executionTime = response.data.meta[0].executionTime;
-        this.fields = response.data.meta[0].fspec;
-
-        const uiStore = useUiStore();
-        uiStore.requestScrollbarUpdate();
+        // Update URL AFTER API success to prevent component remount during API call
+        this.updateBrowserUrl();
 
         this.isBusy = false;
       } catch (e) {
+        moduleApiCallInProgress = false;
         this.makeToast(e, 'Error', 'danger');
+        this.isBusy = false;
       }
+    },
+    /**
+     * Apply API response data to component state.
+     * Extracted to allow reuse when skipping duplicate API calls.
+     * @param {Object} data - API response data
+     */
+    applyApiResponse(data) {
+      this.items = data.data;
+      this.totalRows = data.meta[0].totalItems;
+      // this solves an update issue in b-pagination component
+      // based on https://github.com/bootstrap-vue/bootstrap-vue/issues/3541
+      this.$nextTick(() => {
+        this.currentPage = data.meta[0].currentPage;
+      });
+      this.totalPages = data.meta[0].totalPages;
+      this.prevItemID = Number(data.meta[0].prevItemID) || 0;
+      this.currentItemID = Number(data.meta[0].currentItemID) || 0;
+      this.nextItemID = Number(data.meta[0].nextItemID) || 0;
+      this.lastItemID = Number(data.meta[0].lastItemID) || 0;
+      this.executionTime = data.meta[0].executionTime;
+      this.fields = data.meta[0].fspec;
+
+      const uiStore = useUiStore();
+      uiStore.requestScrollbarUpdate();
     },
     /**
      * Normalize select options for BFormSelect
