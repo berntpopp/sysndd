@@ -12,15 +12,15 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Milestone:** v6.0 Admin Panel Modernization
 **Phase:** 30 of 33 (Statistics Dashboard)
-**Plan:** 02 of 03 complete
+**Plan:** 01 of 03 complete
 **Status:** In progress
-**Last activity:** 2026-01-25 — Completed 30-02-PLAN.md (Contributor Leaderboard API)
+**Last activity:** 2026-01-25 — Completed 30-01-PLAN.md (Statistics Dashboard Foundation)
 
 ```
-v6.0 Admin Panel Modernization: [███████░░░░░░░░░░░░░░░░░░░░░] 28%
+v6.0 Admin Panel Modernization: [██████░░░░░░░░░░░░░░░░░░░░░░] 26%
 Phase 28 Table Foundation:   [██████████] 3/3 plans ✓
 Phase 29 User Management:    [██████████] 4/4 plans ✓
-Phase 30 Statistics Dashboard: [██████░░░░] 2/3 plans
+Phase 30 Statistics Dashboard: [███░░░░░░░] 1/3 plans
 ```
 
 ## Performance Metrics
@@ -41,7 +41,7 @@ Phase 30 Statistics Dashboard: [██████░░░░] 2/3 plans
 | v5 Analysis Modernization | 25-27 | 16 | 2026-01-25 |
 
 **v6.0 Progress:**
-- Plans completed: 9
+- Plans completed: 8
 - Phases completed: 2 (Phases 28-29)
 - Average duration: 2.8min
 - Trend: Strong velocity
@@ -77,7 +77,7 @@ Recent v6-relevant decisions:
 - **Dropdown for role selection** (29-04): Use BFormSelect dropdown instead of prompt() for better UX and validation
 - **Frontend admin protection** (29-04): Block bulk delete if admins in selection before showing modal (fail fast)
 - **Default filter presets** (29-04): Initialize "Pending" and "Curators" presets on first mount for common workflows
-- **Contributor leaderboard API** (30-02): Return top N users by entity count with date range filtering, Administrator-only
+- **Tree-shaken Chart.js registration** (30-01): Manual component registration reduces bundle size ~30-40% vs registerables
 
 ### Pending Todos
 
@@ -92,11 +92,11 @@ None yet.
 
 ## Session Continuity
 
-**Last session:** 2026-01-25 21:50 UTC
-**Stopped at:** Completed 30-02-PLAN.md (Contributor Leaderboard API)
+**Last session:** 2026-01-25 21:51 UTC
+**Stopped at:** Completed 30-01-PLAN.md (Statistics Dashboard Foundation)
 **Resume file:** None
-**Next action:** Execute 30-03-PLAN.md (Statistics Dashboard Frontend)
+**Next action:** Execute 30-02-PLAN.md (continue Statistics Dashboard)
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-25 — Completed 30-02 (Contributor Leaderboard API)*
+*Last updated: 2026-01-25 — Completed 30-01 (Statistics Dashboard Foundation)*
