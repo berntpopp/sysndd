@@ -402,6 +402,9 @@ export default {
         symbol: { content: null, operator: 'contains' },
         STRING_id: { content: null, operator: 'contains' },
       },
+      // Specialized filter values (separate from text filter object)
+      categoryFilter: null, // Selected category (GO, KEGG, MONDO, or null for all)
+      fdrThreshold: null,   // FDR threshold (0.01, 0.05, 0.1, or custom value)
       sortBy: 'category',
       sortDesc: false,
 
@@ -473,6 +476,24 @@ export default {
     allGeneSymbols() {
       const identifiers = this.selectedCluster?.identifiers || [];
       return [...new Set(identifiers.map((row) => row.symbol))].sort();
+    },
+
+    /**
+     * Category options for CategoryFilter dropdown
+     * Derived from valueCategories loaded from API
+     */
+    categoryOptions() {
+      if (!this.valueCategories || this.valueCategories.length === 0) {
+        return [
+          { value: 'GO', text: 'GO (Gene Ontology)' },
+          { value: 'KEGG', text: 'KEGG (Pathways)' },
+          { value: 'MONDO', text: 'MONDO (Disease)' },
+        ];
+      }
+      return this.valueCategories.map(cat => ({
+        value: cat.value,
+        text: cat.text,
+      }));
     },
 
     /**
