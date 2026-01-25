@@ -27,7 +27,7 @@ Phase 31 Content Management:   [█████░░░░░] 2/4 plans
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 142
+- Total plans completed: 144
 - Milestones shipped: 5 (v1-v5)
 - Phases completed: 28
 
@@ -81,6 +81,10 @@ Recent v6-relevant decisions:
 - **Tree-shaken Chart.js registration** (30-01): Manual component registration reduces bundle size ~30-40% vs registerables
 - **Trend delta comparison** (30-03): Compare equal-length periods for trend calculation (not calendar periods)
 - **Admin dashboard layout** (30-03): KPI cards row at top, then charts, then detail cards
+- **JSON column for sections** (31-01): Use JSON storage for flexible CMS section schema (no migrations for structure changes)
+- **Single draft per user** (31-01): Upsert pattern (DELETE + INSERT) enforces one active draft per user
+- **Version auto-increment** (31-01): MAX(version) + 1 query for explicit version numbers in published content
+- **Public CMS endpoint** (31-01): GET /published requires no auth for About.vue consumption
 
 ### Pending Todos
 
