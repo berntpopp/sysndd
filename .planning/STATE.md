@@ -12,14 +12,14 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 
 **Milestone:** v5.0 Analysis Modernization
 **Phase:** 27 of 27 (Advanced Features & Filters)
-**Plan:** 8 of 10 complete
+**Plan:** 9 of 10 complete
 **Status:** In progress
-**Last activity:** 2026-01-25 — Completed 27-08-PLAN.md (PhenotypeClusters Cytoscape Migration)
+**Last activity:** 2026-01-25 — Completed 27-09-PLAN.md (Correlation Heatmap Navigation)
 
 ```
 v5 Analysis Modernization: PHASE 27 IN PROGRESS
 Goal: Transform analysis pages with performance, network viz, and modern UI/UX
-Progress: ██████████████████████▓▓▓▓▓▓ 80% (8/10 plans complete)
+Progress: ████████████████████████▓▓ 90% (9/10 plans complete)
           [Phase 25 ✓] → [Phase 26 ✓] → [Phase 27 ▶]
 ```
 
@@ -83,6 +83,7 @@ Recent v5-relevant decisions:
 - **Optional composable imports**: Only import composables where actually used, not speculatively
 - **Simplified Cytoscape composables**: Not all use cases need compound node complexity (usePhenotypeCytoscape vs useCytoscape)
 - **Sequential cluster edges**: Connect adjacent clusters for network structure (prevents isolated bubbles in fcose layout)
+- **Graceful fallback pattern**: Document backend limitations, implement frontend fallbacks for missing optional data (27-09)
 
 ## Accumulated Context
 
@@ -123,15 +124,16 @@ Pre-existing analysis documents:
 | 27-06 | URL Parameter Fix | Fixed broken URL parameter handling on Entities page using filterStrToObj pattern |
 | 27-07 | Filter Integration (Gene Clusters) | CategoryFilter dropdown and ScoreSlider FDR threshold integrated into AnalyseGeneClusters |
 | 27-08 | PhenotypeClusters Cytoscape Migration | D3.js bubble chart replaced with Cytoscape.js network, simplified usePhenotypeCytoscape composable (-134 lines) |
+| 27-09 | Correlation Heatmap Navigation | Clickable D3 correlation cells with navigation, documented phenotype-to-cluster mapping limitation |
 | 27-10 | Fix PhenotypeCorrelations | Removed unused useFilterSync import that was breaking /PhenotypeCorrelations page |
 
 ## Session Continuity
 
 **Last session:** 2026-01-25
-**Stopped at:** Completed 27-08-PLAN.md (PhenotypeClusters Cytoscape Migration)
+**Stopped at:** Completed 27-09-PLAN.md (Correlation Heatmap Navigation)
 **Resume file:** None
-**Next action:** Continue Phase 27 gap closure plans (27-09)
+**Next action:** Phase 27 nearly complete - only standard plans remain in roadmap
 
 ---
 *State initialized: 2026-01-24 for v5.0 milestone*
-*Last updated: 2026-01-25 — Plan 27-08 complete (PhenotypeClusters Cytoscape Migration)*
+*Last updated: 2026-01-25 — Plan 27-09 complete (Correlation Heatmap Navigation)*
