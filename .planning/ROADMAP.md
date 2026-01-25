@@ -87,10 +87,13 @@ Plans:
   3. Admin can save draft without publishing (two buttons: "Save Draft" / "Publish")
   4. About page content loads from database table (not hardcoded component)
   5. API endpoint saves and retrieves About content with draft/published versions
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 31-01: TBD
+- [ ] 31-01-PLAN.md — Database schema and API endpoints for draft/publish workflow
+- [ ] 31-02-PLAN.md — Install libraries, TypeScript types, and composables
+- [ ] 31-03-PLAN.md — CMS components (MarkdownEditor, MarkdownPreview, SectionEditor, SectionList)
+- [ ] 31-04-PLAN.md — ManageAbout.vue and About.vue integration
 
 #### Phase 32: Async Jobs
 **Goal**: Extract useAsyncJob composable and improve ManageAnnotations job UI
@@ -133,7 +136,7 @@ Phases execute in numeric order: 28 → 29 → 30 → 31 → 32 → 33
 | 28. Table Foundation | v6.0 | 3/3 | ✓ Complete | 2026-01-25 |
 | 29. User Management | v6.0 | 0/4 | Planned | - |
 | 30. Statistics Dashboard | v6.0 | 0/3 | Planned | - |
-| 31. Content Management | v6.0 | 0/TBD | Not started | - |
+| 31. Content Management | v6.0 | 0/4 | Planned | - |
 | 32. Async Jobs | v6.0 | 0/TBD | Not started | - |
 | 33. Logging & Analytics | v6.0 | 0/TBD | Not started | - |
 
@@ -151,4 +154,4 @@ Phases execute in numeric order: 28 → 29 → 30 → 31 → 32 → 33
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-01-25 — Phase 30 planned (3 plans)*
+*Last updated: 2026-01-25 — Phase 31 planned (4 plans)*
