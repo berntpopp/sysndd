@@ -12,13 +12,13 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Milestone:** v6.0 Admin Panel Modernization
 **Phase:** 28 of 33 (Table Foundation)
-**Plan:** 01 of TBD
+**Plan:** 03 of TBD
 **Status:** In progress
-**Last activity:** 2026-01-25 — Completed 28-01-PLAN.md (table endpoint enhancements)
+**Last activity:** 2026-01-25 — Completed 28-03-PLAN.md (modernized ManageOntology table)
 
 ```
-v6.0 Admin Panel Modernization: [█░░░░░░░░░░░░░░░░░░░░░░░░░░░] 3.3%
-Phase 28 Table Foundation: [██░░░░░░░░] 1/TBD plans
+v6.0 Admin Panel Modernization: [██░░░░░░░░░░░░░░░░░░░░░░░░░░] 6.7%
+Phase 28 Table Foundation: [████░░░░░░] 2/TBD plans
 ```
 
 ## Performance Metrics
@@ -39,9 +39,9 @@ Phase 28 Table Foundation: [██░░░░░░░░] 1/TBD plans
 | v5 Analysis Modernization | 25-27 | 16 | 2026-01-25 |
 
 **v6.0 Progress:**
-- Plans completed: 1
-- Average duration: 3.5min
-- Trend: Starting
+- Plans completed: 2
+- Average duration: 3.2min
+- Trend: Strong velocity
 
 *Updated after each plan completion*
 
@@ -59,6 +59,7 @@ Recent v6-relevant decisions:
 - **TipTap**: Chosen for v6 CMS editor (~80KB gzipped, TypeScript-native)
 - **Table endpoint pattern** (28-01): filter, sort, page_after, page_size, fspec params; { links, meta, data } response
 - **Field specification metadata** (28-01): fspec in meta enables frontend dynamic table column generation
+- **Admin table modernization** (28-03): Module-level caching prevents duplicate API calls, history.replaceState avoids component remount
 
 ### Pending Todos
 
@@ -74,10 +75,10 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-01-25
-**Stopped at:** Completed 28-01-PLAN.md (table endpoint enhancements)
+**Stopped at:** Completed 28-03-PLAN.md (ManageOntology table modernization)
 **Resume file:** None
-**Next action:** Continue Phase 28 planning or proceed to frontend implementation
+**Next action:** Continue Phase 28 with ManageUsers table modernization (28-04) or proceed to next plan
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-25 — Completed 28-01 (table foundation API endpoints)*
+*Last updated: 2026-01-25 — Completed 28-03 (ManageOntology table modernization)*
