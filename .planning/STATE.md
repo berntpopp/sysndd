@@ -111,7 +111,7 @@ Pre-existing analysis documents:
 
 | Plan | Name | Summary |
 |------|------|---------|
-| 27-01 | URL State Sync | useFilterSync composable with VueUse useUrlSearchParams for URL-synced filter state |
+| 27-01 | Core Composables | useFilterSync (URL state sync), useWildcardSearch (PKD*/BRCA? matching), useNetworkHighlight (bidirectional hover) |
 | 27-02 | Filter Components | CategoryFilter, ScoreSlider, TermSearch reusable filter components with v-model binding |
 
 ## Session Continuity
