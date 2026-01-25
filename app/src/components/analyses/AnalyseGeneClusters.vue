@@ -155,15 +155,15 @@
                   </td>
                 </template>
 
-                <!-- cluster_num cell (shown when viewing combined cluster data) -->
+                <!-- cluster_num cell - colored badge matching network legend -->
                 <template #cell-cluster_num="{ row }">
-                  <BBadge
+                  <span
                     v-if="row.cluster_num"
-                    variant="secondary"
-                    :style="'background-color: ' + getClusterColor(row.cluster_num) + ';'"
+                    class="cluster-badge"
+                    :style="{ backgroundColor: getClusterColor(row.cluster_num) }"
                   >
                     {{ row.cluster_num }}
-                  </BBadge>
+                  </span>
                 </template>
 
                 <!-- category cell -->
@@ -975,5 +975,19 @@ mark {
   font-size: 16px;
   color: #6c757d;
   font-weight: bold;
+}
+
+/* Cluster badge - matches network legend styling */
+.cluster-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 4px;
+  color: white;
+  font-weight: 600;
+  font-size: 12px;
 }
 </style>
