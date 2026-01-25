@@ -456,10 +456,8 @@ export default {
             tdClass: 'text-start',
           },
         ];
-        // Add cluster column at the beginning if showing combined data
-        if (this.isShowingCombinedData) {
-          fields.unshift(clusterColumn);
-        }
+        // Always show cluster column for consistency between table and network
+        fields.unshift(clusterColumn);
         return fields;
       }
       // 'identifiers' case
@@ -479,10 +477,8 @@ export default {
           tdClass: 'text-start',
         },
       ];
-      // Add cluster column at the beginning if showing combined data
-      if (this.isShowingCombinedData) {
-        fields.unshift(clusterColumn);
-      }
+      // Always show cluster column for consistency between table and network
+      fields.unshift(clusterColumn);
       return fields;
     },
 
@@ -748,17 +744,34 @@ export default {
     setActiveCluster() {
       let match;
       let subClusters;
+      let clusterNum;
 
       if (this.selectType === 'clusters') {
         match = this.itemsCluster.find((item) => item.cluster === this.activeParentCluster);
-        this.selectedCluster = match || { term_enrichment: [], identifiers: [] };
+        clusterNum = this.activeParentCluster;
       } else {
         // subclusters
         subClusters = this.itemsCluster.find((item) => item.cluster === this.activeParentCluster);
         if (subClusters) {
           match = subClusters.subclusters.find((sub) => sub.cluster === this.activeSubCluster);
         }
-        this.selectedCluster = match || { term_enrichment: [], identifiers: [] };
+        clusterNum = this.activeSubCluster;
+      }
+
+      // Add cluster_num to each row for consistent display
+      if (match) {
+        this.selectedCluster = {
+          term_enrichment: (match.term_enrichment || []).map((row) => ({
+            ...row,
+            cluster_num: clusterNum,
+          })),
+          identifiers: (match.identifiers || []).map((row) => ({
+            ...row,
+            cluster_num: clusterNum,
+          })),
+        };
+      } else {
+        this.selectedCluster = { term_enrichment: [], identifiers: [] };
       }
 
       const arr = this.selectedCluster[this.tableType] || [];
