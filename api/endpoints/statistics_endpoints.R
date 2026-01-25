@@ -545,11 +545,12 @@ function(req, res, top = 10, start_date = NULL, end_date = NULL, scope = "all_ti
     ungroup()
 
   # Get entity info for filtering
+  # ndd_phenotype is stored as 1/0 in the database, not "Yes"/"No"
   entity_info <- pool %>%
     tbl("ndd_entity_view") %>%
     select(entity_id, entry_date, ndd_phenotype) %>%
     collect() %>%
-    filter(ndd_phenotype == "Yes")
+    filter(ndd_phenotype == 1)
 
   # Join to get entities with their creators
   entity_data <- entity_info %>%
