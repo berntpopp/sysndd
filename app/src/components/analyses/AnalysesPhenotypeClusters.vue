@@ -45,16 +45,16 @@
             <BButton
               variant="outline-secondary"
               size="sm"
-              @click="exportPNG"
               title="Export as PNG"
+              @click="exportPNG"
             >
               <i class="bi bi-image" />
             </BButton>
             <BButton
               variant="outline-secondary"
               size="sm"
-              @click="exportSVG"
               title="Export as SVG"
+              @click="exportSVG"
             >
               <i class="bi bi-filetype-svg" />
             </BButton>
@@ -217,7 +217,7 @@
                 @update-sort="handleSortUpdate"
               >
                 <!-- Column-level filter slot (optional) -->
-                <template v-slot:filter-controls>
+                <template #filter-controls>
                   <td
                     v-for="field in fields"
                     :key="field.key"

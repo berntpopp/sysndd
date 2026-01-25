@@ -1,5 +1,5 @@
 <template>
-  <div class="term-search" ref="containerRef">
+  <div ref="containerRef" class="term-search">
     <TableSearchInput
       v-model="searchPattern"
       :placeholder="placeholder"

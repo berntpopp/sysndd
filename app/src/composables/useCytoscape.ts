@@ -16,7 +16,7 @@
  */
 
 import { ref, onBeforeUnmount, type Ref } from 'vue';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+ 
 import cytoscape from 'cytoscape';
 import type { Core, ElementDefinition, NodeSingular } from 'cytoscape';
 import fcose from 'cytoscape-fcose';
@@ -289,7 +289,7 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
       // fcose layout for proper force-directed network visualization
       // Optimized for compound graphs with cluster separation
       // Using animate: false for reliable fit/center (per GitHub issue #2559)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       layout: {
         name: 'fcose',
         quality: 'default',
@@ -433,7 +433,7 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
 
     // Run fcose layout for proper force-directed visualization
     // Using animate: false for reliable fit/center (per GitHub issue #2559)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const layout = cy.layout({
       name: 'fcose',
       quality: 'default',
@@ -476,7 +476,7 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
     console.log('[useCytoscape] Resetting layout');
     isLoading.value = true;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const layout = cy.layout({
       name: 'fcose',
       quality: 'default',

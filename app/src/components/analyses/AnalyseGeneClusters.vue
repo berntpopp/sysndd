@@ -173,7 +173,7 @@
                 @update-sort="handleSortUpdate"
               >
                 <!-- Optional column-level filters -->
-                <template v-slot:filter-controls>
+                <template #filter-controls>
                   <td
                     v-for="field in fieldsComputed"
                     :key="field.key"
@@ -193,14 +193,14 @@
                       v-model="categoryFilter"
                       :options="categoryOptions"
                       placeholder="All categories"
-                      @update:modelValue="onFilterChange"
+                      @update:model-value="onFilterChange"
                     />
 
                     <!-- FDR: use ScoreSlider with presets -->
                     <ScoreSlider
                       v-else-if="field.key === 'fdr'"
                       v-model="fdrThreshold"
-                      @update:modelValue="onFilterChange"
+                      @update:model-value="onFilterChange"
                     />
 
                     <!-- Other columns: text filter (symbol, STRING_id, description, etc.) -->
@@ -315,9 +315,9 @@
                   <!-- Render only if tableType === 'identifiers' -->
                   <div
                     v-if="tableType === 'identifiers'"
+                    v-b-tooltip.hover
                     class="overflow-hidden text-truncate"
                     :title="row.STRING_id"
-                    v-b-tooltip.hover
                   >
                     <BButton
                       class="btn-xs mx-2"

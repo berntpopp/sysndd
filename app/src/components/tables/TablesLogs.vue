@@ -90,7 +90,7 @@
               <!-- Custom filter fields slot -->
               <template
                 v-if="showFilterControls"
-                v-slot:filter-controls
+                #filter-controls
               >
                 <td
                   v-for="field in fields"
@@ -115,7 +115,7 @@
                     @input="removeSearch()"
                     @change="filtered()"
                   >
-                    <template v-slot:first>
+                    <template #first>
                       <BFormSelectOption value="null">
                         .. {{ truncate(field.label, 20) }} ..
                       </BFormSelectOption>
@@ -135,7 +135,7 @@
                       size="sm"
                       @change="removeSearch();filtered();"
                     >
-                      <template v-slot:first>
+                      <template #first>
                         <BFormSelectOption :value="null">
                           .. {{ truncate(field.label, 20) }} ..
                         </BFormSelectOption>
@@ -146,7 +146,7 @@
               </template>
               <!-- Custom filter fields slot -->
 
-              <template v-slot:cell-id="{ row }">
+              <template #cell-id="{ row }">
                 <div>
                   <BBadge
                     variant="primary"
@@ -157,7 +157,7 @@
                 </div>
               </template>
 
-              <template v-slot:cell-agent="{ row }">
+              <template #cell-agent="{ row }">
                 <div
                   v-b-tooltip.hover.top
                   class="overflow-hidden text-truncate"
@@ -172,19 +172,19 @@
                 </div>
               </template>
 
-              <template v-slot:cell-status="{ row }">
+              <template #cell-status="{ row }">
                 <BBadge :variant="row.status === 200 ? 'success' : 'danger'">
                   {{ row.status }}
                 </BBadge>
               </template>
 
-              <template v-slot:cell-request_method="{ row }">
+              <template #cell-request_method="{ row }">
                 <BBadge :variant="getMethodVariant(row.request_method)">
                   {{ row.request_method }}
                 </BBadge>
               </template>
 
-              <template v-slot:cell-query="{ row }">
+              <template #cell-query="{ row }">
                 <div
                   v-b-tooltip.hover.top
                   class="overflow-hidden text-truncate"
@@ -194,7 +194,7 @@
                 </div>
               </template>
 
-              <template v-slot:cell-timestamp="{ row }">
+              <template #cell-timestamp="{ row }">
                 <div
                   v-b-tooltip.hover.top
                   class="overflow-hidden text-truncate"
@@ -204,7 +204,7 @@
                 </div>
               </template>
 
-              <template v-slot:cell-modified="{ row }">
+              <template #cell-modified="{ row }">
                 <div
                   v-b-tooltip.hover.top
                   class="overflow-hidden text-truncate"

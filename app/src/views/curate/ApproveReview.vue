@@ -550,7 +550,7 @@
               :options="normalizePhenotypesOptions(phenotypes_options)"
               size="sm"
             >
-              <template v-slot:first>
+              <template #first>
                 <BFormSelectOption :value="null">
                   Select phenotype...
                 </BFormSelectOption>
@@ -582,7 +582,7 @@
               :options="normalizeVariationOntologyOptions(variation_ontology_options)"
               size="sm"
             >
-              <template v-slot:first>
+              <template #first>
                 <BFormSelectOption :value="null">
                   Select variation...
                 </BFormSelectOption>
@@ -605,7 +605,7 @@
               remove-on-delete
             >
               <template
-                v-slot="{ tags, inputAttrs, inputHandlers, addTag, removeTag }"
+                #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }"
               >
                 <BInputGroup class="my-0">
                   <BFormInput
@@ -666,7 +666,7 @@
               remove-on-delete
             >
               <template
-                v-slot="{ tags, inputAttrs, inputHandlers, addTag, removeTag }"
+                #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }"
               >
                 <BInputGroup class="my-0">
                   <BFormInput
@@ -902,7 +902,7 @@
               :options="normalizeStatusOptions(status_options)"
               size="sm"
             >
-              <template v-slot:first>
+              <template #first>
                 <BFormSelectOption :value="null">
                   Select status...
                 </BFormSelectOption>

@@ -473,7 +473,7 @@
               :options="normalizeStatusOptions(status_options)"
               size="sm"
             >
-              <template v-slot:first>
+              <template #first>
                 <BFormSelectOption :value="null">
                   Select status...
                 </BFormSelectOption>

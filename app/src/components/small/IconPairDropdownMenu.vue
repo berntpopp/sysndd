@@ -32,10 +32,6 @@ import useToast from '@/composables/useToast';
 
 export default {
   name: 'IconPairDropdownMenu',
-  setup() {
-    const { makeToast } = useToast();
-    return { makeToast };
-  },
   props: {
     title: {
       type: String,
@@ -53,6 +49,10 @@ export default {
       type: Array,
       required: true,
     },
+  },
+  setup() {
+    const { makeToast } = useToast();
+    return { makeToast };
   },
   methods: {
     handleItemClick(item) {

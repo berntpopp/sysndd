@@ -101,7 +101,7 @@
               <!-- Custom filter fields slot -->
               <template
                 v-if="showFilterControls"
-                v-slot:filter-controls
+                #filter-controls
               >
                 <td
                   v-for="field in fields"
@@ -126,7 +126,7 @@
                     @input="removeSearch()"
                     @change="filtered()"
                   >
-                    <template v-slot:first>
+                    <template #first>
                       <BFormSelectOption value="null">
                         .. {{ truncate(field.label, 20) }} ..
                       </BFormSelectOption>
@@ -146,7 +146,7 @@
                       size="sm"
                       @change="removeSearch();filtered();"
                     >
-                      <template v-slot:first>
+                      <template #first>
                         <BFormSelectOption :value="null">
                           .. {{ truncate(field.label, 20) }} ..
                         </BFormSelectOption>
@@ -158,7 +158,7 @@
               <!-- Custom filter fields slot -->
 
               <!-- search_id -->
-              <template v-slot:cell-search_id="{ row }">
+              <template #cell-search_id="{ row }">
                 <div>
                   <BBadge
                     variant="primary"
@@ -170,7 +170,7 @@
               </template>
 
               <!-- pmid -->
-              <template v-slot:cell-pmid="{ row }">
+              <template #cell-pmid="{ row }">
                 <BButton
                   v-b-tooltip.hover.bottom
                   class="btn-xs mx-2"
@@ -185,7 +185,7 @@
               </template>
 
               <!-- doi -->
-              <template v-slot:cell-doi="{ row }">
+              <template #cell-doi="{ row }">
                 <div class="text-truncate">
                   <a
                     :href="`https://doi.org/${row.doi}`"
@@ -197,7 +197,7 @@
               </template>
 
               <!-- title -->
-              <template v-slot:cell-title="{ row }">
+              <template #cell-title="{ row }">
                 <div
                   v-b-tooltip.hover
                   :title="row.title"
@@ -209,28 +209,28 @@
               </template>
 
               <!-- journal -->
-              <template v-slot:cell-journal="{ row }">
+              <template #cell-journal="{ row }">
                 <div>
                   {{ row.journal }}
                 </div>
               </template>
 
               <!-- date -->
-              <template v-slot:cell-date="{ row }">
+              <template #cell-date="{ row }">
                 <div>
                   {{ row.date }}
                 </div>
               </template>
 
               <!-- score -->
-              <template v-slot:cell-score="{ row }">
+              <template #cell-score="{ row }">
                 <div>
                   {{ row.score ? row.score.toFixed(3) : '' }}
                 </div>
               </template>
 
               <!-- text_hl -->
-              <template v-slot:cell-text_hl="{ row }">
+              <template #cell-text_hl="{ row }">
                 <div
                   v-if="row.text_hl"
                   v-b-tooltip.hover

@@ -186,7 +186,7 @@
           :sort-desc="sortDesc"
           @update-sort="handleSortUpdate"
         >
-          <template v-slot:filter-controls>
+          <template #filter-controls>
             <td
               v-for="field in fields"
               :key="field.key"
@@ -211,7 +211,7 @@
                 size="sm"
                 @update:model-value="removeSearch();filtered();"
               >
-                <template v-slot:first>
+                <template #first>
                   <BFormSelectOption :value="null">
                     .. {{ truncate(field.label, 20) }} ..
                   </BFormSelectOption>
@@ -227,7 +227,7 @@
                 size="sm"
                 @update:model-value="removeSearch();filtered();"
               >
-                <template v-slot:first>
+                <template #first>
                   <BFormSelectOption :value="null">
                     .. {{ truncate(field.label, 20) }} ..
                   </BFormSelectOption>
@@ -236,7 +236,7 @@
             </td>
           </template>
 
-          <template v-slot:cell-symbol="{ row }">
+          <template #cell-symbol="{ row }">
             <GeneBadge
               :symbol="row.symbol"
               :hgnc-id="row.hgnc_id"
@@ -245,56 +245,56 @@
             />
           </template>
 
-          <template v-slot:cell-SysNDD="{ row }">
+          <template #cell-SysNDD="{ row }">
             <CategoryIcon
               :category="row.SysNDD"
               size="sm"
             />
           </template>
 
-          <template v-slot:cell-radboudumc_ID="{ row }">
+          <template #cell-radboudumc_ID="{ row }">
             <CategoryIcon
               :category="row.radboudumc_ID"
               size="sm"
             />
           </template>
 
-          <template v-slot:cell-gene2phenotype="{ row }">
+          <template #cell-gene2phenotype="{ row }">
             <CategoryIcon
               :category="row.gene2phenotype"
               size="sm"
             />
           </template>
 
-          <template v-slot:cell-panelapp="{ row }">
+          <template #cell-panelapp="{ row }">
             <CategoryIcon
               :category="row.panelapp"
               size="sm"
             />
           </template>
 
-          <template v-slot:cell-sfari="{ row }">
+          <template #cell-sfari="{ row }">
             <CategoryIcon
               :category="row.sfari"
               size="sm"
             />
           </template>
 
-          <template v-slot:cell-geisinger_DBD="{ row }">
+          <template #cell-geisinger_DBD="{ row }">
             <CategoryIcon
               :category="row.geisinger_DBD"
               size="sm"
             />
           </template>
 
-          <template v-slot:cell-omim_ndd="{ row }">
+          <template #cell-omim_ndd="{ row }">
             <CategoryIcon
               :category="row.omim_ndd"
               size="sm"
             />
           </template>
 
-          <template v-slot:cell-orphanet_id="{ row }">
+          <template #cell-orphanet_id="{ row }">
             <CategoryIcon
               :category="row.orphanet_id"
               size="sm"

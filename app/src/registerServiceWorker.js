@@ -1,9 +1,9 @@
-/* eslint-disable no-console */
+ 
 
 import { register } from 'register-service-worker';
 
 // Support both Vite (import.meta.env) and Vue CLI (process.env) during migration
-// eslint-disable-next-line no-undef
+ 
 const isVite = typeof import.meta !== 'undefined' && import.meta.env;
 const isProd = isVite ? import.meta.env.PROD : process.env.NODE_ENV === 'production';
 const baseUrl = isVite ? import.meta.env.BASE_URL : process.env.BASE_URL;

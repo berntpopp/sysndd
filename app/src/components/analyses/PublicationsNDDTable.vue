@@ -101,7 +101,7 @@
               <!-- Custom filter fields slot -->
               <template
                 v-if="showFilterControls"
-                v-slot:filter-controls
+                #filter-controls
               >
                 <td
                   v-for="field in fields"
@@ -126,7 +126,7 @@
                     @input="removeSearch()"
                     @change="filtered()"
                   >
-                    <template v-slot:first>
+                    <template #first>
                       <BFormSelectOption value="null">
                         .. {{ truncate(field.label, 20) }} ..
                       </BFormSelectOption>
@@ -146,7 +146,7 @@
                       size="sm"
                       @change="removeSearch();filtered();"
                     >
-                      <template v-slot:first>
+                      <template #first>
                         <BFormSelectOption :value="null">
                           .. {{ truncate(field.label, 20) }} ..
                         </BFormSelectOption>
@@ -158,7 +158,7 @@
               <!-- Custom filter fields slot -->
 
               <!-- Example custom slot for 'publication_id' -->
-              <template v-slot:cell-publication_id="{ row }">
+              <template #cell-publication_id="{ row }">
                 <div>
                   <BBadge
                     variant="primary"
@@ -170,7 +170,7 @@
               </template>
 
               <!-- Example custom slot for 'Title' -->
-              <template v-slot:cell-Title="{ row }">
+              <template #cell-Title="{ row }">
                 <div
                   v-b-tooltip.hover
                   class="overflow-hidden text-truncate"
@@ -181,14 +181,14 @@
               </template>
 
               <!-- Example custom slot for 'Journal' -->
-              <template v-slot:cell-Journal="{ row }">
+              <template #cell-Journal="{ row }">
                 <div>
                   {{ row.Journal }}
                 </div>
               </template>
 
               <!-- Example custom slot for 'Publication_date' -->
-              <template v-slot:cell-Publication_date="{ row }">
+              <template #cell-Publication_date="{ row }">
                 <div>
                   {{ row.Publication_date }}
                 </div>

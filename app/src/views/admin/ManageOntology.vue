@@ -188,7 +188,7 @@
                 @update:sort-by="handleSortUpdate"
               >
                 <!-- Custom slot for the 'actions' column -->
-                <template v-slot:cell-actions="{ row }">
+                <template #cell-actions="{ row }">
                   <div>
                     <BButton
                       v-b-tooltip.hover.top
@@ -203,14 +203,14 @@
                 </template>
 
                 <!-- Format obsolete as badge -->
-                <template v-slot:cell-obsolete="{ row }">
+                <template #cell-obsolete="{ row }">
                   <BBadge :variant="row.obsolete ? 'warning' : 'success'">
                     {{ row.obsolete ? 'Yes' : 'No' }}
                   </BBadge>
                 </template>
 
                 <!-- Format is_active as badge -->
-                <template v-slot:cell-is_active="{ row }">
+                <template #cell-is_active="{ row }">
                   <BBadge :variant="row.is_active ? 'success' : 'secondary'">
                     {{ row.is_active ? 'Active' : 'Inactive' }}
                   </BBadge>
