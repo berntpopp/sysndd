@@ -99,97 +99,129 @@
               </BRow>
             </template>
 
-            <BRow>
+            <BRow class="align-items-center gx-2">
               <BCol
                 class="my-1"
                 sm="6"
               >
-                <!-- Phenotype Multi-Select using native Bootstrap components -->
+                <!-- Phenotype Multi-Select - Unified Input Style -->
                 <div
                   v-if="showFilterControls"
-                  class="phenotype-multiselect"
+                  class="phenotype-select-container"
                 >
-                  <!-- Selected phenotypes as badges -->
-                  <div class="selected-phenotypes mb-2">
-                    <BBadge
-                      v-for="phenotypeId in filter.modifier_phenotype_id.content"
-                      :key="phenotypeId"
-                      variant="primary"
-                      class="me-1 mb-1"
-                      style="cursor: pointer;"
-                      @click="removePhenotype(phenotypeId)"
-                    >
-                      {{ getPhenotypeName(phenotypeId) }}
-                      <i class="bi bi-x-circle ms-1" />
-                    </BBadge>
-                  </div>
-
-                  <!-- Dropdown for adding phenotypes -->
-                  <BDropdown
-                    v-if="phenotypes_options.length > 0"
-                    text="Add phenotype..."
-                    variant="outline-secondary"
-                    size="sm"
-                    class="phenotype-dropdown"
-                    menu-class="phenotype-dropdown-menu"
+                  <div
+                    class="phenotype-select-control"
+                    @click="openPhenotypeDropdown"
                   >
-                    <BDropdownForm @submit.prevent>
-                      <BFormInput
-                        v-model="phenotypeSearch"
-                        placeholder="Search phenotypes..."
-                        size="sm"
-                        class="mb-2"
-                        autocomplete="off"
-                      />
-                    </BDropdownForm>
-                    <BDropdownDivider />
-                    <div class="phenotype-options-list">
-                      <BDropdownItemButton
-                        v-for="option in filteredPhenotypeOptions"
-                        :key="option.phenotype_id"
-                        :active="isPhenotypeSelected(option.phenotype_id)"
-                        @click="togglePhenotype(option.phenotype_id)"
+                    <!-- Selected phenotypes as inline tags -->
+                    <div class="phenotype-tags">
+                      <span
+                        v-for="phenotypeId in filter.modifier_phenotype_id.content"
+                        :key="phenotypeId"
+                        class="phenotype-tag"
                       >
+                        {{ getPhenotypeName(phenotypeId) }}
                         <i
-                          v-if="isPhenotypeSelected(option.phenotype_id)"
-                          class="bi bi-check-square me-2"
+                          class="bi bi-x tag-remove"
+                          @click.stop="removePhenotype(phenotypeId)"
                         />
-                        <i
-                          v-else
-                          class="bi bi-square me-2"
-                        />
-                        {{ option.HPO_term }}
-                        <small class="text-muted ms-1">({{ option.phenotype_id }})</small>
-                      </BDropdownItemButton>
-                      <BDropdownText v-if="filteredPhenotypeOptions.length === 0">
-                        No matching phenotypes
-                      </BDropdownText>
+                      </span>
+                      <span
+                        v-if="filter.modifier_phenotype_id.content.length === 0"
+                        class="phenotype-placeholder"
+                      >
+                        Select phenotypes...
+                      </span>
                     </div>
-                  </BDropdown>
+
+                    <!-- Control buttons -->
+                    <div class="phenotype-controls">
+                      <i
+                        v-if="filter.modifier_phenotype_id.content.length > 0"
+                        v-b-tooltip.hover
+                        class="bi bi-x-lg control-icon clear-icon"
+                        title="Clear all"
+                        @click.stop="clearAllPhenotypes"
+                      />
+                      <BDropdown
+                        ref="phenotypeDropdownRef"
+                        no-caret
+                        variant="link"
+                        size="sm"
+                        class="phenotype-dropdown-trigger"
+                        menu-class="phenotype-dropdown-menu"
+                        @shown="focusSearchInput"
+                      >
+                        <template #button-content>
+                          <i class="bi bi-chevron-down control-icon" />
+                        </template>
+                        <BDropdownForm @submit.prevent>
+                          <BFormInput
+                            ref="phenotypeSearchInput"
+                            v-model="phenotypeSearch"
+                            placeholder="Search phenotypes..."
+                            size="sm"
+                            class="mb-2"
+                            autocomplete="off"
+                          />
+                        </BDropdownForm>
+                        <BDropdownDivider />
+                        <div class="phenotype-options-list">
+                          <BDropdownItemButton
+                            v-for="option in filteredPhenotypeOptions"
+                            :key="option.phenotype_id"
+                            :active="isPhenotypeSelected(option.phenotype_id)"
+                            @click="togglePhenotype(option.phenotype_id)"
+                          >
+                            <i
+                              v-if="isPhenotypeSelected(option.phenotype_id)"
+                              class="bi bi-check-square me-2 text-primary"
+                            />
+                            <i
+                              v-else
+                              class="bi bi-square me-2 text-muted"
+                            />
+                            {{ option.HPO_term }}
+                          </BDropdownItemButton>
+                          <BDropdownText v-if="filteredPhenotypeOptions.length === 0">
+                            No matching phenotypes
+                          </BDropdownText>
+                        </div>
+                      </BDropdown>
+                    </div>
+                  </div>
                   <BSpinner
-                    v-else
+                    v-if="phenotypes_options.length === 0"
                     small
-                    label="Loading phenotypes..."
+                    class="ms-2"
+                    label="Loading..."
                   />
                 </div>
               </BCol>
 
               <BCol
-                class="my-1"
+                class="my-1 d-flex align-items-center"
                 sm="2"
               >
-                <BRow>
-                  <BCol class="my-1">
-                    <BFormCheckbox
-                      v-model="checked"
-                      switch
-                      name="check-button"
-                      @update:model-value="filtered"
-                    >
-                      <b>{{ switch_text[checked] }}</b>
-                    </BFormCheckbox>
-                  </BCol>
-                </BRow>
+                <!-- AND/OR Toggle - Clean Pill Style -->
+                <div class="logic-toggle">
+                  <button
+                    type="button"
+                    class="logic-btn"
+                    :class="{ active: !checked }"
+                    @click="setLogicMode(false)"
+                  >
+                    AND
+                  </button>
+                  <button
+                    type="button"
+                    class="logic-btn"
+                    :class="{ active: checked }"
+                    @click="setLogicMode(true)"
+                  >
+                    OR
+                  </button>
+                </div>
               </BCol>
 
               <BCol
@@ -827,6 +859,39 @@ export default {
       this.filtered();
     },
     /**
+     * Clear all selected phenotypes.
+     */
+    clearAllPhenotypes() {
+      this.filter.modifier_phenotype_id.content = [];
+      this.filtered();
+    },
+    /**
+     * Open the phenotype dropdown programmatically.
+     */
+    openPhenotypeDropdown() {
+      if (this.$refs.phenotypeDropdownRef) {
+        this.$refs.phenotypeDropdownRef.show();
+      }
+    },
+    /**
+     * Set the logic mode (AND/OR) for phenotype filtering.
+     * @param {boolean} isOr - True for OR mode, false for AND mode
+     */
+    setLogicMode(isOr) {
+      this.checked = isOr;
+      this.filtered();
+    },
+    /**
+     * Focus the search input when dropdown opens.
+     */
+    focusSearchInput() {
+      this.$nextTick(() => {
+        if (this.$refs.phenotypeSearchInput) {
+          this.$refs.phenotypeSearchInput.focus();
+        }
+      });
+    },
+    /**
      * Remove a phenotype from selection.
      * @param {string} phenotypeId - HPO ID to remove
      */
@@ -1032,29 +1097,166 @@ export default {
   width: 100%;
 }
 
-/* Phenotype multiselect styles */
-.phenotype-multiselect {
-  min-height: 38px;
+/* Phenotype Select Container - Treeselect-like styling */
+.phenotype-select-container {
+  display: flex;
+  align-items: center;
 }
-.selected-phenotypes {
+
+.phenotype-select-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 38px;
+  padding: 4px 8px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  flex: 1;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.phenotype-select-control:hover {
+  border-color: #80bdff;
+}
+
+.phenotype-select-control:focus-within {
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.phenotype-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
+  gap: 4px;
+  flex: 1;
+  align-items: center;
 }
-.phenotype-dropdown {
-  width: auto;
+
+.phenotype-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: #e9f5ff;
+  border: 1px solid #b8daff;
+  border-radius: 3px;
+  font-size: 0.85rem;
+  color: #004085;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+.phenotype-tag .tag-remove {
+  margin-left: 6px;
+  cursor: pointer;
+  opacity: 0.6;
+  font-size: 0.75rem;
+}
+
+.phenotype-tag .tag-remove:hover {
+  opacity: 1;
+  color: #dc3545;
+}
+
+.phenotype-placeholder {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.phenotype-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.control-icon {
+  color: #6c757d;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 2px;
+}
+
+.control-icon:hover {
+  color: #495057;
+}
+
+.clear-icon:hover {
+  color: #dc3545;
+}
+
+.phenotype-dropdown-trigger {
+  padding: 0;
+  margin: 0;
+}
+
+.phenotype-dropdown-trigger :deep(.btn) {
+  padding: 0 4px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.phenotype-dropdown-trigger :deep(.btn:focus) {
+  box-shadow: none;
+}
+
 :deep(.phenotype-dropdown-menu) {
   min-width: 350px;
   max-width: 450px;
+  margin-top: 4px;
 }
+
 .phenotype-options-list {
   max-height: 250px;
   overflow-y: auto;
 }
-.phenotype-options-list .dropdown-item {
+
+.phenotype-options-list :deep(.dropdown-item) {
   font-size: 0.875rem;
   white-space: normal;
   word-wrap: break-word;
+  padding: 8px 16px;
+}
+
+.phenotype-options-list :deep(.dropdown-item.active) {
+  background-color: #e9f5ff;
+  color: #004085;
+}
+
+/* AND/OR Toggle - Pill Button Group */
+.logic-toggle {
+  display: inline-flex;
+  border: 1px solid #ced4da;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #f8f9fa;
+}
+
+.logic-btn {
+  padding: 6px 14px;
+  border: none;
+  background: transparent;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.logic-btn:first-child {
+  border-right: 1px solid #ced4da;
+}
+
+.logic-btn:hover:not(.active) {
+  background: #e9ecef;
+}
+
+.logic-btn.active {
+  background: #0d6efd;
+  color: #fff;
 }
 </style>
