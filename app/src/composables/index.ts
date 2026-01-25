@@ -85,3 +85,12 @@ export type { FilterPreset, FilterPresetsReturn } from './useFilterPresets';
 // CMS content management
 export { useMarkdownRenderer, renderMarkdown } from './useMarkdownRenderer';
 export { useCmsContent } from './useCmsContent';
+
+// Async job management
+export { default as useAsyncJob } from './useAsyncJob';
+export type {
+  JobProgress,
+  JobStatus,
+  UseAsyncJobOptions,
+  UseAsyncJobReturn,
+} from './useAsyncJob';
