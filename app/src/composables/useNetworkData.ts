@@ -177,7 +177,7 @@ export function useNetworkData(): NetworkDataState {
     console.log(`[useNetworkData] Transforming ${networkData.value.nodes.length} nodes, ${networkData.value.edges.length} edges`);
     const startTime = performance.now();
 
-    // Transform nodes to Cytoscape format with pre-computed positions
+    // Transform nodes to Cytoscape format
     const nodes: ElementDefinition[] = networkData.value.nodes.map((node: NetworkNode) => ({
       data: {
         id: node.hgnc_id,
@@ -185,14 +185,9 @@ export function useNetworkData(): NetworkDataState {
         cluster: node.cluster,
         degree: node.degree,
         // Pre-compute size for performance (avoids function in style)
-        size: Math.max(20, Math.sqrt(node.degree || 1) * 8),
+        size: Math.max(15, Math.sqrt(node.degree || 1) * 6),
         // Cluster color
         color: getClusterColor(node.cluster),
-      },
-      // PRE-COMPUTED POSITION from server - no client layout needed!
-      position: {
-        x: (node as NetworkNode & { x?: number }).x ?? 500,
-        y: (node as NetworkNode & { y?: number }).y ?? 500,
       },
     }));
 
