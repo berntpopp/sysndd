@@ -326,3 +326,190 @@ gen_mca_clust_obj <- function(
   # return result
   return(clusters_tibble)
 }
+
+
+#' Extract Network Edges from STRINGdb for Cytoscape.js Visualization
+#'
+#' Returns protein-protein interaction network data in a format suitable for
+#' Cytoscape.js visualization. Includes nodes with gene identifiers and cluster
+#' membership, plus edges with STRING confidence scores.
+#'
+#' @param cluster_type Type of clusters to use: "clusters" or "subclusters"
+#' @param min_confidence Minimum STRING confidence score (0-1000, default 400)
+#' @param string_id_table Pre-fetched STRING ID table (for daemon context)
+#'
+#' @return List with nodes, edges, and metadata:
+#'   - nodes: tibble with hgnc_id, symbol, cluster, degree
+#'   - edges: tibble with source, target, confidence
+#'   - metadata: list with node_count, edge_count, cluster_count, string_version, min_confidence
+#' @export
+gen_network_edges <- function(
+  cluster_type = "clusters",
+  min_confidence = 400,
+  string_id_table = NULL
+) {
+  # Version constants for cache invalidation
+  string_version <- "11.5"  # Must match STRINGdb$new version below
+  cache_version <- Sys.getenv("CACHE_VERSION", "1")
+
+  # Get all NDD genes for clustering
+  # If string_id_table is provided (for daemon context), use it; otherwise fetch from pool
+  if (!is.null(string_id_table)) {
+    sysndd_db_string_id_table <- string_id_table
+  } else {
+    sysndd_db_string_id_table <- pool %>%
+      tbl("non_alt_loci_set") %>%
+      filter(!is.na(STRING_id)) %>%
+      select(symbol, hgnc_id, STRING_id) %>%
+      collect()
+  }
+
+  # Get NDD genes from entity view
+  genes_from_entity_table <- pool %>%
+    tbl("ndd_entity_view") %>%
+    arrange(entity_id) %>%
+    filter(ndd_phenotype == 1) %>%
+    select(hgnc_id) %>%
+    collect() %>%
+    unique()
+
+  # Get clusters using existing function
+  functional_clusters <- gen_string_clust_obj_mem(
+    genes_from_entity_table$hgnc_id,
+    algorithm = "leiden",
+    string_id_table = sysndd_db_string_id_table
+  )
+
+  # Build cluster map (hgnc_id -> cluster number)
+  # Use clusters or subclusters based on parameter
+  if (cluster_type == "subclusters") {
+    # Flatten subclusters
+    cluster_map <- functional_clusters %>%
+      select(cluster, subclusters) %>%
+      unnest(cols = c(subclusters)) %>%
+      rename(parent_cluster = cluster, cluster = cluster.1) %>%
+      select(parent_cluster, cluster, identifiers) %>%
+      unnest(cols = c(identifiers)) %>%
+      select(hgnc_id, cluster = parent_cluster, subcluster = cluster) %>%
+      # Create combined cluster ID for subclusters
+      mutate(cluster_id = paste0(cluster, ".", subcluster)) %>%
+      select(hgnc_id, cluster = cluster_id)
+  } else {
+    # Use main clusters
+    cluster_map <- functional_clusters %>%
+      select(cluster, identifiers) %>%
+      unnest(cols = c(identifiers)) %>%
+      select(hgnc_id, cluster)
+  }
+
+  # Get unique HGNC IDs with their STRING IDs
+  gene_table <- sysndd_db_string_id_table %>%
+    filter(hgnc_id %in% cluster_map$hgnc_id)
+
+  # Initialize STRINGdb with specified confidence threshold
+  string_db <- STRINGdb::STRINGdb$new(
+    version = "11.5",
+    species = 9606,
+    score_threshold = min_confidence,
+    input_directory = "data"
+  )
+
+  # Get STRING graph
+  string_graph <- string_db$get_graph()
+
+  # Filter to input gene set
+  genes_in_graph <- intersect(
+    igraph::V(string_graph)$name,
+    gene_table$STRING_id
+  )
+
+  # Create subgraph with only input genes
+  subgraph <- igraph::induced_subgraph(
+    string_graph,
+    vids = which(igraph::V(string_graph)$name %in% genes_in_graph)
+  )
+
+  # Build STRING ID to HGNC ID mapping
+  string_to_hgnc <- gene_table %>%
+    select(STRING_id, hgnc_id, symbol) %>%
+    distinct()
+
+  # Calculate node degrees
+  node_degrees <- igraph::degree(subgraph)
+
+  # Build nodes tibble
+  nodes <- tibble(
+    STRING_id = names(node_degrees),
+    degree = as.integer(node_degrees)
+  ) %>%
+    left_join(string_to_hgnc, by = "STRING_id") %>%
+    left_join(cluster_map, by = "hgnc_id") %>%
+    select(hgnc_id, symbol, cluster, degree) %>%
+    filter(!is.na(hgnc_id)) %>%
+    distinct()
+
+  # Get edge list from subgraph
+  edge_list <- igraph::as_edgelist(subgraph)
+
+  # Get edge attributes (combined_score)
+  edge_scores <- igraph::E(subgraph)$combined_score
+
+  # Build edges tibble
+  if (nrow(edge_list) > 0) {
+    edges <- tibble(
+      source_string = edge_list[, 1],
+      target_string = edge_list[, 2],
+      combined_score = edge_scores
+    ) %>%
+      # Map STRING IDs to HGNC IDs
+      left_join(
+        string_to_hgnc %>% select(STRING_id, hgnc_id),
+        by = c("source_string" = "STRING_id")
+      ) %>%
+      rename(source = hgnc_id) %>%
+      left_join(
+        string_to_hgnc %>% select(STRING_id, hgnc_id),
+        by = c("target_string" = "STRING_id")
+      ) %>%
+      rename(target = hgnc_id) %>%
+      # Normalize confidence to 0-1 range
+      mutate(confidence = combined_score / 1000) %>%
+      select(source, target, confidence) %>%
+      filter(!is.na(source) & !is.na(target))
+  } else {
+    edges <- tibble(
+      source = character(),
+      target = character(),
+      confidence = numeric()
+    )
+  }
+
+  # Count unique clusters
+  cluster_count <- length(unique(nodes$cluster[!is.na(nodes$cluster)]))
+
+  # Build metadata
+  metadata <- list(
+    node_count = nrow(nodes),
+    edge_count = nrow(edges),
+    cluster_count = cluster_count,
+    string_version = string_version,
+    min_confidence = min_confidence
+  )
+
+  # Return structured result
+  list(
+    nodes = nodes,
+    edges = edges,
+    metadata = metadata
+  )
+}
+
+
+#' Memoized version of gen_network_edges
+#'
+#' Caches results to filesystem for performance. Cache key includes
+#' cluster_type and min_confidence parameters.
+gen_network_edges_mem <- memoise::memoise(
+  gen_network_edges,
+  cache = memoise::cache_filesystem("cache/network_edges")
+)
