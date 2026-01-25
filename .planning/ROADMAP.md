@@ -70,10 +70,12 @@ Plans:
   3. Charts use Chart.js via vue-chartjs with responsive Bootstrap card layout
   4. Each chart includes context ("246 entities, up 12% vs last month" with trend arrow)
   5. Dashboard has card-based layout with loading spinners during data fetch
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 30-01: TBD
+- [ ] 30-01-PLAN.md — Install Chart.js and create reusable chart components
+- [ ] 30-02-PLAN.md — Add contributor leaderboard API endpoint
+- [ ] 30-03-PLAN.md — Modernize AdminStatistics.vue with charts and KPI cards
 
 #### Phase 31: Content Management
 **Goal**: Build CMS editor for ManageAbout page with draft/publish workflow
@@ -130,7 +132,7 @@ Phases execute in numeric order: 28 → 29 → 30 → 31 → 32 → 33
 |-------|-----------|----------------|--------|-----------|
 | 28. Table Foundation | v6.0 | 3/3 | ✓ Complete | 2026-01-25 |
 | 29. User Management | v6.0 | 0/4 | Planned | - |
-| 30. Statistics Dashboard | v6.0 | 0/TBD | Not started | - |
+| 30. Statistics Dashboard | v6.0 | 0/3 | Planned | - |
 | 31. Content Management | v6.0 | 0/TBD | Not started | - |
 | 32. Async Jobs | v6.0 | 0/TBD | Not started | - |
 | 33. Logging & Analytics | v6.0 | 0/TBD | Not started | - |
@@ -149,4 +151,4 @@ Phases execute in numeric order: 28 → 29 → 30 → 31 → 32 → 33
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-01-25 — Phase 29 planned (4 plans)*
+*Last updated: 2026-01-25 — Phase 30 planned (3 plans)*
