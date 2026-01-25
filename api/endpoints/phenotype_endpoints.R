@@ -79,8 +79,25 @@ function(req,
 #* generate_phenotype_entities_list(), then compiles a correlation matrix
 #* (long format) with columns "x", "x_id", "y", "y_id", and "value".
 #*
+#* # `Note on Cluster Navigation`
+#* This endpoint returns correlations between **individual phenotypes** (HPO terms),
+#* not entity clusters. There is no direct mapping from a phenotype pair to a
+#* cluster_id because:
+#* - Phenotypes are features used for clustering
+#* - Clusters are groups of entities (genes)
+#* - A phenotype can appear in multiple entity clusters
+#*
+#* For cluster-based navigation, use the phenotype_clustering endpoint which
+#* groups entities by phenotype similarity. This correlation data is best used
+#* for filtering the phenotype table by co-occurring HPO terms.
+#*
 #* # `Return`
-#* A data frame containing the correlation matrix between phenotypes.
+#* A data frame containing the correlation matrix between phenotypes with columns:
+#* - x: First phenotype name (HPO_term)
+#* - x_id: First phenotype ID (e.g., "HP:0001249")
+#* - y: Second phenotype name (HPO_term)
+#* - y_id: Second phenotype ID
+#* - value: Correlation coefficient (-1 to 1)
 #*
 #* @tag phenotype
 #* @serializer json list(na="string")
@@ -127,6 +144,9 @@ function(res,
     left_join(phenotype_list_join, by = c("y" = "HPO_term")) %>%
     select(x, x_id, y, y_id = phenotype_id, value)
 
+  # Note: cluster_id is not included because phenotype pairs don't map to
+  # entity clusters (see documentation above). Frontend should link to
+  # /Phenotypes/ filtered by phenotype pair.
   phenotypes_corr_melted_ids
 }
 
