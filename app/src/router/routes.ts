@@ -137,6 +137,20 @@ export const routes: RouteRecordRaw[] = [
     },
   },
   // ─────────────────────────────────────────────────────────────────────────────
+  // UNIFIED ANALYSIS VIEW (Combines Phenotype Clusters, Gene Networks, Correlation)
+  // ─────────────────────────────────────────────────────────────────────────────
+  {
+    path: '/Analysis',
+    name: 'Analysis',
+    component: () => import('@/views/AnalysisView.vue'),
+    meta: {
+      sitemap: {
+        priority: 0.8,
+        changefreq: 'monthly',
+      },
+    },
+  },
+  // ─────────────────────────────────────────────────────────────────────────────
   // NEW ROUTE FOR PHENO-FUNC CORRELATION
   // ─────────────────────────────────────────────────────────────────────────────
   {
