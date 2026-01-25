@@ -67,6 +67,10 @@ Recent v6-relevant decisions:
 - **Bulk 20-user limit** (29-01): Enforce 20 user maximum per bulk request to prevent timeouts
 - **Admin deletion protection** (29-01): Reject bulk delete if any user is Administrator (prevents accidental admin deletion)
 - **Atomic transaction semantics** (29-01): Use all-or-nothing transactions for bulk operations (data consistency)
+- **Set-based selection** (29-02): Reactive Set (not array) for O(1) lookups, always create new Set for Vue reactivity
+- **VueUse useLocalStorage** (29-02): Reactive localStorage binding for filter presets with custom serializer
+- **Deep copy on filter save/load** (29-02): JSON.parse(JSON.stringify()) prevents mutation bugs
+- **Selection limit returns false** (29-02): toggleSelection returns boolean (not throw) for non-blocking UX
 
 ### Pending Todos
 
@@ -81,11 +85,11 @@ None yet.
 
 ## Session Continuity
 
-**Last session:** 2026-01-25
-**Stopped at:** Phase 28 complete (all 3 plans executed and verified)
+**Last session:** 2026-01-25 21:16 UTC
+**Stopped at:** Completed 29-02-PLAN.md (Frontend Composables)
 **Resume file:** None
-**Next action:** `/gsd:discuss-phase 29` or `/gsd:plan-phase 29` for User Management Workflows
+**Next action:** Execute 29-03-PLAN.md (ManageUser.vue component)
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-25 — Phase 28 complete (Table Foundation)*
+*Last updated: 2026-01-25 — Phase 29 Plan 02 complete (User Management Workflows)*
