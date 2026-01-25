@@ -507,3 +507,78 @@ function(req,
   res$status <- 200
   stats_list
 }
+
+
+#* Get Contributor Leaderboard
+#*
+#* This endpoint retrieves the top contributors ranked by entity count.
+#*
+#* # `Details`
+#* Aggregates entity counts per user, returning the top N contributors.
+#* Supports optional date range filtering.
+#*
+#* # `Authorization`
+#* Only Administrators can access this endpoint.
+#*
+#* # `Return`
+#* Returns a list with 'data' containing user_name and entity_count for each contributor.
+#*
+#* @tag statistics
+#* @serializer json list(na="string")
+#* @param top Number of top contributors to return (default: 10)
+#* @param start_date Optional start date for filtering (YYYY-MM-DD)
+#* @param end_date Optional end date for filtering (YYYY-MM-DD)
+#* @param scope Either "all_time" or "range" - determines whether to use date filtering
+#* @get /contributor_leaderboard
+function(req, res, top = 10, start_date = NULL, end_date = NULL, scope = "all_time") {
+  require_role(req, res, "Administrator")
+
+  # Get entity data with user info
+  entity_data <- pool %>%
+    tbl("ndd_entity") %>%
+    select(entity_id, created_by, entry_date, is_active, ndd_phenotype) %>%
+    collect() %>%
+    filter(is_active == 1) %>%
+    mutate(ndd_phenotype = case_when(
+      ndd_phenotype == 1 ~ "Yes",
+      ndd_phenotype == 0 ~ "No"
+    )) %>%
+    filter(ndd_phenotype == "Yes")
+
+  # Apply date range filter if scope is "range" and dates provided
+  if (scope == "range" && !is.null(start_date) && !is.null(end_date)) {
+    entity_data <- entity_data %>%
+      filter(entry_date >= as.Date(start_date) & entry_date <= as.Date(end_date))
+  }
+
+  # Get user table for names
+  user_data <- pool %>%
+    tbl("user") %>%
+    select(user_id, user_name, first_name, family_name) %>%
+    collect()
+
+  # Aggregate by creator and join with user names
+  leaderboard <- entity_data %>%
+    group_by(created_by) %>%
+    summarise(entity_count = n()) %>%
+    arrange(desc(entity_count)) %>%
+    head(as.integer(top)) %>%
+    left_join(user_data, by = c("created_by" = "user_id")) %>%
+    mutate(display_name = ifelse(
+      !is.na(first_name) & !is.na(family_name),
+      paste(first_name, family_name),
+      user_name
+    )) %>%
+    select(user_id = created_by, user_name, display_name, entity_count)
+
+  list(
+    data = leaderboard,
+    meta = list(
+      top = as.integer(top),
+      scope = scope,
+      start_date = start_date,
+      end_date = end_date,
+      total_contributors = nrow(entity_data %>% distinct(created_by))
+    )
+  )
+}
