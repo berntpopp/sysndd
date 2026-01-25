@@ -11,11 +11,10 @@
           <h3>Manage Annotations</h3>
           <BCard
             header-tag="header"
-            align="left"
             body-class="p-1"
             header-class="p-1"
             border-variant="dark"
-            class="mb-3"
+            class="mb-3 text-start"
           >
             <template #header>
               <h5 class="mb-0 text-start font-weight-bold">
@@ -31,59 +30,59 @@
 
             <BButton
               variant="primary"
-              :disabled="loading"
+              :disabled="ontologyJob.isLoading.value"
               @click="updateOntologyAnnotations"
             >
               <BSpinner
-                v-if="loading"
+                v-if="ontologyJob.isLoading.value"
                 small
                 type="grow"
                 class="me-2"
               />
-              {{ loading ? 'Updating...' : 'Update Ontology Annotations' }}
+              {{ ontologyJob.isLoading.value ? 'Updating...' : 'Update Ontology Annotations' }}
             </BButton>
 
             <!-- Progress display -->
             <div
-              v-if="loading || jobStatus"
+              v-if="ontologyJob.isLoading.value || ontologyJob.status.value !== 'idle'"
               class="mt-3"
             >
               <div class="d-flex align-items-center mb-2">
                 <span
                   class="badge me-2"
-                  :class="statusBadgeClass"
+                  :class="ontologyJob.statusBadgeClass.value"
                 >
-                  {{ jobStatus || 'starting' }}
+                  {{ ontologyJob.status.value }}
                 </span>
-                <span class="text-muted">{{ jobStep }}</span>
+                <span class="text-muted">{{ ontologyJob.step.value }}</span>
               </div>
 
               <BProgress
-                v-if="loading"
-                :value="hasRealProgress ? progressPercent : 100"
+                v-if="ontologyJob.isLoading.value"
+                :value="ontologyJob.hasRealProgress.value ? ontologyJob.progressPercent.value : 100"
                 :max="100"
                 :animated="true"
-                :striped="!hasRealProgress"
-                :variant="progressVariant"
+                :striped="!ontologyJob.hasRealProgress.value"
+                :variant="(ontologyJob.progressVariant.value as 'primary' | 'success' | 'danger')"
                 height="1.5rem"
               >
                 <template #default>
-                  <span v-if="hasRealProgress">{{ progressPercent }}% - {{ currentStepLabel }}</span>
-                  <span v-else>{{ currentStepLabel }} ({{ elapsedTimeDisplay }})</span>
+                  <span v-if="ontologyJob.hasRealProgress.value">{{ ontologyJob.progressPercent.value }}% - {{ ontologyStepLabel }}</span>
+                  <span v-else>{{ ontologyStepLabel }} ({{ ontologyJob.elapsedTimeDisplay.value }})</span>
                 </template>
               </BProgress>
 
               <div
-                v-if="jobProgress.current && jobProgress.total"
+                v-if="ontologyJob.progress.value.current && ontologyJob.progress.value.total"
                 class="small text-muted mt-1"
               >
-                Step {{ jobProgress.current }} of {{ jobProgress.total }}
+                Step {{ ontologyJob.progress.value.current }} of {{ ontologyJob.progress.value.total }}
               </div>
               <div
-                v-else-if="loading"
+                v-else-if="ontologyJob.isLoading.value"
                 class="small text-muted mt-1"
               >
-                Elapsed: {{ elapsedTimeDisplay }} — This may take several minutes...
+                Elapsed: {{ ontologyJob.elapsedTimeDisplay.value }} - This may take several minutes...
               </div>
             </div>
           </BCard>
@@ -98,11 +97,10 @@
         >
           <BCard
             header-tag="header"
-            align="left"
             body-class="p-1"
             header-class="p-1"
             border-variant="dark"
-            class="mb-3"
+            class="mb-3 text-start"
           >
             <template #header>
               <h5 class="mb-0 text-start font-weight-bold">
@@ -118,16 +116,61 @@
 
             <BButton
               variant="primary"
-              :disabled="loadingHgnc"
+              :disabled="hgncJob.isLoading.value"
               @click="updateHgncData"
             >
               <BSpinner
-                v-if="loadingHgnc"
+                v-if="hgncJob.isLoading.value"
                 small
                 type="grow"
+                class="me-2"
               />
-              {{ loadingHgnc ? 'Updating...' : 'Update HGNC Data' }}
+              {{ hgncJob.isLoading.value ? 'Updating...' : 'Update HGNC Data' }}
             </BButton>
+
+            <!-- HGNC Progress display -->
+            <div
+              v-if="hgncJob.isLoading.value || hgncJob.status.value !== 'idle'"
+              class="mt-3"
+            >
+              <div class="d-flex align-items-center mb-2">
+                <span
+                  class="badge me-2"
+                  :class="hgncJob.statusBadgeClass.value"
+                >
+                  {{ hgncJob.status.value }}
+                </span>
+                <span class="text-muted">{{ hgncJob.step.value }}</span>
+              </div>
+
+              <BProgress
+                v-if="hgncJob.isLoading.value"
+                :value="hgncJob.hasRealProgress.value ? hgncJob.progressPercent.value : 100"
+                :max="100"
+                :animated="true"
+                :striped="!hgncJob.hasRealProgress.value"
+                :variant="(hgncJob.progressVariant.value as 'primary' | 'success' | 'danger')"
+                height="1.5rem"
+              >
+                <template #default>
+                  <span v-if="hgncJob.hasRealProgress.value">{{ hgncJob.progressPercent.value }}% - {{ hgncStepLabel }}</span>
+                  <span v-else>{{ hgncStepLabel }} ({{ hgncJob.elapsedTimeDisplay.value }})</span>
+                </template>
+              </BProgress>
+
+              <div
+                v-if="hgncJob.progress.value.current && hgncJob.progress.value.total"
+                class="small text-muted mt-1"
+              >
+                Step {{ hgncJob.progress.value.current }} of {{ hgncJob.progress.value.total }}
+              </div>
+              <div
+                v-else-if="hgncJob.isLoading.value"
+                class="small text-muted mt-1"
+              >
+                Elapsed: {{ hgncJob.elapsedTimeDisplay.value }} - Downloading and processing HGNC data...
+              </div>
+            </div>
           </BCard>
         </BCol>
       </BRow>
@@ -140,11 +183,10 @@
         >
           <BCard
             header-tag="header"
-            align="left"
             body-class="p-2"
             header-class="p-1"
             border-variant="dark"
-            class="mb-3"
+            class="mb-3 text-start"
           >
             <template #header>
               <h5 class="mb-0 text-start font-weight-bold d-flex align-items-center">
@@ -215,7 +257,7 @@
               >
                 <template #cell(entity_id)="data">
                   <router-link
-                    :to="{ name: 'Entity', params: { entity_id: data.value } }"
+                    :to="{ name: 'Entity', params: { entity_id: String(data.value) } }"
                     class="text-decoration-none"
                   >
                     <span class="badge bg-primary">sysndd:{{ data.value }}</span>
@@ -223,7 +265,7 @@
                 </template>
                 <template #cell(symbol)="data">
                   <router-link
-                    :to="{ name: 'Gene', params: { symbol: data.value } }"
+                    :to="{ name: 'Gene', params: { symbol: String(data.value) } }"
                     class="text-decoration-none fw-bold"
                   >
                     {{ data.value }}
@@ -232,7 +274,7 @@
                 <template #cell(disease_ontology_id)="data">
                   <div class="d-flex flex-column">
                     <a
-                      :href="`https://omim.org/entry/${data.value.replace('OMIM:', '')}`"
+                      :href="`https://omim.org/entry/${String(data.value).replace('OMIM:', '')}`"
                       target="_blank"
                       class="text-danger text-decoration-none"
                     >
@@ -264,7 +306,7 @@
                     >
                       <span class="badge bg-success me-1">Suggested</span>
                       <a
-                        :href="`https://omim.org/entry/${data.item.replacement_omim_id.replace('OMIM:', '')}`"
+                        :href="`https://omim.org/entry/${String(data.item.replacement_omim_id).replace('OMIM:', '')}`"
                         target="_blank"
                         class="text-decoration-none text-success fw-bold"
                       >
@@ -284,7 +326,7 @@
                         {{ data.item.replacement_mondo_id }}
                       </a>
                       <span v-if="data.item.replacement_mondo_label">
-                        ({{ truncateText(data.item.replacement_mondo_label, 30) }})
+                        ({{ truncateText(String(data.item.replacement_mondo_label), 30) }})
                       </span>
                     </small>
                   </div>
@@ -305,21 +347,21 @@
                   <small
                     v-if="data.value"
                     class="text-muted deprecation-reason"
-                    :title="data.value"
+                    :title="String(data.value)"
                   >
-                    {{ truncateText(data.value, 80) }}
+                    {{ truncateText(String(data.value), 80) }}
                   </small>
                   <span
                     v-else
                     class="text-muted small"
                   >
-                    —
+                    -
                   </span>
                 </template>
                 <template #cell(category)="data">
                   <span
                     class="badge"
-                    :class="categoryBadgeClass(data.value)"
+                    :class="categoryBadgeClass(String(data.value))"
                   >
                     {{ data.value }}
                   </span>
@@ -333,332 +375,253 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, computed, onMounted, watch } from 'vue';
+import axios from 'axios';
 import useToast from '@/composables/useToast';
+import { useAsyncJob } from '@/composables/useAsyncJob';
 
-export default {
-  name: 'ManageAnnotations',
-  setup() {
-    const { makeToast } = useToast();
-    return { makeToast };
+// Composables
+const { makeToast } = useToast();
+
+// Create job instances for ontology and HGNC updates
+const ontologyJob = useAsyncJob(
+  (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`,
+);
+const hgncJob = useAsyncJob(
+  (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`,
+);
+
+// Reactive state
+const annotationDates = ref({
+  omim_update: null as string | null,
+  hgnc_update: null as string | null,
+  mondo_update: null as string | null,
+  disease_ontology_update: null as string | null,
+});
+
+const loadingDeprecated = ref(false);
+const deprecatedData = ref({
+  deprecated_count: null as number | null,
+  affected_entity_count: 0,
+  affected_entities: [] as Array<Record<string, unknown>>,
+  mim2gene_date: null as string | null,
+  message: null as string | null,
+});
+
+const deprecatedTableFields = [
+  { key: 'entity_id', label: 'Entity', sortable: true },
+  { key: 'symbol', label: 'Gene', sortable: true },
+  { key: 'disease_ontology_id', label: 'Deprecated OMIM', sortable: true },
+  { key: 'replacement_suggestion', label: 'Replacement', sortable: false },
+  { key: 'deprecation_reason', label: 'Reason', sortable: false },
+  { key: 'category', label: 'Category', sortable: true },
+];
+
+// Computed properties for step labels
+const ontologyStepLabel = computed(() => {
+  if (!ontologyJob.step.value) return 'Initializing...';
+  if (ontologyJob.step.value.length > 40) {
+    return ontologyJob.step.value.substring(0, 37) + '...';
+  }
+  return ontologyJob.step.value;
+});
+
+const hgncStepLabel = computed(() => {
+  if (!hgncJob.step.value) return 'Initializing...';
+  if (hgncJob.step.value.length > 40) {
+    return hgncJob.step.value.substring(0, 37) + '...';
+  }
+  return hgncJob.step.value;
+});
+
+// Watch for job completion/failure
+watch(
+  () => ontologyJob.status.value,
+  (newStatus) => {
+    if (newStatus === 'completed') {
+      makeToast('Ontology annotations updated successfully', 'Success', 'success');
+      fetchAnnotationDates();
+    } else if (newStatus === 'failed') {
+      const errorMsg = ontologyJob.error.value || 'Ontology update failed';
+      makeToast(errorMsg, 'Error', 'danger');
+    }
   },
-  data() {
-    return {
-      loading: false, // Indicates the loading state of the API call
-      loadingHgnc: false, // Loading state for HGNC data update
-      // Async job state for ontology updates
-      jobId: null,
-      jobStatus: null,
-      jobStep: '',
-      pollInterval: null,
-      jobProgress: {
-        current: 0,
-        total: 0,
+);
+
+watch(
+  () => hgncJob.status.value,
+  (newStatus) => {
+    if (newStatus === 'completed') {
+      makeToast('HGNC data updated successfully', 'Success', 'success');
+      fetchAnnotationDates();
+    } else if (newStatus === 'failed') {
+      const errorMsg = hgncJob.error.value || 'HGNC update failed';
+      makeToast(errorMsg, 'Error', 'danger');
+    }
+  },
+);
+
+// Methods
+async function fetchAnnotationDates() {
+  try {
+    const response = await axios.get(
+      `${import.meta.env.VITE_API_URL}/api/admin/annotation_dates`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
       },
-      jobStartTime: null,
-      elapsedSeconds: 0,
-      elapsedTimer: null,
-      // Last update dates for annotations
-      annotationDates: {
-        omim_update: null,
-        hgnc_update: null,
-        mondo_update: null,
-        disease_ontology_update: null,
-      },
-      // Deprecated entities data
-      loadingDeprecated: false,
-      deprecatedData: {
-        deprecated_count: null,
-        affected_entity_count: 0,
-        affected_entities: [],
-        mim2gene_date: null,
-        message: null,
-      },
-      deprecatedTableFields: [
-        { key: 'entity_id', label: 'Entity', sortable: true },
-        { key: 'symbol', label: 'Gene', sortable: true },
-        { key: 'disease_ontology_id', label: 'Deprecated OMIM', sortable: true },
-        { key: 'replacement_suggestion', label: 'Replacement', sortable: false },
-        { key: 'deprecation_reason', label: 'Reason', sortable: false },
-        { key: 'category', label: 'Category', sortable: true },
-      ],
+    );
+    const data = response.data;
+    annotationDates.value = {
+      omim_update: Array.isArray(data.omim_update) ? data.omim_update[0] : data.omim_update,
+      hgnc_update: Array.isArray(data.hgnc_update) ? data.hgnc_update[0] : data.hgnc_update,
+      mondo_update: Array.isArray(data.mondo_update) ? data.mondo_update[0] : data.mondo_update,
+      disease_ontology_update: Array.isArray(data.disease_ontology_update)
+        ? data.disease_ontology_update[0]
+        : data.disease_ontology_update,
     };
-  },
-  computed: {
-    hasRealProgress() {
-      return this.jobProgress.total > 0;
-    },
-    progressPercent() {
-      if (this.jobProgress.total > 0) {
-        return Math.round((this.jobProgress.current / this.jobProgress.total) * 100);
-      }
-      // No real progress data - return null to trigger indeterminate mode
-      return null;
-    },
-    elapsedTimeDisplay() {
-      const mins = Math.floor(this.elapsedSeconds / 60);
-      const secs = this.elapsedSeconds % 60;
-      if (mins > 0) {
-        return `${mins}m ${secs}s`;
-      }
-      return `${secs}s`;
-    },
-    progressVariant() {
-      if (this.jobStatus === 'failed') return 'danger';
-      if (this.jobStatus === 'completed') return 'success';
-      return 'primary';
-    },
-    statusBadgeClass() {
-      const classes = {
-        accepted: 'bg-info',
-        running: 'bg-primary',
-        completed: 'bg-success',
-        failed: 'bg-danger',
-      };
-      return classes[this.jobStatus] || 'bg-secondary';
-    },
-    currentStepLabel() {
-      if (!this.jobStep) return 'Initializing...';
-      // Shorten long step names
-      if (this.jobStep.length > 40) {
-        return this.jobStep.substring(0, 37) + '...';
-      }
-      return this.jobStep;
-    },
-  },
-  mounted() {
-    this.fetchAnnotationDates();
-  },
-  beforeUnmount() {
-    this.stopPolling();
-    this.stopElapsedTimer();
-  },
-  methods: {
-    async fetchAnnotationDates() {
-      try {
-        const response = await this.axios.get(
-          `${import.meta.env.VITE_API_URL}/api/admin/annotation_dates`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          },
-        );
-        const data = response.data;
-        this.annotationDates = {
-          omim_update: Array.isArray(data.omim_update) ? data.omim_update[0] : data.omim_update,
-          hgnc_update: Array.isArray(data.hgnc_update) ? data.hgnc_update[0] : data.hgnc_update,
-          mondo_update: Array.isArray(data.mondo_update) ? data.mondo_update[0] : data.mondo_update,
-          disease_ontology_update: Array.isArray(data.disease_ontology_update) ? data.disease_ontology_update[0] : data.disease_ontology_update,
-        };
-      } catch (error) {
-        // Silently fail - dates are optional enhancement
-        console.warn('Failed to fetch annotation dates:', error);
-      }
-    },
-    formatDate(dateString) {
-      if (!dateString) return '';
-      // Handle both date-only (YYYY-MM-DD) and datetime formats
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return dateString;
-      return date.toLocaleDateString();
-    },
-    categoryBadgeClass(category) {
-      const classes = {
-        Definitive: 'bg-success',
-        Moderate: 'bg-info',
-        Limited: 'bg-warning text-dark',
-        Refuted: 'bg-danger',
-      };
-      return classes[category] || 'bg-secondary';
-    },
-    // Truncate text with ellipsis for display
-    truncateText(text, maxLength) {
-      if (!text || text.length <= maxLength) return text;
-      return `${text.substring(0, maxLength)}...`;
-    },
-    // Helper to unwrap R/Plumber array values (scalars come as single-element arrays)
-    unwrapValue(val) {
-      return Array.isArray(val) && val.length === 1 ? val[0] : val;
-    },
-    async fetchDeprecatedEntities() {
-      this.loadingDeprecated = true;
-      try {
-        const response = await this.axios.get(
-          `${import.meta.env.VITE_API_URL}/api/admin/deprecated_entities`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          },
-        );
-        const data = response.data;
-        // Unwrap entity fields (R/Plumber returns scalars as single-element arrays)
-        const unwrappedEntities = (data.affected_entities || []).map((entity) => {
-          const unwrapped = {};
-          Object.keys(entity).forEach((key) => {
-            unwrapped[key] = this.unwrapValue(entity[key]);
-          });
-          return unwrapped;
+  } catch (error) {
+    // Silently fail - dates are optional enhancement
+    console.warn('Failed to fetch annotation dates:', error);
+  }
+}
+
+function formatDate(dateString: string | null): string {
+  if (!dateString) return '';
+  // Handle both date-only (YYYY-MM-DD) and datetime formats
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString;
+  return date.toLocaleDateString();
+}
+
+function categoryBadgeClass(category: string): string {
+  const classes: Record<string, string> = {
+    Definitive: 'bg-success',
+    Moderate: 'bg-info',
+    Limited: 'bg-warning text-dark',
+    Refuted: 'bg-danger',
+  };
+  return classes[category] || 'bg-secondary';
+}
+
+function truncateText(text: string | null, maxLength: number): string {
+  if (!text || text.length <= maxLength) return text || '';
+  return `${text.substring(0, maxLength)}...`;
+}
+
+// Helper to unwrap R/Plumber array values (scalars come as single-element arrays)
+function unwrapValue<T>(val: T | T[]): T {
+  return Array.isArray(val) && val.length === 1 ? val[0] : (val as T);
+}
+
+async function fetchDeprecatedEntities() {
+  loadingDeprecated.value = true;
+  try {
+    const response = await axios.get(
+      `${import.meta.env.VITE_API_URL}/api/admin/deprecated_entities`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      },
+    );
+    const data = response.data;
+    // Unwrap entity fields (R/Plumber returns scalars as single-element arrays)
+    const unwrappedEntities = (data.affected_entities || []).map(
+      (entity: Record<string, unknown>) => {
+        const unwrapped: Record<string, unknown> = {};
+        Object.keys(entity).forEach((key) => {
+          unwrapped[key] = unwrapValue(entity[key]);
         });
-        this.deprecatedData = {
-          deprecated_count: this.unwrapValue(data.deprecated_count),
-          affected_entity_count: this.unwrapValue(data.affected_entity_count) || 0,
-          affected_entities: unwrappedEntities,
-          mim2gene_date: this.unwrapValue(data.mim2gene_date),
-          message: this.unwrapValue(data.message),
-        };
-        if (this.deprecatedData.affected_entity_count > 0) {
-          this.makeToast(
-            `Found ${this.deprecatedData.affected_entity_count} entities using deprecated OMIM IDs`,
-            'Review Needed',
-            'warning',
-          );
-        } else {
-          this.makeToast('No entities affected by deprecated OMIM IDs', 'Check Complete', 'success');
-        }
-      } catch (error) {
-        this.makeToast('Failed to check deprecated entities', 'Error', 'danger');
-        console.error('Failed to fetch deprecated entities:', error);
-      } finally {
-        this.loadingDeprecated = false;
-      }
-    },
-    async updateOntologyAnnotations() {
-      this.loading = true;
-      this.jobStatus = null;
-      this.jobStep = 'Starting update...';
-      this.jobProgress = { current: 0, total: 0 };
-      this.jobStartTime = Date.now();
-      this.elapsedSeconds = 0;
-      this.startElapsedTimer();
+        return unwrapped;
+      },
+    );
+    deprecatedData.value = {
+      deprecated_count: unwrapValue(data.deprecated_count),
+      affected_entity_count: unwrapValue(data.affected_entity_count) || 0,
+      affected_entities: unwrappedEntities,
+      mim2gene_date: unwrapValue(data.mim2gene_date),
+      message: unwrapValue(data.message),
+    };
+    if (deprecatedData.value.affected_entity_count > 0) {
+      makeToast(
+        `Found ${deprecatedData.value.affected_entity_count} entities using deprecated OMIM IDs`,
+        'Review Needed',
+        'warning',
+      );
+    } else {
+      makeToast('No entities affected by deprecated OMIM IDs', 'Check Complete', 'success');
+    }
+  } catch (error) {
+    makeToast('Failed to check deprecated entities', 'Error', 'danger');
+    console.error('Failed to fetch deprecated entities:', error);
+  } finally {
+    loadingDeprecated.value = false;
+  }
+}
 
-      try {
-        // Call async endpoint
-        const response = await this.axios.put(
-          `${import.meta.env.VITE_API_URL}/api/admin/update_ontology_async`,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          },
-        );
+async function updateOntologyAnnotations() {
+  // Reset and prepare job
+  ontologyJob.reset();
 
-        if (response.data.error) {
-          this.makeToast(response.data.message || 'Failed to start update', 'Error', 'danger');
-          this.loading = false;
-          return;
-        }
+  try {
+    // Call async endpoint
+    const response = await axios.put(
+      `${import.meta.env.VITE_API_URL}/api/admin/update_ontology_async`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      },
+    );
 
-        this.jobId = response.data.job_id;
-        this.jobStatus = 'accepted';
-        this.jobStep = 'Job submitted, starting...';
+    if (response.data.error) {
+      makeToast(response.data.message || 'Failed to start update', 'Error', 'danger');
+      return;
+    }
 
-        // Start polling
-        this.startPolling();
-      } catch (error) {
-        this.makeToast('Failed to start ontology update', 'Error', 'danger');
-        this.loading = false;
-      }
-    },
-    startPolling() {
-      // Poll every 3 seconds
-      this.pollInterval = setInterval(async () => {
-        await this.checkJobStatus();
-      }, 3000);
-    },
-    stopPolling() {
-      if (this.pollInterval) {
-        clearInterval(this.pollInterval);
-        this.pollInterval = null;
-      }
-      this.stopElapsedTimer();
-    },
-    startElapsedTimer() {
-      this.elapsedTimer = setInterval(() => {
-        this.elapsedSeconds = Math.floor((Date.now() - this.jobStartTime) / 1000);
-      }, 1000);
-    },
-    stopElapsedTimer() {
-      if (this.elapsedTimer) {
-        clearInterval(this.elapsedTimer);
-        this.elapsedTimer = null;
-      }
-    },
-    async checkJobStatus() {
-      if (!this.jobId) return;
+    // Start tracking the job
+    ontologyJob.startJob(response.data.job_id);
+  } catch (error) {
+    makeToast('Failed to start ontology update', 'Error', 'danger');
+  }
+}
 
-      try {
-        const response = await this.axios.get(
-          `${import.meta.env.VITE_API_URL}/api/jobs/${this.jobId}/status`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          },
-        );
+async function updateHgncData() {
+  // Reset and prepare job
+  hgncJob.reset();
 
-        const data = response.data;
+  try {
+    // Call async endpoint
+    const response = await axios.post(
+      `${import.meta.env.VITE_API_URL}/api/jobs/hgnc_update/submit`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      },
+    );
 
-        if (data.error === 'JOB_NOT_FOUND') {
-          this.stopPolling();
-          this.makeToast('Job not found', 'Error', 'danger');
-          this.loading = false;
-          return;
-        }
+    if (response.data.error) {
+      makeToast(response.data.message || 'Failed to start HGNC update', 'Error', 'danger');
+      return;
+    }
 
-        // Handle array values from R/Plumber API (extracts first element if array)
-        this.jobStatus = Array.isArray(data.status) ? data.status[0] : data.status;
-        const stepValue = Array.isArray(data.step) ? data.step[0] : data.step;
-        this.jobStep = stepValue || this.jobStep;
+    // Start tracking the job
+    hgncJob.startJob(response.data.job_id);
+  } catch (error) {
+    makeToast('Failed to start HGNC update', 'Error', 'danger');
+  }
+}
 
-        // Update progress if provided
-        if (data.progress) {
-          this.jobProgress = {
-            current: data.progress.current || 0,
-            total: data.progress.total || 0,
-          };
-        }
-
-        if (data.status === 'completed') {
-          this.stopPolling();
-          this.loading = false;
-          this.makeToast('Ontology annotations updated successfully', 'Success', 'success');
-          // Refresh annotation dates after successful update
-          this.fetchAnnotationDates();
-        } else if (data.status === 'failed') {
-          this.stopPolling();
-          this.loading = false;
-          const errorMsg = data.error?.message || 'Update failed';
-          this.makeToast(errorMsg, 'Error', 'danger');
-        }
-        // If still running, polling continues
-      } catch (error) {
-        this.stopPolling();
-        this.loading = false;
-        this.makeToast('Failed to check job status', 'Error', 'danger');
-      }
-    },
-    async updateHgncData() {
-      this.loadingHgnc = true;
-      try {
-        const response = await this.axios.put(`${import.meta.env.VITE_API_URL}/api/admin/update_hgnc_data`, {}, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-        this.makeToast('HGNC data updated successfully', 'Success', 'success');
-        // Refresh annotation dates after successful update
-        this.fetchAnnotationDates();
-      } catch (error) {
-        this.makeToast('Failed to update HGNC data', 'Error', 'danger');
-      } finally {
-        this.loadingHgnc = false;
-      }
-    },
-  },
-};
+// Lifecycle
+onMounted(() => {
+  fetchAnnotationDates();
+});
 </script>
 
 <style scoped>
