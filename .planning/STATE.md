@@ -6,95 +6,76 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v6.0 Admin Panel Modernization
+**Current focus:** v6.0 Admin Panel Modernization — Phase 28
 
 ## Current Position
 
 **Milestone:** v6.0 Admin Panel Modernization
-**Phase:** Not started (defining requirements)
+**Phase:** 28 of 33 (Table Foundation)
 **Plan:** —
-**Status:** Defining requirements
-**Last activity:** 2026-01-25 — Milestone v6.0 started
+**Status:** Ready to plan
+**Last activity:** 2026-01-25 — Roadmap created for v6.0
 
 ```
-v6 Admin Panel Modernization: PLANNING
-Goal: Transform admin views into modern, feature-rich management interfaces
-Progress: ░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 0%
+v6.0 Admin Panel Modernization: [░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 0%
+Phase 28 Table Foundation: [░░░░░░░░░░] 0/TBD plans
 ```
 
-## Completed Milestones
+## Performance Metrics
 
-| Milestone | Phases | Plans | Shipped | Archive |
-|-----------|--------|-------|---------|---------|
-| v1 Developer Experience | 1-5 | 19 | 2026-01-21 | milestones/v1-* |
-| v2 Docker Infrastructure | 6-9 | 8 | 2026-01-22 | milestones/v2-* |
-| v3 Frontend Modernization | 10-17 | 53 | 2026-01-23 | milestones/03-frontend-modernization/ |
-| v4 Backend Overhaul | 18-24 | 42 | 2026-01-24 | milestones/v4-* |
-| v5 Analysis Modernization | 25-27 | 16 | 2026-01-25 | milestones/v5.0-* |
+**Velocity (across all milestones):**
+- Total plans completed: 138
+- Milestones shipped: 5 (v1-v5)
+- Phases completed: 27
 
-**Total:** 27 phases, 138 plans shipped across 5 milestones
+**By Milestone:**
 
-## v5.0 Summary
+| Milestone | Phases | Plans | Shipped |
+|-----------|--------|-------|---------|
+| v1 Developer Experience | 1-5 | 19 | 2026-01-21 |
+| v2 Docker Infrastructure | 6-9 | 8 | 2026-01-22 |
+| v3 Frontend Modernization | 10-17 | 53 | 2026-01-23 |
+| v4 Backend Overhaul | 18-24 | 42 | 2026-01-24 |
+| v5 Analysis Modernization | 25-27 | 16 | 2026-01-25 |
 
-**Delivered:**
-- Leiden clustering (2-3x faster than Walktrap)
-- Cytoscape.js network visualization with real PPI edges (66k+ edges)
-- URL-synced filters with wildcard search (PKD*, BRCA?)
-- Analysis tabs with bidirectional table-network interaction
-- PhenotypeClusters migrated from D3 to Cytoscape
-- ColorLegend, enhanced tooltips, download buttons
+**v6.0 Progress:**
+- Plans completed: 0
+- Average duration: TBD
+- Trend: Starting
 
-**Minor tech debt (non-blocking):**
-- FDR column sorting needs sortCompare
-- ScoreSlider presets need domain-specific values
-- Correlation heatmap → cluster navigation (architectural)
+*Updated after each plan completion*
 
-## GitHub Issues
+## Accumulated Context
 
-| Issue | Description | Status |
-|-------|-------------|--------|
-| #109 | Refactor sysndd_plumber.R into smaller endpoint files | Ready for PR (v4 complete) |
-| #123 | Implement comprehensive testing | Foundation complete, integration tests added |
-
-## Tech Debt
-
-**Remaining (non-blocking):**
-- Job workers cannot access pool (pre-fetch workaround functional)
-- OMIM/MONDO functions worker-sourced, not global (works for async use case)
-- entity_endpoints.R uses old pagination (pre-existing)
-- Vue components still .vue JavaScript (not TypeScript)
-- Frontend test coverage ~1.5%
-- FDR sortCompare missing (5-line fix)
-- ScoreSlider presets too high (config change)
-
-**Deferred to v7:**
-- CI/CD pipeline (GitHub Actions)
-- Trivy security scanning
-- Expanded frontend test coverage (40-50%)
-- Vue component TypeScript conversion
-- URL path versioning (/api/v1/)
-- Version displayed in frontend
-
-## Key Decisions
+### Decisions
 
 See PROJECT.md for full decisions table.
 
-Recent v5-relevant decisions:
-- **Leiden over Walktrap**: 2-3x faster clustering, built-in igraph support
-- **Cytoscape.js over D3 force**: Rich algorithms, compound nodes, WebGL support
-- **fcose over cose-bilkent**: 2x speed improvement, active maintenance
-- **VueUse useUrlSearchParams**: Zero boilerplate URL state sync
-- **Non-reactive cy instance**: let cy (not ref()) prevents 100+ layout recalculations
-- **cy.destroy() cleanup**: Prevents 100-300MB memory leaks per navigation
-- **Module-level singleton for useFilterSync**: Simpler than Pinia, sufficient for analysis pages
+Recent v6-relevant decisions:
+- **TablesEntities pattern**: URL state sync via VueUse useUrlSearchParams, module-level caching
+- **ManageAnnotations pattern**: Proper async job cleanup in beforeUnmount, elapsed time display
+- **Bootstrap-Vue-Next 0.42.0**: Has all needed components (BTable, BCard, BModal, BForm)
+- **Chart.js + vue-chartjs**: Chosen for v6 statistics dashboard (~50KB gzipped)
+- **TipTap**: Chosen for v6 CMS editor (~80KB gzipped, TypeScript-native)
+
+### Pending Todos
+
+None yet.
+
+### Blockers/Concerns
+
+**v6.0 planning:**
+- Need to verify mirai job cancellation support during Phase 32 planning
+- Bundle size validation needed during Phase 30-31 (Chart.js + TipTap adds ~130KB)
+- Role permission matrix needs stakeholder validation (Phase 29)
 
 ## Session Continuity
 
 **Last session:** 2026-01-25
-**Stopped at:** v6.0 milestone started, research phase
+**Stopped at:** Roadmap created for v6.0 milestone (Phases 28-33)
 **Resume file:** None
-**Next action:** Complete research, define requirements, create roadmap
+**Next action:** `/gsd:plan-phase 28` to create first phase plan
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-25 — v6.0 milestone started*
+*Last updated: 2026-01-25 — v6.0 roadmap created*

@@ -103,47 +103,55 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TBL-01 | TBD | Pending |
-| TBL-02 | TBD | Pending |
-| TBL-03 | TBD | Pending |
-| TBL-04 | TBD | Pending |
-| TBL-05 | TBD | Pending |
-| TBL-06 | TBD | Pending |
-| USR-01 | TBD | Pending |
-| USR-02 | TBD | Pending |
-| USR-03 | TBD | Pending |
-| USR-04 | TBD | Pending |
-| USR-05 | TBD | Pending |
-| USR-06 | TBD | Pending |
-| USR-07 | TBD | Pending |
-| USR-08 | TBD | Pending |
-| STAT-01 | TBD | Pending |
-| STAT-02 | TBD | Pending |
-| STAT-03 | TBD | Pending |
-| STAT-04 | TBD | Pending |
-| STAT-05 | TBD | Pending |
-| CMS-01 | TBD | Pending |
-| CMS-02 | TBD | Pending |
-| CMS-03 | TBD | Pending |
-| CMS-04 | TBD | Pending |
-| CMS-05 | TBD | Pending |
-| JOB-01 | TBD | Pending |
-| JOB-02 | TBD | Pending |
-| JOB-03 | TBD | Pending |
-| JOB-04 | TBD | Pending |
-| JOB-05 | TBD | Pending |
-| JOB-06 | TBD | Pending |
-| LOG-01 | TBD | Pending |
-| LOG-02 | TBD | Pending |
-| LOG-03 | TBD | Pending |
-| LOG-04 | TBD | Pending |
-| LOG-05 | TBD | Pending |
+| TBL-01 | Phase 28 | Pending |
+| TBL-02 | Phase 28 | Pending |
+| TBL-03 | Phase 28 | Pending |
+| TBL-04 | Phase 28 | Pending |
+| TBL-05 | Phase 28 | Pending |
+| TBL-06 | Phase 28 | Pending |
+| USR-01 | Phase 29 | Pending |
+| USR-02 | Phase 29 | Pending |
+| USR-03 | Phase 29 | Pending |
+| USR-04 | Phase 29 | Pending |
+| USR-05 | Phase 29 | Pending |
+| USR-06 | Phase 29 | Pending |
+| USR-07 | Phase 29 | Pending |
+| USR-08 | Phase 29 | Pending |
+| STAT-01 | Phase 30 | Pending |
+| STAT-02 | Phase 30 | Pending |
+| STAT-03 | Phase 30 | Pending |
+| STAT-04 | Phase 30 | Pending |
+| STAT-05 | Phase 30 | Pending |
+| CMS-01 | Phase 31 | Pending |
+| CMS-02 | Phase 31 | Pending |
+| CMS-03 | Phase 31 | Pending |
+| CMS-04 | Phase 31 | Pending |
+| CMS-05 | Phase 31 | Pending |
+| JOB-01 | Phase 32 | Pending |
+| JOB-02 | Phase 32 | Pending |
+| JOB-03 | Phase 32 | Pending |
+| JOB-04 | Phase 32 | Pending |
+| JOB-05 | Phase 32 | Pending |
+| JOB-06 | Phase 32 | Pending |
+| LOG-01 | Phase 33 | Pending |
+| LOG-02 | Phase 33 | Pending |
+| LOG-03 | Phase 33 | Pending |
+| LOG-04 | Phase 33 | Pending |
+| LOG-05 | Phase 33 | Pending |
 
 **Coverage:**
 - v6.0 requirements: 35 total
-- Mapped to phases: 0
-- Unmapped: 35
+- Mapped to phases: 35 (100%)
+- Unmapped: 0
+
+**Requirement distribution:**
+- Phase 28 (Table Foundation): 6 requirements
+- Phase 29 (User Management): 8 requirements
+- Phase 30 (Statistics Dashboard): 5 requirements
+- Phase 31 (Content Management): 5 requirements
+- Phase 32 (Async Jobs): 6 requirements
+- Phase 33 (Logging & Analytics): 5 requirements
 
 ---
 *Requirements defined: 2026-01-25*
-*Last updated: 2026-01-25 after initial definition*
+*Last updated: 2026-01-25 — Roadmap created with 100% coverage*
