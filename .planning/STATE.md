@@ -6,20 +6,21 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v6.0 Admin Panel Modernization — Phase 29 (User Management)
+**Current focus:** v6.0 Admin Panel Modernization — Phase 30 (Statistics Dashboard)
 
 ## Current Position
 
 **Milestone:** v6.0 Admin Panel Modernization
-**Phase:** 29 of 33 (User Management Workflows)
-**Plan:** 04 of 04 complete
-**Status:** Phase complete
-**Last activity:** 2026-01-25 — Completed 29-04-PLAN.md (Bulk Actions & Filter Presets)
+**Phase:** 30 of 33 (Statistics Dashboard)
+**Plan:** 02 of 03 complete
+**Status:** In progress
+**Last activity:** 2026-01-25 — Completed 30-02-PLAN.md (Contributor Leaderboard API)
 
 ```
-v6.0 Admin Panel Modernization: [██████░░░░░░░░░░░░░░░░░░░░░░] 24%
-Phase 28 Table Foundation: [██████████] 3/3 plans ✓
-Phase 29 User Management:   [██████████] 4/4 plans ✓
+v6.0 Admin Panel Modernization: [███████░░░░░░░░░░░░░░░░░░░░░] 28%
+Phase 28 Table Foundation:   [██████████] 3/3 plans ✓
+Phase 29 User Management:    [██████████] 4/4 plans ✓
+Phase 30 Statistics Dashboard: [██████░░░░] 2/3 plans
 ```
 
 ## Performance Metrics
@@ -40,9 +41,9 @@ Phase 29 User Management:   [██████████] 4/4 plans ✓
 | v5 Analysis Modernization | 25-27 | 16 | 2026-01-25 |
 
 **v6.0 Progress:**
-- Plans completed: 7
+- Plans completed: 9
 - Phases completed: 2 (Phases 28-29)
-- Average duration: 3.1min
+- Average duration: 2.8min
 - Trend: Strong velocity
 
 *Updated after each plan completion*
@@ -76,6 +77,7 @@ Recent v6-relevant decisions:
 - **Dropdown for role selection** (29-04): Use BFormSelect dropdown instead of prompt() for better UX and validation
 - **Frontend admin protection** (29-04): Block bulk delete if admins in selection before showing modal (fail fast)
 - **Default filter presets** (29-04): Initialize "Pending" and "Curators" presets on first mount for common workflows
+- **Contributor leaderboard API** (30-02): Return top N users by entity count with date range filtering, Administrator-only
 
 ### Pending Todos
 
@@ -90,11 +92,11 @@ None yet.
 
 ## Session Continuity
 
-**Last session:** 2026-01-25 21:29 UTC
-**Stopped at:** Completed 29-04-PLAN.md (Bulk Actions & Filter Presets) — Phase 29 complete
+**Last session:** 2026-01-25 21:50 UTC
+**Stopped at:** Completed 30-02-PLAN.md (Contributor Leaderboard API)
 **Resume file:** None
-**Next action:** Execute Phase 30 plans (Role Management) or continue with v6.0
+**Next action:** Execute 30-03-PLAN.md (Statistics Dashboard Frontend)
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-25 — Phase 29 complete (User Management Workflows)*
+*Last updated: 2026-01-25 — Completed 30-02 (Contributor Leaderboard API)*
