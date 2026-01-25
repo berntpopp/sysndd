@@ -263,3 +263,18 @@ export interface NetworkEdgesParams {
   /** Maximum edges to return (default 10000, 0 for all). High confidence edges prioritized. */
   max_edges?: number | string;
 }
+
+// ============================================================================
+// Bulk Operations
+// ============================================================================
+
+/**
+ * Response type for bulk user operations (approve, delete, role assignment)
+ */
+export interface BulkActionResult {
+  success: boolean;
+  processed: number;
+  failed: number;
+  message: string;
+  errors?: Array<{ user_id: number; error: string }>;
+}

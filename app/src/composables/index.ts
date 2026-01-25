@@ -73,3 +73,11 @@ export type { HighlightState, HoverSource, NetworkHighlightReturn } from './useN
 // Excel export utilities
 export { useExcelExport } from './useExcelExport';
 export type { ExcelExportOptions, UseExcelExportReturn } from './useExcelExport';
+
+// Bulk selection for admin tables
+export { useBulkSelection } from './useBulkSelection';
+export type { BulkSelectionReturn } from './useBulkSelection';
+
+// Filter presets for admin tables
+export { useFilterPresets } from './useFilterPresets';
+export type { FilterPreset, FilterPresetsReturn } from './useFilterPresets';
