@@ -81,3 +81,7 @@ export type { BulkSelectionReturn } from './useBulkSelection';
 // Filter presets for admin tables
 export { useFilterPresets } from './useFilterPresets';
 export type { FilterPreset, FilterPresetsReturn } from './useFilterPresets';
+
+// CMS content management
+export { useMarkdownRenderer, renderMarkdown } from './useMarkdownRenderer';
+export { useCmsContent } from './useCmsContent';
