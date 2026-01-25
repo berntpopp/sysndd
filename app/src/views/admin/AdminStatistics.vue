@@ -56,8 +56,8 @@
             </div>
           </template>
           <p class="text-muted small mb-2">
-            Cumulative entity submissions showing database growth over time.
-            Dashed line shows 3-period moving average for trend smoothing.
+            Cumulative count of gene-disease associations curated over time.
+            The dashed trend line represents a 3-period moving average for temporal smoothing.
           </p>
           <EntityTrendChart
             :entity-data="trendData"
@@ -86,8 +86,8 @@
             </div>
           </template>
           <p class="text-muted small mb-2">
-            Top 10 contributors ranked by number of entity submissions.
-            {{ leaderboardScope === 'all_time' ? 'All-time totals.' : 'Filtered to selected date range.' }}
+            Curator leaderboard ranked by gene-disease association submissions.
+            {{ leaderboardScope === 'all_time' ? 'Cumulative all-time contributions.' : `Contributions within selected ${periodLengthDays} day period.` }}
           </p>
           <ContributorBarChart
             :contributors="leaderboardData"
@@ -305,28 +305,37 @@ const leaderboardScopeOptions = [
   { text: 'Date Range', value: 'range' },
 ];
 
-// KPI cards computed
+// Computed period length for context display
+const periodLengthDays = computed(() => {
+  const startDateObj = new Date(startDate.value);
+  const endDateObj = new Date(endDate.value);
+  return Math.round(
+    Math.abs((endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24))
+  );
+});
+
+// KPI cards computed with scientific context
 const kpiCards = computed(() => [
   {
     label: 'Total Entities',
     value: kpiStats.value.totalEntities,
-    context: 'Active NDD phenotype entries',
+    context: 'Gene-disease associations with NDD phenotype',
   },
   {
     label: 'New This Period',
     value: kpiStats.value.newThisPeriod,
     delta: kpiStats.value.trendDelta,
-    context: 'vs previous equal period',
+    context: `vs previous ${periodLengthDays.value} days`,
   },
   {
     label: 'Contributors',
     value: kpiStats.value.totalContributors,
-    context: 'Users with entity submissions',
+    context: 'Curators with entity submissions',
   },
   {
     label: 'Avg Per Day',
     value: kpiStats.value.avgPerDay,
-    context: 'In selected date range',
+    context: `Mean daily rate (${periodLengthDays.value} day period)`,
   },
 ]);
 
