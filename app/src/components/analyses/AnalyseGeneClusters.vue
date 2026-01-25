@@ -646,6 +646,14 @@ export default {
       },
       immediate: false,
     },
+    categoryFilter() {
+      this.updateFilteredTotalRows();
+      this.currentPage = 1;
+    },
+    fdrThreshold() {
+      this.updateFilteredTotalRows();
+      this.currentPage = 1;
+    },
   },
   mounted() {
     this.loadClusterData();
@@ -922,14 +930,30 @@ export default {
           }
         }
 
-        // 1) "any" filter
+        // 1) Category dropdown filter (for term_enrichment table)
+        if (this.categoryFilter && this.tableType === 'term_enrichment') {
+          if (row.category !== this.categoryFilter) {
+            return false;
+          }
+        }
+
+        // 2) FDR threshold filter (for term_enrichment table)
+        if (this.fdrThreshold !== null && this.tableType === 'term_enrichment') {
+          const fdrValue = parseFloat(row.fdr);
+          if (isNaN(fdrValue) || fdrValue >= this.fdrThreshold) {
+            return false;
+          }
+        }
+
+        // 3) "any" filter
         if (anyVal) {
           const rowString = Object.values(row).join(' ').toLowerCase();
           if (!rowString.includes(anyVal)) {
             return false;
           }
         }
-        // 2) column-specific filters
+
+        // 4) column-specific text filters
         const filterKeys = Object.keys(this.filter).filter((k) => k !== 'any');
         let keep = true;
         filterKeys.forEach((fieldKey) => {
