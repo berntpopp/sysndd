@@ -104,41 +104,74 @@
                 class="my-1"
                 sm="6"
               >
-                <label
-                  for="phenotype_select"
-                  aria-label="Phenotype select"
+                <!-- Phenotype Multi-Select using native Bootstrap components -->
+                <div
+                  v-if="showFilterControls"
+                  class="phenotype-multiselect"
                 >
-                  <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
-                  <!-- Multi-select temporarily disabled - using single select -->
-                  <!-- <treeselect
-                    v-if="showFilterControls && phenotypes_options.length > 0"
-                    id="phenotype_select"
-                    v-model="filter.modifier_phenotype_id.content"
-                    :multiple="true"
-                    :options="phenotypes_options"
-                    :normalizer="normalizerPhenotypes"
-                    @input="filtered"
-                  /> -->
-                  <BFormSelect
-                    v-if="showFilterControls && phenotypes_options.length > 0"
-                    id="phenotype_select"
-                    v-model="filter.modifier_phenotype_id.content[0]"
-                    :options="normalizePhenotypesOptions(phenotypes_options)"
+                  <!-- Selected phenotypes as badges -->
+                  <div class="selected-phenotypes mb-2">
+                    <BBadge
+                      v-for="phenotypeId in filter.modifier_phenotype_id.content"
+                      :key="phenotypeId"
+                      variant="primary"
+                      class="me-1 mb-1"
+                      style="cursor: pointer;"
+                      @click="removePhenotype(phenotypeId)"
+                    >
+                      {{ getPhenotypeName(phenotypeId) }}
+                      <i class="bi bi-x-circle ms-1" />
+                    </BBadge>
+                  </div>
+
+                  <!-- Dropdown for adding phenotypes -->
+                  <BDropdown
+                    v-if="phenotypes_options.length > 0"
+                    text="Add phenotype..."
+                    variant="outline-secondary"
                     size="sm"
-                    @update:model-value="filtered"
+                    class="phenotype-dropdown"
+                    menu-class="phenotype-dropdown-menu"
                   >
-                    <template #first>
-                      <BFormSelectOption :value="null">
-                        Select phenotype...
-                      </BFormSelectOption>
-                    </template>
-                  </BFormSelect>
+                    <BDropdownForm @submit.prevent>
+                      <BFormInput
+                        v-model="phenotypeSearch"
+                        placeholder="Search phenotypes..."
+                        size="sm"
+                        class="mb-2"
+                        autocomplete="off"
+                      />
+                    </BDropdownForm>
+                    <BDropdownDivider />
+                    <div class="phenotype-options-list">
+                      <BDropdownItemButton
+                        v-for="option in filteredPhenotypeOptions"
+                        :key="option.phenotype_id"
+                        :active="isPhenotypeSelected(option.phenotype_id)"
+                        @click="togglePhenotype(option.phenotype_id)"
+                      >
+                        <i
+                          v-if="isPhenotypeSelected(option.phenotype_id)"
+                          class="bi bi-check-square me-2"
+                        />
+                        <i
+                          v-else
+                          class="bi bi-square me-2"
+                        />
+                        {{ option.HPO_term }}
+                        <small class="text-muted ms-1">({{ option.phenotype_id }})</small>
+                      </BDropdownItemButton>
+                      <BDropdownText v-if="filteredPhenotypeOptions.length === 0">
+                        No matching phenotypes
+                      </BDropdownText>
+                    </div>
+                  </BDropdown>
                   <BSpinner
-                    v-else-if="showFilterControls && phenotypes_options.length === 0"
+                    v-else
                     small
                     label="Loading phenotypes..."
                   />
-                </label>
+                </div>
               </BCol>
 
               <BCol
@@ -355,12 +388,6 @@
 </template>
 
 <script>
-// TODO: vue3-treeselect disabled pending Bootstrap-Vue-Next migration
-// import the Treeselect component
-// import Treeselect from '@zanmato/vue3-treeselect';
-// import the Treeselect styles
-// import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
-
 // Import Bootstrap-Vue-Next BTable
 import { BTable } from 'bootstrap-vue-next';
 
@@ -459,6 +486,8 @@ export default {
       loadDataDebounceTimer: null,
       switch_text: { true: 'OR', false: 'AND' },
       phenotypes_options: [],
+      // Search term for phenotype dropdown filter
+      phenotypeSearch: '',
       items: [],
       fields: [
         {
@@ -548,6 +577,28 @@ export default {
       loading: true,
       isBusy: true,
     };
+  },
+  computed: {
+    /**
+     * Filter phenotype options based on search term.
+     * Shows first 50 results for performance.
+     */
+    filteredPhenotypeOptions() {
+      if (!Array.isArray(this.phenotypes_options) || this.phenotypes_options.length === 0) {
+        return [];
+      }
+      const search = this.phenotypeSearch.toLowerCase().trim();
+      if (!search) {
+        // Return first 50 when no search term
+        return this.phenotypes_options.slice(0, 50);
+      }
+      return this.phenotypes_options
+        .filter((opt) =>
+          opt.HPO_term.toLowerCase().includes(search) ||
+          opt.phenotype_id.toLowerCase().includes(search)
+        )
+        .slice(0, 50);
+    },
   },
   watch: {
     // Watch for filter changes (deep required for Vue 3 behavior)
@@ -742,19 +793,63 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/phenotype`;
       try {
         const response = await this.axios.get(apiUrl);
-        modulePhenotypesListCache = response.data;
-        this.phenotypes_options = response.data;
+        // API returns { links, meta, data } - extract the data array
+        const phenotypeData = response.data.data || response.data;
+        modulePhenotypesListCache = phenotypeData;
+        this.phenotypes_options = phenotypeData;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       } finally {
         modulePhenotypesListLoading = false;
       }
     },
-    normalizerPhenotypes(node) {
-      return {
-        id: node.phenotype_id,
-        label: node.HPO_term,
-      };
+    /**
+     * Check if a phenotype is currently selected.
+     * @param {string} phenotypeId - HPO ID to check
+     * @returns {boolean} True if selected
+     */
+    isPhenotypeSelected(phenotypeId) {
+      return this.filter.modifier_phenotype_id.content.includes(phenotypeId);
+    },
+    /**
+     * Toggle phenotype selection.
+     * @param {string} phenotypeId - HPO ID to toggle
+     */
+    togglePhenotype(phenotypeId) {
+      const index = this.filter.modifier_phenotype_id.content.indexOf(phenotypeId);
+      if (index === -1) {
+        // Add phenotype
+        this.filter.modifier_phenotype_id.content.push(phenotypeId);
+      } else {
+        // Remove phenotype
+        this.filter.modifier_phenotype_id.content.splice(index, 1);
+      }
+      this.filtered();
+    },
+    /**
+     * Remove a phenotype from selection.
+     * @param {string} phenotypeId - HPO ID to remove
+     */
+    removePhenotype(phenotypeId) {
+      const index = this.filter.modifier_phenotype_id.content.indexOf(phenotypeId);
+      if (index !== -1) {
+        this.filter.modifier_phenotype_id.content.splice(index, 1);
+        this.filtered();
+      }
+    },
+    /**
+     * Get phenotype display name from ID.
+     * @param {string} phenotypeId - HPO ID
+     * @returns {string} HPO term name or the ID if not found
+     */
+    getPhenotypeName(phenotypeId) {
+      if (!Array.isArray(this.phenotypes_options) || this.phenotypes_options.length === 0) {
+        return phenotypeId;
+      }
+      const phenotype = this.phenotypes_options.find(
+        (opt) => opt.phenotype_id === phenotypeId
+      );
+      return phenotype ? phenotype.HPO_term : phenotypeId;
     },
     normalizer(node) {
       return {
@@ -936,13 +1031,30 @@ export default {
 .input-group .input-group-text {
   width: 100%;
 }
-:deep(.vue-treeselect__placeholder) {
-  color: #6C757D !important;
+
+/* Phenotype multiselect styles */
+.phenotype-multiselect {
+  min-height: 38px;
 }
-:deep(.vue-treeselect__control) {
-  color: #6C757D !important;
+.selected-phenotypes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
 }
-:deep(.vue-treeselect__multi-value-label) {
-  color: #000 !important;
+.phenotype-dropdown {
+  width: auto;
+}
+:deep(.phenotype-dropdown-menu) {
+  min-width: 350px;
+  max-width: 450px;
+}
+.phenotype-options-list {
+  max-height: 250px;
+  overflow-y: auto;
+}
+.phenotype-options-list .dropdown-item {
+  font-size: 0.875rem;
+  white-space: normal;
+  word-wrap: break-word;
 }
 </style>
