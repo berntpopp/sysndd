@@ -34,10 +34,12 @@ This roadmap tracks the current milestone and references completed milestones ar
   4. Admin can bookmark filtered/sorted user table state via URL (refresh preserves state)
   5. Admin can export user/ontology data to CSV with current filters applied
   6. API endpoints return paginated and searchable user/ontology data with total count
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 28-01: TBD
+- [ ] 28-01-PLAN.md — Backend API pagination, filter, sort support for user and ontology endpoints
+- [ ] 28-02-PLAN.md — Modernize ManageUser.vue with TablesEntities pattern and CSV export
+- [ ] 28-03-PLAN.md — Modernize ManageOntology.vue with TablesEntities pattern and CSV export
 
 #### Phase 29: User Management Workflows
 **Goal**: Implement bulk actions (approve, delete, role assignment) with cross-page selection
@@ -123,7 +125,7 @@ Phases execute in numeric order: 28 → 29 → 30 → 31 → 32 → 33
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 28. Table Foundation | v6.0 | 0/TBD | Not started | - |
+| 28. Table Foundation | v6.0 | 0/3 | Planned | - |
 | 29. User Management | v6.0 | 0/TBD | Not started | - |
 | 30. Statistics Dashboard | v6.0 | 0/TBD | Not started | - |
 | 31. Content Management | v6.0 | 0/TBD | Not started | - |
@@ -144,4 +146,4 @@ Phases execute in numeric order: 28 → 29 → 30 → 31 → 32 → 33
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-01-25 — v6.0 Admin Panel Modernization started*
+*Last updated: 2026-01-25 — Phase 28 planned*
