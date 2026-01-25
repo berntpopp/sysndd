@@ -175,14 +175,16 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 ### Active
 
-<!-- v6 scope - CI/CD & Quality -->
+<!-- v6 scope - Admin Panel Modernization -->
 
-- [ ] CI/CD pipeline (GitHub Actions)
-- [ ] Trivy security scanning in pipeline
-- [ ] Expanded frontend test coverage (40-50%)
-- [ ] Vue component TypeScript conversion
-- [ ] URL path versioning (/api/v1/)
-- [ ] Version displayed in frontend
+- [ ] ManageUser: search, pagination, bulk approve/reject, role management
+- [ ] ManageAnnotations: improved UI/UX, consistent with modern table patterns
+- [ ] ManageOntology: pagination, search, URL sync
+- [ ] ManageAbout: CMS-like editing of About page content
+- [ ] AdminStatistics: dashboard with charts, visualizations, expanded metrics
+- [ ] ViewLogs: feature parity with Entities table
+- [ ] Admin API endpoints: pagination, search support for user/ontology endpoints
+- [ ] Statistics API: new endpoints for chart data, expanded metrics
 
 ### Out of Scope
 
@@ -192,8 +194,13 @@ A new developer can clone the repo and be productive within minutes, with confid
 - PWA features — keep existing
 - bcrypt package — sodium with Argon2id is OWASP 2025 recommended
 - 3D network visualization — depth perception issues
-- WebGL renderer for >500 nodes — defer to v6+
+- WebGL renderer for >500 nodes — defer to future milestone
 - STRINGdb v12.0 upgrade — requires database migration
+- CI/CD pipeline — deferred to v7
+- Trivy security scanning — deferred to v7
+- Expanded frontend test coverage (40-50%) — deferred to v7
+- Vue component TypeScript conversion — deferred to v7
+- URL path versioning (/api/v1/) — deferred to v7
 
 ## Context
 
@@ -266,5 +273,18 @@ A new developer can clone the repo and be productive within minutes, with confid
 | cy.destroy() cleanup | Prevents 100-300MB memory leaks per navigation | ✓ Good |
 | Module-level singleton for useFilterSync | Simpler than Pinia, sufficient for analysis pages | ✓ Good |
 
+## Current Milestone: v6.0 Admin Panel Modernization
+
+**Goal:** Transform admin views from basic CRUD forms into modern, feature-rich management interfaces with consistent UI/UX, pagination, search, and visualization.
+
+**Target features:**
+- ManageUser: Full user management with search, pagination, bulk actions, role management
+- ManageAnnotations: Improved async job UI, consistent card-based layout
+- ManageOntology: Table with pagination, search, URL sync (matching Entities pattern)
+- ManageAbout: CMS-like content editing for About page
+- AdminStatistics: Dashboard with charts, expanded metrics, card-based layout
+- ViewLogs: Feature parity with Entities table
+- Admin API endpoints: Pagination, search, statistics data endpoints
+
 ---
-*Last updated: 2026-01-25 after v5.0 milestone completion*
+*Last updated: 2026-01-25 after v6.0 milestone started*

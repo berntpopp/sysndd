@@ -6,21 +6,20 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** No active milestone — run `/gsd:new-milestone` to start v6.0
+**Current focus:** v6.0 Admin Panel Modernization
 
 ## Current Position
 
-**Milestone:** None active (v5.0 shipped)
-**Phase:** N/A
-**Plan:** N/A
-**Status:** Ready to plan next milestone
-**Last activity:** 2026-01-25 — v5.0 Analysis Modernization shipped
+**Milestone:** v6.0 Admin Panel Modernization
+**Phase:** Not started (defining requirements)
+**Plan:** —
+**Status:** Defining requirements
+**Last activity:** 2026-01-25 — Milestone v6.0 started
 
 ```
-v5 Analysis Modernization: SHIPPED
-Goal: Transform analysis pages with performance, network viz, and modern UI/UX
-Progress: ████████████████████████████ 100% (16/16 plans complete)
-          [Phase 25 ✓] → [Phase 26 ✓] → [Phase 27 ✓]
+v6 Admin Panel Modernization: PLANNING
+Goal: Transform admin views into modern, feature-rich management interfaces
+Progress: ░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 0%
 ```
 
 ## Completed Milestones
@@ -68,7 +67,7 @@ Progress: ███████████████████████�
 - FDR sortCompare missing (5-line fix)
 - ScoreSlider presets too high (config change)
 
-**Deferred to v6:**
+**Deferred to v7:**
 - CI/CD pipeline (GitHub Actions)
 - Trivy security scanning
 - Expanded frontend test coverage (40-50%)
@@ -92,10 +91,10 @@ Recent v5-relevant decisions:
 ## Session Continuity
 
 **Last session:** 2026-01-25
-**Stopped at:** v5.0 milestone completed and archived
+**Stopped at:** v6.0 milestone started, research phase
 **Resume file:** None
-**Next action:** Run `/gsd:new-milestone` to start v6.0 planning
+**Next action:** Complete research, define requirements, create roadmap
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-25 — v5.0 milestone completed*
+*Last updated: 2026-01-25 — v6.0 milestone started*
