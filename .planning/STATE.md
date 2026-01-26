@@ -11,19 +11,19 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 ## Current Position
 
 **Milestone:** v7.0 Curation Workflow Modernization
-**Phase:** 35.1 of 39 (ModifyEntity UX Overhaul) - IN PROGRESS
-**Plan:** 1 of TBD in phase 35.1
-**Status:** Plan 35.1-01 complete (Entity Preview Enhancement)
-**Last activity:** 2026-01-26 -- Completed 35.1-01-PLAN.md
+**Phase:** 35.1 of 39 (ModifyEntity UX Overhaul) - COMPLETE
+**Plan:** 2 of 2 in phase 35.1
+**Status:** Phase 35.1 complete (ModifyEntity UX Overhaul)
+**Last activity:** 2026-01-26 -- Completed 35.1-02-PLAN.md
 
 ```
-v7.0 Curation Workflow Modernization: [██████████____________________] 33% (2/6 phases)
+v7.0 Curation Workflow Modernization: [████████████__________________] 40% (2.5/6 phases)
 ```
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 164
+- Total plans completed: 165
 - Milestones shipped: 6 (v1-v6)
 - Phases completed: 35
 
@@ -67,6 +67,9 @@ Phase 35 decisions:
 Phase 35.1 decisions:
 - **Store full API response**: Store full entity API response instead of Entity class instance for rich preview data
 - **Badge component composition**: Use GeneBadge, DiseaseBadge, EntityBadge for consistent visual styling
+- **Rich modal headers**: All 4 modals show Gene | Disease | Inheritance | Category context
+- **Submitting state pattern**: Use null | string union to track which action is submitting
+- **BFormCheckbox switch**: Replace deprecated custom-control-switch CSS with native switch prop
 
 ### Roadmap Evolution
 
@@ -89,14 +92,17 @@ Phase 35 issues fixed:
 
 Phase 35.1 improvements:
 - ~~Entity preview shows only plain text~~ [ENHANCED in 35.1-01 with badge components]
+- ~~Modal headers lack context~~ [ENHANCED in 35.1-02 with rich Gene | Disease | Inheritance | Category display]
+- ~~Custom-control-switch deprecated CSS~~ [REPLACED in 35.1-02 with BFormCheckbox switch prop]
+- ~~Action buttons lack loading feedback~~ [ADDED in 35.1-02 with BSpinner during submission]
 
 ## Session Continuity
 
 **Last session:** 2026-01-26
-**Stopped at:** Completed 35.1-01-PLAN.md
+**Stopped at:** Completed 35.1-02-PLAN.md
 **Resume file:** None
-**Next action:** Execute next plan in phase 35.1
+**Next action:** Proceed to Phase 36
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-26 -- Plan 35.1-01 complete*
+*Last updated: 2026-01-26 -- Phase 35.1 complete (Plan 35.1-02)*
