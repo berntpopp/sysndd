@@ -285,6 +285,7 @@ function(req,
     inner_join(ndd_entity_view, by = c("entity_id")) %>%
     select(-category_id, -category) %>%
     inner_join(ndd_entity_status_category, by = c("status_id")) %>%
+    inner_join(ndd_entity_status_categories_list, by = c("category_id")) %>%
     inner_join(review_user_collected, by = c("review_id")) %>%
     inner_join(status_user_collected, by = c("status_id")) %>%
     collect() %>%
@@ -519,4 +520,77 @@ function(req, res) {
     arrange(user_id)
 
   re_review_assign_table_user
+}
+
+
+## -------------------------------------------------------------------##
+## Re-review Batch Management Endpoints (Dynamic)
+## -------------------------------------------------------------------##
+
+#* Create a new Re-Review Batch dynamically
+#*
+#* Creates a batch based on provided criteria (date range, gene list, status, disease).
+#* Optionally assigns to a user during creation.
+#*
+#* @tag re_review
+#* @serializer json list(na="string")
+#*
+#* @post batch/create
+function(req, res) {
+  require_role(req, res, "Curator")
+
+  # Parse request body
+  body <- req$argsBody
+
+  # Extract criteria
+  criteria <- list(
+    date_range = body$date_range,      # list(start="YYYY-MM-DD", end="YYYY-MM-DD")
+    gene_list = body$gene_list,        # array of hgnc_id integers
+    status_filter = body$status_filter, # category_id integer
+    disease_id = body$disease_id,      # disease ontology id string
+    batch_size = body$batch_size %||% 20L
+  )
+
+  assigned_user_id <- body$assigned_user_id  # optional
+  batch_name <- body$batch_name              # optional
+
+  result <- batch_create(criteria, assigned_user_id, batch_name, pool)
+
+  if (result$status != 200) {
+    res$status <- result$status
+  }
+
+  result
+}
+
+
+#* Preview matching entities for batch criteria
+#*
+#* Returns entities that would be included in a batch without creating it.
+#* Useful for reviewing criteria before committing.
+#*
+#* @tag re_review
+#* @serializer json list(na="string")
+#*
+#* @post batch/preview
+function(req, res) {
+  require_role(req, res, "Curator")
+
+  body <- req$argsBody
+
+  criteria <- list(
+    date_range = body$date_range,
+    gene_list = body$gene_list,
+    status_filter = body$status_filter,
+    disease_id = body$disease_id,
+    batch_size = body$batch_size %||% 20L
+  )
+
+  result <- batch_preview(criteria, criteria$batch_size, pool)
+
+  if (result$status != 200) {
+    res$status <- result$status
+  }
+
+  result
 }
