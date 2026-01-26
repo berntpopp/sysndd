@@ -594,3 +594,133 @@ function(req, res) {
 
   result
 }
+
+
+#* Reassign Re-Review Batch to different user
+#*
+#* Changes the assigned user for an existing batch.
+#* Can reassign at any time (per CONTEXT decision).
+#*
+#* @tag re_review
+#* @serializer json list(na="string")
+#*
+#* @param re_review_batch The batch ID to reassign
+#* @param user_id The new user ID to assign to
+#*
+#* @put batch/reassign
+function(req, res, re_review_batch, user_id) {
+  require_role(req, res, "Curator")
+
+  batch_id <- as.integer(re_review_batch)
+  new_user_id <- as.integer(user_id)
+
+  result <- batch_reassign(batch_id, new_user_id, pool)
+
+  if (result$status != 200) {
+    res$status <- result$status
+  }
+
+  result
+}
+
+
+#* Archive (soft delete) a Re-Review Batch
+#*
+#* Removes batch assignment, preserving entity connect records for audit.
+#* Only allowed for batches not yet completed (per CONTEXT decision).
+#*
+#* @tag re_review
+#* @serializer json list(na="string")
+#*
+#* @param re_review_batch The batch ID to archive
+#*
+#* @put batch/archive
+function(req, res, re_review_batch) {
+  require_role(req, res, "Curator")
+
+  batch_id <- as.integer(re_review_batch)
+
+  result <- batch_archive(batch_id, pool)
+
+  if (result$status != 200) {
+    res$status <- result$status
+  }
+
+  result
+}
+
+
+#* Assign specific entities/genes to a user for re-review
+#*
+#* Creates a new batch containing only the specified entities and assigns to user.
+#* Enables gene-specific assignment where admin selects specific genes for specific user.
+#*
+#* @tag re_review
+#* @serializer json list(na="string")
+#*
+#* @put entities/assign
+function(req, res) {
+  require_role(req, res, "Curator")
+
+  body <- req$argsBody
+
+  entity_ids <- body$entity_ids    # array of entity_id integers (required)
+  user_id <- body$user_id          # user to assign to (required)
+  batch_name <- body$batch_name    # optional custom batch name
+
+  if (is.null(entity_ids) || length(entity_ids) == 0) {
+    res$status <- 400L
+    return(list(status = 400L, message = "entity_ids is required and must not be empty"))
+  }
+
+  if (is.null(user_id)) {
+    res$status <- 400L
+    return(list(status = 400L, message = "user_id is required"))
+  }
+
+  result <- entity_assign(as.integer(entity_ids), as.integer(user_id), batch_name, pool)
+
+  if (result$status != 200) {
+    res$status <- result$status
+  }
+
+  result
+}
+
+
+#* Recalculate batch entity membership based on updated criteria
+#*
+#* Re-assigns entities to a batch based on new criteria.
+#* Only allowed for batches not yet assigned (unassigned batches only).
+#*
+#* @tag re_review
+#* @serializer json list(na="string")
+#*
+#* @put batch/recalculate
+function(req, res) {
+  require_role(req, res, "Curator")
+
+  body <- req$argsBody
+
+  batch_id <- body$re_review_batch
+  criteria <- list(
+    date_range = body$date_range,
+    gene_list = body$gene_list,
+    status_filter = body$status_filter,
+    disease_id = body$disease_id,
+    batch_size = body$batch_size %||% 20L
+  )
+
+  if (is.null(batch_id)) {
+    res$status <- 400L
+    return(list(status = 400L, message = "re_review_batch is required"))
+  }
+
+  result <- batch_recalculate(as.integer(batch_id), criteria, pool)
+
+  if (result$status != 200) {
+    res$status <- result$status
+  }
+
+  result
+}
