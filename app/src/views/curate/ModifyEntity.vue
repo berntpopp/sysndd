@@ -664,7 +664,7 @@
         no-close-on-backdrop
         header-bg-variant="dark"
         header-text-variant="light"
-        :busy="loading_status_modal"
+        :busy="statusFormLoading"
         @ok="submitStatusChange"
       >
         <template #title>
@@ -706,7 +706,7 @@
         </template>
 
         <BOverlay
-          :show="loading_status_modal"
+          :show="statusFormLoading"
           rounded="sm"
         >
           <BForm
@@ -722,7 +722,7 @@
             <BFormSelect
               v-else-if="status_options && status_options.length > 0"
               id="status-select"
-              v-model="status_info.category_id"
+              v-model="statusFormData.category_id"
               :options="normalizeStatusOptions(status_options)"
               size="sm"
             >
@@ -742,7 +742,7 @@
 
             <BFormCheckbox
               id="removeSwitch"
-              v-model="status_info.problematic"
+              v-model="statusFormData.problematic"
               switch
               size="md"
             >
@@ -755,7 +755,7 @@
             >Comment</label>
             <BFormTextarea
               id="status-textarea-comment"
-              v-model="status_info.comment"
+              v-model="statusFormData.comment"
               rows="2"
               size="sm"
               placeholder="Why should this entities status be changed."
@@ -770,6 +770,7 @@
 
 <script>
 import { useToast, useColorAndSymbols } from '@/composables';
+import useStatusForm from '@/views/curate/composables/useStatusForm';
 import TreeMultiSelect from '@/components/forms/TreeMultiSelect.vue';
 import AutocompleteInput from '@/components/forms/AutocompleteInput.vue';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
@@ -796,9 +797,24 @@ export default {
     const { makeToast } = useToast();
     const colorAndSymbols = useColorAndSymbols();
 
+    // Initialize status form composable
+    const statusForm = useStatusForm();
+    const {
+      formData: statusFormData,
+      loading: statusFormLoading,
+      loadStatusByEntity,
+      submitForm: submitStatusForm,
+      resetForm: resetStatusForm,
+    } = statusForm;
+
     return {
       makeToast,
       ...colorAndSymbols,
+      statusFormData,
+      statusFormLoading,
+      loadStatusByEntity,
+      submitStatusForm,
+      resetStatusForm,
     };
   },
   data() {
@@ -1236,7 +1252,7 @@ export default {
         return;
       }
 
-      await this.getStatus();
+      await this.loadStatusByEntity(this.modify_entity_input);
 
       // Ensure status options are loaded
       if (this.status_options === null) {
@@ -1389,31 +1405,11 @@ export default {
     },
     async submitStatusChange() {
       this.submitting = 'status';
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/create`;
-
-      // perform update POST request
       try {
-        const response = await this.axios.post(
-          apiUrl,
-          { status_json: this.status_info },
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          },
-        );
-
-        this.makeToast(
-          `${'The new status for this entity has been submitted '
-            + '(status '}${
-            response.status
-          } (${
-            response.statusText
-          }).`,
-          'Success',
-          'success',
-        );
-        this.resetForm();
+        await this.submitStatusForm(false, false); // isUpdate=false (always create), reReview=false
+        this.makeToast('Status submitted successfully', 'Success', 'success');
+        this.resetStatusForm();
+        this.resetForm(); // Also reset entity selection
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       } finally {
