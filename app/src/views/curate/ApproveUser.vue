@@ -144,7 +144,7 @@ import useModalControls from '@/composables/useModalControls';
 import { useUiStore } from '@/stores/ui';
 
 export default {
-  name: 'ApproveStatus',
+  name: 'ApproveUser',
   setup() {
     const { makeToast } = useToast();
     const colorAndSymbols = useColorAndSymbols();
@@ -234,16 +234,29 @@ export default {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        this.items_UsersTable = response.data;
-        this.totalRows_UsersTable = response.data.length;
+        const data = response.data;
+        // Defensive check for both API formats
+        if (Array.isArray(data)) {
+          this.items_UsersTable = data;
+          this.totalRows_UsersTable = data.length;
+        } else if (data?.data && Array.isArray(data.data)) {
+          this.items_UsersTable = data.data;
+          this.totalRows_UsersTable = data.meta?.[0]?.totalItems || data.data.length;
+        } else {
+          console.error('Unexpected user table response format:', data);
+          this.items_UsersTable = [];
+          this.totalRows_UsersTable = 0;
+        }
 
         const uiStore = useUiStore();
         uiStore.requestScrollbarUpdate();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.items_UsersTable = [];
+        this.totalRows_UsersTable = 0;
+      } finally {
+        this.loadingUsersApprove = false;
       }
-
-      this.loadingUsersApprove = false;
     },
     async loadRoleList() {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/role_list`;
@@ -253,7 +266,10 @@ export default {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        this.role_options = response.data.map((item) => ({ value: item.role, text: item.role }));
+        const data = response.data;
+        this.role_options = Array.isArray(data)
+          ? data.map((item) => ({ value: item.role, text: item.role }))
+          : [];
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
@@ -266,11 +282,14 @@ export default {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        this.user_options = response.data.map((item) => ({
-          value: item.user_id,
-          text: item.user_name,
-          role: item.user_role,
-        }));
+        const data = response.data;
+        this.user_options = Array.isArray(data)
+          ? data.map((item) => ({
+              value: item.user_id,
+              text: item.user_name,
+              role: item.user_role,
+            }))
+          : [];
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
