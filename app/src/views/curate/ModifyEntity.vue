@@ -239,12 +239,41 @@
         @ok="submitEntityRename"
       >
         <template #modal-title>
-          <h4>
-            Rename entity disease:
-            <BBadge variant="primary">
-              sysndd:{{ entity_info.entity_id }}
-            </BBadge>
-          </h4>
+          <div class="d-flex flex-column gap-2">
+            <h4 class="mb-0">
+              Rename Entity Disease
+              <EntityBadge
+                :entity-id="entity_info.entity_id"
+                variant="primary"
+                size="md"
+                class="ms-2"
+              />
+            </h4>
+            <div class="d-flex flex-wrap gap-2 small">
+              <span class="d-flex align-items-center">
+                <i class="bi bi-file-earmark-medical me-1" />
+                <strong>{{ entity_info.symbol || 'N/A' }}</strong>
+              </span>
+              <span class="text-muted">|</span>
+              <span class="d-flex align-items-center text-truncate" style="max-width: 200px;" :title="entity_info.disease_ontology_name">
+                <i class="bi bi-clipboard2-pulse me-1" />
+                {{ entity_info.disease_ontology_name || 'N/A' }}
+              </span>
+              <span class="text-muted">|</span>
+              <span class="d-flex align-items-center">
+                <i class="bi bi-diagram-3 me-1" />
+                {{ entity_info.hpo_mode_of_inheritance_term_name || entity_info.hpo_mode_of_inheritance_term || 'N/A' }}
+              </span>
+              <span class="text-muted">|</span>
+              <BBadge
+                :variant="stoplights_style[entity_info.category] || 'secondary'"
+                class="d-inline-flex align-items-center"
+              >
+                <i class="bi bi-stoplights me-1" />
+                {{ entity_info.category || 'N/A' }}
+              </BBadge>
+            </div>
+          </div>
         </template>
 
         <p class="my-4">
@@ -275,12 +304,41 @@
         @ok="submitEntityDeactivation"
       >
         <template #modal-title>
-          <h4>
-            Deactivate entity:
-            <BBadge variant="primary">
-              sysndd:{{ entity_info.entity_id }}
-            </BBadge>
-          </h4>
+          <div class="d-flex flex-column gap-2">
+            <h4 class="mb-0">
+              Deactivate Entity
+              <EntityBadge
+                :entity-id="entity_info.entity_id"
+                variant="primary"
+                size="md"
+                class="ms-2"
+              />
+            </h4>
+            <div class="d-flex flex-wrap gap-2 small">
+              <span class="d-flex align-items-center">
+                <i class="bi bi-file-earmark-medical me-1" />
+                <strong>{{ entity_info.symbol || 'N/A' }}</strong>
+              </span>
+              <span class="text-muted">|</span>
+              <span class="d-flex align-items-center text-truncate" style="max-width: 200px;" :title="entity_info.disease_ontology_name">
+                <i class="bi bi-clipboard2-pulse me-1" />
+                {{ entity_info.disease_ontology_name || 'N/A' }}
+              </span>
+              <span class="text-muted">|</span>
+              <span class="d-flex align-items-center">
+                <i class="bi bi-diagram-3 me-1" />
+                {{ entity_info.hpo_mode_of_inheritance_term_name || entity_info.hpo_mode_of_inheritance_term || 'N/A' }}
+              </span>
+              <span class="text-muted">|</span>
+              <BBadge
+                :variant="stoplights_style[entity_info.category] || 'secondary'"
+                class="d-inline-flex align-items-center"
+              >
+                <i class="bi bi-stoplights me-1" />
+                {{ entity_info.category || 'N/A' }}
+              </BBadge>
+            </div>
+          </div>
         </template>
 
         <div>
@@ -345,12 +403,41 @@
         @ok="submitReviewChange"
       >
         <template #modal-title>
-          <h4>
-            Modify review for entity:
-            <BBadge variant="primary">
-              sysndd:{{ entity_info.entity_id }}
-            </BBadge>
-          </h4>
+          <div class="d-flex flex-column gap-2">
+            <h4 class="mb-0">
+              Modify Review
+              <EntityBadge
+                :entity-id="entity_info.entity_id"
+                variant="primary"
+                size="md"
+                class="ms-2"
+              />
+            </h4>
+            <div class="d-flex flex-wrap gap-2 small">
+              <span class="d-flex align-items-center">
+                <i class="bi bi-file-earmark-medical me-1" />
+                <strong>{{ entity_info.symbol || 'N/A' }}</strong>
+              </span>
+              <span class="text-muted">|</span>
+              <span class="d-flex align-items-center text-truncate" style="max-width: 200px;" :title="entity_info.disease_ontology_name">
+                <i class="bi bi-clipboard2-pulse me-1" />
+                {{ entity_info.disease_ontology_name || 'N/A' }}
+              </span>
+              <span class="text-muted">|</span>
+              <span class="d-flex align-items-center">
+                <i class="bi bi-diagram-3 me-1" />
+                {{ entity_info.hpo_mode_of_inheritance_term_name || entity_info.hpo_mode_of_inheritance_term || 'N/A' }}
+              </span>
+              <span class="text-muted">|</span>
+              <BBadge
+                :variant="stoplights_style[entity_info.category] || 'secondary'"
+                class="d-inline-flex align-items-center"
+              >
+                <i class="bi bi-stoplights me-1" />
+                {{ entity_info.category || 'N/A' }}
+              </BBadge>
+            </div>
+          </div>
         </template>
 
         <BOverlay
@@ -561,12 +648,41 @@
         @ok="submitStatusChange"
       >
         <template #modal-title>
-          <h4>
-            Modify status for entity:
-            <BBadge variant="primary">
-              sysndd:{{ entity_info.entity_id }}
-            </BBadge>
-          </h4>
+          <div class="d-flex flex-column gap-2">
+            <h4 class="mb-0">
+              Modify Status
+              <EntityBadge
+                :entity-id="entity_info.entity_id"
+                variant="primary"
+                size="md"
+                class="ms-2"
+              />
+            </h4>
+            <div class="d-flex flex-wrap gap-2 small">
+              <span class="d-flex align-items-center">
+                <i class="bi bi-file-earmark-medical me-1" />
+                <strong>{{ entity_info.symbol || 'N/A' }}</strong>
+              </span>
+              <span class="text-muted">|</span>
+              <span class="d-flex align-items-center text-truncate" style="max-width: 200px;" :title="entity_info.disease_ontology_name">
+                <i class="bi bi-clipboard2-pulse me-1" />
+                {{ entity_info.disease_ontology_name || 'N/A' }}
+              </span>
+              <span class="text-muted">|</span>
+              <span class="d-flex align-items-center">
+                <i class="bi bi-diagram-3 me-1" />
+                {{ entity_info.hpo_mode_of_inheritance_term_name || entity_info.hpo_mode_of_inheritance_term || 'N/A' }}
+              </span>
+              <span class="text-muted">|</span>
+              <BBadge
+                :variant="stoplights_style[entity_info.category] || 'secondary'"
+                class="d-inline-flex align-items-center"
+              >
+                <i class="bi bi-stoplights me-1" />
+                {{ entity_info.category || 'N/A' }}
+              </BBadge>
+            </div>
+          </div>
         </template>
 
         <BOverlay
