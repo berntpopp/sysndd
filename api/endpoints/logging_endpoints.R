@@ -130,3 +130,53 @@ function(req,
     response
   }
 }
+
+
+#* Delete All Log Entries
+#*
+#* This endpoint deletes all log entries from the database.
+#*
+#* # `Details`
+#* Admin only. Truncates the logging table to remove all entries.
+#* This action cannot be undone.
+#*
+#* # `Return`
+#* A success message with the count of deleted entries.
+#*
+#* @tag logging
+#* @serializer json list(na="string")
+#*
+#* @response 200 OK. All logs deleted successfully.
+#* @response 403 Forbidden. If user not Admin.
+#* @response 500 Internal server error.
+#*
+#* @delete /
+function(req, res) {
+  require_role(req, res, "Administrator")
+
+  tryCatch(
+    {
+      # Get count before deletion
+      count_result <- db_execute_query(
+        "SELECT COUNT(*) as count FROM logging",
+        list()
+      )
+      deleted_count <- count_result$count
+
+      # Delete all logs
+      db_execute_statement(
+        "DELETE FROM logging",
+        list()
+      )
+
+      list(
+        message = "All logs deleted successfully.",
+        deleted_count = deleted_count
+      )
+    },
+    error = function(e) {
+      res$status <- 500
+      list(error = paste("Failed to delete logs:", e$message))
+    }
+  )
+}

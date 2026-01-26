@@ -24,6 +24,17 @@
       </tr>
     </template>
 
+    <!-- ID column (generic) -->
+    <template #cell(id)="data">
+      <slot
+        name="cell-id"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.id }}
+      </slot>
+    </template>
+
     <!-- Entity ID column -->
     <template #cell(entity_id)="data">
       <slot
@@ -98,6 +109,127 @@
         :index="data.index"
       >
         {{ data.item.actions }}
+      </slot>
+    </template>
+
+    <!-- Log-related columns -->
+    <template #cell(agent)="data">
+      <slot
+        name="cell-agent"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.agent }}
+      </slot>
+    </template>
+
+    <template #cell(status)="data">
+      <slot
+        name="cell-status"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.status }}
+      </slot>
+    </template>
+
+    <template #cell(request_method)="data">
+      <slot
+        name="cell-request_method"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.request_method }}
+      </slot>
+    </template>
+
+    <template #cell(query)="data">
+      <slot
+        name="cell-query"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.query }}
+      </slot>
+    </template>
+
+    <template #cell(timestamp)="data">
+      <slot
+        name="cell-timestamp"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.timestamp }}
+      </slot>
+    </template>
+
+    <template #cell(modified)="data">
+      <slot
+        name="cell-modified"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.modified }}
+      </slot>
+    </template>
+
+    <template #cell(path)="data">
+      <slot
+        name="cell-path"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.path }}
+      </slot>
+    </template>
+
+    <template #cell(host)="data">
+      <slot
+        name="cell-host"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.host }}
+      </slot>
+    </template>
+
+    <template #cell(address)="data">
+      <slot
+        name="cell-address"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.address }}
+      </slot>
+    </template>
+
+    <template #cell(duration)="data">
+      <slot
+        name="cell-duration"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.duration }}
+      </slot>
+    </template>
+
+    <template #cell(file)="data">
+      <slot
+        name="cell-file"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.file }}
+      </slot>
+    </template>
+
+    <template #cell(post)="data">
+      <slot
+        name="cell-post"
+        :row="data.item"
+        :index="data.index"
+      >
+        {{ data.item.post }}
       </slot>
     </template>
 

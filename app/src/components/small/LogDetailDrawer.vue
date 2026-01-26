@@ -1,9 +1,10 @@
 <!-- components/small/LogDetailDrawer.vue -->
 <template>
-  <BOffcanvas
+  <BModal
     :model-value="modelValue"
-    placement="end"
-    :title="`Log Entry #${log?.id || ''}`"
+    size="lg"
+    centered
+    scrollable
     @update:model-value="$emit('update:modelValue', $event)"
     @shown="handleShown"
     @keydown="handleKeydown"
@@ -13,6 +14,12 @@
         <h5 class="mb-0">
           <i class="bi bi-journal-text me-2" />
           Log Entry #{{ log?.id }}
+          <BBadge v-if="log" :variant="getStatusVariant(log.status)" class="ms-2">
+            {{ log.status }}
+          </BBadge>
+          <BBadge v-if="log" :variant="getMethodVariant(log.request_method)" class="ms-1">
+            {{ log.request_method }}
+          </BBadge>
         </h5>
         <div>
           <BButton
@@ -26,40 +33,47 @@
             <i :class="copied ? 'bi bi-check' : 'bi bi-clipboard'" />
             {{ copied ? 'Copied!' : 'Copy' }}
           </BButton>
-          <BButton
-            size="sm"
-            variant="link"
-            @click="close"
-          >
-            <i class="bi bi-x-lg" />
-          </BButton>
         </div>
       </div>
     </template>
 
     <div v-if="log" class="log-detail-content">
-      <!-- Summary section -->
-      <div class="mb-4">
-        <h6 class="text-muted border-bottom pb-2 mb-3">
-          <i class="bi bi-info-circle me-2" />Summary
-        </h6>
-        <BTable
-          :items="summaryItems"
-          :fields="summaryFields"
-          small
-          borderless
-          class="mb-0"
-        >
-          <template #cell(value)="{ item }">
-            <BBadge v-if="item.key === 'status'" :variant="getStatusVariant(item.value)">
-              {{ item.value }}
-            </BBadge>
-            <BBadge v-else-if="item.key === 'method'" :variant="getMethodVariant(item.value)">
-              {{ item.value }}
-            </BBadge>
-            <span v-else>{{ item.value }}</span>
-          </template>
-        </BTable>
+      <!-- Summary Cards Row -->
+      <div class="row g-2 mb-4">
+        <div class="col-md-3">
+          <div class="card bg-light h-100">
+            <div class="card-body py-2 px-3">
+              <div class="text-muted small">Timestamp</div>
+              <div class="fw-semibold small">{{ formatTimestamp(log.timestamp) }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-light h-100">
+            <div class="card-body py-2 px-3">
+              <div class="text-muted small">Duration</div>
+              <div class="fw-semibold">
+                <span :class="getDurationClass(log.duration)">{{ log.duration }}ms</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-light h-100">
+            <div class="card-body py-2 px-3">
+              <div class="text-muted small">IP Address</div>
+              <div class="fw-semibold font-monospace small">{{ log.address }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-light h-100">
+            <div class="card-body py-2 px-3">
+              <div class="text-muted small">Host</div>
+              <div class="fw-semibold small">{{ log.host }}</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Request details section -->
@@ -68,16 +82,19 @@
           <i class="bi bi-send me-2" />Request Details
         </h6>
         <dl class="row mb-0">
-          <dt class="col-sm-3 text-muted">Path</dt>
-          <dd class="col-sm-9 font-monospace">{{ log.path }}</dd>
+          <dt class="col-sm-2 text-muted">Path</dt>
+          <dd class="col-sm-10 font-monospace bg-light p-2 rounded">{{ log.path }}</dd>
 
-          <dt class="col-sm-3 text-muted">Query</dt>
-          <dd class="col-sm-9 font-monospace text-break">{{ log.query || '(none)' }}</dd>
+          <dt class="col-sm-2 text-muted">Query</dt>
+          <dd class="col-sm-10">
+            <code v-if="log.query" class="d-block bg-light p-2 rounded text-break">{{ log.query }}</code>
+            <span v-else class="text-muted fst-italic">(none)</span>
+          </dd>
 
-          <dt class="col-sm-3 text-muted">POST Body</dt>
-          <dd class="col-sm-9">
+          <dt class="col-sm-2 text-muted">POST Body</dt>
+          <dd class="col-sm-10">
             <pre v-if="log.post" class="bg-light p-2 rounded small mb-0 text-break">{{ formatJson(log.post) }}</pre>
-            <span v-else class="text-muted">(none)</span>
+            <span v-else class="text-muted fst-italic">(none)</span>
           </dd>
         </dl>
       </div>
@@ -88,36 +105,66 @@
           <i class="bi bi-pc-display me-2" />Client Information
         </h6>
         <dl class="row mb-0">
-          <dt class="col-sm-3 text-muted">IP Address</dt>
-          <dd class="col-sm-9 font-monospace">{{ log.address }}</dd>
+          <dt class="col-sm-2 text-muted">User Agent</dt>
+          <dd class="col-sm-10 small text-break">{{ log.agent }}</dd>
 
-          <dt class="col-sm-3 text-muted">Host</dt>
-          <dd class="col-sm-9">{{ log.host }}</dd>
-
-          <dt class="col-sm-3 text-muted">User Agent</dt>
-          <dd class="col-sm-9 small text-break">{{ log.agent }}</dd>
+          <dt class="col-sm-2 text-muted">Handler</dt>
+          <dd class="col-sm-10 font-monospace small">{{ log.file }}</dd>
         </dl>
       </div>
 
-      <!-- Full JSON section -->
+      <!-- Full JSON section (collapsible) -->
       <div class="mb-3">
-        <h6 class="text-muted border-bottom pb-2 mb-3">
-          <i class="bi bi-code-slash me-2" />Full JSON
+        <h6
+          class="text-muted border-bottom pb-2 mb-3 d-flex align-items-center"
+          style="cursor: pointer"
+          @click="showJson = !showJson"
+        >
+          <i class="bi bi-code-slash me-2" />
+          Raw JSON
+          <i :class="showJson ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" class="ms-auto" />
         </h6>
-        <pre class="bg-dark text-light p-3 rounded small" style="max-height: 300px; overflow-y: auto;">{{ JSON.stringify(log, null, 2) }}</pre>
-      </div>
-
-      <!-- Navigation hint -->
-      <div class="text-center text-muted small border-top pt-2">
-        <i class="bi bi-arrow-left-right me-1" />
-        Use arrow keys to navigate between logs
+        <BCollapse v-model="showJson">
+          <pre class="bg-dark text-light p-3 rounded small" style="max-height: 250px; overflow-y: auto;">{{ JSON.stringify(log, null, 2) }}</pre>
+        </BCollapse>
       </div>
     </div>
-  </BOffcanvas>
+
+    <template #footer>
+      <div class="d-flex justify-content-between align-items-center w-100">
+        <div>
+          <BButton
+            size="sm"
+            variant="outline-secondary"
+            :disabled="!canNavigatePrev"
+            @click="$emit('navigate-prev')"
+          >
+            <i class="bi bi-chevron-left" /> Previous
+          </BButton>
+          <BButton
+            size="sm"
+            variant="outline-secondary"
+            class="ms-2"
+            :disabled="!canNavigateNext"
+            @click="$emit('navigate-next')"
+          >
+            Next <i class="bi bi-chevron-right" />
+          </BButton>
+        </div>
+        <div class="text-muted small">
+          <i class="bi bi-keyboard me-1" />
+          Arrow keys to navigate
+        </div>
+        <BButton variant="secondary" @click="close">
+          Close
+        </BButton>
+      </div>
+    </template>
+  </BModal>
 </template>
 
 <script>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import { useClipboard } from '@vueuse/core';
 
 export default {
@@ -143,22 +190,7 @@ export default {
   emits: ['update:modelValue', 'navigate-prev', 'navigate-next'],
   setup(props, { emit }) {
     const { copy, copied } = useClipboard({ copiedDuring: 2000 });
-
-    const summaryFields = [
-      { key: 'label', label: '', class: 'text-muted', thStyle: { width: '120px' } },
-      { key: 'value', label: '' },
-    ];
-
-    const summaryItems = computed(() => {
-      if (!props.log) return [];
-      return [
-        { key: 'timestamp', label: 'Timestamp', value: formatTimestamp(props.log.timestamp) },
-        { key: 'method', label: 'Method', value: props.log.request_method },
-        { key: 'status', label: 'Status', value: props.log.status },
-        { key: 'duration', label: 'Duration', value: `${props.log.duration}ms` },
-        { key: 'file', label: 'Handler', value: props.log.file },
-      ];
-    });
+    const showJson = ref(false);
 
     function formatTimestamp(dateStr) {
       if (!dateStr) return '';
@@ -169,7 +201,6 @@ export default {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
-        timeZoneName: 'short',
       });
     }
 
@@ -200,6 +231,12 @@ export default {
       return variants[method] || 'secondary';
     }
 
+    function getDurationClass(duration) {
+      if (duration < 100) return 'text-success';
+      if (duration < 500) return 'text-warning';
+      return 'text-danger';
+    }
+
     function copyToClipboard() {
       if (props.log) {
         copy(JSON.stringify(props.log, null, 2));
@@ -211,7 +248,7 @@ export default {
     }
 
     function handleShown() {
-      // Focus the offcanvas for keyboard events
+      // Focus the modal for keyboard events
     }
 
     function handleKeydown(event) {
@@ -225,16 +262,19 @@ export default {
         if (props.canNavigateNext) {
           emit('navigate-next');
         }
+      } else if (event.key === 'Escape') {
+        close();
       }
     }
 
     return {
       copied,
-      summaryFields,
-      summaryItems,
+      showJson,
+      formatTimestamp,
       formatJson,
       getStatusVariant,
       getMethodVariant,
+      getDurationClass,
       copyToClipboard,
       close,
       handleShown,
@@ -252,5 +292,13 @@ export default {
 pre {
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+dl.row dt {
+  font-weight: 500;
+}
+
+dl.row dd {
+  margin-bottom: 0.75rem;
 }
 </style>

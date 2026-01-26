@@ -58,7 +58,7 @@
                   v-model="filter['any'].content"
                   :placeholder="'Search any field by typing here'"
                   :debounce-time="500"
-                  @input="filtered"
+                  @update:model-value="filtered"
                 />
               </BCol>
 
@@ -71,6 +71,7 @@
                     :total-rows="totalRows"
                     :initial-per-page="perPage"
                     :page-options="pageOptions"
+                    :current-page="currentPage"
                     @page-change="handlePageChange"
                     @per-page-change="handlePerPageChange"
                   />
@@ -78,20 +79,8 @@
               </BCol>
             </BRow>
 
-            <BRow class="px-2 pb-2">
-              <BCol sm="4">
-                <BFormSelect
-                  v-model="filter.user.content"
-                  :options="user_options"
-                  size="sm"
-                  @update:model-value="filtered()"
-                >
-                  <template #first>
-                    <BFormSelectOption :value="null">All Users</BFormSelectOption>
-                  </template>
-                </BFormSelect>
-              </BCol>
-              <BCol sm="4">
+            <BRow class="px-2 pb-2 align-items-center">
+              <BCol sm="3">
                 <BFormSelect
                   v-model="filter.request_method.content"
                   :options="method_options"
@@ -103,10 +92,44 @@
                   </template>
                 </BFormSelect>
               </BCol>
-              <BCol sm="4" class="text-end">
-                <span class="text-muted small">
-                  Showing {{ items.length }} of {{ totalRows }}
+              <BCol sm="3">
+                <BFormSelect
+                  v-model="filter.status.content"
+                  :options="status_options"
+                  size="sm"
+                  @update:model-value="filtered()"
+                >
+                  <template #first>
+                    <BFormSelectOption :value="null">All Status</BFormSelectOption>
+                  </template>
+                </BFormSelect>
+              </BCol>
+              <BCol sm="3">
+                <BFormSelect
+                  v-model="filter.path.content"
+                  size="sm"
+                  @update:model-value="filtered()"
+                >
+                  <BFormSelectOption :value="null">All Paths</BFormSelectOption>
+                  <BFormSelectOption value="/api/">API Calls</BFormSelectOption>
+                  <BFormSelectOption value="/signin">/signin</BFormSelectOption>
+                  <BFormSelectOption value="/api/entity">/api/entity</BFormSelectOption>
+                  <BFormSelectOption value="/api/logs">/api/logs</BFormSelectOption>
+                </BFormSelect>
+              </BCol>
+              <BCol sm="3" class="text-end">
+                <span class="text-muted small me-2">
+                  {{ items.length }} of {{ totalRows.toLocaleString() }}
                 </span>
+                <BButton
+                  v-b-tooltip.hover
+                  size="sm"
+                  variant="outline-danger"
+                  title="Delete all logs (requires confirmation)"
+                  @click="showDeleteModal = true"
+                >
+                  <i class="bi bi-trash" />
+                </BButton>
               </BCol>
             </BRow>
 
@@ -256,14 +279,29 @@
                 </BBadge>
               </template>
 
-              <template #cell-query="{ row }">
+              <template #cell-path="{ row }">
                 <div
                   v-b-tooltip.hover.top
-                  class="overflow-hidden text-truncate"
-                  :title="row.query"
+                  class="overflow-hidden text-truncate font-monospace small"
+                  style="max-width: 200px;"
+                  :title="row.path + (row.query ? row.query : '')"
                 >
-                  {{ row.query }}
+                  {{ row.path }}
                 </div>
+              </template>
+
+              <template #cell-duration="{ row }">
+                <span
+                  v-b-tooltip.hover
+                  :class="getDurationClass(row.duration)"
+                  :title="`${row.duration}ms response time`"
+                >
+                  {{ formatDuration(row.duration) }}
+                </span>
+              </template>
+
+              <template #cell-address="{ row }">
+                <span class="font-monospace small">{{ row.address }}</span>
               </template>
 
               <template #cell-timestamp="{ row }">
@@ -310,6 +348,45 @@
         @navigate-prev="navigateToPreviousLog"
         @navigate-next="navigateToNextLog"
       />
+
+      <!-- Delete Logs Confirmation Modal -->
+      <BModal
+        v-model="showDeleteModal"
+        title="Delete All Logs"
+        header-bg-variant="danger"
+        header-text-variant="light"
+        centered
+        @hidden="deleteConfirmText = ''"
+      >
+        <div class="text-center mb-3">
+          <i class="bi bi-exclamation-triangle-fill text-danger fs-1" />
+        </div>
+        <p class="text-center">
+          <strong>Warning:</strong> This will permanently delete all {{ totalRows.toLocaleString() }} log entries.
+        </p>
+        <p class="text-center text-muted small">
+          This action cannot be undone. Type <code>DELETE</code> to confirm.
+        </p>
+        <BFormInput
+          v-model="deleteConfirmText"
+          placeholder="Type DELETE to confirm"
+          class="text-center"
+          :state="deleteConfirmText === 'DELETE' ? true : (deleteConfirmText ? false : null)"
+        />
+        <template #footer>
+          <BButton variant="secondary" @click="showDeleteModal = false">
+            Cancel
+          </BButton>
+          <BButton
+            variant="danger"
+            :disabled="deleteConfirmText !== 'DELETE' || isDeleting"
+            @click="deleteAllLogs"
+          >
+            <BSpinner v-if="isDeleting" small class="me-1" />
+            {{ isDeleting ? 'Deleting...' : 'Delete All Logs' }}
+          </BButton>
+        </template>
+      </BModal>
     </BContainer>
   </div>
 </template>
@@ -420,6 +497,10 @@ export default {
       route,
     });
 
+    // Destructure to exclude methods that are overridden in the component's methods section
+    // This matches the pattern used in TablesEntities for proper method overriding
+    const { filtered: _filtered, handlePageChange: _handlePageChange, handlePerPageChange: _handlePerPageChange, handleSortByOrDescChange: _handleSortByOrDescChange, removeFilters: _removeFilters, removeSearch: _removeSearch, ...restTableMethods } = tableMethods;
+
     // Return all needed properties
     return {
       makeToast,
@@ -429,7 +510,7 @@ export default {
       ...colorAndSymbols,
       ...text,
       ...tableData,
-      ...tableMethods,
+      ...restTableMethods,
       filter,
       axios,
     };
@@ -455,23 +536,33 @@ export default {
       showLogDetail: false,
       selectedLog: null,
       selectedLogIndex: -1,
+      // Field definitions - NOT overwritten by API
       fields: [
-        { key: 'id', label: 'ID', sortable: true },
-        { key: 'timestamp', label: 'Timestamp', sortable: true },
-        { key: 'address', label: 'Address', sortable: true },
-        { key: 'agent', label: 'Agent', sortable: true },
-        { key: 'host', label: 'Host', sortable: true },
-        { key: 'request_method', label: 'Request Method', sortable: true },
+        { key: 'id', label: 'ID', sortable: true, class: 'text-center', thStyle: { width: '80px' } },
+        { key: 'timestamp', label: 'Time', sortable: true, thStyle: { width: '120px' } },
+        { key: 'request_method', label: 'Method', sortable: true, class: 'text-center', thStyle: { width: '90px' } },
+        { key: 'status', label: 'Status', sortable: true, class: 'text-center', thStyle: { width: '80px' } },
         { key: 'path', label: 'Path', sortable: true },
-        { key: 'query', label: 'Query', sortable: true },
-        { key: 'post', label: 'Post', sortable: true },
-        { key: 'status', label: 'Status', sortable: true },
-        { key: 'duration', label: 'Duration', sortable: true },
-        { key: 'file', label: 'File', sortable: true },
-        { key: 'modified', label: 'Modified', sortable: true },
-        { key: 'actions', label: 'Actions', sortable: false, class: 'text-center' },
+        { key: 'duration', label: 'Duration', sortable: true, class: 'text-end', thStyle: { width: '90px' } },
+        { key: 'address', label: 'IP', sortable: true, thStyle: { width: '120px' } },
+        { key: 'actions', label: '', sortable: false, class: 'text-center', thStyle: { width: '60px' } },
       ],
       fields_details: [],
+      // Status filter options
+      status_options: [
+        { value: '200', text: '200 OK' },
+        { value: '201', text: '201 Created' },
+        { value: '307', text: '307 Redirect' },
+        { value: '400', text: '400 Bad Request' },
+        { value: '401', text: '401 Unauthorized' },
+        { value: '403', text: '403 Forbidden' },
+        { value: '404', text: '404 Not Found' },
+        { value: '500', text: '500 Server Error' },
+      ],
+      // Delete confirmation modal state
+      showDeleteModal: false,
+      deleteConfirmText: '',
+      isDeleting: false,
     };
   },
   computed: {
@@ -524,10 +615,17 @@ export default {
     },
     // Watch for sortBy changes (deep watch for array)
     // Skip during initialization to prevent multiple API calls
+    // Only trigger if sort actually changed to prevent resetting currentItemID during pagination
     sortBy: {
-      handler() {
+      handler(newVal) {
         if (this.isInitializing) return;
-        this.handleSortByOrDescChange();
+        const newSortColumn = newVal && newVal.length > 0 ? newVal[0].key : 'id';
+        const newSortOrder = newVal && newVal.length > 0 ? newVal[0].order : 'desc';
+        const newSortString = (newSortOrder === 'desc' ? '-' : '+') + newSortColumn;
+        // Only trigger if sort actually changed - prevents resetting currentItemID during pagination
+        if (newSortString !== this.sort) {
+          this.handleSortByOrDescChange();
+        }
       },
       deep: true,
     },
@@ -536,42 +634,32 @@ export default {
     // Lifecycle hooks
   },
   mounted() {
-    // Parse URL parameters BEFORE initial load
-    const urlParams = new URLSearchParams(window.location.search);
-
-    // Parse sort from URL or use prop default
-    if (urlParams.get('sort')) {
-      const sort_object = this.sortStringToVariables(urlParams.get('sort'));
-      this.sortBy = sort_object.sortBy;
-      this.sort = urlParams.get('sort');
-    } else {
+    // Transform input sort string to Bootstrap-Vue-Next array format
+    // sortStringToVariables now returns { sortBy: [{ key: 'column', order: 'asc'|'desc' }] }
+    if (this.sortInput) {
       const sort_object = this.sortStringToVariables(this.sortInput);
       this.sortBy = sort_object.sortBy;
-      this.sort = this.sortInput;
+      this.sort = this.sortInput; // Also set the sort string for API calls
     }
 
-    // Parse filter from URL or prop
-    if (urlParams.get('filter')) {
-      this.filter = this.filterStrToObj(urlParams.get('filter'), this.filter);
-      this.filter_string = urlParams.get('filter');
-    } else if (this.filterInput !== null && this.filterInput !== 'null' && this.filterInput !== '') {
-      this.filter = this.filterStrToObj(this.filterInput, this.filter);
-      this.filter_string = this.filterInput;
-    }
-
-    // Parse pagination from URL
-    if (urlParams.get('page_after')) {
-      this.currentItemID = parseInt(urlParams.get('page_after'), 10) || 0;
-    }
-    if (urlParams.get('page_size')) {
-      this.perPage = parseInt(urlParams.get('page_size'), 10) || 10;
+    // Initialize pagination from URL if provided
+    if (this.pageAfterInput && this.pageAfterInput !== '0') {
+      this.currentItemID = parseInt(this.pageAfterInput, 10) || 0;
     }
 
     // Load user list for filter dropdown
     this.loadUserList();
 
-    // Load data first while still in initializing state
+    // Transform input filter string to object and load data
+    // Use $nextTick to ensure Vue reactivity is fully initialized
     this.$nextTick(() => {
+      if (this.filterInput && this.filterInput !== 'null' && this.filterInput !== '') {
+        // Parse URL filter string into filter object for proper UI state
+        this.filter = this.filterStrToObj(this.filterInput, this.filter);
+        // Also set filter_string so the API call uses the URL filter
+        this.filter_string = this.filterInput;
+      }
+      // Load data first while still in initializing state
       this.loadData();
       // Delay marking initialization complete to ensure watchers triggered
       // by filter/sortBy changes above see isInitializing=true
@@ -659,7 +747,7 @@ export default {
       this.isBusy = true;
 
       try {
-        const response = await this.axios.get(`${import.meta.env.VITE_API_URL}/api/logs`, {
+        const response = await this.axios.get(`${import.meta.env.VITE_API_URL}/api/logs/`, {
           params: {
             sort: this.sort,
             filter: this.filter_string,
@@ -705,7 +793,11 @@ export default {
       this.nextItemID = Number(data.meta[0].nextItemID) || 0;
       this.lastItemID = Number(data.meta[0].lastItemID) || 0;
       this.executionTime = data.meta[0].executionTime;
-      this.fields = data.meta[0].fspec;
+      // Apply fspec from API for column filters (like TablesEntities)
+      // The fspec contains filterable, selectable, selectOptions for each field
+      if (data.meta[0].fspec && data.meta[0].fspec.fspec) {
+        this.fields = data.meta[0].fspec.fspec;
+      }
 
       const uiStore = useUiStore();
       uiStore.requestScrollbarUpdate();
@@ -808,7 +900,7 @@ export default {
 
       // Warn if large export
       if (this.totalRows > 30000) {
-        // eslint-disable-next-line no-alert
+         
         const proceed = confirm(
           `This export contains ${this.totalRows.toLocaleString()} rows and may take a while. Continue?`,
         );
@@ -819,7 +911,7 @@ export default {
       }
 
       try {
-        const response = await this.axios.get(`${import.meta.env.VITE_API_URL}/api/logs`, {
+        const response = await this.axios.get(`${import.meta.env.VITE_API_URL}/api/logs/`, {
           params: {
             page_after: 0,
             page_size: 'all',
@@ -920,6 +1012,42 @@ export default {
         }
         return { value: opt, text: opt };
       });
+    },
+    // Format duration with appropriate unit
+    formatDuration(duration) {
+      if (duration === null || duration === undefined) return '-';
+      const ms = parseFloat(duration);
+      if (ms < 1) return '<1ms';
+      if (ms < 1000) return `${Math.round(ms)}ms`;
+      return `${(ms / 1000).toFixed(2)}s`;
+    },
+    // Get CSS class for duration based on performance
+    getDurationClass(duration) {
+      const ms = parseFloat(duration);
+      if (ms < 100) return 'text-success'; // Fast
+      if (ms < 500) return 'text-warning'; // Medium
+      return 'text-danger fw-bold'; // Slow
+    },
+    // Delete all logs with confirmation
+    async deleteAllLogs() {
+      this.isDeleting = true;
+      try {
+        await this.axios.delete(`${import.meta.env.VITE_API_URL}/api/logs/`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        this.makeToast(`Successfully deleted ${this.totalRows.toLocaleString()} log entries`, 'Logs Deleted', 'success');
+        this.showDeleteModal = false;
+        this.deleteConfirmText = '';
+        // Reset and reload
+        this.currentItemID = 0;
+        this.loadData();
+      } catch (error) {
+        this.makeToast(`Failed to delete logs: ${error.message}`, 'Error', 'danger');
+      } finally {
+        this.isDeleting = false;
+      }
     },
   },
 };

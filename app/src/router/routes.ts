@@ -644,6 +644,14 @@ export const routes: RouteRecordRaw[] = [
     path: '/ViewLogs',
     name: 'ViewLogs',
     component: () => import('@/views/admin/ViewLogs.vue'),
+    props: (route) => ({
+      sort: route.query.sort || undefined,
+      filter: route.query.filter || undefined,
+      fields: route.query.fields || undefined,
+      pageAfter: route.query.page_after || undefined,
+      pageSize: route.query.page_size ? parseInt(route.query.page_size as string, 10) : undefined,
+      fspec: route.query.fspec || undefined,
+    }),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
       const allowed_roles = ['Administrator'];

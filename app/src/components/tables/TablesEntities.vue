@@ -439,10 +439,18 @@ export default {
     },
     // Watch for sortBy changes (deep watch for array)
     // Skip during initialization to prevent multiple API calls
+    // Only trigger if sort actually changed to prevent resetting currentItemID during pagination
     sortBy: {
-      handler() {
+      handler(newVal) {
         if (this.isInitializing) return;
-        this.handleSortByOrDescChange();
+        // Build new sort string from sortBy array
+        const newSortColumn = newVal && newVal.length > 0 ? newVal[0].key : 'entity_id';
+        const newSortOrder = newVal && newVal.length > 0 ? newVal[0].order : 'asc';
+        const newSortString = (newSortOrder === 'desc' ? '-' : '+') + newSortColumn;
+        // Only trigger if sort actually changed - prevents resetting currentItemID during pagination
+        if (newSortString !== this.sort) {
+          this.handleSortByOrDescChange();
+        }
       },
       deep: true,
     },
