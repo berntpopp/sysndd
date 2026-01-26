@@ -127,66 +127,115 @@
             </BRow>
 
             <!-- Column filters -->
-            <BRow class="mb-2 px-2">
-              <BCol md="3">
-                <BFormGroup
-                  label="Category"
-                  label-size="sm"
-                  class="mb-0"
-                >
-                  <BFormSelect
-                    v-model="categoryFilter"
-                    :options="categoryOptions"
-                    size="sm"
-                  >
-                    <template #first>
-                      <BFormSelectOption :value="null">
-                        All Categories
-                      </BFormSelectOption>
-                    </template>
-                  </BFormSelect>
-                </BFormGroup>
+            <BRow class="px-3 pb-2 align-items-center">
+              <BCol
+                cols="6"
+                md="2"
+                class="mb-2 mb-md-0"
+              >
+                <BFormSelect
+                  v-model="categoryFilter"
+                  size="sm"
+                  :options="categoryFilterOptions"
+                  aria-label="Filter by category"
+                />
               </BCol>
-              <BCol md="3">
-                <BFormGroup
-                  label="User"
-                  label-size="sm"
-                  class="mb-0"
-                >
-                  <BFormInput
-                    v-model="userFilter"
-                    type="search"
-                    placeholder="Filter by user..."
-                    size="sm"
-                    debounce="300"
-                  />
-                </BFormGroup>
+              <BCol
+                cols="6"
+                md="2"
+                class="mb-2 mb-md-0"
+              >
+                <BFormSelect
+                  v-model="userFilter"
+                  size="sm"
+                  :options="userFilterOptions"
+                  aria-label="Filter by user"
+                />
               </BCol>
-              <BCol md="3">
-                <BFormGroup
-                  label="From Date"
-                  label-size="sm"
-                  class="mb-0"
-                >
+              <BCol
+                cols="6"
+                md="2"
+                class="mb-2 mb-md-0"
+              >
+                <BInputGroup size="sm">
+                  <template #prepend>
+                    <BInputGroupText class="small">
+                      From
+                    </BInputGroupText>
+                  </template>
                   <BFormInput
                     v-model="dateRangeStart"
                     type="date"
                     size="sm"
+                    aria-label="Filter from date"
                   />
-                </BFormGroup>
+                </BInputGroup>
               </BCol>
-              <BCol md="3">
-                <BFormGroup
-                  label="To Date"
-                  label-size="sm"
-                  class="mb-0"
-                >
+              <BCol
+                cols="6"
+                md="2"
+                class="mb-2 mb-md-0"
+              >
+                <BInputGroup size="sm">
+                  <template #prepend>
+                    <BInputGroupText class="small">
+                      To
+                    </BInputGroupText>
+                  </template>
                   <BFormInput
                     v-model="dateRangeEnd"
                     type="date"
                     size="sm"
+                    aria-label="Filter to date"
                   />
-                </BFormGroup>
+                </BInputGroup>
+              </BCol>
+              <!-- Active filter tags -->
+              <BCol
+                cols="12"
+                md="4"
+                class="d-flex align-items-center flex-wrap gap-1"
+              >
+                <BBadge
+                  v-if="categoryFilter"
+                  variant="secondary"
+                  class="d-flex align-items-center gap-1"
+                  style="cursor: pointer"
+                  @click="categoryFilter = null"
+                >
+                  {{ categoryFilter }}
+                  <i class="bi bi-x" />
+                </BBadge>
+                <BBadge
+                  v-if="userFilter"
+                  variant="secondary"
+                  class="d-flex align-items-center gap-1"
+                  style="cursor: pointer"
+                  @click="userFilter = null"
+                >
+                  {{ userFilter }}
+                  <i class="bi bi-x" />
+                </BBadge>
+                <BBadge
+                  v-if="dateRangeStart"
+                  variant="secondary"
+                  class="d-flex align-items-center gap-1"
+                  style="cursor: pointer"
+                  @click="dateRangeStart = null"
+                >
+                  From: {{ dateRangeStart }}
+                  <i class="bi bi-x" />
+                </BBadge>
+                <BBadge
+                  v-if="dateRangeEnd"
+                  variant="secondary"
+                  class="d-flex align-items-center gap-1"
+                  style="cursor: pointer"
+                  @click="dateRangeEnd = null"
+                >
+                  To: {{ dateRangeEnd }}
+                  <i class="bi bi-x" />
+                </BBadge>
               </BCol>
             </BRow>
             <!-- Column filters -->
@@ -220,28 +269,33 @@
               @filtered="onFiltered"
             >
               <template #cell(entity_id)="data">
-                <EntityBadge :entity-id="data.item.entity_id" />
+                <EntityBadge
+                  :entity-id="data.item.entity_id"
+                  :link-to="'/Entities/' + data.item.entity_id"
+                />
               </template>
 
               <template #cell(symbol)="data">
                 <GeneBadge
                   :symbol="data.item.symbol"
                   :hgnc-id="data.item.hgnc_id"
+                  :link-to="'/Genes/' + data.item.hgnc_id"
                 />
               </template>
 
               <template #cell(disease_ontology_name)="data">
                 <DiseaseBadge
-                  :disease-name="data.item.disease_ontology_name"
-                  :disease-id="data.item.disease_ontology_id_version"
+                  :name="data.item.disease_ontology_name"
+                  :ontology-id="data.item.disease_ontology_id_version"
                   :max-length="40"
+                  :link-to="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"
                 />
               </template>
 
               <template #cell(hpo_mode_of_inheritance_term_name)="data">
                 <InheritanceBadge
-                  :term-name="data.item.hpo_mode_of_inheritance_term_name"
-                  :term-id="data.item.hpo_mode_of_inheritance_term"
+                  :full-name="data.item.hpo_mode_of_inheritance_term_name"
+                  :hpo-term="data.item.hpo_mode_of_inheritance_term"
                 />
               </template>
 
@@ -285,78 +339,133 @@
               </template>
 
               <template #cell(status_date)="data">
-                <div class="d-flex align-items-center">
-                  <BAvatar
-                    size="1.4em"
-                    variant="light"
-                    class="me-1"
-                  >
-                    <i class="bi bi-calendar3 text-muted" />
-                  </BAvatar>
+                <div class="d-flex align-items-center gap-1">
                   <span
-                    v-b-tooltip.hover.right
-                    class="text-muted small"
+                    v-b-tooltip.hover.top
                     :title="data.item.status_date"
+                    class="d-inline-flex align-items-center justify-content-center rounded-circle bg-secondary-subtle text-secondary"
+                    style="width: 24px; height: 24px; font-size: 0.75rem;"
                   >
+                    <i class="bi bi-calendar3" />
+                  </span>
+                  <span class="small text-muted">
                     {{ data.item.status_date.substring(0,10) }}
                   </span>
                 </div>
               </template>
 
               <template #cell(status_user_name)="data">
-                <div class="d-flex align-items-center">
-                  <BAvatar
-                    size="1.4em"
-                    :variant="user_style[data.item.status_user_role]"
-                    class="me-1"
+                <div class="d-flex align-items-center gap-1">
+                  <span
+                    v-b-tooltip.hover.top
+                    :title="data.item.status_user_role"
+                    class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                    :class="`bg-${user_style[data.item.status_user_role]}-subtle text-${user_style[data.item.status_user_role]}`"
+                    style="width: 24px; height: 24px; font-size: 0.75rem;"
                   >
                     <i :class="'bi bi-' + user_icon[data.item.status_user_role]" />
-                  </BAvatar>
-                  <span
-                    v-b-tooltip.hover.right
-                    :title="data.item.status_user_role"
-                  >
+                  </span>
+                  <span class="small">
                     {{ data.item.status_user_name }}
                   </span>
                 </div>
               </template>
 
               <template #cell(actions)="row">
-                <div class="d-flex gap-1">
-                  <BButton
-                    v-b-tooltip.hover.top
-                    size="sm"
-                    class="btn-xs"
-                    variant="outline-secondary"
-                    title="Edit status"
-                    :aria-label="`Edit status for entity ${row.item.entity_id}`"
-                    @click="infoStatus(row.item, row.index, $event.target)"
-                  >
-                    <i class="bi bi-pencil" />
-                  </BButton>
+                <BButton
+                  v-b-tooltip.hover.left
+                  size="sm"
+                  class="me-1 btn-xs"
+                  variant="outline-primary"
+                  title="Toggle details"
+                  :aria-label="`Toggle details for entity ${row.item.entity_id}`"
+                  @click="row.toggleDetails"
+                >
+                  <i :class="'bi bi-' + (row.detailsShowing ? 'eye-slash' : 'eye')" />
+                </BButton>
 
-                  <BButton
-                    v-b-tooltip.hover.top
-                    size="sm"
-                    class="btn-xs"
-                    variant="outline-success"
-                    title="Approve status"
-                    :aria-label="`Approve status for entity ${row.item.entity_id}`"
-                    @click="infoApproveStatus(row.item, row.index, $event.target)"
-                  >
-                    <i class="bi bi-check-lg" />
-                  </BButton>
-                </div>
+                <BButton
+                  v-b-tooltip.hover.left
+                  size="sm"
+                  class="me-1 btn-xs"
+                  variant="secondary"
+                  title="Edit status"
+                  :aria-label="`Edit status for entity ${row.item.entity_id}`"
+                  @click="infoStatus(row.item, row.index, $event.target)"
+                >
+                  <i class="bi bi-pen" />
+                </BButton>
+
+                <BButton
+                  v-b-tooltip.hover.right
+                  size="sm"
+                  class="me-1 btn-xs"
+                  variant="danger"
+                  title="Approve status"
+                  :aria-label="`Approve status for entity ${row.item.entity_id}`"
+                  @click="infoApproveStatus(row.item, row.index, $event.target)"
+                >
+                  <i class="bi bi-check2-circle" />
+                </BButton>
               </template>
 
               <template #row-details="row">
-                <BCard>
-                  <BTable
-                    :items="[row.item]"
-                    :fields="fields_details_StatusTable"
-                    stacked
-                    small
-                  />
+                <BCard
+                  class="mb-2 border-0 shadow-sm"
+                  body-class="p-3"
+                >
+                  <div class="row g-3">
+                    <!-- Status Info Section -->
+                    <div class="col-md-4">
+                      <h6 class="text-muted small text-uppercase fw-semibold mb-2">
+                        <i class="bi bi-info-circle me-1" />
+                        Status Details
+                      </h6>
+                      <div class="d-flex flex-column gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="text-muted small" style="min-width: 80px;">Status ID:</span>
+                          <BBadge variant="secondary">{{ row.item.status_id }}</BBadge>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="text-muted small" style="min-width: 80px;">Category:</span>
+                          <BBadge :variant="stoplights_style[row.item.category]">
+                            {{ row.item.category }}
+                          </BBadge>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="text-muted small" style="min-width: 80px;">Problematic:</span>
+                          <BBadge :variant="row.item.problematic ? 'danger' : 'success'">
+                            {{ row.item.problematic ? 'Yes' : 'No' }}
+                          </BBadge>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="text-muted small" style="min-width: 80px;">Active:</span>
+                          <BBadge :variant="row.item.is_active ? 'success' : 'secondary'">
+                            {{ row.item.is_active ? 'Yes' : 'No' }}
+                          </BBadge>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Comment Section -->
+                    <div class="col-md-8">
+                      <h6 class="text-muted small text-uppercase fw-semibold mb-2">
+                        <i class="bi bi-chat-left-text me-1" />
+                        Comment
+                      </h6>
+                      <div
+                        v-if="row.item.comment"
+                        class="bg-light rounded p-2 small"
+                        style="max-height: 120px; overflow-y: auto;"
+                      >
+                        {{ row.item.comment }}
+                      </div>
+                      <span
+                        v-else
+                        class="text-muted small fst-italic"
+                      >No comment available</span>
+                    </div>
+                  </div>
                 </BCard>
               </template>
             </BTable>
@@ -832,11 +941,21 @@ export default {
     };
   },
   computed: {
-    categoryOptions() {
-      return Object.keys(this.stoplights_style).map((key) => ({
-        value: key,
-        text: key,
-      }));
+    // Category filter options from unique values in items
+    categoryFilterOptions() {
+      const categories = [...new Set(this.items_StatusTable.map((item) => item.category))].filter(Boolean);
+      return [
+        { value: null, text: 'All Categories' },
+        ...categories.map((cat) => ({ value: cat, text: cat })),
+      ];
+    },
+    // User filter options from unique values in items
+    userFilterOptions() {
+      const users = [...new Set(this.items_StatusTable.map((item) => item.status_user_name))].filter(Boolean);
+      return [
+        { value: null, text: 'All Users' },
+        ...users.map((user) => ({ value: user, text: user })),
+      ];
     },
     columnFilteredItems() {
       let items = this.items_StatusTable;
@@ -846,12 +965,9 @@ export default {
         items = items.filter((item) => item.category === this.categoryFilter);
       }
 
-      // Filter by user name (case-insensitive partial match)
+      // Filter by user name (exact match from dropdown)
       if (this.userFilter) {
-        const searchTerm = this.userFilter.toLowerCase();
-        items = items.filter(
-          (item) => item.status_user_name && item.status_user_name.toLowerCase().includes(searchTerm),
-        );
+        items = items.filter((item) => item.status_user_name === this.userFilter);
       }
 
       // Filter by date range
