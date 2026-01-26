@@ -806,28 +806,53 @@ export default {
     async requestExcel() {
       this.downloading = true;
 
+      // Warn if large export
+      if (this.totalRows > 30000) {
+        // eslint-disable-next-line no-alert
+        const proceed = confirm(
+          `This export contains ${this.totalRows.toLocaleString()} rows and may take a while. Continue?`,
+        );
+        if (!proceed) {
+          this.downloading = false;
+          return;
+        }
+      }
+
       try {
         const response = await this.axios.get(`${import.meta.env.VITE_API_URL}/api/logs`, {
           params: {
             page_after: 0,
             page_size: 'all',
             format: 'xlsx',
+            filter: this.filter_string, // Apply current filters
+            sort: this.sort,
           },
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
+          responseType: 'blob', // Important for binary download
         });
+
+        // Generate filename with date
+        const date = new Date().toISOString().split('T')[0];
+        const filename = `sysndd_audit_logs_${date}.xlsx`;
 
         const fileURL = window.URL.createObjectURL(new Blob([response.data]));
         const fileLink = document.createElement('a');
 
         fileLink.href = fileURL;
-        fileLink.setAttribute('download', 'logs_table.xlsx');
+        fileLink.setAttribute('download', filename);
         document.body.appendChild(fileLink);
 
         fileLink.click();
+
+        // Cleanup
+        document.body.removeChild(fileLink);
+        window.URL.revokeObjectURL(fileURL);
+
+        this.makeToast(`Exported ${this.totalRows} log entries`, 'Export Complete', 'success');
       } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
+        this.makeToast(e, 'Export failed', 'danger');
       }
 
       this.downloading = false;
@@ -901,6 +926,7 @@ export default {
 </script>
 
 <style scoped>
+/* Button styles */
 .btn-group-xs > .btn,
 .btn-xs {
   padding: 0.25rem 0.4rem;
@@ -908,51 +934,38 @@ export default {
   line-height: 0.5;
   border-radius: 0.2rem;
 }
-.input-group > .input-group-prepend {
-  flex: 0 0 35%;
-}
-.input-group .input-group-text {
-  width: 100%;
-}
-.badge-container .badge {
-  width: 170px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-:deep(.vue-treeselect__placeholder) {
-  color: #6C757D !important;
-}
-:deep(.vue-treeselect__control) {
-  color: #6C757D !important;
-}
-</style>
 
-<style scoped>
-/* Styles specific to the TablesLogs component */
-.btn-group-xs > .btn,
-.btn-xs {
-  padding: 0.25rem 0.4rem;
-  font-size: 0.875rem;
-  line-height: 0.5;
-  border-radius: 0.2rem;
-}
+/* Input group styles */
 .input-group > .input-group-prepend {
   flex: 0 0 35%;
 }
 .input-group .input-group-text {
   width: 100%;
 }
+
+/* Badge container styles */
 .badge-container .badge {
   width: 170px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Treeselect placeholder styles (legacy) */
 :deep(.vue-treeselect__placeholder) {
   color: #6C757D !important;
 }
 :deep(.vue-treeselect__control) {
   color: #6C757D !important;
+}
+
+/* Row hover effect for clickable rows */
+:deep(.table tbody tr) {
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+:deep(.table tbody tr:hover) {
+  background-color: rgba(var(--bs-primary-rgb), 0.075);
 }
 </style>
