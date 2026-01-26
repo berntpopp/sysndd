@@ -460,326 +460,12 @@
           </div>
         </template>
 
-        <BOverlay
-          :show="loading_review_modal"
-          rounded="sm"
-        >
-          <BForm
-            ref="form"
-            @submit.stop.prevent="submitReviewChange"
-          >
-            <!-- Synopsis textarea -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-textarea-synopsis"
-            >Synopsis</label>
-
-            <BBadge
-              id="popover-badge-help-synopsis"
-              pill
-              href="#"
-              variant="info"
-            >
-              <i class="bi bi-question-circle-fill" />
-            </BBadge>
-
-            <BPopover
-              target="popover-badge-help-synopsis"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Synopsis instructions
-              </template>
-              Short summary for this disease entity. Please include information
-              on: <br>
-              <strong>a)</strong> approximate number of patients described in
-              literature, <br>
-              <strong>b)</strong> nature of reported variants, <br>
-              <strong>c)</strong> severity of intellectual disability, <br>
-              <strong>d)</strong> further phenotypic aspects (if possible with
-              frequencies), <br>
-              <strong>e)</strong> any valuable further information (e.g.
-              genotype-phenotype correlations).<br>
-            </BPopover>
-
-            <BFormTextarea
-              id="review-textarea-synopsis"
-              v-model="review_info.synopsis"
-              rows="3"
-              size="sm"
-            />
-            <!-- Synopsis textarea -->
-
-            <!-- Phenotype select -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-phenotype-select"
-            >Phenotypes</label>
-
-            <BBadge
-              id="popover-badge-help-phenotypes"
-              pill
-              href="#"
-              variant="info"
-            >
-              <i class="bi bi-question-circle-fill" />
-            </BBadge>
-
-            <BPopover
-              target="popover-badge-help-phenotypes"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Phenotypes instructions
-              </template>
-              Add or remove associated phenotypes. Only phenotypes that occur in
-              20% or more of affected individuals should be included. Please
-              also include information on severity of ID.
-            </BPopover>
-
-            <TreeMultiSelect
-              v-if="phenotypes_options && phenotypes_options.length > 0"
-              id="review-phenotype-select"
-              v-model="select_phenotype"
-              :options="phenotypes_options"
-              placeholder="Select phenotypes..."
-              search-placeholder="Search phenotypes (name or HP:ID)..."
-            />
-            <!-- Phenotype select -->
-
-            <!-- Variation ontology select -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-variation-select"
-            >Variation ontology</label>
-
-            <BBadge
-              id="popover-badge-help-variation"
-              pill
-              href="#"
-              variant="info"
-            >
-              <i class="bi bi-question-circle-fill" />
-            </BBadge>
-
-            <BPopover
-              target="popover-badge-help-variation"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Variation instructions
-              </template>
-              Please select or deselect the types of variation associated with the disease entity.
-              <br>
-              Minimum information should include <strong>“protein truncating variation”</strong> and/or
-              <strong>“non-synonymous variation”</strong>.
-              <br>
-              If known, please also select the functional impact of these variations,
-              i.e. if there is a protein <strong>"loss-of-function"</strong> or <strong>"gain-of-function"</strong>.
-              <br>
-            </BPopover>
-
-            <TreeMultiSelect
-              v-if="variation_ontology_options && variation_ontology_options.length > 0"
-              id="review-variation-select"
-              v-model="select_variation"
-              :options="variation_ontology_options"
-              placeholder="Select variations..."
-              search-placeholder="Search variation types..."
-            />
-            <!-- Variation ontology select -->
-
-            <!-- publications tag form with links out -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-publications-select"
-            >Publications</label>
-
-            <BBadge
-              id="popover-badge-help-publications"
-              pill
-              href="#"
-              variant="info"
-            >
-              <i class="bi bi-question-circle-fill" />
-            </BBadge>
-
-            <BPopover
-              target="popover-badge-help-publications"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Publications instructions
-              </template>
-              No complete catalog of entity-related literature required.
-              <br>
-              If information in the clinical synopsis is not only based on OMIM
-              entries, please include PMID of the article(s) used as a source
-              for the clinical synopsis. <br>
-              - Input is only valid when starting with
-              <strong>"PMID:"</strong> followed by a number
-            </BPopover>
-
-            <BFormTags
-              v-model="select_additional_references"
-              input-id="review-literature-select"
-              no-outer-focus
-              class="my-0"
-              separator=",;"
-              :tag-validator="tagValidatorPMID"
-              remove-on-delete
-            >
-              <template
-                #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }"
-              >
-                <BInputGroup class="my-0">
-                  <BFormInput
-                    v-bind="inputAttrs"
-                    placeholder="Enter PMIDs separated by comma or semicolon"
-                    class="form-control"
-                    size="sm"
-                    v-on="inputHandlers"
-                  />
-                  <BButton
-                    variant="secondary"
-                    size="sm"
-                    @click="addTag()"
-                  >
-                    Add
-                  </BButton>
-                </BInputGroup>
-
-                <div class="d-inline-block">
-                  <h6>
-                    <BFormTag
-                      v-for="tag in tags"
-                      :key="tag"
-                      :title="tag"
-                      variant="secondary"
-                      @remove="removeTag(tag)"
-                    >
-                      <BLink
-                        :href="
-                          'https://pubmed.ncbi.nlm.nih.gov/' +
-                            tag.replace('PMID:', '')
-                        "
-                        target="_blank"
-                        class="text-light"
-                      >
-                        <i class="bi bi-box-arrow-up-right" />
-                        {{ tag }}
-                      </BLink>
-                    </BFormTag>
-                  </h6>
-                </div>
-              </template>
-            </BFormTags>
-            <!-- publications tag form with links out -->
-
-            <!-- genereviews tag form with links out -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-genereviews-select"
-            >Genereviews</label>
-
-            <BBadge
-              id="popover-badge-help-genereviews"
-              pill
-              href="#"
-              variant="info"
-            >
-              <i class="bi bi-question-circle-fill" />
-            </BBadge>
-
-            <BPopover
-              target="popover-badge-help-genereviews"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                GeneReviews instructions
-              </template>
-              Please add PMID for GeneReview article if available for this
-              entity. <br>
-              - Input is only valid when starting with
-              <strong>"PMID:"</strong> followed by a number
-            </BPopover>
-
-            <BFormTags
-              v-model="select_gene_reviews"
-              input-id="review-genereviews-select"
-              no-outer-focus
-              class="my-0"
-              separator=",;"
-              :tag-validator="tagValidatorPMID"
-              remove-on-delete
-            >
-              <template
-                #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }"
-              >
-                <BInputGroup class="my-0">
-                  <BFormInput
-                    v-bind="inputAttrs"
-                    placeholder="Enter PMIDs separated by comma or semicolon"
-                    class="form-control"
-                    size="sm"
-                    v-on="inputHandlers"
-                  />
-                  <BButton
-                    variant="secondary"
-                    size="sm"
-                    @click="addTag()"
-                  >
-                    Add
-                  </BButton>
-                </BInputGroup>
-
-                <div class="d-inline-block">
-                  <h6>
-                    <BFormTag
-                      v-for="tag in tags"
-                      :key="tag"
-                      :title="tag"
-                      variant="secondary"
-                      @remove="removeTag(tag)"
-                    >
-                      <BLink
-                        :href="
-                          'https://pubmed.ncbi.nlm.nih.gov/' +
-                            tag.replace('PMID:', '')
-                        "
-                        target="_blank"
-                        class="text-light"
-                      >
-                        <i class="bi bi-box-arrow-up-right" />
-                        {{ tag }}
-                      </BLink>
-                    </BFormTag>
-                  </h6>
-                </div>
-              </template>
-            </BFormTags>
-            <!-- genereviews tag form with links out -->
-
-            <!-- Review comment textarea -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-textarea-comment"
-            >Comment</label>
-            <BFormTextarea
-              id="review-textarea-comment"
-              v-model="review_info.comment"
-              rows="2"
-              size="sm"
-              placeholder="Additional comments to this entity relevant for the curator."
-            />
-            <!-- Review comment textarea -->
-          </BForm>
-        </BOverlay>
+        <ReviewFormFields
+          v-model="reviewFormData"
+          :phenotypes-options="phenotypes_options"
+          :variation-options="variation_ontology_options"
+          :loading="reviewFormLoading"
+        />
       </BModal>
       <!-- 1) Review modal -->
 
@@ -1111,7 +797,6 @@ import { useToast, useColorAndSymbols, useText } from '@/composables';
 import useModalControls from '@/composables/useModalControls';
 import useStatusForm from '@/views/curate/composables/useStatusForm';
 import useReviewForm from '@/views/curate/composables/useReviewForm';
-import TreeMultiSelect from '@/components/forms/TreeMultiSelect.vue';
 import ReviewFormFields from '@/views/curate/components/ReviewFormFields.vue';
 
 // Import the utilities file
@@ -1119,14 +804,10 @@ import Utils from '@/assets/js/utils';
 
 import Review from '@/assets/js/classes/submission/submissionReview';
 import Status from '@/assets/js/classes/submission/submissionStatus';
-import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
-import Variation from '@/assets/js/classes/submission/submissionVariation';
-import Literature from '@/assets/js/classes/submission/submissionLiterature';
 
 export default {
-  name: 'Review',
+  name: 'ReviewView',
   components: {
-    TreeMultiSelect,
     ReviewFormFields,
   },
   setup() {
@@ -1139,9 +820,6 @@ export default {
     const {
       formData: statusFormData,
       loading: statusFormLoading,
-      loadStatusData,
-      submitForm: submitStatusForm,
-      resetForm: resetStatusForm,
     } = statusForm;
 
     // Initialize review form composable
@@ -1149,9 +827,6 @@ export default {
     const {
       formData: reviewFormData,
       loading: reviewFormLoading,
-      loadReviewData,
-      submitForm: submitReviewForm,
-      resetForm: resetReviewForm,
     } = reviewForm;
 
     return {
@@ -1272,18 +947,13 @@ export default {
         hpo_mode_of_inheritance_term: '',
       },
       review_info: new Review(),
-      select_phenotype: [],
-      select_variation: [],
       phenotypes_options: [],
       variation_ontology_options: [],
-      select_additional_references: [],
-      select_gene_reviews: [],
       curation_selected: false,
       review_approved: false,
       status_approved: false,
       curator_mode: 0,
       loading: true,
-      loading_review_modal: true,
       user: {
         user_id: [],
         user_name: [],
@@ -1307,27 +977,8 @@ export default {
   },
   watch: {
     // used to reload table when switching curator mode
-    curation_selected(newVal, oldVal) {
-      // watch it
+    curation_selected() {
       this.loadReReviewData();
-    },
-    select_additional_references: {
-      handler(newVal) {
-        const sanitizedValues = newVal.map(this.sanitizeInput);
-        if (!this.arraysAreEqual(this.select_additional_references, sanitizedValues)) {
-          this.select_additional_references = sanitizedValues;
-        }
-      },
-      deep: true,
-    },
-    select_gene_reviews: {
-      handler(newVal) {
-        const sanitizedValues = newVal.map(this.sanitizeInput);
-        if (!this.arraysAreEqual(this.select_gene_reviews, sanitizedValues)) {
-          this.select_gene_reviews = sanitizedValues;
-        }
-      },
-      deep: true,
     },
   },
   mounted() {
@@ -1394,10 +1045,10 @@ export default {
       this.status_approved = false;
       this.review_approved = false;
     },
-    infoReview(item, index, button) {
+    async infoReview(item, index, button) {
       this.reviewModal.title = `sysndd:${item.entity_id}`;
-      this.getEntity(item.entity_id);
-      this.loadReviewInfo(item.review_id, item.re_review_review_saved);
+      await this.getEntity(item.entity_id);
+      await this.reviewForm.loadReviewData(item.review_id, item.re_review_review_saved);
       const { showModal } = useModalControls();
       showModal(this.reviewModal.id);
     },
@@ -1457,67 +1108,21 @@ export default {
       }
     },
     async loadReviewInfo(review_id, re_review_review_saved) {
-      this.loading_review_modal = true;
+      // Load form data via composable
+      await this.reviewForm.loadReviewData(review_id, re_review_review_saved);
 
+      // Also load metadata for modal footer display
       const apiGetReviewURL = `${import.meta.env.VITE_API_URL}/api/review/${review_id}`;
-      const apiGetPhenotypesURL = `${import.meta.env.VITE_API_URL
-      }/api/review/${
-        review_id
-      }/phenotypes`;
-      const apiGetVariationURL = `${import.meta.env.VITE_API_URL}/api/review/${review_id}/variation`;
-      const apiGetPublicationsURL = `${import.meta.env.VITE_API_URL
-      }/api/review/${
-        review_id
-      }/publications`;
-
       try {
         const response_review = await this.axios.get(apiGetReviewURL);
-        const response_phenotypes = await this.axios.get(apiGetPhenotypesURL);
-        const response_variation = await this.axios.get(apiGetVariationURL);
-        const response_publications = await this.axios.get(apiGetPublicationsURL);
-
-        // define phenotype specific attributes as constants from response
-        const new_phenotype = response_phenotypes.data.map((item) => new Phenotype(item.phenotype_id, item.modifier_id));
-        this.select_phenotype = response_phenotypes.data.map((item) => `${item.modifier_id}-${item.phenotype_id}`);
-
-        // define variation specific attributes as constants from response
-        const new_variation = response_variation.data.map((item) => new Variation(item.vario_id, item.modifier_id));
-        this.select_variation = response_variation.data.map((item) => `${item.modifier_id}-${item.vario_id}`);
-
-        // define publication specific attributes as constants from response
-        const literature_gene_reviews = response_publications.data
-          .filter((item) => item.publication_type === 'gene_review')
-          .map((item) => item.publication_id);
-
-        const literature_additional_references = response_publications.data
-          .filter((item) => item.publication_type === 'additional_references')
-          .map((item) => item.publication_id);
-
-        this.select_additional_references = literature_additional_references;
-        this.select_gene_reviews = literature_gene_reviews;
-
-        const new_literature = new Literature(
-          literature_additional_references,
-          literature_gene_reviews,
-        );
-
-        // compose review
-        this.review_info = new Review(
-          response_review.data[0].synopsis,
-          new_literature,
-          new_phenotype,
-          new_variation,
-          response_review.data[0].comment,
-        );
-
-        this.review_info.review_id = response_review.data[0].review_id;
-        this.review_info.entity_id = response_review.data[0].entity_id;
-        this.review_info.review_user_name = response_review.data[0].review_user_name;
-        this.review_info.review_user_role = response_review.data[0].review_user_role;
-        this.review_info.review_date = response_review.data[0].review_date;
-        this.review_info.re_review_review_saved = re_review_review_saved;
-
-        this.loading_review_modal = false;
+        if (response_review.data && response_review.data.length > 0) {
+          this.review_info.review_id = response_review.data[0].review_id;
+          this.review_info.entity_id = response_review.data[0].entity_id;
+          this.review_info.review_user_name = response_review.data[0].review_user_name;
+          this.review_info.review_user_role = response_review.data[0].review_user_role;
+          this.review_info.review_date = response_review.data[0].review_date;
+          this.review_info.re_review_review_saved = re_review_review_saved;
+        }
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
@@ -1561,113 +1166,22 @@ export default {
       }
     },
     async submitReviewChange() {
-      this.isBusy = true;
-
-      const review_saved = this.review_info.re_review_review_saved;
-
-      // remove user info from review object
-      // TODO: handle this server side to make it more robust
-      this.review_info.review_user_name = null;
-      this.review_info.review_user_role = null;
-      this.review_info.re_review_review_saved = null;
-
-      // define literature specific attributes as constants from inputs
-      // first clean the arrays
-      const select_additional_references_clean = this.select_additional_references.map(
-        (element) => this.sanitizeInput(element),
-      );
-
-      const select_gene_reviews_clean = this.select_gene_reviews.map(
-        (element) => this.sanitizeInput(element),
-      );
-
-      const replace_literature = new Literature(
-        select_additional_references_clean,
-        select_gene_reviews_clean,
-      );
-
-      // compose phenotype specific attributes as constants from inputs
-      const replace_phenotype = this.select_phenotype.map((item) => new Phenotype(item.split('-')[1], item.split('-')[0]));
-
-      // compose variation ontology specific attributes as constants from inputs
-      const replace_variation_ontology = this.select_variation.map((item) => new Variation(item.split('-')[1], item.split('-')[0]));
-
-      // assign to object
-      this.review_info.literature = replace_literature;
-      this.review_info.phenotypes = replace_phenotype;
-      this.review_info.variation_ontology = replace_variation_ontology;
-
-      if (review_saved === 1) {
-        const apiUrl = `${import.meta.env.VITE_API_URL}/api/review/update?re_review=true`;
-
-        // perform update POST request
-        try {
-          const response = await this.axios.put(
-            apiUrl,
-            { review_json: this.review_info },
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-              },
-            },
-          );
-
-          this.makeToast(
-            `${'The new review for this entity has been submitted '
-              + '(status '}${
-              response.status
-            } (${
-              response.statusText
-            }).`,
-            'Success',
-            'success',
-          );
-          this.resetForm();
-          this.loadReReviewData();
-        } catch (e) {
-          this.makeToast(e, 'Error', 'danger');
-        }
-      } else {
-        const apiUrl = `${import.meta.env.VITE_API_URL}/api/review/create?re_review=true`;
-
-        // perform update POST request
-        try {
-          const response = await this.axios.post(
-            apiUrl,
-            { review_json: this.review_info },
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-              },
-            },
-          );
-
-          this.makeToast(
-            `${'The new review for this entity has been submitted '
-              + '(status '}${
-              response.status
-            } (${
-              response.statusText
-            }).`,
-            'Success',
-            'success',
-          );
-          this.resetForm();
-          this.loadReReviewData();
-        } catch (e) {
-          this.makeToast(e, 'Error', 'danger');
-        }
+      try {
+        const isUpdate = this.review_info.re_review_review_saved === 1;
+        await this.reviewForm.submitForm(isUpdate, true); // reReview = true
+        this.makeToast('Review submitted successfully', 'Success', 'success');
+        this.reviewForm.resetForm();
+        this.loadReReviewData();
+      } catch (e) {
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     resetForm() {
       // status
-      this.status_info = new Status();
+      this.statusForm.resetForm();
 
       // review
-      this.select_phenotype = [];
-      this.select_variation = [];
-      this.select_additional_references = [];
-      this.select_gene_reviews = [];
+      this.reviewForm.resetForm();
       this.entity_info = {
         entity_id: 0,
         symbol: '',
@@ -1764,16 +1278,6 @@ export default {
         this.makeToast(e, 'Error', 'danger');
       }
     },
-    tagValidatorPMID(tag) {
-      // Individual PMID tag validator function
-      const tag_copy = tag.replace(/\s+/g, '');
-      return (
-        !Number.isNaN(Number(tag_copy.replaceAll('PMID:', '').replaceAll(' ', '')))
-        && tag_copy.includes('PMID:')
-        && tag_copy.replace('PMID:', '').length > 4
-        && tag_copy.replace('PMID:', '').length < 9
-      );
-    },
     saved(any_id) {
       // TODO: implement this server side and with real logic :D
       // check if id is new
@@ -1800,31 +1304,6 @@ export default {
     hideModal(id) {
       const { hideModal: closeModal } = useModalControls();
       closeModal(id);
-    },
-    /**
-     * Sanitizes the input by removing extra white spaces, especially for PubMed IDs.
-     * Expected input format: "PMID: 123456"
-     * Output format: "PMID:123456"
-     * @param {String} input - The input string to be sanitized.
-     * @return {String} The sanitized string.
-     */
-    sanitizeInput(input) {
-      if (!input) return '';
-
-      // Split the input based on ':' (e.g., "PMID: 123456")
-      const parts = input.split(':');
-
-      // Check if the input format is as expected
-      if (parts.length !== 2 || !parts[0].trim().startsWith('PMID')) return input;
-
-      // Trim whitespace from both parts and rejoin them
-      return `${parts[0].trim()}:${parts[1].trim()}`;
-    },
-    arraysAreEqual(array1, array2) {
-      if (array1.length !== array2.length) {
-        return false;
-      }
-      return array1.every((value, index) => value === array2[index]);
     },
     /**
      * Handles sortBy updates from Bootstrap-Vue-Next BTable
