@@ -751,18 +751,29 @@ export default {
       try {
         const response = await this.axios.get(apiGetURL);
 
+        // Defensive check for valid response data
+        const entityData = response.data?.data;
+        if (!Array.isArray(entityData) || entityData.length === 0) {
+          this.makeToast(`Entity ${this.modify_entity_input} not found`, 'Error', 'danger');
+          this.entity_info = new Entity();
+          return;
+        }
+
+        const entity = entityData[0];
+
         // compose entity
         this.entity_info = new Entity(
-          response.data.data[0].hgnc_id,
-          response.data.data[0].disease_ontology_id_version,
-          response.data.data[0].hpo_mode_of_inheritance_term,
-          response.data.data[0].ndd_phenotype,
-          response.data.data[0].entity_id,
-          response.data.data[0].is_active,
-          response.data.data[0].replaced_by,
+          entity.hgnc_id,
+          entity.disease_ontology_id_version,
+          entity.hpo_mode_of_inheritance_term,
+          entity.ndd_phenotype,
+          entity.entity_id,
+          entity.is_active,
+          entity.replaced_by,
         );
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.entity_info = new Entity();
       }
     },
     async getReview() {
@@ -942,22 +953,38 @@ export default {
         this.makeToast(e, 'Error', 'danger');
       }
     },
-    showEntityRename() {
-      this.getEntity();
+    async showEntityRename() {
+      await this.getEntity();
+      if (!this.entity_info?.entity_id) {
+        return;
+      }
       this.$refs.renameModal.show();
     },
-    showEntityDeactivate() {
-      this.getEntity();
+    async showEntityDeactivate() {
+      await this.getEntity();
+      if (!this.entity_info?.entity_id) {
+        return;
+      }
       this.$refs.deactivateModal.show();
     },
-    showReviewModify() {
-      this.getEntity();
+    async showReviewModify() {
+      await this.getEntity();
+      if (!this.entity_info?.entity_id) {
+        return;
+      }
       this.getReview();
       this.$refs.modifyReviewModal.show();
     },
     async showStatusModify() {
       // Load entity and status data
       await this.getEntity();
+
+      // Guard against entity not found
+      if (!this.entity_info?.entity_id) {
+        // Error already shown by getEntity()
+        return;
+      }
+
       await this.getStatus();
 
       // Ensure status options are loaded
