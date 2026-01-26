@@ -539,30 +539,14 @@
               also include information on severity of ID.
             </BPopover>
 
-            <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
-            <!-- Multi-select temporarily disabled - using single select -->
-            <!-- <treeselect
-              id="review-phenotype-select"
-              v-model="select_phenotype"
-              :multiple="true"
-              :flat="true"
-              :options="phenotypes_options"
-              :normalizer="normalizePhenotypes"
-              required
-            /> -->
-            <BFormSelect
+            <TreeMultiSelect
               v-if="phenotypes_options && phenotypes_options.length > 0"
               id="review-phenotype-select"
-              v-model="select_phenotype[0]"
-              :options="normalizePhenotypesOptions(phenotypes_options)"
-              size="sm"
-            >
-              <template #first>
-                <BFormSelectOption :value="null">
-                  Select phenotype...
-                </BFormSelectOption>
-              </template>
-            </BFormSelect>
+              v-model="select_phenotype"
+              :options="phenotypes_options"
+              placeholder="Select phenotypes..."
+              search-placeholder="Search phenotypes (name or HP:ID)..."
+            />
             <!-- Phenotype select -->
 
             <!-- Variation ontology select -->
@@ -598,30 +582,14 @@
               <br>
             </BPopover>
 
-            <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
-            <!-- Multi-select temporarily disabled - using single select -->
-            <!-- <treeselect
-              id="review-variation-select"
-              v-model="select_variation"
-              :multiple="true"
-              :flat="true"
-              :options="variation_ontology_options"
-              :normalizer="normalizeVariationOntology"
-              required
-            /> -->
-            <BFormSelect
+            <TreeMultiSelect
               v-if="variation_ontology_options && variation_ontology_options.length > 0"
               id="review-variation-select"
-              v-model="select_variation[0]"
-              :options="normalizeVariationOntologyOptions(variation_ontology_options)"
-              size="sm"
-            >
-              <template #first>
-                <BFormSelectOption :value="null">
-                  Select variation...
-                </BFormSelectOption>
-              </template>
-            </BFormSelect>
+              v-model="select_variation"
+              :options="variation_ontology_options"
+              placeholder="Select variations..."
+              search-placeholder="Search variation types..."
+            />
             <!-- Variation ontology select -->
 
             <!-- publications tag form with links out -->
@@ -1147,14 +1115,9 @@
 </template>
 
 <script>
-// TODO: vue3-treeselect disabled pending Bootstrap-Vue-Next migration
-// import the Treeselect component
-// import Treeselect from '@zanmato/vue3-treeselect';
-// import the Treeselect styles
-// import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
-
 import { useToast, useColorAndSymbols, useText } from '@/composables';
 import useModalControls from '@/composables/useModalControls';
+import TreeMultiSelect from '@/components/forms/TreeMultiSelect.vue';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
@@ -1167,8 +1130,9 @@ import Literature from '@/assets/js/classes/submission/submissionLiterature';
 
 export default {
   name: 'Review',
-  // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
-  components: {},
+  components: {
+    TreeMultiSelect,
+  },
   setup() {
     const { makeToast } = useToast();
     const colorAndSymbols = useColorAndSymbols();
@@ -1404,29 +1368,6 @@ export default {
         value: opt.category_id,
         text: opt.category,
       }));
-    },
-    // Normalize phenotypes options for BFormSelect
-    normalizePhenotypesOptions(options) {
-      if (!options || !Array.isArray(options)) return [];
-      return this.flattenTreeOptions(options);
-    },
-    // Normalize variation ontology options for BFormSelect
-    normalizeVariationOntologyOptions(options) {
-      if (!options || !Array.isArray(options)) return [];
-      return this.flattenTreeOptions(options);
-    },
-    // Flatten tree options for BFormSelect
-    flattenTreeOptions(options, result = []) {
-      options.forEach((opt) => {
-        result.push({
-          value: opt.id,
-          text: opt.label,
-        });
-        if (opt.children && opt.children.length > 0) {
-          this.flattenTreeOptions(opt.children, result);
-        }
-      });
-      return result;
     },
     normalizeVariationOntology(node) {
       return {
