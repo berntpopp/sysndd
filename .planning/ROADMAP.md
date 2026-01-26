@@ -99,10 +99,12 @@ Plans:
   3. Modification forms can save draft and resume later
   4. useReviewForm composable exists and is used in Review.vue
   5. ReviewFormFields component exists and renders synopsis, phenotypes, publications, variations
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 37-01: TBD
+- [ ] 37-01-PLAN.md - Extract useReviewForm composable and ReviewFormFields component (FORM-04, FORM-06)
+- [ ] 37-02-PLAN.md - Extract useStatusForm composable (FORM-05)
+- [ ] 37-03-PLAN.md - Add draft persistence and fix form reset on @show (FORM-03, FORM-07)
 
 ### Phase 38: Re-Review System Overhaul
 **Goal**: Enable dynamic batch creation and gene-specific assignment for re-review workflow
@@ -144,10 +146,10 @@ Plans:
 | 35. Multi-Select Restoration | v7.0 | 3/3 | Complete | 2026-01-26 |
 | 35.1 ModifyEntity UX Overhaul | v7.0 | 2/2 | Complete | 2026-01-26 |
 | 36. Curation Table Modernization | v7.0 | 3/3 | Complete | 2026-01-26 |
-| 37. Form Modernization | v7.0 | 0/TBD | Not started | - |
+| 37. Form Modernization | v7.0 | 0/3 | Not started | - |
 | 38. Re-Review System Overhaul | v7.0 | 0/TBD | Not started | - |
 | 39. Accessibility Pass | v7.0 | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-01-26*
-*Last updated: 2026-01-26 -- Phase 36 complete (3 plans)*
+*Last updated: 2026-01-26 -- Phase 37 planned (3 plans)*
