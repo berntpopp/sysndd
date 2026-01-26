@@ -6,24 +6,24 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** Phase 35.1 - ModifyEntity UX Overhaul
+**Current focus:** Phase 36 - Curation Table Modernization
 
 ## Current Position
 
 **Milestone:** v7.0 Curation Workflow Modernization
-**Phase:** 35.1 of 39 (ModifyEntity UX Overhaul) - COMPLETE
-**Plan:** 2 of 2 in phase 35.1
-**Status:** Phase 35.1 complete (ModifyEntity UX Overhaul)
-**Last activity:** 2026-01-26 -- Completed 35.1-02-PLAN.md
+**Phase:** 36 of 39 (Curation Table Modernization)
+**Plan:** 2 of 3 in phase 36
+**Status:** In progress
+**Last activity:** 2026-01-26 -- Completed 36-02-PLAN.md
 
 ```
-v7.0 Curation Workflow Modernization: [████████████__________________] 40% (2.5/6 phases)
+v7.0 Curation Workflow Modernization: [█████████████_________________] 45% (2.7/6 phases)
 ```
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 165
+- Total plans completed: 166
 - Milestones shipped: 6 (v1-v6)
 - Phases completed: 35
 
@@ -71,6 +71,11 @@ Phase 35.1 decisions:
 - **Submitting state pattern**: Use null | string union to track which action is submitting
 - **BFormCheckbox switch**: Replace deprecated custom-control-switch CSS with native switch prop
 
+Phase 36 decisions:
+- **Follow ApproveReview.vue search pattern**: Use same search input structure and pagination layout for consistency
+- **Default perPage 25**: Standard default for modernized curation views
+- **Search input with 500ms debounce**: Standardized pattern for all curation tables
+
 ### Roadmap Evolution
 
 - Phase 35.1 inserted after Phase 35: ModifyEntity UX Overhaul (URGENT) - complete UX modernization started in Phase 35
@@ -99,10 +104,10 @@ Phase 35.1 improvements:
 ## Session Continuity
 
 **Last session:** 2026-01-26
-**Stopped at:** Completed 35.1-02-PLAN.md
+**Stopped at:** Completed 36-02-PLAN.md
 **Resume file:** None
-**Next action:** Proceed to Phase 36
+**Next action:** Execute 36-03-PLAN.md
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-26 -- Phase 35.1 complete (Plan 35.1-02)*
+*Last updated: 2026-01-26 -- Plan 36-02 complete (ManageReReview search/pagination)*
