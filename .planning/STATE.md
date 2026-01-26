@@ -11,19 +11,19 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 ## Current Position
 
 **Milestone:** v7.0 Curation Workflow Modernization
-**Phase:** 36 of 39 (Curation Table Modernization) - COMPLETE
-**Plan:** 3 of 3 in phase 36 (all complete)
-**Status:** Phase complete
-**Last activity:** 2026-01-26 -- Completed 36-03-PLAN.md
+**Phase:** 37 of 39 (Form Modernization)
+**Plan:** 2 of 3 in phase 37
+**Status:** In progress
+**Last activity:** 2026-01-26 -- Completed 37-02-PLAN.md
 
 ```
-v7.0 Curation Workflow Modernization: [████████████████______________] 50% (3/6 phases)
+v7.0 Curation Workflow Modernization: [██████████████████____________] 58% (3.67/6 phases)
 ```
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 170
+- Total plans completed: 172
 - Milestones shipped: 6 (v1-v6)
 - Phases completed: 36
 
@@ -111,13 +111,19 @@ Phase 36 improvements:
 - ~~ManageReReview lacks search/pagination~~ [ADDED in 36-02 with search and standardized pagination]
 - ~~Action buttons lack accessibility labels~~ [ADDED in 36-03 with aria-labels and tooltips]
 
+Phase 37 decisions:
+- **Composable-based form extraction**: Extract useReviewForm and useStatusForm following useEntityForm pattern
+- **any type for Status class dynamic properties**: Use `any` annotation for JavaScript class instances with dynamic properties
+- **Separate load methods per context**: loadStatusData (by status_id) for Review.vue, loadStatusByEntity for ModifyEntity.vue
+- **isUpdate parameter for create/update logic**: Single composable handles both create and update via parameter
+
 ## Session Continuity
 
 **Last session:** 2026-01-26
-**Stopped at:** Completed 36-03-PLAN.md (Phase 36 complete)
+**Stopped at:** Completed 37-02-PLAN.md
 **Resume file:** None
-**Next action:** Begin Phase 37 - Entity Details Modernization
+**Next action:** Continue Phase 37 - Form Modernization (plan 37-03 next)
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-26 -- Plan 36-03 complete (Accessibility Labels), Phase 36 complete*
+*Last updated: 2026-01-26 -- Plan 37-02 complete (Status Form Composable)*
