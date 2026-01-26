@@ -902,8 +902,8 @@ export default {
     normalizeStatusOptions(options) {
       if (!options || !Array.isArray(options)) return [];
       return options.map((opt) => ({
-        value: opt.category_id,
-        text: opt.category,
+        value: opt.id,
+        text: opt.label,
       }));
     },
     // Normalize phenotypes options for BFormSelect

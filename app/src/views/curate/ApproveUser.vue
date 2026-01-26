@@ -149,9 +149,11 @@ export default {
   setup() {
     const { makeToast } = useToast();
     const colorAndSymbols = useColorAndSymbols();
+    const { showModal } = useModalControls();
 
     return {
       makeToast,
+      showModal,
       ...colorAndSymbols,
     };
   },
@@ -299,8 +301,7 @@ export default {
     },
     infoApproveUser(item, index, button) {
       this.selectedUserId = item.user_id;
-      const { showModal } = useModalControls();
-      showModal(this.approveUserModal.id);
+      this.showModal(this.approveUserModal.id);
     },
     prepareApproveUserModal() {
       // Reset stale state
