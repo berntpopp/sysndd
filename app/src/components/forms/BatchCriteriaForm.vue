@@ -25,10 +25,16 @@
               Search Entities
             </label>
             <i
-              v-b-tooltip.hover.right
+              id="help-search-entities"
               class="bi bi-question-circle text-muted ms-1"
-              title="Search by entity ID, gene symbol, or disease name. Selected entities are added directly to the batch."
             />
+            <BTooltip
+              target="help-search-entities"
+              placement="right"
+              triggers="hover"
+            >
+              Search by entity ID, gene symbol, or disease name. Selected entities are added directly to the batch.
+            </BTooltip>
           </div>
           <div class="position-relative">
             <BFormInput
@@ -84,17 +90,26 @@
             v-if="formData.entity_list.length > 0"
             class="mt-2"
           >
-            <BFormTag
+            <span
               v-for="entity in formData.entity_list"
               :key="entity.entity_id"
-              v-b-tooltip.hover.top
-              variant="primary"
-              class="me-1 mb-1"
-              :title="`${entity.symbol}: ${entity.disease_ontology_name}`"
-              @remove="removeEntity(entity.entity_id)"
             >
-              {{ entity.entity_id }}
-            </BFormTag>
+              <BFormTag
+                :id="`tag-entity-${entity.entity_id}`"
+                variant="primary"
+                class="me-1 mb-1"
+                @remove="removeEntity(entity.entity_id)"
+              >
+                {{ entity.entity_id }}
+              </BFormTag>
+              <BTooltip
+                :target="`tag-entity-${entity.entity_id}`"
+                placement="top"
+                triggers="hover"
+              >
+                {{ entity.symbol }}: {{ entity.disease_ontology_name }}
+              </BTooltip>
+            </span>
           </div>
           <small
             v-if="formData.entity_list.length > 0"
@@ -115,10 +130,16 @@
             <div class="d-flex align-items-center">
               <span class="small fw-semibold">Date Range</span>
               <i
-                v-b-tooltip.hover.right
+                id="help-date-range"
                 class="bi bi-question-circle text-muted ms-1"
-                title="Filter entities by their last review date. Both start and end dates required."
               />
+              <BTooltip
+                target="help-date-range"
+                placement="right"
+                triggers="hover"
+              >
+                Filter entities by their last review date. Both start and end dates required.
+              </BTooltip>
             </div>
           </template>
           <BInputGroup size="sm">
@@ -148,10 +169,16 @@
             <div class="d-flex align-items-center">
               <span class="small fw-semibold">Gene Filter</span>
               <i
-                v-b-tooltip.hover.right
+                id="help-gene-filter"
                 class="bi bi-question-circle text-muted ms-1"
-                title="Select genes to include ALL their associated entities in the batch. Use Ctrl+Click (Cmd+Click on Mac) to select multiple."
               />
+              <BTooltip
+                target="help-gene-filter"
+                placement="right"
+                triggers="hover"
+              >
+                Select genes to include ALL their associated entities in the batch. Use Ctrl+Click (Cmd+Click on Mac) to select multiple.
+              </BTooltip>
             </div>
           </template>
           <BFormSelect
@@ -187,10 +214,16 @@
             <div class="d-flex align-items-center">
               <span class="small fw-semibold">Status</span>
               <i
-                v-b-tooltip.hover.right
+                id="help-status-filter"
                 class="bi bi-question-circle text-muted ms-1"
-                title="Filter entities by their current curation status."
               />
+              <BTooltip
+                target="help-status-filter"
+                placement="right"
+                triggers="hover"
+              >
+                Filter entities by their current curation status.
+              </BTooltip>
             </div>
           </template>
           <BFormSelect
@@ -220,10 +253,16 @@
             <div class="d-flex align-items-center">
               <span class="small fw-semibold">Batch Name</span>
               <i
-                v-b-tooltip.hover.right
+                id="help-batch-name"
                 class="bi bi-question-circle text-muted ms-1"
-                title="Optional name for this batch. If left empty, a name will be auto-generated based on criteria."
               />
+              <BTooltip
+                target="help-batch-name"
+                placement="right"
+                triggers="hover"
+              >
+                Optional name for this batch. If left empty, a name will be auto-generated based on criteria.
+              </BTooltip>
             </div>
           </template>
           <BFormInput
@@ -243,10 +282,16 @@
                 <div class="d-flex align-items-center">
                   <span class="small fw-semibold">Size</span>
                   <i
-                    v-b-tooltip.hover.right
+                    id="help-batch-size"
                     class="bi bi-question-circle text-muted ms-1"
-                    title="Maximum entities per batch (1-100). Use to limit workload per assignment."
                   />
+                  <BTooltip
+                    target="help-batch-size"
+                    placement="right"
+                    triggers="hover"
+                  >
+                    Maximum entities per batch (1-100). Use to limit workload per assignment.
+                  </BTooltip>
                 </div>
               </template>
               <BFormInput
@@ -266,10 +311,16 @@
                 <div class="d-flex align-items-center">
                   <span class="small fw-semibold">Assign to</span>
                   <i
-                    v-b-tooltip.hover.right
+                    id="help-assign-to"
                     class="bi bi-question-circle text-muted ms-1"
-                    title="Select a curator to assign this batch to immediately. Choose 'Later' to assign after creation."
                   />
+                  <BTooltip
+                    target="help-assign-to"
+                    placement="right"
+                    triggers="hover"
+                  >
+                    Select a curator to assign this batch to immediately. Choose 'Later' to assign after creation.
+                  </BTooltip>
                 </div>
               </template>
               <BFormSelect

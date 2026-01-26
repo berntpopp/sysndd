@@ -207,12 +207,11 @@
                 </BCol>
                 <BCol class="text-end">
                   <BButton
-                    v-b-tooltip.hover
+                    id="btn-refresh-table"
                     size="sm"
                     variant="outline-secondary"
                     class="me-1"
                     :disabled="loadingReReviewManagment"
-                    title="Refresh table data"
                     @click="loadReReviewTableData"
                   >
                     <BSpinner
@@ -224,6 +223,12 @@
                       class="bi bi-arrow-clockwise"
                     />
                   </BButton>
+                  <BTooltip
+                    target="btn-refresh-table"
+                    triggers="hover"
+                  >
+                    Refresh table data
+                  </BTooltip>
                 </BCol>
               </BRow>
             </template>
@@ -315,10 +320,16 @@
                     Assign Legacy Batch
                   </BButton>
                   <i
-                    v-b-tooltip.hover.right
+                    id="help-legacy-batch"
                     class="bi bi-question-circle text-muted"
-                    title="Assign next available pre-computed batch. Use 'Create New Batch' above for dynamic batches."
                   />
+                  <BTooltip
+                    target="help-legacy-batch"
+                    placement="right"
+                    triggers="hover"
+                  >
+                    Assign next available pre-computed batch. Use 'Create New Batch' above for dynamic batches.
+                  </BTooltip>
                 </div>
               </BCol>
               <BCol
@@ -432,41 +443,62 @@
                     <!-- Recalculate button (only for unassigned batches) -->
                     <BButton
                       v-if="!data.item.user_id"
-                      v-b-tooltip.hover.top
+                      :id="`btn-recalc-${data.item.re_review_batch}`"
                       size="sm"
                       class="btn-action"
-                      title="Recalculate batch contents"
                       variant="secondary"
                       @click="openRecalculateModal(data.item)"
                     >
                       <i class="bi bi-calculator" />
                     </BButton>
+                    <BTooltip
+                      v-if="!data.item.user_id"
+                      :target="`btn-recalc-${data.item.re_review_batch}`"
+                      placement="top"
+                      triggers="hover"
+                    >
+                      Recalculate batch contents
+                    </BTooltip>
 
                     <!-- Reassign button (only for assigned batches) -->
                     <BButton
                       v-if="data.item.user_id"
-                      v-b-tooltip.hover.top
+                      :id="`btn-reassign-${data.item.re_review_batch}`"
                       size="sm"
                       class="btn-action"
-                      title="Reassign to different user"
                       variant="warning"
                       @click="openReassignModal(data.item)"
                     >
                       <i class="bi bi-person-lines-fill" />
                     </BButton>
+                    <BTooltip
+                      v-if="data.item.user_id"
+                      :target="`btn-reassign-${data.item.re_review_batch}`"
+                      placement="top"
+                      triggers="hover"
+                    >
+                      Reassign to different user
+                    </BTooltip>
 
                     <!-- Unassign button -->
                     <BButton
                       v-if="data.item.user_id"
-                      v-b-tooltip.hover.top
+                      :id="`btn-unassign-${data.item.re_review_batch}`"
                       size="sm"
                       class="btn-action"
-                      title="Unassign this batch"
                       variant="danger"
                       @click="handleBatchUnAssignment(data.item.re_review_batch)"
                     >
                       <i class="bi bi-person-dash-fill" />
                     </BButton>
+                    <BTooltip
+                      v-if="data.item.user_id"
+                      :target="`btn-unassign-${data.item.re_review_batch}`"
+                      placement="top"
+                      triggers="hover"
+                    >
+                      Unassign this batch
+                    </BTooltip>
                   </div>
                 </template>
               </BTable>
