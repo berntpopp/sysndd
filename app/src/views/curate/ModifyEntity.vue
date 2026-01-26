@@ -557,8 +557,14 @@
               :options="status_options"
               :normalizer="normalizeStatus"
             /> -->
+            <!-- Status dropdown with loading state -->
+            <BSpinner
+              v-if="status_options_loading"
+              small
+              label="Loading..."
+            />
             <BFormSelect
-              v-if="status_options && status_options.length > 0"
+              v-else-if="status_options && status_options.length > 0"
               id="status-select"
               v-model="status_info.category_id"
               :options="normalizeStatusOptions(status_options)"
@@ -570,6 +576,13 @@
                 </BFormSelectOption>
               </template>
             </BFormSelect>
+            <BAlert
+              v-else-if="status_options !== null"
+              variant="warning"
+              class="mb-0"
+            >
+              No status options available
+            </BAlert>
 
             <div class="custom-control custom-switch">
               <input
@@ -622,7 +635,7 @@ import Variation from '@/assets/js/classes/submission/submissionVariation';
 import Literature from '@/assets/js/classes/submission/submissionLiterature';
 
 export default {
-  name: 'ApproveStatus',
+  name: 'ModifyEntity',
   // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
   components: {},
   setup() {
@@ -636,9 +649,10 @@ export default {
   },
   data() {
     return {
-      status_options: [],
-      phenotypes_options: [],
-      variation_ontology_options: [],
+      status_options: null, // null = not loaded, [] = loaded but empty
+      status_options_loading: false,
+      phenotypes_options: null, // null = not loaded, [] = loaded but empty
+      variation_ontology_options: null, // null = not loaded, [] = loaded but empty
       modify_entity_input: null,
       replace_entity_input: null,
       ontology_input: null,
@@ -667,9 +681,12 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/phenotype?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
-        this.phenotypes_options = response.data;
+        this.phenotypes_options = Array.isArray(response.data)
+          ? response.data
+          : response.data?.data || [];
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.phenotypes_options = [];
       }
     },
     normalizePhenotypes(node) {
@@ -682,9 +699,12 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/variation_ontology?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
-        this.variation_ontology_options = response.data;
+        this.variation_ontology_options = Array.isArray(response.data)
+          ? response.data
+          : response.data?.data || [];
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.variation_ontology_options = [];
       }
     },
     normalizeVariationOntology(node) {
@@ -694,12 +714,18 @@ export default {
       };
     },
     async loadStatusList() {
+      this.status_options_loading = true;
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/status?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
-        this.status_options = response.data;
+        this.status_options = Array.isArray(response.data)
+          ? response.data
+          : response.data?.data || [];
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.status_options = [];
+      } finally {
+        this.status_options_loading = false;
       }
     },
     async searchEntityInfo({ searchQuery, callback }) {
@@ -929,9 +955,22 @@ export default {
       this.getReview();
       this.$refs.modifyReviewModal.show();
     },
-    showStatusModify() {
-      this.getEntity();
-      this.getStatus();
+    async showStatusModify() {
+      // Load entity and status data
+      await this.getEntity();
+      await this.getStatus();
+
+      // Ensure status options are loaded
+      if (this.status_options === null) {
+        await this.loadStatusList();
+      }
+
+      // Guard against empty options
+      if (!this.status_options || this.status_options.length === 0) {
+        this.makeToast('Failed to load status options. Please refresh and try again.', 'Error', 'danger');
+        return;
+      }
+
       this.$refs.modifyStatusModal.show();
     },
     async submitEntityRename() {
