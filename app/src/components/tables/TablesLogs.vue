@@ -77,6 +77,29 @@
                 </BContainer>
               </BCol>
             </BRow>
+
+            <BRow class="px-2 pb-2">
+              <BCol sm="4">
+                <BFormSelect
+                  v-model="filter.user.content"
+                  :options="user_options"
+                  size="sm"
+                  @update:model-value="filtered()"
+                >
+                  <template #first>
+                    <BFormSelectOption :value="null">All Users</BFormSelectOption>
+                  </template>
+                </BFormSelect>
+              </BCol>
+              <BCol sm="4">
+                <!-- Action type filter placeholder -->
+              </BCol>
+              <BCol sm="4" class="text-end">
+                <span class="text-muted small">
+                  Showing {{ items.length }} of {{ totalRows }}
+                </span>
+              </BCol>
+            </BRow>
             <!-- User Interface controls -->
 
             <!-- Main table element -->
@@ -300,6 +323,7 @@ export default {
       address: { content: null, join_char: null, operator: 'contains' },
       agent: { content: null, join_char: null, operator: 'contains' },
       host: { content: null, join_char: null, operator: 'contains' },
+      user: { content: null, join_char: null, operator: 'contains' },
       request_method: { content: null, join_char: ',', operator: 'contains' },
       path: { content: null, join_char: ',', operator: 'contains' },
       query: { content: null, join_char: null, operator: 'contains' },
@@ -345,6 +369,8 @@ export default {
       loadDataDebounceTimer: null,
       // Pagination state
       totalPages: 0,
+      // User filter options (loaded from API)
+      user_options: [],
       fields: [
         { key: 'id', label: 'ID', sortable: true },
         { key: 'timestamp', label: 'Timestamp', sortable: true },
@@ -418,6 +444,9 @@ export default {
       this.perPage = parseInt(urlParams.get('page_size'), 10) || 10;
     }
 
+    // Load user list for filter dropdown
+    this.loadUserList();
+
     // Load data first while still in initializing state
     this.$nextTick(() => {
       this.loadData();
@@ -433,6 +462,23 @@ export default {
     }, 500);
   },
   methods: {
+    // Load user list for filter dropdown
+    async loadUserList() {
+      try {
+        const response = await this.axios.get(
+          `${import.meta.env.VITE_API_URL}/api/user/list`,
+          {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+          },
+        );
+        this.user_options = response.data.map((item) => ({
+          value: item.user_name,
+          text: `${item.user_name} (${item.user_role})`,
+        }));
+      } catch (e) {
+        this.makeToast('Failed to load user list', 'Error', 'danger');
+      }
+    },
     // Debounced loadData to prevent duplicate calls from multiple triggers
     loadData() {
       if (this.loadDataDebounceTimer) {
@@ -594,6 +640,7 @@ export default {
         address: { content: null, join_char: null, operator: 'contains' },
         agent: { content: null, join_char: null, operator: 'contains' },
         host: { content: null, join_char: null, operator: 'contains' },
+        user: { content: null, join_char: null, operator: 'contains' },
         request_method: { content: null, join_char: ',', operator: 'contains' },
         path: { content: null, join_char: ',', operator: 'contains' },
         query: { content: null, join_char: null, operator: 'contains' },
