@@ -71,27 +71,56 @@
             </BCol>
             <!-- User Interface controls -->
 
-            <BRow class="my-2">
+            <!-- Search row -->
+            <BRow class="mb-2">
               <BCol>
+                <BFormGroup class="mb-1">
+                  <BInputGroup
+                    prepend="Search"
+                    size="sm"
+                  >
+                    <BFormInput
+                      id="filter-input"
+                      v-model="filter"
+                      type="search"
+                      placeholder="Search batches, users, or counts..."
+                      debounce="500"
+                    />
+                  </BInputGroup>
+                </BFormGroup>
+              </BCol>
+            </BRow>
+
+            <BRow class="my-2">
+              <BCol class="my-1">
+                <BInputGroup
+                  prepend="Per page"
+                  class="mb-1"
+                  size="sm"
+                >
+                  <BFormSelect
+                    id="per-page-select"
+                    v-model="perPage"
+                    :options="pageOptions"
+                    size="sm"
+                  />
+                </BInputGroup>
+
                 <BPagination
                   v-model="currentPage"
                   :total-rows="totalRows"
                   :per-page="perPage"
                   align="fill"
                   size="sm"
-                />
-              </BCol>
-              <BCol class="text-end">
-                <BFormSelect
-                  v-model="perPage"
-                  :options="pageOptions"
-                  size="sm"
+                  class="my-0"
+                  last-number
                 />
               </BCol>
             </BRow>
             <BTable
               :items="items_ReReviewTable"
               :fields="fields_ReReviewTable"
+              :filter="filter"
               :per-page="perPage"
               :current-page="currentPage"
               stacked="md"
@@ -146,6 +175,7 @@ export default {
   },
   data() {
     return {
+      filter: null,
       loadingReReviewManagment: false,
       user_options: [],
       user_id_assignment: 0,
@@ -204,14 +234,9 @@ export default {
         { key: 'actions', label: 'Actions' },
       ],
       currentPage: 1,
-      perPage: 50,
+      perPage: 25,
       totalRows: 0,
-      pageOptions: [
-        { value: 5, text: '5' },
-        { value: 10, text: '10' },
-        { value: 20, text: '20' },
-        { value: 50, text: '50' },
-      ],
+      pageOptions: [10, 25, 50, 100],
     };
   },
   mounted() {
@@ -311,6 +336,7 @@ export default {
     },
     onFiltered(filteredItems) {
       this.totalRows = filteredItems.length;
+      this.currentPage = 1;
     },
     onSortChanged(ctx) {
       // Handle sort change if needed
