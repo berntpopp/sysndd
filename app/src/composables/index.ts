@@ -94,3 +94,8 @@ export type {
   UseAsyncJobOptions,
   UseAsyncJobReturn,
 } from './useAsyncJob';
+
+// Tree search and hierarchy utilities
+export { useTreeSearch } from './useTreeSearch';
+export type { TreeNode } from './useTreeSearch';
+export { useHierarchyPath } from './useHierarchyPath';
