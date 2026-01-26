@@ -1,9 +1,10 @@
 <!-- components/small/LogDetailDrawer.vue -->
 <template>
   <BOffcanvas
-    v-model="modelValue"
+    :model-value="modelValue"
     placement="end"
     :title="`Log Entry #${log?.id || ''}`"
+    @update:model-value="$emit('update:modelValue', $event)"
     @shown="handleShown"
     @keydown="handleKeydown"
   >
