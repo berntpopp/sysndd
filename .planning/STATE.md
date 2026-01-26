@@ -6,15 +6,15 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** Phase 36 - Curation Table Modernization
+**Current focus:** Phase 35.1 - ModifyEntity UX Overhaul
 
 ## Current Position
 
 **Milestone:** v7.0 Curation Workflow Modernization
-**Phase:** 35 of 39 (Multi-Select Restoration) - COMPLETE
-**Plan:** 3 of 3 in phase 35
-**Status:** Phase 35 complete, ready for Phase 36
-**Last activity:** 2026-01-26 -- Phase 35 complete (3 plans)
+**Phase:** 35.1 of 39 (ModifyEntity UX Overhaul) - IN PROGRESS
+**Plan:** 1 of TBD in phase 35.1
+**Status:** Plan 35.1-01 complete (Entity Preview Enhancement)
+**Last activity:** 2026-01-26 -- Completed 35.1-01-PLAN.md
 
 ```
 v7.0 Curation Workflow Modernization: [██████████____________________] 33% (2/6 phases)
@@ -23,7 +23,7 @@ v7.0 Curation Workflow Modernization: [██████████___________
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 163
+- Total plans completed: 164
 - Milestones shipped: 6 (v1-v6)
 - Phases completed: 35
 
@@ -64,6 +64,14 @@ Phase 35 decisions:
 - **Entity autocomplete in ModifyEntity**: Use AutocompleteInput for entity search by ID, gene, or disease
 - **Transform modifier tree**: Restructure API data so all modifiers (present, uncertain, etc.) are selectable children
 
+Phase 35.1 decisions:
+- **Store full API response**: Store full entity API response instead of Entity class instance for rich preview data
+- **Badge component composition**: Use GeneBadge, DiseaseBadge, EntityBadge for consistent visual styling
+
+### Roadmap Evolution
+
+- Phase 35.1 inserted after Phase 35: ModifyEntity UX Overhaul (URGENT) - complete UX modernization started in Phase 35
+
 ### Pending Todos
 
 None yet.
@@ -79,13 +87,16 @@ Phase 35 issues fixed:
 - ~~ModifyEntity had no autocomplete for entity selection~~ [FIXED in 35-03]
 - ~~Phenotype "present" modifier not selectable~~ [FIXED in 35-03 via tree transform]
 
+Phase 35.1 improvements:
+- ~~Entity preview shows only plain text~~ [ENHANCED in 35.1-01 with badge components]
+
 ## Session Continuity
 
 **Last session:** 2026-01-26
-**Stopped at:** Phase 35 complete
+**Stopped at:** Completed 35.1-01-PLAN.md
 **Resume file:** None
-**Next action:** `/gsd:discuss-phase 36` or `/gsd:plan-phase 36`
+**Next action:** Execute next plan in phase 35.1
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-26 -- Phase 35 complete (3 plans)*
+*Last updated: 2026-01-26 -- Plan 35.1-01 complete*
