@@ -13,58 +13,95 @@
             body-class="p-0"
             header-class="p-1"
             border-variant="dark"
+            header-bg-variant="dark"
+            header-text-variant="light"
           >
             <template #header>
-              <h6 class="mb-1 text-start font-weight-bold">
-                Approve new reviews
-              </h6>
+              <BRow class="align-items-center">
+                <BCol>
+                  <h5 class="mb-0 text-start fw-bold">
+                    Approve Reviews
+                    <BBadge
+                      variant="primary"
+                      class="ms-2"
+                    >
+                      {{ totalRows }} reviews
+                    </BBadge>
+                  </h5>
+                </BCol>
+                <BCol class="text-end">
+                  <div class="d-flex align-items-center justify-content-end gap-2">
+                    <!-- Approve all reviews button -->
+                    <BButton
+                      v-b-tooltip.hover.bottom
+                      variant="danger"
+                      size="sm"
+                      title="Approve all pending reviews"
+                      aria-label="Approve all reviews"
+                      @click="checkAllApprove"
+                    >
+                      <i class="bi bi-check2-all me-1" />
+                      Approve All
+                    </BButton>
+                    <!-- Refresh button -->
+                    <BButton
+                      v-b-tooltip.hover.bottom
+                      variant="outline-light"
+                      size="sm"
+                      title="Refresh data"
+                      aria-label="Refresh table data"
+                      @click="loadReviewTableData()"
+                    >
+                      <i class="bi bi-arrow-clockwise" />
+                    </BButton>
+                  </div>
+                </BCol>
+              </BRow>
             </template>
             <!-- User Interface controls -->
 
-            <!-- button for approve all -->
-            <BForm
-              ref="form"
-              class="p-1"
-              @submit.stop.prevent="checkAllApprove"
-            >
-              <BButton
-                size="sm"
-                type="submit"
-                variant="dark"
+            <!-- Search, filters, and pagination row -->
+            <BRow class="px-3 py-2 align-items-center">
+              <!-- Search input -->
+              <BCol
+                cols="12"
+                md="4"
+                lg="3"
+                class="mb-2 mb-md-0"
               >
-                <i class="bi bi-check2-circle mx-1" />
-                Approve all reviews
-              </BButton>
-            </BForm>
-            <!-- button for approve all -->
-
-            <!-- Table Interface controls -->
-            <BRow>
-              <BCol class="my-1">
-                <BFormGroup class="mb-1">
-                  <BInputGroup
-                    prepend="Search"
-                    size="sm"
-                  >
-                    <BFormInput
-                      id="filter-input"
-                      v-model="filter"
-                      type="search"
-                      placeholder="any field by typing here"
-                      debounce="500"
-                    />
-                  </BInputGroup>
-                </BFormGroup>
+                <BInputGroup size="sm">
+                  <template #prepend>
+                    <BInputGroupText>
+                      <i class="bi bi-search" />
+                    </BInputGroupText>
+                  </template>
+                  <BFormInput
+                    id="filter-input"
+                    v-model="filter"
+                    type="search"
+                    placeholder="Search any field..."
+                    debounce="500"
+                  />
+                </BInputGroup>
               </BCol>
 
-              <BCol class="my-1" />
+              <!-- Spacer for alignment -->
+              <BCol
+                cols="12"
+                md="4"
+                lg="4"
+                class="mb-2 mb-md-0"
+              />
 
-              <BCol class="my-1" />
-
-              <BCol class="my-1">
+              <!-- Pagination controls -->
+              <BCol
+                cols="12"
+                md="4"
+                lg="5"
+                class="d-flex align-items-center justify-content-end gap-2 flex-wrap"
+              >
                 <BInputGroup
                   prepend="Per page"
-                  class="mb-1"
                   size="sm"
                 >
                   <BFormSelect
@@ -79,75 +116,123 @@
                   v-model="currentPage"
                   :total-rows="totalRows"
                   :per-page="perPage"
-                  align="fill"
                   size="sm"
-                  class="my-0"
-                  last-number
+                  class="mb-0"
+                  limit="2"
                 />
               </BCol>
             </BRow>
 
             <!-- Column filters -->
-            <BRow class="mb-2 px-2">
-              <BCol md="3">
-                <BFormGroup
-                  label="Category"
-                  label-size="sm"
-                  class="mb-0"
-                >
-                  <BFormSelect
-                    v-model="categoryFilter"
-                    :options="categoryOptions"
-                    size="sm"
-                  >
-                    <template #first>
-                      <BFormSelectOption :value="null">
-                        All Categories
-                      </BFormSelectOption>
-                    </template>
-                  </BFormSelect>
-                </BFormGroup>
+            <BRow class="px-3 pb-2 align-items-center">
+              <BCol
+                cols="6"
+                md="2"
+                class="mb-2 mb-md-0"
+              >
+                <BFormSelect
+                  v-model="categoryFilter"
+                  size="sm"
+                  :options="categoryFilterOptions"
+                  aria-label="Filter by category"
+                />
               </BCol>
-              <BCol md="3">
-                <BFormGroup
-                  label="User"
-                  label-size="sm"
-                  class="mb-0"
-                >
-                  <BFormInput
-                    v-model="userFilter"
-                    type="search"
-                    placeholder="Filter by user..."
-                    size="sm"
-                    debounce="300"
-                  />
-                </BFormGroup>
+              <BCol
+                cols="6"
+                md="2"
+                class="mb-2 mb-md-0"
+              >
+                <BFormSelect
+                  v-model="userFilter"
+                  size="sm"
+                  :options="userFilterOptions"
+                  aria-label="Filter by user"
+                />
               </BCol>
-              <BCol md="3">
-                <BFormGroup
-                  label="From Date"
-                  label-size="sm"
-                  class="mb-0"
-                >
+              <BCol
+                cols="6"
+                md="2"
+                class="mb-2 mb-md-0"
+              >
+                <BInputGroup size="sm">
+                  <template #prepend>
+                    <BInputGroupText class="small">
+                      From
+                    </BInputGroupText>
+                  </template>
                   <BFormInput
                     v-model="dateRangeStart"
                     type="date"
                     size="sm"
+                    aria-label="Filter from date"
                   />
-                </BFormGroup>
+                </BInputGroup>
               </BCol>
-              <BCol md="3">
-                <BFormGroup
-                  label="To Date"
-                  label-size="sm"
-                  class="mb-0"
-                >
+              <BCol
+                cols="6"
+                md="2"
+                class="mb-2 mb-md-0"
+              >
+                <BInputGroup size="sm">
+                  <template #prepend>
+                    <BInputGroupText class="small">
+                      To
+                    </BInputGroupText>
+                  </template>
                   <BFormInput
                     v-model="dateRangeEnd"
                     type="date"
                     size="sm"
+                    aria-label="Filter to date"
                   />
-                </BFormGroup>
+                </BInputGroup>
+              </BCol>
+              <!-- Active filter tags -->
+              <BCol
+                cols="12"
+                md="4"
+                class="d-flex align-items-center flex-wrap gap-1"
+              >
+                <BBadge
+                  v-if="categoryFilter"
+                  variant="secondary"
+                  class="d-flex align-items-center gap-1"
+                  style="cursor: pointer"
+                  @click="categoryFilter = null"
+                >
+                  {{ categoryFilter }}
+                  <i class="bi bi-x" />
+                </BBadge>
+                <BBadge
+                  v-if="userFilter"
+                  variant="secondary"
+                  class="d-flex align-items-center gap-1"
+                  style="cursor: pointer"
+                  @click="userFilter = null"
+                >
+                  {{ userFilter }}
+                  <i class="bi bi-x" />
+                </BBadge>
+                <BBadge
+                  v-if="dateRangeStart"
+                  variant="secondary"
+                  class="d-flex align-items-center gap-1"
+                  style="cursor: pointer"
+                  @click="dateRangeStart = null"
+                >
+                  From: {{ dateRangeStart }}
+                  <i class="bi bi-x" />
+                </BBadge>
+                <BBadge
+                  v-if="dateRangeEnd"
+                  variant="secondary"
+                  class="d-flex align-items-center gap-1"
+                  style="cursor: pointer"
+                  @click="dateRangeEnd = null"
+                >
+                  To: {{ dateRangeEnd }}
+                  <i class="bi bi-x" />
+                </BBadge>
               </BCol>
             </BRow>
             <!-- Column filters -->
@@ -181,135 +266,130 @@
               @filtered="onFiltered"
             >
               <template #cell(entity_id)="data">
-                <div>
-                  <BLink :href="'/Entities/' + data.item.entity_id">
-                    <BBadge
-                      variant="primary"
-                      style="cursor: pointer"
-                    >
-                      sysndd:{{ data.item.entity_id }}
-                    </BBadge>
-                  </BLink>
-                </div>
+                <EntityBadge
+                  :entity-id="data.item.entity_id"
+                  :link-to="'/Entities/' + data.item.entity_id"
+                  size="sm"
+                />
               </template>
 
               <template #cell(symbol)="data">
-                <div class="font-italic">
-                  <BLink :href="'/Genes/' + data.item.hgnc_id">
-                    <BBadge
-                      v-b-tooltip.hover.leftbottom
-                      pill
-                      variant="success"
-                      :title="data.item.hgnc_id"
-                    >
-                      {{ data.item.symbol }}
-                    </BBadge>
-                  </BLink>
-                </div>
+                <GeneBadge
+                  :symbol="data.item.symbol"
+                  :hgnc-id="data.item.hgnc_id"
+                  :link-to="'/Genes/' + data.item.hgnc_id"
+                  size="sm"
+                />
               </template>
 
               <template #cell(disease_ontology_name)="data">
-                <div class="overflow-hidden text-truncate">
-                  <BLink
-                    :href="
-                      '/Ontology/' +
-                        data.item.disease_ontology_id_version.replace(/_.+/g, '')
-                    "
-                    target="_blank"
-                  >
-                    <BBadge
-                      v-b-tooltip.hover.leftbottom
-                      pill
-                      variant="secondary"
-                      :title="
-                        data.item.disease_ontology_name +
-                          '; ' +
-                          data.item.disease_ontology_id_version
-                      "
-                    >
-                      {{ truncate(data.item.disease_ontology_name, 40) }}
-                    </BBadge>
-                  </BLink>
-                </div>
+                <DiseaseBadge
+                  :name="data.item.disease_ontology_name"
+                  :ontology-id="data.item.disease_ontology_id_version"
+                  :link-to="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"
+                  :max-length="35"
+                  size="sm"
+                />
               </template>
 
               <template #cell(hpo_mode_of_inheritance_term_name)="data">
-                <div class="overflow-hidden text-truncate">
-                  <BBadge
-                    v-b-tooltip.hover.leftbottom
-                    pill
-                    variant="info"
-                    class="justify-content-md-center"
-                    size="1.3em"
-                    :title="
-                      data.item.hpo_mode_of_inheritance_term_name +
-                        ' (' +
-                        data.item.hpo_mode_of_inheritance_term +
-                        ')'
-                    "
-                  >
-                    {{
-                      inheritance_short_text[
-                        data.item.hpo_mode_of_inheritance_term_name
-                      ]
-                    }}
-                  </BBadge>
-                </div>
+                <InheritanceBadge
+                  :full-name="data.item.hpo_mode_of_inheritance_term_name"
+                  :hpo-term="data.item.hpo_mode_of_inheritance_term"
+                  size="sm"
+                />
               </template>
 
               <template #cell(synopsis)="data">
-                <div>
-                  <BFormTextarea
-                    v-b-tooltip.hover.leftbottom
-                    plaintext
-                    size="sm"
-                    rows="1"
-                    :value="data.item.synopsis"
-                    :aria-label="'Synopsis for ' + data.item.entity_id"
-                    :title="data.item.synopsis"
-                  />
+                <div
+                  v-if="data.item.synopsis"
+                  :id="'synopsis-' + data.item.entity_id"
+                  class="text-truncate-multiline small text-popover-trigger"
+                  style="max-width: 200px;"
+                >
+                  {{ data.item.synopsis }}
                 </div>
+                <BPopover
+                  v-if="data.item.synopsis"
+                  :target="'synopsis-' + data.item.entity_id"
+                  triggers="hover focus"
+                  placement="top"
+                  custom-class="wide-popover"
+                >
+                  <template #title>
+                    <i class="bi bi-file-text me-1" />
+                    Clinical Synopsis
+                  </template>
+                  <div class="popover-text-content">
+                    {{ data.item.synopsis }}
+                  </div>
+                </BPopover>
+                <span
+                  v-else
+                  class="text-muted small"
+                >—</span>
               </template>
 
               <template #cell(comment)="data">
-                <div>
-                  <BFormTextarea
-                    v-b-tooltip.hover.leftbottom
-                    plaintext
-                    size="sm"
-                    rows="1"
-                    :value="data.item.comment"
-                    :aria-label="'Comment for ' + data.item.entity_id"
-                    :title="data.item.comment"
-                  />
+                <div
+                  v-if="data.item.comment"
+                  :id="'comment-' + data.item.entity_id"
+                  class="text-truncate-multiline small text-popover-trigger"
+                  style="max-width: 150px;"
+                >
+                  {{ data.item.comment }}
                 </div>
+                <BPopover
+                  v-if="data.item.comment"
+                  :target="'comment-' + data.item.entity_id"
+                  triggers="hover focus"
+                  placement="top"
+                  custom-class="wide-popover"
+                >
+                  <template #title>
+                    <i class="bi bi-chat-left-text me-1" />
+                    Comment
+                  </template>
+                  <div class="popover-text-content">
+                    {{ data.item.comment }}
+                  </div>
+                </BPopover>
+                <span
+                  v-else
+                  class="text-muted small"
+                >—</span>
               </template>
 
               <template #cell(review_date)="data">
-                <div>
-                  <i class="bi bi-pen" />
-                  <BBadge
-                    v-b-tooltip.hover.right
-                    variant="light"
+                <div class="d-flex align-items-center gap-1">
+                  <span
+                    v-b-tooltip.hover.top
                     :title="data.item.review_date"
-                    class="ms-1"
+                    class="d-inline-flex align-items-center justify-content-center rounded-circle bg-secondary-subtle text-secondary"
+                    style="width: 24px; height: 24px; font-size: 0.75rem;"
                   >
+                    <i class="bi bi-calendar3" />
+                  </span>
+                  <span class="small text-muted">
                     {{ data.item.review_date.substring(0,10) }}
-                  </BBadge>
+                  </span>
                 </div>
               </template>
 
               <template #cell(review_user_name)="data">
-                <div>
-                  <i :class="'bi bi-' + user_icon[data.item.review_user_role] + ' text-' + user_style[data.item.review_user_role]" />
-                  <BBadge
-                    v-b-tooltip.hover.right
-                    :variant="user_style[data.item.review_user_role]"
+                <div class="d-flex align-items-center gap-1">
+                  <span
+                    v-b-tooltip.hover.top
                     :title="data.item.review_user_role"
-                    class="ms-1"
+                    class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                    :class="`bg-${user_style[data.item.review_user_role]}-subtle text-${user_style[data.item.review_user_role]}`"
+                    style="width: 24px; height: 24px; font-size: 0.75rem;"
                   >
+                    <i :class="'bi bi-' + user_icon[data.item.review_user_role]" />
+                  </span>
+                  <span class="small">
                     {{ data.item.review_user_name }}
-                  </BBadge>
+                  </span>
                 </div>
               </template>
 
@@ -385,13 +465,62 @@
               </template>
 
               <template #row-details="row">
-                <BCard>
-                  <BTable
-                    :items="[row.item]"
-                    :fields="fields_details_ReviewTable"
-                    stacked
-                    small
-                  />
+                <BCard
+                  class="mb-2 border-0 shadow-sm"
+                  body-class="p-3"
+                >
+                  <div class="row g-3">
+                    <!-- Entity Info Section -->
+                    <div class="col-md-4">
+                      <h6 class="text-muted small text-uppercase fw-semibold mb-2">
+                        <i class="bi bi-info-circle me-1" />
+                        Entity Details
+                      </h6>
+                      <div class="d-flex flex-column gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="text-muted small" style="min-width: 80px;">Review ID:</span>
+                          <BBadge variant="secondary">{{ row.item.review_id }}</BBadge>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="text-muted small" style="min-width: 80px;">Ontology:</span>
+                          <code class="small">{{ row.item.disease_ontology_id_version }}</code>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="text-muted small" style="min-width: 80px;">Primary:</span>
+                          <BBadge :variant="row.item.is_primary ? 'success' : 'secondary'">
+                            {{ row.item.is_primary ? 'Yes' : 'No' }}
+                          </BBadge>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Synopsis Section -->
+                    <div class="col-md-8">
+                      <h6 class="text-muted small text-uppercase fw-semibold mb-2">
+                        <i class="bi bi-file-text me-1" />
+                        Full Synopsis
+                      </h6>
+                      <div
+                        v-if="row.item.synopsis"
+                        class="bg-light rounded p-2 small"
+                        style="max-height: 120px; overflow-y: auto;"
+                      >
+                        {{ row.item.synopsis }}
+                      </div>
+                      <span v-else class="text-muted small fst-italic">No synopsis available</span>
+
+                      <!-- Comment if exists -->
+                      <div v-if="row.item.comment" class="mt-3">
+                        <h6 class="text-muted small text-uppercase fw-semibold mb-2">
+                          <i class="bi bi-chat-left-text me-1" />
+                          Comment
+                        </h6>
+                        <div class="bg-warning-subtle rounded p-2 small">
+                          {{ row.item.comment }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </BCard>
               </template>
             </BTable>
@@ -403,47 +532,56 @@
       <!-- 1) Approve modal -->
       <BModal
         :id="approveModal.id"
-        size="sm"
+        :ref="approveModal.id"
+        size="md"
         centered
         ok-title="Approve"
+        ok-variant="success"
+        cancel-variant="outline-secondary"
         no-close-on-esc
         no-close-on-backdrop
-        header-bg-variant="dark"
-        header-text-variant="light"
+        header-class="border-bottom-0 pb-0"
+        footer-class="border-top-0 pt-0"
         @ok="handleApproveOk"
       >
-        <template #modal-title>
-          <h4>
-            Entity:
+        <template #title>
+          <div class="d-flex align-items-center">
+            <i class="bi bi-check-circle-fill me-2 text-success" />
+            <span class="fw-semibold">Approve Review</span>
+          </div>
+        </template>
+
+        <!-- Entity context -->
+        <div class="bg-light rounded-3 p-3 mb-4">
+          <div class="d-flex align-items-center gap-2">
+            <span class="text-muted small">Entity:</span>
             <BBadge variant="primary">
               {{ approveModal.title }}
             </BBadge>
-          </h4>
-        </template>
-
-        You have finished checking this review and
-        <span class="font-weight-bold">want to submit it</span>?
-
-        <div
-          v-if="entity.status_change"
-        >
-          <div>
-            Also approve new status?
           </div>
+        </div>
 
-          <div class="custom-control custom-switch">
-            <input
-              id="approveStatusSwitch"
-              v-model="status_approved"
-              type="checkbox"
-              button-variant="info"
-              class="custom-control-input"
-            >
-            <label
-              class="custom-control-label"
-              for="approveStatusSwitch"
-            >Status</label>
-          </div>
+        <div class="text-center py-2">
+          <p class="mb-3">
+            You have finished checking this review and are ready to <strong>approve</strong> it?
+          </p>
+        </div>
+
+        <div v-if="entity.status_change">
+          <!-- Status approval section -->
+          <h6 class="text-muted border-bottom pb-2 mb-3">
+            <i class="bi bi-stoplights me-2" />
+            Status Change Detected
+          </h6>
+
+          <BFormCheckbox
+            id="approveStatusSwitch"
+            v-model="status_approved"
+            switch
+          >
+            <span class="fw-semibold">Also approve new status</span>
+            <span class="text-muted small d-block">A status change was submitted with this review</span>
+          </BFormCheckbox>
         </div>
       </BModal>
       <!-- 1) Approve modal -->
@@ -457,125 +595,93 @@
         ok-title="Submit"
         no-close-on-esc
         no-close-on-backdrop
-        header-bg-variant="dark"
-        header-text-variant="light"
+        header-class="border-bottom-0 pb-0"
+        footer-class="border-top-0 pt-0"
         :busy="loading_review_modal"
         @ok="submitReviewChange"
       >
-        <template #modal-title>
-          <h4>
-            Modify review for entity:
-            <BLink
-              :href="'/Entities/' + review_info.entity_id"
-              target="_blank"
-            >
-              <BBadge variant="primary">
-                sysndd:{{ review_info.entity_id }}
-              </BBadge>
-            </BLink>
-            <BLink
-              :href="'/Genes/' + entity_info.symbol"
-              target="_blank"
-            >
-              <BBadge
-                v-b-tooltip.hover.leftbottom
-                pill
-                variant="success"
-                :title="entity_info.hgnc_id"
-              >
-                {{ entity_info.symbol }}
-              </BBadge>
-            </BLink>
-            <BLink
-              :href="
-                '/Ontology/' +
-                  entity_info.disease_ontology_id_version.replace(/_.+/g, '')
-              "
-              target="_blank"
-            >
-              <BBadge
-                v-b-tooltip.hover.leftbottom
-                pill
-                variant="secondary"
-                :title="
-                  entity_info.disease_ontology_name +
-                    '; ' +
-                    entity_info.disease_ontology_id_version
-                "
-              >
-                {{ truncate(entity_info.disease_ontology_name, 40) }}
-              </BBadge>
-            </BLink>
-            <BBadge
-              v-b-tooltip.hover.leftbottom
-              pill
-              variant="info"
-              class="justify-content-md-center"
-              size="1.3em"
-              :title="
-                entity_info.hpo_mode_of_inheritance_term_name +
-                  ' (' +
-                  entity_info.hpo_mode_of_inheritance_term +
-                  ')'
-              "
-            >
-              {{
-                inheritance_short_text[
-                  entity_info.hpo_mode_of_inheritance_term_name
-                ]
-              }}
-            </BBadge>
-          </h4>
-        </template>
-
-        <template #modal-footer="{ ok, cancel }">
-          <div class="w-100">
-            <p class="float-start">
-              Review by:
-              <i :class="'bi bi-' + user_icon[review_info.review_user_role] + ' text-' + user_style[review_info.review_user_role]" />
-              <BBadge
-                :variant="user_style[review_info.review_user_role]"
-                class="ms-1"
-              >
-                {{ review_info.review_user_name }}
-              </BBadge>
-              <BBadge
-                :variant="user_style[review_info.review_user_role]"
-                class="ms-1"
-              >
-                {{ review_info.review_user_role }}
-              </BBadge>
-            </p>
-
-            <p class="float-start px-1">
-              Current status:
-              <BAvatar
-                v-b-tooltip.hover.top
-                size="1.4em"
-                :variant="stoplights_style[entity_info.category_id]"
-                :title="entity_info.category"
-              >
-                <i class="bi bi-stoplights" />
-              </BAvatar>
-            </p>
-
-            <!-- Emulate built in modal footer ok and cancel button actions -->
-            <BButton
-              variant="primary"
-              class="float-end me-2"
-              @click="ok()"
-            >
-              Save review
-            </BButton>
-            <BButton
-              variant="secondary"
-              class="float-end me-2"
-              @click="cancel()"
-            >
-              Cancel
-            </BButton>
+        <template #title>
+          <div class="d-flex align-items-center">
+            <i class="bi bi-pencil-square me-2 text-primary" />
+            <span class="fw-semibold">Edit Review</span>
           </div>
         </template>
+
+        <template #footer="{ ok, cancel }">
+          <div class="w-100 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2 text-muted small">
+              <span v-if="review_info.review_user_name" class="d-flex align-items-center gap-1">
+                <i :class="'bi bi-' + user_icon[review_info.review_user_role]" />
+                <span>{{ review_info.review_user_name }}</span>
+                <span class="text-muted">·</span>
+                <span>{{ review_info.review_user_role }}</span>
+              </span>
+              <span v-if="entity_info.category" class="d-flex align-items-center gap-1">
+                <span class="text-muted">·</span>
+                <CategoryIcon
+                  :category="entity_info.category"
+                  size="sm"
+                  :show-title="true"
+                />
+              </span>
+            </div>
+            <div class="d-flex gap-2">
+              <BButton
+                variant="outline-secondary"
+                @click="cancel()"
+              >
+                Cancel
+              </BButton>
+              <BButton
+                variant="primary"
+                @click="ok()"
+              >
+                <i class="bi bi-check-lg me-1" />
+                Save Review
+              </BButton>
+            </div>
+          </div>
+        </template>
+
+        <!-- Entity context header -->
+        <div class="bg-light rounded-3 p-3 mb-4">
+          <h6 class="text-muted mb-2 small text-uppercase fw-semibold">
+            <i class="bi bi-info-circle me-1" />
+            Entity Details
+          </h6>
+          <div class="d-flex flex-wrap gap-2">
+            <EntityBadge
+              v-if="review_info.entity_id"
+              :entity-id="review_info.entity_id"
+              :link-to="'/Entities/' + review_info.entity_id"
+              size="sm"
+            />
+            <GeneBadge
+              :symbol="entity_info.symbol"
+              :hgnc-id="entity_info.hgnc_id"
+              :link-to="'/Genes/' + entity_info.hgnc_id"
+              size="sm"
+            />
+            <DiseaseBadge
+              :name="entity_info.disease_ontology_name"
+              :ontology-id="entity_info.disease_ontology_id_version"
+              :link-to="'/Ontology/' + entity_info.disease_ontology_id_version.replace(/_.+/g, '')"
+              :max-length="35"
+              size="sm"
+            />
+            <InheritanceBadge
+              :full-name="entity_info.hpo_mode_of_inheritance_term_name"
+              :hpo-term="entity_info.hpo_mode_of_inheritance_term"
+              size="sm"
+            />
+          </div>
+        </div>
+
+        <!-- Review form section header -->
+        <h6 class="text-muted border-bottom pb-2 mb-3">
+          <i class="bi bi-journal-text me-2" />
+          Review Information
+        </h6>
 
         <BOverlay
           :show="loading_review_modal"
@@ -585,87 +691,107 @@
             ref="form"
             @submit.stop.prevent="submitReviewChange"
           >
-            <!-- Synopsis textarea -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-textarea-synopsis"
-            >Synopsis</label>
-            <BFormTextarea
-              id="review-textarea-synopsis"
-              v-model="review_info.synopsis"
-              rows="3"
-              size="sm"
-            />
-            <!-- Synopsis textarea -->
-
-            <!-- Phenotype select -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-phenotype-select"
-            >Phenotypes</label>
-
-            <TreeMultiSelect
-              v-if="phenotypes_options && phenotypes_options.length > 0"
-              id="review-phenotype-select"
-              v-model="select_phenotype"
-              :options="phenotypes_options"
-              placeholder="Select phenotypes..."
-              search-placeholder="Search phenotypes (name or HP:ID)..."
-            />
-            <!-- Phenotype select -->
-
-            <!-- Variation y select -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-variation-select"
-            >Variation ontology</label>
-
-            <TreeMultiSelect
-              v-if="variation_ontology_options && variation_ontology_options.length > 0"
-              id="review-variation-select"
-              v-model="select_variation"
-              :options="variation_ontology_options"
-              placeholder="Select variations..."
-              search-placeholder="Search variation types..."
-            />
-            <!-- Variation ontology select -->
-
-            <!-- publications tag form with links out -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-publications-select"
-            >Publications</label>
-            <BFormTags
-              v-model="select_additional_references"
-              input-id="review-literature-select"
-              no-outer-focus
-              class="my-0"
-              separator=",;"
-              :tag-validator="tagValidatorPMID"
-              remove-on-delete
+            <!-- Synopsis Section -->
+            <BFormGroup
+              label="Synopsis"
+              label-for="review-textarea-synopsis"
+              class="mb-3"
             >
-              <template
-                #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }"
-              >
-                <BInputGroup class="my-0">
-                  <BFormInput
-                    v-bind="inputAttrs"
-                    placeholder="Enter PMIDs separated by comma or semicolon"
-                    class="form-control"
-                    size="sm"
-                    v-on="inputHandlers"
-                  />
-                  <BButton
-                    variant="secondary"
-                    size="sm"
-                    @click="addTag()"
-                  >
-                    Add
-                  </BButton>
-                </BInputGroup>
+              <template #label>
+                <span class="fw-semibold">Synopsis</span>
+              </template>
+              <BFormTextarea
+                id="review-textarea-synopsis"
+                v-model="review_info.synopsis"
+                rows="3"
+                placeholder="Clinical synopsis of the entity..."
+              />
+            </BFormGroup>
 
-                <div class="d-inline-block">
-                  <h6>
+            <!-- Phenotype Section -->
+            <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">
+              <i class="bi bi-activity me-2" />
+              Phenotypes & Variation
+            </h6>
+
+            <BFormGroup
+              label="Phenotypes"
+              label-for="review-phenotype-select"
+              class="mb-3"
+            >
+              <template #label>
+                <span class="fw-semibold">Phenotypes</span>
+              </template>
+              <TreeMultiSelect
+                v-if="phenotypes_options && phenotypes_options.length > 0"
+                id="review-phenotype-select"
+                v-model="select_phenotype"
+                :options="phenotypes_options"
+                placeholder="Select phenotypes..."
+                search-placeholder="Search phenotypes (name or HP:ID)..."
+              />
+            </BFormGroup>
+
+            <BFormGroup
+              label="Variation Ontology"
+              label-for="review-variation-select"
+              class="mb-3"
+            >
+              <template #label>
+                <span class="fw-semibold">Variation Ontology</span>
+              </template>
+              <TreeMultiSelect
+                v-if="variation_ontology_options && variation_ontology_options.length > 0"
+                id="review-variation-select"
+                v-model="select_variation"
+                :options="variation_ontology_options"
+                placeholder="Select variations..."
+                search-placeholder="Search variation types..."
+              />
+            </BFormGroup>
+
+            <!-- Literature Section -->
+            <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">
+              <i class="bi bi-journal-bookmark me-2" />
+              Literature References
+            </h6>
+
+            <BFormGroup
+              label="Publications"
+              label-for="review-publications-select"
+              class="mb-3"
+            >
+              <template #label>
+                <span class="fw-semibold">Publications</span>
+              </template>
+              <BFormTags
+                v-model="select_additional_references"
+                input-id="review-literature-select"
+                no-outer-focus
+                class="my-0"
+                separator=",;"
+                :tag-validator="tagValidatorPMID"
+                remove-on-delete
+              >
+                <template
+                  #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }"
+                >
+                  <BInputGroup class="my-0">
+                    <BFormInput
+                      v-bind="inputAttrs"
+                      placeholder="Enter PMIDs separated by comma or semicolon"
+                      class="form-control"
+                      v-on="inputHandlers"
+                    />
+                    <BButton
+                      variant="outline-secondary"
+                      @click="addTag()"
+                    >
+                      Add
+                    </BButton>
+                  </BInputGroup>
+
+                  <div class="d-flex flex-wrap gap-1 mt-2">
                     <BFormTag
                       v-for="tag in tags"
                       :key="tag"
@@ -681,52 +807,51 @@
                         target="_blank"
                         class="text-light"
                       >
-                        <i class="bi bi-box-arrow-up-right" />
+                        <i class="bi bi-box-arrow-up-right me-1" />
                         {{ tag }}
                       </BLink>
                     </BFormTag>
-                  </h6>
-                </div>
-              </template>
-            </BFormTags>
-            <!-- publications tag form with links out -->
+                  </div>
+                </template>
+              </BFormTags>
+            </BFormGroup>
 
-            <!-- genereviews tag form with links out -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-genereviews-select"
-            >Genereviews</label>
-            <BFormTags
-              v-model="select_gene_reviews"
-              input-id="review-genereviews-select"
-              no-outer-focus
-              class="my-0"
-              separator=",;"
-              :tag-validator="tagValidatorPMID"
-              remove-on-delete
+            <BFormGroup
+              label="GeneReviews"
+              label-for="review-genereviews-select"
+              class="mb-3"
             >
-              <template
-                #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }"
+              <template #label>
+                <span class="fw-semibold">GeneReviews</span>
+              </template>
+              <BFormTags
+                v-model="select_gene_reviews"
+                input-id="review-genereviews-select"
+                no-outer-focus
+                class="my-0"
+                separator=",;"
+                :tag-validator="tagValidatorPMID"
+                remove-on-delete
               >
-                <BInputGroup class="my-0">
-                  <BFormInput
-                    v-bind="inputAttrs"
-                    placeholder="Enter PMIDs separated by comma or semicolon"
-                    class="form-control"
-                    size="sm"
-                    v-on="inputHandlers"
-                  />
-                  <BButton
-                    variant="secondary"
-                    size="sm"
-                    @click="addTag()"
-                  >
-                    Add
-                  </BButton>
-                </BInputGroup>
+                <template
+                  #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }"
+                >
+                  <BInputGroup class="my-0">
+                    <BFormInput
+                      v-bind="inputAttrs"
+                      placeholder="Enter PMIDs separated by comma or semicolon"
+                      class="form-control"
+                      v-on="inputHandlers"
+                    />
+                    <BButton
+                      variant="outline-secondary"
+                      @click="addTag()"
+                    >
+                      Add
+                    </BButton>
+                  </BInputGroup>
 
-                <div class="d-inline-block">
-                  <h6>
+                  <div class="d-flex flex-wrap gap-1 mt-2">
                     <BFormTag
                       v-for="tag in tags"
                       :key="tag"
@@ -742,29 +867,36 @@
                         target="_blank"
                         class="text-light"
                       >
-                        <i class="bi bi-box-arrow-up-right" />
+                        <i class="bi bi-box-arrow-up-right me-1" />
                         {{ tag }}
                       </BLink>
                     </BFormTag>
-                  </h6>
-                </div>
-              </template>
-            </BFormTags>
-            <!-- genereviews tag form with links out -->
+                  </div>
+                </template>
+              </BFormTags>
+            </BFormGroup>
 
-            <!-- Review comment textarea -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-textarea-comment"
-            >Comment</label>
-            <BFormTextarea
-              id="review-textarea-comment"
-              v-model="review_info.comment"
-              rows="2"
-              size="sm"
-              placeholder="Additional comments to this entity relevant for the curator."
-            />
-            <!-- Review comment textarea -->
+            <!-- Comment Section -->
+            <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">
+              <i class="bi bi-chat-left-text me-2" />
+              Notes
+            </h6>
+
+            <BFormGroup
+              label="Comment"
+              label-for="review-textarea-comment"
+              class="mb-0"
+            >
+              <template #label>
+                <span class="fw-semibold">Comment</span>
+              </template>
+              <BFormTextarea
+                id="review-textarea-comment"
+                v-model="review_info.comment"
+                rows="3"
+                placeholder="Additional comments to this entity relevant for the curator..."
+              />
+            </BFormGroup>
           </BForm>
         </BOverlay>
       </BModal>
@@ -779,119 +911,79 @@
         ok-title="Submit"
         no-close-on-esc
         no-close-on-backdrop
-        header-bg-variant="dark"
-        header-text-variant="light"
+        header-class="border-bottom-0 pb-0"
+        footer-class="border-top-0 pt-0"
         :busy="loading_status_modal"
         @ok="submitStatusChange"
       >
-        <template #modal-title>
-          <h4>
-            Modify status for entity:
-            <BLink
-              :href="'/Entities/' + status_info.entity_id"
-              target="_blank"
-            >
-              <BBadge variant="primary">
-                sysndd:{{ status_info.entity_id }}
-              </BBadge>
-            </BLink>
-            <BLink
-              :href="'/Genes/' + entity_info.symbol"
-              target="_blank"
-            >
-              <BBadge
-                v-b-tooltip.hover.leftbottom
-                pill
-                variant="success"
-                :title="entity_info.hgnc_id"
-              >
-                {{ entity_info.symbol }}
-              </BBadge>
-            </BLink>
-            <BLink
-              :href="
-                '/Ontology/' +
-                  entity_info.disease_ontology_id_version.replace(/_.+/g, '')
-              "
-              target="_blank"
-            >
-              <BBadge
-                v-b-tooltip.hover.leftbottom
-                pill
-                variant="secondary"
-                :title="
-                  entity_info.disease_ontology_name +
-                    '; ' +
-                    entity_info.disease_ontology_id_version
-                "
-              >
-                {{ truncate(entity_info.disease_ontology_name, 40) }}
-              </BBadge>
-            </BLink>
-            <BBadge
-              v-b-tooltip.hover.leftbottom
-              pill
-              variant="info"
-              class="justify-content-md-center"
-              size="1.3em"
-              :title="
-                entity_info.hpo_mode_of_inheritance_term_name +
-                  ' (' +
-                  entity_info.hpo_mode_of_inheritance_term +
-                  ')'
-              "
-            >
-              {{
-                inheritance_short_text[
-                  entity_info.hpo_mode_of_inheritance_term_name
-                ]
-              }}
-            </BBadge>
-          </h4>
-        </template>
-
-        <template #modal-footer="{ ok, cancel }">
-          <div class="w-100">
-            <p class="float-start">
-              Status by:
-              <i :class="'bi bi-' + user_icon[status_info.status_user_role] + ' text-' + user_style[status_info.status_user_role]" />
-              <BBadge
-                :variant="user_style[status_info.status_user_role]"
-                class="ms-1"
-              >
-                {{ status_info.status_user_name }}
-              </BBadge>
-              <BBadge
-                :variant="user_style[status_info.status_user_role]"
-                class="ms-1"
-              >
-                {{ status_info.status_user_role }}
-              </BBadge>
-              <BBadge
-                variant="dark"
-                class="ms-1"
-              >
-                {{ status_info.status_date }}
-              </BBadge>
-            </p>
-
-            <!-- Emulate built in modal footer ok and cancel button actions -->
-            <BButton
-              variant="primary"
-              class="float-end me-2"
-              @click="ok()"
-            >
-              Save status
-            </BButton>
-            <BButton
-              variant="secondary"
-              class="float-end me-2"
-              @click="cancel()"
-            >
-              Cancel
-            </BButton>
+        <template #title>
+          <div class="d-flex align-items-center">
+            <i class="bi bi-stoplights me-2 text-secondary" />
+            <span class="fw-semibold">Edit Status</span>
           </div>
         </template>
+
+        <template #footer="{ ok, cancel }">
+          <div class="w-100 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2 text-muted small">
+              <span v-if="status_info.status_user_name" class="d-flex align-items-center gap-1">
+                <i :class="'bi bi-' + user_icon[status_info.status_user_role]" />
+                <span>{{ status_info.status_user_name }}</span>
+                <span class="text-muted">·</span>
+                <span>{{ status_info.status_date?.substring(0,10) }}</span>
+              </span>
+            </div>
+            <div class="d-flex gap-2">
+              <BButton
+                variant="outline-secondary"
+                @click="cancel()"
+              >
+                Cancel
+              </BButton>
+              <BButton
+                variant="primary"
+                @click="ok()"
+              >
+                <i class="bi bi-check-lg me-1" />
+                Save Status
+              </BButton>
+            </div>
+          </div>
+        </template>
+
+        <!-- Entity context header -->
+        <div class="bg-light rounded-3 p-3 mb-4">
+          <h6 class="text-muted mb-2 small text-uppercase fw-semibold">
+            <i class="bi bi-info-circle me-1" />
+            Entity Details
+          </h6>
+          <div class="d-flex flex-wrap gap-2">
+            <EntityBadge
+              v-if="status_info.entity_id"
+              :entity-id="status_info.entity_id"
+              :link-to="'/Entities/' + status_info.entity_id"
+              size="sm"
+            />
+            <GeneBadge
+              :symbol="entity_info.symbol"
+              :hgnc-id="entity_info.hgnc_id"
+              :link-to="'/Genes/' + entity_info.hgnc_id"
+              size="sm"
+            />
+            <DiseaseBadge
+              :name="entity_info.disease_ontology_name"
+              :ontology-id="entity_info.disease_ontology_id_version"
+              :link-to="'/Ontology/' + entity_info.disease_ontology_id_version.replace(/_.+/g, '')"
+              :max-length="35"
+              size="sm"
+            />
+            <InheritanceBadge
+              :full-name="entity_info.hpo_mode_of_inheritance_term_name"
+              :hpo-term="entity_info.hpo_mode_of_inheritance_term"
+              size="sm"
+            />
+          </div>
+        </div>
 
         <BOverlay
           :show="loading_status_modal"
@@ -901,20 +993,43 @@
             ref="form"
             @submit.stop.prevent="submitStatusChange"
           >
-            <!-- Status select -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="status-select"
-            >Status</label>
+            <!-- Status Classification Section -->
+            <h6 class="text-muted border-bottom pb-2 mb-3">
+              <i class="bi bi-diagram-3 me-2" />
+              Classification
+            </h6>
 
-            <BBadge
-              id="popover-badge-help-status"
-              pill
-              href="#"
-              variant="info"
+            <BFormGroup
+              label="Status Category"
+              label-for="status-select"
+              class="mb-3"
             >
-              <i class="bi bi-question-circle-fill" />
-            </BBadge>
+              <template #label>
+                <span class="fw-semibold">Status Category</span>
+                <BBadge
+                  id="popover-badge-help-status"
+                  pill
+                  href="#"
+                  variant="info"
+                  class="ms-2"
+                  style="cursor: help;"
+                >
+                  <i class="bi bi-question-circle-fill" />
+                </BBadge>
+              </template>
+              <BFormSelect
+                v-if="status_options && status_options.length > 0"
+                id="status-select"
+                v-model="status_info.category_id"
+                :options="normalizeStatusOptions(status_options)"
+              >
+                <template #first>
+                  <BFormSelectOption :value="null">
+                    Select status...
+                  </BFormSelectOption>
+                </template>
+              </BFormSelect>
+            </BFormGroup>
 
             <BPopover
               target="popover-badge-help-status"
@@ -927,35 +1042,34 @@
               Please refer to the curation manual for details on the categories.
             </BPopover>
 
-            <BFormSelect
-              v-if="status_options && status_options.length > 0"
-              id="status-select"
-              v-model="status_info.category_id"
-              :options="normalizeStatusOptions(status_options)"
-              size="sm"
-            >
-              <template #first>
-                <BFormSelectOption :value="null">
-                  Select status...
-                </BFormSelectOption>
+            <!-- Removal Section -->
+            <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">
+              <i class="bi bi-exclamation-triangle me-2" />
+              Entity Flags
+            </h6>
+
+            <BFormGroup class="mb-3">
+              <template #label>
+                <span class="fw-semibold">Removal Flag</span>
+                <BBadge
+                  id="popover-badge-help-removal"
+                  pill
+                  href="#"
+                  variant="info"
+                  class="ms-2"
+                  style="cursor: help;"
+                >
+                  <i class="bi bi-question-circle-fill" />
+                </BBadge>
               </template>
-            </BFormSelect>
-            <!-- Status select -->
-
-            <!-- Suggest removal switch -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="removeSwitch"
-            >Removal</label>
-
-            <BBadge
-              id="popover-badge-help-removal"
-              pill
-              href="#"
-              variant="info"
-            >
-              <i class="bi bi-question-circle-fill" />
-            </BBadge>
+              <BFormCheckbox
+                id="removeSwitch"
+                v-model="status_info.problematic"
+                switch
+              >
+                Suggest removal of this entity
+              </BFormCheckbox>
+            </BFormGroup>
 
             <BPopover
               target="popover-badge-help-removal"
@@ -971,32 +1085,27 @@
               deactivated especially if there is a more specific disease name.
             </BPopover>
 
-            <div class="custom-control custom-switch">
-              <input
-                id="removeSwitch"
-                v-model="status_info.problematic"
-                type="checkbox"
-                button-variant="info"
-                class="custom-control-input"
-              >
-              <label
-                class="custom-control-label"
-                for="removeSwitch"
-              >Suggest removal</label>
-            </div>
-            <!-- Suggest removal switch -->
+            <!-- Comment Section -->
+            <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">
+              <i class="bi bi-chat-left-text me-2" />
+              Notes
+            </h6>
 
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="status-textarea-comment"
-            >Comment</label>
-            <BFormTextarea
-              id="status-textarea-comment"
-              v-model="status_info.comment"
-              rows="2"
-              size="sm"
-              placeholder="Why should this entities status be changed."
-            />
+            <BFormGroup
+              label="Comment"
+              label-for="status-textarea-comment"
+              class="mb-0"
+            >
+              <template #label>
+                <span class="fw-semibold">Comment</span>
+              </template>
+              <BFormTextarea
+                id="status-textarea-comment"
+                v-model="status_info.comment"
+                rows="3"
+                placeholder="Why should this entity's status be changed..."
+              />
+            </BFormGroup>
           </BForm>
         </BOverlay>
       </BModal>
@@ -1006,32 +1115,49 @@
       <BModal
         id="approveAllModal"
         ref="approveAllModal"
-        size="lg"
+        size="md"
         centered
-        ok-title="Submit"
+        ok-title="Approve All"
+        ok-variant="danger"
+        cancel-variant="outline-secondary"
         no-close-on-esc
         no-close-on-backdrop
-        header-bg-variant="dark"
-        header-text-variant="light"
-        title="Approve all reviews"
+        header-class="border-bottom-0 pb-0"
+        footer-class="border-top-0 pt-0"
         @ok="handleAllReviewsOk"
       >
-        <p class="my-4">
-          Are you sure you want to
-          <span class="font-weight-bold">approve ALL</span> reviews below?
-        </p>
-        <div class="custom-control custom-switch">
-          <input
-            id="removeSwitch"
+        <template #title>
+          <div class="d-flex align-items-center">
+            <i class="bi bi-check2-all me-2 text-danger" />
+            <span class="fw-semibold">Approve All Reviews</span>
+          </div>
+        </template>
+
+        <div class="text-center py-3">
+          <div class="mb-3">
+            <span
+              class="d-inline-flex align-items-center justify-content-center rounded-circle bg-danger-subtle text-danger"
+              style="width: 64px; height: 64px; font-size: 1.5rem;"
+            >
+              <i class="bi bi-exclamation-triangle" />
+            </span>
+          </div>
+          <p class="mb-2">
+            Are you sure you want to approve <strong>ALL</strong> reviews?
+          </p>
+          <p class="text-muted small mb-3">
+            This will approve {{ totalRows }} pending reviews at once.
+          </p>
+        </div>
+
+        <div class="border border-danger rounded-3 p-3 bg-danger-subtle">
+          <BFormCheckbox
+            id="confirmApproveAllSwitch"
             v-model="approve_all_selected"
-            type="checkbox"
-            button-variant="info"
-            class="custom-control-input"
+            switch
           >
-          <label
-            class="custom-control-label"
-            for="removeSwitch"
-          ><b>{{ switch_approve_text[approve_all_selected] }}</b></label>
+            <span class="fw-semibold">{{ switch_approve_text[approve_all_selected] }}, I confirm this action</span>
+          </BFormCheckbox>
         </div>
       </BModal>
       <!-- 4) Check approve all modal -->
@@ -1041,8 +1167,14 @@
 
 <script>
 import { useToast, useColorAndSymbols, useText } from '@/composables';
-import useModalControls from '@/composables/useModalControls';
 import TreeMultiSelect from '@/components/forms/TreeMultiSelect.vue';
+
+// Import UI components for consistent icons and badges
+import EntityBadge from '@/components/ui/EntityBadge.vue';
+import GeneBadge from '@/components/ui/GeneBadge.vue';
+import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
+import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
+import CategoryIcon from '@/components/ui/CategoryIcon.vue';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
@@ -1061,6 +1193,11 @@ export default {
   name: 'ApproveReview',
   components: {
     TreeMultiSelect,
+    EntityBadge,
+    GeneBadge,
+    DiseaseBadge,
+    InheritanceBadge,
+    CategoryIcon,
   },
   setup() {
     const { makeToast } = useToast();
@@ -1258,11 +1395,21 @@ export default {
     };
   },
   computed: {
-    categoryOptions() {
-      return Object.keys(this.stoplights_style).map((key) => ({
-        value: key,
-        text: key,
-      }));
+    // Category filter options from unique values in items
+    categoryFilterOptions() {
+      const categories = [...new Set(this.items_ReviewTable.map((item) => item.active_category))].filter(Boolean);
+      return [
+        { value: null, text: 'All Categories' },
+        ...categories.map((cat) => ({ value: cat, text: cat })),
+      ];
+    },
+    // User filter options from unique values in items
+    userFilterOptions() {
+      const users = [...new Set(this.items_ReviewTable.map((item) => item.review_user_name))].filter(Boolean);
+      return [
+        { value: null, text: 'All Users' },
+        ...users.map((user) => ({ value: user, text: user })),
+      ];
     },
     columnFilteredItems() {
       let items = this.items_ReviewTable;
@@ -1272,12 +1419,9 @@ export default {
         items = items.filter((item) => item.active_category === this.categoryFilter);
       }
 
-      // Filter by user name (case-insensitive partial match)
+      // Filter by user name (exact match from dropdown)
       if (this.userFilter) {
-        const searchTerm = this.userFilter.toLowerCase();
-        items = items.filter(
-          (item) => item.review_user_name && item.review_user_name.toLowerCase().includes(searchTerm),
-        );
+        items = items.filter((item) => item.review_user_name === this.userFilter);
       }
 
       // Filter by date range
@@ -1686,15 +1830,13 @@ export default {
       this.reviewModal.title = `sysndd:${item.entity_id}`;
       this.getEntity(item.entity_id);
       this.loadReviewInfo(item.review_id);
-      const { showModal } = useModalControls();
-      showModal(this.reviewModal.id);
+      this.$refs[this.reviewModal.id].show();
     },
     infoApproveReview(item, index, button) {
       this.approveModal.title = `sysndd:${item.entity_id}`;
       this.entity = {};
       this.entity = item;
-      const { showModal } = useModalControls();
-      showModal(this.approveModal.id);
+      this.$refs[this.approveModal.id].show();
     },
     async handleApproveOk(bvModalEvt) {
       const apiUrlReview = `${import.meta.env.VITE_API_URL
@@ -1772,8 +1914,8 @@ export default {
     normalizeStatusOptions(options) {
       if (!options || !Array.isArray(options)) return [];
       return options.map((opt) => ({
-        value: opt.category_id,
-        text: opt.category,
+        value: opt.id,
+        text: opt.label,
       }));
     },
     checkAllApprove() {
@@ -1799,8 +1941,7 @@ export default {
       this.statusModal.title = `sysndd:${item.entity_id}`;
       this.getEntity(item.entity_id);
       this.loadStatusInfo(item.newest_status);
-      const { showModal } = useModalControls();
-      showModal(this.statusModal.id);
+      this.$refs[this.statusModal.id].show();
     },
     resetApproveModal() {
       this.status_approved = false;
@@ -1872,4 +2013,51 @@ export default {
   border-radius: 0.2rem;
 }
 
+/* Multi-line text truncation with ellipsis */
+.text-truncate-multiline {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+/* Cursor style for popover triggers */
+.text-popover-trigger {
+  cursor: help;
+  border-bottom: 1px dotted #6c757d;
+}
+
+.text-popover-trigger:hover {
+  background-color: rgba(0, 123, 255, 0.05);
+  border-radius: 2px;
+}
+</style>
+
+<!-- Non-scoped styles for popovers (rendered outside component DOM) -->
+<style>
+/* Wide popover for synopsis/comment text */
+.wide-popover {
+  max-width: 400px !important;
+}
+
+.wide-popover .popover-header {
+  font-size: 0.85rem;
+  font-weight: 600;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.wide-popover .popover-body {
+  max-height: 250px;
+  overflow-y: auto;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.popover-text-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 </style>

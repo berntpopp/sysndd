@@ -93,10 +93,10 @@
                       </div>
                     </template>
                   </BTable>
-                  <BFormText>
+                  <small class="text-muted d-block mt-1">
                     {{ selectedEntityIds.length }} entity/entities selected.
                     Click rows to select/deselect. Hold Shift for range selection.
-                  </BFormText>
+                  </small>
                 </BFormGroup>
 
                 <!-- User Selection -->
@@ -166,7 +166,7 @@
             </BCollapse>
           </BCard>
 
-          <!-- User Interface controls -->
+          <!-- Submissions Management Card -->
           <BCard
             header-tag="header"
             body-class="p-0"
@@ -174,179 +174,322 @@
             border-variant="dark"
           >
             <template #header>
-              <div class="d-flex justify-content-between align-items-center">
-                <h6 class="mb-1 text-start font-weight-bold">
-                  Manage re-review submissions
-                  <BBadge
-                    id="popover-badge-help-manage"
-                    pill
-                    href="#"
-                    variant="info"
+              <BRow>
+                <BCol>
+                  <h5 class="mb-1 text-start">
+                    <strong>Manage Re-review Submissions</strong>
+                    <BBadge
+                      variant="secondary"
+                      class="ms-2"
+                    >
+                      {{ totalRows }} batches
+                    </BBadge>
+                    <BBadge
+                      id="popover-badge-help-manage"
+                      pill
+                      href="#"
+                      variant="info"
+                      class="ms-1"
+                    >
+                      <i class="bi bi-question-circle-fill" />
+                    </BBadge>
+                    <BPopover
+                      target="popover-badge-help-manage"
+                      variant="info"
+                      triggers="focus"
+                    >
+                      <template #title>
+                        Re-review Submissions Management
+                      </template>
+                      Use this section to manage re-review submissions. You can assign new batches to users and view the details of each batch.
+                    </BPopover>
+                  </h5>
+                </BCol>
+                <BCol class="text-end">
+                  <BButton
+                    v-b-tooltip.hover
+                    size="sm"
+                    variant="outline-secondary"
+                    class="me-1"
+                    :disabled="loadingReReviewManagment"
+                    title="Refresh table data"
+                    @click="loadReReviewTableData"
                   >
-                    <i class="bi bi-question-circle-fill" />
-                  </BBadge>
-                  <BPopover
-                    target="popover-badge-help-manage"
-                    variant="info"
-                    triggers="focus"
-                  >
-                    <template #title>
-                      Re-review Submissions Management
-                    </template>
-                    Use this section to manage re-review submissions. You can assign new batches to users and view the details of each batch.
-                  </BPopover>
-                </h6>
-              </div>
+                    <BSpinner
+                      v-if="loadingReReviewManagment"
+                      small
+                    />
+                    <i
+                      v-else
+                      class="bi bi-arrow-clockwise"
+                    />
+                  </BButton>
+                </BCol>
+              </BRow>
             </template>
 
-            <BCol>
-              <BRow>
-                <BCol class="my-1">
-                  <!-- Legacy batch assignment (for pre-computed batches) -->
-                  <BInputGroup
-                    prepend="Username"
-                    size="sm"
-                  >
-                    <BFormSelect
-                      v-model="user_id_assignment"
-                      :options="user_options"
-                      class="username-select"
-                    />
-                    <BButton
-                      block
-                      size="sm"
-                      variant="secondary"
-                      aria-label="Assign next available pre-computed batch to selected user"
-                      @click="handleNewBatchAssignment"
-                    >
-                      <i class="bi bi-plus-square mx-1" />
-                      Assign Legacy Batch
-                    </BButton>
-                  </BInputGroup>
-                  <small class="text-muted">
-                    Assign next available pre-computed batch. Use "Create New Batch" above for dynamic batches.
-                  </small>
-                </BCol>
-
-                <BCol class="my-1" />
-              </BRow>
-            </BCol>
-            <!-- User Interface controls -->
-
-            <!-- Search row -->
-            <BRow class="mb-2">
-              <BCol>
-                <BFormGroup class="mb-1">
-                  <BInputGroup
-                    prepend="Search"
-                    size="sm"
-                  >
-                    <BFormInput
-                      id="filter-input"
-                      v-model="filter"
-                      type="search"
-                      placeholder="Search batches, users, or counts..."
-                      debounce="500"
-                    />
-                  </BInputGroup>
-                </BFormGroup>
+            <!-- Search and Filters Row -->
+            <BRow class="px-2 py-2">
+              <BCol sm="5">
+                <BInputGroup size="sm">
+                  <template #prepend>
+                    <BInputGroupText><i class="bi bi-search" /></BInputGroupText>
+                  </template>
+                  <BFormInput
+                    id="filter-input"
+                    v-model="filter"
+                    type="search"
+                    placeholder="Search batches, users..."
+                    debounce="300"
+                  />
+                </BInputGroup>
+              </BCol>
+              <BCol sm="3">
+                <BFormSelect
+                  v-model="userFilter"
+                  :options="userFilterOptions"
+                  size="sm"
+                  @update:model-value="applyFilters"
+                >
+                  <template #first>
+                    <BFormSelectOption :value="null">
+                      All Users
+                    </BFormSelectOption>
+                  </template>
+                </BFormSelect>
+              </BCol>
+              <BCol sm="2">
+                <BFormSelect
+                  v-model="assignmentFilter"
+                  :options="assignmentFilterOptions"
+                  size="sm"
+                  @update:model-value="applyFilters"
+                >
+                  <template #first>
+                    <BFormSelectOption :value="null">
+                      All Status
+                    </BFormSelectOption>
+                  </template>
+                </BFormSelect>
+              </BCol>
+              <BCol
+                sm="2"
+                class="text-end"
+              >
+                <BFormSelect
+                  id="per-page-select"
+                  v-model="perPage"
+                  :options="pageOptions"
+                  size="sm"
+                />
               </BCol>
             </BRow>
 
-            <BRow class="my-2">
-              <BCol class="my-1">
-                <BInputGroup
-                  prepend="Per page"
-                  class="mb-1"
-                  size="sm"
-                >
+            <!-- Legacy Assignment Row (Compact) -->
+            <BRow class="px-2 pb-2">
+              <BCol sm="6">
+                <div class="d-flex align-items-center gap-2">
                   <BFormSelect
-                    id="per-page-select"
-                    v-model="perPage"
-                    :options="pageOptions"
+                    v-model="user_id_assignment"
+                    :options="user_options"
                     size="sm"
+                    style="max-width: 180px;"
+                  >
+                    <template #first>
+                      <BFormSelectOption
+                        :value="0"
+                        disabled
+                      >
+                        Select user...
+                      </BFormSelectOption>
+                    </template>
+                  </BFormSelect>
+                  <BButton
+                    size="sm"
+                    variant="outline-secondary"
+                    :disabled="!user_id_assignment"
+                    aria-label="Assign next available pre-computed batch to selected user"
+                    @click="handleNewBatchAssignment"
+                  >
+                    <i class="bi bi-plus-square me-1" />
+                    Assign Legacy Batch
+                  </BButton>
+                  <i
+                    v-b-tooltip.hover.right
+                    class="bi bi-question-circle text-muted"
+                    title="Assign next available pre-computed batch. Use 'Create New Batch' above for dynamic batches."
                   />
-                </BInputGroup>
+                </div>
+              </BCol>
+              <BCol
+                sm="6"
+                class="text-end"
+              >
+                <span class="text-muted small">
+                  Showing {{ Math.min((currentPage - 1) * perPage + 1, totalRows) }}-{{ Math.min(currentPage * perPage, totalRows) }} of {{ totalRows }}
+                </span>
+              </BCol>
+            </BRow>
 
+            <!-- Table with Loading State -->
+            <div class="position-relative">
+              <BSpinner
+                v-if="loadingReReviewManagment"
+                class="position-absolute top-50 start-50 translate-middle"
+                variant="primary"
+              />
+              <div
+                v-if="!loadingReReviewManagment && filteredItems.length === 0"
+                class="text-center py-4"
+              >
+                <i class="bi bi-inbox fs-1 text-muted" />
+                <p class="text-muted mt-2">
+                  No batches found
+                </p>
+              </div>
+              <BTable
+                v-else
+                :items="filteredItems"
+                :fields="fields_ReReviewTable"
+                :per-page="perPage"
+                :current-page="currentPage"
+                :class="{ 'opacity-50': loadingReReviewManagment }"
+                head-variant="light"
+                show-empty
+                small
+                striped
+                hover
+                responsive
+                sort-icon-left
+                @filtered="onFiltered"
+                @sort-changed="onSortChanged"
+              >
+                <!-- User column with badge -->
+                <template #cell(user_name)="row">
+                  <div class="d-flex align-items-center gap-1">
+                    <i
+                      :class="row.item.user_id ? 'bi bi-person-fill text-primary' : 'bi bi-person text-muted'"
+                    />
+                    <BBadge
+                      :variant="row.item.user_id ? 'primary' : 'secondary'"
+                    >
+                      {{ row.item.user_name || 'Unassigned' }}
+                    </BBadge>
+                  </div>
+                </template>
+
+                <!-- Batch ID column -->
+                <template #cell(re_review_batch)="row">
+                  <span class="font-monospace">
+                    #{{ row.item.re_review_batch }}
+                  </span>
+                </template>
+
+                <!-- Progress columns with mini badges -->
+                <template #cell(re_review_review_saved)="row">
+                  <BBadge
+                    :variant="row.item.re_review_review_saved > 0 ? 'info' : 'light'"
+                    class="count-badge"
+                  >
+                    {{ row.item.re_review_review_saved }}
+                  </BBadge>
+                </template>
+
+                <template #cell(re_review_status_saved)="row">
+                  <BBadge
+                    :variant="row.item.re_review_status_saved > 0 ? 'info' : 'light'"
+                    class="count-badge"
+                  >
+                    {{ row.item.re_review_status_saved }}
+                  </BBadge>
+                </template>
+
+                <template #cell(re_review_submitted)="row">
+                  <BBadge
+                    :variant="row.item.re_review_submitted > 0 ? 'warning' : 'light'"
+                    class="count-badge"
+                  >
+                    {{ row.item.re_review_submitted }}
+                  </BBadge>
+                </template>
+
+                <template #cell(re_review_approved)="row">
+                  <BBadge
+                    :variant="row.item.re_review_approved > 0 ? 'success' : 'light'"
+                    class="count-badge"
+                  >
+                    {{ row.item.re_review_approved }}
+                  </BBadge>
+                </template>
+
+                <template #cell(entity_count)="row">
+                  <strong>{{ row.item.entity_count }}</strong>
+                </template>
+
+                <!-- Actions column -->
+                <template #cell(actions)="data">
+                  <div class="d-flex gap-1 justify-content-center">
+                    <!-- Recalculate button (only for unassigned batches) -->
+                    <BButton
+                      v-if="!data.item.user_id"
+                      v-b-tooltip.hover.top
+                      size="sm"
+                      class="btn-action"
+                      title="Recalculate batch contents"
+                      variant="secondary"
+                      @click="openRecalculateModal(data.item)"
+                    >
+                      <i class="bi bi-calculator" />
+                    </BButton>
+
+                    <!-- Reassign button (only for assigned batches) -->
+                    <BButton
+                      v-if="data.item.user_id"
+                      v-b-tooltip.hover.top
+                      size="sm"
+                      class="btn-action"
+                      title="Reassign to different user"
+                      variant="warning"
+                      @click="openReassignModal(data.item)"
+                    >
+                      <i class="bi bi-person-lines-fill" />
+                    </BButton>
+
+                    <!-- Unassign button -->
+                    <BButton
+                      v-if="data.item.user_id"
+                      v-b-tooltip.hover.top
+                      size="sm"
+                      class="btn-action"
+                      title="Unassign this batch"
+                      variant="danger"
+                      @click="handleBatchUnAssignment(data.item.re_review_batch)"
+                    >
+                      <i class="bi bi-person-dash-fill" />
+                    </BButton>
+                  </div>
+                </template>
+              </BTable>
+            </div>
+
+            <!-- Pagination Row -->
+            <BRow
+              v-if="totalRows > perPage"
+              class="px-2 py-2"
+            >
+              <BCol class="d-flex justify-content-center">
                 <BPagination
                   v-model="currentPage"
                   :total-rows="totalRows"
                   :per-page="perPage"
-                  align="fill"
                   size="sm"
-                  class="my-0"
+                  class="mb-0"
+                  first-number
                   last-number
+                  limit="7"
                 />
               </BCol>
             </BRow>
-            <BTable
-              :items="items_ReReviewTable"
-              :fields="fields_ReReviewTable"
-              :filter="filter"
-              :per-page="perPage"
-              :current-page="currentPage"
-              stacked="md"
-              head-variant="light"
-              show-empty
-              small
-              fixed
-              striped
-              hover
-              sort-icon-left
-              @filtered="onFiltered"
-              @sort-changed="onSortChanged"
-            >
-              <template #cell(user_name)="row">
-                <i class="bi bi-person-circle" />
-                <BBadge variant="dark">
-                  {{ row.item.user_name }}
-                </BBadge>
-              </template>
-
-              <template #cell(actions)="data">
-                <!-- Recalculate button (only for unassigned batches) - RRV-05 -->
-                <BButton
-                  v-if="!data.item.user_id"
-                  v-b-tooltip.hover.top
-                  size="sm"
-                  class="me-1 btn-xs"
-                  title="Recalculate batch contents with new criteria (unassigned batches only)"
-                  :aria-label="`Recalculate batch ${data.item.re_review_batch} entity membership`"
-                  variant="secondary"
-                  @click="openRecalculateModal(data.item)"
-                >
-                  <i class="bi bi-calculator" />
-                </BButton>
-
-                <!-- Reassign button (only for assigned batches) -->
-                <BButton
-                  v-if="data.item.user_id"
-                  v-b-tooltip.hover.top
-                  size="sm"
-                  class="me-1 btn-xs"
-                  title="Reassign this batch to a different user"
-                  :aria-label="`Reassign batch ${data.item.re_review_batch} currently assigned to ${data.item.user_name}`"
-                  variant="warning"
-                  @click="openReassignModal(data.item)"
-                >
-                  <i class="bi bi-arrow-repeat" />
-                </BButton>
-
-                <!-- Existing unassign button -->
-                <BButton
-                  v-if="data.item.user_id"
-                  v-b-tooltip.hover.top
-                  size="sm"
-                  class="me-1 btn-xs"
-                  title="Unassign this batch"
-                  :aria-label="`Unassign batch ${data.item.re_review_batch} from ${data.item.user_name}`"
-                  variant="danger"
-                  @click="handleBatchUnAssignment(data.item.re_review_batch)"
-                >
-                  <i class="bi bi-file-earmark-minus" />
-                </BButton>
-              </template>
-            </BTable>
           </BCard>
         </BCol>
       </BRow>
@@ -480,6 +623,8 @@ export default {
   data() {
     return {
       filter: null,
+      userFilter: null,
+      assignmentFilter: null,
       loadingReReviewManagment: false,
       user_options: [],
       user_id_assignment: 0,
@@ -487,55 +632,60 @@ export default {
       fields_ReReviewTable: [
         {
           key: 'user_name',
-          label: 'Username',
+          label: 'User',
           sortable: true,
-          filterable: true,
           sortDirection: 'desc',
           class: 'text-start',
+          thStyle: { width: '140px' },
         },
         {
           key: 're_review_batch',
-          label: 'Re-review batch ID',
+          label: 'Batch',
           sortable: true,
-          filterable: true,
-          class: 'text-start',
+          class: 'text-center',
+          thStyle: { width: '80px' },
         },
         {
           key: 're_review_review_saved',
-          label: 'Review saved count',
+          label: 'Saved',
           sortable: true,
-          filterable: true,
-          class: 'text-start',
+          class: 'text-center',
+          thStyle: { width: '70px' },
         },
         {
           key: 're_review_status_saved',
-          label: 'Status saved count',
+          label: 'Status',
           sortable: true,
-          filterable: true,
-          class: 'text-start',
+          class: 'text-center',
+          thStyle: { width: '70px' },
         },
         {
           key: 're_review_submitted',
-          label: 'Re-review submitted count',
+          label: 'Submitted',
           sortable: true,
-          filterable: true,
-          class: 'text-start',
+          class: 'text-center',
+          thStyle: { width: '85px' },
         },
         {
           key: 're_review_approved',
-          label: 'Re-review approved count',
+          label: 'Approved',
           sortable: true,
-          filterable: true,
-          class: 'text-start',
+          class: 'text-center',
+          thStyle: { width: '85px' },
         },
         {
           key: 'entity_count',
-          label: 'Total entities in batch',
+          label: 'Total',
           sortable: true,
-          filterable: true,
-          class: 'text-start',
+          class: 'text-center',
+          thStyle: { width: '70px' },
         },
-        { key: 'actions', label: 'Actions' },
+        {
+          key: 'actions',
+          label: 'Actions',
+          class: 'text-center',
+          thStyle: { width: '100px' },
+        },
       ],
       currentPage: 1,
       perPage: 25,
@@ -576,6 +726,54 @@ export default {
       // Status options for recalculate modal
       status_options: [],
     };
+  },
+  computed: {
+    // Filter options derived from loaded data
+    userFilterOptions() {
+      const uniqueUsers = [...new Set(this.items_ReReviewTable
+        .filter((item) => item.user_name)
+        .map((item) => item.user_name))];
+      return uniqueUsers.map((name) => ({ value: name, text: name }));
+    },
+    assignmentFilterOptions() {
+      return [
+        { value: 'assigned', text: 'Assigned' },
+        { value: 'unassigned', text: 'Unassigned' },
+      ];
+    },
+    // Filtered items based on all filters
+    filteredItems() {
+      let items = this.items_ReReviewTable;
+
+      // Apply text search filter
+      if (this.filter) {
+        const searchTerm = this.filter.toLowerCase();
+        items = items.filter((item) => {
+          const userName = (item.user_name || '').toLowerCase();
+          const batchId = String(item.re_review_batch || '');
+          return userName.includes(searchTerm) || batchId.includes(searchTerm);
+        });
+      }
+
+      // Apply user filter
+      if (this.userFilter) {
+        items = items.filter((item) => item.user_name === this.userFilter);
+      }
+
+      // Apply assignment filter
+      if (this.assignmentFilter === 'assigned') {
+        items = items.filter((item) => item.user_id);
+      } else if (this.assignmentFilter === 'unassigned') {
+        items = items.filter((item) => !item.user_id);
+      }
+
+      // Update totalRows based on filtered results
+      this.$nextTick(() => {
+        this.totalRows = items.length;
+      });
+
+      return items;
+    },
   },
   mounted() {
     this.loadUserList();
@@ -656,6 +854,10 @@ export default {
         this.makeToast(e, 'Error', 'danger');
       }
       this.loadReReviewTableData();
+    },
+    // Apply filters and reset pagination
+    applyFilters() {
+      this.currentPage = 1;
     },
     async handleBatchUnAssignment(batch_id) {
       const apiUrl = `${import.meta.env.VITE_API_URL
@@ -847,14 +1049,16 @@ export default {
 
     // Load status options for recalculate modal
     async loadStatusOptions() {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/status_categories`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/status`;
       try {
         const response = await this.axios.get(apiUrl, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        const data = response.data;
+        const responseData = response.data;
+        // Handle paginated response format
+        const data = responseData?.data || responseData;
         this.status_options = Array.isArray(data)
           ? data.map((item) => ({
             value: item.category_id,
@@ -872,23 +1076,58 @@ export default {
 <style scoped>
 .btn-group-xs > .btn,
 .btn-xs {
-  padding: 0.25rem 0.4rem;
-  font-size: 0.875rem;
-  line-height: 0.5;
+  padding: 0.2rem 0.35rem;
+  font-size: 0.8rem;
+  line-height: 1;
   border-radius: 0.2rem;
 }
 
-.username-select {
-  background-color: #f8f9fa;
-  border: 1px solid #ced4da;
-  border-radius: 0.25rem;
+/* Action buttons - solid, visible icons */
+.btn-action {
   padding: 0.25rem 0.5rem;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  font-size: 0.85rem;
+  line-height: 1;
+  border-radius: 0.25rem;
+  min-width: 32px;
 }
 
-.username-select:focus {
-  border-color: #80bdff;
-  outline: 0;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+.btn-action i {
+  font-size: 0.9rem;
+}
+
+/* Count badges in table */
+.count-badge {
+  min-width: 28px;
+  font-weight: 500;
+}
+
+/* Light variant for zero counts */
+.badge.bg-light {
+  color: #6c757d;
+  background-color: #f8f9fa !important;
+  border: 1px solid #dee2e6;
+}
+
+/* Monospace for batch IDs */
+.font-monospace {
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+/* Table compact styling */
+:deep(.table) {
+  font-size: 0.875rem;
+}
+
+:deep(.table th),
+:deep(.table td) {
+  padding: 0.4rem 0.5rem;
+  vertical-align: middle;
+}
+
+/* Help icon styling */
+.bi-question-circle {
+  font-size: 0.85rem;
+  cursor: help;
 }
 </style>

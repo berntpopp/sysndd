@@ -293,7 +293,13 @@ db_with_transaction <- function(code, pool_obj = NULL) {
       # dbWithTransaction handles BEGIN, COMMIT, and ROLLBACK automatically
       result <- DBI::dbWithTransaction(conn, {
         log_debug("Executing code within transaction")
-        force(code)
+        # If code is a function, call it with the connection
+        # Otherwise evaluate the expression
+        if (is.function(code)) {
+          code(conn)
+        } else {
+          force(code)
+        }
       })
 
       log_debug("Transaction committed successfully")

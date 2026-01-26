@@ -7,10 +7,11 @@
 #' Build dynamic WHERE clause from batch criteria
 #'
 #' Constructs a SQL WHERE clause from the provided criteria object.
-#' Supports date_range, gene_list, status_filter, and disease_id filtering.
+#' Supports entity_ids, date_range, gene_list, status_filter, and disease_id filtering.
 #'
-#' @param criteria List with optional date_range (list with start, end),
-#'   gene_list (vector of hgnc_ids), status_filter (category_id), disease_id
+#' @param criteria List with optional entity_ids (vector of entity IDs),
+#'   date_range (list with start, end), gene_list (vector of hgnc_ids),
+#'   status_filter (category_id), disease_id
 #' @param pool Database connection pool for safe SQL interpolation
 #' @return SQL string (without WHERE keyword). Returns "1=1" if no criteria.
 #'
@@ -25,6 +26,12 @@
 #' @export
 build_batch_where_clause <- function(criteria, pool) {
   conditions <- character(0)
+
+  # Direct entity ID filter (highest priority - specific entities)
+  if (!is.null(criteria$entity_ids) && length(criteria$entity_ids) > 0) {
+    placeholders <- paste(rep("?", length(criteria$entity_ids)), collapse = ", ")
+    conditions <- c(conditions, paste0("e.entity_id IN (", placeholders, ")"))
+  }
 
   # Date range filter
   if (!is.null(criteria$date_range)) {
@@ -72,6 +79,11 @@ build_batch_where_clause <- function(criteria, pool) {
 #' @keywords internal
 build_batch_params <- function(criteria) {
   params <- list()
+
+  # Entity IDs parameters (must match order in WHERE clause)
+  if (!is.null(criteria$entity_ids) && length(criteria$entity_ids) > 0) {
+    params <- c(params, as.list(criteria$entity_ids))
+  }
 
   # Date range parameters
   if (!is.null(criteria$date_range)) {
@@ -197,7 +209,8 @@ where_clause <- build_batch_where_clause(criteria, pool)
 #' @export
 batch_create <- function(criteria, assigned_user_id = NULL, batch_name = NULL, pool) {
   # Validate at least one criterion provided
-  has_criteria <- !is.null(criteria$date_range) ||
+  has_criteria <- (!is.null(criteria$entity_ids) && length(criteria$entity_ids) > 0) ||
+    !is.null(criteria$date_range) ||
     (!is.null(criteria$gene_list) && length(criteria$gene_list) > 0) ||
     !is.null(criteria$status_filter) ||
     !is.null(criteria$disease_id)
@@ -214,7 +227,8 @@ batch_create <- function(criteria, assigned_user_id = NULL, batch_name = NULL, p
   batch_size <- if (!is.null(criteria$batch_size)) criteria$batch_size else 20
 
   # Use transaction for atomicity
-  result <- db_with_transaction({
+  # Pass a function that receives the transaction connection
+  result <- db_with_transaction(function(txn_conn) {
     # 1. Generate batch_name if NULL
     if (is.null(batch_name) || batch_name == "") {
       batch_name <- format(Sys.time(), "Batch %Y-%m-%d %H:%M")
@@ -222,12 +236,13 @@ batch_create <- function(criteria, assigned_user_id = NULL, batch_name = NULL, p
 
     # 2. Get next batch_id
     max_batch_result <- db_execute_query(
-      "SELECT COALESCE(MAX(re_review_batch), 0) + 1 as next_batch FROM re_review_entity_connect"
+      "SELECT COALESCE(MAX(re_review_batch), 0) + 1 as next_batch FROM re_review_entity_connect",
+      conn = txn_conn
     )
     batch_id <- max_batch_result$next_batch[1]
 
     # 3. Build WHERE clause and find matching entities
-    where_clause <- build_batch_where_clause(criteria, pool)
+    where_clause <- build_batch_where_clause(criteria, txn_conn)
     params <- build_batch_params(criteria)
 
     query <- paste0(
@@ -246,7 +261,7 @@ batch_create <- function(criteria, assigned_user_id = NULL, batch_name = NULL, p
     )
 
     params <- c(params, list(as.integer(batch_size)))
-    matching_entities <- db_execute_query(query, params, conn = pool)
+    matching_entities <- db_execute_query(query, params, conn = txn_conn)
 
     if (nrow(matching_entities) == 0) {
       stop("No entities match the specified criteria")
@@ -266,7 +281,7 @@ batch_create <- function(criteria, assigned_user_id = NULL, batch_name = NULL, p
           entity$status_id,
           entity$review_id
         ),
-        conn = pool
+        conn = txn_conn
       )
     }
 
@@ -275,7 +290,7 @@ batch_create <- function(criteria, assigned_user_id = NULL, batch_name = NULL, p
       db_execute_statement(
         "INSERT INTO re_review_assignment (user_id, re_review_batch) VALUES (?, ?)",
         list(assigned_user_id, batch_id),
-        conn = pool
+        conn = txn_conn
       )
     }
 

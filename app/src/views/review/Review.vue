@@ -394,14 +394,14 @@
         @show="onReviewModalShow"
         @ok="submitReviewChange"
       >
-        <template #modal-title>
+        <template #title>
           <div class="d-flex align-items-center">
             <i class="bi bi-pencil-square me-2 text-primary" />
             <span class="fw-semibold">Edit Review</span>
           </div>
         </template>
 
-        <template #modal-footer="{ ok, cancel }">
+        <template #footer="{ ok, cancel }">
           <div class="w-100 d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-2 text-muted small">
               <span
@@ -503,14 +503,14 @@
         @show="onStatusModalShow"
         @ok="submitStatusChange"
       >
-        <template #modal-title>
+        <template #title>
           <div class="d-flex align-items-center">
             <i class="bi bi-stoplights me-2 text-secondary" />
             <span class="fw-semibold">Edit Status</span>
           </div>
         </template>
 
-        <template #modal-footer="{ ok, cancel }">
+        <template #footer="{ ok, cancel }">
           <div class="w-100 d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-2 text-muted small">
               <span
@@ -723,7 +723,7 @@
         footer-class="border-top-0 pt-0"
         @ok="handleSubmitOk"
       >
-        <template #modal-title>
+        <template #title>
           <div class="d-flex align-items-center">
             <i class="bi bi-send-check me-2 text-success" />
             <span class="fw-semibold">Submit Review</span>
@@ -769,7 +769,7 @@
         footer-class="border-top-0 pt-0"
         @ok="handleApproveOk"
       >
-        <template #modal-title>
+        <template #title>
           <div class="d-flex align-items-center">
             <i class="bi bi-check-circle-fill me-2 text-success" />
             <span class="fw-semibold">Approve Entity</span>
