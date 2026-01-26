@@ -116,10 +116,13 @@ Plans:
   3. Admin can recalculate/reassign batch contents based on updated criteria
   4. ManageReReview no longer filters by hardcoded 2020-01-01 date
   5. POST /api/re_review/batch/create endpoint works and creates batches
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 38-01: TBD
+- [ ] 38-01-PLAN.md - Create re-review-service.R with batch management functions (RRV-01)
+- [ ] 38-02-PLAN.md - Add API endpoints for batch creation and management (RRV-02, RRV-03, RRV-07)
+- [ ] 38-03-PLAN.md - Create useBatchForm composable and BatchCriteriaForm component (RRV-04)
+- [ ] 38-04-PLAN.md - Integrate batch creation UI into ManageReReview.vue (RRV-05, RRV-06)
 
 ### Phase 39: Accessibility Pass
 **Goal**: Ensure WCAG 2.2 AA compliance across all curation interfaces
@@ -147,9 +150,9 @@ Plans:
 | 35.1 ModifyEntity UX Overhaul | v7.0 | 2/2 | Complete | 2026-01-26 |
 | 36. Curation Table Modernization | v7.0 | 3/3 | Complete | 2026-01-26 |
 | 37. Form Modernization | v7.0 | 0/3 | Not started | - |
-| 38. Re-Review System Overhaul | v7.0 | 0/TBD | Not started | - |
+| 38. Re-Review System Overhaul | v7.0 | 0/4 | Not started | - |
 | 39. Accessibility Pass | v7.0 | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-01-26*
-*Last updated: 2026-01-26 -- Phase 37 planned (3 plans)*
+*Last updated: 2026-01-26 -- Phase 38 planned (4 plans)*
