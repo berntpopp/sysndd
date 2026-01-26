@@ -17,7 +17,7 @@ This roadmap transforms curation views from basic forms into modern, accessible 
 ## Phases
 
 - [x] **Phase 34: Critical Bug Fixes** - Fix blocking bugs that prevent basic curation operations
-- [ ] **Phase 35: Multi-Select Restoration** - Restore multi-select for phenotypes and variations using PrimeVue TreeSelect
+- [ ] **Phase 35: Multi-Select Restoration** - Restore multi-select for phenotypes and variations using custom Bootstrap-Vue-Next TreeMultiSelect component
 - [ ] **Phase 36: Curation Table Modernization** - Add filtering, pagination, and accessibility to curation tables
 - [ ] **Phase 37: Form Modernization** - Extract reusable form composables and improve form UX
 - [ ] **Phase 38: Re-Review System Overhaul** - Add dynamic batch management and gene-specific assignment
@@ -41,7 +41,7 @@ Plans:
 - [x] 34-02-PLAN.md - Fix ModifyEntity dropdown, component names (BUG-02, BUG-03)
 
 ### Phase 35: Multi-Select Restoration
-**Goal**: Restore multi-select capability for phenotypes and variations using PrimeVue TreeSelect with Bootstrap PT styling
+**Goal**: Restore multi-select capability for phenotypes and variations using custom TreeMultiSelect component built with Bootstrap-Vue-Next primitives (BFormTags, BDropdown, BCollapse, BFormCheckbox)
 **Depends on**: Phase 34
 **Requirements**: MSEL-01, MSEL-02, MSEL-03, MSEL-04
 **Success Criteria** (what must be TRUE):
@@ -52,7 +52,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 35-01-PLAN.md - Create TreeMultiSelect component foundation (PrimeVue setup, composables)
+- [ ] 35-01-PLAN.md - Create TreeMultiSelect component foundation (composables, TreeNode, TreeMultiSelect wrapper)
 - [ ] 35-02-PLAN.md - Integrate TreeMultiSelect into curation views (Review, ModifyEntity, ApproveReview)
 - [ ] 35-03-PLAN.md - Remove vue3-treeselect dependency and verify functionality
 
@@ -131,4 +131,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-01-26*
-*Last updated: 2026-01-26 -- Phase 35 planned (3 plans)*
+*Last updated: 2026-01-26 -- Phase 35 plans revised for Bootstrap-Vue-Next only (no PrimeVue)*

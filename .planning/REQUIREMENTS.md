@@ -16,8 +16,8 @@ Requirements for v7.0 milestone grouped by category. Each maps to roadmap phases
 
 ### Multi-Select Restoration
 
-- [ ] **MSEL-01**: Restore multi-select for phenotypes using Bootstrap-Vue-Next BFormSelect with multiple
-- [ ] **MSEL-02**: Restore multi-select for variations using Bootstrap-Vue-Next BFormSelect with multiple
+- [ ] **MSEL-01**: Restore multi-select for phenotypes using custom TreeMultiSelect component (Bootstrap-Vue-Next primitives: BFormTags, BDropdown, BCollapse, BFormCheckbox)
+- [ ] **MSEL-02**: Restore multi-select for variations using custom TreeMultiSelect component (Bootstrap-Vue-Next primitives: BFormTags, BDropdown, BCollapse, BFormCheckbox)
 - [ ] **MSEL-03**: Update all curation views to use new multi-select pattern (Review, ModifyEntity, ApproveReview)
 - [ ] **MSEL-04**: Remove vue3-treeselect dependency after migration complete
 
@@ -72,9 +72,9 @@ Requirements for v7.0 milestone grouped by category. Each maps to roadmap phases
 
 | Feature | Reason |
 |---------|--------|
-| PrimeVue TreeSelect | Using Bootstrap-Vue-Next to maintain consistency with existing UI library |
-| Custom treeselect wrapper | Bootstrap-Vue-Next BFormSelect with multiple is simpler |
-| Full Options API → Composition API migration | Incremental hybrid approach sufficient |
+| PrimeVue TreeSelect | User explicitly rejected; using Bootstrap-Vue-Next only to maintain consistency |
+| External tree libraries | Building custom component with existing Bootstrap-Vue-Next primitives |
+| Full Options API to Composition API migration | Incremental hybrid approach sufficient |
 | Server-side pagination | Requires significant backend changes, defer to v8 |
 | Real-time collaboration | Complex implementation, not needed for current user base |
 
@@ -125,4 +125,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-26*
-*Last updated: 2026-01-26 -- Phase 34 complete (BUG-01 to BUG-04)*
+*Last updated: 2026-01-26 -- MSEL-01/MSEL-02 updated for Bootstrap-Vue-Next custom component approach*
