@@ -19,7 +19,7 @@ This roadmap transforms curation views from basic forms into modern, accessible 
 - [x] **Phase 34: Critical Bug Fixes** - Fix blocking bugs that prevent basic curation operations
 - [x] **Phase 35: Multi-Select Restoration** - Restore multi-select for phenotypes and variations using custom Bootstrap-Vue-Next TreeMultiSelect component
 - [x] **Phase 35.1: ModifyEntity UX Overhaul** (INSERTED) - Complete ModifyEntity.vue UX modernization with enhanced entity preview, contextual modal headers, and modernized form controls
-- [ ] **Phase 36: Curation Table Modernization** - Add filtering, pagination, and accessibility to curation tables
+- [x] **Phase 36: Curation Table Modernization** - Add filtering, pagination, and accessibility to curation tables
 - [ ] **Phase 37: Form Modernization** - Extract reusable form composables and improve form UX
 - [ ] **Phase 38: Re-Review System Overhaul** - Add dynamic batch management and gene-specific assignment
 - [ ] **Phase 39: Accessibility Pass** - Ensure WCAG 2.2 AA compliance across all curation views
@@ -85,9 +85,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 36-01-PLAN.md - Add column filters to ApproveReview and ApproveStatus (TBL-01, TBL-02, TBL-03)
-- [ ] 36-02-PLAN.md - Add search and standardize pagination for ManageReReview (TBL-03, TBL-04)
-- [ ] 36-03-PLAN.md - Add accessibility labels to all curation action buttons (TBL-05, TBL-06)
+- [x] 36-01-PLAN.md - Add column filters to ApproveReview and ApproveStatus (TBL-01, TBL-02, TBL-03)
+- [x] 36-02-PLAN.md - Add search and standardize pagination for ManageReReview (TBL-03, TBL-04)
+- [x] 36-03-PLAN.md - Add accessibility labels to all curation action buttons (TBL-05, TBL-06)
 
 ### Phase 37: Form Modernization
 **Goal**: Extract reusable form patterns and improve form UX
@@ -143,11 +143,11 @@ Plans:
 | 34. Critical Bug Fixes | v7.0 | 2/2 | Complete | 2026-01-26 |
 | 35. Multi-Select Restoration | v7.0 | 3/3 | Complete | 2026-01-26 |
 | 35.1 ModifyEntity UX Overhaul | v7.0 | 2/2 | Complete | 2026-01-26 |
-| 36. Curation Table Modernization | v7.0 | 0/3 | Not started | - |
+| 36. Curation Table Modernization | v7.0 | 3/3 | Complete | 2026-01-26 |
 | 37. Form Modernization | v7.0 | 0/TBD | Not started | - |
 | 38. Re-Review System Overhaul | v7.0 | 0/TBD | Not started | - |
 | 39. Accessibility Pass | v7.0 | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-01-26*
-*Last updated: 2026-01-26 -- Phase 36 planned (3 plans)*
+*Last updated: 2026-01-26 -- Phase 36 complete (3 plans)*

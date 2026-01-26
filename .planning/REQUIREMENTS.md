@@ -30,12 +30,12 @@ Requirements for v7.0 milestone grouped by category. Each maps to roadmap phases
 
 ### Curation Table Improvements
 
-- [ ] **TBL-01**: Add column filters to ApproveReview table (status, user, date range)
-- [ ] **TBL-02**: Add column filters to ApproveStatus table (category, user, date range)
-- [ ] **TBL-03**: Standardize pagination options across all curation views (10, 25, 50, 100)
-- [ ] **TBL-04**: Add search functionality to ManageReReview table
-- [ ] **TBL-05**: Add accessibility labels (aria-label) to all curation action buttons
-- [ ] **TBL-06**: Add tooltips to icon-only buttons in curation tables
+- [x] **TBL-01**: Add column filters to ApproveReview table (status, user, date range)
+- [x] **TBL-02**: Add column filters to ApproveStatus table (category, user, date range)
+- [x] **TBL-03**: Standardize pagination options across all curation views (10, 25, 50, 100)
+- [x] **TBL-04**: Add search functionality to ManageReReview table
+- [x] **TBL-05**: Add accessibility labels (aria-label) to all curation action buttons
+- [x] **TBL-06**: Add tooltips to icon-only buttons in curation tables
 
 ### Form Modernization
 
@@ -103,12 +103,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MEU-02 | Phase 35.1 | Complete |
 | MEU-03 | Phase 35.1 | Complete |
 | MEU-04 | Phase 35.1 | Complete |
-| TBL-01 | Phase 36 | Pending |
-| TBL-02 | Phase 36 | Pending |
-| TBL-03 | Phase 36 | Pending |
-| TBL-04 | Phase 36 | Pending |
-| TBL-05 | Phase 36 | Pending |
-| TBL-06 | Phase 36 | Pending |
+| TBL-01 | Phase 36 | Complete |
+| TBL-02 | Phase 36 | Complete |
+| TBL-03 | Phase 36 | Complete |
+| TBL-04 | Phase 36 | Complete |
+| TBL-05 | Phase 36 | Complete |
+| TBL-06 | Phase 36 | Complete |
 | FORM-01 | Phase 37 | Pending |
 | FORM-02 | Phase 37 | Pending |
 | FORM-03 | Phase 37 | Pending |
@@ -136,4 +136,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-26*
-*Last updated: 2026-01-26 -- Phase 35 (MSEL) and Phase 35.1 (MEU) requirements complete*
+*Last updated: 2026-01-26 -- Phase 36 (TBL) requirements complete*
