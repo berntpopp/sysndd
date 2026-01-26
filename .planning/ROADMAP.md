@@ -11,17 +11,17 @@ This roadmap tracks the current milestone and references completed milestones ar
 - **v3.0 Frontend Modernization** — Phases 10-17 (shipped 2026-01-23) → [Archive](milestones/03-frontend-modernization/)
 - **v4.0 Backend Overhaul** — Phases 18-24 (shipped 2026-01-24) → [Archive](milestones/v4-ROADMAP.md)
 - **v5.0 Analysis Modernization** — Phases 25-27 (shipped 2026-01-25) → [Archive](milestones/v5.0-ROADMAP.md)
-- 🚧 **v6.0 Admin Panel Modernization** — Phases 28-33 (in progress)
+- ✓ **v6.0 Admin Panel Modernization** — Phases 28-33 (shipped 2026-01-26) → [Archive](milestones/v6-ROADMAP.md)
 
 ## Current Status: v6.0 Admin Panel Modernization
 
 **Milestone Goal:** Transform admin views from basic CRUD forms into modern, feature-rich management interfaces with consistent UI/UX, pagination, search, and visualization.
 
-**Progress:** Phase 32 of 33 (complete) → Phase 33 next
+**Progress:** Phase 33 of 33 (complete) → Milestone complete
 **Requirements:** 35 total (100% coverage)
 **Target:** 6 phases extending TablesEntities patterns to admin domain
 
-### 🚧 v6.0 Admin Panel Modernization (Phases 28-33)
+### ✓ v6.0 Admin Panel Modernization (Phases 28-33)
 
 #### Phase 28: Table Foundation
 **Goal**: Modernize ManageUser and ManageOntology with TablesEntities pattern (search, pagination, URL sync)
@@ -126,9 +126,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 33-01-PLAN.md — Module-level caching, URL sync, relative timestamps
-- [ ] 33-02-PLAN.md — User filter dropdown, action type filter, filter pills UI
-- [ ] 33-03-PLAN.md — Log detail drawer with copy to clipboard and keyboard navigation
+- [x] 33-01-PLAN.md — Module-level caching, URL sync, relative timestamps
+- [x] 33-02-PLAN.md — User filter dropdown, action type filter, filter pills UI
+- [x] 33-03-PLAN.md — Log detail drawer with copy to clipboard and keyboard navigation
 
 ## Progress
 
@@ -142,7 +142,7 @@ Phases execute in numeric order: 28 → 29 → 30 → 31 → 32 → 33
 | 30. Statistics Dashboard | v6.0 | 3/3 | ✓ Complete | 2026-01-25 |
 | 31. Content Management | v6.0 | 4/4 | ✓ Complete | 2026-01-26 |
 | 32. Async Jobs | v6.0 | 3/3 | ✓ Complete | 2026-01-26 |
-| 33. Logging & Analytics | v6.0 | 0/3 | Planned | - |
+| 33. Logging & Analytics | v6.0 | 3/3 | ✓ Complete | 2026-01-26 |
 
 ## Completed Phases Summary
 
@@ -154,8 +154,10 @@ Phases execute in numeric order: 28 → 29 → 30 → 31 → 32 → 33
 | v4.0 Backend Overhaul | 18-24 | 42 | 2026-01-24 |
 | v5.0 Analysis Modernization | 25-27 | 16 | 2026-01-25 |
 
-**Total:** 27 phases, 138 plans shipped across 5 milestones
+| v6.0 Admin Panel Modernization | 28-33 | 20 | 2026-01-26 |
+
+**Total:** 33 phases, 158 plans shipped across 6 milestones
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-01-26 — Phase 32 complete (Async Jobs)*
+*Last updated: 2026-01-26 — Phase 33 complete (Logging & Analytics), v6.0 milestone complete*
