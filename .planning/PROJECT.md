@@ -2,13 +2,13 @@
 
 ## What This Is
 
-Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v5 delivered complete analysis modernization with Cytoscape.js network visualization (real PPI edges), Leiden clustering (2-3x faster), URL-synced filters with wildcard search, and bidirectional table-network interaction.
+Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v6 delivered modern admin panel with feature-rich management interfaces including TablesEntities patterns (search, pagination, URL sync), bulk operations, Chart.js statistics dashboard, CMS-style content editing, async job monitoring, and advanced audit logging.
 
 ## Core Value
 
 A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-## Current State (v5.0 shipped 2026-01-25)
+## Current State (v6.0 shipped 2026-01-26)
 
 **Backend Stack:** 10/10
 - R 4.4.3 with 281 packages in renv.lock
@@ -17,13 +17,14 @@ A new developer can clone the repo and be productive within minutes, with confid
 - 8 domain repositories with 131 parameterized DB calls
 - 7 service layers with dependency injection
 - require_auth middleware with AUTH_ALLOWLIST pattern
-- mirai job system with 8-worker daemon pool
+- mirai job system with 8-worker daemon pool + job history
 - OMIM via mim2gene.txt + JAX API + MONDO SSSOM mappings
 - RFC 9457 error format across all endpoints
 - 0 lintr issues (from 1,240), 0 TODO comments (from 29)
 - Leiden clustering algorithm (2-3x faster than Walktrap)
-- Cache key versioning with algorithm + STRING version
-- HCPC kk=50 pre-partitioning, MCA ncp=8 dimensions
+- Bulk user endpoints (approve, delete, role assignment)
+- CMS draft/publish API with versioning
+- Statistics API (entities over time, contributor leaderboard)
 
 **Backend Testing:** 634 tests passing, 20.3% coverage, 24 integration tests
 
@@ -31,12 +32,13 @@ A new developer can clone the repo and be productive within minutes, with confid
 - Vue 3.5.25 with Composition API (pure, no compat layer)
 - TypeScript 5.9.3 with branded domain types
 - Bootstrap-Vue-Next 0.42.0 with Bootstrap 5.3.8
-- Vite 7.3.1 (164ms dev startup, 520 KB gzipped bundle)
-- 13 Vue 3 composables (including new analysis composables)
+- Vite 7.3.1 (164ms dev startup, ~600 KB gzipped bundle)
+- 17 Vue 3 composables (added admin composables in v6)
 - WCAG 2.2 AA compliance (Lighthouse Accessibility 100)
-- Cytoscape.js network visualization with fcose layout
+- Chart.js + vue-chartjs for statistics visualizations
+- Module-level caching pattern for admin tables
 - URL-synced filter state with VueUse
-- Wildcard search (PKD*, BRCA?) with network highlighting
+- marked + DOMPurify for CMS markdown rendering
 
 **Frontend Testing:** 144 tests passing with Vitest + Vue Test Utils
 
@@ -173,18 +175,27 @@ A new developer can clone the repo and be productive within minutes, with confid
 - ✓ PhenotypeClusters migrated to Cytoscape — v5
 - ✓ Correlation heatmap click navigation — v5
 
+<!-- Shipped in v6 -->
+
+- ✓ ManageUser: search, pagination, bulk approve/delete, role management — v6
+- ✓ ManageAnnotations: async job composable, progress UI, job history — v6
+- ✓ ManageOntology: pagination, search, URL sync, export — v6
+- ✓ ManageAbout: CMS markdown editor with draft/publish workflow — v6
+- ✓ AdminStatistics: Chart.js dashboard with KPI cards and scientific context — v6
+- ✓ ViewLogs: feature parity with Entities table (filters, export, detail drawer) — v6
+- ✓ Admin API endpoints: pagination, search, bulk operations — v6
+- ✓ Statistics API: entities over time, contributor leaderboard — v6
+- ✓ useBulkSelection composable with Set-based cross-page selection — v6
+- ✓ useFilterPresets composable with localStorage persistence — v6
+- ✓ useAsyncJob composable with VueUse auto-cleanup — v6
+- ✓ useCmsContent composable with draft/publish workflow — v6
+- ✓ LogDetailDrawer with copy to clipboard and keyboard navigation — v6
+
 ### Active
 
-<!-- v6 scope - Admin Panel Modernization -->
+<!-- v7 scope - CI/CD & Quality -->
 
-- [ ] ManageUser: search, pagination, bulk approve/reject, role management
-- [ ] ManageAnnotations: improved UI/UX, consistent with modern table patterns
-- [ ] ManageOntology: pagination, search, URL sync
-- [ ] ManageAbout: CMS-like editing of About page content
-- [ ] AdminStatistics: dashboard with charts, visualizations, expanded metrics
-- [ ] ViewLogs: feature parity with Entities table
-- [ ] Admin API endpoints: pagination, search support for user/ontology endpoints
-- [ ] Statistics API: new endpoints for chart data, expanded metrics
+(None yet — define in /gsd:new-milestone)
 
 ### Out of Scope
 
@@ -204,17 +215,21 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 ## Context
 
-**After v5:**
-- Analysis pages transformed with Cytoscape.js network visualization
-- Leiden clustering 2-3x faster than Walktrap
-- URL-synced filters enable bookmarkable analysis views
-- Wildcard search matches biologist mental models (PKD*, BRCA?)
-- Bidirectional table-network interaction improves exploration
+**After v6:**
+- Admin tables modernized with consistent TablesEntities pattern (search, pagination, URL sync, export)
+- Bulk user operations (approve, delete, role assignment) with proper confirmation workflows
+- Statistics dashboard with Chart.js visualizations and scientific context
+- CMS-style content editing for About page with draft/publish workflow
+- Async job monitoring with useAsyncJob composable and VueUse auto-cleanup
+- Advanced audit logging with filters, detail drawer, and compliance export
+- 10 reusable patterns established for future admin features
 
 **Minor tech debt (non-blocking):**
 - FDR column sorting needs sortCompare for scientific notation
 - ScoreSlider presets need domain-specific values
 - Correlation heatmap → cluster navigation (architectural limitation)
+- Legacy TODO comment about treeselect migration (TablesLogs.vue:197)
+- Bulk operation audit logging not yet implemented
 
 **GitHub Issues:**
 - #109: Refactor sysndd_plumber.R into smaller endpoint files — Ready for PR (v4 complete)
@@ -272,19 +287,25 @@ A new developer can clone the repo and be productive within minutes, with confid
 | Non-reactive cy instance | let cy (not ref()) prevents layout recalculations | ✓ Good |
 | cy.destroy() cleanup | Prevents 100-300MB memory leaks per navigation | ✓ Good |
 | Module-level singleton for useFilterSync | Simpler than Pinia, sufficient for analysis pages | ✓ Good |
+| Module-level API caching for admin tables | Prevents duplicate calls on URL-triggered remounts | ✓ Good |
+| history.replaceState for URL sync | Avoids component remount cycles | ✓ Good |
+| Set-based bulk selection | O(1) lookups, cross-page persistence | ✓ Good |
+| Type-to-confirm for destructive actions | Requires exact "DELETE" text for safety | ✓ Good |
+| Tree-shaken Chart.js registration | Reduces bundle size ~30-40% vs registerables | ✓ Good |
+| JSON column for CMS sections | Flexible schema without migrations | ✓ Good |
+| VueUse useIntervalFn for polling | Auto-cleanup via tryOnCleanup | ✓ Good |
+| BOffcanvas for detail drawers | Bootstrap-Vue-Next pattern consistency | ✓ Good |
 
-## Current Milestone: v6.0 Admin Panel Modernization
+## Next Milestone
 
-**Goal:** Transform admin views from basic CRUD forms into modern, feature-rich management interfaces with consistent UI/UX, pagination, search, and visualization.
+**Ready for:** v7.0 (define scope with /gsd:new-milestone)
 
-**Target features:**
-- ManageUser: Full user management with search, pagination, bulk actions, role management
-- ManageAnnotations: Improved async job UI, consistent card-based layout
-- ManageOntology: Table with pagination, search, URL sync (matching Entities pattern)
-- ManageAbout: CMS-like content editing for About page
-- AdminStatistics: Dashboard with charts, expanded metrics, card-based layout
-- ViewLogs: Feature parity with Entities table
-- Admin API endpoints: Pagination, search, statistics data endpoints
+**Suggested focus areas:**
+- CI/CD pipeline (GitHub Actions)
+- Trivy security scanning
+- Frontend test coverage expansion (40-50%)
+- Vue component TypeScript conversion
+- URL path versioning (/api/v1/)
 
 ---
-*Last updated: 2026-01-25 after v6.0 milestone started*
+*Last updated: 2026-01-26 after v6.0 milestone complete*

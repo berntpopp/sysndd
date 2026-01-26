@@ -1,7 +1,12 @@
-# Requirements: SysNDD v6.0 Admin Panel Modernization
+# Requirements Archive: v6.0 Admin Panel Modernization
 
-**Defined:** 2026-01-25
-**Core Value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
+**Archived:** 2026-01-26
+**Status:** SHIPPED
+
+This is the archived requirements specification for v6.0.
+For current requirements, see `.planning/REQUIREMENTS.md` (created for next milestone).
+
+---
 
 ## v6.0 Requirements
 
@@ -99,7 +104,7 @@ Explicitly excluded. Documented to prevent scope creep.
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
+Which phases cover which requirements.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
@@ -153,5 +158,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 - Phase 33 (Logging & Analytics): 5 requirements
 
 ---
-*Requirements defined: 2026-01-25*
-*Last updated: 2026-01-26 — Phase 33 requirements complete (LOG-01 through LOG-05), v6.0 milestone complete*
+
+## Milestone Summary
+
+**Shipped:** 35 of 35 v6.0 requirements
+**Adjusted:** None
+**Dropped:** None
+
+---
+*Archived: 2026-01-26 as part of v6.0 milestone completion*
