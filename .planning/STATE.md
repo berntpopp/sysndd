@@ -11,21 +11,21 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 ## Current Position
 
 **Milestone:** v7.0 Curation Workflow Modernization
-**Phase:** 38 of 39 (Re-Review System Overhaul) - NOT STARTED
-**Plan:** 0 of 4 in phase 38
-**Status:** Ready for Phase 38
-**Last activity:** 2026-01-26 -- Phase 37 verified and complete
+**Phase:** 38 of 39 (Re-Review System Overhaul) - IN PROGRESS
+**Plan:** 1 of 4 in phase 38
+**Status:** Plan 38-01 complete - Service layer created
+**Last activity:** 2026-01-26 -- Completed 38-01 (re-review-service.R with batch management)
 
 ```
-v7.0 Curation Workflow Modernization: [██████████████████████████____] 83% (5/6 phases)
+v7.0 Curation Workflow Modernization: [██████████████████████████░___] 86% (5/6 phases + 1/4 plans)
 ```
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 179
+- Total plans completed: 180
 - Milestones shipped: 6 (v1-v6)
-- Phases completed: 38
+- Phases completed: 37
 
 **By Milestone:**
 
@@ -80,6 +80,23 @@ Phase 36 decisions:
 - **Dynamic aria-labels with entity context**: Use template literals to include entity_id for unique button identification
 - **Include batch and user context in ManageReReview**: aria-label includes batch ID and user name for richer context
 
+Phase 37 decisions:
+- **Composable-based form extraction**: Extract useReviewForm and useStatusForm following useEntityForm pattern
+- **any type for Status class dynamic properties**: Use `any` annotation for JavaScript class instances with dynamic properties
+- **Separate load methods per context**: loadStatusData (by status_id) for Review.vue, loadStatusByEntity for ModifyEntity.vue
+- **isUpdate parameter for create/update logic**: Single composable handles both create and update via parameter
+- **Review form pattern**: Follow useEntityForm structure - composable for state/logic, component for UI
+- **Metadata handling**: Keep review_info separate from composable for modal presentation metadata
+- **Component v-model pattern**: Use computed getter/setter for bidirectional data binding
+- **Draft restoration via window.confirm**: Simple synchronous prompt for draft restoration
+- **Reset form on @show event**: Form state reset happens immediately on modal show (FORM-07)
+
+Phase 38-01 decisions:
+- **Parameterized query approach**: build_batch_params() helper creates ordered parameter list matching WHERE clause placeholders
+- **Entity overlap prevention**: All batch operations exclude entities in active batches via exclusion subquery
+- **Recalculation restriction**: batch_recalculate() only allowed for unassigned batches
+- **Soft delete pattern**: batch_archive() removes assignment but preserves entity_connect audit trail
+
 ### Roadmap Evolution
 
 - Phase 35.1 inserted after Phase 35: ModifyEntity UX Overhaul (URGENT) - complete UX modernization started in Phase 35
@@ -111,17 +128,6 @@ Phase 36 improvements:
 - ~~ManageReReview lacks search/pagination~~ [ADDED in 36-02 with search and standardized pagination]
 - ~~Action buttons lack accessibility labels~~ [ADDED in 36-03 with aria-labels and tooltips]
 
-Phase 37 decisions:
-- **Composable-based form extraction**: Extract useReviewForm and useStatusForm following useEntityForm pattern
-- **any type for Status class dynamic properties**: Use `any` annotation for JavaScript class instances with dynamic properties
-- **Separate load methods per context**: loadStatusData (by status_id) for Review.vue, loadStatusByEntity for ModifyEntity.vue
-- **isUpdate parameter for create/update logic**: Single composable handles both create and update via parameter
-- **Review form pattern**: Follow useEntityForm structure - composable for state/logic, component for UI
-- **Metadata handling**: Keep review_info separate from composable for modal presentation metadata
-- **Component v-model pattern**: Use computed getter/setter for bidirectional data binding
-- **Draft restoration via window.confirm**: Simple synchronous prompt for draft restoration
-- **Reset form on @show event**: Form state reset happens immediately on modal show (FORM-07)
-
 Phase 37 improvements:
 - ~~Forms lack draft persistence~~ [ADDED in 37-03 with useFormDraft integration]
 - ~~No draft restoration prompt~~ [ADDED in 37-03 with window.confirm before loading server data]
@@ -130,10 +136,10 @@ Phase 37 improvements:
 ## Session Continuity
 
 **Last session:** 2026-01-26
-**Stopped at:** Phase 37 verified and complete
+**Stopped at:** Completed 38-01-PLAN.md (re-review-service.R)
 **Resume file:** None
-**Next action:** Begin Phase 38 - Re-Review System Overhaul
+**Next action:** Continue Phase 38 with Plan 38-02
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-26 -- Phase 37 verified complete (Form Modernization) - useReviewForm, useStatusForm, draft persistence, modal @show handlers*
+*Last updated: 2026-01-26 -- Plan 38-01 complete (re-review-service.R with 8 batch management functions)*
