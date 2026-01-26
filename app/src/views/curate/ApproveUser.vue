@@ -95,6 +95,7 @@
       <!-- Manage user approval modal -->
       <BModal
         :id="approveUserModal.id"
+        v-model="showApproveModal"
         size="lg"
         centered
         ok-title="Submit"
@@ -139,7 +140,6 @@
 
 <script>
 import { useToast, useColorAndSymbols } from '@/composables';
-import useModalControls from '@/composables/useModalControls';
 
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
@@ -149,11 +149,9 @@ export default {
   setup() {
     const { makeToast } = useToast();
     const colorAndSymbols = useColorAndSymbols();
-    const { showModal } = useModalControls();
 
     return {
       makeToast,
-      showModal,
       ...colorAndSymbols,
     };
   },
@@ -214,6 +212,7 @@ export default {
       selectedUserId: null,
       approve_user: null,
       user_approved: false,
+      showApproveModal: false,
       currentPage: 1,
       perPage: 10,
       pageOptions: [
@@ -301,7 +300,7 @@ export default {
     },
     infoApproveUser(item, index, button) {
       this.selectedUserId = item.user_id;
-      this.showModal(this.approveUserModal.id);
+      this.showApproveModal = true;
     },
     prepareApproveUserModal() {
       // Reset stale state
@@ -327,6 +326,7 @@ export default {
       this.selectedUserId = null;
       this.approve_user = null;
       this.user_approved = false;
+      this.showApproveModal = false;
     },
     async handleUserApproveOk(bvModalEvt) {
       if (!this.approve_user) {
