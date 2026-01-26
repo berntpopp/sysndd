@@ -124,12 +124,13 @@ export default function useReviewForm(entityId?: string | number) {
   } = formDraft;
 
   // Watch for form changes and auto-save drafts
+  // Note: Watch formData directly, not via getFormSnapshot (which isn't defined yet)
   watch(
-    () => getFormSnapshot(),
+    formData,
     (newData) => {
       // Only schedule save if form has meaningful content
       if (newData.synopsis || newData.phenotypes.length || newData.publications.length) {
-        scheduleSave(newData);
+        scheduleSave({ ...newData });
       }
     },
     { deep: true },

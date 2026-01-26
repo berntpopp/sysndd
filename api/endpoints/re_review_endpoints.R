@@ -196,7 +196,7 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
 #* @get table
 function(req,
          res,
-         filter = "or(lessOrEqual(review_date,2020-01-01),equals(re_review_review_saved,1)",
+         filter = "or(lessOrEqual(review_date,2020-01-01),equals(re_review_review_saved,1))",
          curate = FALSE,
          page_after = 0,
          page_size = "all") {
@@ -280,8 +280,7 @@ function(req,
       re_review_status_saved,
       re_review_submitted,
       status_id,
-      review_id,
-      created_at
+      review_id
     ) %>%
     inner_join(ndd_entity_view, by = c("entity_id")) %>%
     select(-category_id, -category) %>%
@@ -289,7 +288,7 @@ function(req,
     inner_join(review_user_collected, by = c("review_id")) %>%
     inner_join(status_user_collected, by = c("status_id")) %>%
     collect() %>%
-    arrange(created_at, re_review_entity_id) %>%
+    arrange(re_review_entity_id) %>%
     filter(!!!rlang::parse_exprs(filter_exprs))
 
   # Apply pagination

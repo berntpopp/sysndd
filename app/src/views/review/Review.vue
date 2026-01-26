@@ -348,7 +348,7 @@
         no-close-on-backdrop
         header-bg-variant="dark"
         header-text-variant="light"
-        :busy="loading_review_modal"
+        :busy="reviewFormLoading"
         @show="onReviewModalShow"
         @ok="submitReviewChange"
       >
