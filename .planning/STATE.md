@@ -12,9 +12,9 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Milestone:** v7.0 Curation Workflow Modernization
 **Phase:** 35 of 39 (Multi-Select Restoration)
-**Plan:** 0 of TBD in current phase
-**Status:** Ready to plan
-**Last activity:** 2026-01-26 -- Phase 34 complete (2 plans)
+**Plan:** 1 of TBD in current phase
+**Status:** In progress
+**Last activity:** 2026-01-26 -- Completed 35-01-PLAN.md
 
 ```
 v7.0 Curation Workflow Modernization: [█████_________________________] 17% (1/6 phases)
@@ -23,7 +23,7 @@ v7.0 Curation Workflow Modernization: [█████_________________________]
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 160
+- Total plans completed: 161
 - Milestones shipped: 6 (v1-v6)
 - Phases completed: 34
 
@@ -56,6 +56,12 @@ Phase 34 decisions:
 - **await before modal show**: Make async handlers await loadOptions() before showing modal
 - **Defensive response handling**: Use Array.isArray(data) ? data : data?.data || []
 
+Phase 35 decisions:
+- **Options API for recursive components**: Use Options API with name property for self-reference (script setup doesn't support self-referencing)
+- **Bootstrap-Vue-Next only**: No PrimeVue - use BDropdown, BFormTag, BCollapse for tree multi-select
+- **Ancestor context in search**: Preserve parent nodes when children match to show hierarchy context
+- **Hierarchy path caching**: Use Map for memoization to optimize tooltip rendering
+
 ### Pending Todos
 
 None yet.
@@ -70,10 +76,10 @@ Phase 34 bugs fixed:
 ## Session Continuity
 
 **Last session:** 2026-01-26
-**Stopped at:** Phase 34 complete
+**Stopped at:** Completed 35-01-PLAN.md
 **Resume file:** None
-**Next action:** `/gsd:discuss-phase 35` or `/gsd:plan-phase 35`
+**Next action:** Continue Phase 35 planning/execution
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-26 -- Phase 34 complete*
+*Last updated: 2026-01-26 -- Completed 35-01-PLAN.md*
