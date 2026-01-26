@@ -794,18 +794,18 @@
         no-close-on-backdrop
         header-bg-variant="dark"
         header-text-variant="light"
-        :busy="loading_status_modal"
+        :busy="statusFormLoading"
         @ok="submitStatusChange"
       >
         <template #modal-title>
           <h4>
             Modify status for entity:
             <BLink
-              :href="'/Entities/' + status_info.entity_id"
+              :href="'/Entities/' + statusFormData.entity_id"
               target="_blank"
             >
               <BBadge variant="primary">
-                sysndd:{{ status_info.entity_id }}
+                sysndd:{{ statusFormData.entity_id }}
               </BBadge>
             </BLink>
             <BLink
@@ -867,24 +867,24 @@
           <div class="w-100">
             <p class="float-start">
               Status by:
-              <i :class="'bi bi-' + user_icon[status_info.status_user_role] + ' text-' + user_style[status_info.status_user_role]" />
+              <i :class="'bi bi-' + user_icon[statusFormData.status_user_role] + ' text-' + user_style[statusFormData.status_user_role]" />
               <BBadge
-                :variant="user_style[status_info.status_user_role]"
+                :variant="user_style[statusFormData.status_user_role]"
                 class="ms-1"
               >
-                {{ status_info.status_user_name }}
+                {{ statusFormData.status_user_name }}
               </BBadge>
               <BBadge
-                :variant="user_style[status_info.status_user_role]"
+                :variant="user_style[statusFormData.status_user_role]"
                 class="ms-1"
               >
-                {{ status_info.status_user_role }}
+                {{ statusFormData.status_user_role }}
               </BBadge>
               <BBadge
                 variant="dark"
                 class="ms-1"
               >
-                {{ status_info.status_date }}
+                {{ statusFormData.status_date }}
               </BBadge>
             </p>
 
@@ -907,7 +907,7 @@
         </template>
 
         <BOverlay
-          :show="loading_status_modal"
+          :show="statusFormLoading"
           rounded="sm"
         >
           <BForm
@@ -943,7 +943,7 @@
             <BFormSelect
               v-if="status_options && status_options.length > 0"
               id="status-select"
-              v-model="status_info.category_id"
+              v-model="statusFormData.category_id"
               :options="normalizeStatusOptions(status_options)"
               size="sm"
             >
@@ -987,7 +987,7 @@
             <div class="custom-control custom-switch">
               <input
                 id="removeSwitch"
-                v-model="status_info.problematic"
+                v-model="statusFormData.problematic"
                 type="checkbox"
                 button-variant="info"
                 class="custom-control-input"
@@ -1005,7 +1005,7 @@
             >Comment</label>
             <BFormTextarea
               id="status-textarea-comment"
-              v-model="status_info.comment"
+              v-model="statusFormData.comment"
               rows="2"
               size="sm"
               placeholder="Why should this entities status be changed."
@@ -1109,7 +1109,10 @@
 <script>
 import { useToast, useColorAndSymbols, useText } from '@/composables';
 import useModalControls from '@/composables/useModalControls';
+import useStatusForm from '@/views/curate/composables/useStatusForm';
+import useReviewForm from '@/views/curate/composables/useReviewForm';
 import TreeMultiSelect from '@/components/forms/TreeMultiSelect.vue';
+import ReviewFormFields from '@/views/curate/components/ReviewFormFields.vue';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
@@ -1124,16 +1127,43 @@ export default {
   name: 'Review',
   components: {
     TreeMultiSelect,
+    ReviewFormFields,
   },
   setup() {
     const { makeToast } = useToast();
     const colorAndSymbols = useColorAndSymbols();
     const text = useText();
 
+    // Initialize status form composable
+    const statusForm = useStatusForm();
+    const {
+      formData: statusFormData,
+      loading: statusFormLoading,
+      loadStatusData,
+      submitForm: submitStatusForm,
+      resetForm: resetStatusForm,
+    } = statusForm;
+
+    // Initialize review form composable
+    const reviewForm = useReviewForm();
+    const {
+      formData: reviewFormData,
+      loading: reviewFormLoading,
+      loadReviewData,
+      submitForm: submitReviewForm,
+      resetForm: resetReviewForm,
+    } = reviewForm;
+
     return {
       makeToast,
       ...colorAndSymbols,
       ...text,
+      statusFormData,
+      statusFormLoading,
+      statusForm,
+      reviewFormData,
+      reviewFormLoading,
+      reviewForm,
     };
   },
   data() {
@@ -1371,10 +1401,10 @@ export default {
       const { showModal } = useModalControls();
       showModal(this.reviewModal.id);
     },
-    infoStatus(item, index, button) {
+    async infoStatus(item, index, button) {
       this.statusModal.title = `sysndd:${item.entity_id}`;
-      this.getEntity(item.entity_id);
-      this.loadStatusInfo(item.status_id, item.re_review_status_saved);
+      await this.getEntity(item.entity_id);
+      await this.statusForm.loadStatusData(item.status_id, item.re_review_status_saved);
       const { showModal } = useModalControls();
       showModal(this.statusModal.id);
     },
@@ -1520,72 +1550,14 @@ export default {
       }
     },
     async submitStatusChange() {
-      const status_saved = this.status_info.re_review_status_saved;
-
-      // remove user info from status object
-      // TODO: handle this server side to make it more robust
-      this.status_info.status_user_name = null;
-      this.status_info.status_user_role = null;
-      this.status_info.re_review_status_saved = null;
-
-      if (status_saved === 1) {
-        // perform update PUT request
-        try {
-          const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/update?re_review=true`;
-          const response = await this.axios.put(
-            apiUrl,
-            { status_json: this.status_info },
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-              },
-            },
-          );
-
-          this.makeToast(
-            `${'The new status for this entity has been submitted '
-              + '(status '}${
-              response.status
-            } (${
-              response.statusText
-            }).`,
-            'Success',
-            'success',
-          );
-          this.resetForm();
-          this.loadReReviewData();
-        } catch (e) {
-          this.makeToast(e, 'Error', 'danger');
-        }
-      } else {
-        const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/create?re_review=true`;
-        // perform update POST request
-        try {
-          const response = await this.axios.post(
-            apiUrl,
-            { status_json: this.status_info },
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-              },
-            },
-          );
-
-          this.makeToast(
-            `${'The new status for this entity has been submitted '
-              + '(status '}${
-              response.status
-            } (${
-              response.statusText
-            }).`,
-            'Success',
-            'success',
-          );
-          this.resetForm();
-          this.loadReReviewData();
-        } catch (e) {
-          this.makeToast(e, 'Error', 'danger');
-        }
+      try {
+        const isUpdate = this.statusFormData.re_review_status_saved === 1;
+        await this.statusForm.submitForm(isUpdate, true); // reReview = true
+        this.makeToast('Status submitted successfully', 'Success', 'success');
+        this.statusForm.resetForm();
+        this.loadReReviewData();
+      } catch (e) {
+        this.makeToast(e, 'Error', 'danger');
       }
     },
     async submitReviewChange() {
