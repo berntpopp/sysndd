@@ -238,7 +238,7 @@
         header-text-variant="light"
         @ok="submitEntityRename"
       >
-        <template #modal-title>
+        <template #title>
           <div class="d-flex flex-column gap-2">
             <h4 class="mb-0">
               Rename Entity Disease
@@ -276,17 +276,27 @@
           </div>
         </template>
 
-        <p class="my-4">
+        <p class="my-3">
           Select a new disease name:
         </p>
 
-        <BFormInput
-          id="ontology-select"
+        <AutocompleteInput
           v-model="ontology_input"
-          size="sm"
-          placeholder="Enter Ontology ID (e.g., OMIM:123456)"
-          required
+          v-model:display-value="ontology_display"
+          :results="ontology_search_results"
+          :loading="ontology_search_loading"
+          label="Disease"
+          input-id="ontology-select"
+          placeholder="Search by disease name or ontology ID (e.g., OMIM:123456)..."
+          item-key="id"
+          item-label="label"
+          item-secondary="id"
+          @search="searchOntology"
+          @update:model-value="onOntologySelected"
         />
+        <small class="text-muted">
+          Search for diseases by name or ontology identifier
+        </small>
       </BModal>
       <!-- Rename disease modal -->
 
@@ -303,7 +313,7 @@
         header-text-variant="light"
         @ok="submitEntityDeactivation"
       >
-        <template #modal-title>
+        <template #title>
           <div class="d-flex flex-column gap-2">
             <h4 class="mb-0">
               Deactivate Entity
@@ -376,14 +386,24 @@
             3. Select the entity replacing the above one:
           </p>
 
-          <BFormInput
-            id="replace-entity-select"
+          <AutocompleteInput
             v-model="replace_entity_input"
-            size="sm"
-            placeholder="Enter replacement entity ID (e.g., 123)"
-            type="number"
-            required
+            v-model:display-value="replace_entity_display"
+            :results="replace_entity_search_results"
+            :loading="replace_entity_search_loading"
+            label="Replacement Entity"
+            input-id="replace-entity-select"
+            placeholder="Search by ID, gene symbol, or disease name..."
+            item-key="entity_id"
+            item-label="symbol"
+            item-secondary="entity_id"
+            item-description="disease_ontology_name"
+            @search="searchReplacementEntity"
+            @update:model-value="onReplacementEntitySelected"
           />
+          <small class="text-muted">
+            Search for the entity that replaces this one
+          </small>
         </div>
       </BModal>
       <!-- Deactivate entity modal -->
@@ -402,7 +422,7 @@
         :busy="loading_review_modal"
         @ok="submitReviewChange"
       >
-        <template #modal-title>
+        <template #title>
           <div class="d-flex flex-column gap-2">
             <h4 class="mb-0">
               Modify Review
@@ -647,7 +667,7 @@
         :busy="loading_status_modal"
         @ok="submitStatusChange"
       >
-        <template #modal-title>
+        <template #title>
           <div class="d-flex flex-column gap-2">
             <h4 class="mb-0">
               Modify Status
@@ -795,6 +815,13 @@ export default {
       entity_loaded: false, // True when entity info has been fetched
       replace_entity_input: null,
       ontology_input: null,
+      ontology_display: '', // Display value for ontology autocomplete
+      ontology_search_results: [],
+      ontology_search_loading: false,
+      // Replacement entity autocomplete state
+      replace_entity_display: '', // Display value for replacement entity autocomplete
+      replace_entity_search_results: [],
+      replace_entity_search_loading: false,
       entity_info: {},
       review_info: new Review(),
       select_phenotype: [],
@@ -912,6 +939,57 @@ export default {
       } finally {
         this.entity_search_loading = false;
       }
+    },
+    async searchOntology(query) {
+      if (!query || query.length < 2) {
+        this.ontology_search_results = [];
+        return;
+      }
+
+      this.ontology_search_loading = true;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/search/ontology/${encodeURIComponent(query)}?tree=true`;
+
+      try {
+        const response = await this.axios.get(apiUrl);
+        // Ontology API returns flat array with {id, label} format
+        const data = Array.isArray(response.data) ? response.data : [];
+        this.ontology_search_results = data.slice(0, 10);
+      } catch (e) {
+        this.makeToast(e, 'Error', 'danger');
+        this.ontology_search_results = [];
+      } finally {
+        this.ontology_search_loading = false;
+      }
+    },
+    onOntologySelected(ontologyId) {
+      this.ontology_input = ontologyId;
+    },
+    async searchReplacementEntity(query) {
+      if (!query || query.length < 2) {
+        this.replace_entity_search_results = [];
+        return;
+      }
+
+      this.replace_entity_search_loading = true;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/entity?filter=contains(any,${encodeURIComponent(query)})`;
+
+      try {
+        const response = await this.axios.get(apiUrl);
+        const data = response.data?.data || response.data || [];
+        // Filter out the current entity from replacement options
+        const filtered = Array.isArray(data)
+          ? data.filter((e) => e.entity_id !== this.entity_info.entity_id).slice(0, 10)
+          : [];
+        this.replace_entity_search_results = filtered;
+      } catch (e) {
+        this.makeToast(e, 'Error', 'danger');
+        this.replace_entity_search_results = [];
+      } finally {
+        this.replace_entity_search_loading = false;
+      }
+    },
+    onReplacementEntitySelected(entityId) {
+      this.replace_entity_input = entityId;
     },
     async onEntitySelected(entityId) {
       if (!entityId) {
@@ -1344,8 +1422,14 @@ export default {
     },
     resetForm() {
       this.modify_entity_input = null;
+      this.entity_display = '';
+      this.entity_loaded = false;
       this.replace_entity_input = null;
+      this.replace_entity_display = '';
+      this.replace_entity_search_results = [];
       this.ontology_input = null;
+      this.ontology_display = '';
+      this.ontology_search_results = [];
       this.entity_info = {};
       this.review_info = new Review();
       this.select_phenotype = [];
