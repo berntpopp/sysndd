@@ -173,7 +173,7 @@
               </template>
 
               <template #cell-status="{ row }">
-                <BBadge :variant="row.status === 200 ? 'success' : 'danger'">
+                <BBadge :variant="getStatusVariant(row.status)">
                   {{ row.status }}
                 </BBadge>
               </template>
@@ -197,20 +197,18 @@
               <template #cell-timestamp="{ row }">
                 <div
                   v-b-tooltip.hover.top
-                  class="overflow-hidden text-truncate"
-                  :title="row.timestamp"
+                  :title="formatAbsoluteTime(row.timestamp)"
                 >
-                  {{ formatDate(row.timestamp) }}
+                  {{ formatRelativeTime(row.timestamp) }}
                 </div>
               </template>
 
               <template #cell-modified="{ row }">
                 <div
                   v-b-tooltip.hover.top
-                  class="overflow-hidden text-truncate"
-                  :title="row.modified"
+                  :title="formatAbsoluteTime(row.modified)"
                 >
-                  {{ formatDate(row.modified) }}
+                  {{ formatRelativeTime(row.modified) }}
                 </div>
               </template>
             </GenericTable>
@@ -646,6 +644,41 @@ export default {
         year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
       };
       return new Date(dateStr).toLocaleDateString(undefined, options);
+    },
+    // Format relative time using Intl.RelativeTimeFormat (e.g., "2 hours ago")
+    formatRelativeTime(dateStr) {
+      if (!dateStr) return '';
+      const now = new Date();
+      const date = new Date(dateStr);
+      const diffMs = now - date;
+      const diffMins = Math.round(diffMs / 60000);
+      const diffHours = Math.round(diffMs / 3600000);
+      const diffDays = Math.round(diffMs / 86400000);
+
+      const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+      if (Math.abs(diffMins) < 60) return rtf.format(-diffMins, 'minute');
+      if (Math.abs(diffHours) < 24) return rtf.format(-diffHours, 'hour');
+      return rtf.format(-diffDays, 'day');
+    },
+    // Format absolute time for tooltip display
+    formatAbsoluteTime(dateStr) {
+      if (!dateStr) return '';
+      return new Date(dateStr).toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short',
+      });
+    },
+    // Get Bootstrap variant for HTTP status code badges
+    getStatusVariant(status) {
+      if (status >= 200 && status < 300) return 'success'; // 2xx OK
+      if (status >= 400 && status < 500) return 'warning'; // 4xx client error
+      if (status >= 500) return 'danger'; // 5xx server error
+      return 'secondary';
     },
     getMethodVariant(method) {
       const methodVariants = {
