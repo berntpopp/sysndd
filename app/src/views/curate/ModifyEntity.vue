@@ -160,10 +160,14 @@
                   <BButton
                     size="sm"
                     variant="dark"
+                    :disabled="!entity_loaded || submitting"
                     @click="showEntityRename()"
                   >
-                    <i class="bi bi-pen" />
-                    <i class="bi bi-link" />
+                    <BSpinner v-if="submitting === 'rename'" small class="me-1" />
+                    <template v-else>
+                      <i class="bi bi-pen" />
+                      <i class="bi bi-link" />
+                    </template>
                     Rename disease
                   </BButton>
                 </BCol>
@@ -172,10 +176,14 @@
                   <BButton
                     size="sm"
                     variant="dark"
+                    :disabled="!entity_loaded || submitting"
                     @click="showEntityDeactivate()"
                   >
-                    <i class="bi bi-x" />
-                    <i class="bi bi-link" />
+                    <BSpinner v-if="submitting === 'deactivate'" small class="me-1" />
+                    <template v-else>
+                      <i class="bi bi-x" />
+                      <i class="bi bi-link" />
+                    </template>
                     Deactivate entity
                   </BButton>
                 </BCol>
@@ -184,10 +192,14 @@
                   <BButton
                     size="sm"
                     variant="dark"
+                    :disabled="!entity_loaded || submitting"
                     @click="showReviewModify()"
                   >
-                    <i class="bi bi-pen" />
-                    <i class="bi bi-clipboard-plus" />
+                    <BSpinner v-if="submitting === 'review'" small class="me-1" />
+                    <template v-else>
+                      <i class="bi bi-pen" />
+                      <i class="bi bi-clipboard-plus" />
+                    </template>
                     Modify review
                   </BButton>
                 </BCol>
@@ -196,10 +208,14 @@
                   <BButton
                     size="sm"
                     variant="dark"
+                    :disabled="!entity_loaded || submitting"
                     @click="showStatusModify()"
                   >
-                    <i class="bi bi-pen" />
-                    <i class="bi bi-stoplights" />
+                    <BSpinner v-if="submitting === 'status'" small class="me-1" />
+                    <template v-else>
+                      <i class="bi bi-pen" />
+                      <i class="bi bi-stoplights" />
+                    </template>
                     Modify status
                   </BButton>
                 </BCol>
@@ -695,6 +711,7 @@ export default {
       loading_deactivate_modal: true,
       loading_review_modal: true,
       loading_status_modal: true,
+      submitting: null, // null | 'rename' | 'deactivate' | 'review' | 'status'
     };
   },
   mounted() {
@@ -1060,6 +1077,7 @@ export default {
       this.$refs.modifyStatusModal.show();
     },
     async submitEntityRename() {
+      this.submitting = 'rename';
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/entity/rename`;
 
       // assign new disease_ontology_id
@@ -1092,9 +1110,12 @@ export default {
         this.resetForm();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+      } finally {
+        this.submitting = null;
       }
     },
     async submitEntityDeactivation() {
+      this.submitting = 'deactivate';
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/entity/deactivate`;
 
       // assign new is_active
@@ -1130,9 +1151,12 @@ export default {
         this.resetForm();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+      } finally {
+        this.submitting = null;
       }
     },
     async submitReviewChange() {
+      this.submitting = 'review';
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/review/create`;
 
       // define literature specific attributes as constants from inputs
@@ -1184,9 +1208,12 @@ export default {
         this.resetForm();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+      } finally {
+        this.submitting = null;
       }
     },
     async submitStatusChange() {
+      this.submitting = 'status';
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/create`;
 
       // perform update POST request
@@ -1214,6 +1241,8 @@ export default {
         this.resetForm();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+      } finally {
+        this.submitting = null;
       }
     },
     resetForm() {
