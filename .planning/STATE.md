@@ -6,18 +6,18 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v7.0 Curation Workflow Modernization
+**Current focus:** Phase 34 - Critical Bug Fixes
 
 ## Current Position
 
 **Milestone:** v7.0 Curation Workflow Modernization
-**Phase:** Not started (researching)
-**Plan:** —
-**Status:** Research phase
-**Last activity:** 2026-01-26 — Milestone v7.0 started
+**Phase:** 34 of 39 (Critical Bug Fixes)
+**Plan:** 0 of TBD in current phase
+**Status:** Ready to plan
+**Last activity:** 2026-01-26 -- Roadmap created for v7.0
 
 ```
-v7.0 Curation Workflow Modernization: [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 0% RESEARCHING
+v7.0 Curation Workflow Modernization: [______________________________] 0% READY TO PLAN
 ```
 
 ## Performance Metrics
@@ -46,11 +46,10 @@ v7.0 Curation Workflow Modernization: [░░░░░░░░░░░░░�
 
 See PROJECT.md for full decisions table.
 
-v6 key decisions (relevant to v7):
-- **Module-level API caching**: Prevents duplicate calls on URL-triggered remounts
-- **history.replaceState**: Avoids component remount cycles for URL sync
-- **Set-based bulk selection**: O(1) lookups, cross-page persistence
-- **BOffcanvas for drawers**: Bootstrap-Vue-Next pattern consistency
+v7 key decisions (from research):
+- **Bootstrap-Vue-Next BFormSelect with multiple**: Use for multi-select, not PrimeVue TreeSelect
+- **Critical bugs first**: Fix ApproveUser crash and ModifyStatus dropdown before modernization
+- **Extract composables before view modernization**: Reuse patterns from CreateEntity/FormWizard
 
 ### Pending Todos
 
@@ -58,17 +57,18 @@ None yet.
 
 ### Blockers/Concerns
 
-- ApproveUser page is completely broken (JavaScript reduce error)
-- ModifyStatus dropdown shows empty options
-- vue3-treeselect multi-select not working in Review.vue
+From research (to be fixed in Phase 34):
+- ApproveUser page crashes (JavaScript reduce error) -- blocks curator onboarding
+- ModifyStatus dropdown shows empty options -- blocks status changes
+- Test coverage at 20.3% means careful incremental changes required
 
 ## Session Continuity
 
 **Last session:** 2026-01-26
-**Stopped at:** Starting v7.0 research
+**Stopped at:** Roadmap created, ready to plan Phase 34
 **Resume file:** None
-**Next action:** Research curation workflow patterns
+**Next action:** `/gsd:plan-phase 34`
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-26 — v7.0 milestone started*
+*Last updated: 2026-01-26 -- Roadmap created for v7.0*
