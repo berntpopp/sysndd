@@ -109,10 +109,50 @@
                 </span>
               </BCol>
             </BRow>
+
+            <!-- Active filter pills -->
+            <BRow v-if="hasActiveFilters" class="px-2 pb-2">
+              <BCol>
+                <BBadge
+                  v-for="(activeFilter, index) in activeFilters"
+                  :key="index"
+                  variant="secondary"
+                  class="me-2 mb-1"
+                >
+                  {{ activeFilter.label }}: {{ activeFilter.value }}
+                  <BButton
+                    size="sm"
+                    variant="link"
+                    class="p-0 ms-1 text-light"
+                    @click="clearFilter(activeFilter.key)"
+                  >
+                    <i class="bi bi-x" />
+                  </BButton>
+                </BBadge>
+                <BButton
+                  size="sm"
+                  variant="link"
+                  class="p-0"
+                  @click="removeFilters"
+                >
+                  Clear all
+                </BButton>
+              </BCol>
+            </BRow>
             <!-- User Interface controls -->
+
+            <!-- Empty state when no logs match filters -->
+            <div v-if="!isBusy && items.length === 0" class="text-center py-4">
+              <i class="bi bi-journal-x fs-1 text-muted" />
+              <p class="text-muted mt-2">No logs match your filters</p>
+              <BButton v-if="hasActiveFilters" variant="link" @click="removeFilters">
+                Clear filters
+              </BButton>
+            </div>
 
             <!-- Main table element -->
             <GenericTable
+              v-else
               :items="items"
               :fields="fields"
               :field-details="fields_details"
@@ -441,6 +481,36 @@ export default {
     canNavigateNext() {
       return this.selectedLogIndex < this.items.length - 1;
     },
+    hasActiveFilters() {
+      return Object.values(this.filter).some(
+        (f) => f.content !== null && f.content !== '',
+      );
+    },
+    activeFilters() {
+      const filters = [];
+      if (this.filter.any.content) {
+        filters.push({ key: 'any', label: 'Search', value: this.filter.any.content });
+      }
+      if (this.filter.user.content) {
+        filters.push({ key: 'user', label: 'User', value: this.filter.user.content });
+      }
+      if (this.filter.request_method.content) {
+        filters.push({ key: 'request_method', label: 'Method', value: this.filter.request_method.content });
+      }
+      if (this.filter.status.content) {
+        filters.push({ key: 'status', label: 'Status', value: this.filter.status.content });
+      }
+      if (this.filter.path.content) {
+        filters.push({ key: 'path', label: 'Path', value: this.filter.path.content });
+      }
+      return filters;
+    },
+    removeFiltersButtonVariant() {
+      return this.hasActiveFilters ? 'outline-danger' : 'outline-secondary';
+    },
+    removeFiltersButtonTitle() {
+      return this.hasActiveFilters ? 'Clear all filters' : 'No active filters';
+    },
   },
   watch: {
     // Watch for filter changes (deep required for Vue 3 behavior)
@@ -726,6 +796,12 @@ export default {
     },
     removeSearch() {
       this.filter.any.content = null;
+    },
+    clearFilter(key) {
+      if (this.filter[key]) {
+        this.filter[key].content = null;
+      }
+      this.filtered();
     },
     async requestExcel() {
       this.downloading = true;
