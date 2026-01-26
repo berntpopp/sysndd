@@ -12,12 +12,12 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Milestone:** v7.0 Curation Workflow Modernization
 **Phase:** 38 of 39 (Re-Review System Overhaul) - IN PROGRESS
-**Plan:** 2 of 4 in phase 38
-**Status:** Plan 38-02 complete - API endpoints added
-**Last activity:** 2026-01-26 -- Completed 38-02 (6 batch management endpoints + date filter fix)
+**Plan:** 3 of 4 in phase 38
+**Status:** Plan 38-03 complete - Frontend composable and component created
+**Last activity:** 2026-01-26 -- Completed 38-03 (useBatchForm composable + BatchCriteriaForm component)
 
 ```
-v7.0 Curation Workflow Modernization: [███████████████████████████░__] 90% (5/6 phases + 2/4 plans)
+v7.0 Curation Workflow Modernization: [████████████████████████████░_] 93% (5/6 phases + 3/4 plans)
 ```
 
 ## Performance Metrics
@@ -102,6 +102,12 @@ Phase 38-02 decisions:
 - **Request validation at endpoint level**: Validate entity_ids and user_id before service call
 - **Default filter change**: Changed from 2020-01-01 date filter to equals(re_review_approved,0) for all pending items
 
+Phase 38-03 decisions:
+- **BFormSelect multiple for genes**: Returns array of hgnc_ids directly, matching API expectations
+- **Preview modal pattern**: Shows matching entities with count before creation
+- **Composable/component separation**: State and logic in composable, UI rendering in component
+- **Validation strategy**: Computed isFormValid requires at least one of: date range, gene list, status filter, or disease
+
 ### Roadmap Evolution
 
 - Phase 35.1 inserted after Phase 35: ModifyEntity UX Overhaul (URGENT) - complete UX modernization started in Phase 35
@@ -141,10 +147,10 @@ Phase 37 improvements:
 ## Session Continuity
 
 **Last session:** 2026-01-26
-**Stopped at:** Completed 38-02-PLAN.md (API endpoints)
+**Stopped at:** Completed 38-03-PLAN.md (Frontend composable and component)
 **Resume file:** None
-**Next action:** Continue Phase 38 with Plan 38-03
+**Next action:** Continue Phase 38 with Plan 38-04
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-26 -- Plan 38-02 complete (6 batch management endpoints + hardcoded date filter removal)*
+*Last updated: 2026-01-26 -- Plan 38-03 complete (useBatchForm composable + BatchCriteriaForm component)*
