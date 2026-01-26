@@ -196,7 +196,7 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
 #* @get table
 function(req,
          res,
-         filter = "or(lessOrEqual(review_date,2020-01-01),equals(re_review_review_saved,1))",
+         filter = "equals(re_review_approved,0)",
          curate = FALSE,
          page_after = 0,
          page_size = "all") {
