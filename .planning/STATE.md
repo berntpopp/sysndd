@@ -12,12 +12,12 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Milestone:** v7.0 Curation Workflow Modernization
 **Phase:** 38 of 39 (Re-Review System Overhaul) - IN PROGRESS
-**Plan:** 1 of 4 in phase 38
-**Status:** Plan 38-01 complete - Service layer created
-**Last activity:** 2026-01-26 -- Completed 38-01 (re-review-service.R with batch management)
+**Plan:** 2 of 4 in phase 38
+**Status:** Plan 38-02 complete - API endpoints added
+**Last activity:** 2026-01-26 -- Completed 38-02 (6 batch management endpoints + date filter fix)
 
 ```
-v7.0 Curation Workflow Modernization: [██████████████████████████░___] 86% (5/6 phases + 1/4 plans)
+v7.0 Curation Workflow Modernization: [███████████████████████████░__] 90% (5/6 phases + 2/4 plans)
 ```
 
 ## Performance Metrics
@@ -97,6 +97,11 @@ Phase 38-01 decisions:
 - **Recalculation restriction**: batch_recalculate() only allowed for unassigned batches
 - **Soft delete pattern**: batch_archive() removes assignment but preserves entity_connect audit trail
 
+Phase 38-02 decisions:
+- **Minimal endpoint logic**: Endpoints extract params and delegate to service layer - no business logic in endpoints
+- **Request validation at endpoint level**: Validate entity_ids and user_id before service call
+- **Default filter change**: Changed from 2020-01-01 date filter to equals(re_review_approved,0) for all pending items
+
 ### Roadmap Evolution
 
 - Phase 35.1 inserted after Phase 35: ModifyEntity UX Overhaul (URGENT) - complete UX modernization started in Phase 35
@@ -136,10 +141,10 @@ Phase 37 improvements:
 ## Session Continuity
 
 **Last session:** 2026-01-26
-**Stopped at:** Completed 38-01-PLAN.md (re-review-service.R)
+**Stopped at:** Completed 38-02-PLAN.md (API endpoints)
 **Resume file:** None
-**Next action:** Continue Phase 38 with Plan 38-02
+**Next action:** Continue Phase 38 with Plan 38-03
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-26 -- Plan 38-01 complete (re-review-service.R with 8 batch management functions)*
+*Last updated: 2026-01-26 -- Plan 38-02 complete (6 batch management endpoints + hardcoded date filter removal)*
