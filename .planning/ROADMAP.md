@@ -18,6 +18,7 @@ This roadmap transforms curation views from basic forms into modern, accessible 
 
 - [x] **Phase 34: Critical Bug Fixes** - Fix blocking bugs that prevent basic curation operations
 - [x] **Phase 35: Multi-Select Restoration** - Restore multi-select for phenotypes and variations using custom Bootstrap-Vue-Next TreeMultiSelect component
+- [ ] **Phase 35.1: ModifyEntity UX Overhaul** (INSERTED) - Complete ModifyEntity.vue UX modernization with enhanced entity preview, contextual modal headers, and modernized form controls
 - [ ] **Phase 36: Curation Table Modernization** - Add filtering, pagination, and accessibility to curation tables
 - [ ] **Phase 37: Form Modernization** - Extract reusable form composables and improve form UX
 - [ ] **Phase 38: Re-Review System Overhaul** - Add dynamic batch management and gene-specific assignment
@@ -55,6 +56,21 @@ Plans:
 - [x] 35-01-PLAN.md - Create TreeMultiSelect component foundation (composables, TreeNode, TreeMultiSelect wrapper)
 - [x] 35-02-PLAN.md - Integrate TreeMultiSelect into curation views (Review, ModifyEntity, ApproveReview)
 - [x] 35-03-PLAN.md - Remove vue3-treeselect dependency and verify functionality
+
+### Phase 35.1: ModifyEntity UX Overhaul (INSERTED)
+**Goal**: Complete ModifyEntity.vue UX modernization with enhanced entity preview, contextual modal headers, and modernized form controls
+**Depends on**: Phase 35
+**Requirements**: MEU-01, MEU-02, MEU-03, MEU-04
+**Success Criteria** (what must be TRUE):
+  1. Entity preview card shows gene symbol (HGNC link), disease name (ontology link), inheritance icon, category stoplight, NDD status
+  2. All 4 modal headers show rich entity context (Gene | Disease | Inheritance | Category) with colorAndSymbols icons
+  3. All form controls use BFormCheckbox with switch prop (no custom-control-switch CSS)
+  4. Action buttons disabled until entity_loaded is true, with BSpinner during submission
+**Plans**: 2 plans
+
+Plans:
+- [ ] 35.1-01-PLAN.md - Enhanced entity preview with badge components (GeneBadge, DiseaseBadge, EntityBadge, colorAndSymbols)
+- [ ] 35.1-02-PLAN.md - Rich modal headers, BFormCheckbox switches, and action button loading states
 
 ### Phase 36: Curation Table Modernization
 **Goal**: Apply TablesEntities pattern to curation tables for consistent UX
@@ -118,12 +134,13 @@ Plans:
 
 ## Progress
 
-**Execution Order:** Phases execute in numeric order: 34 -> 35 -> 36 -> 37 -> 38 -> 39
+**Execution Order:** Phases execute in numeric order: 34 -> 35 -> 35.1 -> 36 -> 37 -> 38 -> 39
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 34. Critical Bug Fixes | v7.0 | 2/2 | Complete | 2026-01-26 |
 | 35. Multi-Select Restoration | v7.0 | 3/3 | Complete | 2026-01-26 |
+| 35.1 ModifyEntity UX Overhaul | v7.0 | 0/2 | Not started | - |
 | 36. Curation Table Modernization | v7.0 | 0/TBD | Not started | - |
 | 37. Form Modernization | v7.0 | 0/TBD | Not started | - |
 | 38. Re-Review System Overhaul | v7.0 | 0/TBD | Not started | - |
@@ -131,4 +148,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-01-26*
-*Last updated: 2026-01-26 -- Phase 35 plans revised for Bootstrap-Vue-Next only (no PrimeVue)*
+*Last updated: 2026-01-26 -- Phase 35.1 planned (2 plans in 2 waves)*
