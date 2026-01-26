@@ -24,7 +24,7 @@
 
             <BCard
               class="my-2"
-              body-class="p-0"
+              body-class="p-2"
               header-class="p-1"
               border-variant="dark"
             >
@@ -36,31 +36,82 @@
 
               <BRow>
                 <BCol class="my-1">
-                  <BFormInput
-                    id="entity-select"
+                  <AutocompleteInput
                     v-model="modify_entity_input"
-                    size="sm"
-                    placeholder="Enter entity ID (e.g., 123)"
-                    type="number"
-                    required
+                    v-model:display-value="entity_display"
+                    :results="entity_search_results"
+                    :loading="entity_search_loading"
+                    label="Entity"
+                    input-id="entity-select"
+                    placeholder="Search by ID, gene symbol, or disease name..."
+                    item-key="entity_id"
+                    item-label="symbol"
+                    item-secondary="entity_id"
+                    item-description="disease_ontology_name"
+                    @search="searchEntity"
+                    @update:model-value="onEntitySelected"
                   />
+                  <small class="text-muted">
+                    Search for entities by sysndd ID, gene symbol, or disease name
+                  </small>
+                </BCol>
+              </BRow>
+            </BCard>
+
+            <!-- Entity Preview Card -->
+            <BCard
+              v-if="entity_loaded && entity_info.entity_id"
+              class="my-2"
+              body-class="p-2"
+              header-class="p-1"
+              border-variant="info"
+            >
+              <template #header>
+                <h6 class="mb-0 text-start font-weight-bold d-flex align-items-center">
+                  <i class="bi bi-info-circle me-2" />
+                  Selected Entity
+                  <BBadge variant="primary" class="ms-2">
+                    sysndd:{{ entity_info.entity_id }}
+                  </BBadge>
+                </h6>
+              </template>
+
+              <BRow class="small">
+                <BCol md="6">
+                  <div class="mb-1">
+                    <strong>Gene:</strong>
+                    <span class="ms-1">{{ entity_info.hgnc_id || 'N/A' }}</span>
+                  </div>
+                  <div class="mb-1">
+                    <strong>Disease:</strong>
+                    <span class="ms-1">{{ entity_info.disease_ontology_id_version || 'N/A' }}</span>
+                  </div>
+                </BCol>
+                <BCol md="6">
+                  <div class="mb-1">
+                    <strong>Inheritance:</strong>
+                    <span class="ms-1">{{ entity_info.hpo_mode_of_inheritance_term || 'N/A' }}</span>
+                  </div>
+                  <div class="mb-1">
+                    <strong>Status:</strong>
+                    <BBadge :variant="entity_info.is_active === 1 ? 'success' : 'secondary'">
+                      {{ entity_info.is_active === 1 ? 'Active' : 'Inactive' }}
+                    </BBadge>
+                  </div>
                 </BCol>
               </BRow>
             </BCard>
 
             <BCard
-              v-if="modify_entity_input"
+              v-if="entity_loaded && entity_info.entity_id"
               class="my-2"
-              body-class="p-0"
+              body-class="p-2"
               header-class="p-1"
               border-variant="dark"
             >
               <template #header>
                 <h6 class="mb-1 text-start font-weight-bold">
                   2. Options to modify the selected entity
-                  <BBadge variant="primary">
-                    sysndd:{{ modify_entity_input }}
-                  </BBadge>
                 </h6>
               </template>
 
@@ -547,6 +598,7 @@
 <script>
 import { useToast, useColorAndSymbols } from '@/composables';
 import TreeMultiSelect from '@/components/forms/TreeMultiSelect.vue';
+import AutocompleteInput from '@/components/forms/AutocompleteInput.vue';
 
 import Submission from '@/assets/js/classes/submission/submissionSubmission';
 import Entity from '@/assets/js/classes/submission/submissionEntity';
@@ -560,6 +612,7 @@ export default {
   name: 'ModifyEntity',
   components: {
     TreeMultiSelect,
+    AutocompleteInput,
   },
   setup() {
     const { makeToast } = useToast();
@@ -576,7 +629,12 @@ export default {
       status_options_loading: false,
       phenotypes_options: null, // null = not loaded, [] = loaded but empty
       variation_ontology_options: null, // null = not loaded, [] = loaded but empty
+      // Entity search autocomplete state
       modify_entity_input: null,
+      entity_display: '', // Display value for autocomplete
+      entity_search_results: [],
+      entity_search_loading: false,
+      entity_loaded: false, // True when entity info has been fetched
       replace_entity_input: null,
       ontology_input: null,
       entity_info: new Entity(),
@@ -600,13 +658,48 @@ export default {
     this.loadVariationOntologyList();
   },
   methods: {
+    /**
+     * Transform phenotype/variation tree to make all modifiers selectable children.
+     * API returns: "present: X" as parent with [uncertain, variable, rare, absent] as children.
+     * We want: "X" as parent with [present, uncertain, variable, rare, absent] as children.
+     */
+    transformModifierTree(nodes) {
+      return nodes.map((node) => {
+        // Extract phenotype name from "present: Phenotype Name" format
+        const phenotypeName = node.label.replace(/^present:\s*/, '');
+        // Extract the HP/ontology code from the ID (e.g., "1-HP:0001999" -> "HP:0001999")
+        const ontologyCode = node.id.replace(/^\d+-/, '');
+
+        // Create new parent with just the phenotype name
+        const newParent = {
+          id: `parent-${ontologyCode}`,
+          label: phenotypeName,
+          children: [
+            // Add "present" as first child (the original parent node, now selectable)
+            {
+              id: node.id,
+              label: 'present',
+            },
+            // Add all other modifiers as children
+            ...(node.children || []).map((child) => ({
+              id: child.id,
+              label: child.label.replace(/:\s*.*$/, ''), // Extract just the modifier (uncertain, variable, etc.)
+            })),
+          ],
+        };
+
+        return newParent;
+      });
+    },
     async loadPhenotypesList() {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/phenotype?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
-        this.phenotypes_options = Array.isArray(response.data)
+        const rawData = Array.isArray(response.data)
           ? response.data
           : response.data?.data || [];
+        // Transform to make all modifiers selectable
+        this.phenotypes_options = this.transformModifierTree(rawData);
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
         this.phenotypes_options = [];
@@ -616,9 +709,11 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/variation_ontology?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
-        this.variation_ontology_options = Array.isArray(response.data)
+        const rawData = Array.isArray(response.data)
           ? response.data
           : response.data?.data || [];
+        // Transform to make all modifiers selectable
+        this.variation_ontology_options = this.transformModifierTree(rawData);
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
         this.variation_ontology_options = [];
@@ -637,6 +732,44 @@ export default {
         this.status_options = [];
       } finally {
         this.status_options_loading = false;
+      }
+    },
+    async searchEntity(query) {
+      if (!query || query.length < 2) {
+        this.entity_search_results = [];
+        return;
+      }
+
+      this.entity_search_loading = true;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/entity?filter=contains(any,${encodeURIComponent(query)})`;
+
+      try {
+        const response = await this.axios.get(apiUrl);
+        const data = response.data?.data || response.data || [];
+        this.entity_search_results = Array.isArray(data) ? data.slice(0, 10) : [];
+      } catch (e) {
+        this.makeToast(e, 'Error', 'danger');
+        this.entity_search_results = [];
+      } finally {
+        this.entity_search_loading = false;
+      }
+    },
+    async onEntitySelected(entityId) {
+      if (!entityId) {
+        this.entity_loaded = false;
+        this.entity_info = new Entity();
+        return;
+      }
+
+      // Set the modify_entity_input to the selected entity ID
+      this.modify_entity_input = entityId;
+
+      // Fetch full entity details
+      await this.getEntity();
+
+      // Mark entity as loaded if successful
+      if (this.entity_info?.entity_id) {
+        this.entity_loaded = true;
       }
     },
     async searchEntityInfo({ searchQuery, callback }) {

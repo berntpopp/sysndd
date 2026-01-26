@@ -2,7 +2,7 @@
 <!-- Recursive tree node component for hierarchical display -->
 <template>
   <div class="tree-node">
-    <!-- Parent node with children (navigation only - no checkbox) -->
+    <!-- Parent node with children (navigation only - expand/collapse) -->
     <div v-if="hasChildren" class="parent-node">
       <BButton
         v-b-toggle="`collapse-${node.id}`"
