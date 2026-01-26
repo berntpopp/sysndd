@@ -73,19 +73,21 @@ Plans:
 - [x] 35.1-02-PLAN.md - Rich modal headers, BFormCheckbox switches, and action button loading states
 
 ### Phase 36: Curation Table Modernization
-**Goal**: Apply TablesEntities pattern to curation tables for consistent UX
+**Goal**: Apply TablesEntities pattern to curation tables for consistent UX with column filters, standardized pagination, and accessibility improvements
 **Depends on**: Phase 35
 **Requirements**: TBL-01, TBL-02, TBL-03, TBL-04, TBL-05, TBL-06
 **Success Criteria** (what must be TRUE):
-  1. ApproveReview table has column filters (status, user, date range)
+  1. ApproveReview table has column filters (category, user, date range)
   2. ApproveStatus table has column filters (category, user, date range)
   3. All curation views use standardized pagination (10, 25, 50, 100 options)
   4. ManageReReview table has search functionality
   5. All curation action buttons have aria-label attributes and tooltips
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 36-01: TBD
+- [ ] 36-01-PLAN.md - Add column filters to ApproveReview and ApproveStatus (TBL-01, TBL-02, TBL-03)
+- [ ] 36-02-PLAN.md - Add search and standardize pagination for ManageReReview (TBL-03, TBL-04)
+- [ ] 36-03-PLAN.md - Add accessibility labels to all curation action buttons (TBL-05, TBL-06)
 
 ### Phase 37: Form Modernization
 **Goal**: Extract reusable form patterns and improve form UX
@@ -141,11 +143,11 @@ Plans:
 | 34. Critical Bug Fixes | v7.0 | 2/2 | Complete | 2026-01-26 |
 | 35. Multi-Select Restoration | v7.0 | 3/3 | Complete | 2026-01-26 |
 | 35.1 ModifyEntity UX Overhaul | v7.0 | 2/2 | Complete | 2026-01-26 |
-| 36. Curation Table Modernization | v7.0 | 0/TBD | Not started | - |
+| 36. Curation Table Modernization | v7.0 | 0/3 | Not started | - |
 | 37. Form Modernization | v7.0 | 0/TBD | Not started | - |
 | 38. Re-Review System Overhaul | v7.0 | 0/TBD | Not started | - |
 | 39. Accessibility Pass | v7.0 | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-01-26*
-*Last updated: 2026-01-26 -- Phase 35.1 complete (2 plans)*
+*Last updated: 2026-01-26 -- Phase 36 planned (3 plans)*
