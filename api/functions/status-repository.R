@@ -153,12 +153,17 @@ status_create <- function(status_data) {
 status_update <- function(status_id, updates) {
   # Convert to tibble if list
   if (is.list(updates) && !inherits(updates, "data.frame")) {
+    # Remove NULL values before converting to tibble
+    updates <- purrr::compact(updates)
     updates <- tibble::as_tibble(updates)
   }
 
-  # Remove entity_id and status_id from updates (prevent changing associations)
+  # Valid columns in ndd_entity_status table (excluding status_id, entity_id)
+  valid_columns <- c("category_id", "problematic", "status_approved", "approving_user_id", "is_active")
+
+  # Keep only valid columns and remove entity_id/status_id (prevent changing associations)
   updates <- updates %>%
-    select(-any_of(c("entity_id", "status_id")))
+    select(any_of(valid_columns))
 
   # Check if any fields remain
   if (ncol(updates) == 0) {
@@ -178,7 +183,8 @@ status_update <- function(status_id, updates) {
   update_query <- paste0("UPDATE ndd_entity_status SET ", set_clause, " WHERE status_id = ?")
 
   # Prepare params list: all column values + status_id for WHERE
-  params_list <- as.list(updates[1, ])
+  # IMPORTANT: Must unname the list for anonymous (?) placeholders
+  params_list <- unname(as.list(updates[1, ]))
   params_list <- c(params_list, list(status_id))
 
   # Execute update

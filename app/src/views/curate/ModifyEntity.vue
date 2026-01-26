@@ -884,13 +884,16 @@ export default {
             // Add "present" as first child (the original parent node, now selectable)
             {
               id: node.id,
-              label: 'present',
+              label: `present: ${phenotypeName}`,
             },
-            // Add all other modifiers as children
-            ...(node.children || []).map((child) => ({
-              id: child.id,
-              label: child.label.replace(/:\s*.*$/, ''), // Extract just the modifier (uncertain, variable, etc.)
-            })),
+            // Add all other modifiers as children with phenotype name for context
+            ...(node.children || []).map((child) => {
+              const modifier = child.label.replace(/:\s*.*$/, '');
+              return {
+                id: child.id,
+                label: `${modifier}: ${phenotypeName}`,
+              };
+            }),
           ],
         };
 

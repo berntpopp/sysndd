@@ -30,7 +30,7 @@
 #'
 #' @examples
 #' \dontrun{
-#' result <- status_create(
+#' result <- service_status_create(
 #'   list(entity_id = 5, category_id = 2, problematic = 0),
 #'   pool,
 #'   re_review = FALSE
@@ -39,7 +39,7 @@
 #' }
 #'
 #' @export
-status_create <- function(status_data, pool, re_review = FALSE) {
+service_status_create <- function(status_data, pool, re_review = FALSE) {
   # Validate input
   if (!("category_id" %in% names(status_data))) {
     stop("category_id is required")
@@ -130,7 +130,7 @@ status_create <- function(status_data, pool, re_review = FALSE) {
 #'
 #' @examples
 #' \dontrun{
-#' result <- status_update(
+#' result <- service_status_update(
 #'   list(status_id = 42, category_id = 3, problematic = 1),
 #'   pool
 #' )
@@ -138,7 +138,7 @@ status_create <- function(status_data, pool, re_review = FALSE) {
 #' }
 #'
 #' @export
-status_update <- function(status_data, pool) {
+service_status_update <- function(status_data, pool) {
   # Validate input
   if (!("status_id" %in% names(status_data))) {
     stop("status_id is required for status update")

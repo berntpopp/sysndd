@@ -1343,6 +1343,43 @@ export default {
     this.loadReviewTableData();
   },
   methods: {
+    /**
+     * Transform phenotype/variation tree to make all modifiers selectable children.
+     * API returns: "present: X" as parent with [uncertain, variable, rare, absent] as children.
+     * We want: "X" as parent with [present, uncertain, variable, rare, absent] as children.
+     */
+    transformModifierTree(nodes) {
+      if (!Array.isArray(nodes)) return [];
+      return nodes.map((node) => {
+        // Extract phenotype name from "present: Phenotype Name" format
+        const phenotypeName = node.label.replace(/^present:\s*/, '');
+        // Extract the HP/ontology code from the ID (e.g., "1-HP:0001999" -> "HP:0001999")
+        const ontologyCode = node.id.replace(/^\d+-/, '');
+
+        // Create new parent with just the phenotype name
+        const newParent = {
+          id: `parent-${ontologyCode}`,
+          label: phenotypeName,
+          children: [
+            // Add "present" as first child (the original parent node, now selectable)
+            {
+              id: node.id,
+              label: `present: ${phenotypeName}`,
+            },
+            // Add all other modifiers as children with phenotype name for context
+            ...(node.children || []).map((child) => {
+              const modifier = child.label.replace(/:\s*.*$/, '');
+              return {
+                id: child.id,
+                label: `${modifier}: ${phenotypeName}`,
+              };
+            }),
+          ],
+        };
+
+        return newParent;
+      });
+    },
     async loadStatusList() {
       this.loading_status_approve = true;
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/status?tree=true`;
@@ -1357,18 +1394,28 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/phenotype?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
-        this.phenotypes_options = response.data;
+        const rawData = Array.isArray(response.data)
+          ? response.data
+          : response.data?.data || [];
+        // Transform to make all modifiers selectable
+        this.phenotypes_options = this.transformModifierTree(rawData);
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.phenotypes_options = [];
       }
     },
     async loadVariationOntologyList() {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/variation_ontology?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
-        this.variation_ontology_options = response.data;
+        const rawData = Array.isArray(response.data)
+          ? response.data
+          : response.data?.data || [];
+        // Transform to make all modifiers selectable
+        this.variation_ontology_options = this.transformModifierTree(rawData);
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.variation_ontology_options = [];
       }
     },
     async loadReviewTableData() {

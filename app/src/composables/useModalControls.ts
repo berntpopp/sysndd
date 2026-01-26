@@ -19,9 +19,10 @@ export default function useModalControls(): ModalControls {
   /**
    * Hide a modal by ID
    * @param {string} id - Modal ID to hide
+   * @param {string} trigger - The trigger reason for hiding (default: 'close')
    */
-  const hideModal = (id: string): void => {
-    modal.hide(id);
+  const hideModal = (id: string, trigger: string = 'close'): void => {
+    modal.hide(trigger, id);
   };
 
   /**

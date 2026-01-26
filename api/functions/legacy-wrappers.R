@@ -120,12 +120,13 @@ put_db_entity_deactivation <- function(entity_id, replacement_id = NULL) {
 #'
 #' @param method "POST" for create, "PUT" for update
 #' @param review_data Tibble with review fields (entity_id, synopsis, comment, review_user_id)
+#' @param re_review Logical indicating if this is a re-review operation (default: FALSE)
 #'
 #' @return List with status, message, and entry (tibble with review_id)
 #'
 #' @export
-put_post_db_review <- function(method, review_data) {
-  log_debug("put_post_db_review: {method} review")
+put_post_db_review <- function(method, review_data, re_review = FALSE) {
+  log_debug("put_post_db_review: {method} review (re_review={re_review})")
 
   # Convert tibble to list if necessary
   if (is.data.frame(review_data)) {
@@ -138,6 +139,16 @@ put_post_db_review <- function(method, review_data) {
       review_id <- review_create(review_data)
 
       log_info("put_post_db_review: Created review {review_id}")
+
+      # Update re-review status if applicable
+      if (re_review && !is.null(review_data$entity_id)) {
+        tryCatch({
+          review_update_re_review_status(review_data$entity_id, review_id)
+          log_debug("put_post_db_review: Updated re_review_entity_connect for entity {review_data$entity_id}")
+        }, error = function(e) {
+          log_warn("put_post_db_review: Failed to update re_review status: {e$message}")
+        })
+      }
 
       return(list(
         status = 200,
@@ -157,6 +168,16 @@ put_post_db_review <- function(method, review_data) {
       review_update(review_data$review_id, review_data)
 
       log_info("put_post_db_review: Updated review {review_data$review_id}")
+
+      # Update re-review status if applicable
+      if (re_review && !is.null(review_data$entity_id)) {
+        tryCatch({
+          review_update_re_review_status(review_data$entity_id, review_data$review_id)
+          log_debug("put_post_db_review: Updated re_review_entity_connect for entity {review_data$entity_id}")
+        }, error = function(e) {
+          log_warn("put_post_db_review: Failed to update re_review status: {e$message}")
+        })
+      }
 
       return(list(
         status = 200,
@@ -338,12 +359,13 @@ put_post_db_var_ont_con <- function(method, variation_ontology, entity_id, revie
 #'
 #' @param method "POST" for create, "PUT" for update
 #' @param status_data Tibble with entity_id, category_id, status_user_id, comment, problematic
+#' @param re_review Logical indicating if this is a re-review operation (default: FALSE)
 #'
 #' @return List with status, message, and entry (status_id)
 #'
 #' @export
-put_post_db_status <- function(method, status_data) {
-  log_debug("put_post_db_status: {method} status")
+put_post_db_status <- function(method, status_data, re_review = FALSE) {
+  log_debug("put_post_db_status: {method} status (re_review={re_review})")
 
   # Convert tibble to list if necessary
   if (is.data.frame(status_data)) {
@@ -356,6 +378,16 @@ put_post_db_status <- function(method, status_data) {
       status_id <- status_create(status_data)
 
       log_info("put_post_db_status: Created status {status_id}")
+
+      # Update re-review status if applicable
+      if (re_review && !is.null(status_data$entity_id)) {
+        tryCatch({
+          status_update_re_review_status(status_data$entity_id, status_id)
+          log_debug("put_post_db_status: Updated re_review_entity_connect for entity {status_data$entity_id}")
+        }, error = function(e) {
+          log_warn("put_post_db_status: Failed to update re_review status: {e$message}")
+        })
+      }
 
       return(list(
         status = 200,
@@ -375,6 +407,16 @@ put_post_db_status <- function(method, status_data) {
       status_update(status_data$status_id, status_data)
 
       log_info("put_post_db_status: Updated status {status_data$status_id}")
+
+      # Update re-review status if applicable
+      if (re_review && !is.null(status_data$entity_id)) {
+        tryCatch({
+          status_update_re_review_status(status_data$entity_id, status_data$status_id)
+          log_debug("put_post_db_status: Updated re_review_entity_connect for entity {status_data$entity_id}")
+        }, error = function(e) {
+          log_warn("put_post_db_status: Failed to update re_review status: {e$message}")
+        })
+      }
 
       return(list(
         status = 200,

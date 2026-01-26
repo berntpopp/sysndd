@@ -15,6 +15,32 @@ if (!exists("db_execute_query", mode = "function")) {
   }
 }
 
+#' Helper function to extract count from get_pubmed_ids result
+#' Handles both old (list) and new (S4) API styles
+#'
+#' @param pubmed_result Result from get_pubmed_ids()
+#'
+#' @return The count value
+#' @noRd
+extract_pubmed_count <- function(pubmed_result) {
+  # Try S4 slot access first (newer easyPubMed versions)
+  tryCatch({
+    if (isS4(pubmed_result)) {
+      return(pubmed_result@count)
+    } else {
+      # Fall back to list access (older versions)
+      return(pubmed_result$Count)
+    }
+  }, error = function(e) {
+    # If both fail, try alternative approaches
+    tryCatch({
+      return(pubmed_result$Count)
+    }, error = function(e2) {
+      return(0)
+    })
+  })
+}
+
 #' A function that checks whether all PMIDs in a list are valid
 #' and can be found in pubmed, returns true if all are and
 #' false if one is invalid
@@ -33,7 +59,7 @@ check_pmid <- function(pmid_input) {
     mutate(publication_id = paste0(publication_id, "[PMID]")) %>%
     unique() %>%
     rowwise() %>%
-    mutate(count = get_pubmed_ids(publication_id)$Count) %>%
+    mutate(count = extract_pubmed_count(get_pubmed_ids(publication_id))) %>%
     ungroup()
 
   return(as.logical(prod(as.logical(as.integer(input_tibble_request$count)))))

@@ -38,7 +38,8 @@ function(req, res) {
   sql <- paste0("UPDATE re_review_entity_connect SET ", set_clause, " WHERE re_review_entity_id = ?")
 
   # Parameters: field values + re_review_entity_id
-  params <- c(as.list(submit_data[fields_to_update]), list(submit_data$re_review_entity_id))
+  # IMPORTANT: Must unname for anonymous (?) placeholders
+  params <- unname(c(as.list(submit_data[fields_to_update]), list(submit_data$re_review_entity_id)))
 
   db_execute_statement(sql, params)
 }
@@ -279,6 +280,7 @@ function(req,
       re_review_review_saved,
       re_review_status_saved,
       re_review_submitted,
+      re_review_approved,
       status_id,
       review_id
     ) %>%
