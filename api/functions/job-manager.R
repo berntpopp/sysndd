@@ -107,17 +107,26 @@ create_job <- function(operation, params, executor_fn) {
 
   # Attach completion callback via promise pipe
   # This updates job state when mirai completes
+  # Use %...>% for successful resolution and %...!% for rejection handling
   m %...>% (function(result) {
     if (mirai::is_mirai_error(result) || mirai::is_error_value(result)) {
       jobs_env[[job_id]]$status <- "failed"
       jobs_env[[job_id]]$error <- list(
         code = "EXECUTION_ERROR",
-        message = result$message %||% "Job execution failed"
+        message = if (!is.null(result$message)) result$message else "Job execution failed"
       )
     } else {
       jobs_env[[job_id]]$status <- "completed"
       jobs_env[[job_id]]$result <- result
     }
+    jobs_env[[job_id]]$completed_at <- Sys.time()
+  }) %...!% (function(error) {
+    # Handle promise rejections (uncaught R errors in executor)
+    jobs_env[[job_id]]$status <- "failed"
+    jobs_env[[job_id]]$error <- list(
+      code = "EXECUTION_ERROR",
+      message = if (inherits(error, "error")) conditionMessage(error) else as.character(error)
+    )
     jobs_env[[job_id]]$completed_at <- Sys.time()
   })
 

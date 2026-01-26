@@ -254,6 +254,7 @@ everywhere({
   library(factoextra)
   library(cluster)
   library(igraph)
+  library(biomaRt)
   # Source helper functions first (generate_panel_hash, generate_function_hash)
   source("/app/functions/helper-functions.R", local = FALSE)
   # Source file functions (check_file_age, get_newest_file)
@@ -262,6 +263,8 @@ everywhere({
   source("/app/functions/analyses-functions.R", local = FALSE)
   # Source HGNC functions (update_process_hgnc_data)
   source("/app/functions/hgnc-functions.R", local = FALSE)
+  # Source Ensembl functions (gene_coordinates_from_ensembl, gene_coordinates_from_symbol)
+  source("/app/functions/ensembl-functions.R", local = FALSE)
 })
 message(sprintf("[%s] Exported packages and functions to mirai daemons", Sys.time()))
 
