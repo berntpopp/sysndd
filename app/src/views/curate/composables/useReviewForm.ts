@@ -11,12 +11,13 @@
  * Based on useEntityForm pattern for consistency.
  */
 
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import axios from 'axios';
 import Review from '@/assets/js/classes/submission/submissionReview';
 import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
 import Variation from '@/assets/js/classes/submission/submissionVariation';
 import Literature from '@/assets/js/classes/submission/submissionLiterature';
+import useFormDraft from '@/composables/useFormDraft';
 
 // Types
 export interface ReviewFormData {
@@ -84,7 +85,7 @@ const validationRules = {
 /**
  * Main composable for review form management
  */
-export default function useReviewForm() {
+export default function useReviewForm(entityId?: string | number) {
   // Form data state
   const formData = reactive<ReviewFormData>({
     synopsis: '',
@@ -107,7 +108,33 @@ export default function useReviewForm() {
 
   // Internal state for tracking review metadata
   const reviewId = ref<number | null>(null);
-  const entityId = ref<number | null>(null);
+  const entityIdRef = ref<number | null>(null);
+
+  // Draft persistence (key includes entity ID for entity-specific drafts)
+  const draftKey = entityId ? `review-form-${entityId}` : 'review-form-new';
+  const formDraft = useFormDraft<ReviewFormData>(draftKey);
+  const {
+    hasDraft,
+    lastSavedFormatted,
+    isSaving,
+    saveDraft,
+    loadDraft,
+    clearDraft,
+    checkForDraft,
+    scheduleSave,
+  } = formDraft;
+
+  // Watch for form changes and auto-save drafts
+  watch(
+    () => getFormSnapshot(),
+    (newData) => {
+      // Only schedule save if form has meaningful content
+      if (newData.synopsis || newData.phenotypes.length || newData.publications.length) {
+        scheduleSave(newData);
+      }
+    },
+    { deep: true },
+  );
 
   /**
    * Mark a field as touched (for validation display)
@@ -175,7 +202,7 @@ export default function useReviewForm() {
       if (responseReview.data && responseReview.data.length > 0) {
         formData.synopsis = responseReview.data[0].synopsis || '';
         formData.comment = responseReview.data[0].comment || '';
-        entityId.value = responseReview.data[0].entity_id;
+        entityIdRef.value = responseReview.data[0].entity_id;
       }
 
       // Load phenotypes (format: "modifier_id-phenotype_id")
@@ -252,7 +279,7 @@ export default function useReviewForm() {
 
     // Add metadata
     (reviewData as any).review_id = reviewId.value;
-    (reviewData as any).entity_id = entityId.value;
+    (reviewData as any).entity_id = entityIdRef.value;
 
     // Determine API endpoint
     const method = isUpdate ? 'put' : 'post';
@@ -270,6 +297,9 @@ export default function useReviewForm() {
           },
         },
       );
+
+      // Clear draft on successful submission
+      clearDraft();
     } catch (error) {
       throw error;
     }
@@ -293,7 +323,7 @@ export default function useReviewForm() {
 
     // Reset internal state
     reviewId.value = null;
-    entityId.value = null;
+    entityIdRef.value = null;
   };
 
   /**
@@ -308,6 +338,18 @@ export default function useReviewForm() {
    */
   const restoreFromSnapshot = (snapshot: Partial<ReviewFormData>) => {
     Object.assign(formData, snapshot);
+  };
+
+  /**
+   * Restore form data from draft
+   */
+  const restoreFromDraft = (): boolean => {
+    const draft = loadDraft();
+    if (draft) {
+      restoreFromSnapshot(draft);
+      return true;
+    }
+    return false;
   };
 
   return {
@@ -334,5 +376,13 @@ export default function useReviewForm() {
     resetForm,
     getFormSnapshot,
     restoreFromSnapshot,
+
+    // Draft persistence
+    hasDraft,
+    lastSavedFormatted,
+    isSaving,
+    checkForDraft,
+    restoreFromDraft,
+    clearDraft,
   };
 }
