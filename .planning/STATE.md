@@ -6,26 +6,26 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** Phase 37 - Entity Details Modernization (Phase 36 complete)
+**Current focus:** Phase 38 - Re-Review System Overhaul (Phase 37 complete)
 
 ## Current Position
 
 **Milestone:** v7.0 Curation Workflow Modernization
-**Phase:** 37 of 39 (Form Modernization)
-**Plan:** 1 of 3 in phase 37
-**Status:** In progress
-**Last activity:** 2026-01-26 -- Completed 37-01-PLAN.md
+**Phase:** 37 of 39 (Form Modernization) - COMPLETE
+**Plan:** 3 of 3 in phase 37
+**Status:** Phase complete
+**Last activity:** 2026-01-26 -- Completed 37-03-PLAN.md
 
 ```
-v7.0 Curation Workflow Modernization: [██████████████████____________] 58% (3.33/6 phases)
+v7.0 Curation Workflow Modernization: [████████████████████__________] 67% (4/6 phases)
 ```
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 173
+- Total plans completed: 176
 - Milestones shipped: 6 (v1-v6)
-- Phases completed: 36
+- Phases completed: 37
 
 **By Milestone:**
 
@@ -119,14 +119,21 @@ Phase 37 decisions:
 - **Review form pattern**: Follow useEntityForm structure - composable for state/logic, component for UI
 - **Metadata handling**: Keep review_info separate from composable for modal presentation metadata
 - **Component v-model pattern**: Use computed getter/setter for bidirectional data binding
+- **Draft restoration via window.confirm**: Simple synchronous prompt for draft restoration
+- **Reset form on @show event**: Form state reset happens immediately on modal show (FORM-07)
+
+Phase 37 improvements:
+- ~~Forms lack draft persistence~~ [ADDED in 37-03 with useFormDraft integration]
+- ~~No draft restoration prompt~~ [ADDED in 37-03 with window.confirm before loading server data]
+- ~~Stale data flash when opening modals~~ [FIXED in 37-03 with @show handlers resetting form state]
 
 ## Session Continuity
 
 **Last session:** 2026-01-26
-**Stopped at:** Completed 37-01-PLAN.md
+**Stopped at:** Completed 37-03-PLAN.md (Phase 37 complete)
 **Resume file:** None
-**Next action:** Continue Phase 37 - Form Modernization (plan 37-02 next - reuse ReviewFormFields in ModifyEntity)
+**Next action:** Begin Phase 38 - Re-Review System Overhaul
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-26 -- Plan 37-01 complete (Review Form Extraction) - 521 lines of duplicate form logic eliminated*
+*Last updated: 2026-01-26 -- Phase 37 complete (Form Modernization) - Draft persistence and modal @show handlers added*
