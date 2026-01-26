@@ -12,18 +12,18 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Milestone:** v6.0 Admin Panel Modernization
 **Phase:** 33 of 33 (Logging & Analytics)
-**Plan:** 01 of 03 complete
+**Plan:** 02 of 03 complete
 **Status:** In progress
-**Last activity:** 2026-01-26 — Completed 33-01-PLAN.md
+**Last activity:** 2026-01-26 — Completed 33-02-PLAN.md
 
 ```
-v6.0 Admin Panel Modernization: [███████████████████████████░] 90%
+v6.0 Admin Panel Modernization: [████████████████████████████░] 93%
 Phase 28 Table Foundation:     [██████████] 3/3 plans ✓
 Phase 29 User Management:      [██████████] 4/4 plans ✓
 Phase 30 Statistics Dashboard: [██████████] 3/3 plans ✓
 Phase 31 Content Management:   [██████████] 4/4 plans ✓
 Phase 32 Async Jobs:           [██████████] 3/3 plans ✓
-Phase 33 Logging & Analytics:  [███░░░░░░░] 1/3 plans
+Phase 33 Logging & Analytics:  [██████░░░░] 2/3 plans
 ```
 
 ## Performance Metrics
@@ -44,7 +44,7 @@ Phase 33 Logging & Analytics:  [███░░░░░░░] 1/3 plans
 | v5 Analysis Modernization | 25-27 | 16 | 2026-01-25 |
 
 **v6.0 Progress:**
-- Plans completed: 18
+- Plans completed: 19
 - Phases completed: 5 (Phases 28-32) + 33 in progress
 - Average duration: 2.9min
 - Trend: Strong velocity
@@ -99,6 +99,8 @@ Recent v6-relevant decisions:
 - **TablesLogs module-level caching** (33-01): Same pattern as TablesEntities for consistency across admin tables
 - **Intl.RelativeTimeFormat for timestamps** (33-01): Native browser API for relative time display, no dependencies
 - **HTTP status badge color scheme** (33-01): Semantic colors (2xx=success, 4xx=warning, 5xx=danger)
+- **Filter pills pattern** (33-02): hasActiveFilters + activeFilters computed + clearFilter() for consistent admin filtering UX
+- **Single-select filter dropdowns** (33-02): BFormSelect single-select for user/method filters (multi-select can be added later)
 
 ### Pending Todos
 
@@ -113,11 +115,11 @@ None yet.
 
 ## Session Continuity
 
-**Last session:** 2026-01-26 00:14 UTC
-**Stopped at:** Completed 33-01-PLAN.md
+**Last session:** 2026-01-26 00:21 UTC
+**Stopped at:** Completed 33-02-PLAN.md
 **Resume file:** None
-**Next action:** Execute 33-02-PLAN.md
+**Next action:** Execute 33-03-PLAN.md
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-26 — Completed 33-01-PLAN.md*
+*Last updated: 2026-01-26 — Completed 33-02-PLAN.md*
