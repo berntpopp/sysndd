@@ -170,11 +170,11 @@
               <!-- Custom filter fields slot -->
 
               <template #cell-id="{ row }">
-                <div>
-                  <BBadge
-                    variant="primary"
-                    style="cursor: pointer"
-                  >
+                <div
+                  style="cursor: pointer"
+                  @click="handleRowClick(row)"
+                >
+                  <BBadge variant="primary">
                     {{ row.id }}
                   </BBadge>
                 </div>
@@ -234,11 +234,33 @@
                   {{ formatRelativeTime(row.modified) }}
                 </div>
               </template>
+
+              <template #cell-actions="{ row }">
+                <BButton
+                  v-b-tooltip.hover
+                  size="sm"
+                  variant="outline-primary"
+                  title="View details"
+                  @click="handleRowClick(row)"
+                >
+                  <i class="bi bi-eye" />
+                </BButton>
+              </template>
             </GenericTable>
             <!-- Main table element -->
           </BCard>
         </BCol>
       </BRow>
+
+      <!-- Log Detail Drawer -->
+      <LogDetailDrawer
+        v-model="showLogDetail"
+        :log="selectedLog"
+        :can-navigate-prev="canNavigatePrev"
+        :can-navigate-next="canNavigateNext"
+        @navigate-prev="navigateToPreviousLog"
+        @navigate-next="navigateToNextLog"
+      />
     </BContainer>
   </div>
 </template>
@@ -263,6 +285,7 @@ import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
 import GenericTable from '@/components/small/GenericTable.vue';
+import LogDetailDrawer from '@/components/small/LogDetailDrawer.vue';
 
 import Utils from '@/assets/js/utils';
 import { useUiStore } from '@/stores/ui';
@@ -282,6 +305,7 @@ export default {
     TableHeaderLabel,
     TableSearchInput,
     GenericTable,
+    LogDetailDrawer,
   },
   props: {
     apiEndpoint: {
@@ -371,6 +395,10 @@ export default {
       totalPages: 0,
       // User filter options (loaded from API)
       user_options: [],
+      // Log detail drawer state
+      showLogDetail: false,
+      selectedLog: null,
+      selectedLogIndex: -1,
       fields: [
         { key: 'id', label: 'ID', sortable: true },
         { key: 'timestamp', label: 'Timestamp', sortable: true },
@@ -385,9 +413,18 @@ export default {
         { key: 'duration', label: 'Duration', sortable: true },
         { key: 'file', label: 'File', sortable: true },
         { key: 'modified', label: 'Modified', sortable: true },
+        { key: 'actions', label: 'Actions', sortable: false, class: 'text-center' },
       ],
       fields_details: [],
     };
+  },
+  computed: {
+    canNavigatePrev() {
+      return this.selectedLogIndex > 0;
+    },
+    canNavigateNext() {
+      return this.selectedLogIndex < this.items.length - 1;
+    },
   },
   watch: {
     // Watch for filter changes (deep required for Vue 3 behavior)
@@ -462,6 +499,26 @@ export default {
     }, 500);
   },
   methods: {
+    // Handle row click to open detail drawer
+    handleRowClick(row) {
+      this.selectedLog = row;
+      this.selectedLogIndex = this.items.findIndex((item) => item.id === row.id);
+      this.showLogDetail = true;
+    },
+    // Navigate to previous log in drawer
+    navigateToPreviousLog() {
+      if (this.selectedLogIndex > 0) {
+        this.selectedLogIndex -= 1;
+        this.selectedLog = this.items[this.selectedLogIndex];
+      }
+    },
+    // Navigate to next log in drawer
+    navigateToNextLog() {
+      if (this.selectedLogIndex < this.items.length - 1) {
+        this.selectedLogIndex += 1;
+        this.selectedLog = this.items[this.selectedLogIndex];
+      }
+    },
     // Load user list for filter dropdown
     async loadUserList() {
       try {
