@@ -9,10 +9,10 @@ Requirements for v7.0 milestone grouped by category. Each maps to roadmap phases
 
 ### Bug Fixes
 
-- [ ] **BUG-01**: Fix ApproveUser page crash (TypeError: reduce is not a function)
-- [ ] **BUG-02**: Fix ModifyEntity status dropdown showing empty options
-- [ ] **BUG-03**: Fix component name mismatches (ManageReReview has name "ApproveStatus")
-- [ ] **BUG-04**: Fix modal data staleness (form not reset when opening for different entity)
+- [x] **BUG-01**: Fix ApproveUser page crash (TypeError: reduce is not a function)
+- [x] **BUG-02**: Fix ModifyEntity status dropdown showing empty options
+- [x] **BUG-03**: Fix component name mismatches (ManageReReview has name "ApproveStatus")
+- [x] **BUG-04**: Fix modal data staleness (form not reset when opening for different entity)
 
 ### Multi-Select Restoration
 
@@ -84,10 +84,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BUG-01 | Phase 34 | Pending |
-| BUG-02 | Phase 34 | Pending |
-| BUG-03 | Phase 34 | Pending |
-| BUG-04 | Phase 34 | Pending |
+| BUG-01 | Phase 34 | Complete |
+| BUG-02 | Phase 34 | Complete |
+| BUG-03 | Phase 34 | Complete |
+| BUG-04 | Phase 34 | Complete |
 | MSEL-01 | Phase 35 | Pending |
 | MSEL-02 | Phase 35 | Pending |
 | MSEL-03 | Phase 35 | Pending |
@@ -125,4 +125,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-26*
-*Last updated: 2026-01-26 after initial definition*
+*Last updated: 2026-01-26 -- Phase 34 complete (BUG-01 to BUG-04)*

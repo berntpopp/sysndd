@@ -16,7 +16,7 @@ This roadmap transforms curation views from basic forms into modern, accessible 
 
 ## Phases
 
-- [ ] **Phase 34: Critical Bug Fixes** - Fix blocking bugs that prevent basic curation operations
+- [x] **Phase 34: Critical Bug Fixes** - Fix blocking bugs that prevent basic curation operations
 - [ ] **Phase 35: Multi-Select Restoration** - Restore multi-select for phenotypes and variations using Bootstrap-Vue-Next
 - [ ] **Phase 36: Curation Table Modernization** - Add filtering, pagination, and accessibility to curation tables
 - [ ] **Phase 37: Form Modernization** - Extract reusable form composables and improve form UX
@@ -37,8 +37,8 @@ This roadmap transforms curation views from basic forms into modern, accessible 
 **Plans**: 2 plans
 
 Plans:
-- [ ] 34-01-PLAN.md - Fix ApproveUser crash, component name, modal staleness (BUG-01, BUG-03, BUG-04)
-- [ ] 34-02-PLAN.md - Fix ModifyEntity dropdown, component names (BUG-02, BUG-03)
+- [x] 34-01-PLAN.md - Fix ApproveUser crash, component name, modal staleness (BUG-01, BUG-03, BUG-04)
+- [x] 34-02-PLAN.md - Fix ModifyEntity dropdown, component names (BUG-02, BUG-03)
 
 ### Phase 35: Multi-Select Restoration
 **Goal**: Restore multi-select capability for phenotypes and variations
@@ -120,7 +120,7 @@ Plans:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 34. Critical Bug Fixes | v7.0 | 0/2 | Planned | - |
+| 34. Critical Bug Fixes | v7.0 | 2/2 | Complete | 2026-01-26 |
 | 35. Multi-Select Restoration | v7.0 | 0/TBD | Not started | - |
 | 36. Curation Table Modernization | v7.0 | 0/TBD | Not started | - |
 | 37. Form Modernization | v7.0 | 0/TBD | Not started | - |
@@ -129,4 +129,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-01-26*
-*Last updated: 2026-01-26*
+*Last updated: 2026-01-26 -- Phase 34 complete*
