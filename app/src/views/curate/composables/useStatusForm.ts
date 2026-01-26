@@ -9,9 +9,10 @@
  * - Interface Segregation: Exposes only necessary methods
  */
 
-import { ref, reactive } from 'vue';
+import { ref, reactive, watch } from 'vue';
 import axios from 'axios';
 import Status from '@/assets/js/classes/submission/submissionStatus';
+import useFormDraft from '@/composables/useFormDraft';
 
 // Types
 export interface StatusFormData {
@@ -40,7 +41,7 @@ const validationRules = {
 /**
  * Main composable for status form management
  */
-export default function useStatusForm() {
+export default function useStatusForm(entityId?: string | number) {
   // Loading state
   const loading = ref(false);
 
@@ -55,6 +56,32 @@ export default function useStatusForm() {
   const touched = reactive<Record<string, boolean>>({
     category_id: false,
   });
+
+  // Draft persistence
+  const draftKey = entityId ? `status-form-${entityId}` : 'status-form-new';
+  const formDraft = useFormDraft<StatusFormData>(draftKey);
+  const {
+    hasDraft,
+    lastSavedFormatted,
+    isSaving,
+    saveDraft,
+    loadDraft,
+    clearDraft,
+    checkForDraft,
+    scheduleSave,
+  } = formDraft;
+
+  // Watch for form changes and auto-save drafts
+  watch(
+    () => ({ ...formData }),
+    (newData) => {
+      // Only schedule save if form has meaningful content
+      if (newData.category_id !== null || newData.comment) {
+        scheduleSave(newData);
+      }
+    },
+    { deep: true },
+  );
 
   /**
    * Mark a field as touched (for validation display)
@@ -225,6 +252,9 @@ export default function useStatusForm() {
           },
         );
       }
+
+      // Clear draft on successful submission
+      clearDraft();
     } catch (error) {
       console.error('Failed to submit status:', error);
       throw error;
@@ -251,6 +281,18 @@ export default function useStatusForm() {
     });
   };
 
+  /**
+   * Restore form data from draft
+   */
+  const restoreFromDraft = (): boolean => {
+    const draft = loadDraft();
+    if (draft) {
+      Object.assign(formData, draft);
+      return true;
+    }
+    return false;
+  };
+
   return {
     // State
     formData,
@@ -270,5 +312,13 @@ export default function useStatusForm() {
 
     // Form management
     resetForm,
+
+    // Draft persistence
+    hasDraft,
+    lastSavedFormatted,
+    isSaving,
+    checkForDraft,
+    restoreFromDraft,
+    clearDraft,
   };
 }
