@@ -28,7 +28,7 @@
 
     <!-- KPI Cards Row -->
     <BRow class="mb-4">
-      <BCol md="3" v-for="stat in kpiCards" :key="stat.label" class="mb-3 mb-md-0">
+      <BCol v-for="stat in kpiCards" :key="stat.label" md="3" class="mb-3 mb-md-0">
         <StatCard
           :label="stat.label"
           :value="stat.value"

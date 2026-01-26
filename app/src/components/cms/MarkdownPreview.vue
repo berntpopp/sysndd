@@ -10,8 +10,8 @@
     </div>
     <div
       v-else-if="renderedHtml"
-      class="markdown-content"
       v-dompurify-html="renderedHtml"
+      class="markdown-content"
     />
     <div v-else class="text-muted fst-italic py-4 text-center">
       Preview will appear here as you type...
