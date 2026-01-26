@@ -20,7 +20,7 @@ This roadmap transforms curation views from basic forms into modern, accessible 
 - [x] **Phase 35: Multi-Select Restoration** - Restore multi-select for phenotypes and variations using custom Bootstrap-Vue-Next TreeMultiSelect component
 - [x] **Phase 35.1: ModifyEntity UX Overhaul** (INSERTED) - Complete ModifyEntity.vue UX modernization with enhanced entity preview, contextual modal headers, and modernized form controls
 - [x] **Phase 36: Curation Table Modernization** - Add filtering, pagination, and accessibility to curation tables
-- [ ] **Phase 37: Form Modernization** - Extract reusable form composables and improve form UX
+- [x] **Phase 37: Form Modernization** - Extract reusable form composables and improve form UX
 - [ ] **Phase 38: Re-Review System Overhaul** - Add dynamic batch management and gene-specific assignment
 - [ ] **Phase 39: Accessibility Pass** - Ensure WCAG 2.2 AA compliance across all curation views
 
@@ -102,9 +102,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 37-01-PLAN.md - Extract useReviewForm composable and ReviewFormFields component (FORM-04, FORM-06)
-- [ ] 37-02-PLAN.md - Extract useStatusForm composable (FORM-05)
-- [ ] 37-03-PLAN.md - Add draft persistence and fix form reset on @show (FORM-03, FORM-07)
+- [x] 37-01-PLAN.md - Extract useReviewForm composable and ReviewFormFields component (FORM-04, FORM-06)
+- [x] 37-02-PLAN.md - Extract useStatusForm composable (FORM-05)
+- [x] 37-03-PLAN.md - Add draft persistence and fix form reset on @show (FORM-03, FORM-07)
 
 ### Phase 38: Re-Review System Overhaul
 **Goal**: Enable dynamic batch creation and gene-specific assignment for re-review workflow
@@ -149,7 +149,7 @@ Plans:
 | 35. Multi-Select Restoration | v7.0 | 3/3 | Complete | 2026-01-26 |
 | 35.1 ModifyEntity UX Overhaul | v7.0 | 2/2 | Complete | 2026-01-26 |
 | 36. Curation Table Modernization | v7.0 | 3/3 | Complete | 2026-01-26 |
-| 37. Form Modernization | v7.0 | 0/3 | Not started | - |
+| 37. Form Modernization | v7.0 | 3/3 | Complete | 2026-01-26 |
 | 38. Re-Review System Overhaul | v7.0 | 0/4 | Not started | - |
 | 39. Accessibility Pass | v7.0 | 0/TBD | Not started | - |
 

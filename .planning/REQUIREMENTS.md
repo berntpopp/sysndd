@@ -39,13 +39,13 @@ Requirements for v7.0 milestone grouped by category. Each maps to roadmap phases
 
 ### Form Modernization
 
-- [ ] **FORM-01**: Add entity preview in ModifyEntity (show Gene, Disease, Inheritance after ID entered)
-- [ ] **FORM-02**: Add entity search/autocomplete in ModifyEntity (replace numeric ID input)
-- [ ] **FORM-03**: Implement draft save/resume for modification forms (localStorage pattern from CreateEntity)
-- [ ] **FORM-04**: Extract reusable useReviewForm composable from Review.vue
-- [ ] **FORM-05**: Extract reusable useStatusForm composable from status modification logic
-- [ ] **FORM-06**: Create ReviewFormFields component (synopsis, phenotypes, publications, variations)
-- [ ] **FORM-07**: Reset forms on modal @show event (not just @hide)
+- [x] **FORM-01**: Add entity preview in ModifyEntity (show Gene, Disease, Inheritance after ID entered) — satisfied by Phase 35.1
+- [x] **FORM-02**: Add entity search/autocomplete in ModifyEntity (replace numeric ID input) — satisfied by Phase 35.1
+- [x] **FORM-03**: Implement draft save/resume for modification forms (localStorage pattern from CreateEntity)
+- [x] **FORM-04**: Extract reusable useReviewForm composable from Review.vue
+- [x] **FORM-05**: Extract reusable useStatusForm composable from status modification logic
+- [x] **FORM-06**: Create ReviewFormFields component (synopsis, phenotypes, publications, variations)
+- [x] **FORM-07**: Reset forms on modal @show event (not just @hide)
 
 ### Re-Review System Overhaul
 
@@ -109,13 +109,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TBL-04 | Phase 36 | Complete |
 | TBL-05 | Phase 36 | Complete |
 | TBL-06 | Phase 36 | Complete |
-| FORM-01 | Phase 37 | Pending |
-| FORM-02 | Phase 37 | Pending |
-| FORM-03 | Phase 37 | Pending |
-| FORM-04 | Phase 37 | Pending |
-| FORM-05 | Phase 37 | Pending |
-| FORM-06 | Phase 37 | Pending |
-| FORM-07 | Phase 37 | Pending |
+| FORM-01 | Phase 35.1 | Complete |
+| FORM-02 | Phase 35.1 | Complete |
+| FORM-03 | Phase 37 | Complete |
+| FORM-04 | Phase 37 | Complete |
+| FORM-05 | Phase 37 | Complete |
+| FORM-06 | Phase 37 | Complete |
+| FORM-07 | Phase 37 | Complete |
 | RRV-01 | Phase 38 | Pending |
 | RRV-02 | Phase 38 | Pending |
 | RRV-03 | Phase 38 | Pending |
@@ -136,4 +136,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-26*
-*Last updated: 2026-01-26 -- Phase 36 (TBL) requirements complete*
+*Last updated: 2026-01-26 -- Phase 37 (FORM) requirements complete*
