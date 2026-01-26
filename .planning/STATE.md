@@ -12,18 +12,18 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Milestone:** v7.0 Curation Workflow Modernization
 **Phase:** 37 of 39 (Form Modernization)
-**Plan:** 2 of 3 in phase 37
+**Plan:** 1 of 3 in phase 37
 **Status:** In progress
-**Last activity:** 2026-01-26 -- Completed 37-02-PLAN.md
+**Last activity:** 2026-01-26 -- Completed 37-01-PLAN.md
 
 ```
-v7.0 Curation Workflow Modernization: [██████████████████____________] 58% (3.67/6 phases)
+v7.0 Curation Workflow Modernization: [██████████████████____________] 58% (3.33/6 phases)
 ```
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 172
+- Total plans completed: 173
 - Milestones shipped: 6 (v1-v6)
 - Phases completed: 36
 
@@ -116,14 +116,17 @@ Phase 37 decisions:
 - **any type for Status class dynamic properties**: Use `any` annotation for JavaScript class instances with dynamic properties
 - **Separate load methods per context**: loadStatusData (by status_id) for Review.vue, loadStatusByEntity for ModifyEntity.vue
 - **isUpdate parameter for create/update logic**: Single composable handles both create and update via parameter
+- **Review form pattern**: Follow useEntityForm structure - composable for state/logic, component for UI
+- **Metadata handling**: Keep review_info separate from composable for modal presentation metadata
+- **Component v-model pattern**: Use computed getter/setter for bidirectional data binding
 
 ## Session Continuity
 
 **Last session:** 2026-01-26
-**Stopped at:** Completed 37-02-PLAN.md
+**Stopped at:** Completed 37-01-PLAN.md
 **Resume file:** None
-**Next action:** Continue Phase 37 - Form Modernization (plan 37-03 next)
+**Next action:** Continue Phase 37 - Form Modernization (plan 37-02 next - reuse ReviewFormFields in ModifyEntity)
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-26 -- Plan 37-02 complete (Status Form Composable)*
+*Last updated: 2026-01-26 -- Plan 37-01 complete (Review Form Extraction) - 521 lines of duplicate form logic eliminated*
