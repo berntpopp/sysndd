@@ -57,6 +57,7 @@
                       block
                       size="sm"
                       variant="primary"
+                      aria-label="Assign new re-review batch to selected user"
                       @click="handleNewBatchAssignment"
                     >
                       <i class="bi bi-plus-square mx-1" />
@@ -147,6 +148,7 @@
                   size="sm"
                   class="me-1 btn-xs"
                   title="Unassign this batch"
+                  :aria-label="`Unassign batch ${data.item.re_review_batch} from ${data.item.user_name}`"
                   variant="danger"
                   @click="handleBatchUnAssignment(data.item.re_review_batch)"
                 >
