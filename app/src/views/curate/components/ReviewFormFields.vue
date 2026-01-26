@@ -335,7 +335,7 @@ import TreeMultiSelect from '@/components/forms/TreeMultiSelect.vue';
 import type { ReviewFormData } from '@/views/curate/composables/useReviewForm';
 
 interface TreeNode {
-  id: string | number;
+  id: string;
   label: string;
   children?: TreeNode[];
   [key: string]: any;
@@ -369,8 +369,9 @@ const localFormData = computed({
  */
 const tagValidatorPMID = (tag: string): boolean => {
   const tagCopy = tag.replace(/\s+/g, '');
+  const pmidNumber = tagCopy.replace(/PMID:/g, '').replace(/ /g, '');
   return (
-    !Number.isNaN(Number(tagCopy.replaceAll('PMID:', '').replaceAll(' ', ''))) &&
+    !Number.isNaN(Number(pmidNumber)) &&
     tagCopy.includes('PMID:') &&
     tagCopy.replace('PMID:', '').length > 4 &&
     tagCopy.replace('PMID:', '').length < 9
