@@ -62,40 +62,80 @@
             <BCard
               v-if="entity_loaded && entity_info.entity_id"
               class="my-2"
-              body-class="p-2"
-              header-class="p-1"
+              body-class="p-3"
+              header-class="p-2"
               border-variant="info"
             >
               <template #header>
                 <h6 class="mb-0 text-start font-weight-bold d-flex align-items-center">
                   <i class="bi bi-info-circle me-2" />
                   Selected Entity
-                  <BBadge variant="primary" class="ms-2">
-                    sysndd:{{ entity_info.entity_id }}
-                  </BBadge>
+                  <EntityBadge
+                    :entity-id="entity_info.entity_id"
+                    variant="primary"
+                    size="md"
+                    class="ms-2"
+                  />
                 </h6>
               </template>
 
-              <BRow class="small">
+              <BRow class="g-3">
                 <BCol md="6">
-                  <div class="mb-1">
-                    <strong>Gene:</strong>
-                    <span class="ms-1">{{ entity_info.hgnc_id || 'N/A' }}</span>
+                  <!-- Gene with badge and HGNC link -->
+                  <div class="mb-2">
+                    <strong class="text-muted small d-block mb-1">Gene:</strong>
+                    <GeneBadge
+                      :symbol="entity_info.symbol || 'N/A'"
+                      :hgnc-id="entity_info.hgnc_id"
+                      :link-to="entity_info.hgnc_id ? `https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/${entity_info.hgnc_id}` : null"
+                      size="md"
+                    />
                   </div>
-                  <div class="mb-1">
-                    <strong>Disease:</strong>
-                    <span class="ms-1">{{ entity_info.disease_ontology_id_version || 'N/A' }}</span>
+
+                  <!-- Disease with badge and ontology link -->
+                  <div class="mb-2">
+                    <strong class="text-muted small d-block mb-1">Disease:</strong>
+                    <DiseaseBadge
+                      :name="entity_info.disease_ontology_name || 'N/A'"
+                      :ontology-id="entity_info.disease_ontology_id_version"
+                      :link-to="entity_info.disease_ontology_id_version ? `/Ontology/${entity_info.disease_ontology_id_version.replace(/_.+/g, '')}` : null"
+                      size="md"
+                      :max-length="40"
+                    />
                   </div>
                 </BCol>
+
                 <BCol md="6">
-                  <div class="mb-1">
-                    <strong>Inheritance:</strong>
-                    <span class="ms-1">{{ entity_info.hpo_mode_of_inheritance_term || 'N/A' }}</span>
+                  <!-- Inheritance with icon -->
+                  <div class="mb-2">
+                    <strong class="text-muted small d-block mb-1">Inheritance:</strong>
+                    <BBadge variant="info" class="d-inline-flex align-items-center">
+                      <i class="bi bi-diagram-3 me-1" />
+                      {{ entity_info.hpo_mode_of_inheritance_term_name || entity_info.hpo_mode_of_inheritance_term || 'N/A' }}
+                    </BBadge>
                   </div>
-                  <div class="mb-1">
-                    <strong>Status:</strong>
-                    <BBadge :variant="entity_info.is_active === 1 ? 'success' : 'secondary'">
-                      {{ entity_info.is_active === 1 ? 'Active' : 'Inactive' }}
+
+                  <!-- Category with stoplight style -->
+                  <div class="mb-2">
+                    <strong class="text-muted small d-block mb-1">Category:</strong>
+                    <BBadge
+                      :variant="stoplights_style[entity_info.category] || 'secondary'"
+                      class="d-inline-flex align-items-center"
+                    >
+                      <i class="bi bi-stoplights me-1" />
+                      {{ entity_info.category || 'N/A' }}
+                    </BBadge>
+                  </div>
+
+                  <!-- NDD Status with icon -->
+                  <div class="mb-2">
+                    <strong class="text-muted small d-block mb-1">NDD Status:</strong>
+                    <BBadge
+                      :variant="ndd_icon_style[entity_info.ndd_phenotype_word] || 'secondary'"
+                      class="d-inline-flex align-items-center"
+                    >
+                      <i :class="`bi bi-${ndd_icon[entity_info.ndd_phenotype_word] || 'question'} me-1`" />
+                      {{ entity_info.ndd_phenotype_word || 'N/A' }}
                     </BBadge>
                   </div>
                 </BCol>
@@ -599,9 +639,11 @@
 import { useToast, useColorAndSymbols } from '@/composables';
 import TreeMultiSelect from '@/components/forms/TreeMultiSelect.vue';
 import AutocompleteInput from '@/components/forms/AutocompleteInput.vue';
+import GeneBadge from '@/components/ui/GeneBadge.vue';
+import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
+import EntityBadge from '@/components/ui/EntityBadge.vue';
 
 import Submission from '@/assets/js/classes/submission/submissionSubmission';
-import Entity from '@/assets/js/classes/submission/submissionEntity';
 import Review from '@/assets/js/classes/submission/submissionReview';
 import Status from '@/assets/js/classes/submission/submissionStatus';
 import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
@@ -613,6 +655,9 @@ export default {
   components: {
     TreeMultiSelect,
     AutocompleteInput,
+    GeneBadge,
+    DiseaseBadge,
+    EntityBadge,
   },
   setup() {
     const { makeToast } = useToast();
