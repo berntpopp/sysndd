@@ -34,10 +34,11 @@ This roadmap transforms curation views from basic forms into modern, accessible 
   2. ModifyEntity status dropdown shows all status options when opened
   3. Component names in Vue DevTools match file names (no "ApproveStatus" for ManageReReview)
   4. Opening modal for different entity shows fresh data (not stale data from previous entity)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 34-01: TBD
+- [ ] 34-01-PLAN.md - Fix ApproveUser crash, component name, modal staleness (BUG-01, BUG-03, BUG-04)
+- [ ] 34-02-PLAN.md - Fix ModifyEntity dropdown, component names (BUG-02, BUG-03)
 
 ### Phase 35: Multi-Select Restoration
 **Goal**: Restore multi-select capability for phenotypes and variations
@@ -119,7 +120,7 @@ Plans:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 34. Critical Bug Fixes | v7.0 | 0/TBD | Not started | - |
+| 34. Critical Bug Fixes | v7.0 | 0/2 | Planned | - |
 | 35. Multi-Select Restoration | v7.0 | 0/TBD | Not started | - |
 | 36. Curation Table Modernization | v7.0 | 0/TBD | Not started | - |
 | 37. Form Modernization | v7.0 | 0/TBD | Not started | - |
