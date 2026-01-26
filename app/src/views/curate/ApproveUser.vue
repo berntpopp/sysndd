@@ -102,6 +102,7 @@
         no-close-on-backdrop
         header-bg-variant="dark"
         header-text-variant="light"
+        @show="prepareApproveUserModal"
         @hide="resetUserApproveModal"
         @ok="handleUserApproveOk"
       >
@@ -208,6 +209,8 @@ export default {
         title: '',
         content: [],
       },
+      selectedUserId: null,
+      approve_user: null,
       user_approved: false,
       currentPage: 1,
       perPage: 10,
@@ -295,11 +298,24 @@ export default {
       }
     },
     infoApproveUser(item, index, button) {
-      this.approveUserModal.title = `${item.user_name}`;
-      this.approve_user = [];
-      this.approve_user.push(item);
+      this.selectedUserId = item.user_id;
       const { showModal } = useModalControls();
       showModal(this.approveUserModal.id);
+    },
+    prepareApproveUserModal() {
+      // Reset stale state
+      this.approveUserModal.title = '';
+      this.approve_user = null;
+      this.user_approved = false;
+
+      // Load fresh data for selected user
+      if (this.selectedUserId) {
+        const user = this.items_UsersTable.find((u) => u.user_id === this.selectedUserId);
+        if (user) {
+          this.approveUserModal.title = user.user_name;
+          this.approve_user = user;
+        }
+      }
     },
     resetUserApproveModal() {
       this.approveUserModal = {
@@ -307,14 +323,19 @@ export default {
         title: '',
         content: [],
       };
-      this.approve_user = [];
+      this.selectedUserId = null;
+      this.approve_user = null;
       this.user_approved = false;
     },
     async handleUserApproveOk(bvModalEvt) {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/approval?user_id=${this.approve_user[0].user_id}&status_approval=${this.user_approved}`;
+      if (!this.approve_user) {
+        this.makeToast('No user selected', 'Error', 'danger');
+        return;
+      }
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/approval?user_id=${this.approve_user.user_id}&status_approval=${this.user_approved}`;
 
       try {
-        const response = await this.axios.put(
+        await this.axios.put(
           apiUrl,
           {},
           {
