@@ -288,21 +288,14 @@
             1. Are you sure that you want to deactivate this entity?
           </p>
 
-          <div class="custom-control custom-switch">
-            <input
-              id="deactivateSwitch"
-              v-model="deactivate_check"
-              type="checkbox"
-              button-variant="info"
-              class="custom-control-input"
-            >
-            <label
-              class="custom-control-label"
-              for="deactivateSwitch"
-            >
-              {{ deactivate_check ? "Yes" : "No" }}
-            </label>
-          </div>
+          <BFormCheckbox
+            id="deactivateSwitch"
+            v-model="deactivate_check"
+            switch
+            size="md"
+          >
+            <strong>{{ deactivate_check ? "Yes" : "No" }}</strong>
+          </BFormCheckbox>
         </div>
 
         <div v-if="deactivate_check">
@@ -310,21 +303,14 @@
             2. Was this entity replaced by another one?
           </p>
 
-          <div class="custom-control custom-switch">
-            <input
-              id="replaceSwitch"
-              v-model="replace_check"
-              type="checkbox"
-              button-variant="info"
-              class="custom-control-input"
-            >
-            <label
-              class="custom-control-label"
-              for="replaceSwitch"
-            >
-              {{ replace_check ? "Yes" : "No" }}
-            </label>
-          </div>
+          <BFormCheckbox
+            id="replaceSwitch"
+            v-model="replace_check"
+            switch
+            size="md"
+          >
+            <strong>{{ replace_check ? "Yes" : "No" }}</strong>
+          </BFormCheckbox>
         </div>
 
         <div v-if="replace_check">
@@ -618,19 +604,14 @@
               No status options available
             </BAlert>
 
-            <div class="custom-control custom-switch">
-              <input
-                id="removeSwitch"
-                v-model="status_info.problematic"
-                type="checkbox"
-                button-variant="info"
-                class="custom-control-input"
-              >
-              <label
-                class="custom-control-label"
-                for="removeSwitch"
-              >Suggest removal</label>
-            </div>
+            <BFormCheckbox
+              id="removeSwitch"
+              v-model="status_info.problematic"
+              switch
+              size="md"
+            >
+              Suggest removal
+            </BFormCheckbox>
 
             <label
               class="mr-sm-2 font-weight-bold"
