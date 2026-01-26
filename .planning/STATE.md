@@ -12,9 +12,9 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Milestone:** v7.0 Curation Workflow Modernization
 **Phase:** 36 of 39 (Curation Table Modernization)
-**Plan:** 2 of 3 in phase 36
+**Plan:** 2 of 3 in phase 36 (36-01 and 36-02 complete)
 **Status:** In progress
-**Last activity:** 2026-01-26 -- Completed 36-02-PLAN.md
+**Last activity:** 2026-01-26 -- Completed 36-01-PLAN.md
 
 ```
 v7.0 Curation Workflow Modernization: [█████████████_________________] 45% (2.7/6 phases)
@@ -23,7 +23,7 @@ v7.0 Curation Workflow Modernization: [█████████████__
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 166
+- Total plans completed: 167
 - Milestones shipped: 6 (v1-v6)
 - Phases completed: 35
 
@@ -72,9 +72,11 @@ Phase 35.1 decisions:
 - **BFormCheckbox switch**: Replace deprecated custom-control-switch CSS with native switch prop
 
 Phase 36 decisions:
+- **Client-side column filtering**: Use computed property for filtering category, user, date range
 - **Follow ApproveReview.vue search pattern**: Use same search input structure and pagination layout for consistency
 - **Default perPage 25**: Standard default for modernized curation views
 - **Search input with 500ms debounce**: Standardized pattern for all curation tables
+- **Standardized pagination [10, 25, 50, 100]**: Replace 200 with 100 across curation tables
 
 ### Roadmap Evolution
 
@@ -101,13 +103,17 @@ Phase 35.1 improvements:
 - ~~Custom-control-switch deprecated CSS~~ [REPLACED in 35.1-02 with BFormCheckbox switch prop]
 - ~~Action buttons lack loading feedback~~ [ADDED in 35.1-02 with BSpinner during submission]
 
+Phase 36 improvements:
+- ~~ApproveReview lacks column filters~~ [ADDED in 36-01 with category, user, date range filters]
+- ~~ApproveStatus lacks column filters~~ [ADDED in 36-01 with category, user, date range filters]
+
 ## Session Continuity
 
 **Last session:** 2026-01-26
-**Stopped at:** Completed 36-02-PLAN.md
+**Stopped at:** Completed 36-01-PLAN.md
 **Resume file:** None
 **Next action:** Execute 36-03-PLAN.md
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-26 -- Plan 36-02 complete (ManageReReview search/pagination)*
+*Last updated: 2026-01-26 -- Plan 36-01 complete (Column Filters Implementation)*
