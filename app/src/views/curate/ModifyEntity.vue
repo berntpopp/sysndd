@@ -236,6 +236,7 @@
         no-close-on-backdrop
         header-bg-variant="dark"
         header-text-variant="light"
+        @show="onRenameModalShow"
         @ok="submitEntityRename"
       >
         <template #title>
@@ -311,6 +312,7 @@
         no-close-on-backdrop
         header-bg-variant="dark"
         header-text-variant="light"
+        @show="onDeactivateModalShow"
         @ok="submitEntityDeactivation"
       >
         <template #title>
@@ -420,6 +422,7 @@
         header-bg-variant="dark"
         header-text-variant="light"
         :busy="loading_review_modal"
+        @show="onModifyReviewModalShow"
         @ok="submitReviewChange"
       >
         <template #title>
@@ -665,6 +668,7 @@
         header-bg-variant="dark"
         header-text-variant="light"
         :busy="statusFormLoading"
+        @show="onModifyStatusModalShow"
         @ok="submitStatusChange"
       >
         <template #title>
@@ -1445,6 +1449,31 @@ export default {
         && tag_copy.replace('PMID:', '').length > 4
         && tag_copy.replace('PMID:', '').length < 9
       );
+    },
+    onRenameModalShow() {
+      // Reset rename-specific state (FORM-07: prevents stale data)
+      this.ontology_input = null;
+      this.ontology_display = '';
+      this.ontology_search_results = [];
+    },
+    onDeactivateModalShow() {
+      // Reset deactivate-specific state (FORM-07: prevents stale data)
+      this.deactivate_check = false;
+      this.replace_check = false;
+      this.replace_entity_input = null;
+      this.replace_entity_display = '';
+    },
+    onModifyReviewModalShow() {
+      // Reset form state on show (FORM-07: prevents stale data flash)
+      this.review_info = new Review();
+      this.select_phenotype = [];
+      this.select_variation = [];
+      this.select_additional_references = [];
+      this.select_gene_reviews = [];
+    },
+    onModifyStatusModalShow() {
+      // Reset form state on show (FORM-07: prevents stale data flash)
+      this.resetStatusForm();
     },
   },
 };

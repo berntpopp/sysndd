@@ -349,6 +349,7 @@
         header-bg-variant="dark"
         header-text-variant="light"
         :busy="loading_review_modal"
+        @show="onReviewModalShow"
         @ok="submitReviewChange"
       >
         <template #modal-title>
@@ -460,6 +461,15 @@
           </div>
         </template>
 
+        <div v-if="reviewForm.isSaving || reviewForm.lastSavedFormatted" class="mb-2">
+          <span v-if="reviewForm.isSaving" class="text-muted small">
+            <BSpinner small /> Saving draft...
+          </span>
+          <span v-else-if="reviewForm.lastSavedFormatted" class="text-muted small">
+            <i class="bi bi-save" /> Draft saved {{ reviewForm.lastSavedFormatted }}
+          </span>
+        </div>
+
         <ReviewFormFields
           v-model="reviewFormData"
           :phenotypes-options="phenotypes_options"
@@ -481,6 +491,7 @@
         header-bg-variant="dark"
         header-text-variant="light"
         :busy="statusFormLoading"
+        @show="onStatusModalShow"
         @ok="submitStatusChange"
       >
         <template #modal-title>
@@ -1048,14 +1059,45 @@ export default {
     async infoReview(item, index, button) {
       this.reviewModal.title = `sysndd:${item.entity_id}`;
       await this.getEntity(item.entity_id);
-      await this.reviewForm.loadReviewData(item.review_id, item.re_review_review_saved);
+
+      // Check for existing draft before loading server data
+      if (this.reviewForm.checkForDraft()) {
+        // Show confirmation dialog
+        const restore = window.confirm(
+          'You have unsaved changes from a previous session. Would you like to restore them?',
+        );
+        if (restore) {
+          this.reviewForm.restoreFromDraft();
+        } else {
+          this.reviewForm.clearDraft();
+          await this.reviewForm.loadReviewData(item.review_id, item.re_review_review_saved);
+        }
+      } else {
+        await this.reviewForm.loadReviewData(item.review_id, item.re_review_review_saved);
+      }
+
       const { showModal } = useModalControls();
       showModal(this.reviewModal.id);
     },
     async infoStatus(item, index, button) {
       this.statusModal.title = `sysndd:${item.entity_id}`;
       await this.getEntity(item.entity_id);
-      await this.statusForm.loadStatusData(item.status_id, item.re_review_status_saved);
+
+      // Check for existing draft before loading server data
+      if (this.statusForm.checkForDraft()) {
+        const restore = window.confirm(
+          'You have unsaved changes from a previous session. Would you like to restore them?',
+        );
+        if (restore) {
+          this.statusForm.restoreFromDraft();
+        } else {
+          this.statusForm.clearDraft();
+          await this.statusForm.loadStatusData(item.status_id, item.re_review_status_saved);
+        }
+      } else {
+        await this.statusForm.loadStatusData(item.status_id, item.re_review_status_saved);
+      }
+
       const { showModal } = useModalControls();
       showModal(this.statusModal.id);
     },
@@ -1311,6 +1353,14 @@ export default {
      */
     handleSortByUpdate(newSortBy) {
       this.sortBy = newSortBy;
+    },
+    onReviewModalShow() {
+      // Reset form state immediately on show (FORM-07: prevents stale data flash)
+      this.reviewForm.resetForm();
+    },
+    onStatusModalShow() {
+      // Reset form state immediately on show (FORM-07: prevents stale data flash)
+      this.statusForm.resetForm();
     },
   },
 };

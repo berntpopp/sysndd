@@ -64,7 +64,6 @@ export default function useStatusForm(entityId?: string | number) {
     hasDraft,
     lastSavedFormatted,
     isSaving,
-    saveDraft,
     loadDraft,
     clearDraft,
     checkForDraft,

@@ -117,7 +117,6 @@ export default function useReviewForm(entityId?: string | number) {
     hasDraft,
     lastSavedFormatted,
     isSaving,
-    saveDraft,
     loadDraft,
     clearDraft,
     checkForDraft,
@@ -181,7 +180,7 @@ export default function useReviewForm(entityId?: string | number) {
   /**
    * Load review data from API
    */
-  const loadReviewData = async (reviewIdInput: number, reReviewReviewSaved?: number): Promise<void> => {
+  const loadReviewData = async (reviewIdInput: number, _reReviewReviewSaved?: number): Promise<void> => {
     loading.value = true;
     reviewId.value = reviewIdInput;
 
@@ -287,22 +286,18 @@ export default function useReviewForm(entityId?: string | number) {
     const apiUrl = `${import.meta.env.VITE_API_URL}/api/review/${action}?re_review=${reReview}`;
 
     // Submit to API
-    try {
-      await axios[method](
-        apiUrl,
-        { review_json: reviewData },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
+    await axios[method](
+      apiUrl,
+      { review_json: reviewData },
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
-      );
+      },
+    );
 
-      // Clear draft on successful submission
-      clearDraft();
-    } catch (error) {
-      throw error;
-    }
+    // Clear draft on successful submission
+    clearDraft();
   };
 
   /**
