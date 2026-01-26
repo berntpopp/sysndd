@@ -86,6 +86,71 @@
                 />
               </BCol>
             </BRow>
+
+            <!-- Column filters -->
+            <BRow class="mb-2 px-2">
+              <BCol md="3">
+                <BFormGroup
+                  label="Category"
+                  label-size="sm"
+                  class="mb-0"
+                >
+                  <BFormSelect
+                    v-model="categoryFilter"
+                    :options="categoryOptions"
+                    size="sm"
+                  >
+                    <template #first>
+                      <BFormSelectOption :value="null">
+                        All Categories
+                      </BFormSelectOption>
+                    </template>
+                  </BFormSelect>
+                </BFormGroup>
+              </BCol>
+              <BCol md="3">
+                <BFormGroup
+                  label="User"
+                  label-size="sm"
+                  class="mb-0"
+                >
+                  <BFormInput
+                    v-model="userFilter"
+                    type="search"
+                    placeholder="Filter by user..."
+                    size="sm"
+                    debounce="300"
+                  />
+                </BFormGroup>
+              </BCol>
+              <BCol md="3">
+                <BFormGroup
+                  label="From Date"
+                  label-size="sm"
+                  class="mb-0"
+                >
+                  <BFormInput
+                    v-model="dateRangeStart"
+                    type="date"
+                    size="sm"
+                  />
+                </BFormGroup>
+              </BCol>
+              <BCol md="3">
+                <BFormGroup
+                  label="To Date"
+                  label-size="sm"
+                  class="mb-0"
+                >
+                  <BFormInput
+                    v-model="dateRangeEnd"
+                    type="date"
+                    size="sm"
+                  />
+                </BFormGroup>
+              </BCol>
+            </BRow>
+            <!-- Column filters -->
             <!-- Table Interface controls -->
 
             <!-- Main table -->
@@ -96,7 +161,7 @@
             />
             <BTable
               v-else
-              :items="items_ReviewTable"
+              :items="columnFilteredItems"
               :fields="fields_ReviewTable"
               :busy="isBusy"
               :current-page="currentPage"
@@ -1134,8 +1199,12 @@ export default {
       ],
       totalRows: 0,
       currentPage: 1,
-      perPage: 200,
-      pageOptions: [10, 25, 50, 200],
+      perPage: 100,
+      pageOptions: [10, 25, 50, 100],
+      categoryFilter: null,
+      userFilter: null,
+      dateRangeStart: null,
+      dateRangeEnd: null,
       // Bootstrap-Vue-Next uses array-based sortBy format
       sortBy: [{ key: 'review_user_name', order: 'asc' }],
       filter: null,
@@ -1181,7 +1250,66 @@ export default {
       isBusy: true,
     };
   },
+  computed: {
+    categoryOptions() {
+      return Object.keys(this.stoplights_style).map((key) => ({
+        value: key,
+        text: key,
+      }));
+    },
+    columnFilteredItems() {
+      let items = this.items_ReviewTable;
+
+      // Filter by category (active_category)
+      if (this.categoryFilter) {
+        items = items.filter((item) => item.active_category === this.categoryFilter);
+      }
+
+      // Filter by user name (case-insensitive partial match)
+      if (this.userFilter) {
+        const searchTerm = this.userFilter.toLowerCase();
+        items = items.filter(
+          (item) => item.review_user_name && item.review_user_name.toLowerCase().includes(searchTerm),
+        );
+      }
+
+      // Filter by date range
+      if (this.dateRangeStart || this.dateRangeEnd) {
+        items = items.filter((item) => {
+          if (!item.review_date) return false;
+          const itemDate = new Date(item.review_date.substring(0, 10));
+          if (this.dateRangeStart) {
+            const startDate = new Date(this.dateRangeStart);
+            if (itemDate < startDate) return false;
+          }
+          if (this.dateRangeEnd) {
+            const endDate = new Date(this.dateRangeEnd);
+            if (itemDate > endDate) return false;
+          }
+          return true;
+        });
+      }
+
+      return items;
+    },
+  },
   watch: {
+    categoryFilter() {
+      this.currentPage = 1;
+      this.totalRows = this.columnFilteredItems.length;
+    },
+    userFilter() {
+      this.currentPage = 1;
+      this.totalRows = this.columnFilteredItems.length;
+    },
+    dateRangeStart() {
+      this.currentPage = 1;
+      this.totalRows = this.columnFilteredItems.length;
+    },
+    dateRangeEnd() {
+      this.currentPage = 1;
+      this.totalRows = this.columnFilteredItems.length;
+    },
     select_additional_references: {
       handler(newVal) {
         const sanitizedValues = newVal.map(this.sanitizeInput);
