@@ -325,9 +325,12 @@
 
               <template #cell(actions)="row">
                 <BButton
+                  v-b-tooltip.hover.left
                   size="sm"
                   class="me-1 btn-xs"
                   variant="outline-primary"
+                  title="Toggle details"
+                  :aria-label="`Toggle details for entity ${row.item.entity_id}`"
                   @click="row.toggleDetails"
                 >
                   <i :class="'bi bi-' + (row.detailsShowing ? 'eye-slash' : 'eye')" />
@@ -339,6 +342,7 @@
                   class="me-1 btn-xs"
                   variant="secondary"
                   title="Edit status"
+                  :aria-label="`Edit status for entity ${row.item.entity_id}`"
                   @click="infoStatus(row.item, row.index, $event.target)"
                 >
                   <i class="bi bi-stoplights" />
@@ -350,6 +354,7 @@
                   class="me-1 btn-xs"
                   variant="danger"
                   title="Approve status"
+                  :aria-label="`Approve status for entity ${row.item.entity_id}`"
                   @click="infoApproveStatus(row.item, row.index, $event.target)"
                 >
                   <i class="bi bi-check2-circle" />
