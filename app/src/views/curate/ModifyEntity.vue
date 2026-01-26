@@ -637,7 +637,7 @@ export default {
       entity_loaded: false, // True when entity info has been fetched
       replace_entity_input: null,
       ontology_input: null,
-      entity_info: new Entity(),
+      entity_info: {},
       review_info: new Review(),
       select_phenotype: [],
       select_variation: [],
@@ -757,7 +757,7 @@ export default {
     async onEntitySelected(entityId) {
       if (!entityId) {
         this.entity_loaded = false;
-        this.entity_info = new Entity();
+        this.entity_info = {};
         return;
       }
 
@@ -799,25 +799,18 @@ export default {
         const entityData = response.data?.data;
         if (!Array.isArray(entityData) || entityData.length === 0) {
           this.makeToast(`Entity ${this.modify_entity_input} not found`, 'Error', 'danger');
-          this.entity_info = new Entity();
+          this.entity_info = {};
           return;
         }
 
         const entity = entityData[0];
 
-        // compose entity
-        this.entity_info = new Entity(
-          entity.hgnc_id,
-          entity.disease_ontology_id_version,
-          entity.hpo_mode_of_inheritance_term,
-          entity.ndd_phenotype,
-          entity.entity_id,
-          entity.is_active,
-          entity.replaced_by,
-        );
+        // Store full API response for enhanced preview display
+        // (includes symbol, disease_ontology_name, category, ndd_phenotype_word, etc.)
+        this.entity_info = entity;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
-        this.entity_info = new Entity();
+        this.entity_info = {};
       }
     },
     async getReview() {
@@ -1182,7 +1175,7 @@ export default {
       this.modify_entity_input = null;
       this.replace_entity_input = null;
       this.ontology_input = null;
-      this.entity_info = new Entity();
+      this.entity_info = {};
       this.review_info = new Review();
       this.select_phenotype = [];
       this.select_variation = [];
