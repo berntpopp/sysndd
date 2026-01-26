@@ -315,9 +315,12 @@
 
               <template #cell(actions)="row">
                 <BButton
+                  v-b-tooltip.hover.left
                   size="sm"
                   class="me-1 btn-xs"
                   variant="outline-primary"
+                  title="Toggle details"
+                  :aria-label="`Toggle details for entity ${row.item.entity_id}`"
                   @click="row.toggleDetails"
                 >
                   <i :class="'bi bi-' + (row.detailsShowing ? 'eye-slash' : 'eye')" />
@@ -329,6 +332,7 @@
                   class="me-1 btn-xs"
                   variant="secondary"
                   title="Edit review"
+                  :aria-label="`Edit review for entity ${row.item.entity_id}`"
                   @click="infoReview(row.item, row.index, $event.target)"
                 >
                   <i class="bi bi-pen" />
@@ -339,7 +343,8 @@
                   size="sm"
                   class="me-1 btn-xs"
                   :variant="stoplights_style[row.item.active_category]"
-                  :title="row.item.status_change ? 'edit new status' : 'edit status'"
+                  :title="row.item.status_change ? 'Edit new status' : 'Edit status'"
+                  :aria-label="`${row.item.status_change ? 'Edit new status' : 'Edit status'} for entity ${row.item.entity_id}`"
                   @click="infoStatus(row.item, row.index, $event.target)"
                 >
                   <span
@@ -361,6 +366,7 @@
                   class="me-1 btn-xs"
                   variant="danger"
                   title="Approve review"
+                  :aria-label="`Approve review for entity ${row.item.entity_id}`"
                   @click="infoApproveReview(row.item, row.index, $event.target)"
                 >
                   <i class="bi bi-check2-circle" />
@@ -370,6 +376,7 @@
                   v-b-tooltip.hover.right
                   variant="danger"
                   title="Multiple unapproved reviews for this entity"
+                  :aria-label="`Warning: Multiple unapproved reviews for entity ${row.item.entity_id}`"
                   size="sm"
                   class="me-1 btn-xs"
                 >
