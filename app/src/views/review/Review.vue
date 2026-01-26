@@ -940,14 +940,6 @@
               Please refer to the curation manual for details on the categories.
             </BPopover>
 
-            <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
-            <!-- <treeselect
-              id="status-select"
-              v-model="status_info.category_id"
-              :multiple="false"
-              :options="status_options"
-              :normalizer="normalizeStatus"
-            /> -->
             <BFormSelect
               v-if="status_options && status_options.length > 0"
               id="status-select"
@@ -1349,12 +1341,6 @@ export default {
         this.makeToast(e, 'Error', 'danger');
       }
     },
-    normalizePhenotypes(node) {
-      return {
-        id: node.id,
-        label: node.label,
-      };
-    },
     normalizeStatus(node) {
       return {
         id: node.category_id,
@@ -1368,12 +1354,6 @@ export default {
         value: opt.category_id,
         text: opt.category,
       }));
-    },
-    normalizeVariationOntology(node) {
-      return {
-        id: node.id,
-        label: node.label,
-      };
     },
     onFiltered(filteredItems) {
       // Trigger pagination to update the number of buttons/pages due to filtering
@@ -1900,8 +1880,4 @@ export default {
   white-space: nowrap;
 }
 
-:deep(.vue-treeselect__menu) {
-  outline: 1px solid red;
-  color: blue;
-}
 </style>

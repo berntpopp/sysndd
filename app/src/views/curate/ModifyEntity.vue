@@ -36,17 +36,6 @@
 
               <BRow>
                 <BCol class="my-1">
-                  <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
-                  <!-- Async search temporarily disabled - use text input -->
-                  <!-- <treeselect
-                    id="entity-select"
-                    v-model="modify_entity_input"
-                    :multiple="false"
-                    :async="true"
-                    :load-options="searchEntityInfo"
-                    :normalizer="normalizerEntitySearch"
-                    required
-                  /> -->
                   <BFormInput
                     id="entity-select"
                     v-model="modify_entity_input"
@@ -155,17 +144,6 @@
           Select a new disease name:
         </p>
 
-        <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
-        <!-- Async search temporarily disabled - use text input -->
-        <!-- <treeselect
-          id="ontology-select"
-          v-model="ontology_input"
-          :multiple="false"
-          :async="true"
-          :load-options="loadOntologyInfoTree"
-          :normalizer="normalizerOntologySearch"
-          required
-        /> -->
         <BFormInput
           id="ontology-select"
           v-model="ontology_input"
@@ -247,17 +225,6 @@
             3. Select the entity replacing the above one:
           </p>
 
-          <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
-          <!-- Async search temporarily disabled - use text input -->
-          <!-- <treeselect
-            id="entity-select"
-            v-model="replace_entity_input"
-            :multiple="false"
-            :async="true"
-            :load-options="searchEntityInfo"
-            :normalizer="normalizerEntitySearch"
-            required
-          /> -->
           <BFormInput
             id="replace-entity-select"
             v-model="replace_entity_input"
@@ -517,14 +484,6 @@
             ref="form"
             @submit.stop.prevent="submitStatusChange"
           >
-            <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
-            <!-- <treeselect
-              id="status-select"
-              v-model="status_info.category_id"
-              :multiple="false"
-              :options="status_options"
-              :normalizer="normalizeStatus"
-            /> -->
             <!-- Status dropdown with loading state -->
             <BSpinner
               v-if="status_options_loading"
@@ -653,12 +612,6 @@ export default {
         this.phenotypes_options = [];
       }
     },
-    normalizePhenotypes(node) {
-      return {
-        id: node.id,
-        label: node.label,
-      };
-    },
     async loadVariationOntologyList() {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/variation_ontology?tree=true`;
       try {
@@ -670,12 +623,6 @@ export default {
         this.makeToast(e, 'Error', 'danger');
         this.variation_ontology_options = [];
       }
-    },
-    normalizeVariationOntology(node) {
-      return {
-        id: node.id,
-        label: node.label,
-      };
     },
     async loadStatusList() {
       this.status_options_loading = true;
@@ -1135,8 +1082,4 @@ export default {
   border-radius: 0.2rem;
 }
 
-:deep(.vue-treeselect__menu) {
-  outline: 1px solid red;
-  color: blue;
-}
 </style>

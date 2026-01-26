@@ -855,14 +855,6 @@
               Please refer to the curation manual for details on the categories.
             </BPopover>
 
-            <!-- TODO: Restore treeselect when vue3-treeselect compatibility is fixed -->
-            <!-- <treeselect
-              id="status-select"
-              v-model="status_info.category_id"
-              :multiple="false"
-              :options="status_options"
-              :normalizer="normalizeStatus"
-            /> -->
             <BFormSelect
               v-if="status_options && status_options.length > 0"
               id="status-select"
@@ -1243,18 +1235,6 @@ export default {
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
-    },
-    normalizePhenotypes(node) {
-      return {
-        id: node.id,
-        label: node.label,
-      };
-    },
-    normalizeVariationOntology(node) {
-      return {
-        id: node.id,
-        label: node.label,
-      };
     },
     async loadReviewTableData() {
       // TODO: currently we show 200 entries sorted by user
@@ -1710,8 +1690,4 @@ export default {
   border-radius: 0.2rem;
 }
 
-:deep(.vue-treeselect__menu) {
-  outline: 1px solid red;
-  color: blue;
-}
 </style>
