@@ -435,7 +435,40 @@ export default {
     }, 500);
   },
   methods: {
-    async loadData() {
+    // Debounced loadData to prevent duplicate calls from multiple triggers
+    loadData() {
+      if (this.loadDataDebounceTimer) {
+        clearTimeout(this.loadDataDebounceTimer);
+      }
+      this.loadDataDebounceTimer = setTimeout(() => {
+        this.loadDataDebounceTimer = null;
+        this.doLoadData();
+      }, 50);
+    },
+    // Actual data loading with module-level caching
+    async doLoadData() {
+      const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${this.currentItemID}&page_size=${this.perPage}`;
+      const now = Date.now();
+
+      // Prevent duplicate API calls using module-level tracking
+      // This works across component remounts caused by router.replace()
+      if (moduleLastApiParams === urlParam && (now - moduleLastApiCallTime) < 500) {
+        // Use cached response data for remounted component
+        if (moduleLastApiResponse) {
+          this.applyApiResponse(moduleLastApiResponse);
+          this.isBusy = false;
+        }
+        return;
+      }
+
+      // Also prevent if a call is already in progress with same params
+      if (moduleApiCallInProgress && moduleLastApiParams === urlParam) {
+        return;
+      }
+
+      moduleLastApiParams = urlParam;
+      moduleLastApiCallTime = now;
+      moduleApiCallInProgress = true;
       this.isBusy = true;
 
       try {
@@ -451,28 +484,69 @@ export default {
           },
         });
 
-        this.items = response.data.data;
-        this.totalRows = response.data.meta[0].totalItems;
+        moduleApiCallInProgress = false;
+        // Cache response for remounted components
+        moduleLastApiResponse = response.data;
+        this.applyApiResponse(response.data);
 
-        this.$nextTick(() => {
-          this.currentPage = response.data.meta[0].currentPage;
-        });
+        // Update URL AFTER API success to prevent component remount during API call
+        this.updateBrowserUrl();
 
-        this.totalPages = response.data.meta[0].totalPages;
-        this.prevItemID = response.data.meta[0].prevItemID;
-        this.currentItemID = response.data.meta[0].currentItemID;
-        this.nextItemID = response.data.meta[0].nextItemID;
-        this.lastItemID = response.data.meta[0].lastItemID;
-        this.executionTime = response.data.meta[0].executionTime;
-        this.fields = response.data.meta[0].fspec;
-
-        const uiStore = useUiStore();
-        uiStore.requestScrollbarUpdate();
+        this.isBusy = false;
       } catch (error) {
+        moduleApiCallInProgress = false;
         this.makeToast(`Error: ${error.message}`, 'Error loading logs', 'danger');
-      } finally {
         this.isBusy = false;
       }
+    },
+    /**
+     * Apply API response data to component state.
+     * Extracted to allow reuse when skipping duplicate API calls.
+     * @param {Object} data - API response data
+     */
+    applyApiResponse(data) {
+      this.items = data.data;
+      this.totalRows = data.meta[0].totalItems;
+      // this solves an update issue in b-pagination component
+      // based on https://github.com/bootstrap-vue/bootstrap-vue/issues/3541
+      this.$nextTick(() => {
+        this.currentPage = data.meta[0].currentPage;
+      });
+      this.totalPages = data.meta[0].totalPages;
+      this.prevItemID = Number(data.meta[0].prevItemID) || 0;
+      this.currentItemID = Number(data.meta[0].currentItemID) || 0;
+      this.nextItemID = Number(data.meta[0].nextItemID) || 0;
+      this.lastItemID = Number(data.meta[0].lastItemID) || 0;
+      this.executionTime = data.meta[0].executionTime;
+      this.fields = data.meta[0].fspec;
+
+      const uiStore = useUiStore();
+      uiStore.requestScrollbarUpdate();
+    },
+    // Update browser URL with current table state
+    // Uses history.replaceState instead of router.replace to prevent component remount
+    updateBrowserUrl() {
+      // Don't update URL during initialization - preserves URL params from navigation
+      if (this.isInitializing) return;
+
+      const searchParams = new URLSearchParams();
+
+      if (this.sort) {
+        searchParams.set('sort', this.sort);
+      }
+      if (this.filter_string) {
+        searchParams.set('filter', this.filter_string);
+      }
+      const currentId = Number(this.currentItemID) || 0;
+      if (currentId > 0) {
+        searchParams.set('page_after', String(currentId));
+      }
+      searchParams.set('page_size', String(this.perPage));
+
+      // Use history.replaceState to update URL without triggering Vue Router navigation
+      // This prevents component remount which was causing duplicate API calls
+      const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
+      window.history.replaceState({ ...window.history.state }, '', newUrl);
     },
     copyLinkToClipboard() {
       const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${this.currentItemID}&page_size=${this.perPage}`;
@@ -486,20 +560,24 @@ export default {
       this.sort = (sortOrder === 'desc' ? '-' : '+') + sortColumn;
       this.filtered();
     },
+    // Override handlePageChange to properly update currentItemID and call loadData
     handlePageChange(value) {
       if (value === 1) {
         this.currentItemID = 0;
-        this.filtered();
       } else if (value === this.totalPages) {
-        this.currentItemID = this.lastItemID;
-        this.filtered();
+        this.currentItemID = Number(this.lastItemID) || 0;
       } else if (value > this.currentPage) {
-        this.currentItemID = this.nextItemID;
-        this.filtered();
+        this.currentItemID = Number(this.nextItemID) || 0;
       } else if (value < this.currentPage) {
-        this.currentItemID = this.prevItemID;
-        this.filtered();
+        this.currentItemID = Number(this.prevItemID) || 0;
       }
+      this.filtered();
+    },
+    // Override handlePerPageChange to reset pagination and reload
+    handlePerPageChange(newPerPage) {
+      this.perPage = parseInt(newPerPage, 10);
+      this.currentItemID = 0;
+      this.filtered();
     },
     filtered() {
       const filter_string_loc = this.filterObjToStr(this.filter);
