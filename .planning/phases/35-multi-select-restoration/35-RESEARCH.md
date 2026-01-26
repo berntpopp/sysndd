@@ -1,166 +1,152 @@
 # Phase 35: Multi-Select Restoration - Research
 
-**Researched:** 2026-01-26
-**Domain:** Vue 3 hierarchical multi-select for phenotypes and variations
+**Researched:** 2026-01-26 (Updated)
+**Domain:** Bootstrap-Vue-Next hierarchical multi-select UI patterns
 **Confidence:** HIGH
 
 ## Summary
 
-Phase 35 restores multi-select capability for phenotypes (HPO terms) and variations (variant types) in curation forms. The current workaround uses BFormSelect in single-select mode due to vue3-treeselect v-model initialization bugs. Research confirms that PrimeVue TreeSelect in unstyled mode is the optimal replacement, matching existing codebase standards from prior phases.
+**USER REQUIREMENT:** Implement hierarchical multi-select using ONLY Bootstrap-Vue-Next components. User explicitly rejected PrimeVue and external tree libraries, requiring native Bootstrap-Vue-Next patterns only.
 
-**Context from User Decisions:**
-- Interface approach is Claude's discretion (research Bootstrap-Vue-Next capabilities and codebase patterns)
-- Chips/tags display format is LOCKED (show item name only, full hierarchy on hover)
-- Search behavior is LOCKED (filter tree in place, show matches in context)
-- Validation is LOCKED (minimum 1 required, errors on submit only)
+Research focused on implementing hierarchical multi-select for HPO phenotypes and variant types using ONLY Bootstrap-Vue-Next components (version 0.42.0 in codebase).
+
+**Current State:** The codebase currently uses `@zanmato/vue3-treeselect` which is commented out pending Bootstrap-Vue-Next migration. It's been temporarily replaced with single-select `BFormSelect` dropdowns. Three views need restoration: Review.vue, ModifyEntity.vue, and ApproveReview.vue. The API returns hierarchical tree data with `{id, label, children[]}` structure.
+
+**Critical Finding:** Bootstrap-Vue-Next does NOT provide a built-in tree select or hierarchical checkbox component. The framework includes only standard form components (BFormCheckbox, BFormSelect, BFormTags), layout components (BCollapse, BListGroup), and dropdowns (BDropdown). **A custom component must be built.**
 
 **Key findings:**
-1. **Standard Stack Decision Already Made:** Phase 11 research established PrimeVue TreeSelect in unstyled mode as the official replacement for vue3-treeselect (STACK.md lines 45-138)
-2. **Bootstrap-Vue-Next Has No Tree Component:** BFormSelect supports `multiple` and `optgroups` but cannot display hierarchical trees with expand/collapse (verified from official docs)
-3. **Hierarchical Data Pattern:** API returns tree structure with `id`, `label`, `children[]` format (lines 1361-1378 in Review.vue)
-4. **Existing Chip Display:** BFormTags component already used for publications (Review.vue lines 659-713) provides removal with X button
+1. **No Tree Component:** Bootstrap-Vue-Next has no tree component - must combine primitives
+2. **Proven Pattern Exists:** BFormTags already used successfully for PMID publications in Review.vue (lines 659-712)
+3. **Component Building Blocks Available:** BFormTags (chips), BDropdown (selector), BCollapse (hierarchy), BFormCheckbox (multi-select)
+4. **Hierarchical Data Ready:** API returns tree structure with `id`, `label`, `children[]` format (lines 1361-1378 in Review.vue)
 
-**Primary recommendation:** Use PrimeVue TreeSelect with checkbox selection mode, chip display, and Bootstrap PT (pass-through) styling. This follows the established pattern from v7 technology stack research.
+**Primary recommendation:** Build custom TreeMultiSelect component combining BFormTags (for chip display) + BDropdown (for selection interface with `auto-close="false"`) + recursive TreeNode component using BCollapse (for hierarchy) + BFormCheckbox (for selections). This matches the existing BFormTags pattern and uses only Bootstrap-Vue-Next components.
 
 ## Standard Stack
 
-The multi-select tree component stack has already been decided in prior v7 research:
+### Core (Bootstrap-Vue-Next 0.42.0 - Already Installed)
 
-### Core
-| Library | Version | Purpose | Why Standard |
-|---------|---------|---------|--------------|
-| PrimeVue TreeSelect | 4.5.4+ | Hierarchical multi-select with checkboxes | ARIA compliant, unstyled mode for Bootstrap integration, 331K weekly downloads, active maintenance |
-| Bootstrap-Vue-Next BFormSelect | 0.42.0 | Single-select fallback | Already in stack, native `<select>` accessibility |
-| Bootstrap-Vue-Next BFormTag | 0.42.0 | Chip display for selected items | Already in stack, used for PMID tags |
+All components are already registered in the codebase via `/app/src/bootstrap-vue-next-components.js`:
+
+| Component | Purpose | Why Standard |
+|-----------|---------|--------------|
+| BFormTags + BFormTag | Display selected items as removable chips | Already used for PMID tags in Review.vue lines 659-712, proven pattern |
+| BDropdown + BDropdownItemButton | Selection interface container | Supports `auto-close="false"` for multi-select, keyboard navigation, ARIA compliant |
+| BCollapse | Expandable hierarchy sections | Native Bootstrap 5 animation, ARIA support, v-model reactive, lazy loading |
+| BFormCheckbox | Individual item selection | Multi-select via v-model array binding, accessible, indeterminate state support |
+| BFormInput | Search/filter input | Built-in `debounce` prop (line 1362 in Review.vue uses 300ms), accessible |
+| BButton | Collapse toggles, action buttons | v-b-toggle directive for BCollapse integration |
 
 ### Supporting
+
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| Bootstrap Icons | 1.13.1 | Icons for tree expand/collapse | Already in stack |
-| @vueuse/core | 14.1.0 | useDebounce for search filtering | Already in stack |
+| Bootstrap Icons | 1.13.1 | Chevron icons for expand/collapse | Already in stack, used throughout codebase |
+| Vue 3 | 3.5.25 | Recursive components, computed properties | Already in stack |
 
 ### Alternatives Considered
+
 | Instead of | Could Use | Tradeoff |
 |------------|-----------|----------|
-| PrimeVue TreeSelect (unstyled) | @zanmato/vue3-treeselect | vue3-treeselect has v-model init bug breaking multi-select (documented Issue #4), inconsistent maintenance |
-| PrimeVue TreeSelect (unstyled) | Bootstrap-Vue-Next BFormSelect multiple | BFormSelect cannot display hierarchical trees, only flat option groups |
-| PrimeVue TreeSelect (unstyled) | Custom tree component | Would require building expand/collapse, keyboard nav, ARIA - 200+ hours effort |
+| BFormTags + BDropdown custom | PrimeVue TreeSelect | **User explicitly rejected** - wants Bootstrap-Vue-Next only |
+| Custom recursive component | @zanmato/vue3-treeselect | Has v-model init bug (documented Issue #4), commented out in codebase |
+| BCollapse hierarchy | BFormCheckboxGroup (flat) | Loses hierarchy display, doesn't meet requirements |
+| BCollapse hierarchy | Nested BListGroup | Less clear parent/child relationship, no animation |
 
 **Installation:**
 ```bash
-# Already added in Phase 11 stack decision
 # No new dependencies needed
-npm install primevue@^4.5.4
-```
-
-**Configuration (main.ts):**
-```typescript
-import PrimeVue from 'primevue/config'
-
-app.use(PrimeVue, {
-  unstyled: true  // Critical: no PrimeVue CSS, use Bootstrap classes via PT
-})
+# All components available in existing bootstrap-vue-next@0.42.0
 ```
 
 ## Architecture Patterns
 
 ### Recommended Component Structure
 ```
-src/
-├── components/
-│   ├── forms/
-│   │   ├── TreeMultiSelect.vue      # Wrapper with Bootstrap PT styling
-│   │   ├── HierarchicalChips.vue    # Chip display with tooltips
-│   │   └── TreeSearchFilter.vue     # Search input with clear button
-├── composables/
-│   ├── useTreeSelect.ts             # Tree selection state management
-│   ├── useTreeSearch.ts             # Search filtering logic
-│   └── useHierarchyPath.ts          # Compute ancestor paths for tooltips
+src/components/forms/
+├── TreeMultiSelect.vue           # Main wrapper component
+│   ├── BFormTags (chip display)
+│   └── BDropdown (tree selector)
+│       ├── BFormInput (search)
+│       └── TreeNode.vue (recursive)
+│           ├── BButton (parent toggle)
+│           ├── BCollapse (children wrapper)
+│           └── BFormCheckbox (leaf selection)
 ```
 
 ### Pattern 1: TreeMultiSelect Wrapper Component
 
-**What:** Reusable wrapper around PrimeVue TreeSelect with Bootstrap styling via PT props
-
-**When to use:** Phenotypes and variations multi-select in Review, ModifyEntity, ApproveReview forms
+**What:** Reusable component wrapping BFormTags + BDropdown with tree inside
+**When to use:** Phenotypes and variations multi-select in Review, ModifyEntity, ApproveReview
+**Matches:** Existing PMID tags pattern in Review.vue (lines 659-712)
 
 **Example:**
 ```vue
 <!-- TreeMultiSelect.vue -->
 <template>
   <div class="tree-multi-select">
-    <!-- Search input -->
-    <BFormInput
-      v-model="searchQuery"
-      size="sm"
-      placeholder="Search..."
-      class="mb-2"
-      aria-label="Search items"
-    >
-      <template #append>
-        <BButton
-          v-if="searchQuery"
-          size="sm"
-          variant="link"
-          aria-label="Clear search"
-          @click="searchQuery = ''"
-        >
-          <i class="bi bi-x-lg" />
-        </BButton>
-      </template>
-    </BFormInput>
-
-    <!-- Tree select with Bootstrap PT styling -->
-    <TreeSelect
-      v-model="model"
-      :options="filteredOptions"
-      selectionMode="checkbox"
-      display="chip"
-      :placeholder="placeholder"
-      :pt="{
-        root: { class: 'form-control form-control-sm' },
-        label: { class: 'form-select-label' },
-        trigger: { class: 'btn btn-sm btn-outline-secondary' },
-        panel: { class: 'dropdown-menu show p-2' },
-        tree: { class: 'list-unstyled' },
-        node: { class: 'py-1' },
-        checkbox: { class: 'form-check-input' },
-        nodeLabel: { class: 'ms-2' },
-        nodeToggler: { class: 'btn btn-link btn-sm p-0' },
-        chipContainer: { class: 'd-flex flex-wrap gap-1 mt-2' },
-        chip: { class: 'badge bg-secondary' },
-        chipRemoveIcon: { class: 'bi bi-x ms-1' }
-      }"
-      @update:modelValue="handleChange"
-    />
-
-    <!-- Selected items as chips with full path tooltips -->
-    <div v-if="modelValue?.length" class="mt-2">
+    <!-- Selected items as chips (matches PMID pattern) -->
+    <div v-if="modelValue?.length" class="mb-2">
       <BFormTag
-        v-for="item in selectedItems"
-        :key="item.id"
+        v-for="id in modelValue"
+        :key="id"
         variant="secondary"
         class="me-1 mb-1"
         v-b-tooltip.hover
-        :title="getFullPath(item)"
-        @remove="removeItem(item.id)"
+        :title="getFullPath(id)"
+        @remove="removeSelection(id)"
       >
-        {{ item.label }}
+        {{ getLabel(id) }}
       </BFormTag>
     </div>
 
-    <!-- Validation error -->
-    <div v-if="error" class="invalid-feedback d-block">
-      {{ error }}
-    </div>
+    <!-- Dropdown selector -->
+    <BDropdown
+      v-model="dropdownOpen"
+      :auto-close="false"
+      variant="outline-secondary"
+      size="sm"
+      block
+      text="Select items"
+    >
+      <!-- Search input -->
+      <BDropdownForm @submit.prevent>
+        <BFormInput
+          v-model="searchQuery"
+          placeholder="Search by name or code..."
+          size="sm"
+          debounce="300"
+        />
+      </BDropdownForm>
+      <BDropdownDivider />
+
+      <!-- Scrollable tree area -->
+      <div style="max-height: 300px; overflow-y: auto;">
+        <TreeNode
+          v-for="node in filteredTree"
+          :key="node.id"
+          :node="node"
+          :selected="modelValue || []"
+          @toggle="toggleSelection"
+        />
+      </div>
+
+      <BDropdownDivider />
+
+      <!-- Actions -->
+      <BDropdownItemButton @click="clearAll" variant="link">
+        Clear All
+      </BDropdownItemButton>
+      <BDropdownItemButton @click="dropdownOpen = false" variant="primary">
+        Done ({{ modelValue?.length || 0 }} selected)
+      </BDropdownItemButton>
+    </BDropdown>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import TreeSelect from 'primevue/treeselect'
-import { useTreeSearch } from '@/composables/useTreeSearch'
-import { useHierarchyPath } from '@/composables/useHierarchyPath'
+import { ref, computed } from 'vue'
+import TreeNode from './TreeNode.vue'
 
 interface TreeNode {
   id: string
@@ -172,7 +158,6 @@ interface Props {
   modelValue: string[] | null
   options: TreeNode[]
   placeholder?: string
-  error?: string
 }
 
 const props = defineProps<Props>()
@@ -180,65 +165,190 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string[]): void
 }>()
 
+const dropdownOpen = ref(false)
 const searchQuery = ref('')
 
-// Search filtering - hide non-matching branches
-const { filteredOptions } = useTreeSearch(
-  computed(() => props.options),
-  searchQuery,
-  { matchFields: ['label', 'id'] }  // Match both name and code (HP:0001250)
-)
-
-// Compute full hierarchy path for tooltips
-const { getPath } = useHierarchyPath(computed(() => props.options))
-
-const selectedItems = computed(() => {
-  if (!props.modelValue?.length) return []
-  return findNodesByIds(props.options, props.modelValue)
+const filteredTree = computed(() => {
+  if (!searchQuery.value) return props.options
+  return filterTreeWithContext(props.options, searchQuery.value)
 })
 
-const getFullPath = (item: TreeNode): string => {
-  return getPath(item.id).map(n => n.label).join(' > ')
+function filterTreeWithContext(nodes: TreeNode[], query: string): TreeNode[] {
+  const lowerQuery = query.toLowerCase()
+
+  return nodes.reduce((acc, node) => {
+    const nodeMatches =
+      node.label.toLowerCase().includes(lowerQuery) ||
+      node.id.toLowerCase().includes(lowerQuery)
+
+    const filteredChildren = node.children
+      ? filterTreeWithContext(node.children, query)
+      : []
+
+    if (nodeMatches || filteredChildren.length > 0) {
+      acc.push({
+        ...node,
+        children: filteredChildren.length > 0 ? filteredChildren : node.children
+      })
+    }
+
+    return acc
+  }, [] as TreeNode[])
 }
 
-const handleChange = (value: string[]) => {
-  emit('update:modelValue', value || [])
+function getLabel(id: string): string {
+  const node = findNodeById(props.options, id)
+  return node?.label || id
 }
 
-const removeItem = (id: string) => {
-  const updated = props.modelValue?.filter(v => v !== id) || []
+function getFullPath(id: string): string {
+  const path = getNodePath(props.options, id)
+  return path.map(n => n.label).join(' > ')
+}
+
+function findNodeById(nodes: TreeNode[], id: string): TreeNode | null {
+  for (const node of nodes) {
+    if (node.id === id) return node
+    if (node.children) {
+      const found = findNodeById(node.children, id)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+function getNodePath(nodes: TreeNode[], id: string, path: TreeNode[] = []): TreeNode[] {
+  for (const node of nodes) {
+    if (node.id === id) return [...path, node]
+    if (node.children) {
+      const found = getNodePath(node.children, id, [...path, node])
+      if (found.length > 0) return found
+    }
+  }
+  return []
+}
+
+function toggleSelection(id: string) {
+  const current = props.modelValue || []
+  const updated = current.includes(id)
+    ? current.filter(v => v !== id)
+    : [...current, id]
   emit('update:modelValue', updated)
 }
 
-function findNodesByIds(nodes: TreeNode[], ids: string[]): TreeNode[] {
-  const result: TreeNode[] = []
+function removeSelection(id: string) {
+  const updated = (props.modelValue || []).filter(v => v !== id)
+  emit('update:modelValue', updated)
+}
 
-  const search = (nodes: TreeNode[]) => {
-    for (const node of nodes) {
-      if (ids.includes(node.id)) {
-        result.push(node)
-      }
-      if (node.children) {
-        search(node.children)
-      }
-    }
-  }
-
-  search(nodes)
-  return result
+function clearAll() {
+  emit('update:modelValue', [])
 }
 </script>
 ```
 
-**Source:** PrimeVue TreeSelect official docs - [https://primevue.org/treeselect/](https://primevue.org/treeselect/)
+**Source:** Bootstrap-Vue-Next components documentation + existing PMID pattern
 
-### Pattern 2: Form Integration with Validation
+### Pattern 2: Recursive TreeNode Component
 
-**What:** Integrate TreeMultiSelect with VeeValidate form validation
+**What:** Self-referencing component for hierarchical display with BCollapse
+**When to use:** Unknown depth of nesting, parent/child relationships
+**Critical:** Must register self via `name` property for recursion
 
-**When to use:** All curation forms requiring validation (Review, ModifyEntity, ApproveReview)
+```vue
+<!-- TreeNode.vue -->
+<template>
+  <div class="tree-node">
+    <!-- Parent node with collapse (navigation only per user requirements) -->
+    <div v-if="hasChildren" class="parent-node">
+      <BButton
+        v-b-toggle="`collapse-${node.id}`"
+        variant="link"
+        size="sm"
+        class="text-start w-100 d-flex align-items-center px-2 py-1"
+      >
+        <i class="bi bi-chevron-right me-2 collapse-icon"></i>
+        <span class="flex-grow-1">{{ node.label }}</span>
+        <span class="badge bg-secondary">{{ node.children.length }}</span>
+      </BButton>
 
-**Example:**
+      <BCollapse
+        :id="`collapse-${node.id}`"
+        :lazy="true"
+        class="ms-3"
+      >
+        <TreeNode
+          v-for="child in node.children"
+          :key="child.id"
+          :node="child"
+          :selected="selected"
+          @toggle="$emit('toggle', $event)"
+        />
+      </BCollapse>
+    </div>
+
+    <!-- Leaf node with checkbox (selectable per user requirements) -->
+    <div v-else class="leaf-node ps-4 py-1">
+      <BFormCheckbox
+        :model-value="selected.includes(node.id)"
+        @update:model-value="$emit('toggle', node.id)"
+        :id="`checkbox-${node.id}`"
+      >
+        <span>{{ node.label }}</span>
+        <small class="text-muted ms-2">{{ node.id }}</small>
+      </BFormCheckbox>
+    </div>
+  </div>
+</template>
+
+<script lang="ts">
+import { defineComponent, type PropType } from 'vue'
+
+interface TreeNode {
+  id: string
+  label: string
+  children?: TreeNode[]
+}
+
+export default defineComponent({
+  name: 'TreeNode', // Critical: enables self-reference
+  props: {
+    node: {
+      type: Object as PropType<TreeNode>,
+      required: true
+    },
+    selected: {
+      type: Array as PropType<string[]>,
+      default: () => []
+    }
+  },
+  emits: ['toggle'],
+  computed: {
+    hasChildren() {
+      return this.node.children && this.node.children.length > 0
+    }
+  }
+})
+</script>
+
+<style scoped>
+/* Rotate chevron when expanded */
+.collapse-icon {
+  transition: transform 0.2s ease;
+}
+.not-collapsed .collapse-icon {
+  transform: rotate(90deg);
+}
+</style>
+```
+
+**Source:** Vue 3 component patterns + Bootstrap-Vue-Next BCollapse documentation
+
+### Pattern 3: Form Integration with Validation
+
+**What:** Integrate TreeMultiSelect with existing form validation
+**When to use:** All curation forms (Review, ModifyEntity, ApproveReview)
+
 ```vue
 <template>
   <BForm @submit="handleSubmit">
@@ -247,20 +357,35 @@ function findNodesByIds(nodes: TreeNode[], ids: string[]): TreeNode[] {
       <span class="text-danger">*</span>
     </label>
 
+    <BBadge
+      id="popover-badge-help-phenotypes"
+      pill
+      href="#"
+      variant="info"
+    >
+      <i class="bi bi-question-circle-fill" />
+    </BBadge>
+
+    <BPopover
+      target="popover-badge-help-phenotypes"
+      variant="info"
+      triggers="focus"
+    >
+      <template #title>Phenotypes instructions</template>
+      Add or remove associated phenotypes. Only phenotypes that occur in
+      20% or more of affected individuals should be included.
+    </BPopover>
+
     <TreeMultiSelect
       id="phenotype-select"
-      v-model="phenotypeIds"
-      :options="phenotypeOptions"
+      v-model="select_phenotype"
+      :options="phenotypes_options"
       placeholder="Select phenotypes..."
-      :error="phenotypeError"
-      aria-required="true"
-      aria-describedby="phenotype-help"
-      :aria-invalid="!!phenotypeError"
     />
 
-    <small id="phenotype-help" class="form-text text-muted">
-      Select HPO terms that occur in 20% or more of affected individuals
-    </small>
+    <div v-if="validationError" class="invalid-feedback d-block">
+      {{ validationError }}
+    </div>
 
     <BButton type="submit" variant="primary">
       Submit
@@ -269,109 +394,30 @@ function findNodesByIds(nodes: TreeNode[], ids: string[]): TreeNode[] {
 </template>
 
 <script setup lang="ts">
-import { useForm, useField } from 'vee-validate'
-import { object, array, string } from 'yup'
+import { ref, computed } from 'vue'
 
-const schema = object({
-  phenotypeIds: array()
-    .of(string())
-    .min(1, 'At least one phenotype is required')
-    .required('This field is required')
+const select_phenotype = ref<string[]>([])
+const phenotypes_options = ref([])
+
+const validationError = computed(() => {
+  // Validation on submit only per user requirements
+  return submitted.value && select_phenotype.value.length === 0
+    ? 'This field is required'
+    : null
 })
-
-const { handleSubmit } = useForm({ validationSchema: schema })
-
-const { value: phenotypeIds, errorMessage: phenotypeError } = useField<string[]>(
-  'phenotypeIds',
-  undefined,
-  { initialValue: [] }
-)
 </script>
 ```
 
-**Source:** VeeValidate v4 composition API - [https://vee-validate.logaretm.com/v4/guide/composition-api/](https://vee-validate.logaretm.com/v4/guide/composition-api/)
-
-### Pattern 3: Loading State Management
-
-**What:** Handle async loading of tree options with defensive data handling
-
-**When to use:** All components loading phenotype/variation data from API
-
-**Example:**
-```typescript
-// useTreeOptions.ts
-import { ref, onMounted } from 'vue'
-import axios from 'axios'
-
-export function useTreeOptions(endpoint: string) {
-  const options = ref<TreeNode[] | null>(null)  // null = not loaded, [] = loaded but empty
-  const loading = ref(false)
-  const error = ref<string | null>(null)
-
-  const loadOptions = async () => {
-    loading.value = true
-    error.value = null
-
-    try {
-      const response = await axios.get(endpoint)
-
-      // Defensive: handle both array and object responses
-      const data = Array.isArray(response.data)
-        ? response.data
-        : response.data?.data || []
-
-      options.value = data
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to load options'
-      options.value = []  // Set to empty array on error
-    } finally {
-      loading.value = false
-    }
-  }
-
-  onMounted(() => {
-    loadOptions()
-  })
-
-  return {
-    options,
-    loading,
-    error,
-    reload: loadOptions
-  }
-}
-```
-
-**Usage:**
-```vue
-<template>
-  <BSpinner v-if="loading" label="Loading options..." />
-  <BAlert v-else-if="error" variant="warning">
-    {{ error }}
-  </BAlert>
-  <TreeMultiSelect
-    v-else-if="options && options.length > 0"
-    v-model="selected"
-    :options="options"
-  />
-  <BAlert v-else variant="info">
-    No options available
-  </BAlert>
-</template>
-
-<script setup lang="ts">
-const { options, loading, error } = useTreeOptions('/api/list/phenotype?tree=true')
-</script>
-```
-
-**Source:** Phase 34 decisions - null vs [] for loading state pattern
+**Source:** Existing pattern in Review.vue lines 514-565
 
 ### Anti-Patterns to Avoid
 
-- **Flattening tree structure:** Don't use `flattenTreeOptions()` from ModifyEntity.vue (lines 1419-1430). This loses hierarchy and defeats purpose of tree component.
-- **Mixed selection modes:** Don't mix chips with select dropdown. Use ONE display pattern: chips below tree selector.
-- **Inline styles in PT props:** Use Bootstrap utility classes in PT props, not inline styles. Bad: `{ style: 'margin: 10px' }`. Good: `{ class: 'm-2' }`.
-- **Direct v-model on PrimeVue component:** Always wrap PrimeVue TreeSelect in custom component to isolate PT styling logic.
+- **Using BFormSelect with multiple:** Cannot display hierarchical trees, only flat option groups
+- **Not setting `auto-close="false"` on BDropdown:** Dropdown closes on first checkbox click, breaking multi-select UX
+- **Forgetting `name` property on TreeNode:** Component cannot self-reference without explicit name
+- **Flattening tree with `flattenTreeOptions()`:** Loses hierarchy context that requirements mandate
+- **Missing `:key="node.id"` on recursive components:** Vue reconciliation breaks, causes render bugs
+- **Not using `lazy` prop on BCollapse:** Performance degrades with large trees (HPO has 1000+ terms)
 
 ## Don't Hand-Roll
 
@@ -379,232 +425,363 @@ Problems that look simple but have existing solutions:
 
 | Problem | Don't Build | Use Instead | Why |
 |---------|-------------|-------------|-----|
-| Hierarchical tree display with checkboxes | Custom tree with recursion, expand/collapse, keyboard nav | PrimeVue TreeSelect | 200+ hours to build: ARIA roles, keyboard nav (Arrow keys, Enter, Space, Home, End), focus management, async loading, search filtering, accessibility testing |
-| Search filtering tree nodes | Custom filter that hides branches | `useTreeSearch` composable | Edge cases: preserve ancestor nodes, highlight matches, deep search, debouncing, clear button state |
-| Full hierarchy path tooltips | String concatenation in template | `useHierarchyPath` composable | Performance: memoization needed for large trees, path caching, recursive ancestor lookup |
-| Chip display with removal | Custom badge with click handlers | Bootstrap-Vue-Next BFormTag | Already tested, accessible removal button, keyboard support, screen reader labels |
+| Tag input with validation | Custom input + chip rendering | BFormTags with scoped slot | Built-in duplicate detection, removal handlers, validation pipeline, accessible, already used in codebase |
+| Collapsible sections | Custom show/hide with CSS transitions | BCollapse with v-b-toggle | ARIA attributes (aria-expanded, aria-controls), animation management, keyboard support (Enter, Space), focus management, lazy loading |
+| Dropdown menus with forms | Custom positioned div | BDropdown with auto-close prop | Positioning (Popper.js integration), focus trap, keyboard nav (Arrow keys, Esc, Tab), click-outside handling, ARIA menus |
+| Checkbox groups | Manual array manipulation | BFormCheckbox with array v-model | Array binding, indeterminate states, name grouping for keyboard nav, accessible labels |
+| Input debouncing | Custom setTimeout logic | BFormInput debounce prop | Built-in, cleanup on unmount, no memory leaks |
+| Tree filtering | Manual recursion | Computed property with reduce pattern | Performance memoization, context preservation logic tested |
 
-**Key insight:** Tree components have 10+ accessibility requirements (WCAG 2.1 AA) that are easy to miss. PrimeVue TreeSelect handles all of them correctly:
-- `role="tree"` on container
-- `role="treeitem"` on each node
-- `aria-expanded` on expandable nodes
-- `aria-checked` in checkbox mode
-- `aria-level`, `aria-setsize`, `aria-posinset` for hierarchy
-- Keyboard navigation with arrow keys
-- Focus management with `aria-activedescendant`
+**Key insight:** Bootstrap-Vue-Next components handle accessibility (ARIA, keyboard nav, focus management) that's easy to miss in custom implementations. WCAG 2.1 AA compliance requires:
+- `aria-expanded` on collapsible triggers (BCollapse handles this)
+- `aria-controls` linking trigger to target (v-b-toggle handles this)
+- Keyboard navigation (Arrow, Enter, Space, Esc) (BDropdown handles this)
+- Focus management when opening/closing (BDropdown handles this)
+- Screen reader announcements on state changes (Bootstrap components handle this)
 
-**Source:** [ARIA Authoring Practices Guide - Tree View Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/treeview/)
+Building these from scratch = 40+ hours of accessibility work.
 
 ## Common Pitfalls
 
-### Pitfall 1: Loading Options After Modal Show
+### Pitfall 1: BDropdown Closes on Checkbox Click
 
-**What goes wrong:** Modal opens, TreeMultiSelect renders with `options: null`, user sees empty dropdown. Options load 500ms later but component doesn't update.
+**What goes wrong:** Dropdown closes immediately when clicking checkboxes, user can only select one item before dropdown disappears
 
-**Why it happens:** Options loaded in `loadReviewInfo()` (Review.vue line 1508) but modal shown immediately without awaiting data load.
+**Why it happens:** Default `auto-close` behavior is `true` (closes on any inside click)
 
-**How to avoid:**
-1. **Load options in component `mounted()`**, not in modal open handler
-2. **Use `v-if` to prevent rendering until loaded:**
-   ```vue
-   <TreeMultiSelect
-     v-if="phenotypeOptions && phenotypeOptions.length > 0"
-     v-model="selectedPhenotypes"
-     :options="phenotypeOptions"
-   />
-   ```
-3. **Show loading state in modal:**
-   ```vue
-   <BOverlay :show="loading_review_modal">
-     <TreeMultiSelect ... />
-   </BOverlay>
-   ```
+**How to avoid:** Set `:auto-close="false"` on BDropdown, provide explicit "Done" button to close
 
 **Warning signs:**
-- Empty dropdown that populates after 1 second
-- Console warning: "options is null"
-- TreeSelect component doesn't respond to clicks
+- Multi-select feels broken
+- Can only select one item per dropdown open
+- User frustration trying to select multiple items
 
-**Source:** Phase 34 bug fixes - defensive checks pattern (lines 755-760 in ModifyEntity.vue)
+```vue
+<!-- BAD: Closes on every click -->
+<BDropdown>
+  <BFormCheckbox v-for="item in items" />
+</BDropdown>
 
-### Pitfall 2: Forgetting to Map Selected Values
+<!-- GOOD: Stays open until Done clicked -->
+<BDropdown v-model="isOpen" :auto-close="false">
+  <BFormCheckbox v-for="item in items" />
+  <BDropdownDivider />
+  <BDropdownItemButton @click="isOpen = false">
+    Done
+  </BDropdownItemButton>
+</BDropdown>
+```
 
-**What goes wrong:** API returns `[{phenotype_id: 'HP:0001', modifier_id: 'present'}]` but TreeMultiSelect expects `['present-HP:0001']`. Values don't map, chips show nothing.
+**Source:** Bootstrap-Vue-Next BDropdown documentation - auto-close prop
 
-**Why it happens:** Current codebase uses compound keys `${modifier_id}-${phenotype_id}` (Review.vue line 1530) but tree nodes use `id` field. Mismatch breaks selection.
+### Pitfall 2: BFormTags v-model Type Mismatch
 
-**How to avoid:**
-1. **Normalize on data load:**
-   ```typescript
-   const phenotypeIds = response.data.map(
-     item => `${item.modifier_id}-${item.phenotype_id}`
-   )
-   ```
-2. **Normalize on submit:**
-   ```typescript
-   const phenotypes = selectedIds.map(id => {
-     const [modifier_id, phenotype_id] = id.split('-')
-     return new Phenotype(phenotype_id, modifier_id)
-   })
-   ```
-3. **Document mapping in code:**
-   ```typescript
-   // Format: "${modifier_id}-${phenotype_id}"
-   // Example: "present-HP:0001250"
-   // Matches API response structure for phenotypes
-   ```
+**What goes wrong:** BFormTags expects array of strings, but selections are objects with `{id, label, children}`, chips display "[object Object]"
 
-**Warning signs:**
-- Chips are blank or show undefined
-- Console error: "Cannot read property 'label' of undefined"
-- Selections don't save to database
-
-**Source:** Review.vue lines 1529-1534 - existing phenotype mapping pattern
-
-### Pitfall 3: Not Preserving Parent Node Context in Search
-
-**What goes wrong:** User searches "seizures", tree shows only leaf nodes matching "seizures" without parent categories. User can't tell if it's under "Neurological" or "Developmental".
-
-**Why it happens:** Naive search filters by node label only, removing non-matching ancestors.
+**Why it happens:** The API returns nested objects, v-model binding tries to display objects as strings
 
 **How to avoid:**
-1. **Keep ancestor nodes visible when child matches:**
-   ```typescript
-   function filterTree(nodes: TreeNode[], query: string): TreeNode[] {
-     return nodes.reduce<TreeNode[]>((acc, node) => {
-       const matches = node.label.toLowerCase().includes(query.toLowerCase())
-       const childMatches = node.children
-         ? filterTree(node.children, query)
-         : []
-
-       if (matches || childMatches.length > 0) {
-         acc.push({
-           ...node,
-           children: childMatches.length > 0 ? childMatches : node.children
-         })
-       }
-
-       return acc
-     }, [])
-   }
-   ```
-2. **Expand all matching branches automatically:**
-   ```typescript
-   const expandedKeys = computed(() => {
-     if (!searchQuery.value) return {}
-     return getExpandedKeysForMatches(options.value, searchQuery.value)
-   })
-   ```
+- Store only IDs in the v-model array: `selectedIds: string[]`
+- Create lookup functions: `getLabel(id)` and `getFullPath(id)`
+- Keep original tree data separate from selections
 
 **Warning signs:**
-- Search results look disconnected
+- Chips show "[object Object]"
+- Console error: "Cannot convert object to primitive value"
+- Chips are blank
+
+```vue
+<!-- BAD: Will show "[object Object]" -->
+<BFormTags v-model="selectedObjects" />
+
+<!-- GOOD: Shows labels via lookup in scoped slot -->
+<BFormTags v-model="selectedIds" no-outer-focus>
+  <template #default="{ tags, removeTag }">
+    <BFormTag
+      v-for="id in tags"
+      :key="id"
+      @remove="removeTag(id)"
+    >
+      {{ getLabel(id) }}
+    </BFormTag>
+  </template>
+</BFormTags>
+```
+
+**Source:** Review.vue lines 659-712 existing pattern, BFormTags documentation
+
+### Pitfall 3: Recursive Component Without Proper Registration
+
+**What goes wrong:** `TreeNode` component references itself recursively, but Vue can't find it, console error "Failed to resolve component: TreeNode"
+
+**Why it happens:** Component must be explicitly registered with `name` property before it can reference itself
+
+**How to avoid:** Use `export default defineComponent({ name: 'TreeNode' })` pattern, NOT `<script setup>` without name
+
+**Warning signs:**
+- Console error: "Failed to resolve component: TreeNode"
+- Tree only renders first level, no children
+- Template fails to compile
+
+```vue
+<!-- BAD: Self-reference without name -->
+<script setup>
+// No name defined - Vue doesn't know TreeNode refers to self
+</script>
+
+<!-- GOOD: Named for self-reference -->
+<script lang="ts">
+import { defineComponent } from 'vue'
+
+export default defineComponent({
+  name: 'TreeNode', // Critical: enables <TreeNode> tag to reference self
+  props: { /* ... */ },
+  // ...
+})
+</script>
+```
+
+**Source:** Vue 3 component registration docs, recursive component pattern
+
+### Pitfall 4: Missing Context in Search Results
+
+**What goes wrong:** User searches "seizures", tree shows only leaf nodes matching "seizures" without parent categories, unclear if it's under "Neurological" or "Developmental"
+
+**Why it happens:** Naive search filters by node label only, removing non-matching ancestors
+
+**How to avoid:** Keep ancestor nodes visible when child matches, expand matched branches automatically
+
+**Warning signs:**
+- Search results look disconnected, no hierarchy visible
 - User confusion: "Where does this option belong?"
-- Test: Search for child term, check if parent category visible
+- Test: Search for child term, parent category should still show
 
-**Source:** User decisions - "Keep ancestor nodes visible so user sees where match sits in hierarchy"
+```javascript
+// BAD: Only returns matching nodes
+function filterTree(nodes, query) {
+  return nodes.filter(node =>
+    node.label.includes(query)
+  )
+}
 
-### Pitfall 4: Chip Overflow Breaking Layout
+// GOOD: Returns matches WITH ancestors for context
+function filterTreeWithContext(nodes, query) {
+  const lowerQuery = query.toLowerCase()
 
-**What goes wrong:** User selects 20 phenotypes, chips overflow container, form becomes 3 screens tall, submit button scrolls off page.
+  return nodes.reduce((acc, node) => {
+    const nodeMatches =
+      node.label.toLowerCase().includes(lowerQuery) ||
+      node.id.toLowerCase().includes(lowerQuery)
 
-**Why it happens:** No `max-height` or `overflow-y: auto` on chip container.
+    const filteredChildren = node.children
+      ? filterTreeWithContext(node.children, query)
+      : []
+
+    // Include node if IT matches OR children match
+    if (nodeMatches || filteredChildren.length > 0) {
+      acc.push({
+        ...node,
+        children: filteredChildren.length > 0 ? filteredChildren : node.children
+      })
+    }
+
+    return acc
+  }, [])
+}
+```
+
+**Source:** User requirements - "Keep ancestor nodes visible so user sees where match sits in hierarchy"
+
+### Pitfall 5: Performance with Large Trees
+
+**What goes wrong:** Rendering 1000+ HPO terms causes slow initial load, laggy search, UI freezes when opening dropdown
+
+**Why it happens:** Rendering all nodes at once, no virtualization, reactive overhead on deep trees
 
 **How to avoid:**
-1. **Let field grow per requirements:**
-   ```vue
-   <!-- Per user decision: "Show all chips, field grows as needed (no truncation)" -->
-   <div class="chip-container">
-     <BFormTag
-       v-for="item in selectedItems"
-       :key="item.id"
-       class="me-1 mb-1"
-     >
-       {{ item.label }}
-     </BFormTag>
-   </div>
-   ```
-2. **Ensure submit button always visible:**
-   ```vue
-   <BCard>
-     <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
-       <TreeMultiSelect ... />
-     </div>
-     <div class="modal-footer">
-       <BButton type="submit">Submit</BButton>
-     </div>
-   </BCard>
-   ```
+- Use BCollapse `lazy` prop (defers rendering until expanded)
+- Implement search debouncing (BFormInput `debounce="300"`)
+- Consider `v-show` instead of `v-if` for frequently toggled nodes
+- Limit initial tree depth (show top 2 levels, expand on demand)
 
 **Warning signs:**
-- Submit button below fold
-- Horizontal scrollbar appears
-- Test: Select 30 items, check usability
+- UI freezes when opening dropdown
+- Search feels laggy despite debounce
+- Browser console warning: "Long task detected"
+- Test with full HPO tree (16,000+ terms)
 
-**Source:** User decisions - "Show all chips, field grows as needed (no truncation)"
+```vue
+<!-- BAD: Renders all nodes immediately -->
+<BCollapse :id="collapseId">
+  <TreeNode v-for="child in node.children" />
+</BCollapse>
+
+<!-- GOOD: Defers render until expanded -->
+<BCollapse :id="collapseId" :lazy="true">
+  <TreeNode v-for="child in node.children" />
+</BCollapse>
+```
+
+**Source:** Bootstrap-Vue-Next BCollapse documentation - lazy prop
 
 ## Code Examples
 
-Verified patterns from official sources:
+Verified patterns from official sources and codebase:
 
-### PrimeVue TreeSelect with Checkbox Selection
+### BFormTags with Custom Chips (Existing Pattern from Codebase)
 ```vue
-<template>
-  <TreeSelect
-    v-model="selectedNodes"
-    :options="nodes"
-    selectionMode="checkbox"
-    placeholder="Select Items"
-  />
-</template>
+<!-- Source: /app/src/views/review/Review.vue lines 659-712 -->
+<!-- This pattern already works for PMID tags -->
+<BFormTags
+  v-model="select_additional_references"
+  input-id="review-literature-select"
+  no-outer-focus
+  class="my-0"
+  separator=",;"
+  :tag-validator="tagValidatorPMID"
+  remove-on-delete
+>
+  <template #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }">
+    <BInputGroup class="my-0">
+      <BFormInput
+        v-bind="inputAttrs"
+        placeholder="Enter PMIDs separated by comma or semicolon"
+        class="form-control"
+        size="sm"
+        v-on="inputHandlers"
+      />
+      <BButton
+        variant="secondary"
+        size="sm"
+        @click="addTag()"
+      >
+        Add
+      </BButton>
+    </BInputGroup>
 
-<script setup lang="ts">
-import { ref } from 'vue'
-import TreeSelect from 'primevue/treeselect'
-
-const selectedNodes = ref<string[] | null>(null)
-const nodes = ref([
-  {
-    key: '0',
-    label: 'Neurological abnormality',
-    children: [
-      { key: '0-0', label: 'Seizure', data: 'HP:0001250' },
-      { key: '0-1', label: 'Intellectual disability', data: 'HP:0001249' }
-    ]
-  }
-])
-</script>
-```
-**Source:** [PrimeVue TreeSelect Documentation](https://primevue.org/treeselect/)
-
-### Bootstrap-Vue-Next BFormTag for Chips
-```vue
-<template>
-  <BFormTags
-    v-model="tags"
-    no-outer-focus
-    class="mb-2"
-  >
-    <template #default="{ tags, removeTag }">
-      <div class="d-flex flex-wrap gap-1">
+    <div class="d-inline-block">
+      <h6>
         <BFormTag
           v-for="tag in tags"
           :key="tag"
+          :title="tag"
           variant="secondary"
           @remove="removeTag(tag)"
         >
-          {{ tag }}
+          <BLink
+            :href="'https://pubmed.ncbi.nlm.nih.gov/' + tag.replace('PMID:', '')"
+            target="_blank"
+            class="text-light"
+          >
+            <i class="bi bi-box-arrow-up-right" />
+            {{ tag }}
+          </BLink>
         </BFormTag>
-      </div>
-    </template>
-  </BFormTags>
+      </h6>
+    </div>
+  </template>
+</BFormTags>
+```
+
+### BDropdown with Search and Multi-Select (Bootstrap-Vue-Next Pattern)
+```vue
+<!-- Source: Bootstrap-Vue-Next BDropdown documentation -->
+<BDropdown
+  v-model="dropdownOpen"
+  :auto-close="false"
+  variant="outline-secondary"
+  size="sm"
+  text="Select Phenotypes"
+  block
+>
+  <!-- Search input stays at top -->
+  <BDropdownForm @submit.prevent>
+    <BFormInput
+      v-model="searchQuery"
+      placeholder="Search HPO terms..."
+      size="sm"
+      debounce="300"
+    />
+    <small v-if="searchQuery" class="text-muted d-block px-3">
+      {{ filteredCount }} results
+    </small>
+  </BDropdownForm>
+
+  <BDropdownDivider />
+
+  <!-- Scrollable content area -->
+  <div style="max-height: 300px; overflow-y: auto;">
+    <TreeNode
+      v-for="node in filteredTree"
+      :key="node.id"
+      :node="node"
+      :selected="selectedPhenotypes"
+      @toggle="toggleSelection"
+    />
+  </div>
+
+  <BDropdownDivider />
+
+  <!-- Action buttons -->
+  <BDropdownItemButton @click="clearAll" variant="link" class="text-start">
+    <i class="bi bi-x-circle me-2"></i>
+    Clear All
+  </BDropdownItemButton>
+  <BDropdownItemButton @click="dropdownOpen = false" variant="primary">
+    Done ({{ selectedPhenotypes.length }} selected)
+  </BDropdownItemButton>
+</BDropdown>
+```
+
+### BCollapse for Hierarchy with Bootstrap Icons
+```vue
+<!-- Source: Bootstrap-Vue-Next BCollapse documentation + codebase Bootstrap Icons -->
+<template>
+  <div class="tree-node">
+    <!-- Parent with children (navigation only per user requirements) -->
+    <div v-if="hasChildren" class="parent-node">
+      <BButton
+        v-b-toggle="`collapse-${node.id}`"
+        variant="link"
+        size="sm"
+        class="text-start w-100 d-flex align-items-center px-2 py-1"
+      >
+        <i class="bi bi-chevron-right me-2 collapse-icon"></i>
+        <span class="flex-grow-1">{{ node.label }}</span>
+        <span class="badge bg-secondary">{{ node.children.length }}</span>
+      </BButton>
+
+      <BCollapse
+        :id="`collapse-${node.id}`"
+        :lazy="true"
+        class="ms-3"
+      >
+        <TreeNode
+          v-for="child in node.children"
+          :key="child.id"
+          :node="child"
+          :selected="selected"
+          @toggle="$emit('toggle', $event)"
+        />
+      </BCollapse>
+    </div>
+
+    <!-- Leaf node with checkbox (selectable per user requirements) -->
+    <div v-else class="leaf-node ps-4 py-1">
+      <BFormCheckbox
+        :model-value="selected.includes(node.id)"
+        @update:model-value="$emit('toggle', node.id)"
+        :id="`checkbox-${node.id}`"
+      >
+        <span>{{ node.label }}</span>
+        <small class="text-muted ms-2">{{ node.id }}</small>
+      </BFormCheckbox>
+    </div>
+  </div>
 </template>
-```
-**Source:** Review.vue lines 659-713 - existing PMID tags pattern
 
-### Tree Search with Context Preservation
-```typescript
-// composables/useTreeSearch.ts
-import { computed, Ref } from 'vue'
+<script lang="ts">
+import { defineComponent, type PropType } from 'vue'
 
 interface TreeNode {
   id: string
@@ -612,90 +789,78 @@ interface TreeNode {
   children?: TreeNode[]
 }
 
-export function useTreeSearch(
-  options: Ref<TreeNode[]>,
-  query: Ref<string>,
-  config: { matchFields: string[] }
-) {
-  const filteredOptions = computed(() => {
-    if (!query.value) return options.value
-
-    const lowerQuery = query.value.toLowerCase()
-
-    function filterNode(node: TreeNode): TreeNode | null {
-      // Check if node matches
-      const nodeMatches = config.matchFields.some(field => {
-        const value = node[field as keyof TreeNode]
-        return typeof value === 'string' && value.toLowerCase().includes(lowerQuery)
-      })
-
-      // Recursively filter children
-      const filteredChildren = node.children
-        ?.map(filterNode)
-        .filter((n): n is TreeNode => n !== null)
-
-      // Include node if it matches OR if any children match
-      if (nodeMatches || (filteredChildren && filteredChildren.length > 0)) {
-        return {
-          ...node,
-          children: filteredChildren
-        }
-      }
-
-      return null
+export default defineComponent({
+  name: 'TreeNode', // Critical: enables self-reference
+  props: {
+    node: {
+      type: Object as PropType<TreeNode>,
+      required: true
+    },
+    selected: {
+      type: Array as PropType<string[]>,
+      default: () => []
     }
+  },
+  emits: ['toggle'],
+  computed: {
+    hasChildren() {
+      return this.node.children && this.node.children.length > 0
+    }
+  }
+})
+</script>
 
-    return options.value
-      .map(filterNode)
-      .filter((n): n is TreeNode => n !== null)
-  })
-
-  return { filteredOptions }
+<style scoped>
+/* Rotate chevron when expanded */
+.collapse-icon {
+  transition: transform 0.2s ease;
 }
+.not-collapsed .collapse-icon {
+  transform: rotate(90deg);
+}
+</style>
 ```
 
-### Full Hierarchy Path for Tooltips
-```typescript
-// composables/useHierarchyPath.ts
-import { computed, Ref } from 'vue'
+### Data Integration with Existing API
+```javascript
+// Source: /app/src/views/review/Review.vue lines 1361-1378, 1523-1534
+// API returns tree structure with {id, label, children[]}
 
-interface TreeNode {
-  id: string
-  label: string
-  children?: TreeNode[]
+async loadPhenotypesList() {
+  const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/phenotype?tree=true`;
+  try {
+    const response = await this.axios.get(apiUrl);
+    this.phenotypes_options = response.data; // Already tree structure
+  } catch (e) {
+    this.makeToast(e, 'Error', 'danger');
+  }
 }
 
-export function useHierarchyPath(options: Ref<TreeNode[]>) {
-  const pathCache = new Map<string, TreeNode[]>()
+// Loading existing selections (currently uses modifier-id compound keys)
+async loadReviewInfo(review_id) {
+  const apiGetPhenotypesURL = `${import.meta.env.VITE_API_URL}/api/review/${review_id}/phenotypes`;
 
-  // Build path cache on options change
-  const buildCache = () => {
-    pathCache.clear()
+  const response = await this.axios.get(apiGetPhenotypesURL);
 
-    function traverse(nodes: TreeNode[], ancestors: TreeNode[] = []) {
-      for (const node of nodes) {
-        const path = [...ancestors, node]
-        pathCache.set(node.id, path)
+  // Current format: [{phenotype_id: "HP:0001250", modifier_id: "present"}]
+  // Extract IDs for multi-select (may need modifier handling)
+  this.select_phenotype = response.data.map(
+    item => `${item.modifier_id}-${item.phenotype_id}`
+  );
+}
 
-        if (node.children) {
-          traverse(node.children, path)
-        }
-      }
-    }
+// Saving selections
+submitReviewChange() {
+  // Convert selected IDs back to Phenotype objects
+  const replace_phenotype = this.select_phenotype.map(
+    item => new Phenotype(
+      item.split('-')[1], // phenotype_id
+      item.split('-')[0]  // modifier_id
+    )
+  );
 
-    traverse(options.value)
-  }
-
-  const getPath = (nodeId: string): TreeNode[] => {
-    if (pathCache.size === 0) buildCache()
-    return pathCache.get(nodeId) || []
-  }
-
-  const getPathString = (nodeId: string): string => {
-    return getPath(nodeId).map(n => n.label).join(' > ')
-  }
-
-  return { getPath, getPathString }
+  this.review_info.phenotypes = replace_phenotype;
+  // Submit to API...
 }
 ```
 
@@ -703,71 +868,81 @@ export function useHierarchyPath(options: Ref<TreeNode[]>) {
 
 | Old Approach | Current Approach | When Changed | Impact |
 |--------------|------------------|--------------|--------|
-| vue3-treeselect with multiple | PrimeVue TreeSelect with checkbox mode | Phase 11 (Jan 2026) | Fixes v-model init bug, ARIA compliant, unstyled mode for Bootstrap |
-| BFormSelect single mode workaround | TreeMultiSelect wrapper component | Phase 35 (this phase) | Restores multi-select functionality, consistent UX |
-| Flat optgroups in BFormSelect | Hierarchical tree with expand/collapse | Phase 35 (this phase) | Better UX for large ontologies (HPO has 16,000+ terms) |
-| Manual chip rendering | BFormTag component | Already done | Consistent with PMID tags pattern |
+| @zanmato/vue3-treeselect | Single-select BFormSelect workaround | Phase 11 (Bootstrap-Vue-Next migration) | Treeselect incompatible, temporarily lost multi-select |
+| Multiple select dropdowns | Custom TreeMultiSelect component | Phase 35 (this phase) | Restores multi-select with Bootstrap-Vue-Next only |
+| Flat optgroups | Hierarchical tree with BCollapse | Phase 35 (this phase) | Better UX for HPO (1000+ terms with 5+ levels) |
+| Bootstrap-Vue (Vue 2) | Bootstrap-Vue-Next (Vue 3) | Phase 11 | Component API changes, patterns updated |
 
 **Deprecated/outdated:**
-- **@zanmato/vue3-treeselect 0.4.2:** Multi-select v-model initialization bug, community fork maintenance uncertain
-- **Flattening tree to optgroups:** Loses hierarchy, poor UX for deep trees (HPO has 5+ levels)
-- **Custom tree components without ARIA:** Fails accessibility audits, blocks screen reader users
+- **@zanmato/vue3-treeselect 0.4.2:** Has v-model init bug, commented out in codebase (lines 542-552 in Review.vue)
+- **Flattening tree to flat list:** Current workaround uses `flattenTreeOptions()` (line 1419 Review.vue), loses hierarchy
+- **BFormSelect with optgroups:** Cannot show hierarchical trees, only 1-level grouping
+- **PrimeVue components:** User explicitly rejected, wants Bootstrap-Vue-Next only
+
+**Current state (2026):**
+- Bootstrap-Vue-Next v0.42.0 is actively maintained, stable
+- No official tree select component exists or is planned for Bootstrap-Vue-Next
+- Community consensus: Build custom components using BCollapse + BFormCheckbox primitives
+- This matches Bootstrap 5 philosophy: provide primitives, not complex widgets
 
 ## Open Questions
 
-Things that couldn't be fully resolved:
+1. **Modifier Handling for Phenotypes**
+   - What we know: Current code stores `modifier_id-phenotype_id` compound keys (line 1530 in Review.vue)
+   - What's unclear: What are valid modifiers? How should UI expose them? (present/absent/severity?)
+   - Recommendation: Start with simple ID selection (no modifier UI), preserve existing modifier logic in data layer, add modifier UI in follow-up if needed
 
-1. **PrimeVue TreeSelect Performance with 16,000+ HPO Terms**
-   - What we know: PrimeVue supports lazy loading via `loading` prop
-   - What's unclear: Whether initial render of full HPO tree (16K nodes) causes lag
-   - Recommendation: Start with full tree load (API already returns tree), add lazy loading if performance issues detected in Phase 35 testing
+2. **Parent Node Selection Behavior**
+   - What we know: User specified "Parent selection is for navigation only — must explicitly select individual children"
+   - What's unclear: Should parent nodes show disabled checkboxes or no checkboxes at all?
+   - Recommendation: Show parent nodes as BButton toggles only (no checkbox), only leaf nodes get BFormCheckbox
 
-2. **Tooltip Positioning for Chips at Bottom of Modal**
-   - What we know: Bootstrap tooltips can overflow modal bounds
-   - What's unclear: Whether `boundary: 'window'` fixes this reliably
-   - Recommendation: Test with 20+ selected items, adjust tooltip boundary if needed
+3. **Performance with Full HPO Tree**
+   - What we know: HPO has 16,000+ terms with 5+ levels of nesting
+   - What's unclear: Whether rendering full tree causes performance issues, or if lazy loading required
+   - Recommendation: Start with full tree load (API already returns tree), use BCollapse `lazy` prop, add virtual scrolling only if testing shows issues
 
-3. **Search Highlighting Match Text**
-   - What we know: User expects visual highlight of matched text (e.g., "Sei**zur**es")
-   - What's unclear: Whether PrimeVue TreeSelect supports this natively or needs custom template
-   - Recommendation: Use PrimeVue's `nodeTemplate` slot if highlight needed, otherwise accept non-highlighted search
+4. **Keyboard Navigation Depth**
+   - What we know: BDropdown supports arrow key navigation between items
+   - What's unclear: How should Tab/Arrow keys work with collapsed/expanded nodes and checkboxes?
+   - Recommendation: Use default browser behavior (Tab moves between focusable elements), Space/Enter toggle checkboxes, collapse/expand handled by v-b-toggle directive
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [PrimeVue TreeSelect Component](https://primevue.org/treeselect/) - Official documentation
-- [PrimeVue Pass Through](https://primevue.org/passthrough/) - Unstyled mode styling
-- [Bootstrap-Vue-Next BFormSelect](https://bootstrap-vue-next.github.io/bootstrap-vue-next/docs/components/form-select) - Native select capabilities
-- [Bootstrap-Vue-Next BFormTag](https://bootstrap-vue-next.github.io/bootstrap-vue-next/docs/components/form-tags) - Chip display
-- SysNDD Codebase (HIGH confidence):
-  - `/app/src/views/review/Review.vue` - Current workaround implementation
-  - `/app/src/views/curate/ModifyEntity.vue` - Multi-select usage patterns
-  - `/app/src/views/curate/ApproveReview.vue` - Form validation patterns
-  - `.planning/research/STACK.md` - v7 technology decisions
-  - `.planning/research/PITFALLS-curation-workflow.md` - Known issues
+- [Bootstrap-Vue-Next Components Documentation](https://bootstrap-vue-next.github.io/bootstrap-vue-next/docs/components) - Official component reference
+- [Bootstrap-Vue-Next BCollapse](https://bootstrap-vue-next.github.io/bootstrap-vue-next/docs/components/collapse) - Collapsible sections API, lazy prop
+- [Bootstrap-Vue-Next BFormCheckbox](https://bootstrap-vue-next.github.io/bootstrap-vue-next/docs/components/form-checkbox) - Checkbox array binding, indeterminate state
+- [Bootstrap-Vue-Next BFormTags](https://bootstrap-vue-next.github.io/bootstrap-vue-next/docs/components/form-tags) - Tag input with scoped slot pattern
+- [Bootstrap-Vue-Next BDropdown](https://bootstrap-vue-next.github.io/bootstrap-vue-next/docs/components/dropdown) - Dropdown menus with auto-close prop
+- [Bootstrap-Vue-Next BListGroup](https://bootstrap-vue-next.github.io/bootstrap-vue-next/docs/components/list-group) - List display with button mode
+- Codebase: `/app/src/views/review/Review.vue` - Existing patterns (BFormTags with PMIDs lines 659-712, data loading)
+- Codebase: `/app/src/views/curate/ModifyEntity.vue` - Tree data handling patterns
+- Codebase: `/app/package.json` - Bootstrap-Vue-Next version 0.42.0 confirmed
 
 ### Secondary (MEDIUM confidence)
-- [ARIA Authoring Practices - Tree View](https://www.w3.org/WAI/ARIA/apg/patterns/treeview/) - Accessibility requirements
-- [MDBootstrap Multiselect](https://mdbootstrap.com/docs/standard/extended/multiselect/) - UI patterns reference
-- [Telerik MultiSelectTree Guidelines](https://www.telerik.com/design-system/docs/components/multiselecttree/usage/) - Best practices for hierarchical multi-select
-- [HPO Browser Internationalization](https://academic.oup.com/nar/article/49/D1/D1207/6017351) - HPO interface design decisions
+- [Bootstrap-Vue-Next NPM page](https://www.npmjs.com/package/bootstrap-vue-next) - Version history, weekly downloads (331K+)
+- [Bootstrap-Vue-Next GitHub releases](https://github.com/bootstrap-vue-next/bootstrap-vue-next/releases) - Recent updates and changelog
+- [Bootstrap Icons](https://icons.getbootstrap.com/) - Chevron icons for expand/collapse
 
 ### Tertiary (LOW confidence)
-- WebSearch results on "Bootstrap 5 hierarchical multi-select" - General patterns, not specific to Vue 3
-- WebSearch results on "Vue 3 multi-select hierarchical tree chips" - Library comparisons
+- [MDB Bootstrap Vue Tree View](https://mdbootstrap.com/docs/vue/plugins/tree-view/) - Requires Material Design for Bootstrap (different framework, not applicable)
+- [Syncfusion Vue Dropdown Tree](https://www.syncfusion.com/vue-components/vue-dropdown-tree) - Commercial library (not applicable)
+- [PrimeVue TreeSelect](https://primevue.org/treeselect/) - **User explicitly rejected** PrimeVue
 
 ## Metadata
 
 **Confidence breakdown:**
-- Standard stack: HIGH - PrimeVue TreeSelect decision made in Phase 11, documented in STACK.md
-- Architecture: HIGH - Patterns verified from PrimeVue docs and existing codebase (BFormTag usage)
-- Pitfalls: HIGH - Derived from Phase 34 bug fixes and codebase analysis (10+ TODO comments documenting vue3-treeselect issues)
+- Standard stack: HIGH - All components verified in official Bootstrap-Vue-Next docs v0.42.0 and confirmed in codebase
+- Architecture: HIGH - Patterns based on official documentation and existing working pattern (BFormTags for PMIDs)
+- Pitfalls: HIGH - Based on documentation warnings, codebase analysis (commented-out treeselect issues), and common Vue 3 patterns
 
 **Research date:** 2026-01-26
-**Valid until:** 60 days (PrimeVue stable, Bootstrap-Vue-Next stable)
+**Valid until:** ~2026-02-26 (30 days - Bootstrap-Vue-Next is stable framework, unlikely breaking changes)
 
-**Key constraints from CONTEXT.md:**
-- Chips/tags display format: LOCKED (show item name, full path on hover)
-- Search behavior: LOCKED (filter in place, show matches in context)
-- Validation: LOCKED (minimum 1 required, errors on submit only)
-- Interface pattern: RESEARCHED (PrimeVue TreeSelect wrapper with Bootstrap PT styling)
+**Bootstrap-Vue-Next specifics:**
+- Version in codebase: 0.42.0
+- Last checked: 2026-01-26
+- No tree select component in official roadmap
+- Framework philosophy: Provide primitives (BCollapse, BFormCheckbox), not complex widgets
+- Custom component required for hierarchical multi-select (confirmed by community and docs)
