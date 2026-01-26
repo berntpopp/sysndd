@@ -21,7 +21,7 @@ This roadmap transforms curation views from basic forms into modern, accessible 
 - [x] **Phase 35.1: ModifyEntity UX Overhaul** (INSERTED) - Complete ModifyEntity.vue UX modernization with enhanced entity preview, contextual modal headers, and modernized form controls
 - [x] **Phase 36: Curation Table Modernization** - Add filtering, pagination, and accessibility to curation tables
 - [x] **Phase 37: Form Modernization** - Extract reusable form composables and improve form UX
-- [ ] **Phase 38: Re-Review System Overhaul** - Add dynamic batch management and gene-specific assignment
+- [x] **Phase 38: Re-Review System Overhaul** - Add dynamic batch management and gene-specific assignment
 - [ ] **Phase 39: Accessibility Pass** - Ensure WCAG 2.2 AA compliance across all curation views
 
 ## Phase Details
@@ -119,10 +119,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 38-01-PLAN.md - Create re-review-service.R with batch management functions (RRV-01)
-- [ ] 38-02-PLAN.md - Add API endpoints for batch creation and management (RRV-02, RRV-03, RRV-07)
-- [ ] 38-03-PLAN.md - Create useBatchForm composable and BatchCriteriaForm component (RRV-04)
-- [ ] 38-04-PLAN.md - Integrate batch creation UI into ManageReReview.vue (RRV-05, RRV-06)
+- [x] 38-01-PLAN.md - Create re-review-service.R with batch management functions (RRV-01)
+- [x] 38-02-PLAN.md - Add API endpoints for batch creation and management (RRV-02, RRV-03, RRV-07)
+- [x] 38-03-PLAN.md - Create useBatchForm composable and BatchCriteriaForm component (RRV-04)
+- [x] 38-04-PLAN.md - Integrate batch creation UI into ManageReReview.vue (RRV-05, RRV-06)
 
 ### Phase 39: Accessibility Pass
 **Goal**: Ensure WCAG 2.2 AA compliance across all curation interfaces
@@ -150,9 +150,9 @@ Plans:
 | 35.1 ModifyEntity UX Overhaul | v7.0 | 2/2 | Complete | 2026-01-26 |
 | 36. Curation Table Modernization | v7.0 | 3/3 | Complete | 2026-01-26 |
 | 37. Form Modernization | v7.0 | 3/3 | Complete | 2026-01-26 |
-| 38. Re-Review System Overhaul | v7.0 | 0/4 | Not started | - |
+| 38. Re-Review System Overhaul | v7.0 | 4/4 | Complete | 2026-01-26 |
 | 39. Accessibility Pass | v7.0 | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-01-26*
-*Last updated: 2026-01-26 -- Phase 38 planned (4 plans)*
+*Last updated: 2026-01-26 -- Phase 38 complete (Re-Review System Overhaul)*
