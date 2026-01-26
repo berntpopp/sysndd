@@ -16,10 +16,17 @@ Requirements for v7.0 milestone grouped by category. Each maps to roadmap phases
 
 ### Multi-Select Restoration
 
-- [ ] **MSEL-01**: Restore multi-select for phenotypes using custom TreeMultiSelect component (Bootstrap-Vue-Next primitives: BFormTags, BDropdown, BCollapse, BFormCheckbox)
-- [ ] **MSEL-02**: Restore multi-select for variations using custom TreeMultiSelect component (Bootstrap-Vue-Next primitives: BFormTags, BDropdown, BCollapse, BFormCheckbox)
-- [ ] **MSEL-03**: Update all curation views to use new multi-select pattern (Review, ModifyEntity, ApproveReview)
-- [ ] **MSEL-04**: Remove vue3-treeselect dependency after migration complete
+- [x] **MSEL-01**: Restore multi-select for phenotypes using custom TreeMultiSelect component (Bootstrap-Vue-Next primitives: BFormTags, BDropdown, BCollapse, BFormCheckbox)
+- [x] **MSEL-02**: Restore multi-select for variations using custom TreeMultiSelect component (Bootstrap-Vue-Next primitives: BFormTags, BDropdown, BCollapse, BFormCheckbox)
+- [x] **MSEL-03**: Update all curation views to use new multi-select pattern (Review, ModifyEntity, ApproveReview)
+- [x] **MSEL-04**: Remove vue3-treeselect dependency after migration complete
+
+### ModifyEntity UX Overhaul
+
+- [x] **MEU-01**: Entity preview card shows gene symbol (HGNC link), disease name (ontology link), inheritance icon, category stoplight, NDD status
+- [x] **MEU-02**: All 4 modal headers show rich entity context (Gene | Disease | Inheritance | Category) with colorAndSymbols icons
+- [x] **MEU-03**: All form controls use BFormCheckbox with switch prop (no custom-control-switch CSS)
+- [x] **MEU-04**: Action buttons disabled until entity_loaded is true, with BSpinner during submission
 
 ### Curation Table Improvements
 
@@ -88,10 +95,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BUG-02 | Phase 34 | Complete |
 | BUG-03 | Phase 34 | Complete |
 | BUG-04 | Phase 34 | Complete |
-| MSEL-01 | Phase 35 | Pending |
-| MSEL-02 | Phase 35 | Pending |
-| MSEL-03 | Phase 35 | Pending |
-| MSEL-04 | Phase 35 | Pending |
+| MSEL-01 | Phase 35 | Complete |
+| MSEL-02 | Phase 35 | Complete |
+| MSEL-03 | Phase 35 | Complete |
+| MSEL-04 | Phase 35 | Complete |
+| MEU-01 | Phase 35.1 | Complete |
+| MEU-02 | Phase 35.1 | Complete |
+| MEU-03 | Phase 35.1 | Complete |
+| MEU-04 | Phase 35.1 | Complete |
 | TBL-01 | Phase 36 | Pending |
 | TBL-02 | Phase 36 | Pending |
 | TBL-03 | Phase 36 | Pending |
@@ -119,10 +130,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | A11Y-05 | Phase 39 | Pending |
 
 **Coverage:**
-- v7 requirements: 32 total
-- Mapped to phases: 32
+- v7 requirements: 36 total
+- Mapped to phases: 36
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-26*
-*Last updated: 2026-01-26 -- MSEL-01/MSEL-02 updated for Bootstrap-Vue-Next custom component approach*
+*Last updated: 2026-01-26 -- Phase 35 (MSEL) and Phase 35.1 (MEU) requirements complete*
