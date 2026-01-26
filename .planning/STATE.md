@@ -6,15 +6,15 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** Phase 35 - Multi-Select Restoration
+**Current focus:** Phase 36 - Curation Table Modernization
 
 ## Current Position
 
 **Milestone:** v7.0 Curation Workflow Modernization
-**Phase:** 35 of 39 (Multi-Select Restoration)
-**Plan:** 2 of 2 in current phase
-**Status:** Phase complete
-**Last activity:** 2026-01-26 -- Completed 35-02-PLAN.md
+**Phase:** 35 of 39 (Multi-Select Restoration) - COMPLETE
+**Plan:** 3 of 3 in phase 35
+**Status:** Phase 35 complete, ready for Phase 36
+**Last activity:** 2026-01-26 -- Phase 35 complete (3 plans)
 
 ```
 v7.0 Curation Workflow Modernization: [██████████____________________] 33% (2/6 phases)
@@ -23,7 +23,7 @@ v7.0 Curation Workflow Modernization: [██████████___________
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 162
+- Total plans completed: 163
 - Milestones shipped: 6 (v1-v6)
 - Phases completed: 35
 
@@ -61,6 +61,8 @@ Phase 35 decisions:
 - **Bootstrap-Vue-Next only**: No PrimeVue - use BDropdown, BFormTag, BCollapse for tree multi-select
 - **Ancestor context in search**: Preserve parent nodes when children match to show hierarchy context
 - **Hierarchy path caching**: Use Map for memoization to optimize tooltip rendering
+- **Entity autocomplete in ModifyEntity**: Use AutocompleteInput for entity search by ID, gene, or disease
+- **Transform modifier tree**: Restructure API data so all modifiers (present, uncertain, etc.) are selectable children
 
 ### Pending Todos
 
@@ -73,13 +75,17 @@ Phase 34 bugs fixed:
 - ~~ModifyStatus dropdown shows empty options~~ [FIXED in 34-02]
 - Test coverage at 20.3% means careful incremental changes required
 
+Phase 35 issues fixed:
+- ~~ModifyEntity had no autocomplete for entity selection~~ [FIXED in 35-03]
+- ~~Phenotype "present" modifier not selectable~~ [FIXED in 35-03 via tree transform]
+
 ## Session Continuity
 
 **Last session:** 2026-01-26
-**Stopped at:** Completed 35-02-PLAN.md (Phase 35 complete)
+**Stopped at:** Phase 35 complete
 **Resume file:** None
-**Next action:** Begin Phase 36 planning
+**Next action:** `/gsd:discuss-phase 36` or `/gsd:plan-phase 36`
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-26 -- Completed 35-02-PLAN.md*
+*Last updated: 2026-01-26 -- Phase 35 complete (3 plans)*

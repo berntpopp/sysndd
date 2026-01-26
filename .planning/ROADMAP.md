@@ -17,7 +17,7 @@ This roadmap transforms curation views from basic forms into modern, accessible 
 ## Phases
 
 - [x] **Phase 34: Critical Bug Fixes** - Fix blocking bugs that prevent basic curation operations
-- [ ] **Phase 35: Multi-Select Restoration** - Restore multi-select for phenotypes and variations using custom Bootstrap-Vue-Next TreeMultiSelect component
+- [x] **Phase 35: Multi-Select Restoration** - Restore multi-select for phenotypes and variations using custom Bootstrap-Vue-Next TreeMultiSelect component
 - [ ] **Phase 36: Curation Table Modernization** - Add filtering, pagination, and accessibility to curation tables
 - [ ] **Phase 37: Form Modernization** - Extract reusable form composables and improve form UX
 - [ ] **Phase 38: Re-Review System Overhaul** - Add dynamic batch management and gene-specific assignment
@@ -52,9 +52,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 35-01-PLAN.md - Create TreeMultiSelect component foundation (composables, TreeNode, TreeMultiSelect wrapper)
-- [ ] 35-02-PLAN.md - Integrate TreeMultiSelect into curation views (Review, ModifyEntity, ApproveReview)
-- [ ] 35-03-PLAN.md - Remove vue3-treeselect dependency and verify functionality
+- [x] 35-01-PLAN.md - Create TreeMultiSelect component foundation (composables, TreeNode, TreeMultiSelect wrapper)
+- [x] 35-02-PLAN.md - Integrate TreeMultiSelect into curation views (Review, ModifyEntity, ApproveReview)
+- [x] 35-03-PLAN.md - Remove vue3-treeselect dependency and verify functionality
 
 ### Phase 36: Curation Table Modernization
 **Goal**: Apply TablesEntities pattern to curation tables for consistent UX
@@ -123,7 +123,7 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 34. Critical Bug Fixes | v7.0 | 2/2 | Complete | 2026-01-26 |
-| 35. Multi-Select Restoration | v7.0 | 0/3 | Not started | - |
+| 35. Multi-Select Restoration | v7.0 | 3/3 | Complete | 2026-01-26 |
 | 36. Curation Table Modernization | v7.0 | 0/TBD | Not started | - |
 | 37. Form Modernization | v7.0 | 0/TBD | Not started | - |
 | 38. Re-Review System Overhaul | v7.0 | 0/TBD | Not started | - |
