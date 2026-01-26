@@ -246,6 +246,13 @@ import GenericTable from '@/components/small/GenericTable.vue';
 import Utils from '@/assets/js/utils';
 import { useUiStore } from '@/stores/ui';
 
+// Module-level variables to track API calls across component remounts
+// This survives when Vue Router remounts the component on URL changes
+let moduleLastApiParams = null;
+let moduleApiCallInProgress = false;
+let moduleLastApiCallTime = 0;
+let moduleLastApiResponse = null;
+
 export default {
   name: 'TablesLogs',
   components: {
@@ -334,6 +341,12 @@ export default {
   },
   data() {
     return {
+      // Flag to prevent watchers from triggering during initialization
+      isInitializing: true,
+      // Debounce timer for loadData to prevent duplicate calls
+      loadDataDebounceTimer: null,
+      // Pagination state
+      totalPages: 0,
       fields: [
         { key: 'id', label: 'ID', sortable: true },
         { key: 'timestamp', label: 'Timestamp', sortable: true },
@@ -353,15 +366,20 @@ export default {
     };
   },
   watch: {
+    // Watch for filter changes (deep required for Vue 3 behavior)
+    // Skip during initialization to prevent multiple API calls
     filter: {
-      handler(value) {
+      handler() {
+        if (this.isInitializing) return;
         this.filtered();
       },
-      deep: true, // Vue 3 requires deep:true for object mutation watching
+      deep: true,
     },
     // Watch for sortBy changes (deep watch for array)
+    // Skip during initialization to prevent multiple API calls
     sortBy: {
       handler() {
+        if (this.isInitializing) return;
         this.handleSortByOrDescChange();
       },
       deep: true,
@@ -371,16 +389,46 @@ export default {
     // Lifecycle hooks
   },
   mounted() {
-    // Lifecycle hooks
-    // Transform input sort string to Bootstrap-Vue-Next array format
-    const sort_object = this.sortStringToVariables(this.sortInput);
-    this.sortBy = sort_object.sortBy;
+    // Parse URL parameters BEFORE initial load
+    const urlParams = new URLSearchParams(window.location.search);
 
-    if (this.filterInput !== null && this.filterInput !== 'null' && this.filterInput !== '') {
-      this.filter = this.filterStrToObj(this.filterInput, this.filter);
+    // Parse sort from URL or use prop default
+    if (urlParams.get('sort')) {
+      const sort_object = this.sortStringToVariables(urlParams.get('sort'));
+      this.sortBy = sort_object.sortBy;
+      this.sort = urlParams.get('sort');
     } else {
-      this.loadData();
+      const sort_object = this.sortStringToVariables(this.sortInput);
+      this.sortBy = sort_object.sortBy;
+      this.sort = this.sortInput;
     }
+
+    // Parse filter from URL or prop
+    if (urlParams.get('filter')) {
+      this.filter = this.filterStrToObj(urlParams.get('filter'), this.filter);
+      this.filter_string = urlParams.get('filter');
+    } else if (this.filterInput !== null && this.filterInput !== 'null' && this.filterInput !== '') {
+      this.filter = this.filterStrToObj(this.filterInput, this.filter);
+      this.filter_string = this.filterInput;
+    }
+
+    // Parse pagination from URL
+    if (urlParams.get('page_after')) {
+      this.currentItemID = parseInt(urlParams.get('page_after'), 10) || 0;
+    }
+    if (urlParams.get('page_size')) {
+      this.perPage = parseInt(urlParams.get('page_size'), 10) || 10;
+    }
+
+    // Load data first while still in initializing state
+    this.$nextTick(() => {
+      this.loadData();
+      // Delay marking initialization complete to ensure watchers triggered
+      // by filter/sortBy changes above see isInitializing=true
+      this.$nextTick(() => {
+        this.isInitializing = false;
+      });
+    });
 
     setTimeout(() => {
       this.loading = false;
