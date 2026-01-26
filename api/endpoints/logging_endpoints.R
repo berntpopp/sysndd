@@ -132,12 +132,12 @@ function(req,
 }
 
 
-#* Delete All Log Entries
+#* Delete Log Entries
 #*
-#* This endpoint deletes all log entries from the database.
+#* This endpoint deletes log entries from the database.
 #*
 #* # `Details`
-#* Admin only. Truncates the logging table to remove all entries.
+#* Admin only. Can delete all logs or only logs older than a specified number of days.
 #* This action cannot be undone.
 #*
 #* # `Return`
@@ -146,33 +146,63 @@ function(req,
 #* @tag logging
 #* @serializer json list(na="string")
 #*
-#* @response 200 OK. All logs deleted successfully.
+#* @param older_than_days:int Optional. Delete only logs older than this many days.
+#*   If not provided or 0, deletes all logs.
+#*
+#* @response 200 OK. Logs deleted successfully.
 #* @response 403 Forbidden. If user not Admin.
 #* @response 500 Internal server error.
 #*
 #* @delete /
-function(req, res) {
+function(req, res, older_than_days = 0) {
   require_role(req, res, "Administrator")
 
   tryCatch(
     {
-      # Get count before deletion
-      count_result <- db_execute_query(
-        "SELECT COUNT(*) as count FROM logging",
-        list()
-      )
-      deleted_count <- count_result$count
+      older_than_days <- as.integer(older_than_days)
 
-      # Delete all logs
-      db_execute_statement(
-        "DELETE FROM logging",
-        list()
-      )
+      if (older_than_days > 0) {
+        # Delete logs older than specified days
+        cutoff_date <- Sys.time() - (older_than_days * 24 * 60 * 60)
+        cutoff_str <- format(cutoff_date, "%Y-%m-%d %H:%M:%S")
 
-      list(
-        message = "All logs deleted successfully.",
-        deleted_count = deleted_count
-      )
+        # Get count of logs to be deleted
+        count_result <- db_execute_query(
+          "SELECT COUNT(*) as count FROM logging WHERE timestamp < ?",
+          list(cutoff_str)
+        )
+        deleted_count <- count_result$count[1]
+
+        # Delete old logs
+        db_execute_statement(
+          "DELETE FROM logging WHERE timestamp < ?",
+          list(cutoff_str)
+        )
+
+        list(
+          message = sprintf("Logs older than %d days deleted successfully.", older_than_days),
+          deleted_count = deleted_count,
+          cutoff_date = cutoff_str
+        )
+      } else {
+        # Delete all logs
+        count_result <- db_execute_query(
+          "SELECT COUNT(*) as count FROM logging",
+          list()
+        )
+        deleted_count <- count_result$count[1]
+
+        # Delete all logs
+        db_execute_statement(
+          "DELETE FROM logging",
+          list()
+        )
+
+        list(
+          message = "All logs deleted successfully.",
+          deleted_count = deleted_count
+        )
+      }
     },
     error = function(e) {
       res$status <- 500
