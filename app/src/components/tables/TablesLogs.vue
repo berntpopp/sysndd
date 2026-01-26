@@ -92,7 +92,16 @@
                 </BFormSelect>
               </BCol>
               <BCol sm="4">
-                <!-- Action type filter placeholder -->
+                <BFormSelect
+                  v-model="filter.request_method.content"
+                  :options="method_options"
+                  size="sm"
+                  @update:model-value="filtered()"
+                >
+                  <template #first>
+                    <BFormSelectOption :value="null">All Methods</BFormSelectOption>
+                  </template>
+                </BFormSelect>
               </BCol>
               <BCol sm="4" class="text-end">
                 <span class="text-muted small">
@@ -395,6 +404,13 @@ export default {
       totalPages: 0,
       // User filter options (loaded from API)
       user_options: [],
+      // HTTP method filter options
+      method_options: [
+        { value: 'GET', text: 'GET' },
+        { value: 'POST', text: 'POST' },
+        { value: 'PUT', text: 'PUT' },
+        { value: 'DELETE', text: 'DELETE' },
+      ],
       // Log detail drawer state
       showLogDetail: false,
       selectedLog: null,
