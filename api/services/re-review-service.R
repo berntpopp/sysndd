@@ -138,8 +138,7 @@ where_clause <- build_batch_where_clause(criteria, pool)
      FROM ndd_entity_view e
      LEFT JOIN ndd_entity_review r ON e.entity_id = r.entity_id AND r.is_primary = 1
      LEFT JOIN ndd_entity_status s ON e.entity_id = s.entity_id AND s.is_active = 1
-     WHERE e.is_active = 1
-       AND ", where_clause, "
+     WHERE ", where_clause, "
        AND e.entity_id NOT IN (
          SELECT rec.entity_id FROM re_review_entity_connect rec
          INNER JOIN re_review_assignment ra ON rec.re_review_batch = ra.re_review_batch
@@ -236,8 +235,7 @@ batch_create <- function(criteria, assigned_user_id = NULL, batch_name = NULL, p
        FROM ndd_entity_view e
        LEFT JOIN ndd_entity_review r ON e.entity_id = r.entity_id AND r.is_primary = 1
        LEFT JOIN ndd_entity_status s ON e.entity_id = s.entity_id AND s.is_active = 1
-       WHERE e.is_active = 1
-         AND ", where_clause, "
+       WHERE ", where_clause, "
          AND e.entity_id NOT IN (
            SELECT rec.entity_id FROM re_review_entity_connect rec
            INNER JOIN re_review_assignment ra ON rec.re_review_batch = ra.re_review_batch
@@ -548,8 +546,7 @@ entity_assign <- function(entity_ids, user_id, batch_name = NULL, pool) {
          FROM ndd_entity_view e
          LEFT JOIN ndd_entity_review r ON e.entity_id = r.entity_id AND r.is_primary = 1
          LEFT JOIN ndd_entity_status s ON e.entity_id = s.entity_id AND s.is_active = 1
-         WHERE e.entity_id IN (", placeholders, ")
-           AND e.is_active = 1"
+         WHERE e.entity_id IN (", placeholders, ")"
       ),
       as.list(entity_ids),
       conn = pool
@@ -720,8 +717,7 @@ batch_recalculate <- function(batch_id, criteria, pool) {
        FROM ndd_entity_view e
        LEFT JOIN ndd_entity_review r ON e.entity_id = r.entity_id AND r.is_primary = 1
        LEFT JOIN ndd_entity_status s ON e.entity_id = s.entity_id AND s.is_active = 1
-       WHERE e.is_active = 1
-         AND ", where_clause, "
+       WHERE ", where_clause, "
          AND e.entity_id NOT IN (
            SELECT rec.entity_id FROM re_review_entity_connect rec
            INNER JOIN re_review_assignment ra ON rec.re_review_batch = ra.re_review_batch
