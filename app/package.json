@@ -26,7 +26,6 @@
     "@upsetjs/bundle": "^1.11.0",
     "@vee-validate/rules": "^4.15.1",
     "@vueuse/core": "^14.1.0",
-    "@zanmato/vue3-treeselect": "^0.4.2",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
     "bootstrap-vue-next": "^0.42.0",
