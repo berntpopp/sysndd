@@ -231,7 +231,7 @@ batch_create <- function(criteria, assigned_user_id = NULL, batch_name = NULL, p
     params <- build_batch_params(criteria)
 
     query <- paste0(
-      "SELECT DISTINCT e.entity_id, s.status_id, r.review_id
+      "SELECT DISTINCT e.entity_id, s.status_id, r.review_id, r.review_date
        FROM ndd_entity_view e
        LEFT JOIN ndd_entity_review r ON e.entity_id = r.entity_id AND r.is_primary = 1
        LEFT JOIN ndd_entity_status s ON e.entity_id = s.entity_id AND s.is_active = 1
@@ -713,7 +713,7 @@ batch_recalculate <- function(batch_id, criteria, pool) {
     params <- build_batch_params(criteria)
 
     query <- paste0(
-      "SELECT DISTINCT e.entity_id, s.status_id, r.review_id
+      "SELECT DISTINCT e.entity_id, s.status_id, r.review_id, r.review_date
        FROM ndd_entity_view e
        LEFT JOIN ndd_entity_review r ON e.entity_id = r.entity_id AND r.is_primary = 1
        LEFT JOIN ndd_entity_status s ON e.entity_id = s.entity_id AND s.is_active = 1
