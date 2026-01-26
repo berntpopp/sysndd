@@ -6,26 +6,26 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** Phase 38 - Re-Review System Overhaul
+**Current focus:** Phase 38 - Re-Review System Overhaul - COMPLETE
 
 ## Current Position
 
 **Milestone:** v7.0 Curation Workflow Modernization
-**Phase:** 38 of 39 (Re-Review System Overhaul) - IN PROGRESS
-**Plan:** 3 of 4 in phase 38
-**Status:** Plan 38-03 complete - Frontend composable and component created
-**Last activity:** 2026-01-26 -- Completed 38-03 (useBatchForm composable + BatchCriteriaForm component)
+**Phase:** 38 of 39 (Re-Review System Overhaul) - COMPLETE
+**Plan:** 4 of 4 in phase 38
+**Status:** Phase 38 complete - Re-Review System Overhaul finished
+**Last activity:** 2026-01-26 -- Completed 38-04 (ManageReReview integration with full batch management UI)
 
 ```
-v7.0 Curation Workflow Modernization: [████████████████████████████░_] 93% (5/6 phases + 3/4 plans)
+v7.0 Curation Workflow Modernization: [██████████████████████████████] 100% (6/6 phases complete)
 ```
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 180
+- Total plans completed: 181
 - Milestones shipped: 6 (v1-v6)
-- Phases completed: 37
+- Phases completed: 38
 
 **By Milestone:**
 
@@ -108,6 +108,12 @@ Phase 38-03 decisions:
 - **Composable/component separation**: State and logic in composable, UI rendering in component
 - **Validation strategy**: Computed isFormValid requires at least one of: date range, gene list, status filter, or disease
 
+Phase 38-04 decisions:
+- **Legacy batch assignment preserved**: Keep existing assignment UI but label as "Legacy Batch" for backward compatibility
+- **Collapsible form sections**: Batch creation visible by default, gene-specific assignment collapsed for cleaner initial view
+- **Status options from API**: Reuse /api/list/status_categories endpoint for recalculate modal filter options
+- **Combined commit for interdependent tasks**: All three tasks committed together due to modifying same file
+
 ### Roadmap Evolution
 
 - Phase 35.1 inserted after Phase 35: ModifyEntity UX Overhaul (URGENT) - complete UX modernization started in Phase 35
@@ -144,13 +150,19 @@ Phase 37 improvements:
 - ~~No draft restoration prompt~~ [ADDED in 37-03 with window.confirm before loading server data]
 - ~~Stale data flash when opening modals~~ [FIXED in 37-03 with @show handlers resetting form state]
 
+Phase 38 improvements:
+- ~~Re-review batch creation hardcoded to 2020 filter~~ [FIXED in 38-02 with dynamic filter]
+- ~~No dynamic batch creation~~ [ADDED in 38-01/38-02/38-03/38-04 with full batch management system]
+- ~~No gene-specific assignment~~ [ADDED in 38-04 with RRV-06 implementation]
+- ~~No batch recalculation~~ [ADDED in 38-04 with RRV-05 implementation]
+
 ## Session Continuity
 
 **Last session:** 2026-01-26
-**Stopped at:** Completed 38-03-PLAN.md (Frontend composable and component)
+**Stopped at:** Completed 38-04-PLAN.md (ManageReReview integration with full batch management)
 **Resume file:** None
-**Next action:** Continue Phase 38 with Plan 38-04
+**Next action:** Phase 38 complete - proceed to Phase 39 or manual testing
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-26 -- Plan 38-03 complete (useBatchForm composable + BatchCriteriaForm component)*
+*Last updated: 2026-01-26 -- Phase 38 complete (Re-Review System Overhaul)*
