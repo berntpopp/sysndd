@@ -139,13 +139,14 @@ import useToast from '@/composables/useToast';
 import { useUiStore } from '@/stores/ui';
 
 export default {
-  name: 'ApproveStatus',
+  name: 'ManageReReview',
   setup() {
     const { makeToast } = useToast();
     return { makeToast };
   },
   data() {
     return {
+      loadingReReviewManagment: false,
       user_options: [],
       user_id_assignment: 0,
       items_ReReviewTable: [],
@@ -226,13 +227,17 @@ export default {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        this.user_options = response.data.map((item) => ({
-          value: item.user_id,
-          text: item.user_name,
-          role: item.user_role,
-        }));
+        const data = response.data;
+        this.user_options = Array.isArray(data)
+          ? data.map((item) => ({
+            value: item.user_id,
+            text: item.user_name,
+            role: item.user_role,
+          }))
+          : [];
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.user_options = [];
       }
     },
     async loadReReviewTableData() {
@@ -244,16 +249,27 @@ export default {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        this.items_ReReviewTable = response.data;
-        this.totalRows = response.data.length;
+        const data = response.data;
+        if (Array.isArray(data)) {
+          this.items_ReReviewTable = data;
+          this.totalRows = data.length;
+        } else if (data?.data && Array.isArray(data.data)) {
+          this.items_ReReviewTable = data.data;
+          this.totalRows = data.meta?.[0]?.totalItems || data.data.length;
+        } else {
+          console.error('Unexpected re-review table response format:', data);
+          this.items_ReReviewTable = [];
+          this.totalRows = 0;
+        }
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.items_ReReviewTable = [];
+        this.totalRows = 0;
+      } finally {
+        const uiStore = useUiStore();
+        uiStore.requestScrollbarUpdate();
+        this.loadingReReviewManagment = false;
       }
-
-      const uiStore = useUiStore();
-      uiStore.requestScrollbarUpdate();
-
-      this.loadingReReviewManagment = false;
     },
     async handleNewBatchAssignment() {
       const apiUrl = `${import.meta.env.VITE_API_URL
