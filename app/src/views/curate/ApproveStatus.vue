@@ -300,42 +300,53 @@
               </template>
 
               <template #cell(category)="data">
-                <div>
-                  <BAvatar
-                    v-b-tooltip.hover.left
-                    size="1.4em"
-                    :variant="stoplights_style[data.item.category]"
-                    :title="data.item.category"
-                  >
-                    <i class="bi bi-stoplights" />
-                  </BAvatar>
-                </div>
+                <CategoryIcon
+                  :category="data.item.category"
+                  size="sm"
+                  :show-title="true"
+                />
               </template>
 
               <template #cell(problematic)="data">
-                <div>
-                  <BAvatar
-                    v-b-tooltip.hover.left
-                    size="1.4em"
-                    :variant="problematic_style[data.item.problematic]"
-                    :title="problematic_text[data.item.problematic]"
-                  >
-                    <i :class="'bi bi-' + problematic_symbol[data.item.problematic]" />
-                  </BAvatar>
-                </div>
+                <span
+                  v-b-tooltip.hover.top
+                  :title="problematic_text[data.item.problematic]"
+                  class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                  :class="data.item.problematic ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'"
+                  style="width: 24px; height: 24px; font-size: 0.75rem;"
+                >
+                  <i :class="data.item.problematic ? 'bi bi-exclamation-triangle-fill' : 'bi bi-check-circle-fill'" />
+                </span>
               </template>
 
               <template #cell(comment)="data">
-                <div>
-                  <BFormTextarea
-                    v-b-tooltip.hover.leftbottom
-                    plaintext
-                    size="sm"
-                    rows="1"
-                    :value="data.item.comment"
-                    :title="data.item.comment"
-                  />
+                <div
+                  v-if="data.item.comment"
+                  :id="'comment-status-' + data.item.status_id"
+                  class="text-truncate-multiline small text-popover-trigger"
+                  style="max-width: 150px;"
+                >
+                  {{ data.item.comment }}
                 </div>
+                <BPopover
+                  v-if="data.item.comment"
+                  :target="'comment-status-' + data.item.status_id"
+                  triggers="hover focus"
+                  placement="top"
+                  custom-class="wide-popover"
+                >
+                  <template #title>
+                    <i class="bi bi-chat-left-text me-1" />
+                    Comment
+                  </template>
+                  <div class="popover-text-content">
+                    {{ data.item.comment }}
+                  </div>
+                </BPopover>
+                <span
+                  v-else
+                  class="text-muted small"
+                >—</span>
               </template>
 
               <template #cell(status_date)="data">
@@ -761,6 +772,7 @@ import EntityBadge from '@/components/ui/EntityBadge.vue';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
+import CategoryIcon from '@/components/ui/CategoryIcon.vue';
 
 export default {
   name: 'ApproveStatus',
@@ -769,6 +781,7 @@ export default {
     GeneBadge,
     DiseaseBadge,
     InheritanceBadge,
+    CategoryIcon,
   },
   setup() {
     const { makeToast } = useToast();
@@ -1237,8 +1250,51 @@ export default {
   border-radius: 0.2rem;
 }
 
-:deep(.vue-treeselect__menu) {
-  outline: 1px solid red;
-  color: blue;
+/* Multi-line text truncation with ellipsis */
+.text-truncate-multiline {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+/* Cursor style for popover triggers */
+.text-popover-trigger {
+  cursor: help;
+  border-bottom: 1px dotted #6c757d;
+}
+
+.text-popover-trigger:hover {
+  background-color: rgba(0, 123, 255, 0.05);
+  border-radius: 2px;
+}
+</style>
+
+<!-- Non-scoped styles for popovers (rendered outside component DOM) -->
+<style>
+/* Wide popover for comment text */
+.wide-popover {
+  max-width: 400px !important;
+}
+
+.wide-popover .popover-header {
+  font-size: 0.85rem;
+  font-weight: 600;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.wide-popover .popover-body {
+  max-height: 250px;
+  overflow-y: auto;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.popover-text-content {
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 </style>
