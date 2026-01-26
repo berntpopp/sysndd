@@ -193,9 +193,20 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 ### Active
 
-<!-- v7 scope - CI/CD & Quality -->
+<!-- v7 scope - Curation Workflow Modernization -->
 
-(None yet — define in /gsd:new-milestone)
+- [ ] Fix ApproveUser page crash (JavaScript reduce error)
+- [ ] Fix ModifyEntity status dropdown (empty options bug)
+- [ ] Modernize curation tables with TablesEntities pattern (search, pagination, URL sync)
+- [ ] Add column filters to ApproveReview, ApproveStatus tables
+- [ ] Standardize pagination across all curation views
+- [ ] Add accessibility labels to all curation action buttons
+- [ ] Improve ModifyEntity workflow (entity preview, search, wizard pattern)
+- [ ] Modernize ManageReReview with search, new batch creation, recalculation
+- [ ] Add API for creating new re-review batches dynamically
+- [ ] Add API for assigning specific genes to specific users for re-review
+- [ ] Modernize Review page workflow and design
+- [ ] Restore vue3-treeselect multi-select for phenotypes/variations (or alternative)
 
 ### Out of Scope
 
@@ -296,16 +307,16 @@ A new developer can clone the repo and be productive within minutes, with confid
 | VueUse useIntervalFn for polling | Auto-cleanup via tryOnCleanup | ✓ Good |
 | BOffcanvas for detail drawers | Bootstrap-Vue-Next pattern consistency | ✓ Good |
 
-## Next Milestone
+## Current Milestone: v7.0 Curation Workflow Modernization
 
-**Ready for:** v7.0 (define scope with /gsd:new-milestone)
+**Goal:** Transform curation views from basic forms into modern, accessible interfaces with improved re-review workflow, batch management, and consistent UX patterns matching v6 admin panel quality.
 
-**Suggested focus areas:**
-- CI/CD pipeline (GitHub Actions)
-- Trivy security scanning
-- Frontend test coverage expansion (40-50%)
-- Vue component TypeScript conversion
-- URL path versioning (/api/v1/)
+**Target features:**
+- Fix critical bugs (ApproveUser crash, ModifyStatus dropdown)
+- Modernize all curation tables with TablesEntities pattern
+- Overhaul re-review system (dynamic batches, gene-specific assignment)
+- Improve ModifyEntity and Review page workflows
+- Accessibility compliance for curation interfaces
 
 ---
-*Last updated: 2026-01-26 after v6.0 milestone complete*
+*Last updated: 2026-01-26 after v7.0 milestone started*

@@ -6,18 +6,18 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** Planning next milestone (v7.0)
+**Current focus:** v7.0 Curation Workflow Modernization
 
 ## Current Position
 
-**Milestone:** v6.0 Admin Panel Modernization — SHIPPED
-**Phase:** 33 of 33 (complete)
-**Plan:** All complete
-**Status:** Milestone archived
-**Last activity:** 2026-01-26 — v6.0 milestone complete
+**Milestone:** v7.0 Curation Workflow Modernization
+**Phase:** Not started (researching)
+**Plan:** —
+**Status:** Research phase
+**Last activity:** 2026-01-26 — Milestone v7.0 started
 
 ```
-v6.0 Admin Panel Modernization: [██████████████████████████████] 100% SHIPPED
+v7.0 Curation Workflow Modernization: [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 0% RESEARCHING
 ```
 
 ## Performance Metrics
@@ -46,14 +46,10 @@ v6.0 Admin Panel Modernization: [███████████████�
 
 See PROJECT.md for full decisions table.
 
-v6 key decisions:
+v6 key decisions (relevant to v7):
 - **Module-level API caching**: Prevents duplicate calls on URL-triggered remounts
 - **history.replaceState**: Avoids component remount cycles for URL sync
 - **Set-based bulk selection**: O(1) lookups, cross-page persistence
-- **Type-to-confirm**: Requires exact "DELETE" text for destructive actions
-- **Tree-shaken Chart.js**: Reduces bundle size ~30-40%
-- **JSON column for CMS**: Flexible schema without migrations
-- **VueUse useIntervalFn**: Auto-cleanup for async job polling
 - **BOffcanvas for drawers**: Bootstrap-Vue-Next pattern consistency
 
 ### Pending Todos
@@ -62,15 +58,17 @@ None yet.
 
 ### Blockers/Concerns
 
-None — milestone complete.
+- ApproveUser page is completely broken (JavaScript reduce error)
+- ModifyStatus dropdown shows empty options
+- vue3-treeselect multi-select not working in Review.vue
 
 ## Session Continuity
 
 **Last session:** 2026-01-26
-**Stopped at:** v6.0 milestone archived
+**Stopped at:** Starting v7.0 research
 **Resume file:** None
-**Next action:** `/gsd:new-milestone` to start v7.0
+**Next action:** Research curation workflow patterns
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-26 — v6.0 milestone complete*
+*Last updated: 2026-01-26 — v7.0 milestone started*
