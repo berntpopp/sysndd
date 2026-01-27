@@ -170,7 +170,7 @@
 
           <!-- Icon Legend -->
           <IconLegend
-            :items="legendItems"
+            :legend-items="legendItems"
             title="Batch Status & Action Icons"
             class="mb-3"
           />

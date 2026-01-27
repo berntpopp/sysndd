@@ -145,7 +145,7 @@
             <!-- Icon Legend -->
             <IconLegend
               v-if="entity_loaded && entity_info.entity_id"
-              :items="legendItems"
+              :legend-items="legendItems"
               title="Category & NDD Status Icons"
               class="my-2"
             />

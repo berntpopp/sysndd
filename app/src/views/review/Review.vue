@@ -65,7 +65,7 @@
                       aria-label="Refresh table data"
                       @click="loadReReviewData()"
                     >
-                      <i class="bi bi-arrow-clockwise" />
+                      <i class="bi bi-arrow-clockwise" aria-hidden="true" />
                     </BButton>
                   </div>
                 </BCol>
@@ -75,7 +75,7 @@
             <!-- Icon Legend -->
             <div class="px-3 pt-2">
               <IconLegend
-                :items="legendItems"
+                :legend-items="legendItems"
                 title="Category & Re-review Status Icons"
               />
             </div>
@@ -244,7 +244,7 @@
                   :aria-label="`Edit review for sysndd:${row.item.entity_id}`"
                   @click="infoReview(row.item, row.index, $event.target)"
                 >
-                  <i class="bi bi-pencil-square" />
+                  <i class="bi bi-pencil-square" aria-hidden="true" />
                 </BButton>
 
                 <!-- Edit Status button -->
@@ -257,7 +257,7 @@
                   :aria-label="`Edit status for sysndd:${row.item.entity_id}`"
                   @click="infoStatus(row.item, row.index, $event.target)"
                 >
-                  <i class="bi bi-stoplights" />
+                  <i class="bi bi-stoplights" aria-hidden="true" />
                 </BButton>
 
                 <!-- Submit button for review mode -->
@@ -271,7 +271,7 @@
                   :aria-label="`Submit review for sysndd:${row.item.entity_id}`"
                   @click="infoSubmit(row.item, row.index, $event.target)"
                 >
-                  <i class="bi bi-send-check" />
+                  <i class="bi bi-send-check" aria-hidden="true" />
                 </BButton>
 
                 <!-- Approve button for curation mode -->
@@ -285,7 +285,7 @@
                   :aria-label="`Approve review/status for sysndd:${row.item.entity_id}`"
                   @click="infoApprove(row.item, row.index, $event.target)"
                 >
-                  <i class="bi bi-check-circle-fill" />
+                  <i class="bi bi-check-circle-fill" aria-hidden="true" />
                 </BButton>
               </template>
 
