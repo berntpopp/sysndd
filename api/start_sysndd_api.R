@@ -215,9 +215,10 @@ sysndd_api_version <<- version_json$version
 ## -------------------------------------------------------------------##
 # 9) Memoize certain functions
 ## -------------------------------------------------------------------##
-cm <- cachem::cache_mem(
-  max_age  = 60 * 60, # 1 hour
-  max_size = 100 * 1024^2 # 100 MB
+cm <- cachem::cache_disk(
+  dir      = "/app/cache",
+  max_age  = Inf,           # Never expires (clear volume to invalidate)
+  max_size = 500 * 1024^2   # 500 MB persistent on disk
 )
 
 generate_stat_tibble_mem <<- memoise(generate_stat_tibble, cache = cm)
@@ -234,28 +235,30 @@ nest_pubtator_gene_tibble_mem <<- memoise(nest_pubtator_gene_tibble, cache = cm)
 # 9.5) Initialize mirai daemon pool for async jobs
 ## -------------------------------------------------------------------##
 daemons(
-  n = 8,              # 8 workers for concurrent jobs
+  n = 2,              # 2 workers (right-sized for 4-core VPS with 8GB RAM)
   dispatcher = TRUE,  # Enable for variable-length jobs
   autoexit = tools::SIGINT
 )
-message(sprintf("[%s] Started mirai daemon pool with 8 workers", Sys.time()))
+message(sprintf("[%s] Started mirai daemon pool with 2 workers", Sys.time()))
 
 # Export required packages and functions to all daemons
+# NOTE: Load packages that mask dplyr::select FIRST (STRINGdb, biomaRt load
+# AnnotationDbi), then load dplyr/tidyverse LAST so their functions win.
 everywhere({
-  library(dplyr)
-  library(tidyr)
-  library(tibble)
-  library(stringr)
-  library(digest)
-  library(jsonlite)
-  library(openssl)
-  library(purrr)
   library(STRINGdb)
+  library(biomaRt)
   library(FactoMineR)
   library(factoextra)
   library(cluster)
   library(igraph)
-  library(biomaRt)
+  library(digest)
+  library(jsonlite)
+  library(openssl)
+  library(dplyr)
+  library(tidyr)
+  library(tibble)
+  library(stringr)
+  library(purrr)
   # Source helper functions first (generate_panel_hash, generate_function_hash)
   source("/app/functions/helper-functions.R", local = FALSE)
   # Source file functions (check_file_age, get_newest_file)

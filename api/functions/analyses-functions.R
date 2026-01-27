@@ -22,35 +22,11 @@ gen_string_clust_obj <- function(
   algorithm = "leiden",
   string_id_table = NULL
 ) {
-  # Version constants for cache invalidation
-  string_version <- "11.5"  # Must match STRINGdb$new version below
-  cache_version <- Sys.getenv("CACHE_VERSION", "1")  # Manual invalidation
-  # Stable format version - only bump when output structure changes
-  # (not when adding optional parameters or refactoring)
-  format_version <- "2"
+  # Caching is handled by the memoise wrapper (gen_string_clust_obj_mem)
+  # backed by cachem::cache_disk with Inf TTL. No file-based cache needed.
 
-  # compute hash for input gene panel
-  panel_hash <- generate_panel_hash(hgnc_list)
-
-  # generate result output filename with stable version components
-  # This ensures cache invalidation when algorithm, STRING version, or format changes
-  filename_results <- paste0(
-    "results/",
-    panel_hash, ".",
-    "fmt_v", format_version, ".",
-    algorithm, ".",
-    "string_v", string_version, ".",
-    "cache_v", cache_version, ".",
-    min_size, ".",
-    subcluster, ".json"
-  )
-
-  if (file.exists(filename_results)) {
-    clusters_tibble <- jsonlite::fromJSON(filename_results) %>%
-      tibble::tibble()
-  } else {
-    # load/ download STRING database files
-    string_db <- STRINGdb::STRINGdb$new(
+  # load/ download STRING database files
+  string_db <- STRINGdb::STRINGdb$new(
       version = "11.5",
       species = 9606,
       score_threshold = 200,
@@ -173,11 +149,6 @@ gen_string_clust_obj <- function(
       } %>%
       ungroup()
 
-    # save computation result
-    clusters_json <- toJSON(clusters_tibble)
-    write(clusters_json, filename_results)
-  }
-
   # return result
   return(clusters_tibble)
 }
@@ -227,28 +198,10 @@ gen_mca_clust_obj <- function(
   quanti_sup_var = 2:4,
   cutpoint = 5
 ) {
-  # Cache version for manual invalidation
-  cache_version <- Sys.getenv("CACHE_VERSION", "1")
-  # Stable format version - only bump when output structure changes
-  format_version <- "2"
+  # Caching is handled by the memoise wrapper (gen_mca_clust_obj_mem)
+  # backed by cachem::cache_disk with Inf TTL. No file-based cache needed.
 
-  # compute hash for input
-  panel_hash <- generate_panel_hash(row.names(wide_phenotypes_df))
-
-  # generate result output filename with stable version
-  filename_results <- paste0(
-    "results/",
-    panel_hash, ".",
-    "fmt_v", format_version, ".",
-    "mca.",
-    "cache_v", cache_version, ".json"
-  )
-
-  if (file.exists(filename_results)) {
-    clusters_tibble <- jsonlite::fromJSON(filename_results) %>%
-      tibble::tibble()
-  } else {
-    # Compute Multiple Correspondence Analysis (MCA)
+  # Compute Multiple Correspondence Analysis (MCA)
     # ncp=8 captures >70% of variance for typical phenotype data
     # Reduced from ncp=15 for 20-30% MCA speedup
     # Empirically validated: cluster assignments stable between ncp=8 and ncp=15
@@ -323,11 +276,6 @@ gen_mca_clust_obj <- function(
       ) %>%
         arrange(p.value))) %>%
       ungroup()
-
-    # save computation result
-    clusters_json <- toJSON(clusters_tibble)
-    write(clusters_json, filename_results)
-  }
 
   # return result
   return(clusters_tibble)

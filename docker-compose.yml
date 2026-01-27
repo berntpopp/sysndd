@@ -6,7 +6,10 @@ services:
     security_opt:
       - no-new-privileges:true
     command:
-      # Disable dashboard (security)
+      # Enable API for healthcheck CLI; disable dashboard (security)
+      # Port 8080 is not exposed externally - only used by container healthcheck
+      - "--api=true"
+      - "--api.insecure=true"
       - "--api.dashboard=false"
       # Docker provider
       - "--providers.docker=true"
@@ -19,9 +22,8 @@ services:
       - "--entryPoints.web.http.encodedCharacters.allowEncodedSlash=true"
       - "--entryPoints.web.http.encodedCharacters.allowEncodedBackSlash=true"
       - "--entryPoints.web.http.encodedCharacters.allowEncodedPercent=true"
-      # Enable ping for health checks
+      # Enable ping for health checks (on API port for traefik healthcheck CLI)
       - "--ping=true"
-      - "--ping.entryPoint=web"
       # Minimal logging
       - "--log.level=WARN"
     ports:
@@ -108,6 +110,8 @@ services:
       - ./api/repository:/app/repository
       - ./api/config:/app/config
       - ./api/data:/app/data
+      - ./api/results:/app/results
+      - api_cache:/app/cache
       - ./api/config.yml:/app/config.yml
       - ./api/version_spec.json:/app/version_spec.json
       - ./api/start_sysndd_api.R:/app/start_sysndd_api.R
@@ -192,3 +196,5 @@ volumes:
     name: sysndd_mysql_data
   mysql_backup:
     name: sysndd_mysql_backup
+  api_cache:
+    name: sysndd_api_cache

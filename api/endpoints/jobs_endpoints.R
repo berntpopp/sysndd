@@ -110,7 +110,69 @@ function(req, res) {
     )
   )
 
-  # Create async job
+  # Cache-first: if the memoized function already has a cached result,
+  # return it immediately without spawning an async daemon job.
+  # The network_edges endpoint (graph) warms this cache on first load,
+  # so subsequent table requests resolve instantly.
+  cache_hit <- tryCatch(
+    memoise::has_cache(gen_string_clust_obj_mem)(genes_list, algorithm = algorithm),
+    error = function(e) FALSE
+  )
+
+  if (cache_hit) {
+    cached_clusters <- gen_string_clust_obj_mem(genes_list, algorithm = algorithm)
+
+    categories <- cached_clusters %>%
+      dplyr::select(term_enrichment) %>%
+      tidyr::unnest(cols = c(term_enrichment)) %>%
+      dplyr::select(category) %>%
+      unique() %>%
+      dplyr::arrange(category) %>%
+      dplyr::mutate(
+        text = dplyr::case_when(
+          nchar(category) <= 5 ~ category,
+          nchar(category) > 5 ~ stringr::str_to_sentence(category)
+        )
+      ) %>%
+      dplyr::select(value = category, text) %>%
+      dplyr::left_join(category_links, by = c("value"))
+
+    # Create pre-completed job for tracking consistency
+    job_id <- uuid::UUIDgenerate()
+    jobs_env[[job_id]] <- list(
+      job_id = job_id,
+      operation = "clustering",
+      status = "completed",
+      mirai_obj = NULL,
+      submitted_at = Sys.time(),
+      params_hash = digest::digest(list(genes = genes_list, algorithm = algorithm)),
+      result = list(
+        clusters = cached_clusters,
+        categories = categories,
+        meta = list(
+          algorithm = algorithm,
+          gene_count = length(genes_list),
+          cluster_count = nrow(cached_clusters),
+          cache_hit = TRUE
+        )
+      ),
+      error = NULL,
+      completed_at = Sys.time()
+    )
+
+    res$status <- 202
+    res$setHeader("Location", paste0("/api/jobs/", job_id, "/status"))
+    res$setHeader("Retry-After", "0")
+
+    return(list(
+      job_id = job_id,
+      status = "accepted",
+      estimated_seconds = 0,
+      status_url = paste0("/api/jobs/", job_id, "/status")
+    ))
+  }
+
+  # Cache miss - create async job
   result <- create_job(
     operation = "clustering",
     params = list(
@@ -560,7 +622,7 @@ function(req, res, limit = 20) {
 function(job_id, res) {
   status <- get_job_status(job_id)
 
-  if (!is.null(status$error) && status$error == "JOB_NOT_FOUND") {
+  if (identical(status$error, "JOB_NOT_FOUND")) {
     res$status <- 404
     return(list(
       error = "JOB_NOT_FOUND",

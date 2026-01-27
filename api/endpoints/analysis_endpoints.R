@@ -388,9 +388,11 @@ function() {
     collect() %>%
     unique()
 
-  # build functional clusters via gen_string_clust_obj
-  functional_clusters <- gen_string_clust_obj(
-    genes_from_entity_table$hgnc_id
+  # build functional clusters via memoized function
+  # Explicit algorithm = "leiden" ensures same cache key as functional_clustering endpoint
+  functional_clusters <- gen_string_clust_obj_mem(
+    genes_from_entity_table$hgnc_id,
+    algorithm = "leiden"
   )
 
   # Flatten to (cluster, hgnc_id)
@@ -481,8 +483,8 @@ function() {
   row.names(sysndd_db_phenotypes_wider_df) <-
     sysndd_db_phenotypes_wider$entity_id
 
-  # run MCA-based clustering
-  phenotype_clusters <- gen_mca_clust_obj(
+  # run MCA-based clustering via memoized function
+  phenotype_clusters <- gen_mca_clust_obj_mem(
     sysndd_db_phenotypes_wider_df
   )
 

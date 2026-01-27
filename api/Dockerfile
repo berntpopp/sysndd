@@ -163,8 +163,9 @@ COPY --chown=apiuser:api config.yml config.yml
 COPY --chown=apiuser:api version_spec.json version_spec.json
 COPY --chown=apiuser:api start_sysndd_api.R start_sysndd_api.R
 
-# Create logs directory with correct permissions
-RUN mkdir -p /app/logs && chown apiuser:api /app/logs
+# Create logs, results, and cache directories with correct permissions
+RUN mkdir -p /app/logs /app/results /app/cache && \
+    chown apiuser:api /app/logs /app/results /app/cache
 
 # Health check instruction for Docker orchestration
 # Checks /health endpoint created in 07-01

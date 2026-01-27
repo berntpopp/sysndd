@@ -165,6 +165,17 @@ get_job_status <- function(job_id) {
   job <- jobs_env[[job_id]]
   m <- job$mirai_obj
 
+  # Pre-completed jobs (e.g., cache hits) have no mirai object
+  if (is.null(m)) {
+    return(list(
+      job_id = job_id,
+      status = job$status,
+      completed_at = job$completed_at,
+      result = job$result,
+      error = job$error
+    ))
+  }
+
   # Check if still running via mirai's unresolved()
   if (mirai::unresolved(m)) {
     # Job still running - calculate estimated remaining time
@@ -179,7 +190,25 @@ get_job_status <- function(job_id) {
       retry_after = 5
     ))
   } else {
-    # Job completed - return cached state
+    # Mirai resolved - but promise callback may not have fired yet.
+    # If job$status is still "pending" or "running", read m$data directly
+    # to avoid returning stale state (race condition).
+    if (job$status %in% c("pending", "running")) {
+      result <- m$data
+      if (mirai::is_mirai_error(result) || mirai::is_error_value(result)) {
+        jobs_env[[job_id]]$status <- "failed"
+        jobs_env[[job_id]]$error <- list(
+          code = "EXECUTION_ERROR",
+          message = if (!is.null(result$message)) result$message else "Job execution failed"
+        )
+      } else {
+        jobs_env[[job_id]]$status <- "completed"
+        jobs_env[[job_id]]$result <- result
+      }
+      jobs_env[[job_id]]$completed_at <- Sys.time()
+      job <- jobs_env[[job_id]]
+    }
+
     return(list(
       job_id = job_id,
       status = job$status,

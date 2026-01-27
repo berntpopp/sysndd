@@ -31,9 +31,8 @@ services:
       - "--entryPoints.web.http.encodedCharacters.allowEncodedSlash=true"
       - "--entryPoints.web.http.encodedCharacters.allowEncodedBackSlash=true"
       - "--entryPoints.web.http.encodedCharacters.allowEncodedPercent=true"
-      # Health checks
+      # Health checks (on default API port so traefik healthcheck --ping works)
       - "--ping=true"
-      - "--ping.entryPoint=web"
       # Debug logging for development
       - "--log.level=DEBUG"
     ports:

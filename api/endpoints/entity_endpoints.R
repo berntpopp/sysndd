@@ -104,9 +104,15 @@ function(req,
     fspec
   )
 
-  # Assign the filtered count
-  disease_table_fspec$fspec$count_filtered <-
-    sysndd_db_disease_table_fspec$fspec$count
+  # Assign the filtered count safely via join
+  # (handles differing row counts when filters reduce distinct fspec values)
+  disease_table_fspec$fspec <- disease_table_fspec$fspec %>%
+    dplyr::left_join(
+      sysndd_db_disease_table_fspec$fspec %>%
+        dplyr::select(key, count_filtered = count),
+      by = "key"
+    ) %>%
+    dplyr::mutate(count_filtered = dplyr::coalesce(count_filtered, 0L))
 
   # Compute execution time
   end_time <- Sys.time()
