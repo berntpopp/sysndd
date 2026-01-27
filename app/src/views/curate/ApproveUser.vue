@@ -679,16 +679,15 @@ export default {
           },
         });
         const data = response.data;
+        let users = [];
         if (Array.isArray(data)) {
-          this.items_UsersTable = data;
-          this.totalRows = data.length;
+          users = data;
         } else if (data?.data && Array.isArray(data.data)) {
-          this.items_UsersTable = data.data;
-          this.totalRows = data.meta?.[0]?.totalItems || data.data.length;
-        } else {
-          this.items_UsersTable = [];
-          this.totalRows = 0;
+          users = data.data;
         }
+        // Filter to show only unapproved (pending) users
+        this.items_UsersTable = users.filter((user) => !user.approved || user.approved === 0);
+        this.totalRows = this.items_UsersTable.length;
 
         const uiStore = useUiStore();
         uiStore.requestScrollbarUpdate();
