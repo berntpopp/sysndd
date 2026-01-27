@@ -106,3 +106,7 @@ export type { UseAriaLiveReturn } from './useAriaLive';
 // Search suggestions
 export { useSearchSuggestions } from './useSearchSuggestions';
 export type { SearchSuggestion, UseSearchSuggestionsReturn } from './useSearchSuggestions';
+
+// Gene external data composable
+export { useGeneExternalData } from './useGeneExternalData';
+export type { UseGeneExternalDataReturn } from './useGeneExternalData';
