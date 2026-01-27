@@ -61,6 +61,8 @@
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
+          float: none !important; // Neutralize BVN float on stacked pseudo-labels
+          width: auto !important;
         }
 
         // The actual cell content

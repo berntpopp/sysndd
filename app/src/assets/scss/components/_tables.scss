@@ -199,6 +199,39 @@
   }
 }
 
+// Stacked table mode overrides (mobile)
+// Bootstrap-Vue-Next stacked tables render each cell as a flex row
+// with a ::before pseudo-element label. The fixed-layout truncation
+// rules (white-space: nowrap, overflow: hidden) break this layout.
+.b-table-stacked-md,
+.b-table-stacked-sm,
+.b-table-stacked {
+  td {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+
+    // Ensure the ::before label and cell value don't overlap
+    &::before {
+      white-space: normal;
+      word-break: break-word;
+      min-width: 40%;
+      flex-shrink: 0;
+      float: none !important; // Neutralize BVN float on stacked pseudo-labels
+      width: auto !important;
+    }
+  }
+
+  // Details row inner table also needs wrapping
+  .b-table {
+    td {
+      white-space: normal !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
+    }
+  }
+}
+
 // WCAG 2.2 NFR-03.6: Respect reduced motion preferences
 // Transitions already use var(--transition-fast) which becomes 0.01ms with prefers-reduced-motion
 // No additional overrides needed
