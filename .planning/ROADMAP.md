@@ -44,6 +44,15 @@ Transform the gene detail page from a flat identifier list into a modern genomic
 
 **Goal:** Users see a modern, organized gene page with hero section, grouped information cards, and responsive layout before any external data loads
 
+**Plans:** 5 plans
+
+Plans:
+- [ ] 41-01-PLAN.md — Reusable components (IdentifierRow, ResourceLink) and GeneApiData TypeScript interface
+- [ ] 41-02-PLAN.md — Backend: Add bed_hg38 chromosome coordinates to gene API endpoint
+- [ ] 41-03-PLAN.md — Section components (GeneHero, IdentifierCard, ClinicalResourcesCard)
+- [ ] 41-04-PLAN.md — GeneView.vue refactor to Composition API with new component layout
+- [ ] 41-05-PLAN.md — Visual and functional verification checkpoint
+
 **Requirements:**
 - REDESIGN-01: Hero section with symbol badge, gene name, chromosome location, key identifiers
 - REDESIGN-02: Identifier card with copy-to-clipboard and external links (Entrez, Ensembl, UniProt, UCSC, CCDS, STRING)
@@ -201,7 +210,7 @@ Transform the gene detail page from a flat identifier list into a modern genomic
 | Phase | Requirements | Status | Plans | Completed |
 |-------|-------------|--------|-------|-----------|
 | 40 - Backend External API Layer | 12 | Pending | 0/0 | — |
-| 41 - Gene Page Redesign | 10 | Pending | 0/0 | — |
+| 41 - Gene Page Redesign | 10 | Planned | 0/5 | — |
 | 42 - Constraint Scores & Variant Summaries | 13 | Pending | 0/0 | — |
 | 43 - Protein Domain Lollipop Plot | 11 | Pending | 0/0 | — |
 | 44 - Gene Structure Visualization | 4 | Pending | 0/0 | — |
