@@ -30,10 +30,11 @@
       class="download-button"
       size="sm"
       title="Copy link to this page."
+      aria-label="Copy link to this page"
       variant="success"
       @click="$emit('copy-link')"
     >
-      <i class="bi bi-link" />
+      <i class="bi bi-link" aria-hidden="true" />
     </BButton>
     <!-- Copy Link Button -->
 
@@ -43,10 +44,11 @@
       class="download-button"
       size="sm"
       :title="removeFiltersTitle"
+      :aria-label="removeFiltersTitle"
       :variant="removeFiltersVariant"
       @click="$emit('remove-filters')"
     >
-      <i class="bi bi-filter" />
+      <i class="bi bi-filter" aria-hidden="true" />
     </BButton>
     <!-- Remove Filters Button -->
   </div>

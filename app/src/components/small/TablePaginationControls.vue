@@ -16,6 +16,7 @@
         :model-value="localPerPage"
         :options="pageOptions"
         size="sm"
+        aria-label="Items per page"
         @update:model-value="handlePerPageUpdate"
       />
     </BInputGroup>

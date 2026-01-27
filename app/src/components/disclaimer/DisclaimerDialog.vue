@@ -87,7 +87,7 @@
           variant="primary"
           size="md"
           :disabled="loading"
-          aria-label="Accept usage policy and continue to application"
+          aria-label="Acknowledge and Continue"
           @click="acknowledgeDisclaimer"
         >
           <BSpinner

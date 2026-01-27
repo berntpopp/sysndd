@@ -475,13 +475,13 @@ export default {
   border-radius: 0.2rem;
 }
 
-/* Mobile: enlarge details button to WCAG 44px touch target */
+/* Mobile: enlarge details button for better touch target */
 @media (max-width: 767px) {
   .btn-xs {
-    width: 100%;
-    min-height: 44px;
-    padding: 0.5rem 1rem;
-    line-height: 1.5;
+    min-height: 2.25rem; /* 36px */
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8125rem;
+    line-height: 1.4;
   }
 }
 </style>
