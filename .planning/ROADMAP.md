@@ -89,6 +89,13 @@ Plans:
 
 **Goal:** Users can immediately assess gene constraint and variant burden through gnomAD pLI/LOEUF scores and ClinVar pathogenicity counts
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 42-01-PLAN.md — TypeScript interfaces and useGeneExternalData composable (data layer)
+- [ ] 42-02-PLAN.md — GeneConstraintCard and GeneClinVarCard Vue components
+- [ ] 42-03-PLAN.md — GeneView.vue integration and visual verification
+
 **Requirements:**
 - GNOMAD-01: pLI score with visual gauge and interpretation
 - GNOMAD-02: LOEUF (oe_lof_upper) score with visual gauge and interpretation
@@ -220,7 +227,7 @@ Plans:
 |-------|-------------|--------|-------|-----------|
 | 40 - Backend External API Layer | 12 | Planned | 0/5 | — |
 | 41 - Gene Page Redesign | 10 | Planned | 0/5 | — |
-| 42 - Constraint Scores & Variant Summaries | 13 | Pending | 0/0 | — |
+| 42 - Constraint Scores & Variant Summaries | 13 | Planned | 0/3 | — |
 | 43 - Protein Domain Lollipop Plot | 11 | Pending | 0/0 | — |
 | 44 - Gene Structure Visualization | 4 | Pending | 0/0 | — |
 | 45 - 3D Protein Structure Viewer | 9 | Pending | 0/0 | — |
