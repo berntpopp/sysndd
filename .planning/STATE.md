@@ -17,20 +17,20 @@
 
 ## Current Position
 
-**Phase:** 41 - Gene Page Redesign (IN PROGRESS)
-**Plan:** 4 of 10 complete (41-01, 41-02, 41-03, 41-04)
-**Status:** GeneView.vue refactored to Composition API
-**Progress:** ████▱▱▱▱▱▱ 40% (Phase 41 plan 4/10, 1/7 phases done)
+**Phase:** 42 - Constraint Scores & Variant Summaries (IN PROGRESS)
+**Plan:** 1 of 3 complete (42-02)
+**Status:** Constraint & ClinVar card components created
+**Progress:** ████▱▱▱▱▱▱ 40% (Phase 42 plan 1/3, 1/7 phases done)
 
-**Last completed:** 41-04 — GeneView.vue Composition API refactor (2026-01-27)
-**Next step:** Continue executing Phase 41 plans (checkpoint verification expected next).
+**Last completed:** 42-02 — GeneConstraintCard and GeneClinVarCard components (2026-01-27)
+**Next step:** Continue Phase 42 execution (Plans 42-01 and 42-03 running in parallel).
 
 ---
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 209
+- Total plans completed: 210
 - Milestones shipped: 7 (v1-v7)
 - Phases completed: 40
 
@@ -114,6 +114,24 @@
   - Responsive grid: cols="12" lg="6" for side-by-side cards on desktop (>=992px)
   - Route watcher for gene-to-gene SPA navigation without full page reload
 
+**Constraint & ClinVar Visualization (Phase 42-02):**
+- **GeneConstraintCard component:**
+  - gnomAD-style constraint table: Category | Expected SNVs | Observed SNVs | Constraint Metrics
+  - Three rows: Synonymous, Missense, pLoF (each showing Z-score, o/e ratio, CI bar)
+  - pLI embedded in pLoF row (not prominently displayed) following gnomAD pattern
+  - LOEUF < 0.6 highlighted in amber (#ffc107) per gnomAD v4 guideline for highly constrained genes
+  - Pure CSS/SVG confidence interval bars with scaleOE() helper (0-2 range mapped to 0-100px)
+  - ARIA labels on SVG bars for screen reader accessibility
+  - External link to gnomAD gene page in card header
+- **GeneClinVarCard component:**
+  - ACMG 5-class colored badges: Pathogenic (red), Likely Pathogenic (orange #fd7e14), VUS (yellow), Likely Benign (teal #20c997), Benign (green)
+  - Total variant count in header: "ClinVar Variants (N)"
+  - Handles both underscore and space formats in clinical_significance field
+  - External link to NCBI ClinVar gene page
+  - ARIA labels on badges for accessibility
+- **Independent card error handling:** Each card can show data/error/loading states independently (partial success pattern)
+- **No interpretation text:** Researchers interpret constraint scores themselves per CONTEXT.md decision
+
 **Critical Pitfalls to Avoid:**
 1. Vue Proxy wrapping of Three.js/WebGL objects - use `markRaw()` or non-reactive variables
 2. WebGL context leaks - call `stage.dispose()` in cleanup
@@ -153,9 +171,9 @@
 
 ## Session Continuity
 
-**Last session:** 2026-01-27T20:55:20Z
-**Stopped at:** Completed 41-04-PLAN.md (GeneView.vue Composition API refactor)
-**Next action:** Continue Phase 41 execution with remaining plans (checkpoint verification expected next)
+**Last session:** 2026-01-27T23:41:30Z
+**Stopped at:** Completed 42-02-PLAN.md (GeneConstraintCard and GeneClinVarCard components)
+**Next action:** Continue Phase 42 execution (Plans 42-01 and 42-03 running in parallel)
 
 **Handoff notes:**
 
@@ -186,4 +204,4 @@
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-27 — Phase 41 in progress (2/10 plans complete)*
+*Last updated: 2026-01-27 — Phase 42 in progress (1/3 plans complete)*
