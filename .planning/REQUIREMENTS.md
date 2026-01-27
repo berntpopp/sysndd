@@ -59,11 +59,11 @@ Requirements for v7.0 milestone grouped by category. Each maps to roadmap phases
 
 ### Accessibility
 
-- [ ] **A11Y-01**: Add aria-label to all icon-only action buttons in curation views
-- [ ] **A11Y-02**: Add tooltips with title attributes to all action buttons
-- [ ] **A11Y-03**: Add modal headers/titles to all curation modals
-- [ ] **A11Y-04**: Add legend/explanation for category and status icons
-- [ ] **A11Y-05**: Verify keyboard navigation works in all curation forms
+- [x] **A11Y-01**: Add aria-label to all icon-only action buttons in curation views
+- [x] **A11Y-02**: Add tooltips with title attributes to all action buttons
+- [x] **A11Y-03**: Add modal headers/titles to all curation modals
+- [x] **A11Y-04**: Add legend/explanation for category and status icons
+- [x] **A11Y-05**: Verify keyboard navigation works in all curation forms
 
 ## Future Requirements (v8+)
 
@@ -123,11 +123,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RRV-05 | Phase 38 | Pending |
 | RRV-06 | Phase 38 | Pending |
 | RRV-07 | Phase 38 | Pending |
-| A11Y-01 | Phase 39 | Pending |
-| A11Y-02 | Phase 39 | Pending |
-| A11Y-03 | Phase 39 | Pending |
-| A11Y-04 | Phase 39 | Pending |
-| A11Y-05 | Phase 39 | Pending |
+| A11Y-01 | Phase 39 | Complete |
+| A11Y-02 | Phase 39 | Complete |
+| A11Y-03 | Phase 39 | Complete |
+| A11Y-04 | Phase 39 | Complete |
+| A11Y-05 | Phase 39 | Complete |
 
 **Coverage:**
 - v7 requirements: 36 total

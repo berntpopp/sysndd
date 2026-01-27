@@ -12,7 +12,7 @@ This roadmap transforms curation views from basic forms into modern, accessible 
 - v4.0 Backend Overhaul (Phases 18-24) -- shipped 2026-01-24
 - v5.0 Analysis Modernization (Phases 25-27) -- shipped 2026-01-25
 - v6.0 Admin Panel Modernization (Phases 28-33) -- shipped 2026-01-26
-- **v7.0 Curation Workflow Modernization (Phases 34-39)** -- in progress
+- **v7.0 Curation Workflow Modernization (Phases 34-39)** -- shipped 2026-01-27
 
 ## Phases
 
@@ -22,7 +22,7 @@ This roadmap transforms curation views from basic forms into modern, accessible 
 - [x] **Phase 36: Curation Table Modernization** - Add filtering, pagination, and accessibility to curation tables
 - [x] **Phase 37: Form Modernization** - Extract reusable form composables and improve form UX
 - [x] **Phase 38: Re-Review System Overhaul** - Add dynamic batch management and gene-specific assignment
-- [ ] **Phase 39: Accessibility Pass** - Ensure WCAG 2.2 AA compliance across all curation views
+- [x] **Phase 39: Accessibility Pass** - Ensure WCAG 2.2 AA compliance across all curation views
 
 ## Phase Details
 
@@ -137,10 +137,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 39-01-PLAN.md -- Create accessibility foundation components (SkipLink, AriaLiveRegion, IconLegend) and useAriaLive composable
-- [ ] 39-02-PLAN.md -- Add skip link + landmarks to App.vue; integrate a11y into ApproveUser, ApproveReview, ApproveStatus
-- [ ] 39-03-PLAN.md -- Integrate a11y into ModifyEntity, ManageReReview, Review
-- [ ] 39-04-PLAN.md -- Create vitest-axe accessibility tests for all 6 curation views
+- [x] 39-01-PLAN.md -- Create accessibility foundation components (SkipLink, AriaLiveRegion, IconLegend) and useAriaLive composable
+- [x] 39-02-PLAN.md -- Add skip link + landmarks to App.vue; integrate a11y into ApproveUser, ApproveReview, ApproveStatus
+- [x] 39-03-PLAN.md -- Integrate a11y into ModifyEntity, ManageReReview, Review
+- [x] 39-04-PLAN.md -- Create vitest-axe accessibility tests for all 6 curation views
 
 ## Progress
 
@@ -154,8 +154,8 @@ Plans:
 | 36. Curation Table Modernization | v7.0 | 3/3 | Complete | 2026-01-26 |
 | 37. Form Modernization | v7.0 | 3/3 | Complete | 2026-01-26 |
 | 38. Re-Review System Overhaul | v7.0 | 4/4 | Complete | 2026-01-26 |
-| 39. Accessibility Pass | v7.0 | 0/4 | Not started | - |
+| 39. Accessibility Pass | v7.0 | 4/4 | Complete | 2026-01-27 |
 
 ---
 *Roadmap created: 2026-01-26*
-*Last updated: 2026-01-27 -- Phase 39 planned (Accessibility Pass)*
+*Last updated: 2026-01-27 -- Phase 39 complete (Accessibility Pass) -- v7.0 milestone complete*
