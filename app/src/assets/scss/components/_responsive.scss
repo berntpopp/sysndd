@@ -101,9 +101,17 @@
       display: none;
     }
 
-    // Remove striping on mobile (cards don't need it)
+    // Alternating card tints + left accent border for row differentiation
     &.table-striped > tbody > tr {
-      background: var(--bs-body-bg);
+      border-left: 3px solid var(--medical-blue-200, #90caf9);
+
+      &:nth-of-type(odd) {
+        background: var(--bs-body-bg);
+      }
+
+      &:nth-of-type(even) {
+        background: var(--neutral-50, #fafafa);
+      }
 
       > td {
         background: transparent;
