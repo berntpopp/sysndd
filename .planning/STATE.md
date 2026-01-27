@@ -18,14 +18,14 @@
 ## Current Position
 
 **Phase:** 40 - Backend External API Layer
-**Plan:** 03 of 12 complete
+**Plan:** 03 of 12 complete (40-02 and 40-03 completed in parallel)
 **Status:** In Progress
 **Progress:** ██▱▱▱▱▱▱▱▱ 25% (Phase 40 of 46, Plan 3 of 12)
 
 **Current objective:** Build R/Plumber proxy endpoints for gnomAD GraphQL, UniProt REST, Ensembl REST, AlphaFold, and MGI/RGD APIs with server-side caching (cachem), httr2 retry logic with exponential backoff, rate limiting protection, and error isolation.
 
-**Last completed:** 40-03 - AlphaFold, MGI, and RGD proxy functions (2026-01-27)
-**Next step:** Execute remaining plans in Phase 40 (gnomAD, UniProt, Ensembl proxies and aggregation endpoints).
+**Last completed:** 40-02 (gnomAD/UniProt/Ensembl proxies) and 40-03 (AlphaFold/MGI/RGD proxies) - both 2026-01-27
+**Next step:** Execute plan 40-04 (aggregation endpoint for parallel fetching).
 
 ---
 
@@ -68,12 +68,18 @@
 
 **Backend Proxy Layer (Phase 40):**
 - **Single unified endpoint file** (`external_genomic_endpoints.R`) with per-source function modules
-- **ghql v0.1.2** for GraphQL queries to gnomAD v4.1 API
-- **httr2** for REST calls to UniProt/Ensembl/AlphaFold/MGI/RGD
-- **memoise + cachem** for disk-based caching with per-source TTL (gnomAD 7d, UniProt 30d, AlphaFold 30d, MGI/RGD 14d)
-- **Two-step lookup pattern** for AlphaFold: UniProt accession search → structure metadata
+- **httr2** for GraphQL (gnomAD) and REST calls (UniProt/Ensembl/AlphaFold/MGI/RGD)
+- **memoise + cachem** for disk-based caching with per-source TTL:
+  - cache_static (30d): gnomAD constraints, AlphaFold structures
+  - cache_dynamic (7d): gnomAD ClinVar variants
+  - cache_stable (14d): UniProt domains, Ensembl structure, MGI/RGD phenotypes
+- **GraphQL pattern (gnomAD):** httr2 POST with JSON body (query + variables), no ghql dependency
+- **Two-step lookup pattern (REST APIs):** Gene symbol → service-specific ID → detailed data
+  - UniProt: symbol → accession → features
+  - Ensembl: symbol → gene_id → structure with canonical transcript
+  - AlphaFold: symbol → UniProt accession → structure metadata
 - **Defensive error handling** for undocumented APIs (MGI, RGD): structured not-found responses instead of crashes
-- **Combined aggregation endpoint** `/api/external/gene/<symbol>` fetches all 5 sources in parallel with error isolation
+- **Combined aggregation endpoint** `/api/external/gene/<symbol>` fetches all sources in parallel with error isolation
 
 **Frontend Visualization Stack:**
 - **D3.js v7.4.2** for protein domain lollipop plot (already in project)
@@ -120,8 +126,8 @@
 ## Session Continuity
 
 **Last session:** 2026-01-27
-**Stopped at:** Completed 40-03-PLAN.md execution
-**Next action:** Execute remaining plans in Phase 40 (plan 40-02 executing in parallel)
+**Stopped at:** Completed 40-02 and 40-03 plan executions (parallel)
+**Next action:** Execute plan 40-04 (aggregation endpoint)
 
 **Handoff notes:**
 
