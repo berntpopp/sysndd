@@ -12,9 +12,9 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Milestone:** v7.0 Curation Workflow Modernization
 **Phase:** 39 of 39 (Accessibility Pass) - IN PROGRESS
-**Plan:** 2 of TBD in phase 39
+**Plan:** 3 of TBD in phase 39
 **Status:** In progress
-**Last activity:** 2026-01-27 -- Completed 39-02-PLAN.md
+**Last activity:** 2026-01-27 -- Completed 39-03-PLAN.md
 
 ```
 v7.0 Curation Workflow Modernization: [██████████████████████████████] 100% (6/6 phases complete)
@@ -124,6 +124,11 @@ Phase 39-01 decisions:
 Phase 39-02 decisions:
 - **Consistent close button labels**: All modals use header-close-label="Close" for uniform screen reader announcements
 
+Phase 39-03 decisions:
+- **IconLegend above tables**: Position icon legends above data tables (not below) for immediate visibility before scanning data
+- **announce() politeness levels**: Use 'assertive' only for errors (immediate interruption), 'polite' for success/info (waits for current speech)
+- **Dual feedback pattern**: All CRUD operations call both makeToast() (visual) and announce() (screen reader) in try/catch blocks
+
 ### Roadmap Evolution
 
 - Phase 35.1 inserted after Phase 35: ModifyEntity UX Overhaul (URGENT) - complete UX modernization started in Phase 35
@@ -166,13 +171,18 @@ Phase 38 improvements:
 - ~~No gene-specific assignment~~ [ADDED in 38-04 with RRV-06 implementation]
 - ~~No batch recalculation~~ [ADDED in 38-04 with RRV-05 implementation]
 
+Phase 39 improvements:
+- ~~No screen reader announcements for form submissions~~ [ADDED in 39-03 with AriaLiveRegion and announce() calls]
+- ~~Icon meanings not explained visually~~ [ADDED in 39-03 with IconLegend components]
+- ~~Decorative icons double-announced~~ [FIXED in 39-03 with aria-hidden="true" on icons in labeled buttons]
+
 ## Session Continuity
 
 **Last session:** 2026-01-27
-**Stopped at:** Completed 39-02-PLAN.md
+**Stopped at:** Completed 39-03-PLAN.md
 **Resume file:** None
 **Next action:** Continue Phase 39 with additional accessibility enhancements
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-27 -- Phase 39-02 complete (Accessibility Integration in Curation Views)*
+*Last updated: 2026-01-27 -- Phase 39-03 complete (Curation Views Accessibility)*
