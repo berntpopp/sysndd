@@ -1,18 +1,20 @@
 <template>
   <BApp>
     <div id="app">
+      <SkipLink />
       <div
         id="navbar"
       >
         <Navbar />
       </div>
-      <div
-        id="content"
+      <main
+        id="main"
         ref="scroll"
         class="content-style scrollable-content"
+        tabindex="-1"
       >
         <router-view :key="$route.fullPath" />
-      </div>
+      </main>
       <div
         id="footer"
       >
@@ -35,6 +37,7 @@ import { mapState } from 'pinia';
 import Navbar from '@/components/Navbar.vue';
 import Footer from '@/components/Footer.vue';
 import HelperBadge from '@/components/HelperBadge.vue';
+import SkipLink from '@/components/accessibility/SkipLink.vue';
 
 export default {
   name: 'SysNDD',
@@ -42,6 +45,7 @@ export default {
     Navbar,
     Footer,
     HelperBadge,
+    SkipLink,
   },
   setup() {
     useHead({
