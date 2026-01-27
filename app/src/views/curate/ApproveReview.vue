@@ -40,7 +40,7 @@
                       aria-label="Approve all reviews"
                       @click="checkAllApprove"
                     >
-                      <i class="bi bi-check2-all me-1" />
+                      <i class="bi bi-check2-all me-1" aria-hidden="true" />
                       Approve All
                     </BButton>
                     <!-- Refresh button -->
@@ -52,7 +52,7 @@
                       aria-label="Refresh table data"
                       @click="loadReviewTableData()"
                     >
-                      <i class="bi bi-arrow-clockwise" />
+                      <i class="bi bi-arrow-clockwise" aria-hidden="true" />
                     </BButton>
                   </div>
                 </BCol>
@@ -238,6 +238,11 @@
             <!-- Column filters -->
             <!-- Table Interface controls -->
 
+            <!-- Icon legend -->
+            <div class="px-3 pb-2">
+              <IconLegend :legend-items="legendItems" />
+            </div>
+
             <!-- Main table -->
             <BSpinner
               v-if="loading_review_approve"
@@ -403,7 +408,7 @@
                   :aria-label="`Toggle details for entity ${row.item.entity_id}`"
                   @click="row.toggleDetails"
                 >
-                  <i :class="'bi bi-' + (row.detailsShowing ? 'eye-slash' : 'eye')" />
+                  <i :class="'bi bi-' + (row.detailsShowing ? 'eye-slash' : 'eye')" aria-hidden="true" />
                 </BButton>
 
                 <BButton
@@ -415,7 +420,7 @@
                   :aria-label="`Edit review for entity ${row.item.entity_id}`"
                   @click="infoReview(row.item, row.index, $event.target)"
                 >
-                  <i class="bi bi-pen" />
+                  <i class="bi bi-pen" aria-hidden="true" />
                 </BButton>
 
                 <BButton
@@ -431,11 +436,12 @@
                     class="position-relative d-inline-block"
                     style="font-size: 0.9em;"
                   >
-                    <i class="bi bi-stoplights" />
+                    <i class="bi bi-stoplights" aria-hidden="true" />
                     <i
                       v-if="row.item.status_change"
                       class="bi bi-exclamation-triangle-fill position-absolute"
                       style="top: -0.3em; right: -0.5em; font-size: 0.7em;"
+                      aria-hidden="true"
                     />
                   </span>
                 </BButton>
@@ -449,7 +455,7 @@
                   :aria-label="`Approve review for entity ${row.item.entity_id}`"
                   @click="infoApproveReview(row.item, row.index, $event.target)"
                 >
-                  <i class="bi bi-check2-circle" />
+                  <i class="bi bi-check2-circle" aria-hidden="true" />
                 </BButton>
                 <BButton
                   v-if="row.item.duplicate==='yes'"
@@ -460,7 +466,7 @@
                   size="sm"
                   class="me-1 btn-xs"
                 >
-                  <i class="bi bi-exclamation-triangle-fill" />
+                  <i class="bi bi-exclamation-triangle-fill" aria-hidden="true" />
                 </BButton>
               </template>
 
@@ -1161,12 +1167,15 @@
         </div>
       </BModal>
       <!-- 4) Check approve all modal -->
+
+      <!-- ARIA live region for screen reader announcements -->
+      <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
     </BContainer>
   </div>
 </template>
 
 <script>
-import { useToast, useColorAndSymbols, useText } from '@/composables';
+import { useToast, useColorAndSymbols, useText, useAriaLive } from '@/composables';
 import TreeMultiSelect from '@/components/forms/TreeMultiSelect.vue';
 
 // Import UI components for consistent icons and badges
@@ -1175,6 +1184,8 @@ import GeneBadge from '@/components/ui/GeneBadge.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
+import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
+import IconLegend from '@/components/accessibility/IconLegend.vue';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
@@ -1198,20 +1209,36 @@ export default {
     DiseaseBadge,
     InheritanceBadge,
     CategoryIcon,
+    AriaLiveRegion,
+    IconLegend,
   },
   setup() {
     const { makeToast } = useToast();
     const colorAndSymbols = useColorAndSymbols();
     const text = useText();
+    const { message: a11yMessage, politeness: a11yPoliteness, announce } = useAriaLive();
 
     return {
       makeToast,
       ...colorAndSymbols,
       ...text,
+      a11yMessage,
+      a11yPoliteness,
+      announce,
     };
   },
   data() {
     return {
+      legendItems: [
+        { icon: 'bi bi-stoplights-fill', color: '#4caf50', label: 'Definitive' },
+        { icon: 'bi bi-stoplights-fill', color: '#2196f3', label: 'Moderate' },
+        { icon: 'bi bi-stoplights-fill', color: '#ff9800', label: 'Limited' },
+        { icon: 'bi bi-stoplights-fill', color: '#f44336', label: 'Refuted' },
+        { icon: 'bi bi-exclamation-triangle-fill', color: '#dc3545', label: 'Status change pending' },
+        { icon: 'bi bi-eye', color: '#0d6efd', label: 'Toggle details' },
+        { icon: 'bi bi-pen', color: '#6c757d', label: 'Edit review' },
+        { icon: 'bi bi-check2-circle', color: '#dc3545', label: 'Approve review' },
+      ],
       phenotypes_options: [],
       variation_ontology_options: [],
       items_ReviewTable: [],
@@ -1732,16 +1759,13 @@ export default {
           },
         );
 
+        const message = 'The new review for this entity has been submitted successfully.';
         this.makeToast(
-          `${'The new review for this entity has been submitted '
-            + '(status '}${
-            response.status
-          } (${
-            response.statusText
-          }).`,
+          message,
           'Success',
           'success',
         );
+        this.announce(message);
         this.resetForm();
         this.loadReviewTableData();
       } catch (e) {
@@ -1786,6 +1810,7 @@ export default {
           this.loadReviewTableData();
         } catch (e) {
           this.makeToast(e, 'Error', 'danger');
+          this.announce('Error submitting status', 'assertive');
         }
       } else if (this.status_info.status_approved === 1) {
         // POST to create new status if approved
@@ -1809,20 +1834,18 @@ export default {
             },
           );
 
+          const message = 'The new status for this entity has been submitted successfully.';
           this.makeToast(
-            `${'The new status for this entity has been submitted '
-              + '(status '}${
-              response.status
-            } (${
-              response.statusText
-            }).`,
+            message,
             'Success',
             'success',
           );
+          this.announce(message);
           this.resetForm();
           this.loadReviewTableData();
         } catch (e) {
           this.makeToast(e, 'Error', 'danger');
+          this.announce('Error submitting status', 'assertive');
         }
       }
     },
@@ -1854,8 +1877,10 @@ export default {
             },
           },
         );
+        this.announce('Review approved successfully');
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.announce('Error approving review', 'assertive');
       }
 
       // only call status EP if status should be approved too
@@ -1875,8 +1900,10 @@ export default {
               },
             },
           );
+          this.announce('Status also approved');
         } catch (e) {
           this.makeToast(e, 'Error', 'danger');
+          this.announce('Error approving status', 'assertive');
         }
       }
 

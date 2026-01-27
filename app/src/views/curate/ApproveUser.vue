@@ -34,7 +34,7 @@
                     aria-label="Refresh table data"
                     @click="loadUserTableData()"
                   >
-                    <i class="bi bi-arrow-clockwise" />
+                    <i class="bi bi-arrow-clockwise" aria-hidden="true" />
                   </BButton>
                 </BCol>
               </BRow>
@@ -277,7 +277,7 @@
                       :aria-label="`Approve user ${row.item.user_name}`"
                       @click="approveUser(row.item)"
                     >
-                      <i class="bi bi-check-lg" />
+                      <i class="bi bi-check-lg" aria-hidden="true" />
                     </BButton>
                     <BButton
                       v-b-tooltip.hover.top
@@ -288,7 +288,7 @@
                       :aria-label="`Review user ${row.item.user_name}`"
                       @click="reviewUser(row.item)"
                     >
-                      <i class="bi bi-pencil" />
+                      <i class="bi bi-pencil" aria-hidden="true" />
                     </BButton>
                     <BButton
                       v-b-tooltip.hover.top
@@ -299,7 +299,7 @@
                       :aria-label="`Reject user ${row.item.user_name}`"
                       @click="rejectUser(row.item)"
                     >
-                      <i class="bi bi-x-lg" />
+                      <i class="bi bi-x-lg" aria-hidden="true" />
                     </BButton>
                   </div>
                 </template>
@@ -544,23 +544,34 @@
           </p>
         </div>
       </BModal>
+
+      <!-- ARIA live region for screen reader announcements -->
+      <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
     </BContainer>
   </div>
 </template>
 
 <script>
-import { useToast, useColorAndSymbols } from '@/composables';
+import { useToast, useColorAndSymbols, useAriaLive } from '@/composables';
 import { useUiStore } from '@/stores/ui';
+import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
 
 export default {
   name: 'ApproveUser',
+  components: {
+    AriaLiveRegion,
+  },
   setup() {
     const { makeToast } = useToast();
     const colorAndSymbols = useColorAndSymbols();
+    const { message: a11yMessage, politeness: a11yPoliteness, announce } = useAriaLive();
 
     return {
       makeToast,
       ...colorAndSymbols,
+      a11yMessage,
+      a11yPoliteness,
+      announce,
     };
   },
   data() {
@@ -790,14 +801,17 @@ export default {
             },
           },
         );
+        const message = approved ? 'User approved successfully.' : 'User application rejected.';
         this.makeToast(
-          approved ? 'User approved successfully.' : 'User application rejected.',
+          message,
           'Success',
           approved ? 'success' : 'info',
         );
+        this.announce(message);
         this.loadUserTableData();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.announce('Error approving user', 'assertive');
       }
     },
     async handleUserChangeRole(userId, userRole) {

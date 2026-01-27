@@ -39,7 +39,7 @@
                       aria-label="Approve all statuses"
                       @click="checkAllApprove"
                     >
-                      <i class="bi bi-check2-all me-1" />
+                      <i class="bi bi-check2-all me-1" aria-hidden="true" />
                       Approve All
                     </BButton>
                     <!-- Refresh button -->
@@ -51,7 +51,7 @@
                       aria-label="Refresh table data"
                       @click="loadStatusTableData()"
                     >
-                      <i class="bi bi-arrow-clockwise" />
+                      <i class="bi bi-arrow-clockwise" aria-hidden="true" />
                     </BButton>
                   </div>
                 </BCol>
@@ -241,6 +241,11 @@
             <!-- Column filters -->
             <!-- Table Interface controls -->
 
+            <!-- Icon legend -->
+            <div class="px-3 pb-2">
+              <IconLegend :legend-items="legendItems" />
+            </div>
+
             <!-- Main table -->
             <BSpinner
               v-if="loading_status_approve"
@@ -392,7 +397,7 @@
                   :aria-label="`Toggle details for entity ${row.item.entity_id}`"
                   @click="row.toggleDetails"
                 >
-                  <i :class="'bi bi-' + (row.detailsShowing ? 'eye-slash' : 'eye')" />
+                  <i :class="'bi bi-' + (row.detailsShowing ? 'eye-slash' : 'eye')" aria-hidden="true" />
                 </BButton>
 
                 <BButton
@@ -404,7 +409,7 @@
                   :aria-label="`Edit status for entity ${row.item.entity_id}`"
                   @click="infoStatus(row.item, row.index, $event.target)"
                 >
-                  <i class="bi bi-pen" />
+                  <i class="bi bi-pen" aria-hidden="true" />
                 </BButton>
 
                 <BButton
@@ -416,7 +421,7 @@
                   :aria-label="`Approve status for entity ${row.item.entity_id}`"
                   @click="infoApproveStatus(row.item, row.index, $event.target)"
                 >
-                  <i class="bi bi-check2-circle" />
+                  <i class="bi bi-check2-circle" aria-hidden="true" />
                 </BButton>
               </template>
 
@@ -746,6 +751,9 @@
         </div>
       </BModal>
       <!-- Check approve all modal -->
+
+      <!-- ARIA live region for screen reader announcements -->
+      <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
     </BContainer>
   </div>
 </template>
@@ -757,7 +765,7 @@
 // import the Treeselect styles
 // import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
 
-import { useToast, useColorAndSymbols, useText } from '@/composables';
+import { useToast, useColorAndSymbols, useText, useAriaLive } from '@/composables';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
@@ -773,6 +781,8 @@ import GeneBadge from '@/components/ui/GeneBadge.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
+import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
+import IconLegend from '@/components/accessibility/IconLegend.vue';
 
 export default {
   name: 'ApproveStatus',
@@ -782,20 +792,37 @@ export default {
     DiseaseBadge,
     InheritanceBadge,
     CategoryIcon,
+    AriaLiveRegion,
+    IconLegend,
   },
   setup() {
     const { makeToast } = useToast();
     const colorAndSymbols = useColorAndSymbols();
     const text = useText();
+    const { message: a11yMessage, politeness: a11yPoliteness, announce } = useAriaLive();
 
     return {
       makeToast,
       ...colorAndSymbols,
       ...text,
+      a11yMessage,
+      a11yPoliteness,
+      announce,
     };
   },
   data() {
     return {
+      legendItems: [
+        { icon: 'bi bi-stoplights-fill', color: '#4caf50', label: 'Definitive' },
+        { icon: 'bi bi-stoplights-fill', color: '#2196f3', label: 'Moderate' },
+        { icon: 'bi bi-stoplights-fill', color: '#ff9800', label: 'Limited' },
+        { icon: 'bi bi-stoplights-fill', color: '#f44336', label: 'Refuted' },
+        { icon: 'bi bi-check-circle-fill', color: '#198754', label: 'No problems' },
+        { icon: 'bi bi-exclamation-triangle-fill', color: '#dc3545', label: 'Problematic' },
+        { icon: 'bi bi-eye', color: '#0d6efd', label: 'Toggle details' },
+        { icon: 'bi bi-pen', color: '#6c757d', label: 'Edit status' },
+        { icon: 'bi bi-check2-circle', color: '#dc3545', label: 'Approve status' },
+      ],
       problematic_text: {
         0: 'No problems',
         1: 'Entity status marked problematic',
@@ -1118,20 +1145,18 @@ export default {
           },
         );
 
+        const message = 'The new status for this entity has been submitted successfully.';
         this.makeToast(
-          `${'The new status for this entity has been submitted '
-            + '(status '}${
-            response.status
-          } (${
-            response.statusText
-          }).`,
+          message,
           'Success',
           'success',
         );
+        this.announce(message);
         this.resetForm();
         this.loadStatusTableData();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.announce('Error submitting status', 'assertive');
       }
     },
     resetForm() {
@@ -1174,9 +1199,11 @@ export default {
           },
         );
 
+        this.announce('Status approved successfully');
         this.loadStatusTableData();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.announce('Error approving status', 'assertive');
       }
     },
     async handleAllStatusOk() {
