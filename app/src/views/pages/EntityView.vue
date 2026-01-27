@@ -320,7 +320,7 @@ import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 
 export default {
-  name: 'Entity',
+  name: 'EntityView',
   components: {
     CategoryIcon,
     NddIcon,

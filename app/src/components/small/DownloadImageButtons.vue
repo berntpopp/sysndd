@@ -41,7 +41,6 @@
 </template>
 
 <script>
-import html2canvas from 'html2canvas';
 import { saveAs } from 'file-saver';
 
 export default {

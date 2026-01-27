@@ -25,6 +25,7 @@
           class="suggestion-item"
           @mousedown.prevent="selectSuggestion(suggestion)"
         >
+          <!-- eslint-disable-next-line vue/no-v-html -- content is generated internally by highlightMatch(), no user input -->
           <span class="suggestion-text" v-html="highlightMatch(suggestion)"></span>
         </li>
         <li v-if="filteredSuggestions.length > 8" class="suggestion-more">

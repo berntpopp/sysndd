@@ -57,8 +57,6 @@
 import { useHead } from '@unhead/vue';
 import useToast from '@/composables/useToast';
 
-import * as d3 from 'd3';
-
 export default {
   name: 'PhenotypeCorrelations',
   setup() {

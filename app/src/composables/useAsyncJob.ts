@@ -241,7 +241,7 @@ export function useAsyncJob(
           error.value = data.error?.message || data.error || 'Job failed';
         }
       }
-    } catch (err) {
+    } catch (_err) {
       stopPolling();
       error.value = 'Failed to check job status';
       status.value = 'failed';

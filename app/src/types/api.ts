@@ -73,7 +73,7 @@ export interface EntityResponse {
 }
 
 /** GET /api/entities (list with pagination) */
-export interface EntitiesResponse extends PaginatedResponse<Entity> {}
+export type EntitiesResponse = PaginatedResponse<Entity>;
 
 // ============================================================================
 // Gene Endpoints
@@ -86,7 +86,7 @@ export interface GeneResponse {
 }
 
 /** GET /api/genes (list with pagination) */
-export interface GenesResponse extends PaginatedResponse<Gene> {}
+export type GenesResponse = PaginatedResponse<Gene>;
 
 // ============================================================================
 // Search Endpoints

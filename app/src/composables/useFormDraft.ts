@@ -10,7 +10,7 @@
  * - Clear draft after successful submission
  */
 
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onUnmounted } from 'vue';
 
 export interface DraftMetadata {
   savedAt: number;

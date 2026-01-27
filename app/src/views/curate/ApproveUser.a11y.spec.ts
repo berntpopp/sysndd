@@ -7,7 +7,7 @@
  * modal titles, keyboard navigation, and form labels.
  */
 
-import { describe, it, vi, beforeEach } from 'vitest';
+import { describe, it, vi } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { createPinia } from 'pinia';
 import { expectNoA11yViolations, bootstrapStubs } from '@/test-utils';

@@ -21,7 +21,7 @@
 
 <script>
 export default {
-  name: 'Swagger',
+  name: 'ApiView',
   data() {
     return {
       error: null,
@@ -54,13 +54,13 @@ export default {
     initSwagger() {
       try {
         const apiURL = `${import.meta.env.VITE_API_URL}/api/admin/openapi.json`;
-        // eslint-disable-next-line no-undef
+         
         SwaggerUIBundle({
           dom_id: '#swagger-ui',
           url: apiURL,
           docExpansion: 'none',
           presets: [
-            // eslint-disable-next-line no-undef
+             
             SwaggerUIBundle.presets.apis,
           ],
         });

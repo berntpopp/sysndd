@@ -430,7 +430,7 @@ export default {
     });
 
     // Destructure to exclude functions we override in methods
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     const { filtered: _filtered, handlePageChange: _handlePageChange, handlePerPageChange: _handlePerPageChange, handleSortByOrDescChange: _handleSortByOrDescChange, ...restTableMethods } = tableMethods;
 
     // Return all needed properties

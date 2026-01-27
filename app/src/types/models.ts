@@ -139,11 +139,9 @@ export interface StatisticsMeta {
 }
 
 /**
- * News item (recent entity)
+ * News item (recent entity) - type alias since NewsItem is essentially an Entity with all fields
  */
-export interface NewsItem extends Entity {
-  // NewsItem is essentially an Entity with all fields
-}
+export type NewsItem = Entity;
 
 // ============================================================================
 // Navigation and Permissions

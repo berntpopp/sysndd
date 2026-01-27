@@ -10,13 +10,36 @@ import type { Core, ElementDefinition } from 'cytoscape';
 import fcose from 'cytoscape-fcose';
 import svg from 'cytoscape-svg';
 
+/**
+ * fcose layout options (cytoscape-fcose plugin)
+ * The fcose plugin extends cytoscape's built-in layout types.
+ */
+interface FcoseLayoutOptions {
+  name: 'fcose';
+  animate?: boolean;
+  animationDuration?: number;
+  randomize?: boolean;
+  nodeRepulsion?: number | ((node: unknown) => number);
+  idealEdgeLength?: number | ((edge: unknown) => number);
+  edgeElasticity?: number | ((edge: unknown) => number);
+  gravity?: number;
+  fit?: boolean;
+  padding?: number;
+  numIter?: number;
+}
+
+/**
+ * Cytoscape Core extended with cytoscape-svg plugin method
+ */
+interface CoreWithSvg extends Core {
+  svg(options?: { full?: boolean; scale?: number; bg?: string }): string;
+}
+
 // Register extensions once using global flag to handle HMR
-// @ts-ignore - using global to prevent re-registration during HMR
-if (!globalThis.__cytoscapeExtensionsRegistered) {
+if (!(globalThis as Record<string, unknown>).__cytoscapeExtensionsRegistered) {
   cytoscape.use(fcose);
   cytoscape.use(svg);
-  // @ts-ignore
-  globalThis.__cytoscapeExtensionsRegistered = true;
+  (globalThis as Record<string, unknown>).__cytoscapeExtensionsRegistered = true;
 }
 
 export interface PhenotypeCluster {
@@ -176,7 +199,7 @@ export function usePhenotypeCytoscape(options: PhenotypeCytoscapeOptions) {
       idealEdgeLength: () => 100,
       edgeElasticity: () => 0.1,
       gravity: 0.5,
-    } as any).run();
+    } as FcoseLayoutOptions).run();
 
     isLoading.value = false;
   }
@@ -196,7 +219,7 @@ export function usePhenotypeCytoscape(options: PhenotypeCytoscapeOptions) {
   }
 
   function exportSVG(): string {
-    return (cy as any)?.svg({ full: true }) || '';
+    return (cy as CoreWithSvg | null)?.svg({ full: true }) || '';
   }
 
   function destroy() {
@@ -211,7 +234,7 @@ export function usePhenotypeCytoscape(options: PhenotypeCytoscapeOptions) {
     onBeforeUnmount(() => {
       destroy();
     });
-  } catch (e) {
+  } catch (_e) {
     // Called outside setup() - caller must call destroy() manually
   }
 

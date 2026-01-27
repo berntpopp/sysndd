@@ -113,10 +113,7 @@ export default function useUrlParsing(): UrlParsingMethods {
    * @param join_char_allow - Array of allowed characters for join operations.
    * @returns An object representation of the filter string.
    */
-  const filterStrToObj = (filter_string: string | null, standard_object: FilterObject, split_content: string[] = [',(?! )'], join_char_allow: string[] = [',']): FilterObject => {
-    // convert input split_content to regex object
-    const split_content_regex = new RegExp(split_content.join('|'));
-
+  const filterStrToObj = (filter_string: string | null, standard_object: FilterObject, _split_content: string[] = [',(?! )'], join_char_allow: string[] = [',']): FilterObject => {
     // check if input is empty/ null
     if (filter_string !== null && filter_string !== 'null' && filter_string !== '') {
       // split input by closing bracket and comma
@@ -134,14 +131,14 @@ export default function useUrlParsing(): UrlParsingMethods {
       };
 
       // define function to assign join_char
-      const assignJoinChar = (input_string: string[], input_operator: string, allowed_join_char: string[]): string | null => {
+      const assignJoinChar = (input_string: string[], input_operator: string, _allowed_join_char: string[]): string | null => {
         if (input_operator === 'any' || input_operator === 'all') {
           return ',';
         }
         return null;
       };
 
-      const filter_object = filter_array.reduce((obj, str, index) => {
+      const filter_object = filter_array.reduce((obj, str, _index) => {
         const [firstPart, secondPart, ...restPart] = str.replace(')', '').split(/\(|,(?! )/g); // <-- replace any trailing brackets and split using regex into object components
         const objCopy = obj;
         if (firstPart && secondPart && restPart) { // <-- Make sure the key & value are not undefined

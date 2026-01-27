@@ -1,4 +1,4 @@
-<!-- views/User.vue -->
+<!-- views/UserView.vue -->
 <!--
   User Profile Page - Modern Design
   Following UI/UX best practices:
@@ -357,7 +357,7 @@ defineRule('password_complexity', (value) => {
 });
 
 export default {
-  name: 'User',
+  name: 'UserView',
   setup() {
     const { makeToast } = useToast();
     const colorAndSymbols = useColorAndSymbols();
@@ -508,9 +508,8 @@ export default {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        let rest;
-        [this.user.active_reviews, ...rest] = response_contributions.data.active_reviews;
-        [this.user.active_status, ...rest] = response_contributions.data.active_status;
+        [this.user.active_reviews] = response_contributions.data.active_reviews;
+        [this.user.active_status] = response_contributions.data.active_status;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }

@@ -7,7 +7,7 @@
  * icon legend, modal titles, keyboard navigation, and form labels.
  */
 
-import { describe, it, vi, beforeEach } from 'vitest';
+import { describe, it, vi } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { createPinia } from 'pinia';
 import { expectNoA11yViolations, bootstrapStubs } from '@/test-utils';
@@ -24,7 +24,7 @@ vi.mock('@/composables', () => ({
     user_icon: {},
   }),
   useText: () => ({
-    truncate: (str: string, len: number) => str,
+    truncate: (str: string, _len: number) => str,
   }),
   useAriaLive: () => ({
     message: '',

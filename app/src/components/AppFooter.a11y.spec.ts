@@ -1,6 +1,6 @@
-// Footer.a11y.spec.ts
+// AppFooter.a11y.spec.ts
 /**
- * Accessibility tests for Footer component
+ * Accessibility tests for AppFooter component
  *
  * Pattern: Navigation component accessibility testing
  * Tests navigation landmark and list structure per WCAG 2.2.
@@ -8,7 +8,7 @@
 
 import { describe, it, vi } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
-import Footer from './Footer.vue';
+import Footer from './AppFooter.vue';
 import { expectNoA11yViolations, bootstrapStubs } from '@/test-utils';
 
 // Mock the footer nav constants

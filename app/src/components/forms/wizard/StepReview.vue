@@ -291,7 +291,6 @@ import {
 import type {
   EntityFormData,
   SelectOption,
-  SelectOptionGroup,
   GroupedSelectOptions,
 } from '@/composables/useEntityForm';
 

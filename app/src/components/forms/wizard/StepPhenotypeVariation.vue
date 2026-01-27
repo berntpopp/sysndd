@@ -134,8 +134,6 @@ import {
 } from 'bootstrap-vue-next';
 import type {
   EntityFormData,
-  SelectOption,
-  SelectOptionGroup,
   GroupedSelectOptions,
 } from '@/composables/useEntityForm';
 

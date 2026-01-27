@@ -166,7 +166,7 @@ defineRule('regex', regex);
 defineRule('is', (value, [target]) => value === target || 'You must accept the terms');
 
 export default {
-  name: 'Register',
+  name: 'RegisterView',
   setup() {
     const { makeToast } = useToast();
     useHead({

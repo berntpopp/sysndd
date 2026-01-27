@@ -29,6 +29,20 @@ export interface StatusFormData {
 }
 
 /**
+ * Status submission data shape (Status class instance + metadata added before submission)
+ */
+interface StatusSubmissionData {
+  category_id: number | null;
+  comment: string;
+  problematic: boolean;
+  status_id?: number | null;
+  entity_id?: number | null;
+  status_user_name?: string | null;
+  status_user_role?: string | null;
+  re_review_status_saved?: number | null;
+}
+
+/**
  * Validation rules for status form fields
  */
 const validationRules = {
@@ -199,11 +213,11 @@ export default function useStatusForm(entityId?: string | number) {
     }
 
     // Create Status object
-    const statusObj: any = new Status(
+    const statusObj = new Status(
       formData.category_id,
       formData.comment,
       formData.problematic,
-    );
+    ) as StatusSubmissionData;
     statusObj.status_id = formData.status_id;
     statusObj.entity_id = formData.entity_id;
 

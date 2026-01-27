@@ -1,4 +1,3 @@
-/* eslint-disable import/prefer-default-export */
 // src/router/routes.ts
 
 import type { RouteRecordRaw, RouteLocationNormalized, NavigationGuardNext } from 'vue-router';
@@ -9,7 +8,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/',
     name: 'Home',
-    component: () => import('@/views/Home.vue'),
+    component: () => import('@/views/HomeView.vue'),
     meta: {
       sitemap: {
         priority: 1.0,
@@ -20,7 +19,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/Entities',
     name: 'Entities',
-    component: () => import('@/views/tables/Entities.vue'),
+    component: () => import('@/views/tables/EntitiesTable.vue'),
     props: (route) => ({
       sort: route.query.sort || undefined,
       filter: route.query.filter || undefined,
@@ -39,7 +38,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/Genes',
     name: 'Genes',
-    component: () => import('@/views/tables/Genes.vue'),
+    component: () => import('@/views/tables/GenesTable.vue'),
     props: (route) => ({
       sort: route.query.sort || undefined,
       filter: route.query.filter || undefined,
@@ -58,7 +57,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/Phenotypes',
     name: 'Phenotypes',
-    component: () => import('@/views/tables/Phenotypes.vue'),
+    component: () => import('@/views/tables/PhenotypesTable.vue'),
     props: (route) => ({
       sort: route.query.sort || undefined,
       filter: route.query.filter || undefined,
@@ -276,7 +275,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/Panels/:category_input?/:inheritance_input?',
     name: 'Panels',
-    component: () => import('@/views/tables/Panels.vue'),
+    component: () => import('@/views/tables/PanelsTable.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
       const categoryInput = Array.isArray(to.params.category_input)
@@ -307,7 +306,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/About',
     name: 'About',
-    component: () => import('@/views/help/About.vue'),
+    component: () => import('@/views/help/AboutView.vue'),
     meta: {
       sitemap: {
         priority: 0.5,
@@ -318,7 +317,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/Documentation',
     name: 'Documentation',
-    component: () => import('@/views/help/Documentation.vue'),
+    component: () => import('@/views/help/DocumentationView.vue'),
     meta: {
       sitemap: {
         priority: 0.5,
@@ -329,7 +328,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/Login',
     name: 'Login',
-    component: () => import('@/views/Login.vue'),
+    component: () => import('@/views/LoginView.vue'),
     meta: {
       sitemap: {
         priority: 0.5,
@@ -340,7 +339,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/Register',
     name: 'Register',
-    component: () => import('@/views/Register.vue'),
+    component: () => import('@/views/RegisterView.vue'),
     meta: {
       sitemap: {
         priority: 0.5,
@@ -351,7 +350,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/User',
     name: 'User',
-    component: () => import('@/views/User.vue'),
+    component: () => import('@/views/UserView.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
       const allowed_roles = ['Administrator', 'Curator', 'Reviewer'];
@@ -373,7 +372,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/PasswordReset/:request_jwt?',
     name: 'PasswordReset',
-    component: () => import('@/views/PasswordReset.vue'),
+    component: () => import('@/views/PasswordResetView.vue'),
     meta: { sitemap: { ignoreRoute: true } },
   },
   {
@@ -401,7 +400,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/ReviewInstructions',
     name: 'ReviewInstructions',
-    component: () => import('@/views/review/Instructions.vue'),
+    component: () => import('@/views/review/ReviewInstructions.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
       const allowed_roles = ['Administrator', 'Curator', 'Reviewer'];
@@ -699,36 +698,36 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/Entities/:entity_id',
     name: 'Entity',
-    component: () => import('@/views/pages/Entity.vue'),
+    component: () => import('@/views/pages/EntityView.vue'),
     meta: { sitemap: { ignoreRoute: true } },
   },
   {
     path: '/Genes/:symbol',
     name: 'Gene',
-    component: () => import('@/views/pages/Gene.vue'),
+    component: () => import('@/views/pages/GeneView.vue'),
     meta: { sitemap: { ignoreRoute: true } },
   },
   {
     path: '/Ontology/:disease_term',
     name: 'Ontology',
-    component: () => import('@/views/pages/Ontology.vue'),
+    component: () => import('@/views/pages/OntologyView.vue'),
     meta: { sitemap: { ignoreRoute: true } },
   },
   {
     path: '/Search/:search_term',
     name: 'Search',
-    component: () => import('@/views/pages/Search.vue'),
+    component: () => import('@/views/pages/SearchView.vue'),
     meta: { sitemap: { ignoreRoute: true } },
   },
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
-    component: () => import('@/views/PageNotFound.vue'),
+    component: () => import('@/views/PageNotFoundView.vue'),
   },
   {
     path: '/API',
     name: 'API',
-    component: () => import('@/views/API.vue'),
+    component: () => import('@/views/ApiView.vue'),
     meta: {
       sitemap: {
         priority: 0.8,

@@ -164,7 +164,7 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { useClipboard } from '@vueuse/core';
 
 export default {

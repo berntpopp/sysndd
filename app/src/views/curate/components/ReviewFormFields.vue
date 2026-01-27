@@ -330,7 +330,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue';
+import { computed } from 'vue';
 import TreeMultiSelect from '@/components/forms/TreeMultiSelect.vue';
 import type { ReviewFormData } from '@/views/curate/composables/useReviewForm';
 
@@ -338,7 +338,7 @@ interface TreeNode {
   id: string;
   label: string;
   children?: TreeNode[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface Props {

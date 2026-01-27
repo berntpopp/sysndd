@@ -106,7 +106,7 @@
 import { useHead } from '@unhead/vue';
 
 export default {
-  name: 'Instructions',
+  name: 'ReviewInstructions',
   setup() {
     useHead({
       title: 'Instructions',

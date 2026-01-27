@@ -1,4 +1,4 @@
-<!-- src/views/PasswordReset.vue -->
+<!-- src/views/PasswordResetView.vue -->
 <template>
   <div class="container-fluid">
     <BSpinner
@@ -113,7 +113,7 @@ defineRule('max', max);
 defineRule('email', email);
 
 export default {
-  name: 'PasswordReset',
+  name: 'PasswordResetView',
   setup() {
     const { makeToast } = useToast();
     useHead({
@@ -212,7 +212,7 @@ export default {
     parseJwt(token) {
       try {
         return JSON.parse(atob(token.split('.')[1]));
-      } catch (e) {
+      } catch (_e) {
         return null;
       }
     },
@@ -247,12 +247,12 @@ export default {
       }&new_pass_2=${
         this.newPasswordRepeat}`;
       try {
-        const response = await this.axios.get(apiUrl, {
+        await this.axios.get(apiUrl, {
           headers: {
             Authorization: `Bearer ${this.$route.params.request_jwt}`,
           },
         });
-      } catch (e) {
+      } catch (_e) {
         this.makeToast(e, 'Error', 'danger');
       }
       this.resetChangeForm();

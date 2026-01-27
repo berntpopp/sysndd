@@ -8,7 +8,7 @@
 
 import { describe, it, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import Banner from './Banner.vue';
+import Banner from './AppBanner.vue';
 import { expectNoA11yViolations, bootstrapStubs } from '@/test-utils';
 
 describe('Banner accessibility', () => {

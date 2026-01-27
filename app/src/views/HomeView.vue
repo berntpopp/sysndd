@@ -445,7 +445,7 @@ import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 
 export default {
-  name: 'Home',
+  name: 'HomeView',
   components: {
     SearchCombobox,
     CategoryIcon,

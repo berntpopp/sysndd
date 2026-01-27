@@ -1,4 +1,4 @@
-<!-- views/pages/Gene.vue -->
+<!-- views/pages/GeneView.vue -->
 <template>
   <div class="container-fluid bg-gradient">
     <BSpinner
@@ -398,7 +398,7 @@ import TablesEntities from '@/components/tables/TablesEntities.vue';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 
 export default {
-  name: 'Gene',
+  name: 'GeneView',
   components: {
     TablesEntities,
     GeneBadge,

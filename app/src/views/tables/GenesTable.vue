@@ -1,7 +1,7 @@
 <template>
   <div class="container-fluid">
-    <!-- Load Phenotypes table component element -->
-    <TablesPhenotypes
+    <!-- Load Genes table component element -->
+    <TablesGenes
       :sort-input="sort"
       :filter-input="filter"
       :fields-input="fields"
@@ -9,43 +9,44 @@
       :page-size-input="Number(pageSize)"
       :fspec-input="fspec"
     />
-    <!-- Load Phenotypes table component element -->
+    <!-- Load Genes table component element -->
   </div>
 </template>
 
 <script>
 import { useHead } from '@unhead/vue';
-import TablesPhenotypes from '@/components/tables/TablesPhenotypes.vue';
+import TablesGenes from '@/components/tables/TablesGenes.vue';
 
 export default {
-  name: 'Phenotypes',
+  name: 'GenesTable',
   components: {
-    TablesPhenotypes,
+    TablesGenes,
   },
   props: {
-    sort: { type: String, default: 'entity_id' },
-    filter: { type: String, default: 'all(modifier_phenotype_id,HP:0001249)' },
+    sort: { type: String, default: '+symbol' },
+    filter: { type: String, default: null },
     fields: { type: String, default: null },
     pageAfter: { type: String, default: '0' },
     pageSize: { type: String, default: '10' },
     fspec: {
       type: String,
       default:
-        'entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word',
+        'symbol,category,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,entities_count,details',
     },
   },
   setup() {
     useHead({
-      title: 'Phenotypes',
+      title: 'Genes',
       meta: [
         {
           name: 'description',
           content:
-            'The Phenotypes table view allows browsing NDD associated entities by phenotype and filtering with download possibility.',
+            'The Genes table view allows browsing NDD associations by gene.',
         },
       ],
     });
   },
+  mounted() {},
 };
 </script>
 

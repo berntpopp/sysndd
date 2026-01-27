@@ -30,6 +30,19 @@ export interface ReviewFormData {
 }
 
 /**
+ * Review submission data shape (Review class instance + metadata added before submission)
+ */
+interface ReviewSubmissionData {
+  synopsis: string;
+  literature: unknown;
+  phenotypes: unknown[];
+  variation_ontology: unknown[];
+  comment: string;
+  review_id?: number | null;
+  entity_id?: number | null;
+}
+
+/**
  * PMID tag validator
  */
 export function validatePMID(tag: string): boolean {
@@ -278,8 +291,9 @@ export default function useReviewForm(entityId?: string | number) {
     );
 
     // Add metadata
-    (reviewData as any).review_id = reviewId.value;
-    (reviewData as any).entity_id = entityIdRef.value;
+    const reviewSubmission = reviewData as ReviewSubmissionData;
+    reviewSubmission.review_id = reviewId.value;
+    reviewSubmission.entity_id = entityIdRef.value;
 
     // Determine API endpoint
     const method = isUpdate ? 'put' : 'post';

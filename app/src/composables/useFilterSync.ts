@@ -39,7 +39,7 @@
  * ```
  */
 
-import { computed, type ComputedRef, reactive } from 'vue';
+import { computed, type ComputedRef } from 'vue';
 import { useUrlSearchParams } from '@vueuse/core';
 
 /**

@@ -41,7 +41,7 @@
  * ```
  */
 
-import { ref, watch, type Ref } from 'vue';
+import { ref, type Ref } from 'vue';
 import type { Core, NodeSingular } from 'cytoscape';
 
 /**

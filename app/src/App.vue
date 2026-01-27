@@ -5,7 +5,7 @@
       <div
         id="navbar"
       >
-        <Navbar />
+        <AppNavbar />
       </div>
       <main
         id="main"
@@ -18,7 +18,7 @@
       <div
         id="footer"
       >
-        <Footer @show-disclaimer="disclaimerDialogVisible = true" />
+        <AppFooter @show-disclaimer="disclaimerDialogVisible = true" />
       </div>
 
       <!--place the helper badge -->
@@ -41,8 +41,8 @@ import { useToast } from 'bootstrap-vue-next';
 import { useUiStore } from '@/stores/ui';
 import { useDisclaimerStore } from '@/stores/disclaimer';
 import { mapState } from 'pinia';
-import Navbar from '@/components/Navbar.vue';
-import Footer from '@/components/Footer.vue';
+import AppNavbar from '@/components/AppNavbar.vue';
+import AppFooter from '@/components/AppFooter.vue';
 import HelperBadge from '@/components/HelperBadge.vue';
 import SkipLink from '@/components/accessibility/SkipLink.vue';
 import DisclaimerDialog from '@/components/disclaimer/DisclaimerDialog.vue';
@@ -50,8 +50,8 @@ import DisclaimerDialog from '@/components/disclaimer/DisclaimerDialog.vue';
 export default {
   name: 'SysNDD',
   components: {
-    Navbar,
-    Footer,
+    AppNavbar,
+    AppFooter,
     HelperBadge,
     SkipLink,
     DisclaimerDialog,

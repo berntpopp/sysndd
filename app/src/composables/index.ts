@@ -31,7 +31,6 @@ export { default as useUrlParsing } from './useUrlParsing';
 
 // Table state management
 export { default as useTableData } from './useTableData';
-// eslint-disable-next-line import/no-cycle
 export { default as useTableMethods } from './useTableMethods';
 
 // Entity form management

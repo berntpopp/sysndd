@@ -18,7 +18,7 @@
 import { ref, onBeforeUnmount, type Ref } from 'vue';
  
 import cytoscape from 'cytoscape';
-import type { Core, ElementDefinition, NodeSingular } from 'cytoscape';
+import type { Core, ElementDefinition } from 'cytoscape';
 import fcose from 'cytoscape-fcose';
 import svg from 'cytoscape-svg';
 
@@ -28,17 +28,47 @@ type CytoscapeStylesheet = Array<{
   style: Record<string, unknown>;
 }>;
 
+/**
+ * fcose layout options (cytoscape-fcose plugin)
+ * The fcose plugin is not typed in cytoscape's LayoutOptions union,
+ * so we define a minimal interface for the options we use.
+ */
+interface FcoseLayoutOptions {
+  name: 'fcose';
+  quality?: 'default' | 'draft' | 'proof';
+  randomize?: boolean;
+  animate?: boolean;
+  animationDuration?: number;
+  fit?: boolean;
+  padding?: number;
+  nodeDimensionsIncludeLabels?: boolean;
+  nodeSeparation?: number;
+  nodeRepulsion?: number | ((node: unknown) => number);
+  idealEdgeLength?: number | ((edge: unknown) => number);
+  edgeElasticity?: number | ((edge: unknown) => number);
+  nestingFactor?: number;
+  gravity?: number;
+  gravityRange?: number;
+  gravityCompound?: number;
+  gravityRangeCompound?: number;
+  numIter?: number;
+  tile?: boolean;
+  tilingPaddingVertical?: number;
+  tilingPaddingHorizontal?: number;
+  packComponents?: boolean;
+  ready?: () => void;
+  stop?: () => void;
+}
+
 // Type assertion for cytoscape function
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const cytoscapeFn = cytoscape as any;
 
 // Register extensions once using global flag to handle HMR and multiple composables
-// @ts-ignore - using global to prevent re-registration
-if (!globalThis.__cytoscapeExtensionsRegistered) {
+if (!(globalThis as Record<string, unknown>).__cytoscapeExtensionsRegistered) {
   cytoscapeFn.use(fcose);
   cytoscapeFn.use(svg);
-  // @ts-ignore
-  globalThis.__cytoscapeExtensionsRegistered = true;
+  (globalThis as Record<string, unknown>).__cytoscapeExtensionsRegistered = true;
 }
 
 /**
@@ -323,7 +353,7 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
         tilingPaddingHorizontal: 20,
         // Pack disconnected components (clusters)
         packComponents: true,
-      } as any,
+      } as FcoseLayoutOptions,
 
       // WebGL renderer for better performance
       renderer: {
@@ -446,7 +476,7 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
       edgeElasticity: 0.45,
       gravity: 0.25,
       numIter: 2500,
-    } as any);
+    } as FcoseLayoutOptions);
 
     layout.run();
 
@@ -489,7 +519,7 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
       edgeElasticity: 0.45,
       gravity: 0.25,
       numIter: 2500,
-    } as any);
+    } as FcoseLayoutOptions);
 
     layout.run();
   };

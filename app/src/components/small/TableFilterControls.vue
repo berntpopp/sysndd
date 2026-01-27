@@ -17,15 +17,14 @@ export default {
   props: {
     showFilterControls: {
       type: Boolean,
-      required: true,
       default: true,
     },
     initialFilterContent: {
       type: String,
-      required: true,
       default: '',
     },
   },
+  emits: ['update-filter'],
   data() {
     return {
       filterContent: this.initialFilterContent,

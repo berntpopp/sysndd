@@ -382,7 +382,7 @@ onMounted(async () => {
       useCmsContent.value = true;
     }
     // If no CMS content, fallback to hardcoded content (useCmsContent stays false)
-  } catch (err) {
+  } catch (_err) {
     // API not available or error - use default hardcoded content
     console.log('CMS content not available, using default content');
   } finally {

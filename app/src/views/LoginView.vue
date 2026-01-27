@@ -1,4 +1,4 @@
-<!-- src/views/Login.vue -->
+<!-- src/views/LoginView.vue -->
 <template>
   <div class="container-fluid">
     <!-- Loading Spinner -->
@@ -98,7 +98,7 @@ defineRule('min', min);
 defineRule('max', max);
 
 export default {
-  name: 'Login',
+  name: 'LoginView',
   setup() {
     const { makeToast } = useToast();
     useHead({
@@ -152,7 +152,7 @@ export default {
   },
   methods: {
     onSubmit() {
-      this.handleSubmit((values) => {
+      this.handleSubmit((_values) => {
         this.loadJWT();
       })();
     },

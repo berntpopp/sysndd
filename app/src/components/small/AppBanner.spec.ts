@@ -15,9 +15,9 @@
  * registered. We use shallowMount with explicit stubs to isolate the component.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { shallowMount } from '@vue/test-utils';
-import Banner from './Banner.vue';
+import Banner from './AppBanner.vue';
 
 describe('Banner', () => {
   // localStorage is mocked in vitest.setup.ts and cleared between tests

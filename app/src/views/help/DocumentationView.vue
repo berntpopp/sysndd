@@ -386,7 +386,7 @@
 import { useHead } from '@unhead/vue';
 
 export default {
-  name: 'Documentation',
+  name: 'DocumentationView',
   setup() {
     useHead({
       title: 'Documentation',

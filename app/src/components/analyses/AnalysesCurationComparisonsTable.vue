@@ -460,7 +460,7 @@ export default {
   },
   watch: {
     filter: {
-      handler(value) {
+      handler(_value) {
         this.filtered();
       },
       deep: true, // Vue 3 requires deep:true for object mutation watching

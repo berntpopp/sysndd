@@ -303,7 +303,7 @@ export default {
       default: null,
     },
   },
-  setup(props, { expose }) {
+  setup(_props, { expose: _expose }) {
     const { makeToast } = useToast();
     const cytoscapeContainer = ref(null);
     const activeClusterRef = ref('1');

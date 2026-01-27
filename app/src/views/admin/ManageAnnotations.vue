@@ -779,7 +779,7 @@ async function updateOntologyAnnotations() {
 
     // Start tracking the job
     ontologyJob.startJob(response.data.job_id);
-  } catch (error) {
+  } catch (_error) {
     makeToast('Failed to start ontology update', 'Error', 'danger');
   }
 }
@@ -807,7 +807,7 @@ async function updateHgncData() {
 
     // Start tracking the job
     hgncJob.startJob(response.data.job_id);
-  } catch (error) {
+  } catch (_error) {
     makeToast('Failed to start HGNC update', 'Error', 'danger');
   }
 }

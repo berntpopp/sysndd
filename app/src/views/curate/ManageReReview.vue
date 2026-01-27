@@ -833,12 +833,12 @@ export default {
         items = items.filter((item) => !item.user_id);
       }
 
-      // Update totalRows based on filtered results
-      this.$nextTick(() => {
-        this.totalRows = items.length;
-      });
-
       return items;
+    },
+  },
+  watch: {
+    filteredItems(newItems) {
+      this.totalRows = newItems.length;
     },
   },
   mounted() {
@@ -906,7 +906,7 @@ export default {
         this.user_id_assignment}`;
 
       try {
-        const response = await this.axios.put(
+        await this.axios.put(
           apiUrl,
           {},
           {
@@ -933,7 +933,7 @@ export default {
         batch_id}`;
 
       try {
-        const response = await this.axios.delete(apiUrl, {
+        await this.axios.delete(apiUrl, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
@@ -950,7 +950,7 @@ export default {
       this.totalRows = filteredItems.length;
       this.currentPage = 1;
     },
-    onSortChanged(ctx) {
+    onSortChanged(_ctx) {
       // Handle sort change if needed
     },
 
@@ -977,7 +977,7 @@ export default {
         });
         this.availableEntities = response.data.data || [];
         this.selectedEntityIds = [];
-      } catch (e) {
+      } catch (_e) {
         this.makeToast('Failed to load available entities', 'Error', 'danger');
       } finally {
         this.isLoadingEntities = false;
@@ -1142,7 +1142,7 @@ export default {
             text: item.category,
           }))
           : [];
-      } catch (e) {
+      } catch (_e) {
         this.status_options = [];
       }
     },

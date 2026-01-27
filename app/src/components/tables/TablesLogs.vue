@@ -726,7 +726,7 @@ export default {
           value: item.user_name,
           text: `${item.user_name} (${item.user_role})`,
         }));
-      } catch (e) {
+      } catch (_e) {
         this.makeToast('Failed to load user list', 'Error', 'danger');
       }
     },

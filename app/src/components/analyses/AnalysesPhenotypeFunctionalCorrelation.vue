@@ -207,7 +207,7 @@ export default {
        * @param {Event} event - The event object.
        * @param {Object} d - The data point bound to the rect.
        */
-      function handleMouseOver(event, d) {
+      function handleMouseOver(_event, _d) {
         tooltip.style('opacity', 1);
         d3.select(this).style('stroke', 'black');
       }
@@ -230,7 +230,7 @@ export default {
        * @param {Event} event - The event object.
        * @param {Object} d - The data point bound to the rect.
        */
-      function handleMouseLeave(event, d) {
+      function handleMouseLeave(_event, _d) {
         tooltip.style('opacity', 0);
         d3.select(this).style('stroke', 'none');
       }

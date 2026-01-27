@@ -319,7 +319,7 @@ import { useToast } from '@/composables';
 import { useUiStore } from '@/stores/ui';
 
 export default {
-  name: 'Panels',
+  name: 'PanelsTable',
   setup() {
     const { makeToast } = useToast();
 
@@ -376,7 +376,7 @@ export default {
       },
       deep: true,
     },
-    perPage(value) {
+    perPage(_value) {
       this.handlePerPageChange();
     },
   },

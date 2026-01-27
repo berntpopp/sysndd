@@ -48,7 +48,12 @@ export default [
     rules: {
       // Migration strategy: warnings instead of errors
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': 'warn',
+      '@typescript-eslint/no-unused-vars': ['warn', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+        destructuredArrayIgnorePattern: '^_',
+      }],
       '@typescript-eslint/no-unused-expressions': 'warn',
       'no-unused-vars': 'off', // TypeScript handles this
       'no-undef': 'warn',
@@ -62,6 +67,7 @@ export default [
       'vue/no-v-html': 'warn',
       'vue/require-default-prop': 'warn',
       'vue/require-prop-types': 'warn',
+      'vue/valid-v-slot': ['error', { allowModifiers: true }],
 
       // Allow async component setup
       'vue/no-setup-props-destructure': 'off',
@@ -69,6 +75,15 @@ export default [
       // TypeScript-specific relaxed rules
       '@typescript-eslint/no-require-imports': 'warn',
       '@typescript-eslint/ban-ts-comment': 'warn',
+    },
+  },
+
+  // Disable no-undef for TypeScript files (TS compiler handles this;
+  // avoids false positives with Vitest globals and type-only imports)
+  {
+    files: ['**/*.ts', '**/*.tsx', '**/*.vue'],
+    rules: {
+      'no-undef': 'off',
     },
   },
 

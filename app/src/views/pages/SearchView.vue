@@ -129,7 +129,7 @@ import useToast from '@/composables/useToast';
 import EntityBadge from '@/components/ui/EntityBadge.vue';
 
 export default {
-  name: 'Search',
+  name: 'SearchView',
   components: {
     EntityBadge,
   },

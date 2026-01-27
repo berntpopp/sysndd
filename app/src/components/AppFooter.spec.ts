@@ -1,6 +1,6 @@
-// Footer.spec.ts
+// AppFooter.spec.ts
 /**
- * Tests for Footer component
+ * Tests for AppFooter component
  *
  * Pattern: Component with async/lazy-loaded children
  * This component uses defineAsyncComponent for FooterNavItem.
@@ -11,13 +11,13 @@
  * - Testing data from imported constants
  * - Using flushPromises to wait for async resolution
  *
- * Note: Footer imports constants and uses defineAsyncComponent to lazy-load
+ * Note: AppFooter imports constants and uses defineAsyncComponent to lazy-load
  * FooterNavItem. We stub the async component and mock the constants module.
  */
 
 import { describe, it, expect, vi } from 'vitest';
 import { shallowMount, flushPromises } from '@vue/test-utils';
-import Footer from './Footer.vue';
+import Footer from './AppFooter.vue';
 
 // Mock the footer nav constants module
 vi.mock('@/assets/js/constants/footer_nav_constants', () => ({

@@ -1,4 +1,4 @@
-<!-- scr/components/Navbar.vue -->
+<!-- src/components/AppNavbar.vue -->
 <template>
   <div>
     <BNavbar
@@ -114,7 +114,7 @@ import SearchCombobox from '@/components/small/SearchCombobox.vue';
 import IconPairDropdownMenu from '@/components/small/IconPairDropdownMenu.vue';
 
 export default {
-  name: 'Navbar',
+  name: 'AppNavbar',
   components: {
     SearchCombobox,
     IconPairDropdownMenu,

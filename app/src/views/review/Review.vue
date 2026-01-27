@@ -1257,7 +1257,7 @@ export default {
       this.status_approved = false;
       this.review_approved = false;
     },
-    async infoReview(item, index, button) {
+    async infoReview(item, _index, _button) {
       this.reviewModal.title = `sysndd:${item.entity_id}`;
       await this.getEntity(item.entity_id);
 
@@ -1270,7 +1270,7 @@ export default {
 
       this.$refs[this.reviewModal.id].show();
     },
-    async infoStatus(item, index, button) {
+    async infoStatus(item, _index, _button) {
       this.statusModal.title = `sysndd:${item.entity_id}`;
       await this.getEntity(item.entity_id);
 
@@ -1280,13 +1280,13 @@ export default {
 
       this.$refs[this.statusModal.id].show();
     },
-    infoSubmit(item, index, button) {
+    infoSubmit(item, _index, _button) {
       this.submitModal.title = `sysndd:${item.entity_id}`;
       this.entity = [];
       this.entity.push(item);
       this.$refs[this.submitModal.id].show();
     },
-    infoApprove(item, index, button) {
+    infoApprove(item, _index, _button) {
       this.approveModal.title = `sysndd:${item.entity_id}`;
       this.entity = [];
       this.entity.push(item);
@@ -1420,7 +1420,7 @@ export default {
       };
       this.review_info = new Review();
     },
-    async handleSubmitOk(bvModalEvt) {
+    async handleSubmitOk(_bvModalEvt) {
       const re_review_submission = {};
 
       re_review_submission.re_review_entity_id = this.entity[0].re_review_entity_id;
@@ -1428,7 +1428,7 @@ export default {
 
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/submit`;
       try {
-        const response = await this.axios.put(
+        await this.axios.put(
           apiUrl,
           { submit_json: re_review_submission },
           {
@@ -1443,7 +1443,7 @@ export default {
 
       this.loadReReviewData();
     },
-    async handleApproveOk(bvModalEvt) {
+    async handleApproveOk(_bvModalEvt) {
       const apiUrl = `${import.meta.env.VITE_API_URL
       }/api/re_review/approve/${
         this.entity[0].re_review_entity_id
@@ -1453,7 +1453,7 @@ export default {
         this.review_approved}`;
 
       try {
-        const response = await this.axios.put(
+        await this.axios.put(
           apiUrl,
           {},
           {
@@ -1469,13 +1469,13 @@ export default {
       this.resetApproveModal();
       this.loadReReviewData();
     },
-    async handleUnsetSubmission(bvModalEvt) {
+    async handleUnsetSubmission(_bvModalEvt) {
       const apiUrl = `${import.meta.env.VITE_API_URL
       }/api/re_review/unsubmit/${
         this.entity[0].re_review_entity_id}`;
 
       try {
-        const response = await this.axios.put(
+        await this.axios.put(
           apiUrl,
           {},
           {
@@ -1495,7 +1495,7 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/batch/apply`;
 
       try {
-        const response = await this.axios.get(apiUrl, {
+        await this.axios.get(apiUrl, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },

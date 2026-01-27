@@ -68,6 +68,7 @@ export default {
       default: 'info',
     },
   },
+  emits: ['request-excel', 'copy-link', 'remove-filters'],
 };
 </script>
 

@@ -1,4 +1,4 @@
-<!-- Banner.vue -->
+<!-- AppBanner.vue -->
 <template>
   <div v-if="!banner_acknowledged">
     <!-- Banner display code -->
@@ -56,6 +56,7 @@
 
 <script>
 export default {
+  name: 'AppBanner',
   data() {
     return {
       banner_acknowledged: localStorage.getItem('banner_acknowledged'),

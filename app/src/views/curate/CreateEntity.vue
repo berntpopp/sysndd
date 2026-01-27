@@ -121,9 +121,7 @@
 import {
   defineComponent,
   ref,
-  computed,
   provide,
-  reactive,
   onMounted,
   watch,
 } from 'vue';
@@ -134,7 +132,6 @@ import axios from 'axios';
 import { useToast } from '@/composables';
 import useEntityForm, {
   type SelectOption,
-  type SelectOptionGroup,
   type GroupedSelectOptions,
   type EntityFormData,
 } from '@/composables/useEntityForm';
@@ -182,14 +179,14 @@ export default defineComponent({
     const entityForm = useEntityForm();
     const {
       formData,
-      touched,
+      touched: _touched,
       currentStepIndex,
       currentStep,
       steps,
       stepLabels,
       totalSteps,
       directApproval,
-      validateStep,
+      validateStep: _validateStep,
       getFieldError,
       getFieldState,
       touchField,
@@ -206,10 +203,10 @@ export default defineComponent({
     // Initialize draft composable
     const formDraft = useFormDraft<EntityFormData>('create-entity');
     const {
-      hasDraft,
+      hasDraft: _hasDraft,
       lastSavedFormatted: draftLastSavedFormatted,
       isSaving: draftIsSaving,
-      saveDraft,
+      saveDraft: _saveDraft,
       loadDraft,
       clearDraft,
       checkForDraft,

@@ -43,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, type ComponentPublicInstance } from 'vue';
 import type { ToolbarAction } from '@/types';
 import MarkdownCheatsheet from './MarkdownCheatsheet.vue';
 
@@ -63,7 +63,7 @@ const emit = defineEmits<{
   'blur': [];
 }>();
 
-const textareaRef = ref<any>(null);
+const textareaRef = ref<ComponentPublicInstance | null>(null);
 const showCheatsheet = ref(false);
 const localContent = ref(props.modelValue);
 
@@ -93,7 +93,7 @@ const toolbarActions: ToolbarAction[] = [
 ];
 
 function insertFormatting(action: ToolbarAction) {
-  const textarea = textareaRef.value?.$el || textareaRef.value;
+  const textarea = (textareaRef.value?.$el || textareaRef.value) as HTMLTextAreaElement | null;
   if (!textarea) return;
 
   const start = textarea.selectionStart;

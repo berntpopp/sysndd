@@ -190,7 +190,7 @@ export default {
        * @param {Event} event - The event object.
        * @param {Object} d - The data point.
        */
-      const mouseover = function mouseover(event, d) {
+      const mouseover = function mouseover(_event, _d) {
         tooltip.style('opacity', 1);
         d3.select(this).style('stroke', 'black').style('opacity', 1);
       };
@@ -212,7 +212,7 @@ export default {
        * @param {Event} event - The event object.
        * @param {Object} d - The data point.
        */
-      const mouseleave = function mouseleave(event, d) {
+      const mouseleave = function mouseleave(_event, _d) {
         tooltip.style('opacity', 0);
         d3.select(this).style('stroke', 'none');
       };

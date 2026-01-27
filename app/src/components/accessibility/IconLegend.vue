@@ -14,8 +14,8 @@
       >
         <!-- Dynamic component rendering (e.g., CategoryIcon) -->
         <component
-          v-if="item.component"
           :is="item.component"
+          v-if="item.component"
           v-bind="item.componentProps"
           aria-hidden="true"
         />

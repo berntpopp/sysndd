@@ -1138,7 +1138,7 @@ export default {
 
       // perform update PUT request
       try {
-        const response = await this.axios.put(
+        await this.axios.put(
           apiUrl,
           { status_json: this.status_info },
           {
@@ -1174,25 +1174,25 @@ export default {
       };
       this.status_info = new Status();
     },
-    infoApproveStatus(item, index, button) {
+    infoApproveStatus(item, _index, _button) {
       this.approveModal.title = `sysndd:${item.entity_id}`;
       this.loadStatusInfo(item.status_id);
       this.$refs[this.approveModal.id].show();
     },
-    infoStatus(item, index, button) {
+    infoStatus(item, _index, _button) {
       this.statusModal.title = `sysndd:${item.entity_id}`;
       this.getEntity(item.entity_id);
       this.loadStatusInfo(item.status_id);
       this.$refs[this.statusModal.id].show();
     },
-    async handleStatusOk(bvModalEvt) {
+    async handleStatusOk(_bvModalEvt) {
       const apiUrl = `${import.meta.env.VITE_API_URL
       }/api/status/approve/${
         this.status_info.status_id
       }?status_ok=true`;
 
       try {
-        const response = await this.axios.put(
+        await this.axios.put(
           apiUrl,
           {},
           {
@@ -1214,7 +1214,7 @@ export default {
         const apiUrl = `${import.meta.env.VITE_API_URL
         }/api/status/approve/all?status_ok=true`;
         try {
-          const response = this.axios.put(
+          this.axios.put(
             apiUrl,
             {},
             {

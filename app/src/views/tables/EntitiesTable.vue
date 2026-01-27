@@ -1,4 +1,4 @@
-<!-- views/tables/Entities.vue -->
+<!-- views/tables/EntitiesTable.vue -->
 <template>
   <div class="container-fluid">
     <!-- Load Entities table component element -->
@@ -19,7 +19,7 @@ import { useHead } from '@unhead/vue';
 import TablesEntities from '@/components/tables/TablesEntities.vue';
 
 export default {
-  name: 'Entities',
+  name: 'EntitiesTable',
   components: {
     TablesEntities,
   },

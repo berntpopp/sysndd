@@ -85,16 +85,14 @@ export default {
   props: {
     placeholderString: {
       type: String,
-      required: true,
       default: '...',
     },
     inNavbar: {
       type: Boolean,
-      required: true,
       default: false,
     },
   },
-  setup(props) {
+  setup(_props) {
     const router = useRouter();
     const { query, suggestions, isLoading, clearSuggestions, getDirectLink } = useSearchSuggestions(300);
 

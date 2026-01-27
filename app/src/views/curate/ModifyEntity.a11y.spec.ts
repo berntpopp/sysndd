@@ -24,7 +24,7 @@ vi.mock('@/composables', () => ({
     user_icon: { Administrator: 'shield-fill-check', Curator: 'pencil-fill', Reviewer: 'eye-fill', Viewer: 'person-fill' },
   }),
   useText: () => ({
-    truncate: (str: string, len: number) => str,
+    truncate: (str: string, _len: number) => str,
     inheritance_short_text: { 'Autosomal dominant': 'AD', 'Autosomal recessive': 'AR' },
     empty_table_text: { all: 'No entities found' },
   }),

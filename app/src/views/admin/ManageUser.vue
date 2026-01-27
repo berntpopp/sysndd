@@ -1482,7 +1482,7 @@ export default {
         this.makeToast(e, 'Error', 'danger');
       }
     },
-    promptDeleteUser(item, button) {
+    promptDeleteUser(item, _button) {
       this.deleteUserModal.title = `${item.user_name}`;
       this.userToDelete = item;
       this.showDeleteModal = true;
@@ -1506,7 +1506,7 @@ export default {
       this.showDeleteModal = false;
       this.userToDelete = {};
     },
-    editUser(item, button) {
+    editUser(item, _button) {
       this.updateUserModal.title = `${item.user_name}`;
       this.userToUpdate = { ...item };
       // Sync vee-validate fields with the user data

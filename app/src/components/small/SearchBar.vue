@@ -39,12 +39,10 @@ export default {
   props: {
     placeholderString: {
       type: String,
-      required: true,
       default: '...',
     },
     inNavbar: {
       type: Boolean,
-      required: true,
       default: false,
     },
   },

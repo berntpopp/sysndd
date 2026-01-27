@@ -437,7 +437,7 @@ const networkCoverageTooltip = computed(() => {
   if (!metadata.value) return '';
   const total = metadata.value.total_ndd_genes || 0;
   const inNetwork = metadata.value.node_count || 0;
-  const withString = metadata.value.genes_with_string || 0;
+  const _withString = metadata.value.genes_with_string || 0;
   if (total && inNetwork < total) {
     return `${inNetwork} of ${total} NDD genes shown. Only genes with STRING protein-protein interaction data are included.`;
   }
@@ -519,7 +519,7 @@ function setupTooltipHandlers() {
         const clusterId = data.id?.replace('cluster-', '') || '?';
         // Count children (genes in this cluster)
         const children = cyInstance.nodes().filter((n) => n.data('parent') === data.id);
-        const visibleChildren = children.filter((n) => (n as any).visible());
+        const visibleChildren = children.filter((n) => n.visible());
 
         tooltipData.value = {
           symbol: `Cluster ${clusterId}`,

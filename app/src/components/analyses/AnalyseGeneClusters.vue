@@ -405,7 +405,7 @@ export default {
   setup() {
     const { makeToast } = useToast();
     const colorAndSymbols = useColorAndSymbols();
-    const { filterState, setSearch } = useFilterSync();
+    const { filterState: filterSyncState, setSearch } = useFilterSync();
 
     // Wildcard search for filtering table
     const wildcardSearch = useWildcardSearch();
@@ -416,7 +416,7 @@ export default {
     return {
       makeToast,
       ...colorAndSymbols,
-      filterState,
+      filterSyncState,
       setSearch,
       wildcardSearch,
       isExporting,
@@ -520,7 +520,7 @@ export default {
      */
     geneSearchPattern: {
       get() {
-        return this.filterState?.search || '';
+        return this.filterSyncState?.search || '';
       },
       set(val) {
         this.setSearch(val);
@@ -648,7 +648,7 @@ export default {
       if (this.displayedClusters.length === 1) {
         return `Cluster ${this.displayedClusters[0]}`;
       }
-      return `Clusters ${this.displayedClusters.sort((a, b) => a - b).join(', ')}`;
+      return `Clusters ${[...this.displayedClusters].sort((a, b) => a - b).join(', ')}`;
     },
 
     /**
@@ -716,7 +716,7 @@ export default {
       this.resetCluster();
     },
     // Watch for search pattern changes to update table filtering
-    'filterState.search': {
+    'filterSyncState.search': {
       handler() {
         this.updateFilteredTotalRows();
         this.currentPage = 1;
@@ -994,7 +994,7 @@ export default {
       const anyVal = (this.filter.any.content || '').toLowerCase();
 
       // Sync wildcard pattern from filterState
-      const searchPattern = this.filterState?.search || '';
+      const searchPattern = this.filterSyncState?.search || '';
       if (searchPattern !== this.wildcardSearch.pattern.value) {
         this.wildcardSearch.pattern.value = searchPattern;
       }
@@ -1059,7 +1059,7 @@ export default {
       this.totalRows = filtered.length;
 
       // Update search match count for identifiers table
-      if (this.tableType === 'identifiers' && this.filterState?.search) {
+      if (this.tableType === 'identifiers' && this.filterSyncState?.search) {
         this.searchMatchCount = filtered.length;
       }
     },

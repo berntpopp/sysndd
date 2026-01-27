@@ -1,4 +1,4 @@
-<!-- views/pages/Ontology.vue -->
+<!-- views/pages/OntologyView.vue -->
 <template>
   <div class="container-fluid bg-gradient">
     <BSpinner
@@ -223,7 +223,7 @@ import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 
 export default {
-  name: 'Ontology',
+  name: 'OntologyView',
   components: {
     TablesEntities,
     DiseaseBadge,

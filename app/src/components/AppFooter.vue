@@ -1,5 +1,5 @@
 /**
- * components/Footer.vue
+ * components/AppFooter.vue
  *
  * @description The footer component of the application.
  * Includes partner logos and a disclaimer status indicator.
@@ -65,7 +65,7 @@ import { useDisclaimerStore } from '@/stores/disclaimer';
 const FooterNavItem = defineAsyncComponent(() => import('@/components/small/FooterNavItem.vue'));
 
 export default {
-  name: 'Footer',
+  name: 'AppFooter',
   components: {
     FooterNavItem,
   },

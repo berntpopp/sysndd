@@ -3,8 +3,6 @@
  * Component prop and emit type definitions
  */
 
-import type { Ref } from 'vue';
-import type { Entity, Gene, EntityCategory, InheritanceFilter } from './models';
 
 // ============================================================================
 // Table Component Props

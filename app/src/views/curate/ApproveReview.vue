@@ -1194,7 +1194,6 @@ import IconLegend from '@/components/accessibility/IconLegend.vue';
 // Import the utilities file
 import Utils from '@/assets/js/utils';
 
-import Entity from '@/assets/js/classes/submission/submissionEntity';
 import Review from '@/assets/js/classes/submission/submissionReview';
 import Status from '@/assets/js/classes/submission/submissionStatus';
 import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
@@ -1753,7 +1752,7 @@ export default {
 
       // perform update PUT request
       try {
-        const response = await this.axios.put(
+        await this.axios.put(
           apiUrl,
           { review_json: this.review_info },
           {
@@ -1828,7 +1827,7 @@ export default {
 
         // perform update PUT request
         try {
-          const response = await this.axios.post(
+          await this.axios.post(
             apiUrl,
             { status_json: this.status_info },
             {
@@ -1853,26 +1852,26 @@ export default {
         }
       }
     },
-    infoReview(item, index, button) {
+    infoReview(item, _index, _button) {
       this.reviewModal.title = `sysndd:${item.entity_id}`;
       this.getEntity(item.entity_id);
       this.loadReviewInfo(item.review_id);
       this.$refs[this.reviewModal.id].show();
     },
-    infoApproveReview(item, index, button) {
+    infoApproveReview(item, _index, _button) {
       this.approveModal.title = `sysndd:${item.entity_id}`;
       this.entity = {};
       this.entity = item;
       this.$refs[this.approveModal.id].show();
     },
-    async handleApproveOk(bvModalEvt) {
+    async handleApproveOk(_bvModalEvt) {
       const apiUrlReview = `${import.meta.env.VITE_API_URL
       }/api/review/approve/${
         this.entity.review_id
       }?review_ok=true`;
 
       try {
-        const response = await this.axios.put(
+        await this.axios.put(
           apiUrlReview,
           {},
           {
@@ -1895,7 +1894,7 @@ export default {
         }?status_ok=true`;
 
         try {
-          const response = await this.axios.put(
+          await this.axios.put(
             apiUrlStatus,
             {},
             {
@@ -1919,7 +1918,7 @@ export default {
         const apiUrl = `${import.meta.env.VITE_API_URL
         }/api/review/approve/all?review_ok=true`;
         try {
-          const response = this.axios.put(
+          this.axios.put(
             apiUrl,
             {},
             {
@@ -1968,7 +1967,7 @@ export default {
       this.select_additional_references = [];
       this.select_gene_reviews = [];
     },
-    infoStatus(item, index, button) {
+    infoStatus(item, _index, _button) {
       this.statusModal.title = `sysndd:${item.entity_id}`;
       this.getEntity(item.entity_id);
       this.loadStatusInfo(item.newest_status);

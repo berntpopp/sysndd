@@ -9,9 +9,7 @@
  * - Interface Segregation: Exposes only necessary methods
  */
 
-import { ref, computed, reactive, watch } from 'vue';
-import { useForm, useField } from 'vee-validate';
-import { required, min, max } from '@vee-validate/rules';
+import { ref, computed, reactive } from 'vue';
 
 // Types
 export interface GeneSearchResult {
@@ -224,10 +222,11 @@ export default function useEntityForm() {
         // Optional step, no required fields
         break;
 
-      case 'classification':
+      case 'classification': {
         const statusResult = validateField('statusId');
         if (statusResult !== true) errors.push(statusResult);
         break;
+      }
 
       case 'review':
         // Review step validates all previous steps
