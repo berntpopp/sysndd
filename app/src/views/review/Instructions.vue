@@ -86,7 +86,7 @@
                     </BRow>
                     <BRow>
                       <BCol md="12">
-                        Please watch the tutorial videos at l<BLink href="https://berntpopp.github.io/sysndd/tutorial-videos.htm">
+                        Please watch the tutorial videos at <BLink href="https://berntpopp.github.io/sysndd/tutorial-videos.html">
                           The SysNDD Documentation - Chapter | 7 Tutorial videos
                         </BLink>.<br><br>
                       </BCol>
