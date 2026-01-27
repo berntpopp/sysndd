@@ -12,9 +12,9 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Milestone:** v7.0 Curation Workflow Modernization
 **Phase:** 39 of 39 (Accessibility Pass) - IN PROGRESS
-**Plan:** 3 of TBD in phase 39
+**Plan:** 4 of 4 in phase 39
 **Status:** In progress
-**Last activity:** 2026-01-27 -- Completed 39-03-PLAN.md
+**Last activity:** 2026-01-27 -- Completed 39-04-PLAN.md
 
 ```
 v7.0 Curation Workflow Modernization: [██████████████████████████████] 100% (6/6 phases complete)
@@ -23,7 +23,7 @@ v7.0 Curation Workflow Modernization: [█████████████�
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 183
+- Total plans completed: 184
 - Milestones shipped: 6 (v1-v6)
 - Phases completed: 38
 
@@ -129,6 +129,14 @@ Phase 39-03 decisions:
 - **announce() politeness levels**: Use 'assertive' only for errors (immediate interruption), 'polite' for success/info (waits for current speech)
 - **Dual feedback pattern**: All CRUD operations call both makeToast() (visual) and announce() (screen reader) in try/catch blocks
 
+Phase 39-04 decisions:
+- **Use vitest-axe with axe-core**: Industry-standard accessibility testing, detects ~57% of WCAG issues automatically
+- **Mock composables for test isolation**: Prevents Bootstrap-Vue-Next plugin errors, provides predictable environment
+- **Provide Pinia store**: Avoids "getActivePinia()" errors from views using useUiStore()
+- **Stub Bootstrap components with accessible HTML**: Keep tests fast and focused on structural accessibility
+- **Disable region rule**: Components tested in isolation without full page landmark structure
+- **Lenient decorative icon assertions**: Allow 0 icons in empty state, verify existing icons have aria-hidden
+
 ### Roadmap Evolution
 
 - Phase 35.1 inserted after Phase 35: ModifyEntity UX Overhaul (URGENT) - complete UX modernization started in Phase 35
@@ -175,14 +183,15 @@ Phase 39 improvements:
 - ~~No screen reader announcements for form submissions~~ [ADDED in 39-03 with AriaLiveRegion and announce() calls]
 - ~~Icon meanings not explained visually~~ [ADDED in 39-03 with IconLegend components]
 - ~~Decorative icons double-announced~~ [FIXED in 39-03 with aria-hidden="true" on icons in labeled buttons]
+- ~~No automated accessibility testing~~ [ADDED in 39-04 with vitest-axe tests for all 6 curation views]
 
 ## Session Continuity
 
 **Last session:** 2026-01-27
-**Stopped at:** Completed 39-03-PLAN.md
+**Stopped at:** Completed 39-04-PLAN.md
 **Resume file:** None
-**Next action:** Continue Phase 39 with additional accessibility enhancements
+**Next action:** Phase 39 complete - all 4 plans executed
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-27 -- Phase 39-03 complete (Curation Views Accessibility)*
+*Last updated: 2026-01-27 -- Phase 39-04 complete (Accessibility Testing)*
