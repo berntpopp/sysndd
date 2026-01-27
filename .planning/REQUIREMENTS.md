@@ -144,78 +144,80 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REDESIGN-01 | — | Pending |
-| REDESIGN-02 | — | Pending |
-| REDESIGN-03 | — | Pending |
-| REDESIGN-04 | — | Pending |
-| REDESIGN-05 | — | Pending |
-| REDESIGN-06 | — | Pending |
-| REDESIGN-07 | — | Pending |
-| REDESIGN-08 | — | Pending |
-| REDESIGN-09 | — | Pending |
-| REDESIGN-10 | — | Pending |
-| PROXY-01 | — | Pending |
-| PROXY-02 | — | Pending |
-| PROXY-03 | — | Pending |
-| PROXY-04 | — | Pending |
-| PROXY-05 | — | Pending |
-| PROXY-06 | — | Pending |
-| PROXY-07 | — | Pending |
-| PROXY-08 | — | Pending |
-| PROXY-09 | — | Pending |
-| PROXY-10 | — | Pending |
-| PROXY-11 | — | Pending |
-| PROXY-12 | — | Pending |
-| GNOMAD-01 | — | Pending |
-| GNOMAD-02 | — | Pending |
-| GNOMAD-03 | — | Pending |
-| GNOMAD-04 | — | Pending |
-| GNOMAD-05 | — | Pending |
-| CLINVAR-01 | — | Pending |
-| CLINVAR-02 | — | Pending |
-| CLINVAR-03 | — | Pending |
-| CLINVAR-04 | — | Pending |
-| CLINVAR-05 | — | Pending |
-| PROTEIN-01 | — | Pending |
-| PROTEIN-02 | — | Pending |
-| PROTEIN-03 | — | Pending |
-| PROTEIN-04 | — | Pending |
-| PROTEIN-05 | — | Pending |
-| PROTEIN-06 | — | Pending |
-| PROTEIN-07 | — | Pending |
-| PROTEIN-08 | — | Pending |
-| GENSTRUCT-01 | — | Pending |
-| GENSTRUCT-02 | — | Pending |
-| GENSTRUCT-03 | — | Pending |
-| GENSTRUCT-04 | — | Pending |
-| STRUCT3D-01 | — | Pending |
-| STRUCT3D-02 | — | Pending |
-| STRUCT3D-03 | — | Pending |
-| STRUCT3D-04 | — | Pending |
-| STRUCT3D-05 | — | Pending |
-| STRUCT3D-06 | — | Pending |
-| STRUCT3D-07 | — | Pending |
-| STRUCT3D-08 | — | Pending |
-| ORGANISM-01 | — | Pending |
-| ORGANISM-02 | — | Pending |
-| ORGANISM-03 | — | Pending |
-| ORGANISM-04 | — | Pending |
-| COMPOSE-01 | — | Pending |
-| COMPOSE-02 | — | Pending |
-| COMPOSE-03 | — | Pending |
-| COMPOSE-04 | — | Pending |
-| COMPOSE-05 | — | Pending |
-| A11Y-01 | — | Pending |
-| A11Y-02 | — | Pending |
-| A11Y-03 | — | Pending |
-| A11Y-04 | — | Pending |
-| A11Y-05 | — | Pending |
+| REDESIGN-01 | Phase 41 | Pending |
+| REDESIGN-02 | Phase 41 | Pending |
+| REDESIGN-03 | Phase 41 | Pending |
+| REDESIGN-04 | Phase 41 | Pending |
+| REDESIGN-05 | Phase 41 | Pending |
+| REDESIGN-06 | Phase 41 | Pending |
+| REDESIGN-07 | Phase 41 | Pending |
+| REDESIGN-08 | Phase 41 | Pending |
+| REDESIGN-09 | Phase 41 | Pending |
+| REDESIGN-10 | Phase 41 | Pending |
+| PROXY-01 | Phase 40 | Pending |
+| PROXY-02 | Phase 40 | Pending |
+| PROXY-03 | Phase 40 | Pending |
+| PROXY-04 | Phase 40 | Pending |
+| PROXY-05 | Phase 40 | Pending |
+| PROXY-06 | Phase 40 | Pending |
+| PROXY-07 | Phase 40 | Pending |
+| PROXY-08 | Phase 40 | Pending |
+| PROXY-09 | Phase 40 | Pending |
+| PROXY-10 | Phase 40 | Pending |
+| PROXY-11 | Phase 40 | Pending |
+| PROXY-12 | Phase 40 | Pending |
+| GNOMAD-01 | Phase 42 | Pending |
+| GNOMAD-02 | Phase 42 | Pending |
+| GNOMAD-03 | Phase 42 | Pending |
+| GNOMAD-04 | Phase 42 | Pending |
+| GNOMAD-05 | Phase 42 | Pending |
+| CLINVAR-01 | Phase 42 | Pending |
+| CLINVAR-02 | Phase 42 | Pending |
+| CLINVAR-03 | Phase 42 | Pending |
+| CLINVAR-04 | Phase 43 | Pending |
+| CLINVAR-05 | Phase 43 | Pending |
+| PROTEIN-01 | Phase 43 | Pending |
+| PROTEIN-02 | Phase 43 | Pending |
+| PROTEIN-03 | Phase 43 | Pending |
+| PROTEIN-04 | Phase 43 | Pending |
+| PROTEIN-05 | Phase 43 | Pending |
+| PROTEIN-06 | Phase 43 | Pending |
+| PROTEIN-07 | Phase 43 | Pending |
+| PROTEIN-08 | Phase 43 | Pending |
+| GENSTRUCT-01 | Phase 44 | Pending |
+| GENSTRUCT-02 | Phase 44 | Pending |
+| GENSTRUCT-03 | Phase 44 | Pending |
+| GENSTRUCT-04 | Phase 44 | Pending |
+| STRUCT3D-01 | Phase 45 | Pending |
+| STRUCT3D-02 | Phase 45 | Pending |
+| STRUCT3D-03 | Phase 45 | Pending |
+| STRUCT3D-04 | Phase 45 | Pending |
+| STRUCT3D-05 | Phase 45 | Pending |
+| STRUCT3D-06 | Phase 45 | Pending |
+| STRUCT3D-07 | Phase 45 | Pending |
+| STRUCT3D-08 | Phase 45 | Pending |
+| ORGANISM-01 | Phase 46 | Pending |
+| ORGANISM-02 | Phase 46 | Pending |
+| ORGANISM-03 | Phase 46 | Pending |
+| ORGANISM-04 | Phase 46 | Pending |
+| COMPOSE-01 | Phase 42 | Pending |
+| COMPOSE-02 | Phase 42 | Pending |
+| COMPOSE-03 | Phase 42 | Pending |
+| COMPOSE-04 | Phase 43 | Pending |
+| COMPOSE-05 | Phase 45 | Pending |
+| A11Y-01 | Phase 42 | Pending |
+| A11Y-02 | Phase 42 | Pending |
+| A11Y-03 | Phase 43 | Pending |
+| A11Y-04 | Phase 45 | Pending |
+| A11Y-05 | Phase 46 | Pending |
 
 **Coverage:**
 - v1 requirements: 57 total
-- Mapped to phases: 0
-- Unmapped: 57
+- Mapped to phases: 57
+- Unmapped: 0
+
+**Coverage validation:** 100% ✓
 
 ---
 *Requirements defined: 2026-01-27*
-*Last updated: 2026-01-27 after initial definition*
+*Last updated: 2026-01-27 after roadmap creation*
