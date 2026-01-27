@@ -33,7 +33,18 @@ AUTH_ALLOWLIST <- c(
   "/api/version",
   "/api/version/",
   "/__docs__/",
-  "/openapi.json"
+  "/openapi.json",
+  # External API proxy endpoints (public read access to public genomic data)
+  # Note: GET endpoints are already public by default per middleware line 77,
+  # but these are listed explicitly for documentation and future-proofing
+  "/api/external/gnomad/constraints",
+  "/api/external/gnomad/variants",
+  "/api/external/uniprot/domains",
+  "/api/external/ensembl/structure",
+  "/api/external/alphafold/structure",
+  "/api/external/mgi/phenotypes",
+  "/api/external/rgd/phenotypes",
+  "/api/external/gene"
 )
 
 #' Authentication Filter

@@ -457,5 +457,92 @@ function(symbol, res) {
   return(result)
 }
 
+#* Get all external genomic data for a gene
+#*
+#* Aggregates data from all external sources (gnomAD, UniProt, Ensembl,
+#* AlphaFold, MGI, RGD) in a single request. Uses error isolation so one
+#* failing source does not block others. Returns 200 with partial data if
+#* at least one source succeeds. Returns 503 only if ALL sources fail.
+#*
+#* @tag external-proxy
+#* @serializer unboxedJSON
+#* @param symbol Gene symbol (e.g., "BRCA1")
+#* @response 200 Aggregated data from available sources
+#* @response 400 Invalid gene symbol
+#* @response 503 All external sources unavailable
+#* @get gene/<symbol>
+function(symbol, res) {
+  # Validate input
+  if (!validate_gene_symbol(symbol)) {
+    res$status <- 400L
+    res$setHeader("Content-Type", "application/problem+json")
+    return(create_external_error(
+      "external_aggregation",
+      sprintf("Invalid gene symbol: %s", symbol),
+      400L,
+      paste0("/api/external/gene/", symbol)
+    ))
+  }
+
+  # Define source fetch functions as named list
+  sources <- list(
+    gnomad_constraints = function() fetch_gnomad_constraints_mem(symbol),
+    gnomad_clinvar = function() fetch_gnomad_clinvar_variants_mem(symbol),
+    uniprot = function() fetch_uniprot_domains_mem(symbol),
+    ensembl = function() fetch_ensembl_gene_structure_mem(symbol),
+    alphafold = function() fetch_alphafold_structure_mem(symbol),
+    mgi = function() fetch_mgi_phenotypes_mem(symbol),
+    rgd = function() fetch_rgd_phenotypes_mem(symbol)
+  )
+
+  # Initialize result structure
+  results <- list(
+    gene_symbol = symbol,
+    sources = list(),
+    errors = list(),
+    timestamp = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ")
+  )
+
+  # Loop through sources with error isolation (tryCatch per source)
+  for (source_name in names(sources)) {
+    result <- tryCatch({
+      sources[[source_name]]()
+    }, error = function(e) {
+      list(error = TRUE, source = source_name, message = conditionMessage(e))
+    })
+
+    if (is.list(result) && isTRUE(result$error)) {
+      results$errors[[source_name]] <- create_external_error(
+        source_name,
+        result$message %||% paste(source_name, "unavailable"),
+        503L,
+        paste0("/api/external/gene/", symbol)
+      )
+    } else if (is.list(result) && isTRUE(result$found == FALSE)) {
+      # Gene not found in this source - not an error, just no data
+      results$sources[[source_name]] <- list(found = FALSE)
+    } else {
+      results$sources[[source_name]] <- result
+    }
+  }
+
+  # Check if all sources failed (have actual errors, not just "not found")
+  successful_sources <- Filter(function(s) !isTRUE(s$found == FALSE), results$sources)
+  if (length(successful_sources) == 0 && length(results$errors) > 0) {
+    res$status <- 503L
+    res$setHeader("Content-Type", "application/problem+json")
+    return(list(
+      type = "https://sysndd.org/problems/all-sources-failed",
+      title = "All external data sources unavailable",
+      status = 503L,
+      detail = sprintf("Failed to retrieve data for gene %s from any source", symbol),
+      errors = results$errors
+    ))
+  }
+
+  # Return 200 with partial data
+  return(results)
+}
+
 ## External endpoints
 ## -------------------------------------------------------------------##
