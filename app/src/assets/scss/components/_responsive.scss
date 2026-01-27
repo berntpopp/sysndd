@@ -66,11 +66,15 @@
           width: auto !important;
         }
 
-        // The actual cell content
+        // The actual cell content — use flex for proper icon+text alignment
         > * {
           flex: 1;
           min-width: 0; // Allow text truncation
-          text-align: right;
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 0.25rem;
+          flex-wrap: wrap;
 
           // Badges should not stretch - keep intrinsic width
           &.badge,
@@ -79,6 +83,17 @@
             flex: 0 0 auto;
             width: auto !important;
           }
+        }
+
+        // Collapse BVN tooltip/popover container spans (hidden siblings
+        // that steal flex space from the actual content)
+        > span:has(> .tooltip),
+        > span:has(> .b-tooltip),
+        > span:has(> .popover) {
+          flex: 0 0 0 !important;
+          max-width: 0 !important;
+          overflow: hidden !important;
+          padding: 0 !important;
         }
 
         // Buttons should not stretch — keep intrinsic size, align right
