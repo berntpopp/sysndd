@@ -18,12 +18,12 @@
 ## Current Position
 
 **Phase:** 42 - Constraint Scores & Variant Summaries (IN PROGRESS)
-**Plan:** 1 of 3 complete (42-02)
-**Status:** Constraint & ClinVar card components created
+**Plan:** 1 of 3 complete (42-01)
+**Status:** External data layer foundation complete
 **Progress:** ████▱▱▱▱▱▱ 40% (Phase 42 plan 1/3, 1/7 phases done)
 
-**Last completed:** 42-02 — GeneConstraintCard and GeneClinVarCard components (2026-01-27)
-**Next step:** Continue Phase 42 execution (Plans 42-01 and 42-03 running in parallel).
+**Last completed:** 42-01 — External data layer (types + composable) (2026-01-27)
+**Next step:** Continue Phase 42 execution (Plans 42-02 and 42-03 next).
 
 ---
 
@@ -114,6 +114,24 @@
   - Responsive grid: cols="12" lg="6" for side-by-side cards on desktop (>=992px)
   - Route watcher for gene-to-gene SPA navigation without full page reload
 
+**External Data Layer (Phase 42-01):**
+- **TypeScript interfaces for external API responses:**
+  - GnomADConstraints: All constraint fields (pLI, oe_lof with CI, oe_mis, oe_syn, exp/obs counts, z-scores)
+  - ClinVarVariant: Clinical significance, HGVS notation (hgvsc/hgvsp), review status (gold_stars), in_gnomad flag
+  - ExternalDataResponse: Aggregation endpoint response with sources object and errors map
+  - ExternalApiError: RFC 9457 Problem Details format
+  - SourceState<T>: Generic per-source state container (loading/error/data)
+- **useGeneExternalData composable:**
+  - Per-source state isolation: gnomad and clinvar objects with independent loading/error/data refs (COMPOSE-02/03)
+  - Plain object with ref properties (not ref of object) for template access pattern
+  - Fetches from combined endpoint without auth header (public endpoints per AUTH_ALLOWLIST)
+  - Handles partial success (some sources succeed, others fail)
+  - Handles found: false as no data (not error)
+  - toRef pattern accepts both Ref<string> and plain string
+  - No auto-fetch on creation - consumer calls fetchData() explicitly
+  - Provides retry() convenience method
+- **Data layer foundation for all Phase 42 UI components** - enables graceful degradation (one source fails, others render)
+
 **Constraint & ClinVar Visualization (Phase 42-02):**
 - **GeneConstraintCard component:**
   - gnomAD-style constraint table: Category | Expected SNVs | Observed SNVs | Constraint Metrics
@@ -171,9 +189,9 @@
 
 ## Session Continuity
 
-**Last session:** 2026-01-27T23:41:30Z
-**Stopped at:** Completed 42-02-PLAN.md (GeneConstraintCard and GeneClinVarCard components)
-**Next action:** Continue Phase 42 execution (Plans 42-01 and 42-03 running in parallel)
+**Last session:** 2026-01-27T23:43:02Z
+**Stopped at:** Completed 42-01-PLAN.md (External data layer types + composable)
+**Next action:** Continue Phase 42 execution (Plans 42-02 and 42-03 next)
 
 **Handoff notes:**
 
@@ -204,4 +222,4 @@
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-27 — Phase 42 in progress (1/3 plans complete)*
+*Last updated: 2026-01-27 — Phase 42 in progress (1/3 plans complete, plan 42-01)*
