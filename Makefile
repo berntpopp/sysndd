@@ -34,7 +34,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-full coverage lint-api lint-app format-api format-app pre-commit docker-build docker-up docker-down docker-dev
+.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-full coverage lint-api lint-app format-api format-app pre-commit docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status
 
 # =============================================================================
 # Help Target (Self-documenting)
@@ -88,14 +88,7 @@ install-app: check-npm ## [dev] Install frontend dependencies with npm install
 		printf "$(GREEN)✓ install-app complete$(RESET)\n" || \
 		(printf "$(RED)✗ install-app failed$(RESET)\n" && exit 1)
 
-dev: check-docker ## [dev] Start development database containers only
-	@printf "$(CYAN)==> Starting development databases...$(RESET)\n"
-	@cd $(ROOT_DIR) && docker compose -f docker-compose.dev.yml up -d && \
-		printf "$(GREEN)✓ Databases started on ports 7654 (dev) and 7655 (test)$(RESET)\n" || \
-		(printf "$(RED)✗ dev failed$(RESET)\n" && exit 1)
-	@printf "\n$(CYAN)Next steps:$(RESET)\n"
-	@printf "  Start API:      cd api && Rscript start_sysndd_api.R\n"
-	@printf "  Start frontend: make serve-app\n"
+dev: docker-dev ## [dev] Start full Docker dev stack (alias for docker-dev)
 
 serve-app: check-npm ## [dev] Start Vue development server with hot reload
 	@printf "$(CYAN)==> Starting Vue development server...$(RESET)\n"
@@ -176,31 +169,65 @@ pre-commit: ## [quality] Run all quality checks before committing
 # =============================================================================
 # Docker Targets
 # =============================================================================
+# Compose file sets:
+#   Production:  docker-compose.yml
+#   Development: docker-compose.yml + docker-compose.override.yml (auto-loaded)
+#   Full dev:    docker-compose.yml + docker-compose.override.yml + docker-compose.dev.yml
+COMPOSE_DEV := docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.dev.yml
+
 docker-build: check-docker ## [docker] Build API Docker image
 	@printf "$(CYAN)==> Building API Docker image...$(RESET)\n"
 	@cd $(ROOT_DIR) && docker build -t sysndd-api api && \
 		printf "$(GREEN)✓ docker-build complete$(RESET)\n" || \
 		(printf "$(RED)✗ docker-build failed$(RESET)\n" && exit 1)
 
-docker-up: check-docker ## [docker] Start all production containers
+docker-up: check-docker ## [docker] Start production containers (no dev overrides)
 	@printf "$(CYAN)==> Starting production containers...$(RESET)\n"
-	@cd $(ROOT_DIR) && docker compose up -d && \
+	@cd $(ROOT_DIR) && docker compose -f docker-compose.yml up -d && \
 		printf "$(GREEN)✓ docker-up complete$(RESET)\n" || \
 		(printf "$(RED)✗ docker-up failed$(RESET)\n" && exit 1)
 
-docker-down: check-docker ## [docker] Stop all containers
-	@printf "$(CYAN)==> Stopping containers...$(RESET)\n"
-	@cd $(ROOT_DIR) && docker compose down && \
-		printf "$(GREEN)✓ docker-down complete$(RESET)\n" || \
-		(printf "$(RED)✗ docker-down failed$(RESET)\n" && exit 1)
+docker-down: check-docker ## [docker] Stop all containers (dev + production)
+	@printf "$(CYAN)==> Stopping all containers...$(RESET)\n"
+	@cd $(ROOT_DIR) && $(COMPOSE_DEV) down 2>/dev/null; \
+		docker compose -f docker-compose.yml down 2>/dev/null; \
+		printf "$(GREEN)✓ docker-down complete$(RESET)\n"
 
-docker-dev: check-docker ## [docker] Start full dev stack (db + api + app with hot-reload)
+docker-dev: check-docker ## [docker] Start full dev stack (app + api + db + dev databases)
 	@printf "$(CYAN)==> Starting full Docker dev stack...$(RESET)\n"
-	@cd $(ROOT_DIR) && docker compose up -d && \
+	@cd $(ROOT_DIR) && $(COMPOSE_DEV) up -d && \
 		printf "$(GREEN)✓ Containers started$(RESET)\n" || \
 		(printf "$(RED)✗ docker-dev failed$(RESET)\n" && exit 1)
 	@printf "\n$(CYAN)Services:$(RESET)\n"
-	@printf "  App:      http://localhost\n"
-	@printf "  API:      http://localhost/api\n"
-	@printf "  Traefik:  http://localhost:8090\n"
-	@printf "\n$(CYAN)For hot-reload:$(RESET) make watch-app\n"
+	@printf "  App:       http://localhost       (Vite dev server via Traefik)\n"
+	@printf "  App direct: http://localhost:5173  (bypass Traefik)\n"
+	@printf "  API:       http://localhost/api    (R/Plumber via Traefik)\n"
+	@printf "  API direct: http://localhost:7778  (bypass Traefik)\n"
+	@printf "  Traefik:   http://localhost:8090   (dashboard)\n"
+	@printf "  MySQL dev: localhost:7654\n"
+	@printf "  MySQL test: localhost:7655\n"
+	@printf "\n$(CYAN)Useful commands:$(RESET)\n"
+	@printf "  make docker-logs    View container logs\n"
+	@printf "  make docker-status  Show container status\n"
+	@printf "  make watch-app      Enable Compose Watch for hot-reload\n"
+	@printf "  make docker-down    Stop everything\n"
+
+docker-dev-db: check-docker ## [docker] Start only dev databases (for local API/app development)
+	@printf "$(CYAN)==> Starting development databases only...$(RESET)\n"
+	@cd $(ROOT_DIR) && docker compose -f docker-compose.dev.yml up -d && \
+		printf "$(GREEN)✓ Databases started$(RESET)\n" || \
+		(printf "$(RED)✗ docker-dev-db failed$(RESET)\n" && exit 1)
+	@printf "\n$(CYAN)Database ports:$(RESET)\n"
+	@printf "  MySQL dev:  localhost:7654\n"
+	@printf "  MySQL test: localhost:7655\n"
+	@printf "\n$(CYAN)Next steps:$(RESET)\n"
+	@printf "  Start API:      cd api && Rscript start_sysndd_api.R\n"
+	@printf "  Start frontend: make serve-app\n"
+
+docker-logs: check-docker ## [docker] View container logs (follow mode)
+	@cd $(ROOT_DIR) && $(COMPOSE_DEV) logs -f --tail=50 2>/dev/null || \
+		docker compose logs -f --tail=50
+
+docker-status: check-docker ## [docker] Show container status and ports
+	@cd $(ROOT_DIR) && $(COMPOSE_DEV) ps 2>/dev/null || \
+		docker compose ps
