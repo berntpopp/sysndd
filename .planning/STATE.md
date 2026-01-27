@@ -17,24 +17,22 @@
 
 ## Current Position
 
-**Phase:** 40 - Backend External API Layer
-**Plan:** 05 of 12 complete (40-01, 40-02, 40-03, 40-04, 40-05 completed)
-**Status:** In Progress
-**Progress:** ████▱▱▱▱▱▱ 42% (Phase 40 of 46, Plan 5 of 12)
+**Phase:** 40 - Backend External API Layer ✓ COMPLETE
+**Plan:** 5/5 complete (40-01 through 40-05)
+**Status:** Verified ✓
+**Progress:** █▱▱▱▱▱▱▱▱▱ 14% (Phase 40 of 46 complete, 1/7 phases done)
 
-**Current objective:** Build R/Plumber proxy endpoints for gnomAD GraphQL, UniProt REST, Ensembl REST, AlphaFold, and MGI/RGD APIs with server-side caching (cachem), httr2 retry logic with exponential backoff, rate limiting protection, and error isolation.
-
-**Last completed:** 40-05 (unit tests for external proxy infrastructure) - 2026-01-27
-**Next step:** Continue Phase 40 backend development (plans 40-06 through 40-12).
+**Last completed:** Phase 40 verified — 12/12 must-haves confirmed against codebase (2026-01-27)
+**Next step:** Run `/gsd:discuss-phase 41` or `/gsd:plan-phase 41` to start Gene Page Redesign.
 
 ---
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 201
+- Total plans completed: 205
 - Milestones shipped: 7 (v1-v7)
-- Phases completed: 39
+- Phases completed: 40
 
 **By Milestone:**
 
@@ -113,7 +111,7 @@
 
 ### Pending Todos
 
-- [ ] Phase 40: Backend External API Layer (12 requirements)
+- [x] Phase 40: Backend External API Layer (12 requirements) ✓
 - [ ] Phase 41: Gene Page Redesign (10 requirements)
 - [ ] Phase 42: Constraint Scores & Variant Summaries (13 requirements)
 - [ ] Phase 43: Protein Domain Lollipop Plot (11 requirements)
@@ -123,38 +121,43 @@
 
 ### Blockers/Concerns
 
-**None** - Research phase completed, roadmap approved, ready to start Phase 40 planning.
+**None** - Phase 40 complete and verified. Ready for Phase 41.
 
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-27
-**Stopped at:** Completed 40-05 plan execution (external proxy tests)
-**Next action:** Continue Phase 40 backend development
+**Stopped at:** Phase 40 execution complete and verified
+**Next action:** Run `/gsd:discuss-phase 41` or `/gsd:plan-phase 41` for Gene Page Redesign
 
 **Handoff notes:**
 
-1. **Milestone v8.0 initialized** (2026-01-27): Requirements defined (57 v1 requirements), research completed (HIGH confidence), roadmap created (7 phases starting at Phase 40).
+1. **Phase 40 completed** (2026-01-27): All 5 plans executed, 12/12 requirements verified. Backend proxy layer operational with 8 Plumber endpoints, 6 external API sources, 3-tier caching, error isolation.
 
-2. **Phase structure follows dependency chain:**
-   - Phase 40 (Backend) → all frontend features
-   - Phase 41 (Redesign) can parallel Phase 40
+2. **Phase 40 deliverables:**
+   - `api/functions/external-proxy-functions.R` — shared infrastructure (cache, retry, throttle, error format)
+   - `api/functions/external-proxy-gnomad.R` — GraphQL proxy for constraints + ClinVar
+   - `api/functions/external-proxy-uniprot.R` — REST proxy for protein domains
+   - `api/functions/external-proxy-ensembl.R` — REST proxy for gene structure
+   - `api/functions/external-proxy-alphafold.R` — REST proxy for 3D structure metadata
+   - `api/functions/external-proxy-mgi.R` — REST proxy for mouse phenotypes
+   - `api/functions/external-proxy-rgd.R` — REST proxy for rat phenotypes
+   - `api/endpoints/external_endpoints.R` — 8 Plumber endpoints (7 per-source + 1 aggregation)
+   - 34 unit tests covering infrastructure and error isolation
+
+3. **Phase structure follows dependency chain:**
+   - Phase 40 (Backend) ✓ → all frontend features unblocked
+   - Phase 41 (Redesign) can start immediately (no dependencies)
    - Phase 42 (Constraints) → Phase 43 (Lollipop) → Phase 45 (3D Viewer)
    - Phase 44 (Gene Structure) independent
    - Phase 46 (Phenotypes) final integration
 
-3. **Research flags (deeper investigation during planning):**
+4. **Research flags (deeper investigation during planning):**
    - Phase 43: HGVS protein notation parsing, D3.js performance for >100 variants
    - Phase 45: Mol* selection API for variant highlighting, code splitting for 74MB bundle
-
-4. **Reusable patterns from existing codebase:**
-   - Cytoscape.js cleanup pattern (non-reactive instance + explicit destroy) applies to D3 and Mol*
-   - httr2 retry logic in `omim-functions.R` applies to all external APIs
-   - memoise caching in `analyses-functions.R` applies to external API proxy
-   - Module-level caching pattern prevents duplicate API calls
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-27 - v8.0 roadmap created*
+*Last updated: 2026-01-27 — Phase 40 complete*

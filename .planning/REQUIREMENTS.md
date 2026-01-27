@@ -22,18 +22,18 @@ Requirements for v8.0 release. Each maps to roadmap phases.
 
 ### Backend External API Proxy (PROXY)
 
-- [ ] **PROXY-01**: R/Plumber endpoint proxies gnomAD GraphQL API for gene constraint scores and ClinVar variants
-- [ ] **PROXY-02**: R/Plumber endpoint proxies UniProt REST API for protein domain and feature data
-- [ ] **PROXY-03**: R/Plumber endpoint proxies Ensembl REST API for gene structure (exons, transcripts)
-- [ ] **PROXY-04**: R/Plumber endpoint proxies AlphaFold API for 3D structure metadata and file URLs
-- [ ] **PROXY-05**: R/Plumber endpoint proxies MGI/JAX API for mouse phenotype data
-- [ ] **PROXY-06**: R/Plumber endpoint proxies RGD API for rat phenotype data
-- [ ] **PROXY-07**: Combined endpoint aggregates all external sources for a gene in a single request with error isolation
-- [ ] **PROXY-08**: Server-side disk caching (memoise + cachem) with configurable TTL per source
-- [ ] **PROXY-09**: httr2 retry logic with exponential backoff for all external API calls
-- [ ] **PROXY-10**: Rate limiting protection (req_throttle) to avoid exceeding external API limits
-- [ ] **PROXY-11**: External API endpoints are publicly accessible (no auth required) via AUTH_ALLOWLIST
-- [ ] **PROXY-12**: RFC 9457 error format for external API failures with source identification
+- [x] **PROXY-01**: R/Plumber endpoint proxies gnomAD GraphQL API for gene constraint scores and ClinVar variants
+- [x] **PROXY-02**: R/Plumber endpoint proxies UniProt REST API for protein domain and feature data
+- [x] **PROXY-03**: R/Plumber endpoint proxies Ensembl REST API for gene structure (exons, transcripts)
+- [x] **PROXY-04**: R/Plumber endpoint proxies AlphaFold API for 3D structure metadata and file URLs
+- [x] **PROXY-05**: R/Plumber endpoint proxies MGI/JAX API for mouse phenotype data
+- [x] **PROXY-06**: R/Plumber endpoint proxies RGD API for rat phenotype data
+- [x] **PROXY-07**: Combined endpoint aggregates all external sources for a gene in a single request with error isolation
+- [x] **PROXY-08**: Server-side disk caching (memoise + cachem) with configurable TTL per source
+- [x] **PROXY-09**: httr2 retry logic with exponential backoff for all external API calls
+- [x] **PROXY-10**: Rate limiting protection (req_throttle) to avoid exceeding external API limits
+- [x] **PROXY-11**: External API endpoints are publicly accessible (no auth required) via AUTH_ALLOWLIST
+- [x] **PROXY-12**: RFC 9457 error format for external API failures with source identification
 
 ### gnomAD Constraint Scores (GNOMAD)
 

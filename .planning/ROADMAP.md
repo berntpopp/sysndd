@@ -18,11 +18,11 @@ Transform the gene detail page from a flat identifier list into a modern genomic
 **Plans:** 5 plans
 
 Plans:
-- [ ] 40-01-PLAN.md — Shared proxy infrastructure (cache backends, retry/throttle, error format)
-- [ ] 40-02-PLAN.md — gnomAD, UniProt, Ensembl proxy functions
-- [ ] 40-03-PLAN.md — AlphaFold, MGI, RGD proxy functions
-- [ ] 40-04-PLAN.md — Plumber endpoints, aggregation, AUTH_ALLOWLIST
-- [ ] 40-05-PLAN.md — Unit tests for proxy infrastructure and endpoints
+- [x] 40-01-PLAN.md — Shared proxy infrastructure (cache backends, retry/throttle, error format)
+- [x] 40-02-PLAN.md — gnomAD, UniProt, Ensembl proxy functions
+- [x] 40-03-PLAN.md — AlphaFold, MGI, RGD proxy functions
+- [x] 40-04-PLAN.md — Plumber endpoints, aggregation, AUTH_ALLOWLIST
+- [x] 40-05-PLAN.md — Unit tests for proxy infrastructure and endpoints
 
 **Requirements:**
 - PROXY-01: gnomAD GraphQL proxy for constraint scores and ClinVar variants
@@ -225,7 +225,7 @@ Plans:
 
 | Phase | Requirements | Status | Plans | Completed |
 |-------|-------------|--------|-------|-----------|
-| 40 - Backend External API Layer | 12 | Planned | 0/5 | — |
+| 40 - Backend External API Layer | 12 | ✓ Complete | 5/5 | 2026-01-27 |
 | 41 - Gene Page Redesign | 10 | Planned | 0/5 | — |
 | 42 - Constraint Scores & Variant Summaries | 13 | Planned | 0/3 | — |
 | 43 - Protein Domain Lollipop Plot | 11 | Pending | 0/0 | — |
@@ -238,4 +238,4 @@ Plans:
 ---
 
 *Roadmap created: 2026-01-27*
-*Last updated: 2026-01-27*
+*Last updated: 2026-01-27 — Phase 40 complete*
