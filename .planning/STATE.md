@@ -18,19 +18,19 @@
 ## Current Position
 
 **Phase:** 41 - Gene Page Redesign (IN PROGRESS)
-**Plan:** 2 of 10 complete (41-01, 41-03)
-**Status:** Section components created
-**Progress:** ██▱▱▱▱▱▱▱▱ 28% (Phase 41 plan 2/10, 1/7 phases done)
+**Plan:** 4 of 10 complete (41-01, 41-02, 41-03, 41-04)
+**Status:** GeneView.vue refactored to Composition API
+**Progress:** ████▱▱▱▱▱▱ 40% (Phase 41 plan 4/10, 1/7 phases done)
 
-**Last completed:** 41-03 — Section components (GeneHero, IdentifierCard, ClinicalResourcesCard) (2026-01-27)
-**Next step:** Continue executing Phase 41 plans.
+**Last completed:** 41-04 — GeneView.vue Composition API refactor (2026-01-27)
+**Next step:** Continue executing Phase 41 plans (checkpoint verification expected next).
 
 ---
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 206
+- Total plans completed: 209
 - Milestones shipped: 7 (v1-v7)
 - Phases completed: 40
 
@@ -96,12 +96,23 @@
   - ResourceLink component: Card-style external resource links with icon, name, description
   - Empty state pattern: Show "Not available" for missing values rather than hiding rows
   - useToast composable for clipboard feedback following existing SysNDD pattern
+- **Gene endpoint bed_hg38 field (41-02):**
+  - Added bed_hg38 field to gene API endpoint for chromosome coordinates display
+  - Integration tests verify field presence and format (chrN:start-end pattern)
 - **Section components (41-03):**
   - GeneHero: Display-only banner with GeneBadge (size="lg"), gene name, chromosome location
   - IdentifierCard: 8 identifier rows (HGNC, Entrez, Ensembl, UniProt, UCSC, CCDS, STRING, MANE Select) with computed external URLs
   - ClinicalResourcesCard: 8 clinical resources in 4 groups (Curation, Disease/Phenotype, Gene Information, Model Organisms)
   - Card pattern: BCard with drop shadow, no border, consistent headers
   - Responsive grid: cols="12" md="6" lg="4" for resource links
+- **GeneView.vue Composition API refactor (41-04):**
+  - Refactored from 539-line Options API to 140-line Composition API with script setup
+  - Component-based layout replaces inline BTable templates (GeneHero + IdentifierCard + ClinicalResourcesCard)
+  - Computed properties for all derived data (no direct array access in template)
+  - Direct axios import instead of Vue plugin injection for cleaner Composition API code
+  - Simple loading state (centered spinner) instead of skeleton screens per CONTEXT.md
+  - Responsive grid: cols="12" lg="6" for side-by-side cards on desktop (>=992px)
+  - Route watcher for gene-to-gene SPA navigation without full page reload
 
 **Critical Pitfalls to Avoid:**
 1. Vue Proxy wrapping of Three.js/WebGL objects - use `markRaw()` or non-reactive variables
@@ -142,9 +153,9 @@
 
 ## Session Continuity
 
-**Last session:** 2026-01-27T20:52:30Z
-**Stopped at:** Completed 41-03-PLAN.md (Section components)
-**Next action:** Continue Phase 41 execution with remaining plans
+**Last session:** 2026-01-27T20:55:20Z
+**Stopped at:** Completed 41-04-PLAN.md (GeneView.vue Composition API refactor)
+**Next action:** Continue Phase 41 execution with remaining plans (checkpoint verification expected next)
 
 **Handoff notes:**
 
