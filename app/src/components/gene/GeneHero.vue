@@ -1,6 +1,6 @@
 <template>
   <div class="gene-hero">
-    <BContainer fluid class="py-4">
+    <BContainer fluid class="py-2">
       <div class="d-flex flex-column gap-2">
         <!-- Gene Symbol Badge -->
         <div>

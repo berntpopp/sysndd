@@ -1,47 +1,78 @@
 <template>
-  <BRow class="identifier-row align-items-center py-2">
-    <BCol cols="12" md="4" class="identifier-row__label">
-      <span class="text-muted">{{ label }}</span>
-    </BCol>
-    <BCol cols="12" md="8" class="identifier-row__content">
-      <div v-if="!value || value === ''" class="text-muted">
-        Not available
-      </div>
-      <div v-else class="d-flex align-items-center gap-2">
+  <!-- Compact badge mode -->
+  <span
+    v-if="compact"
+    class="identifier-badge"
+    :class="{ 'identifier-badge--unavailable': !value }"
+  >
+    <span class="identifier-badge__label">{{ label }}</span>
+    <span v-if="value" class="identifier-badge__value">{{ value }}</span>
+    <span v-else class="identifier-badge__empty">n/a</span>
+    <a
+      v-if="value && showCopy"
+      v-b-tooltip.hover.bottom
+      href="#"
+      class="identifier-badge__action"
+      :aria-label="`Copy ${label} to clipboard`"
+      title="Copy to clipboard"
+      @click.prevent="handleCopy"
+    >
+      <i class="bi bi-clipboard" />
+    </a>
+    <a
+      v-if="externalUrl"
+      v-b-tooltip.hover.bottom
+      class="identifier-badge__action identifier-badge__action--external"
+      :href="externalUrl"
+      :aria-label="`Open ${label} in ${resolvedExternalLabel}`"
+      :title="`View in ${resolvedExternalLabel}`"
+      target="_blank"
+      rel="noopener noreferrer"
+      @click.stop
+    >
+      <i class="bi bi-box-arrow-up-right" />
+    </a>
+  </span>
+
+  <!-- Full row mode (default) -->
+  <div v-else class="identifier-row d-flex align-items-center">
+    <div class="identifier-row__label text-end fw-semibold pe-2">
+      {{ label }}
+    </div>
+    <div class="identifier-row__content">
+      <span v-if="!value || value === ''" class="text-muted fst-italic">Not available</span>
+      <span v-else class="d-inline-flex align-items-center gap-1">
         <span class="identifier-row__value">{{ value }}</span>
-        <BButton
+        <a
           v-if="showCopy"
           v-b-tooltip.hover.bottom
-          size="sm"
-          variant="outline-secondary"
-          class="btn-xs"
+          href="#"
+          class="identifier-row__action"
           :aria-label="`Copy ${label} to clipboard`"
           title="Copy to clipboard"
-          @click="handleCopy"
+          @click.prevent="handleCopy"
         >
           <i class="bi bi-clipboard" />
-        </BButton>
-        <BButton
+        </a>
+        <a
           v-if="externalUrl"
           v-b-tooltip.hover.bottom
-          size="sm"
-          variant="outline-primary"
-          class="btn-xs"
+          class="identifier-row__action identifier-row__action--external"
           :href="externalUrl"
-          :aria-label="`Open ${label} in ${externalLabel}`"
-          :title="`View in ${externalLabel}`"
+          :aria-label="`Open ${label} in ${resolvedExternalLabel}`"
+          :title="`View in ${resolvedExternalLabel}`"
           target="_blank"
           rel="noopener noreferrer"
         >
           <i class="bi bi-box-arrow-up-right" />
-        </BButton>
-      </div>
-    </BCol>
-  </BRow>
+        </a>
+      </span>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { BRow, BCol, BButton } from 'bootstrap-vue-next';
+import { computed } from 'vue';
 import useToast from '@/composables/useToast';
 
 interface Props {
@@ -50,6 +81,7 @@ interface Props {
   externalUrl?: string;
   externalLabel?: string;
   showCopy?: boolean;
+  compact?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -57,10 +89,10 @@ const props = withDefaults(defineProps<Props>(), {
   externalUrl: undefined,
   externalLabel: undefined,
   showCopy: true,
+  compact: false,
 });
 
-// For externalLabel, default to label if not provided
-const externalLabel = props.externalLabel || props.label;
+const resolvedExternalLabel = computed(() => props.externalLabel || props.label);
 
 const { makeToast } = useToast();
 
@@ -77,8 +109,15 @@ async function handleCopy() {
 </script>
 
 <style scoped>
+/* ── Full row mode ── */
 .identifier-row {
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 0.25rem 0.75rem;
+  min-height: 1.75rem;
+}
+
+.identifier-row:nth-child(even) {
+  background-color: #f9fafb;
 }
 
 .identifier-row:last-child {
@@ -86,29 +125,116 @@ async function handleCopy() {
 }
 
 .identifier-row__label {
-  font-weight: 500;
+  flex: 0 0 35%;
+  max-width: 35%;
+  font-size: 0.8rem;
+  color: #495057;
+}
+
+.identifier-row__content {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.8rem;
 }
 
 .identifier-row__value {
   font-family: 'Courier New', monospace;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
-/* Small button variant matching GeneView.vue pattern */
-.btn-xs {
-  padding: 0.15rem 0.4rem;
+.identifier-row__action {
+  color: #868e96;
+  font-size: 0.7rem;
+  text-decoration: none;
+  padding: 0.1rem;
+  line-height: 1;
+  transition: color 0.15s ease;
+}
+
+.identifier-row__action:hover {
+  color: #212529;
+}
+
+.identifier-row__action--external {
+  color: #6c8ebf;
+}
+
+.identifier-row__action--external:hover {
+  color: #0d6efd;
+}
+
+/* ── Compact badge mode ── */
+.identifier-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid #dee2e6;
+  border-radius: 1rem;
+  background: white;
   font-size: 0.75rem;
-  line-height: 1.2;
+  white-space: nowrap;
 }
 
-.btn-xs i {
-  font-size: 0.85rem;
+.identifier-badge__label {
+  font-weight: 600;
+  color: #6c757d;
+}
+
+.identifier-badge__value {
+  font-family: 'Courier New', monospace;
+  color: #333;
+}
+
+.identifier-badge__empty {
+  color: #adb5bd;
+  font-style: italic;
+}
+
+.identifier-badge--unavailable {
+  opacity: 0.45;
+}
+
+.identifier-badge__action {
+  color: #868e96;
+  font-size: 0.65rem;
+  text-decoration: none;
+  padding: 0 0.1rem;
+  line-height: 1;
+  transition: color 0.15s ease;
+}
+
+.identifier-badge__action:hover {
+  color: #212529;
+}
+
+.identifier-badge__action--external {
+  color: #6c8ebf;
+}
+
+.identifier-badge__action--external:hover {
+  color: #0d6efd;
+}
+
+/* Accessibility - respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .identifier-row__action,
+  .identifier-badge__action {
+    transition: none;
+  }
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  .identifier-row {
+    flex-wrap: wrap;
+  }
   .identifier-row__label {
-    margin-bottom: 0.25rem;
+    flex: 0 0 100%;
+    max-width: 100%;
+    text-align: start !important;
+    margin-bottom: 0.1rem;
   }
 }
+
 </style>

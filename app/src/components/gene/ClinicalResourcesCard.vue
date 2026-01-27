@@ -1,5 +1,19 @@
 <template>
-  <BCard class="clinical-resources-card">
+  <!-- Compact inline badge mode -->
+  <div v-if="compact" class="compact-badges-strip">
+    <span class="resources-label">Resources</span>
+    <ResourceLink compact name="ClinGen" :url="clingenUrl" icon="bi-clipboard-check" :available="!!hgncId" />
+    <ResourceLink compact name="SFARI" :url="sfariUrl" icon="bi-clipboard-data" :available="true" />
+    <ResourceLink compact name="OMIM" :url="omimUrl" icon="bi-journal-medical" :available="!!omimId" />
+    <ResourceLink compact name="gene2phenotype" :url="gene2phenotypeUrl" icon="bi-file-medical" :available="true" />
+    <ResourceLink compact name="PanelApp" :url="panelappUrl" icon="bi-list-ul" :available="true" />
+    <ResourceLink compact name="HGNC" :url="hgncUrl" icon="bi-book" :available="true" />
+    <ResourceLink compact name="MGI (Mouse)" :url="mgiUrl" icon="bi-file-earmark-medical" :available="!!mgdId" />
+    <ResourceLink compact name="RGD (Rat)" :url="rgdUrl" icon="bi-file-earmark-medical" :available="!!rgdId" />
+  </div>
+
+  <!-- Full card mode (default) -->
+  <BCard v-else class="clinical-resources-card">
     <template #header>
       <h5 class="mb-0">Clinical Resources & Databases</h5>
     </template>
@@ -117,6 +131,7 @@ interface Props {
   omimId?: string;
   mgdId?: string;
   rgdId?: string;
+  compact?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -124,6 +139,7 @@ const props = withDefaults(defineProps<Props>(), {
   omimId: undefined,
   mgdId: undefined,
   rgdId: undefined,
+  compact: false,
 });
 
 // Computed URLs
@@ -165,6 +181,23 @@ const rgdUrl = computed(() => {
 </script>
 
 <style scoped>
+.compact-badges-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 0.25rem;
+  row-gap: 0.1rem;
+}
+
+.resources-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #868e96;
+  margin-right: 0.25rem;
+}
+
 .clinical-resources-card {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border: none;

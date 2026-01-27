@@ -6,45 +6,64 @@
     </div>
 
     <!-- Gene Content (appears all at once when ready) -->
-    <BContainer v-else fluid>
-      <!-- Hero Section (REDESIGN-01) -->
-      <GeneHero
-        :symbol="geneSymbol"
-        :name="geneName"
-        :chromosome-location="chromosomeLocation"
-      />
+    <template v-else>
+      <!-- Gene info card — wrapped to match TablesEntities container nesting -->
+      <div class="container-fluid">
+        <BContainer fluid>
+          <BRow class="justify-content-md-center pt-2">
+            <BCol col md="12">
+              <BCard body-class="p-0" header-class="p-1" border-variant="dark">
+                <template #header>
+                  <div class="d-flex align-items-center gap-1 flex-wrap">
+                    <GeneBadge
+                      :symbol="geneSymbol"
+                      size="sm"
+                      :link-to="undefined"
+                      :show-title="false"
+                    />
+                    <span class="gene-card-name ms-1">{{ geneName }}</span>
+                    <span v-if="chromosomeLocation && chromosomeLocation !== 'null'" class="gene-card-location text-muted ms-1">
+                      {{ chromosomeLocation }}
+                    </span>
+                  </div>
+                </template>
 
-      <!-- Cards Grid (REDESIGN-09: Responsive layout) -->
-      <BRow class="g-3 py-3">
-        <!-- Identifier Card (REDESIGN-02) -->
-        <BCol cols="12" lg="6">
-          <IdentifierCard
-            v-if="gene"
-            :gene-data="gene"
-          />
-        </BCol>
+                <!-- External resources as inline badges -->
+                <div class="px-3 py-1 border-bottom bg-light">
+                  <ClinicalResourcesCard
+                    compact
+                    :symbol="geneSymbol"
+                    :hgnc-id="hgncId"
+                    :omim-id="omimId"
+                    :mgd-id="mgdId"
+                    :rgd-id="rgdId"
+                  />
+                </div>
 
-        <!-- Clinical Resources Card (REDESIGN-03, REDESIGN-04) -->
-        <BCol cols="12" lg="6">
-          <ClinicalResourcesCard
-            :symbol="geneSymbol"
-            :hgnc-id="hgncId"
-            :omim-id="omimId"
-            :mgd-id="mgdId"
-            :rgd-id="rgdId"
-          />
-        </BCol>
-      </BRow>
+                <!-- Identifiers as inline badges -->
+                <div class="px-3 py-1">
+                  <IdentifierCard
+                    v-if="gene"
+                    :gene-data="gene"
+                    compact
+                  />
+                </div>
+              </BCard>
+            </BCol>
+          </BRow>
+        </BContainer>
+      </div>
 
-      <!-- Associated Entities Table (preserved from original) -->
+      <!-- Associated Entities Table -->
       <TablesEntities
         v-if="geneData.length !== 0"
         :show-filter-controls="false"
         :show-pagination-controls="false"
         header-label="Associated "
         :filter-input="filterInput"
+        :disable-url-sync="true"
       />
-    </BContainer>
+    </template>
   </div>
 </template>
 
@@ -54,7 +73,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useHead } from '@unhead/vue';
 import { useToast } from '@/composables';
 import axios from 'axios';
-import GeneHero from '@/components/gene/GeneHero.vue';
+import GeneBadge from '@/components/ui/GeneBadge.vue';
 import IdentifierCard from '@/components/gene/IdentifierCard.vue';
 import ClinicalResourcesCard from '@/components/gene/ClinicalResourcesCard.vue';
 import TablesEntities from '@/components/tables/TablesEntities.vue';
@@ -136,5 +155,13 @@ watch(() => route.params.symbol, (newSymbol) => {
 </script>
 
 <style scoped>
-/* Page-level styles only - component styles are in their respective files */
+.gene-card-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #333;
+}
+.gene-card-location {
+  font-size: 0.8rem;
+  font-family: 'Courier New', monospace;
+}
 </style>

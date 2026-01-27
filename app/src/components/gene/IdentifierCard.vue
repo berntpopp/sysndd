@@ -1,6 +1,80 @@
 <template>
-  <BCard class="identifier-card">
-    <template #header>
+  <!-- Compact inline badge mode -->
+  <div v-if="compact" class="compact-badges-strip">
+    <span class="identifiers-label">Identifiers</span>
+
+    <IdentifierRow
+      compact
+      label="HGNC"
+      :value="geneData?.hgnc_id?.[0]"
+      :external-url="hgncUrl"
+      :external-label="'HGNC'"
+      :show-copy="true"
+    />
+    <IdentifierRow
+      compact
+      label="Entrez"
+      :value="geneData?.entrez_id?.[0]"
+      :external-url="entrezUrl"
+      :external-label="'NCBI Gene'"
+      :show-copy="true"
+    />
+    <IdentifierRow
+      compact
+      label="Ensembl"
+      :value="geneData?.ensembl_gene_id?.[0]"
+      :external-url="ensemblUrl"
+      :external-label="'Ensembl'"
+      :show-copy="true"
+    />
+    <IdentifierRow
+      compact
+      label="UniProt"
+      :value="geneData?.uniprot_ids?.[0]"
+      :external-url="uniprotUrl"
+      :external-label="'UniProt'"
+      :show-copy="true"
+    />
+    <IdentifierRow
+      compact
+      label="UCSC"
+      :value="geneData?.ucsc_id?.[0]"
+      :external-url="ucscUrl"
+      :external-label="'UCSC Genome Browser'"
+      :show-copy="true"
+    />
+    <IdentifierRow
+      compact
+      label="CCDS"
+      :value="geneData?.ccds_id?.[0]"
+      :external-url="ccdsUrl"
+      :external-label="'NCBI CCDS'"
+      :show-copy="true"
+    />
+    <IdentifierRow
+      compact
+      label="STRING"
+      :value="geneData?.STRING_id?.[0]"
+      :external-url="stringUrl"
+      :external-label="'STRING Database'"
+      :show-copy="true"
+    />
+    <IdentifierRow
+      compact
+      label="MANE"
+      :value="geneData?.mane_select?.[0]"
+      :show-copy="true"
+    />
+  </div>
+
+  <!-- Full card mode (default) -->
+  <BCard
+    v-else
+    class="identifier-card"
+    :class="{ 'border-0 shadow-none': flat }"
+    :body-class="flat ? 'p-0' : undefined"
+  >
+    <template v-if="!flat" #header>
       <h5 class="mb-0">Identifiers</h5>
     </template>
 
@@ -8,6 +82,8 @@
     <IdentifierRow
       label="HGNC"
       :value="geneData?.hgnc_id?.[0]"
+      :external-url="hgncUrl"
+      :external-label="'HGNC'"
       :show-copy="true"
     />
 
@@ -82,10 +158,14 @@ import type { GeneApiData } from '@/types/gene';
 
 interface Props {
   geneData?: GeneApiData;
+  flat?: boolean;
+  compact?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   geneData: undefined,
+  flat: false,
+  compact: false,
 });
 
 // Computed external URLs
@@ -118,9 +198,31 @@ const stringUrl = computed(() => {
   const id = props.geneData?.STRING_id?.[0];
   return id && id !== 'null' ? `https://string-db.org/network/${id}` : undefined;
 });
+
+const hgncUrl = computed(() => {
+  const id = props.geneData?.hgnc_id?.[0];
+  return id && id !== 'null' ? `https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/${id}` : undefined;
+});
 </script>
 
 <style scoped>
+.compact-badges-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 0.25rem;
+  row-gap: 0.1rem;
+}
+
+.identifiers-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #868e96;
+  margin-right: 0.25rem;
+}
+
 .identifier-card {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border: none;
