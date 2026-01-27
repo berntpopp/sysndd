@@ -223,7 +223,18 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 ### Active
 
-(No active requirements — next milestone not yet started)
+<!-- v8.0 Gene Page & Genomic Data Integration -->
+
+- [ ] Gene page redesign with hero section, grouped cards, copy-to-clipboard
+- [ ] Backend external API proxy layer (gnomAD, UniProt, Ensembl, AlphaFold, MGI/RGD)
+- [ ] Server-side caching for external API responses (memoise + cachem)
+- [ ] gnomAD constraint scores display (pLI, LOEUF, mis_z) on gene detail page
+- [ ] ClinVar variant summary via gnomAD GraphQL API
+- [ ] Protein domain lollipop plot (D3.js) with ClinVar variant mapping
+- [ ] 3D protein structure viewer (NGL.js or Mol*) with AlphaFold structures and variant highlighting
+- [ ] Enhanced model organism phenotype data (MGI/RGD via backend proxy)
+- [ ] Gene structure visualization with exon/intron display
+- [ ] Reusable gene page components (IdentifierRow, ResourceLink, etc.)
 
 ### Out of Scope
 
@@ -237,6 +248,8 @@ A new developer can clone the repo and be productive within minutes, with confid
 - STRINGdb v12.0 upgrade — requires database migration
 - PrimeVue TreeSelect — using Bootstrap-Vue-Next only for ecosystem consistency
 - Server-side pagination for curation tables — client-side sufficient for current data volumes
+- gnomAD constraint columns in gene table — gene detail page only for v8
+- Direct frontend calls to external APIs — all routed through R/Plumber backend
 
 ## Context
 
@@ -345,5 +358,19 @@ See `.planning/ISSUE-TRIAGE-REPORT.md` for full triage of remaining ~49 open iss
 | Dual feedback pattern | makeToast (visual) + announce (screen reader) for a11y | ✓ Good |
 | vitest-axe for accessibility testing | Industry-standard axe-core, catches ~57% WCAG issues | ✓ Good |
 
+## Current Milestone: v8.0 Gene Page & Genomic Data Integration
+
+**Goal:** Transform the gene detail page from a flat identifier list into a modern genomic analysis interface with gnomAD constraint scores, ClinVar variant data, protein domain/structure visualizations, and enhanced model organism phenotypes — all powered by a new backend external API proxy layer with server-side caching.
+
+**Target features:**
+- Redesigned gene page with hero section, grouped information cards, copy-to-clipboard
+- Backend proxy endpoints for gnomAD GraphQL, UniProt REST, Ensembl REST, AlphaFold, MGI/RGD
+- gnomAD constraint scores (pLI, LOEUF, missense Z) with visual gauges
+- ClinVar variant summary and detail via gnomAD API
+- D3.js protein domain lollipop plot with variant mapping and filtering
+- 3D AlphaFold structure viewer with variant highlighting (NGL.js or Mol* — research phase decides)
+- Enhanced model organism phenotype cards
+- Gene structure visualization (exons/introns from Ensembl)
+
 ---
-*Last updated: 2026-01-27 after v7.0 milestone completed and GitHub issue triage (11 issues closed)*
+*Last updated: 2026-01-27 after v8.0 milestone initialized*

@@ -6,17 +6,17 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** Planning next milestone
+**Current focus:** v8.0 Gene Page & Genomic Data Integration
 
 ## Current Position
 
-**Milestone:** v7.0 Curation Workflow Modernization — SHIPPED
-**Phase:** All 39 phases complete (v1-v7)
-**Status:** Ready to plan next milestone
-**Last activity:** 2026-01-27 -- v7.0 milestone completed and archived
+**Milestone:** v8.0 Gene Page & Genomic Data Integration
+**Phase:** Not started (defining requirements)
+**Status:** Defining requirements
+**Last activity:** 2026-01-27 — Milestone v8.0 started
 
 ```
-v7.0 Curation Workflow Modernization: [██████████████████████████████] 100% SHIPPED
+v8.0 Gene Page & Genomic Data Integration: [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 0%
 ```
 
 ## Performance Metrics
@@ -46,7 +46,7 @@ See PROJECT.md for full decisions table.
 
 ### Roadmap Evolution
 
-- Phase 35.1 inserted after Phase 35: ModifyEntity UX Overhaul
+(v8.0 — no changes yet)
 
 ### Pending Todos
 
@@ -54,15 +54,16 @@ None.
 
 ### Blockers/Concerns
 
-None — all milestones shipped.
+- 3D library choice (NGL.js vs Mol*) — research phase will evaluate
+- gnomAD API rate limits — backend caching mitigates
 
 ## Session Continuity
 
 **Last session:** 2026-01-27
-**Stopped at:** v7.0 milestone completed and archived
+**Stopped at:** Milestone v8.0 initialization — defining requirements
 **Resume file:** None
-**Next action:** /gsd:new-milestone
+**Next action:** Complete requirements definition and roadmap creation
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-27 -- v7.0 milestone completed and archived*
+*Last updated: 2026-01-27 — v8.0 milestone started*
