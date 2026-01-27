@@ -18,14 +18,14 @@
 ## Current Position
 
 **Phase:** 40 - Backend External API Layer
-**Plan:** 03 of 12 complete (40-02 and 40-03 completed in parallel)
+**Plan:** 04 of 12 complete (40-01, 40-02, 40-03, 40-04 completed)
 **Status:** In Progress
-**Progress:** ██▱▱▱▱▱▱▱▱ 25% (Phase 40 of 46, Plan 3 of 12)
+**Progress:** ███▱▱▱▱▱▱▱ 33% (Phase 40 of 46, Plan 4 of 12)
 
 **Current objective:** Build R/Plumber proxy endpoints for gnomAD GraphQL, UniProt REST, Ensembl REST, AlphaFold, and MGI/RGD APIs with server-side caching (cachem), httr2 retry logic with exponential backoff, rate limiting protection, and error isolation.
 
-**Last completed:** 40-02 (gnomAD/UniProt/Ensembl proxies) and 40-03 (AlphaFold/MGI/RGD proxies) - both 2026-01-27
-**Next step:** Execute plan 40-04 (aggregation endpoint for parallel fetching).
+**Last completed:** 40-04 (external proxy endpoints with aggregation) - 2026-01-27
+**Next step:** Continue Phase 40 backend development (plans 40-05 through 40-12).
 
 ---
 
@@ -80,6 +80,9 @@
   - AlphaFold: symbol → UniProt accession → structure metadata
 - **Defensive error handling** for undocumented APIs (MGI, RGD): structured not-found responses instead of crashes
 - **Combined aggregation endpoint** `/api/external/gene/<symbol>` fetches all sources in parallel with error isolation
+- **Plumber endpoint pattern** (40-04): validation → fetch → error handling → success
+- **Error isolation pattern:** tryCatch per source, partial success returns 200 with available data
+- **Public access:** All external proxy endpoints in AUTH_ALLOWLIST (GET endpoints already public per middleware)
 
 **Frontend Visualization Stack:**
 - **D3.js v7.4.2** for protein domain lollipop plot (already in project)
@@ -126,8 +129,8 @@
 ## Session Continuity
 
 **Last session:** 2026-01-27
-**Stopped at:** Completed 40-02 and 40-03 plan executions (parallel)
-**Next action:** Execute plan 40-04 (aggregation endpoint)
+**Stopped at:** Completed 40-04 plan execution (external proxy endpoints)
+**Next action:** Continue Phase 40 backend development
 
 **Handoff notes:**
 
