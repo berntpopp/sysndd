@@ -259,9 +259,20 @@ A new developer can clone the repo and be productive within minutes, with confid
 - TreeMultiSelect performance with >1000 nodes not validated
 - A11Y-05 (keyboard navigation) needs manual human verification
 
-**GitHub Issues:**
-- #109: Refactor sysndd_plumber.R into smaller endpoint files — Ready for PR (v4 complete)
-- #123: Implement comprehensive testing — Foundation complete, integration tests added in v4
+**GitHub Issues (cleaned up 2026-01-27):**
+
+Section 1.1 — Closed (11 issues, GSD milestone evidence):
+- #109, #121, #123, #118, #101, #61, #100, #21, #10, #107, #19
+
+Section 1.2 — Verified & Closed (13 issues, Playwright/curl/code review):
+- #6, #42, #116, #4, #35, #38, #31, #117, #62, #102, #103, #104, #106
+
+Direct fix — Closed (1 issue):
+- #119: Tutorial video link typo (commit `c7738cb`)
+
+Total closed during triage: **25 issues**
+Failed verification: #115 (GAP43 orphaned entity — remains open)
+See `.planning/ISSUE-TRIAGE-REPORT.md` for full triage of remaining ~49 open issues
 
 **Codebase map:** See `.planning/codebase/` for detailed analysis
 
@@ -335,4 +346,4 @@ A new developer can clone the repo and be productive within minutes, with confid
 | vitest-axe for accessibility testing | Industry-standard axe-core, catches ~57% WCAG issues | ✓ Good |
 
 ---
-*Last updated: 2026-01-27 after v7.0 milestone completed*
+*Last updated: 2026-01-27 after v7.0 milestone completed and GitHub issue triage (11 issues closed)*
