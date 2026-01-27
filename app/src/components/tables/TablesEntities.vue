@@ -295,6 +295,7 @@ export default {
       default:
         'entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details',
     },
+    disableUrlSync: { type: Boolean, default: false },
   },
   setup(props) {
     // Independent composables
@@ -500,6 +501,8 @@ export default {
     updateBrowserUrl() {
       // Don't update URL during initialization - preserves URL params from navigation
       if (this.isInitializing) return;
+      // When embedded (e.g. GeneView), skip URL updates to keep URL clean
+      if (this.disableUrlSync) return;
 
       const searchParams = new URLSearchParams();
 
@@ -660,6 +663,20 @@ export default {
       this.lastItemID = Number(data.meta[0].lastItemID) || 0;
       this.executionTime = data.meta[0].executionTime;
       this.fields = data.meta[0].fspec;
+
+      // Apply short label overrides for mobile-friendly stacked table headers
+      const shortLabels = {
+        entity_id: 'Entity',
+        disease_ontology_name: 'Disease',
+        hpo_mode_of_inheritance_term_name: 'Inheritance',
+        ndd_phenotype_word: 'NDD',
+      };
+      this.fields = this.fields.map((field) => {
+        if (shortLabels[field.key]) {
+          return { ...field, label: shortLabels[field.key] };
+        }
+        return field;
+      });
 
       const uiStore = useUiStore();
       uiStore.requestScrollbarUpdate();
