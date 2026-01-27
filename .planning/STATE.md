@@ -11,10 +11,10 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 ## Current Position
 
 **Milestone:** v7.0 Curation Workflow Modernization
-**Phase:** 39 of 39 (Accessibility Pass) - NOT STARTED
-**Plan:** 0 of TBD in phase 39
-**Status:** Ready for Phase 39
-**Last activity:** 2026-01-26 -- Phase 38 verified and complete
+**Phase:** 39 of 39 (Accessibility Pass) - IN PROGRESS
+**Plan:** 1 of TBD in phase 39
+**Status:** In progress
+**Last activity:** 2026-01-27 -- Completed 39-01-PLAN.md
 
 ```
 v7.0 Curation Workflow Modernization: [██████████████████████████████] 100% (6/6 phases complete)
@@ -23,7 +23,7 @@ v7.0 Curation Workflow Modernization: [█████████████�
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 181
+- Total plans completed: 182
 - Milestones shipped: 6 (v1-v6)
 - Phases completed: 38
 
@@ -114,6 +114,13 @@ Phase 38-04 decisions:
 - **Status options from API**: Reuse /api/list/status_categories endpoint for recalculate modal filter options
 - **Combined commit for interdependent tasks**: All three tasks committed together due to modifying same file
 
+Phase 39-01 decisions:
+- **Bootstrap visually-hidden class**: Use Bootstrap's battle-tested screen-reader-only CSS instead of custom implementation
+- **Icon legend always visible**: Not collapsible - legends are reference material for repeated consultation
+- **Skip link focus reset on route change**: SPA navigation requires manual focus reset for keyboard users
+- **Auto-clear announcements**: useAriaLive clears message after 1000ms to prevent stale announcement re-reading
+- **Dynamic component support in IconLegend**: Accept both icon classes and Vue components (e.g., CategoryIcon) for flexible rendering
+
 ### Roadmap Evolution
 
 - Phase 35.1 inserted after Phase 35: ModifyEntity UX Overhaul (URGENT) - complete UX modernization started in Phase 35
@@ -158,11 +165,11 @@ Phase 38 improvements:
 
 ## Session Continuity
 
-**Last session:** 2026-01-26
-**Stopped at:** Phase 38 verified and complete
+**Last session:** 2026-01-27
+**Stopped at:** Completed 39-01-PLAN.md
 **Resume file:** None
-**Next action:** Begin Phase 39 - Accessibility Pass
+**Next action:** Continue Phase 39 with plan 39-02
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-26 -- Phase 38 complete (Re-Review System Overhaul)*
+*Last updated: 2026-01-27 -- Phase 39-01 complete (Accessibility Foundation Components)*
