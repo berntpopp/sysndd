@@ -87,6 +87,15 @@
       }
     }
 
+    // Touch-friendly button targets in stacked cards (WCAG 2.2: 44px)
+    .btn-xs {
+      width: 100%;
+      min-height: 44px;
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+
     // Hide table headers on mobile (Bootstrap handles this)
     > thead {
       display: none;

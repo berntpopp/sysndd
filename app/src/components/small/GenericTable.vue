@@ -474,4 +474,14 @@ export default {
   line-height: 0.5;
   border-radius: 0.2rem;
 }
+
+/* Mobile: enlarge details button to WCAG 44px touch target */
+@media (max-width: 767px) {
+  .btn-xs {
+    width: 100%;
+    min-height: 44px;
+    padding: 0.5rem 1rem;
+    line-height: 1.5;
+  }
+}
 </style>
