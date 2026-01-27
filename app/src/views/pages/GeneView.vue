@@ -54,6 +54,36 @@
         </BContainer>
       </div>
 
+      <!-- External genomic data cards -->
+      <div class="container-fluid">
+        <BContainer fluid>
+          <BRow class="justify-content-md-center pt-2">
+            <BCol col md="12">
+              <BRow class="mb-3">
+                <BCol cols="12" lg="6" class="mb-3">
+                  <GeneConstraintCard
+                    :gene-symbol="geneSymbol"
+                    :loading="gnomad.loading.value"
+                    :error="gnomad.error.value"
+                    :data="gnomad.data.value"
+                    @retry="retryExternalData"
+                  />
+                </BCol>
+                <BCol cols="12" lg="6" class="mb-3">
+                  <GeneClinVarCard
+                    :gene-symbol="geneSymbol"
+                    :loading="clinvar.loading.value"
+                    :error="clinvar.error.value"
+                    :data="clinvar.data.value"
+                    @retry="retryExternalData"
+                  />
+                </BCol>
+              </BRow>
+            </BCol>
+          </BRow>
+        </BContainer>
+      </div>
+
       <!-- Associated Entities Table -->
       <TablesEntities
         v-if="geneData.length !== 0"
@@ -72,10 +102,13 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useHead } from '@unhead/vue';
 import { useToast } from '@/composables';
+import { useGeneExternalData } from '@/composables/useGeneExternalData';
 import axios from 'axios';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import IdentifierCard from '@/components/gene/IdentifierCard.vue';
 import ClinicalResourcesCard from '@/components/gene/ClinicalResourcesCard.vue';
+import GeneConstraintCard from '@/components/gene/GeneConstraintCard.vue';
+import GeneClinVarCard from '@/components/gene/GeneClinVarCard.vue';
 import TablesEntities from '@/components/tables/TablesEntities.vue';
 import type { GeneApiData } from '@/types/gene';
 
@@ -101,6 +134,9 @@ const filterInput = computed(() =>
     : ''
 );
 
+// External genomic data (gnomAD constraints, ClinVar variants)
+const { gnomad, clinvar, fetchData: fetchExternalData, retry: retryExternalData } = useGeneExternalData(geneSymbol);
+
 // Data loading (preserve existing logic)
 async function loadGeneInfo() {
   loading.value = true;
@@ -124,6 +160,11 @@ async function loadGeneInfo() {
     makeToast(e as string, 'Error', 'danger');
   }
   loading.value = false;
+
+  // Fetch external data after gene data loads successfully
+  if (geneData.value.length > 0) {
+    fetchExternalData();
+  }
 }
 
 // Dynamic page title
