@@ -163,6 +163,13 @@ Plans:
 
 **Goal:** Users can view gene structure with exons, introns, UTRs, and strand orientation from Ensembl canonical transcript
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 44-01-PLAN.md — TypeScript interfaces (ensembl.ts) and useD3GeneStructure composable
+- [ ] 44-02-PLAN.md — GeneStructurePlot.vue and GeneStructureCard.vue components
+- [ ] 44-03-PLAN.md — GeneView.vue integration and visual verification checkpoint
+
 **Requirements:**
 - GENSTRUCT-01: Gene structure plot displays exons and introns from Ensembl canonical transcript
 - GENSTRUCT-02: Exons rendered as rectangles, introns as lines, UTR regions distinguished
@@ -237,7 +244,7 @@ Plans:
 | 41 - Gene Page Redesign | 10 | Planned | 0/5 | — |
 | 42 - Constraint Scores & Variant Summaries | 13 | Planned | 0/3 | — |
 | 43 - Protein Domain Lollipop Plot | 12 | Planned | 0/4 | — |
-| 44 - Gene Structure Visualization | 4 | Pending | 0/0 | — |
+| 44 - Gene Structure Visualization | 4 | Planned | 0/3 | — |
 | 45 - 3D Protein Structure Viewer | 9 | Pending | 0/0 | — |
 | 46 - Model Organism Phenotypes & Final Integration | 5 | Pending | 0/0 | — |
 
@@ -246,4 +253,4 @@ Plans:
 ---
 
 *Roadmap created: 2026-01-27*
-*Last updated: 2026-01-27 — Phase 43 planned (4 plans in 4 waves)*
+*Last updated: 2026-01-27 — Phase 44 planned (3 plans in 3 waves)*
