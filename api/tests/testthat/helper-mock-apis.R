@@ -80,3 +80,52 @@ skip_if_no_fixtures_or_network <- function(fixture_path) {
     }
   }
 }
+
+## -----------------------------------------------------------------------
+## Mock helpers for external proxy endpoint testing
+## -----------------------------------------------------------------------
+
+#' Mock for a successful gnomAD constraint response
+#'
+#' Simulates a successful gnomAD API response with constraint metrics
+#'
+#' @param symbol Gene symbol
+#' @return List with gnomAD constraint data
+#' @export
+mock_gnomad_constraints_success <- function(symbol) {
+  list(
+    source = "gnomad",
+    gene_symbol = symbol,
+    gene_id = "ENSG00000012048",
+    constraints = list(
+      pLI = 0.0,
+      oe_lof = 0.48,
+      oe_lof_upper = 0.61,
+      mis_z = 2.55,
+      exp_lof = 52.1,
+      obs_lof = 25
+    )
+  )
+}
+
+#' Mock for a "not found" response
+#'
+#' Simulates an API response when gene is not found in the source
+#'
+#' @param source_name Name of the API source
+#' @return List with found = FALSE
+#' @export
+mock_source_not_found <- function(source_name) {
+  list(found = FALSE, source = source_name)
+}
+
+#' Mock for an error response
+#'
+#' Simulates an API error response
+#'
+#' @param source_name Name of the API source
+#' @return List with error = TRUE
+#' @export
+mock_source_error <- function(source_name) {
+  list(error = TRUE, source = source_name, message = paste(source_name, "unavailable"))
+}
