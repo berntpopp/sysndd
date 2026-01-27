@@ -502,6 +502,7 @@
         no-close-on-backdrop
         header-class="border-bottom-0 pb-0"
         footer-class="border-top-0 pt-0"
+        header-close-label="Close"
         @ok="handleStatusOk"
       >
         <template #title>
@@ -539,6 +540,7 @@
         no-close-on-backdrop
         header-class="border-bottom-0 pb-0"
         footer-class="border-top-0 pt-0"
+        header-close-label="Close"
         :busy="loading_status_modal"
         @ok="submitStatusChange"
       >
@@ -719,6 +721,7 @@
         no-close-on-backdrop
         header-class="border-bottom-0 pb-0"
         footer-class="border-top-0 pt-0"
+        header-close-label="Close"
         @ok="handleAllStatusOk"
       >
         <template #title>

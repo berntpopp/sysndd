@@ -322,6 +322,7 @@
         no-close-on-backdrop
         header-class="border-bottom-0 pb-0"
         footer-class="border-top-0 pt-0"
+        header-close-label="Close"
         @ok="handleApproveWithChanges"
       >
         <template #title>
@@ -480,6 +481,7 @@
         cancel-variant="outline-secondary"
         header-class="border-bottom-0 pb-0"
         footer-class="border-top-0 pt-0"
+        header-close-label="Close"
         @ok="confirmApprove"
       >
         <template #title>
@@ -520,6 +522,7 @@
         cancel-variant="outline-secondary"
         header-class="border-bottom-0 pb-0"
         footer-class="border-top-0 pt-0"
+        header-close-label="Close"
         @ok="confirmReject"
       >
         <template #title>
