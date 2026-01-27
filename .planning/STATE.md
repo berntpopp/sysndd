@@ -18,12 +18,12 @@
 ## Current Position
 
 **Phase:** 41 - Gene Page Redesign (IN PROGRESS)
-**Plan:** 1/5 complete (41-02)
-**Status:** In progress
-**Progress:** █▱▱▱▱▱▱▱▱▱ 14% (41 in progress of 46 total, plan 41-02 complete)
+**Plan:** 1 of 10 complete (41-01)
+**Status:** Foundation components created
+**Progress:** █▱▱▱▱▱▱▱▱▱ 14% (Phase 41 plan 1/10, 1/7 phases done)
 
-**Last completed:** 41-02 — Added bed_hg38 field to gene endpoint (2026-01-27)
-**Next step:** Continue executing phase 41 plans.
+**Last completed:** 41-01 — Foundation components (GeneApiData, IdentifierRow, ResourceLink) (2026-01-27)
+**Next step:** Continue executing Phase 41 plans.
 
 ---
 
@@ -89,12 +89,21 @@
 - **Vue 3 reactivity patterns:** Non-reactive instances (`let viewer`, not `ref()`) + `markRaw()` for WebGL libraries
 - **Cleanup pattern:** Explicit disposal in `onBeforeUnmount()` (Cytoscape `cy.destroy()` pattern reused)
 
+**Gene Page Redesign (Phase 41):**
+- **Foundation components (41-01):**
+  - GeneApiData interface: All fields are `string[]` matching R backend `str_split` behavior
+  - IdentifierRow component: Reusable label-value rows with copy-to-clipboard and external link buttons
+  - ResourceLink component: Card-style external resource links with icon, name, description
+  - Empty state pattern: Show "Not available" for missing values rather than hiding rows
+  - useToast composable for clipboard feedback following existing SysNDD pattern
+
 **Critical Pitfalls to Avoid:**
 1. Vue Proxy wrapping of Three.js/WebGL objects - use `markRaw()` or non-reactive variables
 2. WebGL context leaks - call `stage.dispose()` in cleanup
 3. R/Plumber blocking during external API calls - mitigate with server-side caching
 4. D3.js vs Vue DOM ownership conflict - D3 owns SVG element exclusively
 5. gnomAD API rate limiting - 24h cache TTL, exponential backoff retry
+6. GeneApiData array fields - Always access first element: `geneData[0]?.symbol[0]`
 
 ### Roadmap Evolution
 
@@ -127,9 +136,9 @@
 
 ## Session Continuity
 
-**Last session:** 2026-01-27T20:45:52Z
-**Stopped at:** Completed 41-02-PLAN.md (Gene endpoint bed_hg38 field)
-**Next action:** Continue phase 41 execution
+**Last session:** 2026-01-27T15:59:15Z
+**Stopped at:** Completed 41-01-PLAN.md (Foundation components)
+**Next action:** Continue Phase 41 execution with remaining plans
 
 **Handoff notes:**
 
