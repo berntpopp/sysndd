@@ -15,6 +15,15 @@ Transform the gene detail page from a flat identifier list into a modern genomic
 
 **Goal:** Users can access gnomAD, UniProt, Ensembl, AlphaFold, and MGI/RGD data through cached R/Plumber endpoints with rate limiting and error isolation
 
+**Plans:** 5 plans
+
+Plans:
+- [ ] 40-01-PLAN.md — Shared proxy infrastructure (cache backends, retry/throttle, error format)
+- [ ] 40-02-PLAN.md — gnomAD, UniProt, Ensembl proxy functions
+- [ ] 40-03-PLAN.md — AlphaFold, MGI, RGD proxy functions
+- [ ] 40-04-PLAN.md — Plumber endpoints, aggregation, AUTH_ALLOWLIST
+- [ ] 40-05-PLAN.md — Unit tests for proxy infrastructure and endpoints
+
 **Requirements:**
 - PROXY-01: gnomAD GraphQL proxy for constraint scores and ClinVar variants
 - PROXY-02: UniProt REST proxy for protein domains and features
@@ -209,7 +218,7 @@ Plans:
 
 | Phase | Requirements | Status | Plans | Completed |
 |-------|-------------|--------|-------|-----------|
-| 40 - Backend External API Layer | 12 | Pending | 0/0 | — |
+| 40 - Backend External API Layer | 12 | Planned | 0/5 | — |
 | 41 - Gene Page Redesign | 10 | Planned | 0/5 | — |
 | 42 - Constraint Scores & Variant Summaries | 13 | Pending | 0/0 | — |
 | 43 - Protein Domain Lollipop Plot | 11 | Pending | 0/0 | — |
