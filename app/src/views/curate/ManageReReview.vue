@@ -18,7 +18,7 @@
             <template #header>
               <div class="d-flex justify-content-between align-items-center">
                 <h6 class="mb-1 text-start font-weight-bold">
-                  <i class="bi bi-plus-square me-1" />
+                  <i class="bi bi-plus-square me-1" aria-hidden="true" />
                   Create New Batch
                 </h6>
                 <BButton
@@ -27,7 +27,7 @@
                   size="sm"
                   aria-label="Toggle batch creation form"
                 >
-                  <i class="bi bi-chevron-down" />
+                  <i class="bi bi-chevron-down" aria-hidden="true" />
                 </BButton>
               </div>
             </template>
@@ -52,7 +52,7 @@
             <template #header>
               <div class="d-flex justify-content-between align-items-center">
                 <h6 class="mb-1 text-start font-weight-bold">
-                  <i class="bi bi-person-plus me-1" />
+                  <i class="bi bi-person-plus me-1" aria-hidden="true" />
                   Assign Specific Genes to User
                 </h6>
                 <BButton
@@ -61,7 +61,7 @@
                   size="sm"
                   aria-label="Toggle gene-specific assignment form"
                 >
-                  <i class="bi bi-chevron-down" />
+                  <i class="bi bi-chevron-down" aria-hidden="true" />
                 </BButton>
               </div>
             </template>
@@ -151,20 +151,29 @@
                     <i
                       v-else
                       class="bi bi-person-plus me-1"
+                      aria-hidden="true"
                     />
                     Assign {{ selectedEntityIds.length }} Entities to User
                   </BButton>
                   <BButton
                     variant="outline-secondary"
+                    aria-label="Refresh entity list"
                     @click="loadAvailableEntities"
                   >
-                    <i class="bi bi-arrow-clockwise me-1" />
+                    <i class="bi bi-arrow-clockwise me-1" aria-hidden="true" />
                     Refresh Entity List
                   </BButton>
                 </div>
               </div>
             </BCollapse>
           </BCard>
+
+          <!-- Icon Legend -->
+          <IconLegend
+            :items="legendItems"
+            title="Batch Status & Action Icons"
+            class="mb-3"
+          />
 
           <!-- Submissions Management Card -->
           <BCard
@@ -212,6 +221,7 @@
                     variant="outline-secondary"
                     class="me-1"
                     :disabled="loadingReReviewManagment"
+                    aria-label="Refresh table data"
                     @click="loadReReviewTableData"
                   >
                     <BSpinner
@@ -221,6 +231,7 @@
                     <i
                       v-else
                       class="bi bi-arrow-clockwise"
+                      aria-hidden="true"
                     />
                   </BButton>
                   <BTooltip
@@ -316,7 +327,7 @@
                     aria-label="Assign next available pre-computed batch to selected user"
                     @click="handleNewBatchAssignment"
                   >
-                    <i class="bi bi-plus-square me-1" />
+                    <i class="bi bi-plus-square me-1" aria-hidden="true" />
                     Assign Legacy Batch
                   </BButton>
                   <i
@@ -380,6 +391,7 @@
                   <div class="d-flex align-items-center gap-1">
                     <i
                       :class="row.item.user_id ? 'bi bi-person-fill text-primary' : 'bi bi-person text-muted'"
+                      aria-hidden="true"
                     />
                     <BBadge
                       :variant="row.item.user_id ? 'primary' : 'secondary'"
@@ -447,9 +459,10 @@
                       size="sm"
                       class="btn-action"
                       variant="secondary"
+                      :aria-label="`Recalculate batch ${data.item.re_review_batch}`"
                       @click="openRecalculateModal(data.item)"
                     >
-                      <i class="bi bi-calculator" />
+                      <i class="bi bi-calculator" aria-hidden="true" />
                     </BButton>
                     <BTooltip
                       v-if="!data.item.user_id"
@@ -467,9 +480,10 @@
                       size="sm"
                       class="btn-action"
                       variant="warning"
+                      :aria-label="`Reassign batch ${data.item.re_review_batch}`"
                       @click="openReassignModal(data.item)"
                     >
-                      <i class="bi bi-person-lines-fill" />
+                      <i class="bi bi-person-lines-fill" aria-hidden="true" />
                     </BButton>
                     <BTooltip
                       v-if="data.item.user_id"
@@ -487,9 +501,10 @@
                       size="sm"
                       class="btn-action"
                       variant="danger"
+                      :aria-label="`Unassign batch ${data.item.re_review_batch}`"
                       @click="handleBatchUnAssignment(data.item.re_review_batch)"
                     >
-                      <i class="bi bi-person-dash-fill" />
+                      <i class="bi bi-person-dash-fill" aria-hidden="true" />
                     </BButton>
                     <BTooltip
                       v-if="data.item.user_id"
@@ -533,6 +548,7 @@
       title="Reassign Batch"
       ok-title="Reassign"
       cancel-title="Cancel"
+      header-close-label="Close"
       @ok="handleBatchReassignment"
     >
       <BFormGroup
@@ -558,6 +574,7 @@
       size="lg"
       ok-title="Recalculate"
       cancel-title="Cancel"
+      header-close-label="Close"
       :ok-disabled="isRecalculating"
       @ok="handleBatchRecalculation"
     >
@@ -633,12 +650,17 @@
         small
       />
     </BModal>
+
+    <!-- AriaLiveRegion for screen reader announcements -->
+    <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
   </div>
 </template>
 
 <script>
-import useToast from '@/composables/useToast';
+import { useToast, useAriaLive } from '@/composables';
 import BatchCriteriaForm from '@/components/forms/BatchCriteriaForm.vue';
+import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
+import IconLegend from '@/components/accessibility/IconLegend.vue';
 
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
@@ -647,10 +669,13 @@ export default {
   name: 'ManageReReview',
   components: {
     BatchCriteriaForm,
+    AriaLiveRegion,
+    IconLegend,
   },
   setup() {
     const { makeToast } = useToast();
-    return { makeToast };
+    const { message: a11yMessage, politeness: a11yPoliteness, announce } = useAriaLive();
+    return { makeToast, a11yMessage, a11yPoliteness, announce };
   },
   data() {
     return {
@@ -757,6 +782,15 @@ export default {
 
       // Status options for recalculate modal
       status_options: [],
+
+      // Icon legend items for ManageReReview
+      legendItems: [
+        { icon: 'bi bi-check-circle-fill', color: '#198754', label: 'Approved' },
+        { icon: 'bi bi-hourglass-split', color: '#ffc107', label: 'Pending review' },
+        { icon: 'bi bi-person-fill', color: '#0d6efd', label: 'Assigned user' },
+        { icon: 'bi bi-arrow-clockwise', color: '#6c757d', label: 'Recalculate batch' },
+        { icon: 'bi bi-archive', color: '#dc3545', label: 'Archive batch' },
+      ],
     };
   },
   computed: {
@@ -882,8 +916,10 @@ export default {
           },
         );
         this.makeToast('New batch assigned successfully.', 'Success', 'success');
+        this.announce('New batch assigned successfully');
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.announce('Failed to assign batch', 'assertive');
       }
       this.loadReReviewTableData();
     },
@@ -903,8 +939,10 @@ export default {
           },
         });
         this.makeToast('Batch unassigned successfully.', 'Success', 'success');
+        this.announce('Batch unassigned successfully');
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.announce('Failed to unassign batch', 'assertive');
       }
       this.loadReReviewTableData();
     },
@@ -922,6 +960,7 @@ export default {
       this.loadReReviewTableData();
       this.loadAvailableEntities();
       this.makeToast('Batch created and table refreshed', 'Success', 'success');
+      this.announce('Batch created successfully');
     },
 
     // Load available entities for manual assignment (RRV-06)
@@ -981,6 +1020,7 @@ export default {
           'Success',
           'success',
         );
+        this.announce(`Created batch ${result.batch_id} with ${result.entity_count} entities`);
 
         // Reset and refresh
         this.selectedEntityIds = [];
@@ -990,6 +1030,7 @@ export default {
         this.loadAvailableEntities();
       } catch (e) {
         this.makeToast(e.response?.data?.message || 'Assignment failed', 'Error', 'danger');
+        this.announce('Failed to assign entities', 'assertive');
       } finally {
         this.isAssigningEntities = false;
       }
@@ -1017,10 +1058,12 @@ export default {
           },
         });
         this.makeToast('Batch reassigned successfully', 'Success', 'success');
+        this.announce('Batch reassigned successfully');
         this.reassignModalShow = false;
         this.loadReReviewTableData();
       } catch (e) {
         this.makeToast(e.response?.data?.message || 'Reassignment failed', 'Error', 'danger');
+        this.announce('Failed to reassign batch', 'assertive');
       }
     },
 
@@ -1068,12 +1111,14 @@ export default {
           'Success',
           'success',
         );
+        this.announce(`Batch ${result.batch_id} recalculated with ${result.entity_count} entities`);
         this.recalculateModalShow = false;
         this.loadReReviewTableData();
         this.loadAvailableEntities();
       } catch (e) {
         const message = e.response?.data?.message || 'Recalculation failed';
         this.makeToast(message, 'Error', 'danger');
+        this.announce('Failed to recalculate batch', 'assertive');
       } finally {
         this.isRecalculating = false;
       }

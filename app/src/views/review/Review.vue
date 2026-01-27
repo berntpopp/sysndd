@@ -72,6 +72,14 @@
               </BRow>
             </template>
 
+            <!-- Icon Legend -->
+            <div class="px-3 pt-2">
+              <IconLegend
+                :items="legendItems"
+                title="Category & Re-review Status Icons"
+              />
+            </div>
+
             <!-- Search, filters, and pagination row (single consolidated row) -->
             <BRow class="px-3 py-2 align-items-center">
               <!-- Search input -->
@@ -832,15 +840,20 @@
         </div>
       </BModal>
       <!-- 4) Approve modal -->
+
+      <!-- AriaLiveRegion for screen reader announcements -->
+      <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
     </BContainer>
   </div>
 </template>
 
 <script>
-import { useToast, useColorAndSymbols, useText } from '@/composables';
+import { useToast, useColorAndSymbols, useText, useAriaLive } from '@/composables';
 import useStatusForm from '@/views/curate/composables/useStatusForm';
 import useReviewForm from '@/views/curate/composables/useReviewForm';
 import ReviewFormFields from '@/views/curate/components/ReviewFormFields.vue';
+import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
+import IconLegend from '@/components/accessibility/IconLegend.vue';
 
 // Import UI components for consistent icons and badges
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
@@ -866,11 +879,14 @@ export default {
     GeneBadge,
     DiseaseBadge,
     InheritanceBadge,
+    AriaLiveRegion,
+    IconLegend,
   },
   setup() {
     const { makeToast } = useToast();
     const colorAndSymbols = useColorAndSymbols();
     const text = useText();
+    const { message: a11yMessage, politeness: a11yPoliteness, announce } = useAriaLive();
 
     // Initialize status form composable
     const statusForm = useStatusForm();
@@ -900,6 +916,9 @@ export default {
       reviewFormLoading,
       reviewFormIsSaving,
       reviewForm,
+      a11yMessage,
+      a11yPoliteness,
+      announce,
     };
   },
   data() {
@@ -1046,6 +1065,14 @@ export default {
         exp: [],
       },
       isBusy: true,
+      legendItems: [
+        { icon: 'bi bi-stoplights-fill', color: '#4caf50', label: 'Definitive' },
+        { icon: 'bi bi-stoplights-fill', color: '#2196f3', label: 'Moderate' },
+        { icon: 'bi bi-stoplights-fill', color: '#ff9800', label: 'Limited' },
+        { icon: 'bi bi-stoplights-fill', color: '#f44336', label: 'Refuted' },
+        { icon: 'bi bi-check-circle-fill', color: '#198754', label: 'Re-review approved' },
+        { icon: 'bi bi-hourglass-split', color: '#ffc107', label: 'Pending re-review' },
+      ],
     };
   },
   computed: {
@@ -1353,10 +1380,12 @@ export default {
         const isUpdate = this.statusFormData.status_id != null;
         await this.statusForm.submitForm(isUpdate, true); // reReview = true
         this.makeToast('Status submitted successfully', 'Success', 'success');
+        this.announce('Status submitted successfully');
         this.statusForm.resetForm();
         this.loadReReviewData();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.announce('Failed to submit status', 'assertive');
       }
     },
     async submitReviewChange() {
@@ -1366,10 +1395,12 @@ export default {
         const isUpdate = this.review_info.review_id != null;
         await this.reviewForm.submitForm(isUpdate, true); // reReview = true
         this.makeToast('Review submitted successfully', 'Success', 'success');
+        this.announce('Review submitted successfully');
         this.reviewForm.resetForm();
         this.loadReReviewData();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.announce('Failed to submit review', 'assertive');
       }
     },
     resetForm() {
@@ -1470,8 +1501,10 @@ export default {
           },
         });
         this.makeToast('Application send.', 'Success', 'success');
+        this.announce('Batch application sent successfully');
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.announce('Failed to send batch application', 'assertive');
       }
     },
     saved(any_id) {
