@@ -475,13 +475,12 @@ export default {
   border-radius: 0.2rem;
 }
 
-/* Mobile: enlarge details button for better touch target */
+/* Mobile: modest touch-target bump for details button */
 @media (max-width: 767px) {
   .btn-xs {
-    min-height: 2.25rem; /* 36px */
-    padding: 0.375rem 0.75rem;
+    padding: 0.3rem 0.6rem;
     font-size: 0.8125rem;
-    line-height: 1.4;
+    line-height: 1.2;
   }
 }
 </style>
