@@ -2,20 +2,20 @@
 
 ## What This Is
 
-Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v6 delivered modern admin panel with feature-rich management interfaces including TablesEntities patterns (search, pagination, URL sync), bulk operations, Chart.js statistics dashboard, CMS-style content editing, async job monitoring, and advanced audit logging.
+Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v7 delivered modern curation workflows with hierarchical multi-select (custom TreeMultiSelect component), reusable form composables, dynamic re-review batch management system, and WCAG 2.2 AA accessibility compliance across all curation interfaces — building on v6's admin panel, v5's Cytoscape.js visualizations, v4's backend overhaul, v3's Vue 3 migration, v2's Docker infrastructure, and v1's developer tooling.
 
 ## Core Value
 
 A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-## Current State (v6.0 shipped 2026-01-26)
+## Current State (v7.0 shipped 2026-01-27)
 
 **Backend Stack:** 10/10
 - R 4.4.3 with 281 packages in renv.lock
 - Argon2id password hashing with progressive migration
 - 66 SQL injection vulnerabilities fixed (parameterized queries)
 - 8 domain repositories with 131 parameterized DB calls
-- 7 service layers with dependency injection
+- 8 service layers with dependency injection (added re-review-service.R in v7)
 - require_auth middleware with AUTH_ALLOWLIST pattern
 - mirai job system with 8-worker daemon pool + job history
 - OMIM via mim2gene.txt + JAX API + MONDO SSSOM mappings
@@ -25,6 +25,7 @@ A new developer can clone the repo and be productive within minutes, with confid
 - Bulk user endpoints (approve, delete, role assignment)
 - CMS draft/publish API with versioning
 - Statistics API (entities over time, contributor leaderboard)
+- Re-review batch management API (6 endpoints: create, preview, reassign, archive, assign, recalculate)
 
 **Backend Testing:** 634 tests passing, 20.3% coverage, 24 integration tests
 
@@ -33,14 +34,18 @@ A new developer can clone the repo and be productive within minutes, with confid
 - TypeScript 5.9.3 with branded domain types
 - Bootstrap-Vue-Next 0.42.0 with Bootstrap 5.3.8
 - Vite 7.3.1 (164ms dev startup, ~600 KB gzipped bundle)
-- 17 Vue 3 composables (added admin composables in v6)
-- WCAG 2.2 AA compliance (Lighthouse Accessibility 100)
+- 23 Vue 3 composables (added curation composables in v7)
+- WCAG 2.2 AA compliance with vitest-axe accessibility tests
 - Chart.js + vue-chartjs for statistics visualizations
+- Cytoscape.js for network and phenotype cluster visualizations
+- Custom TreeMultiSelect component (replaced vue3-treeselect)
+- GeneBadge, DiseaseBadge, EntityBadge reusable UI components
+- SkipLink, AriaLiveRegion, IconLegend accessibility components
 - Module-level caching pattern for admin tables
 - URL-synced filter state with VueUse
 - marked + DOMPurify for CMS markdown rendering
 
-**Frontend Testing:** 144 tests passing with Vitest + Vue Test Utils
+**Frontend Testing:** 144 tests + 6 accessibility test suites with Vitest + Vue Test Utils + vitest-axe
 
 **Docker Infrastructure:** 9/10
 - Traefik v3.6 reverse proxy with Docker auto-discovery
@@ -191,22 +196,34 @@ A new developer can clone the repo and be productive within minutes, with confid
 - ✓ useCmsContent composable with draft/publish workflow — v6
 - ✓ LogDetailDrawer with copy to clipboard and keyboard navigation — v6
 
+<!-- Shipped in v7 -->
+
+- ✓ Fix ApproveUser page crash (JavaScript reduce error) — v7
+- ✓ Fix ModifyEntity status dropdown (empty options bug) — v7
+- ✓ Custom TreeMultiSelect component replacing vue3-treeselect — v7
+- ✓ Multi-select for phenotypes and variations restored — v7
+- ✓ GeneBadge, DiseaseBadge, EntityBadge UI components — v7
+- ✓ ModifyEntity entity preview with rich badge components — v7
+- ✓ Contextual modal headers with entity context — v7
+- ✓ Column filters on ApproveReview, ApproveStatus tables — v7
+- ✓ Standardized pagination (10/25/50/100) across all curation views — v7
+- ✓ ManageReReview search functionality — v7
+- ✓ Accessibility labels on all curation action buttons — v7
+- ✓ useReviewForm composable and ReviewFormFields component — v7
+- ✓ useStatusForm composable for status modification — v7
+- ✓ useFormDraft composable with auto-save and restoration — v7
+- ✓ Modal @show reset handlers preventing stale data — v7
+- ✓ Re-review batch management service layer (re-review-service.R) — v7
+- ✓ 6 re-review API endpoints (batch create/preview/reassign/archive/assign/recalculate) — v7
+- ✓ BatchCriteriaForm and useBatchForm for dynamic batch creation — v7
+- ✓ Gene-specific user assignment for re-review — v7
+- ✓ SkipLink, AriaLiveRegion, IconLegend accessibility components — v7
+- ✓ useAriaLive composable with dual feedback pattern — v7
+- ✓ vitest-axe accessibility tests for all 6 curation views — v7
+
 ### Active
 
-<!-- v7 scope - Curation Workflow Modernization -->
-
-- [ ] Fix ApproveUser page crash (JavaScript reduce error)
-- [ ] Fix ModifyEntity status dropdown (empty options bug)
-- [ ] Modernize curation tables with TablesEntities pattern (search, pagination, URL sync)
-- [ ] Add column filters to ApproveReview, ApproveStatus tables
-- [ ] Standardize pagination across all curation views
-- [ ] Add accessibility labels to all curation action buttons
-- [ ] Improve ModifyEntity workflow (entity preview, search, wizard pattern)
-- [ ] Modernize ManageReReview with search, new batch creation, recalculation
-- [ ] Add API for creating new re-review batches dynamically
-- [ ] Add API for assigning specific genes to specific users for re-review
-- [ ] Modernize Review page workflow and design
-- [ ] Restore vue3-treeselect multi-select for phenotypes/variations (or alternative)
+(No active requirements — next milestone not yet started)
 
 ### Out of Scope
 
@@ -218,29 +235,29 @@ A new developer can clone the repo and be productive within minutes, with confid
 - 3D network visualization — depth perception issues
 - WebGL renderer for >500 nodes — defer to future milestone
 - STRINGdb v12.0 upgrade — requires database migration
-- CI/CD pipeline — deferred to v7
-- Trivy security scanning — deferred to v7
-- Expanded frontend test coverage (40-50%) — deferred to v7
-- Vue component TypeScript conversion — deferred to v7
-- URL path versioning (/api/v1/) — deferred to v7
+- PrimeVue TreeSelect — using Bootstrap-Vue-Next only for ecosystem consistency
+- Server-side pagination for curation tables — client-side sufficient for current data volumes
 
 ## Context
 
-**After v6:**
-- Admin tables modernized with consistent TablesEntities pattern (search, pagination, URL sync, export)
-- Bulk user operations (approve, delete, role assignment) with proper confirmation workflows
-- Statistics dashboard with Chart.js visualizations and scientific context
-- CMS-style content editing for About page with draft/publish workflow
-- Async job monitoring with useAsyncJob composable and VueUse auto-cleanup
-- Advanced audit logging with filters, detail drawer, and compliance export
-- 10 reusable patterns established for future admin features
+**After v7:**
+- All curation views modernized with consistent UX (search, filters, pagination, accessibility)
+- Custom TreeMultiSelect replaced vue3-treeselect dependency (zero external tree libraries)
+- 3 badge components (GeneBadge, DiseaseBadge, EntityBadge) reused across 13 files
+- 3 form composables (useReviewForm, useStatusForm, useFormDraft) reduce 665 lines of duplication
+- Complete re-review batch management system (service → endpoints → composable → component → view)
+- WCAG 2.2 AA accessibility pass with SkipLink, AriaLiveRegion, IconLegend, vitest-axe tests
+- 23 Vue 3 composables total (7 original + 6 admin + 10 curation)
+- 8 service layers total (7 original + re-review-service.R)
 
 **Minor tech debt (non-blocking):**
 - FDR column sorting needs sortCompare for scientific notation
 - ScoreSlider presets need domain-specific values
 - Correlation heatmap → cluster navigation (architectural limitation)
-- Legacy TODO comment about treeselect migration (TablesLogs.vue:197)
-- Bulk operation audit logging not yet implemented
+- ModifyEntity review modal not yet refactored to useReviewForm
+- No unit tests for form composables
+- TreeMultiSelect performance with >1000 nodes not validated
+- A11Y-05 (keyboard navigation) needs manual human verification
 
 **GitHub Issues:**
 - #109: Refactor sysndd_plumber.R into smaller endpoint files — Ready for PR (v4 complete)
@@ -306,17 +323,16 @@ A new developer can clone the repo and be productive within minutes, with confid
 | JSON column for CMS sections | Flexible schema without migrations | ✓ Good |
 | VueUse useIntervalFn for polling | Auto-cleanup via tryOnCleanup | ✓ Good |
 | BOffcanvas for detail drawers | Bootstrap-Vue-Next pattern consistency | ✓ Good |
-
-## Current Milestone: v7.0 Curation Workflow Modernization
-
-**Goal:** Transform curation views from basic forms into modern, accessible interfaces with improved re-review workflow, batch management, and consistent UX patterns matching v6 admin panel quality.
-
-**Target features:**
-- Fix critical bugs (ApproveUser crash, ModifyStatus dropdown)
-- Modernize all curation tables with TablesEntities pattern
-- Overhaul re-review system (dynamic batches, gene-specific assignment)
-- Improve ModifyEntity and Review page workflows
-- Accessibility compliance for curation interfaces
+| Custom TreeMultiSelect over vue3-treeselect | Bootstrap-Vue-Next only, zero new dependencies | ✓ Good |
+| Options API for recursive TreeNode | script setup doesn't support self-reference | ✓ Good |
+| Ancestor context in tree search | Shows hierarchy path when children match search | ✓ Good |
+| null vs [] for loading state | null = not loaded, [] = loaded empty — prevents crashes | ✓ Good |
+| Composable-based form extraction | useReviewForm/useStatusForm pattern for DRY forms | ✓ Good |
+| useFormDraft with auto-save | 2s debounce + localStorage + restoration prompts | ✓ Good |
+| Parameterized batch queries | build_batch_params() for safe dynamic WHERE clauses | ✓ Good |
+| Entity overlap prevention in batches | Exclusion subquery prevents double-assignment | ✓ Good |
+| Dual feedback pattern | makeToast (visual) + announce (screen reader) for a11y | ✓ Good |
+| vitest-axe for accessibility testing | Industry-standard axe-core, catches ~57% WCAG issues | ✓ Good |
 
 ---
-*Last updated: 2026-01-26 after v7.0 milestone started*
+*Last updated: 2026-01-27 after v7.0 milestone completed*

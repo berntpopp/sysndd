@@ -1,5 +1,41 @@
 # Project Milestones: SysNDD Developer Experience
 
+## v7.0 Curation Workflow Modernization (Shipped: 2026-01-27)
+
+**Delivered:** Transform curation views from basic forms into modern, accessible interfaces with hierarchical multi-select, reusable form composables, dynamic re-review batch management, and WCAG 2.2 AA accessibility compliance across all curation workflows.
+
+**Phases completed:** 34-39 (21 plans total)
+
+**Key accomplishments:**
+
+- Fixed 4 critical bugs blocking basic curation operations (ApproveUser crash, dropdown, names, modal staleness)
+- Built custom TreeMultiSelect component with Bootstrap-Vue-Next primitives, replacing vue3-treeselect dependency
+- Created GeneBadge, DiseaseBadge, EntityBadge components for rich entity previews across 13 files
+- Extracted useReviewForm, useStatusForm, useFormDraft composables reducing 665 lines of duplication
+- Built complete re-review batch management system (service layer, 6 API endpoints, batch creation/preview/assign/recalculate UI)
+- Added WCAG 2.2 AA accessibility pass: SkipLink, AriaLiveRegion, IconLegend, aria-hidden, 6 vitest-axe test suites
+
+**Stats:**
+
+- 109 files modified (+29,578/-3,275 lines)
+- 7 phases (including 35.1 inserted), 21 plans
+- 122 commits
+- 2 days (2026-01-26 → 2026-01-27)
+
+**Git range:** `44eab5f` → `98f4a74`
+
+**Patterns established:**
+- TreeMultiSelect recursive component pattern (Options API for self-reference)
+- Form composable extraction pattern (useReviewForm, useStatusForm)
+- Draft persistence pattern (useFormDraft with auto-save and restoration prompts)
+- Dual feedback pattern (makeToast + announce for accessibility)
+- Re-review batch service layer pattern (service → endpoint → composable → component)
+- IconLegend pattern for explaining symbolic icons in tables
+
+**What's next:** Planning next milestone
+
+---
+
 ## v6.0 Admin Panel Modernization (Shipped: 2026-01-26)
 
 **Delivered:** Transform admin views from basic CRUD forms into modern, feature-rich management interfaces with consistent UI/UX, pagination, search, bulk operations, Chart.js visualizations, CMS-style content editing, and improved async job monitoring.
