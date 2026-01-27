@@ -192,7 +192,6 @@
               <template #cell-ndd_phenotype_word="{ row }">
                 <span v-b-tooltip.hover.left :title="ndd_icon_text[row.ndd_phenotype_word]">
                   <NddIcon :status="row.ndd_phenotype_word" size="sm" :show-title="false" />
-                  <span class="d-md-none ms-1">{{ row.ndd_phenotype_word }}</span>
                 </span>
               </template>
 
@@ -200,7 +199,6 @@
               <template #cell-category="{ row }">
                 <span v-b-tooltip.hover.left :title="row.category">
                   <CategoryIcon :category="row.category" size="sm" :show-title="false" />
-                  <span class="d-md-none ms-1">{{ row.category }}</span>
                 </span>
               </template>
               <!-- Custom slot for the 'category' column -->

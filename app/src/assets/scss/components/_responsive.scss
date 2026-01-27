@@ -66,23 +66,13 @@
           width: auto !important;
         }
 
-        // The actual cell content — use flex for proper icon+text alignment
+        // The actual cell content — natural width, shrinkable, right-aligned by td
         > * {
-          flex: 1;
+          flex: 0 1 auto; // Natural width, allow shrink, no stretch
           min-width: 0; // Allow text truncation
-          display: flex;
-          align-items: center;
-          justify-content: flex-end;
-          gap: 0.25rem;
-          flex-wrap: wrap;
-
-          // Badges should not stretch - keep intrinsic width
-          &.badge,
-          & .badge,
-          &[class*="badge-"] {
-            flex: 0 0 auto;
-            width: auto !important;
-          }
+          max-width: 60%; // Prevent overflow past label area
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         // Collapse BVN tooltip/popover container spans (hidden siblings
@@ -102,12 +92,19 @@
           flex: 0 0 auto;
         }
 
-        // Badges container should not stretch
+        // Badges container should not stretch (disease may shrink)
         > .badge,
-        > span:has(.badge),
-        > div:has(.badge) {
+        > span:has(.badge):not(.disease-badge-link),
+        > div:has(.badge):not(.disease-badge-link) {
           flex: 0 0 auto;
           width: auto !important;
+        }
+
+        // Disease badge links need to shrink for long names
+        > .disease-badge-link {
+          flex: 0 1 auto;
+          max-width: 60%;
+          overflow: hidden;
         }
       }
     }
@@ -229,7 +226,6 @@
   .inheritance-badge,
   .gene-badge,
   .entity-badge,
-  .disease-badge,
   .ndd-icon,
   .badge {
     flex: 0 0 auto !important;
@@ -238,12 +234,29 @@
     max-width: max-content !important;
   }
 
-  // Badge links should also not stretch
+  // Disease badge can truncate for long names
+  .disease-badge {
+    flex: 0 1 auto !important;
+    width: auto !important;
+    min-width: auto !important;
+    max-width: 100% !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // Badge links should also not stretch (but disease can shrink to fit)
   .gene-badge-link,
-  .entity-badge-link,
-  .disease-badge-link {
+  .entity-badge-link {
     flex: 0 0 auto !important;
     width: auto !important;
+  }
+
+  .disease-badge-link {
+    flex: 0 1 auto !important; // Allow shrink for long disease names
+    width: auto !important;
+    max-width: 100%;
+    overflow: hidden;
   }
 
   // Badge containers in flex layouts
