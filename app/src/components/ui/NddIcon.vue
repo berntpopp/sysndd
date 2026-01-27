@@ -106,4 +106,22 @@ export default {
     transition: none;
   }
 }
+
+/* Mobile fix - prevent flex stretching (mirrors CategoryIcon pattern) */
+@media (max-width: 767px) {
+  .ndd-icon {
+    flex: 0 0 auto !important;
+    width: 1.5rem !important;
+    height: 1.5rem !important;
+    min-width: 1.5rem !important;
+    max-width: 1.5rem !important;
+  }
+
+  .ndd-icon--small {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+    min-width: 1.25rem !important;
+    max-width: 1.25rem !important;
+  }
+}
 </style>
