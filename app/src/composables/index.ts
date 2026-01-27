@@ -99,3 +99,7 @@ export type {
 export { useTreeSearch } from './useTreeSearch';
 export type { TreeNode } from './useTreeSearch';
 export { useHierarchyPath } from './useHierarchyPath';
+
+// Accessibility - ARIA live region announcements
+export { useAriaLive } from './useAriaLive';
+export type { UseAriaLiveReturn } from './useAriaLive';
