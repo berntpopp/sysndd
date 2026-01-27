@@ -134,10 +134,13 @@ Plans:
   3. All curation modals have proper header/title announcing their purpose
   4. Category and status icons have legend explaining what each icon means
   5. User can complete entire curation workflow using only keyboard (no mouse required)
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 39-01: TBD
+- [ ] 39-01-PLAN.md -- Create accessibility foundation components (SkipLink, AriaLiveRegion, IconLegend) and useAriaLive composable
+- [ ] 39-02-PLAN.md -- Add skip link + landmarks to App.vue; integrate a11y into ApproveUser, ApproveReview, ApproveStatus
+- [ ] 39-03-PLAN.md -- Integrate a11y into ModifyEntity, ManageReReview, Review
+- [ ] 39-04-PLAN.md -- Create vitest-axe accessibility tests for all 6 curation views
 
 ## Progress
 
@@ -151,8 +154,8 @@ Plans:
 | 36. Curation Table Modernization | v7.0 | 3/3 | Complete | 2026-01-26 |
 | 37. Form Modernization | v7.0 | 3/3 | Complete | 2026-01-26 |
 | 38. Re-Review System Overhaul | v7.0 | 4/4 | Complete | 2026-01-26 |
-| 39. Accessibility Pass | v7.0 | 0/TBD | Not started | - |
+| 39. Accessibility Pass | v7.0 | 0/4 | Not started | - |
 
 ---
 *Roadmap created: 2026-01-26*
-*Last updated: 2026-01-26 -- Phase 38 complete (Re-Review System Overhaul)*
+*Last updated: 2026-01-27 -- Phase 39 planned (Accessibility Pass)*
