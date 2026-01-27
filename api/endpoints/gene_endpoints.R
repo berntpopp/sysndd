@@ -228,7 +228,8 @@ function(gene_input, input_type = "hgnc") {
       mane_select,
       mgd_id,
       rgd_id,
-      STRING_id
+      STRING_id,
+      bed_hg38
     ) %>%
     arrange(hgnc_id) %>%
     collect() %>%
