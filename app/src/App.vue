@@ -18,12 +18,18 @@
       <div
         id="footer"
       >
-        <Footer />
+        <Footer @show-disclaimer="disclaimerDialogVisible = true" />
       </div>
 
       <!--place the helper badge -->
       <HelperBadge />
       <!--place the helper badge -->
+
+      <!-- Disclaimer dialog (shown on first visit) -->
+      <DisclaimerDialog
+        v-model="disclaimerDialogVisible"
+        @acknowledged="handleDisclaimerAcknowledged"
+      />
     </div>
   </BApp>
 </template>
@@ -33,11 +39,13 @@ import { provide } from 'vue';
 import { useHead } from '@unhead/vue';
 import { useToast } from 'bootstrap-vue-next';
 import { useUiStore } from '@/stores/ui';
+import { useDisclaimerStore } from '@/stores/disclaimer';
 import { mapState } from 'pinia';
 import Navbar from '@/components/Navbar.vue';
 import Footer from '@/components/Footer.vue';
 import HelperBadge from '@/components/HelperBadge.vue';
 import SkipLink from '@/components/accessibility/SkipLink.vue';
+import DisclaimerDialog from '@/components/disclaimer/DisclaimerDialog.vue';
 
 export default {
   name: 'SysNDD',
@@ -46,6 +54,7 @@ export default {
     Footer,
     HelperBadge,
     SkipLink,
+    DisclaimerDialog,
   },
   setup() {
     useHead({
@@ -67,6 +76,11 @@ export default {
     const toast = useToast();
     provide('toast', toast);
   },
+  data() {
+    return {
+      disclaimerDialogVisible: false,
+    };
+  },
   computed: {
     ...mapState(useUiStore, ['scrollbarUpdateTrigger']),
   },
@@ -81,6 +95,26 @@ export default {
         // Native scrollbar doesn't need explicit update
         // This watcher kept for potential future scroll-to-top behavior
       },
+    },
+  },
+  created() {
+    const disclaimerStore = useDisclaimerStore();
+
+    // Migrate from old Banner localStorage key if present
+    if (!disclaimerStore.isAcknowledged && localStorage.getItem('banner_acknowledged')) {
+      disclaimerStore.saveAcknowledgment();
+      localStorage.removeItem('banner_acknowledged');
+    }
+
+    // Show disclaimer dialog if not yet acknowledged
+    if (!disclaimerStore.isAcknowledged) {
+      this.disclaimerDialogVisible = true;
+    }
+  },
+  methods: {
+    handleDisclaimerAcknowledged() {
+      const disclaimerStore = useDisclaimerStore();
+      disclaimerStore.saveAcknowledgment();
     },
   },
 };

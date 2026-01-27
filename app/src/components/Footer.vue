@@ -2,24 +2,11 @@
  * components/Footer.vue
  *
  * @description The footer component of the application.
- * @component Footer
- *
- * @script
- *   - Imports FOOTER_NAV_CONSTANTS from '@/assets/js/constants/footer_nav_constants' to avoid hardcoding URLs in this component.
- *   - Lazy-loads the FooterNavItem component to optimize performance.
- *   - Exports the Footer component.
- *   - Defines the name of the component as 'Footer'.
- *   - Registers the FooterNavItem component.
- *   - Defines the data property 'footerItems' as an array of items to be displayed in the footer.
- *
- * @style
- *   - Uses the 'scoped' attribute to limit the styles to this component only.
- *   - Sets a linear gradient background for the footer.
+ * Includes partner logos and a disclaimer status indicator.
  */
 <template>
   <!-- The footer component -->
   <div class="footer">
-    <!-- Using bootstrap-vue navbar component to create the footer -->
     <BNavbar
       toggleable="sm"
       type="light"
@@ -27,6 +14,25 @@
       fixed="bottom"
       class="py-0 bg-footer"
     >
+      <!-- Disclaimer indicator (left side) -->
+      <div class="disclaimer-indicator d-flex align-items-center ms-2">
+        <button
+          class="disclaimer-indicator__btn"
+          :title="disclaimerTooltip"
+          aria-label="View usage policy and data privacy disclaimer"
+          @click="$emit('show-disclaimer')"
+        >
+          <i class="bi bi-shield-check" aria-hidden="true" />
+        </button>
+        <span
+          v-if="disclaimerStore.isAcknowledged"
+          class="disclaimer-indicator__check"
+          :title="'Acknowledged: ' + disclaimerStore.formattedAcknowledgmentDate"
+        >
+          <i class="bi bi-check-circle-fill" aria-hidden="true" />
+        </span>
+      </div>
+
       <!-- The navbar toggle button for smaller screen sizes -->
       <BNavbarToggle target="footer-collapse" />
       <!-- The collapsible part of the navbar -->
@@ -52,11 +58,10 @@
 </template>
 
 <script>
-// Importing URLs from a constants file to avoid hardcoding them in this component
 import FOOTER_NAV_CONSTANTS from '@/assets/js/constants/footer_nav_constants';
 import { defineAsyncComponent } from 'vue';
+import { useDisclaimerStore } from '@/stores/disclaimer';
 
-// Lazy-loading the FooterNavItem component to optimize performance
 const FooterNavItem = defineAsyncComponent(() => import('@/components/small/FooterNavItem.vue'));
 
 export default {
@@ -64,20 +69,28 @@ export default {
   components: {
     FooterNavItem,
   },
+  emits: ['show-disclaimer'],
   data() {
     return {
-      // An array of items to be displayed in the footer.
-      // Each item has an id, link, attributes for the link, image source, alt text, width, and target for the link.
       footerItems: FOOTER_NAV_CONSTANTS.NAV_ITEMS,
     };
+  },
+  computed: {
+    disclaimerStore() {
+      return useDisclaimerStore();
+    },
+    disclaimerTooltip() {
+      if (this.disclaimerStore.isAcknowledged) {
+        return `Usage policy acknowledged on ${this.disclaimerStore.formattedAcknowledgmentDate}. Click to review.`;
+      }
+      return 'View usage policy and data privacy disclaimer';
+    },
   },
 };
 </script>
 
-<!-- The "scoped" attribute limits the styles to this component only -->
 <style scoped>
 .bg-footer {
-  /* A linear gradient background for the footer */
   background-image: linear-gradient(
     to top,
     #d5d4d0 0%,
@@ -87,5 +100,46 @@ export default {
     #e9e9e7 100%
   );
   min-height: 50px;
+}
+
+.disclaimer-indicator {
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.disclaimer-indicator__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--medical-blue-700, #0d47a1);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.disclaimer-indicator__btn:hover {
+  background: rgba(13, 71, 161, 0.1);
+}
+
+.disclaimer-indicator__btn:focus-visible {
+  outline: 2px solid var(--medical-blue-700, #0d47a1);
+  outline-offset: 2px;
+}
+
+.disclaimer-indicator__check {
+  color: var(--status-success, #2e7d32);
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .disclaimer-indicator__btn {
+    transition: none;
+  }
 }
 </style>

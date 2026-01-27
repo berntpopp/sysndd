@@ -20,17 +20,29 @@ watch(() => route.path, () => {
 
 <style scoped>
 .skip-link {
-  position: fixed;
-  top: 0;
+  position: absolute;
+  top: -40px;
   left: 0;
-  opacity: 0;
+  background: var(--medical-blue-700, #0d47a1);
+  color: white;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
   z-index: 9999;
-  background: white;
-  padding: 0.5em 1em;
-  border: 2px solid black;
+  border-radius: 0 0 0.25rem 0;
+  transition: top 0.15s ease-in-out;
+  pointer-events: none;
 }
 
 .skip-link:focus {
-  opacity: 1;
+  top: 0;
+  pointer-events: auto;
+  outline: 3px solid white;
+  outline-offset: -0.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skip-link {
+    transition: none;
+  }
 }
 </style>

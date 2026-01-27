@@ -56,7 +56,7 @@
           v-if="show_search"
           class="mx-auto d-none d-lg-flex"
         >
-          <SearchBar
+          <SearchCombobox
             placeholder-string="..."
             :in-navbar="true"
           />
@@ -93,7 +93,7 @@
           v-if="show_search"
           class="d-lg-none ms-auto"
         >
-          <SearchBar
+          <SearchCombobox
             placeholder-string="..."
             :in-navbar="true"
           />
@@ -110,13 +110,13 @@ import URLS from '@/assets/js/constants/url_constants';
 import ROLES from '@/assets/js/constants/role_constants';
 import useToast from '@/composables/useToast';
 import packageInfo from '../../package.json';
-import SearchBar from '@/components/small/SearchBar.vue';
+import SearchCombobox from '@/components/small/SearchCombobox.vue';
 import IconPairDropdownMenu from '@/components/small/IconPairDropdownMenu.vue';
 
 export default {
   name: 'Navbar',
   components: {
-    SearchBar,
+    SearchCombobox,
     IconPairDropdownMenu,
   },
   setup() {

@@ -20,12 +20,10 @@
                 </h4>
               </BContainer>
 
-              <!-- The SearchBar component -->
-              <SearchBar
+              <SearchCombobox
                 placeholder-string="Search by genes, entities and diseases using names or identifiers"
                 :in-navbar="false"
               />
-              <!-- The SearchBar component -->
             </BCol>
           </BRow>
 
@@ -419,9 +417,6 @@
       </BRow>
     </BContainer>
 
-    <!-- The Banner component -->
-    <Banner />
-    <!-- The Banner component -->
   </div>
 </template>
 
@@ -441,8 +436,7 @@ import INIT_OBJ from '@/assets/js/constants/init_obj_constants';
 import apiService from '@/assets/js/services/apiService';
 
 // Import global components
-import SearchBar from '@/components/small/SearchBar.vue';
-import Banner from '@/components/small/Banner.vue';
+import SearchCombobox from '@/components/small/SearchCombobox.vue';
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
 import NddIcon from '@/components/ui/NddIcon.vue';
 import EntityBadge from '@/components/ui/EntityBadge.vue';
@@ -453,8 +447,7 @@ import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 export default {
   name: 'Home',
   components: {
-    SearchBar,
-    Banner,
+    SearchCombobox,
     CategoryIcon,
     NddIcon,
     EntityBadge,
@@ -549,7 +542,6 @@ export default {
         statistics: false,
         news: false,
       },
-      banner_acknowledged: false,
     };
   },
   computed: {
@@ -577,9 +569,6 @@ export default {
       deep: true,
     },
   },
-  mounted() {
-    this.checkBanner();
-  },
   created() {
     // watch the params of the route to fetch the data again
     this.$watch(
@@ -594,11 +583,6 @@ export default {
     );
   },
   methods: {
-    // Function to check if the user has acknowledged the banner.
-    // This is done by checking a value in localStorage.
-    checkBanner() {
-      this.banner_acknowledged = localStorage.getItem('banner_acknowledged');
-    },
     // Function to animate changes in data.
     // This uses the GSAP library to create a transition effect.
     animateOnChange(after, before) {

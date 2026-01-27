@@ -103,3 +103,7 @@ export { useHierarchyPath } from './useHierarchyPath';
 // Accessibility - ARIA live region announcements
 export { useAriaLive } from './useAriaLive';
 export type { UseAriaLiveReturn } from './useAriaLive';
+
+// Search suggestions
+export { useSearchSuggestions } from './useSearchSuggestions';
+export type { SearchSuggestion, UseSearchSuggestionsReturn } from './useSearchSuggestions';
