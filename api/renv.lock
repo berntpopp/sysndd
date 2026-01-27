@@ -10508,6 +10508,158 @@
       "Maintainer": "Achim Zeileis <Achim.Zeileis@R-project.org>",
       "Repository": "RSPM",
       "Encoding": "UTF-8"
+    },
+    "ghql": {
+      "Package": "ghql",
+      "Version": "0.1.2",
+      "Source": "Repository",
+      "Title": "General Purpose GraphQL Client",
+      "Description": "A GraphQL client, with an R6 interface for initializing a connection to a GraphQL instance, and methods for constructing queries and executing them.",
+      "License": "MIT + file LICENSE",
+      "URL": "https://github.com/ropensci/ghql",
+      "BugReports": "https://github.com/ropensci/ghql/issues",
+      "Encoding": "UTF-8",
+      "Language": "en-US",
+      "Imports": [
+        "crul (>= 0.7.0)",
+        "jsonlite (>= 1.6)",
+        "graphql",
+        "R6"
+      ],
+      "Suggests": [
+        "testthat",
+        "knitr",
+        "rmarkdown"
+      ],
+      "RoxygenNote": "7.1.0",
+      "NeedsCompilation": "no",
+      "Author": "Scott Chamberlain [aut, cre]",
+      "Maintainer": "Scott Chamberlain <myrmecocystus@gmail.com>",
+      "Repository": "RSPM"
+    },
+    "crul": {
+      "Package": "crul",
+      "Version": "1.6.0",
+      "Source": "Repository",
+      "Title": "HTTP Client",
+      "Description": "A simple HTTP client, with tools for making HTTP requests, and mocking HTTP requests. The package is built on R6, and takes inspiration from Ruby 'faraday' gem. The package name is a play on curl, the widely used command line tool for HTTP, and this package is built on top of the R package 'curl'.",
+      "License": "MIT + file LICENSE",
+      "URL": "https://github.com/ropensci/crul",
+      "BugReports": "https://github.com/ropensci/crul/issues",
+      "Encoding": "UTF-8",
+      "Language": "en-US",
+      "Imports": [
+        "curl (>= 3.3)",
+        "R6 (>= 2.2.0)",
+        "urltools (>= 1.6.0)",
+        "httpcode (>= 0.2.0)",
+        "jsonlite",
+        "mime"
+      ],
+      "Suggests": [
+        "testthat",
+        "knitr",
+        "rmarkdown",
+        "vcr (>= 0.1.0)",
+        "webmockr (>= 0.1.0)"
+      ],
+      "RoxygenNote": "7.3.2",
+      "NeedsCompilation": "no",
+      "Author": "Scott Chamberlain [aut, cre]",
+      "Maintainer": "Scott Chamberlain <myrmecocystus@gmail.com>",
+      "Repository": "RSPM"
+    },
+    "graphql": {
+      "Package": "graphql",
+      "Version": "1.5.3",
+      "Source": "Repository",
+      "Title": "A GraphQL Query Parser",
+      "Description": "Bindings to the 'libgraphqlparser' C++ library. Parses GraphQL syntax and exports the AST in JSON format.",
+      "License": "MIT + file LICENSE",
+      "URL": "https://github.com/ropensci/graphql",
+      "BugReports": "https://github.com/ropensci/graphql/issues",
+      "SystemRequirements": "C++17",
+      "Encoding": "UTF-8",
+      "RoxygenNote": "7.3.2",
+      "Suggests": [
+        "testthat",
+        "jsonlite"
+      ],
+      "NeedsCompilation": "yes",
+      "Author": "Jeroen Ooms [aut, cre], Facebook, Inc [cph]",
+      "Maintainer": "Jeroen Ooms <jeroenooms@gmail.com>",
+      "Repository": "RSPM"
+    },
+    "httpcode": {
+      "Package": "httpcode",
+      "Version": "0.3.0",
+      "Source": "Repository",
+      "Title": "HTTP Status Code Helper",
+      "Description": "Find and explain the meaning of HTTP status codes. Functions are included for searching for codes by description, status code, or category.",
+      "License": "MIT + file LICENSE",
+      "URL": "https://github.com/sckott/httpcode",
+      "BugReports": "https://github.com/sckott/httpcode/issues",
+      "Encoding": "UTF-8",
+      "Language": "en-US",
+      "RoxygenNote": "7.1.1",
+      "NeedsCompilation": "no",
+      "Author": "Scott Chamberlain [aut, cre]",
+      "Maintainer": "Scott Chamberlain <myrmecocystus@gmail.com>",
+      "Repository": "RSPM"
+    },
+    "urltools": {
+      "Package": "urltools",
+      "Version": "1.7.3.1",
+      "Source": "Repository",
+      "Title": "Vectorised Tools for URL Handling and Parsing",
+      "Description": "A toolkit for handling URLs that so far includes functions for URL encoding and decoding, parsing, and parameter extraction.",
+      "License": "MIT + file LICENSE",
+      "URL": "https://github.com/Ironholds/urltools/",
+      "BugReports": "https://github.com/Ironholds/urltools/issues",
+      "LinkingTo": [
+        "Rcpp",
+        "triebeard"
+      ],
+      "Imports": [
+        "Rcpp",
+        "triebeard"
+      ],
+      "Suggests": [
+        "testthat",
+        "knitr"
+      ],
+      "Encoding": "UTF-8",
+      "RoxygenNote": "7.1.1",
+      "NeedsCompilation": "yes",
+      "Author": "Oliver Keyes [aut, cre], Jay Jacobs [aut, cre], Drew Schmidt [aut], Mark Greenaway [ctb], Bob Rudis [ctb]",
+      "Maintainer": "Oliver Keyes <ironholds@gmail.com>",
+      "Repository": "RSPM"
+    },
+    "triebeard": {
+      "Package": "triebeard",
+      "Version": "0.4.1",
+      "Source": "Repository",
+      "Title": "Radix Trees in Rcpp",
+      "Description": "Radix trees, or tries, are key-value data structures optimised for efficient lookups, similar in purpose to hash tables. triebeard provides an implementation of radix trees for use in R programming and in developing packages with Rcpp.",
+      "License": "MIT + file LICENSE",
+      "URL": "https://github.com/Ironholds/triebeard/",
+      "BugReports": "https://github.com/Ironholds/triebeard/issues",
+      "LinkingTo": [
+        "Rcpp"
+      ],
+      "Imports": [
+        "Rcpp"
+      ],
+      "Suggests": [
+        "testthat",
+        "knitr"
+      ],
+      "Encoding": "UTF-8",
+      "RoxygenNote": "7.1.1",
+      "NeedsCompilation": "yes",
+      "Author": "Oliver Keyes [aut, cre], Drew Schmidt [aut]",
+      "Maintainer": "Oliver Keyes <ironholds@gmail.com>",
+      "Repository": "RSPM"
     }
   }
 }

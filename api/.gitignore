@@ -16,6 +16,9 @@ data/*.obo
 # Ignore the log files in logs directory in api folder
 logs/*.log
 
+# Ignore cache directory (external API cache, Docker volume mount)
+cache/
+
 # ignore the development start script
 *_development.R
 
