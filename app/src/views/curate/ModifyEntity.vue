@@ -68,7 +68,7 @@
             >
               <template #header>
                 <h6 class="mb-0 text-start font-weight-bold d-flex align-items-center">
-                  <i class="bi bi-info-circle me-2" />
+                  <i class="bi bi-info-circle me-2" aria-hidden="true" />
                   Selected Entity
                   <EntityBadge
                     :entity-id="entity_info.entity_id"
@@ -110,7 +110,7 @@
                   <div class="mb-2">
                     <strong class="text-muted small d-block mb-1">Inheritance:</strong>
                     <BBadge variant="info" class="d-inline-flex align-items-center">
-                      <i class="bi bi-diagram-3 me-1" />
+                      <i class="bi bi-diagram-3 me-1" aria-hidden="true" />
                       {{ entity_info.hpo_mode_of_inheritance_term_name || entity_info.hpo_mode_of_inheritance_term || 'N/A' }}
                     </BBadge>
                   </div>
@@ -122,7 +122,7 @@
                       :variant="stoplights_style[entity_info.category] || 'secondary'"
                       class="d-inline-flex align-items-center"
                     >
-                      <i class="bi bi-stoplights me-1" />
+                      <i class="bi bi-stoplights me-1" aria-hidden="true" />
                       {{ entity_info.category || 'N/A' }}
                     </BBadge>
                   </div>
@@ -134,13 +134,21 @@
                       :variant="ndd_icon_style[entity_info.ndd_phenotype_word] || 'secondary'"
                       class="d-inline-flex align-items-center"
                     >
-                      <i :class="`bi bi-${ndd_icon[entity_info.ndd_phenotype_word] || 'question'} me-1`" />
+                      <i :class="`bi bi-${ndd_icon[entity_info.ndd_phenotype_word] || 'question'} me-1`" aria-hidden="true" />
                       {{ entity_info.ndd_phenotype_word || 'N/A' }}
                     </BBadge>
                   </div>
                 </BCol>
               </BRow>
             </BCard>
+
+            <!-- Icon Legend -->
+            <IconLegend
+              v-if="entity_loaded && entity_info.entity_id"
+              :items="legendItems"
+              title="Category & NDD Status Icons"
+              class="my-2"
+            />
 
             <BCard
               v-if="entity_loaded && entity_info.entity_id"
@@ -161,12 +169,13 @@
                     size="sm"
                     variant="dark"
                     :disabled="!entity_loaded || submitting"
+                    aria-label="Rename disease"
                     @click="showEntityRename()"
                   >
                     <BSpinner v-if="submitting === 'rename'" small class="me-1" />
                     <template v-else>
-                      <i class="bi bi-pen" />
-                      <i class="bi bi-link" />
+                      <i class="bi bi-pen" aria-hidden="true" />
+                      <i class="bi bi-link" aria-hidden="true" />
                     </template>
                     Rename disease
                   </BButton>
@@ -177,12 +186,13 @@
                     size="sm"
                     variant="dark"
                     :disabled="!entity_loaded || submitting"
+                    aria-label="Deactivate entity"
                     @click="showEntityDeactivate()"
                   >
                     <BSpinner v-if="submitting === 'deactivate'" small class="me-1" />
                     <template v-else>
-                      <i class="bi bi-x" />
-                      <i class="bi bi-link" />
+                      <i class="bi bi-x" aria-hidden="true" />
+                      <i class="bi bi-link" aria-hidden="true" />
                     </template>
                     Deactivate entity
                   </BButton>
@@ -193,12 +203,13 @@
                     size="sm"
                     variant="dark"
                     :disabled="!entity_loaded || submitting"
+                    aria-label="Modify review"
                     @click="showReviewModify()"
                   >
                     <BSpinner v-if="submitting === 'review'" small class="me-1" />
                     <template v-else>
-                      <i class="bi bi-pen" />
-                      <i class="bi bi-clipboard-plus" />
+                      <i class="bi bi-pen" aria-hidden="true" />
+                      <i class="bi bi-clipboard-plus" aria-hidden="true" />
                     </template>
                     Modify review
                   </BButton>
@@ -209,12 +220,13 @@
                     size="sm"
                     variant="dark"
                     :disabled="!entity_loaded || submitting"
+                    aria-label="Modify status"
                     @click="showStatusModify()"
                   >
                     <BSpinner v-if="submitting === 'status'" small class="me-1" />
                     <template v-else>
-                      <i class="bi bi-pen" />
-                      <i class="bi bi-stoplights" />
+                      <i class="bi bi-pen" aria-hidden="true" />
+                      <i class="bi bi-stoplights" aria-hidden="true" />
                     </template>
                     Modify status
                   </BButton>
@@ -236,6 +248,7 @@
         no-close-on-backdrop
         header-bg-variant="dark"
         header-text-variant="light"
+        header-close-label="Close"
         @show="onRenameModalShow"
         @ok="submitEntityRename"
       >
@@ -312,6 +325,7 @@
         no-close-on-backdrop
         header-bg-variant="dark"
         header-text-variant="light"
+        header-close-label="Close"
         @show="onDeactivateModalShow"
         @ok="submitEntityDeactivation"
       >
@@ -421,6 +435,7 @@
         no-close-on-backdrop
         header-bg-variant="dark"
         header-text-variant="light"
+        header-close-label="Close"
         :busy="loading_review_modal"
         @show="onModifyReviewModalShow"
         @ok="submitReviewChange"
@@ -667,6 +682,7 @@
         no-close-on-backdrop
         header-bg-variant="dark"
         header-text-variant="light"
+        header-close-label="Close"
         :busy="statusFormLoading"
         @show="onModifyStatusModalShow"
         @ok="submitStatusChange"
@@ -768,18 +784,23 @@
         </BOverlay>
       </BModal>
       <!-- Modify status modal -->
+
+      <!-- AriaLiveRegion for screen reader announcements -->
+      <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
     </BContainer>
   </div>
 </template>
 
 <script>
-import { useToast, useColorAndSymbols } from '@/composables';
+import { useToast, useColorAndSymbols, useAriaLive } from '@/composables';
 import useStatusForm from '@/views/curate/composables/useStatusForm';
 import TreeMultiSelect from '@/components/forms/TreeMultiSelect.vue';
 import AutocompleteInput from '@/components/forms/AutocompleteInput.vue';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 import EntityBadge from '@/components/ui/EntityBadge.vue';
+import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
+import IconLegend from '@/components/accessibility/IconLegend.vue';
 
 import Submission from '@/assets/js/classes/submission/submissionSubmission';
 import Review from '@/assets/js/classes/submission/submissionReview';
@@ -796,10 +817,13 @@ export default {
     GeneBadge,
     DiseaseBadge,
     EntityBadge,
+    AriaLiveRegion,
+    IconLegend,
   },
   setup() {
     const { makeToast } = useToast();
     const colorAndSymbols = useColorAndSymbols();
+    const { message: a11yMessage, politeness: a11yPoliteness, announce } = useAriaLive();
 
     // Initialize status form composable
     const statusForm = useStatusForm();
@@ -819,6 +843,9 @@ export default {
       loadStatusByEntity,
       submitStatusForm,
       resetStatusForm,
+      a11yMessage,
+      a11yPoliteness,
+      announce,
     };
   },
   data() {
@@ -856,6 +883,14 @@ export default {
       loading_review_modal: true,
       loading_status_modal: true,
       submitting: null, // null | 'rename' | 'deactivate' | 'review' | 'status'
+      legendItems: [
+        { icon: 'bi bi-stoplights-fill', color: '#4caf50', label: 'Definitive' },
+        { icon: 'bi bi-stoplights-fill', color: '#2196f3', label: 'Moderate' },
+        { icon: 'bi bi-stoplights-fill', color: '#ff9800', label: 'Limited' },
+        { icon: 'bi bi-stoplights-fill', color: '#f44336', label: 'Refuted' },
+        { icon: 'bi bi-check', color: '#198754', label: 'NDD: Yes' },
+        { icon: 'bi bi-x', color: '#ffc107', label: 'NDD: No' },
+      ],
     };
   },
   mounted() {
@@ -1305,9 +1340,11 @@ export default {
           'Success',
           'success',
         );
+        this.announce('Disease name updated successfully');
         this.resetForm();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.announce('Failed to update disease name', 'assertive');
       } finally {
         this.submitting = null;
       }
@@ -1346,9 +1383,11 @@ export default {
           'Success',
           'success',
         );
+        this.announce('Entity deactivation submitted successfully');
         this.resetForm();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.announce('Failed to deactivate entity', 'assertive');
       } finally {
         this.submitting = null;
       }
@@ -1403,9 +1442,11 @@ export default {
           'Success',
           'success',
         );
+        this.announce('Review submitted successfully');
         this.resetForm();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.announce('Failed to submit review', 'assertive');
       } finally {
         this.submitting = null;
       }
@@ -1415,10 +1456,12 @@ export default {
       try {
         await this.submitStatusForm(false, false); // isUpdate=false (always create), reReview=false
         this.makeToast('Status submitted successfully', 'Success', 'success');
+        this.announce('Status submitted successfully');
         this.resetStatusForm();
         this.resetForm(); // Also reset entity selection
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.announce('Failed to submit status', 'assertive');
       } finally {
         this.submitting = null;
       }
