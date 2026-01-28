@@ -17,13 +17,13 @@
 
 ## Current Position
 
-**Phase:** 43 - Protein Domain Lollipop Plot (IN PROGRESS)
-**Plan:** 2 of 3 complete
-**Status:** In progress — types, D3 composable, and plot component created
-**Progress:** █████▓▱▱▱▱ 56% (Phase 43 plan 2 complete, 3/7 phases in progress)
+**Phase:** 43 - Protein Domain Lollipop Plot (COMPLETE)
+**Plan:** 3 of 3 complete
+**Status:** Complete - lollipop plot visible on gene page
+**Progress:** ██████▒▱▱▱ 62% (Phase 43 complete, 4/7 phases done)
 
-**Last completed:** 43-02 — ProteinDomainLollipopPlot Vue component (2026-01-28)
-**Next step:** Execute 43-03 (Card wrapper and GeneView integration).
+**Last completed:** 43-03 - Card wrapper and GeneView integration (2026-01-28)
+**Next step:** Execute Phase 44 (Gene Structure Visualization) or Phase 45 (3D Protein Structure Viewer).
 
 ---
 
@@ -208,44 +208,48 @@
 - [x] Phase 40: Backend External API Layer (12 requirements) ✓
 - [ ] Phase 41: Gene Page Redesign (10 requirements)
 - [x] Phase 42: Constraint Scores & Variant Summaries (13 requirements) ✓
-- [ ] Phase 43: Protein Domain Lollipop Plot (11 requirements)
+- [x] Phase 43: Protein Domain Lollipop Plot (11 requirements) ✓
 - [ ] Phase 44: Gene Structure Visualization (4 requirements)
 - [ ] Phase 45: 3D Protein Structure Viewer (9 requirements)
 - [ ] Phase 46: Model Organism Phenotypes & Final Integration (5 requirements)
 
 ### Blockers/Concerns
 
-**None** - Phases 40 and 42 complete. Ready for Phase 43 or 44.
+**None** - Phases 40, 42, and 43 complete. Ready for Phase 44 or 45.
 
 ---
 
 ## Session Continuity
 
-**Last session:** 2026-01-28T21:35:05Z
-**Stopped at:** Phase 43-02 complete — ProteinDomainLollipopPlot Vue component
-**Next action:** Execute 43-03 (Card wrapper and GeneView integration)
+**Last session:** 2026-01-28T21:41:32Z
+**Stopped at:** Phase 43 complete — all 3 plans executed
+**Next action:** Execute Phase 44 (Gene Structure Visualization) or Phase 45 (3D Protein Structure Viewer)
 
 **Handoff notes:**
 
-1. **Phase 43-02 completed** (2026-01-28): Vue 3 SFC wrapping useD3Lollipop composable.
+1. **Phase 43 complete** (2026-01-28): Protein domain lollipop plot now visible on gene page.
+   - 43-01: Types (protein.ts) and D3 composable (useD3Lollipop.ts)
+   - 43-02: ProteinDomainLollipopPlot Vue component (360 lines)
+   - 43-03: ProteinDomainLollipopCard wrapper (261 lines) and GeneView integration
 
-2. **Phase 43-02 deliverables:**
-   - `app/src/components/gene/ProteinDomainLollipopPlot.vue` — Vue 3 SFC (360 lines) with D3 integration, reactive legend filters, domain color legend
+2. **Phase 43-03 deliverables:**
+   - `app/src/components/gene/ProteinDomainLollipopCard.vue` — Card wrapper with loading/error/empty states
+   - `app/src/views/pages/GeneView.vue` — Updated with lollipop card and UniProt data fetching
 
-3. **Phase 43-01 completed** (2026-01-28): Types and D3 composable for lollipop plot visualization.
-   - `app/src/types/protein.ts` — TypeScript interfaces, PATHOGENICITY_COLORS, helper functions
-   - `app/src/composables/useD3Lollipop.ts` — D3 lifecycle composable with brush-to-zoom, tooltip, variant stacking
+3. **Key integration points:**
+   - ProteinDomainLollipopCard fetches UniProt domain data via `/api/external/uniprot/domains/<symbol>`
+   - ClinVar variants from existing useGeneExternalData composable
+   - Both fetched in parallel, non-blocking (gene info renders immediately)
+   - variant-click event ready for Phase 45 3D viewer linking
 
-4. **Phase 42 completed** (2026-01-28): All 3 plans executed. GeneView now displays gnomAD constraint cards and ClinVar variant summary cards with independent loading states.
-
-5. **Backlog items captured:**
+4. **Backlog items captured:**
    - `fix-pipe-split-on-json-column.md` — Medium priority JSON column handling
    - `make-migration-002-idempotent.md` — Low priority migration robustness
    - `optimize-ensembl-biomart-connections.md` — High priority performance issue
 
-6. **Phase 44 context gathered** (2026-01-28): Gene structure visualization requirements documented
+5. **Phase 44 context gathered** (2026-01-28): Gene structure visualization requirements documented
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-28 — Phase 43-02 complete (ProteinDomainLollipopPlot Vue component)*
+*Last updated: 2026-01-28 — Phase 43 complete (Protein Domain Lollipop Plot)*
