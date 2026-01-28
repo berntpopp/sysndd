@@ -170,14 +170,18 @@ export function normalizeClassification(raw: string): PathogenicityClass {
  * @returns Object with position and splice flag, or null if unparseable
  */
 export function parseProteinPosition(
-  hgvsp: string | null,
-  hgvsc: string | null
+  hgvsp: string | null | unknown,
+  hgvsc: string | null | unknown
 ): { position: number; isSplice: boolean } | null {
+  // Normalize inputs: API may return empty objects {} instead of null/string
+  const hgvspStr = typeof hgvsp === 'string' ? hgvsp : null;
+  const hgvscStr = typeof hgvsc === 'string' ? hgvsc : null;
+
   // Try hgvsp first (preferred)
-  if (hgvsp) {
+  if (hgvspStr) {
     // Match patterns like: p.Arg123Trp, p.Ter456Leu, p.Met1?, p.Gly12del, p.Lys27_Ser30del
     // Extract the first position number after the amino acid code
-    const proteinMatch = hgvsp.match(/p\.([A-Z][a-z]{2})?(\d+)/i);
+    const proteinMatch = hgvspStr.match(/p\.([A-Z][a-z]{2})?(\d+)/i);
     if (proteinMatch && proteinMatch[2]) {
       const position = parseInt(proteinMatch[2], 10);
       if (!isNaN(position) && position > 0) {
@@ -186,7 +190,7 @@ export function parseProteinPosition(
     }
 
     // Handle fs (frameshift) with position: p.Arg123fs
-    const fsMatch = hgvsp.match(/p\.[A-Z][a-z]{2}(\d+)fs/i);
+    const fsMatch = hgvspStr.match(/p\.[A-Z][a-z]{2}(\d+)fs/i);
     if (fsMatch && fsMatch[1]) {
       const position = parseInt(fsMatch[1], 10);
       if (!isNaN(position) && position > 0) {
@@ -195,7 +199,7 @@ export function parseProteinPosition(
     }
 
     // Handle extension: p.*123Leuext*45
-    const extMatch = hgvsp.match(/p\.\*(\d+)/i);
+    const extMatch = hgvspStr.match(/p\.\*(\d+)/i);
     if (extMatch && extMatch[1]) {
       const position = parseInt(extMatch[1], 10);
       if (!isNaN(position) && position > 0) {
@@ -205,9 +209,9 @@ export function parseProteinPosition(
   }
 
   // Fall back to hgvsc
-  if (hgvsc) {
+  if (hgvscStr) {
     // Handle splice variants: c.123+2A>G, c.456-1G>A
-    const spliceMatch = hgvsc.match(/c\.(\d+)[+-]/);
+    const spliceMatch = hgvscStr.match(/c\.(\d+)[+-]/);
     if (spliceMatch && spliceMatch[1]) {
       const codingPos = parseInt(spliceMatch[1], 10);
       if (!isNaN(codingPos) && codingPos > 0) {
@@ -218,7 +222,7 @@ export function parseProteinPosition(
     }
 
     // Standard coding position: c.367C>T, c.1234del, c.5678dup
-    const codingMatch = hgvsc.match(/c\.(\d+)/);
+    const codingMatch = hgvscStr.match(/c\.(\d+)/);
     if (codingMatch && codingMatch[1]) {
       const codingPos = parseInt(codingMatch[1], 10);
       if (!isNaN(codingPos) && codingPos > 0) {
