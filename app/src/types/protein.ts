@@ -147,6 +147,131 @@ export interface LollipopFilterState {
 }
 
 /**
+ * Aggregated variant for position-based grouping
+ * Used when rendering in aggregated mode to reduce overplotting
+ */
+export interface AggregatedVariant {
+  /** Amino acid position (shared by all variants in group) */
+  proteinPosition: number;
+  /** Total count of variants at this position */
+  count: number;
+  /** Count by pathogenicity class */
+  countByClass: Record<PathogenicityClass, number>;
+  /** Count by effect type */
+  countByEffect: Record<EffectType, number>;
+  /** Most severe classification in the group (for coloring) */
+  dominantClass: PathogenicityClass;
+  /** Most common effect type in the group */
+  dominantEffect: EffectType;
+  /** Whether any variant in group is a splice variant */
+  hasSpliceVariant: boolean;
+  /** All individual variants at this position (for tooltip/drill-down) */
+  variants: ProcessedVariant[];
+}
+
+/**
+ * Pathogenicity severity order (higher index = more severe)
+ * Used to determine dominant class when aggregating
+ */
+export const PATHOGENICITY_SEVERITY: PathogenicityClass[] = [
+  'Benign',
+  'Likely benign',
+  'Uncertain significance',
+  'Likely pathogenic',
+  'Pathogenic',
+  'other',
+];
+
+/**
+ * Aggregate variants by position for density-aware rendering
+ *
+ * @param variants - Array of processed variants
+ * @returns Array of aggregated variants grouped by position
+ */
+export function aggregateVariantsByPosition(
+  variants: ProcessedVariant[]
+): AggregatedVariant[] {
+  const positionMap = new Map<number, ProcessedVariant[]>();
+
+  // Group by position
+  for (const variant of variants) {
+    const pos = variant.proteinPosition;
+    if (!positionMap.has(pos)) {
+      positionMap.set(pos, []);
+    }
+    positionMap.get(pos)!.push(variant);
+  }
+
+  // Convert to aggregated format
+  const aggregated: AggregatedVariant[] = [];
+
+  for (const [position, posVariants] of positionMap) {
+    const countByClass: Record<PathogenicityClass, number> = {
+      Pathogenic: 0,
+      'Likely pathogenic': 0,
+      'Uncertain significance': 0,
+      'Likely benign': 0,
+      Benign: 0,
+      other: 0,
+    };
+
+    const countByEffect: Record<EffectType, number> = {
+      missense: 0,
+      frameshift: 0,
+      stop_gained: 0,
+      splice: 0,
+      inframe_indel: 0,
+      synonymous: 0,
+      other: 0,
+    };
+
+    let hasSpliceVariant = false;
+
+    for (const v of posVariants) {
+      countByClass[v.classification]++;
+      countByEffect[normalizeEffectType(v.majorConsequence)]++;
+      if (v.isSpliceVariant) hasSpliceVariant = true;
+    }
+
+    // Find dominant class (most severe present)
+    let dominantClass: PathogenicityClass = 'other';
+    let maxSeverity = -1;
+    for (const cls of PATHOGENICITY_SEVERITY) {
+      if (countByClass[cls] > 0) {
+        const severity = PATHOGENICITY_SEVERITY.indexOf(cls);
+        if (severity > maxSeverity) {
+          maxSeverity = severity;
+          dominantClass = cls;
+        }
+      }
+    }
+
+    // Find dominant effect (most common)
+    let dominantEffect: EffectType = 'other';
+    let maxEffectCount = 0;
+    for (const [effect, count] of Object.entries(countByEffect)) {
+      if (count > maxEffectCount) {
+        maxEffectCount = count;
+        dominantEffect = effect as EffectType;
+      }
+    }
+
+    aggregated.push({
+      proteinPosition: position,
+      count: posVariants.length,
+      countByClass,
+      countByEffect,
+      dominantClass,
+      dominantEffect,
+      hasSpliceVariant,
+      variants: posVariants,
+    });
+  }
+
+  return aggregated;
+}
+
+/**
  * Normalize gnomAD clinical_significance string to PathogenicityClass
  *
  * gnomAD API returns various formats:

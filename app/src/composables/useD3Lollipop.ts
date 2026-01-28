@@ -23,11 +23,13 @@ import type {
   LollipopFilterState,
   PathogenicityClass,
   EffectType,
+  AggregatedVariant,
 } from '@/types/protein';
 import {
   PATHOGENICITY_COLORS,
   EFFECT_TYPE_COLORS,
   normalizeEffectType,
+  aggregateVariantsByPosition,
 } from '@/types/protein';
 
 /**
@@ -92,6 +94,15 @@ const STEM_STACK_OFFSET = 14;
 const MARKER_RADIUS = 5;
 const MARKER_STROKE_WIDTH = 1;
 
+// Adaptive rendering thresholds
+const AGGREGATION_THRESHOLD = 500; // Switch to aggregated mode above this count
+const MAX_STACK_DEPTH = 8; // Maximum stacking in individual mode
+const MIN_OPACITY = 0.25; // Minimum opacity for markers
+const MAX_OPACITY = 0.95; // Maximum opacity for markers
+const DENSITY_THRESHOLD = 200; // Reference count for density calculation
+const MIN_MARKER_RADIUS = 3; // Minimum marker size in aggregated mode
+const MAX_MARKER_RADIUS = 12; // Maximum marker size for high-count positions
+
 /**
  * Map pathogenicity class to filter state key
  */
@@ -127,6 +138,48 @@ function isEffectTypeVisible(
 
   const effectType: EffectType = normalizeEffectType(majorConsequence);
   return filterState.effectFilters[effectType];
+}
+
+/**
+ * Calculate dynamic opacity based on zoom level and variant density
+ *
+ * @param visibleCount - Number of variants currently visible
+ * @param zoomRatio - Ratio of visible range to total range (1.0 = full view)
+ * @returns Opacity value between MIN_OPACITY and MAX_OPACITY
+ */
+function calculateDynamicOpacity(visibleCount: number, zoomRatio: number): number {
+  // Base opacity from density (fewer variants = higher opacity)
+  const densityFactor = Math.min(1, DENSITY_THRESHOLD / Math.max(visibleCount, 1));
+
+  // Zoom factor (more zoomed in = higher opacity)
+  const zoomFactor = 1 - zoomRatio * 0.6;
+
+  // Combined opacity with bounds
+  const opacity = 0.5 * densityFactor + 0.5 * zoomFactor;
+  return Math.max(MIN_OPACITY, Math.min(MAX_OPACITY, opacity));
+}
+
+/**
+ * Calculate marker radius for aggregated variant based on count
+ *
+ * @param count - Number of variants at this position
+ * @param maxCount - Maximum count at any position
+ * @returns Marker radius scaled by count
+ */
+function calculateAggregatedRadius(count: number, maxCount: number): number {
+  // Use square root scaling so area is proportional to count
+  const scale = Math.sqrt(count / Math.max(maxCount, 1));
+  return MIN_MARKER_RADIUS + scale * (MAX_MARKER_RADIUS - MIN_MARKER_RADIUS);
+}
+
+/**
+ * Determine rendering mode based on visible variant count
+ *
+ * @param visibleCount - Number of variants to render
+ * @returns 'aggregated' if above threshold, 'individual' otherwise
+ */
+function determineRenderingMode(visibleCount: number): 'aggregated' | 'individual' {
+  return visibleCount > AGGREGATION_THRESHOLD ? 'aggregated' : 'individual';
 }
 
 /**
@@ -481,138 +534,314 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
   };
 
   /**
+   * Show tooltip for aggregated variant
+   */
+  const showAggregatedTooltip = (
+    event: MouseEvent,
+    aggregated: AggregatedVariant,
+    containerEl: HTMLElement,
+    filterState: LollipopFilterState
+  ): void => {
+    if (!tooltipDiv) return;
+
+    // Build breakdown by classification or effect
+    let breakdownHtml = '';
+    if (filterState.coloringMode === 'effect') {
+      const effectEntries = Object.entries(aggregated.countByEffect)
+        .filter(([, count]) => count > 0)
+        .sort((a, b) => b[1] - a[1]);
+      breakdownHtml = effectEntries
+        .map(
+          ([effect, count]) =>
+            `<div style="color: ${EFFECT_TYPE_COLORS[effect as EffectType]};">${effect.replace(/_/g, ' ')}: ${count}</div>`
+        )
+        .join('');
+    } else {
+      const classEntries = Object.entries(aggregated.countByClass)
+        .filter(([, count]) => count > 0)
+        .sort((a, b) => b[1] - a[1]);
+      breakdownHtml = classEntries
+        .map(
+          ([cls, count]) =>
+            `<div style="color: ${PATHOGENICITY_COLORS[cls as PathogenicityClass]};">${cls}: ${count}</div>`
+        )
+        .join('');
+    }
+
+    const html = `
+      <div style="font-weight: bold; margin-bottom: 4px;">Position ${aggregated.proteinPosition}</div>
+      <div style="margin-bottom: 8px;">${aggregated.count} variant${aggregated.count > 1 ? 's' : ''}</div>
+      ${breakdownHtml}
+      <div style="margin-top: 8px; font-size: 10px; color: #888;">Zoom in to see individual variants</div>
+    `;
+
+    tooltipDiv.html(html).style('opacity', 1);
+
+    // Position tooltip
+    const tooltipNode = tooltipDiv.node();
+    if (!tooltipNode) return;
+
+    const tooltipRect = tooltipNode.getBoundingClientRect();
+    const containerRect = containerEl.getBoundingClientRect();
+
+    let left = event.clientX - containerRect.left + 15;
+    let top = event.clientY - containerRect.top - 10;
+
+    if (left + tooltipRect.width > containerRect.width) {
+      left = event.clientX - containerRect.left - tooltipRect.width - 15;
+    }
+    if (top + tooltipRect.height > containerRect.height) {
+      top = event.clientY - containerRect.top - tooltipRect.height - 10;
+    }
+
+    left = Math.max(0, left);
+    top = Math.max(0, top);
+
+    tooltipDiv.style('left', `${left}px`).style('top', `${top}px`);
+  };
+
+  /**
    * Render variant lollipops (stems + markers)
+   * Uses adaptive rendering: aggregated mode for many variants, individual for fewer
    */
   const renderVariants = (
     variants: ProcessedVariant[],
     filterState: LollipopFilterState,
-    yBase: number
+    yBase: number,
+    zoomDomain: [number, number] | null,
+    totalLength: number
   ): void => {
     if (!mainGroup || !xScale) return;
 
-    // Filter by both pathogenicity AND effect type (AND logic)
+    // Calculate zoom domain
+    const domain = zoomDomain ?? [0, totalLength];
+    const visibleRange = domain[1] - domain[0];
+    const zoomRatio = visibleRange / totalLength;
+
+    // Filter by pathogenicity AND effect type AND visible domain
     const visibleVariants = variants.filter(
       (v) =>
         isClassificationVisible(v.classification, filterState) &&
-        isEffectTypeVisible(v.majorConsequence, filterState)
+        isEffectTypeVisible(v.majorConsequence, filterState) &&
+        v.proteinPosition >= domain[0] &&
+        v.proteinPosition <= domain[1]
     );
 
-    // Group variants by position for stacking
-    const positionGroups = d3.group(visibleVariants, (v) => v.proteinPosition);
+    // Calculate dynamic opacity based on visible (in-domain) variants
+    const dynamicOpacity = calculateDynamicOpacity(visibleVariants.length, zoomRatio);
 
-    // Flatten with stack index
-    const stackedVariants: Array<ProcessedVariant & { stackIndex: number }> = [];
-    positionGroups.forEach((group) => {
-      group.forEach((variant, index) => {
-        stackedVariants.push({ ...variant, stackIndex: index });
-      });
-    });
+    // Determine rendering mode based on variants IN THE VISIBLE DOMAIN
+    const renderingMode = determineRenderingMode(visibleVariants.length);
 
     // Variant group
     const variantGroup = mainGroup.append('g').attr('class', 'variants');
 
-    // Render stems (vertical lines)
-    variantGroup
-      .selectAll<SVGLineElement, (typeof stackedVariants)[0]>('line.stem')
-      .data(stackedVariants, (d) => d.variantId)
-      .join(
-        (enter) =>
-          enter
-            .append('line')
-            .attr('class', 'stem')
-            .attr('x1', (d) => xScale!(d.proteinPosition))
-            .attr('x2', (d) => xScale!(d.proteinPosition))
-            .attr('y1', yBase - BACKBONE_HEIGHT / 2 - 2)
-            .attr('y2', (d) => yBase - STEM_BASE_HEIGHT - d.stackIndex * STEM_STACK_OFFSET - 15)
-            .attr('stroke', '#999')
-            .attr('stroke-width', 1),
-        (update) => update,
-        (exit) => exit.remove()
-      );
-
     // Get container element for tooltip positioning
     const containerEl = options.container.value;
 
-    // Render markers (circles for coding, triangles for splice)
-    // Using attr callbacks to avoid 'this' typing issues
-    variantGroup
-      .selectAll<SVGPathElement, (typeof stackedVariants)[0]>('path.marker')
-      .data(stackedVariants, (d) => d.variantId)
-      .join(
-        (enter) => {
-          const markers = enter
-            .append('path')
-            .attr('class', 'marker')
-            .attr('d', (d) => {
-              const symbolType = d.isSpliceVariant ? d3.symbolDiamond : d3.symbolCircle;
-              const symbolGenerator = d3
-                .symbol()
-                .type(symbolType)
-                .size(
-                  d.isSpliceVariant
-                    ? MARKER_RADIUS * MARKER_RADIUS * 2.5
-                    : MARKER_RADIUS * MARKER_RADIUS * Math.PI
-                );
-              return symbolGenerator() ?? '';
-            })
-            .attr('transform', (d) => {
-              const markerY = yBase - STEM_BASE_HEIGHT - d.stackIndex * STEM_STACK_OFFSET - 15;
-              const markerX = xScale!(d.proteinPosition);
-              return `translate(${markerX}, ${markerY})`;
-            })
-            .attr('fill', (d) => {
-              // Use effect colors only if coloringMode is explicitly 'effect'
-              if (filterState.coloringMode === 'effect') {
-                return EFFECT_TYPE_COLORS[normalizeEffectType(d.majorConsequence)];
-              }
-              // Default to ACMG pathogenicity colors
-              return PATHOGENICITY_COLORS[d.classification];
-            })
-            .attr('stroke', '#fff')
-            .attr('stroke-width', MARKER_STROKE_WIDTH)
-            .attr('cursor', 'pointer')
-            .style('pointer-events', 'all')
-            .attr(
-              'aria-label',
-              (d) =>
-                `${d.proteinHGVS}: ${d.classification}${d.isSpliceVariant ? ' (splice variant)' : ''}`
-            );
+    if (renderingMode === 'aggregated') {
+      // AGGREGATED MODE: Group by position, show count-scaled markers
+      const aggregatedVariants = aggregateVariantsByPosition(visibleVariants);
+      const maxCount = Math.max(...aggregatedVariants.map((a) => a.count), 1);
 
-          // Add event handlers
-          markers
-            .on('mouseover', (event: MouseEvent, d) => {
-              if (containerEl && !isTooltipLocked) {
-                showTooltip(event, d, containerEl, false);
-                options.onVariantHover?.(d);
-              }
-            })
-            .on('mouseout', () => {
-              if (!isTooltipLocked) {
-                hideTooltip();
-                options.onVariantHover?.(null);
-              }
-            })
-            .on('click', (event: MouseEvent, d) => {
-              event.stopPropagation();
-              if (containerEl) {
-                // If clicking the same variant that's locked, dismiss
-                if (isTooltipLocked && lockedVariant?.variantId === d.variantId) {
-                  dismissLockedTooltip();
-                } else {
-                  // Lock the tooltip on this variant
-                  isTooltipLocked = true;
-                  lockedVariant = d;
-                  showTooltip(event, d, containerEl, true);
+      // Render single stem per position (to highest point)
+      variantGroup
+        .selectAll<SVGLineElement, AggregatedVariant>('line.stem')
+        .data(aggregatedVariants, (d) => String(d.proteinPosition))
+        .join(
+          (enter) =>
+            enter
+              .append('line')
+              .attr('class', 'stem')
+              .attr('x1', (d) => xScale!(d.proteinPosition))
+              .attr('x2', (d) => xScale!(d.proteinPosition))
+              .attr('y1', yBase - BACKBONE_HEIGHT / 2 - 2)
+              .attr('y2', yBase - STEM_BASE_HEIGHT - 15)
+              .attr('stroke', '#999')
+              .attr('stroke-width', 1)
+              .attr('opacity', dynamicOpacity),
+          (update) => update,
+          (exit) => exit.remove()
+        );
+
+      // Render aggregated markers (size by count)
+      variantGroup
+        .selectAll<SVGCircleElement, AggregatedVariant>('circle.marker-aggregated')
+        .data(aggregatedVariants, (d) => String(d.proteinPosition))
+        .join(
+          (enter) => {
+            const markers = enter
+              .append('circle')
+              .attr('class', 'marker-aggregated')
+              .attr('cx', (d) => xScale!(d.proteinPosition))
+              .attr('cy', yBase - STEM_BASE_HEIGHT - 15)
+              .attr('r', (d) => calculateAggregatedRadius(d.count, maxCount))
+              .attr('fill', (d) => {
+                if (filterState.coloringMode === 'effect') {
+                  return EFFECT_TYPE_COLORS[d.dominantEffect];
                 }
-              }
-              options.onVariantClick?.(d);
-            });
+                return PATHOGENICITY_COLORS[d.dominantClass];
+              })
+              .attr('stroke', '#fff')
+              .attr('stroke-width', MARKER_STROKE_WIDTH)
+              .attr('opacity', dynamicOpacity)
+              .attr('cursor', 'pointer')
+              .style('pointer-events', 'all')
+              .attr(
+                'aria-label',
+                (d) => `Position ${d.proteinPosition}: ${d.count} variants`
+              );
 
-          return markers;
-        },
-        (update) => update,
-        (exit) => exit.remove()
-      );
+            // Event handlers for aggregated markers
+            markers
+              .on('mouseover', (event: MouseEvent, d) => {
+                if (containerEl && !isTooltipLocked) {
+                  showAggregatedTooltip(event, d, containerEl, filterState);
+                }
+              })
+              .on('mouseout', () => {
+                if (!isTooltipLocked) {
+                  hideTooltip();
+                }
+              })
+              .on('click', (event: MouseEvent, d) => {
+                event.stopPropagation();
+                // For aggregated: show breakdown, suggest zoom
+                if (containerEl) {
+                  showAggregatedTooltip(event, d, containerEl, filterState);
+                }
+              });
+
+            return markers;
+          },
+          (update) => update,
+          (exit) => exit.remove()
+        );
+    } else {
+      // INDIVIDUAL MODE: Show each variant with limited stacking
+      const positionGroups = d3.group(visibleVariants, (v) => v.proteinPosition);
+
+      // Sort within each position: P/LP first (on top visually = rendered last)
+      const severityOrder: Record<PathogenicityClass, number> = {
+        Benign: 0,
+        'Likely benign': 1,
+        'Uncertain significance': 2,
+        'Likely pathogenic': 3,
+        Pathogenic: 4,
+        other: -1,
+      };
+
+      // Flatten with stack index, limiting depth
+      const stackedVariants: Array<ProcessedVariant & { stackIndex: number }> = [];
+      positionGroups.forEach((group) => {
+        // Sort by severity (less severe first, so more severe renders on top)
+        const sorted = [...group].sort(
+          (a, b) => severityOrder[a.classification] - severityOrder[b.classification]
+        );
+        sorted.forEach((variant, index) => {
+          // Limit stack depth to avoid towers
+          const stackIndex = Math.min(index, MAX_STACK_DEPTH - 1);
+          stackedVariants.push({ ...variant, stackIndex });
+        });
+      });
+
+      // Render stems
+      variantGroup
+        .selectAll<SVGLineElement, (typeof stackedVariants)[0]>('line.stem')
+        .data(stackedVariants, (d) => d.variantId)
+        .join(
+          (enter) =>
+            enter
+              .append('line')
+              .attr('class', 'stem')
+              .attr('x1', (d) => xScale!(d.proteinPosition))
+              .attr('x2', (d) => xScale!(d.proteinPosition))
+              .attr('y1', yBase - BACKBONE_HEIGHT / 2 - 2)
+              .attr('y2', (d) => yBase - STEM_BASE_HEIGHT - d.stackIndex * STEM_STACK_OFFSET - 15)
+              .attr('stroke', '#999')
+              .attr('stroke-width', 1)
+              .attr('opacity', dynamicOpacity * 0.7),
+          (update) => update,
+          (exit) => exit.remove()
+        );
+
+      // Render markers
+      variantGroup
+        .selectAll<SVGPathElement, (typeof stackedVariants)[0]>('path.marker')
+        .data(stackedVariants, (d) => d.variantId)
+        .join(
+          (enter) => {
+            const markers = enter
+              .append('path')
+              .attr('class', 'marker')
+              .attr('d', (d) => {
+                const symbolType = d.isSpliceVariant ? d3.symbolDiamond : d3.symbolCircle;
+                const symbolGenerator = d3
+                  .symbol()
+                  .type(symbolType)
+                  .size(
+                    d.isSpliceVariant
+                      ? MARKER_RADIUS * MARKER_RADIUS * 2.5
+                      : MARKER_RADIUS * MARKER_RADIUS * Math.PI
+                  );
+                return symbolGenerator() ?? '';
+              })
+              .attr('transform', (d) => {
+                const markerY = yBase - STEM_BASE_HEIGHT - d.stackIndex * STEM_STACK_OFFSET - 15;
+                const markerX = xScale!(d.proteinPosition);
+                return `translate(${markerX}, ${markerY})`;
+              })
+              .attr('fill', (d) => {
+                if (filterState.coloringMode === 'effect') {
+                  return EFFECT_TYPE_COLORS[normalizeEffectType(d.majorConsequence)];
+                }
+                return PATHOGENICITY_COLORS[d.classification];
+              })
+              .attr('stroke', '#fff')
+              .attr('stroke-width', MARKER_STROKE_WIDTH)
+              .attr('opacity', dynamicOpacity)
+              .attr('cursor', 'pointer')
+              .style('pointer-events', 'all')
+              .attr(
+                'aria-label',
+                (d) =>
+                  `${d.proteinHGVS}: ${d.classification}${d.isSpliceVariant ? ' (splice variant)' : ''}`
+              );
+
+            // Event handlers
+            markers
+              .on('mouseover', (event: MouseEvent, d) => {
+                if (containerEl && !isTooltipLocked) {
+                  showTooltip(event, d, containerEl, false);
+                  options.onVariantHover?.(d);
+                }
+              })
+              .on('mouseout', () => {
+                if (!isTooltipLocked) {
+                  hideTooltip();
+                  options.onVariantHover?.(null);
+                }
+              })
+              .on('click', (event: MouseEvent, d) => {
+                event.stopPropagation();
+                if (containerEl) {
+                  if (isTooltipLocked && lockedVariant?.variantId === d.variantId) {
+                    dismissLockedTooltip();
+                  } else {
+                    isTooltipLocked = true;
+                    lockedVariant = d;
+                    showTooltip(event, d, containerEl, true);
+                  }
+                }
+                options.onVariantClick?.(d);
+              });
+
+            return markers;
+          },
+          (update) => update,
+          (exit) => exit.remove()
+        );
+    }
   };
 
   /**
@@ -638,6 +867,8 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
 
   /**
    * Setup brush for zoom selection
+   * Brush is rendered last (on top) with normal pointer-events
+   * Hover on markers works by clicking precisely on them
    */
   const setupBrush = (): void => {
     if (!mainGroup || !svg) return;
@@ -674,19 +905,20 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
       resetZoom();
     });
 
-    // Add click handler to dismiss locked tooltip when clicking on SVG (not on variants)
+    // Add click handler to dismiss locked tooltip
     svg.on('click', (event: MouseEvent) => {
-      // Only dismiss if the click target is the SVG itself or brush overlay, not a variant marker
       const target = event.target as Element;
       if (
         isTooltipLocked &&
         !target.classList.contains('marker') &&
+        !target.classList.contains('marker-aggregated') &&
         !target.closest('.lollipop-tooltip')
       ) {
         dismissLockedTooltip();
       }
     });
   };
+
 
   /**
    * Internal render function with optional zoom domain
@@ -718,16 +950,17 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
     // Calculate y positions
     const yBase = innerHeight - 50;
 
-    // Render in order (back to front)
-    // CRITICAL: Brush must be rendered BEFORE domains and variants so they
-    // are on top and can receive hover/click events
+    // Render in order (back to front):
+    // 1. Backbone (background)
+    // 2. Axis
+    // 3. Brush (below variants - can drag on empty areas)
+    // 4. Domains (receive hover)
+    // 5. Variants (on top - receive hover/click)
     renderBackbone(data.proteinLength, yBase);
     renderAxis();
-    setupBrush();
-    // Domains rendered AFTER brush so they can receive hover events
+    setupBrush(); // Brush below variants
     renderDomains(data.domains, yBase, data.proteinLength);
-    // Variants rendered last so they're on top of everything
-    renderVariants(data.variants, filterState, yBase);
+    renderVariants(data.variants, filterState, yBase, zoomDomain, data.proteinLength);
 
     isLoading.value = false;
     console.log(
