@@ -19,6 +19,39 @@ export type PathogenicityClass =
   | 'other';
 
 /**
+ * Effect type categories (normalized from majorConsequence)
+ * Used for coloring variant markers and filtering by variant effect
+ */
+export type EffectType =
+  | 'missense'
+  | 'frameshift'
+  | 'stop_gained'
+  | 'splice'
+  | 'inframe_indel'
+  | 'synonymous'
+  | 'other';
+
+/**
+ * Color palette for effect types (colorblind-friendly)
+ */
+export const EFFECT_TYPE_COLORS: Record<EffectType, string> = {
+  missense: '#1f77b4', // Blue
+  frameshift: '#d62728', // Red
+  stop_gained: '#9467bd', // Purple
+  splice: '#ff7f0e', // Orange
+  inframe_indel: '#2ca02c', // Green
+  synonymous: '#7f7f7f', // Gray
+  other: '#bcbd22', // Olive
+} as const;
+
+/**
+ * Coloring mode for variant markers
+ * - 'acmg': Color by ACMG pathogenicity classification
+ * - 'effect': Color by variant effect type
+ */
+export type ColoringMode = 'acmg' | 'effect';
+
+/**
  * Color palette for pathogenicity classes following ACMG conventions
  * Red spectrum for pathogenic, green spectrum for benign
  */
@@ -93,8 +126,8 @@ export interface ProteinPlotData {
 }
 
 /**
- * Filter state for lollipop plot pathogenicity visibility
- * Controls which variant categories are rendered
+ * Filter state for lollipop plot visibility and coloring
+ * Controls which variant categories are rendered and how they are colored
  */
 export interface LollipopFilterState {
   /** Show Pathogenic variants */
@@ -107,6 +140,10 @@ export interface LollipopFilterState {
   likelyBenign: boolean;
   /** Show Benign variants */
   benign: boolean;
+  /** Effect type filter state (all enabled by default) */
+  effectFilters: Record<EffectType, boolean>;
+  /** Current coloring mode (acmg or effect) */
+  coloringMode: ColoringMode;
 }
 
 /**
@@ -236,4 +273,40 @@ export function parseProteinPosition(
 
   // Unable to parse position
   return null;
+}
+
+/**
+ * Normalize majorConsequence string to EffectType
+ *
+ * Maps gnomAD majorConsequence values to simplified effect categories.
+ * Uses substring matching for flexibility with various consequence notations.
+ *
+ * @param majorConsequence - Raw majorConsequence string from gnomAD API
+ * @returns Normalized EffectType
+ */
+export function normalizeEffectType(majorConsequence: string): EffectType {
+  if (!majorConsequence) return 'other';
+
+  const normalized = majorConsequence.toLowerCase();
+
+  // Check for specific effect types in order of specificity
+  if (normalized.includes('missense')) return 'missense';
+  if (normalized.includes('frameshift')) return 'frameshift';
+  if (normalized.includes('stop_gained') || normalized.includes('nonsense')) return 'stop_gained';
+  if (
+    normalized.includes('splice') ||
+    normalized.includes('splice_donor') ||
+    normalized.includes('splice_acceptor') ||
+    normalized.includes('splice_region')
+  )
+    return 'splice';
+  if (
+    normalized.includes('inframe_insertion') ||
+    normalized.includes('inframe_deletion') ||
+    normalized.includes('inframe_indel')
+  )
+    return 'inframe_indel';
+  if (normalized.includes('synonymous')) return 'synonymous';
+
+  return 'other';
 }

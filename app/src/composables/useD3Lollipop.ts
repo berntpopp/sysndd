@@ -22,8 +22,13 @@ import type {
   ProcessedVariant,
   LollipopFilterState,
   PathogenicityClass,
+  EffectType,
 } from '@/types/protein';
-import { PATHOGENICITY_COLORS } from '@/types/protein';
+import {
+  PATHOGENICITY_COLORS,
+  EFFECT_TYPE_COLORS,
+  normalizeEffectType,
+} from '@/types/protein';
 
 /**
  * Margin configuration for the SVG plot
@@ -69,6 +74,10 @@ export interface D3LollipopState {
   resetZoom: () => void;
   /** Clean up D3 resources (called automatically on unmount) */
   cleanup: () => void;
+  /** Export the plot as SVG string */
+  exportSVG: () => string | null;
+  /** Export the plot as PNG data URL */
+  exportPNG: (scale?: number) => Promise<string | null>;
 }
 
 // Default options
@@ -107,6 +116,20 @@ function isClassificationVisible(
 }
 
 /**
+ * Check if effect type is visible based on filter state
+ */
+function isEffectTypeVisible(
+  majorConsequence: string,
+  filterState: LollipopFilterState
+): boolean {
+  // Safety check: if effectFilters is not defined, show all effect types
+  if (!filterState.effectFilters) return true;
+
+  const effectType: EffectType = normalizeEffectType(majorConsequence);
+  return filterState.effectFilters[effectType];
+}
+
+/**
  * Composable for managing D3.js lollipop plot lifecycle
  *
  * @param options - Configuration options including container ref and callbacks
@@ -142,6 +165,10 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
   // Store current data for re-render on zoom
   let currentData: ProteinPlotData | null = null;
   let currentFilterState: LollipopFilterState | null = null;
+
+  // Tooltip lock state for click-to-pin functionality
+  let isTooltipLocked = false;
+  let lockedVariant: ProcessedVariant | null = null;
 
   // Resolved options with defaults
   const width = options.width ?? DEFAULT_WIDTH;
@@ -223,11 +250,13 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
 
   /**
    * Show tooltip near the hovered element with edge detection
+   * @param locked - If true, tooltip is pinned and includes clickable ClinVar link
    */
   const showTooltip = (
     event: MouseEvent,
     variant: ProcessedVariant,
-    containerEl: HTMLElement
+    containerEl: HTMLElement,
+    locked = false
   ): void => {
     if (!tooltipDiv) return;
 
@@ -237,6 +266,23 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
     const spliceNote = variant.isSpliceVariant
       ? '<div style="font-style: italic; margin-top: 4px; color: #aaa;">Position approximated from splice variant</div>'
       : '';
+
+    // ClinVar link (only shown when locked)
+    const clinvarLink = locked && variant.clinvarId
+      ? `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #444;">
+           <a href="https://www.ncbi.nlm.nih.gov/clinvar/variation/${variant.clinvarId}/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style="color: #6ea8fe; text-decoration: none;">
+             View in ClinVar →
+           </a>
+         </div>`
+      : '';
+
+    // Dismiss hint when locked
+    const dismissHint = locked
+      ? '<div style="margin-top: 6px; font-size: 10px; color: #888;">Click elsewhere to dismiss</div>'
+      : '<div style="margin-top: 6px; font-size: 10px; color: #888;">Click to pin</div>';
 
     const html = `
       <div style="font-weight: bold; margin-bottom: 4px;">${variant.proteinHGVS}</div>
@@ -249,9 +295,14 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
         ${variant.inGnomad ? '| in gnomAD' : ''}
       </div>
       ${spliceNote}
+      ${clinvarLink}
+      ${dismissHint}
     `;
 
-    tooltipDiv.html(html).style('opacity', 1);
+    tooltipDiv
+      .html(html)
+      .style('opacity', 1)
+      .style('pointer-events', locked ? 'auto' : 'none');
 
     // Get dimensions for edge detection
     const tooltipNode = tooltipDiv.node();
@@ -282,11 +333,70 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
   };
 
   /**
-   * Hide tooltip
+   * Hide tooltip (only if not locked)
    */
   const hideTooltip = (): void => {
+    if (!tooltipDiv || isTooltipLocked) return;
+    tooltipDiv.style('opacity', 0).style('pointer-events', 'none');
+  };
+
+  /**
+   * Dismiss locked tooltip
+   */
+  const dismissLockedTooltip = (): void => {
+    isTooltipLocked = false;
+    lockedVariant = null;
+    if (tooltipDiv) {
+      tooltipDiv.style('opacity', 0).style('pointer-events', 'none');
+    }
+  };
+
+  /**
+   * Show tooltip for domain hover
+   */
+  const showDomainTooltip = (
+    event: MouseEvent,
+    domain: ProteinPlotData['domains'][0],
+    containerEl: HTMLElement
+  ): void => {
     if (!tooltipDiv) return;
-    tooltipDiv.style('opacity', 0);
+
+    const html = `
+      <div style="font-weight: bold; margin-bottom: 4px;">${domain.type}</div>
+      <div style="color: #ccc;">${domain.description}</div>
+      <div style="margin-top: 4px; color: #aaa; font-size: 11px;">
+        Position: ${domain.begin} - ${domain.end}
+      </div>
+    `;
+
+    tooltipDiv.html(html).style('opacity', 1);
+
+    // Get dimensions for edge detection
+    const tooltipNode = tooltipDiv.node();
+    if (!tooltipNode) return;
+
+    const tooltipRect = tooltipNode.getBoundingClientRect();
+    const containerRect = containerEl.getBoundingClientRect();
+
+    // Calculate position relative to container
+    let left = event.clientX - containerRect.left + 15;
+    let top = event.clientY - containerRect.top - 10;
+
+    // Edge detection - check right overflow
+    if (left + tooltipRect.width > containerRect.width) {
+      left = event.clientX - containerRect.left - tooltipRect.width - 15;
+    }
+
+    // Edge detection - check bottom overflow
+    if (top + tooltipRect.height > containerRect.height) {
+      top = event.clientY - containerRect.top - tooltipRect.height - 10;
+    }
+
+    // Ensure not negative
+    left = Math.max(0, left);
+    top = Math.max(0, top);
+
+    tooltipDiv.style('left', `${left}px`).style('top', `${top}px`);
   };
 
   /**
@@ -324,13 +434,16 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
     // Domain group
     const domainGroup = mainGroup.append('g').attr('class', 'domains');
 
+    // Get container element for tooltip positioning
+    const containerEl = options.container.value;
+
     // Use D3 join pattern for enter/update/exit
     domainGroup
       .selectAll<SVGRectElement, (typeof domains)[0]>('rect.domain')
       .data(domains, (d) => `${d.type}-${d.begin}-${d.end}`)
       .join(
-        (enter) =>
-          enter
+        (enter) => {
+          const rects = enter
             .append('rect')
             .attr('class', 'domain')
             .attr('x', (d) => xScale!(Math.max(0, d.begin)))
@@ -345,7 +458,23 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
             .attr('opacity', 0.7)
             .attr('rx', 3)
             .attr('ry', 3)
-            .attr('aria-label', (d) => `${d.type}: ${d.description} (${d.begin}-${d.end})`),
+            .attr('cursor', 'pointer')
+            .style('pointer-events', 'all')
+            .attr('aria-label', (d) => `${d.type}: ${d.description} (${d.begin}-${d.end})`);
+
+          // Add event handlers for domain tooltips
+          rects
+            .on('mouseover', (event: MouseEvent, d) => {
+              if (containerEl) {
+                showDomainTooltip(event, d, containerEl);
+              }
+            })
+            .on('mouseout', () => {
+              hideTooltip();
+            });
+
+          return rects;
+        },
         (update) => update,
         (exit) => exit.remove()
       );
@@ -361,9 +490,11 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
   ): void => {
     if (!mainGroup || !xScale) return;
 
-    // Filter by visibility
-    const visibleVariants = variants.filter((v) =>
-      isClassificationVisible(v.classification, filterState)
+    // Filter by both pathogenicity AND effect type (AND logic)
+    const visibleVariants = variants.filter(
+      (v) =>
+        isClassificationVisible(v.classification, filterState) &&
+        isEffectTypeVisible(v.majorConsequence, filterState)
     );
 
     // Group variants by position for stacking
@@ -429,10 +560,18 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
               const markerX = xScale!(d.proteinPosition);
               return `translate(${markerX}, ${markerY})`;
             })
-            .attr('fill', (d) => PATHOGENICITY_COLORS[d.classification])
+            .attr('fill', (d) => {
+              // Use effect colors only if coloringMode is explicitly 'effect'
+              if (filterState.coloringMode === 'effect') {
+                return EFFECT_TYPE_COLORS[normalizeEffectType(d.majorConsequence)];
+              }
+              // Default to ACMG pathogenicity colors
+              return PATHOGENICITY_COLORS[d.classification];
+            })
             .attr('stroke', '#fff')
             .attr('stroke-width', MARKER_STROKE_WIDTH)
             .attr('cursor', 'pointer')
+            .style('pointer-events', 'all')
             .attr(
               'aria-label',
               (d) =>
@@ -442,16 +581,30 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
           // Add event handlers
           markers
             .on('mouseover', (event: MouseEvent, d) => {
-              if (containerEl) {
-                showTooltip(event, d, containerEl);
+              if (containerEl && !isTooltipLocked) {
+                showTooltip(event, d, containerEl, false);
                 options.onVariantHover?.(d);
               }
             })
             .on('mouseout', () => {
-              hideTooltip();
-              options.onVariantHover?.(null);
+              if (!isTooltipLocked) {
+                hideTooltip();
+                options.onVariantHover?.(null);
+              }
             })
-            .on('click', (_event: MouseEvent, d) => {
+            .on('click', (event: MouseEvent, d) => {
+              event.stopPropagation();
+              if (containerEl) {
+                // If clicking the same variant that's locked, dismiss
+                if (isTooltipLocked && lockedVariant?.variantId === d.variantId) {
+                  dismissLockedTooltip();
+                } else {
+                  // Lock the tooltip on this variant
+                  isTooltipLocked = true;
+                  lockedVariant = d;
+                  showTooltip(event, d, containerEl, true);
+                }
+              }
               options.onVariantClick?.(d);
             });
 
@@ -520,6 +673,19 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
     svg.on('dblclick', () => {
       resetZoom();
     });
+
+    // Add click handler to dismiss locked tooltip when clicking on SVG (not on variants)
+    svg.on('click', (event: MouseEvent) => {
+      // Only dismiss if the click target is the SVG itself or brush overlay, not a variant marker
+      const target = event.target as Element;
+      if (
+        isTooltipLocked &&
+        !target.classList.contains('marker') &&
+        !target.closest('.lollipop-tooltip')
+      ) {
+        dismissLockedTooltip();
+      }
+    });
   };
 
   /**
@@ -553,12 +719,14 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
     const yBase = innerHeight - 50;
 
     // Render in order (back to front)
-    // CRITICAL: Brush must be rendered BEFORE variants so variant markers
+    // CRITICAL: Brush must be rendered BEFORE domains and variants so they
     // are on top and can receive hover/click events
     renderBackbone(data.proteinLength, yBase);
-    renderDomains(data.domains, yBase, data.proteinLength);
     renderAxis();
     setupBrush();
+    // Domains rendered AFTER brush so they can receive hover events
+    renderDomains(data.domains, yBase, data.proteinLength);
+    // Variants rendered last so they're on top of everything
     renderVariants(data.variants, filterState, yBase);
 
     isLoading.value = false;
@@ -618,6 +786,93 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
     console.log('[useD3Lollipop] Cleaned up');
   };
 
+  /**
+   * Export the plot as SVG string
+   */
+  const exportSVG = (): string | null => {
+    if (!svg) return null;
+
+    const svgNode = svg.node();
+    if (!svgNode) return null;
+
+    // Clone the SVG to avoid modifying the original
+    const clonedSvg = svgNode.cloneNode(true) as SVGSVGElement;
+
+    // Add XML namespace for standalone SVG
+    clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+
+    // Serialize to string
+    const serializer = new XMLSerializer();
+    return serializer.serializeToString(clonedSvg);
+  };
+
+  /**
+   * Export the plot as PNG data URL
+   * @param scale - Scale factor for higher resolution (default: 2 for retina)
+   */
+  const exportPNG = async (scale = 2): Promise<string | null> => {
+    if (!svg) return null;
+
+    const svgNode = svg.node();
+    if (!svgNode) return null;
+
+    // Get dimensions from viewBox or attributes
+    const fullWidth = innerWidth + margin.left + margin.right;
+    const fullHeight = innerHeight + margin.top + margin.bottom;
+
+    // Clone the SVG
+    const clonedSvg = svgNode.cloneNode(true) as SVGSVGElement;
+
+    // Set explicit width/height for canvas rendering
+    clonedSvg.setAttribute('width', String(fullWidth));
+    clonedSvg.setAttribute('height', String(fullHeight));
+    clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+
+    // Serialize to string
+    const serializer = new XMLSerializer();
+    const svgString = serializer.serializeToString(clonedSvg);
+
+    // Encode as base64 data URL (more reliable than blob URL)
+    const base64 = btoa(unescape(encodeURIComponent(svgString)));
+    const dataUrl = `data:image/svg+xml;base64,${base64}`;
+
+    return new Promise((resolve) => {
+      const img = new Image();
+
+      img.onload = () => {
+        // Create canvas with scaled dimensions
+        const canvas = document.createElement('canvas');
+        canvas.width = fullWidth * scale;
+        canvas.height = fullHeight * scale;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(null);
+          return;
+        }
+
+        // Fill white background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Scale and draw
+        ctx.scale(scale, scale);
+        ctx.drawImage(img, 0, 0, fullWidth, fullHeight);
+
+        resolve(canvas.toDataURL('image/png'));
+      };
+
+      img.onerror = (err) => {
+        console.error('[useD3Lollipop] PNG export failed:', err);
+        resolve(null);
+      };
+
+      img.src = dataUrl;
+    });
+  };
+
   // Lifecycle hooks
   onMounted(() => {
     initializePlot();
@@ -635,6 +890,8 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
     renderPlot,
     resetZoom,
     cleanup,
+    exportSVG,
+    exportPNG,
   };
 }
 

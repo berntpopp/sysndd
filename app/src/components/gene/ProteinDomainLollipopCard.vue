@@ -219,9 +219,14 @@ const plotData = computed<ProteinPlotData | null>(() => {
         .filter((v): v is ProcessedVariant => v !== null)
     : [];
 
-  const proteinLength = hasUniprot
-    ? Number(props.uniprotData?.protein_length)
-    : estimateProteinLength(variants);
+  // Calculate protein length: use max of UniProt length and max variant position
+  // This handles cases where ClinVar variants are annotated to a different isoform
+  // than the UniProt canonical sequence (e.g., MECP2 isoform e1 vs e2)
+  const uniprotLength = hasUniprot ? Number(props.uniprotData?.protein_length) : 0;
+  const maxVariantPosition = variants.length > 0
+    ? Math.max(...variants.map((v) => v.proteinPosition))
+    : 0;
+  const proteinLength = Math.max(uniprotLength, maxVariantPosition);
   const proteinName = hasUniprot ? props.uniprotData?.protein_name || '' : '';
   const accession = hasUniprot ? props.uniprotData?.accession || '' : '';
 

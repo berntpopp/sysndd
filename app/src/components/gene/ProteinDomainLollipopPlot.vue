@@ -24,47 +24,154 @@
       :aria-label="`Protein domain lollipop plot for ${geneSymbol}`"
     />
 
-    <!-- Legend below plot (Vue owns this, not D3) -->
-    <div class="plot-legend d-flex flex-wrap justify-content-center gap-3 mt-2">
-      <button
-        v-for="item in legendItems"
-        :key="item.label"
-        type="button"
-        class="legend-item btn btn-sm"
-        :class="{ 'legend-item--hidden': !item.visible }"
-        :style="{ '--legend-color': item.color }"
-        :aria-label="`Toggle ${item.label} variants`"
-        :aria-pressed="item.visible"
-        @click="toggleFilter(item.key)"
+    <!-- Controls row: Coloring toggle (left) + Domain legend (center) + Export buttons (right) -->
+    <div class="controls-row d-flex align-items-center justify-content-between flex-wrap gap-2 mt-1 px-2">
+      <!-- Coloring mode toggle -->
+      <div
+        class="btn-group btn-group-sm"
+        role="group"
+        aria-label="Variant coloring mode"
+      >
+        <button
+          type="button"
+          class="btn btn-xs"
+          :class="filterState.coloringMode === 'acmg' ? 'btn-primary' : 'btn-outline-secondary'"
+          @click="setColoringMode('acmg')"
+        >
+          ACMG
+        </button>
+        <button
+          type="button"
+          class="btn btn-xs"
+          :class="filterState.coloringMode === 'effect' ? 'btn-primary' : 'btn-outline-secondary'"
+          @click="setColoringMode('effect')"
+        >
+          Effect
+        </button>
+      </div>
+
+      <!-- Domain legend (compact, inline) -->
+      <div
+        v-if="domainLegendItems.length > 0"
+        class="domain-legend d-flex flex-wrap justify-content-center gap-2"
       >
         <span
-          class="legend-dot"
-          :style="{ backgroundColor: item.visible ? item.color : '#ccc' }"
-        />
-        <span class="legend-label">{{ item.label }}</span>
-        <span
-          v-if="item.count > 0"
-          class="legend-count text-muted"
-        >({{ item.count }})</span>
-      </button>
+          v-for="item in domainLegendItems"
+          :key="item.type"
+          class="domain-legend-item"
+        >
+          <span
+            class="domain-dot"
+            :style="{ backgroundColor: item.color }"
+          />
+          <span class="domain-label">{{ item.label }}</span>
+        </span>
+      </div>
+
+      <!-- Export buttons -->
+      <div class="export-buttons d-flex gap-1">
+        <button
+          type="button"
+          class="btn btn-outline-secondary btn-xs"
+          title="Download as SVG"
+          @click="downloadSVG"
+        >
+          <i class="bi bi-download" />
+          SVG
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-secondary btn-xs"
+          title="Download as PNG"
+          @click="downloadPNG"
+        >
+          <i class="bi bi-image" />
+          PNG
+        </button>
+      </div>
     </div>
 
-    <!-- Domain legend below pathogenicity legend -->
-    <div
-      v-if="domainLegendItems.length > 0"
-      class="domain-legend d-flex flex-wrap justify-content-center gap-2 mt-1"
-    >
-      <span
-        v-for="item in domainLegendItems"
-        :key="item.type"
-        class="domain-legend-item"
-      >
+    <!-- Filter rows: Pathogenicity (row 1) + Effect type (row 2) -->
+    <div class="filter-rows mt-1 px-2">
+      <!-- Row 1: Pathogenicity filters -->
+      <div class="filter-row d-flex flex-wrap justify-content-center align-items-center gap-1">
         <span
-          class="domain-dot"
-          :style="{ backgroundColor: item.color }"
-        />
-        <span class="domain-label text-muted small">{{ item.label }}</span>
-      </span>
+          v-for="item in legendItems"
+          :key="item.label"
+          class="filter-group"
+        >
+          <button
+            type="button"
+            class="filter-chip"
+            :class="{ 'filter-chip--hidden': !item.visible }"
+            :aria-label="`Toggle ${item.label} variants`"
+            :aria-pressed="item.visible"
+            @click="toggleFilter(item.key)"
+          >
+            <span
+              class="filter-dot"
+              :style="{ backgroundColor: item.visible ? item.color : '#ccc' }"
+            />
+            <span class="filter-label">{{ item.label }}</span>
+            <span
+              v-if="item.count > 0"
+              class="filter-count"
+            >{{ item.count }}</span>
+          </button>
+          <button
+            type="button"
+            class="only-btn"
+            title="Show only this category"
+            @click="selectOnlyPathogenicity(item.key)"
+          >only</button>
+        </span>
+        <button
+          type="button"
+          class="all-btn"
+          title="Show all pathogenicity categories"
+          @click="selectAllPathogenicity"
+        >all</button>
+      </div>
+
+      <!-- Row 2: Effect type filters -->
+      <div class="filter-row d-flex flex-wrap justify-content-center align-items-center gap-1 mt-1">
+        <span
+          v-for="item in effectLegendItems"
+          :key="item.key"
+          class="filter-group"
+        >
+          <button
+            type="button"
+            class="filter-chip"
+            :class="{ 'filter-chip--hidden': !item.visible }"
+            :aria-label="`Toggle ${item.label} variants`"
+            :aria-pressed="item.visible"
+            @click="toggleEffectFilter(item.key)"
+          >
+            <span
+              class="filter-dot"
+              :style="{ backgroundColor: item.visible ? item.color : '#ccc' }"
+            />
+            <span class="filter-label">{{ item.label }}</span>
+            <span
+              v-if="item.count > 0"
+              class="filter-count"
+            >{{ item.count }}</span>
+          </button>
+          <button
+            type="button"
+            class="only-btn"
+            title="Show only this effect type"
+            @click="selectOnlyEffectType(item.key)"
+          >only</button>
+        </span>
+        <button
+          type="button"
+          class="all-btn"
+          title="Show all effect types"
+          @click="selectAllEffectTypes"
+        >all</button>
+      </div>
     </div>
   </div>
 </template>
@@ -73,8 +180,18 @@
 import { ref, reactive, computed, watchEffect, watch } from 'vue';
 import * as d3 from 'd3';
 import { useD3Lollipop } from '@/composables';
-import type { ProteinPlotData, ProcessedVariant, LollipopFilterState } from '@/types';
-import { PATHOGENICITY_COLORS } from '@/types/protein';
+import type {
+  ProteinPlotData,
+  ProcessedVariant,
+  LollipopFilterState,
+  EffectType,
+  ColoringMode,
+} from '@/types';
+import {
+  PATHOGENICITY_COLORS,
+  EFFECT_TYPE_COLORS,
+  normalizeEffectType,
+} from '@/types/protein';
 
 /**
  * Component props
@@ -101,22 +218,33 @@ const emit = defineEmits<{
 // Template ref for D3 container
 const plotContainer = ref<HTMLElement | null>(null);
 
-// Filter state for pathogenicity visibility toggles
+// Filter state for pathogenicity and effect type visibility toggles
 // Default: Only show Pathogenic and Likely Pathogenic for clinical focus
+// Effect types: all enabled by default
 const filterState = reactive<LollipopFilterState>({
   pathogenic: true,
   likelyPathogenic: true,
   vus: false,
   likelyBenign: false,
   benign: false,
+  effectFilters: {
+    missense: true,
+    frameshift: true,
+    stop_gained: true,
+    splice: true,
+    inframe_indel: true,
+    synonymous: true,
+    other: true,
+  },
+  coloringMode: 'acmg',
 });
 
 // Initialize D3 lollipop composable
-const { isInitialized, renderPlot } = useD3Lollipop({
+const { isInitialized, renderPlot, exportSVG, exportPNG } = useD3Lollipop({
   container: plotContainer,
   width: 800,
-  height: 250,
-  margin: { top: 60, right: 30, bottom: 60, left: 50 },
+  height: 200,
+  margin: { top: 45, right: 20, bottom: 35, left: 40 },
   onVariantClick: (variant) => emit('variant-click', variant),
   onVariantHover: (variant) => emit('variant-hover', variant),
 });
@@ -133,6 +261,35 @@ function countByClassification(
     counts[key] = (counts[key] || 0) + 1;
   }
   return counts;
+}
+
+/**
+ * Count variants by effect type
+ */
+function countByEffectType(
+  variants: ProcessedVariant[]
+): Record<EffectType, number> {
+  const counts: Record<EffectType, number> = {
+    missense: 0,
+    frameshift: 0,
+    stop_gained: 0,
+    splice: 0,
+    inframe_indel: 0,
+    synonymous: 0,
+    other: 0,
+  };
+  for (const variant of variants) {
+    const effectType = normalizeEffectType(variant.majorConsequence);
+    counts[effectType]++;
+  }
+  return counts;
+}
+
+/**
+ * Set the coloring mode (acmg or effect)
+ */
+function setColoringMode(mode: ColoringMode): void {
+  filterState.coloringMode = mode;
 }
 
 /**
@@ -219,6 +376,42 @@ const legendItems = computed(() => {
 });
 
 /**
+ * Human-readable labels for effect types
+ */
+const EFFECT_TYPE_LABELS: Record<EffectType, string> = {
+  missense: 'Missense',
+  frameshift: 'Frameshift',
+  stop_gained: 'Stop gained',
+  splice: 'Splice',
+  inframe_indel: 'In-frame indel',
+  synonymous: 'Synonymous',
+  other: 'Other',
+};
+
+/**
+ * Computed legend items for effect type filter buttons
+ */
+const effectLegendItems = computed(() => {
+  const counts = countByEffectType(props.data.variants);
+  const effectTypes: EffectType[] = [
+    'missense',
+    'frameshift',
+    'stop_gained',
+    'splice',
+    'inframe_indel',
+    'synonymous',
+    'other',
+  ];
+  return effectTypes.map((effectType) => ({
+    key: effectType,
+    label: EFFECT_TYPE_LABELS[effectType],
+    color: EFFECT_TYPE_COLORS[effectType],
+    visible: filterState.effectFilters[effectType],
+    count: counts[effectType],
+  }));
+});
+
+/**
  * Computed domain legend items with consistent color scale
  * Uses d3.schemeSet2 (same as composable) for domain type colors
  */
@@ -243,8 +436,90 @@ const domainLegendItems = computed(() => {
 /**
  * Toggle filter visibility for a pathogenicity class
  */
-function toggleFilter(key: keyof LollipopFilterState): void {
+function toggleFilter(key: 'pathogenic' | 'likelyPathogenic' | 'vus' | 'likelyBenign' | 'benign'): void {
   filterState[key] = !filterState[key];
+}
+
+/**
+ * Toggle filter visibility for an effect type
+ */
+function toggleEffectFilter(effectType: EffectType): void {
+  filterState.effectFilters[effectType] = !filterState.effectFilters[effectType];
+}
+
+/**
+ * Select only one pathogenicity class (deselect all others)
+ */
+function selectOnlyPathogenicity(key: 'pathogenic' | 'likelyPathogenic' | 'vus' | 'likelyBenign' | 'benign'): void {
+  filterState.pathogenic = key === 'pathogenic';
+  filterState.likelyPathogenic = key === 'likelyPathogenic';
+  filterState.vus = key === 'vus';
+  filterState.likelyBenign = key === 'likelyBenign';
+  filterState.benign = key === 'benign';
+}
+
+/**
+ * Select all pathogenicity classes
+ */
+function selectAllPathogenicity(): void {
+  filterState.pathogenic = true;
+  filterState.likelyPathogenic = true;
+  filterState.vus = true;
+  filterState.likelyBenign = true;
+  filterState.benign = true;
+}
+
+/**
+ * Select only one effect type (deselect all others)
+ */
+function selectOnlyEffectType(effectType: EffectType): void {
+  const effectTypes: EffectType[] = ['missense', 'frameshift', 'stop_gained', 'splice', 'inframe_indel', 'synonymous', 'other'];
+  for (const et of effectTypes) {
+    filterState.effectFilters[et] = et === effectType;
+  }
+}
+
+/**
+ * Select all effect types
+ */
+function selectAllEffectTypes(): void {
+  const effectTypes: EffectType[] = ['missense', 'frameshift', 'stop_gained', 'splice', 'inframe_indel', 'synonymous', 'other'];
+  for (const et of effectTypes) {
+    filterState.effectFilters[et] = true;
+  }
+}
+
+/**
+ * Download SVG export
+ */
+function downloadSVG(): void {
+  const svgString = exportSVG();
+  if (!svgString) return;
+
+  const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${props.geneSymbol}_lollipop_plot.svg`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Download PNG export
+ */
+async function downloadPNG(): Promise<void> {
+  const dataUrl = await exportPNG(2);
+  if (!dataUrl) return;
+
+  const link = document.createElement('a');
+  link.href = dataUrl;
+  link.download = `${props.geneSymbol}_lollipop_plot.png`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 /**
@@ -277,7 +552,7 @@ watch(
 
 .plot-container {
   width: 100%;
-  min-height: 250px;
+  min-height: 200px;
   position: relative;
 }
 
@@ -287,45 +562,100 @@ watch(
   height: auto;
 }
 
-/* Pathogenicity legend buttons */
-.legend-item {
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
-  padding: 2px 8px;
-  background: white;
-  cursor: pointer;
-  transition: opacity 0.2s ease;
+/* Controls row */
+.controls-row {
+  border-bottom: 1px solid #eee;
+  padding-bottom: 6px;
+}
+
+/* Extra small button size */
+.btn-xs {
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+/* Filter chips - compact toggle buttons */
+.filter-chip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 0.75rem;
+  line-height: 1.5;
 }
 
-.legend-item:hover {
+.filter-chip:hover {
   border-color: #adb5bd;
+  background: #f8f9fa;
 }
 
-.legend-item--hidden {
+.filter-chip--hidden {
   opacity: 0.4;
+  background: #f5f5f5;
 }
 
-.legend-dot {
+.filter-dot {
   display: inline-block;
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-.legend-label {
-  font-size: 0.875rem;
+.filter-label {
+  white-space: nowrap;
 }
 
-.legend-count {
-  font-size: 0.75rem;
+.filter-count {
+  color: #6c757d;
+  font-size: 0.7rem;
+}
+
+.filter-separator {
+  color: #ccc;
+  margin: 0 4px;
+  font-size: 0.8rem;
+}
+
+/* Filter group with "only" button */
+.filter-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+}
+
+/* "only" and "all" buttons (gnomAD-style) */
+.only-btn,
+.all-btn {
+  padding: 1px 4px;
+  font-size: 0.65rem;
+  line-height: 1.2;
+  border: 1px solid #dee2e6;
+  border-radius: 3px;
+  background: #f8f9fa;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.only-btn:hover,
+.all-btn:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+  color: #495057;
+}
+
+.all-btn {
   margin-left: 2px;
 }
 
-/* Domain legend items (non-interactive) */
+/* Domain legend items (compact, non-interactive) */
 .domain-legend-item {
   display: inline-flex;
   align-items: center;
@@ -335,13 +665,22 @@ watch(
 .domain-dot {
   display: inline-block;
   width: 12px;
-  height: 8px;
+  height: 7px;
   border-radius: 2px;
   flex-shrink: 0;
 }
 
 .domain-label {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
+  color: #6c757d;
+  white-space: nowrap;
+}
+
+/* Export buttons */
+.export-buttons .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
 
 /* D3-created tooltip styling (scoped with :deep) */
@@ -357,5 +696,19 @@ watch(
   max-width: 280px;
   line-height: 1.4;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Locked tooltip needs pointer events for link clicking */
+.plot-container :deep(.lollipop-tooltip--locked) {
+  pointer-events: auto;
+}
+
+.plot-container :deep(.lollipop-tooltip a) {
+  color: #6ea8fe;
+  text-decoration: none;
+}
+
+.plot-container :deep(.lollipop-tooltip a:hover) {
+  text-decoration: underline;
 }
 </style>
