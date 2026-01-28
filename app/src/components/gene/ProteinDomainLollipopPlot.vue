@@ -102,12 +102,13 @@ const emit = defineEmits<{
 const plotContainer = ref<HTMLElement | null>(null);
 
 // Filter state for pathogenicity visibility toggles
+// Default: Only show Pathogenic and Likely Pathogenic for clinical focus
 const filterState = reactive<LollipopFilterState>({
   pathogenic: true,
   likelyPathogenic: true,
-  vus: true,
-  likelyBenign: true,
-  benign: true,
+  vus: false,
+  likelyBenign: false,
+  benign: false,
 });
 
 // Initialize D3 lollipop composable
