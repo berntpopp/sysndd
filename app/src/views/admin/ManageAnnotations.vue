@@ -76,7 +76,7 @@
                 v-if="ontologyJob.progress.value.current && ontologyJob.progress.value.total"
                 class="small text-muted mt-1"
               >
-                Step {{ ontologyJob.progress.value.current }} of {{ ontologyJob.progress.value.total }}
+                {{ ontologyJob.progress.value.current.toLocaleString() }} / {{ ontologyJob.progress.value.total.toLocaleString() }} ({{ ontologyJob.elapsedTimeDisplay.value }})
               </div>
               <div
                 v-else-if="ontologyJob.isLoading.value"
@@ -162,13 +162,13 @@
                 v-if="hgncJob.progress.value.current && hgncJob.progress.value.total"
                 class="small text-muted mt-1"
               >
-                Step {{ hgncJob.progress.value.current }} of {{ hgncJob.progress.value.total }}
+                {{ hgncJob.progress.value.current.toLocaleString() }} / {{ hgncJob.progress.value.total.toLocaleString() }} ({{ hgncJob.elapsedTimeDisplay.value }})
               </div>
               <div
                 v-else-if="hgncJob.isLoading.value"
                 class="small text-muted mt-1"
               >
-                Elapsed: {{ hgncJob.elapsedTimeDisplay.value }} - Downloading and processing HGNC data...
+                Elapsed: {{ hgncJob.elapsedTimeDisplay.value }} - Downloading HGNC data and enriching with gnomAD constraints (this may take hours on first run)...
               </div>
             </div>
           </BCard>
