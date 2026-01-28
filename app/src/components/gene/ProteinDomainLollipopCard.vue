@@ -163,18 +163,6 @@ const isFullError = computed(() =>
 );
 
 /**
- * Estimate protein length from variant positions when UniProt data is unavailable
- * Returns max variant position + 10% buffer, or 1000 if no variants
- */
-function estimateProteinLength(variants: ProcessedVariant[]): number {
-  if (variants.length === 0) return 1000;
-
-  const maxPosition = Math.max(...variants.map((v) => v.proteinPosition));
-  // Add 10% buffer to the max position
-  return Math.ceil(maxPosition * 1.1);
-}
-
-/**
  * Computed: plotData
  * Process raw API data into ProteinPlotData format for the visualization
  */
