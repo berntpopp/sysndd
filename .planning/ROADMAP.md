@@ -190,6 +190,13 @@ Plans:
 
 **Goal:** Users can explore AlphaFold 3D structure with pLDDT confidence coloring, toggle representations, and highlight ClinVar variants spatially
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 45-01-PLAN.md — Install NGL Viewer, AlphaFold types, ACMG constants, use3DStructure composable
+- [ ] 45-02-PLAN.md — ProteinStructure3D and VariantPanel Vue components
+- [ ] 45-03-PLAN.md — GeneView.vue integration with tabbed card and lazy loading
+
 **Requirements:**
 - STRUCT3D-01: 3D viewer renders AlphaFold structure with pLDDT confidence coloring
 - STRUCT3D-02: User can toggle between cartoon, surface, and ball+stick representations
@@ -199,7 +206,7 @@ Plans:
 - STRUCT3D-06: Reset view button returns to default orientation
 - STRUCT3D-07: Graceful fallback message when AlphaFold structure not available
 - STRUCT3D-08: Structure viewer cleans up WebGL resources on component unmount
-- COMPOSE-05: use3DStructure composable wraps Mol* with markRaw() for Vue 3 compatibility
+- COMPOSE-05: use3DStructure composable wraps NGL with markRaw() for Vue 3 compatibility
 - A11Y-04: 3D viewer has keyboard-accessible controls
 
 **Success Criteria:**
@@ -245,7 +252,7 @@ Plans:
 | 42 - Constraint Scores & Variant Summaries | 13 | Planned | 0/3 | — |
 | 43 - Protein Domain Lollipop Plot | 12 | Planned | 0/4 | — |
 | 44 - Gene Structure Visualization | 4 | Planned | 0/3 | — |
-| 45 - 3D Protein Structure Viewer | 9 | Pending | 0/0 | — |
+| 45 - 3D Protein Structure Viewer | 10 | Planned | 0/3 | — |
 | 46 - Model Organism Phenotypes & Final Integration | 5 | Pending | 0/0 | — |
 
 **Total:** 57 requirements across 7 phases
@@ -253,4 +260,4 @@ Plans:
 ---
 
 *Roadmap created: 2026-01-27*
-*Last updated: 2026-01-27 — Phase 44 planned (3 plans in 3 waves)*
+*Last updated: 2026-01-28 — Phase 45 planned (3 plans in 3 waves)*
