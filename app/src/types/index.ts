@@ -13,3 +13,4 @@ export * from './cms';
 export type { GeneApiData } from './gene';
 export * from './external';
 export * from './protein';
+export * from './ensembl';
