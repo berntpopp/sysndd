@@ -203,8 +203,9 @@ const plotData = computed<ProteinPlotData | null>(() => {
           if (!parsed) return null;
           return {
             proteinPosition: parsed.position,
-            proteinHGVS: v.hgvsp || 'N/A',
-            codingHGVS: v.hgvsc || 'N/A',
+            // Handle empty objects {} from gnomAD API (truthy but not strings)
+            proteinHGVS: typeof v.hgvsp === 'string' ? v.hgvsp : 'N/A',
+            codingHGVS: typeof v.hgvsc === 'string' ? v.hgvsc : 'N/A',
             classification: normalizeClassification(v.clinical_significance),
             goldStars: v.gold_stars,
             reviewStatus: v.review_status,
