@@ -77,6 +77,26 @@
         </BContainer>
       </div>
 
+      <!-- Protein Domain Lollipop Plot -->
+      <div class="container-fluid">
+        <BContainer fluid>
+          <BRow class="justify-content-md-center pt-2">
+            <BCol cols="12">
+              <ProteinDomainLollipopCard
+                :uniprot-data="uniprotData"
+                :clinvar-variants="clinvar.data.value"
+                :uniprot-loading="uniprotLoading"
+                :clinvar-loading="clinvar.loading.value"
+                :uniprot-error="uniprotError"
+                :clinvar-error="clinvar.error.value"
+                :gene-symbol="geneSymbol"
+                @retry="retryAllExternalData"
+              />
+            </BCol>
+          </BRow>
+        </BContainer>
+      </div>
+
       <!-- Associated Entities Table -->
       <TablesEntities
         v-if="geneData.length !== 0"
@@ -102,8 +122,31 @@ import IdentifierCard from '@/components/gene/IdentifierCard.vue';
 import ClinicalResourcesCard from '@/components/gene/ClinicalResourcesCard.vue';
 import GeneConstraintCard from '@/components/gene/GeneConstraintCard.vue';
 import GeneClinVarCard from '@/components/gene/GeneClinVarCard.vue';
+import ProteinDomainLollipopCard from '@/components/gene/ProteinDomainLollipopCard.vue';
 import TablesEntities from '@/components/tables/TablesEntities.vue';
 import type { GeneApiData } from '@/types/gene';
+
+/**
+ * UniProt domain feature from the API response
+ */
+interface UniProtDomainFeature {
+  type: string;
+  description?: string;
+  begin: number | string;
+  end: number | string;
+}
+
+/**
+ * UniProt API response structure from /api/external/uniprot/domains/<symbol>
+ */
+interface UniProtData {
+  source: string;
+  gene_symbol: string;
+  accession: string;
+  protein_name: string;
+  protein_length: number | string;
+  domains: UniProtDomainFeature[];
+}
 
 const route = useRoute();
 const router = useRouter();
@@ -135,7 +178,64 @@ const gnomadConstraintsJson = computed(() => gene.value?.gnomad_constraints?.[0]
 const alphafoldId = computed(() => gene.value?.alphafold_id?.[0] || null);
 
 // ClinVar data (fetched live from per-source endpoint)
-const { clinvar, fetchData: fetchExternalData, retry: retryExternalData } = useGeneExternalData(geneSymbol);
+const { clinvar, fetchData: fetchClinvarData, retry: retryExternalData } = useGeneExternalData(geneSymbol);
+
+// UniProt domain data state (fetched inline since composable is ClinVar-only)
+const uniprotData = ref<UniProtData | null>(null);
+const uniprotLoading = ref(false);
+const uniprotError = ref<string | null>(null);
+
+/**
+ * Fetch UniProt domain data for the protein lollipop plot
+ * Separate from ClinVar because they have different cache TTLs and error modes
+ */
+async function fetchUniprotData(): Promise<void> {
+  if (!geneSymbol.value) return;
+
+  uniprotLoading.value = true;
+  uniprotError.value = null;
+
+  try {
+    const apiBase = import.meta.env.VITE_API_URL;
+    const response = await axios.get(
+      `${apiBase}/api/external/uniprot/domains/${geneSymbol.value}`
+    );
+
+    // Check for valid response with domains
+    if (response.data && response.data.domains) {
+      uniprotData.value = response.data;
+    } else {
+      uniprotData.value = null;
+    }
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.status === 404) {
+      // Gene not found in UniProt - not an error, just no data
+      uniprotData.value = null;
+      uniprotError.value = null;
+    } else {
+      const message = err instanceof Error ? err.message : 'Failed to fetch UniProt data';
+      uniprotError.value = message;
+      uniprotData.value = null;
+    }
+  } finally {
+    uniprotLoading.value = false;
+  }
+}
+
+/**
+ * Fetch all external data (ClinVar + UniProt)
+ */
+async function fetchExternalData(): Promise<void> {
+  // Fetch both in parallel
+  await Promise.all([fetchClinvarData(), fetchUniprotData()]);
+}
+
+/**
+ * Retry fetching all external data
+ */
+async function retryAllExternalData(): Promise<void> {
+  await fetchExternalData();
+}
 
 // Data loading (preserve existing logic)
 async function loadGeneInfo() {
