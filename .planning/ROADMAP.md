@@ -225,6 +225,13 @@ Plans:
 
 **Goal:** Users can view model organism phenotype data from MGI and RGD, with all gene page features integrated and accessibility validated
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 46-01-PLAN.md — TypeScript interfaces (MGI/RGD) and useModelOrganismData composable
+- [ ] 46-02-PLAN.md — ModelOrganismsCard.vue component and GeneView.vue integration
+- [ ] 46-03-PLAN.md — Accessibility audit (A11Y-05) and visual verification checkpoint
+
 **Requirements:**
 - ORGANISM-01: Mouse phenotype card displays phenotype count from MGI with zygosity breakdown
 - ORGANISM-02: Rat phenotype card displays available phenotype data from RGD
@@ -253,11 +260,11 @@ Plans:
 | 43 - Protein Domain Lollipop Plot | 12 | Planned | 0/4 | — |
 | 44 - Gene Structure Visualization | 4 | Context Gathered | 0/3 | — |
 | 45 - 3D Protein Structure Viewer | 10 | Planned | 3/3 | — |
-| 46 - Model Organism Phenotypes & Final Integration | 5 | Pending | 0/0 | — |
+| 46 - Model Organism Phenotypes & Final Integration | 5 | Planned | 0/3 | — |
 
 **Total:** 57 requirements across 7 phases
 
 ---
 
 *Roadmap created: 2026-01-27*
-*Last updated: 2026-01-28 — Phase 42 complete, HGNC gnomAD enrichment infrastructure added*
+*Last updated: 2026-01-28 — Phase 46 planned (3 plans in 3 waves)*
