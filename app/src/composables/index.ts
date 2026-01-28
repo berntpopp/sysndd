@@ -114,3 +114,7 @@ export type { UseGeneExternalDataReturn } from './useGeneExternalData';
 // D3 lollipop plot composable for protein domain visualization
 export { useD3Lollipop } from './useD3Lollipop';
 export type { LollipopOptions, D3LollipopState, PlotMargin } from './useD3Lollipop';
+
+// D3 gene structure composable
+export { useD3GeneStructure } from './useD3GeneStructure';
+export type { GeneStructureOptions, D3GeneStructureState } from './useD3GeneStructure';
