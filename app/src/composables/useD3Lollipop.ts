@@ -553,11 +553,13 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
     const yBase = innerHeight - 50;
 
     // Render in order (back to front)
+    // CRITICAL: Brush must be rendered BEFORE variants so variant markers
+    // are on top and can receive hover/click events
     renderBackbone(data.proteinLength, yBase);
     renderDomains(data.domains, yBase, data.proteinLength);
     renderAxis();
-    renderVariants(data.variants, filterState, yBase);
     setupBrush();
+    renderVariants(data.variants, filterState, yBase);
 
     isLoading.value = false;
     console.log(
