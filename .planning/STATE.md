@@ -1,6 +1,6 @@
 # Project State: SysNDD v8.0
 
-**Last updated:** 2026-01-27
+**Last updated:** 2026-01-28
 **Current milestone:** v8.0 Gene Page & Genomic Data Integration
 
 ---
@@ -17,13 +17,13 @@
 
 ## Current Position
 
-**Phase:** 42 - Constraint Scores & Variant Summaries (IN PROGRESS)
-**Plan:** 1 of 3 complete (42-01)
-**Status:** External data layer foundation complete
-**Progress:** ████▱▱▱▱▱▱ 40% (Phase 42 plan 1/3, 1/7 phases done)
+**Phase:** 42 - Constraint Scores & Variant Summaries (COMPLETE)
+**Plan:** 3 of 3 complete
+**Status:** Phase complete — constraint cards integrated into GeneView
+**Progress:** █████▱▱▱▱▱ 50% (Phase 42 complete, 2/7 phases done)
 
-**Last completed:** 42-01 — External data layer (types + composable) (2026-01-27)
-**Next step:** Continue Phase 42 execution (Plans 42-02 and 42-03 next).
+**Last completed:** 42-03 — GeneView integration with constraint and ClinVar cards (2026-01-28)
+**Next step:** Plan Phase 43 (Protein Domain Lollipop Plot) or Phase 44 (Gene Structure Visualization).
 
 ---
 
@@ -150,6 +150,15 @@
 - **Independent card error handling:** Each card can show data/error/loading states independently (partial success pattern)
 - **No interpretation text:** Researchers interpret constraint scores themselves per CONTEXT.md decision
 
+**HGNC gnomAD Enrichment Infrastructure (2026-01-28):**
+- **Bulk TSV approach** instead of per-gene API calls: Downloads gnomAD v4.1 constraint_metrics.tsv (~10MB) once, filters for MANE Select transcripts, joins by gene symbol
+- **Performance:** Completes in seconds vs. ~73 hours for the per-gene API approach
+- **Database columns added:**
+  - `gnomad_constraints` (TEXT): JSON blob with pLI, LOEUF, o/e ratios, Z-scores, expected/observed counts
+  - `alphafold_id` (VARCHAR(100)): Pre-computed AlphaFold model identifier (AF-{uniprot_id}-F1)
+- **File-based job progress:** Daemon processes write throttled progress to /tmp/sysndd_jobs/{job_id}.json; main process reads during status polling
+- **Column schema fixes:** Migration 003 handles HGNC upstream schema changes (rna_central_ids→rna_central_id rename, VARCHAR widths)
+
 **Critical Pitfalls to Avoid:**
 1. Vue Proxy wrapping of Three.js/WebGL objects - use `markRaw()` or non-reactive variables
 2. WebGL context leaks - call `stage.dispose()` in cleanup
@@ -157,6 +166,7 @@
 4. D3.js vs Vue DOM ownership conflict - D3 owns SVG element exclusively
 5. gnomAD API rate limiting - 24h cache TTL, exponential backoff retry
 6. GeneApiData array fields - Always access first element: `geneData[0]?.symbol[0]`
+7. JSON column pipe-split: `gnomad_constraints` column should be excluded from str_split transformation (see backlog)
 
 ### Roadmap Evolution
 
@@ -175,7 +185,7 @@
 
 - [x] Phase 40: Backend External API Layer (12 requirements) ✓
 - [ ] Phase 41: Gene Page Redesign (10 requirements)
-- [ ] Phase 42: Constraint Scores & Variant Summaries (13 requirements)
+- [x] Phase 42: Constraint Scores & Variant Summaries (13 requirements) ✓
 - [ ] Phase 43: Protein Domain Lollipop Plot (11 requirements)
 - [ ] Phase 44: Gene Structure Visualization (4 requirements)
 - [ ] Phase 45: 3D Protein Structure Viewer (9 requirements)
@@ -183,43 +193,42 @@
 
 ### Blockers/Concerns
 
-**None** - Phase 40 complete and verified. Ready for Phase 41.
+**None** - Phases 40 and 42 complete. Ready for Phase 43 or 44.
 
 ---
 
 ## Session Continuity
 
-**Last session:** 2026-01-27T23:43:02Z
-**Stopped at:** Completed 42-01-PLAN.md (External data layer types + composable)
-**Next action:** Continue Phase 42 execution (Plans 42-02 and 42-03 next)
+**Last session:** 2026-01-28T22:15:00Z
+**Stopped at:** Phase 42 complete, HGNC gnomAD enrichment infrastructure committed
+**Next action:** Plan Phase 43 (Lollipop Plot) or Phase 44 (Gene Structure)
 
 **Handoff notes:**
 
-1. **Phase 40 completed** (2026-01-27): All 5 plans executed, 12/12 requirements verified. Backend proxy layer operational with 8 Plumber endpoints, 6 external API sources, 3-tier caching, error isolation.
+1. **Phase 42 completed** (2026-01-28): All 3 plans executed. GeneView now displays gnomAD constraint cards and ClinVar variant summary cards with independent loading states.
 
-2. **Phase 40 deliverables:**
-   - `api/functions/external-proxy-functions.R` — shared infrastructure (cache, retry, throttle, error format)
-   - `api/functions/external-proxy-gnomad.R` — GraphQL proxy for constraints + ClinVar
-   - `api/functions/external-proxy-uniprot.R` — REST proxy for protein domains
-   - `api/functions/external-proxy-ensembl.R` — REST proxy for gene structure
-   - `api/functions/external-proxy-alphafold.R` — REST proxy for 3D structure metadata
-   - `api/functions/external-proxy-mgi.R` — REST proxy for mouse phenotypes
-   - `api/functions/external-proxy-rgd.R` — REST proxy for rat phenotypes
-   - `api/endpoints/external_endpoints.R` — 8 Plumber endpoints (7 per-source + 1 aggregation)
-   - 34 unit tests covering infrastructure and error isolation
+2. **Phase 42 deliverables:**
+   - `app/src/types/external.ts` — TypeScript interfaces for gnomAD/ClinVar data
+   - `app/src/composables/useGeneExternalData.ts` — composable with per-source state
+   - `app/src/components/gene/GeneConstraintCard.vue` — gnomAD constraint table
+   - `app/src/components/gene/GeneClinVarCard.vue` — ACMG-colored variant badges
+   - `app/src/views/pages/GeneView.vue` — integrated external data cards
 
-3. **Phase structure follows dependency chain:**
-   - Phase 40 (Backend) ✓ → all frontend features unblocked
-   - Phase 41 (Redesign) can start immediately (no dependencies)
-   - Phase 42 (Constraints) → Phase 43 (Lollipop) → Phase 45 (3D Viewer)
-   - Phase 44 (Gene Structure) independent
-   - Phase 46 (Phenotypes) final integration
+3. **HGNC enrichment infrastructure added** (2026-01-28):
+   - `db/migrations/002_add_genomic_annotations.sql` — adds gnomad_constraints, alphafold_id columns
+   - `db/migrations/003_fix_hgnc_column_schema.sql` — fixes HGNC column widths
+   - `api/functions/hgnc-enrichment-gnomad.R` — bulk gnomAD constraint enrichment (TSV approach)
+   - `api/functions/job-progress.R` — file-based async job progress reporting
+   - Enhanced jobs endpoint with progress polling
 
-4. **Research flags (deeper investigation during planning):**
-   - Phase 43: HGVS protein notation parsing, D3.js performance for >100 variants
-   - Phase 45: Mol* selection API for variant highlighting, code splitting for 74MB bundle
+4. **Backlog items captured:**
+   - `fix-pipe-split-on-json-column.md` — Medium priority JSON column handling
+   - `make-migration-002-idempotent.md` — Low priority migration robustness
+   - `optimize-ensembl-biomart-connections.md` — High priority performance issue
+
+5. **Phase 44 context gathered** (2026-01-28): Gene structure visualization requirements documented
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-27 — Phase 42 in progress (1/3 plans complete, plan 42-01)*
+*Last updated: 2026-01-28 — Phase 42 complete, HGNC enrichment infrastructure added*

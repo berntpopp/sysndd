@@ -92,9 +92,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 42-01-PLAN.md — TypeScript interfaces and useGeneExternalData composable (data layer)
-- [ ] 42-02-PLAN.md — GeneConstraintCard and GeneClinVarCard Vue components
-- [ ] 42-03-PLAN.md — GeneView.vue integration and visual verification
+- [x] 42-01-PLAN.md — TypeScript interfaces and useGeneExternalData composable (data layer)
+- [x] 42-02-PLAN.md — GeneConstraintCard and GeneClinVarCard Vue components
+- [x] 42-03-PLAN.md — GeneView.vue integration and visual verification
 
 **Requirements:**
 - GNOMAD-01: pLI score with visual gauge and interpretation
@@ -249,10 +249,10 @@ Plans:
 |-------|-------------|--------|-------|-----------|
 | 40 - Backend External API Layer | 12 | ✓ Complete | 5/5 | 2026-01-27 |
 | 41 - Gene Page Redesign | 10 | Planned | 0/5 | — |
-| 42 - Constraint Scores & Variant Summaries | 13 | Planned | 0/3 | — |
+| 42 - Constraint Scores & Variant Summaries | 13 | ✓ Complete | 3/3 | 2026-01-28 |
 | 43 - Protein Domain Lollipop Plot | 12 | Planned | 0/4 | — |
-| 44 - Gene Structure Visualization | 4 | Planned | 0/3 | — |
-| 45 - 3D Protein Structure Viewer | 10 | Planned | 0/3 | — |
+| 44 - Gene Structure Visualization | 4 | Context Gathered | 0/3 | — |
+| 45 - 3D Protein Structure Viewer | 10 | Planned | 3/3 | — |
 | 46 - Model Organism Phenotypes & Final Integration | 5 | Pending | 0/0 | — |
 
 **Total:** 57 requirements across 7 phases
@@ -260,4 +260,4 @@ Plans:
 ---
 
 *Roadmap created: 2026-01-27*
-*Last updated: 2026-01-28 — Phase 45 planned (3 plans in 3 waves)*
+*Last updated: 2026-01-28 — Phase 42 complete, HGNC gnomAD enrichment infrastructure added*
