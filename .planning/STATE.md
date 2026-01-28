@@ -17,13 +17,13 @@
 
 ## Current Position
 
-**Phase:** 42 - Constraint Scores & Variant Summaries (COMPLETE)
-**Plan:** 3 of 3 complete
-**Status:** Phase complete — constraint cards integrated into GeneView
-**Progress:** █████▱▱▱▱▱ 50% (Phase 42 complete, 2/7 phases done)
+**Phase:** 43 - Protein Domain Lollipop Plot (IN PROGRESS)
+**Plan:** 1 of 3 complete
+**Status:** In progress — types and D3 composable created
+**Progress:** █████▒▱▱▱▱ 54% (Phase 43 plan 1 complete, 3/7 phases in progress)
 
-**Last completed:** 42-03 — GeneView integration with constraint and ClinVar cards (2026-01-28)
-**Next step:** Plan Phase 43 (Protein Domain Lollipop Plot) or Phase 44 (Gene Structure Visualization).
+**Last completed:** 43-01 — Types and useD3Lollipop composable (2026-01-28)
+**Next step:** Execute 43-02 (Data transformation layer) or 43-03 (LollipopPlot component).
 
 ---
 
@@ -159,6 +159,27 @@
 - **File-based job progress:** Daemon processes write throttled progress to /tmp/sysndd_jobs/{job_id}.json; main process reads during status polling
 - **Column schema fixes:** Migration 003 handles HGNC upstream schema changes (rna_central_ids→rna_central_id rename, VARCHAR widths)
 
+**Protein Domain Lollipop Plot Foundation (Phase 43-01):**
+- **TypeScript interfaces (app/src/types/protein.ts):**
+  - PathogenicityClass: Union type for ACMG 5-class + 'other'
+  - ProteinDomain: Maps UniProt features API response (type, description, begin, end)
+  - ProcessedVariant: Processed ClinVar variant with proteinPosition, classification, splice flag
+  - ProteinPlotData: Aggregated domains + variants + protein metadata
+  - LollipopFilterState: Boolean visibility flags per pathogenicity class
+  - PATHOGENICITY_COLORS: ACMG-consistent color palette (red spectrum pathogenic, green spectrum benign)
+- **Helper functions:**
+  - normalizeClassification(): Handles gnomAD underscore format, combined classifications (Pathogenic/Likely_pathogenic -> Pathogenic)
+  - parseProteinPosition(): Extracts AA position from hgvsp (preferred) or hgvsc (fallback with codon calculation)
+- **useD3Lollipop composable (app/src/composables/useD3Lollipop.ts):**
+  - Non-reactive D3 state (let svg, not ref) following useCytoscape pattern
+  - D3 join pattern for enter/update/exit rendering
+  - Brush-to-zoom with double-click reset
+  - Tooltip with viewport edge detection
+  - Variant stacking by position using d3.group()
+  - d3.symbolCircle for coding variants, d3.symbolDiamond for splice variants
+  - onBeforeUnmount cleanup for memory leak prevention
+  - onVariantClick/onVariantHover callbacks for Phase 45 3D viewer linking
+
 **Critical Pitfalls to Avoid:**
 1. Vue Proxy wrapping of Three.js/WebGL objects - use `markRaw()` or non-reactive variables
 2. WebGL context leaks - call `stage.dispose()` in cleanup
@@ -167,6 +188,7 @@
 5. gnomAD API rate limiting - 24h cache TTL, exponential backoff retry
 6. GeneApiData array fields - Always access first element: `geneData[0]?.symbol[0]`
 7. JSON column pipe-split: `gnomad_constraints` column should be excluded from str_split transformation (see backlog)
+8. D3 `this` typing in TypeScript - Use attr callbacks with arrow functions instead of `.each(function(d))`
 
 ### Roadmap Evolution
 
@@ -199,27 +221,20 @@
 
 ## Session Continuity
 
-**Last session:** 2026-01-28T22:15:00Z
-**Stopped at:** Phase 42 complete, HGNC gnomAD enrichment infrastructure committed
-**Next action:** Plan Phase 43 (Lollipop Plot) or Phase 44 (Gene Structure)
+**Last session:** 2026-01-28T21:29:57Z
+**Stopped at:** Phase 43-01 complete — types and useD3Lollipop composable
+**Next action:** Execute 43-02 (data transformation) or 43-03 (LollipopPlot component)
 
 **Handoff notes:**
 
-1. **Phase 42 completed** (2026-01-28): All 3 plans executed. GeneView now displays gnomAD constraint cards and ClinVar variant summary cards with independent loading states.
+1. **Phase 43-01 completed** (2026-01-28): Types and D3 composable for lollipop plot visualization.
 
-2. **Phase 42 deliverables:**
-   - `app/src/types/external.ts` — TypeScript interfaces for gnomAD/ClinVar data
-   - `app/src/composables/useGeneExternalData.ts` — composable with per-source state
-   - `app/src/components/gene/GeneConstraintCard.vue` — gnomAD constraint table
-   - `app/src/components/gene/GeneClinVarCard.vue` — ACMG-colored variant badges
-   - `app/src/views/pages/GeneView.vue` — integrated external data cards
+2. **Phase 43-01 deliverables:**
+   - `app/src/types/protein.ts` — TypeScript interfaces (ProteinDomain, ProcessedVariant, ProteinPlotData, LollipopFilterState), PATHOGENICITY_COLORS, normalizeClassification(), parseProteinPosition()
+   - `app/src/composables/useD3Lollipop.ts` — D3 lifecycle composable with brush-to-zoom, tooltip, variant stacking
+   - Updated barrel exports in `app/src/types/index.ts` and `app/src/composables/index.ts`
 
-3. **HGNC enrichment infrastructure added** (2026-01-28):
-   - `db/migrations/002_add_genomic_annotations.sql` — adds gnomad_constraints, alphafold_id columns
-   - `db/migrations/003_fix_hgnc_column_schema.sql` — fixes HGNC column widths
-   - `api/functions/hgnc-enrichment-gnomad.R` — bulk gnomAD constraint enrichment (TSV approach)
-   - `api/functions/job-progress.R` — file-based async job progress reporting
-   - Enhanced jobs endpoint with progress polling
+3. **Phase 42 completed** (2026-01-28): All 3 plans executed. GeneView now displays gnomAD constraint cards and ClinVar variant summary cards with independent loading states.
 
 4. **Backlog items captured:**
    - `fix-pipe-split-on-json-column.md` — Medium priority JSON column handling
@@ -231,4 +246,4 @@
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-28 — Phase 42 complete, HGNC enrichment infrastructure added*
+*Last updated: 2026-01-28 — Phase 43-01 complete (types + useD3Lollipop composable)*
