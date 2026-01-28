@@ -229,12 +229,22 @@ symbol_from_hgnc_id_grouped <- function(input_tibble, request_max = 150) {
 update_process_hgnc_data <- function(hgnc_link = "https://storage.googleapis.com/public-download-files/hgnc/tsv/tsv/non_alt_loci_set.txt",
 # nolint end
                                      output_path = "data/",
-                                     max_file_age = 1) {
+                                     max_file_age = 1,
+                                     progress_fn = NULL) {
+  # Helper to safely call progress_fn (non-fatal on error)
+  report <- function(step, message, current = NULL, total = NULL) {
+    if (!is.null(progress_fn)) {
+      tryCatch(progress_fn(step, message, current, total), error = function(e) NULL)
+    }
+  }
   # Get current date in YYYY-MM-DD format
   current_date <- format(Sys.Date(), "%Y-%m-%d")
 
   # define the file base name
   hgnc_file_basename <- "non_alt_loci_set"
+
+  ## Step 1/9: Download HGNC data
+  report("download", "Downloading HGNC data...", current = 1, total = 9)
 
   if (check_file_age(hgnc_file_basename, output_path, max_file_age)) {
     hgnc_file <- get_newest_file(hgnc_file_basename, output_path)
@@ -253,6 +263,9 @@ update_process_hgnc_data <- function(hgnc_link = "https://storage.googleapis.com
   # Load the downloaded HGNC file
   non_alt_loci_set <- suppressWarnings(read_delim(hgnc_file, "\t", col_names = TRUE, show_col_types = FALSE) %>%
                                          mutate(update_date = current_date))
+
+  ## Step 2/9: STRINGdb mapping
+  report("stringdb", "STRINGdb mapping...", current = 2, total = 9)
 
   # get symbols for string db mapping
   non_alt_loci_set_table <- non_alt_loci_set %>%
@@ -282,19 +295,35 @@ update_process_hgnc_data <- function(hgnc_link = "https://storage.googleapis.com
     left_join(non_alt_loci_set_mapped_tibble, by = "symbol")
 
   # Compute gene coordinates from symbol and Ensembl ID
+  # (broken into individual steps for progress reporting)
+
+  ## Step 3/9: hg19 coordinates via Ensembl ID
+  report("hg19_ensembl", "Ensembl coordinates: hg19 via Ensembl ID", current = 3, total = 9)
   non_alt_loci_set_coordinates <- non_alt_loci_set_string %>%
     mutate(
       hg19_coordinates_from_ensembl =
         gene_coordinates_from_ensembl(ensembl_gene_id)
-    ) %>%
+    )
+
+  ## Step 4/9: hg19 coordinates via symbol
+  report("hg19_symbol", "Ensembl coordinates: hg19 via symbol", current = 4, total = 9)
+  non_alt_loci_set_coordinates <- non_alt_loci_set_coordinates %>%
     mutate(
       hg19_coordinates_from_symbol =
         gene_coordinates_from_symbol(symbol)
-    ) %>%
+    )
+
+  ## Step 5/9: hg38 coordinates via Ensembl ID
+  report("hg38_ensembl", "Ensembl coordinates: hg38 via Ensembl ID", current = 5, total = 9)
+  non_alt_loci_set_coordinates <- non_alt_loci_set_coordinates %>%
     mutate(
       hg38_coordinates_from_ensembl =
         gene_coordinates_from_ensembl(ensembl_gene_id, reference = "hg38")
-    ) %>%
+    )
+
+  ## Step 6/9: hg38 coordinates via symbol
+  report("hg38_symbol", "Ensembl coordinates: hg38 via symbol", current = 6, total = 9)
+  non_alt_loci_set_coordinates <- non_alt_loci_set_coordinates %>%
     mutate(
       hg38_coordinates_from_symbol =
         gene_coordinates_from_symbol(symbol, reference = "hg38")
@@ -324,6 +353,19 @@ update_process_hgnc_data <- function(hgnc_link = "https://storage.googleapis.com
       -hg38_coordinates_from_symbol
     )
 
-  # Return the tibble
-  return(non_alt_loci_set_coordinates)
+  ## Step 7/9: gnomAD constraint enrichment (per-gene progress handled inside)
+  report("gnomad", "gnomAD constraint enrichment...", current = 7, total = 9)
+  message("[HGNC update] Starting gnomAD constraint enrichment...")
+  non_alt_loci_set_enriched <- enrich_gnomad_constraints(
+    non_alt_loci_set_coordinates,
+    progress_fn = progress_fn
+  )
+
+  ## Step 8/9: AlphaFold ID enrichment
+  report("alphafold", "AlphaFold ID derivation", current = 8, total = 9)
+  message("[HGNC update] Starting AlphaFold ID enrichment...")
+  non_alt_loci_set_enriched <- enrich_alphafold_ids(non_alt_loci_set_enriched)
+
+  # Return the tibble (step 9 = DB write is reported by the executor)
+  return(non_alt_loci_set_enriched)
 }

@@ -501,7 +501,20 @@ function(req, res) {
 function(req, res) {
   require_role(req, res, "Administrator")
 
+  # CRITICAL: Extract database config BEFORE mirai
+  # Database connections cannot cross process boundaries, so the daemon
+  # must create its own connection using the config values.
+  db_config <- list(
+    dbname   = dw$dbname,
+    host     = dw$host,
+    user     = dw$user,
+    password = dw$password,
+    port     = dw$port
+  )
+
   # Check for duplicate running job
+  # Use a stable identifier (operation name only) — db_config contains credentials
+  # and should NOT be included in the hash or stored longer than necessary.
   dup_check <- check_duplicate_job("hgnc_update", list(operation = "hgnc_update"))
   if (dup_check$duplicate) {
     res$status <- 409
@@ -514,23 +527,113 @@ function(req, res) {
     ))
   }
 
-  # HGNC update doesn't need database pre-fetch
-  # (it downloads from HGNC API and writes to files/DB directly)
-
-  # Create async job
+  # Create async job for HGNC update pipeline
+  # gnomAD enrichment now uses bulk TSV download (~10s), Ensembl/STRINGdb are the bottleneck
   result <- create_job(
     operation = "hgnc_update",
-    params = list(),
+    params = list(db_config = db_config),
+    timeout_ms = 1800000, # 30 minutes (bulk TSV approach makes gnomAD fast)
     executor_fn = function(params) {
       # This runs in mirai daemon
-      # Call the HGNC update function (downloads data and returns processed tibble)
-      hgnc_data <- update_process_hgnc_data()
+      # Create file-based progress reporter so main process can read progress
+      progress <- create_progress_reporter(params$.__job_id__)
+      job_id <- params$.__job_id__
 
-      # Return summary
+      # --- Phase 1: Download and process HGNC data ---
+      message(sprintf("[%s] [job:%s] HGNC update: starting data download and processing...",
+                      Sys.time(), job_id))
+
+      hgnc_data <- tryCatch({
+        update_process_hgnc_data(progress_fn = progress)
+      }, error = function(e) {
+        msg <- sprintf("HGNC pipeline failed during data processing: %s", conditionMessage(e))
+        message(sprintf("[%s] [job:%s] %s", Sys.time(), job_id, msg))
+        stop(msg)
+      })
+
+      message(sprintf("[%s] [job:%s] HGNC update: processed %d rows (%d columns), writing to database...",
+                      Sys.time(), job_id, nrow(hgnc_data), ncol(hgnc_data)))
+
+      # --- Phase 2: Write to database ---
+      progress("db_write", "Writing to database...", current = 9, total = 9)
+
+      conn <- tryCatch({
+        DBI::dbConnect(
+          RMariaDB::MariaDB(),
+          dbname   = params$db_config$dbname,
+          host     = params$db_config$host,
+          user     = params$db_config$user,
+          password = params$db_config$password,
+          port     = params$db_config$port
+        )
+      }, error = function(e) {
+        msg <- sprintf("Failed to connect to database: %s", conditionMessage(e))
+        message(sprintf("[%s] [job:%s] %s", Sys.time(), job_id, msg))
+        stop(msg)
+      })
+      on.exit(DBI::dbDisconnect(conn), add = TRUE)
+
+      # Reconcile tibble columns against DB schema to prevent mismatches
+      # (e.g. HGNC upstream renames like rna_central_ids -> rna_central_id)
+      db_cols <- DBI::dbListFields(conn, "non_alt_loci_set")
+      tibble_cols <- colnames(hgnc_data)
+
+      # Drop tibble columns that don't exist in the DB table
+      extra_cols <- setdiff(tibble_cols, db_cols)
+      if (length(extra_cols) > 0) {
+        message(sprintf("[%s] [job:%s] Dropping %d tibble columns not in DB: %s",
+                        Sys.time(), job_id, length(extra_cols),
+                        paste(extra_cols, collapse = ", ")))
+        hgnc_data <- hgnc_data[, setdiff(tibble_cols, extra_cols), drop = FALSE]
+      }
+
+      # Warn about DB columns missing from the tibble (will be NULL in DB)
+      missing_cols <- setdiff(db_cols, colnames(hgnc_data))
+      if (length(missing_cols) > 0) {
+        message(sprintf("[%s] [job:%s] DB columns not in tibble (will be NULL): %s",
+                        Sys.time(), job_id, paste(missing_cols, collapse = ", ")))
+      }
+
+      # Atomic table replacement: DELETE + INSERT in a real transaction
+      # NOTE: TRUNCATE is DDL and auto-commits in MySQL — it cannot be rolled back.
+      # DELETE FROM is DML and participates in the transaction, so on failure the
+      # entire operation rolls back and the table retains its previous data.
+      tryCatch({
+        # Disable FK checks for this session; ensure they are re-enabled even on error
+        DBI::dbExecute(conn, "SET FOREIGN_KEY_CHECKS = 0")
+        on.exit(tryCatch(DBI::dbExecute(conn, "SET FOREIGN_KEY_CHECKS = 1"),
+                         error = function(e) NULL), add = TRUE)
+
+        DBI::dbWithTransaction(conn, {
+          DBI::dbExecute(conn, "DELETE FROM non_alt_loci_set")
+
+          if (nrow(hgnc_data) > 0) {
+            DBI::dbAppendTable(conn, "non_alt_loci_set", hgnc_data)
+          }
+        })
+
+        DBI::dbExecute(conn, "SET FOREIGN_KEY_CHECKS = 1")
+      }, error = function(e) {
+        msg <- sprintf(
+          "Database write failed: %s. Tibble cols: [%s]. DB cols: [%s].",
+          conditionMessage(e),
+          paste(colnames(hgnc_data), collapse = ", "),
+          paste(db_cols, collapse = ", ")
+        )
+        message(sprintf("[%s] [job:%s] %s", Sys.time(), job_id, msg))
+        stop(msg)
+      })
+
+      message(sprintf("[%s] [job:%s] HGNC update: database write complete (%d rows)",
+                      Sys.time(), job_id, nrow(hgnc_data)))
+
+      # Return summary (not the full tibble — avoid memory overhead in job state)
       list(
         status = "completed",
         rows_processed = nrow(hgnc_data),
-        message = "HGNC data updated successfully"
+        columns_written = ncol(hgnc_data),
+        columns_dropped = length(extra_cols),
+        message = "HGNC data updated and written to database successfully"
       )
     }
   )
@@ -545,12 +648,12 @@ function(req, res) {
   # Success - return HTTP 202 Accepted
   res$status <- 202
   res$setHeader("Location", paste0("/api/jobs/", result$job_id, "/status"))
-  res$setHeader("Retry-After", "10") # Shorter polling interval (faster job)
+  res$setHeader("Retry-After", "60") # Long-running job: poll every minute
 
   list(
     job_id = result$job_id,
     status = result$status,
-    estimated_seconds = 120, # HGNC update is faster than ontology (~2 min)
+    estimated_seconds = 300, # ~5 min typical (Ensembl BioMart is the bottleneck)
     status_url = paste0("/api/jobs/", result$job_id, "/status")
   )
 }

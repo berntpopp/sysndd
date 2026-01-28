@@ -47,6 +47,8 @@ MAX_CONCURRENT_JOBS <- 8
 #'   (e.g., "clustering", "phenotype_clustering", "ontology_update")
 #' @param params List of parameters for the executor function
 #' @param executor_fn Function to execute in background daemon
+#' @param timeout_ms Timeout in milliseconds for the mirai task. Default 1800000 (30 min).
+#'   Long-running jobs like HGNC update with gnomAD enrichment should set a higher value.
 #'
 #' @return List with either:
 #'   - On success: job_id, status="accepted", estimated_seconds=30
@@ -60,7 +62,7 @@ MAX_CONCURRENT_JOBS <- 8
 #'   executor_fn = function(params) gen_string_clust_obj(params$genes)
 #' )
 #' }
-create_job <- function(operation, params, executor_fn) {
+create_job <- function(operation, params, executor_fn, timeout_ms = 1800000) {
   # Check capacity - count running/pending jobs
   running_count <- sum(vapply(ls(jobs_env), function(id) {
     job <- jobs_env[[id]]
@@ -82,14 +84,20 @@ create_job <- function(operation, params, executor_fn) {
 
   job_id <- uuid::UUIDgenerate()
 
-  # Create mirai task with 30-minute timeout (in milliseconds)
+  # Compute params hash BEFORE injecting job_id (for duplicate detection)
+  params_hash <- digest::digest(params)
+
+  # Inject job_id so executor can create a progress reporter
+  params$.__job_id__ <- job_id
+
+  # Create mirai task with configurable timeout
   m <- mirai::mirai(
     {
       executor_fn(params)
     },
     params = params,
     executor_fn = executor_fn,
-    .timeout = 1800000 # 30 minutes in ms
+    .timeout = timeout_ms
   )
 
   # Store job state
@@ -99,7 +107,7 @@ create_job <- function(operation, params, executor_fn) {
     status = "pending",
     mirai_obj = m,
     submitted_at = Sys.time(),
-    params_hash = digest::digest(params),
+    params_hash = params_hash,
     result = NULL,
     error = NULL,
     completed_at = NULL
@@ -120,6 +128,7 @@ create_job <- function(operation, params, executor_fn) {
       jobs_env[[job_id]]$result <- result
     }
     jobs_env[[job_id]]$completed_at <- Sys.time()
+    cleanup_job_progress(job_id)
   }) %...!% (function(error) {
     # Handle promise rejections (uncaught R errors in executor)
     jobs_env[[job_id]]$status <- "failed"
@@ -128,6 +137,7 @@ create_job <- function(operation, params, executor_fn) {
       message = if (inherits(error, "error")) conditionMessage(error) else as.character(error)
     )
     jobs_env[[job_id]]$completed_at <- Sys.time()
+    cleanup_job_progress(job_id)
   })
 
   return(list(
@@ -182,10 +192,25 @@ get_job_status <- function(job_id) {
     elapsed <- as.numeric(difftime(Sys.time(), job$submitted_at, units = "secs"))
     remaining <- max(0, 1800 - elapsed) # 30 min = 1800 sec
 
+    # Read file-based progress from daemon (if available)
+    file_progress <- read_job_progress(job_id)
+
+    if (!is.null(file_progress)) {
+      step_msg <- file_progress$message %||% get_progress_message(job$operation)
+      progress_data <- list(
+        current = file_progress$current %||% 0,
+        total = file_progress$total %||% 0
+      )
+    } else {
+      step_msg <- get_progress_message(job$operation)
+      progress_data <- NULL
+    }
+
     return(list(
       job_id = job_id,
       status = "running",
-      step = get_progress_message(job$operation),
+      step = step_msg,
+      progress = progress_data,
       estimated_seconds = round(remaining),
       retry_after = 5
     ))
@@ -206,6 +231,7 @@ get_job_status <- function(job_id) {
         jobs_env[[job_id]]$result <- result
       }
       jobs_env[[job_id]]$completed_at <- Sys.time()
+      cleanup_job_progress(job_id)
       job <- jobs_env[[job_id]]
     }
 
@@ -237,7 +263,8 @@ get_progress_message <- function(operation) {
     clustering = "Fetching interaction data from STRING-db...",
     phenotype_clustering = "Running Multiple Correspondence Analysis...",
     ontology_update = "Downloading and processing ontology data from MONDO/OMIM...",
-    omim_update = "Updating OMIM annotations from mim2gene.txt + JAX API..."
+    omim_update = "Updating OMIM annotations from mim2gene.txt + JAX API...",
+    hgnc_update = "Downloading HGNC data and enriching with gnomAD constraints..."
   )
 
   messages[[operation]] %||% "Processing request..."

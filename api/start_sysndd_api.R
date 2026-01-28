@@ -135,10 +135,12 @@ source("functions/external-proxy-rgd.R", local = TRUE)
 source("functions/file-functions.R", local = TRUE)
 source("functions/hpo-functions.R", local = TRUE)
 source("functions/hgnc-functions.R", local = TRUE)
+source("functions/hgnc-enrichment-gnomad.R", local = TRUE)
 source("functions/ontology-functions.R", local = TRUE)
 source("functions/pubtator-functions.R", local = TRUE)
 source("functions/ensembl-functions.R", local = TRUE)
 source("functions/job-manager.R", local = TRUE)
+source("functions/job-progress.R", local = TRUE)
 source("functions/ols-functions.R", local = TRUE)
 
 # Core security and error handling modules
@@ -211,7 +213,9 @@ output_columns_allowed <<- c(
   "ensembl_gene_id",
   "ucsc_id",
   "bed_hg19",
-  "bed_hg38"
+  "bed_hg38",
+  "gnomad_constraints",
+  "alphafold_id"
 )
 
 user_status_allowed <<- c("Administrator", "Curator", "Reviewer", "Viewer")
@@ -253,6 +257,8 @@ message(sprintf("[%s] Started mirai daemon pool with 2 workers", Sys.time()))
 # NOTE: Load packages that mask dplyr::select FIRST (STRINGdb, biomaRt load
 # AnnotationDbi), then load dplyr/tidyverse LAST so their functions win.
 everywhere({
+  library(DBI)
+  library(RMariaDB)
   library(STRINGdb)
   library(biomaRt)
   library(FactoMineR)
@@ -262,21 +268,33 @@ everywhere({
   library(digest)
   library(jsonlite)
   library(openssl)
+  library(httr2)
+  library(memoise)
+  library(cachem)
   library(dplyr)
   library(tidyr)
   library(tibble)
   library(stringr)
   library(purrr)
+  library(readr)
   # Source helper functions first (generate_panel_hash, generate_function_hash)
   source("/app/functions/helper-functions.R", local = FALSE)
   # Source file functions (check_file_age, get_newest_file)
   source("/app/functions/file-functions.R", local = FALSE)
   # Source the analysis functions (gen_string_clust_obj, gen_mca_clust_obj)
   source("/app/functions/analyses-functions.R", local = FALSE)
+  # Source shared external proxy infrastructure (validate_gene_symbol, cache backends, throttle)
+  source("/app/functions/external-proxy-functions.R", local = FALSE)
+  # Source gnomAD proxy functions (fetch_gnomad_constraints + memoised wrapper)
+  source("/app/functions/external-proxy-gnomad.R", local = FALSE)
+  # Source gnomAD/AlphaFold enrichment functions for HGNC update pipeline
+  source("/app/functions/hgnc-enrichment-gnomad.R", local = FALSE)
   # Source HGNC functions (update_process_hgnc_data)
   source("/app/functions/hgnc-functions.R", local = FALSE)
   # Source Ensembl functions (gene_coordinates_from_ensembl, gene_coordinates_from_symbol)
   source("/app/functions/ensembl-functions.R", local = FALSE)
+  # Source file-based job progress reporting
+  source("/app/functions/job-progress.R", local = FALSE)
 })
 message(sprintf("[%s] Exported packages and functions to mirai daemons", Sys.time()))
 
