@@ -17,22 +17,22 @@
 
 ## Current Position
 
-**Phase:** 44 - Gene Structure Visualization (IN PROGRESS)
-**Plan:** 1 of 2 complete
-**Status:** In progress - types and D3 composable complete
-**Progress:** ██████▒▱▱▱ 63% (Phase 44 Plan 01 complete)
+**Phase:** 44 - Gene Structure Visualization (COMPLETE)
+**Plan:** 2 of 2 complete
+**Status:** Phase complete - visualization components ready for integration
+**Progress:** ███████▱▱▱ 66% (Phase 44 complete, Phase 45 next)
 
-**Last completed:** 44-01 - Ensembl gene structure types and D3 composable (2026-01-28)
-**Next step:** Execute Phase 44-02 (GeneStructureCard component) or continue Phase 45.
+**Last completed:** 44-02 - GeneStructurePlot and GeneStructureCard components (2026-01-28)
+**Next step:** Execute Phase 45 (3D Protein Structure Viewer) or integrate Phase 44 components into gene page.
 
 ---
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 211
+- Total plans completed: 213
 - Milestones shipped: 7 (v1-v7)
-- Phases completed: 40
+- Phases completed: 44
 
 **By Milestone:**
 
@@ -180,7 +180,7 @@
   - onBeforeUnmount cleanup for memory leak prevention
   - onVariantClick/onVariantHover callbacks for Phase 45 3D viewer linking
 
-**Gene Structure Visualization Foundation (Phase 44-01):**
+**Gene Structure Visualization (Phase 44 COMPLETE):**
 - **TypeScript interfaces (app/src/types/ensembl.ts):**
   - EnsemblGeneStructure: Backend API response (gene_id, chromosome, start, end, strand, canonical_transcript)
   - ClassifiedExon: Exon with type classification ('coding' | '5_utr' | '3_utr') and genomic order exonNumber
@@ -201,6 +201,19 @@
   - Adaptive scale bar (10kb/1kb/100bp based on gene length)
   - Tooltip with exon details and viewport edge detection
   - onBeforeUnmount cleanup for memory leak prevention
+- **GeneStructurePlot component (app/src/components/gene/GeneStructurePlot.vue):**
+  - D3 visualization with horizontal scroll container (overflow-x: auto)
+  - Custom scrollbar styling for large genes
+  - Reactive to data prop changes for gene-to-gene navigation
+  - D3 owns SVG element exclusively (no Vue DOM ownership conflict)
+- **GeneStructureCard component (app/src/components/gene/GeneStructureCard.vue):**
+  - Card wrapper with 4-state UI pattern (loading/error/data/empty)
+  - Fetches Ensembl data from /api/external/ensembl/structure/<symbol>
+  - Displays exon count and gene length in card header
+  - 404 treated as empty state (gene not found is normal)
+  - 503 treated as retryable error (Ensembl API unavailable)
+  - Re-fetches on geneSymbol prop change for gene-to-gene navigation
+  - Direct per-source fetching pattern (not using useGeneExternalData)
 
 **Critical Pitfalls to Avoid:**
 1. Vue Proxy wrapping of Three.js/WebGL objects - use `markRaw()` or non-reactive variables
@@ -231,47 +244,46 @@
 - [ ] Phase 41: Gene Page Redesign (10 requirements)
 - [x] Phase 42: Constraint Scores & Variant Summaries (13 requirements) ✓
 - [x] Phase 43: Protein Domain Lollipop Plot (11 requirements) ✓
-- [ ] Phase 44: Gene Structure Visualization (4 requirements) — 1/2 plans complete
+- [x] Phase 44: Gene Structure Visualization (4 requirements) ✓
 - [ ] Phase 45: 3D Protein Structure Viewer (9 requirements)
 - [ ] Phase 46: Model Organism Phenotypes & Final Integration (5 requirements)
 
 ### Blockers/Concerns
 
-**None** - Phase 44-01 complete. Ready for Phase 44-02 or Phase 45.
+**None** - Phase 44 complete. Ready for Phase 45 (3D Protein Structure Viewer) or gene page integration.
 
 ---
 
 ## Session Continuity
 
-**Last session:** 2026-01-28T23:26:08Z
-**Stopped at:** Phase 44-01 complete (Ensembl types and D3 composable)
-**Next action:** Execute Phase 44-02 (GeneStructureCard component) or Phase 45
+**Last session:** 2026-01-28T23:32:14Z
+**Stopped at:** Phase 44 complete (Gene Structure Visualization components)
+**Next action:** Execute Phase 45 (3D Protein Structure Viewer) or integrate Phase 44 components into gene page
 
 **Handoff notes:**
 
-1. **Phase 43 complete** (2026-01-28): Protein domain lollipop plot now visible on gene page.
-   - 43-01: Types (protein.ts) and D3 composable (useD3Lollipop.ts)
-   - 43-02: ProteinDomainLollipopPlot Vue component (360 lines)
-   - 43-03: ProteinDomainLollipopCard wrapper (261 lines) and GeneView integration
+1. **Phase 44 complete** (2026-01-28): Gene structure visualization components ready for integration.
+   - 44-01: Ensembl types (ensembl.ts) and D3 composable (useD3GeneStructure.ts)
+   - 44-02: GeneStructurePlot Vue component (91 lines) and GeneStructureCard wrapper (145 lines)
 
-2. **Phase 43-03 deliverables:**
-   - `app/src/components/gene/ProteinDomainLollipopCard.vue` — Card wrapper with loading/error/empty states
-   - `app/src/views/pages/GeneView.vue` — Updated with lollipop card and UniProt data fetching
+2. **Phase 44-02 deliverables:**
+   - `app/src/components/gene/GeneStructurePlot.vue` — D3 visualization with horizontal scroll container
+   - `app/src/components/gene/GeneStructureCard.vue` — Card wrapper with Ensembl data fetching and 4-state UI
 
 3. **Key integration points:**
-   - ProteinDomainLollipopCard fetches UniProt domain data via `/api/external/uniprot/domains/<symbol>`
-   - ClinVar variants from existing useGeneExternalData composable
-   - Both fetched in parallel, non-blocking (gene info renders immediately)
-   - variant-click event ready for Phase 45 3D viewer linking
+   - GeneStructureCard fetches Ensembl data via `/api/external/ensembl/structure/<symbol>` (direct per-source pattern)
+   - Displays exon count and gene length in card header
+   - Re-fetches on geneSymbol prop change for gene-to-gene navigation
+   - Ready to add to GeneView.vue in Phase 46 final integration
 
 4. **Backlog items captured:**
    - `fix-pipe-split-on-json-column.md` — Medium priority JSON column handling
    - `make-migration-002-idempotent.md` — Low priority migration robustness
    - `optimize-ensembl-biomart-connections.md` — High priority performance issue
 
-5. **Phase 44 context gathered** (2026-01-28): Gene structure visualization requirements documented
+5. **Phase 45 next** (2026-01-28): 3D Protein Structure Viewer with Mol* integration
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-28 — Phase 43 complete (Protein Domain Lollipop Plot)*
+*Last updated: 2026-01-28 — Phase 44 complete (Gene Structure Visualization)*
