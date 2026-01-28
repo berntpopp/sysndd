@@ -23,4 +23,6 @@ export interface GeneApiData {
   rgd_id: string[];
   STRING_id: string[];
   bed_hg38: string[]; // Chromosome coordinates like "chr17:12345-67890" (added by Plan 02)
+  gnomad_constraints: string[]; // JSON string from gnomAD v4 constraint scores (pre-annotated)
+  alphafold_id: string[]; // AlphaFold model identifier (AF-{uniprot_id}-F1) for Phase 45
 }

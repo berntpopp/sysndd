@@ -225,11 +225,11 @@ export function useAsyncJob(
         step.value = String(stepValue);
       }
 
-      // Update progress if provided
+      // Update progress if provided (unwrap R/Plumber array wrapping)
       if (data.progress) {
         progress.value = {
-          current: data.progress.current || 0,
-          total: data.progress.total || 0,
+          current: Number(unwrapValue(data.progress.current)) || 0,
+          total: Number(unwrapValue(data.progress.total)) || 0,
         };
       }
 

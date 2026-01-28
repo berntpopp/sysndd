@@ -1,46 +1,32 @@
 <template>
   <BCard
-    class="constraint-card shadow-sm"
+    class="constraint-card"
+    body-class="p-0"
+    header-class="p-1"
+    border-variant="dark"
     role="region"
     aria-label="Gene constraint scores from gnomAD"
   >
     <template #header>
       <div class="d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Gene Constraint (gnomAD)</h5>
+        <span class="fw-semibold small">Gene Constraint (gnomAD)</span>
         <BButton
           variant="link"
           size="sm"
           :href="`https://gnomad.broadinstitute.org/gene/${geneSymbol}`"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-decoration-none"
+          class="text-decoration-none p-0"
         >
           <i class="bi bi-box-arrow-up-right"></i>
         </BButton>
       </div>
     </template>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="text-center py-5">
-      <BSpinner label="Loading constraint data..." role="status" />
-    </div>
-
-    <!-- Error State -->
-    <div v-else-if="error" class="text-center py-4" role="alert">
-      <p class="text-muted mb-3">{{ error }}</p>
-      <BButton
-        variant="outline-primary"
-        size="sm"
-        @click="$emit('retry')"
-      >
-        Retry
-      </BButton>
-    </div>
-
     <!-- No Data State -->
-    <div v-else-if="!data" class="text-center py-4">
+    <div v-if="!constraintData" class="text-center py-3">
       <i class="bi bi-info-circle text-muted me-2"></i>
-      <span class="text-muted">No constraint data available for this gene</span>
+      <span class="text-muted small">No constraint data available for this gene</span>
     </div>
 
     <!-- Constraint Table -->
@@ -114,21 +100,32 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { BCard, BButton, BSpinner, BTable } from 'bootstrap-vue-next'
+import { BCard, BButton, BTable } from 'bootstrap-vue-next'
 import type { GnomADConstraints } from '@/types/external'
 
 interface Props {
   geneSymbol: string
-  loading: boolean
-  error: string | null
-  data: GnomADConstraints | null
+  /** JSON string from gene endpoint (gnomad_constraints column) or null */
+  constraintsJson: string | null
 }
 
 const props = defineProps<Props>()
 
-defineEmits<{
-  retry: []
-}>()
+/**
+ * Parse the JSON string from the database into typed constraint data.
+ * Returns null if the string is empty, null, or invalid JSON.
+ */
+const constraintData = computed<GnomADConstraints | null>(() => {
+  if (!props.constraintsJson || props.constraintsJson === 'null') {
+    return null
+  }
+
+  try {
+    return JSON.parse(props.constraintsJson) as GnomADConstraints
+  } catch {
+    return null
+  }
+})
 
 // Table configuration
 const tableFields = [
@@ -140,38 +137,38 @@ const tableFields = [
 
 // Build table rows from constraint data
 const tableItems = computed(() => {
-  if (!props.data) return []
+  if (!constraintData.value) return []
 
   return [
     {
       category: 'Synonymous',
-      expected: formatNumber(props.data.exp_syn, 1),
-      observed: formatNumber(props.data.obs_syn, 0),
-      z_score: props.data.syn_z,
-      oe: props.data.oe_syn,
-      oe_lower: props.data.oe_syn_lower,
-      oe_upper: props.data.oe_syn_upper,
+      expected: formatNumber(constraintData.value.exp_syn, 1),
+      observed: formatNumber(constraintData.value.obs_syn, 0),
+      z_score: constraintData.value.syn_z,
+      oe: constraintData.value.oe_syn,
+      oe_lower: constraintData.value.oe_syn_lower,
+      oe_upper: constraintData.value.oe_syn_upper,
       pLI: null
     },
     {
       category: 'Missense',
-      expected: formatNumber(props.data.exp_mis, 1),
-      observed: formatNumber(props.data.obs_mis, 0),
-      z_score: props.data.mis_z,
-      oe: props.data.oe_mis,
-      oe_lower: props.data.oe_mis_lower,
-      oe_upper: props.data.oe_mis_upper,
+      expected: formatNumber(constraintData.value.exp_mis, 1),
+      observed: formatNumber(constraintData.value.obs_mis, 0),
+      z_score: constraintData.value.mis_z,
+      oe: constraintData.value.oe_mis,
+      oe_lower: constraintData.value.oe_mis_lower,
+      oe_upper: constraintData.value.oe_mis_upper,
       pLI: null
     },
     {
       category: 'pLoF',
-      expected: formatNumber(props.data.exp_lof, 1),
-      observed: formatNumber(props.data.obs_lof, 0),
-      z_score: props.data.lof_z,
-      oe: props.data.oe_lof,
-      oe_lower: props.data.oe_lof_lower,
-      oe_upper: props.data.oe_lof_upper,
-      pLI: props.data.pLI
+      expected: formatNumber(constraintData.value.exp_lof, 1),
+      observed: formatNumber(constraintData.value.obs_lof, 0),
+      z_score: constraintData.value.lof_z,
+      oe: constraintData.value.oe_lof,
+      oe_lower: constraintData.value.oe_lof_lower,
+      oe_upper: constraintData.value.oe_lof_upper,
+      pLI: constraintData.value.pLI
     }
   ]
 })
@@ -209,8 +206,7 @@ function getCIAriaLabel(item: any): string {
 
 <style scoped>
 .constraint-card {
-  min-height: 300px;
-  border: none;
+  /* Match gene info card styling — no shadow, dark border */
 }
 
 .metrics-cell {

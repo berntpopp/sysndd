@@ -58,27 +58,20 @@
       <div class="container-fluid">
         <BContainer fluid>
           <BRow class="justify-content-md-center pt-2">
-            <BCol col md="12">
-              <BRow class="mb-3">
-                <BCol cols="12" lg="6" class="mb-3">
-                  <GeneConstraintCard
-                    :gene-symbol="geneSymbol"
-                    :loading="gnomad.loading.value"
-                    :error="gnomad.error.value"
-                    :data="gnomad.data.value"
-                    @retry="retryExternalData"
-                  />
-                </BCol>
-                <BCol cols="12" lg="6" class="mb-3">
-                  <GeneClinVarCard
-                    :gene-symbol="geneSymbol"
-                    :loading="clinvar.loading.value"
-                    :error="clinvar.error.value"
-                    :data="clinvar.data.value"
-                    @retry="retryExternalData"
-                  />
-                </BCol>
-              </BRow>
+            <BCol cols="12" md="6" class="mb-2">
+              <GeneConstraintCard
+                :gene-symbol="geneSymbol"
+                :constraints-json="gnomadConstraintsJson"
+              />
+            </BCol>
+            <BCol cols="12" md="6" class="mb-2">
+              <GeneClinVarCard
+                :gene-symbol="geneSymbol"
+                :loading="clinvar.loading.value"
+                :error="clinvar.error.value"
+                :data="clinvar.data.value"
+                @retry="retryExternalData"
+              />
             </BCol>
           </BRow>
         </BContainer>
@@ -134,8 +127,15 @@ const filterInput = computed(() =>
     : ''
 );
 
-// External genomic data (gnomAD constraints, ClinVar variants)
-const { gnomad, clinvar, fetchData: fetchExternalData, retry: retryExternalData } = useGeneExternalData(geneSymbol);
+// gnomAD constraint data from gene endpoint (pre-annotated in DB)
+const gnomadConstraintsJson = computed(() => gene.value?.gnomad_constraints?.[0] || null);
+
+// AlphaFold model identifier from gene endpoint (used by Phase 45 3D protein structure viewer)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const alphafoldId = computed(() => gene.value?.alphafold_id?.[0] || null);
+
+// ClinVar data (fetched live from per-source endpoint)
+const { clinvar, fetchData: fetchExternalData, retry: retryExternalData } = useGeneExternalData(geneSymbol);
 
 // Data loading (preserve existing logic)
 async function loadGeneInfo() {
@@ -161,7 +161,7 @@ async function loadGeneInfo() {
   }
   loading.value = false;
 
-  // Fetch external data after gene data loads successfully
+  // Fetch ClinVar data after gene data loads successfully
   if (geneData.value.length > 0) {
     fetchExternalData();
   }

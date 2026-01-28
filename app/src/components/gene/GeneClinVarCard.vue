@@ -1,19 +1,22 @@
 <template>
   <BCard
-    class="clinvar-card shadow-sm"
+    class="clinvar-card"
+    body-class="p-0"
+    header-class="p-1"
+    border-variant="dark"
     role="region"
     aria-label="ClinVar variant summary"
   >
     <template #header>
       <div class="d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">ClinVar Variants ({{ totalCount }})</h5>
+        <span class="fw-semibold small">ClinVar Variants ({{ totalCount }})</span>
         <BButton
           variant="link"
           size="sm"
           :href="`https://www.ncbi.nlm.nih.gov/clinvar/?term=${geneSymbol}[gene]`"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-decoration-none"
+          class="text-decoration-none p-0"
         >
           <i class="bi bi-box-arrow-up-right"></i>
         </BButton>
@@ -21,13 +24,13 @@
     </template>
 
     <!-- Loading State -->
-    <div v-if="loading" class="text-center py-5">
-      <BSpinner label="Loading ClinVar data..." role="status" />
+    <div v-if="loading" class="text-center py-3">
+      <BSpinner label="Loading ClinVar data..." role="status" small />
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="text-center py-4" role="alert">
-      <p class="text-muted mb-3">{{ error }}</p>
+    <div v-else-if="error" class="text-center py-3" role="alert">
+      <p class="text-muted mb-2 small">{{ error }}</p>
       <BButton
         variant="outline-primary"
         size="sm"
@@ -38,13 +41,13 @@
     </div>
 
     <!-- No Data State -->
-    <div v-else-if="totalCount === 0" class="text-center py-4">
+    <div v-else-if="totalCount === 0" class="text-center py-3">
       <i class="bi bi-info-circle text-muted me-2"></i>
-      <span class="text-muted">No ClinVar variants available for this gene</span>
+      <span class="text-muted small">No ClinVar variants available for this gene</span>
     </div>
 
     <!-- ACMG Badge Row -->
-    <div v-else class="d-flex flex-wrap gap-2 p-3">
+    <div v-else class="d-flex flex-wrap gap-2 px-3 py-2">
       <BBadge
         v-if="counts.pathogenic > 0"
         variant="danger"
@@ -158,8 +161,7 @@ const totalCount = computed(() => {
 
 <style scoped>
 .clinvar-card {
-  min-height: 200px;
-  border: none;
+  /* Match gene info card styling — no shadow, dark border */
 }
 
 /* Custom badge color for Likely Pathogenic (orange) */
