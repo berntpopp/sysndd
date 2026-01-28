@@ -17,20 +17,20 @@
 
 ## Current Position
 
-**Phase:** 43 - Protein Domain Lollipop Plot (COMPLETE)
-**Plan:** 3 of 3 complete
-**Status:** Complete - lollipop plot visible on gene page
-**Progress:** ██████▒▱▱▱ 62% (Phase 43 complete, 4/7 phases done)
+**Phase:** 44 - Gene Structure Visualization (IN PROGRESS)
+**Plan:** 1 of 2 complete
+**Status:** In progress - types and D3 composable complete
+**Progress:** ██████▒▱▱▱ 63% (Phase 44 Plan 01 complete)
 
-**Last completed:** 43-03 - Card wrapper and GeneView integration (2026-01-28)
-**Next step:** Execute Phase 44 (Gene Structure Visualization) or Phase 45 (3D Protein Structure Viewer).
+**Last completed:** 44-01 - Ensembl gene structure types and D3 composable (2026-01-28)
+**Next step:** Execute Phase 44-02 (GeneStructureCard component) or continue Phase 45.
 
 ---
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 210
+- Total plans completed: 211
 - Milestones shipped: 7 (v1-v7)
 - Phases completed: 40
 
@@ -180,6 +180,28 @@
   - onBeforeUnmount cleanup for memory leak prevention
   - onVariantClick/onVariantHover callbacks for Phase 45 3D viewer linking
 
+**Gene Structure Visualization Foundation (Phase 44-01):**
+- **TypeScript interfaces (app/src/types/ensembl.ts):**
+  - EnsemblGeneStructure: Backend API response (gene_id, chromosome, start, end, strand, canonical_transcript)
+  - ClassifiedExon: Exon with type classification ('coding' | '5_utr' | '3_utr') and genomic order exonNumber
+  - GeneStructureRenderData: Fully processed data ready for D3 (exons, introns, strand as '+'/'-', gene length)
+  - Intron: Calculated gap between consecutive exons
+- **Helper functions:**
+  - classifyExons(): CDS-aware UTR classification with optional cdsStart/cdsEnd params (graceful degradation to all 'coding')
+  - calculateIntrons(): Computes gaps between consecutive exons
+  - formatGenomicCoordinate(): Abbreviates coordinates as Mb/kb/bp (12.35 Mb, 45.6 kb, 456 bp)
+  - processEnsemblResponse(): Orchestrates full processing pipeline (classify, calculate, convert strand)
+- **useD3GeneStructure composable (app/src/composables/useD3GeneStructure.ts):**
+  - Non-reactive D3 state (let svg, let tooltipDiv, not ref) following useCytoscape pattern
+  - Absolute SVG width (NOT viewBox) for readable coordinates: geneLength * PIXELS_PER_BP (0.05 = 1kb→50px)
+  - Horizontal scrolling via scroll container width setting
+  - UCSC convention: CODING_HEIGHT=20px (tall), UTR_HEIGHT=10px (short)
+  - Strand arrow markers: SVG marker-end on each intron line (right-pointing for +, left-pointing for -)
+  - Coordinate axis with formatGenomicCoordinate() tick labels
+  - Adaptive scale bar (10kb/1kb/100bp based on gene length)
+  - Tooltip with exon details and viewport edge detection
+  - onBeforeUnmount cleanup for memory leak prevention
+
 **Critical Pitfalls to Avoid:**
 1. Vue Proxy wrapping of Three.js/WebGL objects - use `markRaw()` or non-reactive variables
 2. WebGL context leaks - call `stage.dispose()` in cleanup
@@ -209,21 +231,21 @@
 - [ ] Phase 41: Gene Page Redesign (10 requirements)
 - [x] Phase 42: Constraint Scores & Variant Summaries (13 requirements) ✓
 - [x] Phase 43: Protein Domain Lollipop Plot (11 requirements) ✓
-- [ ] Phase 44: Gene Structure Visualization (4 requirements)
+- [ ] Phase 44: Gene Structure Visualization (4 requirements) — 1/2 plans complete
 - [ ] Phase 45: 3D Protein Structure Viewer (9 requirements)
 - [ ] Phase 46: Model Organism Phenotypes & Final Integration (5 requirements)
 
 ### Blockers/Concerns
 
-**None** - Phases 40, 42, and 43 complete. Ready for Phase 44 or 45.
+**None** - Phase 44-01 complete. Ready for Phase 44-02 or Phase 45.
 
 ---
 
 ## Session Continuity
 
-**Last session:** 2026-01-28T21:41:32Z
-**Stopped at:** Phase 43 complete — all 3 plans executed
-**Next action:** Execute Phase 44 (Gene Structure Visualization) or Phase 45 (3D Protein Structure Viewer)
+**Last session:** 2026-01-28T23:26:08Z
+**Stopped at:** Phase 44-01 complete (Ensembl types and D3 composable)
+**Next action:** Execute Phase 44-02 (GeneStructureCard component) or Phase 45
 
 **Handoff notes:**
 
