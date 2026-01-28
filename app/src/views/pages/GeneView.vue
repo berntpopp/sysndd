@@ -97,6 +97,20 @@
         </BContainer>
       </div>
 
+      <!-- Gene Structure Visualization (GENSTRUCT-01 through GENSTRUCT-04) -->
+      <div class="container-fluid">
+        <BContainer fluid>
+          <BRow class="justify-content-md-center pt-2">
+            <BCol col md="12">
+              <GeneStructureCard
+                v-if="geneSymbol"
+                :gene-symbol="geneSymbol"
+              />
+            </BCol>
+          </BRow>
+        </BContainer>
+      </div>
+
       <!-- Associated Entities Table -->
       <TablesEntities
         v-if="geneData.length !== 0"
@@ -123,6 +137,7 @@ import ClinicalResourcesCard from '@/components/gene/ClinicalResourcesCard.vue';
 import GeneConstraintCard from '@/components/gene/GeneConstraintCard.vue';
 import GeneClinVarCard from '@/components/gene/GeneClinVarCard.vue';
 import ProteinDomainLollipopCard from '@/components/gene/ProteinDomainLollipopCard.vue';
+import GeneStructureCard from '@/components/gene/GeneStructureCard.vue';
 import TablesEntities from '@/components/tables/TablesEntities.vue';
 import type { GeneApiData } from '@/types/gene';
 
