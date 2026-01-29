@@ -23,12 +23,14 @@
     </div>
 
     <!-- Variant List (scrollable) -->
-    <div v-else class="variant-list" role="list" aria-label="ClinVar variants with protein positions">
+    <div v-else ref="listContainer" class="variant-list" role="list" aria-label="ClinVar variants with protein positions">
       <label
         v-for="item in mappableVariants"
         :key="item.variant.variant_id"
         class="variant-item"
         role="listitem"
+        @mouseenter="showTooltip($event, item)"
+        @mouseleave="hideTooltip"
       >
         <input
           type="checkbox"
@@ -51,11 +53,19 @@
         </span>
       </label>
     </div>
+
+    <!-- Single shared tooltip (positioned via JS) -->
+    <div
+      ref="tooltipEl"
+      class="variant-tooltip"
+      :style="tooltipStyle"
+      v-html="tooltipContent"
+    ></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, type CSSProperties } from 'vue';
 import { BButton } from 'bootstrap-vue-next';
 import type { ClinVarVariant } from '@/types/external';
 import {
@@ -78,6 +88,23 @@ const emit = defineEmits<{
 
 // Track selected residues for checkbox state
 const selectedResidues = ref<Set<number>>(new Set());
+
+// Refs for tooltip positioning
+const listContainer = ref<HTMLElement | null>(null);
+const tooltipEl = ref<HTMLElement | null>(null);
+
+// Tooltip state
+const tooltipContent = ref('');
+const tooltipVisible = ref(false);
+const tooltipPosition = ref({ top: 0, left: 0 });
+
+// Computed tooltip style
+const tooltipStyle = computed<CSSProperties>(() => ({
+  opacity: tooltipVisible.value ? 1 : 0,
+  visibility: tooltipVisible.value ? 'visible' : 'hidden',
+  top: `${tooltipPosition.value.top}px`,
+  left: `${tooltipPosition.value.left}px`,
+}));
 
 // Processable variant item (variant + parsed residue + ACMG info)
 interface MappableVariant {
@@ -135,6 +162,56 @@ function clearAll(): void {
   selectedResidues.value = new Set();
   emit('clear-all');
 }
+
+/**
+ * Show tooltip near the hovered element
+ * Uses position:fixed with viewport coordinates to avoid overflow clipping
+ */
+function showTooltip(event: MouseEvent, item: MappableVariant): void {
+  // Capture element rect synchronously before it might become stale
+  const targetElement = event.currentTarget as HTMLElement;
+  if (!targetElement) return;
+  const itemRect = targetElement.getBoundingClientRect();
+
+  const stars = '★'.repeat(item.variant.gold_stars) + '☆'.repeat(4 - item.variant.gold_stars);
+  tooltipContent.value = `
+    <strong>${item.variant.hgvsp || item.variant.variant_id}</strong><br/>
+    ${item.variant.hgvsc ? `<span style="color: #adb5bd; font-size: 11px;">${item.variant.hgvsc}</span><br/>` : ''}
+    <span style="color: ${item.color};">●</span> ${item.label}<br/>
+    <span style="color: #ffc107;">${stars}</span> ClinVar review
+  `.trim();
+
+  // Position calculation after content is set (need rAF for tooltip dimensions)
+  requestAnimationFrame(() => {
+    if (!tooltipEl.value) return;
+
+    const tooltipRect = tooltipEl.value.getBoundingClientRect();
+
+    // Position to the left of the item in viewport coordinates (for position:fixed)
+    let left = itemRect.left - tooltipRect.width - 10;
+    let top = itemRect.top + (itemRect.height / 2) - (tooltipRect.height / 2);
+
+    // Ensure tooltip stays within viewport bounds
+    const minTop = 10;
+    const maxTop = window.innerHeight - tooltipRect.height - 10;
+    top = Math.max(minTop, Math.min(maxTop, top));
+
+    // If tooltip would go off left edge, position to the right of item instead
+    if (left < 10) {
+      left = itemRect.right + 10;
+    }
+
+    tooltipPosition.value = { top, left };
+    tooltipVisible.value = true;
+  });
+}
+
+/**
+ * Hide tooltip
+ */
+function hideTooltip(): void {
+  tooltipVisible.value = false;
+}
 </script>
 
 <style scoped>
@@ -142,6 +219,7 @@ function clearAll(): void {
   display: flex;
   flex-direction: column;
   height: 100%;
+  position: relative;
 }
 
 .panel-header {
@@ -158,6 +236,7 @@ function clearAll(): void {
   overflow-y: auto;
   flex: 1;
   min-height: 0;
+  position: relative;
 }
 
 .variant-item {
@@ -171,7 +250,13 @@ function clearAll(): void {
 }
 
 .variant-item:hover {
-  background-color: #f8f9fa;
+  background-color: #e9ecef;
+}
+
+.variant-item:focus-within {
+  background-color: #e9ecef;
+  outline: 2px solid #0d6efd;
+  outline-offset: -2px;
 }
 
 .acmg-dot {
@@ -196,5 +281,35 @@ function clearAll(): void {
 
 .variant-class {
   font-size: 0.7rem;
+}
+
+/* Single shared tooltip - uses position:fixed to avoid overflow clipping */
+/* Matches lollipop plot D3 tooltip style */
+.variant-tooltip {
+  position: fixed;
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 9999;
+  pointer-events: none;
+  transition: opacity 0.15s, visibility 0.15s;
+  text-align: left;
+}
+
+/* Tooltip arrow pointing right (towards the item) */
+.variant-tooltip::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: transparent transparent transparent rgba(0, 0, 0, 0.85);
 }
 </style>
