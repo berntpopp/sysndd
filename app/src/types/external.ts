@@ -7,6 +7,8 @@
  * multiple sources (gnomAD, ClinVar, UniProt, Ensembl, AlphaFold, MGI, RGD) in parallel.
  */
 
+import type { AlphaFoldMetadata } from './alphafold';
+
 /**
  * gnomAD constraint scores for a gene
  *
@@ -148,11 +150,11 @@ export interface ExternalDataResponse {
       variant_count: number;
     };
 
-    // Other sources (uniprot, ensembl, alphafold, mgi, rgd) represented as unknown for now
+    // Other sources (uniprot, ensembl, mgi, rgd) represented as unknown for now
     // Will be typed in future plans when UI components consume them
     uniprot?: unknown;
     ensembl?: unknown;
-    alphafold?: unknown;
+    alphafold?: AlphaFoldMetadata;
     mgi?: unknown;
     rgd?: unknown;
   };
