@@ -19,13 +19,13 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 
 ## Current Position
 
-**Phase:** 50 - Backup Admin UI (Complete)
-**Plan:** 2 of 2 complete
+**Phase:** 51 - SMTP Testing Infrastructure (In progress)
+**Plan:** 1 of 1 complete
 **Status:** Phase complete
-**Progress:** ████░░░░░░ 57% (4/7 phases)
+**Progress:** █████░░░░░ 71% (5/7 phases)
 
-**Last completed:** 50-02-PLAN.md (ManageBackups Admin View)
-**Next step:** `/gsd:discuss-phase 51` to plan SMTP Testing Infrastructure
+**Last completed:** 51-01-PLAN.md (Mailpit SMTP Infrastructure)
+**Next step:** `/gsd:discuss-phase 52` to plan User Lifecycle E2E
 
 ---
 
@@ -37,7 +37,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 | 48 | Migration Auto-Run & Health | MIGR-04, MIGR-06 | Complete (2/2 plans) |
 | 49 | Backup API Layer | BKUP-01, BKUP-03, BKUP-05, BKUP-06 | Complete (2/2 plans) |
 | 50 | Backup Admin UI | BKUP-02, BKUP-04 | Complete (2/2 plans) |
-| 51 | SMTP Testing Infrastructure | SMTP-01, SMTP-02 | Not Started |
+| 51 | SMTP Testing Infrastructure | SMTP-01, SMTP-02 | Complete (1/1 plans) |
 | 52 | User Lifecycle E2E | SMTP-03, SMTP-04, SMTP-05 | Not Started |
 | 53 | Production Docker Validation | PROD-01, PROD-02, PROD-03, PROD-04 | Not Started |
 
@@ -49,9 +49,9 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 250
+- Total plans completed: 251
 - Milestones shipped: 8 (v1-v8)
-- Phases completed: 50
+- Phases completed: 51
 
 **By Milestone:**
 
@@ -126,38 +126,44 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 ## Session Continuity
 
 **Last session:** 2026-01-29
-**Stopped at:** Completed Phase 50 (Backup Admin UI)
-**Next action:** `/gsd:discuss-phase 51` to plan SMTP Testing Infrastructure
+**Stopped at:** Completed Phase 51 (SMTP Testing Infrastructure)
+**Next action:** `/gsd:discuss-phase 52` to plan User Lifecycle E2E
 
 **Handoff notes:**
 
-1. **Phase 50 complete (Backup Admin UI):**
-   - 50-01: GET /api/backup/download/:filename with path traversal protection
-   - 50-02: ManageBackups.vue (481 lines) with full backup management UI
-   - Verification passed (5/5 must-haves verified via code analysis)
-   - UI verified via Playwright automated testing
+1. **Phase 51 complete (SMTP Testing Infrastructure):**
+   - 51-01: Mailpit container + SMTP test endpoint
+   - Mailpit v1.28.4 running on localhost:8025 (Web UI) and localhost:1025 (SMTP)
+   - GET /api/admin/smtp/test endpoint for connection health monitoring
+   - Dev/test config profiles updated to use Mailpit (local changes only, config.yml gitignored)
 
-2. **BKUP requirements fulfilled:**
-   - BKUP-02: Admin UI displays backup list with download links
-   - BKUP-04: Restore requires typed confirmation ("RESTORE" to proceed)
+2. **SMTP requirements fulfilled:**
+   - SMTP-01 (partial): Mailpit container configured in docker-compose.dev.yml
+   - SMTP-02: GET /api/admin/smtp/test endpoint returns connection status
 
-3. **Complete Backup System:**
-   - API: list, create, restore, download endpoints
-   - UI: ManageBackups.vue with full CRUD operations
-   - Security: Administrator role required, type-to-confirm for restore
+3. **Complete SMTP Testing System:**
+   - Infrastructure: Mailpit container captures all outbound emails locally
+   - Monitoring: SMTP test endpoint with raw socketConnection (5s timeout)
+   - Configuration: Dev/test profiles point to 127.0.0.1:1025
+   - Security: Ports bound to 127.0.0.1 only, accepts any credentials in dev mode
 
 4. **Key patterns established:**
-   - Blob download: axios responseType blob + createObjectURL + programmatic anchor
-   - Type-to-confirm: exact case-sensitive string match for dangerous actions
-   - Progress display: status badge + step text + animated progress bar + elapsed time
-   - Binary file serving: R's readBin() with @serializer octet for raw bytes
+   - socketConnection for external service health checks (5s timeout)
+   - Security-first Docker port binding (127.0.0.1 only)
+   - MP_SMTP_AUTH_ACCEPT_ANY for dev environment flexibility
 
-5. **Ready for Phase 51 (SMTP Testing Infrastructure):**
-   - Mailpit container for local email capture
-   - SMTP test endpoint for connection validation
-   - Foundation for user lifecycle E2E testing in Phase 52
+5. **Ready for Phase 52 (User Lifecycle E2E):**
+   - Email infrastructure configured for testing
+   - Mailpit Web UI available for manual verification
+   - SMTP connection health monitoring endpoint ready
+   - Foundation for user registration, password reset, email verification flows
+
+6. **Important note on config.yml:**
+   - api/config.yml is gitignored (contains production credentials)
+   - Plan expected it to be committed but it's correctly excluded
+   - Developers need to update local config.yml manually for Mailpit settings
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-29 — Phase 50 complete (Backup Admin UI)*
+*Last updated: 2026-01-29 — Phase 51 complete (SMTP Testing Infrastructure)*
