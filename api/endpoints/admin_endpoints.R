@@ -624,5 +624,58 @@ function(req, res) {
 }
 
 
+#* Test SMTP connection status
+#*
+#* Attempts to connect to the configured SMTP server and returns
+#* connection status. Does not send any email.
+#*
+#* # `Authorization`
+#* Restricted to Administrator role.
+#*
+#* # `Return`
+#* - success: Boolean indicating if connection succeeded
+#* - host: SMTP host that was tested
+#* - port: SMTP port that was tested
+#* - error: Error message if connection failed (null on success)
+#*
+#* @tag admin
+#* @serializer unboxedJSON
+#* @get /smtp/test
+function(req, res) {
+  require_role(req, res, "Administrator")
+
+  smtp_host <- dw$mail_noreply_host
+  smtp_port <- as.integer(dw$mail_noreply_port)
+
+  result <- tryCatch({
+    # Attempt socket connection to SMTP server
+    con <- socketConnection(
+      host = smtp_host,
+      port = smtp_port,
+      open = "r+",
+      blocking = TRUE,
+      timeout = 5
+    )
+    close(con)
+
+    list(
+      success = TRUE,
+      host = smtp_host,
+      port = smtp_port,
+      error = NULL
+    )
+  }, error = function(e) {
+    list(
+      success = FALSE,
+      host = smtp_host,
+      port = smtp_port,
+      error = e$message
+    )
+  })
+
+  result
+}
+
+
 ## Administration section
 ## -------------------------------------------------------------------##
