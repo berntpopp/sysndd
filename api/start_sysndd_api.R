@@ -141,6 +141,7 @@ source("functions/pubtator-functions.R", local = TRUE)
 source("functions/ensembl-functions.R", local = TRUE)
 source("functions/job-manager.R", local = TRUE)
 source("functions/job-progress.R", local = TRUE)
+source("functions/backup-functions.R", local = TRUE)
 source("functions/ols-functions.R", local = TRUE)
 
 # Core security and error handling modules
@@ -574,6 +575,7 @@ root <- pr() %>%
   pr_mount("/api/auth", pr("endpoints/authentication_endpoints.R")) %>%
   pr_mount("/api/about", pr("endpoints/about_endpoints.R")) %>%
   pr_mount("/api/admin", pr("endpoints/admin_endpoints.R")) %>%
+  pr_mount("/api/backup", pr("endpoints/backup_endpoints.R")) %>%
   pr_mount("/api/external", pr("endpoints/external_endpoints.R")) %>%
   pr_mount("/api/statistics", pr("endpoints/statistics_endpoints.R")) %>%
   pr_mount("/api/variant", pr("endpoints/variant_endpoints.R")) %>%
