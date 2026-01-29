@@ -112,6 +112,7 @@ services:
       - ./api/data:/app/data
       - ./api/results:/app/results
       - api_cache:/app/cache
+      - mysql_backup:/backup:rw
       - ./api/config.yml:/app/config.yml
       - ./api/version_spec.json:/app/version_spec.json
       - ./api/start_sysndd_api.R:/app/start_sysndd_api.R
