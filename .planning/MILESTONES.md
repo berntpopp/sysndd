@@ -1,5 +1,42 @@
 # Project Milestones: SysNDD Developer Experience
 
+## v8.0 Gene Page & Genomic Data Integration (Shipped: 2026-01-29)
+
+**Delivered:** Transform the gene detail page from a flat identifier list into a modern genomic analysis interface with gnomAD constraint scores, ClinVar variant summaries, D3.js protein domain lollipop plots, gene structure visualization, 3D AlphaFold structure viewer with variant highlighting, and model organism phenotypes from MGI and RGD — all with WCAG 2.2 AA accessibility compliance.
+
+**Phases completed:** 40-46 (25 plans total)
+
+**Key accomplishments:**
+
+- Built backend proxy layer for 6 external APIs (gnomAD, UniProt, Ensembl, AlphaFold, MGI, RGD) with disk caching and rate limiting
+- Redesigned gene page with hero section, grouped identifier cards, and clinical resources grid
+- Created constraint score display with gnomAD-style SVG confidence interval bars (pLI, LOEUF, missense Z)
+- Built ClinVar variant summary with ACMG 5-class colored badges and pathogenicity breakdown
+- Implemented D3.js protein domain lollipop plot with UniProt domains and ClinVar variant mapping
+- Added gene structure visualization with exons, introns, UTRs, and strand orientation from Ensembl
+- Integrated NGL Viewer for 3D AlphaFold structure with pLDDT coloring and variant highlighting
+- Created model organism phenotype cards (MGI mouse, RGD rat) with zygosity breakdown
+
+**Stats:**
+
+- 24 files created (17 Vue components + 7 R proxy files)
+- ~8,000 lines of code (gene page components + proxy layer)
+- 7 phases, 25 plans
+- 143 commits
+- 3 days (2026-01-27 → 2026-01-29)
+
+**Git range:** `1918ee18` → `623b28d6`
+
+**Patterns established:**
+- External API proxy pattern (httr2 with memoise caching, per-source TTL)
+- Error isolation pattern (partial success with tryCatch per source)
+- Non-reactive WebGL pattern (let stage + markRaw() for Vue 3/NGL)
+- ResizeObserver pattern for lazy tab WebGL initialization
+
+**What's next:** Planning next milestone
+
+---
+
 ## v7.0 Curation Workflow Modernization (Shipped: 2026-01-27)
 
 **Delivered:** Transform curation views from basic forms into modern, accessible interfaces with hierarchical multi-select, reusable form composables, dynamic re-review batch management, and WCAG 2.2 AA accessibility compliance across all curation workflows.

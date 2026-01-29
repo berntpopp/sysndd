@@ -2,30 +2,26 @@
 
 ## What This Is
 
-Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v7 delivered modern curation workflows with hierarchical multi-select (custom TreeMultiSelect component), reusable form composables, dynamic re-review batch management system, and WCAG 2.2 AA accessibility compliance across all curation interfaces — building on v6's admin panel, v5's Cytoscape.js visualizations, v4's backend overhaul, v3's Vue 3 migration, v2's Docker infrastructure, and v1's developer tooling.
+Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v8 delivered a modern gene page with genomic data integration — gnomAD constraint scores, ClinVar variant summaries, D3.js protein domain lollipop plots, gene structure visualization, 3D AlphaFold structure viewer, and model organism phenotypes from MGI/RGD — all powered by a backend external API proxy layer with disk caching. Building on v7's curation workflows, v6's admin panel, v5's Cytoscape.js visualizations, v4's backend overhaul, v3's Vue 3 migration, v2's Docker infrastructure, and v1's developer tooling.
 
 ## Core Value
 
 A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-## Current State (v7.0 shipped 2026-01-27)
+## Current State (v8.0 shipped 2026-01-29)
 
 **Backend Stack:** 10/10
 - R 4.4.3 with 281 packages in renv.lock
 - Argon2id password hashing with progressive migration
 - 66 SQL injection vulnerabilities fixed (parameterized queries)
 - 8 domain repositories with 131 parameterized DB calls
-- 8 service layers with dependency injection (added re-review-service.R in v7)
+- 8 service layers with dependency injection
 - require_auth middleware with AUTH_ALLOWLIST pattern
 - mirai job system with 8-worker daemon pool + job history
 - OMIM via mim2gene.txt + JAX API + MONDO SSSOM mappings
 - RFC 9457 error format across all endpoints
-- 0 lintr issues (from 1,240), 0 TODO comments (from 29)
-- Leiden clustering algorithm (2-3x faster than Walktrap)
-- Bulk user endpoints (approve, delete, role assignment)
-- CMS draft/publish API with versioning
-- Statistics API (entities over time, contributor leaderboard)
-- Re-review batch management API (6 endpoints: create, preview, reassign, archive, assign, recalculate)
+- 0 lintr issues, 0 TODO comments
+- External API proxy layer (gnomAD, UniProt, Ensembl, AlphaFold, MGI, RGD) with disk caching
 
 **Backend Testing:** 634 tests passing, 20.3% coverage, 24 integration tests
 
@@ -34,16 +30,16 @@ A new developer can clone the repo and be productive within minutes, with confid
 - TypeScript 5.9.3 with branded domain types
 - Bootstrap-Vue-Next 0.42.0 with Bootstrap 5.3.8
 - Vite 7.3.1 (164ms dev startup, ~600 KB gzipped bundle)
-- 23 Vue 3 composables (added curation composables in v7)
+- 28 Vue 3 composables (added 5 gene page composables in v8)
 - WCAG 2.2 AA compliance with vitest-axe accessibility tests
 - Chart.js + vue-chartjs for statistics visualizations
 - Cytoscape.js for network and phenotype cluster visualizations
+- D3.js for protein domain lollipop plots and gene structure visualization
+- NGL Viewer for 3D AlphaFold structure with variant highlighting
 - Custom TreeMultiSelect component (replaced vue3-treeselect)
-- GeneBadge, DiseaseBadge, EntityBadge reusable UI components
-- SkipLink, AriaLiveRegion, IconLegend accessibility components
+- 17 gene page components (GeneHero, IdentifierCard, GeneConstraintCard, GeneClinVarCard, ProteinDomainLollipopPlot, GeneStructurePlot, ProteinStructure3D, ModelOrganismsCard, etc.)
 - Module-level caching pattern for admin tables
 - URL-synced filter state with VueUse
-- marked + DOMPurify for CMS markdown rendering
 
 **Frontend Testing:** 144 tests + 6 accessibility test suites with Vitest + Vue Test Utils + vitest-axe
 
@@ -221,20 +217,22 @@ A new developer can clone the repo and be productive within minutes, with confid
 - ✓ useAriaLive composable with dual feedback pattern — v7
 - ✓ vitest-axe accessibility tests for all 6 curation views — v7
 
+<!-- Shipped in v8 -->
+
+- ✓ Gene page redesign with hero section, grouped cards, copy-to-clipboard — v8
+- ✓ Backend external API proxy layer (gnomAD, UniProt, Ensembl, AlphaFold, MGI/RGD) — v8
+- ✓ Server-side caching for external API responses (memoise + cachem) — v8
+- ✓ gnomAD constraint scores display (pLI, LOEUF, mis_z) on gene detail page — v8
+- ✓ ClinVar variant summary via gnomAD GraphQL API — v8
+- ✓ Protein domain lollipop plot (D3.js) with ClinVar variant mapping — v8
+- ✓ 3D protein structure viewer (NGL.js) with AlphaFold structures and variant highlighting — v8
+- ✓ Enhanced model organism phenotype data (MGI/RGD via backend proxy) — v8
+- ✓ Gene structure visualization with exon/intron display — v8
+- ✓ Reusable gene page components (IdentifierRow, ResourceLink, etc.) — v8
+
 ### Active
 
-<!-- v8.0 Gene Page & Genomic Data Integration -->
-
-- [ ] Gene page redesign with hero section, grouped cards, copy-to-clipboard
-- [ ] Backend external API proxy layer (gnomAD, UniProt, Ensembl, AlphaFold, MGI/RGD)
-- [ ] Server-side caching for external API responses (memoise + cachem)
-- [ ] gnomAD constraint scores display (pLI, LOEUF, mis_z) on gene detail page
-- [ ] ClinVar variant summary via gnomAD GraphQL API
-- [ ] Protein domain lollipop plot (D3.js) with ClinVar variant mapping
-- [ ] 3D protein structure viewer (NGL.js or Mol*) with AlphaFold structures and variant highlighting
-- [ ] Enhanced model organism phenotype data (MGI/RGD via backend proxy)
-- [ ] Gene structure visualization with exon/intron display
-- [ ] Reusable gene page components (IdentifierRow, ResourceLink, etc.)
+(No active requirements — planning next milestone)
 
 ### Out of Scope
 
@@ -248,44 +246,32 @@ A new developer can clone the repo and be productive within minutes, with confid
 - STRINGdb v12.0 upgrade — requires database migration
 - PrimeVue TreeSelect — using Bootstrap-Vue-Next only for ecosystem consistency
 - Server-side pagination for curation tables — client-side sufficient for current data volumes
-- gnomAD constraint columns in gene table — gene detail page only for v8
+- gnomAD constraint columns in gene table — gene detail page only for v8, may revisit in v9
 - Direct frontend calls to external APIs — all routed through R/Plumber backend
 
 ## Context
 
-**After v7:**
-- All curation views modernized with consistent UX (search, filters, pagination, accessibility)
-- Custom TreeMultiSelect replaced vue3-treeselect dependency (zero external tree libraries)
-- 3 badge components (GeneBadge, DiseaseBadge, EntityBadge) reused across 13 files
-- 3 form composables (useReviewForm, useStatusForm, useFormDraft) reduce 665 lines of duplication
-- Complete re-review batch management system (service → endpoints → composable → component → view)
-- WCAG 2.2 AA accessibility pass with SkipLink, AriaLiveRegion, IconLegend, vitest-axe tests
-- 23 Vue 3 composables total (7 original + 6 admin + 10 curation)
-- 8 service layers total (7 original + re-review-service.R)
+**After v8:**
+- Gene page transformed from flat identifier list to modern genomic analysis interface
+- Backend proxy layer for 6 external APIs with disk caching (30d/14d/7d TTL)
+- 17 new Vue components for gene page (GeneHero, IdentifierCard, GeneConstraintCard, etc.)
+- 5 new composables (useGeneExternalData, useModelOrganismData, useD3Lollipop, useD3GeneStructure, use3DStructure)
+- D3.js for protein domain lollipop and gene structure visualizations
+- NGL Viewer for 3D AlphaFold structure with pLDDT coloring and variant highlighting
+- WCAG 2.2 AA accessibility compliance maintained across all new components
+- 28 Vue 3 composables total (7 original + 6 admin + 10 curation + 5 gene page)
 
 **Minor tech debt (non-blocking):**
 - FDR column sorting needs sortCompare for scientific notation
 - ScoreSlider presets need domain-specific values
 - Correlation heatmap → cluster navigation (architectural limitation)
 - ModifyEntity review modal not yet refactored to useReviewForm
-- No unit tests for form composables
-- TreeMultiSelect performance with >1000 nodes not validated
-- A11Y-05 (keyboard navigation) needs manual human verification
+- useModelOrganismData not in composables barrel export (direct import works)
+- console.log in ProteinDomainLollipopCard.vue:249 (placeholder for zoom reset feature)
 
-**GitHub Issues (cleaned up 2026-01-27):**
-
-Section 1.1 — Closed (11 issues, GSD milestone evidence):
-- #109, #121, #123, #118, #101, #61, #100, #21, #10, #107, #19
-
-Section 1.2 — Verified & Closed (13 issues, Playwright/curl/code review):
-- #6, #42, #116, #4, #35, #38, #31, #117, #62, #102, #103, #104, #106
-
-Direct fix — Closed (1 issue):
-- #119: Tutorial video link typo (commit `c7738cb`)
-
-Total closed during triage: **25 issues**
-Failed verification: #115 (GAP43 orphaned entity — remains open)
-See `.planning/ISSUE-TRIAGE-REPORT.md` for full triage of remaining ~49 open issues
+**GitHub Issues:**
+- See `.planning/ISSUE-TRIAGE-REPORT.md` for triage of open issues
+- #115 (GAP43 orphaned entity) remains open
 
 **Codebase map:** See `.planning/codebase/` for detailed analysis
 
@@ -357,20 +343,12 @@ See `.planning/ISSUE-TRIAGE-REPORT.md` for full triage of remaining ~49 open iss
 | Entity overlap prevention in batches | Exclusion subquery prevents double-assignment | ✓ Good |
 | Dual feedback pattern | makeToast (visual) + announce (screen reader) for a11y | ✓ Good |
 | vitest-axe for accessibility testing | Industry-standard axe-core, catches ~57% WCAG issues | ✓ Good |
-
-## Current Milestone: v8.0 Gene Page & Genomic Data Integration
-
-**Goal:** Transform the gene detail page from a flat identifier list into a modern genomic analysis interface with gnomAD constraint scores, ClinVar variant data, protein domain/structure visualizations, and enhanced model organism phenotypes — all powered by a new backend external API proxy layer with server-side caching.
-
-**Target features:**
-- Redesigned gene page with hero section, grouped information cards, copy-to-clipboard
-- Backend proxy endpoints for gnomAD GraphQL, UniProt REST, Ensembl REST, AlphaFold, MGI/RGD
-- gnomAD constraint scores (pLI, LOEUF, missense Z) with visual gauges
-- ClinVar variant summary and detail via gnomAD API
-- D3.js protein domain lollipop plot with variant mapping and filtering
-- 3D AlphaFold structure viewer with variant highlighting (NGL.js or Mol* — research phase decides)
-- Enhanced model organism phenotype cards
-- Gene structure visualization (exons/introns from Ensembl)
+| httr2 for external API proxying | Modern R HTTP client with retry/throttle built-in | ✓ Good |
+| memoise + cachem for API caching | Disk-based caching with per-source TTL | ✓ Good |
+| NGL Viewer over Mol* | Smaller footprint, simpler API for single structure viewing | ✓ Good |
+| Non-reactive NGL Stage | let stage (not ref()) prevents Vue proxy issues with WebGL | ✓ Good |
+| ResizeObserver for lazy tab init | Detects valid container dimensions for WebGL in hidden tabs | ✓ Good |
+| Error isolation in aggregation | tryCatch per source returns partial data on failures | ✓ Good |
 
 ---
-*Last updated: 2026-01-27 after v8.0 milestone initialized*
+*Last updated: 2026-01-29 after v8.0 milestone shipped*
