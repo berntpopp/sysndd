@@ -82,10 +82,10 @@ Requirements for v8.0 release. Each maps to roadmap phases.
 
 ### Model Organism Phenotypes (ORGANISM)
 
-- [ ] **ORGANISM-01**: Mouse phenotype card displays phenotype count from MGI with zygosity breakdown
-- [ ] **ORGANISM-02**: Rat phenotype card displays available phenotype data from RGD
-- [ ] **ORGANISM-03**: Phenotype data fetched via backend proxy (not direct frontend calls)
-- [ ] **ORGANISM-04**: Graceful empty state when no phenotype data available
+- [x] **ORGANISM-01**: Mouse phenotype card displays phenotype count from MGI with zygosity breakdown
+- [x] **ORGANISM-02**: Rat phenotype card displays available phenotype data from RGD
+- [x] **ORGANISM-03**: Phenotype data fetched via backend proxy (not direct frontend calls)
+- [x] **ORGANISM-04**: Graceful empty state when no phenotype data available
 
 ### Frontend Composables (COMPOSE)
 
@@ -101,7 +101,7 @@ Requirements for v8.0 release. Each maps to roadmap phases.
 - [ ] **A11Y-02**: Constraint score gauges have aria-label with numeric values
 - [ ] **A11Y-03**: Copy-to-clipboard buttons have descriptive aria-labels
 - [ ] **A11Y-04**: 3D viewer has keyboard-accessible controls
-- [ ] **A11Y-05**: Color coding (ACMG) is supplemented with text labels (not color-only)
+- [x] **A11Y-05**: Color coding (ACMG) is supplemented with text labels (not color-only)
 
 ## v2 Requirements
 
@@ -196,10 +196,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STRUCT3D-06 | Phase 45 | Pending |
 | STRUCT3D-07 | Phase 45 | Pending |
 | STRUCT3D-08 | Phase 45 | Pending |
-| ORGANISM-01 | Phase 46 | Pending |
-| ORGANISM-02 | Phase 46 | Pending |
-| ORGANISM-03 | Phase 46 | Pending |
-| ORGANISM-04 | Phase 46 | Pending |
+| ORGANISM-01 | Phase 46 | Complete |
+| ORGANISM-02 | Phase 46 | Complete |
+| ORGANISM-03 | Phase 46 | Complete |
+| ORGANISM-04 | Phase 46 | Complete |
 | COMPOSE-01 | Phase 42 | Pending |
 | COMPOSE-02 | Phase 42 | Pending |
 | COMPOSE-03 | Phase 42 | Pending |
@@ -209,7 +209,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | A11Y-02 | Phase 42 | Pending |
 | A11Y-03 | Phase 43 | Pending |
 | A11Y-04 | Phase 45 | Pending |
-| A11Y-05 | Phase 46 | Pending |
+| A11Y-05 | Phase 46 | Complete |
 
 **Coverage:**
 - v1 requirements: 57 total
@@ -220,4 +220,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-27*
-*Last updated: 2026-01-27 after roadmap creation*
+*Last updated: 2026-01-29 — Phase 46 complete*
