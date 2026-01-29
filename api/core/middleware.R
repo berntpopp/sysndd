@@ -30,6 +30,8 @@ AUTH_ALLOWLIST <- c(
   "/api/auth/refresh",
   "/health",
   "/health/",
+  "/health/ready",
+  "/health/ready/",
   "/api/version",
   "/api/version/",
   "/__docs__/",
