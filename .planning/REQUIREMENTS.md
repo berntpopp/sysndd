@@ -9,11 +9,11 @@ Requirements for production readiness milestone. Each maps to roadmap phases.
 
 ### Migration System
 
-- [ ] **MIGR-01**: System creates schema_version table to track applied migrations
-- [ ] **MIGR-02**: Migrations execute sequentially in numeric order (001, 002, 003...)
-- [ ] **MIGR-03**: Migration runner is idempotent (safe to run multiple times)
+- [x] **MIGR-01**: System creates schema_version table to track applied migrations
+- [x] **MIGR-02**: Migrations execute sequentially in numeric order (001, 002, 003...)
+- [x] **MIGR-03**: Migration runner is idempotent (safe to run multiple times)
 - [ ] **MIGR-04**: API startup auto-detects and applies missing migrations
-- [ ] **MIGR-05**: Migration 002 rewritten to be idempotent (IF NOT EXISTS guards)
+- [x] **MIGR-05**: Migration 002 rewritten to be idempotent (IF NOT EXISTS guards)
 - [ ] **MIGR-06**: Health endpoint reports pending migrations count
 
 ### Backup Management
@@ -71,11 +71,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MIGR-01 | Phase 47 | Pending |
-| MIGR-02 | Phase 47 | Pending |
-| MIGR-03 | Phase 47 | Pending |
+| MIGR-01 | Phase 47 | Complete |
+| MIGR-02 | Phase 47 | Complete |
+| MIGR-03 | Phase 47 | Complete |
 | MIGR-04 | Phase 48 | Pending |
-| MIGR-05 | Phase 47 | Pending |
+| MIGR-05 | Phase 47 | Complete |
 | MIGR-06 | Phase 48 | Pending |
 | BKUP-01 | Phase 49 | Pending |
 | BKUP-02 | Phase 50 | Pending |
@@ -100,4 +100,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-29*
-*Last updated: 2026-01-29 after roadmap creation*
+*Last updated: 2026-01-29 after Phase 47 completion*
