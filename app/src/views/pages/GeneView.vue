@@ -77,6 +77,26 @@
         </BContainer>
       </div>
 
+      <!-- Model Organisms Card (MGI + RGD phenotypes) -->
+      <div class="container-fluid">
+        <BContainer fluid>
+          <BRow class="justify-content-md-center pt-2">
+            <BCol cols="12" md="6" class="mb-2">
+              <ModelOrganismsCard
+                :gene-symbol="geneSymbol"
+                :mgi-loading="mgi.loading.value"
+                :mgi-error="mgi.error.value"
+                :mgi-data="mgi.data.value"
+                :rgd-loading="rgd.loading.value"
+                :rgd-error="rgd.error.value"
+                :rgd-data="rgd.data.value"
+                @retry="retryModelOrganismData"
+              />
+            </BCol>
+          </BRow>
+        </BContainer>
+      </div>
+
       <!-- Genomic Visualizations: Protein View / Gene Structure / 3D Structure (Tabbed) -->
       <div class="container-fluid">
         <BContainer fluid>
@@ -122,12 +142,14 @@ import { useRoute, useRouter } from 'vue-router';
 import { useHead } from '@unhead/vue';
 import { useToast } from '@/composables';
 import { useGeneExternalData } from '@/composables/useGeneExternalData';
+import { useModelOrganismData } from '@/composables/useModelOrganismData';
 import axios from 'axios';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import IdentifierCard from '@/components/gene/IdentifierCard.vue';
 import ClinicalResourcesCard from '@/components/gene/ClinicalResourcesCard.vue';
 import GeneConstraintCard from '@/components/gene/GeneConstraintCard.vue';
 import GeneClinVarCard from '@/components/gene/GeneClinVarCard.vue';
+import ModelOrganismsCard from '@/components/gene/ModelOrganismsCard.vue';
 import GenomicVisualizationTabs from '@/components/gene/GenomicVisualizationTabs.vue';
 import TablesEntities from '@/components/tables/TablesEntities.vue';
 import type { GeneApiData } from '@/types/gene';
@@ -186,6 +208,9 @@ const alphafoldId = computed(() => gene.value?.alphafold_id?.[0] || null);
 // ClinVar and AlphaFold data (fetched live from per-source endpoints)
 const { clinvar, alphafold, fetchData: fetchClinvarData, retry: retryExternalData } = useGeneExternalData(geneSymbol);
 
+// Model organism data (MGI + RGD)
+const { mgi, rgd, fetchData: fetchModelOrganismData, retry: retryModelOrganismData } = useModelOrganismData(geneSymbol);
+
 // UniProt domain data state (fetched inline since composable is ClinVar-only)
 const uniprotData = ref<UniProtData | null>(null);
 const uniprotLoading = ref(false);
@@ -229,11 +254,11 @@ async function fetchUniprotData(): Promise<void> {
 }
 
 /**
- * Fetch all external data (ClinVar + UniProt)
+ * Fetch all external data (ClinVar + UniProt + Model Organisms)
  */
 async function fetchExternalData(): Promise<void> {
-  // Fetch both in parallel
-  await Promise.all([fetchClinvarData(), fetchUniprotData()]);
+  // Fetch all sources in parallel
+  await Promise.all([fetchClinvarData(), fetchUniprotData(), fetchModelOrganismData()]);
 }
 
 /**
