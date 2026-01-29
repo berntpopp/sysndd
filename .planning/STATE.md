@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 **Progress:** ██░░░░░░░░ 29% (2/7 phases)
 
 **Last completed:** 48-02-PLAN.md (Readiness Health Endpoint)
-**Next step:** Start Phase 49 (Backup API Layer)
+**Next step:** `/gsd:discuss-phase 49` to plan Backup API Layer
 
 ---
 
@@ -127,7 +127,7 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 
 **Last session:** 2026-01-29
 **Stopped at:** Completed 48-02-PLAN.md
-**Next action:** Start Phase 49 (Backup API Layer)
+**Next action:** `/gsd:discuss-phase 49` to plan Backup API Layer
 
 **Handoff notes:**
 
