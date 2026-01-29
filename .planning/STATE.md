@@ -20,12 +20,12 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 ## Current Position
 
 **Phase:** 49 - Backup API Layer (In Progress)
-**Plan:** 1 of 3 complete
+**Plan:** 2 of 3 complete
 **Status:** In progress
-**Progress:** ███░░░░░░░ 36% (3/7 phases, 1/3 plans in phase 49)
+**Progress:** ███░░░░░░░ 37% (3/7 phases, 2/3 plans in phase 49)
 
-**Last completed:** 49-01-PLAN.md (Backup Infrastructure & List Endpoint)
-**Next step:** `/gsd:plan-phase 49` to create 49-02 (Backup Creation Endpoint)
+**Last completed:** 49-02-PLAN.md (Backup Creation & Restore Endpoints)
+**Next step:** `/gsd:plan-phase 49` to create 49-03 (final plan in phase)
 
 ---
 
@@ -35,7 +35,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 |-------|------|--------------|--------|
 | 47 | Migration System Foundation | MIGR-01, MIGR-02, MIGR-03, MIGR-05 | Complete |
 | 48 | Migration Auto-Run & Health | MIGR-04, MIGR-06 | Complete (2/2 plans) |
-| 49 | Backup API Layer | BKUP-01, BKUP-03, BKUP-05, BKUP-06 | In Progress (1/3 plans) |
+| 49 | Backup API Layer | BKUP-01, BKUP-03, BKUP-05, BKUP-06 | In Progress (2/3 plans) |
 | 50 | Backup Admin UI | BKUP-02, BKUP-04 | Not Started |
 | 51 | SMTP Testing Infrastructure | SMTP-01, SMTP-02 | Not Started |
 | 52 | User Lifecycle E2E | SMTP-03, SMTP-04, SMTP-05 | Not Started |
@@ -126,29 +126,29 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 ## Session Continuity
 
 **Last session:** 2026-01-29
-**Stopped at:** Completed 49-01-PLAN.md
-**Next action:** `/gsd:plan-phase 49` to create 49-02 (Backup Creation Endpoint)
+**Stopped at:** Completed 49-02-PLAN.md
+**Next action:** `/gsd:plan-phase 49` to create 49-03 (final plan in phase 49)
 
 **Handoff notes:**
 
-1. **Phase 49-01 complete (Backup Infrastructure & List Endpoint):**
-   - mysql_backup volume mounted to API container at /backup:rw
-   - GET /api/backup/list endpoint with pagination (20/page)
-   - api/functions/backup-functions.R provides list_backup_files() and get_backup_metadata()
-   - fs::dir_info() pattern for efficient file listing with metadata
-   - Administrator role enforcement via require_role middleware
+1. **Phase 49-02 complete (Backup Creation & Restore Endpoints):**
+   - POST /api/backup/create triggers async manual backups
+   - POST /api/backup/restore with automatic pre-restore safety backup (BKUP-05)
+   - Concurrent backup protection via check_duplicate_job() (409 Conflict)
+   - Job manager integration: 10 min timeout, 5 sec polling interval
+   - Progress messages for backup operations in job status
 
-2. **Ready for Phase 49-02 (Backup Creation):**
-   - Volume mount has write access (:rw) for creating backups
-   - Job manager ready for async mysqldump operations
-   - Backup functions module loaded at startup
-   - Pattern established: backup-functions.R → backup_endpoints.R → mounted at /api/backup
+2. **Ready for Phase 49-03 (if additional features):**
+   - Full REST API operational: list, create, restore
+   - Async job pattern with proper error handling
+   - Safety mechanisms in place (pre-restore, concurrency control)
+   - Administrator role enforcement across all endpoints
 
-3. **Key decisions from Phase 49-01:**
-   - Use fs::dir_info() for file operations (size, mtime, filtering)
-   - Return table_count as NA_integer_ initially (compute lazily if needed)
-   - 20 backups per page matching other admin endpoints
-   - Sort: newest-first default, optional oldest-first query param
+3. **Key decisions from Phase 49-02:**
+   - Manual backup naming: manual_YYYY-MM-DD_HH-MM-SS.sql
+   - Pre-restore naming: pre-restore_YYYY-MM-DD_HH-MM-SS.sql
+   - Block restore if pre-restore fails (503 Service Unavailable)
+   - system2() with mysqldump for backup execution
 
 ---
 
