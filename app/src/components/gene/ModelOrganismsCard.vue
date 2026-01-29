@@ -89,14 +89,59 @@
 
           <!-- MGI Data -->
           <div v-else-if="mgiData" class="d-flex flex-wrap gap-1 align-items-center">
-            <!-- Phenotype count with tooltip showing sample terms -->
+            <!-- Phenotype count badge - clickable to show popover -->
             <span
-              v-b-tooltip.hover="mgiTooltipContent"
-              class="badge bg-primary cursor-help"
-              :aria-label="`${mgiData.phenotype_count} mouse phenotypes from MGI`"
+              :id="mgiPopoverId"
+              class="badge bg-primary phenotype-badge"
+              :class="{ 'phenotype-badge-clickable': mgiData.phenotype_count > 0 }"
+              :aria-label="`${mgiData.phenotype_count} mouse phenotypes from MGI. ${mgiData.phenotype_count > 0 ? 'Click to see all.' : ''}`"
+              role="button"
+              tabindex="0"
+              @click="mgiData.phenotype_count > 0 && toggleMgiPopover()"
+              @keydown.enter="mgiData.phenotype_count > 0 && toggleMgiPopover()"
             >
               {{ mgiData.phenotype_count }} phenotype{{ mgiData.phenotype_count === 1 ? '' : 's' }}
+              <i v-if="mgiData.phenotype_count > 0" class="bi bi-chevron-down ms-1 small"></i>
             </span>
+
+            <!-- MGI Phenotype Popover -->
+            <BPopover
+              v-if="mgiData.phenotype_count > 0"
+              :target="mgiPopoverId"
+              :model-value="showMgiPopover"
+              placement="bottom"
+              triggers="manual"
+              class="phenotype-popover"
+              @update:model-value="showMgiPopover = $event"
+            >
+              <template #title>
+                <div class="d-flex justify-content-between align-items-center">
+                  <span>Mouse Phenotypes ({{ mgiData.phenotype_count }})</span>
+                  <button
+                    type="button"
+                    class="btn-close btn-close-sm"
+                    aria-label="Close"
+                    @click="showMgiPopover = false"
+                  ></button>
+                </div>
+              </template>
+              <div class="phenotype-list">
+                <div
+                  v-for="(phenotype, index) in mgiData.phenotypes"
+                  :key="index"
+                  class="phenotype-item"
+                >
+                  <span class="phenotype-term">{{ phenotype.term || 'Unknown' }}</span>
+                  <span
+                    v-if="phenotype.zygosity"
+                    class="badge badge-zygosity ms-1"
+                    :class="getZygosityClass(phenotype.zygosity)"
+                  >
+                    {{ getZygosityLabel(phenotype.zygosity) }}
+                  </span>
+                </div>
+              </div>
+            </BPopover>
 
             <!-- Zygosity breakdown (compact) -->
             <span
@@ -146,18 +191,55 @@
 
           <!-- RGD Data -->
           <div v-else-if="rgdData" class="d-flex flex-wrap gap-1 align-items-center">
-            <!-- Phenotype count with tooltip showing sample terms -->
+            <!-- Phenotype count badge - clickable to show popover -->
             <span
               v-if="rgdData.phenotype_count > 0"
-              v-b-tooltip.hover="rgdTooltipContent"
-              class="badge bg-primary cursor-help"
-              :aria-label="`${rgdData.phenotype_count} rat phenotypes from RGD`"
+              :id="rgdPopoverId"
+              class="badge bg-primary phenotype-badge phenotype-badge-clickable"
+              :aria-label="`${rgdData.phenotype_count} rat phenotypes from RGD. Click to see all.`"
+              role="button"
+              tabindex="0"
+              @click="toggleRgdPopover()"
+              @keydown.enter="toggleRgdPopover()"
             >
               {{ rgdData.phenotype_count }} phenotype{{ rgdData.phenotype_count === 1 ? '' : 's' }}
+              <i class="bi bi-chevron-down ms-1 small"></i>
             </span>
             <span v-else class="text-muted small">
               0 phenotypes
             </span>
+
+            <!-- RGD Phenotype Popover -->
+            <BPopover
+              v-if="rgdData.phenotype_count > 0"
+              :target="rgdPopoverId"
+              :model-value="showRgdPopover"
+              placement="bottom"
+              triggers="manual"
+              class="phenotype-popover"
+              @update:model-value="showRgdPopover = $event"
+            >
+              <template #title>
+                <div class="d-flex justify-content-between align-items-center">
+                  <span>Rat Phenotypes ({{ rgdData.phenotype_count }})</span>
+                  <button
+                    type="button"
+                    class="btn-close btn-close-sm"
+                    aria-label="Close"
+                    @click="showRgdPopover = false"
+                  ></button>
+                </div>
+              </template>
+              <div class="phenotype-list">
+                <div
+                  v-for="(phenotype, index) in rgdData.phenotypes"
+                  :key="index"
+                  class="phenotype-item"
+                >
+                  <span class="phenotype-term">{{ phenotype.term || 'Unknown' }}</span>
+                </div>
+              </div>
+            </BPopover>
           </div>
         </div>
       </div>
@@ -166,8 +248,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { BCard, BButton, BSpinner } from 'bootstrap-vue-next'
+import { computed, ref } from 'vue'
+import { BCard, BButton, BSpinner, BPopover } from 'bootstrap-vue-next'
 import type { MGIPhenotypeData, RGDPhenotypeData } from '@/types/external'
 
 interface Props {
@@ -185,6 +267,58 @@ const props = defineProps<Props>()
 defineEmits<{
   retry: []
 }>()
+
+// Popover state
+const showMgiPopover = ref(false)
+const showRgdPopover = ref(false)
+
+// Unique IDs for popover targets
+const mgiPopoverId = computed(() => `mgi-phenotypes-${props.geneSymbol}`)
+const rgdPopoverId = computed(() => `rgd-phenotypes-${props.geneSymbol}`)
+
+/**
+ * Toggle MGI popover visibility
+ */
+function toggleMgiPopover() {
+  showMgiPopover.value = !showMgiPopover.value
+  // Close other popover
+  if (showMgiPopover.value) {
+    showRgdPopover.value = false
+  }
+}
+
+/**
+ * Toggle RGD popover visibility
+ */
+function toggleRgdPopover() {
+  showRgdPopover.value = !showRgdPopover.value
+  // Close other popover
+  if (showRgdPopover.value) {
+    showMgiPopover.value = false
+  }
+}
+
+/**
+ * Get CSS class for zygosity badge
+ */
+function getZygosityClass(zygosity: string | undefined): string {
+  const z = zygosity?.toLowerCase()
+  if (z === 'homozygous') return 'bg-danger'
+  if (z === 'heterozygous') return 'badge-warning-custom'
+  if (z === 'conditional') return 'bg-info'
+  return 'bg-secondary'
+}
+
+/**
+ * Get abbreviated label for zygosity
+ */
+function getZygosityLabel(zygosity: string | undefined): string {
+  const z = zygosity?.toLowerCase()
+  if (z === 'homozygous') return 'hm'
+  if (z === 'heterozygous') return 'ht'
+  if (z === 'conditional') return 'cn'
+  return z || ''
+}
 
 /**
  * Show card if either source has data, error, or is loading
@@ -215,48 +349,6 @@ const zygosityCounts = computed(() => {
   })
   return counts
 })
-
-/**
- * Generate tooltip content showing first few MGI phenotype terms
- */
-const mgiTooltipContent = computed(() => {
-  if (!props.mgiData?.phenotypes?.length) {
-    return 'No phenotype details available'
-  }
-
-  const phenotypes = props.mgiData.phenotypes
-  const maxShow = 5
-  const terms = phenotypes
-    .slice(0, maxShow)
-    .map(p => `• ${p.term || 'Unknown'}`)
-    .join('\n')
-
-  const remaining = phenotypes.length - maxShow
-  const suffix = remaining > 0 ? `\n...and ${remaining} more` : ''
-
-  return `Sample phenotypes:\n${terms}${suffix}`
-})
-
-/**
- * Generate tooltip content showing RGD phenotype terms
- */
-const rgdTooltipContent = computed(() => {
-  if (!props.rgdData?.phenotypes?.length) {
-    return 'No phenotype details available'
-  }
-
-  const phenotypes = props.rgdData.phenotypes
-  const maxShow = 5
-  const terms = phenotypes
-    .slice(0, maxShow)
-    .map(p => `• ${p.term || 'Unknown'}`)
-    .join('\n')
-
-  const remaining = phenotypes.length - maxShow
-  const suffix = remaining > 0 ? `\n...and ${remaining} more` : ''
-
-  return `Sample phenotypes:\n${terms}${suffix}`
-})
 </script>
 
 <style scoped>
@@ -285,10 +377,83 @@ const rgdTooltipContent = computed(() => {
   cursor: help;
 }
 
+/* Clickable phenotype badge */
+.phenotype-badge {
+  transition: all 0.2s ease;
+}
+
+.phenotype-badge-clickable {
+  cursor: pointer;
+}
+
+.phenotype-badge-clickable:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.phenotype-badge-clickable:active {
+  transform: translateY(0);
+}
+
 /* Vertical rule styling */
 .vr {
   opacity: 0.3;
   height: auto;
   align-self: stretch;
+}
+
+/* Phenotype list in popover */
+.phenotype-list {
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 0.85rem;
+}
+
+.phenotype-item {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.phenotype-item:last-child {
+  border-bottom: none;
+}
+
+.phenotype-term {
+  flex: 1;
+  word-break: break-word;
+}
+
+/* Zygosity badge in list */
+.badge-zygosity {
+  font-size: 0.65rem;
+  padding: 0.15rem 0.3rem;
+  flex-shrink: 0;
+}
+
+/* Close button size adjustment */
+.btn-close-sm {
+  width: 0.75rem;
+  height: 0.75rem;
+  padding: 0.25rem;
+  background-size: 0.75rem;
+}
+</style>
+
+<style>
+/* Global styles for popover (not scoped) */
+.phenotype-popover .popover-body {
+  padding: 0.5rem;
+  min-width: 250px;
+  max-width: 350px;
+}
+
+.phenotype-popover .popover-header {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  background-color: #f8f9fa;
 }
 </style>
