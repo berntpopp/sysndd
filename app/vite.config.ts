@@ -152,7 +152,7 @@ export default defineConfig({
 
   // Optimization for dependencies that need pre-bundling
   optimizeDeps: {
-    include: ['xlsx'],
+    include: ['xlsx', 'ngl'],
   },
 
   build: {
@@ -167,6 +167,8 @@ export default defineConfig({
           bootstrap: ['bootstrap', 'bootstrap-vue-next'],
           // Heavy visualization libraries (lazy-loaded)
           viz: ['d3', '@upsetjs/bundle', 'gsap'],
+          // 3D structure viewer (lazy-loaded via BTab lazy)
+          ngl: ['ngl'],
         },
       },
     },
