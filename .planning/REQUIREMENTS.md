@@ -27,8 +27,8 @@ Requirements for production readiness milestone. Each maps to roadmap phases.
 
 ### SMTP & User Lifecycle
 
-- [ ] **SMTP-01**: Mailpit container captures all emails in development
-- [ ] **SMTP-02**: API endpoint tests SMTP connection and returns status
+- [x] **SMTP-01**: Mailpit container captures all emails in development
+- [x] **SMTP-02**: API endpoint tests SMTP connection and returns status
 - [ ] **SMTP-03**: User registration flow works end-to-end with email capture
 - [ ] **SMTP-04**: Email confirmation flow works end-to-end
 - [ ] **SMTP-05**: Password reset flow works end-to-end
@@ -83,8 +83,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BKUP-04 | Phase 50 | Complete |
 | BKUP-05 | Phase 49 | Complete |
 | BKUP-06 | Phase 49 | Complete |
-| SMTP-01 | Phase 51 | Pending |
-| SMTP-02 | Phase 51 | Pending |
+| SMTP-01 | Phase 51 | Complete |
+| SMTP-02 | Phase 51 | Complete |
 | SMTP-03 | Phase 52 | Pending |
 | SMTP-04 | Phase 52 | Pending |
 | SMTP-05 | Phase 52 | Pending |
@@ -100,4 +100,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-29*
-*Last updated: 2026-01-29 after Phase 50 completion*
+*Last updated: 2026-01-30 after Phase 51 completion*
