@@ -66,6 +66,24 @@ services:
       retries: 5
       start_period: 30s
 
+  mailpit:
+    image: axllent/mailpit:v1.28.4
+    container_name: sysndd_mailpit
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8025:8025"  # Web UI
+      - "127.0.0.1:1025:1025"  # SMTP (for local R development)
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      MP_MAX_MESSAGES: 500
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--tries=1", "--no-verbose", "http://localhost:8025/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
 volumes:
   mysql_dev_data:
     name: sysndd_mysql_dev_data
