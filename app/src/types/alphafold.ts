@@ -137,8 +137,9 @@ export type RepresentationType = 'cartoon' | 'surface' | 'ball+stick';
  * isStructureMappableVariant("p.Glu123fs")   // → false (frameshift)
  * isStructureMappableVariant(null)           // → false
  */
-export function isStructureMappableVariant(hgvsp: string | null): boolean {
-  if (!hgvsp) return false;
+export function isStructureMappableVariant(hgvsp: string | null | undefined): boolean {
+  // Guard against null, undefined, or non-string values (API may return objects/arrays)
+  if (!hgvsp || typeof hgvsp !== 'string') return false;
 
   const lower = hgvsp.toLowerCase();
 
@@ -188,8 +189,9 @@ export function isStructureMappableVariant(hgvsp: string | null): boolean {
  * parseResidueNumber("p.Glu123fs")   // → null (frameshift - not mappable)
  * parseResidueNumber(null)           // → null
  */
-export function parseResidueNumber(hgvsp: string | null): number | null {
+export function parseResidueNumber(hgvsp: string | null | undefined): number | null {
   // First check if this variant type is mappable to 3D structure
+  // isStructureMappableVariant handles null/undefined/non-string values
   if (!isStructureMappableVariant(hgvsp)) return null;
 
   // Match pattern: "p." + 3-letter AA code + digits
