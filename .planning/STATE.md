@@ -18,19 +18,19 @@
 ## Current Position
 
 **Phase:** 46 - Model Organism Phenotypes & Final Integration (IN PROGRESS)
-**Plan:** 2 of 5 plans complete
-**Status:** Model Organisms card complete and integrated into gene page
-**Progress:** █████████████░ 97% (45 phases complete, 46 in progress)
+**Plan:** 3 of 5 plans complete
+**Status:** Accessibility audit complete, gene page cards WCAG 2.2 AA compliant
+**Progress:** █████████████░ 98% (45 phases complete, 46 in progress)
 
-**Last completed:** 46-02 - Model Organisms Card UI Component (ModelOrganismsCard.vue with MGI/RGD display) (2026-01-29)
-**Next step:** Phase 46 Plan 03 (to be determined).
+**Last completed:** 46-03 - Accessibility Audit (WCAG 2.2 AA compliance fixes for gene page cards) (2026-01-29)
+**Next step:** Phase 46 Plan 04 (if applicable) or final integration testing.
 
 ---
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 218
+- Total plans completed: 219
 - Milestones shipped: 7 (v1-v7)
 - Phases completed: 45 (Phase 46 in progress)
 
@@ -278,6 +278,14 @@
   - Provides retry() convenience method
   - Overall loading computed from both sources (true if any source is loading)
 
+**Accessibility Compliance (Phase 46-03, 2026-01-29):**
+- **WCAG 2.2 AA compliance** for all v8.0 gene page cards
+- **Patterns established:**
+  - External link buttons must have aria-label describing destination and "(opens in new tab)"
+  - Icons in buttons/links must have aria-hidden="true" when text label is present
+  - Avoid aria-disabled on non-interactive span elements
+- **Files fixed:** GeneClinVarCard, GeneConstraintCard, IdentifierRow, ModelOrganismsCard, ResourceLink
+
 **Critical Pitfalls to Avoid:**
 1. Vue Proxy wrapping of Three.js/WebGL objects - use `markRaw()` or non-reactive variables
 2. WebGL context leaks - call `stage.dispose()` in cleanup
@@ -288,6 +296,7 @@
 7. JSON column pipe-split: `gnomad_constraints` column should be excluded from str_split transformation (see backlog)
 8. D3 `this` typing in TypeScript - Use attr callbacks with arrow functions instead of `.each(function(d))`
 9. Bootstrap Vue lazy tab WebGL initialization - Container has 0x0 dimensions on mount; use ResizeObserver to detect valid dimensions before rendering
+10. ARIA on non-interactive elements - Don't use aria-disabled on span; use role="text" instead
 
 ### Roadmap Evolution
 
@@ -310,52 +319,41 @@
 - [x] Phase 43: Protein Domain Lollipop Plot (11 requirements) ✓
 - [x] Phase 44: Gene Structure Visualization (4 requirements) ✓
 - [x] Phase 45: 3D Protein Structure Viewer (9 requirements) ✓
-- [ ] Phase 46: Model Organism Phenotypes & Final Integration (5 requirements) - 2/5 complete (46-01 data layer, 46-02 UI component)
+- [ ] Phase 46: Model Organism Phenotypes & Final Integration (5 requirements) - 3/5 complete (46-01 data layer, 46-02 UI component, 46-03 accessibility audit)
 
 ### Blockers/Concerns
 
-**None** - Phase 46-02 complete (Model Organisms card UI component). Ready for Phase 46-03+.
+**None** - Phase 46-03 complete (Accessibility audit). Ready for Phase 46-04+.
 
 ---
 
 ## Session Continuity
 
-**Last session:** 2026-01-29T08:33:09Z
-**Stopped at:** Phase 46-02 complete (Model Organisms card UI component)
-**Next action:** Phase 46 Plan 03 (to be determined)
+**Last session:** 2026-01-29T11:30:00Z
+**Stopped at:** Phase 46-03 complete (Accessibility audit with Lighthouse fixes)
+**Next action:** Phase 46 Plan 04 (if applicable) or final integration testing
 
 **Handoff notes:**
 
-1. **Phase 46-02 complete** (2026-01-29): Model Organisms card UI component shipped.
-   - **ModelOrganismsCard.vue:** Two-column layout (Mouse/MGI left, Rat/RGD right)
-   - **Independent states:** Per-source loading/error/empty/data states within single card
-   - **Zygosity badges:** MGI shows hm/ht/cn breakdown, RGD shows total count only
-   - **Conditional visibility:** Card hidden when both sources have no data AND no error AND not loading
-   - **Integration:** Added to GeneView.vue after ClinVar card with parallel data fetching
+1. **Phase 46-03 complete** (2026-01-29): Accessibility audit with WCAG 2.2 AA compliance fixes.
+   - **Initial audit:** All cards already compliant with WCAG 1.4.1 (color + text labels)
+   - **Lighthouse fixes:** Fixed four specific issues reported by Lighthouse audit:
+     - Links without discernible names (added aria-label to external link buttons)
+     - Prohibited ARIA attributes (removed aria-disabled from non-interactive spans)
+     - Added aria-hidden="true" to decorative icons
+   - **Files modified:** GeneClinVarCard, GeneConstraintCard, IdentifierRow, ModelOrganismsCard, ResourceLink
 
-2. **Phase 46-02 key decisions:**
-   - Hide card entirely when both sources empty (cleaner UI for genes without model organism data)
-   - Use badge-warning-custom (#ffc107 yellow) for heterozygous phenotypes
-   - Place card in single-column layout (cols="12" md="6") after ClinVar row
-   - Independent retry handler (retryModelOrganismData) for model organism data
+2. **Phase 46 progress:** 3 of 5 plans complete
+   - 46-01: Model organism data layer (useModelOrganismData composable)
+   - 46-02: Model Organisms card UI component (ModelOrganismsCard.vue)
+   - 46-03: Accessibility audit (WCAG 2.2 AA compliance)
 
-3. **Files created/modified:**
-   - Created: app/src/components/gene/ModelOrganismsCard.vue (274 lines)
-   - Modified: app/src/views/pages/GeneView.vue (added useModelOrganismData, ModelOrganismsCard, parallel fetching)
-
-4. **Ready for Phase 46-03+ (Final Integration):**
-   - Model Organisms card fully integrated into gene page
-   - UI follows established card patterns (GeneClinVarCard, GeneConstraintCard)
-   - All success criteria met (ORGANISM-01 through ORGANISM-04)
-   - WCAG 2.2 AA accessibility compliance
-
-5. **No blockers:**
+3. **No blockers:**
    - TypeScript compilation passed
    - ESLint passed
-   - All verification criteria met
-   - No external configuration required
+   - All accessibility fixes verified
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-29 — Phase 46-02 complete (Model Organisms card UI component)*
+*Last updated: 2026-01-29 — Phase 46-03 complete (Accessibility audit)*
