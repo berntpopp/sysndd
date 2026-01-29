@@ -17,22 +17,22 @@
 
 ## Current Position
 
-**Phase:** 45 - 3D Protein Structure Viewer (COMPLETE)
-**Plan:** 4 of 4 complete (3 base plans + post-integration enhancements)
-**Status:** 3D structure viewer fully integrated with bug fixes and UX enhancements
-**Progress:** ████████████ 100% (45-01, 45-02, 45-03, 45-04 complete)
+**Phase:** 46 - Model Organism Phenotypes & Final Integration (IN PROGRESS)
+**Plan:** 1 of 5 plans in progress
+**Status:** Data layer foundation complete for model organism phenotypes
+**Progress:** █████████████░ 97% (45 phases complete, 46 in progress)
 
-**Last completed:** 45-04 - Post-integration enhancements (ResizeObserver fix, Reset View, VariantPanel UX) (2026-01-29)
-**Next step:** Begin Phase 46 (Model Organism Phenotypes & Final Integration).
+**Last completed:** 46-01 - Model Organism Data Layer (TypeScript interfaces + useModelOrganismData composable) (2026-01-29)
+**Next step:** Phase 46 Plan 02 (UI Component for Model Organism Phenotypes card).
 
 ---
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 217
+- Total plans completed: 218
 - Milestones shipped: 7 (v1-v7)
-- Phases completed: 45 (Phase 46 next)
+- Phases completed: 45 (Phase 46 in progress)
 
 **By Milestone:**
 
@@ -264,6 +264,20 @@
   - Set reactivity workaround: new Set() reassignment for Vue updates
   - Emits toggle-variant with {variant, selected} payload
 
+**Model Organism Phenotypes Data Layer (Phase 46-01, 2026-01-29):**
+- **TypeScript interfaces (app/src/types/external.ts):**
+  - MGIPhenotypeData: Mouse Genome Informatics phenotype response (source, gene_symbol, mgi_id, mouse_symbol, marker_name, phenotype_count, phenotypes array with phenotype_id/term/zygosity, mgi_url)
+  - RGDPhenotypeData: Rat Genome Database phenotype response (source, gene_symbol, rgd_id, rat_symbol, rat_name, phenotype_count, phenotypes array with term/annotation_type, rgd_url)
+  - ExternalDataResponse.sources.mgi and rgd typed with proper interfaces
+- **useModelOrganismData composable (app/src/composables/useModelOrganismData.ts):**
+  - Per-source state isolation: mgi and rgd objects with independent loading/error/data refs
+  - Fetches from /api/external/mgi/phenotypes/<symbol> and /api/external/rgd/phenotypes/<symbol> in parallel
+  - 404 responses treated as "no data" (not error) following useGeneExternalData pattern
+  - toRef pattern accepts both Ref<string> and plain string
+  - No auto-fetch on creation - consumer calls fetchData() explicitly
+  - Provides retry() convenience method
+  - Overall loading computed from both sources (true if any source is loading)
+
 **Critical Pitfalls to Avoid:**
 1. Vue Proxy wrapping of Three.js/WebGL objects - use `markRaw()` or non-reactive variables
 2. WebGL context leaks - call `stage.dispose()` in cleanup
@@ -296,55 +310,49 @@
 - [x] Phase 43: Protein Domain Lollipop Plot (11 requirements) ✓
 - [x] Phase 44: Gene Structure Visualization (4 requirements) ✓
 - [x] Phase 45: 3D Protein Structure Viewer (9 requirements) ✓
-- [ ] Phase 46: Model Organism Phenotypes & Final Integration (5 requirements)
+- [ ] Phase 46: Model Organism Phenotypes & Final Integration (5 requirements) - 1/5 complete (46-01 data layer)
 
 ### Blockers/Concerns
 
-**None** - Phase 45 complete (3D structure viewer fully integrated). Ready for Phase 46 (Model Organism Phenotypes & Final Integration).
+**None** - Phase 46-01 complete (model organism data layer). Ready for Phase 46-02 (UI component).
 
 ---
 
 ## Session Continuity
 
-**Last session:** 2026-01-29T12:00:00Z
-**Stopped at:** Phase 45-04 complete (post-integration enhancements and bug fixes)
-**Next action:** Begin Phase 46 (Model Organism Phenotypes & Final Integration)
+**Last session:** 2026-01-29T08:27:10Z
+**Stopped at:** Phase 46-01 complete (model organism data layer)
+**Next action:** Phase 46 Plan 02 (UI Component for Model Organism Phenotypes card)
 
 **Handoff notes:**
 
-1. **Phase 45 complete** (2026-01-29): All 4 plans shipped (foundation, components, integration, enhancements).
-   - 45-01: use3DStructure composable + AlphaFold types + NGL v2.4.0 dependency
-   - 45-02: ProteinStructure3D + VariantPanel components (70/30 layout)
-   - 45-03: Integration via GenomicVisualizationTabs with lazy-loaded NGL chunk (600KB gzipped)
-   - 45-04: Post-integration enhancements (ResizeObserver fix, Reset View camera fix, VariantPanel UX)
+1. **Phase 46-01 complete** (2026-01-29): Model organism data layer foundation shipped.
+   - **TypeScript interfaces:** MGIPhenotypeData and RGDPhenotypeData in external.ts
+   - **useModelOrganismData composable:** Per-source state isolation for MGI and RGD
+   - **Pattern consistency:** Follows useGeneExternalData.ts pattern exactly
+   - **404 handling:** Gene not found treated as "no data" (not error)
+   - **Parallel fetching:** Both sources fetched with Promise.allSettled
 
-2. **Phase 45-04 deliverables (post-integration enhancements):**
-   - **ResizeObserver fix:** Fixed blank 3D viewer on initial tab click (Bootstrap Vue lazy tab race condition)
-     - Container has 0x0 dimensions when NGL Stage initializes in lazy tabs
-     - ResizeObserver detects when container gets valid dimensions (width > 0 && height > 0)
-     - Triggers `stage.handleResize()` when dimensions become valid
-   - **Reset View camera fix:** Saves initial orientation after autoView(), restores via viewerControls.orient()
-   - **VariantPanel UX:** Added ClinVar external links and review stars display
-   - **NGL tooltip disabled:** Prevents grey area visual bug from broken built-in tooltip
-   - **VariantTooltip component:** Vue Teleport-based tooltip for variant hover display
+2. **Phase 46-01 key decisions:**
+   - Follow useGeneExternalData.ts pattern exactly for consistency
+   - Treat 404 responses as "no data" rather than errors (expected for genes without orthologs)
+   - Fetch from per-source endpoints in parallel for independent error handling
 
-3. **Critical bug fix (45-04):** 3D viewer blank on first tab click
-   - **Root cause:** Bootstrap Vue lazy tabs mount content with 0x0 dimensions, NGL Stage initializes immediately
-   - **Solution:** ResizeObserver + rAF + 300ms fallback timeout
-   - **Verified:** Tested with CTCF, TP53, MECP2, SCN1A, SHANK3 - all render correctly on first click
+3. **Files created/modified:**
+   - Created: app/src/composables/useModelOrganismData.ts (195 lines)
+   - Modified: app/src/types/external.ts (added MGIPhenotypeData, RGDPhenotypeData, typed ExternalDataResponse.sources)
 
-4. **Integration pattern established:**
-   - useGeneExternalData composable → GeneView.vue → GenomicVisualizationTabs.vue → ProteinStructure3D.vue
-   - Parallel fetching: ClinVar and AlphaFold fetched in parallel with Promise.allSettled
-   - Per-source state: alphafold.loading, alphafold.error, alphafold.data following clinvar pattern
-   - Lazy loading: NGL chunk (ngl.esm-BiKw7f63.js, 600.85 kB gzipped) deferred until tab activation
+4. **Ready for Phase 46-02:**
+   - Data layer complete with type-safe interfaces
+   - Composable provides reactive state for MGI and RGD data
+   - Backend proxy endpoints already exist from Phase 40
+   - Pattern established for independent loading/error states
 
-5. **Technical foundation for Phase 46:**
-   - All genomic visualizations now in GenomicVisualizationTabs (Protein View, Gene Structure, 3D Structure)
-   - Ready to add Model Organism Phenotypes card (MGI/RGD data from backend proxy)
-   - Cross-highlighting infrastructure in place (onVariantClick/onVariantHover callbacks)
-
-6. **Phase 46 next** (2026-01-29): Model Organism Phenotypes & Final Integration
+5. **No blockers:**
+   - TypeScript compilation passed
+   - ESLint passed
+   - All verification criteria met
+   - No external configuration required
 
 ---
 
