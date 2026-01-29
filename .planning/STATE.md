@@ -18,12 +18,12 @@
 ## Current Position
 
 **Phase:** 46 - Model Organism Phenotypes & Final Integration (IN PROGRESS)
-**Plan:** 1 of 5 plans in progress
-**Status:** Data layer foundation complete for model organism phenotypes
+**Plan:** 2 of 5 plans complete
+**Status:** Model Organisms card complete and integrated into gene page
 **Progress:** █████████████░ 97% (45 phases complete, 46 in progress)
 
-**Last completed:** 46-01 - Model Organism Data Layer (TypeScript interfaces + useModelOrganismData composable) (2026-01-29)
-**Next step:** Phase 46 Plan 02 (UI Component for Model Organism Phenotypes card).
+**Last completed:** 46-02 - Model Organisms Card UI Component (ModelOrganismsCard.vue with MGI/RGD display) (2026-01-29)
+**Next step:** Phase 46 Plan 03 (to be determined).
 
 ---
 
@@ -310,43 +310,44 @@
 - [x] Phase 43: Protein Domain Lollipop Plot (11 requirements) ✓
 - [x] Phase 44: Gene Structure Visualization (4 requirements) ✓
 - [x] Phase 45: 3D Protein Structure Viewer (9 requirements) ✓
-- [ ] Phase 46: Model Organism Phenotypes & Final Integration (5 requirements) - 1/5 complete (46-01 data layer)
+- [ ] Phase 46: Model Organism Phenotypes & Final Integration (5 requirements) - 2/5 complete (46-01 data layer, 46-02 UI component)
 
 ### Blockers/Concerns
 
-**None** - Phase 46-01 complete (model organism data layer). Ready for Phase 46-02 (UI component).
+**None** - Phase 46-02 complete (Model Organisms card UI component). Ready for Phase 46-03+.
 
 ---
 
 ## Session Continuity
 
-**Last session:** 2026-01-29T08:27:10Z
-**Stopped at:** Phase 46-01 complete (model organism data layer)
-**Next action:** Phase 46 Plan 02 (UI Component for Model Organism Phenotypes card)
+**Last session:** 2026-01-29T08:33:09Z
+**Stopped at:** Phase 46-02 complete (Model Organisms card UI component)
+**Next action:** Phase 46 Plan 03 (to be determined)
 
 **Handoff notes:**
 
-1. **Phase 46-01 complete** (2026-01-29): Model organism data layer foundation shipped.
-   - **TypeScript interfaces:** MGIPhenotypeData and RGDPhenotypeData in external.ts
-   - **useModelOrganismData composable:** Per-source state isolation for MGI and RGD
-   - **Pattern consistency:** Follows useGeneExternalData.ts pattern exactly
-   - **404 handling:** Gene not found treated as "no data" (not error)
-   - **Parallel fetching:** Both sources fetched with Promise.allSettled
+1. **Phase 46-02 complete** (2026-01-29): Model Organisms card UI component shipped.
+   - **ModelOrganismsCard.vue:** Two-column layout (Mouse/MGI left, Rat/RGD right)
+   - **Independent states:** Per-source loading/error/empty/data states within single card
+   - **Zygosity badges:** MGI shows hm/ht/cn breakdown, RGD shows total count only
+   - **Conditional visibility:** Card hidden when both sources have no data AND no error AND not loading
+   - **Integration:** Added to GeneView.vue after ClinVar card with parallel data fetching
 
-2. **Phase 46-01 key decisions:**
-   - Follow useGeneExternalData.ts pattern exactly for consistency
-   - Treat 404 responses as "no data" rather than errors (expected for genes without orthologs)
-   - Fetch from per-source endpoints in parallel for independent error handling
+2. **Phase 46-02 key decisions:**
+   - Hide card entirely when both sources empty (cleaner UI for genes without model organism data)
+   - Use badge-warning-custom (#ffc107 yellow) for heterozygous phenotypes
+   - Place card in single-column layout (cols="12" md="6") after ClinVar row
+   - Independent retry handler (retryModelOrganismData) for model organism data
 
 3. **Files created/modified:**
-   - Created: app/src/composables/useModelOrganismData.ts (195 lines)
-   - Modified: app/src/types/external.ts (added MGIPhenotypeData, RGDPhenotypeData, typed ExternalDataResponse.sources)
+   - Created: app/src/components/gene/ModelOrganismsCard.vue (274 lines)
+   - Modified: app/src/views/pages/GeneView.vue (added useModelOrganismData, ModelOrganismsCard, parallel fetching)
 
-4. **Ready for Phase 46-02:**
-   - Data layer complete with type-safe interfaces
-   - Composable provides reactive state for MGI and RGD data
-   - Backend proxy endpoints already exist from Phase 40
-   - Pattern established for independent loading/error states
+4. **Ready for Phase 46-03+ (Final Integration):**
+   - Model Organisms card fully integrated into gene page
+   - UI follows established card patterns (GeneClinVarCard, GeneConstraintCard)
+   - All success criteria met (ORGANISM-01 through ORGANISM-04)
+   - WCAG 2.2 AA accessibility compliance
 
 5. **No blockers:**
    - TypeScript compilation passed
@@ -357,4 +358,4 @@
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-29 — Phase 45-04 complete (post-integration enhancements and bug fixes)*
+*Last updated: 2026-01-29 — Phase 46-02 complete (Model Organisms card UI component)*
