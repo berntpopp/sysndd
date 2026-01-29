@@ -150,13 +150,13 @@ export interface ExternalDataResponse {
       variant_count: number;
     };
 
-    // Other sources (uniprot, ensembl, mgi, rgd) represented as unknown for now
+    // Other sources (uniprot, ensembl) represented as unknown for now
     // Will be typed in future plans when UI components consume them
     uniprot?: unknown;
     ensembl?: unknown;
     alphafold?: AlphaFoldMetadata;
-    mgi?: unknown;
-    rgd?: unknown;
+    mgi?: MGIPhenotypeData;
+    rgd?: RGDPhenotypeData;
   };
 
   /** Errors from failed sources (key = source name) */
@@ -164,6 +164,46 @@ export interface ExternalDataResponse {
 
   /** ISO 8601 timestamp of response generation */
   timestamp: string;
+}
+
+/**
+ * MGI (Mouse Genome Informatics) phenotype data
+ *
+ * Response structure from /api/external/mgi/phenotypes/<symbol>
+ */
+export interface MGIPhenotypeData {
+  source: 'mgi';
+  gene_symbol: string;
+  mgi_id: string;
+  mouse_symbol: string;
+  marker_name: string | null;
+  phenotype_count: number;
+  phenotypes: Array<{
+    phenotype_id?: string;
+    term?: string;
+    zygosity?: 'homozygous' | 'heterozygous' | 'conditional' | string;
+  }>;
+  mgi_url: string;
+}
+
+/**
+ * RGD (Rat Genome Database) phenotype data
+ *
+ * Response structure from /api/external/rgd/phenotypes/<symbol>
+ * Note: RGD does not provide zygosity breakdown in API response
+ */
+export interface RGDPhenotypeData {
+  source: 'rgd';
+  gene_symbol: string;
+  rgd_id: string;
+  rat_symbol: string;
+  rat_name: string | null;
+  phenotype_count: number;
+  phenotypes: Array<{
+    term?: string;
+    annotation_type?: string;
+  }>;
+  rgd_url: string;
 }
 
 /**
