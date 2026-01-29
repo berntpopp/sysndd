@@ -18,12 +18,12 @@
 ## Current Position
 
 **Phase:** 45 - 3D Protein Structure Viewer (IN PROGRESS)
-**Plan:** 1 of 3 complete
-**Status:** Foundation layer complete - use3DStructure composable ready
-**Progress:** ███████▱▱▱ 67% (45-01 complete, 45-02 next)
+**Plan:** 2 of 3 complete
+**Status:** UI components complete - ProteinStructure3D + VariantPanel ready
+**Progress:** ███████████ 100% (45-01, 45-02 complete, 45-03 next)
 
-**Last completed:** 45-01 - NGL foundation and use3DStructure composable (2026-01-29)
-**Next step:** Execute Phase 45-02 (ProteinStructure3D component) to build UI for 3D viewer.
+**Last completed:** 45-02 - ProteinStructure3D and VariantPanel components (2026-01-29)
+**Next step:** Execute Phase 45-03 (Tabbed visualization card integration) to integrate 3D viewer into gene page.
 
 ---
 
@@ -215,8 +215,8 @@
   - Re-fetches on geneSymbol prop change for gene-to-gene navigation
   - Direct per-source fetching pattern (not using useGeneExternalData)
 
-**3D Protein Structure Viewer Foundation (Phase 45-01, 2026-01-29):**
-- **NGL Viewer v2.4.0** installed as project dependency
+**3D Protein Structure Viewer (Phase 45, 2026-01-29):**
+- **NGL Viewer v2.4.0** installed as project dependency (Phase 45-01)
 - **TypeScript interfaces (app/src/types/alphafold.ts):**
   - AlphaFoldMetadata: Matches backend response (pdb_url, cif_url, entry_id, uniprot_accession)
   - ACMG_COLORS: Shared color constants (#dc3545, #fd7e14, #ffc107, #20c997, #28a745)
@@ -225,9 +225,10 @@
   - PLDDT_LEGEND: AlphaFold confidence colors (#0053d6, #65cbf3, #ffdb13, #ff7d45)
   - RepresentationType: 'cartoon' | 'surface' | 'ball+stick'
 - **Helper functions:**
-  - parseResidueNumber(hgvsp): Extracts residue number from HGVSP notation (e.g., "p.Arg123Trp" → 123)
+  - isStructureMappableVariant(hgvsp): Returns true for missense/inframe variants only (filters out frameshift/stop/splice)
+  - parseResidueNumber(hgvsp): Extracts residue number, returns null for non-mappable variants
   - classifyClinicalSignificance(significance): Normalizes ClinVar strings to AcmgClassification
-- **use3DStructure composable (app/src/composables/use3DStructure.ts):**
+- **use3DStructure composable (app/src/composables/use3DStructure.ts, Phase 45-01):**
   - Non-reactive Stage instance (let stage, not ref) following useCytoscape pattern
   - markRaw() on all NGL representations before Map storage
   - Container watch with immediate:true for lazy tab mount timing
@@ -240,6 +241,24 @@
   - resetView(): Auto-center and zoom via autoView()
   - cleanup(): Remove resize listener and stage.dispose()
   - onBeforeUnmount: Calls cleanup to prevent WebGL context leak (8-16 context browser limit)
+- **ProteinStructure3D component (app/src/components/gene/ProteinStructure3D.vue, Phase 45-02):**
+  - 70/30 viewer-sidebar layout (70% NGL viewer, 30% variant panel)
+  - Toolbar: cartoon/surface/ball+stick representation toggles with active state highlighting
+  - Reset View button for auto-center/zoom via resetView()
+  - pLDDT legend with AlphaFold confidence colors (4 ranges)
+  - Loading/error/empty states for all data scenarios
+  - v-show (not v-if) preserves NGL DOM after initialization
+  - Fixed 500px height matching gene visualization card pattern
+  - All controls have aria-label and keyboard accessibility
+- **VariantPanel component (app/src/components/gene/VariantPanel.vue, Phase 45-02):**
+  - Lists only structure-mappable ClinVar variants (missense/inframe)
+  - Multi-select checkboxes for simultaneous variant highlighting
+  - ACMG-colored dots next to each variant (10px circles)
+  - Variants sorted by residue number (protein sequence order)
+  - Clear all button removes all highlighted markers
+  - Scrollable list for genes with many variants
+  - Set reactivity workaround: new Set() reassignment for Vue updates
+  - Emits toggle-variant with {variant, selected} payload
 
 **Critical Pitfalls to Avoid:**
 1. Vue Proxy wrapping of Three.js/WebGL objects - use `markRaw()` or non-reactive variables
@@ -271,49 +290,54 @@
 - [x] Phase 42: Constraint Scores & Variant Summaries (13 requirements) ✓
 - [x] Phase 43: Protein Domain Lollipop Plot (11 requirements) ✓
 - [x] Phase 44: Gene Structure Visualization (4 requirements) ✓
-- [ ] Phase 45: 3D Protein Structure Viewer (9 requirements) — 45-01 complete (NGL foundation)
+- [ ] Phase 45: 3D Protein Structure Viewer (9 requirements) — 45-01, 45-02 complete (NGL foundation + UI components)
 - [ ] Phase 46: Model Organism Phenotypes & Final Integration (5 requirements)
 
 ### Blockers/Concerns
 
-**None** - Phase 45-01 complete (NGL foundation). Ready for Phase 45-02 (ProteinStructure3D component).
+**None** - Phase 45-02 complete (ProteinStructure3D + VariantPanel). Ready for Phase 45-03 (Tabbed visualization card integration).
 
 ---
 
 ## Session Continuity
 
-**Last session:** 2026-01-29T00:35:35Z
-**Stopped at:** Phase 45-01 complete (NGL foundation and use3DStructure composable)
-**Next action:** Execute Phase 45-02 (ProteinStructure3D component) to build UI for 3D viewer
+**Last session:** 2026-01-29T00:44:26Z
+**Stopped at:** Phase 45-02 complete (ProteinStructure3D + VariantPanel components)
+**Next action:** Execute Phase 45-03 (Tabbed visualization card integration) to integrate 3D viewer into gene page
 
 **Handoff notes:**
 
-1. **Phase 45-01 complete** (2026-01-29): NGL foundation layer ready for 3D viewer component.
-   - NGL Viewer v2.4.0 installed (ngl@2.4.0)
-   - AlphaFold types (alphafold.ts): AlphaFoldMetadata, ACMG_COLORS, PLDDT_LEGEND, helpers
-   - use3DStructure composable (use3DStructure.ts): Non-reactive WebGL lifecycle with markRaw pattern
+1. **Phase 45-02 complete** (2026-01-29): 3D viewer UI components ready for tabbed card integration.
+   - ProteinStructure3D.vue (270 lines) — NGL viewer with toolbar, legend, loading/error/empty states
+   - VariantPanel.vue (200 lines) — Multi-select variant highlighting sidebar
+   - 70/30 viewer-sidebar layout maximizes 3D viewer space
 
-2. **Phase 45-01 deliverables:**
-   - `app/src/types/alphafold.ts` (185 lines) — AlphaFold metadata + ACMG constants + helpers
-   - `app/src/composables/use3DStructure.ts` (334 lines) — NGL Stage lifecycle composable
-   - Updated barrel exports: types/index.ts, composables/index.ts
-   - Typed external.ts: `alphafold?: AlphaFoldMetadata`
+2. **Phase 45-02 deliverables:**
+   - `app/src/components/gene/ProteinStructure3D.vue` — 3D viewer component with NGL integration
+   - `app/src/components/gene/VariantPanel.vue` — Multi-select ClinVar variant sidebar
+   - Variant filtering: Only missense/inframe variants shown (parseResidueNumber returns null for frameshift/stop/splice)
 
 3. **Key patterns established:**
-   - Non-reactive WebGL: `let stage` (not `ref()`) prevents Vue proxy interference
-   - markRaw() on all NGL representations before Map storage
-   - Container watch with immediate:true for lazy tab mount timing
-   - Pre-created representations for instant toggle via setVisibility() (20ms vs 500ms)
-   - stage.dispose() in onBeforeUnmount to prevent WebGL context leak
+   - 70/30 viewer-sidebar split layout for coordinated visualization
+   - v-show (not v-if) for NGL DOM preservation after initialization
+   - Multi-select Set with reactivity workaround (new Set() reassignment)
+   - parseResidueNumber() filtering for structure-mappable variants only
+   - Shared ACMG_COLORS constants across all pathogenicity displays
 
-4. **ACMG color constants (shared source of truth):**
-   - Pathogenic: #dc3545, Likely Pathogenic: #fd7e14, VUS: #ffc107
-   - Likely Benign: #20c997, Benign: #28a745
-   - Used by: GeneClinVarCard, lollipop plot (future), 3D viewer
+4. **Integration ready for Phase 45-03:**
+   ```vue
+   <BTab title="3D Structure" lazy>
+     <ProteinStructure3D
+       :gene-symbol="geneSymbol"
+       :structure-url="alphafoldData?.pdb_url || null"
+       :variants="clinvarVariants"
+     />
+   </BTab>
+   ```
 
-5. **Phase 45-02 next** (2026-01-29): ProteinStructure3D component with UI controls
+5. **Phase 45-03 next** (2026-01-29): Tabbed visualization card integration
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-29 — Phase 45-01 complete (NGL foundation and use3DStructure composable)*
+*Last updated: 2026-01-29 — Phase 45-02 complete (ProteinStructure3D + VariantPanel components)*
