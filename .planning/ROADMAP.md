@@ -98,8 +98,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 50-01-PLAN.md — Add backup download endpoint to API
-- [ ] 50-02-PLAN.md — Create ManageBackups admin view with list, download, backup, and restore
+- [x] 50-01-PLAN.md — Add backup download endpoint to API
+- [x] 50-02-PLAN.md — Create ManageBackups admin view with list, download, backup, and restore
 
 **Requirements:**
 - BKUP-02: Admin UI displays backup list with download links
@@ -183,7 +183,7 @@ Plans:
 | 47 | Migration System Foundation | MIGR-01, MIGR-02, MIGR-03, MIGR-05 | Complete |
 | 48 | Migration Auto-Run & Health | MIGR-04, MIGR-06 | Complete |
 | 49 | Backup API Layer | BKUP-01, BKUP-03, BKUP-05, BKUP-06 | Complete |
-| 50 | Backup Admin UI | BKUP-02, BKUP-04 | Planned (2 plans) |
+| 50 | Backup Admin UI | BKUP-02, BKUP-04 | Complete |
 | 51 | SMTP Testing Infrastructure | SMTP-01, SMTP-02 | Planned (2 plans) |
 | 52 | User Lifecycle E2E | SMTP-03, SMTP-04, SMTP-05 | Not Started |
 | 53 | Production Docker Validation | PROD-01, PROD-02, PROD-03, PROD-04 | Not Started |
@@ -217,4 +217,4 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 ---
 
 *Roadmap created: 2026-01-29*
-*Last updated: 2026-01-29 — Phase 51 planned (SMTP Testing Infrastructure)*
+*Last updated: 2026-01-29 — Phase 50 complete (Backup Admin UI)*

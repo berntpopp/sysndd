@@ -19,9 +19,9 @@ Requirements for production readiness milestone. Each maps to roadmap phases.
 ### Backup Management
 
 - [x] **BKUP-01**: API endpoint lists available backup files with metadata
-- [ ] **BKUP-02**: Admin UI displays backup list with download links
+- [x] **BKUP-02**: Admin UI displays backup list with download links
 - [x] **BKUP-03**: API endpoint triggers manual backup creation
-- [ ] **BKUP-04**: Restore requires typed confirmation ("RESTORE" to proceed)
+- [x] **BKUP-04**: Restore requires typed confirmation ("RESTORE" to proceed)
 - [x] **BKUP-05**: System creates automatic backup before any restore operation
 - [x] **BKUP-06**: Backup metadata includes file size, creation date, and table count
 
@@ -78,9 +78,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MIGR-05 | Phase 47 | Complete |
 | MIGR-06 | Phase 48 | Complete |
 | BKUP-01 | Phase 49 | Complete |
-| BKUP-02 | Phase 50 | Pending |
+| BKUP-02 | Phase 50 | Complete |
 | BKUP-03 | Phase 49 | Complete |
-| BKUP-04 | Phase 50 | Pending |
+| BKUP-04 | Phase 50 | Complete |
 | BKUP-05 | Phase 49 | Complete |
 | BKUP-06 | Phase 49 | Complete |
 | SMTP-01 | Phase 51 | Pending |
@@ -100,4 +100,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-29*
-*Last updated: 2026-01-29 after Phase 49 completion*
+*Last updated: 2026-01-29 after Phase 50 completion*
