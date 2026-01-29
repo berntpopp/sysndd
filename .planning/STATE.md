@@ -19,13 +19,13 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 
 ## Current Position
 
-**Phase:** 49 - Backup API Layer (Complete)
-**Plan:** 2 of 2 complete
-**Status:** Phase complete
-**Progress:** ███░░░░░░░ 43% (3/7 phases)
+**Phase:** 50 - Backup Admin UI (In Progress)
+**Plan:** 1 of ? complete
+**Status:** In progress
+**Progress:** ███░░░░░░░ 45% (3.5/7 phases)
 
-**Last completed:** 49-02-PLAN.md (Backup Creation & Restore Endpoints)
-**Next step:** `/gsd:discuss-phase 50` to plan Backup Admin UI
+**Last completed:** 50-01-PLAN.md (Backup Download Endpoint)
+**Next step:** Continue with Phase 50 plans (UI components)
 
 ---
 
@@ -36,7 +36,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 | 47 | Migration System Foundation | MIGR-01, MIGR-02, MIGR-03, MIGR-05 | Complete |
 | 48 | Migration Auto-Run & Health | MIGR-04, MIGR-06 | Complete (2/2 plans) |
 | 49 | Backup API Layer | BKUP-01, BKUP-03, BKUP-05, BKUP-06 | Complete (2/2 plans) |
-| 50 | Backup Admin UI | BKUP-02, BKUP-04 | Not Started |
+| 50 | Backup Admin UI | BKUP-02, BKUP-04 | In Progress (1/? plans) |
 | 51 | SMTP Testing Infrastructure | SMTP-01, SMTP-02 | Not Started |
 | 52 | User Lifecycle E2E | SMTP-03, SMTP-04, SMTP-05 | Not Started |
 | 53 | Production Docker Validation | PROD-01, PROD-02, PROD-03, PROD-04 | Not Started |
@@ -126,33 +126,30 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 ## Session Continuity
 
 **Last session:** 2026-01-29
-**Stopped at:** Completed Phase 49 (Backup API Layer)
-**Next action:** `/gsd:discuss-phase 50` to plan Backup Admin UI
+**Stopped at:** Completed 50-01-PLAN.md (Backup Download Endpoint)
+**Next action:** Continue with Phase 50 UI plans
 
 **Handoff notes:**
 
-1. **Phase 49 complete (Backup API Layer):**
-   - GET /api/backup/list endpoint with paginated metadata
-   - POST /api/backup/create triggers async manual backups
-   - POST /api/backup/restore with automatic pre-restore safety backup (BKUP-05)
-   - Docker volume mount: mysql_backup:/backup:rw on api service
-   - Job manager integration: 10 min timeout, 5 sec polling interval
-   - Concurrent backup protection via check_duplicate_job() (409 Conflict)
+1. **Phase 50-01 complete (Backup Download Endpoint):**
+   - GET /api/backup/download/:filename endpoint added
+   - Binary file serving with plumber octet serializer
+   - Path traversal protection (rejects `/` and `\`)
+   - Extension validation (only .sql and .sql.gz)
+   - Correct Content-Type headers for browser download
 
-2. **Ready for Phase 50 (Backup Admin UI):**
-   - Full REST API operational: list, create, restore
-   - Async job pattern with status polling ready for UI
-   - Response format matches existing admin patterns (pagination, error codes)
-   - Administrator role enforcement at API level
+2. **Complete Backup API Layer:**
+   - GET /api/backup/list - paginated metadata
+   - POST /api/backup/create - async manual backups
+   - POST /api/backup/restore - with pre-restore safety backup
+   - GET /api/backup/download/:filename - file download (new)
 
-3. **Key decisions from Phase 49:**
-   - Manual backup naming: manual_YYYY-MM-DD_HH-MM-SS.sql
-   - Pre-restore naming: pre-restore_YYYY-MM-DD_HH-MM-SS.sql
-   - Block restore if pre-restore fails (503 Service Unavailable)
-   - table_count as NA initially (compute lazily if needed)
-   - 20 backups per page matching other admin endpoints
+3. **Key decisions from Phase 50-01:**
+   - Used @serializer octet for binary response
+   - Path validation done via regex before file access
+   - Content-Type: application/sql for .sql, application/gzip for .sql.gz
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-29 — Phase 49 complete (Backup API Layer)*
+*Last updated: 2026-01-29 — Phase 50-01 complete (Backup Download Endpoint)*
