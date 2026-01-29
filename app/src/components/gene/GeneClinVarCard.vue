@@ -17,8 +17,10 @@
           target="_blank"
           rel="noopener noreferrer"
           class="text-decoration-none p-0"
+          title="View on ClinVar"
+          aria-label="View gene on ClinVar (opens in new tab)"
         >
-          <i class="bi bi-box-arrow-up-right"></i>
+          <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
         </BButton>
       </div>
     </template>

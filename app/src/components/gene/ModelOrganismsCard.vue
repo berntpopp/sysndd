@@ -25,7 +25,7 @@
             aria-label="View gene on MGI database (opens in new tab)"
           >
             <span class="badge bg-secondary me-1">MGI</span>
-            <i class="bi bi-box-arrow-up-right"></i>
+            <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
           </BButton>
           <!-- RGD external link -->
           <BButton
@@ -40,7 +40,7 @@
             aria-label="View gene on RGD database (opens in new tab)"
           >
             <span class="badge bg-secondary me-1">RGD</span>
-            <i class="bi bi-box-arrow-up-right"></i>
+            <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
           </BButton>
         </div>
       </div>
@@ -429,9 +429,10 @@ const zygosityCounts = computed(() => {
 }
 
 /* Custom badge color for heterozygous (yellow/warning) */
+/* Using dark text (#212529) on yellow for WCAG AA contrast (4.5:1 minimum) */
 .badge-warning-custom {
   background-color: #ffc107 !important;
-  color: #000 !important;
+  color: #212529 !important;
 }
 
 /* Cursor for tooltip elements */

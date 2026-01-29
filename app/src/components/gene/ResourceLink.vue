@@ -4,14 +4,14 @@
     :is="isAvailable ? 'a' : 'span'"
     v-if="compact"
     :href="isAvailable ? url : undefined"
-    :aria-label="isAvailable ? `Open ${name}` : undefined"
-    :aria-disabled="!isAvailable"
+    :aria-label="isAvailable ? `Open ${name} (opens in new tab)` : undefined"
     :target="isAvailable ? '_blank' : undefined"
     :rel="isAvailable ? 'noopener noreferrer' : undefined"
     class="resource-badge"
     :class="{ 'resource-badge--unavailable': !isAvailable }"
+    :role="!isAvailable ? 'text' : undefined"
   >
-    <i :class="icon" class="resource-badge__icon" />
+    <i :class="icon" class="resource-badge__icon" aria-hidden="true" />
     <span class="resource-badge__label">{{ name }}</span>
   </component>
 
@@ -20,14 +20,13 @@
     :is="isAvailable ? 'a' : 'div'"
     v-else
     :href="isAvailable ? url : undefined"
-    :aria-label="isAvailable ? `Open ${name}` : undefined"
-    :aria-disabled="!isAvailable"
+    :aria-label="isAvailable ? `Open ${name} (opens in new tab)` : undefined"
     :target="isAvailable ? '_blank' : undefined"
     :rel="isAvailable ? 'noopener noreferrer' : undefined"
     class="resource-link"
     :class="{ 'resource-link--unavailable': !isAvailable }"
   >
-    <div class="resource-link__icon">
+    <div class="resource-link__icon" aria-hidden="true">
       <i :class="icon" />
     </div>
     <div class="resource-link__content">

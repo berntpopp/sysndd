@@ -17,20 +17,20 @@
       title="Copy to clipboard"
       @click.prevent="handleCopy"
     >
-      <i class="bi bi-clipboard" />
+      <i class="bi bi-clipboard" aria-hidden="true" />
     </a>
     <a
       v-if="externalUrl"
       v-b-tooltip.hover.bottom
       class="identifier-badge__action identifier-badge__action--external"
       :href="externalUrl"
-      :aria-label="`Open ${label} in ${resolvedExternalLabel}`"
+      :aria-label="`Open ${label} in ${resolvedExternalLabel} (opens in new tab)`"
       :title="`View in ${resolvedExternalLabel}`"
       target="_blank"
       rel="noopener noreferrer"
       @click.stop
     >
-      <i class="bi bi-box-arrow-up-right" />
+      <i class="bi bi-box-arrow-up-right" aria-hidden="true" />
     </a>
   </span>
 
@@ -52,19 +52,19 @@
           title="Copy to clipboard"
           @click.prevent="handleCopy"
         >
-          <i class="bi bi-clipboard" />
+          <i class="bi bi-clipboard" aria-hidden="true" />
         </a>
         <a
           v-if="externalUrl"
           v-b-tooltip.hover.bottom
           class="identifier-row__action identifier-row__action--external"
           :href="externalUrl"
-          :aria-label="`Open ${label} in ${resolvedExternalLabel}`"
+          :aria-label="`Open ${label} in ${resolvedExternalLabel} (opens in new tab)`"
           :title="`View in ${resolvedExternalLabel}`"
           target="_blank"
           rel="noopener noreferrer"
         >
-          <i class="bi bi-box-arrow-up-right" />
+          <i class="bi bi-box-arrow-up-right" aria-hidden="true" />
         </a>
       </span>
     </div>
