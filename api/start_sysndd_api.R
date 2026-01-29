@@ -187,6 +187,50 @@ pool <<- dbPool(
 )
 
 ## -------------------------------------------------------------------##
+# 7.5) Run database migrations with lock coordination
+## -------------------------------------------------------------------##
+source("functions/migration-runner.R", local = TRUE)
+
+tryCatch({
+  # Checkout connection for lock duration (separate from pool operations)
+  migration_conn <- pool::poolCheckout(pool)
+  on.exit(pool::poolReturn(migration_conn), add = TRUE)
+
+  # Acquire advisory lock (blocks until available or 30s timeout)
+  acquire_migration_lock(migration_conn, timeout = 30)
+  on.exit(release_migration_lock(migration_conn), add = TRUE)
+
+  # Run migrations
+  start_time <- Sys.time()
+  result <- run_migrations(migrations_dir = "db/migrations", conn = pool)
+  duration <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
+
+  # Log summary based on what happened
+  if (result$newly_applied > 0) {
+    message(sprintf("[%s] Migrations complete (%d applied in %.2fs): %s",
+                    Sys.time(), result$newly_applied, duration,
+                    paste(result$filenames, collapse = ", ")))
+  } else {
+    message(sprintf("[%s] Schema up to date (%d migrations applied)",
+                    Sys.time(), result$total_applied))
+  }
+
+  # Store result for health endpoint access (global variable)
+  migration_status <<- list(
+    pending_migrations = 0,
+    total_migrations = result$total_applied,
+    last_run = Sys.time(),
+    newly_applied = result$newly_applied,
+    filenames = result$filenames
+  )
+
+}, error = function(e) {
+  message(sprintf("[%s] FATAL: Migration failed - %s", Sys.time(), e$message))
+  # Crash API - forces fix before deploy
+  stop(paste("API startup aborted: migration failure -", e$message))
+})
+
+## -------------------------------------------------------------------##
 # 8) Define global objects (serializers, allowed arrays, etc.)
 ## -------------------------------------------------------------------##
 serializers <<- list(
