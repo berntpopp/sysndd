@@ -18,11 +18,11 @@
 ## Current Position
 
 **Phase:** 45 - 3D Protein Structure Viewer (COMPLETE)
-**Plan:** 3 of 3 complete
-**Status:** 3D structure viewer fully integrated into gene page
-**Progress:** ████████████ 100% (45-01, 45-02, 45-03 complete)
+**Plan:** 4 of 4 complete (3 base plans + post-integration enhancements)
+**Status:** 3D structure viewer fully integrated with bug fixes and UX enhancements
+**Progress:** ████████████ 100% (45-01, 45-02, 45-03, 45-04 complete)
 
-**Last completed:** 45-03 - Tabbed visualization card integration (2026-01-29)
+**Last completed:** 45-04 - Post-integration enhancements (ResizeObserver fix, Reset View, VariantPanel UX) (2026-01-29)
 **Next step:** Begin Phase 46 (Model Organism Phenotypes & Final Integration).
 
 ---
@@ -228,7 +228,7 @@
   - isStructureMappableVariant(hgvsp): Returns true for missense/inframe variants only (filters out frameshift/stop/splice)
   - parseResidueNumber(hgvsp): Extracts residue number, returns null for non-mappable variants
   - classifyClinicalSignificance(significance): Normalizes ClinVar strings to AcmgClassification
-- **use3DStructure composable (app/src/composables/use3DStructure.ts, Phase 45-01):**
+- **use3DStructure composable (app/src/composables/use3DStructure.ts, Phase 45-01 + 45-04):**
   - Non-reactive Stage instance (let stage, not ref) following useCytoscape pattern
   - markRaw() on all NGL representations before Map storage
   - Container watch with immediate:true for lazy tab mount timing
@@ -238,9 +238,13 @@
   - addVariantMarker(residue, color, label): Spacefill representation at position with ACMG color
   - removeVariantMarker(residue): Remove single marker
   - clearAllVariantMarkers(): Remove all variant-* markers
-  - resetView(): Auto-center and zoom via autoView()
-  - cleanup(): Remove resize listener and stage.dispose()
+  - resetView(): Restores saved initial camera orientation via viewerControls.orient() (45-04)
+  - exportPNG(): Returns data URL of current view at 2x resolution (45-04)
+  - cleanup(): Remove resize listener, disconnect ResizeObserver, and stage.dispose()
   - onBeforeUnmount: Calls cleanup to prevent WebGL context leak (8-16 context browser limit)
+  - **ResizeObserver pattern (45-04):** Detects when container gets valid dimensions (width > 0 && height > 0) for lazy tab initialization
+  - **Camera orientation save/restore (45-04):** Captures 4x4 transformation matrix after autoView(), restores in resetView()
+  - **NGL tooltip disabled (45-04):** `tooltip: false` Stage option prevents grey area visual bug
 - **ProteinStructure3D component (app/src/components/gene/ProteinStructure3D.vue, Phase 45-02):**
   - 70/30 viewer-sidebar layout (70% NGL viewer, 30% variant panel)
   - Toolbar: cartoon/surface/ball+stick representation toggles with active state highlighting
@@ -269,6 +273,7 @@
 6. GeneApiData array fields - Always access first element: `geneData[0]?.symbol[0]`
 7. JSON column pipe-split: `gnomad_constraints` column should be excluded from str_split transformation (see backlog)
 8. D3 `this` typing in TypeScript - Use attr callbacks with arrow functions instead of `.each(function(d))`
+9. Bootstrap Vue lazy tab WebGL initialization - Container has 0x0 dimensions on mount; use ResizeObserver to detect valid dimensions before rendering
 
 ### Roadmap Evolution
 
@@ -301,37 +306,47 @@
 
 ## Session Continuity
 
-**Last session:** 2026-01-29T00:54:08Z
-**Stopped at:** Phase 45-03 complete (3D structure viewer fully integrated into gene page)
+**Last session:** 2026-01-29T12:00:00Z
+**Stopped at:** Phase 45-04 complete (post-integration enhancements and bug fixes)
 **Next action:** Begin Phase 46 (Model Organism Phenotypes & Final Integration)
 
 **Handoff notes:**
 
-1. **Phase 45 complete** (2026-01-29): All 3 plans shipped (foundation, components, integration).
+1. **Phase 45 complete** (2026-01-29): All 4 plans shipped (foundation, components, integration, enhancements).
    - 45-01: use3DStructure composable + AlphaFold types + NGL v2.4.0 dependency
    - 45-02: ProteinStructure3D + VariantPanel components (70/30 layout)
    - 45-03: Integration via GenomicVisualizationTabs with lazy-loaded NGL chunk (600KB gzipped)
+   - 45-04: Post-integration enhancements (ResizeObserver fix, Reset View camera fix, VariantPanel UX)
 
-2. **Phase 45-03 deliverables:**
-   - Extended `useGeneExternalData.ts` with alphafold per-source state (loading/error/data)
-   - Updated `GeneView.vue` to pass AlphaFold props to GenomicVisualizationTabs
-   - Updated `GenomicVisualizationTabs.vue` to replace 3D Structure placeholder with ProteinStructure3D
-   - BTab lazy prop ensures NGL chunk loads only on first tab click (not page load)
+2. **Phase 45-04 deliverables (post-integration enhancements):**
+   - **ResizeObserver fix:** Fixed blank 3D viewer on initial tab click (Bootstrap Vue lazy tab race condition)
+     - Container has 0x0 dimensions when NGL Stage initializes in lazy tabs
+     - ResizeObserver detects when container gets valid dimensions (width > 0 && height > 0)
+     - Triggers `stage.handleResize()` when dimensions become valid
+   - **Reset View camera fix:** Saves initial orientation after autoView(), restores via viewerControls.orient()
+   - **VariantPanel UX:** Added ClinVar external links and review stars display
+   - **NGL tooltip disabled:** Prevents grey area visual bug from broken built-in tooltip
+   - **VariantTooltip component:** Vue Teleport-based tooltip for variant hover display
 
-3. **Integration pattern established:**
+3. **Critical bug fix (45-04):** 3D viewer blank on first tab click
+   - **Root cause:** Bootstrap Vue lazy tabs mount content with 0x0 dimensions, NGL Stage initializes immediately
+   - **Solution:** ResizeObserver + rAF + 300ms fallback timeout
+   - **Verified:** Tested with CTCF, TP53, MECP2, SCN1A, SHANK3 - all render correctly on first click
+
+4. **Integration pattern established:**
    - useGeneExternalData composable → GeneView.vue → GenomicVisualizationTabs.vue → ProteinStructure3D.vue
    - Parallel fetching: ClinVar and AlphaFold fetched in parallel with Promise.allSettled
    - Per-source state: alphafold.loading, alphafold.error, alphafold.data following clinvar pattern
    - Lazy loading: NGL chunk (ngl.esm-BiKw7f63.js, 600.85 kB gzipped) deferred until tab activation
 
-4. **Technical foundation for Phase 46:**
+5. **Technical foundation for Phase 46:**
    - All genomic visualizations now in GenomicVisualizationTabs (Protein View, Gene Structure, 3D Structure)
    - Ready to add Model Organism Phenotypes card (MGI/RGD data from backend proxy)
    - Cross-highlighting infrastructure in place (onVariantClick/onVariantHover callbacks)
 
-5. **Phase 46 next** (2026-01-29): Model Organism Phenotypes & Final Integration
+6. **Phase 46 next** (2026-01-29): Model Organism Phenotypes & Final Integration
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-29 — Phase 45 complete (3D structure viewer fully integrated)*
+*Last updated: 2026-01-29 — Phase 45-04 complete (post-integration enhancements and bug fixes)*
