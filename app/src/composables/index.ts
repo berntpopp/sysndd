@@ -118,3 +118,7 @@ export type { LollipopOptions, D3LollipopState, PlotMargin } from './useD3Lollip
 // D3 gene structure composable
 export { useD3GeneStructure } from './useD3GeneStructure';
 export type { GeneStructureOptions, D3GeneStructureState } from './useD3GeneStructure';
+
+// 3D structure viewer composable (NGL Viewer integration)
+export { use3DStructure } from './use3DStructure';
+export type { Use3DStructureReturn } from './use3DStructure';
