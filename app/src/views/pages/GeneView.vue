@@ -131,7 +131,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useHead } from '@unhead/vue';
 import { useToast } from '@/composables';
@@ -262,7 +262,7 @@ async function retryAllExternalData(): Promise<void> {
   await fetchExternalData();
 }
 
-// Data loading (preserve existing logic)
+// Data loading - parallelized for performance
 async function loadGeneInfo() {
   loading.value = true;
   const symbol = route.params.symbol as string;
@@ -271,8 +271,11 @@ async function loadGeneInfo() {
   const apiGeneSymbolURL = `${apiBase}/api/gene/${symbol}?input_type=symbol`;
 
   try {
-    const responseGene = await axios.get(apiGeneURL);
-    const responseSymbol = await axios.get(apiGeneSymbolURL);
+    // Parallel fetch: both gene API calls run concurrently
+    const [responseGene, responseSymbol] = await Promise.all([
+      axios.get(apiGeneURL),
+      axios.get(apiGeneSymbolURL)
+    ]);
 
     if (responseGene.data.length === 0 && responseSymbol.data.length === 0) {
       router.push('/PageNotFound');
@@ -286,9 +289,14 @@ async function loadGeneInfo() {
   }
   loading.value = false;
 
-  // Fetch ClinVar data after gene data loads successfully
+  // Fire-and-forget: external data loads independently without blocking UI
+  // Each composable manages its own loading/error states
+  // Use nextTick to defer external fetches, allowing TablesEntities to
+  // make its API request first (prioritizes critical user-visible content)
   if (geneData.value.length > 0) {
-    fetchExternalData();
+    nextTick(() => {
+      fetchExternalData();
+    });
   }
 }
 
