@@ -77,34 +77,25 @@
         </BContainer>
       </div>
 
-      <!-- Protein Domain Lollipop Plot -->
+      <!-- Genomic Visualizations: Protein View / Gene Structure / 3D Structure (Tabbed) -->
       <div class="container-fluid">
         <BContainer fluid>
           <BRow class="justify-content-md-center pt-2">
             <BCol cols="12">
-              <ProteinDomainLollipopCard
-                :uniprot-data="uniprotData"
-                :clinvar-variants="clinvar.data.value"
-                :uniprot-loading="uniprotLoading"
-                :clinvar-loading="clinvar.loading.value"
-                :uniprot-error="uniprotError"
-                :clinvar-error="clinvar.error.value"
-                :gene-symbol="geneSymbol"
-                @retry="retryAllExternalData"
-              />
-            </BCol>
-          </BRow>
-        </BContainer>
-      </div>
-
-      <!-- Gene Structure Visualization (GENSTRUCT-01 through GENSTRUCT-04) -->
-      <div class="container-fluid">
-        <BContainer fluid>
-          <BRow class="justify-content-md-center pt-2">
-            <BCol col md="12">
-              <GeneStructureCard
+              <GenomicVisualizationTabs
                 v-if="geneSymbol"
                 :gene-symbol="geneSymbol"
+                :clinvar-variants="clinvar.data.value"
+                :clinvar-loading="clinvar.loading.value"
+                :clinvar-error="clinvar.error.value"
+                :uniprot-data="uniprotData"
+                :uniprot-loading="uniprotLoading"
+                :uniprot-error="uniprotError"
+                :chromosome-location="chromosomeLocation"
+                :alphafold-pdb-url="alphafold.data.value?.pdb_url || null"
+                :alphafold-loading="alphafold.loading.value"
+                :alphafold-error="alphafold.error.value"
+                @retry="retryAllExternalData"
               />
             </BCol>
           </BRow>
@@ -136,8 +127,7 @@ import IdentifierCard from '@/components/gene/IdentifierCard.vue';
 import ClinicalResourcesCard from '@/components/gene/ClinicalResourcesCard.vue';
 import GeneConstraintCard from '@/components/gene/GeneConstraintCard.vue';
 import GeneClinVarCard from '@/components/gene/GeneClinVarCard.vue';
-import ProteinDomainLollipopCard from '@/components/gene/ProteinDomainLollipopCard.vue';
-import GeneStructureCard from '@/components/gene/GeneStructureCard.vue';
+import GenomicVisualizationTabs from '@/components/gene/GenomicVisualizationTabs.vue';
 import TablesEntities from '@/components/tables/TablesEntities.vue';
 import type { GeneApiData } from '@/types/gene';
 
@@ -192,8 +182,8 @@ const gnomadConstraintsJson = computed(() => gene.value?.gnomad_constraints?.[0]
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const alphafoldId = computed(() => gene.value?.alphafold_id?.[0] || null);
 
-// ClinVar data (fetched live from per-source endpoint)
-const { clinvar, fetchData: fetchClinvarData, retry: retryExternalData } = useGeneExternalData(geneSymbol);
+// ClinVar and AlphaFold data (fetched live from per-source endpoints)
+const { clinvar, alphafold, fetchData: fetchClinvarData, retry: retryExternalData } = useGeneExternalData(geneSymbol);
 
 // UniProt domain data state (fetched inline since composable is ClinVar-only)
 const uniprotData = ref<UniProtData | null>(null);
