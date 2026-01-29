@@ -38,7 +38,7 @@
           :class="filterState.coloringMode === 'acmg' ? 'btn-primary' : 'btn-outline-secondary'"
           @click="setColoringMode('acmg')"
         >
-          ACMG
+          Classification
         </button>
         <button
           type="button"
@@ -243,8 +243,8 @@ const filterState = reactive<LollipopFilterState>({
 const { isInitialized, renderPlot, exportSVG, exportPNG } = useD3Lollipop({
   container: plotContainer,
   width: 800,
-  height: 200,
-  margin: { top: 45, right: 20, bottom: 35, left: 40 },
+  height: 140,
+  margin: { top: 15, right: 20, bottom: 28, left: 40 },
   onVariantClick: (variant) => emit('variant-click', variant),
   onVariantHover: (variant) => emit('variant-hover', variant),
 });
@@ -552,8 +552,10 @@ watch(
 
 .plot-container {
   width: 100%;
-  min-height: 200px;
+  max-width: 1400px;
+  min-height: 140px;
   position: relative;
+  margin: 0 auto;
 }
 
 /* Make SVG responsive via viewBox */

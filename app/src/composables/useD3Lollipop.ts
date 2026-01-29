@@ -88,9 +88,9 @@ const DEFAULT_HEIGHT = 250;
 const DEFAULT_MARGIN: PlotMargin = { top: 60, right: 30, bottom: 60, left: 50 };
 
 // Visual constants
-const BACKBONE_HEIGHT = 20;
-const STEM_BASE_HEIGHT = 40;
-const STEM_STACK_OFFSET = 14;
+const BACKBONE_HEIGHT = 14;
+const STEM_BASE_HEIGHT = 18;
+const STEM_STACK_OFFSET = 8;
 const MARKER_RADIUS = 5;
 const MARKER_STROKE_WIDTH = 1;
 

@@ -109,6 +109,18 @@ interface Props {
   constraintsJson: string | null
 }
 
+/** Type for constraint table row items */
+interface ConstraintTableItem {
+  category: string
+  expected: string
+  observed: string
+  z_score: number | null
+  oe: number | null
+  oe_lower: number | null
+  oe_upper: number | null
+  pLI: number | null
+}
+
 const props = defineProps<Props>()
 
 /**
@@ -196,7 +208,7 @@ function formatNumber(value: number | null, decimals: number): string {
 }
 
 // Helper: Generate ARIA label for CI bar (screen reader accessibility)
-function getCIAriaLabel(item: any): string {
+function getCIAriaLabel(item: ConstraintTableItem): string {
   if (item.oe === null || item.oe_lower === null || item.oe_upper === null) {
     return `${item.category} constraint: data unavailable`
   }

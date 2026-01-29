@@ -24,7 +24,7 @@ const plotContainer = ref<HTMLElement | null>(null);
 const scrollContainer = ref<HTMLElement | null>(null);
 
 // Initialize D3 composable
-const { isInitialized, renderGeneStructure, cleanup } = useD3GeneStructure({
+const { isInitialized: _isInitialized, renderGeneStructure, cleanup } = useD3GeneStructure({
   container: plotContainer,
   scrollContainer: scrollContainer,
 });

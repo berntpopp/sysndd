@@ -11,7 +11,7 @@
 /**
  * AlphaFold structure prediction metadata
  *
- * Response structure from backend /api/external/alphafold/<symbol> endpoint.
+ * Response structure from backend /api/external/alphafold/structure/<symbol> endpoint.
  * Matches external-proxy-alphafold.R return structure.
  */
 export interface AlphaFoldMetadata {

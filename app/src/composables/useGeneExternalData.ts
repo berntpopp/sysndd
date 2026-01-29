@@ -40,7 +40,7 @@ export interface UseGeneExternalDataReturn {
  *
  * @description
  * Fetches ClinVar variants from /api/external/gnomad/variants/<symbol>
- * and AlphaFold structure metadata from /api/external/alphafold/<symbol>.
+ * and AlphaFold structure metadata from /api/external/alphafold/structure/<symbol>.
  * gnomAD constraint scores are no longer fetched live — they are pre-annotated
  * into the non_alt_loci_set database table during the HGNC update process
  * and served directly from the gene endpoint (Plan 42-04).
@@ -93,7 +93,7 @@ export function useGeneExternalData(
    * @description
    * - Resets loading to true, error to null for both sources
    * - GET /api/external/gnomad/variants/<symbol> (ClinVar)
-   * - GET /api/external/alphafold/<symbol> (AlphaFold)
+   * - GET /api/external/alphafold/structure/<symbol> (AlphaFold)
    * - Handles not found (404) as "no data" (not error)
    * - Handles errors from backend
    */
@@ -144,7 +144,7 @@ export function useGeneExternalData(
       (async () => {
         try {
           const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/external/alphafold/${symbol.value}`,
+            `${import.meta.env.VITE_API_URL}/api/external/alphafold/structure/${symbol.value}`,
           );
 
           const result = response.data;
