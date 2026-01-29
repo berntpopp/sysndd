@@ -124,10 +124,30 @@ export function use3DStructure(
 
     stage = new NGL.Stage(containerRef.value, {
       backgroundColor: 'white',
+      tooltip: false, // Disable NGL's built-in tooltip (has broken dimensions)
     });
 
     // Handle window resize
     window.addEventListener('resize', handleResize);
+
+    // CRITICAL: In flexbox layouts and Vue's lazy tab rendering, the container
+    // may not have final dimensions at Stage creation time. A single rAF is not
+    // enough because CSS layout may take multiple frames to settle.
+    // Use a short timeout after rAF to ensure layout is complete.
+    // See: https://github.com/nglviewer/ngl/issues/890
+    requestAnimationFrame(() => {
+      // First resize attempt after initial layout
+      if (stage) {
+        stage.handleResize();
+      }
+      // Second resize after CSS fully settles (handles lazy tabs, transitions)
+      setTimeout(() => {
+        if (stage) {
+          stage.handleResize();
+        }
+      }, 100);
+    });
+
     isInitialized.value = true;
   }
 
@@ -186,6 +206,12 @@ export function use3DStructure(
 
       // Auto-center and zoom to fit structure (STRUCT3D-05 default view)
       structureComponent.autoView();
+
+      // Force resize after structure load to ensure canvas fills container
+      // This handles cases where container dimensions changed during load
+      if (stage) {
+        stage.handleResize();
+      }
     } catch (err) {
       console.error('use3DStructure: Failed to load structure:', err);
       error.value = 'Failed to load 3D structure. Please try again.';
