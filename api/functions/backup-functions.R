@@ -132,3 +132,190 @@ get_backup_metadata <- function(backup_dir = "/backup") {
     total_size_bytes = sum(as.numeric(files_info$size))
   )
 }
+
+
+#' Execute mysqldump to create database backup
+#'
+#' Runs mysqldump binary via system2() to create a SQL dump file.
+#' Uses --single-transaction for consistent backup without table locks.
+#'
+#' @param db_config List with dbname, host, user, password, port
+#' @param output_file Character path where backup will be written
+#'
+#' @return List with:
+#'   - success: Logical - TRUE if backup succeeded
+#'   - file: Character path to backup file (if success=TRUE)
+#'   - error: Character error message (if success=FALSE)
+#'
+#' @details
+#' Uses mysqldump flags:
+#' - --single-transaction: Consistent backup for InnoDB
+#' - --routines: Include stored procedures and functions
+#' - --triggers: Include triggers
+#' - --quick: Retrieve rows one at a time (memory efficient)
+#'
+#' @examples
+#' \dontrun{
+#' db_config <- list(
+#'   dbname = "sysndd",
+#'   host = "mysql",
+#'   user = "root",
+#'   password = "secret",
+#'   port = 3306
+#' )
+#' result <- execute_mysqldump(db_config, "/backup/manual.sql")
+#' }
+#'
+#' @export
+execute_mysqldump <- function(db_config, output_file) {
+  # Build arguments safely (no shell interpolation)
+  args <- c(
+    "-h", db_config$host,
+    "-P", as.character(db_config$port),
+    "-u", db_config$user,
+    paste0("-p", db_config$password),
+    "--single-transaction",
+    "--routines",
+    "--triggers",
+    "--quick",
+    db_config$dbname
+  )
+
+  # Execute with stderr capture for error handling
+  result <- system2(
+    "mysqldump",
+    args = args,
+    stdout = output_file,
+    stderr = TRUE
+  )
+
+  # system2 returns status code as attribute when stderr=TRUE
+  status <- attr(result, "status") %||% 0
+
+  if (status != 0) {
+    return(list(
+      success = FALSE,
+      error = paste(result, collapse = "\n")
+    ))
+  }
+
+  list(success = TRUE, file = output_file)
+}
+
+
+#' Execute database restore from backup file
+#'
+#' Restores a MySQL database from a .sql or .sql.gz backup file.
+#' Automatically handles decompression for gzipped files.
+#'
+#' @param db_config List with dbname, host, user, password, port
+#' @param restore_file Character path to backup file to restore
+#'
+#' @return List with:
+#'   - success: Logical - TRUE if restore succeeded
+#'   - error: Character error message (if success=FALSE)
+#'
+#' @details
+#' For .sql.gz files: Uses system() with gunzip piped to mysql
+#' For .sql files: Uses system() with mysql redirect
+#'
+#' @examples
+#' \dontrun{
+#' db_config <- list(
+#'   dbname = "sysndd",
+#'   host = "mysql",
+#'   user = "root",
+#'   password = "secret",
+#'   port = 3306
+#' )
+#' result <- execute_restore(db_config, "/backup/backup-2024-01-15.sql.gz")
+#' }
+#'
+#' @export
+execute_restore <- function(db_config, restore_file) {
+  # Validate file exists
+  if (!file.exists(restore_file)) {
+    return(list(
+      success = FALSE,
+      error = sprintf("Backup file not found: %s", restore_file)
+    ))
+  }
+
+  # Build mysql command based on file extension
+  if (grepl("\\.gz$", restore_file)) {
+    # Gzipped backup: decompress on the fly
+    restore_cmd <- sprintf(
+      "gunzip -c '%s' | mysql -h %s -P %s -u %s -p'%s' %s",
+      restore_file,
+      db_config$host,
+      as.character(db_config$port),
+      db_config$user,
+      db_config$password,
+      db_config$dbname
+    )
+  } else {
+    # Plain SQL file: direct mysql redirect
+    restore_cmd <- sprintf(
+      "mysql -h %s -P %s -u %s -p'%s' %s < '%s'",
+      db_config$host,
+      as.character(db_config$port),
+      db_config$user,
+      db_config$password,
+      db_config$dbname,
+      restore_file
+    )
+  }
+
+  # Execute restore command
+  result <- system(restore_cmd, intern = FALSE, ignore.stderr = FALSE)
+
+  if (result != 0) {
+    return(list(
+      success = FALSE,
+      error = sprintf("Restore failed with exit code %d", result)
+    ))
+  }
+
+  list(success = TRUE)
+}
+
+
+#' Check if a backup operation is currently running
+#'
+#' Scans the jobs environment for any active backup_create or
+#' backup_restore operations. Used to enforce single-concurrent-backup rule.
+#'
+#' @return Logical - TRUE if any backup job is running, FALSE otherwise
+#'
+#' @details
+#' Checks jobs_env (from job-manager.R) for jobs with:
+#' - operation in c("backup_create", "backup_restore")
+#' - status in c("pending", "running")
+#'
+#' @examples
+#' \dontrun{
+#' if (check_backup_in_progress()) {
+#'   return_409_conflict()
+#' }
+#' }
+#'
+#' @export
+check_backup_in_progress <- function() {
+  job_ids <- ls(jobs_env)
+
+  if (length(job_ids) == 0) {
+    return(FALSE)
+  }
+
+  for (job_id in job_ids) {
+    job <- jobs_env[[job_id]]
+
+    if (!is.null(job) &&
+          job$operation %in% c("backup_create", "backup_restore") &&
+          job$status %in% c("pending", "running")) {
+      return(TRUE)
+    }
+  }
+
+  return(FALSE)
+}
