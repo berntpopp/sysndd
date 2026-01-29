@@ -52,6 +52,16 @@
           >
             <i class="bi bi-arrow-clockwise"></i> Reset View
           </BButton>
+
+          <BButton
+            variant="outline-secondary"
+            size="sm"
+            aria-label="Export view as PNG image"
+            :disabled="isExporting"
+            @click="handleExportPNG"
+          >
+            <i class="bi bi-image"></i> PNG
+          </BButton>
         </div>
 
         <!-- NGL Viewport Container -->
@@ -69,6 +79,13 @@
             <span class="small">{{ item.label }}</span>
           </span>
         </div>
+
+        <!-- Model Indicator (AlphaFold entry info) -->
+        <div v-if="metadata" class="model-info text-muted small">
+          <span>{{ metadata.entry_id }}</span>
+          <span class="separator">·</span>
+          <span>AlphaFold v{{ metadata.latest_version }}</span>
+        </div>
       </div>
 
       <!-- Right: Variant Panel (30%, STRUCT3D-04) -->
@@ -77,6 +94,7 @@
           :variants="variants"
           @toggle-variant="handleToggleVariant"
           @clear-all="handleClearVariants"
+          @filter-change="handleFilterChange"
         />
       </div>
     </div>
@@ -89,13 +107,14 @@ import { BSpinner, BButton, BButtonGroup } from 'bootstrap-vue-next';
 import { use3DStructure } from '@/composables/use3DStructure';
 import VariantPanel from './VariantPanel.vue';
 import { PLDDT_LEGEND, ACMG_COLORS, classifyClinicalSignificance, parseResidueNumber } from '@/types/alphafold';
-import type { RepresentationType } from '@/types/alphafold';
+import type { RepresentationType, AcmgClassification, AlphaFoldMetadata } from '@/types/alphafold';
 import type { ClinVarVariant } from '@/types/external';
 
 interface Props {
   geneSymbol: string;
   structureUrl: string | null;  // AlphaFold PDB/CIF URL (null = no structure)
   variants: ClinVarVariant[];   // ClinVar variants for variant panel
+  metadata?: AlphaFoldMetadata | null;  // AlphaFold metadata for model indicator
 }
 
 const props = defineProps<Props>();
@@ -114,7 +133,18 @@ const {
   clearAllVariantMarkers,
   setRepresentation,
   resetView,
+  exportPNG,
 } = use3DStructure(viewerContainer);
+
+// Export state
+const isExporting = ref(false);
+
+// Track currently selected variants with their classifications for filter sync
+// Map of residue number -> AcmgClassification
+const selectedVariantClassifications = ref<Map<number, AcmgClassification | null>>(new Map());
+
+// Currently hidden classifications from filter panel
+const hiddenClassifications = ref<AcmgClassification[]>([]);
 
 // Local error state (combines composable error with component-level errors)
 const viewerError = ref<string | null>(null);
@@ -151,19 +181,84 @@ function handleToggleVariant(payload: { variant: ClinVarVariant; selected: boole
   const residue = parseResidueNumber(payload.variant.hgvsp);
   if (residue === null) return; // Skip variants without parseable position
 
+  const classification = classifyClinicalSignificance(payload.variant.clinical_significance);
+
   if (payload.selected) {
-    const classification = classifyClinicalSignificance(payload.variant.clinical_significance);
-    const color = classification ? ACMG_COLORS[classification] : '#999999';
-    const label = payload.variant.hgvsp || payload.variant.variant_id;
-    addVariantMarker(residue, color, label);
+    // Track the classification for this residue
+    selectedVariantClassifications.value.set(residue, classification);
+
+    // Only add marker if classification is not hidden
+    if (!classification || !hiddenClassifications.value.includes(classification)) {
+      const color = classification ? ACMG_COLORS[classification] : '#999999';
+      const label = payload.variant.hgvsp || payload.variant.variant_id;
+      addVariantMarker(residue, color, label);
+    }
   } else {
+    // Remove tracking and marker
+    selectedVariantClassifications.value.delete(residue);
     removeVariantMarker(residue);
   }
 }
 
 // Clear all variant markers
 function handleClearVariants(): void {
+  selectedVariantClassifications.value.clear();
   clearAllVariantMarkers();
+}
+
+// Handle filter changes from VariantPanel
+// Updates 3D markers to match filter state (hide markers for hidden classifications)
+function handleFilterChange(payload: { hiddenClassifications: AcmgClassification[] }): void {
+  const newHidden = payload.hiddenClassifications;
+  const oldHidden = hiddenClassifications.value;
+
+  // Find classifications that were hidden and are now visible (need to add markers back)
+  const nowVisible = oldHidden.filter(c => !newHidden.includes(c));
+
+  // Find classifications that are now hidden (need to remove markers)
+  const nowHidden = newHidden.filter(c => !oldHidden.includes(c));
+
+  // Update hidden state
+  hiddenClassifications.value = newHidden;
+
+  // Remove markers for newly hidden classifications
+  for (const [residue, classification] of selectedVariantClassifications.value.entries()) {
+    if (classification && nowHidden.includes(classification)) {
+      removeVariantMarker(residue);
+    }
+  }
+
+  // Re-add markers for newly visible classifications
+  for (const [residue, classification] of selectedVariantClassifications.value.entries()) {
+    if (classification && nowVisible.includes(classification)) {
+      // Find the variant to get color and label
+      const variant = props.variants.find(v => parseResidueNumber(v.hgvsp) === residue);
+      if (variant) {
+        const color = ACMG_COLORS[classification];
+        const label = variant.hgvsp || variant.variant_id;
+        addVariantMarker(residue, color, label);
+      }
+    }
+  }
+}
+
+// PNG export handler
+async function handleExportPNG(): Promise<void> {
+  isExporting.value = true;
+  try {
+    const dataUrl = await exportPNG();
+    if (dataUrl) {
+      // Create download link
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `${props.geneSymbol}-3d-structure.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  } finally {
+    isExporting.value = false;
+  }
 }
 
 // Retry loading
@@ -233,6 +328,14 @@ async function retryLoad(): Promise<void> {
   outline: none;  /* Remove focus outline on viewer */
 }
 
+/* NGL.Stage creates an internal wrapper div that needs explicit dimensions.
+   Without this, the canvas has 0x0 size in flexbox layouts.
+   See: https://github.com/nglviewer/ngl/issues/890 */
+.ngl-viewport :deep(> div) {
+  width: 100%;
+  height: 100%;
+}
+
 .ngl-viewport:focus-visible {
   outline: 2px solid #0d6efd;
   outline-offset: -2px;
@@ -266,5 +369,21 @@ async function retryLoad(): Promise<void> {
   height: 10px;
   border-radius: 2px;
   flex-shrink: 0;
+}
+
+/* Model info indicator */
+.model-info {
+  display: flex;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: 0.7rem;
+}
+
+.model-info .separator {
+  color: #adb5bd;
 }
 </style>

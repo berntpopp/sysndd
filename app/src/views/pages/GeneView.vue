@@ -93,6 +93,7 @@
                 :uniprot-error="uniprotError"
                 :chromosome-location="chromosomeLocation"
                 :alphafold-pdb-url="alphafold.data.value?.pdb_url || null"
+                :alphafold-metadata="alphafold.data.value || null"
                 :alphafold-loading="alphafold.loading.value"
                 :alphafold-error="alphafold.error.value"
                 @retry="retryAllExternalData"

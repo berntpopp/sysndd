@@ -48,6 +48,10 @@ export interface Use3DStructureReturn {
   setRepresentation: (type: RepresentationType) => void;
   /** Reset view to default orientation (auto-center and zoom) */
   resetView: () => void;
+  /** Export current view as PNG data URL (2x resolution) */
+  exportPNG: () => Promise<string | null>;
+  /** Get residue numbers of currently displayed variant markers */
+  getVariantMarkerResidues: () => number[];
   /** Cleanup Stage and release WebGL context */
   cleanup: () => void;
 }
@@ -86,6 +90,11 @@ export function use3DStructure(
   let stage: InstanceType<typeof NGL.Stage> | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let structureComponent: any = null; // NGL.Component (untyped in v2.4.0)
+
+  // Store initial camera orientation for resetView (4x4 transformation matrix)
+  // Captured after autoView() in loadStructure() so reset returns to default view
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let initialOrientation: any = null;
 
   // Representation references for visibility toggle (Map is non-reactive)
   // Each NGL representation is wrapped in markRaw before storage
@@ -207,6 +216,13 @@ export function use3DStructure(
       // Auto-center and zoom to fit structure (STRUCT3D-05 default view)
       structureComponent.autoView();
 
+      // Save initial camera orientation for resetView() (STRUCT3D-06)
+      // Uses NGL ViewerControls to capture 4x4 transformation matrix
+      // This is restored in resetView() to return to exact default orientation
+      if (stage) {
+        initialOrientation = stage.viewerControls.getOrientation();
+      }
+
       // Force resize after structure load to ensure canvas fills container
       // This handles cases where container dimensions changed during load
       if (stage) {
@@ -306,12 +322,75 @@ export function use3DStructure(
   /**
    * Reset view to default orientation (STRUCT3D-06)
    *
-   * Auto-centers and zooms to fit the entire structure.
+   * Restores the camera to the exact orientation captured after initial load,
+   * then auto-centers and zooms to fit the entire structure.
+   * This ensures rotation is reset, not just zoom/pan.
    */
   function resetView(): void {
-    if (structureComponent) {
+    if (!stage || !structureComponent) return;
+
+    // Restore saved initial orientation (includes rotation, zoom, pan)
+    // This is the orientation captured after autoView() in loadStructure()
+    if (initialOrientation) {
+      stage.viewerControls.orient(initialOrientation);
+    } else {
+      // Fallback: just auto-center if no initial orientation saved
       structureComponent.autoView();
     }
+  }
+
+  /**
+   * Export current view as PNG (2x resolution for high quality)
+   *
+   * Uses NGL's built-in stage.makeImage() method to capture the current view.
+   * Returns a data URL that can be used for download.
+   *
+   * @returns Data URL of the PNG image, or null if export fails
+   */
+  async function exportPNG(): Promise<string | null> {
+    if (!stage) return null;
+
+    try {
+      // NGL Stage has makeImage() method that returns a Blob
+      const blob = await stage.makeImage({
+        factor: 2,           // 2x resolution for high quality
+        antialias: true,
+        trim: false,
+        transparent: false,
+      });
+
+      // Convert Blob to data URL
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch (err) {
+      console.error('use3DStructure: Failed to export PNG:', err);
+      return null;
+    }
+  }
+
+  /**
+   * Get residue numbers of currently displayed variant markers
+   *
+   * Useful for syncing filter state with 3D markers - returns which
+   * residues currently have markers displayed.
+   *
+   * @returns Array of residue numbers that have variant markers
+   */
+  function getVariantMarkerResidues(): number[] {
+    const residues: number[] = [];
+    for (const key of representations.keys()) {
+      if (key.startsWith('variant-')) {
+        const residue = parseInt(key.replace('variant-', ''), 10);
+        if (!isNaN(residue)) {
+          residues.push(residue);
+        }
+      }
+    }
+    return residues;
   }
 
   /**
@@ -329,6 +408,7 @@ export function use3DStructure(
     }
 
     structureComponent = null;
+    initialOrientation = null;
     representations.clear();
     isInitialized.value = false;
     isLoading.value = false;
@@ -362,6 +442,8 @@ export function use3DStructure(
     clearAllVariantMarkers,
     setRepresentation,
     resetView,
+    exportPNG,
+    getVariantMarkerResidues,
     cleanup,
   };
 }

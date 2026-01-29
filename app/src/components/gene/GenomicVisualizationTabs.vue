@@ -116,6 +116,7 @@
               :gene-symbol="geneSymbol"
               :structure-url="alphafoldPdbUrl"
               :variants="clinvarVariants || []"
+              :metadata="alphafoldMetadata"
             />
           </div>
         </BTab>
@@ -136,6 +137,7 @@ import { normalizeClassification, parseProteinPosition } from '@/types/protein';
 import type { ClinVarVariant } from '@/types/external';
 import type { EnsemblGeneStructure, GeneStructureRenderData } from '@/types/ensembl';
 import { processEnsemblResponse, formatGenomicCoordinate } from '@/types/ensembl';
+import type { AlphaFoldMetadata } from '@/types/alphafold';
 
 /**
  * UniProt domain feature from the API response
@@ -187,6 +189,8 @@ interface Props {
   chromosomeLocation?: string;
   /** AlphaFold structure PDB URL (null if no structure) */
   alphafoldPdbUrl: string | null;
+  /** Full AlphaFold metadata for model indicator */
+  alphafoldMetadata?: AlphaFoldMetadata | null;
   /** AlphaFold data loading state */
   alphafoldLoading: boolean;
   /** AlphaFold data error state */

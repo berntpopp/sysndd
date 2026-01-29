@@ -2,7 +2,7 @@
   <div class="variant-panel" role="region" aria-label="ClinVar variant selection panel">
     <!-- Panel Header -->
     <div class="panel-header">
-      <span class="fw-semibold small">Variants ({{ mappableVariants.length }})</span>
+      <span class="fw-semibold small">Variants ({{ filteredVariants.length }}/{{ mappableVariants.length }})</span>
       <BButton
         v-if="selectedResidues.size > 0"
         variant="link"
@@ -15,6 +15,57 @@
       </BButton>
     </div>
 
+    <!-- Search Input -->
+    <div class="search-box">
+      <input
+        v-model="searchQuery"
+        type="text"
+        class="form-control form-control-sm"
+        placeholder="Search variants..."
+        aria-label="Search variants by notation"
+      />
+    </div>
+
+    <!-- ACMG Filter Row -->
+    <div class="filter-row d-flex flex-wrap justify-content-center align-items-center gap-1">
+      <span
+        v-for="item in legendItems"
+        :key="item.key"
+        class="filter-group"
+      >
+        <button
+          type="button"
+          class="filter-chip"
+          :class="{ 'filter-chip--hidden': !item.visible }"
+          :aria-label="`Toggle ${item.label} variants`"
+          :aria-pressed="item.visible"
+          @click="toggleFilter(item.key)"
+        >
+          <span
+            class="filter-dot"
+            :style="{ backgroundColor: item.visible ? item.color : '#ccc' }"
+          />
+          <span class="filter-label">{{ item.label }}</span>
+          <span
+            v-if="item.count > 0"
+            class="filter-count"
+          >{{ item.count }}</span>
+        </button>
+        <button
+          type="button"
+          class="only-btn"
+          title="Show only this category"
+          @click="selectOnly(item.key)"
+        >only</button>
+      </span>
+      <button
+        type="button"
+        class="all-btn"
+        title="Show all categories"
+        @click="selectAll"
+      >all</button>
+    </div>
+
     <!-- No variants state -->
     <div v-if="mappableVariants.length === 0" class="text-center py-3">
       <span class="text-muted small">
@@ -22,10 +73,17 @@
       </span>
     </div>
 
+    <!-- No matching variants after filter -->
+    <div v-else-if="filteredVariants.length === 0" class="text-center py-3">
+      <span class="text-muted small">
+        No variants match current filters
+      </span>
+    </div>
+
     <!-- Variant List (scrollable) -->
     <div v-else ref="listContainer" class="variant-list" role="list" aria-label="ClinVar variants with protein positions">
       <label
-        v-for="item in mappableVariants"
+        v-for="item in filteredVariants"
         :key="item.variant.variant_id"
         class="variant-item"
         role="listitem"
@@ -44,29 +102,47 @@
           :aria-hidden="true"
         ></span>
         <span class="variant-info">
-          <span class="variant-notation small">
-            {{ item.variant.hgvsp || item.variant.hgvsc || item.variant.variant_id }}
+          <span class="variant-row-top">
+            <span class="variant-notation small">
+              {{ item.variant.hgvsp || item.variant.hgvsc || item.variant.variant_id }}
+            </span>
+            <a
+              :href="`https://www.ncbi.nlm.nih.gov/clinvar/variation/${item.variant.clinvar_variation_id}/`"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="clinvar-link"
+              :aria-label="`View ${item.variant.hgvsp || item.variant.variant_id} in ClinVar`"
+              @click.stop
+            >
+              <i class="bi bi-box-arrow-up-right"></i>
+            </a>
           </span>
-          <span class="variant-class small text-muted">
-            {{ item.label }}
+          <span class="variant-row-bottom">
+            <span class="variant-class small text-muted">
+              {{ item.label }}
+            </span>
+            <span class="review-stars" :title="`ClinVar review: ${item.variant.gold_stars} stars`">
+              {{ '★'.repeat(item.variant.gold_stars) }}{{ '☆'.repeat(4 - item.variant.gold_stars) }}
+            </span>
           </span>
         </span>
       </label>
     </div>
 
-    <!-- Single shared tooltip (positioned via JS) -->
-    <div
+    <!-- Single shared tooltip (uses component to avoid v-html XSS warning) -->
+    <VariantTooltip
       ref="tooltipEl"
-      class="variant-tooltip"
-      :style="tooltipStyle"
-      v-html="tooltipContent"
-    ></div>
+      :visible="tooltipVisible"
+      :data="tooltipData"
+      :position="tooltipPosition"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, type CSSProperties } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import { BButton } from 'bootstrap-vue-next';
+import VariantTooltip from './VariantTooltip.vue';
 import type { ClinVarVariant } from '@/types/external';
 import {
   ACMG_COLORS,
@@ -76,6 +152,18 @@ import {
   type AcmgClassification,
 } from '@/types/alphafold';
 
+/** Filter state key type matching ACMG classifications */
+type FilterKey = 'pathogenic' | 'likelyPathogenic' | 'vus' | 'likelyBenign' | 'benign';
+
+/** Mapping from AcmgClassification to FilterKey */
+const classificationToFilterKey: Record<AcmgClassification, FilterKey> = {
+  pathogenic: 'pathogenic',
+  likely_pathogenic: 'likelyPathogenic',
+  vus: 'vus',
+  likely_benign: 'likelyBenign',
+  benign: 'benign',
+};
+
 interface Props {
   variants: ClinVarVariant[];
 }
@@ -84,27 +172,40 @@ const props = defineProps<Props>();
 const emit = defineEmits<{
   'toggle-variant': [payload: { variant: ClinVarVariant; selected: boolean }];
   'clear-all': [];
+  'filter-change': [payload: { hiddenClassifications: AcmgClassification[] }];
 }>();
 
 // Track selected residues for checkbox state
 const selectedResidues = ref<Set<number>>(new Set());
 
+// Search query for text filtering
+const searchQuery = ref('');
+
+// Filter state for ACMG classifications (all visible by default)
+const filterState = reactive({
+  pathogenic: true,
+  likelyPathogenic: true,
+  vus: true,
+  likelyBenign: true,
+  benign: true,
+});
+
 // Refs for tooltip positioning
 const listContainer = ref<HTMLElement | null>(null);
-const tooltipEl = ref<HTMLElement | null>(null);
+const tooltipEl = ref<InstanceType<typeof VariantTooltip> | null>(null);
 
-// Tooltip state
-const tooltipContent = ref('');
+// Tooltip state (structured data for VariantTooltip component)
+interface TooltipData {
+  hgvsp: string | null;
+  hgvsc: string | null;
+  variantId: string;
+  label: string;
+  color: string;
+  goldStars: number;
+}
+const tooltipData = ref<TooltipData | null>(null);
 const tooltipVisible = ref(false);
 const tooltipPosition = ref({ top: 0, left: 0 });
-
-// Computed tooltip style
-const tooltipStyle = computed<CSSProperties>(() => ({
-  opacity: tooltipVisible.value ? 1 : 0,
-  visibility: tooltipVisible.value ? 'visible' : 'hidden',
-  top: `${tooltipPosition.value.top}px`,
-  left: `${tooltipPosition.value.left}px`,
-}));
 
 // Processable variant item (variant + parsed residue + ACMG info)
 interface MappableVariant {
@@ -140,6 +241,163 @@ const mappableVariants = computed<MappableVariant[]>(() => {
   return items;
 });
 
+/**
+ * Count variants by ACMG classification
+ */
+function countByClassification(): Record<FilterKey, number> {
+  const counts: Record<FilterKey, number> = {
+    pathogenic: 0,
+    likelyPathogenic: 0,
+    vus: 0,
+    likelyBenign: 0,
+    benign: 0,
+  };
+
+  for (const item of mappableVariants.value) {
+    if (item.classification) {
+      const key = classificationToFilterKey[item.classification];
+      counts[key]++;
+    }
+  }
+
+  return counts;
+}
+
+/**
+ * Legend items for ACMG filter chips with counts
+ */
+const legendItems = computed(() => {
+  const counts = countByClassification();
+  return [
+    {
+      key: 'pathogenic' as const,
+      label: 'Path',
+      color: ACMG_COLORS.pathogenic,
+      visible: filterState.pathogenic,
+      count: counts.pathogenic,
+    },
+    {
+      key: 'likelyPathogenic' as const,
+      label: 'LP',
+      color: ACMG_COLORS.likely_pathogenic,
+      visible: filterState.likelyPathogenic,
+      count: counts.likelyPathogenic,
+    },
+    {
+      key: 'vus' as const,
+      label: 'VUS',
+      color: ACMG_COLORS.vus,
+      visible: filterState.vus,
+      count: counts.vus,
+    },
+    {
+      key: 'likelyBenign' as const,
+      label: 'LB',
+      color: ACMG_COLORS.likely_benign,
+      visible: filterState.likelyBenign,
+      count: counts.likelyBenign,
+    },
+    {
+      key: 'benign' as const,
+      label: 'Ben',
+      color: ACMG_COLORS.benign,
+      visible: filterState.benign,
+      count: counts.benign,
+    },
+  ];
+});
+
+/**
+ * Filtered variants based on search query and ACMG filter state
+ */
+const filteredVariants = computed<MappableVariant[]>(() => {
+  const query = searchQuery.value.toLowerCase().trim();
+
+  return mappableVariants.value.filter((item) => {
+    // Check ACMG filter
+    if (item.classification) {
+      const filterKey = classificationToFilterKey[item.classification];
+      if (!filterState[filterKey]) return false;
+    } else {
+      // If no classification, show only if all filters are enabled (unknown classification)
+      // This is a fallback - most variants should have a classification
+    }
+
+    // Check search query (case-insensitive across hgvsp, hgvsc, variant_id)
+    if (query) {
+      const hgvsp = (item.variant.hgvsp || '').toLowerCase();
+      const hgvsc = (item.variant.hgvsc || '').toLowerCase();
+      const variantId = (item.variant.variant_id || '').toLowerCase();
+
+      if (!hgvsp.includes(query) && !hgvsc.includes(query) && !variantId.includes(query)) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+});
+
+/**
+ * Toggle filter visibility for an ACMG classification
+ */
+function toggleFilter(key: FilterKey): void {
+  filterState[key] = !filterState[key];
+}
+
+/**
+ * Select only one ACMG classification (deselect all others)
+ */
+function selectOnly(key: FilterKey): void {
+  filterState.pathogenic = key === 'pathogenic';
+  filterState.likelyPathogenic = key === 'likelyPathogenic';
+  filterState.vus = key === 'vus';
+  filterState.likelyBenign = key === 'likelyBenign';
+  filterState.benign = key === 'benign';
+}
+
+/**
+ * Select all ACMG classifications
+ */
+function selectAll(): void {
+  filterState.pathogenic = true;
+  filterState.likelyPathogenic = true;
+  filterState.vus = true;
+  filterState.likelyBenign = true;
+  filterState.benign = true;
+}
+
+/**
+ * Get list of hidden ACMG classifications based on current filter state
+ */
+function getHiddenClassifications(): AcmgClassification[] {
+  const hidden: AcmgClassification[] = [];
+  if (!filterState.pathogenic) hidden.push('pathogenic');
+  if (!filterState.likelyPathogenic) hidden.push('likely_pathogenic');
+  if (!filterState.vus) hidden.push('vus');
+  if (!filterState.likelyBenign) hidden.push('likely_benign');
+  if (!filterState.benign) hidden.push('benign');
+  return hidden;
+}
+
+/**
+ * Watch filter state changes and emit filter-change event
+ * This allows parent component to sync 3D markers with filter state
+ */
+watch(
+  () => ({
+    pathogenic: filterState.pathogenic,
+    likelyPathogenic: filterState.likelyPathogenic,
+    vus: filterState.vus,
+    likelyBenign: filterState.likelyBenign,
+    benign: filterState.benign,
+  }),
+  () => {
+    emit('filter-change', { hiddenClassifications: getHiddenClassifications() });
+  },
+  { deep: true }
+);
+
 // Toggle variant selection
 function toggleVariant(item: MappableVariant): void {
   const isCurrentlySelected = selectedResidues.value.has(item.residue);
@@ -163,6 +421,12 @@ function clearAll(): void {
   emit('clear-all');
 }
 
+// Estimated tooltip dimensions for positioning (avoids DOM measurement)
+// Actual tooltip is ~150px wide, ~95px tall based on content
+const TOOLTIP_WIDTH = 155;
+const TOOLTIP_HEIGHT = 95;
+const TOOLTIP_GAP = 8;
+
 /**
  * Show tooltip near the hovered element
  * Uses position:fixed with viewport coordinates to avoid overflow clipping
@@ -173,37 +437,32 @@ function showTooltip(event: MouseEvent, item: MappableVariant): void {
   if (!targetElement) return;
   const itemRect = targetElement.getBoundingClientRect();
 
-  const stars = '★'.repeat(item.variant.gold_stars) + '☆'.repeat(4 - item.variant.gold_stars);
-  tooltipContent.value = `
-    <strong>${item.variant.hgvsp || item.variant.variant_id}</strong><br/>
-    ${item.variant.hgvsc ? `<span style="color: #adb5bd; font-size: 11px;">${item.variant.hgvsc}</span><br/>` : ''}
-    <span style="color: ${item.color};">●</span> ${item.label}<br/>
-    <span style="color: #ffc107;">${stars}</span> ClinVar review
-  `.trim();
+  // Set structured tooltip data (avoids v-html XSS vulnerability)
+  tooltipData.value = {
+    hgvsp: typeof item.variant.hgvsp === 'string' ? item.variant.hgvsp : null,
+    hgvsc: typeof item.variant.hgvsc === 'string' ? item.variant.hgvsc : null,
+    variantId: item.variant.variant_id,
+    label: item.label,
+    color: item.color,
+    goldStars: item.variant.gold_stars,
+  };
 
-  // Position calculation after content is set (need rAF for tooltip dimensions)
-  requestAnimationFrame(() => {
-    if (!tooltipEl.value) return;
+  // Position to the left of the item in viewport coordinates (for position:fixed)
+  let left = itemRect.left - TOOLTIP_WIDTH - TOOLTIP_GAP;
+  let top = itemRect.top + (itemRect.height / 2) - (TOOLTIP_HEIGHT / 2);
 
-    const tooltipRect = tooltipEl.value.getBoundingClientRect();
+  // Ensure tooltip stays within viewport bounds
+  const minTop = 10;
+  const maxTop = window.innerHeight - TOOLTIP_HEIGHT - 10;
+  top = Math.max(minTop, Math.min(maxTop, top));
 
-    // Position to the left of the item in viewport coordinates (for position:fixed)
-    let left = itemRect.left - tooltipRect.width - 10;
-    let top = itemRect.top + (itemRect.height / 2) - (tooltipRect.height / 2);
+  // If tooltip would go off left edge, position to the right of item instead
+  if (left < 10) {
+    left = itemRect.right + TOOLTIP_GAP;
+  }
 
-    // Ensure tooltip stays within viewport bounds
-    const minTop = 10;
-    const maxTop = window.innerHeight - tooltipRect.height - 10;
-    top = Math.max(minTop, Math.min(maxTop, top));
-
-    // If tooltip would go off left edge, position to the right of item instead
-    if (left < 10) {
-      left = itemRect.right + 10;
-    }
-
-    tooltipPosition.value = { top, left };
-    tooltipVisible.value = true;
-  });
+  tooltipPosition.value = { top, left };
+  tooltipVisible.value = true;
 }
 
 /**
@@ -211,6 +470,7 @@ function showTooltip(event: MouseEvent, item: MappableVariant): void {
  */
 function hideTooltip(): void {
   tooltipVisible.value = false;
+  tooltipData.value = null;
 }
 </script>
 
@@ -230,6 +490,100 @@ function hideTooltip(): void {
   background: #f8f9fa;
   border-bottom: 1px solid #dee2e6;
   flex-shrink: 0;
+}
+
+/* Search box */
+.search-box {
+  padding: 6px 10px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  flex-shrink: 0;
+}
+
+.search-box input {
+  font-size: 0.8rem;
+}
+
+/* Filter row */
+.filter-row {
+  padding: 6px 8px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  flex-shrink: 0;
+}
+
+/* Filter chips - compact toggle buttons (matching lollipop plot) */
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border: 1px solid #dee2e6;
+  border-radius: 10px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.filter-chip:hover {
+  border-color: #adb5bd;
+  background: #f8f9fa;
+}
+
+.filter-chip--hidden {
+  opacity: 0.4;
+  background: #f5f5f5;
+}
+
+.filter-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.filter-label {
+  white-space: nowrap;
+}
+
+.filter-count {
+  color: #6c757d;
+  font-size: 0.65rem;
+}
+
+/* Filter group with "only" button */
+.filter-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+}
+
+/* "only" and "all" buttons (gnomAD-style) */
+.only-btn,
+.all-btn {
+  padding: 1px 3px;
+  font-size: 0.6rem;
+  line-height: 1.2;
+  border: 1px solid #dee2e6;
+  border-radius: 3px;
+  background: #f8f9fa;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.only-btn:hover,
+.all-btn:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+  color: #495057;
+}
+
+.all-btn {
+  margin-left: 2px;
 }
 
 .variant-list {
@@ -270,6 +624,18 @@ function hideTooltip(): void {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  flex: 1;
+}
+
+.variant-row-top,
+.variant-row-bottom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.variant-row-top {
+  justify-content: space-between;
 }
 
 .variant-notation {
@@ -279,37 +645,27 @@ function hideTooltip(): void {
   text-overflow: ellipsis;
 }
 
+.clinvar-link {
+  color: #6c757d;
+  font-size: 0.65rem;
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.clinvar-link:hover {
+  color: #0d6efd;
+  opacity: 1;
+}
+
 .variant-class {
   font-size: 0.7rem;
 }
 
-/* Single shared tooltip - uses position:fixed to avoid overflow clipping */
-/* Matches lollipop plot D3 tooltip style */
-.variant-tooltip {
-  position: fixed;
-  background: rgba(0, 0, 0, 0.85);
-  color: #fff;
-  border-radius: 4px;
-  padding: 8px 12px;
-  font-size: 12px;
-  line-height: 1.4;
-  white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  z-index: 9999;
-  pointer-events: none;
-  transition: opacity 0.15s, visibility 0.15s;
-  text-align: left;
-}
-
-/* Tooltip arrow pointing right (towards the item) */
-.variant-tooltip::after {
-  content: '';
-  position: absolute;
-  right: -6px;
-  top: 50%;
-  transform: translateY(-50%);
-  border-width: 6px;
-  border-style: solid;
-  border-color: transparent transparent transparent rgba(0, 0, 0, 0.85);
+.review-stars {
+  color: #ffc107;
+  font-size: 0.65rem;
+  flex-shrink: 0;
+  letter-spacing: -1px;
 }
 </style>
