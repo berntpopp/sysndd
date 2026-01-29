@@ -95,12 +95,18 @@ Plans:
 
 **Dependencies:** Phase 49 (backup API must exist)
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 50-01-PLAN.md — Add backup download endpoint to API
+- [ ] 50-02-PLAN.md — Create ManageBackups admin view with list, download, backup, and restore
+
 **Requirements:**
 - BKUP-02: Admin UI displays backup list with download links
 - BKUP-04: Restore requires typed confirmation ("RESTORE" to proceed)
 
 **Success Criteria:**
-1. Admin can navigate to /admin/backups and see list of available backups
+1. Admin can navigate to /ManageBackups and see list of available backups
 2. Admin can download any backup file directly from the UI
 3. Admin can trigger "Backup Now" and see progress via job polling
 4. Restore modal requires typing "RESTORE" exactly before proceeding (prevents accidents)
@@ -171,7 +177,7 @@ Plans:
 | 47 | Migration System Foundation | MIGR-01, MIGR-02, MIGR-03, MIGR-05 | Complete |
 | 48 | Migration Auto-Run & Health | MIGR-04, MIGR-06 | Complete |
 | 49 | Backup API Layer | BKUP-01, BKUP-03, BKUP-05, BKUP-06 | Complete |
-| 50 | Backup Admin UI | BKUP-02, BKUP-04 | Not Started |
+| 50 | Backup Admin UI | BKUP-02, BKUP-04 | Planned (2 plans) |
 | 51 | SMTP Testing Infrastructure | SMTP-01, SMTP-02 | Not Started |
 | 52 | User Lifecycle E2E | SMTP-03, SMTP-04, SMTP-05 | Not Started |
 | 53 | Production Docker Validation | PROD-01, PROD-02, PROD-03, PROD-04 | Not Started |
@@ -205,4 +211,4 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 ---
 
 *Roadmap created: 2026-01-29*
-*Last updated: 2026-01-29 — Phase 49 complete (Backup API Layer)*
+*Last updated: 2026-01-29 — Phase 50 planned (Backup Admin UI)*
