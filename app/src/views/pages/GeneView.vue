@@ -72,8 +72,8 @@
                 :loading="clinvar.loading.value"
                 :error="clinvar.error.value"
                 :data="clinvar.data.value"
-                @retry="retryExternalData"
                 class="mb-2"
+                @retry="retryExternalData"
               />
               <!-- Model Organisms Card (compact, under ClinVar) -->
               <ModelOrganismsCard

@@ -67,12 +67,16 @@
         </BButton>
       </div>
 
-      <!-- Data display -->
-      <div v-else class="d-flex flex-wrap gap-3 align-items-start">
-        <!-- Mouse (MGI) section -->
-        <div class="organism-section">
+      <!-- Data display - two column layout with centered divider -->
+      <div v-else class="organism-grid">
+        <!-- Mouse (MGI) section - LEFT -->
+        <div class="organism-section organism-left">
           <div class="d-flex align-items-center gap-1 mb-1">
-            <i class="bi bi-heart-pulse text-muted small"></i>
+            <img
+              :src="mouseIcon"
+              alt="Mouse silhouette"
+              class="phylopic-icon text-muted"
+            />
             <span class="text-muted small fw-semibold">Mouse</span>
             <BSpinner v-if="mgiLoading" small class="ms-1" />
           </div>
@@ -168,13 +172,15 @@
           </div>
         </div>
 
-        <!-- Divider -->
-        <div class="vr d-none d-sm-block"></div>
 
-        <!-- Rat (RGD) section -->
-        <div class="organism-section">
+        <!-- Rat (RGD) section - RIGHT -->
+        <div class="organism-section organism-right">
           <div class="d-flex align-items-center gap-1 mb-1">
-            <i class="bi bi-database text-muted small"></i>
+            <img
+              :src="ratIcon"
+              alt="Rat silhouette"
+              class="phylopic-icon text-muted"
+            />
             <span class="text-muted small fw-semibold">Rat</span>
             <BSpinner v-if="rgdLoading" small class="ms-1" />
           </div>
@@ -251,6 +257,10 @@
 import { computed, ref } from 'vue'
 import { BCard, BButton, BSpinner, BPopover } from 'bootstrap-vue-next'
 import type { MGIPhenotypeData, RGDPhenotypeData } from '@/types/external'
+
+// PhyloPic silhouette icons (CC0 licensed)
+import mouseIcon from '@/assets/icons/phylopic/mus-musculus.svg'
+import ratIcon from '@/assets/icons/phylopic/rattus.svg'
 
 interface Props {
   geneSymbol: string
@@ -356,8 +366,60 @@ const zygosityCounts = computed(() => {
   /* Match gene info card styling */
 }
 
+/* PhyloPic silhouette icons */
+.phylopic-icon {
+  width: 24px;
+  height: 24px;
+  opacity: 0.7;
+  /* Make black silhouettes appear muted/gray */
+  filter: invert(40%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(90%) contrast(100%);
+}
+
+/* Grid layout for two-column with centered divider */
+.organism-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+/* On mobile, stack vertically */
+@media (max-width: 575.98px) {
+  .organism-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .organism-left {
+    border-right: none !important;
+    padding-right: 0 !important;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 0.5rem;
+  }
+}
+
 .organism-section {
   min-width: 100px;
+}
+
+/* Left section aligns content to the right (towards center) */
+.organism-left {
+  text-align: right;
+  border-right: 1px solid #dee2e6;
+  padding-right: 1rem;
+}
+
+.organism-left .d-flex {
+  justify-content: flex-end;
+}
+
+/* Right section aligns content to the left (towards center) */
+.organism-right {
+  text-align: left;
+}
+
+.organism-right .d-flex {
+  justify-content: flex-start;
 }
 
 /* Smaller badges for zygosity */
@@ -395,12 +457,6 @@ const zygosityCounts = computed(() => {
   transform: translateY(0);
 }
 
-/* Vertical rule styling */
-.vr {
-  opacity: 0.3;
-  height: auto;
-  align-self: stretch;
-}
 
 /* Phenotype list in popover */
 .phenotype-list {
