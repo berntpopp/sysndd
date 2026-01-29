@@ -2,7 +2,17 @@
 
 ## What This Is
 
-Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v8 delivered a modern gene page with genomic data integration — gnomAD constraint scores, ClinVar variant summaries, D3.js protein domain lollipop plots, gene structure visualization, 3D AlphaFold structure viewer, and model organism phenotypes from MGI/RGD — all powered by a backend external API proxy layer with disk caching. Building on v7's curation workflows, v6's admin panel, v5's Cytoscape.js visualizations, v4's backend overhaul, v3's Vue 3 migration, v2's Docker infrastructure, and v1's developer tooling.
+Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v9 focuses on production readiness — automated database migrations, backup management with admin UI, user lifecycle testing with real SMTP, and production Docker validation. Building on v8's gene page with genomic data integration, v7's curation workflows, v6's admin panel, v5's Cytoscape.js visualizations, v4's backend overhaul, v3's Vue 3 migration, v2's Docker infrastructure, and v1's developer tooling.
+
+## Current Milestone: v9.0 Production Readiness
+
+**Goal:** Make SysNDD production-ready with automated migrations, backup management, verified user workflows, and production Docker validation.
+
+**Target features:**
+- Automated database migration system (detect and apply missing migrations on startup)
+- Backup management API and admin UI (trigger dumps, list backups, restore with confirmation)
+- User lifecycle verification with real SMTP (Mailpit for dev, real SMTP for production testing)
+- Production Docker build validation (4-worker API setup)
 
 ## Core Value
 
@@ -232,7 +242,20 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 ### Active
 
-(No active requirements — planning next milestone)
+<!-- v9.0 Production Readiness -->
+
+- [ ] Automated migration system with schema_version tracking
+- [ ] Migration runner that auto-applies on API startup
+- [ ] Migration 002 idempotency fix
+- [ ] Backup management API (trigger, list, restore)
+- [ ] Admin backup management page (/admin/backups)
+- [ ] Restore with safety rails (typed confirmation, auto-backup before restore)
+- [ ] Mailpit integration for local email testing
+- [ ] Real SMTP configuration for production testing
+- [ ] User registration E2E verification
+- [ ] Email confirmation E2E verification
+- [ ] Password reset E2E verification
+- [ ] Production Docker build with 4 API workers validated
 
 ### Out of Scope
 
@@ -351,4 +374,4 @@ A new developer can clone the repo and be productive within minutes, with confid
 | Error isolation in aggregation | tryCatch per source returns partial data on failures | ✓ Good |
 
 ---
-*Last updated: 2026-01-29 after v8.0 milestone shipped*
+*Last updated: 2026-01-29 after v9.0 milestone started*

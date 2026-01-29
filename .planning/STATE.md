@@ -1,7 +1,7 @@
 # Project State: SysNDD
 
 **Last updated:** 2026-01-29
-**Current milestone:** Planning next milestone
+**Current milestone:** v9.0 Production Readiness
 
 ---
 
@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** Planning next milestone (v8.0 Gene Page shipped)
+**Current focus:** v9.0 Production Readiness — migrations, backups, user lifecycle, Docker validation
 
 **Stack:** R 4.4.3 (Plumber API) + Vue 3.5.25 (TypeScript) + Bootstrap-Vue-Next 0.42.0 + MySQL 8.0.40
 
@@ -19,13 +19,37 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 
 ## Current Position
 
-**Phase:** Milestone complete
-**Plan:** N/A
-**Status:** v8.0 shipped — ready to plan next milestone
-**Progress:** ██████████████ 100% (46 phases complete across 8 milestones)
+**Phase:** Not started (defining requirements)
+**Plan:** —
+**Status:** Defining requirements
+**Progress:** ░░░░░░░░░░ 0%
 
 **Last completed:** v8.0 Gene Page & Genomic Data Integration (2026-01-29)
-**Next step:** Run `/gsd:new-milestone` to start next milestone cycle
+**Next step:** Define requirements, create roadmap
+
+---
+
+## Milestone v9.0 Goals
+
+1. **Automated Migration System**
+   - schema_version tracking table
+   - db-migrate.R runner script
+   - Auto-apply on API startup
+   - Fix migration 002 idempotency
+
+2. **Backup Management**
+   - API endpoints (trigger, list, restore)
+   - Admin UI at /admin/backups
+   - Full replace restore with safety rails
+
+3. **User Lifecycle & SMTP**
+   - Mailpit for local dev
+   - Real SMTP config for production testing
+   - E2E verification: registration, confirmation, password reset
+
+4. **Production Docker**
+   - Validate 4-worker API build
+   - Production configuration verification
 
 ---
 
@@ -48,6 +72,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 | v6 Admin Panel Modernization | 28-33 | 20 | 2026-01-26 |
 | v7 Curation Workflow Modernization | 34-39 | 21 | 2026-01-27 |
 | v8 Gene Page & Genomic Data | 40-46 | 25 | 2026-01-29 |
+| v9 Production Readiness | 47-? | TBD | In progress |
 
 **Current Stats:**
 
@@ -56,8 +81,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 | **Backend Tests** | 634 passing | 20.3% coverage, 24 integration tests |
 | **Frontend Tests** | 144 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
 | **Vue Composables** | 28 | 7 original + 6 admin + 10 curation + 5 gene page |
-| **Gene Page Components** | 17 | GeneHero, IdentifierCard, ConstraintCard, etc. |
-| **External API Proxies** | 7 | gnomAD, UniProt, Ensembl, AlphaFold, MGI, RGD + aggregation |
+| **Migrations** | 3 files | In db/migrations/, no auto-runner yet |
 | **Lintr Issues** | 0 | From 1,240 in v4 |
 | **ESLint Issues** | 0 | 240 errors fixed in v7 |
 | **Bundle Size** | ~600 KB gzipped | Vite 7.3.1, 164ms dev startup |
@@ -66,65 +90,50 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 
 ## Accumulated Context
 
-### v8.0 Key Deliverables
+### Existing Migration System
 
-1. **Backend Proxy Layer:**
-   - 7 external API proxy functions (gnomAD, UniProt, Ensembl, AlphaFold, MGI, RGD)
-   - Disk caching with per-source TTL (30d static, 14d stable, 7d dynamic)
-   - httr2 with retry/throttle for rate limiting protection
-   - Error isolation pattern (partial success with available data)
+From codebase exploration:
+- 3 migration files in `db/migrations/` (001-003)
+- Migration 003 uses idempotent stored procedure pattern (best practice)
+- Migration 002 is NOT idempotent (needs fixing)
+- No schema_version tracking table
+- No automated runner
+- Backlog items document planned approach
 
-2. **Gene Page Redesign:**
-   - Hero section with GeneBadge, name, chromosome location
-   - Identifier card with copy-to-clipboard and external links
-   - Clinical resources card-grid
-   - Model organisms section with MGI/RGD links
+### Existing Backup System
 
-3. **Genomic Visualizations:**
-   - gnomAD constraint scores with SVG confidence interval bars
-   - ClinVar variant summary with ACMG 5-class colored badges
-   - D3.js protein domain lollipop plot with variant mapping
-   - Gene structure visualization with exons/introns/strand
-   - 3D AlphaFold structure viewer with NGL and variant highlighting
+- Cron job container does SQL dumps
+- No API endpoints for manual trigger
+- No restore capability
+- No admin UI
 
-4. **Accessibility:**
-   - WCAG 2.2 AA compliance across all new components
-   - aria-labels on all interactive elements
-   - Color + text labels for ACMG pathogenicity classes
+### User Email System
 
-### Patterns Established in v8.0
-
-- External API proxy pattern (httr2 with memoise caching)
-- Error isolation pattern (tryCatch per source, partial success)
-- Non-reactive WebGL pattern (let stage + markRaw() for NGL)
-- ResizeObserver pattern for lazy tab WebGL initialization
-
-### Minor Tech Debt
-
-- useModelOrganismData not in composables barrel export
-- console.log in ProteinDomainLollipopCard.vue:249
+- Registration and password reset exist
+- Not tested E2E with real SMTP
+- Need Mailpit for local dev visibility
 
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-29
-**Stopped at:** v8.0 milestone completed and archived
-**Next action:** Run `/gsd:new-milestone` to start next milestone cycle
+**Stopped at:** Defining v9.0 requirements
+**Next action:** Complete requirements definition, create roadmap
 
 **Handoff notes:**
 
-1. **v8.0 complete and archived** (2026-01-29):
-   - Roadmap archived to milestones/v8.0-ROADMAP.md
-   - Requirements archived to milestones/v8.0-REQUIREMENTS.md
-   - Audit archived to milestones/v8.0-MILESTONE-AUDIT.md
-   - ROADMAP.md and REQUIREMENTS.md deleted (fresh for next milestone)
+1. **v9.0 milestone initialized:**
+   - PROJECT.md updated with milestone goals
+   - STATE.md reset for new milestone
+   - Four focus areas defined
 
-2. **Ready for next milestone:**
-   - Run `/gsd:new-milestone` to start questioning → research → requirements → roadmap cycle
-   - Consider: CI/CD pipeline, expanded test coverage, disease page improvements, entity page improvements
+2. **Pending decisions:**
+   - Research: skip or run (infrastructure patterns are well-known)
+   - Requirements: need to finalize and assign IDs
+   - Roadmap: need to create phases
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-29 — v8.0 milestone shipped and archived*
+*Last updated: 2026-01-29 — v9.0 milestone started*
