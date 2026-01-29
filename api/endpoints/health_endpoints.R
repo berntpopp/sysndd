@@ -47,8 +47,7 @@ function(req, res) {
 #* @get /ready
 function(req, res) {
   # Check if migrations have run (variable set during API startup)
-  if (!exists("migration_status", envir = .GlobalEnv) ||
-      is.null(get("migration_status", envir = .GlobalEnv))) {
+  if (!exists("migration_status", where = .GlobalEnv)) {
     res$status <- 503L
     return(list(
       status = "not_ready",
@@ -59,7 +58,19 @@ function(req, res) {
   }
 
   # Get migration status from global
-  status <- get("migration_status", envir = .GlobalEnv)
+  status <- .GlobalEnv$migration_status
+
+  # Check if status is NULL
+  if (is.null(status)) {
+    res$status <- 503L
+    return(list(
+      status = "not_ready",
+      reason = "migrations_not_run",
+      pending_migrations = NA,
+      timestamp = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    ))
+  }
+
   pending <- status$pending_migrations
 
   # If there are pending migrations, not ready
