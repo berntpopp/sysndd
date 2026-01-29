@@ -107,6 +107,9 @@ export function use3DStructure(
   const error = ref<string | null>(null);
   const activeRepresentation = ref<RepresentationType>('cartoon');
 
+  // ResizeObserver for detecting when container gets valid dimensions
+  let resizeObserver: ResizeObserver | null = null;
+
   /**
    * Handle window resize - updates Stage viewport
    */
@@ -140,21 +143,32 @@ export function use3DStructure(
     window.addEventListener('resize', handleResize);
 
     // CRITICAL: In flexbox layouts and Vue's lazy tab rendering, the container
-    // may not have final dimensions at Stage creation time. A single rAF is not
-    // enough because CSS layout may take multiple frames to settle.
-    // Use a short timeout after rAF to ensure layout is complete.
+    // may not have final dimensions at Stage creation time. Use ResizeObserver
+    // to detect when the container actually has valid dimensions.
+    // This is more reliable than arbitrary timeouts.
     // See: https://github.com/nglviewer/ngl/issues/890
+    resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        // Only trigger resize when container has actual dimensions
+        if (width > 0 && height > 0 && stage) {
+          stage.handleResize();
+        }
+      }
+    });
+    resizeObserver.observe(containerRef.value);
+
+    // Also use rAF + timeout as fallback for initial render
     requestAnimationFrame(() => {
-      // First resize attempt after initial layout
       if (stage) {
         stage.handleResize();
       }
-      // Second resize after CSS fully settles (handles lazy tabs, transitions)
+      // Longer timeout (300ms) for Bootstrap Vue lazy tab transitions
       setTimeout(() => {
         if (stage) {
           stage.handleResize();
         }
-      }, 100);
+      }, 300);
     });
 
     isInitialized.value = true;
@@ -401,6 +415,12 @@ export function use3DStructure(
    */
   function cleanup(): void {
     window.removeEventListener('resize', handleResize);
+
+    // Disconnect ResizeObserver to prevent memory leaks
+    if (resizeObserver) {
+      resizeObserver.disconnect();
+      resizeObserver = null;
+    }
 
     if (stage) {
       stage.dispose();  // CRITICAL: Releases WebGL context
