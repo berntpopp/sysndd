@@ -19,37 +19,30 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 
 ## Current Position
 
-**Phase:** Not started (defining requirements)
+**Phase:** 47 - Migration System Foundation (Not Started)
 **Plan:** —
-**Status:** Defining requirements
+**Status:** Ready to plan
 **Progress:** ░░░░░░░░░░ 0%
 
 **Last completed:** v8.0 Gene Page & Genomic Data Integration (2026-01-29)
-**Next step:** Define requirements, create roadmap
+**Next step:** `/gsd:plan-phase 47` to create execution plan
 
 ---
 
-## Milestone v9.0 Goals
+## Milestone v9.0 Roadmap
 
-1. **Automated Migration System**
-   - schema_version tracking table
-   - db-migrate.R runner script
-   - Auto-apply on API startup
-   - Fix migration 002 idempotency
+| Phase | Name | Requirements | Status |
+|-------|------|--------------|--------|
+| 47 | Migration System Foundation | MIGR-01, MIGR-02, MIGR-03, MIGR-05 | Not Started |
+| 48 | Migration Auto-Run & Health | MIGR-04, MIGR-06 | Not Started |
+| 49 | Backup API Layer | BKUP-01, BKUP-03, BKUP-05, BKUP-06 | Not Started |
+| 50 | Backup Admin UI | BKUP-02, BKUP-04 | Not Started |
+| 51 | SMTP Testing Infrastructure | SMTP-01, SMTP-02 | Not Started |
+| 52 | User Lifecycle E2E | SMTP-03, SMTP-04, SMTP-05 | Not Started |
+| 53 | Production Docker Validation | PROD-01, PROD-02, PROD-03, PROD-04 | Not Started |
 
-2. **Backup Management**
-   - API endpoints (trigger, list, restore)
-   - Admin UI at /admin/backups
-   - Full replace restore with safety rails
-
-3. **User Lifecycle & SMTP**
-   - Mailpit for local dev
-   - Real SMTP config for production testing
-   - E2E verification: registration, confirmation, password reset
-
-4. **Production Docker**
-   - Validate 4-worker API build
-   - Production configuration verification
+**Phases:** 7 (47-53)
+**Requirements:** 21 mapped (100% coverage)
 
 ---
 
@@ -72,7 +65,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 | v6 Admin Panel Modernization | 28-33 | 20 | 2026-01-26 |
 | v7 Curation Workflow Modernization | 34-39 | 21 | 2026-01-27 |
 | v8 Gene Page & Genomic Data | 40-46 | 25 | 2026-01-29 |
-| v9 Production Readiness | 47-? | TBD | In progress |
+| v9 Production Readiness | 47-53 | TBD | In progress |
 
 **Current Stats:**
 
@@ -90,50 +83,71 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 
 ## Accumulated Context
 
-### Existing Migration System
+### Phase Dependencies
 
-From codebase exploration:
-- 3 migration files in `db/migrations/` (001-003)
-- Migration 003 uses idempotent stored procedure pattern (best practice)
-- Migration 002 is NOT idempotent (needs fixing)
-- No schema_version tracking table
-- No automated runner
-- Backlog items document planned approach
+```
+Phase 47 (Migration Foundation)
+    |
+    v
+Phase 48 (Migration Auto-Run & Health)
+    |
+    +---------------------------+
+    |                           |
+    v                           v
+Phase 49 (Backup API)     Phase 51 (SMTP Infrastructure)
+    |                           |
+    v                           v
+Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
+    |                           |
+    +---------------------------+
+                |
+                v
+        Phase 53 (Production Docker Validation)
+```
 
-### Existing Backup System
+### Research Findings (from research/SUMMARY.md)
 
-- Cron job container does SQL dumps
-- No API endpoints for manual trigger
-- No restore capability
-- No admin UI
+- **No new R packages needed** - all features use existing stack
+- **Mailpit** replaces abandoned MailHog for local SMTP testing
+- **Migration 002** is not idempotent (needs IF NOT EXISTS guards)
+- **Migration 003** uses correct stored procedure pattern (reference)
+- **Existing backup container** (fradelg/mysql-cron-backup) already runs
+- **pool package** needs explicit sizing for 4-worker setup
 
-### User Email System
+### Key Technical Notes
 
-- Registration and password reset exist
-- Not tested E2E with real SMTP
-- Need Mailpit for local dev visibility
+1. **Migration integration point:** `api/start_sysndd_api.R` (between pool creation and endpoint mounting)
+2. **Backup patterns:** Follow `api/endpoints/admin_endpoints.R` and `api/functions/job-manager.R`
+3. **Email sending:** Already implemented via `blastula` in `send_noreply_email()`
+4. **Health check:** Extend existing `/health` endpoint to `/health/ready`
 
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-29
-**Stopped at:** Defining v9.0 requirements
-**Next action:** Complete requirements definition, create roadmap
+**Stopped at:** Roadmap created
+**Next action:** `/gsd:plan-phase 47` to plan Migration System Foundation
 
 **Handoff notes:**
 
-1. **v9.0 milestone initialized:**
-   - PROJECT.md updated with milestone goals
-   - STATE.md reset for new milestone
-   - Four focus areas defined
+1. **Roadmap complete:**
+   - 7 phases (47-53)
+   - 21 requirements mapped with 100% coverage
+   - Success criteria defined for all phases
+   - Dependencies documented
 
-2. **Pending decisions:**
-   - Research: skip or run (infrastructure patterns are well-known)
-   - Requirements: need to finalize and assign IDs
-   - Roadmap: need to create phases
+2. **Ready for planning:**
+   - Phase 47 is foundation with no dependencies
+   - Phases 49 and 51 can run in parallel after Phase 48
+   - Phase 53 is integration testing (requires all others)
+
+3. **Research notes:**
+   - Research SUMMARY.md mentions credential remediation blocker
+   - Not included in provided requirements
+   - May need to address separately if blocking
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-29 — v9.0 milestone started*
+*Last updated: 2026-01-29 — v9.0 roadmap created*

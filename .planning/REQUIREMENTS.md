@@ -71,33 +71,33 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MIGR-01 | TBD | Pending |
-| MIGR-02 | TBD | Pending |
-| MIGR-03 | TBD | Pending |
-| MIGR-04 | TBD | Pending |
-| MIGR-05 | TBD | Pending |
-| MIGR-06 | TBD | Pending |
-| BKUP-01 | TBD | Pending |
-| BKUP-02 | TBD | Pending |
-| BKUP-03 | TBD | Pending |
-| BKUP-04 | TBD | Pending |
-| BKUP-05 | TBD | Pending |
-| BKUP-06 | TBD | Pending |
-| SMTP-01 | TBD | Pending |
-| SMTP-02 | TBD | Pending |
-| SMTP-03 | TBD | Pending |
-| SMTP-04 | TBD | Pending |
-| SMTP-05 | TBD | Pending |
-| PROD-01 | TBD | Pending |
-| PROD-02 | TBD | Pending |
-| PROD-03 | TBD | Pending |
-| PROD-04 | TBD | Pending |
+| MIGR-01 | Phase 47 | Pending |
+| MIGR-02 | Phase 47 | Pending |
+| MIGR-03 | Phase 47 | Pending |
+| MIGR-04 | Phase 48 | Pending |
+| MIGR-05 | Phase 47 | Pending |
+| MIGR-06 | Phase 48 | Pending |
+| BKUP-01 | Phase 49 | Pending |
+| BKUP-02 | Phase 50 | Pending |
+| BKUP-03 | Phase 49 | Pending |
+| BKUP-04 | Phase 50 | Pending |
+| BKUP-05 | Phase 49 | Pending |
+| BKUP-06 | Phase 49 | Pending |
+| SMTP-01 | Phase 51 | Pending |
+| SMTP-02 | Phase 51 | Pending |
+| SMTP-03 | Phase 52 | Pending |
+| SMTP-04 | Phase 52 | Pending |
+| SMTP-05 | Phase 52 | Pending |
+| PROD-01 | Phase 53 | Pending |
+| PROD-02 | Phase 53 | Pending |
+| PROD-03 | Phase 53 | Pending |
+| PROD-04 | Phase 53 | Pending |
 
 **Coverage:**
 - v9.0 requirements: 21 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 21
+- Mapped to phases: 21 (100%)
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-29*
-*Last updated: 2026-01-29 after initial definition*
+*Last updated: 2026-01-29 after roadmap creation*
