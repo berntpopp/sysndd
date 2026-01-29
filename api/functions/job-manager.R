@@ -264,7 +264,9 @@ get_progress_message <- function(operation) {
     phenotype_clustering = "Running Multiple Correspondence Analysis...",
     ontology_update = "Downloading and processing ontology data from MONDO/OMIM...",
     omim_update = "Updating OMIM annotations from mim2gene.txt + JAX API...",
-    hgnc_update = "Downloading HGNC data and enriching with gnomAD constraints..."
+    hgnc_update = "Downloading HGNC data and enriching with gnomAD constraints...",
+    backup_create = "Creating database backup...",
+    backup_restore = "Restoring database from backup..."
   )
 
   messages[[operation]] %||% "Processing request..."
