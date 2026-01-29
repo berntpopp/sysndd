@@ -357,3 +357,99 @@ function(req, res) {
     status_url = paste0("/api/jobs/", result$job_id, "/status")
   )
 }
+
+
+## -------------------------------------------------------------------##
+## Backup Download Endpoint
+## -------------------------------------------------------------------##
+
+#* Download a backup file
+#*
+#* Returns the raw backup file content for download. Supports both
+#* .sql and .sql.gz files with appropriate Content-Type headers.
+#*
+#* # `Authorization`
+#* Requires Administrator role.
+#*
+#* # `Path Parameters`
+#* - filename: String - Name of the backup file to download
+#*
+#* # `Response`
+#* - 200 OK: Raw file bytes with appropriate headers
+#* - 400 Bad Request: Invalid filename (path traversal attempt, invalid extension)
+#* - 404 Not Found: Backup file does not exist
+#*
+#* @tag backup
+#* @serializer octet
+#*
+#* @get /download/<filename>
+function(req, res, filename) {
+  # Require Administrator role
+  require_role(req, res, "Administrator")
+
+  # Path traversal protection: reject any path separators
+  if (grepl("[/\\\\]", filename)) {
+    res$status <- 400
+    res$serializer <- serializer_json()
+    return(list(
+      error = "INVALID_FILENAME",
+      message = "Filename contains invalid characters"
+    ))
+  }
+
+  # Validate file extension: only .sql or .sql.gz allowed
+  if (!grepl("\\.(sql|sql\\.gz)$", filename)) {
+    res$status <- 400
+    res$serializer <- serializer_json()
+    return(list(
+      error = "INVALID_FILENAME",
+      message = "Filename must end with .sql or .sql.gz"
+    ))
+  }
+
+  # Build full path and check existence
+  backup_path <- file.path("/backup", filename)
+  if (!file.exists(backup_path)) {
+    res$status <- 404
+    res$serializer <- serializer_json()
+    return(list(
+      error = "BACKUP_NOT_FOUND",
+      message = sprintf("Backup file '%s' not found", filename)
+    ))
+  }
+
+  # Get file info
+  file_info <- file.info(backup_path)
+  file_size <- file_info$size
+
+  # Determine content type based on extension
+  if (grepl("\\.gz$", filename)) {
+    content_type <- "application/gzip"
+  } else {
+    content_type <- "application/sql"
+  }
+
+  # Set response headers
+  res$setHeader("Content-Type", content_type)
+  res$setHeader("Content-Disposition", sprintf('attachment; filename="%s"', filename))
+  res$setHeader("Content-Length", as.character(file_size))
+
+  # Read file as binary and return raw bytes
+  tryCatch(
+    {
+      con <- file(backup_path, "rb")
+      on.exit(close(con))
+      readBin(con, "raw", n = file_size)
+    },
+    error = function(e) {
+      logger::log_error("Failed to read backup file: {e$message}")
+      res$status <- 500
+      res$serializer <- serializer_json()
+      list(
+        error = "FILE_READ_FAILED",
+        message = "Failed to read backup file",
+        details = e$message
+      )
+    }
+  )
+}
