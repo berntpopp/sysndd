@@ -58,12 +58,14 @@
       <div class="container-fluid">
         <BContainer fluid>
           <BRow class="justify-content-md-center pt-2">
+            <!-- Left column: Gene Constraint -->
             <BCol cols="12" md="6" class="mb-2">
               <GeneConstraintCard
                 :gene-symbol="geneSymbol"
                 :constraints-json="gnomadConstraintsJson"
               />
             </BCol>
+            <!-- Right column: ClinVar + Model Organisms stacked -->
             <BCol cols="12" md="6" class="mb-2">
               <GeneClinVarCard
                 :gene-symbol="geneSymbol"
@@ -71,17 +73,9 @@
                 :error="clinvar.error.value"
                 :data="clinvar.data.value"
                 @retry="retryExternalData"
+                class="mb-2"
               />
-            </BCol>
-          </BRow>
-        </BContainer>
-      </div>
-
-      <!-- Model Organisms Card (MGI + RGD phenotypes) -->
-      <div class="container-fluid">
-        <BContainer fluid>
-          <BRow class="justify-content-md-center pt-2">
-            <BCol cols="12" md="6" class="mb-2">
+              <!-- Model Organisms Card (compact, under ClinVar) -->
               <ModelOrganismsCard
                 :gene-symbol="geneSymbol"
                 :mgi-loading="mgi.loading.value"

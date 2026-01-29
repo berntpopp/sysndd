@@ -9,170 +9,165 @@
     aria-label="Model organism phenotypes"
   >
     <template #header>
-      <span class="fw-semibold small">Model Organisms</span>
+      <div class="d-flex justify-content-between align-items-center">
+        <span class="fw-semibold small">Model Organisms</span>
+        <div class="d-flex gap-1">
+          <!-- MGI external link -->
+          <BButton
+            v-if="mgiData?.mgi_url"
+            variant="link"
+            size="sm"
+            :href="mgiData.mgi_url"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-decoration-none p-0"
+            title="View on MGI"
+            aria-label="View gene on MGI database (opens in new tab)"
+          >
+            <span class="badge bg-secondary me-1">MGI</span>
+            <i class="bi bi-box-arrow-up-right"></i>
+          </BButton>
+          <!-- RGD external link -->
+          <BButton
+            v-if="rgdData?.rgd_url"
+            variant="link"
+            size="sm"
+            :href="rgdData.rgd_url"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-decoration-none p-0"
+            title="View on RGD"
+            aria-label="View gene on RGD database (opens in new tab)"
+          >
+            <span class="badge bg-secondary me-1">RGD</span>
+            <i class="bi bi-box-arrow-up-right"></i>
+          </BButton>
+        </div>
+      </div>
     </template>
 
-    <!-- Two-column layout: Mouse (MGI) left, Rat (RGD) right -->
-    <BRow class="g-0">
-      <!-- Mouse (MGI) column -->
-      <BCol cols="12" md="6" class="border-end-md">
-        <div class="p-3">
-          <!-- Section header -->
-          <h6 class="small mb-2">
-            <i class="bi bi-heart-pulse me-1"></i>
-            <span>Mouse (MGI)</span>
-          </h6>
+    <!-- Compact content layout -->
+    <div class="px-2 py-2">
+      <!-- Loading state -->
+      <div v-if="mgiLoading && rgdLoading" class="text-center py-2">
+        <BSpinner label="Loading phenotype data..." role="status" small />
+      </div>
 
-          <!-- Loading state -->
-          <div v-if="mgiLoading" class="text-center py-2">
-            <BSpinner label="Loading mouse data..." role="status" small />
+      <!-- Error state (both failed) -->
+      <div v-else-if="mgiError && rgdError && !mgiData && !rgdData" class="text-center py-2" role="alert">
+        <i class="bi bi-exclamation-triangle text-warning me-1"></i>
+        <span class="text-muted small">Failed to load phenotype data</span>
+        <BButton
+          variant="link"
+          size="sm"
+          class="p-0 ms-2"
+          @click="$emit('retry')"
+        >
+          Retry
+        </BButton>
+      </div>
+
+      <!-- Data display -->
+      <div v-else class="d-flex flex-wrap gap-3 align-items-start">
+        <!-- Mouse (MGI) section -->
+        <div class="organism-section">
+          <div class="d-flex align-items-center gap-1 mb-1">
+            <i class="bi bi-heart-pulse text-muted small"></i>
+            <span class="text-muted small fw-semibold">Mouse</span>
+            <BSpinner v-if="mgiLoading" small class="ms-1" />
           </div>
 
-          <!-- Error state -->
-          <div v-else-if="mgiError" class="text-center py-2" role="alert">
-            <i class="bi bi-exclamation-triangle text-warning me-1"></i>
-            <p class="text-muted mb-2 small">{{ mgiError }}</p>
-            <BButton
-              variant="outline-primary"
-              size="sm"
-              @click="$emit('retry')"
+          <!-- MGI Error -->
+          <span v-if="mgiError && !mgiData" class="text-muted small">
+            <i class="bi bi-exclamation-circle"></i> Error
+          </span>
+
+          <!-- MGI No data -->
+          <span v-else-if="!mgiData && !mgiLoading" class="text-muted small">
+            No data
+          </span>
+
+          <!-- MGI Data -->
+          <div v-else-if="mgiData" class="d-flex flex-wrap gap-1 align-items-center">
+            <!-- Phenotype count with tooltip showing sample terms -->
+            <span
+              v-b-tooltip.hover="mgiTooltipContent"
+              class="badge bg-primary cursor-help"
+              :aria-label="`${mgiData.phenotype_count} mouse phenotypes from MGI`"
             >
-              Retry
-            </BButton>
-          </div>
+              {{ mgiData.phenotype_count }} phenotype{{ mgiData.phenotype_count === 1 ? '' : 's' }}
+            </span>
 
-          <!-- Empty state -->
-          <div v-else-if="!mgiData" class="text-center py-2">
-            <i class="bi bi-info-circle text-muted me-2"></i>
-            <span class="text-muted small">No mouse phenotype data</span>
-          </div>
-
-          <!-- Data state -->
-          <div v-else>
-            <!-- Total count badge -->
-            <div class="mb-2">
-              <BBadge
-                variant="primary"
-                class="py-2 px-3"
-                :aria-label="`${mgiData.phenotype_count} total phenotypes from MGI`"
-              >
-                <strong>{{ mgiData.phenotype_count }}</strong> phenotype{{ mgiData.phenotype_count === 1 ? '' : 's' }}
-              </BBadge>
-            </div>
-
-            <!-- Zygosity breakdown badges (if any phenotypes have zygosity) -->
-            <div v-if="hasZygosityData" class="d-flex flex-wrap gap-2 mb-3">
-              <BBadge
-                v-if="zygosityCounts.homozygous > 0"
-                variant="danger"
-                class="py-1 px-2"
-                :aria-label="`${zygosityCounts.homozygous} homozygous phenotypes`"
-              >
-                hm ({{ zygosityCounts.homozygous }})
-              </BBadge>
-
-              <BBadge
-                v-if="zygosityCounts.heterozygous > 0"
-                class="badge-warning-custom py-1 px-2"
-                :aria-label="`${zygosityCounts.heterozygous} heterozygous phenotypes`"
-              >
-                ht ({{ zygosityCounts.heterozygous }})
-              </BBadge>
-
-              <BBadge
-                v-if="zygosityCounts.conditional > 0"
-                variant="info"
-                class="py-1 px-2"
-                :aria-label="`${zygosityCounts.conditional} conditional phenotypes`"
-              >
-                cn ({{ zygosityCounts.conditional }})
-              </BBadge>
-            </div>
-
-            <!-- External link to MGI database -->
-            <BButton
-              variant="outline-secondary"
-              size="sm"
-              :href="mgiData.mgi_url"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="View gene on MGI database (opens in new tab)"
+            <!-- Zygosity breakdown (compact) -->
+            <span
+              v-if="zygosityCounts.homozygous > 0"
+              v-b-tooltip.hover="'Homozygous phenotypes'"
+              class="badge bg-danger badge-sm cursor-help"
             >
-              <i class="bi bi-box-arrow-up-right me-1"></i>
-              View on MGI
-            </BButton>
+              hm {{ zygosityCounts.homozygous }}
+            </span>
+            <span
+              v-if="zygosityCounts.heterozygous > 0"
+              v-b-tooltip.hover="'Heterozygous phenotypes'"
+              class="badge badge-warning-custom badge-sm cursor-help"
+            >
+              ht {{ zygosityCounts.heterozygous }}
+            </span>
+            <span
+              v-if="zygosityCounts.conditional > 0"
+              v-b-tooltip.hover="'Conditional phenotypes'"
+              class="badge bg-info badge-sm cursor-help"
+            >
+              cn {{ zygosityCounts.conditional }}
+            </span>
           </div>
         </div>
-      </BCol>
 
-      <!-- Rat (RGD) column -->
-      <BCol cols="12" md="6">
-        <div class="p-3">
-          <!-- Section header -->
-          <h6 class="small mb-2">
-            <i class="bi bi-database me-1"></i>
-            <span>Rat (RGD)</span>
-          </h6>
+        <!-- Divider -->
+        <div class="vr d-none d-sm-block"></div>
 
-          <!-- Loading state -->
-          <div v-if="rgdLoading" class="text-center py-2">
-            <BSpinner label="Loading rat data..." role="status" small />
+        <!-- Rat (RGD) section -->
+        <div class="organism-section">
+          <div class="d-flex align-items-center gap-1 mb-1">
+            <i class="bi bi-database text-muted small"></i>
+            <span class="text-muted small fw-semibold">Rat</span>
+            <BSpinner v-if="rgdLoading" small class="ms-1" />
           </div>
 
-          <!-- Error state -->
-          <div v-else-if="rgdError" class="text-center py-2" role="alert">
-            <i class="bi bi-exclamation-triangle text-warning me-1"></i>
-            <p class="text-muted mb-2 small">{{ rgdError }}</p>
-            <BButton
-              variant="outline-primary"
-              size="sm"
-              @click="$emit('retry')"
+          <!-- RGD Error -->
+          <span v-if="rgdError && !rgdData" class="text-muted small">
+            <i class="bi bi-exclamation-circle"></i> Error
+          </span>
+
+          <!-- RGD No data -->
+          <span v-else-if="!rgdData && !rgdLoading" class="text-muted small">
+            No data
+          </span>
+
+          <!-- RGD Data -->
+          <div v-else-if="rgdData" class="d-flex flex-wrap gap-1 align-items-center">
+            <!-- Phenotype count with tooltip showing sample terms -->
+            <span
+              v-if="rgdData.phenotype_count > 0"
+              v-b-tooltip.hover="rgdTooltipContent"
+              class="badge bg-primary cursor-help"
+              :aria-label="`${rgdData.phenotype_count} rat phenotypes from RGD`"
             >
-              Retry
-            </BButton>
-          </div>
-
-          <!-- Empty state -->
-          <div v-else-if="!rgdData" class="text-center py-2">
-            <i class="bi bi-info-circle text-muted me-2"></i>
-            <span class="text-muted small">No rat phenotype data</span>
-          </div>
-
-          <!-- Data state -->
-          <div v-else>
-            <!-- Total count badge -->
-            <div class="mb-3">
-              <BBadge
-                variant="primary"
-                class="py-2 px-3"
-                :aria-label="`${rgdData.phenotype_count} total phenotypes from RGD`"
-              >
-                <strong>{{ rgdData.phenotype_count }}</strong> phenotype{{ rgdData.phenotype_count === 1 ? '' : 's' }}
-              </BBadge>
-            </div>
-
-            <!-- External link to RGD database -->
-            <BButton
-              variant="outline-secondary"
-              size="sm"
-              :href="rgdData.rgd_url"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="View gene on RGD database (opens in new tab)"
-            >
-              <i class="bi bi-box-arrow-up-right me-1"></i>
-              View on RGD
-            </BButton>
+              {{ rgdData.phenotype_count }} phenotype{{ rgdData.phenotype_count === 1 ? '' : 's' }}
+            </span>
+            <span v-else class="text-muted small">
+              0 phenotypes
+            </span>
           </div>
         </div>
-      </BCol>
-    </BRow>
+      </div>
+    </div>
   </BCard>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { BCard, BRow, BCol, BButton, BSpinner, BBadge } from 'bootstrap-vue-next'
+import { BCard, BButton, BSpinner } from 'bootstrap-vue-next'
 import type { MGIPhenotypeData, RGDPhenotypeData } from '@/types/external'
 
 interface Props {
@@ -193,7 +188,6 @@ defineEmits<{
 
 /**
  * Show card if either source has data, error, or is loading
- * Hide card only when both sources have no data AND no error AND not loading
  */
 const showCard = computed(() => {
   return (
@@ -208,49 +202,76 @@ const showCard = computed(() => {
 
 /**
  * Count phenotypes by zygosity from MGI data
- * Handles missing/undefined zygosity gracefully
  */
 const zygosityCounts = computed(() => {
-  const counts = {
-    homozygous: 0,
-    heterozygous: 0,
-    conditional: 0,
-  }
-
-  if (!props.mgiData || !props.mgiData.phenotypes) {
-    return counts
-  }
+  const counts = { homozygous: 0, heterozygous: 0, conditional: 0 }
+  if (!props.mgiData?.phenotypes) return counts
 
   props.mgiData.phenotypes.forEach(phenotype => {
     const zygosity = phenotype.zygosity?.toLowerCase()
-    if (zygosity === 'homozygous') {
-      counts.homozygous++
-    } else if (zygosity === 'heterozygous') {
-      counts.heterozygous++
-    } else if (zygosity === 'conditional') {
-      counts.conditional++
-    }
+    if (zygosity === 'homozygous') counts.homozygous++
+    else if (zygosity === 'heterozygous') counts.heterozygous++
+    else if (zygosity === 'conditional') counts.conditional++
   })
-
   return counts
 })
 
 /**
- * Check if any phenotypes have zygosity data
- * Don't show zygosity badges if all phenotypes lack zygosity info
+ * Generate tooltip content showing first few MGI phenotype terms
  */
-const hasZygosityData = computed(() => {
-  return (
-    zygosityCounts.value.homozygous > 0 ||
-    zygosityCounts.value.heterozygous > 0 ||
-    zygosityCounts.value.conditional > 0
-  )
+const mgiTooltipContent = computed(() => {
+  if (!props.mgiData?.phenotypes?.length) {
+    return 'No phenotype details available'
+  }
+
+  const phenotypes = props.mgiData.phenotypes
+  const maxShow = 5
+  const terms = phenotypes
+    .slice(0, maxShow)
+    .map(p => `• ${p.term || 'Unknown'}`)
+    .join('\n')
+
+  const remaining = phenotypes.length - maxShow
+  const suffix = remaining > 0 ? `\n...and ${remaining} more` : ''
+
+  return `Sample phenotypes:\n${terms}${suffix}`
+})
+
+/**
+ * Generate tooltip content showing RGD phenotype terms
+ */
+const rgdTooltipContent = computed(() => {
+  if (!props.rgdData?.phenotypes?.length) {
+    return 'No phenotype details available'
+  }
+
+  const phenotypes = props.rgdData.phenotypes
+  const maxShow = 5
+  const terms = phenotypes
+    .slice(0, maxShow)
+    .map(p => `• ${p.term || 'Unknown'}`)
+    .join('\n')
+
+  const remaining = phenotypes.length - maxShow
+  const suffix = remaining > 0 ? `\n...and ${remaining} more` : ''
+
+  return `Sample phenotypes:\n${terms}${suffix}`
 })
 </script>
 
 <style scoped>
 .model-organisms-card {
-  /* Match gene info card styling — no shadow, dark border */
+  /* Match gene info card styling */
+}
+
+.organism-section {
+  min-width: 100px;
+}
+
+/* Smaller badges for zygosity */
+.badge-sm {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.4rem;
 }
 
 /* Custom badge color for heterozygous (yellow/warning) */
@@ -259,16 +280,15 @@ const hasZygosityData = computed(() => {
   color: #000 !important;
 }
 
-/* Border between columns on medium+ screens */
-@media (min-width: 768px) {
-  .border-end-md {
-    border-right: 1px solid #dee2e6;
-  }
+/* Cursor for tooltip elements */
+.cursor-help {
+  cursor: help;
 }
 
-/* Section headers */
-h6 {
-  font-weight: 600;
-  color: #495057;
+/* Vertical rule styling */
+.vr {
+  opacity: 0.3;
+  height: auto;
+  align-self: stretch;
 }
 </style>
