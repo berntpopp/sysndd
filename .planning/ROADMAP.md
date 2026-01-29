@@ -19,6 +19,12 @@ SysNDD v9.0 focuses on production readiness infrastructure: automated database m
 
 **Dependencies:** None (foundation phase)
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 47-01-PLAN.md — Create migration runner infrastructure and fix Migration 002 for idempotency
+- [ ] 47-02-PLAN.md — Add unit tests for migration runner
+
 **Requirements:**
 - MIGR-01: System creates schema_version table to track applied migrations
 - MIGR-02: Migrations execute sequentially in numeric order (001, 002, 003...)
@@ -150,7 +156,7 @@ SysNDD v9.0 focuses on production readiness infrastructure: automated database m
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 47 | Migration System Foundation | MIGR-01, MIGR-02, MIGR-03, MIGR-05 | Not Started |
+| 47 | Migration System Foundation | MIGR-01, MIGR-02, MIGR-03, MIGR-05 | Planned |
 | 48 | Migration Auto-Run & Health | MIGR-04, MIGR-06 | Not Started |
 | 49 | Backup API Layer | BKUP-01, BKUP-03, BKUP-05, BKUP-06 | Not Started |
 | 50 | Backup Admin UI | BKUP-02, BKUP-04 | Not Started |
