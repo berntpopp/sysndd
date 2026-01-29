@@ -696,6 +696,30 @@ export const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/ManageBackups',
+    name: 'ManageBackups',
+    component: () => import('@/views/admin/ManageBackups.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+      const allowed_roles = ['Administrator'];
+      let expires = 0;
+      let timestamp = 0;
+      let user_role = 'Viewer';
+
+      if (localStorage.token) {
+        expires = JSON.parse(localStorage.user).exp;
+        user_role = JSON.parse(localStorage.user).user_role;
+        timestamp = Math.floor(new Date().getTime() / 1000);
+      }
+
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else {
+        next();
+      }
+    },
+  },
+  {
     path: '/Entities/:entity_id',
     name: 'Entity',
     component: () => import('@/views/pages/EntityView.vue'),
