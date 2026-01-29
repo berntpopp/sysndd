@@ -19,12 +19,12 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 
 ## Current Position
 
-**Phase:** 51 - SMTP Testing Infrastructure (In progress)
-**Plan:** 1 of 1 complete
+**Phase:** 51 - SMTP Testing Infrastructure (Complete)
+**Plan:** 2 of 2 complete
 **Status:** Phase complete
-**Progress:** █████░░░░░ 71% (5/7 phases)
+**Progress:** ██████░░░░ 86% (6/7 phases)
 
-**Last completed:** 51-01-PLAN.md (Mailpit SMTP Infrastructure)
+**Last completed:** 51-02-PLAN.md (Email Integration Tests)
 **Next step:** `/gsd:discuss-phase 52` to plan User Lifecycle E2E
 
 ---
@@ -37,7 +37,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 | 48 | Migration Auto-Run & Health | MIGR-04, MIGR-06 | Complete (2/2 plans) |
 | 49 | Backup API Layer | BKUP-01, BKUP-03, BKUP-05, BKUP-06 | Complete (2/2 plans) |
 | 50 | Backup Admin UI | BKUP-02, BKUP-04 | Complete (2/2 plans) |
-| 51 | SMTP Testing Infrastructure | SMTP-01, SMTP-02 | Complete (1/1 plans) |
+| 51 | SMTP Testing Infrastructure | SMTP-01, SMTP-02 | Complete (2/2 plans) |
 | 52 | User Lifecycle E2E | SMTP-03, SMTP-04, SMTP-05 | Not Started |
 | 53 | Production Docker Validation | PROD-01, PROD-02, PROD-03, PROD-04 | Not Started |
 
@@ -49,7 +49,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 251
+- Total plans completed: 253
 - Milestones shipped: 8 (v1-v8)
 - Phases completed: 51
 
@@ -131,34 +131,42 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 
 **Handoff notes:**
 
-1. **Phase 51 complete (SMTP Testing Infrastructure):**
-   - 51-01: Mailpit container + SMTP test endpoint
+1. **Phase 51 complete (SMTP Testing Infrastructure - 2/2 plans):**
+   - 51-01: Mailpit container + SMTP test endpoint (3min)
+   - 51-02: Email integration tests + Mailpit helpers (2min)
    - Mailpit v1.28.4 running on localhost:8025 (Web UI) and localhost:1025 (SMTP)
    - GET /api/admin/smtp/test endpoint for connection health monitoring
    - Dev/test config profiles updated to use Mailpit (local changes only, config.yml gitignored)
 
 2. **SMTP requirements fulfilled:**
-   - SMTP-01 (partial): Mailpit container configured in docker-compose.dev.yml
-   - SMTP-02: GET /api/admin/smtp/test endpoint returns connection status
+   - SMTP-01: Mailpit integration tests verify email delivery ✓
+   - SMTP-02: SMTP test endpoint + socket connection tests ✓
 
 3. **Complete SMTP Testing System:**
    - Infrastructure: Mailpit container captures all outbound emails locally
+   - Testing: helper-mailpit.R with 8 functions + integration tests
    - Monitoring: SMTP test endpoint with raw socketConnection (5s timeout)
    - Configuration: Dev/test profiles point to 127.0.0.1:1025
    - Security: Ports bound to 127.0.0.1 only, accepts any credentials in dev mode
 
-4. **Key patterns established:**
-   - socketConnection for external service health checks (5s timeout)
-   - Security-first Docker port binding (127.0.0.1 only)
-   - MP_SMTP_AUTH_ACCEPT_ANY for dev environment flexibility
+4. **Test patterns established:**
+   - Mailpit helper pattern: mailpit_available() → skip_if_no_mailpit() → operation helpers
+   - Test isolation: mailpit_delete_all() before each test
+   - Async handling: mailpit_wait_for_message() with polling (default 10s timeout)
+   - Graceful skipping: Tests skip with informative message when Mailpit unavailable
 
-5. **Ready for Phase 52 (User Lifecycle E2E):**
+5. **Key files created:**
+   - api/tests/testthat/helper-mailpit.R (133 lines, 8 functions)
+   - api/tests/testthat/test-integration-email.R (162 lines, 7 tests)
+
+6. **Ready for Phase 52 (User Lifecycle E2E):**
    - Email infrastructure configured for testing
    - Mailpit Web UI available for manual verification
    - SMTP connection health monitoring endpoint ready
-   - Foundation for user registration, password reset, email verification flows
+   - Integration test helpers ready for user registration/password reset flows
+   - Foundation for user lifecycle E2E testing complete
 
-6. **Important note on config.yml:**
+7. **Important note on config.yml:**
    - api/config.yml is gitignored (contains production credentials)
    - Plan expected it to be committed but it's correctly excluded
    - Developers need to update local config.yml manually for Mailpit settings
@@ -166,4 +174,4 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-29 — Phase 51 complete (SMTP Testing Infrastructure)*
+*Last updated: 2026-01-29 — Phase 51 complete (SMTP Testing Infrastructure, 2/2 plans)*
