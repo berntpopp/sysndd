@@ -1,6 +1,6 @@
 # Project State: SysNDD v8.0
 
-**Last updated:** 2026-01-28
+**Last updated:** 2026-01-29
 **Current milestone:** v8.0 Gene Page & Genomic Data Integration
 
 ---
@@ -17,22 +17,22 @@
 
 ## Current Position
 
-**Phase:** 44 - Gene Structure Visualization (COMPLETE)
-**Plan:** 2 of 2 complete
-**Status:** Phase complete - visualization components ready for integration
-**Progress:** ███████▱▱▱ 66% (Phase 44 complete, Phase 45 next)
+**Phase:** 45 - 3D Protein Structure Viewer (IN PROGRESS)
+**Plan:** 1 of 3 complete
+**Status:** Foundation layer complete - use3DStructure composable ready
+**Progress:** ███████▱▱▱ 67% (45-01 complete, 45-02 next)
 
-**Last completed:** 44-02 - GeneStructurePlot and GeneStructureCard components (2026-01-28)
-**Next step:** Execute Phase 45 (3D Protein Structure Viewer) or integrate Phase 44 components into gene page.
+**Last completed:** 45-01 - NGL foundation and use3DStructure composable (2026-01-29)
+**Next step:** Execute Phase 45-02 (ProteinStructure3D component) to build UI for 3D viewer.
 
 ---
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 213
+- Total plans completed: 214
 - Milestones shipped: 7 (v1-v7)
-- Phases completed: 44
+- Phases completed: 44 (Phase 45 in progress)
 
 **By Milestone:**
 
@@ -85,7 +85,7 @@
 
 **Frontend Visualization Stack:**
 - **D3.js v7.4.2** for protein domain lollipop plot (already in project)
-- **Mol* v5.5.0** for 3D structure viewer (NGL.js deprecated by RCSB June 2024)
+- **NGL Viewer v2.4.0** for 3D structure viewer (Phase 45-01)
 - **Vue 3 reactivity patterns:** Non-reactive instances (`let viewer`, not `ref()`) + `markRaw()` for WebGL libraries
 - **Cleanup pattern:** Explicit disposal in `onBeforeUnmount()` (Cytoscape `cy.destroy()` pattern reused)
 
@@ -215,6 +215,32 @@
   - Re-fetches on geneSymbol prop change for gene-to-gene navigation
   - Direct per-source fetching pattern (not using useGeneExternalData)
 
+**3D Protein Structure Viewer Foundation (Phase 45-01, 2026-01-29):**
+- **NGL Viewer v2.4.0** installed as project dependency
+- **TypeScript interfaces (app/src/types/alphafold.ts):**
+  - AlphaFoldMetadata: Matches backend response (pdb_url, cif_url, entry_id, uniprot_accession)
+  - ACMG_COLORS: Shared color constants (#dc3545, #fd7e14, #ffc107, #20c997, #28a745)
+  - ACMG_LABELS: Text labels (Pathogenic, Likely Pathogenic, VUS, Likely Benign, Benign)
+  - AcmgClassification: keyof typeof ACMG_COLORS
+  - PLDDT_LEGEND: AlphaFold confidence colors (#0053d6, #65cbf3, #ffdb13, #ff7d45)
+  - RepresentationType: 'cartoon' | 'surface' | 'ball+stick'
+- **Helper functions:**
+  - parseResidueNumber(hgvsp): Extracts residue number from HGVSP notation (e.g., "p.Arg123Trp" → 123)
+  - classifyClinicalSignificance(significance): Normalizes ClinVar strings to AcmgClassification
+- **use3DStructure composable (app/src/composables/use3DStructure.ts):**
+  - Non-reactive Stage instance (let stage, not ref) following useCytoscape pattern
+  - markRaw() on all NGL representations before Map storage
+  - Container watch with immediate:true for lazy tab mount timing
+  - Pre-created representations (cartoon/surface/ball+stick) with visible:false for instant toggle
+  - loadStructure(url): Loads PDB/CIF with bfactor colorScheme for pLDDT confidence coloring
+  - setRepresentation(type): Instant toggle via setVisibility() (20ms vs 500ms remove+add)
+  - addVariantMarker(residue, color, label): Spacefill representation at position with ACMG color
+  - removeVariantMarker(residue): Remove single marker
+  - clearAllVariantMarkers(): Remove all variant-* markers
+  - resetView(): Auto-center and zoom via autoView()
+  - cleanup(): Remove resize listener and stage.dispose()
+  - onBeforeUnmount: Calls cleanup to prevent WebGL context leak (8-16 context browser limit)
+
 **Critical Pitfalls to Avoid:**
 1. Vue Proxy wrapping of Three.js/WebGL objects - use `markRaw()` or non-reactive variables
 2. WebGL context leaks - call `stage.dispose()` in cleanup
@@ -245,45 +271,49 @@
 - [x] Phase 42: Constraint Scores & Variant Summaries (13 requirements) ✓
 - [x] Phase 43: Protein Domain Lollipop Plot (11 requirements) ✓
 - [x] Phase 44: Gene Structure Visualization (4 requirements) ✓
-- [ ] Phase 45: 3D Protein Structure Viewer (9 requirements)
+- [ ] Phase 45: 3D Protein Structure Viewer (9 requirements) — 45-01 complete (NGL foundation)
 - [ ] Phase 46: Model Organism Phenotypes & Final Integration (5 requirements)
 
 ### Blockers/Concerns
 
-**None** - Phase 44 complete. Ready for Phase 45 (3D Protein Structure Viewer) or gene page integration.
+**None** - Phase 45-01 complete (NGL foundation). Ready for Phase 45-02 (ProteinStructure3D component).
 
 ---
 
 ## Session Continuity
 
-**Last session:** 2026-01-28T23:32:14Z
-**Stopped at:** Phase 44 complete (Gene Structure Visualization components)
-**Next action:** Execute Phase 45 (3D Protein Structure Viewer) or integrate Phase 44 components into gene page
+**Last session:** 2026-01-29T00:35:35Z
+**Stopped at:** Phase 45-01 complete (NGL foundation and use3DStructure composable)
+**Next action:** Execute Phase 45-02 (ProteinStructure3D component) to build UI for 3D viewer
 
 **Handoff notes:**
 
-1. **Phase 44 complete** (2026-01-28): Gene structure visualization components ready for integration.
-   - 44-01: Ensembl types (ensembl.ts) and D3 composable (useD3GeneStructure.ts)
-   - 44-02: GeneStructurePlot Vue component (91 lines) and GeneStructureCard wrapper (145 lines)
+1. **Phase 45-01 complete** (2026-01-29): NGL foundation layer ready for 3D viewer component.
+   - NGL Viewer v2.4.0 installed (ngl@2.4.0)
+   - AlphaFold types (alphafold.ts): AlphaFoldMetadata, ACMG_COLORS, PLDDT_LEGEND, helpers
+   - use3DStructure composable (use3DStructure.ts): Non-reactive WebGL lifecycle with markRaw pattern
 
-2. **Phase 44-02 deliverables:**
-   - `app/src/components/gene/GeneStructurePlot.vue` — D3 visualization with horizontal scroll container
-   - `app/src/components/gene/GeneStructureCard.vue` — Card wrapper with Ensembl data fetching and 4-state UI
+2. **Phase 45-01 deliverables:**
+   - `app/src/types/alphafold.ts` (185 lines) — AlphaFold metadata + ACMG constants + helpers
+   - `app/src/composables/use3DStructure.ts` (334 lines) — NGL Stage lifecycle composable
+   - Updated barrel exports: types/index.ts, composables/index.ts
+   - Typed external.ts: `alphafold?: AlphaFoldMetadata`
 
-3. **Key integration points:**
-   - GeneStructureCard fetches Ensembl data via `/api/external/ensembl/structure/<symbol>` (direct per-source pattern)
-   - Displays exon count and gene length in card header
-   - Re-fetches on geneSymbol prop change for gene-to-gene navigation
-   - Ready to add to GeneView.vue in Phase 46 final integration
+3. **Key patterns established:**
+   - Non-reactive WebGL: `let stage` (not `ref()`) prevents Vue proxy interference
+   - markRaw() on all NGL representations before Map storage
+   - Container watch with immediate:true for lazy tab mount timing
+   - Pre-created representations for instant toggle via setVisibility() (20ms vs 500ms)
+   - stage.dispose() in onBeforeUnmount to prevent WebGL context leak
 
-4. **Backlog items captured:**
-   - `fix-pipe-split-on-json-column.md` — Medium priority JSON column handling
-   - `make-migration-002-idempotent.md` — Low priority migration robustness
-   - `optimize-ensembl-biomart-connections.md` — High priority performance issue
+4. **ACMG color constants (shared source of truth):**
+   - Pathogenic: #dc3545, Likely Pathogenic: #fd7e14, VUS: #ffc107
+   - Likely Benign: #20c997, Benign: #28a745
+   - Used by: GeneClinVarCard, lollipop plot (future), 3D viewer
 
-5. **Phase 45 next** (2026-01-28): 3D Protein Structure Viewer with Mol* integration
+5. **Phase 45-02 next** (2026-01-29): ProteinStructure3D component with UI controls
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-28 — Phase 44 complete (Gene Structure Visualization)*
+*Last updated: 2026-01-29 — Phase 45-01 complete (NGL foundation and use3DStructure composable)*
