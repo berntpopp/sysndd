@@ -69,6 +69,12 @@ Plans:
 
 **Dependencies:** None (parallel with Phase 48)
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 49-01-PLAN.md — Create backup infrastructure and list endpoint
+- [ ] 49-02-PLAN.md — Add backup creation and restore endpoints with async job handling
+
 **Requirements:**
 - BKUP-01: API endpoint lists available backup files with metadata
 - BKUP-03: API endpoint triggers manual backup creation
@@ -76,8 +82,8 @@ Plans:
 - BKUP-06: Backup metadata includes file size, creation date, and table count
 
 **Success Criteria:**
-1. GET /api/admin/backups returns list of backup files with size, date, and table count
-2. POST /api/admin/backups triggers new backup and returns job ID for polling
+1. GET /api/backup/list returns list of backup files with size, date, and table count
+2. POST /api/backup/create triggers new backup and returns job ID for polling
 3. Restore operation automatically creates timestamped backup before proceeding
 4. Backup metadata accurately reflects file properties (verified against filesystem)
 
@@ -164,7 +170,7 @@ Plans:
 |-------|------|--------------|--------|
 | 47 | Migration System Foundation | MIGR-01, MIGR-02, MIGR-03, MIGR-05 | Complete |
 | 48 | Migration Auto-Run & Health | MIGR-04, MIGR-06 | Planned |
-| 49 | Backup API Layer | BKUP-01, BKUP-03, BKUP-05, BKUP-06 | Not Started |
+| 49 | Backup API Layer | BKUP-01, BKUP-03, BKUP-05, BKUP-06 | Planned |
 | 50 | Backup Admin UI | BKUP-02, BKUP-04 | Not Started |
 | 51 | SMTP Testing Infrastructure | SMTP-01, SMTP-02 | Not Started |
 | 52 | User Lifecycle E2E | SMTP-03, SMTP-04, SMTP-05 | Not Started |
@@ -199,4 +205,4 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 ---
 
 *Roadmap created: 2026-01-29*
-*Last updated: 2026-01-29 — Phase 48 planned (2 plans)*
+*Last updated: 2026-01-29 — Phase 49 planned (2 plans)*
