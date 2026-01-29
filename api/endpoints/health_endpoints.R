@@ -20,6 +20,68 @@ function(req, res) {
   )
 }
 
+#* Readiness check for Kubernetes probes
+#*
+#* Returns HTTP 200 when ready to serve traffic, HTTP 503 when not ready.
+#* Reports pending migration count for monitoring and diagnostics.
+#*
+#* # `Response Codes`
+#* - 200: API ready to serve traffic (migrations current)
+#* - 503: API not ready (migrations pending or not yet run)
+#*
+#* # `Details`
+#* This endpoint checks if database migrations have been applied. The
+#* migration_status global variable is set during API startup by the
+#* migration runner. If migrations haven't run yet (startup in progress)
+#* or if migrations are pending, returns HTTP 503 to signal not ready.
+#*
+#* Use this endpoint for Kubernetes readiness probes to ensure traffic
+#* is only routed to containers with current database schema.
+#*
+#* @tag health
+#* @serializer json
+#*
+#* @response 200 OK. API ready to serve traffic.
+#* @response 503 Service Unavailable. Migrations pending or not yet run.
+#*
+#* @get /ready
+function(req, res) {
+  # Check if migrations have run (variable set during API startup)
+  if (!exists("migration_status", envir = .GlobalEnv) ||
+      is.null(get("migration_status", envir = .GlobalEnv))) {
+    res$status <- 503L
+    return(list(
+      status = "not_ready",
+      reason = "migrations_not_run",
+      pending_migrations = NA,
+      timestamp = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    ))
+  }
+
+  # Get migration status from global
+  status <- get("migration_status", envir = .GlobalEnv)
+  pending <- status$pending_migrations
+
+  # If there are pending migrations, not ready
+  if (!is.null(pending) && pending > 0) {
+    res$status <- 503L
+    return(list(
+      status = "not_ready",
+      reason = "migrations_pending",
+      pending_migrations = pending,
+      timestamp = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    ))
+  }
+
+  # Ready to serve
+  list(
+    status = "ready",
+    pending_migrations = 0,
+    total_migrations = status$total_migrations,
+    timestamp = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  )
+}
+
 #* Performance Metrics
 #*
 #* Returns performance metrics including worker pool status and cache statistics.
