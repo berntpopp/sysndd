@@ -196,6 +196,110 @@ record_migration <- function(filename, conn = NULL) {
   invisible(NULL)
 }
 
+#' Acquire MySQL advisory lock for migration coordination
+#'
+#' Uses MySQL GET_LOCK() to coordinate migrations across multiple API workers.
+#' Only one worker can hold the lock at a time; others wait until timeout.
+#'
+#' @param conn Database connection or pool object
+#' @param lock_name Name of the advisory lock. Default: "sysndd_migration"
+#' @param timeout Timeout in seconds to wait for lock. Default: 30
+#'
+#' @return TRUE on success, otherwise stops with error
+#'
+#' @details
+#' - MySQL GET_LOCK returns: 1 = acquired, 0 = timeout, NULL = error
+#' - Lock is automatically released when connection closes
+#' - Locks are per-connection, not per-thread
+#' - Safe for multi-worker coordination (first worker applies, others wait)
+#'
+#' @export
+acquire_migration_lock <- function(conn, lock_name = "sysndd_migration", timeout = 30) {
+  log_debug("Attempting to acquire migration lock: {lock_name} (timeout: {timeout}s)")
+
+  # Determine connection: use provided conn or checkout from global pool
+  use_pool <- if (is.null(conn)) pool else conn
+  is_pool_obj <- inherits(use_pool, "Pool")
+
+  if (is_pool_obj) {
+    use_conn <- pool::poolCheckout(use_pool)
+    on.exit(pool::poolReturn(use_conn), add = TRUE)
+  } else {
+    use_conn <- use_pool
+  }
+
+  sql <- sprintf("SELECT GET_LOCK('%s', %d) AS acquired", lock_name, timeout)
+
+  tryCatch({
+    result <- DBI::dbGetQuery(use_conn, sql)
+
+    if (is.na(result$acquired) || is.null(result$acquired)) {
+      log_error("Migration lock acquisition failed: database error")
+      stop(sprintf("Migration lock acquisition failed: database error"))
+    } else if (result$acquired == 0) {
+      log_error("Migration lock acquisition timed out after {timeout} seconds")
+      stop(sprintf("Migration lock acquisition timed out after %d seconds", timeout))
+    } else if (result$acquired == 1) {
+      log_info("Acquired migration lock '{lock_name}'")
+      return(TRUE)
+    } else {
+      log_error("Migration lock acquisition returned unexpected value: {result$acquired}")
+      stop(sprintf("Migration lock acquisition returned unexpected value: %s", result$acquired))
+    }
+  }, error = function(e) {
+    log_error("Failed to acquire migration lock: {e$message}")
+    stop(e)
+  })
+}
+
+#' Release MySQL advisory lock
+#'
+#' Releases the migration advisory lock acquired by acquire_migration_lock().
+#' Safe to call even if lock is not held (returns FALSE but doesn't error).
+#'
+#' @param conn Database connection or pool object
+#' @param lock_name Name of the advisory lock. Default: "sysndd_migration"
+#'
+#' @return TRUE if lock was held and released, FALSE if not held
+#'
+#' @details
+#' - MySQL RELEASE_LOCK returns: 1 = released, 0 = not held, NULL = error
+#' - Logs release but doesn't error on "not held" case
+#' - Lock is automatically released when connection closes anyway
+#'
+#' @export
+release_migration_lock <- function(conn, lock_name = "sysndd_migration") {
+  log_debug("Releasing migration lock: {lock_name}")
+
+  # Determine connection: use provided conn or checkout from global pool
+  use_pool <- if (is.null(conn)) pool else conn
+  is_pool_obj <- inherits(use_pool, "Pool")
+
+  if (is_pool_obj) {
+    use_conn <- pool::poolCheckout(use_pool)
+    on.exit(pool::poolReturn(use_conn), add = TRUE)
+  } else {
+    use_conn <- use_pool
+  }
+
+  sql <- sprintf("SELECT RELEASE_LOCK('%s') AS released", lock_name)
+
+  tryCatch({
+    result <- DBI::dbGetQuery(use_conn, sql)
+
+    if (result$released == 1) {
+      log_info("Released migration lock '{lock_name}'")
+      return(TRUE)
+    } else {
+      log_debug("Migration lock '{lock_name}' was not held")
+      return(FALSE)
+    }
+  }, error = function(e) {
+    log_warn("Failed to release migration lock: {e$message}")
+    return(FALSE)
+  })
+}
+
 #' Split SQL content into executable statements
 #'
 #' Parses SQL file content and splits it into individual statements.
