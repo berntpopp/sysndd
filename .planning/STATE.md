@@ -17,22 +17,22 @@
 
 ## Current Position
 
-**Phase:** 45 - 3D Protein Structure Viewer (IN PROGRESS)
-**Plan:** 2 of 3 complete
-**Status:** UI components complete - ProteinStructure3D + VariantPanel ready
-**Progress:** ███████████ 100% (45-01, 45-02 complete, 45-03 next)
+**Phase:** 45 - 3D Protein Structure Viewer (COMPLETE)
+**Plan:** 3 of 3 complete
+**Status:** 3D structure viewer fully integrated into gene page
+**Progress:** ████████████ 100% (45-01, 45-02, 45-03 complete)
 
-**Last completed:** 45-02 - ProteinStructure3D and VariantPanel components (2026-01-29)
-**Next step:** Execute Phase 45-03 (Tabbed visualization card integration) to integrate 3D viewer into gene page.
+**Last completed:** 45-03 - Tabbed visualization card integration (2026-01-29)
+**Next step:** Begin Phase 46 (Model Organism Phenotypes & Final Integration).
 
 ---
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 214
+- Total plans completed: 217
 - Milestones shipped: 7 (v1-v7)
-- Phases completed: 44 (Phase 45 in progress)
+- Phases completed: 45 (Phase 46 next)
 
 **By Milestone:**
 
@@ -290,54 +290,48 @@
 - [x] Phase 42: Constraint Scores & Variant Summaries (13 requirements) ✓
 - [x] Phase 43: Protein Domain Lollipop Plot (11 requirements) ✓
 - [x] Phase 44: Gene Structure Visualization (4 requirements) ✓
-- [ ] Phase 45: 3D Protein Structure Viewer (9 requirements) — 45-01, 45-02 complete (NGL foundation + UI components)
+- [x] Phase 45: 3D Protein Structure Viewer (9 requirements) ✓
 - [ ] Phase 46: Model Organism Phenotypes & Final Integration (5 requirements)
 
 ### Blockers/Concerns
 
-**None** - Phase 45-02 complete (ProteinStructure3D + VariantPanel). Ready for Phase 45-03 (Tabbed visualization card integration).
+**None** - Phase 45 complete (3D structure viewer fully integrated). Ready for Phase 46 (Model Organism Phenotypes & Final Integration).
 
 ---
 
 ## Session Continuity
 
-**Last session:** 2026-01-29T00:44:26Z
-**Stopped at:** Phase 45-02 complete (ProteinStructure3D + VariantPanel components)
-**Next action:** Execute Phase 45-03 (Tabbed visualization card integration) to integrate 3D viewer into gene page
+**Last session:** 2026-01-29T00:54:08Z
+**Stopped at:** Phase 45-03 complete (3D structure viewer fully integrated into gene page)
+**Next action:** Begin Phase 46 (Model Organism Phenotypes & Final Integration)
 
 **Handoff notes:**
 
-1. **Phase 45-02 complete** (2026-01-29): 3D viewer UI components ready for tabbed card integration.
-   - ProteinStructure3D.vue (270 lines) — NGL viewer with toolbar, legend, loading/error/empty states
-   - VariantPanel.vue (200 lines) — Multi-select variant highlighting sidebar
-   - 70/30 viewer-sidebar layout maximizes 3D viewer space
+1. **Phase 45 complete** (2026-01-29): All 3 plans shipped (foundation, components, integration).
+   - 45-01: use3DStructure composable + AlphaFold types + NGL v2.4.0 dependency
+   - 45-02: ProteinStructure3D + VariantPanel components (70/30 layout)
+   - 45-03: Integration via GenomicVisualizationTabs with lazy-loaded NGL chunk (600KB gzipped)
 
-2. **Phase 45-02 deliverables:**
-   - `app/src/components/gene/ProteinStructure3D.vue` — 3D viewer component with NGL integration
-   - `app/src/components/gene/VariantPanel.vue` — Multi-select ClinVar variant sidebar
-   - Variant filtering: Only missense/inframe variants shown (parseResidueNumber returns null for frameshift/stop/splice)
+2. **Phase 45-03 deliverables:**
+   - Extended `useGeneExternalData.ts` with alphafold per-source state (loading/error/data)
+   - Updated `GeneView.vue` to pass AlphaFold props to GenomicVisualizationTabs
+   - Updated `GenomicVisualizationTabs.vue` to replace 3D Structure placeholder with ProteinStructure3D
+   - BTab lazy prop ensures NGL chunk loads only on first tab click (not page load)
 
-3. **Key patterns established:**
-   - 70/30 viewer-sidebar split layout for coordinated visualization
-   - v-show (not v-if) for NGL DOM preservation after initialization
-   - Multi-select Set with reactivity workaround (new Set() reassignment)
-   - parseResidueNumber() filtering for structure-mappable variants only
-   - Shared ACMG_COLORS constants across all pathogenicity displays
+3. **Integration pattern established:**
+   - useGeneExternalData composable → GeneView.vue → GenomicVisualizationTabs.vue → ProteinStructure3D.vue
+   - Parallel fetching: ClinVar and AlphaFold fetched in parallel with Promise.allSettled
+   - Per-source state: alphafold.loading, alphafold.error, alphafold.data following clinvar pattern
+   - Lazy loading: NGL chunk (ngl.esm-BiKw7f63.js, 600.85 kB gzipped) deferred until tab activation
 
-4. **Integration ready for Phase 45-03:**
-   ```vue
-   <BTab title="3D Structure" lazy>
-     <ProteinStructure3D
-       :gene-symbol="geneSymbol"
-       :structure-url="alphafoldData?.pdb_url || null"
-       :variants="clinvarVariants"
-     />
-   </BTab>
-   ```
+4. **Technical foundation for Phase 46:**
+   - All genomic visualizations now in GenomicVisualizationTabs (Protein View, Gene Structure, 3D Structure)
+   - Ready to add Model Organism Phenotypes card (MGI/RGD data from backend proxy)
+   - Cross-highlighting infrastructure in place (onVariantClick/onVariantHover callbacks)
 
-5. **Phase 45-03 next** (2026-01-29): Tabbed visualization card integration
+5. **Phase 46 next** (2026-01-29): Model Organism Phenotypes & Final Integration
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-29 — Phase 45-02 complete (ProteinStructure3D + VariantPanel components)*
+*Last updated: 2026-01-29 — Phase 45 complete (3D structure viewer fully integrated)*
