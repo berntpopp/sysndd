@@ -45,6 +45,12 @@ Plans:
 
 **Dependencies:** Phase 47 (migration foundation must exist)
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 48-01-PLAN.md — Integrate migration runner into API startup with lock coordination
+- [ ] 48-02-PLAN.md — Add readiness health endpoint for migration status visibility
+
 **Requirements:**
 - MIGR-04: API startup auto-detects and applies missing migrations
 - MIGR-06: Health endpoint reports pending migrations count
@@ -157,7 +163,7 @@ Plans:
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
 | 47 | Migration System Foundation | MIGR-01, MIGR-02, MIGR-03, MIGR-05 | Complete |
-| 48 | Migration Auto-Run & Health | MIGR-04, MIGR-06 | Not Started |
+| 48 | Migration Auto-Run & Health | MIGR-04, MIGR-06 | Planned |
 | 49 | Backup API Layer | BKUP-01, BKUP-03, BKUP-05, BKUP-06 | Not Started |
 | 50 | Backup Admin UI | BKUP-02, BKUP-04 | Not Started |
 | 51 | SMTP Testing Infrastructure | SMTP-01, SMTP-02 | Not Started |
@@ -193,4 +199,4 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 ---
 
 *Roadmap created: 2026-01-29*
-*Last updated: 2026-01-29 — Phase 47 complete*
+*Last updated: 2026-01-29 — Phase 48 planned (2 plans)*
