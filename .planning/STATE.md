@@ -19,13 +19,13 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 
 ## Current Position
 
-**Phase:** 49 - Backup API Layer (In Progress)
-**Plan:** 2 of 3 complete
-**Status:** In progress
-**Progress:** ███░░░░░░░ 37% (3/7 phases, 2/3 plans in phase 49)
+**Phase:** 49 - Backup API Layer (Complete)
+**Plan:** 2 of 2 complete
+**Status:** Phase complete
+**Progress:** ███░░░░░░░ 43% (3/7 phases)
 
 **Last completed:** 49-02-PLAN.md (Backup Creation & Restore Endpoints)
-**Next step:** `/gsd:plan-phase 49` to create 49-03 (final plan in phase)
+**Next step:** `/gsd:discuss-phase 50` to plan Backup Admin UI
 
 ---
 
@@ -35,7 +35,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 |-------|------|--------------|--------|
 | 47 | Migration System Foundation | MIGR-01, MIGR-02, MIGR-03, MIGR-05 | Complete |
 | 48 | Migration Auto-Run & Health | MIGR-04, MIGR-06 | Complete (2/2 plans) |
-| 49 | Backup API Layer | BKUP-01, BKUP-03, BKUP-05, BKUP-06 | In Progress (2/3 plans) |
+| 49 | Backup API Layer | BKUP-01, BKUP-03, BKUP-05, BKUP-06 | Complete (2/2 plans) |
 | 50 | Backup Admin UI | BKUP-02, BKUP-04 | Not Started |
 | 51 | SMTP Testing Infrastructure | SMTP-01, SMTP-02 | Not Started |
 | 52 | User Lifecycle E2E | SMTP-03, SMTP-04, SMTP-05 | Not Started |
@@ -49,9 +49,9 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 246
+- Total plans completed: 248
 - Milestones shipped: 8 (v1-v8)
-- Phases completed: 48
+- Phases completed: 49
 
 **By Milestone:**
 
@@ -126,31 +126,33 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 ## Session Continuity
 
 **Last session:** 2026-01-29
-**Stopped at:** Completed 49-02-PLAN.md
-**Next action:** `/gsd:plan-phase 49` to create 49-03 (final plan in phase 49)
+**Stopped at:** Completed Phase 49 (Backup API Layer)
+**Next action:** `/gsd:discuss-phase 50` to plan Backup Admin UI
 
 **Handoff notes:**
 
-1. **Phase 49-02 complete (Backup Creation & Restore Endpoints):**
+1. **Phase 49 complete (Backup API Layer):**
+   - GET /api/backup/list endpoint with paginated metadata
    - POST /api/backup/create triggers async manual backups
    - POST /api/backup/restore with automatic pre-restore safety backup (BKUP-05)
-   - Concurrent backup protection via check_duplicate_job() (409 Conflict)
+   - Docker volume mount: mysql_backup:/backup:rw on api service
    - Job manager integration: 10 min timeout, 5 sec polling interval
-   - Progress messages for backup operations in job status
+   - Concurrent backup protection via check_duplicate_job() (409 Conflict)
 
-2. **Ready for Phase 49-03 (if additional features):**
+2. **Ready for Phase 50 (Backup Admin UI):**
    - Full REST API operational: list, create, restore
-   - Async job pattern with proper error handling
-   - Safety mechanisms in place (pre-restore, concurrency control)
-   - Administrator role enforcement across all endpoints
+   - Async job pattern with status polling ready for UI
+   - Response format matches existing admin patterns (pagination, error codes)
+   - Administrator role enforcement at API level
 
-3. **Key decisions from Phase 49-02:**
+3. **Key decisions from Phase 49:**
    - Manual backup naming: manual_YYYY-MM-DD_HH-MM-SS.sql
    - Pre-restore naming: pre-restore_YYYY-MM-DD_HH-MM-SS.sql
    - Block restore if pre-restore fails (503 Service Unavailable)
-   - system2() with mysqldump for backup execution
+   - table_count as NA initially (compute lazily if needed)
+   - 20 backups per page matching other admin endpoints
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-29 — Phase 48 complete (migration auto-run and health endpoints)*
+*Last updated: 2026-01-29 — Phase 49 complete (Backup API Layer)*
