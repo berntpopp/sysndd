@@ -403,14 +403,16 @@ function(symbol, res) {
 #* Get RGD rat phenotypes for a gene
 #*
 #* Returns rat model phenotypes from Rat Genome Database.
+#* First looks up the RGD ID from the internal gene database, then
+#* fetches phenotype annotations from RGD.
 #* Data is cached for 14 days.
 #*
 #* @tag external-proxy
 #* @serializer unboxedJSON
-#* @param symbol Gene symbol (e.g., "BRCA1")
+#* @param symbol Gene symbol (e.g., "SCN1A")
 #* @response 200 Rat phenotype information
 #* @response 400 Invalid gene symbol
-#* @response 404 Gene not found in RGD
+#* @response 404 Gene not found or no RGD ID available
 #* @response 503 RGD API unavailable
 #* @get rgd/phenotypes/<symbol>
 function(symbol, res) {
@@ -426,8 +428,41 @@ function(symbol, res) {
     ))
   }
 
-  # Fetch data (memoised)
-  result <- fetch_rgd_phenotypes_mem(symbol)
+  # Look up RGD ID from internal gene database
+  gene_lookup <- tryCatch(
+    {
+      pool %>%
+        tbl("non_alt_loci_set") %>%
+        filter(str_to_lower(!!rlang::sym("symbol")) == str_to_lower(!!symbol)) %>%
+        select(rgd_id) %>%
+        collect() %>%
+        pull(rgd_id) %>%
+        first()
+    },
+    error = function(e) NULL
+  )
+
+  # Extract RGD ID (may be pipe-separated or NULL)
+  rgd_id <- NULL
+  if (!is.null(gene_lookup) && !is.na(gene_lookup) && nchar(gene_lookup) > 0) {
+    # Take first RGD ID if multiple
+    rgd_id <- str_split(gene_lookup, "\\|")[[1]][1]
+  }
+
+  # If no RGD ID in database, return not found
+  if (is.null(rgd_id) || nchar(rgd_id) == 0) {
+    res$status <- 404L
+    res$setHeader("Content-Type", "application/problem+json")
+    return(create_external_error(
+      "rgd",
+      sprintf("No RGD ID available for gene %s", symbol),
+      404L,
+      paste0("/api/external/rgd/phenotypes/", symbol)
+    ))
+  }
+
+  # Fetch data using RGD ID (memoised)
+  result <- fetch_rgd_phenotypes_by_id_mem(rgd_id, symbol)
 
   # Handle not found
   if (is.list(result) && isTRUE(result$found == FALSE)) {

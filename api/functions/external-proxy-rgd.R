@@ -1,49 +1,179 @@
 # functions/external-proxy-rgd.R
 #### RGD (Rat Genome Database) phenotype proxy functions
 
+#' Fetch RGD rat phenotype data by RGD ID
+#'
+#' @description
+#' Retrieves rat phenotype data from Rat Genome Database (RGD) using
+#' the rat gene RGD ID directly. This is the preferred method since
+#' RGD gene lookup APIs are unreliable.
+#'
+#' @param rgd_id Character string, RGD ID (e.g., "RGD:69364" or "69364")
+#' @param gene_symbol Character string, HGNC gene symbol for response context
+#'
+#' @return List containing:
+#' \describe{
+#'   \item{Success}{source, gene_symbol, rgd_id, rat_symbol, phenotype_count,
+#'                  phenotypes, rgd_url}
+#'   \item{Not found}{found = FALSE, source = "rgd"}
+#'   \item{Error}{error = TRUE, source = "rgd", message = <details>}
+#' }
+#'
+#' @details
+#' Uses the RGD annotations endpoint which is reliable, unlike the gene
+#' lookup endpoints which have server bugs. Fetches mammalian phenotype (MP)
+#' ontology annotations for the given RGD ID.
+#'
+#' @examples
+#' \dontrun{
+#'   result <- fetch_rgd_phenotypes_by_id("69364", "SCN1A")
+#'   if (!isTRUE(result$found == FALSE) && !isTRUE(result$error)) {
+#'     print(result$phenotype_count)
+#'   }
+#' }
+#'
+#' @export
+fetch_rgd_phenotypes_by_id <- function(rgd_id, gene_symbol = NULL) {
+  tryCatch(
+    {
+      # Normalize RGD ID (remove "RGD:" prefix if present)
+      clean_rgd_id <- gsub("^RGD:", "", rgd_id)
+
+      # Validate RGD ID is numeric
+      if (!grepl("^[0-9]+$", clean_rgd_id)) {
+        return(list(
+          error = TRUE,
+          source = "rgd",
+          message = paste("Invalid RGD ID format:", rgd_id)
+        ))
+      }
+
+      # Fetch mammalian phenotype (MP) annotations for the RGD ID
+      phenotype_url <- paste0(
+        "https://rest.rgd.mcw.edu/rgdws/annotations/rgdId/",
+        clean_rgd_id,
+        "/MP"
+      )
+
+      phenotype_response <- httr2::request(phenotype_url) |>
+        httr2::req_retry(
+          max_tries = 3,
+          backoff = ~ 2
+        ) |>
+        httr2::req_throttle(
+          rate = EXTERNAL_API_THROTTLE$rgd$capacity / EXTERNAL_API_THROTTLE$rgd$fill_time_s,
+          realm = "rgd"
+        ) |>
+        httr2::req_timeout(30) |>
+        httr2::req_perform()
+
+      phenotype_data <- httr2::resp_body_json(phenotype_response)
+
+      # Extract phenotypes
+      phenotype_count <- 0
+      phenotypes <- list()
+      rat_symbol <- NULL
+
+      if (!is.null(phenotype_data) && length(phenotype_data) > 0) {
+        # Extract unique phenotypes
+        phenotype_map <- list()
+        for (annotation in phenotype_data) {
+          term_acc <- annotation$termAcc
+          if (!is.null(term_acc) && !is.null(annotation$term)) {
+            phenotype_map[[term_acc]] <- list(
+              term = annotation$term,
+              annotation_type = "MP"
+            )
+          }
+          # Extract rat symbol from first annotation
+          if (is.null(rat_symbol) && !is.null(annotation$objectSymbol)) {
+            rat_symbol <- annotation$objectSymbol
+          }
+        }
+        phenotypes <- unname(phenotype_map)
+        phenotype_count <- length(phenotypes)
+      }
+
+      # Return structured response
+      return(list(
+        source = "rgd",
+        gene_symbol = gene_symbol %||% rat_symbol %||% clean_rgd_id,
+        rgd_id = paste0("RGD:", clean_rgd_id),
+        rat_symbol = rat_symbol,
+        rat_name = NULL,  # Not available from annotations endpoint
+        phenotype_count = phenotype_count,
+        phenotypes = phenotypes,
+        rgd_url = paste0("https://rgd.mcw.edu/rgdweb/report/gene/main.html?id=", clean_rgd_id)
+      ))
+    },
+    error = function(e) {
+      msg <- conditionMessage(e)
+      # Check for 404/empty response (no phenotype annotations)
+      if (grepl("404|Not Found|empty", msg, ignore.case = TRUE)) {
+        return(list(
+          source = "rgd",
+          gene_symbol = gene_symbol,
+          rgd_id = paste0("RGD:", gsub("^RGD:", "", rgd_id)),
+          rat_symbol = NULL,
+          rat_name = NULL,
+          phenotype_count = 0,
+          phenotypes = list(),
+          rgd_url = paste0("https://rgd.mcw.edu/rgdweb/report/gene/main.html?id=",
+                           gsub("^RGD:", "", rgd_id))
+        ))
+      }
+      return(list(
+        error = TRUE,
+        source = "rgd",
+        message = paste("RGD query failed:", msg)
+      ))
+    }
+  )
+}
+
 #' Fetch RGD rat phenotype data for a gene symbol
 #'
 #' @description
 #' Retrieves rat phenotype data from Rat Genome Database (RGD) for a given
-#' gene symbol. Performs human-to-rat ortholog lookup and fetches phenotype
-#' annotations. Implements defensive error handling for undocumented API
-#' endpoints.
+#' gene symbol. First tries to use the internal gene database to find the
+#' RGD ID, then falls back to RGD API gene lookup.
 #'
-#' @param gene_symbol Character string, HGNC gene symbol (e.g., "BRCA1")
+#' @param gene_symbol Character string, HGNC gene symbol (e.g., "SCN1A")
+#' @param rgd_id Optional RGD ID if already known (e.g., "RGD:69364")
 #'
 #' @return List containing:
 #' \describe{
 #'   \item{Success}{source, gene_symbol, rgd_id, rat_symbol, rat_name,
 #'                  phenotype_count, phenotypes, rgd_url}
 #'   \item{Not found}{found = FALSE, source = "rgd"}
-#'   \item{API format error}{found = FALSE, source = "rgd", message = <details>}
 #'   \item{Error}{error = TRUE, source = "rgd", message = <details>}
 #' }
 #'
 #' @details
-#' Step 1: Queries RGD REST API to find human gene by symbol, then finds rat
-#' ortholog. If direct human lookup fails, tries direct rat gene search.
-#'
-#' Step 2: Fetches phenotype annotations for the rat gene RGD ID.
-#'
-#' RGD API endpoints are not well documented, so implementation is defensive:
-#' returns `found = FALSE` rather than crashing on unexpected formats.
+#' If rgd_id parameter is provided, uses it directly to fetch phenotypes.
+#' Otherwise, attempts to find RGD ID via RGD gene lookup APIs (unreliable).
 #'
 #' Uses memoised caching with 14-day TTL (cache_stable) since phenotype
 #' annotations change moderately.
 #'
 #' @examples
 #' \dontrun{
-#'   result <- fetch_rgd_phenotypes("BRCA1")
-#'   if (!isTRUE(result$found == FALSE) && !isTRUE(result$error)) {
-#'     print(result$rgd_url)
-#'   }
+#'   # Preferred: with RGD ID
+#'   result <- fetch_rgd_phenotypes("SCN1A", rgd_id = "RGD:69364")
+#'
+#'   # Fallback: symbol only (may fail due to RGD API issues)
+#'   result <- fetch_rgd_phenotypes("SCN1A")
 #' }
 #'
 #' @export
-fetch_rgd_phenotypes <- function(gene_symbol) {
+fetch_rgd_phenotypes <- function(gene_symbol, rgd_id = NULL) {
   tryCatch(
     {
+      # If RGD ID is provided, use it directly
+      if (!is.null(rgd_id) && nchar(rgd_id) > 0) {
+        return(fetch_rgd_phenotypes_by_id(rgd_id, gene_symbol))
+      }
+
       # Validate gene symbol format
       if (!validate_gene_symbol(gene_symbol)) {
         return(list(
@@ -53,180 +183,20 @@ fetch_rgd_phenotypes <- function(gene_symbol) {
         ))
       }
 
-      # Step 1: Try to find rat gene by direct search first (faster)
-      rat_search_url <- paste0(
-        "https://rest.rgd.mcw.edu/rgdws/genes/species/Rat/",
-        gene_symbol
-      )
+      # Note: RGD gene lookup APIs are unreliable and often return 500 errors.
+      # The preferred approach is to provide the rgd_id parameter directly.
 
-      rat_response <- make_external_request(
-        url = rat_search_url,
-        api_name = "rgd",
-        throttle_config = EXTERNAL_API_THROTTLE$rgd
-      )
+      # Try RGD annotations endpoint with various ID formats
+      # Unfortunately, RGD doesn't have a reliable gene symbol search API
 
-      rat_rgd_id <- NULL
-      rat_symbol <- NULL
-      rat_name <- NULL
-
-      # Check if direct rat search succeeded
-      if (!isTRUE(rat_response$error) &&
-          !isTRUE(rat_response$found == FALSE) &&
-          !is.null(rat_response)) {
-
-        # Extract rat gene info
-        # RGD API may return single object or array
-        gene_data <- if (is.list(rat_response) && length(rat_response) > 0) {
-          # If it's a list, take first element
-          rat_response[[1]]
-        } else {
-          rat_response
-        }
-
-        rat_rgd_id <- gene_data$rgdId %||%
-                      gene_data$RGD_ID %||%
-                      gene_data$id
-        rat_symbol <- gene_data$symbol %||%
-                      gene_data$geneSymbol
-        rat_name <- gene_data$name %||%
-                    gene_data$geneName
-      }
-
-      # If direct rat search failed, try human ortholog lookup
-      if (is.null(rat_rgd_id)) {
-        # Query human gene first
-        human_search_url <- paste0(
-          "https://rest.rgd.mcw.edu/rgdws/genes/species/Human/",
-          gene_symbol
-        )
-
-        human_response <- make_external_request(
-          url = human_search_url,
-          api_name = "rgd",
-          throttle_config = EXTERNAL_API_THROTTLE$rgd
-        )
-
-        # Handle errors from human query
-        if (isTRUE(human_response$error)) {
-          return(list(
-            error = TRUE,
-            source = "rgd",
-            message = paste("RGD human query failed:", human_response$message)
-          ))
-        }
-
-        # Handle not found
-        if (isTRUE(human_response$found == FALSE)) {
-          return(list(found = FALSE, source = "rgd"))
-        }
-
-        # Extract human RGD ID
-        human_gene <- if (is.list(human_response) && length(human_response) > 0) {
-          human_response[[1]]
-        } else {
-          human_response
-        }
-
-        human_rgd_id <- human_gene$rgdId %||%
-                        human_gene$RGD_ID %||%
-                        human_gene$id
-
-        if (is.null(human_rgd_id)) {
-          return(list(
-            found = FALSE,
-            source = "rgd",
-            message = "Could not extract human RGD ID from API response"
-          ))
-        }
-
-        # Query rat ortholog for the human gene
-        ortholog_url <- paste0(
-          "https://rest.rgd.mcw.edu/rgdws/orthologs/gene/",
-          human_rgd_id,
-          "/Rat"
-        )
-
-        ortholog_response <- make_external_request(
-          url = ortholog_url,
-          api_name = "rgd",
-          throttle_config = EXTERNAL_API_THROTTLE$rgd
-        )
-
-        # Handle errors from ortholog query
-        if (isTRUE(ortholog_response$error)) {
-          return(list(
-            error = TRUE,
-            source = "rgd",
-            message = paste("RGD ortholog query failed:", ortholog_response$message)
-          ))
-        }
-
-        # Handle not found (no rat ortholog)
-        if (isTRUE(ortholog_response$found == FALSE) ||
-            is.null(ortholog_response) ||
-            length(ortholog_response) == 0) {
-          return(list(found = FALSE, source = "rgd"))
-        }
-
-        # Extract rat ortholog info
-        rat_ortholog <- if (is.list(ortholog_response) && length(ortholog_response) > 0) {
-          ortholog_response[[1]]
-        } else {
-          ortholog_response
-        }
-
-        rat_rgd_id <- rat_ortholog$rgdId %||%
-                      rat_ortholog$RGD_ID %||%
-                      rat_ortholog$id
-        rat_symbol <- rat_ortholog$symbol %||%
-                      rat_ortholog$geneSymbol
-        rat_name <- rat_ortholog$name %||%
-                    rat_ortholog$geneName
-      }
-
-      # If still no rat RGD ID, return not found
-      if (is.null(rat_rgd_id)) {
-        return(list(
-          found = FALSE,
-          source = "rgd",
-          message = "Could not extract rat RGD ID from API response"
-        ))
-      }
-
-      # Step 2: Fetch phenotype annotations for the rat gene
-      phenotype_url <- paste0(
-        "https://rest.rgd.mcw.edu/rgdws/annotations/rgdId/",
-        rat_rgd_id,
-        "/phenotype"
-      )
-
-      phenotype_response <- make_external_request(
-        url = phenotype_url,
-        api_name = "rgd",
-        throttle_config = EXTERNAL_API_THROTTLE$rgd
-      )
-
-      # Extract phenotype data (optional - may not exist for all genes)
-      phenotype_count <- 0
-      phenotypes <- list()
-
-      if (!isTRUE(phenotype_response$error) &&
-          !isTRUE(phenotype_response$found == FALSE) &&
-          !is.null(phenotype_response)) {
-        phenotypes <- phenotype_response
-        phenotype_count <- length(phenotypes)
-      }
-
-      # Return structured response
+      # Return not found (recommend using rgd_id parameter)
       return(list(
+        found = FALSE,
         source = "rgd",
-        gene_symbol = gene_symbol,
-        rgd_id = rat_rgd_id,
-        rat_symbol = rat_symbol %||% gene_symbol,
-        rat_name = rat_name,
-        phenotype_count = phenotype_count,
-        phenotypes = phenotypes,
-        rgd_url = paste0("https://rgd.mcw.edu/rgdweb/report/gene/main.html?id=", rat_rgd_id)
+        message = paste(
+          "RGD gene lookup APIs are unreliable.",
+          "Please ensure rgd_id is provided from the internal gene database."
+        )
       ))
     },
     error = function(e) {
@@ -238,6 +208,27 @@ fetch_rgd_phenotypes <- function(gene_symbol) {
     }
   )
 }
+
+
+#' Memoised version of fetch_rgd_phenotypes_by_id with 14-day cache
+#'
+#' @description
+#' Cached wrapper around fetch_rgd_phenotypes_by_id using cache_stable
+#' (14-day TTL). RGD phenotype data changes moderately as new annotations
+#' are added.
+#'
+#' @param rgd_id RGD ID (e.g., "RGD:69364" or "69364")
+#' @param gene_symbol Optional gene symbol for response context
+#'
+#' @return Same as fetch_rgd_phenotypes_by_id
+#'
+#' @seealso fetch_rgd_phenotypes_by_id
+#'
+#' @export
+fetch_rgd_phenotypes_by_id_mem <- memoise::memoise(
+  fetch_rgd_phenotypes_by_id,
+  cache = cache_stable
+)
 
 
 #' Memoised version of fetch_rgd_phenotypes with 14-day cache
