@@ -19,13 +19,13 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 
 ## Current Position
 
-**Phase:** 47 - Migration System Foundation (Not Started)
-**Plan:** —
-**Status:** Ready to plan
-**Progress:** ░░░░░░░░░░ 0%
+**Phase:** 47 - Migration System Foundation (In Progress)
+**Plan:** 01 of 1 complete
+**Status:** Phase complete
+**Progress:** █░░░░░░░░░ 14% (1/7 phases)
 
-**Last completed:** v8.0 Gene Page & Genomic Data Integration (2026-01-29)
-**Next step:** `/gsd:plan-phase 47` to create execution plan
+**Last completed:** 47-01-PLAN.md (Migration Runner Infrastructure)
+**Next step:** `/gsd:plan-phase 48` to plan Migration Auto-Run & Health
 
 ---
 
@@ -33,7 +33,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 47 | Migration System Foundation | MIGR-01, MIGR-02, MIGR-03, MIGR-05 | Not Started |
+| 47 | Migration System Foundation | MIGR-01, MIGR-02, MIGR-03, MIGR-05 | Complete |
 | 48 | Migration Auto-Run & Health | MIGR-04, MIGR-06 | Not Started |
 | 49 | Backup API Layer | BKUP-01, BKUP-03, BKUP-05, BKUP-06 | Not Started |
 | 50 | Backup Admin UI | BKUP-02, BKUP-04 | Not Started |
@@ -74,7 +74,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 | **Backend Tests** | 634 passing | 20.3% coverage, 24 integration tests |
 | **Frontend Tests** | 144 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
 | **Vue Composables** | 28 | 7 original + 6 admin + 10 curation + 5 gene page |
-| **Migrations** | 3 files | In db/migrations/, no auto-runner yet |
+| **Migrations** | 3 files + runner | api/functions/migration-runner.R ready |
 | **Lintr Issues** | 0 | From 1,240 in v4 |
 | **ESLint Issues** | 0 | 240 errors fixed in v7 |
 | **Bundle Size** | ~600 KB gzipped | Vite 7.3.1, 164ms dev startup |
@@ -109,7 +109,7 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 
 - **No new R packages needed** - all features use existing stack
 - **Mailpit** replaces abandoned MailHog for local SMTP testing
-- **Migration 002** is not idempotent (needs IF NOT EXISTS guards)
+- **Migration 002** now idempotent (stored procedure pattern added in 47-01)
 - **Migration 003** uses correct stored procedure pattern (reference)
 - **Existing backup container** (fradelg/mysql-cron-backup) already runs
 - **pool package** needs explicit sizing for 4-worker setup
@@ -126,28 +126,28 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 ## Session Continuity
 
 **Last session:** 2026-01-29
-**Stopped at:** Roadmap created
-**Next action:** `/gsd:plan-phase 47` to plan Migration System Foundation
+**Stopped at:** Completed 47-01-PLAN.md
+**Next action:** `/gsd:plan-phase 48` to plan Migration Auto-Run & Health
 
 **Handoff notes:**
 
-1. **Roadmap complete:**
-   - 7 phases (47-53)
-   - 21 requirements mapped with 100% coverage
-   - Success criteria defined for all phases
-   - Dependencies documented
+1. **Phase 47 complete:**
+   - Migration runner created (api/functions/migration-runner.R)
+   - Migration 002 made idempotent
+   - All 3 existing migrations can be executed by runner
+   - schema_version table created on first run
 
-2. **Ready for planning:**
-   - Phase 47 is foundation with no dependencies
-   - Phases 49 and 51 can run in parallel after Phase 48
-   - Phase 53 is integration testing (requires all others)
+2. **Ready for Phase 48:**
+   - run_migrations() function ready for startup integration
+   - Integration point: api/start_sysndd_api.R (between pool creation and endpoint mounting)
+   - /health/ready endpoint needed for migration status
 
-3. **Research notes:**
-   - Research SUMMARY.md mentions credential remediation blocker
-   - Not included in provided requirements
-   - May need to address separately if blocking
+3. **Decisions made:**
+   - Stored procedure + INFORMATION_SCHEMA pattern for idempotent DDL
+   - DELIMITER-aware SQL splitting for stored procedure migrations
+   - Record only successful migrations in schema_version
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-29 — v9.0 roadmap created*
+*Last updated: 2026-01-29 — Phase 47 complete (migration runner infrastructure)*
