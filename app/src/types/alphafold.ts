@@ -118,36 +118,83 @@ export const PLDDT_LEGEND = [
 export type RepresentationType = 'cartoon' | 'surface' | 'ball+stick';
 
 /**
- * Parse residue number from HGVSP notation
+ * Check if a variant is mappable to 3D structure
+ *
+ * Only missense and inframe variants can be meaningfully highlighted on AlphaFold
+ * 3D structures. Frameshifts, stops, and splice variants are excluded because:
+ * - Frameshifts: Protein is truncated/altered downstream, no meaningful single position
+ * - Stop/nonsense: Protein terminates, no residue to highlight
+ * - Splice variants: No protein-level position available
+ *
+ * @param hgvsp - HGVS protein notation string
+ * @returns true if variant is missense or inframe (mappable to 3D)
+ *
+ * @example
+ * isStructureMappableVariant("p.Arg123Trp")  // → true (missense)
+ * isStructureMappableVariant("p.Gly789del")  // → true (inframe deletion)
+ * isStructureMappableVariant("p.Met100_Ala102dup")  // → true (inframe dup)
+ * isStructureMappableVariant("p.Gln456*")    // → false (stop)
+ * isStructureMappableVariant("p.Glu123fs")   // → false (frameshift)
+ * isStructureMappableVariant(null)           // → false
+ */
+export function isStructureMappableVariant(hgvsp: string | null): boolean {
+  if (!hgvsp) return false;
+
+  const lower = hgvsp.toLowerCase();
+
+  // Exclude frameshift variants (fs, frameshift)
+  if (lower.includes('fs') || lower.includes('frameshift')) return false;
+
+  // Exclude stop/nonsense variants (*, ter, stop)
+  if (hgvsp.includes('*') || lower.includes('ter') || lower.includes('stop')) return false;
+
+  // Exclude splice variants (no "p." prefix or contains splice-related terms)
+  if (!hgvsp.startsWith('p.') || lower.includes('splice')) return false;
+
+  // Exclude extension variants (ext)
+  if (lower.includes('ext')) return false;
+
+  // Accept missense (p.Arg123Trp) and inframe (p.Gly789del, p.Met100_Ala102dup)
+  // These have meaningful single residue positions on the 3D structure
+  return true;
+}
+
+/**
+ * Parse residue number from HGVSP notation for 3D structure mapping
  *
  * Extracts amino acid position from HGVS protein notation (p. format).
- * Handles common variant types:
+ * Only returns position for structure-mappable variants (missense, inframe).
+ *
+ * Handles:
  * - Missense: "p.Arg123Trp" → 123
- * - Nonsense: "p.Gln456*" → 456
- * - Deletion: "p.Gly789del" → 789
- * - Duplication: "p.Met100dup" → 100
+ * - Inframe deletion: "p.Gly789del" → 789
+ * - Inframe duplication: "p.Met100dup" → 100
  *
  * Returns null for:
  * - Null input
+ * - Frameshift variants (e.g., "p.Glu123fs")
+ * - Stop/nonsense variants (e.g., "p.Gln456*")
+ * - Splice variants
  * - Insertions (position ambiguous: "p.Arg123_Lys124insAla")
- * - Frameshifts without position (e.g., "p.Glu123fs")
  * - Unrecognized format
  *
  * @param hgvsp - HGVS protein notation string (e.g., "p.Arg123Trp")
- * @returns Residue number (1-indexed) or null if not extractable
+ * @returns Residue number (1-indexed) or null if not mappable to 3D structure
  *
  * @example
- * parseResidueNumber("p.Arg123Trp")  // → 123
- * parseResidueNumber("p.Gln456*")    // → 456
+ * parseResidueNumber("p.Arg123Trp")  // → 123 (missense)
+ * parseResidueNumber("p.Gly789del")  // → 789 (inframe deletion)
+ * parseResidueNumber("p.Gln456*")    // → null (stop - not mappable)
+ * parseResidueNumber("p.Glu123fs")   // → null (frameshift - not mappable)
  * parseResidueNumber(null)           // → null
- * parseResidueNumber("p.Arg123_Lys124insAla")  // → null (insertion)
  */
 export function parseResidueNumber(hgvsp: string | null): number | null {
-  if (!hgvsp) return null;
+  // First check if this variant type is mappable to 3D structure
+  if (!isStructureMappableVariant(hgvsp)) return null;
 
   // Match pattern: "p." + 3-letter AA code + digits
   // Captures the digits as group 1
-  const match = hgvsp.match(/p\.\w{3}(\d+)/);
+  const match = hgvsp!.match(/p\.\w{3}(\d+)/);
 
   return match ? parseInt(match[1], 10) : null;
 }
