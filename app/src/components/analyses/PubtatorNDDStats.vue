@@ -1,12 +1,7 @@
 <!-- src/components/analyses/PubtatorNDDStats.vue -->
 <template>
   <BContainer fluid>
-    <BCard
-      header-tag="header"
-      body-class="p-0"
-      header-class="p-1"
-      border-variant="dark"
-    >
+    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
           <h6 class="mb-1 text-start font-weight-bold">
@@ -17,24 +12,13 @@
             >
               (Bar Plots)
             </mark>
-            <BBadge
-              id="popover-badge-help-pubtator-stats"
-              pill
-              href="#"
-              variant="info"
-            >
+            <BBadge id="popover-badge-help-pubtator-stats" pill href="#" variant="info">
               <i class="bi bi-question-circle-fill" />
             </BBadge>
-            <BPopover
-              target="popover-badge-help-pubtator-stats"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                PubTator Statistics
-              </template>
-              This section displays statistics from PubTator gene-publication associations,
-              showing the distribution of publications per gene and other metrics.
+            <BPopover target="popover-badge-help-pubtator-stats" variant="info" triggers="focus">
+              <template #title> PubTator Statistics </template>
+              This section displays statistics from PubTator gene-publication associations, showing
+              the distribution of publications per gene and other metrics.
             </BPopover>
           </h6>
         </div>
@@ -42,15 +26,8 @@
 
       <!-- User Interface controls -->
       <BRow class="p-2">
-        <BCol
-          class="my-1"
-          sm="4"
-        >
-          <BInputGroup
-            prepend="Category"
-            class="mb-1"
-            size="sm"
-          >
+        <BCol class="my-1" sm="4">
+          <BInputGroup prepend="Category" class="mb-1" size="sm">
             <BFormSelect
               v-model="selectedCategory"
               :options="categoryOptions"
@@ -60,15 +37,8 @@
           </BInputGroup>
         </BCol>
 
-        <BCol
-          class="my-1"
-          sm="4"
-        >
-          <BInputGroup
-            prepend="Min Count"
-            class="mb-1"
-            size="sm"
-          >
+        <BCol class="my-1" sm="4">
+          <BInputGroup prepend="Min Count" class="mb-1" size="sm">
             <BFormInput
               v-model="minCount"
               type="number"
@@ -80,15 +50,8 @@
           </BInputGroup>
         </BCol>
 
-        <BCol
-          class="my-1"
-          sm="4"
-        >
-          <BInputGroup
-            prepend="Top N"
-            class="mb-1"
-            size="sm"
-          >
+        <BCol class="my-1" sm="4">
+          <BInputGroup prepend="Top N" class="mb-1" size="sm">
             <BFormInput
               v-model="topN"
               type="number"
@@ -104,16 +67,8 @@
 
       <!-- Content with overlay spinner -->
       <div class="position-relative">
-        <BSpinner
-          v-if="loading"
-          label="Loading..."
-          class="spinner"
-        />
-        <div
-          v-show="!loading"
-          id="pubtator_stats_dataviz"
-          class="svg-container"
-        />
+        <BSpinner v-if="loading" label="Loading..." class="spinner" />
+        <div v-show="!loading" id="pubtator_stats_dataviz" class="svg-container" />
       </div>
     </BCard>
   </BContainer>
@@ -234,7 +189,10 @@ export default {
 
       // set dimensions
       const margin = {
-        top: 30, right: 30, bottom: 150, left: 60,
+        top: 30,
+        right: 30,
+        bottom: 150,
+        left: 60,
       };
       const width = 760 - margin.left - margin.right;
       const height = 450 - margin.top - margin.bottom;
@@ -267,7 +225,10 @@ export default {
 
       // Y axis
       const maxY = d3.max(data, (d) => d.count);
-      const y = d3.scaleLinear().domain([0, maxY * 1.1]).range([height, 0]);
+      const y = d3
+        .scaleLinear()
+        .domain([0, maxY * 1.1])
+        .range([height, 0]);
       svg.append('g').call(d3.axisLeft(y));
 
       // Y axis label

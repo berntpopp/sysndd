@@ -18,7 +18,12 @@ const ROLES = {
    * - 'Reviewer': Users who review data for accuracy and completeness.
    * - 'Viewer': Users who have read-only access to the data.
    */
-  ALLOWED_ROLES: ['Administrator', 'Curator', 'Reviewer', 'Viewer'] as const satisfies readonly UserRole[],
+  ALLOWED_ROLES: [
+    'Administrator',
+    'Curator',
+    'Reviewer',
+    'Viewer',
+  ] as const satisfies readonly UserRole[],
 
   /**
    * Navigation permissions for each role

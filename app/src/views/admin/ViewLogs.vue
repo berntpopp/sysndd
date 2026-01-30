@@ -2,10 +2,7 @@
   <div class="container-fluid">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="12"
-        >
+        <BCol col md="12">
           <!-- Include TablesLogs Component Here -->
           <TablesLogs
             :sort-input="sort"
@@ -57,10 +54,11 @@ export default {
 </script>
 
 <style scoped>
-  .btn-group-xs > .btn, .btn-xs {
-    padding: .25rem .4rem;
-    font-size: .875rem;
-    line-height: .5;
-    border-radius: .2rem;
-  }
+.btn-group-xs > .btn,
+.btn-xs {
+  padding: 0.25rem 0.4rem;
+  font-size: 0.875rem;
+  line-height: 0.5;
+  border-radius: 0.2rem;
+}
 </style>

@@ -4,38 +4,20 @@
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol md="12">
-          <BCard
-            title="PubTator Analysis"
-            no-body
-          >
+          <BCard title="PubTator Analysis" no-body>
             <!-- Tabs in the Card Header -->
             <BCardHeader header-tag="nav">
-              <BNav
-                card-header
-                tabs
-              >
+              <BNav card-header tabs>
                 <!-- Example tabs: Table, Genes, Stats, etc. -->
-                <BNavItem
-                  :to="{ name: 'PubtatorNDDTable' }"
-                  exact
-                  exact-active-class="active"
-                >
+                <BNavItem :to="{ name: 'PubtatorNDDTable' }" exact exact-active-class="active">
                   Table
                 </BNavItem>
 
-                <BNavItem
-                  :to="{ name: 'PubtatorNDDGenes' }"
-                  exact
-                  exact-active-class="active"
-                >
+                <BNavItem :to="{ name: 'PubtatorNDDGenes' }" exact exact-active-class="active">
                   Genes
                 </BNavItem>
 
-                <BNavItem
-                  :to="{ name: 'PubtatorNDDStats' }"
-                  exact
-                  exact-active-class="active"
-                >
+                <BNavItem :to="{ name: 'PubtatorNDDStats' }" exact exact-active-class="active">
                   Stats
                 </BNavItem>
               </BNav>

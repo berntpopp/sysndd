@@ -5,17 +5,9 @@
     <AnalysisTabs />
 
     <!-- Loading state -->
-    <div
-      v-if="isLoading"
-      class="text-center py-5"
-    >
-      <BSpinner
-        variant="primary"
-        label="Loading..."
-      />
-      <p class="mt-2 text-muted">
-        Loading analysis view...
-      </p>
+    <div v-if="isLoading" class="text-center py-5">
+      <BSpinner variant="primary" label="Loading..." />
+      <p class="mt-2 text-muted">Loading analysis view...</p>
     </div>
 
     <!-- Active analysis component -->
@@ -29,13 +21,8 @@
       </template>
       <template #fallback>
         <div class="text-center py-5">
-          <BSpinner
-            variant="primary"
-            label="Loading..."
-          />
-          <p class="mt-2 text-muted">
-            Loading {{ currentTabLabel }}...
-          </p>
+          <BSpinner variant="primary" label="Loading..." />
+          <p class="mt-2 text-muted">Loading {{ currentTabLabel }}...</p>
         </div>
       </template>
     </Suspense>
@@ -85,15 +72,15 @@ const isLoading = ref(false);
  * Each component is loaded only when its tab is selected
  */
 const AnalysesPhenotypeClusters = defineAsyncComponent(
-  () => import('@/components/analyses/AnalysesPhenotypeClusters.vue'),
+  () => import('@/components/analyses/AnalysesPhenotypeClusters.vue')
 );
 
 const AnalyseGeneClusters = defineAsyncComponent(
-  () => import('@/components/analyses/AnalyseGeneClusters.vue'),
+  () => import('@/components/analyses/AnalyseGeneClusters.vue')
 );
 
 const AnalysesPhenotypeCorrelogram = defineAsyncComponent(
-  () => import('@/components/analyses/AnalysesPhenotypeCorrelogram.vue'),
+  () => import('@/components/analyses/AnalysesPhenotypeCorrelogram.vue')
 );
 
 /**
@@ -118,15 +105,13 @@ const tabLabels: Record<AnalysisTab, string> = {
  * Currently active component based on tab state
  */
 const currentComponent = computed<Component>(
-  () => componentMap[filterState.value.tab] || AnalysesPhenotypeClusters,
+  () => componentMap[filterState.value.tab] || AnalysesPhenotypeClusters
 );
 
 /**
  * Label for the current tab (used in loading messages)
  */
-const currentTabLabel = computed<string>(
-  () => tabLabels[filterState.value.tab] || 'Analysis',
-);
+const currentTabLabel = computed<string>(() => tabLabels[filterState.value.tab] || 'Analysis');
 
 /**
  * Handle cluster selection from child components
@@ -146,7 +131,7 @@ watch(
   () => {
     // Component will handle its own loading state via Suspense
     // This watcher is available for future enhancements
-  },
+  }
 );
 </script>
 

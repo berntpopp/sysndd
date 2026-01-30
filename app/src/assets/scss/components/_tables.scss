@@ -33,7 +33,7 @@
 
   // Fixed layout tables - ensure header text truncation
   &.b-table-fixed,
-  &[style*="table-layout: fixed"] {
+  &[style*='table-layout: fixed'] {
     thead th {
       overflow: hidden;
       text-overflow: ellipsis;
@@ -136,14 +136,14 @@
       }
 
       // Active sort column highlight (per CONTEXT: "Icon + highlight")
-      &:not([aria-sort="none"]) {
+      &:not([aria-sort='none']) {
         background-color: rgba(13, 71, 161, 0.08);
         font-weight: 600;
       }
 
       // Sort icon using CSS pseudo-element
       &::after {
-        content: "";
+        content: '';
         position: absolute;
         right: 0.5rem;
         top: 50%;
@@ -154,25 +154,25 @@
       }
 
       // Ascending sort icon (up arrow)
-      &[aria-sort="ascending"]::after {
+      &[aria-sort='ascending']::after {
         border-bottom: 0.35rem solid currentColor;
         opacity: 1;
       }
 
       // Descending sort icon (down arrow)
-      &[aria-sort="descending"]::after {
+      &[aria-sort='descending']::after {
         border-top: 0.35rem solid currentColor;
         opacity: 1;
       }
 
       // Neutral/none state - show both arrows stacked
-      &[aria-sort="none"]::after {
+      &[aria-sort='none']::after {
         border-bottom: 0.35rem solid currentColor;
         margin-top: -0.2rem;
       }
 
-      &[aria-sort="none"]::before {
-        content: "";
+      &[aria-sort='none']::before {
+        content: '';
         position: absolute;
         right: 0.5rem;
         top: 50%;

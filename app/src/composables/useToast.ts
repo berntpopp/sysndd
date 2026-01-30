@@ -38,9 +38,10 @@ export default function useToast(): ToastMethods {
     title: string | null = null,
     variant: ToastVariant | null = null,
     autoHide: boolean = true,
-    autoHideDelay: number = 3000,
+    autoHideDelay: number = 3000
   ): void => {
-    const body: string = typeof message === 'object' && message.message ? message.message : message as string;
+    const body: string =
+      typeof message === 'object' && message.message ? message.message : (message as string);
 
     // For error toasts (danger variant), disable auto-hide per medical app requirements
     // This ensures users don't miss important error messages

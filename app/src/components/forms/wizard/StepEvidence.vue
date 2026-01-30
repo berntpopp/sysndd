@@ -1,7 +1,8 @@
 <template>
   <div class="step-evidence">
     <p class="text-muted mb-4">
-      Add supporting evidence for this gene-disease relationship. Publications and synopsis are required.
+      Add supporting evidence for this gene-disease relationship. Publications and synopsis are
+      required.
     </p>
 
     <!-- Publications -->
@@ -37,13 +38,7 @@
               aria-describedby="publications-help"
               v-on="inputHandlers"
             />
-            <BButton
-              variant="outline-secondary"
-              size="sm"
-              @click="addTag()"
-            >
-              Add
-            </BButton>
+            <BButton variant="outline-secondary" size="sm" @click="addTag()"> Add </BButton>
           </BInputGroup>
 
           <div v-if="tags.length > 0" class="d-flex flex-wrap gap-2">
@@ -74,11 +69,7 @@
     </BFormGroup>
 
     <!-- GeneReviews (Optional) -->
-    <BFormGroup
-      label="GeneReviews"
-      label-for="genereviews-input"
-      class="mb-3"
-    >
+    <BFormGroup label="GeneReviews" label-for="genereviews-input" class="mb-3">
       <template #label>
         <span class="fw-bold">GeneReviews</span>
         <span class="text-muted fw-normal ms-1">(optional)</span>
@@ -104,13 +95,7 @@
               aria-describedby="genereviews-help"
               v-on="inputHandlers"
             />
-            <BButton
-              variant="outline-secondary"
-              size="sm"
-              @click="addTag()"
-            >
-              Add
-            </BButton>
+            <BButton variant="outline-secondary" size="sm" @click="addTag()"> Add </BButton>
           </BInputGroup>
 
           <div v-if="tags.length > 0" class="d-flex flex-wrap gap-2">
@@ -169,8 +154,11 @@
           id="synopsis-counter"
           :class="[
             'text-end',
-            synopsisCharsRemaining < 0 ? 'text-danger' :
-            synopsisCharsRemaining < 100 ? 'text-warning' : 'text-muted'
+            synopsisCharsRemaining < 0
+              ? 'text-danger'
+              : synopsisCharsRemaining < 100
+                ? 'text-warning'
+                : 'text-muted',
           ]"
         >
           {{ synopsisCharCount }}/2000 characters

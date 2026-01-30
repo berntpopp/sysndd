@@ -201,8 +201,8 @@ function(req, res, re_review = FALSE) {
   review_data <- req$argsBody$review_json
 
   if (!is.null(review_data$synopsis) &&
-        !is.null(review_data$entity_id) &&
-        nchar(review_data$synopsis) > 0) {
+    !is.null(review_data$entity_id) &&
+    nchar(review_data$synopsis) > 0) {
     # Publications
     if (length(compact(review_data$literature)) > 0) {
       publications_received <- bind_rows(

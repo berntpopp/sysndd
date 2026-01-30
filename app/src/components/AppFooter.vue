@@ -1,19 +1,9 @@
-/**
- * components/AppFooter.vue
- *
- * @description The footer component of the application.
- * Includes partner logos and a disclaimer status indicator.
- */
+/** * components/AppFooter.vue * * @description The footer component of the application. * Includes
+partner logos and a disclaimer status indicator. */
 <template>
   <!-- The footer component -->
   <div class="footer">
-    <BNavbar
-      toggleable="sm"
-      type="light"
-      variant="light"
-      fixed="bottom"
-      class="py-0 bg-footer"
-    >
+    <BNavbar toggleable="sm" type="light" variant="light" fixed="bottom" class="py-0 bg-footer">
       <!-- Disclaimer indicator (left side) -->
       <div class="disclaimer-indicator d-flex align-items-center ms-2">
         <button
@@ -36,21 +26,11 @@
       <!-- The navbar toggle button for smaller screen sizes -->
       <BNavbarToggle target="footer-collapse" />
       <!-- The collapsible part of the navbar -->
-      <BCollapse
-        id="footer-collapse"
-        is-nav
-      >
+      <BCollapse id="footer-collapse" is-nav>
         <!-- The navbar items, distributed evenly across the navbar -->
-        <BNavbarNav
-          justified
-          class="flex-grow-1"
-        >
+        <BNavbarNav justified class="flex-grow-1">
           <!-- A component for each item in the footer -->
-          <FooterNavItem
-            v-for="(item, index) in footerItems"
-            :key="index.id"
-            :item="item"
-          />
+          <FooterNavItem v-for="(item, index) in footerItems" :key="index.id" :item="item" />
         </BNavbarNav>
       </BCollapse>
     </BNavbar>

@@ -12,16 +12,9 @@
       class="text-center"
       @click="handleItemClick(item)"
     >
-      <i
-        v-for="(icon, iconIndex) in item.icons"
-        :key="iconIndex"
-        :class="'bi bi-' + icon"
-      />
+      <i v-for="(icon, iconIndex) in item.icons" :key="iconIndex" :class="'bi bi-' + icon" />
       {{ item.text }}
-      <component
-        :is="item.component"
-        v-if="item.component"
-      />
+      <component :is="item.component" v-if="item.component" />
     </BDropdownItem>
   </BNavItemDropdown>
 </template>

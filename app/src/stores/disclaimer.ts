@@ -31,7 +31,7 @@ function persistState(acknowledged: boolean, timestamp: string | null): void {
   try {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ isAcknowledged: acknowledged, acknowledgmentTimestamp: timestamp }),
+      JSON.stringify({ isAcknowledged: acknowledged, acknowledgmentTimestamp: timestamp })
     );
   } catch {
     // Storage full or unavailable — fail silently

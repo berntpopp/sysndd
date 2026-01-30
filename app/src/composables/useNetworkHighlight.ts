@@ -100,9 +100,7 @@ const CSS_CLASSES = {
  * @param cyGetter - Function returning the Cytoscape instance (from useCytoscape)
  * @returns Highlight state and control functions
  */
-export function useNetworkHighlight(
-  cyGetter: () => Core | null
-): NetworkHighlightReturn {
+export function useNetworkHighlight(cyGetter: () => Core | null): NetworkHighlightReturn {
   /**
    * Reactive highlight state
    * Tracks which element is hovered and who initiated
@@ -126,12 +124,14 @@ export function useNetworkHighlight(
     const cy = cyGetter();
     if (!cy) return;
 
-    cy.elements().removeClass([
-      CSS_CLASSES.HOVER_HIGHLIGHT,
-      CSS_CLASSES.NEIGHBOR_HIGHLIGHT,
-      CSS_CLASSES.TABLE_HOVER_HIGHLIGHT,
-      CSS_CLASSES.DIMMED,
-    ].join(' '));
+    cy.elements().removeClass(
+      [
+        CSS_CLASSES.HOVER_HIGHLIGHT,
+        CSS_CLASSES.NEIGHBOR_HIGHLIGHT,
+        CSS_CLASSES.TABLE_HOVER_HIGHLIGHT,
+        CSS_CLASSES.DIMMED,
+      ].join(' ')
+    );
   };
 
   /**
@@ -179,7 +179,8 @@ export function useNetworkHighlight(
       // Dim other elements for focus
       const currentCy = cyGetter();
       if (currentCy) {
-        currentCy.elements()
+        currentCy
+          .elements()
           .not(node)
           .not(node.neighborhood())
           .not(node.connectedEdges())
@@ -276,8 +277,7 @@ export function useNetworkHighlight(
     // Only highlight from network-initiated hovers
     // (Table-initiated don't need additional row styling)
     return (
-      highlightState.value.hoverSource === 'network' &&
-      highlightState.value.hoveredNodeId === rowId
+      highlightState.value.hoverSource === 'network' && highlightState.value.hoveredNodeId === rowId
     );
   };
 

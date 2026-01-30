@@ -12,16 +12,10 @@
   - Proper containment without overflow
 -->
 <template>
-  <BCard
-    class="shadow-sm border-0 mb-3"
-    body-class="p-0"
-    header-class="py-2 px-3"
-  >
+  <BCard class="shadow-sm border-0 mb-3" body-class="p-0" header-class="py-2 px-3">
     <template #header>
       <div class="d-flex justify-content-between align-items-center">
-        <h6 class="mb-0 fw-bold">
-          <i class="bi bi-graph-up" /> Genomic Visualizations
-        </h6>
+        <h6 class="mb-0 fw-bold"><i class="bi bi-graph-up" /> Genomic Visualizations</h6>
         <span v-if="summaryText" class="text-muted small">
           {{ summaryText }}
         </span>
@@ -220,8 +214,8 @@ const geneStructureFetched = ref(false); // Track if we've fetched gene structur
 /**
  * Computed: Is any data loading?
  */
-const isLoading = computed(() =>
-  props.clinvarLoading && props.uniprotLoading && geneStructureLoading.value
+const isLoading = computed(
+  () => props.clinvarLoading && props.uniprotLoading && geneStructureLoading.value
 );
 
 /**
@@ -323,9 +317,8 @@ const proteinPlotData = computed<ProteinPlotData | null>(() => {
 
   // Calculate protein length
   const uniprotLength = hasUniprot ? Number(props.uniprotData?.protein_length) : 0;
-  const maxVariantPosition = variants.length > 0
-    ? Math.max(...variants.map((v) => v.proteinPosition))
-    : 0;
+  const maxVariantPosition =
+    variants.length > 0 ? Math.max(...variants.map((v) => v.proteinPosition)) : 0;
   const proteinLength = Math.max(uniprotLength, maxVariantPosition);
   const proteinName = hasUniprot ? props.uniprotData?.protein_name || '' : '';
   const accession = hasUniprot ? props.uniprotData?.accession || '' : '';
@@ -438,7 +431,10 @@ const genomicVariants = computed<GenomicVariant[]>(() => {
   }
 
   // Calculate total exon length
-  const totalExonLength = exonMap.reduce((sum, e) => sum + (e.cumulativeEnd - e.cumulativeStart), 0);
+  const totalExonLength = exonMap.reduce(
+    (sum, e) => sum + (e.cumulativeEnd - e.cumulativeStart),
+    0
+  );
 
   return props.clinvarVariants
     .map((v) => {
@@ -446,7 +442,12 @@ const genomicVariants = computed<GenomicVariant[]>(() => {
       if (!parsed) return null;
 
       // Map protein position to genomic coordinate using exon-aware mapping
-      const genomicPosition = proteinToGenomic(parsed.position, exonMap, isReverse, totalExonLength);
+      const genomicPosition = proteinToGenomic(
+        parsed.position,
+        exonMap,
+        isReverse,
+        totalExonLength
+      );
       if (genomicPosition === null) return null;
 
       return {
@@ -543,18 +544,21 @@ onMounted(() => {
 });
 
 // Watch for gene symbol changes - reset fetch state
-watch(() => props.geneSymbol, () => {
-  // Reset fetch state when gene changes
-  geneStructureFetched.value = false;
-  geneStructureData.value = null;
-  ensemblRawData.value = null;
+watch(
+  () => props.geneSymbol,
+  () => {
+    // Reset fetch state when gene changes
+    geneStructureFetched.value = false;
+    geneStructureData.value = null;
+    ensemblRawData.value = null;
 
-  // If gene structure tab was already visited for previous gene,
-  // and we're still on it, refetch for new gene
-  if (activeTabIndex.value === 1 && props.geneSymbol) {
-    fetchGeneStructureData();
+    // If gene structure tab was already visited for previous gene,
+    // and we're still on it, refetch for new gene
+    if (activeTabIndex.value === 1 && props.geneSymbol) {
+      fetchGeneStructureData();
+    }
   }
-});
+);
 </script>
 
 <style scoped>
@@ -624,7 +628,7 @@ watch(() => props.geneSymbol, () => {
 
 /* Visualization panel for 3D structure - full height, no padding */
 .visualization-panel-3d {
-  height: 500px;  /* Fixed height per Phase 45 spec */
+  height: 500px; /* Fixed height per Phase 45 spec */
   overflow: hidden;
   padding: 0;
 }

@@ -40,8 +40,7 @@ export default {
       meta: [
         {
           name: 'description',
-          content:
-            'The Genes table view allows browsing NDD associations by gene.',
+          content: 'The Genes table view allows browsing NDD associations by gene.',
         },
       ],
     });
@@ -50,5 +49,4 @@ export default {
 };
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

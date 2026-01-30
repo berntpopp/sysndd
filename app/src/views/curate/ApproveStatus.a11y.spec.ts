@@ -103,7 +103,8 @@ describe('ApproveStatus accessibility', () => {
           BTable: {
             name: 'BTable',
             props: ['items', 'fields'],
-            template: '<table role="table"><tbody><tr v-for="item in items" :key="item.status_id"><td>Status</td></tr></tbody></table>',
+            template:
+              '<table role="table"><tbody><tr v-for="item in items" :key="item.status_id"><td>Status</td></tr></tbody></table>',
           },
           BPagination: {
             name: 'BPagination',
@@ -112,12 +113,14 @@ describe('ApproveStatus accessibility', () => {
           BFormInput: {
             name: 'BFormInput',
             props: ['modelValue', 'id', 'type', 'placeholder'],
-            template: '<input :id="id" :type="type" :placeholder="placeholder" :value="modelValue" />',
+            template:
+              '<input :id="id" :type="type" :placeholder="placeholder" :value="modelValue" />',
           },
           BFormSelect: {
             name: 'BFormSelect',
             props: ['modelValue', 'options', 'id', 'ariaLabel'],
-            template: '<select :id="id" :aria-label="ariaLabel || \'Select option\'"><option v-for="opt in options" :key="opt.value" :value="opt.value">{{ opt.text }}</option></select>',
+            template:
+              '<select :id="id" :aria-label="ariaLabel || \'Select option\'"><option v-for="opt in options" :key="opt.value" :value="opt.value">{{ opt.text }}</option></select>',
           },
           BFormTextarea: {
             name: 'BFormTextarea',
@@ -129,7 +132,10 @@ describe('ApproveStatus accessibility', () => {
             props: ['modelValue', 'id'],
             template: '<input type="checkbox" :id="id" :checked="modelValue" />',
           },
-          BSpinner: { template: '<div role="status" aria-label="Loading..."><span class="visually-hidden">Loading...</span></div>' },
+          BSpinner: {
+            template:
+              '<div role="status" aria-label="Loading..."><span class="visually-hidden">Loading...</span></div>',
+          },
           BBadge: { template: '<span><slot /></span>' },
           BPopover: { template: '' },
           BCard: { template: '<div><slot name="header" /><slot /></div>' },

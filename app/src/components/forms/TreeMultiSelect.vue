@@ -41,12 +41,8 @@
       <!-- Scrollable tree area -->
       <div class="tree-scroll-area">
         <div v-if="filteredOptions.length === 0" class="text-muted text-center py-3">
-          <template v-if="searchQuery">
-            No items match "{{ searchQuery }}"
-          </template>
-          <template v-else>
-            No options available
-          </template>
+          <template v-if="searchQuery"> No items match "{{ searchQuery }}" </template>
+          <template v-else> No options available </template>
         </div>
         <TreeNode
           v-for="node in filteredOptions"
@@ -71,13 +67,7 @@
           <i class="bi bi-x-circle me-1" />
           Clear All
         </BButton>
-        <BButton
-          variant="primary"
-          size="sm"
-          @click="dropdownOpen = false"
-        >
-          Done
-        </BButton>
+        <BButton variant="primary" size="sm" @click="dropdownOpen = false"> Done </BButton>
       </div>
     </BDropdown>
 
@@ -183,9 +173,7 @@ function getFullPath(id: string): string {
 
 function toggleSelection(id: string) {
   const current = props.modelValue || [];
-  const updated = current.includes(id)
-    ? current.filter((v) => v !== id)
-    : [...current, id];
+  const updated = current.includes(id) ? current.filter((v) => v !== id) : [...current, id];
   emit('update:modelValue', updated);
 }
 

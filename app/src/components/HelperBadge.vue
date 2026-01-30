@@ -1,25 +1,14 @@
-/**
- * components/HelperBadge.vue
- *
- * @description The HelperBadge component displays a dropdown menu with various options for user assistance and feedback.
- * @component HelperBadge
- *
- * @example
- * <HelperBadge />
- *
- * @slot button-content - The content of the button that triggers the dropdown menu.
- *
- * @prop {String} variant - The variant of the dropdown button. Default is "primary".
- * @prop {String} toggle-class - The class to be applied to the dropdown button. Default is "rounded-circle px-2".
- * @prop {Boolean} no-caret - Whether to hide the caret icon. Default is false.
- * @prop {Boolean} dropup - Whether to show the dropdown menu above the button. Default is true.
- * @prop {String} title - The title of the dropdown button.
- *
- * @event click - Emitted when a dropdown item is clicked.
- *
- * @method copyURLCitation - Copies the URL citation to the clipboard.
- * @method createInternetArchiveSnapshot - Creates a snapshot of the URL using the Internet Archive API.
- */
+/** * components/HelperBadge.vue * * @description The HelperBadge component displays a dropdown menu
+with various options for user assistance and feedback. * @component HelperBadge * * @example *
+<HelperBadge />
+* * @slot button-content - The content of the button that triggers the dropdown menu. * * @prop
+{String} variant - The variant of the dropdown button. Default is "primary". * @prop {String}
+toggle-class - The class to be applied to the dropdown button. Default is "rounded-circle px-2". *
+@prop {Boolean} no-caret - Whether to hide the caret icon. Default is false. * @prop {Boolean}
+dropup - Whether to show the dropdown menu above the button. Default is true. * @prop {String} title
+- The title of the dropdown button. * * @event click - Emitted when a dropdown item is clicked. * *
+@method copyURLCitation - Copies the URL citation to the clipboard. * @method
+createInternetArchiveSnapshot - Creates a snapshot of the URL using the Internet Archive API. */
 <template>
   <BContainer fluid>
     <!-- https://stackoverflow.com/questions/64487119/how-to-style-the-button-in-bootstrap-vue-dropdown-like-a-circle
@@ -39,11 +28,7 @@
         <span class="visually-hidden">Feedback and help</span>
       </template>
 
-      <BDropdownItem
-        v-b-tooltip.hover.left
-        title="Cite this page."
-        @click="copyURLCitation(path)"
-      >
+      <BDropdownItem v-b-tooltip.hover.left title="Cite this page." @click="copyURLCitation(path)">
         <i class="bi bi-chat-left-quote-fill" aria-hidden="true" /> Cite
       </BDropdownItem>
 
@@ -52,7 +37,7 @@
         title="Fill out our form and tell us why you like this entry."
         :href="
           'https://docs.google.com/forms/d/e/1FAIpQLSdhfXPurTlJxIpocAasi7av-OoN-49QPt3gQac2HQhV49BXxA/viewform?usp=pp_url&entry.2050768323=' +
-            path
+          path
         "
         target="_blank"
       >
@@ -64,7 +49,7 @@
         title="Fill out our form and tell us how to improve this entry."
         :href="
           'https://docs.google.com/forms/d/e/1FAIpQLSduPUP28WiFmhGTeWPPJoc18leskmdEReGB_Lv68sjY5n9w5g/viewform?usp=pp_url&entry.2050768323=' +
-            path
+          path
         "
         target="_blank"
       >
@@ -144,7 +129,11 @@ export default {
         // copy to clipboard
         // TODO: update with job_id success info when in API response
         await navigator.clipboard.writeText(citation);
-        this.makeToast(`Thank you! Internet archive job_id: ${snapshotResponse.job_id}`, 'Citation copied', 'success');
+        this.makeToast(
+          `Thank you! Internet archive job_id: ${snapshotResponse.job_id}`,
+          'Citation copied',
+          'success'
+        );
       } catch (e) {
         this.makeToast(e, 'Cannot copy', 'danger');
       }

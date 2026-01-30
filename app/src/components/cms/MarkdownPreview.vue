@@ -8,11 +8,7 @@
       <BSpinner small class="me-2" />
       Rendering...
     </div>
-    <div
-      v-else-if="renderedHtml"
-      v-dompurify-html="renderedHtml"
-      class="markdown-content"
-    />
+    <div v-else-if="renderedHtml" v-dompurify-html="renderedHtml" class="markdown-content" />
     <div v-else class="text-muted fst-italic py-4 text-center">
       Preview will appear here as you type...
     </div>
@@ -23,22 +19,29 @@
 import { ref, watch, onMounted } from 'vue';
 import { useMarkdownRenderer } from '@/composables';
 
-const props = withDefaults(defineProps<{
-  content: string;
-  minHeight?: string;
-  maxHeight?: string;
-}>(), {
-  minHeight: '300px',
-  maxHeight: '500px',
-});
+const props = withDefaults(
+  defineProps<{
+    content: string;
+    minHeight?: string;
+    maxHeight?: string;
+  }>(),
+  {
+    minHeight: '300px',
+    maxHeight: '500px',
+  }
+);
 
 const previewRef = ref<HTMLElement | null>(null);
 const { rawMarkdown, renderedHtml, isRendering, renderImmediate } = useMarkdownRenderer();
 
 // Sync content with renderer
-watch(() => props.content, (newVal) => {
-  rawMarkdown.value = newVal;
-}, { immediate: true });
+watch(
+  () => props.content,
+  (newVal) => {
+    rawMarkdown.value = newVal;
+  },
+  { immediate: true }
+);
 
 // Initial render without debounce
 onMounted(() => {

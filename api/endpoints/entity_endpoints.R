@@ -392,8 +392,8 @@ function(req, res, direct_approval = FALSE) {
   }
 
   if (response_entity$status == 200 &&
-        response_review_post$status == 200 &&
-        response_status_post$status == 200) {
+    response_review_post$status == 200 &&
+    response_status_post$status == 200) {
     res$status <- response_entity$status
     return(response_entity)
   } else {

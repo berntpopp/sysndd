@@ -6,11 +6,7 @@
 <template>
   <div>
     <!-- Page Size Selector -->
-    <BInputGroup
-      prepend="Per page"
-      class="mb-1"
-      size="sm"
-    >
+    <BInputGroup prepend="Per page" class="mb-1" size="sm">
       <BFormSelect
         id="per-page-select"
         :model-value="localPerPage"
@@ -73,11 +69,14 @@ const localCurrentPage = ref(props.currentPage);
 const localPerPage = ref(props.initialPerPage);
 
 // Watch for parent's currentPage changes and sync local state
-watch(() => props.currentPage, (newPage) => {
-  if (newPage !== localCurrentPage.value) {
-    localCurrentPage.value = newPage;
+watch(
+  () => props.currentPage,
+  (newPage) => {
+    if (newPage !== localCurrentPage.value) {
+      localCurrentPage.value = newPage;
+    }
   }
-});
+);
 
 /**
  * Handle page update from BPagination

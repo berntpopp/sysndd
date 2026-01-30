@@ -5,14 +5,9 @@
         <BCol md="12">
           <BRow class="justify-content-md-center">
             <BCol md="8">
-              <BContainer
-                fluid="lg"
-                class="py-3"
-              >
+              <BContainer fluid="lg" class="py-3">
                 <!-- This is the welcome message that users see when they visit the website. -->
-                <h3 class="text-center font-weight-bold">
-                  Welcome to SysNDD,
-                </h3>
+                <h3 class="text-center font-weight-bold">Welcome to SysNDD,</h3>
 
                 <h4 class="text-center">
                   the expert curated database of gene disease relationships in
@@ -39,10 +34,7 @@
                 <template #header>
                   <h5 class="mb-0 font-weight-bold">
                     Current database statistics, last update:
-                    <transition
-                      name="fade"
-                      mode="out-in"
-                    >
+                    <transition name="fade" mode="out-in">
                       <span :key="last_update">
                         {{ last_update }}
                       </span>
@@ -73,13 +65,7 @@
                     </template>
 
                     <template #cell(n)="data">
-                      <BLink
-                        :href="
-                          '/Entities?filter=any(category,' +
-                            data.item.category +
-                            ')'
-                        "
-                      >
+                      <BLink :href="'/Entities?filter=any(category,' + data.item.category + ')'">
                         <div style="cursor: pointer">
                           {{ data.item.n }}
                         </div>
@@ -87,12 +73,8 @@
                     </template>
 
                     <template #cell(actions)="row">
-                      <BButton
-                        class="btn-xs"
-                        variant="outline-primary"
-                        @click="row.toggleDetails"
-                      >
-                        {{ row.detailsShowing ? "hide" : "show" }}
+                      <BButton class="btn-xs" variant="outline-primary" @click="row.toggleDetails">
+                        {{ row.detailsShowing ? 'hide' : 'show' }}
                       </BButton>
                     </template>
 
@@ -117,11 +99,7 @@
                                 class="justify-content-md-center px-1 mx-1"
                                 size="1.3em"
                               >
-                                {{
-                                  inheritance_overview_text[
-                                    data.item.inheritance
-                                  ]
-                                }}
+                                {{ inheritance_overview_text[data.item.inheritance] }}
                               </BBadge>
                               {{ data.item.inheritance }}
                             </div>
@@ -131,10 +109,10 @@
                             <BLink
                               :href="
                                 '/Entities?filter=any(category,' +
-                                  data.item.category +
-                                  '),any(hpo_mode_of_inheritance_term_name,' +
-                                  inheritance_link[data.item.inheritance].join(',') +
-                                  ')'
+                                data.item.category +
+                                '),any(hpo_mode_of_inheritance_term_name,' +
+                                inheritance_link[data.item.inheritance].join(',') +
+                                ')'
                               "
                             >
                               <div style="cursor: pointer">
@@ -149,13 +127,11 @@
                 </BCardText>
                 <!-- first statistics table for entities -->
 
-                <hr class="dashed">
+                <hr class="dashed" />
 
                 <!-- second statistics table for genes -->
                 <!-- This table displays statistics about the genes in the database. -->
-                <h5 class="mb-0 font-weight-bold mx-2">
-                  <mark>Genes</mark> (links to Panels)
-                </h5>
+                <h5 class="mb-0 font-weight-bold mx-2"><mark>Genes</mark> (links to Panels)</h5>
                 <BCardText class="text-start">
                   <!-- Each row in the table is generated from the data in `gene_statistics.data`. -->
                   <BTable
@@ -174,14 +150,7 @@
                     </template>
 
                     <template #cell(n)="data">
-                      <BLink
-                        :href="
-                          '/Panels/' +
-                            data.item.category +
-                            '/' +
-                            data.item.inheritance
-                        "
-                      >
+                      <BLink :href="'/Panels/' + data.item.category + '/' + data.item.inheritance">
                         <div style="cursor: pointer">
                           {{ data.item.n }}
                         </div>
@@ -189,12 +158,8 @@
                     </template>
 
                     <template #cell(actions)="row">
-                      <BButton
-                        class="btn-xs"
-                        variant="outline-primary"
-                        @click="row.toggleDetails"
-                      >
-                        {{ row.detailsShowing ? "hide" : "show" }}
+                      <BButton class="btn-xs" variant="outline-primary" @click="row.toggleDetails">
+                        {{ row.detailsShowing ? 'hide' : 'show' }}
                       </BButton>
                     </template>
 
@@ -219,11 +184,7 @@
                                 class="justify-content-md-center px-1 mx-1"
                                 size="1.3em"
                               >
-                                {{
-                                  inheritance_overview_text[
-                                    data.item.inheritance
-                                  ]
-                                }}
+                                {{ inheritance_overview_text[data.item.inheritance] }}
                               </BBadge>
                               {{ data.item.inheritance }}
                             </div>
@@ -231,12 +192,7 @@
 
                           <template #cell(n)="data">
                             <BLink
-                              :href="
-                                '/Panels/' +
-                                  data.item.category +
-                                  '/' +
-                                  data.item.inheritance
-                              "
+                              :href="'/Panels/' + data.item.category + '/' + data.item.inheritance"
                             >
                               <div style="cursor: pointer">
                                 {{ data.item.n }}
@@ -260,14 +216,9 @@
               >
                 <template #header>
                   <!-- This section displays new entities added to the database. -->
-                  <h5 class="mb-0 font-weight-bold">
-                    New entities
-                  </h5>
+                  <h5 class="mb-0 font-weight-bold">New entities</h5>
                 </template>
-                <transition
-                  name="fade"
-                  mode="out-in"
-                >
+                <transition name="fade" mode="out-in">
                   <BCardText class="text-start">
                     <BTable
                       :items="news"
@@ -284,7 +235,7 @@
                           v-for="field in scope.fields"
                           :key="field.key"
                           :style="{ width: field.width }"
-                        >
+                        />
                       </template>
 
                       <template #cell(entity_id)="data">
@@ -325,13 +276,24 @@
 
                       <template #cell(category)="data">
                         <div v-b-tooltip.hover.left :title="data.item.category">
-                          <CategoryIcon :category="data.item.category" size="sm" :show-title="false" />
+                          <CategoryIcon
+                            :category="data.item.category"
+                            size="sm"
+                            :show-title="false"
+                          />
                         </div>
                       </template>
 
                       <template #cell(ndd_phenotype_word)="data">
-                        <div v-b-tooltip.hover.left :title="ndd_icon_text[data.item.ndd_phenotype_word]">
-                          <NddIcon :status="data.item.ndd_phenotype_word" size="sm" :show-title="false" />
+                        <div
+                          v-b-tooltip.hover.left
+                          :title="ndd_icon_text[data.item.ndd_phenotype_word]"
+                        >
+                          <NddIcon
+                            :status="data.item.ndd_phenotype_word"
+                            size="sm"
+                            :show-title="false"
+                          />
                         </div>
                       </template>
                     </BTable>
@@ -342,42 +304,45 @@
 
             <BCol md="6">
               <div class="container-fluid text-start py-2 my-3">
-                <span
-                  class="word"
-                >NDD comprise <mark>developmental delay</mark> (DD),
+                <span class="word"
+                  >NDD comprise <mark>developmental delay</mark> (DD),
                   <mark>intellectual disability</mark> (ID) and
-                  <mark>autism spectrum disorder</mark> (ASD). </span><br><br>
+                  <mark>autism spectrum disorder</mark> (ASD). </span
+                ><br /><br />
 
-                <span
-                  class="word"
-                >This clinically and genetically extremely
-                  <mark>heterogeneous</mark> disease group affects
-                  <mark>about 2% of newborns</mark>. </span><br><br>
+                <span class="word"
+                  >This clinically and genetically extremely <mark>heterogeneous</mark> disease
+                  group affects <mark>about 2% of newborns</mark>. </span
+                ><br /><br />
 
-                <span
-                  class="word"
-                >SysNDD aims to empower clinical diagnostics, counseling and
-                  research for NDDs through <mark>expert curation</mark>. </span><br><br>
+                <span class="word"
+                  >SysNDD aims to empower clinical diagnostics, counseling and research for NDDs
+                  through <mark>expert curation</mark>. </span
+                ><br /><br />
 
-                <span
-                  class="word"
-                >We define “gene-inheritance-disease” units as
-                  “<mark>entities</mark>”, </span><br>
-                <span class="word">which are color coded throughout the website:
+                <span class="word"
+                  >We define “gene-inheritance-disease” units as “<mark>entities</mark>”, </span
+                ><br />
+                <span class="word"
+                  >which are color coded throughout the website:
                   <span class="entity-concept__container">
                     <span class="entity-concept__label">Entity:</span>
                     <GeneBadge symbol="Gene" :show-title="false" size="sm" />
-                    <InheritanceBadge full-name="Inheritance" :show-title="false" :use-abbreviation="false" size="sm" />
+                    <InheritanceBadge
+                      full-name="Inheritance"
+                      :show-title="false"
+                      :use-abbreviation="false"
+                      size="sm"
+                    />
                     <DiseaseBadge name="Disease" :show-title="false" :max-length="0" size="sm" />
-                  </span>
-                </span><br><br>
+                  </span> </span
+                ><br /><br />
 
-                <span
-                  class="word"
-                >The clinical entities are divided into different
-                  “<mark>Categories</mark>”, based on the strength of their
-                  association with NDD phenotypes. They are represented using
-                  these differently colored stoplight symbols: </span><br>
+                <span class="word"
+                  >The clinical entities are divided into different “<mark>Categories</mark>”, based
+                  on the strength of their association with NDD phenotypes. They are represented
+                  using these differently colored stoplight symbols: </span
+                ><br />
                 <span class="word d-flex align-items-center flex-wrap gap-1">
                   Definitive:
                   <CategoryIcon category="Definitive" />
@@ -386,37 +351,33 @@
                   , Limited:
                   <CategoryIcon category="Limited" />
                   , Refuted:
-                  <CategoryIcon category="Refuted" />
-                </span><br>
-                <span
-                  class="word"
-                >The classification criteria used for the categories are
-                  detailed in our
+                  <CategoryIcon category="Refuted" /> </span
+                ><br />
+                <span class="word"
+                  >The classification criteria used for the categories are detailed in our
                   <BLink
                     href="https://berntpopp.github.io/sysndd/curation-criteria.html"
                     target="_blank"
                   >
                     Documentation
                   </BLink>
-                  on GitHub.<br>
-                  In the <mark>Panel</mark> views, which are aggregated by gene,
-                  we assign the highest category of associated entities to the
-                  gene. </span><br><br>
+                  on GitHub.<br />
+                  In the <mark>Panel</mark> views, which are aggregated by gene, we assign the
+                  highest category of associated entities to the gene. </span
+                ><br /><br />
 
-                <span
-                  class="word"
-                >The SysNDD tool allows browsing and download of tabular views
-                  for curated NDD entity components in the
-                  <mark>Tables</mark> section. It offers multiple
-                  <mark>Analyses</mark> sections for genes, phenotypes and
-                  comparisons with other curation efforts. </span><br>
+                <span class="word"
+                  >The SysNDD tool allows browsing and download of tabular views for curated NDD
+                  entity components in the <mark>Tables</mark> section. It offers multiple
+                  <mark>Analyses</mark> sections for genes, phenotypes and comparisons with other
+                  curation efforts. </span
+                ><br />
               </div>
             </BCol>
           </BRow>
         </BCol>
       </BRow>
     </BContainer>
-
   </div>
 </template>
 
@@ -579,7 +540,7 @@ export default {
       },
       // fetch the data when the view is created and the data is
       // already being observed
-      { immediate: true },
+      { immediate: true }
     );
   },
   methods: {
@@ -588,16 +549,20 @@ export default {
     animateOnChange(after, before) {
       for (let i = 0; i < after.length; i += 1) {
         if (before[i].n !== after[i].n) {
-          gsap.fromTo(after[i], {
-            n: before[i].n,
-          }, {
-            duration: 1.0,
-            n: after[i].n,
-            onUpdate: () => {
-              after[i].n = Math.round(after[i].n);
-              this.$forceUpdate();
+          gsap.fromTo(
+            after[i],
+            {
+              n: before[i].n,
             },
-          });
+            {
+              duration: 1.0,
+              n: after[i].n,
+              onUpdate: () => {
+                after[i].n = Math.round(after[i].n);
+                this.$forceUpdate();
+              },
+            }
+          );
         }
       }
     },
@@ -657,12 +622,14 @@ mark {
   background-color: #eaadba;
 }
 hr.dashed {
-    border-top: 2px dashed #999;
+  border-top: 2px dashed #999;
 }
-.fade-enter-active, .fade-leave-active {
-  transition: opacity .2s;
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s;
 }
-.fade-enter, .fade-leave-to {
+.fade-enter,
+.fade-leave-to {
   opacity: 0;
 }
 /* Entity concept visual explanation */

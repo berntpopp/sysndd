@@ -11,29 +11,15 @@
   <BForm @submit.prevent="onSubmit">
     <BRow>
       <!-- Left Column: Selection Criteria -->
-      <BCol
-        lg="7"
-        class="pe-lg-4"
-      >
+      <BCol lg="7" class="pe-lg-4">
         <!-- Entity Search Section -->
         <div class="mb-3">
           <div class="d-flex align-items-center mb-1">
-            <label
-              for="entity-search"
-              class="small fw-semibold mb-0"
-            >
-              Search Entities
-            </label>
-            <i
-              id="help-search-entities"
-              class="bi bi-question-circle text-muted ms-1"
-            />
-            <BTooltip
-              target="help-search-entities"
-              placement="right"
-              triggers="hover"
-            >
-              Search by entity ID, gene symbol, or disease name. Selected entities are added directly to the batch.
+            <label for="entity-search" class="small fw-semibold mb-0"> Search Entities </label>
+            <i id="help-search-entities" class="bi bi-question-circle text-muted ms-1" />
+            <BTooltip target="help-search-entities" placement="right" triggers="hover">
+              Search by entity ID, gene symbol, or disease name. Selected entities are added
+              directly to the batch.
             </BTooltip>
           </div>
           <div class="position-relative">
@@ -52,7 +38,7 @@
               v-if="isEntitySearching"
               small
               class="position-absolute"
-              style="right: 10px; top: 50%; transform: translateY(-50%);"
+              style="right: 10px; top: 50%; transform: translateY(-50%)"
             />
           </div>
           <!-- Search Results Dropdown -->
@@ -65,7 +51,7 @@
               :key="entity.entity_id"
               button
               class="py-2 px-3"
-              :disabled="formData.entity_list.some(e => e.entity_id === entity.entity_id)"
+              :disabled="formData.entity_list.some((e) => e.entity_id === entity.entity_id)"
               @click="selectEntity(entity)"
             >
               <div class="d-flex justify-content-between align-items-start">
@@ -74,7 +60,7 @@
                   <small class="text-muted ms-2">{{ entity.symbol }}</small>
                 </div>
                 <BBadge
-                  v-if="formData.entity_list.some(e => e.entity_id === entity.entity_id)"
+                  v-if="formData.entity_list.some((e) => e.entity_id === entity.entity_id)"
                   variant="secondary"
                 >
                   Added
@@ -86,14 +72,8 @@
             </BListGroupItem>
           </BListGroup>
           <!-- Selected Entities as Chips -->
-          <div
-            v-if="formData.entity_list.length > 0"
-            class="mt-2"
-          >
-            <span
-              v-for="entity in formData.entity_list"
-              :key="entity.entity_id"
-            >
+          <div v-if="formData.entity_list.length > 0" class="mt-2">
+            <span v-for="entity in formData.entity_list" :key="entity.entity_id">
               <BFormTag
                 :id="`tag-entity-${entity.entity_id}`"
                 variant="primary"
@@ -102,19 +82,12 @@
               >
                 {{ entity.entity_id }}
               </BFormTag>
-              <BTooltip
-                :target="`tag-entity-${entity.entity_id}`"
-                placement="top"
-                triggers="hover"
-              >
+              <BTooltip :target="`tag-entity-${entity.entity_id}`" placement="top" triggers="hover">
                 {{ entity.symbol }}: {{ entity.disease_ontology_name }}
               </BTooltip>
             </span>
           </div>
-          <small
-            v-if="formData.entity_list.length > 0"
-            class="text-success"
-          >
+          <small v-if="formData.entity_list.length > 0" class="text-success">
             <i class="bi bi-check-circle me-1" />{{ formData.entity_list.length }} entities selected
           </small>
         </div>
@@ -129,15 +102,8 @@
           <template #label>
             <div class="d-flex align-items-center">
               <span class="small fw-semibold">Date Range</span>
-              <i
-                id="help-date-range"
-                class="bi bi-question-circle text-muted ms-1"
-              />
-              <BTooltip
-                target="help-date-range"
-                placement="right"
-                triggers="hover"
-              >
+              <i id="help-date-range" class="bi bi-question-circle text-muted ms-1" />
+              <BTooltip target="help-date-range" placement="right" triggers="hover">
                 Filter entities by their last review date. Both start and end dates required.
               </BTooltip>
             </div>
@@ -168,16 +134,10 @@
           <template #label>
             <div class="d-flex align-items-center">
               <span class="small fw-semibold">Gene Filter</span>
-              <i
-                id="help-gene-filter"
-                class="bi bi-question-circle text-muted ms-1"
-              />
-              <BTooltip
-                target="help-gene-filter"
-                placement="right"
-                triggers="hover"
-              >
-                Select genes to include ALL their associated entities in the batch. Use Ctrl+Click (Cmd+Click on Mac) to select multiple.
+              <i id="help-gene-filter" class="bi bi-question-circle text-muted ms-1" />
+              <BTooltip target="help-gene-filter" placement="right" triggers="hover">
+                Select genes to include ALL their associated entities in the batch. Use Ctrl+Click
+                (Cmd+Click on Mac) to select multiple.
               </BTooltip>
             </div>
           </template>
@@ -192,18 +152,10 @@
             aria-label="Select genes"
           >
             <template #first>
-              <option
-                :value="null"
-                disabled
-              >
-                -- Select genes --
-              </option>
+              <option :value="null" disabled>-- Select genes --</option>
             </template>
           </BFormSelect>
-          <small
-            v-if="formData.gene_list.length > 0"
-            class="text-muted"
-          >
+          <small v-if="formData.gene_list.length > 0" class="text-muted">
             {{ formData.gene_list.length }} gene(s) → all related entities
           </small>
         </BFormGroup>
@@ -213,15 +165,8 @@
           <template #label>
             <div class="d-flex align-items-center">
               <span class="small fw-semibold">Status</span>
-              <i
-                id="help-status-filter"
-                class="bi bi-question-circle text-muted ms-1"
-              />
-              <BTooltip
-                target="help-status-filter"
-                placement="right"
-                triggers="hover"
-              >
+              <i id="help-status-filter" class="bi bi-question-circle text-muted ms-1" />
+              <BTooltip target="help-status-filter" placement="right" triggers="hover">
                 Filter entities by their current curation status.
               </BTooltip>
             </div>
@@ -234,34 +179,23 @@
             :disabled="isLoading"
           >
             <template #first>
-              <option :value="null">
-                Any status
-              </option>
+              <option :value="null">Any status</option>
             </template>
           </BFormSelect>
         </BFormGroup>
       </BCol>
 
       <!-- Right Column: Batch Settings -->
-      <BCol
-        lg="5"
-        class="ps-lg-4 border-start-lg"
-      >
+      <BCol lg="5" class="ps-lg-4 border-start-lg">
         <!-- Batch Name -->
         <BFormGroup class="mb-2">
           <template #label>
             <div class="d-flex align-items-center">
               <span class="small fw-semibold">Batch Name</span>
-              <i
-                id="help-batch-name"
-                class="bi bi-question-circle text-muted ms-1"
-              />
-              <BTooltip
-                target="help-batch-name"
-                placement="right"
-                triggers="hover"
-              >
-                Optional name for this batch. If left empty, a name will be auto-generated based on criteria.
+              <i id="help-batch-name" class="bi bi-question-circle text-muted ms-1" />
+              <BTooltip target="help-batch-name" placement="right" triggers="hover">
+                Optional name for this batch. If left empty, a name will be auto-generated based on
+                criteria.
               </BTooltip>
             </div>
           </template>
@@ -281,15 +215,8 @@
               <template #label>
                 <div class="d-flex align-items-center">
                   <span class="small fw-semibold">Size</span>
-                  <i
-                    id="help-batch-size"
-                    class="bi bi-question-circle text-muted ms-1"
-                  />
-                  <BTooltip
-                    target="help-batch-size"
-                    placement="right"
-                    triggers="hover"
-                  >
+                  <i id="help-batch-size" class="bi bi-question-circle text-muted ms-1" />
+                  <BTooltip target="help-batch-size" placement="right" triggers="hover">
                     Maximum entities per batch (1-100). Use to limit workload per assignment.
                   </BTooltip>
                 </div>
@@ -310,16 +237,10 @@
               <template #label>
                 <div class="d-flex align-items-center">
                   <span class="small fw-semibold">Assign to</span>
-                  <i
-                    id="help-assign-to"
-                    class="bi bi-question-circle text-muted ms-1"
-                  />
-                  <BTooltip
-                    target="help-assign-to"
-                    placement="right"
-                    triggers="hover"
-                  >
-                    Select a curator to assign this batch to immediately. Choose 'Later' to assign after creation.
+                  <i id="help-assign-to" class="bi bi-question-circle text-muted ms-1" />
+                  <BTooltip target="help-assign-to" placement="right" triggers="hover">
+                    Select a curator to assign this batch to immediately. Choose 'Later' to assign
+                    after creation.
                   </BTooltip>
                 </div>
               </template>
@@ -331,9 +252,7 @@
                 :disabled="isLoading"
               >
                 <template #first>
-                  <option :value="null">
-                    Assign later
-                  </option>
+                  <option :value="null">Assign later</option>
                 </template>
               </BFormSelect>
             </BFormGroup>
@@ -341,20 +260,13 @@
         </BRow>
 
         <!-- Validation Message -->
-        <BAlert
-          v-if="!isFormValid"
-          variant="warning"
-          class="py-2 px-3 mb-2"
-        >
+        <BAlert v-if="!isFormValid" variant="warning" class="py-2 px-3 mb-2">
           <i class="bi bi-exclamation-triangle me-1" />
           <small>Select entities, set date range, or choose a gene/status filter</small>
         </BAlert>
 
         <!-- Summary -->
-        <div
-          v-if="isFormValid"
-          class="bg-light rounded p-2 mb-2"
-        >
+        <div v-if="isFormValid" class="bg-light rounded p-2 mb-2">
           <small class="text-muted d-block fw-semibold mb-1">Batch Summary:</small>
           <ul class="mb-0 ps-3 small">
             <li v-if="formData.entity_list.length > 0">
@@ -367,7 +279,10 @@
               {{ formData.gene_list.length }} gene(s) selected
             </li>
             <li v-if="formData.status_filter !== null">
-              Status: {{ statusOptions.find(s => s.value === formData.status_filter)?.text || 'Selected' }}
+              Status:
+              {{
+                statusOptions.find((s) => s.value === formData.status_filter)?.text || 'Selected'
+              }}
             </li>
             <li>Max size: {{ formData.batch_size }}</li>
           </ul>
@@ -381,32 +296,13 @@
             :disabled="isLoading || isPreviewLoading || !isFormValid"
             @click="onPreview"
           >
-            <BSpinner
-              v-if="isPreviewLoading"
-              small
-              class="me-1"
-            />
-            <i
-              v-else
-              class="bi bi-eye me-1"
-            />
+            <BSpinner v-if="isPreviewLoading" small class="me-1" />
+            <i v-else class="bi bi-eye me-1" />
             Preview
           </BButton>
-          <BButton
-            type="submit"
-            size="sm"
-            variant="primary"
-            :disabled="isLoading || !isFormValid"
-          >
-            <BSpinner
-              v-if="isLoading"
-              small
-              class="me-1"
-            />
-            <i
-              v-else
-              class="bi bi-plus-circle me-1"
-            />
+          <BButton type="submit" size="sm" variant="primary" :disabled="isLoading || !isFormValid">
+            <BSpinner v-if="isLoading" small class="me-1" />
+            <i v-else class="bi bi-plus-circle me-1" />
             Create Batch
           </BButton>
           <BButton
@@ -446,11 +342,7 @@
           class="mb-0 compact-table"
         />
       </div>
-      <BAlert
-        v-else
-        variant="warning"
-        class="py-2 px-3 mb-0"
-      >
+      <BAlert v-else variant="warning" class="py-2 px-3 mb-0">
         <i class="bi bi-exclamation-triangle me-1" />
         No matching entities found. Try broader criteria.
       </BAlert>
@@ -506,7 +398,11 @@ const onEntitySearch = () => {
   }, 300);
 };
 
-const selectEntity = (entity: { entity_id: number; symbol: string; disease_ontology_name: string }) => {
+const selectEntity = (entity: {
+  entity_id: number;
+  symbol: string;
+  disease_ontology_name: string;
+}) => {
   addEntity(entity as Parameters<typeof addEntity>[0]);
 };
 

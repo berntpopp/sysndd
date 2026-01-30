@@ -145,10 +145,7 @@ describe('Banner', () => {
       wrapper.vm.acknowledgeBanner();
 
       // Verify localStorage was updated
-      expect(window.localStorage.setItem).toHaveBeenCalledWith(
-        'banner_acknowledged',
-        true
-      );
+      expect(window.localStorage.setItem).toHaveBeenCalledWith('banner_acknowledged', true);
     });
 
     it('updates component state after acknowledgeBanner is called', async () => {
@@ -221,4 +218,3 @@ describe('Banner', () => {
     });
   });
 });
-

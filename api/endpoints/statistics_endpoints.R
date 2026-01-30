@@ -80,7 +80,7 @@ function(res,
 
   # Validate input for 'aggregate' and 'group'
   if (!(aggregate %in% c("entity_id", "symbol")) ||
-        !(group %in% c("category", "inheritance_filter", "inheritance_multiple"))) {
+    !(group %in% c("category", "inheritance_filter", "inheritance_multiple"))) {
     res$status <- 400
     res$body <- jsonlite::toJSON(
       auto_unbox = TRUE,
@@ -328,7 +328,7 @@ function(req, res, start_date, end_date) {
     dplyr::filter(n() > 1) %>%
     summarise(latest_review_date = max(review_date, na.rm = TRUE)) %>%
     dplyr::filter(latest_review_date >= as.Date(start_date) &
-                    latest_review_date <= as.Date(end_date))
+      latest_review_date <= as.Date(end_date))
 
   list(
     total_updated_reviews = nrow(updated_reviews)
@@ -366,7 +366,7 @@ function(req, res, start_date, end_date) {
     dplyr::filter(n() > 1) %>%
     summarise(latest_status_date = max(status_date, na.rm = TRUE)) %>%
     dplyr::filter(latest_status_date >= as.Date(start_date) &
-                    latest_status_date <= as.Date(end_date))
+      latest_status_date <= as.Date(end_date))
 
   list(
     total_updated_statuses = nrow(updated_statuses)

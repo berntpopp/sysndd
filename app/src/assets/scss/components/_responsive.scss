@@ -301,7 +301,7 @@
 
       // Badges should keep their natural width
       &.badge,
-      &[class*="badge-"] {
+      &[class*='badge-'] {
         width: auto !important;
       }
     }

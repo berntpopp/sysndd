@@ -154,7 +154,7 @@ export function usePhenotypeCytoscape(options: PhenotypeCytoscapeOptions) {
     isLoading.value = true;
 
     // Calculate size scale - larger nodes for better visibility
-    const sizes = clusters.map(c => c.cluster_size);
+    const sizes = clusters.map((c) => c.cluster_size);
     const maxSize = Math.max(...sizes);
     const minSize = Math.min(...sizes);
     const sizeScale = (size: number) => {
@@ -167,7 +167,7 @@ export function usePhenotypeCytoscape(options: PhenotypeCytoscapeOptions) {
       data: {
         id: `cluster-${cluster.cluster}`,
         clusterId: cluster.cluster,
-        label: `${cluster.cluster}`,  // Just cluster number, size shown via node size
+        label: `${cluster.cluster}`, // Just cluster number, size shown via node size
         size: sizeScale(cluster.cluster_size),
         color: getClusterColor(index),
         clusterSize: cluster.cluster_size,

@@ -29,9 +29,7 @@ export interface BulkSelectionReturn<T = number> {
  * // In template: @click="toggleSelection(user.id)"
  * // Check limit: if (!toggleSelection(id)) { toast.error('Maximum 20 users') }
  */
-export function useBulkSelection<T = number>(
-  maxSelection: number = 20
-): BulkSelectionReturn<T> {
+export function useBulkSelection<T = number>(maxSelection: number = 20): BulkSelectionReturn<T> {
   const selectedIds = ref(new Set<T>()) as Ref<Set<T>>;
 
   const selectionCount = computed(() => selectedIds.value.size);

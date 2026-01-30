@@ -26,7 +26,7 @@ const INHERITANCE_ABBREVIATIONS = {
   'Y-linked inheritance': 'YL',
   'Mitochondrial inheritance': 'MT',
   'Somatic mutation': 'Som',
-  'Sporadic': 'Spo',
+  Sporadic: 'Spo',
   'Semidominant mode of inheritance': 'SD',
   'Digenic inheritance': 'DI',
   'Oligogenic inheritance': 'OI',
@@ -39,11 +39,11 @@ const INHERITANCE_ABBREVIATIONS = {
   'X-linked dominant': 'XLD',
   'X-linked recessive': 'XLR',
   'Y-linked': 'YL',
-  'Mitochondrial': 'MT',
-  'Semidominant': 'SD',
-  'Digenic': 'DI',
-  'Oligogenic': 'OI',
-  'Multifactorial': 'MF',
+  Mitochondrial: 'MT',
+  Semidominant: 'SD',
+  Digenic: 'DI',
+  Oligogenic: 'OI',
+  Multifactorial: 'MF',
 };
 
 export default {

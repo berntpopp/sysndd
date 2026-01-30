@@ -164,7 +164,7 @@ function(req, res, filter = "", sort = "+vario_id", page_after = 0, page_size = 
       is_active = "Active",
       sort = "Sort Order",
       update_date = "Last Updated",
-      field  # default: use field name as label
+      field # default: use field name as label
     )
     list(
       key = field,

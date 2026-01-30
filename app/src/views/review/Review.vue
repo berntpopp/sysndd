@@ -1,20 +1,10 @@
 <!-- views/review/Review.vue -->
 <template>
   <div class="container-fluid">
-    <BSpinner
-      v-if="loading"
-      label="Loading..."
-      class="float-center m-5"
-    />
-    <BContainer
-      v-else
-      fluid
-    >
+    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
+    <BContainer v-else fluid>
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="12"
-        >
+        <BCol col md="12">
           <!-- User Interface controls -->
           <BCard
             header-tag="header"
@@ -29,12 +19,7 @@
                 <BCol>
                   <h5 class="mb-0 text-start fw-bold">
                     Re-review table
-                    <BBadge
-                      variant="primary"
-                      class="ms-2"
-                    >
-                      {{ totalRows }} entities
-                    </BBadge>
+                    <BBadge variant="primary" class="ms-2"> {{ totalRows }} entities </BBadge>
                   </h5>
                 </BCol>
                 <BCol class="text-end">
@@ -74,21 +59,13 @@
 
             <!-- Icon Legend -->
             <div class="px-3 pt-2">
-              <IconLegend
-                :legend-items="legendItems"
-                title="Category & Re-review Status Icons"
-              />
+              <IconLegend :legend-items="legendItems" title="Category & Re-review Status Icons" />
             </div>
 
             <!-- Search, filters, and pagination row (single consolidated row) -->
             <BRow class="px-3 py-2 align-items-center">
               <!-- Search input -->
-              <BCol
-                cols="12"
-                md="4"
-                lg="3"
-                class="mb-2 mb-md-0"
-              >
+              <BCol cols="12" md="4" lg="3" class="mb-2 mb-md-0">
                 <BInputGroup size="sm">
                   <template #prepend>
                     <BInputGroupText>
@@ -106,12 +83,7 @@
               </BCol>
 
               <!-- Column filters (always visible) -->
-              <BCol
-                cols="6"
-                md="2"
-                lg="2"
-                class="mb-2 mb-md-0"
-              >
+              <BCol cols="6" md="2" lg="2" class="mb-2 mb-md-0">
                 <BFormSelect
                   v-model="categoryFilter"
                   size="sm"
@@ -119,12 +91,7 @@
                   aria-label="Filter by category"
                 />
               </BCol>
-              <BCol
-                cols="6"
-                md="2"
-                lg="2"
-                class="mb-2 mb-md-0"
-              >
+              <BCol cols="6" md="2" lg="2" class="mb-2 mb-md-0">
                 <BFormSelect
                   v-model="userFilter"
                   size="sm"
@@ -172,9 +139,7 @@
                   <!-- New batch button -->
                   <BBadge
                     v-if="
-                      (totalRows === 0) &&
-                        ((filter === null) || (filter === '')) &&
-                        !curation_selected
+                      totalRows === 0 && (filter === null || filter === '') && !curation_selected
                     "
                     variant="warning"
                     pill
@@ -187,10 +152,7 @@
                 </div>
 
                 <!-- Pagination controls -->
-                <BInputGroup
-                  prepend="Per page"
-                  size="sm"
-                >
+                <BInputGroup prepend="Per page" size="sm">
                   <BFormSelect
                     id="per-page-select"
                     v-model="perPage"
@@ -310,7 +272,9 @@
                 <DiseaseBadge
                   :name="data.item.disease_ontology_name"
                   :ontology-id="data.item.disease_ontology_id_version"
-                  :link-to="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"
+                  :link-to="
+                    '/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')
+                  "
                   :max-length="35"
                   size="sm"
                 />
@@ -327,11 +291,7 @@
               <template #cell(category)="data">
                 <div class="overflow-hidden text-truncate text-center">
                   <span v-if="data.item.category" v-b-tooltip.hover.top :title="data.item.category">
-                    <CategoryIcon
-                      :category="data.item.category"
-                      size="sm"
-                      :show-title="false"
-                    />
+                    <CategoryIcon :category="data.item.category" size="sm" :show-title="false" />
                   </span>
                   <span v-else class="text-muted">—</span>
                 </div>
@@ -340,11 +300,7 @@
               <template #cell(ndd_phenotype_word)="data">
                 <div class="overflow-hidden text-truncate text-center">
                   <span v-b-tooltip.hover.left :title="ndd_icon_text[data.item.ndd_phenotype_word]">
-                    <NddIcon
-                      :status="data.item.ndd_phenotype_word"
-                      size="sm"
-                      :show-title="false"
-                    />
+                    <NddIcon :status="data.item.ndd_phenotype_word" size="sm" :show-title="false" />
                   </span>
                 </div>
               </template>
@@ -356,12 +312,12 @@
                     :title="data_age_text[dateYearAge(data.item.review_date, 3)]"
                     class="d-inline-flex align-items-center justify-content-center rounded-circle"
                     :class="`bg-${data_age_style[dateYearAge(data.item.review_date, 3)]}-subtle text-${data_age_style[dateYearAge(data.item.review_date, 3)]}`"
-                    style="width: 24px; height: 24px; font-size: 0.75rem;"
+                    style="width: 24px; height: 24px; font-size: 0.75rem"
                   >
                     <i class="bi bi-calendar3" />
                   </span>
                   <span class="small text-muted">
-                    {{ data.item.review_date.substring(0,10) }}
+                    {{ data.item.review_date.substring(0, 10) }}
                   </span>
                 </div>
               </template>
@@ -373,7 +329,7 @@
                     :title="data.item.review_user_role"
                     class="d-inline-flex align-items-center justify-content-center rounded-circle"
                     :class="`bg-${user_style[data.item.review_user_role]}-subtle text-${user_style[data.item.review_user_role]}`"
-                    style="width: 24px; height: 24px; font-size: 0.75rem;"
+                    style="width: 24px; height: 24px; font-size: 0.75rem"
                   >
                     <i :class="'bi bi-' + user_icon[data.item.review_user_role]" />
                   </span>
@@ -412,34 +368,20 @@
         <template #footer="{ ok, cancel }">
           <div class="w-100 d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-2 text-muted small">
-              <span
-                v-if="reviewFormIsSaving"
-                class="d-flex align-items-center gap-1"
-              >
-                <BSpinner
-                  small
-                  variant="secondary"
-                />
+              <span v-if="reviewFormIsSaving" class="d-flex align-items-center gap-1">
+                <BSpinner small variant="secondary" />
                 <span>Saving...</span>
               </span>
               <span v-if="review_info.review_user_name" class="d-flex align-items-center gap-1">
                 <i :class="'bi bi-' + user_icon[review_info.review_user_role]" />
                 <span>{{ review_info.review_user_name }}</span>
                 <span class="text-muted">·</span>
-                <span>{{ review_info.review_date?.substring(0,10) }}</span>
+                <span>{{ review_info.review_date?.substring(0, 10) }}</span>
               </span>
             </div>
             <div class="d-flex gap-2">
-              <BButton
-                variant="outline-secondary"
-                @click="cancel()"
-              >
-                Cancel
-              </BButton>
-              <BButton
-                variant="primary"
-                @click="ok()"
-              >
+              <BButton variant="outline-secondary" @click="cancel()"> Cancel </BButton>
+              <BButton variant="primary" @click="ok()">
                 <i class="bi bi-check-lg me-1" />
                 Save Review
               </BButton>
@@ -521,34 +463,20 @@
         <template #footer="{ ok, cancel }">
           <div class="w-100 d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-2 text-muted small">
-              <span
-                v-if="statusFormIsSaving"
-                class="d-flex align-items-center gap-1"
-              >
-                <BSpinner
-                  small
-                  variant="secondary"
-                />
+              <span v-if="statusFormIsSaving" class="d-flex align-items-center gap-1">
+                <BSpinner small variant="secondary" />
                 <span>Saving...</span>
               </span>
               <span v-if="statusFormData.status_user_name" class="d-flex align-items-center gap-1">
                 <i :class="'bi bi-' + user_icon[statusFormData.status_user_role]" />
                 <span>{{ statusFormData.status_user_name }}</span>
                 <span class="text-muted">·</span>
-                <span>{{ statusFormData.status_date?.substring(0,10) }}</span>
+                <span>{{ statusFormData.status_date?.substring(0, 10) }}</span>
               </span>
             </div>
             <div class="d-flex gap-2">
-              <BButton
-                variant="outline-secondary"
-                @click="cancel()"
-              >
-                Cancel
-              </BButton>
-              <BButton
-                variant="primary"
-                @click="ok()"
-              >
+              <BButton variant="outline-secondary" @click="cancel()"> Cancel </BButton>
+              <BButton variant="primary" @click="ok()">
                 <i class="bi bi-check-lg me-1" />
                 Save Status
               </BButton>
@@ -590,25 +518,15 @@
           </div>
         </div>
 
-        <BOverlay
-          :show="statusFormLoading"
-          rounded="sm"
-        >
-          <BForm
-            ref="form"
-            @submit.stop.prevent="submitStatusChange"
-          >
+        <BOverlay :show="statusFormLoading" rounded="sm">
+          <BForm ref="form" @submit.stop.prevent="submitStatusChange">
             <!-- Status Classification Section -->
             <h6 class="text-muted border-bottom pb-2 mb-3">
               <i class="bi bi-diagram-3 me-2" />
               Classification
             </h6>
 
-            <BFormGroup
-              label="Status Category"
-              label-for="status-select"
-              class="mb-3"
-            >
+            <BFormGroup label="Status Category" label-for="status-select" class="mb-3">
               <template #label>
                 <span class="fw-semibold">Status Category</span>
                 <BBadge
@@ -617,7 +535,7 @@
                   href="#"
                   variant="info"
                   class="ms-2"
-                  style="cursor: help;"
+                  style="cursor: help"
                 >
                   <i class="bi bi-question-circle-fill" />
                 </BBadge>
@@ -629,21 +547,13 @@
                 :options="normalizeStatusOptions(status_options)"
               >
                 <template #first>
-                  <BFormSelectOption :value="null">
-                    Select status...
-                  </BFormSelectOption>
+                  <BFormSelectOption :value="null"> Select status... </BFormSelectOption>
                 </template>
               </BFormSelect>
             </BFormGroup>
 
-            <BPopover
-              target="popover-badge-help-status"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Status instructions
-              </template>
+            <BPopover target="popover-badge-help-status" variant="info" triggers="focus">
+              <template #title> Status instructions </template>
               Please refer to the curation manual for details on the categories.
             </BPopover>
 
@@ -662,32 +572,22 @@
                   href="#"
                   variant="info"
                   class="ms-2"
-                  style="cursor: help;"
+                  style="cursor: help"
                 >
                   <i class="bi bi-question-circle-fill" />
                 </BBadge>
               </template>
-              <BFormCheckbox
-                id="removeSwitch"
-                v-model="statusFormData.problematic"
-                switch
-              >
+              <BFormCheckbox id="removeSwitch" v-model="statusFormData.problematic" switch>
                 Suggest removal of this entity
               </BFormCheckbox>
             </BFormGroup>
 
-            <BPopover
-              target="popover-badge-help-removal"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Removal instructions
-              </template>
-              SysNDD does not forget, meaning that entities will not be deleted
-              but they can be deactivated. Deactivated entities will not be
-              displayed on the website. Typically duplicate entities should be
-              deactivated especially if there is a more specific disease name.
+            <BPopover target="popover-badge-help-removal" variant="info" triggers="focus">
+              <template #title> Removal instructions </template>
+              SysNDD does not forget, meaning that entities will not be deleted but they can be
+              deactivated. Deactivated entities will not be displayed on the website. Typically
+              duplicate entities should be deactivated especially if there is a more specific
+              disease name.
             </BPopover>
 
             <!-- Comment Section -->
@@ -696,11 +596,7 @@
               Notes
             </h6>
 
-            <BFormGroup
-              label="Comment"
-              label-for="status-textarea-comment"
-              class="mb-0"
-            >
+            <BFormGroup label="Comment" label-for="status-textarea-comment" class="mb-0">
               <template #label>
                 <span class="fw-semibold">Comment</span>
               </template>
@@ -742,22 +638,18 @@
           <div class="mb-3">
             <span
               class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success-subtle text-success"
-              style="width: 64px; height: 64px; font-size: 1.5rem;"
+              style="width: 64px; height: 64px; font-size: 1.5rem"
             >
               <i class="bi bi-check2-circle" />
             </span>
           </div>
-          <p class="mb-2">
-            You have finished the re-review of entity
-          </p>
+          <p class="mb-2">You have finished the re-review of entity</p>
           <p class="mb-3">
             <BBadge variant="primary" class="fs-6">
               {{ submitModal.title }}
             </BBadge>
           </p>
-          <p class="text-muted small mb-0">
-            Ready to submit for curator approval?
-          </p>
+          <p class="text-muted small mb-0">Ready to submit for curator approval?</p>
         </div>
       </BModal>
       <!-- 3) Submit modal -->
@@ -801,20 +693,14 @@
         </h6>
 
         <div class="d-flex flex-column gap-2 mb-4">
-          <BFormCheckbox
-            id="approveReviewSwitch"
-            v-model="review_approved"
-            switch
-          >
+          <BFormCheckbox id="approveReviewSwitch" v-model="review_approved" switch>
             <span class="fw-semibold">Review</span>
-            <span class="text-muted small d-block">Approve the clinical synopsis and annotations</span>
+            <span class="text-muted small d-block"
+              >Approve the clinical synopsis and annotations</span
+            >
           </BFormCheckbox>
 
-          <BFormCheckbox
-            id="approveStatusSwitch"
-            v-model="status_approved"
-            switch
-          >
+          <BFormCheckbox id="approveStatusSwitch" v-model="status_approved" switch>
             <span class="fw-semibold">Status</span>
             <span class="text-muted small d-block">Approve the entity classification status</span>
           </BFormCheckbox>
@@ -829,7 +715,7 @@
           <BButton
             size="sm"
             variant="outline-warning"
-            @click="handleUnsetSubmission(), hideModal(approveModal.id)"
+            @click="(handleUnsetSubmission(), hideModal(approveModal.id))"
           >
             <i class="bi bi-unlock me-1" />
             Unsubmit Review
@@ -1031,9 +917,7 @@ export default {
         content: [],
       },
       review: [{ synopsis: '' }],
-      review_fields: [
-        { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-start' },
-      ],
+      review_fields: [{ key: 'synopsis', label: 'Clinical Synopsis', class: 'text-start' }],
       status_options: [],
       status_info: new Status(),
       loading_status_modal: true,
@@ -1078,9 +962,7 @@ export default {
   computed: {
     sortOptions() {
       // Create an options list from our fields
-      return this.fields
-        .filter((f) => f.sortable)
-        .map((f) => ({ text: f.label, value: f.key }));
+      return this.fields.filter((f) => f.sortable).map((f) => ({ text: f.label, value: f.key }));
     },
     // Quick filter computed properties
     activeQuickFilters() {
@@ -1149,8 +1031,8 @@ export default {
   mounted() {
     if (localStorage.user) {
       this.user = JSON.parse(localStorage.user);
-      this.curator_mode = (this.user.user_role[0] === 'Administrator')
-        || (this.user.user_role[0] === 'Curator');
+      this.curator_mode =
+        this.user.user_role[0] === 'Administrator' || this.user.user_role[0] === 'Curator';
       console.log(this.user.user_role[0]);
       console.log(this.curator_mode);
     }
@@ -1201,9 +1083,7 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/phenotype?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
-        const rawData = Array.isArray(response.data)
-          ? response.data
-          : response.data?.data || [];
+        const rawData = Array.isArray(response.data) ? response.data : response.data?.data || [];
         // Transform to make all modifiers selectable
         this.phenotypes_options = this.transformModifierTree(rawData);
       } catch (e) {
@@ -1215,9 +1095,7 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/variation_ontology?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
-        const rawData = Array.isArray(response.data)
-          ? response.data
-          : response.data?.data || [];
+        const rawData = Array.isArray(response.data) ? response.data : response.data?.data || [];
         // Transform to make all modifiers selectable
         this.variation_ontology_options = this.transformModifierTree(rawData);
       } catch (e) {
@@ -1294,9 +1172,9 @@ export default {
     },
     async loadReReviewData() {
       this.isBusy = true;
-      const apiUrl = `${import.meta.env.VITE_API_URL
-      }/api/re_review/table?curate=${
-        this.curation_selected}`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/table?curate=${
+        this.curation_selected
+      }`;
       try {
         const response = await this.axios.get(apiUrl, {
           headers: {
@@ -1313,8 +1191,7 @@ export default {
       this.loading = false;
     },
     async getEntity(entity_input) {
-      const apiGetURL = `${import.meta.env.VITE_API_URL
-      }/api/entity?filter=equals(entity_id,${
+      const apiGetURL = `${import.meta.env.VITE_API_URL}/api/entity?filter=equals(entity_id,${
         entity_input
       })`;
 
@@ -1358,7 +1235,7 @@ export default {
         this.status_info = new Status(
           response.data[0].category_id,
           response.data[0].comment,
-          response.data[0].problematic,
+          response.data[0].problematic
         );
 
         this.status_info.status_id = response.data[0].status_id;
@@ -1435,7 +1312,7 @@ export default {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          },
+          }
         );
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -1444,13 +1321,9 @@ export default {
       this.loadReReviewData();
     },
     async handleApproveOk(_bvModalEvt) {
-      const apiUrl = `${import.meta.env.VITE_API_URL
-      }/api/re_review/approve/${
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/approve/${
         this.entity[0].re_review_entity_id
-      }?status_ok=${
-        this.status_approved
-      }&review_ok=${
-        this.review_approved}`;
+      }?status_ok=${this.status_approved}&review_ok=${this.review_approved}`;
 
       try {
         await this.axios.put(
@@ -1460,7 +1333,7 @@ export default {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          },
+          }
         );
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -1470,9 +1343,9 @@ export default {
       this.loadReReviewData();
     },
     async handleUnsetSubmission(_bvModalEvt) {
-      const apiUrl = `${import.meta.env.VITE_API_URL
-      }/api/re_review/unsubmit/${
-        this.entity[0].re_review_entity_id}`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/unsubmit/${
+        this.entity[0].re_review_entity_id
+      }`;
 
       try {
         await this.axios.put(
@@ -1482,7 +1355,7 @@ export default {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          },
+          }
         );
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -1528,7 +1401,10 @@ export default {
     dateYearAge(date, rounding) {
       // calculate the age based on the difference from current date
       // round to nearest input argument "rounding"
-      return Math.round((Date.now() - Date.parse(date)) / 1000 / 60 / 60 / 24 / 365 / rounding) * rounding;
+      return (
+        Math.round((Date.now() - Date.parse(date)) / 1000 / 60 / 60 / 24 / 365 / rounding) *
+        rounding
+      );
     },
     hideModal(id) {
       this.$refs[id].hide();
@@ -1575,5 +1451,4 @@ export default {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 </style>

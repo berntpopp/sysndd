@@ -2,12 +2,7 @@
 <template>
   <BContainer fluid>
     <!-- The main card -->
-    <BCard
-      header-tag="header"
-      body-class="p-0"
-      header-class="p-1"
-      border-variant="dark"
-    >
+    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
           <h6 class="mb-1 text-start font-weight-bold">
@@ -19,43 +14,23 @@
               clustered using phenotype
             </mark>
             annotation.
-            <BBadge
-              id="popover-badge-help-clusters"
-              pill
-              href="#"
-              variant="info"
-            >
+            <BBadge id="popover-badge-help-clusters" pill href="#" variant="info">
               <i class="bi bi-question-circle-fill" />
             </BBadge>
-            <BPopover
-              target="popover-badge-help-clusters"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Cluster Analysis Details
-              </template>
-              This section provides an interactive visualization of entities grouped by phenotype annotations.
-              The graphical part allows you to explore the clusters by clicking on the nodes, and the table
-              displays detailed information about the variables within each cluster.
+            <BPopover target="popover-badge-help-clusters" variant="info" triggers="focus">
+              <template #title> Cluster Analysis Details </template>
+              This section provides an interactive visualization of entities grouped by phenotype
+              annotations. The graphical part allows you to explore the clusters by clicking on the
+              nodes, and the table displays detailed information about the variables within each
+              cluster.
             </BPopover>
           </h6>
           <!-- Add export buttons for Cytoscape network -->
           <div class="btn-group btn-group-sm">
-            <BButton
-              variant="outline-secondary"
-              size="sm"
-              title="Export as PNG"
-              @click="exportPNG"
-            >
+            <BButton variant="outline-secondary" size="sm" title="Export as PNG" @click="exportPNG">
               <i class="bi bi-image" />
             </BButton>
-            <BButton
-              variant="outline-secondary"
-              size="sm"
-              title="Export as SVG"
-              @click="exportSVG"
-            >
+            <BButton variant="outline-secondary" size="sm" title="Export as SVG" @click="exportSVG">
               <i class="bi bi-filetype-svg" />
             </BButton>
           </div>
@@ -65,9 +40,7 @@
       <!-- Put both graph and table in ONE row -->
       <BRow>
         <!-- LEFT COLUMN (Graph) -->
-        <BCol
-          md="4"
-        >
+        <BCol md="4">
           <BCard
             header-tag="header"
             class="my-3 mx-2 text-start"
@@ -87,34 +60,21 @@
               </h6>
             </template>
 
-            <div
-              id="cluster_dataviz"
-              class="svg-container"
-            >
+            <div id="cluster_dataviz" class="svg-container">
               <!-- Error state with retry -->
-              <div
-                v-if="error"
-                class="error-state text-center p-4"
-              >
+              <div v-if="error" class="error-state text-center p-4">
                 <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3 d-block" />
                 <p class="text-muted mb-3">
                   {{ error }}
                 </p>
-                <BButton
-                  variant="primary"
-                  @click="retryLoad"
-                >
+                <BButton variant="primary" @click="retryLoad">
                   <i class="bi bi-arrow-clockwise me-1" />
                   Retry
                 </BButton>
               </div>
 
               <!-- Loading spinner -->
-              <BSpinner
-                v-else-if="loading"
-                label="Loading..."
-                class="spinner"
-              />
+              <BSpinner v-else-if="loading" label="Loading..." class="spinner" />
 
               <div
                 v-else
@@ -130,8 +90,8 @@
                   Entities for cluster {{ selectedCluster.cluster }}
                 </BLink>
                 <small class="text-muted">
-                  <i class="bi bi-circle-fill" style="font-size: 6px;" /> = fewer entities |
-                  <i class="bi bi-circle-fill" style="font-size: 12px;" /> = more entities
+                  <i class="bi bi-circle-fill" style="font-size: 6px" /> = fewer entities |
+                  <i class="bi bi-circle-fill" style="font-size: 12px" /> = more entities
                 </small>
               </div>
             </template>
@@ -139,9 +99,7 @@
         </BCol>
 
         <!-- RIGHT COLUMN (Table) -->
-        <BCol
-          md="8"
-        >
+        <BCol md="8">
           <BCard
             header-tag="header"
             class="my-3 mx-2 text-start"
@@ -153,26 +111,13 @@
             <template #header>
               <div class="mb-0 font-weight-bold">
                 <BRow>
-                  <BCol
-                    sm="6"
-                    class="mb-1"
-                  >
-                    <BInputGroup
-                      prepend="Table type"
-                      size="sm"
-                    >
-                      <BFormSelect
-                        v-model="tableType"
-                        :options="tableOptions"
-                        size="sm"
-                      />
+                  <BCol sm="6" class="mb-1">
+                    <BInputGroup prepend="Table type" size="sm">
+                      <BFormSelect v-model="tableType" :options="tableOptions" size="sm" />
                     </BInputGroup>
                   </BCol>
 
-                  <BCol
-                    sm="6"
-                    class="mb-1 text-end"
-                  >
+                  <BCol sm="6" class="mb-1 text-end">
                     <div class="d-flex align-items-center justify-content-end gap-2">
                       <!-- A search input controlling the 'any' filter -->
                       <TableSearchInput
@@ -191,14 +136,8 @@
                         @click="downloadExcel"
                       >
                         <i class="bi bi-table me-1" />
-                        <i
-                          v-if="!isExporting"
-                          class="bi bi-download"
-                        />
-                        <BSpinner
-                          v-else
-                          small
-                        />
+                        <i v-if="!isExporting" class="bi bi-download" />
+                        <BSpinner v-else small />
                         .xlsx
                       </BButton>
                     </div>
@@ -218,10 +157,7 @@
               >
                 <!-- Column-level filter slot (optional) -->
                 <template #filter-controls>
-                  <td
-                    v-for="field in fields"
-                    :key="field.key"
-                  >
+                  <td v-for="field in fields" :key="field.key">
                     <BFormInput
                       v-if="field.key !== 'details'"
                       v-model="filter[field.key].content"
@@ -254,11 +190,7 @@
 
               <!-- Bottom pagination controls (optional) -->
               <BRow class="justify-content-end">
-                <BCol
-                  cols="12"
-                  md="auto"
-                  class="my-1"
-                >
+                <BCol cols="12" md="auto" class="my-1">
                   <TablePaginationControls
                     :total-rows="totalRows"
                     :initial-per-page="perPage"
@@ -522,9 +454,7 @@ export default {
     },
     setActiveCluster() {
       // Filter out the cluster matching activeCluster
-      const match = this.itemsCluster.find(
-        (item) => item.cluster === this.activeCluster,
-      );
+      const match = this.itemsCluster.find((item) => item.cluster === this.activeCluster);
       this.selectedCluster = match || {
         quali_inp_var: [],
         quali_sup_var: [],

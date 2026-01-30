@@ -1,11 +1,7 @@
 <!-- components/ui/DiseaseBadge.vue -->
 <!-- Professional 3D-styled disease/ontology badge -->
 <template>
-  <component
-    :is="linkTo ? 'BLink' : 'span'"
-    :href="linkTo"
-    class="disease-badge-link"
-  >
+  <component :is="linkTo ? 'BLink' : 'span'" :href="linkTo" class="disease-badge-link">
     <span
       v-b-tooltip.hover.bottom
       class="disease-badge"
@@ -105,7 +101,9 @@ export default {
     0 2px 4px rgba(0, 0, 0, 0.15),
     inset 0 1px 2px rgba(255, 255, 255, 0.2);
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
   max-width: 100%;
 }
 

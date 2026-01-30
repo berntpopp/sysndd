@@ -2,26 +2,13 @@
   <div class="container-fluid bg-gradient">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="12"
-        >
+        <BCol col md="12">
           <div>
-            <BCard
-              title="Variant correlations"
-              no-body
-            >
+            <BCard title="Variant correlations" no-body>
               <BCardHeader header-tag="nav">
-                <BNav
-                  card-header
-                  tabs
-                >
+                <BNav card-header tabs>
                   <!-- Child routes for variant analyses -->
-                  <BNavItem
-                    to="/VariantCorrelations"
-                    exact
-                    exact-active-class="active"
-                  >
+                  <BNavItem to="/VariantCorrelations" exact exact-active-class="active">
                     Variant correlogram
                   </BNavItem>
                   <BNavItem
@@ -77,5 +64,4 @@ export default {
 };
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

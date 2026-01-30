@@ -1,12 +1,7 @@
 <!-- src/components/analyses/AnalysesPhenotypeFunctionalCorrelation.vue -->
 <template>
   <BContainer fluid>
-    <BCard
-      header-tag="header"
-      body-class="p-0"
-      header-class="p-1"
-      border-variant="dark"
-    >
+    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
       <!-- Header with heading, tooltip, and optional DownloadImageButtons -->
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
@@ -16,33 +11,21 @@
               v-b-tooltip.hover.leftbottom
               title="This heatmap shows the pairwise Pearson correlation between clusters derived from phenotype data (MCA) and functional data (STRING), plus optional SFARI genes."
             >
-              correlation
-            </mark>.
-            <BBadge
-              id="popover-badge-help-correlations"
-              pill
-              href="#"
-              variant="info"
-            >
+              correlation </mark
+            >.
+            <BBadge id="popover-badge-help-correlations" pill href="#" variant="info">
               <i class="bi bi-question-circle-fill" />
             </BBadge>
             <!-- The popover with more details -->
-            <BPopover
-              target="popover-badge-help-correlations"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Correlation Heatmap Details
-              </template>
+            <BPopover target="popover-badge-help-correlations" variant="info" triggers="focus">
+              <template #title> Correlation Heatmap Details </template>
               This heatmap displays the Pearson correlation between pairs of clusters:
               <ul>
                 <li><strong>pc_#</strong> = Phenotype-based clusters (MCA)</li>
                 <li><strong>fc_#</strong> = Functional clusters (STRING)</li>
               </ul>
-              A correlation of <strong>+1</strong> indicates strong similarity,
-              whereas <strong>-1</strong> implies opposite patterns.
-              Hover over cells to see exact values.
+              A correlation of <strong>+1</strong> indicates strong similarity, whereas
+              <strong>-1</strong> implies opposite patterns. Hover over cells to see exact values.
             </BPopover>
           </h6>
 
@@ -58,18 +41,9 @@
 
       <!-- content with overlay spinner -->
       <div class="position-relative">
-        <div
-          id="phenotypeFunctionalCorrelationViz"
-          class="svg-container"
-        />
-        <div
-          v-show="loadingCorrelation"
-          class="m-3 text-center"
-        >
-          <BSpinner
-            label="Loading..."
-            class="spinner"
-          />
+        <div id="phenotypeFunctionalCorrelationViz" class="svg-container" />
+        <div v-show="loadingCorrelation" class="m-3 text-center">
+          <BSpinner label="Loading..." class="spinner" />
           <p>Loading correlation data...</p>
         </div>
       </div>
@@ -134,7 +108,10 @@ export default {
 
       // Basic dimensions
       const margin = {
-        top: 50, right: 50, bottom: 80, left: 80,
+        top: 50,
+        right: 50,
+        bottom: 80,
+        left: 80,
       };
       const width = 400 - margin.left - margin.right;
       const height = 400 - margin.top - margin.bottom;
@@ -144,29 +121,22 @@ export default {
         .select('#phenotypeFunctionalCorrelationViz')
         .append('svg')
         .attr('id', 'pheno-func-corr-svg') // For capturing if needed
-        .attr('viewBox', `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`)
+        .attr(
+          'viewBox',
+          `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`
+        )
         .attr('preserveAspectRatio', 'xMinYMin meet')
         .append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`);
 
       // Our melted data
       const data = this.correlationMelted;
-      const clusterNames = Array.from(
-        new Set([...data.map((d) => d.x), ...data.map((d) => d.y)]),
-      );
+      const clusterNames = Array.from(new Set([...data.map((d) => d.x), ...data.map((d) => d.y)]));
 
       // Build scales
-      const x = d3
-        .scaleBand()
-        .domain(clusterNames)
-        .range([0, width])
-        .padding(0.01);
+      const x = d3.scaleBand().domain(clusterNames).range([0, width]).padding(0.01);
 
-      const y = d3
-        .scaleBand()
-        .domain(clusterNames)
-        .range([0, height])
-        .padding(0.01);
+      const y = d3.scaleBand().domain(clusterNames).range([0, height]).padding(0.01);
 
       // X-axis
       svg
@@ -180,15 +150,10 @@ export default {
         .attr('transform', 'rotate(-45)');
 
       // Y-axis
-      svg
-        .append('g')
-        .call(d3.axisLeft(y).tickSize(0));
+      svg.append('g').call(d3.axisLeft(y).tickSize(0));
 
       // Color scale: -1..+1
-      const colorScale = d3
-        .scaleLinear()
-        .domain([-1, 0, 1])
-        .range(['blue', 'white', 'red']);
+      const colorScale = d3.scaleLinear().domain([-1, 0, 1]).range(['blue', 'white', 'red']);
 
       // Tooltip
       const tooltip = d3

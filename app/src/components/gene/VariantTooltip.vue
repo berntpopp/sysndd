@@ -10,11 +10,7 @@
 <template>
   <!-- Teleport to body to avoid positioning issues inside scrollable containers -->
   <Teleport to="body">
-    <div
-      v-if="visible && data"
-      class="variant-tooltip"
-      :style="tooltipStyle"
-    >
+    <div v-if="visible && data" class="variant-tooltip" :style="tooltipStyle">
       <!-- Variant notation (primary identifier) -->
       <div class="tooltip-header">
         <strong>{{ data.hgvsp || data.variantId }}</strong>
@@ -105,7 +101,9 @@ const reviewStars = computed(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   z-index: 9999;
   pointer-events: none;
-  transition: opacity 0.15s, visibility 0.15s;
+  transition:
+    opacity 0.15s,
+    visibility 0.15s;
   text-align: left;
 }
 

@@ -19,9 +19,9 @@ label,
 // Required field indicator (accessible)
 .required-label::after,
 label.required::after {
-  content: " *";
+  content: ' *';
   color: var(--status-danger);
-  aria-label: "required";
+  aria-label: 'required';
 }
 
 // Form control base styles
@@ -30,7 +30,9 @@ label.required::after {
   padding: 0.5rem 0.75rem;
   border-radius: var(--radius-sm, 0.25rem);
   border: 1px solid var(--bs-border-color, #dee2e6);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
 
   // Enhanced focus states (colored border + glow per CONTEXT)
   &:focus {
@@ -132,7 +134,9 @@ textarea.form-control {
 // Checkbox and radio styling
 .form-check-input {
   cursor: pointer;
-  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
 
   &:focus {
     border-color: var(--medical-blue-500);

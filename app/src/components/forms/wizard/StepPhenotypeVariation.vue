@@ -1,15 +1,12 @@
 <template>
   <div class="step-phenotype-variation">
     <p class="text-muted mb-4">
-      Add phenotype and variation ontology terms. These fields are optional but help with data classification.
+      Add phenotype and variation ontology terms. These fields are optional but help with data
+      classification.
     </p>
 
     <!-- Phenotypes -->
-    <BFormGroup
-      label="Phenotypes"
-      label-for="phenotype-select"
-      class="mb-4"
-    >
+    <BFormGroup label="Phenotypes" label-for="phenotype-select" class="mb-4">
       <template #label>
         <span class="fw-bold">Phenotypes</span>
         <span class="text-muted fw-normal ms-1">(optional)</span>
@@ -23,9 +20,7 @@
         @change="addPhenotype"
       >
         <template #first>
-          <BFormSelectOption :value="null">
-            Add a phenotype term...
-          </BFormSelectOption>
+          <BFormSelectOption :value="null"> Add a phenotype term... </BFormSelectOption>
         </template>
       </BFormSelect>
       <small id="phenotype-help" class="text-muted">
@@ -58,11 +53,7 @@
     </BFormGroup>
 
     <!-- Variation Ontology -->
-    <BFormGroup
-      label="Variation Ontology"
-      label-for="variation-select"
-      class="mb-3"
-    >
+    <BFormGroup label="Variation Ontology" label-for="variation-select" class="mb-3">
       <template #label>
         <span class="fw-bold">Variation Ontology</span>
         <span class="text-muted fw-normal ms-1">(optional)</span>
@@ -76,9 +67,7 @@
         @change="addVariation"
       >
         <template #first>
-          <BFormSelectOption :value="null">
-            Add a variation ontology term...
-          </BFormSelectOption>
+          <BFormSelectOption :value="null"> Add a variation ontology term... </BFormSelectOption>
         </template>
       </BFormSelect>
       <small id="variation-help" class="text-muted">
@@ -111,11 +100,7 @@
     </BFormGroup>
 
     <!-- Info alert for optional step -->
-    <BAlert
-      variant="info"
-      :model-value="true"
-      class="mt-4"
-    >
+    <BAlert variant="info" :model-value="true" class="mt-4">
       <i class="bi bi-info-circle me-2" />
       This step is optional. You can proceed without selecting any terms.
     </BAlert>
@@ -132,10 +117,7 @@ import {
   BCloseButton,
   BAlert,
 } from 'bootstrap-vue-next';
-import type {
-  EntityFormData,
-  GroupedSelectOptions,
-} from '@/composables/useEntityForm';
+import type { EntityFormData, GroupedSelectOptions } from '@/composables/useEntityForm';
 
 export default defineComponent({
   name: 'StepPhenotypeVariation',
@@ -202,7 +184,10 @@ export default defineComponent({
 
     // Add variation to list
     const addVariation = async () => {
-      if (selectedVariation.value && !formData.variationOntology.includes(selectedVariation.value)) {
+      if (
+        selectedVariation.value &&
+        !formData.variationOntology.includes(selectedVariation.value)
+      ) {
         formData.variationOntology.push(selectedVariation.value);
       }
       // Reset to placeholder after Vue updates

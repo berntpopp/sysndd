@@ -59,12 +59,7 @@
       :external-label="'STRING Database'"
       :show-copy="true"
     />
-    <IdentifierRow
-      compact
-      label="MANE"
-      :value="geneData?.mane_select?.[0]"
-      :show-copy="true"
-    />
+    <IdentifierRow compact label="MANE" :value="geneData?.mane_select?.[0]" :show-copy="true" />
   </div>
 
   <!-- Full card mode (default) -->
@@ -142,11 +137,7 @@
     />
 
     <!-- MANE Select -->
-    <IdentifierRow
-      label="MANE Select"
-      :value="geneData?.mane_select?.[0]"
-      :show-copy="true"
-    />
+    <IdentifierRow label="MANE Select" :value="geneData?.mane_select?.[0]" :show-copy="true" />
   </BCard>
 </template>
 
@@ -176,7 +167,9 @@ const entrezUrl = computed(() => {
 
 const ensemblUrl = computed(() => {
   const id = props.geneData?.ensembl_gene_id?.[0];
-  return id && id !== 'null' ? `https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=${id}` : undefined;
+  return id && id !== 'null'
+    ? `https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=${id}`
+    : undefined;
 });
 
 const uniprotUrl = computed(() => {
@@ -186,12 +179,16 @@ const uniprotUrl = computed(() => {
 
 const ucscUrl = computed(() => {
   const id = props.geneData?.ucsc_id?.[0];
-  return id && id !== 'null' ? `https://genome-euro.ucsc.edu/cgi-bin/hgGene?hgg_gene=${id}&db=hg38` : undefined;
+  return id && id !== 'null'
+    ? `https://genome-euro.ucsc.edu/cgi-bin/hgGene?hgg_gene=${id}&db=hg38`
+    : undefined;
 });
 
 const ccdsUrl = computed(() => {
   const id = props.geneData?.ccds_id?.[0];
-  return id && id !== 'null' ? `https://www.ncbi.nlm.nih.gov/CCDS/CcdsBrowse.cgi?REQUEST=CCDS&DATA=${id}` : undefined;
+  return id && id !== 'null'
+    ? `https://www.ncbi.nlm.nih.gov/CCDS/CcdsBrowse.cgi?REQUEST=CCDS&DATA=${id}`
+    : undefined;
 });
 
 const stringUrl = computed(() => {
@@ -201,7 +198,9 @@ const stringUrl = computed(() => {
 
 const hgncUrl = computed(() => {
   const id = props.geneData?.hgnc_id?.[0];
-  return id && id !== 'null' ? `https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/${id}` : undefined;
+  return id && id !== 'null'
+    ? `https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/${id}`
+    : undefined;
 });
 </script>
 

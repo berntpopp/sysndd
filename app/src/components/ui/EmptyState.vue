@@ -1,28 +1,16 @@
 <template>
   <div class="empty-state">
     <slot name="icon">
-      <i
-        :class="`bi bi-${icon}`"
-        class="empty-state-icon"
-        aria-hidden="true"
-      />
+      <i :class="`bi bi-${icon}`" class="empty-state-icon" aria-hidden="true" />
     </slot>
     <h3 class="empty-state-title">
       {{ title }}
     </h3>
-    <p
-      v-if="message"
-      class="text-muted empty-state-message"
-    >
+    <p v-if="message" class="text-muted empty-state-message">
       {{ message }}
     </p>
     <slot />
-    <BButton
-      v-if="actionLabel"
-      :variant="actionVariant"
-      class="mt-3"
-      @click="$emit('action')"
-    >
+    <BButton v-if="actionLabel" :variant="actionVariant" class="mt-3" @click="$emit('action')">
       {{ actionLabel }}
     </BButton>
   </div>
@@ -36,31 +24,31 @@ import type { ColorVariant } from 'bootstrap-vue-next';
 export default defineComponent({
   name: 'EmptyState',
   components: {
-    BButton
+    BButton,
   },
   props: {
     icon: {
       type: String,
-      default: 'search'
+      default: 'search',
     },
     title: {
       type: String,
-      required: true
+      required: true,
     },
     message: {
       type: String,
-      default: ''
+      default: '',
     },
     actionLabel: {
       type: String,
-      default: ''
+      default: '',
     },
     actionVariant: {
       type: String as PropType<ColorVariant>,
-      default: 'primary' as ColorVariant
-    }
+      default: 'primary' as ColorVariant,
+    },
   },
-  emits: ['action']
+  emits: ['action'],
 });
 </script>
 

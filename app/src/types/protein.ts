@@ -188,9 +188,7 @@ export const PATHOGENICITY_SEVERITY: PathogenicityClass[] = [
  * @param variants - Array of processed variants
  * @returns Array of aggregated variants grouped by position
  */
-export function aggregateVariantsByPosition(
-  variants: ProcessedVariant[]
-): AggregatedVariant[] {
+export function aggregateVariantsByPosition(variants: ProcessedVariant[]): AggregatedVariant[] {
   const positionMap = new Map<number, ProcessedVariant[]>();
 
   // Group by position
@@ -308,8 +306,7 @@ export function normalizeClassification(raw: string): PathogenicityClass {
   if (normalized === 'benign') return 'Benign';
 
   // Partial matches for edge cases
-  if (normalized.includes('pathogenic') && !normalized.includes('likely'))
-    return 'Pathogenic';
+  if (normalized.includes('pathogenic') && !normalized.includes('likely')) return 'Pathogenic';
   if (normalized.includes('likely pathogenic')) return 'Likely pathogenic';
   if (normalized.includes('uncertain') || normalized.includes('vus'))
     return 'Uncertain significance';

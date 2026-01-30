@@ -53,6 +53,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libmariadb-dev \
     # MySQL client runtime library for RMariaDB binary (P3M binaries linked against MySQL)
     libmysqlclient21 \
+    # MySQL client binaries for backup/restore operations (mysqldump, mysql)
+    default-mysql-client \
     # Java for rJava, xlsx
     default-jdk \
     # Sodium for secure hashing

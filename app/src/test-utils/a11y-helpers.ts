@@ -53,9 +53,7 @@ export async function expectNoA11yViolations(
   const config = { ...defaultAxeConfig, ...options };
   const results = await axe(element, config);
   // Type assertion for vitest-axe matcher (extended in vitest.setup.ts)
-  (
-    expect(results) as unknown as { toHaveNoViolations: () => void }
-  ).toHaveNoViolations();
+  (expect(results) as unknown as { toHaveNoViolations: () => void }).toHaveNoViolations();
 }
 
 /**
@@ -66,10 +64,7 @@ export async function expectNoA11yViolations(
  * @param options - Optional axe configuration
  * @returns axe-core results object
  */
-export async function runAxe(
-  element: Element,
-  options?: RunOptions
-): Promise<AxeResults> {
+export async function runAxe(element: Element, options?: RunOptions): Promise<AxeResults> {
   const config = { ...defaultAxeConfig, ...options };
   return axe(element, config);
 }
@@ -90,9 +85,7 @@ export function logViolations(results: AxeResults): void {
   results.violations.forEach((violation, index) => {
     console.log(`\n${index + 1}. ${violation.id}: ${violation.description}`);
     console.log(`   Impact: ${violation.impact}`);
-    console.log(
-      `   WCAG: ${violation.tags.filter((t) => t.startsWith('wcag')).join(', ')}`
-    );
+    console.log(`   WCAG: ${violation.tags.filter((t) => t.startsWith('wcag')).join(', ')}`);
     console.log(`   Help: ${violation.helpUrl}`);
     console.log(`   Affected elements:`);
     violation.nodes.forEach((node) => {

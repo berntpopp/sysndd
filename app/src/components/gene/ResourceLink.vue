@@ -34,9 +34,7 @@
       <div v-if="description" class="resource-link__description">
         {{ description }}
       </div>
-      <div v-if="!isAvailable" class="resource-link__status">
-        No entry
-      </div>
+      <div v-if="!isAvailable" class="resource-link__status">No entry</div>
     </div>
   </component>
 </template>
@@ -74,7 +72,9 @@ const isAvailable = computed(() => props.available && !!props.url);
   border-radius: 0.5rem;
   background: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
   text-decoration: none;
   color: inherit;
   cursor: pointer;
@@ -147,7 +147,9 @@ const isAvailable = computed(() => props.available && !!props.url);
   font-size: 0.75rem;
   text-decoration: none;
   color: #495057;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
   cursor: pointer;
   white-space: nowrap;
 }

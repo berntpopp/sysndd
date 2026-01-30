@@ -184,15 +184,15 @@ log_appender(appender_file(logging_temp_file))
 pool_size <- as.integer(Sys.getenv("DB_POOL_SIZE", "5"))
 
 pool <<- dbPool(
-  drv      = RMariaDB::MariaDB(),
-  dbname   = dw$dbname,
-  host     = dw$host,
-  user     = dw$user,
+  drv = RMariaDB::MariaDB(),
+  dbname = dw$dbname,
+  host = dw$host,
+  user = dw$user,
   password = dw$password,
-  server   = dw$server,
-  port     = dw$port,
-  minSize  = 1,
-  maxSize  = pool_size,
+  server = dw$server,
+  port = dw$port,
+  minSize = 1,
+  maxSize = pool_size,
   idleTimeout = 60,
   validationInterval = 60
 )
@@ -204,44 +204,50 @@ message(sprintf("[%s] Database pool created (minSize=1, maxSize=%d)", Sys.time()
 ## -------------------------------------------------------------------##
 source("functions/migration-runner.R", local = TRUE)
 
-tryCatch({
-  # Checkout connection for lock duration (separate from pool operations)
-  migration_conn <- pool::poolCheckout(pool)
-  on.exit(pool::poolReturn(migration_conn), add = TRUE)
+tryCatch(
+  {
+    # Checkout connection for lock duration (separate from pool operations)
+    migration_conn <- pool::poolCheckout(pool)
+    on.exit(pool::poolReturn(migration_conn), add = TRUE)
 
-  # Acquire advisory lock (blocks until available or 30s timeout)
-  acquire_migration_lock(migration_conn, timeout = 30)
-  on.exit(release_migration_lock(migration_conn), add = TRUE)
+    # Acquire advisory lock (blocks until available or 30s timeout)
+    acquire_migration_lock(migration_conn, timeout = 30)
+    on.exit(release_migration_lock(migration_conn), add = TRUE)
 
-  # Run migrations
-  start_time <- Sys.time()
-  result <- run_migrations(migrations_dir = "db/migrations", conn = pool)
-  duration <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
+    # Run migrations
+    start_time <- Sys.time()
+    result <- run_migrations(migrations_dir = "db/migrations", conn = pool)
+    duration <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
 
-  # Log summary based on what happened
-  if (result$newly_applied > 0) {
-    message(sprintf("[%s] Migrations complete (%d applied in %.2fs): %s",
-                    Sys.time(), result$newly_applied, duration,
-                    paste(result$filenames, collapse = ", ")))
-  } else {
-    message(sprintf("[%s] Schema up to date (%d migrations applied)",
-                    Sys.time(), result$total_applied))
+    # Log summary based on what happened
+    if (result$newly_applied > 0) {
+      message(sprintf(
+        "[%s] Migrations complete (%d applied in %.2fs): %s",
+        Sys.time(), result$newly_applied, duration,
+        paste(result$filenames, collapse = ", ")
+      ))
+    } else {
+      message(sprintf(
+        "[%s] Schema up to date (%d migrations applied)",
+        Sys.time(), result$total_applied
+      ))
+    }
+
+    # Store result for health endpoint access (global variable)
+    migration_status <<- list(
+      pending_migrations = 0,
+      total_migrations = result$total_applied,
+      last_run = Sys.time(),
+      newly_applied = result$newly_applied,
+      filenames = result$filenames
+    )
+  },
+  error = function(e) {
+    message(sprintf("[%s] FATAL: Migration failed - %s", Sys.time(), e$message))
+    # Crash API - forces fix before deploy
+    stop(paste("API startup aborted: migration failure -", e$message))
   }
-
-  # Store result for health endpoint access (global variable)
-  migration_status <<- list(
-    pending_migrations = 0,
-    total_migrations = result$total_applied,
-    last_run = Sys.time(),
-    newly_applied = result$newly_applied,
-    filenames = result$filenames
-  )
-
-}, error = function(e) {
-  message(sprintf("[%s] FATAL: Migration failed - %s", Sys.time(), e$message))
-  # Crash API - forces fix before deploy
-  stop(paste("API startup aborted: migration failure -", e$message))
-})
+)
 
 ## -------------------------------------------------------------------##
 # 8) Define global objects (serializers, allowed arrays, etc.)
@@ -286,8 +292,8 @@ sysndd_api_version <<- version_json$version
 ## -------------------------------------------------------------------##
 cm <- cachem::cache_disk(
   dir      = "/app/cache",
-  max_age  = Inf,           # Never expires (clear volume to invalidate)
-  max_size = 500 * 1024^2   # 500 MB persistent on disk
+  max_age  = Inf, # Never expires (clear volume to invalidate)
+  max_size = 500 * 1024^2 # 500 MB persistent on disk
 )
 
 generate_stat_tibble_mem <<- memoise(generate_stat_tibble, cache = cm)
@@ -304,8 +310,8 @@ nest_pubtator_gene_tibble_mem <<- memoise(nest_pubtator_gene_tibble, cache = cm)
 # 9.5) Initialize mirai daemon pool for async jobs
 ## -------------------------------------------------------------------##
 daemons(
-  n = 2,              # 2 workers (right-sized for 4-core VPS with 8GB RAM)
-  dispatcher = TRUE,  # Enable for variable-length jobs
+  n = 2, # 2 workers (right-sized for 4-core VPS with 8GB RAM)
+  dispatcher = TRUE, # Enable for variable-length jobs
   autoexit = tools::SIGINT
 )
 message(sprintf("[%s] Started mirai daemon pool with 2 workers", Sys.time()))
@@ -356,7 +362,7 @@ everywhere({
 message(sprintf("[%s] Exported packages and functions to mirai daemons", Sys.time()))
 
 # Schedule hourly job cleanup (uses schedule_cleanup from job-manager.R)
-schedule_cleanup(3600)  # 3600 seconds = 1 hour
+schedule_cleanup(3600) # 3600 seconds = 1 hour
 
 ## -------------------------------------------------------------------##
 # 10) Define filters as named functions with roxygen tags
@@ -402,7 +408,7 @@ checkSignInFilter <- function(req, res) {
     req$user_role <- user$user_role
     plumber::forward()
   } else if (req$REQUEST_METHOD == "POST" &&
-               (req$PATH_INFO == "/api/gene/hash" || req$PATH_INFO == "/api/entity/hash")) {
+    (req$PATH_INFO == "/api/gene/hash" || req$PATH_INFO == "/api/entity/hash")) {
     # POST to /api/entity/hash or /api/gene/hash => forward
     plumber::forward()
   } else if (req$REQUEST_METHOD == "POST" &&
@@ -416,7 +422,7 @@ checkSignInFilter <- function(req, res) {
     # (clustering and phenotype_clustering are public, ontology_update requires auth handled internally)
     plumber::forward()
   } else if (req$REQUEST_METHOD == "PUT" &&
-               (req$PATH_INFO == "/api/user/password/reset/request")) {
+    (req$PATH_INFO == "/api/user/password/reset/request")) {
     # PUT to /api/user/password/reset/request
     plumber::forward()
   } else {
@@ -450,7 +456,7 @@ cleanupHook <- function(pr) {
     pr_hook("exit", function() {
       pool::poolClose(pool)
       message("Disconnected from DB")
-      daemons(0)  # Shutdown mirai daemon pool
+      daemons(0) # Shutdown mirai daemon pool
       message("Shutdown mirai daemon pool")
     })
 }
@@ -607,13 +613,16 @@ root <- pr() %>%
 
     # For postBody, extract and sanitize if present
     safe_post_body <- if (!is.null(req$postBody) && nchar(req$postBody) > 0) {
-      tryCatch({
-        body_parsed <- jsonlite::fromJSON(req$postBody, simplifyVector = FALSE)
-        body_sanitized <- sanitize_object(body_parsed)
-        jsonlite::toJSON(body_sanitized, auto_unbox = TRUE)
-      }, error = function(e) {
-        "[PARSE_ERROR]"
-      })
+      tryCatch(
+        {
+          body_parsed <- jsonlite::fromJSON(req$postBody, simplifyVector = FALSE)
+          body_sanitized <- sanitize_object(body_parsed)
+          jsonlite::toJSON(body_sanitized, auto_unbox = TRUE)
+        },
+        error = function(e) {
+          "[PARSE_ERROR]"
+        }
+      )
     } else {
       convert_empty(req$postBody)
     }

@@ -2,12 +2,7 @@
 <template>
   <BContainer fluid>
     <!-- User Interface controls -->
-    <BCard
-      header-tag="header"
-      body-class="p-0"
-      header-class="p-1"
-      border-variant="dark"
-    >
+    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
           <h6 class="mb-1 text-start font-weight-bold">
@@ -17,38 +12,24 @@
             >
               Upset plot
             </mark>
-            showing the overlap between different selected curation efforts for
-            neurodevelopmental disorders.
-            <BBadge
-              id="popover-badge-help-upset"
-              pill
-              href="#"
-              variant="info"
-            >
+            showing the overlap between different selected curation efforts for neurodevelopmental
+            disorders.
+            <BBadge id="popover-badge-help-upset" pill href="#" variant="info">
               <i class="bi bi-question-circle-fill" />
             </BBadge>
-            <BPopover
-              target="popover-badge-help-upset"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Comparisons of Curation Efforts
-              </template>
+            <BPopover target="popover-badge-help-upset" variant="info" triggers="focus">
+              <template #title> Comparisons of Curation Efforts </template>
               The Upset plot visualizes the overlaps between various curation efforts including:
-              <br>
-              <strong>1) SysNDD</strong>: This curation effort<br>
-              <strong>2) Radboudumc ID</strong>: Clinical curation list<br>
-              <strong>3) SFARI</strong>: Autism gene curation effort<br>
-              <strong>4) Gene2Phenotype</strong>: Gene to phenotype  database<br>
-              <strong>5) PanelApp</strong>: Gene panels for genetic disorders<br>
-              <strong>6) Geisinger DBD</strong>: Developmental disorder curation<br>
+              <br />
+              <strong>1) SysNDD</strong>: This curation effort<br />
+              <strong>2) Radboudumc ID</strong>: Clinical curation list<br />
+              <strong>3) SFARI</strong>: Autism gene curation effort<br />
+              <strong>4) Gene2Phenotype</strong>: Gene to phenotype database<br />
+              <strong>5) PanelApp</strong>: Gene panels for genetic disorders<br />
+              <strong>6) Geisinger DBD</strong>: Developmental disorder curation<br />
             </BPopover>
           </h6>
-          <DownloadImageButtons
-            :svg-id="'comparisons-upset-svg'"
-            :file-name="'upset_plot'"
-          />
+          <DownloadImageButtons :svg-id="'comparisons-upset-svg'" :file-name="'upset_plot'" />
         </div>
       </template>
 
@@ -69,26 +50,15 @@
 
       <!-- Content with overlay spinner -->
       <div class="position-relative">
-        <BSpinner
-          v-if="loadingUpset"
-          label="Loading..."
-          class="spinner"
-        />
-        <div
-          v-else
-          id="comparisons-upset-svg"
-          ref="upsetContainer"
-          class="upset-container"
-        />
+        <BSpinner v-if="loadingUpset" label="Loading..." class="spinner" />
+        <div v-else id="comparisons-upset-svg" ref="upsetContainer" class="upset-container" />
       </div>
     </BCard>
   </BContainer>
 </template>
 
 <script>
-import {
-  ref,
-} from 'vue';
+import { ref } from 'vue';
 import useToast from '@/composables/useToast';
 import { render, extractSets } from '@upsetjs/bundle';
 // TODO: vue3-treeselect disabled pending Bootstrap-Vue-Next migration
@@ -110,14 +80,7 @@ export default {
       elems: [
         {
           name: 'AAAS',
-          sets: [
-            'SysNDD',
-            'radboudumc_ID',
-            'sfari',
-            'gene2phenotype',
-            'panelapp',
-            'geisinger_DBD',
-          ],
+          sets: ['SysNDD', 'radboudumc_ID', 'sfari', 'gene2phenotype', 'panelapp', 'geisinger_DBD'],
         },
       ],
       width: 1400,
@@ -209,7 +172,10 @@ export default {
       if (!options || !Array.isArray(options)) return [];
       return options.map((opt) => {
         if (typeof opt === 'object' && opt !== null) {
-          return { value: opt.list || opt.id || opt.value, text: opt.list || opt.label || opt.text || opt.id };
+          return {
+            value: opt.list || opt.id || opt.value,
+            text: opt.list || opt.label || opt.text || opt.id,
+          };
         }
         return { value: opt, text: opt };
       });

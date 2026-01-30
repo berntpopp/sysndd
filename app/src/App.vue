@@ -2,22 +2,13 @@
   <BApp>
     <div id="app">
       <SkipLink />
-      <div
-        id="navbar"
-      >
+      <div id="navbar">
         <AppNavbar />
       </div>
-      <main
-        id="main"
-        ref="scroll"
-        class="content-style scrollable-content"
-        tabindex="-1"
-      >
+      <main id="main" ref="scroll" class="content-style scrollable-content" tabindex="-1">
         <router-view :key="$route.fullPath" />
       </main>
-      <div
-        id="footer"
-      >
+      <div id="footer">
         <AppFooter @show-disclaimer="disclaimerDialogVisible = true" />
       </div>
 
@@ -59,7 +50,8 @@ export default {
   setup() {
     useHead({
       title: 'SysNDD',
-      titleTemplate: '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
+      titleTemplate:
+        '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
       htmlAttrs: {
         lang: 'en',
       },
@@ -121,7 +113,7 @@ export default {
 </script>
 
 <style lang="scss">
-@use "@/assets/scss/custom.scss" as custom;
+@use '@/assets/scss/custom.scss' as custom;
 
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;

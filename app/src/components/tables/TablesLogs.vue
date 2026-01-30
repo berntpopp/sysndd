@@ -1,27 +1,12 @@
 <!-- src/components/tables/TablesLogs.vue -->
 <template>
   <div class="container-fluid">
-    <BSpinner
-      v-if="loading"
-      label="Loading..."
-      class="float-center m-5"
-    />
-    <BContainer
-      v-else
-      fluid
-    >
+    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
+    <BContainer v-else fluid>
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="12"
-        >
+        <BCol col md="12">
           <!-- User Interface controls -->
-          <BCard
-            header-tag="header"
-            body-class="p-0"
-            header-class="p-1"
-            border-variant="dark"
-          >
+          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
             <template #header>
               <BRow>
                 <BCol>
@@ -32,10 +17,7 @@
                   />
                 </BCol>
                 <BCol>
-                  <h5
-                    v-if="showFilterControls"
-                    class="mb-1 text-end font-weight-bold"
-                  >
+                  <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
                     <TableDownloadLinkCopyButtons
                       :downloading="downloading"
                       :remove-filters-title="removeFiltersButtonTitle"
@@ -50,10 +32,7 @@
             </template>
 
             <BRow>
-              <BCol
-                class="my-1"
-                sm="8"
-              >
+              <BCol class="my-1" sm="8">
                 <TableSearchInput
                   v-model="filter['any'].content"
                   :placeholder="'Search any field by typing here'"
@@ -62,10 +41,7 @@
                 />
               </BCol>
 
-              <BCol
-                class="my-1"
-                sm="4"
-              >
+              <BCol class="my-1" sm="4">
                 <BContainer v-if="totalRows > perPage || showPaginationControls">
                   <TablePaginationControls
                     :total-rows="totalRows"
@@ -152,12 +128,7 @@
                     <i class="bi bi-x" />
                   </BButton>
                 </BBadge>
-                <BButton
-                  size="sm"
-                  variant="link"
-                  class="p-0"
-                  @click="removeFilters"
-                >
+                <BButton size="sm" variant="link" class="p-0" @click="removeFilters">
                   Clear all
                 </BButton>
               </BCol>
@@ -183,14 +154,8 @@
               @update-sort="handleSortUpdate"
             >
               <!-- Custom filter fields slot -->
-              <template
-                v-if="showFilterControls"
-                #filter-controls
-              >
-                <td
-                  v-for="field in fields"
-                  :key="field.key"
-                >
+              <template v-if="showFilterControls" #filter-controls>
+                <td v-for="field in fields" :key="field.key">
                   <BFormInput
                     v-if="field.filterable"
                     v-model="filter[field.key].content"
@@ -219,7 +184,11 @@
 
                   <!-- TODO: treeselect disabled pending Bootstrap-Vue-Next migration -->
                   <label
-                    v-if="field.multi_selectable && field.selectOptions && field.selectOptions.length > 0"
+                    v-if="
+                      field.multi_selectable &&
+                      field.selectOptions &&
+                      field.selectOptions.length > 0
+                    "
                     :for="'select_' + field.key"
                     :aria-label="field.label"
                   >
@@ -228,7 +197,10 @@
                       v-model="filter[field.key].content"
                       :options="normalizeSelectOptions(field.selectOptions)"
                       size="sm"
-                      @change="removeSearch();filtered();"
+                      @change="
+                        removeSearch();
+                        filtered();
+                      "
                     >
                       <template #first>
                         <BFormSelectOption :value="null">
@@ -242,10 +214,7 @@
               <!-- Custom filter fields slot -->
 
               <template #cell-id="{ row }">
-                <div
-                  style="cursor: pointer"
-                  @click="handleRowClick(row)"
-                >
+                <div style="cursor: pointer" @click="handleRowClick(row)">
                   <BBadge variant="primary">
                     {{ row.id }}
                   </BBadge>
@@ -253,15 +222,8 @@
               </template>
 
               <template #cell-agent="{ row }">
-                <div
-                  v-b-tooltip.hover.top
-                  class="overflow-hidden text-truncate"
-                  :title="row.agent"
-                >
-                  <BBadge
-                    pill
-                    variant="info"
-                  >
+                <div v-b-tooltip.hover.top class="overflow-hidden text-truncate" :title="row.agent">
+                  <BBadge pill variant="info">
                     {{ truncate(row.agent, 50) }}
                   </BBadge>
                 </div>
@@ -283,7 +245,7 @@
                 <div
                   v-b-tooltip.hover.top
                   class="overflow-hidden text-truncate font-monospace small"
-                  style="max-width: 200px;"
+                  style="max-width: 200px"
                   :title="row.path + (row.query ? row.query : '')"
                 >
                   {{ row.path }}
@@ -305,19 +267,13 @@
               </template>
 
               <template #cell-timestamp="{ row }">
-                <div
-                  v-b-tooltip.hover.top
-                  :title="formatAbsoluteTime(row.timestamp)"
-                >
+                <div v-b-tooltip.hover.top :title="formatAbsoluteTime(row.timestamp)">
                   {{ formatRelativeTime(row.timestamp) }}
                 </div>
               </template>
 
               <template #cell-modified="{ row }">
-                <div
-                  v-b-tooltip.hover.top
-                  :title="formatAbsoluteTime(row.modified)"
-                >
+                <div v-b-tooltip.hover.top :title="formatAbsoluteTime(row.modified)">
                   {{ formatRelativeTime(row.modified) }}
                 </div>
               </template>
@@ -379,9 +335,7 @@
           <span v-if="deleteMode === 'all'">
             This will permanently delete all {{ totalRows.toLocaleString() }} log entries.
           </span>
-          <span v-else>
-            This will permanently delete logs older than {{ deleteMode }} days.
-          </span>
+          <span v-else> This will permanently delete logs older than {{ deleteMode }} days. </span>
         </p>
         <p class="text-center text-muted small">
           This action cannot be undone. Type <code>DELETE</code> to confirm.
@@ -390,19 +344,23 @@
           v-model="deleteConfirmText"
           placeholder="Type DELETE to confirm"
           class="text-center"
-          :state="deleteConfirmText === 'DELETE' ? true : (deleteConfirmText ? false : null)"
+          :state="deleteConfirmText === 'DELETE' ? true : deleteConfirmText ? false : null"
         />
         <template #footer>
-          <BButton variant="secondary" @click="showDeleteModal = false">
-            Cancel
-          </BButton>
+          <BButton variant="secondary" @click="showDeleteModal = false"> Cancel </BButton>
           <BButton
             variant="danger"
             :disabled="deleteConfirmText !== 'DELETE' || isDeleting"
             @click="deleteLogs"
           >
             <BSpinner v-if="isDeleting" small class="me-1" />
-            {{ isDeleting ? 'Deleting...' : (deleteMode === 'all' ? 'Delete All Logs' : `Delete Old Logs`) }}
+            {{
+              isDeleting
+                ? 'Deleting...'
+                : deleteMode === 'all'
+                  ? 'Delete All Logs'
+                  : `Delete Old Logs`
+            }}
           </BButton>
         </template>
       </BModal>
@@ -467,7 +425,8 @@ export default {
     pageSizeInput: { type: Number, default: 10 },
     fspecInput: {
       type: String,
-      default: 'id,timestamp,address,agent,host,request_method,path,query,post,status,duration,file,modified',
+      default:
+        'id,timestamp,address,agent,host,request_method,path,query,post,status,duration,file,modified',
     },
   },
   setup(props) {
@@ -518,7 +477,15 @@ export default {
 
     // Destructure to exclude methods that are overridden in the component's methods section
     // This matches the pattern used in TablesEntities for proper method overriding
-    const { filtered: _filtered, handlePageChange: _handlePageChange, handlePerPageChange: _handlePerPageChange, handleSortByOrDescChange: _handleSortByOrDescChange, removeFilters: _removeFilters, removeSearch: _removeSearch, ...restTableMethods } = tableMethods;
+    const {
+      filtered: _filtered,
+      handlePageChange: _handlePageChange,
+      handlePerPageChange: _handlePerPageChange,
+      handleSortByOrDescChange: _handleSortByOrDescChange,
+      removeFilters: _removeFilters,
+      removeSearch: _removeSearch,
+      ...restTableMethods
+    } = tableMethods;
 
     // Return all needed properties
     return {
@@ -557,14 +524,44 @@ export default {
       selectedLogIndex: -1,
       // Field definitions - NOT overwritten by API
       fields: [
-        { key: 'id', label: 'ID', sortable: true, class: 'text-center', thStyle: { width: '80px' } },
+        {
+          key: 'id',
+          label: 'ID',
+          sortable: true,
+          class: 'text-center',
+          thStyle: { width: '80px' },
+        },
         { key: 'timestamp', label: 'Time', sortable: true, thStyle: { width: '120px' } },
-        { key: 'request_method', label: 'Method', sortable: true, class: 'text-center', thStyle: { width: '90px' } },
-        { key: 'status', label: 'Status', sortable: true, class: 'text-center', thStyle: { width: '80px' } },
+        {
+          key: 'request_method',
+          label: 'Method',
+          sortable: true,
+          class: 'text-center',
+          thStyle: { width: '90px' },
+        },
+        {
+          key: 'status',
+          label: 'Status',
+          sortable: true,
+          class: 'text-center',
+          thStyle: { width: '80px' },
+        },
         { key: 'path', label: 'Path', sortable: true },
-        { key: 'duration', label: 'Duration', sortable: true, class: 'text-end', thStyle: { width: '90px' } },
+        {
+          key: 'duration',
+          label: 'Duration',
+          sortable: true,
+          class: 'text-end',
+          thStyle: { width: '90px' },
+        },
         { key: 'address', label: 'IP', sortable: true, thStyle: { width: '120px' } },
-        { key: 'actions', label: '', sortable: false, class: 'text-center', thStyle: { width: '60px' } },
+        {
+          key: 'actions',
+          label: '',
+          sortable: false,
+          class: 'text-center',
+          thStyle: { width: '60px' },
+        },
       ],
       fields_details: [],
       // Status filter options
@@ -593,9 +590,7 @@ export default {
       return this.selectedLogIndex < this.items.length - 1;
     },
     hasActiveFilters() {
-      return Object.values(this.filter).some(
-        (f) => f.content !== null && f.content !== '',
-      );
+      return Object.values(this.filter).some((f) => f.content !== null && f.content !== '');
     },
     activeFilters() {
       const filters = [];
@@ -606,7 +601,11 @@ export default {
         filters.push({ key: 'user', label: 'User', value: this.filter.user.content });
       }
       if (this.filter.request_method.content) {
-        filters.push({ key: 'request_method', label: 'Method', value: this.filter.request_method.content });
+        filters.push({
+          key: 'request_method',
+          label: 'Method',
+          value: this.filter.request_method.content,
+        });
       }
       if (this.filter.status.content) {
         filters.push({ key: 'status', label: 'Status', value: this.filter.status.content });
@@ -716,12 +715,9 @@ export default {
     // Load user list for filter dropdown
     async loadUserList() {
       try {
-        const response = await this.axios.get(
-          `${import.meta.env.VITE_API_URL}/api/user/list`,
-          {
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-          },
-        );
+        const response = await this.axios.get(`${import.meta.env.VITE_API_URL}/api/user/list`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        });
         this.user_options = response.data.map((item) => ({
           value: item.user_name,
           text: `${item.user_name} (${item.user_role})`,
@@ -747,7 +743,7 @@ export default {
 
       // Prevent duplicate API calls using module-level tracking
       // This works across component remounts caused by router.replace()
-      if (moduleLastApiParams === urlParam && (now - moduleLastApiCallTime) < 500) {
+      if (moduleLastApiParams === urlParam && now - moduleLastApiCallTime < 500) {
         // Use cached response data for remounted component
         if (moduleLastApiResponse) {
           this.applyApiResponse(moduleLastApiResponse);
@@ -920,9 +916,8 @@ export default {
 
       // Warn if large export
       if (this.totalRows > 30000) {
-         
         const proceed = confirm(
-          `This export contains ${this.totalRows.toLocaleString()} rows and may take a while. Continue?`,
+          `This export contains ${this.totalRows.toLocaleString()} rows and may take a while. Continue?`
         );
         if (!proceed) {
           this.downloading = false;
@@ -974,7 +969,11 @@ export default {
     },
     formatDate(dateStr) {
       const options = {
-        year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
       };
       return new Date(dateStr).toLocaleDateString(undefined, options);
     },
@@ -1069,9 +1068,10 @@ export default {
         });
 
         const deletedCount = response.data.deleted_count || 0;
-        const message = this.deleteMode === 'all'
-          ? `Successfully deleted ${deletedCount.toLocaleString()} log entries`
-          : `Successfully deleted ${deletedCount.toLocaleString()} log entries older than ${this.deleteMode} days`;
+        const message =
+          this.deleteMode === 'all'
+            ? `Successfully deleted ${deletedCount.toLocaleString()} log entries`
+            : `Successfully deleted ${deletedCount.toLocaleString()} log entries older than ${this.deleteMode} days`;
 
         this.makeToast(message, 'Logs Deleted', 'success');
         this.showDeleteModal = false;
@@ -1118,10 +1118,10 @@ export default {
 
 /* Treeselect placeholder styles (legacy) */
 :deep(.vue-treeselect__placeholder) {
-  color: #6C757D !important;
+  color: #6c757d !important;
 }
 :deep(.vue-treeselect__control) {
-  color: #6C757D !important;
+  color: #6c757d !important;
 }
 
 /* Row hover effect for clickable rows */

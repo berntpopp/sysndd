@@ -16,11 +16,7 @@ import type { AxiosResponse } from 'axios';
 import URLS from '@/assets/js/constants/url_constants';
 
 // Import API response types
-import type {
-  StatisticsResponse,
-  NewsResponse,
-  SearchResponse,
-} from '@/types/api';
+import type { StatisticsResponse, NewsResponse, SearchResponse } from '@/types/api';
 
 /**
  * API Service class for making typed API requests

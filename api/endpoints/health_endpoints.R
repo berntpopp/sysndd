@@ -48,20 +48,23 @@ function(req, res) {
   timestamp <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
 
   # Check database connectivity with simple ping query
-  db_ok <- tryCatch({
-    result <- db_execute_query("SELECT 1 AS ok")
-    !is.null(result) && nrow(result) == 1 && result$ok[1] == 1
-  }, error = function(e) {
-    log_warn("Health check database ping failed: {e$message}")
-    FALSE
-  })
+  db_ok <- tryCatch(
+    {
+      result <- db_execute_query("SELECT 1 AS ok")
+      !is.null(result) && nrow(result) == 1 && result$ok[1] == 1
+    },
+    error = function(e) {
+      log_warn("Health check database ping failed: {e$message}")
+      FALSE
+    }
+  )
 
   # Check migration status (variable set during API startup)
   migrations_ok <- FALSE
   migration_info <- list(pending = NA, applied = NA)
 
   if (exists("migration_status", where = .GlobalEnv) &&
-      !is.null(.GlobalEnv$migration_status)) {
+    !is.null(.GlobalEnv$migration_status)) {
     status <- .GlobalEnv$migration_status
     pending <- status$pending_migrations
     migrations_ok <- !is.null(pending) && pending == 0
@@ -72,22 +75,25 @@ function(req, res) {
   }
 
   # Get pool statistics
-  pool_stats <- tryCatch({
-    # pool package stores counters internally
-    # Use pool's internal state to get connection counts
-    checkout_count <- pool$counters$free + pool$counters$taken
-    list(
-      max_size = as.integer(Sys.getenv("DB_POOL_SIZE", "5")),
-      active = pool$counters$taken,
-      idle = pool$counters$free,
-      total = checkout_count
-    )
-  }, error = function(e) {
-    list(
-      max_size = as.integer(Sys.getenv("DB_POOL_SIZE", "5")),
-      error = "Unable to read pool statistics"
-    )
-  })
+  pool_stats <- tryCatch(
+    {
+      # pool package stores counters internally
+      # Use pool's internal state to get connection counts
+      checkout_count <- pool$counters$free + pool$counters$taken
+      list(
+        max_size = as.integer(Sys.getenv("DB_POOL_SIZE", "5")),
+        active = pool$counters$taken,
+        idle = pool$counters$free,
+        total = checkout_count
+      )
+    },
+    error = function(e) {
+      list(
+        max_size = as.integer(Sys.getenv("DB_POOL_SIZE", "5")),
+        error = "Unable to read pool statistics"
+      )
+    }
+  )
 
   # Determine overall health
   if (db_ok && migrations_ok) {
@@ -137,68 +143,77 @@ function(req, res) {
 #* @get /health/performance
 function() {
   # Check worker pool status via mirai
-  worker_status <- tryCatch({
-    status <- mirai::status()
-    list(
-      total_workers = 8,
-      connections = length(status$connections),
-      # Dispatcher handles task distribution
-      dispatcher_active = TRUE
-    )
-  }, error = function(e) {
-    list(
-      total_workers = 8,
-      connections = 0,
-      dispatcher_active = FALSE,
-      error = e$message
-    )
-  })
+  worker_status <- tryCatch(
+    {
+      status <- mirai::status()
+      list(
+        total_workers = 8,
+        connections = length(status$connections),
+        # Dispatcher handles task distribution
+        dispatcher_active = TRUE
+      )
+    },
+    error = function(e) {
+      list(
+        total_workers = 8,
+        connections = 0,
+        dispatcher_active = FALSE,
+        error = e$message
+      )
+    }
+  )
 
   # Check cache statistics
-  cache_stats <- tryCatch({
-    cache_files <- list.files("results/", pattern = "\\.json$", full.names = TRUE)
-    if (length(cache_files) > 0) {
-      file_info <- file.info(cache_files)
-      total_size_mb <- sum(file_info$size, na.rm = TRUE) / (1024^2)
-      oldest_file <- min(file_info$mtime, na.rm = TRUE)
-      newest_file <- max(file_info$mtime, na.rm = TRUE)
-    } else {
-      total_size_mb <- 0
-      oldest_file <- NA
-      newest_file <- NA
-    }
+  cache_stats <- tryCatch(
+    {
+      cache_files <- list.files("results/", pattern = "\\.json$", full.names = TRUE)
+      if (length(cache_files) > 0) {
+        file_info <- file.info(cache_files)
+        total_size_mb <- sum(file_info$size, na.rm = TRUE) / (1024^2)
+        oldest_file <- min(file_info$mtime, na.rm = TRUE)
+        newest_file <- max(file_info$mtime, na.rm = TRUE)
+      } else {
+        total_size_mb <- 0
+        oldest_file <- NA
+        newest_file <- NA
+      }
 
-    list(
-      file_count = length(cache_files),
-      total_size_mb = round(total_size_mb, 2),
-      oldest_cache = as.character(oldest_file),
-      newest_cache = as.character(newest_file)
-    )
-  }, error = function(e) {
-    list(
-      file_count = 0,
-      total_size_mb = 0,
-      error = e$message
-    )
-  })
+      list(
+        file_count = length(cache_files),
+        total_size_mb = round(total_size_mb, 2),
+        oldest_cache = as.character(oldest_file),
+        newest_cache = as.character(newest_file)
+      )
+    },
+    error = function(e) {
+      list(
+        file_count = 0,
+        total_size_mb = 0,
+        error = e$message
+      )
+    }
+  )
 
   # Check for versioned cache files (from Plan 01)
-  versioned_cache <- tryCatch({
-    all_files <- list.files("results/", pattern = "\\.json$")
-    leiden_files <- grep("leiden", all_files, value = TRUE)
-    walktrap_files <- grep("walktrap", all_files, value = TRUE)
-    mca_files <- grep("mca\\.cache_v", all_files, value = TRUE)
+  versioned_cache <- tryCatch(
+    {
+      all_files <- list.files("results/", pattern = "\\.json$")
+      leiden_files <- grep("leiden", all_files, value = TRUE)
+      walktrap_files <- grep("walktrap", all_files, value = TRUE)
+      mca_files <- grep("mca\\.cache_v", all_files, value = TRUE)
 
-    list(
-      leiden_cache_files = length(leiden_files),
-      walktrap_cache_files = length(walktrap_files),
-      mca_versioned_files = length(mca_files),
-      # If walktrap files exist but no leiden, may indicate old cache
-      cache_migration_needed = length(walktrap_files) > 0 && length(leiden_files) == 0
-    )
-  }, error = function(e) {
-    list(error = e$message)
-  })
+      list(
+        leiden_cache_files = length(leiden_files),
+        walktrap_cache_files = length(walktrap_files),
+        mca_versioned_files = length(mca_files),
+        # If walktrap files exist but no leiden, may indicate old cache
+        cache_migration_needed = length(walktrap_files) > 0 && length(leiden_files) == 0
+      )
+    },
+    error = function(e) {
+      list(error = e$message)
+    }
+  )
 
   # Build response
   list(

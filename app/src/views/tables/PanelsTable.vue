@@ -1,40 +1,18 @@
 <template>
   <div class="container-fluid">
-    <BSpinner
-      v-if="loading"
-      label="Loading..."
-      class="float-center m-5"
-    />
-    <BContainer
-      v-else
-      fluid
-    >
+    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
+    <BContainer v-else fluid>
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="12"
-        >
+        <BCol col md="12">
           <!-- User Interface controls -->
-          <BCard
-            header-tag="header"
-            body-class="p-0"
-            header-class="p-1"
-            border-variant="dark"
-          >
+          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
             <template #header>
               <h6 class="mb-1 text-start font-weight-bold">
                 Panel compilation and download
                 <BBadge
                   v-b-tooltip.hover.bottom
                   variant="primary"
-                  :title="
-                    'Loaded ' +
-                      perPage +
-                      '/' +
-                      totalRows +
-                      ' in ' +
-                      executionTime
-                  "
+                  :title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
                 >
                   Genes: {{ totalRows }}
                 </BBadge>
@@ -49,34 +27,20 @@
                   <i class="bi bi-question-circle-fill" />
                 </BBadge>
 
-                <BPopover
-                  target="popover-badge-help-comparisons"
-                  variant="info"
-                  triggers="focus"
-                >
-                  <template #title>
-                    Gene categories
-                  </template>
-                  A gene is assigned to the highest category of all entities it
-                  is associated with. <br>
-                  E.g. if there are two entities for a gene with "Definitive"
-                  and "Limited" category, respectively, the gene is assigned to
-                  the Definitive panel.
+                <BPopover target="popover-badge-help-comparisons" variant="info" triggers="focus">
+                  <template #title> Gene categories </template>
+                  A gene is assigned to the highest category of all entities it is associated with.
+                  <br />
+                  E.g. if there are two entities for a gene with "Definitive" and "Limited"
+                  category, respectively, the gene is assigned to the Definitive panel.
                 </BPopover>
               </h6>
             </template>
 
             <BRow>
               <!-- column 1 -->
-              <BCol
-                class="my-1"
-                sm="6"
-              >
-                <BInputGroup
-                  prepend="Category"
-                  class="mb-1"
-                  size="sm"
-                >
+              <BCol class="my-1" sm="6">
+                <BInputGroup prepend="Category" class="mb-1" size="sm">
                   <BFormSelect
                     v-model="selected_category"
                     input-id="category-select"
@@ -87,11 +51,7 @@
                   />
                 </BInputGroup>
 
-                <BInputGroup
-                  prepend="Inheritance"
-                  class="mb-1"
-                  size="sm"
-                >
+                <BInputGroup prepend="Inheritance" class="mb-1" size="sm">
                   <BFormSelect
                     v-model="selected_inheritance"
                     input-id="inheritance-select"
@@ -104,15 +64,8 @@
               </BCol>
 
               <!-- column 2 -->
-              <BCol
-                class="my-1"
-                sm="6"
-              >
-                <BInputGroup
-                  prepend="Columns"
-                  class="mb-1"
-                  size="sm"
-                >
+              <BCol class="my-1" sm="6">
+                <BInputGroup prepend="Columns" class="mb-1" size="sm">
                   <BFormSelect
                     v-model="selected_columns"
                     input-id="columns-select"
@@ -127,15 +80,8 @@
               </BCol>
 
               <!-- column 3 -->
-              <BCol
-                class="my-1"
-                sm="6"
-              >
-                <BInputGroup
-                  prepend="Sort"
-                  class="mb-1"
-                  size="sm"
-                >
+              <BCol class="my-1" sm="6">
+                <BInputGroup prepend="Sort" class="mb-1" size="sm">
                   <BFormSelect
                     v-model="sortBy"
                     input-id="sort-select"
@@ -146,34 +92,17 @@
                   />
                 </BInputGroup>
 
-                <BButton
-                  block
-                  size="sm"
-                  @click="requestExcel"
-                >
+                <BButton block size="sm" @click="requestExcel">
                   <i class="bi bi-table mx-1" />
-                  <i
-                    v-if="!downloading"
-                    class="bi bi-download"
-                  />
-                  <BSpinner
-                    v-if="downloading"
-                    small
-                  />
+                  <i v-if="!downloading" class="bi bi-download" />
+                  <BSpinner v-if="downloading" small />
                   .xlsx
                 </BButton>
               </BCol>
 
               <!-- column 4 -->
-              <BCol
-                class="my-1"
-                sm="6"
-              >
-                <BInputGroup
-                  prepend="Per page"
-                  class="mb-1"
-                  size="sm"
-                >
+              <BCol class="my-1" sm="6">
+                <BInputGroup prepend="Per page" class="mb-1" size="sm">
                   <BFormSelect
                     id="per-page-select"
                     :model-value="perPage"
@@ -419,17 +348,12 @@ export default {
       }
     },
     filtered() {
-      const filter_string_not_empty = Object.filter(
-        this.filter,
-        (value) => value !== '',
-      );
+      const filter_string_not_empty = Object.filter(this.filter, (value) => value !== '');
 
       if (Object.keys(filter_string_not_empty).length !== 0) {
-        this.filter_string = `contains(${
-          Object.keys(filter_string_not_empty)
-            .map((key) => [key, this.filter[key]].join(','))
-            .join('),contains(')
-        })`;
+        this.filter_string = `contains(${Object.keys(filter_string_not_empty)
+          .map((key) => [key, this.filter[key]].join(','))
+          .join('),contains(')})`;
         this.requestSelected();
       } else {
         this.filter_string = '';
@@ -478,21 +402,15 @@ export default {
       const sortColumn = this.sortBy.length > 0 ? this.sortBy[0].key : 'symbol';
       const sortOrder = this.sortBy.length > 0 ? this.sortBy[0].order : 'asc';
 
-      const apiUrl = `${import.meta.env.VITE_API_URL
-      }/api/panels/browse?sort=${
-        sortOrder === 'desc' ? '-' : '+'
-      }${sortColumn
-      }&filter=any(category,${
-        this.selected_category
-      }),any(inheritance_filter,${
-        this.selected_inheritance
-      })`
-        + `&fields=${
-          this.selected_columns.join()
-        }&page_after=${
-          this.currentItemID
-        }&page_size=${
-          this.perPage}`;
+      const apiUrl =
+        `${import.meta.env.VITE_API_URL}/api/panels/browse?sort=${
+          sortOrder === 'desc' ? '-' : '+'
+        }${sortColumn}&filter=any(category,${this.selected_category}),any(inheritance_filter,${
+          this.selected_inheritance
+        })` +
+        `&fields=${this.selected_columns.join()}&page_after=${this.currentItemID}&page_size=${
+          this.perPage
+        }`;
 
       try {
         const response = await this.axios.get(apiUrl);
@@ -530,22 +448,16 @@ export default {
       const sortColumn = this.sortBy.length > 0 ? this.sortBy[0].key : 'symbol';
       const sortOrder = this.sortBy.length > 0 ? this.sortBy[0].order : 'asc';
 
-      const urlParam = `sort=${
-        sortOrder === 'desc' ? '-' : '+'
-      }${sortColumn
-      }&filter=any(category,${
-        this.selected_category
-      }),any(inheritance_filter,${
-        this.selected_inheritance
-      })&page_after=`
-        + '0'
-        + '&page_size='
-        + 'all'
-        + '&format=xlsx';
+      const urlParam =
+        `sort=${sortOrder === 'desc' ? '-' : '+'}${sortColumn}&filter=any(category,${
+          this.selected_category
+        }),any(inheritance_filter,${this.selected_inheritance})&page_after=` +
+        '0' +
+        '&page_size=' +
+        'all' +
+        '&format=xlsx';
 
-      const apiUrl = `${import.meta.env.VITE_API_URL
-      }/api/panels/browse?${
-        urlParam}`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/panels/browse?${urlParam}`;
 
       try {
         const response = await this.axios({

@@ -141,9 +141,7 @@ describe('FooterNavItem', () => {
       await img.trigger('error');
 
       // Verify fallback image is used
-      expect(img.attributes('src')).toBe(
-        '/brain-neurodevelopmental-disorders-sysndd-logo.png'
-      );
+      expect(img.attributes('src')).toBe('/brain-neurodevelopmental-disorders-sysndd-logo.png');
     });
   });
 

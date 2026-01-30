@@ -2,10 +2,7 @@
   <div class="container-fluid centered">
     <BContainer>
       <BRow class="justify-content-md-center py-4">
-        <BCol
-          md="6"
-          align-self="center"
-        >
+        <BCol md="6" align-self="center">
           <h1>404</h1>
           <h2>Page Not Found</h2>
         </BCol>

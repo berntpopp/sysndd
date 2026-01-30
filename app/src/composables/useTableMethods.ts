@@ -56,7 +56,10 @@ interface TableMethods {
   handleSortByUpdate: (newSortBy: Array<{ key: string; order: 'asc' | 'desc' }>) => void;
 }
 
-export default function useTableMethods(tableData: TableDataState, options: TableMethodsOptions = {}): TableMethods {
+export default function useTableMethods(
+  tableData: TableDataState,
+  options: TableMethodsOptions = {}
+): TableMethods {
   const { makeToast } = useToast();
 
   /**
@@ -127,16 +130,11 @@ export default function useTableMethods(tableData: TableDataState, options: Tabl
    * Copies the current page URL with query parameters to the clipboard.
    */
   const copyLinkToClipboard = (): void => {
-    const urlParam = `sort=${
-      tableData.sort.value
-    }&filter=${
+    const urlParam = `sort=${tableData.sort.value}&filter=${
       tableData.filter_string.value
-    }&page_after=${
-      tableData.currentItemID.value
-    }&page_size=${
-      tableData.perPage.value}`;
+    }&page_after=${tableData.currentItemID.value}&page_size=${tableData.perPage.value}`;
     navigator.clipboard.writeText(
-      `${import.meta.env.VITE_URL + window.location.pathname}?${urlParam}`,
+      `${import.meta.env.VITE_URL + window.location.pathname}?${urlParam}`
     );
   };
 
@@ -212,7 +210,11 @@ export default function useTableMethods(tableData: TableDataState, options: Tabl
     }
 
     Object.keys(filterValue).forEach((key) => {
-      if (filterValue[key] && typeof filterValue[key] === 'object' && 'content' in filterValue[key]) {
+      if (
+        filterValue[key] &&
+        typeof filterValue[key] === 'object' &&
+        'content' in filterValue[key]
+      ) {
         filterValue[key].content = null;
       }
     });
@@ -285,7 +287,8 @@ export default function useTableMethods(tableData: TableDataState, options: Tabl
    * @param n - Maximum length of the string.
    * @returns Truncated string.
    */
-  const truncate = (str: string, n: number): string => (str.length > n ? `${str.substr(0, n - 1)}...` : str);
+  const truncate = (str: string, n: number): string =>
+    str.length > n ? `${str.substr(0, n - 1)}...` : str;
 
   /**
    * Normalizes a node object for certain UI components.

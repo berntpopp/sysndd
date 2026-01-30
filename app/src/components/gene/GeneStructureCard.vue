@@ -2,9 +2,7 @@
   <BCard class="shadow-sm border-0 mb-3" body-class="p-2" header-class="py-2 px-3">
     <template #header>
       <div class="d-flex justify-content-between align-items-center">
-        <h6 class="mb-0 fw-bold">
-          <i class="bi bi-bar-chart-steps" /> Gene Structure
-        </h6>
+        <h6 class="mb-0 fw-bold"><i class="bi bi-bar-chart-steps" /> Gene Structure</h6>
         <span v-if="renderData" class="text-muted small">
           {{ renderData.exonCount }} exon{{ renderData.exonCount !== 1 ? 's' : '' }}
           &bull;
@@ -20,9 +18,7 @@
 
     <!-- State 2: Error -->
     <div v-else-if="error" class="text-center py-3">
-      <p class="text-muted mb-2 small">
-        <i class="bi bi-exclamation-triangle" /> {{ error }}
-      </p>
+      <p class="text-muted mb-2 small"><i class="bi bi-exclamation-triangle" /> {{ error }}</p>
       <BButton variant="outline-primary" size="sm" @click="fetchEnsemblData">
         <i class="bi bi-arrow-clockwise" /> Retry
       </BButton>
@@ -45,10 +41,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { BCard, BSpinner, BButton } from 'bootstrap-vue-next';
 import axios from 'axios';
 import GeneStructurePlot from './GeneStructurePlot.vue';
-import {
-  processEnsemblResponse,
-  formatGenomicCoordinate,
-} from '@/types/ensembl';
+import { processEnsemblResponse, formatGenomicCoordinate } from '@/types/ensembl';
 import type { EnsemblGeneStructure, GeneStructureRenderData } from '@/types/ensembl';
 
 interface Props {

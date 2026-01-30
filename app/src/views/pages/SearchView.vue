@@ -1,54 +1,34 @@
 <template>
   <div class="container-fluid bg-gradient">
-    <BSpinner
-      v-if="loading"
-      label="Loading..."
-      class="float-center m-5"
-    />
-    <BContainer
-      v-else
-      fluid
-    >
+    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
+    <BContainer v-else fluid>
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="8"
-        >
+        <BCol col md="8">
           <!-- Search results card -->
           <div class="search-results-card my-3">
             <div class="search-results-header">
               <div class="search-results-header__content">
                 <i class="bi bi-search search-results-header__icon" aria-hidden="true" />
                 <div>
-                  <h3 class="search-results-header__title">
-                    Search Results
-                  </h3>
+                  <h3 class="search-results-header__title">Search Results</h3>
                   <p class="search-results-header__subtitle">
                     Top matches for
                     <span class="search-results-header__term">{{ $route.params.search_term }}</span>
-                    <span class="search-results-header__count">&middot; {{ search.length }} results</span>
+                    <span class="search-results-header__count"
+                      >&middot; {{ search.length }} results</span
+                    >
                   </p>
                 </div>
               </div>
             </div>
 
             <div class="search-results-body">
-              <table
-                class="search-results-table"
-                role="table"
-                aria-label="Search results"
-              >
+              <table class="search-results-table" role="table" aria-label="Search results">
                 <thead>
                   <tr>
-                    <th class="search-results-table__th">
-                      Match
-                    </th>
-                    <th class="search-results-table__th">
-                      Type
-                    </th>
-                    <th class="search-results-table__th">
-                      Entity
-                    </th>
+                    <th class="search-results-table__th">Match</th>
+                    <th class="search-results-table__th">Type</th>
+                    <th class="search-results-table__th">Entity</th>
                     <th class="search-results-table__th search-results-table__th--relevance">
                       Relevance
                     </th>
@@ -62,11 +42,7 @@
                     @click="navigateTo(item.link)"
                   >
                     <td class="search-results-table__td">
-                      <BLink
-                        :href="item.link"
-                        class="search-results-table__match-link"
-                        @click.stop
-                      >
+                      <BLink :href="item.link" class="search-results-table__match-link" @click.stop>
                         <BBadge
                           :variant="result_variant[item.search]"
                           class="search-results-table__match-badge"
@@ -95,7 +71,12 @@
                     <td class="search-results-table__td search-results-table__td--relevance">
                       <div
                         class="relevance-indicator-wrapper"
-                        :data-score="'Score: ' + (1 - item.searchdist).toFixed(2) + ' · Distance: ' + item.searchdist"
+                        :data-score="
+                          'Score: ' +
+                          (1 - item.searchdist).toFixed(2) +
+                          ' · Distance: ' +
+                          item.searchdist
+                        "
                       >
                         <div class="relevance-indicator">
                           <div
@@ -172,14 +153,13 @@ export default {
       },
       // fetch the data when the view is created and the data is
       // already being observed
-      { immediate: true },
+      { immediate: true }
     );
   },
   methods: {
     async loadSearchInfo() {
       this.loading = true;
-      const apiSearchURL = `${import.meta.env.VITE_API_URL
-      }/api/search/${
+      const apiSearchURL = `${import.meta.env.VITE_API_URL}/api/search/${
         this.$route.params.search_term
       }?helper=false`;
       try {
@@ -243,7 +223,9 @@ export default {
 .search-results-card {
   background: #fff;
   border-radius: 0.75rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.04);
   overflow: hidden;
   border: 1px solid var(--neutral-200, #eeeeee);
 }
@@ -318,10 +300,18 @@ export default {
 }
 
 /* Column widths */
-.search-results-table__th:nth-child(1) { width: 30%; }     /* Match */
-.search-results-table__th:nth-child(2) { width: 20%; }     /* Type */
-.search-results-table__th:nth-child(3) { width: 22%; }     /* Entity */
-.search-results-table__th--relevance { width: 28%; }        /* Relevance */
+.search-results-table__th:nth-child(1) {
+  width: 30%;
+} /* Match */
+.search-results-table__th:nth-child(2) {
+  width: 20%;
+} /* Type */
+.search-results-table__th:nth-child(3) {
+  width: 22%;
+} /* Entity */
+.search-results-table__th--relevance {
+  width: 28%;
+} /* Relevance */
 
 .search-results-table__row {
   cursor: pointer;
@@ -363,7 +353,9 @@ export default {
   font-weight: 600;
   padding: 0.2rem 0.5rem;
   border-radius: 0.375rem;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;

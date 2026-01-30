@@ -1,17 +1,8 @@
 <!-- src/components/AppNavbar.vue -->
 <template>
   <div>
-    <BNavbar
-      toggleable="lg"
-      type="dark"
-      variant="dark"
-      fixed="top"
-      class="py-0 bg-navbar"
-    >
-      <BNavbarBrand
-        to="/"
-        class="py-0"
-      >
+    <BNavbar toggleable="lg" type="dark" variant="dark" fixed="top" class="py-0 bg-navbar">
+      <BNavbarBrand to="/" class="py-0">
         <div class="brand-container">
           <img
             src="/SysNDD_brain-dna-magnifying-glass_dall-e_logo.webp"
@@ -20,24 +11,17 @@
             alt="SysNDD Logo"
             rel="preload"
             class="app-logo"
-          >
+          />
           <div class="brand-text">
-            <div class="app-name">
-              SysNDD
-            </div>
-            <div class="version-display">
-              v{{ appVersion }}
-            </div>
+            <div class="app-name">SysNDD</div>
+            <div class="version-display">v{{ appVersion }}</div>
           </div>
         </div>
       </BNavbarBrand>
 
       <BNavbarToggle target="nav-collapse" />
 
-      <BCollapse
-        id="nav-collapse"
-        is-nav
-      >
+      <BCollapse id="nav-collapse" is-nav>
         <!-- Left aligned nav items -->
         <BNavbarNav>
           <IconPairDropdownMenu
@@ -52,22 +36,13 @@
         <!-- Left aligned nav items -->
 
         <!-- Center aligned search bar -->
-        <BNavbarNav
-          v-if="show_search"
-          class="mx-auto d-none d-lg-flex"
-        >
-          <SearchCombobox
-            placeholder-string="..."
-            :in-navbar="true"
-          />
+        <BNavbarNav v-if="show_search" class="mx-auto d-none d-lg-flex">
+          <SearchCombobox placeholder-string="..." :in-navbar="true" />
         </BNavbarNav>
         <!-- Center aligned search bar -->
 
         <!-- Right aligned nav items -->
-        <BNavbarNav
-          v-if="user"
-          class="ms-auto"
-        >
+        <BNavbarNav v-if="user" class="ms-auto">
           <IconPairDropdownMenu
             v-for="(item, index) in dropdownItemsRightDisplay"
             :key="index"
@@ -78,25 +53,14 @@
           />
         </BNavbarNav>
         <!-- Wrap Login button in ul for proper structure -->
-        <ul
-          v-else
-          class="navbar-nav ms-auto"
-        >
-          <BNavItem to="/Login">
-            Login
-          </BNavItem>
+        <ul v-else class="navbar-nav ms-auto">
+          <BNavItem to="/Login"> Login </BNavItem>
         </ul>
         <!-- Right aligned nav items -->
 
         <!-- Mobile search bar -->
-        <BNavbarNav
-          v-if="show_search"
-          class="d-lg-none ms-auto"
-        >
-          <SearchCombobox
-            placeholder-string="..."
-            :in-navbar="true"
-          />
+        <BNavbarNav v-if="show_search" class="d-lg-none ms-auto">
+          <SearchCombobox placeholder-string="..." :in-navbar="true" />
         </BNavbarNav>
         <!-- Mobile search bar -->
       </BCollapse>
@@ -142,15 +106,17 @@ export default {
   },
   computed: {
     dropdownItemsRightDisplay() {
-      return this.dropdownItemsRight.map((item) => {
-        if (item.id === 'user_dropdown') {
-          return {
-            ...item,
-            title: this.user,
-          };
-        }
-        return item;
-      }).filter((i) => i.required.every((condition) => this.userAllowence[condition]));
+      return this.dropdownItemsRight
+        .map((item) => {
+          if (item.id === 'user_dropdown') {
+            return {
+              ...item,
+              title: this.user,
+            };
+          }
+          return item;
+        })
+        .filter((i) => i.required.every((condition) => this.userAllowence[condition]));
     },
   },
   watch: {
@@ -229,13 +195,22 @@ export default {
 <style scoped>
 /* Keyframe animations for logo appearance */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
 }
 
 /* Logo styles with animation */

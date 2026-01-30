@@ -264,7 +264,8 @@ const INIT_OBJECTS = {
       hgnc_id: 'HGNC:18475',
       symbol: 'ZDHHC9',
       disease_ontology_id_version: 'OMIM:300799',
-      disease_ontology_name: 'Intellectual developmental disorder, X-linked syndromic, Raymond type',
+      disease_ontology_name:
+        'Intellectual developmental disorder, X-linked syndromic, Raymond type',
       hpo_mode_of_inheritance_term: 'HP:0001419',
       hpo_mode_of_inheritance_term_name: 'X-linked recessive inheritance',
       inheritance_filter: 'X-linked',

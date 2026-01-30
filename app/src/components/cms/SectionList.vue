@@ -48,9 +48,13 @@ const localSections = ref<AboutSection[]>([...props.sections]);
 const expandedIndex = ref<number | null>(null);
 
 // Sync with parent
-watch(() => props.sections, (newVal) => {
-  localSections.value = [...newVal];
-}, { deep: true });
+watch(
+  () => props.sections,
+  (newVal) => {
+    localSections.value = [...newVal];
+  },
+  { deep: true }
+);
 
 function emitUpdate() {
   // Recalculate sort_order

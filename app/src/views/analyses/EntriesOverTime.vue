@@ -2,10 +2,7 @@
   <div class="container-fluid bg-gradient">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="12"
-        >
+        <BCol col md="12">
           <AnalysesTimePlot />
         </BCol>
       </BRow>
@@ -48,5 +45,4 @@ export default {
 };
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

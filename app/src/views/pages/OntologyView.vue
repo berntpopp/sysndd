@@ -1,20 +1,10 @@
 <!-- views/pages/OntologyView.vue -->
 <template>
   <div class="container-fluid bg-gradient">
-    <BSpinner
-      v-if="loading"
-      label="Loading..."
-      class="float-center m-5"
-    />
-    <BContainer
-      v-else
-      fluid
-    >
+    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
+    <BContainer v-else fluid>
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="12"
-        >
+        <BCol col md="12">
           <!-- Ontology overview card -->
           <BCard
             header-tag="header"
@@ -46,10 +36,7 @@
             >
               <template #cell(disease_ontology_id_version)="data">
                 <BRow>
-                  <BRow
-                    v-for="id in data.item.disease_ontology_id_version"
-                    :key="id"
-                  >
+                  <BRow v-for="id in data.item.disease_ontology_id_version" :key="id">
                     <BCol class="d-flex align-items-center flex-wrap gap-2 mb-1">
                       <DiseaseBadge
                         :name="id"
@@ -64,7 +51,7 @@
                         :src="data.item.disease_ontology_id_version"
                         :href="
                           'https://www.omim.org/entry/' +
-                            id.replace(/OMIM:/g, '').replace(/_.+/g, '')
+                          id.replace(/OMIM:/g, '').replace(/_.+/g, '')
                         "
                         target="_blank"
                       >
@@ -78,16 +65,9 @@
 
               <template #cell(disease_ontology_name)="data">
                 <BRow>
-                  <BRow
-                    v-for="id in data.item.disease_ontology_name"
-                    :key="id"
-                  >
+                  <BRow v-for="id in data.item.disease_ontology_name" :key="id">
                     <BCol>
-                      <DiseaseBadge
-                        :name="id"
-                        :link-to="'/Ontology/' + id"
-                        :max-length="50"
-                      />
+                      <DiseaseBadge :name="id" :link-to="'/Ontology/' + id" :max-length="50" />
                     </BCol>
                   </BRow>
                 </BRow>
@@ -103,7 +83,11 @@
                       <InheritanceBadge
                         v-if="id"
                         :full-name="id"
-                        :hpo-term="Array.isArray(data.item.hpo_mode_of_inheritance_term) ? data.item.hpo_mode_of_inheritance_term[index] : data.item.hpo_mode_of_inheritance_term"
+                        :hpo-term="
+                          Array.isArray(data.item.hpo_mode_of_inheritance_term)
+                            ? data.item.hpo_mode_of_inheritance_term[index]
+                            : data.item.hpo_mode_of_inheritance_term
+                        "
                         :use-abbreviation="false"
                         class="mb-1"
                       />
@@ -114,10 +98,7 @@
 
               <template #cell(DOID)="data">
                 <BRow>
-                  <BRow
-                    v-for="id in data.item.DOID"
-                    :key="id"
-                  >
+                  <BRow v-for="id in data.item.DOID" :key="id">
                     <BCol>
                       <BButton
                         v-if="id"
@@ -137,20 +118,14 @@
 
               <template #cell(MONDO)="data">
                 <BRow>
-                  <BRow
-                    v-for="id in data.item.MONDO"
-                    :key="id"
-                  >
+                  <BRow v-for="id in data.item.MONDO" :key="id">
                     <BCol>
                       <BButton
                         v-if="id"
                         class="btn-xs mx-2"
                         variant="outline-primary"
                         :src="id"
-                        :href="
-                          'http://purl.obolibrary.org/obo/' +
-                            id.replace(':', '_')
-                        "
+                        :href="'http://purl.obolibrary.org/obo/' + id.replace(':', '_')"
                         target="_blank"
                       >
                         <i class="bi bi-box-arrow-up-right" />
@@ -163,10 +138,7 @@
 
               <template #cell(Orphanet)="data">
                 <BRow>
-                  <BRow
-                    v-for="id in data.item.Orphanet"
-                    :key="id"
-                  >
+                  <BRow v-for="id in data.item.Orphanet" :key="id">
                     <BCol>
                       <BButton
                         v-if="id"
@@ -175,8 +147,8 @@
                         :src="data.item.Orphanet"
                         :href="
                           'https://www.orpha.net/consor/cgi-bin/OC_Exp.php?Expert=' +
-                            id.replace('Orphanet:', '') +
-                            '&lng=EN'
+                          id.replace('Orphanet:', '') +
+                          '&lng=EN'
                         "
                         target="_blank"
                       >
@@ -198,10 +170,13 @@
             :show-filter-controls="false"
             :show-pagination-controls="false"
             header-label="Associated "
-            :filter-input="'any(disease_ontology_id_version,' +
+            :filter-input="
+              'any(disease_ontology_id_version,' +
               (Array.isArray(ontology[0].disease_ontology_id_version)
                 ? ontology[0].disease_ontology_id_version.join(',')
-                : ontology[0].disease_ontology_id_version) + ')'"
+                : ontology[0].disease_ontology_id_version) +
+              ')'
+            "
           />
 
           <!-- Associated entities card -->
@@ -275,10 +250,16 @@ export default {
           filterByFormatted: true,
         },
         {
-          key: 'DOID', label: 'DOID', sortable: true, class: 'text-start',
+          key: 'DOID',
+          label: 'DOID',
+          sortable: true,
+          class: 'text-start',
         },
         {
-          key: 'MONDO', label: 'MONDO', sortable: true, class: 'text-start',
+          key: 'MONDO',
+          label: 'MONDO',
+          sortable: true,
+          class: 'text-start',
         },
         {
           key: 'Orphanet',
@@ -303,23 +284,18 @@ export default {
   methods: {
     async loadOntologyInfo() {
       this.loading = true;
-      const apiDiseaseOntologyURL = `${import.meta.env.VITE_API_URL
-      }/api/ontology/${
-        encodeURIComponent(this.$route.params.disease_term)
-      }?input_type=ontology_id`;
-      const apiDiseaseNameURL = `${import.meta.env.VITE_API_URL
-      }/api/ontology/${
-        encodeURIComponent(this.$route.params.disease_term)
-      }?input_type=ontology_name`;
+      const apiDiseaseOntologyURL = `${
+        import.meta.env.VITE_API_URL
+      }/api/ontology/${encodeURIComponent(this.$route.params.disease_term)}?input_type=ontology_id`;
+      const apiDiseaseNameURL = `${import.meta.env.VITE_API_URL}/api/ontology/${encodeURIComponent(
+        this.$route.params.disease_term
+      )}?input_type=ontology_name`;
 
       try {
         const response_ontology = await this.axios.get(apiDiseaseOntologyURL);
         const response_name = await this.axios.get(apiDiseaseNameURL);
 
-        if (
-          response_ontology.data.length === 0
-          && response_name.data.length === 0
-        ) {
+        if (response_ontology.data.length === 0 && response_name.data.length === 0) {
           this.$router.push('/PageNotFound');
         } else if (response_ontology.data === 0) {
           this.ontology = response_name.data;

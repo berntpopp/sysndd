@@ -2,12 +2,7 @@
 <template>
   <BContainer fluid>
     <!-- User Interface controls -->
-    <BCard
-      header-tag="header"
-      body-class="p-0"
-      header-class="p-1"
-      border-variant="dark"
-    >
+    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
           <h6 class="mb-1 text-start font-weight-bold">
@@ -15,31 +10,21 @@
             <mark
               v-b-tooltip.hover.leftbottom
               title="This is a measure of similarity between two sequences of numbers used to quantify the similarity between two word lists."
-            >cosine similarity</mark>
-            between different curation efforts for neurodevelopmental disorders.
-            <BBadge
-              id="popover-badge-help-similarity"
-              pill
-              href="#"
-              variant="info"
+              >cosine similarity</mark
             >
+            between different curation efforts for neurodevelopmental disorders.
+            <BBadge id="popover-badge-help-similarity" pill href="#" variant="info">
               <i class="bi bi-question-circle-fill" />
             </BBadge>
-            <BPopover
-              target="popover-badge-help-similarity"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Cosine Similarity Analysis
-              </template>
-              Cosine similarity measures the cosine of the angle between two non-zero vectors. It is used to calculate the similarity between different curation efforts by comparing their respective gene lists. The values range from -1 (completely dissimilar) to 1 (completely similar), with 0 indicating orthogonality (no similarity).
+            <BPopover target="popover-badge-help-similarity" variant="info" triggers="focus">
+              <template #title> Cosine Similarity Analysis </template>
+              Cosine similarity measures the cosine of the angle between two non-zero vectors. It is
+              used to calculate the similarity between different curation efforts by comparing their
+              respective gene lists. The values range from -1 (completely dissimilar) to 1
+              (completely similar), with 0 indicating orthogonality (no similarity).
             </BPopover>
           </h6>
-          <DownloadImageButtons
-            :svg-id="'matrix-svg'"
-            :file-name="'matrix_plot'"
-          />
+          <DownloadImageButtons :svg-id="'matrix-svg'" :file-name="'matrix_plot'" />
         </div>
       </template>
       <BRow>
@@ -56,18 +41,9 @@
 
       <!-- Content with overlay spinner -->
       <div class="position-relative">
-        <div
-          id="matrix_dataviz"
-          class="svg-container"
-        />
-        <div
-          v-show="loadingMatrix"
-          class="float-center m-5"
-        >
-          <BSpinner
-            label="Loading..."
-            class="spinner"
-          />
+        <div id="matrix_dataviz" class="svg-container" />
+        <div v-show="loadingMatrix" class="float-center m-5">
+          <BSpinner label="Loading..." class="spinner" />
         </div>
       </div>
     </BCard>
@@ -127,7 +103,10 @@ export default {
     generateGraph() {
       // Graph dimension
       const margin = {
-        top: 0, right: 150, bottom: 120, left: 150,
+        top: 0,
+        right: 150,
+        bottom: 120,
+        left: 150,
       };
       const width = 800 - margin.left - margin.right;
       const height = 600 - margin.top - margin.bottom;
@@ -265,7 +244,11 @@ mark {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 </style>

@@ -15,7 +15,9 @@
     >
       <div class="suggestions-header">
         <small class="text-muted">
-          {{ filteredSuggestions.length }} suggestion{{ filteredSuggestions.length !== 1 ? 's' : '' }}
+          {{ filteredSuggestions.length }} suggestion{{
+            filteredSuggestions.length !== 1 ? 's' : ''
+          }}
         </small>
       </div>
       <ul class="suggestions-list">
@@ -75,8 +77,8 @@ const searchPattern = computed({
   set: (value) => emit('update:modelValue', value ?? ''),
 });
 
-const noResults = computed(() =>
-  props.matchCount === 0 && props.modelValue.length > 0 && !props.isSearching
+const noResults = computed(
+  () => props.matchCount === 0 && props.modelValue.length > 0 && !props.isSearching
 );
 
 /**
@@ -104,9 +106,7 @@ const filteredSuggestions = computed(() => {
   const regex = wildcardToRegex(props.modelValue);
   if (!regex) return [];
 
-  return props.suggestions
-    .filter(s => regex.test(s))
-    .sort((a, b) => a.localeCompare(b));
+  return props.suggestions.filter((s) => regex.test(s)).sort((a, b) => a.localeCompare(b));
 });
 
 /**

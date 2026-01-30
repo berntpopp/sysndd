@@ -546,15 +546,15 @@ function(req, res) {
 
   # Extract criteria
   criteria <- list(
-    date_range = body$date_range,      # list(start="YYYY-MM-DD", end="YYYY-MM-DD")
-    gene_list = body$gene_list,        # array of hgnc_id integers
+    date_range = body$date_range, # list(start="YYYY-MM-DD", end="YYYY-MM-DD")
+    gene_list = body$gene_list, # array of hgnc_id integers
     status_filter = body$status_filter, # category_id integer
-    disease_id = body$disease_id,      # disease ontology id string
+    disease_id = body$disease_id, # disease ontology id string
     batch_size = body$batch_size %||% 20L
   )
 
-  assigned_user_id <- body$assigned_user_id  # optional
-  batch_name <- body$batch_name              # optional
+  assigned_user_id <- body$assigned_user_id # optional
+  batch_name <- body$batch_name # optional
 
   result <- batch_create(criteria, assigned_user_id, batch_name, pool)
 
@@ -666,9 +666,9 @@ function(req, res) {
 
   body <- req$argsBody
 
-  entity_ids <- body$entity_ids    # array of entity_id integers (required)
-  user_id <- body$user_id          # user to assign to (required)
-  batch_name <- body$batch_name    # optional custom batch name
+  entity_ids <- body$entity_ids # array of entity_id integers (required)
+  user_id <- body$user_id # user to assign to (required)
+  batch_name <- body$batch_name # optional custom batch name
 
   if (is.null(entity_ids) || length(entity_ids) == 0) {
     res$status <- 400L

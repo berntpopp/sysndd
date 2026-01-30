@@ -647,31 +647,34 @@ function(req, res) {
   smtp_host <- dw$mail_noreply_host
   smtp_port <- as.integer(dw$mail_noreply_port)
 
-  result <- tryCatch({
-    # Attempt socket connection to SMTP server
-    con <- socketConnection(
-      host = smtp_host,
-      port = smtp_port,
-      open = "r+",
-      blocking = TRUE,
-      timeout = 5
-    )
-    close(con)
+  result <- tryCatch(
+    {
+      # Attempt socket connection to SMTP server
+      con <- socketConnection(
+        host = smtp_host,
+        port = smtp_port,
+        open = "r+",
+        blocking = TRUE,
+        timeout = 5
+      )
+      close(con)
 
-    list(
-      success = TRUE,
-      host = smtp_host,
-      port = smtp_port,
-      error = NULL
-    )
-  }, error = function(e) {
-    list(
-      success = FALSE,
-      host = smtp_host,
-      port = smtp_port,
-      error = e$message
-    )
-  })
+      list(
+        success = TRUE,
+        host = smtp_host,
+        port = smtp_port,
+        error = NULL
+      )
+    },
+    error = function(e) {
+      list(
+        success = FALSE,
+        host = smtp_host,
+        port = smtp_port,
+        error = e$message
+      )
+    }
+  )
 
   result
 }

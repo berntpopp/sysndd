@@ -5,26 +5,26 @@
 // This file adds custom design tokens that extend Bootstrap's CSS custom properties
 
 // Forward variables from _variables.scss so they can be accessed via @use "custom" as custom
-@forward "./variables";
+@forward './variables';
 
 // Import design token partials (CSS custom properties - runtime)
-@use "./partials/colors";
-@use "./partials/shadows";
-@use "./partials/spacing";
-@use "./partials/radius";
-@use "./partials/typography";
-@use "./partials/animations";
+@use './partials/colors';
+@use './partials/shadows';
+@use './partials/spacing';
+@use './partials/radius';
+@use './partials/typography';
+@use './partials/animations';
 
 // Import component styles
-@use "./components/cards";
-@use "./components/forms";
-@use "./components/tables";
-@use "./components/search";
-@use "./components/loading";
-@use "./components/responsive";
+@use './components/cards';
+@use './components/forms';
+@use './components/tables';
+@use './components/search';
+@use './components/loading';
+@use './components/responsive';
 
 // Import utility classes
-@use "./utilities/spacing" as spacing-utilities;
-@use "./utilities/accessibility";
+@use './utilities/spacing' as spacing-utilities;
+@use './utilities/accessibility';
 
 // Additional global styles can be added below

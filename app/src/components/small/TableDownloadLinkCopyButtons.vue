@@ -12,14 +12,8 @@
       @click="$emit('request-excel')"
     >
       <i class="bi bi-table mx-1" />
-      <i
-        v-if="!downloading"
-        class="bi bi-download"
-      />
-      <BSpinner
-        v-if="downloading"
-        small
-      />
+      <i v-if="!downloading" class="bi bi-download" />
+      <BSpinner v-if="downloading" small />
       .xlsx
     </BButton>
     <!-- Download CSV Button -->

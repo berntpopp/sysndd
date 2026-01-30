@@ -87,13 +87,17 @@
 
           <dt class="col-sm-2 text-muted">Query</dt>
           <dd class="col-sm-10">
-            <code v-if="log.query" class="d-block bg-light p-2 rounded text-break">{{ log.query }}</code>
+            <code v-if="log.query" class="d-block bg-light p-2 rounded text-break">{{
+              log.query
+            }}</code>
             <span v-else class="text-muted fst-italic">(none)</span>
           </dd>
 
           <dt class="col-sm-2 text-muted">POST Body</dt>
           <dd class="col-sm-10">
-            <pre v-if="log.post" class="bg-light p-2 rounded small mb-0 text-break">{{ formatJson(log.post) }}</pre>
+            <pre v-if="log.post" class="bg-light p-2 rounded small mb-0 text-break">{{
+              formatJson(log.post)
+            }}</pre>
             <span v-else class="text-muted fst-italic">(none)</span>
           </dd>
         </dl>
@@ -125,7 +129,11 @@
           <i :class="showJson ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" class="ms-auto" />
         </h6>
         <BCollapse v-model="showJson">
-          <pre class="bg-dark text-light p-3 rounded small" style="max-height: 250px; overflow-y: auto;">{{ JSON.stringify(log, null, 2) }}</pre>
+          <pre
+            class="bg-dark text-light p-3 rounded small"
+            style="max-height: 250px; overflow-y: auto"
+            >{{ JSON.stringify(log, null, 2) }}</pre
+          >
         </BCollapse>
       </div>
     </div>
@@ -155,9 +163,7 @@
           <i class="bi bi-keyboard me-1" />
           Arrow keys to navigate
         </div>
-        <BButton variant="secondary" @click="close">
-          Close
-        </BButton>
+        <BButton variant="secondary" @click="close"> Close </BButton>
       </div>
     </template>
   </BModal>

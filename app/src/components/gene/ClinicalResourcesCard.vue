@@ -2,14 +2,44 @@
   <!-- Compact inline badge mode -->
   <div v-if="compact" class="compact-badges-strip">
     <span class="resources-label">Resources</span>
-    <ResourceLink compact name="ClinGen" :url="clingenUrl" icon="bi-clipboard-check" :available="!!hgncId" />
+    <ResourceLink
+      compact
+      name="ClinGen"
+      :url="clingenUrl"
+      icon="bi-clipboard-check"
+      :available="!!hgncId"
+    />
     <ResourceLink compact name="SFARI" :url="sfariUrl" icon="bi-clipboard-data" :available="true" />
-    <ResourceLink compact name="OMIM" :url="omimUrl" icon="bi-journal-medical" :available="!!omimId" />
-    <ResourceLink compact name="gene2phenotype" :url="gene2phenotypeUrl" icon="bi-file-medical" :available="true" />
+    <ResourceLink
+      compact
+      name="OMIM"
+      :url="omimUrl"
+      icon="bi-journal-medical"
+      :available="!!omimId"
+    />
+    <ResourceLink
+      compact
+      name="gene2phenotype"
+      :url="gene2phenotypeUrl"
+      icon="bi-file-medical"
+      :available="true"
+    />
     <ResourceLink compact name="PanelApp" :url="panelappUrl" icon="bi-list-ul" :available="true" />
     <ResourceLink compact name="HGNC" :url="hgncUrl" icon="bi-book" :available="true" />
-    <ResourceLink compact name="MGI (Mouse)" :url="mgiUrl" icon="bi-file-earmark-medical" :available="!!mgdId" />
-    <ResourceLink compact name="RGD (Rat)" :url="rgdUrl" icon="bi-file-earmark-medical" :available="!!rgdId" />
+    <ResourceLink
+      compact
+      name="MGI (Mouse)"
+      :url="mgiUrl"
+      icon="bi-file-earmark-medical"
+      :available="!!mgdId"
+    />
+    <ResourceLink
+      compact
+      name="RGD (Rat)"
+      :url="rgdUrl"
+      icon="bi-file-earmark-medical"
+      :available="!!rgdId"
+    />
   </div>
 
   <!-- Full card mode (default) -->
@@ -176,7 +206,9 @@ const mgiUrl = computed(() => {
 
 const rgdUrl = computed(() => {
   const id = props.rgdId;
-  return id && id !== 'null' ? `https://rgd.mcw.edu/rgdweb/report/gene/main.html?id=${id}` : undefined;
+  return id && id !== 'null'
+    ? `https://rgd.mcw.edu/rgdweb/report/gene/main.html?id=${id}`
+    : undefined;
 });
 </script>
 

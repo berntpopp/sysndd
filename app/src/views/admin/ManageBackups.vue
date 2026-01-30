@@ -3,10 +3,7 @@
   <div class="container-fluid">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="10"
-        >
+        <BCol col md="10">
           <h3>Manage Backups</h3>
 
           <!-- Backup List Card -->
@@ -27,11 +24,7 @@
                   :disabled="loading"
                   @click="fetchBackupList"
                 >
-                  <BSpinner
-                    v-if="loading"
-                    small
-                    class="me-1"
-                  />
+                  <BSpinner v-if="loading" small class="me-1" />
                   Refresh
                 </BButton>
               </h5>
@@ -75,20 +68,13 @@
                 >
                   <i class="bi bi-download" /> Download
                 </BButton>
-                <BButton
-                  size="sm"
-                  variant="outline-danger"
-                  @click="promptRestore(data.item)"
-                >
+                <BButton size="sm" variant="outline-danger" @click="promptRestore(data.item)">
                   <i class="bi bi-arrow-counterclockwise" /> Restore
                 </BButton>
               </template>
             </BTable>
 
-            <div
-              v-if="!loading && backups.length === 0"
-              class="text-center text-muted py-3"
-            >
+            <div v-if="!loading && backups.length === 0" class="text-center text-muted py-3">
               No backups available. Use "Backup Now" to create one.
             </div>
           </BCard>
@@ -102,35 +88,18 @@
             class="mb-3 text-start"
           >
             <template #header>
-              <h5 class="mb-0 text-start font-weight-bold">
-                Create Manual Backup
-              </h5>
+              <h5 class="mb-0 text-start font-weight-bold">Create Manual Backup</h5>
             </template>
 
-            <BButton
-              variant="primary"
-              :disabled="backupJob.isLoading.value"
-              @click="triggerBackup"
-            >
-              <BSpinner
-                v-if="backupJob.isLoading.value"
-                small
-                type="grow"
-                class="me-2"
-              />
+            <BButton variant="primary" :disabled="backupJob.isLoading.value" @click="triggerBackup">
+              <BSpinner v-if="backupJob.isLoading.value" small type="grow" class="me-2" />
               {{ backupJob.isLoading.value ? 'Backing up...' : 'Backup Now' }}
             </BButton>
 
             <!-- Backup Progress display -->
-            <div
-              v-if="backupJob.isLoading.value || backupJob.status.value !== 'idle'"
-              class="mt-3"
-            >
+            <div v-if="backupJob.isLoading.value || backupJob.status.value !== 'idle'" class="mt-3">
               <div class="d-flex align-items-center mb-2">
-                <span
-                  class="badge me-2"
-                  :class="backupJob.statusBadgeClass.value"
-                >
+                <span class="badge me-2" :class="backupJob.statusBadgeClass.value">
                   {{ backupJob.status.value }}
                 </span>
                 <span class="text-muted">{{ backupJob.step.value }}</span>
@@ -138,22 +107,26 @@
 
               <BProgress
                 v-if="backupJob.isLoading.value"
-                :value="100"
+                :value="
+                  backupJob.hasRealProgress.value ? (backupJob.progressPercent.value ?? 0) : 100
+                "
                 :max="100"
-                :animated="true"
-                :striped="true"
-                :variant="(backupJob.progressVariant.value as 'primary' | 'success' | 'danger')"
+                :animated="!backupJob.hasRealProgress.value"
+                :striped="!backupJob.hasRealProgress.value"
+                :variant="backupJob.progressVariant.value"
                 height="1.5rem"
               >
                 <template #default>
-                  <span>Backing up... ({{ backupJob.elapsedTimeDisplay.value }})</span>
+                  <span v-if="backupJob.hasRealProgress.value">
+                    {{ backupJob.progress.value.current }}/{{ backupJob.progress.value.total }} ({{
+                      backupJob.progressPercent.value
+                    }}%)
+                  </span>
+                  <span v-else>Backing up... ({{ backupJob.elapsedTimeDisplay.value }})</span>
                 </template>
               </BProgress>
 
-              <div
-                v-if="backupJob.isLoading.value"
-                class="small text-muted mt-1"
-              >
+              <div v-if="backupJob.isLoading.value" class="small text-muted mt-1">
                 Elapsed: {{ backupJob.elapsedTimeDisplay.value }}
               </div>
             </div>
@@ -169,17 +142,12 @@
             class="mb-3 text-start"
           >
             <template #header>
-              <h5 class="mb-0 text-start font-weight-bold">
-                Restore Progress
-              </h5>
+              <h5 class="mb-0 text-start font-weight-bold">Restore Progress</h5>
             </template>
 
             <div class="mt-1">
               <div class="d-flex align-items-center mb-2">
-                <span
-                  class="badge me-2"
-                  :class="restoreJob.statusBadgeClass.value"
-                >
+                <span class="badge me-2" :class="restoreJob.statusBadgeClass.value">
                   {{ restoreJob.status.value }}
                 </span>
                 <span class="text-muted">{{ restoreJob.step.value }}</span>
@@ -187,22 +155,27 @@
 
               <BProgress
                 v-if="restoreJob.isLoading.value"
-                :value="100"
+                :value="
+                  restoreJob.hasRealProgress.value ? (restoreJob.progressPercent.value ?? 0) : 100
+                "
                 :max="100"
-                :animated="true"
-                :striped="true"
-                :variant="(restoreJob.progressVariant.value as 'primary' | 'success' | 'danger')"
+                :animated="!restoreJob.hasRealProgress.value"
+                :striped="!restoreJob.hasRealProgress.value"
+                :variant="restoreJob.progressVariant.value"
                 height="1.5rem"
               >
                 <template #default>
-                  <span>Restoring... ({{ restoreJob.elapsedTimeDisplay.value }})</span>
+                  <span v-if="restoreJob.hasRealProgress.value">
+                    {{ restoreJob.progress.value.current }}/{{
+                      restoreJob.progress.value.total
+                    }}
+                    ({{ restoreJob.progressPercent.value }}%)
+                  </span>
+                  <span v-else>Restoring... ({{ restoreJob.elapsedTimeDisplay.value }})</span>
                 </template>
               </BProgress>
 
-              <div
-                v-if="restoreJob.isLoading.value"
-                class="small text-muted mt-1"
-              >
+              <div v-if="restoreJob.isLoading.value" class="small text-muted mt-1">
                 Elapsed: {{ restoreJob.elapsedTimeDisplay.value }}
               </div>
             </div>
@@ -223,17 +196,10 @@
         <p class="text-danger fw-bold">
           This will overwrite the current database. Type RESTORE to confirm.
         </p>
-        <p
-          v-if="selectedBackup"
-          class="text-muted small"
-        >
+        <p v-if="selectedBackup" class="text-muted small">
           Restoring from: <code>{{ selectedBackup.filename }}</code>
         </p>
-        <BFormInput
-          v-model="restoreConfirmText"
-          placeholder="RESTORE"
-          autocomplete="off"
-        />
+        <BFormInput v-model="restoreConfirmText" placeholder="RESTORE" autocomplete="off" />
       </BModal>
     </BContainer>
   </div>
@@ -258,10 +224,10 @@ const { makeToast } = useToast();
 
 // Create job instances for backup and restore operations
 const backupJob = useAsyncJob(
-  (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`,
+  (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
 );
 const restoreJob = useAsyncJob(
-  (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`,
+  (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
 );
 
 // Reactive state
@@ -310,14 +276,11 @@ function formatDate(dateString: string): string {
 async function fetchBackupList() {
   loading.value = true;
   try {
-    const response = await axios.get(
-      `${import.meta.env.VITE_API_URL}/api/backup/list`,
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/backup/list`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
       },
-    );
+    });
 
     const data = response.data;
     if (data && Array.isArray(data.data)) {
@@ -389,7 +352,7 @@ async function confirmRestore() {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json',
         },
-      },
+      }
     );
 
     if (response.data.error) {
@@ -417,7 +380,7 @@ async function triggerBackup() {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
-      },
+      }
     );
 
     if (response.data.error) {
@@ -444,7 +407,7 @@ watch(
       const errorMsg = backupJob.error.value || 'Backup failed';
       makeToast(errorMsg, 'Error', 'danger');
     }
-  },
+  }
 );
 
 // Watch for restore job completion/failure
@@ -455,14 +418,14 @@ watch(
       makeToast(
         'Database restored. You may need to log out and log back in for changes to take effect.',
         'Success',
-        'success',
+        'success'
       );
       fetchBackupList();
     } else if (newStatus === 'failed') {
       const errorMsg = restoreJob.error.value || 'Restore failed';
       makeToast(errorMsg, 'Error', 'danger');
     }
-  },
+  }
 );
 
 // Lifecycle
@@ -472,10 +435,11 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.btn-group-xs > .btn, .btn-xs {
-  padding: .25rem .4rem;
-  font-size: .875rem;
-  line-height: .5;
-  border-radius: .2rem;
+.btn-group-xs > .btn,
+.btn-xs {
+  padding: 0.25rem 0.4rem;
+  font-size: 0.875rem;
+  line-height: 0.5;
+  border-radius: 0.2rem;
 }
 </style>

@@ -22,7 +22,10 @@ export default {
     category: {
       type: String,
       required: true,
-      validator: (value) => ['Definitive', 'Moderate', 'Limited', 'Refuted', 'not applicable', 'not listed'].includes(value),
+      validator: (value) =>
+        ['Definitive', 'Moderate', 'Limited', 'Refuted', 'not applicable', 'not listed'].includes(
+          value
+        ),
     },
     /**
      * Size variant: 'sm' for small (tables), default for normal

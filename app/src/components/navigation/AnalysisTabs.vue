@@ -1,9 +1,6 @@
 <!-- src/components/navigation/AnalysisTabs.vue -->
 <template>
-  <BNav
-    tabs
-    class="analysis-tabs mb-3"
-  >
+  <BNav tabs class="analysis-tabs mb-3">
     <!-- Tab navigation items -->
     <BNavItem
       v-for="tab in tabs"
@@ -11,24 +8,13 @@
       :active="activeTab === tab.id"
       @click="setActiveTab(tab.id)"
     >
-      <i
-        :class="tab.icon"
-        class="me-1"
-      />
+      <i :class="tab.icon" class="me-1" />
       {{ tab.label }}
     </BNavItem>
 
     <!-- Filter status badge - shows active filter count with clear button -->
-    <BNavItem
-      v-if="activeFilterCount > 0"
-      disabled
-      class="ms-auto filter-status"
-    >
-      <BBadge
-        variant="primary"
-        pill
-        class="me-1"
-      >
+    <BNavItem v-if="activeFilterCount > 0" disabled class="ms-auto filter-status">
+      <BBadge variant="primary" pill class="me-1">
         {{ activeFilterCount }} {{ activeFilterCount === 1 ? 'filter' : 'filters' }} active
       </BBadge>
       <BButton
@@ -108,7 +94,9 @@ const handleClearFilters = (): void => {
 
 .analysis-tabs :deep(.nav-link) {
   cursor: pointer;
-  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out;
+  transition:
+    color 0.15s ease-in-out,
+    background-color 0.15s ease-in-out;
 }
 
 .analysis-tabs :deep(.nav-link:hover:not(.active)) {

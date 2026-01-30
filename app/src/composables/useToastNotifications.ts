@@ -22,9 +22,10 @@ export default function useToastNotifications(): ToastNotifications {
     title: string | null = null,
     variant: ToastVariant | null = null,
     autoHide: boolean = true,
-    autoHideDelay: number = 3000,
+    autoHideDelay: number = 3000
   ): void => {
-    const body: string = typeof message === 'object' && message.message ? message.message : message as string;
+    const body: string =
+      typeof message === 'object' && message.message ? message.message : (message as string);
 
     toast.create({
       title,

@@ -95,18 +95,22 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  'update': [section: AboutSection];
-  'delete': [];
-  'blur': [];
+  update: [section: AboutSection];
+  delete: [];
+  blur: [];
 }>();
 
 const isExpanded = ref(props.expanded ?? false);
 const localSection = ref<AboutSection>({ ...props.section });
 
 // Sync with prop changes
-watch(() => props.section, (newVal) => {
-  localSection.value = { ...newVal };
-}, { deep: true });
+watch(
+  () => props.section,
+  (newVal) => {
+    localSection.value = { ...newVal };
+  },
+  { deep: true }
+);
 
 function emitUpdate() {
   emit('update', { ...localSection.value });
@@ -114,7 +118,7 @@ function emitUpdate() {
 
 // Icon options for dropdown
 const iconOptions = computed(() =>
-  SECTION_ICONS.map(icon => ({
+  SECTION_ICONS.map((icon) => ({
     value: icon,
     text: icon.replace('bi-', '').replace(/-/g, ' '),
   }))

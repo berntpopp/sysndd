@@ -74,7 +74,11 @@ export default function useText(): TextMappings {
     inheritance_link: {
       'Autosomal dominant': ['Autosomal dominant inheritance'],
       'Autosomal recessive': ['Autosomal recessive inheritance'],
-      'X-linked': ['X-linked other inheritance', 'X-linked recessive inheritance', 'X-linked dominant inheritance'],
+      'X-linked': [
+        'X-linked other inheritance',
+        'X-linked recessive inheritance',
+        'X-linked dominant inheritance',
+      ],
       Other: ['Mitochondrial inheritance', 'Somatic mutation'],
     },
     /**

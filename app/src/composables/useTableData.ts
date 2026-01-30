@@ -97,16 +97,27 @@ export default function useTableData(options: TableDataOptions = {}): TableDataS
   /**
    * Determines the button variant based on filter state.
    */
-  const removeFiltersButtonVariant = computed<string>(() => (filter_string.value === '' || filter_string.value === null || filter_string.value === 'null' ? 'info' : 'warning'));
+  const removeFiltersButtonVariant = computed<string>(() =>
+    filter_string.value === '' || filter_string.value === null || filter_string.value === 'null'
+      ? 'info'
+      : 'warning'
+  );
 
   /**
    * Generates the button title text based on filter state.
    */
   const removeFiltersButtonTitle = computed<string>(() => {
     let title = 'The table is ';
-    title += (filter_string.value === '' || filter_string.value === null || filter_string.value === 'null') ? 'not ' : '';
+    title +=
+      filter_string.value === '' || filter_string.value === null || filter_string.value === 'null'
+        ? 'not '
+        : '';
     title += 'filtered.';
-    if (filter_string.value !== '' && filter_string.value !== null && filter_string.value !== 'null') {
+    if (
+      filter_string.value !== '' &&
+      filter_string.value !== null &&
+      filter_string.value !== 'null'
+    ) {
       title += ' Click to remove all filters.';
     }
     return title;

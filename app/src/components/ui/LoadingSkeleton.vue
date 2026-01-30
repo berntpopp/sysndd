@@ -4,7 +4,7 @@
     :style="{
       width: width,
       height: height,
-      borderRadius: rounded ? 'var(--radius-sm)' : '0'
+      borderRadius: rounded ? 'var(--radius-sm)' : '0',
     }"
     aria-label="Loading content"
     role="status"
@@ -19,16 +19,16 @@ export default defineComponent({
   props: {
     width: {
       type: String,
-      default: '100%'
+      default: '100%',
     },
     height: {
       type: String,
-      default: '1rem'
+      default: '1rem',
     },
     rounded: {
       type: Boolean,
-      default: true
-    }
-  }
+      default: true,
+    },
+  },
 });
 </script>

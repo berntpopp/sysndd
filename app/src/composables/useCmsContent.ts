@@ -45,10 +45,10 @@ export function useCmsContent() {
     error.value = null;
 
     try {
-      const response = await axios.get<AboutContent>(
-        `${API_URL}/api/about/draft`,
-        { headers: getAuthHeader(), timeout: 5000 }
-      );
+      const response = await axios.get<AboutContent>(`${API_URL}/api/about/draft`, {
+        headers: getAuthHeader(),
+        timeout: 5000,
+      });
 
       if (response.data && response.data.sections) {
         sections.value = response.data.sections;

@@ -64,9 +64,7 @@ export interface UseModelOrganismDataReturn {
  * // <p v-else-if="mgi.data.value">{{ mgi.data.value.phenotype_count }} mouse phenotypes</p>
  * ```
  */
-export function useModelOrganismData(
-  geneSymbol: Ref<string> | string,
-): UseModelOrganismDataReturn {
+export function useModelOrganismData(geneSymbol: Ref<string> | string): UseModelOrganismDataReturn {
   // Normalize to ref (handles both ref and plain string)
   const symbol = toRef(geneSymbol);
 
@@ -112,7 +110,7 @@ export function useModelOrganismData(
       (async () => {
         try {
           const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/external/mgi/phenotypes/${symbol.value}`,
+            `${import.meta.env.VITE_API_URL}/api/external/mgi/phenotypes/${symbol.value}`
           );
 
           const result = response.data;
@@ -146,7 +144,7 @@ export function useModelOrganismData(
       (async () => {
         try {
           const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/external/rgd/phenotypes/${symbol.value}`,
+            `${import.meta.env.VITE_API_URL}/api/external/rgd/phenotypes/${symbol.value}`
           );
 
           const result = response.data;

@@ -93,7 +93,7 @@ export default function useStatusForm(entityId?: string | number) {
         scheduleSave(newData);
       }
     },
-    { deep: true },
+    { deep: true }
   );
 
   /**
@@ -216,7 +216,7 @@ export default function useStatusForm(entityId?: string | number) {
     const statusObj = new Status(
       formData.category_id,
       formData.comment,
-      formData.problematic,
+      formData.problematic
     ) as StatusSubmissionData;
     statusObj.status_id = formData.status_id;
     statusObj.entity_id = formData.entity_id;
@@ -252,7 +252,7 @@ export default function useStatusForm(entityId?: string | number) {
             headers: {
               Authorization: `Bearer ${token}`,
             },
-          },
+          }
         );
       } else {
         await axios.post(
@@ -262,7 +262,7 @@ export default function useStatusForm(entityId?: string | number) {
             headers: {
               Authorization: `Bearer ${token}`,
             },
-          },
+          }
         );
       }
 

@@ -138,13 +138,19 @@ get_backup_metadata <- function(backup_dir = "/backup") {
 #'
 #' Runs mysqldump binary via system2() to create a SQL dump file.
 #' Uses --single-transaction for consistent backup without table locks.
+#' Optionally compresses output with gzip and creates a "latest" symlink.
 #'
 #' @param db_config List with dbname, host, user, password, port
 #' @param output_file Character path where backup will be written
+#' @param progress_fn Optional progress reporter function created by create_progress_reporter()
+#' @param compress Logical - whether to gzip the output file (default: TRUE)
+#' @param create_latest_link Logical - whether to create/update latest symlink (default: TRUE)
 #'
 #' @return List with:
 #'   - success: Logical - TRUE if backup succeeded
 #'   - file: Character path to backup file (if success=TRUE)
+#'   - size_bytes: Numeric file size (if success=TRUE)
+#'   - compressed: Logical - whether file was compressed
 #'   - error: Character error message (if success=FALSE)
 #'
 #' @details
@@ -153,6 +159,13 @@ get_backup_metadata <- function(backup_dir = "/backup") {
 #' - --routines: Include stored procedures and functions
 #' - --triggers: Include triggers
 #' - --quick: Retrieve rows one at a time (memory efficient)
+#'
+#' Progress steps reported (if progress_fn provided):
+#' - "connecting": Validating database connection
+#' - "dumping": Running mysqldump
+#' - "compressing": Compressing with gzip (if enabled)
+#' - "verifying": Verifying backup file integrity
+#' - "linking": Creating latest symlink (if enabled)
 #'
 #' @examples
 #' \dontrun{
@@ -167,7 +180,23 @@ get_backup_metadata <- function(backup_dir = "/backup") {
 #' }
 #'
 #' @export
-execute_mysqldump <- function(db_config, output_file) {
+execute_mysqldump <- function(db_config, output_file, progress_fn = NULL,
+                               compress = TRUE, create_latest_link = TRUE) {
+  # Helper to report progress (no-op if progress_fn is NULL)
+  report <- function(step, message, current = NULL, total = NULL) {
+    if (!is.null(progress_fn)) {
+      progress_fn(step, message, current, total)
+    }
+  }
+
+  total_steps <- 3 + as.integer(compress) + as.integer(create_latest_link)
+  current_step <- 0
+
+  # Step 1: Report connection/preparation
+
+  current_step <- current_step + 1
+  report("connecting", "Preparing database connection...", current_step, total_steps)
+
   # Build arguments safely (no shell interpolation)
   args <- c(
     "-h", db_config$host,
@@ -181,7 +210,11 @@ execute_mysqldump <- function(db_config, output_file) {
     db_config$dbname
   )
 
-  # Execute with stderr capture for error handling
+  # Step 2: Execute mysqldump
+  current_step <- current_step + 1
+  report("dumping", sprintf("Running mysqldump for database '%s'...", db_config$dbname),
+         current_step, total_steps)
+
   result <- system2(
     "mysqldump",
     args = args,
@@ -199,7 +232,92 @@ execute_mysqldump <- function(db_config, output_file) {
     ))
   }
 
-  list(success = TRUE, file = output_file)
+  # Check if dump file was created and has content
+  if (!file.exists(output_file)) {
+    return(list(
+      success = FALSE,
+      error = "mysqldump completed but output file was not created"
+    ))
+  }
+
+  dump_size <- file.info(output_file)$size
+  if (is.na(dump_size) || dump_size == 0) {
+    return(list(
+      success = FALSE,
+      error = "mysqldump completed but output file is empty"
+    ))
+  }
+
+  final_file <- output_file
+  compressed <- FALSE
+
+  # Step 3 (optional): Compress with gzip
+  if (compress) {
+    current_step <- current_step + 1
+    report("compressing", sprintf("Compressing backup (%.1f MB)...", dump_size / 1024 / 1024),
+           current_step, total_steps)
+
+    gzip_result <- system2("gzip", args = c("-f", output_file), stderr = TRUE)
+    gzip_status <- attr(gzip_result, "status") %||% 0
+
+    if (gzip_status != 0) {
+      # Compression failed but dump succeeded - continue with uncompressed
+      message(sprintf("[backup] gzip failed: %s - continuing with uncompressed file",
+                      paste(gzip_result, collapse = "\n")))
+    } else {
+      final_file <- paste0(output_file, ".gz")
+      compressed <- TRUE
+    }
+  }
+
+  # Step 4: Verify backup file
+  current_step <- current_step + 1
+  report("verifying", "Verifying backup file integrity...", current_step, total_steps)
+
+  if (!file.exists(final_file)) {
+    return(list(
+      success = FALSE,
+      error = sprintf("Backup file not found after processing: %s", final_file)
+    ))
+  }
+
+  final_size <- file.info(final_file)$size
+  if (is.na(final_size) || final_size == 0) {
+    return(list(
+      success = FALSE,
+      error = "Backup file is empty after processing"
+    ))
+  }
+
+  # Step 5 (optional): Create/update latest symlink
+  if (create_latest_link) {
+    current_step <- current_step + 1
+    report("linking", "Updating 'latest' symlink...", current_step, total_steps)
+
+    backup_dir <- dirname(final_file)
+    latest_ext <- if (compressed) ".sql.gz" else ".sql"
+    latest_link <- file.path(backup_dir, paste0("latest.", db_config$dbname, latest_ext))
+
+    # Remove existing symlink if present
+    if (file.exists(latest_link)) {
+      tryCatch(file.remove(latest_link), error = function(e) NULL)
+    }
+
+    # Create symlink (use relative path for portability)
+    tryCatch({
+      file.symlink(basename(final_file), latest_link)
+    }, error = function(e) {
+      # Symlink failure is non-fatal
+      message(sprintf("[backup] Failed to create latest symlink: %s", e$message))
+    })
+  }
+
+  list(
+    success = TRUE,
+    file = final_file,
+    size_bytes = final_size,
+    compressed = compressed
+  )
 }
 
 
@@ -210,6 +328,7 @@ execute_mysqldump <- function(db_config, output_file) {
 #'
 #' @param db_config List with dbname, host, user, password, port
 #' @param restore_file Character path to backup file to restore
+#' @param progress_fn Optional progress reporter function created by create_progress_reporter()
 #'
 #' @return List with:
 #'   - success: Logical - TRUE if restore succeeded
@@ -232,8 +351,17 @@ execute_mysqldump <- function(db_config, output_file) {
 #' }
 #'
 #' @export
-execute_restore <- function(db_config, restore_file) {
+execute_restore <- function(db_config, restore_file, progress_fn = NULL) {
+  # Helper to report progress (no-op if progress_fn is NULL)
+  report <- function(step, message, current = NULL, total = NULL) {
+    if (!is.null(progress_fn)) {
+      progress_fn(step, message, current, total)
+    }
+  }
+
   # Validate file exists
+  report("validating", "Validating backup file...", 1, 3)
+
   if (!file.exists(restore_file)) {
     return(list(
       success = FALSE,
@@ -241,8 +369,16 @@ execute_restore <- function(db_config, restore_file) {
     ))
   }
 
+  file_size <- file.info(restore_file)$size
+  is_gzipped <- grepl("\\.gz$", restore_file)
+
+  report("restoring",
+         sprintf("Restoring from %s (%.1f MB)...",
+                 basename(restore_file), file_size / 1024 / 1024),
+         2, 3)
+
   # Build mysql command based on file extension
-  if (grepl("\\.gz$", restore_file)) {
+  if (is_gzipped) {
     # Gzipped backup: decompress on the fly
     restore_cmd <- sprintf(
       "gunzip -c '%s' | mysql -h %s -P %s -u %s -p'%s' %s",
@@ -275,6 +411,8 @@ execute_restore <- function(db_config, restore_file) {
       error = sprintf("Restore failed with exit code %d", result)
     ))
   }
+
+  report("complete", "Restore completed successfully", 3, 3)
 
   list(success = TRUE)
 }

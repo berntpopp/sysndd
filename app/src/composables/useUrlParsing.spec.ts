@@ -299,7 +299,7 @@ describe('useUrlParsing', () => {
 
       const columns = ['hgnc_id', 'disease_ontology_name', 'category', 'ndd_phenotype_word'];
 
-      columns.forEach(col => {
+      columns.forEach((col) => {
         const result = sortStringToVariables(`+${col}`);
         expect(result.sortColumn).toBe(col);
         expect(result.sortBy[0].key).toBe(col);

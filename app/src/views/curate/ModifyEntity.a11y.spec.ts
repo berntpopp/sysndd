@@ -19,9 +19,24 @@ vi.mock('@/composables', () => ({
     makeToast: vi.fn(),
   }),
   useColorAndSymbols: () => ({
-    stoplights_style: { Definitive: 'success', Moderate: 'info', Limited: 'warning', Refuted: 'danger' },
-    user_style: { Administrator: 'danger', Curator: 'primary', Reviewer: 'info', Viewer: 'secondary' },
-    user_icon: { Administrator: 'shield-fill-check', Curator: 'pencil-fill', Reviewer: 'eye-fill', Viewer: 'person-fill' },
+    stoplights_style: {
+      Definitive: 'success',
+      Moderate: 'info',
+      Limited: 'warning',
+      Refuted: 'danger',
+    },
+    user_style: {
+      Administrator: 'danger',
+      Curator: 'primary',
+      Reviewer: 'info',
+      Viewer: 'secondary',
+    },
+    user_icon: {
+      Administrator: 'shield-fill-check',
+      Curator: 'pencil-fill',
+      Reviewer: 'eye-fill',
+      Viewer: 'person-fill',
+    },
   }),
   useText: () => ({
     truncate: (str: string, _len: number) => str,
@@ -101,12 +116,14 @@ describe('ModifyEntity accessibility', () => {
           BFormInput: {
             name: 'BFormInput',
             props: ['modelValue', 'id', 'type', 'placeholder'],
-            template: '<input :id="id" :type="type" :placeholder="placeholder" :value="modelValue" />',
+            template:
+              '<input :id="id" :type="type" :placeholder="placeholder" :value="modelValue" />',
           },
           BFormSelect: {
             name: 'BFormSelect',
             props: ['modelValue', 'options', 'id', 'ariaLabel'],
-            template: '<select :id="id" :aria-label="ariaLabel || \'Select option\'"><option v-for="opt in options" :key="opt.value" :value="opt.value">{{ opt.text }}</option></select>',
+            template:
+              '<select :id="id" :aria-label="ariaLabel || \'Select option\'"><option v-for="opt in options" :key="opt.value" :value="opt.value">{{ opt.text }}</option></select>',
           },
           BFormTextarea: {
             name: 'BFormTextarea',
@@ -120,7 +137,10 @@ describe('ModifyEntity accessibility', () => {
           },
           BFormTags: { template: '<div><slot /></div>' },
           BFormTag: { template: '<span><slot /></span>' },
-          BSpinner: { template: '<div role="status" aria-label="Loading..."><span class="visually-hidden">Loading...</span></div>' },
+          BSpinner: {
+            template:
+              '<div role="status" aria-label="Loading..."><span class="visually-hidden">Loading...</span></div>',
+          },
           BBadge: { template: '<span><slot /></span>' },
           BPopover: { template: '' },
           BCard: { template: '<div><slot name="header" /><slot /></div>' },
@@ -145,7 +165,8 @@ describe('ModifyEntity accessibility', () => {
           TreeMultiSelect: {
             name: 'TreeMultiSelect',
             props: ['modelValue', 'options', 'placeholder'],
-            template: '<select multiple :aria-label="placeholder || \'Multi-select\'"><option>Option</option></select>',
+            template:
+              '<select multiple :aria-label="placeholder || \'Multi-select\'"><option>Option</option></select>',
           },
         },
       },

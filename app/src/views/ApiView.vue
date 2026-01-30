@@ -1,21 +1,10 @@
 <template>
   <div class="container-fluid text-start py-2">
-    <div
-      v-if="error"
-      class="alert alert-warning"
-    >
+    <div v-if="error" class="alert alert-warning">
       {{ error }}
     </div>
-    <div
-      v-if="loading"
-      class="text-center py-4"
-    >
-      Loading API documentation...
-    </div>
-    <div
-      id="swagger-ui"
-      class="swagger"
-    />
+    <div v-if="loading" class="text-center py-4">Loading API documentation...</div>
+    <div id="swagger-ui" class="swagger" />
   </div>
 </template>
 
@@ -54,15 +43,12 @@ export default {
     initSwagger() {
       try {
         const apiURL = `${import.meta.env.VITE_API_URL}/api/admin/openapi.json`;
-         
+
         SwaggerUIBundle({
           dom_id: '#swagger-ui',
           url: apiURL,
           docExpansion: 'none',
-          presets: [
-             
-            SwaggerUIBundle.presets.apis,
-          ],
+          presets: [SwaggerUIBundle.presets.apis],
         });
         this.loading = false;
       } catch (err) {

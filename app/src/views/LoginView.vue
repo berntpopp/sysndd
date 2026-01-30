@@ -2,21 +2,13 @@
 <template>
   <div class="container-fluid">
     <!-- Loading Spinner -->
-    <BSpinner
-      v-if="loading"
-      label="Loading..."
-      class="float-center m-5"
-    />
+    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
 
     <!-- Login Form -->
     <BContainer v-else>
       <BRow class="justify-content-md-center py-4">
         <BCol md="6">
-          <BCard
-            header="Sign in"
-            header-bg-variant="dark"
-            header-text-variant="white"
-          >
+          <BCard header="Sign in" header-bg-variant="dark" header-text-variant="white">
             <BCardText>
               <form @submit.prevent="onSubmit">
                 <!-- Username Field -->
@@ -46,19 +38,10 @@
 
                 <!-- Form Buttons -->
                 <BFormGroup>
-                  <BButton
-                    class="ms-2"
-                    variant="outline-dark"
-                    @click="handleReset"
-                  >
+                  <BButton class="ms-2" variant="outline-dark" @click="handleReset">
                     Reset
                   </BButton>
-                  <BButton
-                    class="ms-2"
-                    :class="{ shake: animated }"
-                    type="submit"
-                    variant="dark"
-                  >
+                  <BButton class="ms-2" :class="{ shake: animated }" type="submit" variant="dark">
                     Login
                   </BButton>
                 </BFormGroup>
@@ -67,15 +50,11 @@
               <!-- Additional Links -->
               <div>
                 Don't have an account yet and want to help?
-                <BLink :href="'/Register'">
-                  Register now.
-                </BLink>
+                <BLink :href="'/Register'"> Register now. </BLink>
               </div>
               <div>
                 Forgot your password?
-                <BLink :href="'/PasswordReset'">
-                  Reset now.
-                </BLink>
+                <BLink :href="'/PasswordReset'"> Reset now. </BLink>
               </div>
             </BCardText>
           </BCard>
@@ -161,7 +140,11 @@ export default {
       try {
         const response_authenticate = await this.axios.get(apiAuthenticateURL);
         localStorage.setItem('token', response_authenticate.data[0]);
-        this.makeToast(`You have logged in (status ${response_authenticate.status} - ${response_authenticate.statusText}).`, 'Success', 'success');
+        this.makeToast(
+          `You have logged in (status ${response_authenticate.status} - ${response_authenticate.statusText}).`,
+          'Success',
+          'success'
+        );
         this.signinWithJWT();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -242,4 +225,4 @@ a {
 }
 </style>
 
-  <!-- based on https://www.youtube.com/watch?v=d9qfI0ESlzY&ab_channel=JakeHarrisCodes -->
+<!-- based on https://www.youtube.com/watch?v=d9qfI0ESlzY&ab_channel=JakeHarrisCodes -->

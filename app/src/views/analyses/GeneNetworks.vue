@@ -3,10 +3,7 @@
   <div class="container-fluid">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="12"
-        >
+        <BCol col md="12">
           <AnalyseGeneClusters />
         </BCol>
       </BRow>

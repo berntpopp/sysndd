@@ -22,7 +22,10 @@
                       :show-title="false"
                     />
                     <span class="gene-card-name ms-1">{{ geneName }}</span>
-                    <span v-if="chromosomeLocation && chromosomeLocation !== 'null'" class="gene-card-location text-muted ms-1">
+                    <span
+                      v-if="chromosomeLocation && chromosomeLocation !== 'null'"
+                      class="gene-card-location text-muted ms-1"
+                    >
                       {{ chromosomeLocation }}
                     </span>
                   </div>
@@ -42,11 +45,7 @@
 
                 <!-- Identifiers as inline badges -->
                 <div class="px-3 py-1">
-                  <IdentifierCard
-                    v-if="gene"
-                    :gene-data="gene"
-                    compact
-                  />
+                  <IdentifierCard v-if="gene" :gene-data="gene" compact />
                 </div>
               </BCard>
             </BCol>
@@ -187,9 +186,7 @@ const omimId = computed(() => gene.value?.omim_id?.[0] || '');
 const mgdId = computed(() => gene.value?.mgd_id?.[0] || '');
 const rgdId = computed(() => gene.value?.rgd_id?.[0] || '');
 const filterInput = computed(() =>
-  geneData.value.length > 0
-    ? `equals(symbol,${geneData.value[0].symbol})`
-    : ''
+  geneData.value.length > 0 ? `equals(symbol,${geneData.value[0].symbol})` : ''
 );
 
 // gnomAD constraint data from gene endpoint (pre-annotated in DB)
@@ -200,10 +197,20 @@ const gnomadConstraintsJson = computed(() => gene.value?.gnomad_constraints?.[0]
 const alphafoldId = computed(() => gene.value?.alphafold_id?.[0] || null);
 
 // ClinVar and AlphaFold data (fetched live from per-source endpoints)
-const { clinvar, alphafold, fetchData: fetchClinvarData, retry: retryExternalData } = useGeneExternalData(geneSymbol);
+const {
+  clinvar,
+  alphafold,
+  fetchData: fetchClinvarData,
+  retry: retryExternalData,
+} = useGeneExternalData(geneSymbol);
 
 // Model organism data (MGI + RGD)
-const { mgi, rgd, fetchData: fetchModelOrganismData, retry: retryModelOrganismData } = useModelOrganismData(geneSymbol);
+const {
+  mgi,
+  rgd,
+  fetchData: fetchModelOrganismData,
+  retry: retryModelOrganismData,
+} = useModelOrganismData(geneSymbol);
 
 // UniProt domain data state (fetched inline since composable is ClinVar-only)
 const uniprotData = ref<UniProtData | null>(null);
@@ -222,9 +229,7 @@ async function fetchUniprotData(): Promise<void> {
 
   try {
     const apiBase = import.meta.env.VITE_API_URL;
-    const response = await axios.get(
-      `${apiBase}/api/external/uniprot/domains/${geneSymbol.value}`
-    );
+    const response = await axios.get(`${apiBase}/api/external/uniprot/domains/${geneSymbol.value}`);
 
     // Check for valid response with domains
     if (response.data && response.data.domains) {
@@ -274,7 +279,7 @@ async function loadGeneInfo() {
     // Parallel fetch: both gene API calls run concurrently
     const [responseGene, responseSymbol] = await Promise.all([
       axios.get(apiGeneURL),
-      axios.get(apiGeneSymbolURL)
+      axios.get(apiGeneSymbolURL),
     ]);
 
     if (responseGene.data.length === 0 && responseSymbol.data.length === 0) {
@@ -302,7 +307,7 @@ async function loadGeneInfo() {
 
 // Dynamic page title
 useHead({
-  title: computed(() => geneSymbol.value ? `Gene: ${geneSymbol.value}` : 'Gene'),
+  title: computed(() => (geneSymbol.value ? `Gene: ${geneSymbol.value}` : 'Gene')),
   meta: [
     {
       name: 'description',
@@ -321,11 +326,14 @@ onMounted(() => {
 });
 
 // Route watcher (handle navigation between genes without full page reload)
-watch(() => route.params.symbol, (newSymbol) => {
-  if (newSymbol) {
-    loadGeneInfo();
+watch(
+  () => route.params.symbol,
+  (newSymbol) => {
+    if (newSymbol) {
+      loadGeneInfo();
+    }
   }
-});
+);
 </script>
 
 <style scoped>

@@ -129,10 +129,7 @@ function isClassificationVisible(
 /**
  * Check if effect type is visible based on filter state
  */
-function isEffectTypeVisible(
-  majorConsequence: string,
-  filterState: LollipopFilterState
-): boolean {
+function isEffectTypeVisible(majorConsequence: string, filterState: LollipopFilterState): boolean {
   // Safety check: if effectFilters is not defined, show all effect types
   if (!filterState.effectFilters) return true;
 
@@ -321,8 +318,9 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
       : '';
 
     // ClinVar link (only shown when locked)
-    const clinvarLink = locked && variant.clinvarId
-      ? `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #444;">
+    const clinvarLink =
+      locked && variant.clinvarId
+        ? `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #444;">
            <a href="https://www.ncbi.nlm.nih.gov/clinvar/variation/${variant.clinvarId}/"
               target="_blank"
               rel="noopener noreferrer"
@@ -330,7 +328,7 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
              View in ClinVar →
            </a>
          </div>`
-      : '';
+        : '';
 
     // Dismiss hint when locked
     const dismissHint = locked
@@ -687,10 +685,7 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
               .attr('opacity', dynamicOpacity)
               .attr('cursor', 'pointer')
               .style('pointer-events', 'all')
-              .attr(
-                'aria-label',
-                (d) => `Position ${d.proteinPosition}: ${d.count} variants`
-              );
+              .attr('aria-label', (d) => `Position ${d.proteinPosition}: ${d.count} variants`);
 
             // Event handlers for aggregated markers
             markers
@@ -918,7 +913,6 @@ export function useD3Lollipop(options: LollipopOptions): D3LollipopState {
       }
     });
   };
-
 
   /**
    * Internal render function with optional zoom domain

@@ -65,7 +65,7 @@ export function useFilterPresets(
       created: new Date().toISOString(),
     };
 
-    const existingIndex = presets.value.findIndex(p => p.name === trimmedName);
+    const existingIndex = presets.value.findIndex((p) => p.name === trimmedName);
     if (existingIndex >= 0) {
       // Update existing (creates new array for reactivity)
       presets.value = [
@@ -80,22 +80,22 @@ export function useFilterPresets(
   };
 
   const loadPreset = (name: string): Record<string, unknown> | null => {
-    const preset = presets.value.find(p => p.name === name);
+    const preset = presets.value.find((p) => p.name === name);
     if (!preset) return null;
     // Return deep copy to prevent mutation
     return JSON.parse(JSON.stringify(preset.filter));
   };
 
   const deletePreset = (name: string): void => {
-    presets.value = presets.value.filter(p => p.name !== name);
+    presets.value = presets.value.filter((p) => p.name !== name);
   };
 
   const hasPreset = (name: string): boolean => {
-    return presets.value.some(p => p.name === name);
+    return presets.value.some((p) => p.name === name);
   };
 
   const getPresetNames = (): string[] => {
-    return presets.value.map(p => p.name);
+    return presets.value.map((p) => p.name);
   };
 
   return {

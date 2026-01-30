@@ -1,44 +1,26 @@
 <!-- views/admin/ManageOntology.vue -->
-/**
- * ManageOntology component
- *
- * @description This component is used to manage the variation ontology entries. It includes a modern
- *              table with search, filtering, pagination, and URL state sync following the TablesEntities pattern.
- *
- * @component ManageOntology
- *
- * @script
- *   - Imports the GenericTable and TablePaginationControls components
- *   - Uses composables for URL parsing, table data, and Excel export
- *   - Includes module-level caching to prevent duplicate API calls
- *   - Implements debounced search with 300ms delay
- *   - Manages filter state with active/obsolete filters
- *   - Syncs table state to URL for bookmarkable views
- *
- * @style
- *   - Uses the 'scoped' attribute to limit the styles to this component only.
- *   - Defines styles for small buttons and inputs within the component.
- */
+/** * ManageOntology component * * @description This component is used to manage the variation
+ontology entries. It includes a modern * table with search, filtering, pagination, and URL state
+sync following the TablesEntities pattern. * * @component ManageOntology * * @script * - Imports the
+GenericTable and TablePaginationControls components * - Uses composables for URL parsing, table
+data, and Excel export * - Includes module-level caching to prevent duplicate API calls * -
+Implements debounced search with 300ms delay * - Manages filter state with active/obsolete filters *
+- Syncs table state to URL for bookmarkable views * * @style * - Uses the 'scoped' attribute to
+limit the styles to this component only. * - Defines styles for small buttons and inputs within the
+component. */
 
 <template>
   <div class="container-fluid">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol md="12">
-          <BCard
-            header-tag="header"
-            body-class="p-0"
-            header-class="p-1"
-            border-variant="dark"
-          >
+          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
             <template #header>
               <BRow>
                 <BCol>
                   <h5 class="mb-1 text-start">
                     <strong>Manage Variation Ontology</strong>
-                    <BBadge variant="secondary" class="ms-2">
-                      {{ totalRows }} terms
-                    </BBadge>
+                    <BBadge variant="secondary" class="ms-2"> {{ totalRows }} terms </BBadge>
                   </h5>
                 </BCol>
                 <BCol class="text-end">
@@ -107,9 +89,7 @@
                   @update:model-value="filtered()"
                 >
                   <template #first>
-                    <BFormSelectOption :value="null">
-                      All Status
-                    </BFormSelectOption>
+                    <BFormSelectOption :value="null"> All Status </BFormSelectOption>
                   </template>
                 </BFormSelect>
               </BCol>
@@ -121,15 +101,16 @@
                   @update:model-value="filtered()"
                 >
                   <template #first>
-                    <BFormSelectOption :value="null">
-                      All Terms
-                    </BFormSelectOption>
+                    <BFormSelectOption :value="null"> All Terms </BFormSelectOption>
                   </template>
                 </BFormSelect>
               </BCol>
               <BCol sm="6" class="text-end">
                 <span class="text-muted small">
-                  Showing {{ totalRows > 0 ? (currentPage - 1) * perPage + 1 : 0 }}-{{ Math.min(currentPage * perPage, totalRows) }} of {{ totalRows }}
+                  Showing {{ totalRows > 0 ? (currentPage - 1) * perPage + 1 : 0 }}-{{
+                    Math.min(currentPage * perPage, totalRows)
+                  }}
+                  of {{ totalRows }}
                 </span>
               </BCol>
             </BRow>
@@ -165,15 +146,13 @@
                 v-if="isBusy"
                 class="position-absolute top-50 start-50 translate-middle"
                 variant="primary"
-                style="z-index: 10;"
+                style="z-index: 10"
               />
 
               <!-- Empty state -->
               <div v-if="!isBusy && ontologies.length === 0" class="text-center py-4">
                 <i class="bi bi-journal-text fs-1 text-muted" />
-                <p class="text-muted mt-2">
-                  No ontology terms found matching your filters
-                </p>
+                <p class="text-muted mt-2">No ontology terms found matching your filters</p>
                 <BButton v-if="hasActiveFilters" variant="link" @click="removeFilters">
                   Clear filters
                 </BButton>
@@ -244,11 +223,7 @@
                   Modify the properties of this variation ontology entry
                 </p>
               </div>
-              <BButton
-                variant="link"
-                class="p-0 text-muted"
-                @click="showEditModal = false"
-              >
+              <BButton variant="link" class="p-0 text-muted" @click="showEditModal = false">
                 <i class="bi bi-x-lg" />
               </BButton>
             </div>
@@ -310,27 +285,17 @@
               min="0"
             />
             <!-- Default text input -->
-            <BFormInput
-              v-else
-              :id="'input-' + field.key"
-              v-model="ontologyToEdit[field.key]"
-            />
+            <BFormInput v-else :id="'input-' + field.key" v-model="ontologyToEdit[field.key]" />
           </BFormGroup>
         </BForm>
 
         <template #footer>
           <div class="d-flex justify-content-end gap-2 w-100">
-            <BButton
-              variant="outline-secondary"
-              @click="showEditModal = false"
-            >
+            <BButton variant="outline-secondary" @click="showEditModal = false">
               <i class="bi bi-x-circle me-1" />
               Cancel
             </BButton>
-            <BButton
-              variant="primary"
-              @click="updateOntologyData"
-            >
+            <BButton variant="primary" @click="updateOntologyData">
               <i class="bi bi-check-circle me-1" />
               Save Changes
             </BButton>
@@ -480,7 +445,8 @@ export default {
     editableFields() {
       // Filter out non-editable fields like 'actions', 'vario_id', and 'update_date'
       return this.fields.filter(
-        (field) => field.key !== 'actions' && field.key !== 'vario_id' && field.key !== 'update_date',
+        (field) =>
+          field.key !== 'actions' && field.key !== 'vario_id' && field.key !== 'update_date'
       );
     },
     activeFilterOptions() {
@@ -635,7 +601,11 @@ export default {
     // Remove all filters
     removeFilters() {
       Object.keys(this.filter).forEach((key) => {
-        if (this.filter[key] && typeof this.filter[key] === 'object' && 'content' in this.filter[key]) {
+        if (
+          this.filter[key] &&
+          typeof this.filter[key] === 'object' &&
+          'content' in this.filter[key]
+        ) {
           this.filter[key].content = null;
         }
       });
@@ -673,7 +643,7 @@ export default {
       const now = Date.now();
 
       // Prevent duplicate API calls using module-level tracking
-      if (moduleLastApiParams === urlParam && (now - moduleLastApiCallTime) < 500) {
+      if (moduleLastApiParams === urlParam && now - moduleLastApiCallTime < 500) {
         if (moduleLastApiResponse) {
           this.applyApiResponse(moduleLastApiResponse);
         }
@@ -781,7 +751,7 @@ export default {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          },
+          }
         );
         this.makeToast(response.data.message, 'Success', 'success');
         // Update the ontology in the local state

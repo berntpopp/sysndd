@@ -33,13 +33,7 @@
     <!-- Error State -->
     <div v-else-if="error" class="text-center py-3" role="alert">
       <p class="text-muted mb-2 small">{{ error }}</p>
-      <BButton
-        variant="outline-primary"
-        size="sm"
-        @click="$emit('retry')"
-      >
-        Retry
-      </BButton>
+      <BButton variant="outline-primary" size="sm" @click="$emit('retry')"> Retry </BButton>
     </div>
 
     <!-- No Data State -->
@@ -97,22 +91,22 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { BCard, BButton, BSpinner, BBadge } from 'bootstrap-vue-next'
-import type { ClinVarVariant } from '@/types/external'
+import { computed } from 'vue';
+import { BCard, BButton, BSpinner, BBadge } from 'bootstrap-vue-next';
+import type { ClinVarVariant } from '@/types/external';
 
 interface Props {
-  geneSymbol: string
-  loading: boolean
-  error: string | null
-  data: ClinVarVariant[] | null
+  geneSymbol: string;
+  loading: boolean;
+  error: string | null;
+  data: ClinVarVariant[] | null;
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 
 defineEmits<{
-  retry: []
-}>()
+  retry: [];
+}>();
 
 // Count variants by ACMG pathogenicity classification
 const counts = computed(() => {
@@ -122,8 +116,8 @@ const counts = computed(() => {
       likely_pathogenic: 0,
       vus: 0,
       likely_benign: 0,
-      benign: 0
-    }
+      benign: 0,
+    };
   }
 
   const result = {
@@ -131,34 +125,34 @@ const counts = computed(() => {
     likely_pathogenic: 0,
     vus: 0,
     likely_benign: 0,
-    benign: 0
-  }
+    benign: 0,
+  };
 
-  props.data.forEach(variant => {
-    const significance = variant.clinical_significance?.toLowerCase().replace(/_/g, ' ') || ''
+  props.data.forEach((variant) => {
+    const significance = variant.clinical_significance?.toLowerCase().replace(/_/g, ' ') || '';
 
     // Match classification (handle both underscore and space formats)
     if (significance.includes('pathogenic') && !significance.includes('likely')) {
-      result.pathogenic++
+      result.pathogenic++;
     } else if (significance.includes('likely') && significance.includes('pathogenic')) {
-      result.likely_pathogenic++
+      result.likely_pathogenic++;
     } else if (significance.includes('uncertain') || significance.includes('vus')) {
-      result.vus++
+      result.vus++;
     } else if (significance.includes('likely') && significance.includes('benign')) {
-      result.likely_benign++
+      result.likely_benign++;
     } else if (significance.includes('benign') && !significance.includes('likely')) {
-      result.benign++
+      result.benign++;
     }
-  })
+  });
 
-  return result
-})
+  return result;
+});
 
 // Total variant count
 const totalCount = computed(() => {
-  if (!props.data) return 0
-  return props.data.length
-})
+  if (!props.data) return 0;
+  return props.data.length;
+});
 </script>
 
 <style scoped>

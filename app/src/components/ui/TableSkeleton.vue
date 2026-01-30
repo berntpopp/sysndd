@@ -2,33 +2,15 @@
   <div class="table-skeleton" role="status" aria-label="Loading table data">
     <!-- Header row -->
     <div class="skeleton-row skeleton-header">
-      <div
-        v-for="col in columns"
-        :key="`header-${col}`"
-        class="skeleton-cell"
-      >
-        <div
-          class="skeleton-shimmer"
-          :style="{ width: getHeaderWidth(col), height: '1rem' }"
-        />
+      <div v-for="col in columns" :key="`header-${col}`" class="skeleton-cell">
+        <div class="skeleton-shimmer" :style="{ width: getHeaderWidth(col), height: '1rem' }" />
       </div>
     </div>
 
     <!-- Data rows -->
-    <div
-      v-for="row in rows"
-      :key="`row-${row}`"
-      class="skeleton-row"
-    >
-      <div
-        v-for="col in columns"
-        :key="`cell-${row}-${col}`"
-        class="skeleton-cell"
-      >
-        <div
-          class="skeleton-shimmer"
-          :style="{ width: getCellWidth(col), height: '0.875rem' }"
-        />
+    <div v-for="row in rows" :key="`row-${row}`" class="skeleton-row">
+      <div v-for="col in columns" :key="`cell-${row}-${col}`" class="skeleton-cell">
+        <div class="skeleton-shimmer" :style="{ width: getCellWidth(col), height: '0.875rem' }" />
       </div>
     </div>
   </div>
@@ -42,12 +24,12 @@ export default defineComponent({
   props: {
     rows: {
       type: Number,
-      default: 5
+      default: 5,
     },
     columns: {
       type: Number,
-      default: 4
-    }
+      default: 4,
+    },
   },
   methods: {
     getHeaderWidth(col: number): string {
@@ -59,8 +41,8 @@ export default defineComponent({
       // Vary cell widths for more realistic appearance
       const widths = ['25%', '50%', '35%', '15%'];
       return widths[(col - 1) % widths.length];
-    }
-  }
+    },
+  },
 });
 </script>
 

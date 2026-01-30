@@ -10,7 +10,7 @@ import useToast from './useToast';
 
 // Types for batch criteria
 interface DateRange {
-  start: string | null;  // YYYY-MM-DD format
+  start: string | null; // YYYY-MM-DD format
   end: string | null;
 }
 
@@ -23,9 +23,9 @@ interface SelectedEntity {
 interface BatchFormData {
   batch_name: string;
   date_range: DateRange;
-  entity_list: SelectedEntity[];  // Selected entities with rich data for display
-  gene_list: number[];            // Array of hgnc_ids as filter criterion
-  status_filter: number | null;   // category_id
+  entity_list: SelectedEntity[]; // Selected entities with rich data for display
+  gene_list: number[]; // Array of hgnc_ids as filter criterion
+  status_filter: number | null; // category_id
   disease_id: string | null;
   batch_size: number;
   assigned_user_id: number | null;
@@ -125,16 +125,13 @@ export function useBatchForm() {
         : `or(contains(symbol,${query}),contains(disease_ontology_name,${query}))`;
 
       // Search entities using the API filter syntax
-      const response = await axios.get(
-        `${apiUrl}/api/entity/`,
-        {
-          params: {
-            filter,
-            page_size: 15,
-          },
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }
-      );
+      const response = await axios.get(`${apiUrl}/api/entity/`, {
+        params: {
+          filter,
+          page_size: 15,
+        },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const data = response.data?.data || response.data || [];
       entitySearchResults.value = Array.isArray(data) ? data : [];
     } catch (error) {
@@ -148,7 +145,7 @@ export function useBatchForm() {
   // Add entity to selection
   const addEntity = (entity: EntitySearchResult) => {
     // Check for duplicates
-    if (formData.entity_list.some(e => e.entity_id === entity.entity_id)) {
+    if (formData.entity_list.some((e) => e.entity_id === entity.entity_id)) {
       return;
     }
     formData.entity_list.push({
@@ -162,7 +159,7 @@ export function useBatchForm() {
 
   // Remove entity from selection
   const removeEntity = (entityId: number) => {
-    const idx = formData.entity_list.findIndex(e => e.entity_id === entityId);
+    const idx = formData.entity_list.findIndex((e) => e.entity_id === entityId);
     if (idx !== -1) {
       formData.entity_list.splice(idx, 1);
     }
@@ -176,7 +173,7 @@ export function useBatchForm() {
 
     // Entity list takes priority - direct entity IDs
     if (formData.entity_list.length > 0) {
-      criteria.entity_ids = formData.entity_list.map(e => e.entity_id);
+      criteria.entity_ids = formData.entity_list.map((e) => e.entity_id);
     }
 
     if (formData.date_range.start && formData.date_range.end) {
@@ -209,10 +206,9 @@ export function useBatchForm() {
 
     try {
       // Load users (Curators and Reviewers)
-      const usersResponse = await axios.get(
-        `${apiUrl}/api/user/list?roles=Curator,Reviewer`,
-        { headers }
-      );
+      const usersResponse = await axios.get(`${apiUrl}/api/user/list?roles=Curator,Reviewer`, {
+        headers,
+      });
       const usersData = usersResponse.data;
       userOptions.value = Array.isArray(usersData)
         ? usersData.map((u: { user_id: number; user_name: string }) => ({
@@ -222,10 +218,7 @@ export function useBatchForm() {
         : [];
 
       // Load status categories from /api/list/status
-      const statusResponse = await axios.get(
-        `${apiUrl}/api/list/status`,
-        { headers }
-      );
+      const statusResponse = await axios.get(`${apiUrl}/api/list/status`, { headers });
       const statusData = statusResponse.data;
       // Handle paginated response format
       const statusArray = statusData?.data || statusData;
@@ -268,11 +261,9 @@ export function useBatchForm() {
     const token = localStorage.getItem('token');
 
     try {
-      const response = await axios.post(
-        `${apiUrl}/api/re_review/batch/preview`,
-        buildCriteria(),
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await axios.post(`${apiUrl}/api/re_review/batch/preview`, buildCriteria(), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       previewEntities.value = response.data.data || [];
       showPreviewModal.value = true;
@@ -304,18 +295,12 @@ export function useBatchForm() {
         assigned_user_id: formData.assigned_user_id,
       };
 
-      const response = await axios.post(
-        `${apiUrl}/api/re_review/batch/create`,
-        payload,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await axios.post(`${apiUrl}/api/re_review/batch/create`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       const result = response.data.entry;
-      makeToast(
-        `Batch created with ${result.entity_count} entities`,
-        'Success',
-        'success'
-      );
+      makeToast(`Batch created with ${result.entity_count} entities`, 'Success', 'success');
 
       // Reset form
       resetForm();

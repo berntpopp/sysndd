@@ -19,9 +19,7 @@
           <BFormGroup label="To" label-class="small" class="mb-0 me-2">
             <BFormInput v-model="endDate" type="date" size="sm" />
           </BFormGroup>
-          <BButton type="submit" variant="primary" size="sm" class="mt-3">
-            Apply
-          </BButton>
+          <BButton type="submit" variant="primary" size="sm" class="mt-3"> Apply </BButton>
         </BForm>
       </BCol>
     </BRow>
@@ -56,8 +54,8 @@
             </div>
           </template>
           <p class="text-muted small mb-2">
-            Cumulative count of gene-disease associations curated over time.
-            The dashed trend line represents a 3-period moving average for temporal smoothing.
+            Cumulative count of gene-disease associations curated over time. The dashed trend line
+            represents a 3-period moving average for temporal smoothing.
           </p>
           <EntityTrendChart
             :entity-data="trendData"
@@ -87,12 +85,13 @@
           </template>
           <p class="text-muted small mb-2">
             Curator leaderboard ranked by gene-disease association submissions.
-            {{ leaderboardScope === 'all_time' ? 'Cumulative all-time contributions.' : `Contributions within selected ${periodLengthDays} day period.` }}
+            {{
+              leaderboardScope === 'all_time'
+                ? 'Cumulative all-time contributions.'
+                : `Contributions within selected ${periodLengthDays} day period.`
+            }}
           </p>
-          <ContributorBarChart
-            :contributors="leaderboardData"
-            :loading="loading.leaderboard"
-          />
+          <ContributorBarChart :contributors="leaderboardData" :loading="loading.leaderboard" />
         </BCard>
       </BCol>
       <BCol md="6">
@@ -112,7 +111,11 @@
           </template>
           <p class="text-muted small mb-2">
             Reviewer leaderboard ranked by submitted re-reviews.
-            {{ reReviewLeaderboardScope === 'all_time' ? 'Cumulative all-time re-reviews.' : `Re-reviews within selected ${periodLengthDays} day period.` }}
+            {{
+              reReviewLeaderboardScope === 'all_time'
+                ? 'Cumulative all-time re-reviews.'
+                : `Re-reviews within selected ${periodLengthDays} day period.`
+            }}
           </p>
           <ReReviewBarChart
             :reviewers="reReviewLeaderboardData"
@@ -125,12 +128,7 @@
     <!-- Existing text stats (kept for reference) -->
     <BRow v-if="statistics" class="mb-3">
       <BCol md="6" class="mb-3">
-        <BCard
-          header-tag="header"
-          body-class="p-3"
-          header-class="p-2"
-          border-variant="dark"
-        >
+        <BCard header-tag="header" body-class="p-3" header-class="p-2" border-variant="dark">
           <template #header>
             <h5 class="mb-0 text-start">
               Updates Statistics
@@ -138,23 +136,20 @@
             </h5>
           </template>
           <p class="mb-1">
-            Total new entities: <span class="stats-number">{{ statistics.total_new_entities }}</span>
+            Total new entities:
+            <span class="stats-number">{{ statistics.total_new_entities }}</span>
           </p>
           <p class="mb-1">
             Unique genes: <span class="stats-number">{{ statistics.unique_genes }}</span>
           </p>
           <p class="mb-0">
-            Average per day: <span class="stats-number">{{ formatDecimal(statistics.average_per_day) }}</span>
+            Average per day:
+            <span class="stats-number">{{ formatDecimal(statistics.average_per_day) }}</span>
           </p>
         </BCard>
       </BCol>
       <BCol v-if="reReviewStatistics" md="6" class="mb-3">
-        <BCard
-          header-tag="header"
-          body-class="p-3"
-          header-class="p-2"
-          border-variant="dark"
-        >
+        <BCard header-tag="header" body-class="p-3" header-class="p-2" border-variant="dark">
           <template #header>
             <h5 class="mb-0 text-start">
               Re-review Statistics
@@ -162,25 +157,27 @@
             </h5>
           </template>
           <p class="mb-1">
-            Total re-reviews: <span class="stats-number">{{ reReviewStatistics.total_rereviews }}</span>
+            Total re-reviews:
+            <span class="stats-number">{{ reReviewStatistics.total_rereviews }}</span>
           </p>
           <p class="mb-1">
-            Percentage finished: <span class="stats-number">{{ formatDecimal(reReviewStatistics.percentage_finished) }}%</span>
+            Percentage finished:
+            <span class="stats-number"
+              >{{ formatDecimal(reReviewStatistics.percentage_finished) }}%</span
+            >
           </p>
           <p class="mb-0">
-            Average per day: <span class="stats-number">{{ formatDecimal(reReviewStatistics.average_per_day) }}</span>
+            Average per day:
+            <span class="stats-number">{{
+              formatDecimal(reReviewStatistics.average_per_day)
+            }}</span>
           </p>
         </BCard>
       </BCol>
     </BRow>
     <BRow v-if="updatedReviewsStatistics || updatedStatusesStatistics" class="mb-3">
       <BCol v-if="updatedReviewsStatistics" md="6" class="mb-3">
-        <BCard
-          header-tag="header"
-          body-class="p-3"
-          header-class="p-2"
-          border-variant="dark"
-        >
+        <BCard header-tag="header" body-class="p-3" header-class="p-2" border-variant="dark">
           <template #header>
             <h5 class="mb-0 text-start">
               Updated Reviews Statistics
@@ -188,17 +185,13 @@
             </h5>
           </template>
           <p class="mb-0">
-            Total updated reviews: <span class="stats-number">{{ updatedReviewsStatistics.total_updated_reviews }}</span>
+            Total updated reviews:
+            <span class="stats-number">{{ updatedReviewsStatistics.total_updated_reviews }}</span>
           </p>
         </BCard>
       </BCol>
       <BCol v-if="updatedStatusesStatistics" md="6" class="mb-3">
-        <BCard
-          header-tag="header"
-          body-class="p-3"
-          header-class="p-2"
-          border-variant="dark"
-        >
+        <BCard header-tag="header" body-class="p-3" header-class="p-2" border-variant="dark">
           <template #header>
             <h5 class="mb-0 text-start">
               Updated Statuses Statistics
@@ -206,7 +199,8 @@
             </h5>
           </template>
           <p class="mb-0">
-            Total updated statuses: <span class="stats-number">{{ updatedStatusesStatistics.total_updated_statuses }}</span>
+            Total updated statuses:
+            <span class="stats-number">{{ updatedStatusesStatistics.total_updated_statuses }}</span>
           </p>
         </BCard>
       </BCol>
@@ -405,33 +399,31 @@ async function fetchTrendData(): Promise<void> {
 
   loading.value.trend = true;
   try {
-    const response = await axios.get(
-      `${apiUrl}/api/statistics/entities_over_time`,
-      {
-        params: {
-          aggregate: 'entity_id',
-          group: 'category',
-          summarize: granularity.value,
-        },
-        headers: getAuthHeaders(),
-      }
-    );
+    const response = await axios.get(`${apiUrl}/api/statistics/entities_over_time`, {
+      params: {
+        aggregate: 'entity_id',
+        group: 'category',
+        summarize: granularity.value,
+      },
+      headers: getAuthHeaders(),
+    });
 
     // Transform response: data[0].values array contains { entry_date, count, cumulative_count }
     // Aggregate across all categories for the overall trend
     const allData = response.data.data || [];
     const dateCountMap = new Map<string, number>();
 
-    allData.forEach((group: { group: string; values: Array<{ entry_date: string; count: number }> }) => {
-      group.values?.forEach((item) => {
-        const existing = dateCountMap.get(item.entry_date) || 0;
-        dateCountMap.set(item.entry_date, existing + item.count);
-      });
-    });
+    allData.forEach(
+      (group: { group: string; values: Array<{ entry_date: string; count: number }> }) => {
+        group.values?.forEach((item) => {
+          const existing = dateCountMap.get(item.entry_date) || 0;
+          dateCountMap.set(item.entry_date, existing + item.count);
+        });
+      }
+    );
 
     // Convert to sorted array
-    const sortedDates = Array.from(dateCountMap.entries())
-      .sort(([a], [b]) => a.localeCompare(b));
+    const sortedDates = Array.from(dateCountMap.entries()).sort(([a], [b]) => a.localeCompare(b));
 
     // Calculate cumulative totals
     let cumulative = 0;
@@ -464,13 +456,10 @@ async function fetchLeaderboard(): Promise<void> {
       params.end_date = endDate.value;
     }
 
-    const response = await axios.get(
-      `${apiUrl}/api/statistics/contributor_leaderboard`,
-      {
-        params,
-        headers: getAuthHeaders(),
-      }
-    );
+    const response = await axios.get(`${apiUrl}/api/statistics/contributor_leaderboard`, {
+      params,
+      headers: getAuthHeaders(),
+    });
 
     // Map response to chart format: use display_name for user_name
     const data = response.data.data || [];
@@ -482,7 +471,9 @@ async function fetchLeaderboard(): Promise<void> {
     // Update total contributors from meta (unwrap R/Plumber array)
     if (response.data.meta?.total_contributors) {
       const contributors = response.data.meta.total_contributors;
-      kpiStats.value.totalContributors = Array.isArray(contributors) ? contributors[0] : contributors;
+      kpiStats.value.totalContributors = Array.isArray(contributors)
+        ? contributors[0]
+        : contributors;
     }
   } catch (error) {
     console.error('Failed to fetch leaderboard:', error);
@@ -509,21 +500,20 @@ async function fetchReReviewLeaderboard(): Promise<void> {
       params.end_date = endDate.value;
     }
 
-    const response = await axios.get(
-      `${apiUrl}/api/statistics/rereview_leaderboard`,
-      {
-        params,
-        headers: getAuthHeaders(),
-      }
-    );
+    const response = await axios.get(`${apiUrl}/api/statistics/rereview_leaderboard`, {
+      params,
+      headers: getAuthHeaders(),
+    });
 
     // Map response to chart format
     const data = response.data.data || [];
-    reReviewLeaderboardData.value = data.map((item: { display_name: string; submitted_count: number; approved_count: number }) => ({
-      user_name: item.display_name || 'Unknown',
-      submitted_count: item.submitted_count,
-      approved_count: item.approved_count,
-    }));
+    reReviewLeaderboardData.value = data.map(
+      (item: { display_name: string; submitted_count: number; approved_count: number }) => ({
+        user_name: item.display_name || 'Unknown',
+        submitted_count: item.submitted_count,
+        approved_count: item.approved_count,
+      })
+    );
   } catch (error) {
     console.error('Failed to fetch re-review leaderboard:', error);
     makeToast('Failed to fetch re-review leaderboard data', 'Error', 'danger');
@@ -538,16 +528,13 @@ async function fetchUpdatesStats(start: string, end: string): Promise<UpdatesSta
   if (!axios) return null;
 
   try {
-    const response = await axios.get(
-      `${apiUrl}/api/statistics/updates`,
-      {
-        params: { start_date: start, end_date: end },
-        headers: getAuthHeaders(),
-      }
-    );
+    const response = await axios.get(`${apiUrl}/api/statistics/updates`, {
+      params: { start_date: start, end_date: end },
+      headers: getAuthHeaders(),
+    });
     // API returns arrays, extract first element
     const extractValue = (val: number | number[]): number =>
-      Array.isArray(val) ? val[0] ?? 0 : val ?? 0;
+      Array.isArray(val) ? (val[0] ?? 0) : (val ?? 0);
     return {
       total_new_entities: extractValue(response.data.total_new_entities),
       unique_genes: extractValue(response.data.unique_genes),
@@ -635,16 +622,13 @@ async function fetchExistingStatistics(): Promise<void> {
 
   try {
     // Re-review statistics
-    const reReviewResponse = await axios.get(
-      `${apiUrl}/api/statistics/rereview`,
-      {
-        params: { start_date: startDate.value, end_date: endDate.value },
-        headers: getAuthHeaders(),
-      }
-    );
+    const reReviewResponse = await axios.get(`${apiUrl}/api/statistics/rereview`, {
+      params: { start_date: startDate.value, end_date: endDate.value },
+      headers: getAuthHeaders(),
+    });
     // Helper to extract scalar from array-wrapped API responses
     const extractVal = (val: number | number[]): number =>
-      Array.isArray(val) ? val[0] ?? 0 : val ?? 0;
+      Array.isArray(val) ? (val[0] ?? 0) : (val ?? 0);
     reReviewStatistics.value = {
       total_rereviews: extractVal(reReviewResponse.data.total_rereviews),
       percentage_finished: extractVal(reReviewResponse.data.percentage_finished),
@@ -652,25 +636,19 @@ async function fetchExistingStatistics(): Promise<void> {
     };
 
     // Updated reviews statistics
-    const updatedReviewsResponse = await axios.get(
-      `${apiUrl}/api/statistics/updated_reviews`,
-      {
-        params: { start_date: startDate.value, end_date: endDate.value },
-        headers: getAuthHeaders(),
-      }
-    );
+    const updatedReviewsResponse = await axios.get(`${apiUrl}/api/statistics/updated_reviews`, {
+      params: { start_date: startDate.value, end_date: endDate.value },
+      headers: getAuthHeaders(),
+    });
     updatedReviewsStatistics.value = {
       total_updated_reviews: extractVal(updatedReviewsResponse.data.total_updated_reviews),
     };
 
     // Updated statuses statistics
-    const updatedStatusesResponse = await axios.get(
-      `${apiUrl}/api/statistics/updated_statuses`,
-      {
-        params: { start_date: startDate.value, end_date: endDate.value },
-        headers: getAuthHeaders(),
-      }
-    );
+    const updatedStatusesResponse = await axios.get(`${apiUrl}/api/statistics/updated_statuses`, {
+      params: { start_date: startDate.value, end_date: endDate.value },
+      headers: getAuthHeaders(),
+    });
     updatedStatusesStatistics.value = {
       total_updated_statuses: extractVal(updatedStatusesResponse.data.total_updated_statuses),
     };

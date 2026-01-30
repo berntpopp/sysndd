@@ -81,10 +81,7 @@ export const handlers = [
   // Remove or modify this in production tests
   http.get('/api/*', ({ request }) => {
     console.warn(`Unhandled API request: ${request.url}`);
-    return HttpResponse.json(
-      { error: 'Not mocked', url: request.url },
-      { status: 500 }
-    );
+    return HttpResponse.json({ error: 'Not mocked', url: request.url }, { status: 500 });
   }),
 ];
 

@@ -2,7 +2,9 @@
   <div class="variant-panel" role="region" aria-label="ClinVar variant selection panel">
     <!-- Panel Header -->
     <div class="panel-header">
-      <span class="fw-semibold small">Variants ({{ filteredVariants.length }}/{{ mappableVariants.length }})</span>
+      <span class="fw-semibold small"
+        >Variants ({{ filteredVariants.length }}/{{ mappableVariants.length }})</span
+      >
       <BButton
         v-if="selectedResidues.size > 0"
         variant="link"
@@ -28,11 +30,7 @@
 
     <!-- ACMG Filter Row -->
     <div class="filter-row d-flex flex-wrap justify-content-center align-items-center gap-1">
-      <span
-        v-for="item in legendItems"
-        :key="item.key"
-        class="filter-group"
-      >
+      <span v-for="item in legendItems" :key="item.key" class="filter-group">
         <button
           type="button"
           class="filter-chip"
@@ -46,42 +44,46 @@
             :style="{ backgroundColor: item.visible ? item.color : '#ccc' }"
           />
           <span class="filter-label">{{ item.label }}</span>
-          <span
-            v-if="item.count > 0"
-            class="filter-count"
-          >{{ item.count }}</span>
+          <span v-if="item.count > 0" class="filter-count">{{ item.count }}</span>
         </button>
         <button
           type="button"
           class="only-btn"
           title="Show only this category"
           @click="selectOnly(item.key)"
-        >only</button>
+        >
+          only
+        </button>
       </span>
-      <button
-        type="button"
-        class="all-btn"
-        title="Show all categories"
-        @click="selectAll"
-      >all</button>
+      <button type="button" class="all-btn" title="Show all categories" @click="selectAll">
+        all
+      </button>
     </div>
 
     <!-- No variants state -->
     <div v-if="mappableVariants.length === 0" class="text-center py-3">
       <span class="text-muted small">
-        {{ variants.length === 0 ? 'No ClinVar variants available' : 'No variants with protein positions' }}
+        {{
+          variants.length === 0
+            ? 'No ClinVar variants available'
+            : 'No variants with protein positions'
+        }}
       </span>
     </div>
 
     <!-- No matching variants after filter -->
     <div v-else-if="filteredVariants.length === 0" class="text-center py-3">
-      <span class="text-muted small">
-        No variants match current filters
-      </span>
+      <span class="text-muted small"> No variants match current filters </span>
     </div>
 
     <!-- Variant List (scrollable) -->
-    <div v-else ref="listContainer" class="variant-list" role="list" aria-label="ClinVar variants with protein positions">
+    <div
+      v-else
+      ref="listContainer"
+      class="variant-list"
+      role="list"
+      aria-label="ClinVar variants with protein positions"
+    >
       <label
         v-for="item in filteredVariants"
         :key="item.variant.variant_id"
@@ -96,11 +98,7 @@
           :aria-label="`Highlight ${item.variant.hgvsp || item.variant.variant_id} on 3D structure`"
           @change="toggleVariant(item)"
         />
-        <span
-          class="acmg-dot"
-          :style="{ backgroundColor: item.color }"
-          :aria-hidden="true"
-        ></span>
+        <span class="acmg-dot" :style="{ backgroundColor: item.color }" :aria-hidden="true"></span>
         <span class="variant-info">
           <span class="variant-row-top">
             <span class="variant-notation small">
@@ -449,7 +447,7 @@ function showTooltip(event: MouseEvent, item: MappableVariant): void {
 
   // Position to the left of the item in viewport coordinates (for position:fixed)
   let left = itemRect.left - TOOLTIP_WIDTH - TOOLTIP_GAP;
-  let top = itemRect.top + (itemRect.height / 2) - (TOOLTIP_HEIGHT / 2);
+  let top = itemRect.top + itemRect.height / 2 - TOOLTIP_HEIGHT / 2;
 
   // Ensure tooltip stays within viewport bounds
   const minTop = 10;
@@ -650,7 +648,9 @@ function hideTooltip(): void {
   font-size: 0.65rem;
   flex-shrink: 0;
   opacity: 0.6;
-  transition: opacity 0.15s, color 0.15s;
+  transition:
+    opacity 0.15s,
+    color 0.15s;
 }
 
 .clinvar-link:hover {

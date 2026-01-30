@@ -2,12 +2,7 @@
 <template>
   <BContainer fluid>
     <!-- User Interface controls -->
-    <BCard
-      header-tag="header"
-      body-class="p-0"
-      header-class="p-1"
-      border-variant="dark"
-    >
+    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
           <h6 class="mb-1 text-start font-weight-bold">
@@ -15,23 +10,13 @@
             <mark
               v-b-tooltip.hover.leftbottom
               title="This plot shows the correlation coefficients between various phenotypes."
-            >phenotype correlations</mark>.
-            <BBadge
-              id="popover-badge-help-phenotype"
-              pill
-              href="#"
-              variant="info"
-            >
+              >phenotype correlations</mark
+            >.
+            <BBadge id="popover-badge-help-phenotype" pill href="#" variant="info">
               <i class="bi bi-question-circle-fill" />
             </BBadge>
-            <BPopover
-              target="popover-badge-help-phenotype"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Phenotype Correlations
-              </template>
+            <BPopover target="popover-badge-help-phenotype" variant="info" triggers="focus">
+              <template #title> Phenotype Correlations </template>
               This plot displays the Pearson correlation coefficients between different phenotypes.
               The color intensity represents the strength of the correlation:
               <ul>
@@ -52,36 +37,23 @@
       <!-- Content with overlay spinner -->
       <div class="position-relative">
         <!-- Error state with retry -->
-        <div
-          v-if="error"
-          class="error-state text-center p-4"
-        >
+        <div v-if="error" class="error-state text-center p-4">
           <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3 d-block" />
           <p class="text-muted mb-3">
             {{ error }}
           </p>
-          <BButton
-            variant="primary"
-            @click="retryLoad"
-          >
+          <BButton variant="primary" @click="retryLoad">
             <i class="bi bi-arrow-clockwise me-1" />
             Retry
           </BButton>
         </div>
 
         <!-- Loading spinner -->
-        <BSpinner
-          v-else-if="loadingMatrix"
-          label="Loading..."
-          class="spinner"
-        />
+        <BSpinner v-else-if="loadingMatrix" label="Loading..." class="spinner" />
 
         <!-- Visualization container -->
         <template v-else>
-          <div
-            id="matrix_dataviz"
-            class="svg-container"
-          />
+          <div id="matrix_dataviz" class="svg-container" />
           <!-- Color legend -->
           <div class="d-flex justify-content-center mt-2 mb-3">
             <ColorLegend
@@ -179,7 +151,10 @@ export default {
     generateMatrixGraph() {
       // Graph dimension
       const margin = {
-        top: 20, right: 50, bottom: 150, left: 220,
+        top: 20,
+        right: 50,
+        bottom: 150,
+        left: 220,
       };
       const width = 650 - margin.left - margin.right;
       const height = 620 - margin.top - margin.bottom;
@@ -201,11 +176,7 @@ export default {
       const data = this.itemsMatrix;
 
       // List of all variables and number of them
-      const domain = Array.from(
-        new Set(
-          data.map((d) => d.x),
-        ),
-      );
+      const domain = Array.from(new Set(data.map((d) => d.x)));
 
       // Build X scales and axis:
       const x = d3.scaleBand().range([0, width]).domain(domain).padding(0.01);
@@ -226,10 +197,7 @@ export default {
       svg.append('g').call(d3.axisLeft(y));
 
       // Build color scale
-      const myColor = d3
-        .scaleLinear()
-        .range(['#000080', '#fff', '#B22222'])
-        .domain([-1, 0, 1]);
+      const myColor = d3.scaleLinear().range(['#000080', '#fff', '#B22222']).domain([-1, 0, 1]);
 
       // create a tooltip
       const tooltip = d3
@@ -253,11 +221,13 @@ export default {
       const mousemove = function mousemove(event, d) {
         const interpretation = getCorrelationInterpretation(d.value);
         tooltip
-          .html(`
+          .html(
+            `
             <strong>R: ${Number(d.value).toFixed(3)}</strong><br>
             <em>${interpretation}</em><br>
             <small>${d.x} &amp; ${d.y}</small>
-          `)
+          `
+          )
           .style('left', `${event.layerX + 20}px`)
           .style('top', `${event.layerY + 20}px`);
       };
@@ -285,7 +255,10 @@ export default {
         .style('fill', (d) => myColor(d.value))
         .style('cursor', 'pointer')
         .attr('role', 'button')
-        .attr('aria-label', (d) => `View phenotypes for ${d.x} and ${d.y} (correlation: ${d.value})`)
+        .attr(
+          'aria-label',
+          (d) => `View phenotypes for ${d.x} and ${d.y} (correlation: ${d.value})`
+        )
         .on('mouseover', mouseover)
         .on('mousemove', mousemove)
         .on('mouseleave', mouseleave)

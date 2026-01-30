@@ -82,11 +82,14 @@ enrich_gnomad_constraints <- function(hgnc_tibble, progress_fn = NULL) {
   tmp_file <- tempfile(fileext = ".tsv")
   on.exit(unlink(tmp_file), add = TRUE)
 
-  tryCatch({
-    download.file(GNOMAD_CONSTRAINT_TSV_URL, destfile = tmp_file, mode = "wb", quiet = TRUE)
-  }, error = function(e) {
-    stop(sprintf("[gnomAD enrichment] Failed to download TSV: %s", conditionMessage(e)))
-  })
+  tryCatch(
+    {
+      download.file(GNOMAD_CONSTRAINT_TSV_URL, destfile = tmp_file, mode = "wb", quiet = TRUE)
+    },
+    error = function(e) {
+      stop(sprintf("[gnomAD enrichment] Failed to download TSV: %s", conditionMessage(e)))
+    }
+  )
 
   # [I4] Validate downloaded file is a real TSV, not an error page or empty file
   file_size <- file.info(tmp_file)$size
@@ -96,8 +99,10 @@ enrich_gnomad_constraints <- function(hgnc_tibble, progress_fn = NULL) {
       format(file_size, big.mark = ","), format(GNOMAD_TSV_MIN_SIZE, big.mark = ",")
     ))
   }
-  message(sprintf("[gnomAD enrichment] Downloaded %s bytes to %s",
-                  format(file_size, big.mark = ","), tmp_file))
+  message(sprintf(
+    "[gnomAD enrichment] Downloaded %s bytes to %s",
+    format(file_size, big.mark = ","), tmp_file
+  ))
 
   # --- Step 2: Parse and filter ---
   message("[gnomAD enrichment] Step 2/3: Parsing and filtering for MANE Select transcripts")
@@ -115,8 +120,10 @@ enrich_gnomad_constraints <- function(hgnc_tibble, progress_fn = NULL) {
   required_cols <- c("gene", "mane_select", names(GNOMAD_TSV_COLUMN_MAP))
   missing_cols <- setdiff(required_cols, colnames(constraint_raw))
   if (length(missing_cols) > 0) {
-    stop(sprintf("[gnomAD enrichment] TSV missing expected columns: %s",
-                 paste(missing_cols, collapse = ", ")))
+    stop(sprintf(
+      "[gnomAD enrichment] TSV missing expected columns: %s",
+      paste(missing_cols, collapse = ", ")
+    ))
   }
 
   # [I7] Filter for MANE Select transcripts using robust coercion.
@@ -127,8 +134,10 @@ enrich_gnomad_constraints <- function(hgnc_tibble, progress_fn = NULL) {
     dplyr::distinct(gene, .keep_all = TRUE)
 
   n_mane <- nrow(constraint_filtered)
-  message(sprintf("[gnomAD enrichment] Filtered to %d MANE Select genes from %d total rows",
-                  n_mane, nrow(constraint_raw)))
+  message(sprintf(
+    "[gnomAD enrichment] Filtered to %d MANE Select genes from %d total rows",
+    n_mane, nrow(constraint_raw)
+  ))
 
   # [I8] Sanity check: if very few MANE Select genes found, the TSV format
   # may have changed silently. Fail loudly rather than writing NAs for everything.
@@ -155,8 +164,8 @@ enrich_gnomad_constraints <- function(hgnc_tibble, progress_fn = NULL) {
   # [O1] Vectorized JSON construction using sprintf instead of row-wise toJSON.
   # All 19 fields are numeric, so we can build JSON strings directly.
   # This replaces ~19,000 individual toJSON() calls with a single vectorized operation.
-  json_fields <- GNOMAD_TSV_COLUMN_MAP  # values are our field names
-  tsv_cols <- names(GNOMAD_TSV_COLUMN_MAP)  # keys are TSV column names
+  json_fields <- GNOMAD_TSV_COLUMN_MAP # values are our field names
+  tsv_cols <- names(GNOMAD_TSV_COLUMN_MAP) # keys are TSV column names
 
   # Build the sprintf format string: {"pLI":%s,"oe_lof":%s,...}
   json_template <- paste0(
@@ -181,8 +190,10 @@ enrich_gnomad_constraints <- function(hgnc_tibble, progress_fn = NULL) {
   hgnc_tibble$gnomad_constraints <- unname(constraint_lookup[toupper(hgnc_tibble$symbol)])
 
   n_mapped <- sum(!is.na(hgnc_tibble$gnomad_constraints))
-  message(sprintf("[gnomAD enrichment] Complete. %d / %d genes had constraint data.",
-                  n_mapped, nrow(hgnc_tibble)))
+  message(sprintf(
+    "[gnomAD enrichment] Complete. %d / %d genes had constraint data.",
+    n_mapped, nrow(hgnc_tibble)
+  ))
 
   return(hgnc_tibble)
 }
@@ -229,8 +240,10 @@ enrich_alphafold_ids <- function(hgnc_tibble) {
   }, character(1), USE.NAMES = FALSE)
 
   n_mapped <- sum(!is.na(hgnc_tibble$alphafold_id))
-  message(sprintf("[AlphaFold ID enrichment] Mapped %d / %d genes",
-                  n_mapped, nrow(hgnc_tibble)))
+  message(sprintf(
+    "[AlphaFold ID enrichment] Mapped %d / %d genes",
+    n_mapped, nrow(hgnc_tibble)
+  ))
 
   return(hgnc_tibble)
 }

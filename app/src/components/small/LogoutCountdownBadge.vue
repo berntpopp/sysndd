@@ -2,11 +2,7 @@
 <template>
   <BBadge variant="info">
     {{ Math.floor(time_to_logout) }}m
-    {{
-      ((time_to_logout - Math.floor(time_to_logout)) * 60).toFixed(
-        0
-      )
-    }}s
+    {{ ((time_to_logout - Math.floor(time_to_logout)) * 60).toFixed(0) }}s
   </BBadge>
 </template>
 
@@ -102,24 +98,23 @@ export default {
             const h = this.$createElement;
 
             // compose the logout message
-            const vNodesMsg = h(
-              'p',
-              { class: ['text-center', 'mb-0'] },
-              [
-                'Token ',
-                h('b-badge', {
+            const vNodesMsg = h('p', { class: ['text-center', 'mb-0'] }, [
+              'Token ',
+              h(
+                'b-badge',
+                {
                   props: { variant: 'success', href: '#' },
                   // TODO: make the modal close after clicking on the badge
                   on: { click: () => this.refreshWithJWT() },
                 },
-                'refresh now'),
-              ],
-            );
+                'refresh now'
+              ),
+            ]);
 
             this.makeToast(
               [vNodesMsg],
               `Warning: Logout in ${expires - timestamp} seconds`,
-              'danger',
+              'danger'
             );
           }
         } else {

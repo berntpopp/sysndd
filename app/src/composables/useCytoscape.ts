@@ -16,7 +16,7 @@
  */
 
 import { ref, onBeforeUnmount, type Ref } from 'vue';
- 
+
 import cytoscape from 'cytoscape';
 import type { Core, ElementDefinition } from 'cytoscape';
 import fcose from 'cytoscape-fcose';
@@ -319,7 +319,7 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
       // fcose layout for proper force-directed network visualization
       // Optimized for compound graphs with cluster separation
       // Using animate: false for reliable fit/center (per GitHub issue #2559)
-       
+
       layout: {
         name: 'fcose',
         quality: 'default',
@@ -343,8 +343,8 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
         // Gravity settings for compound graphs
         gravity: 0.2,
         gravityRange: 3.8,
-        gravityCompound: 1.5,  // Gravity for compound parent nodes
-        gravityRangeCompound: 2.0,  // Range for compound gravity
+        gravityCompound: 1.5, // Gravity for compound parent nodes
+        gravityRangeCompound: 2.0, // Range for compound gravity
         // Performance
         numIter: 2500,
         // Tiling for isolated nodes
@@ -428,7 +428,9 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
 
           // Log for debugging
           const bb = cy.elements().boundingBox();
-          console.log(`[useCytoscape] Layout complete: ${cy.nodes().length} nodes, bb=${bb.w.toFixed(0)}x${bb.h.toFixed(0)}, zoom=${cy.zoom().toFixed(3)}`);
+          console.log(
+            `[useCytoscape] Layout complete: ${cy.nodes().length} nodes, bb=${bb.w.toFixed(0)}x${bb.h.toFixed(0)}, zoom=${cy.zoom().toFixed(3)}`
+          );
         }, 50);
       }
       isLoading.value = false;
@@ -463,7 +465,7 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
 
     // Run fcose layout for proper force-directed visualization
     // Using animate: false for reliable fit/center (per GitHub issue #2559)
-     
+
     const layout = cy.layout({
       name: 'fcose',
       quality: 'default',
@@ -506,7 +508,6 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
     console.log('[useCytoscape] Resetting layout');
     isLoading.value = true;
 
-     
     const layout = cy.layout({
       name: 'fcose',
       quality: 'default',

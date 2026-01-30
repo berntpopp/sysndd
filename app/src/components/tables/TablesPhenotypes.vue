@@ -1,26 +1,11 @@
 <template>
   <div class="container-fluid">
-    <BSpinner
-      v-if="loading"
-      label="Loading..."
-      class="float-center m-5"
-    />
-    <BContainer
-      v-else
-      fluid
-    >
+    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
+    <BContainer v-else fluid>
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="12"
-        >
+        <BCol col md="12">
           <!-- User Interface controls -->
-          <BCard
-            header-tag="header"
-            body-class="p-0"
-            header-class="p-1"
-            border-variant="dark"
-          >
+          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
             <template #header>
               <BRow>
                 <BCol>
@@ -29,24 +14,14 @@
                     <BBadge
                       v-b-tooltip.hover.bottom
                       variant="primary"
-                      :title="
-                        'Loaded ' +
-                          perPage +
-                          '/' +
-                          totalRows +
-                          ' in ' +
-                          executionTime
-                      "
+                      :title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
                     >
                       Associated entities: {{ totalRows }}
                     </BBadge>
                   </h4>
                 </BCol>
                 <BCol>
-                  <h5
-                    v-if="showFilterControls"
-                    class="mb-1 text-end font-weight-bold"
-                  >
+                  <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
                     <BButton
                       v-b-tooltip.hover.bottom
                       class="me-1"
@@ -55,14 +30,8 @@
                       @click="requestSelectedExcel()"
                     >
                       <i class="bi bi-table mx-1" />
-                      <i
-                        v-if="!downloading"
-                        class="bi bi-download"
-                      />
-                      <BSpinner
-                        v-if="downloading"
-                        small
-                      />
+                      <i v-if="!downloading" class="bi bi-download" />
+                      <BSpinner v-if="downloading" small />
                       .xlsx
                     </BButton>
 
@@ -83,13 +52,19 @@
                       class="me-1"
                       :title="
                         'The table is ' +
-                          ((filter_string === '' || filter_string === null || filter_string === 'null') ? 'not' : '') +
-                          ' filtered.' +
-                          ((filter_string === '' || filter_string === null || filter_string === 'null')
-                            ? ''
-                            : ' Click to remove all filters.')
+                        (filter_string === '' || filter_string === null || filter_string === 'null'
+                          ? 'not'
+                          : '') +
+                        ' filtered.' +
+                        (filter_string === '' || filter_string === null || filter_string === 'null'
+                          ? ''
+                          : ' Click to remove all filters.')
                       "
-                      :variant="(filter_string === '' || filter_string === null || filter_string === 'null') ? 'info' : 'warning'"
+                      :variant="
+                        filter_string === '' || filter_string === null || filter_string === 'null'
+                          ? 'info'
+                          : 'warning'
+                      "
                       @click="removeFilters()"
                     >
                       <i class="bi bi-filter" />
@@ -100,19 +75,10 @@
             </template>
 
             <BRow class="align-items-center gx-2">
-              <BCol
-                class="my-1"
-                sm="6"
-              >
+              <BCol class="my-1" sm="6">
                 <!-- Phenotype Multi-Select - Unified Input Style -->
-                <div
-                  v-if="showFilterControls"
-                  class="phenotype-select-container"
-                >
-                  <div
-                    class="phenotype-select-control"
-                    @click="openPhenotypeDropdown"
-                  >
+                <div v-if="showFilterControls" class="phenotype-select-container">
+                  <div class="phenotype-select-control" @click="openPhenotypeDropdown">
                     <!-- Selected phenotypes as inline tags -->
                     <div class="phenotype-tags">
                       <span
@@ -121,10 +87,7 @@
                         class="phenotype-tag"
                       >
                         {{ getPhenotypeName(phenotypeId) }}
-                        <i
-                          class="bi bi-x tag-remove"
-                          @click.stop="removePhenotype(phenotypeId)"
-                        />
+                        <i class="bi bi-x tag-remove" @click.stop="removePhenotype(phenotypeId)" />
                       </span>
                       <span
                         v-if="filter.modifier_phenotype_id.content.length === 0"
@@ -177,10 +140,7 @@
                               v-if="isPhenotypeSelected(option.phenotype_id)"
                               class="bi bi-check-square me-2 text-primary"
                             />
-                            <i
-                              v-else
-                              class="bi bi-square me-2 text-muted"
-                            />
+                            <i v-else class="bi bi-square me-2 text-muted" />
                             {{ option.HPO_term }}
                           </BDropdownItemButton>
                           <BDropdownText v-if="filteredPhenotypeOptions.length === 0">
@@ -199,10 +159,7 @@
                 </div>
               </BCol>
 
-              <BCol
-                class="my-1 d-flex align-items-center"
-                sm="2"
-              >
+              <BCol class="my-1 d-flex align-items-center" sm="2">
                 <!-- AND/OR Toggle - Clean Pill Style -->
                 <div class="logic-toggle">
                   <button
@@ -224,13 +181,8 @@
                 </div>
               </BCol>
 
-              <BCol
-                class="my-1"
-                sm="4"
-              >
-                <BContainer
-                  v-if="totalRows > perPage || showPaginationControls"
-                >
+              <BCol class="my-1" sm="4">
+                <BContainer v-if="totalRows > perPage || showPaginationControls">
                   <TablePaginationControls
                     :total-rows="totalRows"
                     :initial-per-page="perPage"
@@ -269,32 +221,29 @@
                   data-html="true"
                   :title="
                     data.label +
-                      ' (unique filtered/total values: ' +
-                      fields
-                        .filter((item) => item.label === data.label)
-                        .map((item) => {
-                          return item.count_filtered;
-                        })[0] +
-                      '/' +
-                      fields
-                        .filter((item) => item.label === data.label)
-                        .map((item) => {
-                          return item.count;
-                        })[0] +
-                      ')'
+                    ' (unique filtered/total values: ' +
+                    fields
+                      .filter((item) => item.label === data.label)
+                      .map((item) => {
+                        return item.count_filtered;
+                      })[0] +
+                    '/' +
+                    fields
+                      .filter((item) => item.label === data.label)
+                      .map((item) => {
+                        return item.count;
+                      })[0] +
+                    ')'
                   "
                 >
-                  {{ truncate(data.label.replace(/( word)|( name)/g, ""), 20) }}
+                  {{ truncate(data.label.replace(/( word)|( name)/g, ''), 20) }}
                 </div>
               </template>
 
               <!-- Filter row in table header - Bootstrap-Vue-Next uses #thead-top instead of slot="top-row" -->
               <template #thead-top>
                 <tr v-if="showFilterControls">
-                  <td
-                    v-for="field in fields"
-                    :key="field.key"
-                  >
+                  <td v-for="field in fields" :key="field.key">
                     <BFormInput
                       v-if="field.filterable"
                       v-model="filter[field.key].content"
@@ -311,7 +260,10 @@
                       v-model="filter[field.key].content"
                       :options="field.selectOptions"
                       size="sm"
-                      @update:model-value="removeSearch();filtered();"
+                      @update:model-value="
+                        removeSearch();
+                        filtered();
+                      "
                     >
                       <template #first>
                         <BFormSelectOption :value="null">
@@ -322,7 +274,11 @@
 
                     <!-- TODO: treeselect disabled pending Bootstrap-Vue-Next migration -->
                     <label
-                      v-if="field.multi_selectable && field.selectOptions && field.selectOptions.length > 0"
+                      v-if="
+                        field.multi_selectable &&
+                        field.selectOptions &&
+                        field.selectOptions.length > 0
+                      "
                       :for="'select_' + field.key"
                       :aria-label="field.label"
                     >
@@ -331,7 +287,10 @@
                         v-model="filter[field.key].content"
                         :options="normalizeSelectOptions(field.selectOptions)"
                         size="sm"
-                        @update:model-value="removeSearch();filtered();"
+                        @update:model-value="
+                          removeSearch();
+                          filtered();
+                        "
                       >
                         <template #first>
                           <BFormSelectOption :value="null">
@@ -345,23 +304,14 @@
               </template>
 
               <template #cell(details)="row">
-                <BButton
-                  class="btn-xs"
-                  variant="outline-primary"
-                  @click="row.toggleDetails"
-                >
-                  {{ row.detailsShowing ? "Hide" : "Show" }}
+                <BButton class="btn-xs" variant="outline-primary" @click="row.toggleDetails">
+                  {{ row.detailsShowing ? 'Hide' : 'Show' }}
                 </BButton>
               </template>
 
               <template #row-details="row">
                 <BCard>
-                  <BTable
-                    :items="[row.item]"
-                    :fields="fields_details"
-                    stacked
-                    small
-                  />
+                  <BTable :items="[row.item]" :fields="fields_details" stacked small />
                 </BCard>
               </template>
 
@@ -386,7 +336,9 @@
                 <DiseaseBadge
                   :name="data.item.disease_ontology_name"
                   :ontology-id="data.item.disease_ontology_id_version"
-                  :link-to="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"
+                  :link-to="
+                    '/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')
+                  "
                   :max-length="35"
                   size="sm"
                 />
@@ -427,12 +379,7 @@ import { BTable } from 'bootstrap-vue-next';
 import { inject } from 'vue';
 
 // Import composables
-import {
-  useToast,
-  useUrlParsing,
-  useColorAndSymbols,
-  useText,
-} from '@/composables';
+import { useToast, useUrlParsing, useColorAndSymbols, useText } from '@/composables';
 
 // Import badge components
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
@@ -625,9 +572,10 @@ export default {
         return this.phenotypes_options.slice(0, 50);
       }
       return this.phenotypes_options
-        .filter((opt) =>
-          opt.HPO_term.toLowerCase().includes(search) ||
-          opt.phenotype_id.toLowerCase().includes(search)
+        .filter(
+          (opt) =>
+            opt.HPO_term.toLowerCase().includes(search) ||
+            opt.phenotype_id.toLowerCase().includes(search)
         )
         .slice(0, 50);
     },
@@ -723,17 +671,12 @@ export default {
     },
     copyLinkToClipboard() {
       // compose URL param
-      const urlParam = `sort=${
-        this.sort
-      }&filter=${
-        this.filter_string
-      }&page_after=${
+      const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${
         this.currentItemID
-      }&page_size=${
-        this.perPage}`;
+      }&page_size=${this.perPage}`;
 
       navigator.clipboard.writeText(
-        `${import.meta.env.VITE_URL + window.location.pathname}?${urlParam}`,
+        `${import.meta.env.VITE_URL + window.location.pathname}?${urlParam}`
       );
     },
     handleSortByOrDescChange() {
@@ -911,9 +854,7 @@ export default {
       if (!Array.isArray(this.phenotypes_options) || this.phenotypes_options.length === 0) {
         return phenotypeId;
       }
-      const phenotype = this.phenotypes_options.find(
-        (opt) => opt.phenotype_id === phenotypeId
-      );
+      const phenotype = this.phenotypes_options.find((opt) => opt.phenotype_id === phenotypeId);
       return phenotype ? phenotype.HPO_term : phenotypeId;
     },
     normalizer(node) {
@@ -939,7 +880,7 @@ export default {
 
       // Prevent duplicate API calls using module-level tracking
       // This works across component remounts caused by router.replace()
-      if (moduleLastApiParams === urlParam && (now - moduleLastApiCallTime) < 500) {
+      if (moduleLastApiParams === urlParam && now - moduleLastApiCallTime < 500) {
         // Use cached response data for remounted component
         if (moduleLastApiResponse) {
           this.applyApiResponse(moduleLastApiResponse);
@@ -1018,19 +959,14 @@ export default {
       this.downloading = true;
 
       // compose URL param
-      const urlParam = `sort=${
-        this.sort
-      }&filter=${
-        this.filter_string
-      }&page_after=`
-        + '0'
-        + '&page_size='
-        + 'all'
-        + '&format=xlsx';
+      const urlParam =
+        `sort=${this.sort}&filter=${this.filter_string}&page_after=` +
+        '0' +
+        '&page_size=' +
+        'all' +
+        '&format=xlsx';
 
-      const apiUrl = `${import.meta.env.VITE_API_URL
-      }/api/phenotype/entities/browse?${
-        urlParam}`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/phenotype/entities/browse?${urlParam}`;
 
       try {
         const response = await this.axios({
@@ -1114,7 +1050,9 @@ export default {
   background: #fff;
   cursor: pointer;
   flex: 1;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  transition:
+    border-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
 }
 
 .phenotype-select-control:hover {

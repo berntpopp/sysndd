@@ -1,12 +1,7 @@
 <template>
   <BContainer fluid>
     <!-- User Interface controls -->
-    <BCard
-      header-tag="header"
-      body-class="p-0"
-      header-class="p-1"
-      border-variant="dark"
-    >
+    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
           <h6 class="mb-1 text-start font-weight-bold">
@@ -15,26 +10,15 @@
               v-b-tooltip.hover.leftbottom
               title="This plot shows the correlation coefficients between various variants."
             >
-              variant correlations
-            </mark>.
-            <BBadge
-              id="popover-badge-help-variant"
-              pill
-              href="#"
-              variant="info"
-            >
+              variant correlations </mark
+            >.
+            <BBadge id="popover-badge-help-variant" pill href="#" variant="info">
               <i class="bi bi-question-circle-fill" />
             </BBadge>
-            <BPopover
-              target="popover-badge-help-variant"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Variant Correlations
-              </template>
-              This plot displays the Pearson correlation coefficients between different genetic variants.
-              The color intensity represents the strength of the correlation:
+            <BPopover target="popover-badge-help-variant" variant="info" triggers="focus">
+              <template #title> Variant Correlations </template>
+              This plot displays the Pearson correlation coefficients between different genetic
+              variants. The color intensity represents the strength of the correlation:
               <ul>
                 <li><strong>Red:</strong> Positive correlation</li>
                 <li><strong>Blue:</strong> Negative correlation</li>
@@ -43,25 +27,14 @@
               Click on the cells to explore the detailed variant relationships.
             </BPopover>
           </h6>
-          <DownloadImageButtons
-            :svg-id="'matrix-svg'"
-            :file-name="'variant_correlation_matrix'"
-          />
+          <DownloadImageButtons :svg-id="'matrix-svg'" :file-name="'variant_correlation_matrix'" />
         </div>
       </template>
 
       <!-- Content with overlay spinner -->
       <div class="position-relative">
-        <BSpinner
-          v-if="loadingMatrix"
-          label="Loading..."
-          class="spinner"
-        />
-        <div
-          v-show="!loadingMatrix"
-          id="matrix_dataviz"
-          class="svg-container"
-        />
+        <BSpinner v-if="loadingMatrix" label="Loading..." class="spinner" />
+        <div v-show="!loadingMatrix" id="matrix_dataviz" class="svg-container" />
       </div>
     </BCard>
   </BContainer>
@@ -120,7 +93,10 @@ export default {
     generateMatrixGraph() {
       // Graph dimension
       const margin = {
-        top: 20, right: 50, bottom: 150, left: 220,
+        top: 20,
+        right: 50,
+        bottom: 150,
+        left: 220,
       };
       const width = 650 - margin.left - margin.right;
       const height = 620 - margin.top - margin.bottom;
@@ -162,9 +138,7 @@ export default {
       svg.append('g').call(d3.axisLeft(y));
 
       // Build color scale
-      const myColor = d3.scaleLinear()
-        .range(['#000080', '#fff', '#B22222'])
-        .domain([-1, 0, 1]);
+      const myColor = d3.scaleLinear().range(['#000080', '#fff', '#B22222']).domain([-1, 0, 1]);
 
       // Create a tooltip
       const tooltip = d3
@@ -218,9 +192,13 @@ export default {
         .append('a')
         .attr(
           'xlink:href',
-          (d) => `/Variants/?sort=entity_id&filter=any(category,Definitive),all(modifier_variant_id,${d.x_vario_id},${d.y_vario_id})&page_after=0&page_size=10`,
+          (d) =>
+            `/Variants/?sort=entity_id&filter=any(category,Definitive),all(modifier_variant_id,${d.x_vario_id},${d.y_vario_id})&page_after=0&page_size=10`
         ) // Link to a table with both variants
-        .attr('aria-label', (d) => `Link to variants table for combination ${d.x_vario_id} and ${d.y_vario_id}`)
+        .attr(
+          'aria-label',
+          (d) => `Link to variants table for combination ${d.x_vario_id} and ${d.y_vario_id}`
+        )
         .append('rect')
         .attr('x', (d) => x(d.x))
         .attr('y', (d) => y(d.y))

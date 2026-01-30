@@ -229,7 +229,7 @@ describe('useToast', () => {
   describe('toast variants', () => {
     const variants = ['success', 'danger', 'warning', 'info', 'primary', 'secondary'] as const;
 
-    variants.forEach(variant => {
+    variants.forEach((variant) => {
       it(`handles ${variant} variant`, () => {
         const [result, app] = withSetup(() => useToast());
 

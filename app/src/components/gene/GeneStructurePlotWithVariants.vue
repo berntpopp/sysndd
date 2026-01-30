@@ -26,13 +26,11 @@
     />
 
     <!-- Controls row: Coloring mode + Gene info + Zoom reset + Export buttons -->
-    <div class="controls-row d-flex align-items-center justify-content-between flex-wrap gap-2 mt-1 px-2">
+    <div
+      class="controls-row d-flex align-items-center justify-content-between flex-wrap gap-2 mt-1 px-2"
+    >
       <!-- Coloring mode toggle -->
-      <div
-        class="btn-group btn-group-sm"
-        role="group"
-        aria-label="Variant coloring mode"
-      >
+      <div class="btn-group btn-group-sm" role="group" aria-label="Variant coloring mode">
         <button
           type="button"
           class="btn btn-xs"
@@ -53,11 +51,11 @@
 
       <!-- Gene info summary -->
       <div class="gene-info small text-muted">
+        <span class="me-2"> <i class="bi bi-signpost" /> {{ geneData.strand }} strand </span>
         <span class="me-2">
-          <i class="bi bi-signpost" /> {{ geneData.strand }} strand
-        </span>
-        <span class="me-2">
-          chr{{ geneData.chromosome }}:{{ formatCoord(geneData.geneStart) }}-{{ formatCoord(geneData.geneEnd) }}
+          chr{{ geneData.chromosome }}:{{ formatCoord(geneData.geneStart) }}-{{
+            formatCoord(geneData.geneEnd)
+          }}
         </span>
         <span>
           {{ geneData.transcriptId }}
@@ -103,11 +101,7 @@
     <div v-if="variants.length > 0" class="filter-rows mt-1 px-2">
       <!-- Row 1: Pathogenicity filters -->
       <div class="filter-row d-flex flex-wrap justify-content-center align-items-center gap-1">
-        <span
-          v-for="item in filterItems"
-          :key="item.key"
-          class="filter-group"
-        >
+        <span v-for="item in filterItems" :key="item.key" class="filter-group">
           <button
             type="button"
             class="filter-chip"
@@ -128,23 +122,23 @@
             class="only-btn"
             title="Show only this category"
             @click="selectOnlyPathogenicity(item.key)"
-          >only</button>
+          >
+            only
+          </button>
         </span>
         <button
           type="button"
           class="all-btn"
           title="Show all pathogenicity categories"
           @click="selectAllPathogenicity"
-        >all</button>
+        >
+          all
+        </button>
       </div>
 
       <!-- Row 2: Effect type filters -->
       <div class="filter-row d-flex flex-wrap justify-content-center align-items-center gap-1 mt-1">
-        <span
-          v-for="item in effectLegendItems"
-          :key="item.key"
-          class="filter-group"
-        >
+        <span v-for="item in effectLegendItems" :key="item.key" class="filter-group">
           <button
             type="button"
             class="filter-chip"
@@ -165,14 +159,18 @@
             class="only-btn"
             title="Show only this effect type"
             @click="selectOnlyEffectType(item.key)"
-          >only</button>
+          >
+            only
+          </button>
         </span>
         <button
           type="button"
           class="all-btn"
           title="Show all effect types"
           @click="selectAllEffectTypes"
-        >all</button>
+        >
+          all
+        </button>
       </div>
     </div>
   </div>
@@ -404,7 +402,9 @@ function setColoringMode(mode: ColoringMode): void {
 /**
  * Toggle pathogenicity filter
  */
-function toggleFilter(key: 'pathogenic' | 'likelyPathogenic' | 'vus' | 'likelyBenign' | 'benign'): void {
+function toggleFilter(
+  key: 'pathogenic' | 'likelyPathogenic' | 'vus' | 'likelyBenign' | 'benign'
+): void {
   filterState[key] = !filterState[key];
 }
 
@@ -418,7 +418,9 @@ function toggleEffectFilter(effectType: EffectType): void {
 /**
  * Select only one pathogenicity class (deselect all others)
  */
-function selectOnlyPathogenicity(key: 'pathogenic' | 'likelyPathogenic' | 'vus' | 'likelyBenign' | 'benign'): void {
+function selectOnlyPathogenicity(
+  key: 'pathogenic' | 'likelyPathogenic' | 'vus' | 'likelyBenign' | 'benign'
+): void {
   filterState.pathogenic = key === 'pathogenic';
   filterState.likelyPathogenic = key === 'likelyPathogenic';
   filterState.vus = key === 'vus';
@@ -441,7 +443,15 @@ function selectAllPathogenicity(): void {
  * Select only one effect type (deselect all others)
  */
 function selectOnlyEffectType(effectType: EffectType): void {
-  const effectTypes: EffectType[] = ['missense', 'frameshift', 'stop_gained', 'splice', 'inframe_indel', 'synonymous', 'other'];
+  const effectTypes: EffectType[] = [
+    'missense',
+    'frameshift',
+    'stop_gained',
+    'splice',
+    'inframe_indel',
+    'synonymous',
+    'other',
+  ];
   for (const et of effectTypes) {
     filterState.effectFilters[et] = et === effectType;
   }
@@ -451,7 +461,15 @@ function selectOnlyEffectType(effectType: EffectType): void {
  * Select all effect types
  */
 function selectAllEffectTypes(): void {
-  const effectTypes: EffectType[] = ['missense', 'frameshift', 'stop_gained', 'splice', 'inframe_indel', 'synonymous', 'other'];
+  const effectTypes: EffectType[] = [
+    'missense',
+    'frameshift',
+    'stop_gained',
+    'splice',
+    'inframe_indel',
+    'synonymous',
+    'other',
+  ];
   for (const et of effectTypes) {
     filterState.effectFilters[et] = true;
   }
@@ -497,7 +515,8 @@ function aggregateVariantsByGenomicPosition(
     }
 
     // Calculate centroid position
-    const avgPosition = binVariants.reduce((sum, v) => sum + v.genomicPosition, 0) / binVariants.length;
+    const avgPosition =
+      binVariants.reduce((sum, v) => sum + v.genomicPosition, 0) / binVariants.length;
 
     aggregated.push({
       genomicPosition: Math.round(avgPosition),
@@ -643,7 +662,9 @@ function getVariantColor(variant: GenomicVariant): string {
     const effectType = normalizeEffectType(variant.majorConsequence);
     return EFFECT_TYPE_COLORS[effectType] || '#888';
   }
-  return PATHOGENICITY_COLORS[variant.classification as keyof typeof PATHOGENICITY_COLORS] || '#888';
+  return (
+    PATHOGENICITY_COLORS[variant.classification as keyof typeof PATHOGENICITY_COLORS] || '#888'
+  );
 }
 
 /**
@@ -657,7 +678,9 @@ function getAggregatedColor(agg: AggregatedGenomicVariant): string {
     for (const v of agg.variants) {
       const effectType = normalizeEffectType(v.majorConsequence);
       // Count occurrences - simple approach
-      const count = agg.variants.filter(av => normalizeEffectType(av.majorConsequence) === effectType).length;
+      const count = agg.variants.filter(
+        (av) => normalizeEffectType(av.majorConsequence) === effectType
+      ).length;
       if (count > maxCount) {
         maxCount = count;
         dominantEffect = effectType;
@@ -665,7 +688,9 @@ function getAggregatedColor(agg: AggregatedGenomicVariant): string {
     }
     return EFFECT_TYPE_COLORS[dominantEffect] || '#888';
   }
-  return PATHOGENICITY_COLORS[agg.dominantClassification as keyof typeof PATHOGENICITY_COLORS] || '#888';
+  return (
+    PATHOGENICITY_COLORS[agg.dominantClassification as keyof typeof PATHOGENICITY_COLORS] || '#888'
+  );
 }
 
 /**
@@ -710,12 +735,13 @@ function render(): void {
     .attr('transform', `translate(${MARGIN.left}, ${MARGIN.top})`);
 
   // Determine domain (use zoom or full gene)
-  const domain: [number, number] = zoomDomain.value ?? [props.geneData.geneStart, props.geneData.geneEnd];
+  const domain: [number, number] = zoomDomain.value ?? [
+    props.geneData.geneStart,
+    props.geneData.geneEnd,
+  ];
 
   // Create x scale (genomic coordinates)
-  xScale = d3.scaleLinear()
-    .domain(domain)
-    .range([0, innerWidth]);
+  xScale = d3.scaleLinear().domain(domain).range([0, innerWidth]);
 
   // Y positions
   const exonY = innerHeight - 30;
@@ -798,7 +824,7 @@ function render(): void {
     if (renderMode === 'aggregated') {
       // Aggregated mode for dense regions
       const aggregated = aggregateVariantsByGenomicPosition(visibleVariants, geneLength);
-      const maxCount = Math.max(...aggregated.map(a => a.count), 1);
+      const maxCount = Math.max(...aggregated.map((a) => a.count), 1);
 
       aggregated.forEach((agg) => {
         const x = xScale(agg.genomicPosition);
@@ -840,7 +866,10 @@ function render(): void {
     } else {
       // Individual mode for sparse regions
       // Group by genomic position to handle stacking
-      const variantGroups = d3.group(visibleVariants, (v) => Math.round(v.genomicPosition / 100) * 100);
+      const variantGroups = d3.group(
+        visibleVariants,
+        (v) => Math.round(v.genomicPosition / 100) * 100
+      );
 
       // Render stems and markers
       variantGroups.forEach((group) => {
@@ -892,7 +921,8 @@ function render(): void {
   }
 
   // Render X axis
-  const xAxis = d3.axisBottom(xScale)
+  const xAxis = d3
+    .axisBottom(xScale)
     .ticks(6)
     .tickFormat((d) => formatGenomicCoordinate(d as number));
 
@@ -977,8 +1007,9 @@ function showVariantTooltip(event: MouseEvent, variant: GenomicVariant, locked =
   const starsDisplay = '★'.repeat(variant.goldStars) + '☆'.repeat(4 - variant.goldStars);
 
   // ClinVar link (only shown when locked)
-  const clinvarLink = locked && variant.clinvarId
-    ? `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #444;">
+  const clinvarLink =
+    locked && variant.clinvarId
+      ? `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #444;">
          <a href="https://www.ncbi.nlm.nih.gov/clinvar/variation/${variant.clinvarId}/"
             target="_blank"
             rel="noopener noreferrer"
@@ -986,7 +1017,7 @@ function showVariantTooltip(event: MouseEvent, variant: GenomicVariant, locked =
            View in ClinVar →
          </a>
        </div>`
-    : '';
+      : '';
 
   // Dismiss hint
   const dismissHint = locked

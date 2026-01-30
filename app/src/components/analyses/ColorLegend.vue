@@ -1,22 +1,12 @@
 <!-- src/components/analyses/ColorLegend.vue -->
 <template>
   <div :class="['color-legend', `color-legend--${orientation}`]">
-    <div
-      v-if="title"
-      class="color-legend__title"
-    >
+    <div v-if="title" class="color-legend__title">
       {{ title }}
     </div>
-    <div
-      class="color-legend__bar"
-      :style="gradientStyle"
-    />
+    <div class="color-legend__bar" :style="gradientStyle" />
     <div class="color-legend__labels">
-      <span
-        v-for="label in displayLabels"
-        :key="label.value"
-        class="color-legend__label"
-      >
+      <span v-for="label in displayLabels" :key="label.value" class="color-legend__label">
         {{ label.text }}
       </span>
     </div>

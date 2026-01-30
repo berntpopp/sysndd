@@ -1,17 +1,10 @@
 <!-- components/accessibility/IconLegend.vue -->
 <!-- Visual legend explaining symbolic icons used in tables/interfaces - WCAG 1.3.1 Info and Relationships -->
 <template>
-  <BCard
-    body-class="p-2"
-    class="mb-3"
-  >
+  <BCard body-class="p-2" class="mb-3">
     <div class="d-flex flex-wrap gap-3 align-items-center">
       <strong class="me-2">Icon Legend:</strong>
-      <div
-        v-for="item in legendItems"
-        :key="item.label"
-        class="d-flex align-items-center gap-1"
-      >
+      <div v-for="item in legendItems" :key="item.label" class="d-flex align-items-center gap-1">
         <!-- Dynamic component rendering (e.g., CategoryIcon) -->
         <component
           :is="item.component"

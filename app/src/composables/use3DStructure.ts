@@ -80,9 +80,7 @@ export interface Use3DStructureReturn {
  * });
  * ```
  */
-export function use3DStructure(
-  containerRef: Ref<HTMLElement | null>
-): Use3DStructureReturn {
+export function use3DStructure(containerRef: Ref<HTMLElement | null>): Use3DStructureReturn {
   // CRITICAL: Store NGL instances in non-reactive variables
   // Using ref() would cause Vue reactivity to trigger performance issues
   // with WebGL objects (frozen UI, 100+ layout recalculations)
@@ -295,10 +293,10 @@ export function use3DStructure(
 
     // Add spacefill representation at residue position (ACMG-colored sphere)
     const variantRepr = structureComponent.addRepresentation('spacefill', {
-      sele: `${residue}`,       // NGL residue selection language
-      color: color,              // ACMG hex color from ACMG_COLORS
-      radius: 2.0,              // Enlarged sphere for visibility
-      name: label,              // Variant label for identification
+      sele: `${residue}`, // NGL residue selection language
+      color: color, // ACMG hex color from ACMG_COLORS
+      radius: 2.0, // Enlarged sphere for visibility
+      name: label, // Variant label for identification
     });
 
     representations.set(key, markRaw(variantRepr));
@@ -367,7 +365,7 @@ export function use3DStructure(
     try {
       // NGL Stage has makeImage() method that returns a Blob
       const blob = await stage.makeImage({
-        factor: 2,           // 2x resolution for high quality
+        factor: 2, // 2x resolution for high quality
         antialias: true,
         trim: false,
         transparent: false,
@@ -423,7 +421,7 @@ export function use3DStructure(
     }
 
     if (stage) {
-      stage.dispose();  // CRITICAL: Releases WebGL context
+      stage.dispose(); // CRITICAL: Releases WebGL context
       stage = null;
     }
 
@@ -445,11 +443,15 @@ export function use3DStructure(
   // Initialize Stage when container becomes available (lazy tab mount)
   // Bootstrap Vue Next <BTab lazy> mounts content asynchronously
   // onMounted may fire before container ref is populated
-  watch(containerRef, (newVal) => {
-    if (newVal && !isInitialized.value) {
-      initStage();
-    }
-  }, { immediate: true });
+  watch(
+    containerRef,
+    (newVal) => {
+      if (newVal && !isInitialized.value) {
+        initStage();
+      }
+    },
+    { immediate: true }
+  );
 
   return {
     isInitialized: readonly(isInitialized),

@@ -4,12 +4,7 @@
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol md="12" lg="11">
-          <BCard
-            header-tag="header"
-            body-class="p-3"
-            header-class="p-2"
-            border-variant="dark"
-          >
+          <BCard header-tag="header" body-class="p-3" header-class="p-2" border-variant="dark">
             <template #header>
               <BRow>
                 <BCol>
@@ -68,12 +63,24 @@
             </template>
 
             <!-- Status Messages -->
-            <BAlert v-if="error" variant="danger" dismissible class="mb-3" @dismissed="error = null">
+            <BAlert
+              v-if="error"
+              variant="danger"
+              dismissible
+              class="mb-3"
+              @dismissed="error = null"
+            >
               <i class="bi bi-exclamation-triangle me-2" />
               {{ error }}
             </BAlert>
 
-            <BAlert v-if="successMessage" variant="success" dismissible class="mb-3" @dismissed="successMessage = null">
+            <BAlert
+              v-if="successMessage"
+              variant="success"
+              dismissible
+              class="mb-3"
+              @dismissed="successMessage = null"
+            >
               <i class="bi bi-check-circle me-2" />
               {{ successMessage }}
             </BAlert>
@@ -81,8 +88,8 @@
             <BAlert v-if="!apiAvailable" variant="info" class="mb-3">
               <i class="bi bi-info-circle me-2" />
               <strong>CMS API not available.</strong>
-              The About page content management API is not configured. Showing default sections for preview.
-              Once the API is set up, you can edit and publish content.
+              The About page content management API is not configured. Showing default sections for
+              preview. Once the API is set up, you can edit and publish content.
             </BAlert>
 
             <!-- Loading State -->
@@ -111,7 +118,9 @@
               <!-- Empty State -->
               <div v-else class="text-center py-5">
                 <i class="bi bi-file-earmark-plus display-4 text-muted mb-3 d-block" />
-                <p class="text-muted mb-3">No sections yet. Add your first section to get started.</p>
+                <p class="text-muted mb-3">
+                  No sections yet. Add your first section to get started.
+                </p>
                 <BButton variant="primary" @click="addInitialSection">
                   <i class="bi bi-plus-lg me-1" />
                   Add First Section
@@ -125,7 +134,8 @@
             <div class="d-flex align-items-center">
               <i class="bi bi-lightbulb text-warning me-2" />
               <span class="text-muted small">
-                <strong>Tips:</strong> Use markdown for formatting. Drag sections to reorder. Changes auto-save as drafts.
+                <strong>Tips:</strong> Use markdown for formatting. Drag sections to reorder.
+                Changes auto-save as drafts.
               </span>
             </div>
           </BCard>
@@ -142,7 +152,9 @@
       >
         <p>Are you sure you want to publish these changes?</p>
         <p class="text-muted small mb-0">
-          This will update the public About page with {{ sections.length }} section{{ sections.length !== 1 ? 's' : '' }}.
+          This will update the public About page with {{ sections.length }} section{{
+            sections.length !== 1 ? 's' : ''
+          }}.
         </p>
       </BModal>
     </BContainer>
@@ -299,13 +311,17 @@ function handleSectionsUpdate(updated: AboutSection[]) {
 async function handleSaveDraft() {
   if (!apiAvailable.value) {
     successMessage.value = 'Preview mode - API not available for saving';
-    setTimeout(() => { successMessage.value = null; }, 3000);
+    setTimeout(() => {
+      successMessage.value = null;
+    }, 3000);
     return;
   }
   const success = await saveDraft();
   if (success) {
     successMessage.value = 'Draft saved successfully';
-    setTimeout(() => { successMessage.value = null; }, 3000);
+    setTimeout(() => {
+      successMessage.value = null;
+    }, 3000);
   }
 }
 
@@ -320,7 +336,9 @@ async function handleAutosave() {
 function handlePublish() {
   if (!apiAvailable.value) {
     successMessage.value = 'Preview mode - API not available for publishing';
-    setTimeout(() => { successMessage.value = null; }, 3000);
+    setTimeout(() => {
+      successMessage.value = null;
+    }, 3000);
     return;
   }
   showPublishModal.value = true;
@@ -332,7 +350,9 @@ async function confirmPublish() {
   const success = await publish();
   if (success) {
     successMessage.value = 'Content published successfully!';
-    setTimeout(() => { successMessage.value = null; }, 5000);
+    setTimeout(() => {
+      successMessage.value = null;
+    }, 5000);
   }
 }
 

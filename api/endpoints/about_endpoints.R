@@ -106,26 +106,29 @@ function(req, res) {
   sections_json <- jsonlite::toJSON(sections, auto_unbox = TRUE)
 
   # Use transaction for atomic upsert
-  result <- tryCatch({
-    db_with_transaction({
-      # Delete existing draft for this user
-      db_execute_statement(
-        "DELETE FROM about_content WHERE user_id = ? AND status = 'draft'",
-        list(req$user_id)
-      )
+  result <- tryCatch(
+    {
+      db_with_transaction({
+        # Delete existing draft for this user
+        db_execute_statement(
+          "DELETE FROM about_content WHERE user_id = ? AND status = 'draft'",
+          list(req$user_id)
+        )
 
-      # Insert new draft
-      db_execute_statement(
-        "INSERT INTO about_content (user_id, sections_json, status) VALUES (?, ?, 'draft')",
-        list(req$user_id, sections_json)
-      )
-    })
+        # Insert new draft
+        db_execute_statement(
+          "INSERT INTO about_content (user_id, sections_json, status) VALUES (?, ?, 'draft')",
+          list(req$user_id, sections_json)
+        )
+      })
 
-    list(message = "Draft saved successfully")
-  }, error = function(e) {
-    res$status <- 500
-    return(list(error = paste("Failed to save draft:", e$message)))
-  })
+      list(message = "Draft saved successfully")
+    },
+    error = function(e) {
+      res$status <- 500
+      return(list(error = paste("Failed to save draft:", e$message)))
+    }
+  )
 
   result
 }
@@ -177,33 +180,36 @@ function(req, res) {
   sections_json <- jsonlite::toJSON(sections, auto_unbox = TRUE)
 
   # Use transaction for atomic publish
-  result <- tryCatch({
-    db_with_transaction({
-      # Get next version number
-      version_result <- db_execute_query(
-        "SELECT COALESCE(MAX(version), 0) + 1 AS next_version FROM about_content WHERE status = 'published'"
-      )
-      next_version <- version_result$next_version[1]
+  result <- tryCatch(
+    {
+      db_with_transaction({
+        # Get next version number
+        version_result <- db_execute_query(
+          "SELECT COALESCE(MAX(version), 0) + 1 AS next_version FROM about_content WHERE status = 'published'"
+        )
+        next_version <- version_result$next_version[1]
 
-      # Insert new published version
-      db_execute_statement(
-        "INSERT INTO about_content (user_id, sections_json, status, version, published_at) VALUES (?, ?, 'published', ?, NOW())",
-        list(req$user_id, sections_json, next_version)
-      )
+        # Insert new published version
+        db_execute_statement(
+          "INSERT INTO about_content (user_id, sections_json, status, version, published_at) VALUES (?, ?, 'published', ?, NOW())",
+          list(req$user_id, sections_json, next_version)
+        )
 
-      # Delete user's draft
-      db_execute_statement(
-        "DELETE FROM about_content WHERE user_id = ? AND status = 'draft'",
-        list(req$user_id)
-      )
+        # Delete user's draft
+        db_execute_statement(
+          "DELETE FROM about_content WHERE user_id = ? AND status = 'draft'",
+          list(req$user_id)
+        )
 
-      # Return version number
-      next_version
-    })
-  }, error = function(e) {
-    res$status <- 500
-    return(list(error = paste("Failed to publish content:", e$message)))
-  })
+        # Return version number
+        next_version
+      })
+    },
+    error = function(e) {
+      res$status <- 500
+      return(list(error = paste("Failed to publish content:", e$message)))
+    }
+  )
 
   list(
     message = "Content published successfully",

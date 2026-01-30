@@ -17,12 +17,7 @@
                 <BCol>
                   <h5 class="mb-0 text-start fw-bold">
                     Approve User Applications
-                    <BBadge
-                      variant="primary"
-                      class="ms-2"
-                    >
-                      {{ totalRows }} pending
-                    </BBadge>
+                    <BBadge variant="primary" class="ms-2"> {{ totalRows }} pending </BBadge>
                   </h5>
                 </BCol>
                 <BCol class="text-end">
@@ -42,11 +37,7 @@
 
             <!-- Search and pagination row -->
             <BRow class="px-3 py-2 align-items-center">
-              <BCol
-                cols="12"
-                md="5"
-                class="mb-2 mb-md-0"
-              >
+              <BCol cols="12" md="5" class="mb-2 mb-md-0">
                 <BInputGroup size="sm">
                   <template #prepend>
                     <BInputGroupText>
@@ -63,15 +54,8 @@
                 </BInputGroup>
               </BCol>
 
-              <BCol
-                cols="12"
-                md="7"
-                class="d-flex justify-content-end align-items-center gap-2"
-              >
-                <BInputGroup
-                  size="sm"
-                  class="w-auto"
-                >
+              <BCol cols="12" md="7" class="d-flex justify-content-end align-items-center gap-2">
+                <BInputGroup size="sm" class="w-auto">
                   <template #prepend>
                     <BInputGroupText>Per page</BInputGroupText>
                   </template>
@@ -97,11 +81,7 @@
 
             <!-- Filter dropdowns -->
             <BRow class="px-3 pb-2 align-items-center">
-              <BCol
-                cols="6"
-                md="3"
-                class="mb-2 mb-md-0"
-              >
+              <BCol cols="6" md="3" class="mb-2 mb-md-0">
                 <BFormSelect
                   v-model="roleFilter"
                   size="sm"
@@ -109,11 +89,7 @@
                   aria-label="Filter by role"
                 />
               </BCol>
-              <BCol
-                cols="6"
-                md="9"
-                class="d-flex align-items-center flex-wrap gap-1"
-              >
+              <BCol cols="6" md="9" class="d-flex align-items-center flex-wrap gap-1">
                 <!-- Active filter tags -->
                 <BBadge
                   v-if="filter"
@@ -150,9 +126,7 @@
                 class="text-center py-5"
               >
                 <i class="bi bi-person-check fs-1 text-success" />
-                <p class="text-muted mt-2">
-                  No pending user applications
-                </p>
+                <p class="text-muted mt-2">No pending user applications</p>
               </div>
               <BTable
                 v-else-if="!loadingUsersApprove"
@@ -174,7 +148,7 @@
                   <div class="d-flex align-items-center gap-2">
                     <span
                       class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary-subtle text-primary"
-                      style="width: 28px; height: 28px; font-size: 0.8rem;"
+                      style="width: 28px; height: 28px; font-size: 0.8rem"
                     >
                       <i class="bi bi-person-fill" />
                     </span>
@@ -204,10 +178,7 @@
                     <i class="bi bi-link-45deg me-1" />
                     {{ data.item.orcid }}
                   </a>
-                  <span
-                    v-else
-                    class="text-muted"
-                  >—</span>
+                  <span v-else class="text-muted">—</span>
                 </template>
 
                 <template #cell(user_role)="data">
@@ -226,7 +197,7 @@
                       v-b-tooltip.hover.top
                       :title="data.item.created_at"
                       class="d-inline-flex align-items-center justify-content-center rounded-circle bg-secondary-subtle text-secondary"
-                      style="width: 24px; height: 24px; font-size: 0.75rem;"
+                      style="width: 24px; height: 24px; font-size: 0.75rem"
                     >
                       <i class="bi bi-calendar3" />
                     </span>
@@ -241,7 +212,7 @@
                     v-if="data.item.comment"
                     :id="'comment-user-' + data.item.user_id"
                     class="text-truncate-multiline small text-popover-trigger"
-                    style="max-width: 150px;"
+                    style="max-width: 150px"
                   >
                     {{ data.item.comment }}
                   </div>
@@ -260,10 +231,7 @@
                       {{ data.item.comment }}
                     </div>
                   </BPopover>
-                  <span
-                    v-else
-                    class="text-muted small"
-                  >—</span>
+                  <span v-else class="text-muted small">—</span>
                 </template>
 
                 <template #cell(actions)="row">
@@ -334,25 +302,13 @@
 
         <template #footer="{ ok, cancel }">
           <div class="w-100 d-flex justify-content-between align-items-center">
-            <BButton
-              variant="outline-danger"
-              size="sm"
-              @click="rejectFromModal"
-            >
+            <BButton variant="outline-danger" size="sm" @click="rejectFromModal">
               <i class="bi bi-x-lg me-1" />
               Reject
             </BButton>
             <div class="d-flex gap-2">
-              <BButton
-                variant="outline-secondary"
-                @click="cancel()"
-              >
-                Cancel
-              </BButton>
-              <BButton
-                variant="success"
-                @click="ok()"
-              >
+              <BButton variant="outline-secondary" @click="cancel()"> Cancel </BButton>
+              <BButton variant="success" @click="ok()">
                 <i class="bi bi-check-lg me-1" />
                 Save & Approve
               </BButton>
@@ -365,14 +321,12 @@
           <div class="d-flex align-items-center gap-3">
             <span
               class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary text-white"
-              style="width: 48px; height: 48px; font-size: 1.2rem;"
+              style="width: 48px; height: 48px; font-size: 1.2rem"
             >
               <i class="bi bi-person-fill" />
             </span>
             <div>
-              <h5 class="mb-0">
-                {{ selectedUser.first_name }} {{ selectedUser.family_name }}
-              </h5>
+              <h5 class="mb-0">{{ selectedUser.first_name }} {{ selectedUser.family_name }}</h5>
               <div class="text-muted small">
                 @{{ selectedUser.user_name }} · Applied {{ formatDate(selectedUser.created_at) }}
               </div>
@@ -408,10 +362,7 @@
                   >
                     {{ selectedUser.orcid }}
                   </a>
-                  <span
-                    v-else
-                    class="text-muted"
-                  >Not provided</span>
+                  <span v-else class="text-muted">Not provided</span>
                 </div>
               </div>
             </BCol>
@@ -427,7 +378,10 @@
               <div class="mb-3">
                 <label class="form-label text-muted small">Terms Agreed</label>
                 <BBadge :variant="selectedUser.terms_agreed ? 'success' : 'danger'">
-                  <i :class="selectedUser.terms_agreed ? 'bi bi-check-circle' : 'bi bi-x-circle'" class="me-1" />
+                  <i
+                    :class="selectedUser.terms_agreed ? 'bi bi-check-circle' : 'bi bi-x-circle'"
+                    class="me-1"
+                  />
                   {{ selectedUser.terms_agreed ? 'Yes' : 'No' }}
                 </BBadge>
               </div>
@@ -447,10 +401,7 @@
             <i class="bi bi-shield-check me-2" />
             Role Assignment
           </h6>
-          <BFormGroup
-            label="Assign Role"
-            label-for="role-select"
-          >
+          <BFormGroup label="Assign Role" label-for="role-select">
             <BFormSelect
               id="role-select"
               v-model="selectedUser.user_role"
@@ -458,9 +409,7 @@
               size="sm"
             >
               <template #first>
-                <BFormSelectOption :value="null">
-                  Select a role...
-                </BFormSelectOption>
+                <BFormSelectOption :value="null"> Select a role... </BFormSelectOption>
               </template>
             </BFormSelect>
             <small class="text-muted">
@@ -494,12 +443,13 @@
         <div class="text-center py-3">
           <span
             class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success-subtle text-success mb-3"
-            style="width: 64px; height: 64px; font-size: 1.5rem;"
+            style="width: 64px; height: 64px; font-size: 1.5rem"
           >
             <i class="bi bi-person-check" />
           </span>
           <p class="mb-2">
-            Approve user <strong>{{ selectedUser.user_name }}</strong>?
+            Approve user <strong>{{ selectedUser.user_name }}</strong
+            >?
           </p>
           <p class="text-muted small">
             {{ selectedUser.first_name }} {{ selectedUser.family_name }} will be granted access with
@@ -535,12 +485,13 @@
         <div class="text-center py-3">
           <span
             class="d-inline-flex align-items-center justify-content-center rounded-circle bg-danger-subtle text-danger mb-3"
-            style="width: 64px; height: 64px; font-size: 1.5rem;"
+            style="width: 64px; height: 64px; font-size: 1.5rem"
           >
             <i class="bi bi-person-x" />
           </span>
           <p class="mb-2">
-            Reject application from <strong>{{ selectedUser.user_name }}</strong>?
+            Reject application from <strong>{{ selectedUser.user_name }}</strong
+            >?
           </p>
           <p class="text-muted small">
             This will delete the user application. This action cannot be undone.
@@ -644,7 +595,9 @@ export default {
   },
   computed: {
     roleFilterOptions() {
-      const roles = [...new Set(this.items_UsersTable.map((item) => item.user_role))].filter(Boolean);
+      const roles = [...new Set(this.items_UsersTable.map((item) => item.user_role))].filter(
+        Boolean
+      );
       return [
         { value: null, text: 'All Roles' },
         ...roles.map((role) => ({ value: role, text: role })),
@@ -657,10 +610,11 @@ export default {
       if (this.filter) {
         const searchTerm = this.filter.toLowerCase();
         items = items.filter(
-          (item) => (item.user_name && item.user_name.toLowerCase().includes(searchTerm))
-            || (item.email && item.email.toLowerCase().includes(searchTerm))
-            || (item.first_name && item.first_name.toLowerCase().includes(searchTerm))
-            || (item.family_name && item.family_name.toLowerCase().includes(searchTerm)),
+          (item) =>
+            (item.user_name && item.user_name.toLowerCase().includes(searchTerm)) ||
+            (item.email && item.email.toLowerCase().includes(searchTerm)) ||
+            (item.first_name && item.first_name.toLowerCase().includes(searchTerm)) ||
+            (item.family_name && item.family_name.toLowerCase().includes(searchTerm))
         );
       }
 
@@ -802,14 +756,10 @@ export default {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          },
+          }
         );
         const message = approved ? 'User approved successfully.' : 'User application rejected.';
-        this.makeToast(
-          message,
-          'Success',
-          approved ? 'success' : 'info',
-        );
+        this.makeToast(message, 'Success', approved ? 'success' : 'info');
         this.announce(message);
         this.loadUserTableData();
       } catch (e) {
@@ -828,7 +778,7 @@ export default {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          },
+          }
         );
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');

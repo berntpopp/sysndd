@@ -22,10 +22,10 @@ import useFormDraft from '@/composables/useFormDraft';
 // Types
 export interface ReviewFormData {
   synopsis: string;
-  phenotypes: string[];         // Format: "modifier_id-phenotype_id"
-  variationOntology: string[];  // Format: "modifier_id-vario_id"
-  publications: string[];       // PMID format
-  genereviews: string[];        // PMID format
+  phenotypes: string[]; // Format: "modifier_id-phenotype_id"
+  variationOntology: string[]; // Format: "modifier_id-vario_id"
+  publications: string[]; // PMID format
+  genereviews: string[]; // PMID format
   comment: string;
 }
 
@@ -146,7 +146,7 @@ export default function useReviewForm(entityId?: string | number) {
         scheduleSave({ ...newData });
       }
     },
-    { deep: true },
+    { deep: true }
   );
 
   /**
@@ -194,7 +194,10 @@ export default function useReviewForm(entityId?: string | number) {
   /**
    * Load review data from API
    */
-  const loadReviewData = async (reviewIdInput: number, _reReviewReviewSaved?: number): Promise<void> => {
+  const loadReviewData = async (
+    reviewIdInput: number,
+    _reReviewReviewSaved?: number
+  ): Promise<void> => {
     loading.value = true;
     reviewId.value = reviewIdInput;
 
@@ -204,12 +207,13 @@ export default function useReviewForm(entityId?: string | number) {
     const apiGetPublicationsURL = `${import.meta.env.VITE_API_URL}/api/review/${reviewIdInput}/publications`;
 
     try {
-      const [responseReview, responsePhenotypes, responseVariation, responsePublications] = await Promise.all([
-        axios.get(apiGetReviewURL),
-        axios.get(apiGetPhenotypesURL),
-        axios.get(apiGetVariationURL),
-        axios.get(apiGetPublicationsURL),
-      ]);
+      const [responseReview, responsePhenotypes, responseVariation, responsePublications] =
+        await Promise.all([
+          axios.get(apiGetReviewURL),
+          axios.get(apiGetPhenotypesURL),
+          axios.get(apiGetVariationURL),
+          axios.get(apiGetPublicationsURL),
+        ]);
 
       // Load synopsis and comment
       if (responseReview.data && responseReview.data.length > 0) {
@@ -221,13 +225,12 @@ export default function useReviewForm(entityId?: string | number) {
       // Load phenotypes (format: "modifier_id-phenotype_id")
       formData.phenotypes = responsePhenotypes.data.map(
         (item: { phenotype_id: number; modifier_id: number }) =>
-          `${item.modifier_id}-${item.phenotype_id}`,
+          `${item.modifier_id}-${item.phenotype_id}`
       );
 
       // Load variation ontology (format: "modifier_id-vario_id")
       formData.variationOntology = responseVariation.data.map(
-        (item: { vario_id: number; modifier_id: number }) =>
-          `${item.modifier_id}-${item.vario_id}`,
+        (item: { vario_id: number; modifier_id: number }) => `${item.modifier_id}-${item.vario_id}`
       );
 
       // Load publications (filter by type)
@@ -287,7 +290,7 @@ export default function useReviewForm(entityId?: string | number) {
       literature,
       phenotypes,
       variations,
-      formData.comment,
+      formData.comment
     );
 
     // Add metadata
@@ -308,7 +311,7 @@ export default function useReviewForm(entityId?: string | number) {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
-      },
+      }
     );
 
     // Clear draft on successful submission

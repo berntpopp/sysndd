@@ -10,19 +10,41 @@ import DOMPurify from 'dompurify';
 
 // Configure markdown-it with safe defaults
 const md = new MarkdownIt({
-  html: false,        // Disable raw HTML in source
-  breaks: true,       // Convert \n to <br>
-  linkify: true,      // Auto-link URLs
-  typographer: true,  // Smart quotes and dashes
+  html: false, // Disable raw HTML in source
+  breaks: true, // Convert \n to <br>
+  linkify: true, // Auto-link URLs
+  typographer: true, // Smart quotes and dashes
 });
 
 // Configure DOMPurify allowlist
 const SANITIZE_CONFIG = {
   ALLOWED_TAGS: [
-    'p', 'br', 'strong', 'b', 'em', 'i', 'a',
-    'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'blockquote', 'code', 'pre', 'hr',
-    'table', 'thead', 'tbody', 'tr', 'th', 'td',
+    'p',
+    'br',
+    'strong',
+    'b',
+    'em',
+    'i',
+    'a',
+    'ul',
+    'ol',
+    'li',
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'h6',
+    'blockquote',
+    'code',
+    'pre',
+    'hr',
+    'table',
+    'thead',
+    'tbody',
+    'tr',
+    'th',
+    'td',
   ],
   ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
   ADD_ATTR: ['target'],
@@ -73,7 +95,7 @@ export function useMarkdownRenderer(debounceMs = 300) {
     renderedHtml,
     isRendering,
     renderImmediate,
-    renderMarkdown,  // Export static function too
+    renderMarkdown, // Export static function too
   };
 }
 

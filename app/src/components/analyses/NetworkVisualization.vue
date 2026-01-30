@@ -2,18 +2,11 @@
 <template>
   <div class="network-visualization">
     <!-- Card with header controls -->
-    <BCard
-      header-tag="header"
-      body-class="p-0"
-      header-class="p-1"
-      border-variant="dark"
-    >
+    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
       <template #header>
         <div class="d-flex justify-content-between align-items-center flex-wrap">
           <div class="d-flex align-items-center flex-wrap">
-            <h6 class="mb-0 font-weight-bold me-2">
-              Protein-Protein Interaction Network
-            </h6>
+            <h6 class="mb-0 font-weight-bold me-2">Protein-Protein Interaction Network</h6>
             <!-- Visible / Total in network -->
             <BBadge
               v-if="isInitialized && visibleNodeCount > 0"
@@ -75,7 +68,7 @@
                 <template v-if="!hasCategoryData">
                   <BDropdownItemButton disabled>
                     <small class="text-muted">
-                      Category data not available.<br>
+                      Category data not available.<br />
                       Server cache needs refresh.
                     </small>
                   </BDropdownItemButton>
@@ -93,15 +86,8 @@
               </BDropdown>
 
               <!-- Cluster dropdown -->
-              <BDropdown
-                size="sm"
-                variant="outline-secondary"
-                :text="clusterFilterLabel"
-              >
-                <BDropdownItemButton
-                  :active="showAllClusters"
-                  @click="setShowAllClusters(true)"
-                >
+              <BDropdown size="sm" variant="outline-secondary" :text="clusterFilterLabel">
+                <BDropdownItemButton :active="showAllClusters" @click="setShowAllClusters(true)">
                   All Clusters
                 </BDropdownItemButton>
                 <BDropdownDivider />
@@ -111,10 +97,7 @@
                   :active="selectedClusters.has(cluster.id)"
                   @click="toggleCluster(cluster.id)"
                 >
-                  <span
-                    class="legend-color me-2"
-                    :style="{ backgroundColor: cluster.color }"
-                  />
+                  <span class="legend-color me-2" :style="{ backgroundColor: cluster.color }" />
                   Cluster {{ cluster.id }}
                 </BDropdownItemButton>
               </BDropdown>
@@ -190,14 +173,8 @@
       <!-- Network container -->
       <div class="network-container">
         <!-- Loading spinner overlay -->
-        <div
-          v-if="isLoading || isCytoscapeLoading"
-          class="loading-overlay"
-        >
-          <BSpinner
-            label="Loading network..."
-            class="spinner"
-          />
+        <div v-if="isLoading || isCytoscapeLoading" class="loading-overlay">
+          <BSpinner label="Loading network..." class="spinner" />
           <div class="loading-text mt-2">
             <small class="text-muted">
               {{ isLoading ? 'Loading network data...' : 'Running layout...' }}
@@ -206,28 +183,17 @@
         </div>
 
         <!-- Error state with retry -->
-        <div
-          v-if="error && !isLoading"
-          class="error-container text-center"
-        >
+        <div v-if="error && !isLoading" class="error-container text-center">
           <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3 d-block" />
-          <p class="text-muted mb-3">
-            Failed to load network: {{ error.message }}
-          </p>
-          <BButton
-            variant="primary"
-            @click="retryLoadNetwork"
-          >
+          <p class="text-muted mb-3">Failed to load network: {{ error.message }}</p>
+          <BButton variant="primary" @click="retryLoadNetwork">
             <i class="bi bi-arrow-clockwise me-1" />
             Retry
           </BButton>
         </div>
 
         <!-- Cytoscape canvas -->
-        <div
-          ref="cytoscapeContainer"
-          class="cytoscape-canvas"
-        />
+        <div ref="cytoscapeContainer" class="cytoscape-canvas" />
 
         <!-- Tooltip popover -->
         <div
@@ -245,9 +211,9 @@
               </template>
               <!-- Gene node tooltip -->
               <template v-else>
-                <span class="text-muted">HGNC:</span> {{ tooltipData.hgncId }}<br>
-                <span class="text-muted">Category:</span> {{ tooltipData.category }}<br>
-                <span class="text-muted">Cluster:</span> {{ tooltipData.cluster }}<br>
+                <span class="text-muted">HGNC:</span> {{ tooltipData.hgncId }}<br />
+                <span class="text-muted">Category:</span> {{ tooltipData.category }}<br />
+                <span class="text-muted">Cluster:</span> {{ tooltipData.cluster }}<br />
                 <span class="text-muted">Connections:</span> {{ tooltipData.degree }}
               </template>
             </div>
@@ -256,20 +222,10 @@
       </div>
 
       <!-- Network legend -->
-      <div
-        v-if="legendClusters.length > 0"
-        class="network-legend p-2 border-top"
-      >
+      <div v-if="legendClusters.length > 0" class="network-legend p-2 border-top">
         <small class="text-muted me-2">Clusters:</small>
-        <span
-          v-for="cluster in legendClusters"
-          :key="cluster.id"
-          class="legend-item me-3"
-        >
-          <span
-            class="legend-color"
-            :style="{ backgroundColor: cluster.color }"
-          />
+        <span v-for="cluster in legendClusters" :key="cluster.id" class="legend-item me-3">
+          <span class="legend-color" :style="{ backgroundColor: cluster.color }" />
           {{ cluster.id }}
         </span>
       </div>
@@ -336,13 +292,7 @@ const tooltipData = ref({
 });
 
 // Network data composable
-const {
-  isLoading,
-  error,
-  metadata,
-  fetchNetworkData,
-  cytoscapeElements,
-} = useNetworkData();
+const { isLoading, error, metadata, fetchNetworkData, cytoscapeElements } = useNetworkData();
 
 // Network filters composable
 const {
@@ -817,9 +767,12 @@ watch(cytoscapeElements, (newElements) => {
 });
 
 // Watch for clusterType prop changes
-watch(() => props.clusterType, async (newType) => {
-  await fetchNetworkData(newType);
-});
+watch(
+  () => props.clusterType,
+  async (newType) => {
+    await fetchNetworkData(newType);
+  }
+);
 
 /**
  * Retry loading network data after an error

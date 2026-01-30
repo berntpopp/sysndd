@@ -8,11 +8,11 @@
  * Maps to accordion sections in the public About.vue.
  */
 export interface AboutSection {
-  section_id: string;        // Unique ID (e.g., 'creators', 'citation')
-  title: string;             // Display title
-  icon: string;              // Bootstrap icon class (e.g., 'bi-people')
-  content: string;           // Markdown content
-  sort_order: number;        // Display order (0-indexed)
+  section_id: string; // Unique ID (e.g., 'creators', 'citation')
+  title: string; // Display title
+  icon: string; // Bootstrap icon class (e.g., 'bi-people')
+  content: string; // Markdown content
+  sort_order: number; // Display order (0-indexed)
 }
 
 /**
@@ -51,11 +51,11 @@ export type AboutContent = AboutDraft | AboutPublished;
  * Toolbar action for markdown editor.
  */
 export interface ToolbarAction {
-  icon: string;              // Bootstrap icon class
-  title: string;             // Tooltip text
-  prefix: string;            // Text before selection
-  suffix: string;            // Text after selection
-  placeholder?: string;      // Default text if no selection
+  icon: string; // Bootstrap icon class
+  title: string; // Tooltip text
+  prefix: string; // Text before selection
+  suffix: string; // Text after selection
+  placeholder?: string; // Default text if no selection
 }
 
 /**
@@ -85,4 +85,4 @@ export const SECTION_ICONS = [
   'bi-star',
 ] as const;
 
-export type SectionIcon = typeof SECTION_ICONS[number];
+export type SectionIcon = (typeof SECTION_ICONS)[number];

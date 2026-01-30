@@ -9,14 +9,8 @@
       :disabled="downloadingPNG"
       @click="downloadPNG"
     >
-      <i
-        v-if="!downloadingPNG"
-        class="bi bi-image"
-      />
-      <BSpinner
-        v-if="downloadingPNG"
-        small
-      />
+      <i v-if="!downloadingPNG" class="bi bi-image" />
+      <BSpinner v-if="downloadingPNG" small />
       PNG
     </BButton>
     <BButton
@@ -27,14 +21,8 @@
       :disabled="downloadingSVG"
       @click="downloadSVG"
     >
-      <i
-        v-if="!downloadingSVG"
-        class="bi bi-file-earmark"
-      />
-      <BSpinner
-        v-if="downloadingSVG"
-        small
-      />
+      <i v-if="!downloadingSVG" class="bi bi-file-earmark" />
+      <BSpinner v-if="downloadingSVG" small />
       SVG
     </BButton>
   </div>
@@ -120,5 +108,4 @@ export default {
 .download-button {
   margin: 0.1rem 0.1rem; /* Vertical margin for small screens */
 }
-
 </style>

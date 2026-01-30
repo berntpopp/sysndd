@@ -540,11 +540,14 @@ function(symbol, res) {
 
   # Loop through sources with error isolation (tryCatch per source)
   for (source_name in names(sources)) {
-    result <- tryCatch({
-      sources[[source_name]]()
-    }, error = function(e) {
-      list(error = TRUE, source = source_name, message = conditionMessage(e))
-    })
+    result <- tryCatch(
+      {
+        sources[[source_name]]()
+      },
+      error = function(e) {
+        list(error = TRUE, source = source_name, message = conditionMessage(e))
+      }
+    )
 
     if (is.list(result) && isTRUE(result$error)) {
       results$errors[[source_name]] <- create_external_error(

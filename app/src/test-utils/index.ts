@@ -16,12 +16,7 @@ export {
 } from './mount-helpers';
 
 // Accessibility testing helpers
-export {
-  expectNoA11yViolations,
-  runAxe,
-  logViolations,
-  defaultAxeConfig,
-} from './a11y-helpers';
+export { expectNoA11yViolations, runAxe, logViolations, defaultAxeConfig } from './a11y-helpers';
 
 // Re-export common testing utilities for convenience
 export { mount, shallowMount } from '@vue/test-utils';

@@ -123,9 +123,7 @@ export function useExcelExport(): UseExcelExportReturn {
  * Calculate column widths based on content
  * Returns array of column width objects for xlsx
  */
-function getColumnWidths<T extends Record<string, unknown>>(
-  data: T[]
-): Array<{ wch: number }> {
+function getColumnWidths<T extends Record<string, unknown>>(data: T[]): Array<{ wch: number }> {
   if (!data || data.length === 0) return [];
 
   const keys = Object.keys(data[0]);

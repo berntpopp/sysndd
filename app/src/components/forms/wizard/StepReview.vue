@@ -5,22 +5,14 @@
     </p>
 
     <!-- Core Entity Summary -->
-    <BCard
-      class="mb-3 review-card"
-      no-body
-    >
+    <BCard class="mb-3 review-card" no-body>
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
           <span class="fw-bold">
             <i class="bi bi-1-circle me-2" />
             Core Entity
           </span>
-          <BButton
-            variant="link"
-            size="sm"
-            class="p-0 text-primary"
-            @click="$emit('edit-step', 0)"
-          >
+          <BButton variant="link" size="sm" class="p-0 text-primary" @click="$emit('edit-step', 0)">
             <i class="bi bi-pencil me-1" />
             Edit
           </BButton>
@@ -50,7 +42,13 @@
             <div class="review-label">NDD Phenotype</div>
             <div class="review-value">
               <BBadge :variant="formData.nddPhenotype ? 'success' : 'secondary'">
-                {{ formData.nddPhenotype === true ? 'Yes' : formData.nddPhenotype === false ? 'No' : '—' }}
+                {{
+                  formData.nddPhenotype === true
+                    ? 'Yes'
+                    : formData.nddPhenotype === false
+                      ? 'No'
+                      : '—'
+                }}
               </BBadge>
             </div>
           </BCol>
@@ -59,22 +57,14 @@
     </BCard>
 
     <!-- Evidence Summary -->
-    <BCard
-      class="mb-3 review-card"
-      no-body
-    >
+    <BCard class="mb-3 review-card" no-body>
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
           <span class="fw-bold">
             <i class="bi bi-2-circle me-2" />
             Evidence
           </span>
-          <BButton
-            variant="link"
-            size="sm"
-            class="p-0 text-primary"
-            @click="$emit('edit-step', 1)"
-          >
+          <BButton variant="link" size="sm" class="p-0 text-primary" @click="$emit('edit-step', 1)">
             <i class="bi bi-pencil me-1" />
             Edit
           </BButton>
@@ -134,22 +124,14 @@
     </BCard>
 
     <!-- Phenotype & Variation Summary -->
-    <BCard
-      class="mb-3 review-card"
-      no-body
-    >
+    <BCard class="mb-3 review-card" no-body>
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
           <span class="fw-bold">
             <i class="bi bi-3-circle me-2" />
             Phenotype & Variation
           </span>
-          <BButton
-            variant="link"
-            size="sm"
-            class="p-0 text-primary"
-            @click="$emit('edit-step', 2)"
-          >
+          <BButton variant="link" size="sm" class="p-0 text-primary" @click="$emit('edit-step', 2)">
             <i class="bi bi-pencil me-1" />
             Edit
           </BButton>
@@ -196,22 +178,14 @@
     </BCard>
 
     <!-- Classification Summary -->
-    <BCard
-      class="mb-4 review-card"
-      no-body
-    >
+    <BCard class="mb-4 review-card" no-body>
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
           <span class="fw-bold">
             <i class="bi bi-4-circle me-2" />
             Classification
           </span>
-          <BButton
-            variant="link"
-            size="sm"
-            class="p-0 text-primary"
-            @click="$emit('edit-step', 3)"
-          >
+          <BButton variant="link" size="sm" class="p-0 text-primary" @click="$emit('edit-step', 3)">
             <i class="bi bi-pencil me-1" />
             Edit
           </BButton>
@@ -238,38 +212,26 @@
     </BCard>
 
     <!-- Direct Approval Warning -->
-    <BCard
-      v-if="directApproval"
-      border-variant="warning"
-      class="mb-3"
-    >
+    <BCard v-if="directApproval" border-variant="warning" class="mb-3">
       <div class="d-flex align-items-start">
         <i class="bi bi-exclamation-triangle text-warning me-3 fs-4" />
         <div>
           <div class="fw-bold text-warning">Direct Approval Enabled</div>
           <small class="text-muted">
-            This entity will be approved immediately without double review.
-            This should only be used by experienced curators.
+            This entity will be approved immediately without double review. This should only be used
+            by experienced curators.
           </small>
         </div>
       </div>
     </BCard>
 
     <!-- Validation Summary -->
-    <BAlert
-      v-if="!isFormValid"
-      variant="danger"
-      :model-value="true"
-    >
+    <BAlert v-if="!isFormValid" variant="danger" :model-value="true">
       <i class="bi bi-exclamation-circle me-2" />
       <strong>Validation errors:</strong> Please fix the errors above before submitting.
     </BAlert>
 
-    <BAlert
-      v-else
-      variant="success"
-      :model-value="true"
-    >
+    <BAlert v-else variant="success" :model-value="true">
       <i class="bi bi-check-circle me-2" />
       <strong>Ready to submit!</strong> All required fields are complete.
     </BAlert>
@@ -278,16 +240,7 @@
 
 <script lang="ts">
 import { defineComponent, inject, type PropType } from 'vue';
-import {
-  BCard,
-  BCardBody,
-  BRow,
-  BCol,
-  BBadge,
-  BButton,
-  BLink,
-  BAlert,
-} from 'bootstrap-vue-next';
+import { BCard, BCardBody, BRow, BCol, BBadge, BButton, BLink, BAlert } from 'bootstrap-vue-next';
 import type {
   EntityFormData,
   SelectOption,
@@ -358,8 +311,7 @@ export default defineComponent({
     const getInheritanceLabel = (value: string | null) =>
       getOptionLabel(props.inheritanceOptions, value);
 
-    const getStatusLabel = (value: string | null) =>
-      getOptionLabel(props.statusOptions, value);
+    const getStatusLabel = (value: string | null) => getOptionLabel(props.statusOptions, value);
 
     const getPhenotypeLabel = (value: string) =>
       getGroupedOptionLabel(props.phenotypeOptions, value);

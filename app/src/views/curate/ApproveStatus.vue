@@ -2,10 +2,7 @@
   <div class="container-fluid">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="12"
-        >
+        <BCol col md="12">
           <!-- User Interface controls -->
           <BCard
             header-tag="header"
@@ -20,12 +17,7 @@
                 <BCol>
                   <h5 class="mb-0 text-start fw-bold">
                     Approve Status
-                    <BBadge
-                      variant="primary"
-                      class="ms-2"
-                    >
-                      {{ totalRows }} statuses
-                    </BBadge>
+                    <BBadge variant="primary" class="ms-2"> {{ totalRows }} statuses </BBadge>
                   </h5>
                 </BCol>
                 <BCol class="text-end">
@@ -62,12 +54,7 @@
             <!-- Search, filters, and pagination row -->
             <BRow class="px-3 py-2 align-items-center">
               <!-- Search input -->
-              <BCol
-                cols="12"
-                md="4"
-                lg="3"
-                class="mb-2 mb-md-0"
-              >
+              <BCol cols="12" md="4" lg="3" class="mb-2 mb-md-0">
                 <BInputGroup size="sm">
                   <template #prepend>
                     <BInputGroupText>
@@ -85,12 +72,7 @@
               </BCol>
 
               <!-- Spacer for alignment -->
-              <BCol
-                cols="12"
-                md="4"
-                lg="4"
-                class="mb-2 mb-md-0"
-              />
+              <BCol cols="12" md="4" lg="4" class="mb-2 mb-md-0" />
 
               <!-- Pagination controls -->
               <BCol
@@ -99,10 +81,7 @@
                 lg="5"
                 class="d-flex justify-content-end align-items-center gap-2"
               >
-                <BInputGroup
-                  size="sm"
-                  class="w-auto"
-                >
+                <BInputGroup size="sm" class="w-auto">
                   <template #prepend>
                     <BInputGroupText>Per page</BInputGroupText>
                   </template>
@@ -128,11 +107,7 @@
 
             <!-- Column filters -->
             <BRow class="px-3 pb-2 align-items-center">
-              <BCol
-                cols="6"
-                md="2"
-                class="mb-2 mb-md-0"
-              >
+              <BCol cols="6" md="2" class="mb-2 mb-md-0">
                 <BFormSelect
                   v-model="categoryFilter"
                   size="sm"
@@ -140,11 +115,7 @@
                   aria-label="Filter by category"
                 />
               </BCol>
-              <BCol
-                cols="6"
-                md="2"
-                class="mb-2 mb-md-0"
-              >
+              <BCol cols="6" md="2" class="mb-2 mb-md-0">
                 <BFormSelect
                   v-model="userFilter"
                   size="sm"
@@ -152,16 +123,10 @@
                   aria-label="Filter by user"
                 />
               </BCol>
-              <BCol
-                cols="6"
-                md="2"
-                class="mb-2 mb-md-0"
-              >
+              <BCol cols="6" md="2" class="mb-2 mb-md-0">
                 <BInputGroup size="sm">
                   <template #prepend>
-                    <BInputGroupText class="small">
-                      From
-                    </BInputGroupText>
+                    <BInputGroupText class="small"> From </BInputGroupText>
                   </template>
                   <BFormInput
                     v-model="dateRangeStart"
@@ -171,16 +136,10 @@
                   />
                 </BInputGroup>
               </BCol>
-              <BCol
-                cols="6"
-                md="2"
-                class="mb-2 mb-md-0"
-              >
+              <BCol cols="6" md="2" class="mb-2 mb-md-0">
                 <BInputGroup size="sm">
                   <template #prepend>
-                    <BInputGroupText class="small">
-                      To
-                    </BInputGroupText>
+                    <BInputGroupText class="small"> To </BInputGroupText>
                   </template>
                   <BFormInput
                     v-model="dateRangeEnd"
@@ -191,11 +150,7 @@
                 </BInputGroup>
               </BCol>
               <!-- Active filter tags -->
-              <BCol
-                cols="12"
-                md="4"
-                class="d-flex align-items-center flex-wrap gap-1"
-              >
+              <BCol cols="12" md="4" class="d-flex align-items-center flex-wrap gap-1">
                 <BBadge
                   v-if="categoryFilter"
                   variant="secondary"
@@ -247,11 +202,7 @@
             </div>
 
             <!-- Main table -->
-            <BSpinner
-              v-if="loading_status_approve"
-              label="Loading..."
-              class="float-center m-5"
-            />
+            <BSpinner v-if="loading_status_approve" label="Loading..." class="float-center m-5" />
             <BTable
               v-else
               :items="columnFilteredItems"
@@ -293,7 +244,9 @@
                   :name="data.item.disease_ontology_name"
                   :ontology-id="data.item.disease_ontology_id_version"
                   :max-length="40"
-                  :link-to="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"
+                  :link-to="
+                    '/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')
+                  "
                 />
               </template>
 
@@ -305,11 +258,7 @@
               </template>
 
               <template #cell(category)="data">
-                <CategoryIcon
-                  :category="data.item.category"
-                  size="sm"
-                  :show-title="true"
-                />
+                <CategoryIcon :category="data.item.category" size="sm" :show-title="true" />
               </template>
 
               <template #cell(problematic)="data">
@@ -317,10 +266,20 @@
                   v-b-tooltip.hover.top
                   :title="problematic_text[data.item.problematic]"
                   class="d-inline-flex align-items-center justify-content-center rounded-circle"
-                  :class="data.item.problematic ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'"
-                  style="width: 24px; height: 24px; font-size: 0.75rem;"
+                  :class="
+                    data.item.problematic
+                      ? 'bg-danger-subtle text-danger'
+                      : 'bg-success-subtle text-success'
+                  "
+                  style="width: 24px; height: 24px; font-size: 0.75rem"
                 >
-                  <i :class="data.item.problematic ? 'bi bi-exclamation-triangle-fill' : 'bi bi-check-circle-fill'" />
+                  <i
+                    :class="
+                      data.item.problematic
+                        ? 'bi bi-exclamation-triangle-fill'
+                        : 'bi bi-check-circle-fill'
+                    "
+                  />
                 </span>
               </template>
 
@@ -329,7 +288,7 @@
                   v-if="data.item.comment"
                   :id="'comment-status-' + data.item.status_id"
                   class="text-truncate-multiline small text-popover-trigger"
-                  style="max-width: 150px;"
+                  style="max-width: 150px"
                 >
                   {{ data.item.comment }}
                 </div>
@@ -348,10 +307,7 @@
                     {{ data.item.comment }}
                   </div>
                 </BPopover>
-                <span
-                  v-else
-                  class="text-muted small"
-                >—</span>
+                <span v-else class="text-muted small">—</span>
               </template>
 
               <template #cell(status_date)="data">
@@ -360,12 +316,12 @@
                     v-b-tooltip.hover.top
                     :title="data.item.status_date"
                     class="d-inline-flex align-items-center justify-content-center rounded-circle bg-secondary-subtle text-secondary"
-                    style="width: 24px; height: 24px; font-size: 0.75rem;"
+                    style="width: 24px; height: 24px; font-size: 0.75rem"
                   >
                     <i class="bi bi-calendar3" />
                   </span>
                   <span class="small text-muted">
-                    {{ data.item.status_date.substring(0,10) }}
+                    {{ data.item.status_date.substring(0, 10) }}
                   </span>
                 </div>
               </template>
@@ -377,7 +333,7 @@
                     :title="data.item.status_user_role"
                     class="d-inline-flex align-items-center justify-content-center rounded-circle"
                     :class="`bg-${user_style[data.item.status_user_role]}-subtle text-${user_style[data.item.status_user_role]}`"
-                    style="width: 24px; height: 24px; font-size: 0.75rem;"
+                    style="width: 24px; height: 24px; font-size: 0.75rem"
                   >
                     <i :class="'bi bi-' + user_icon[data.item.status_user_role]" />
                   </span>
@@ -397,7 +353,10 @@
                   :aria-label="`Toggle details for entity ${row.item.entity_id}`"
                   @click="row.toggleDetails"
                 >
-                  <i :class="'bi bi-' + (row.detailsShowing ? 'eye-slash' : 'eye')" aria-hidden="true" />
+                  <i
+                    :class="'bi bi-' + (row.detailsShowing ? 'eye-slash' : 'eye')"
+                    aria-hidden="true"
+                  />
                 </BButton>
 
                 <BButton
@@ -426,10 +385,7 @@
               </template>
 
               <template #row-details="row">
-                <BCard
-                  class="mb-2 border-0 shadow-sm"
-                  body-class="p-3"
-                >
+                <BCard class="mb-2 border-0 shadow-sm" body-class="p-3">
                   <div class="row g-3">
                     <!-- Status Info Section -->
                     <div class="col-md-4">
@@ -439,23 +395,23 @@
                       </h6>
                       <div class="d-flex flex-column gap-2">
                         <div class="d-flex align-items-center gap-2">
-                          <span class="text-muted small" style="min-width: 80px;">Status ID:</span>
+                          <span class="text-muted small" style="min-width: 80px">Status ID:</span>
                           <BBadge variant="secondary">{{ row.item.status_id }}</BBadge>
                         </div>
                         <div class="d-flex align-items-center gap-2">
-                          <span class="text-muted small" style="min-width: 80px;">Category:</span>
+                          <span class="text-muted small" style="min-width: 80px">Category:</span>
                           <BBadge :variant="stoplights_style[row.item.category]">
                             {{ row.item.category }}
                           </BBadge>
                         </div>
                         <div class="d-flex align-items-center gap-2">
-                          <span class="text-muted small" style="min-width: 80px;">Problematic:</span>
+                          <span class="text-muted small" style="min-width: 80px">Problematic:</span>
                           <BBadge :variant="row.item.problematic ? 'danger' : 'success'">
                             {{ row.item.problematic ? 'Yes' : 'No' }}
                           </BBadge>
                         </div>
                         <div class="d-flex align-items-center gap-2">
-                          <span class="text-muted small" style="min-width: 80px;">Active:</span>
+                          <span class="text-muted small" style="min-width: 80px">Active:</span>
                           <BBadge :variant="row.item.is_active ? 'success' : 'secondary'">
                             {{ row.item.is_active ? 'Yes' : 'No' }}
                           </BBadge>
@@ -472,14 +428,11 @@
                       <div
                         v-if="row.item.comment"
                         class="bg-light rounded p-2 small"
-                        style="max-height: 120px; overflow-y: auto;"
+                        style="max-height: 120px; overflow-y: auto"
                       >
                         {{ row.item.comment }}
                       </div>
-                      <span
-                        v-else
-                        class="text-muted small fst-italic"
-                      >No comment available</span>
+                      <span v-else class="text-muted small fst-italic">No comment available</span>
                     </div>
                   </div>
                 </BCard>
@@ -514,7 +467,7 @@
 
         <div class="text-center py-3">
           <div class="mb-3">
-            <i class="bi bi-question-circle text-primary" style="font-size: 2.5rem;" />
+            <i class="bi bi-question-circle text-primary" style="font-size: 2.5rem" />
           </div>
           <p class="mb-2">
             You have finished checking this status for entity
@@ -522,9 +475,7 @@
               {{ approveModal.title }}
             </BBadge>
           </p>
-          <p class="text-muted small">
-            Click <strong>Approve</strong> to confirm and submit.
-          </p>
+          <p class="text-muted small">Click <strong>Approve</strong> to confirm and submit.</p>
         </div>
       </BModal>
       <!-- Approve modal -->
@@ -555,28 +506,24 @@
           <div class="w-100 d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-2 text-muted small">
               <span>
-                <i :class="'bi bi-' + user_icon[status_info.status_user_role] + ' text-' + user_style[status_info.status_user_role]" />
+                <i
+                  :class="
+                    'bi bi-' +
+                    user_icon[status_info.status_user_role] +
+                    ' text-' +
+                    user_style[status_info.status_user_role]
+                  "
+                />
                 <span class="ms-1">{{ status_info.status_user_name }}</span>
               </span>
-              <BBadge
-                :variant="user_style[status_info.status_user_role]"
-                pill
-              >
+              <BBadge :variant="user_style[status_info.status_user_role]" pill>
                 {{ status_info.status_user_role }}
               </BBadge>
             </div>
 
             <div class="d-flex gap-2">
-              <BButton
-                variant="outline-secondary"
-                @click="cancel()"
-              >
-                Cancel
-              </BButton>
-              <BButton
-                variant="primary"
-                @click="ok()"
-              >
+              <BButton variant="outline-secondary" @click="cancel()"> Cancel </BButton>
+              <BButton variant="primary" @click="ok()">
                 <i class="bi bi-check-lg me-1" />
                 Save Status
               </BButton>
@@ -587,24 +534,11 @@
         <!-- Entity Context Header -->
         <div class="bg-light rounded-3 p-3 mb-3">
           <div class="d-flex flex-wrap align-items-center gap-2">
-            <BLink
-              :href="'/Entities/' + status_info.entity_id"
-              target="_blank"
-            >
-              <BBadge variant="primary">
-                sysndd:{{ status_info.entity_id }}
-              </BBadge>
+            <BLink :href="'/Entities/' + status_info.entity_id" target="_blank">
+              <BBadge variant="primary"> sysndd:{{ status_info.entity_id }} </BBadge>
             </BLink>
-            <BLink
-              :href="'/Genes/' + entity_info.symbol"
-              target="_blank"
-            >
-              <BBadge
-                v-b-tooltip.hover.bottom
-                pill
-                variant="success"
-                :title="entity_info.hgnc_id"
-              >
+            <BLink :href="'/Genes/' + entity_info.symbol" target="_blank">
+              <BBadge v-b-tooltip.hover.bottom pill variant="success" :title="entity_info.hgnc_id">
                 {{ entity_info.symbol }}
               </BBadge>
             </BLink>
@@ -616,7 +550,9 @@
                 v-b-tooltip.hover.bottom
                 pill
                 variant="secondary"
-                :title="entity_info.disease_ontology_name + '; ' + entity_info.disease_ontology_id_version"
+                :title="
+                  entity_info.disease_ontology_name + '; ' + entity_info.disease_ontology_id_version
+                "
               >
                 {{ truncate(entity_info.disease_ontology_name, 40) }}
               </BBadge>
@@ -625,21 +561,20 @@
               v-b-tooltip.hover.bottom
               pill
               variant="info"
-              :title="entity_info.hpo_mode_of_inheritance_term_name + ' (' + entity_info.hpo_mode_of_inheritance_term + ')'"
+              :title="
+                entity_info.hpo_mode_of_inheritance_term_name +
+                ' (' +
+                entity_info.hpo_mode_of_inheritance_term +
+                ')'
+              "
             >
               {{ inheritance_short_text[entity_info.hpo_mode_of_inheritance_term_name] }}
             </BBadge>
           </div>
         </div>
 
-        <BOverlay
-          :show="loading_status_modal"
-          rounded="sm"
-        >
-          <BForm
-            ref="form"
-            @submit.stop.prevent="submitStatusChange"
-          >
+        <BOverlay :show="loading_status_modal" rounded="sm">
+          <BForm ref="form" @submit.stop.prevent="submitStatusChange">
             <!-- Classification Section -->
             <div class="mb-3">
               <h6 class="fw-semibold mb-2">
@@ -659,9 +594,7 @@
                   size="sm"
                 >
                   <template #first>
-                    <BFormSelectOption :value="null">
-                      Select status...
-                    </BFormSelectOption>
+                    <BFormSelectOption :value="null"> Select status... </BFormSelectOption>
                   </template>
                 </BFormSelect>
               </BFormGroup>
@@ -674,11 +607,7 @@
                 Entity Flags
               </h6>
               <BFormGroup class="mb-0">
-                <BFormCheckbox
-                  id="removeSwitch"
-                  v-model="status_info.problematic"
-                  switch
-                >
+                <BFormCheckbox id="removeSwitch" v-model="status_info.problematic" switch>
                   Suggest removal
                 </BFormCheckbox>
               </BFormGroup>
@@ -733,7 +662,7 @@
 
         <div class="text-center py-3">
           <div class="mb-3">
-            <i class="bi bi-exclamation-triangle text-danger" style="font-size: 2.5rem;" />
+            <i class="bi bi-exclamation-triangle text-danger" style="font-size: 2.5rem" />
           </div>
           <p class="mb-2">
             You are about to approve <strong>ALL</strong> {{ totalRows }} pending statuses.
@@ -742,12 +671,7 @@
             This action cannot be undone. Please confirm by toggling the switch below.
           </p>
           <div class="d-flex justify-content-center">
-            <BFormCheckbox
-              id="approveAllSwitch"
-              v-model="approve_all_selected"
-              switch
-              size="lg"
-            >
+            <BFormCheckbox id="approveAllSwitch" v-model="approve_all_selected" switch size="lg">
               <strong>{{ approve_all_selected ? 'Yes, approve all' : 'No, cancel' }}</strong>
             </BFormCheckbox>
           </div>
@@ -986,7 +910,9 @@ export default {
   computed: {
     // Category filter options from unique values in items
     categoryFilterOptions() {
-      const categories = [...new Set(this.items_StatusTable.map((item) => item.category))].filter(Boolean);
+      const categories = [...new Set(this.items_StatusTable.map((item) => item.category))].filter(
+        Boolean
+      );
       return [
         { value: null, text: 'All Categories' },
         ...categories.map((cat) => ({ value: cat, text: cat })),
@@ -994,7 +920,9 @@ export default {
     },
     // User filter options from unique values in items
     userFilterOptions() {
-      const users = [...new Set(this.items_StatusTable.map((item) => item.status_user_name))].filter(Boolean);
+      const users = [
+        ...new Set(this.items_StatusTable.map((item) => item.status_user_name)),
+      ].filter(Boolean);
       return [
         { value: null, text: 'All Users' },
         ...users.map((user) => ({ value: user, text: user })),
@@ -1100,7 +1028,7 @@ export default {
         this.status_info = new Status(
           response.data[0].category_id,
           response.data[0].comment,
-          response.data[0].problematic,
+          response.data[0].problematic
         );
 
         this.status_info.status_id = response.data[0].status_id;
@@ -1114,8 +1042,7 @@ export default {
       }
     },
     async getEntity(entity_input) {
-      const apiGetURL = `${import.meta.env.VITE_API_URL
-      }/api/entity?filter=equals(entity_id,${
+      const apiGetURL = `${import.meta.env.VITE_API_URL}/api/entity?filter=equals(entity_id,${
         entity_input
       })`;
 
@@ -1145,15 +1072,11 @@ export default {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          },
+          }
         );
 
         const message = 'The new status for this entity has been submitted successfully.';
-        this.makeToast(
-          message,
-          'Success',
-          'success',
-        );
+        this.makeToast(message, 'Success', 'success');
         this.announce(message);
         this.resetForm();
         this.loadStatusTableData();
@@ -1186,8 +1109,7 @@ export default {
       this.$refs[this.statusModal.id].show();
     },
     async handleStatusOk(_bvModalEvt) {
-      const apiUrl = `${import.meta.env.VITE_API_URL
-      }/api/status/approve/${
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/approve/${
         this.status_info.status_id
       }?status_ok=true`;
 
@@ -1199,7 +1121,7 @@ export default {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          },
+          }
         );
 
         this.announce('Status approved successfully');
@@ -1211,8 +1133,7 @@ export default {
     },
     async handleAllStatusOk() {
       if (this.approve_all_selected) {
-        const apiUrl = `${import.meta.env.VITE_API_URL
-        }/api/status/approve/all?status_ok=true`;
+        const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/approve/all?status_ok=true`;
         try {
           this.axios.put(
             apiUrl,
@@ -1221,7 +1142,7 @@ export default {
               headers: {
                 Authorization: `Bearer ${localStorage.getItem('token')}`,
               },
-            },
+            }
           );
 
           this.loadStatusTableData();

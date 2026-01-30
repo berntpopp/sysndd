@@ -3,11 +3,7 @@
 // for global registration in main.js
 
 // Layout components
-export {
-  BContainer,
-  BRow,
-  BCol,
-} from 'bootstrap-vue-next';
+export { BContainer, BRow, BCol } from 'bootstrap-vue-next';
 
 // Navbar components
 export {
@@ -56,41 +52,22 @@ export {
 } from 'bootstrap-vue-next';
 
 // Input Group components
-export {
-  BInputGroup,
-  BInputGroupText,
-} from 'bootstrap-vue-next';
+export { BInputGroup, BInputGroupText } from 'bootstrap-vue-next';
 
 // Button components
-export {
-  BButton,
-  BButtonGroup,
-  BButtonToolbar,
-} from 'bootstrap-vue-next';
+export { BButton, BButtonGroup, BButtonToolbar } from 'bootstrap-vue-next';
 
 // Table components
-export {
-  BTable,
-  BTableSimple,
-} from 'bootstrap-vue-next';
+export { BTable, BTableSimple } from 'bootstrap-vue-next';
 
 // Modal and Dialog components
-export {
-  BModal,
-} from 'bootstrap-vue-next';
+export { BModal } from 'bootstrap-vue-next';
 
 // Alert and Toast components
-export {
-  BAlert,
-  BToast,
-} from 'bootstrap-vue-next';
+export { BAlert, BToast } from 'bootstrap-vue-next';
 
 // Badge and Avatar components
-export {
-  BBadge,
-  BAvatar,
-  BAvatarGroup,
-} from 'bootstrap-vue-next';
+export { BBadge, BAvatar, BAvatarGroup } from 'bootstrap-vue-next';
 
 // Link and Navigation components
 export {
@@ -106,61 +83,34 @@ export {
 } from 'bootstrap-vue-next';
 
 // List Group components
-export {
-  BListGroup,
-  BListGroupItem,
-} from 'bootstrap-vue-next';
+export { BListGroup, BListGroupItem } from 'bootstrap-vue-next';
 
 // Pagination components
-export {
-  BPagination,
-} from 'bootstrap-vue-next';
+export { BPagination } from 'bootstrap-vue-next';
 
 // Tabs components
-export {
-  BTabs,
-  BTab,
-} from 'bootstrap-vue-next';
+export { BTabs, BTab } from 'bootstrap-vue-next';
 
 // Image components
-export {
-  BImg,
-} from 'bootstrap-vue-next';
+export { BImg } from 'bootstrap-vue-next';
 
 // Spinner and Progress components
-export {
-  BSpinner,
-  BProgress,
-  BProgressBar,
-} from 'bootstrap-vue-next';
+export { BSpinner, BProgress, BProgressBar } from 'bootstrap-vue-next';
 
 // Overlay components
-export {
-  BOverlay,
-} from 'bootstrap-vue-next';
+export { BOverlay } from 'bootstrap-vue-next';
 
 // Breadcrumb components
-export {
-  BBreadcrumb,
-  BBreadcrumbItem,
-} from 'bootstrap-vue-next';
+export { BBreadcrumb, BBreadcrumbItem } from 'bootstrap-vue-next';
 
 // Accordion components
-export {
-  BAccordion,
-  BAccordionItem,
-} from 'bootstrap-vue-next';
+export { BAccordion, BAccordionItem } from 'bootstrap-vue-next';
 
 // Offcanvas components
-export {
-  BOffcanvas,
-} from 'bootstrap-vue-next';
+export { BOffcanvas } from 'bootstrap-vue-next';
 
 // Tooltip and Popover components
-export {
-  BTooltip,
-  BPopover,
-} from 'bootstrap-vue-next';
+export { BTooltip, BPopover } from 'bootstrap-vue-next';
 
 // Placeholder components
 export {
@@ -172,7 +122,4 @@ export {
 } from 'bootstrap-vue-next';
 
 // App wrapper
-export {
-  BApp,
-  BOrchestrator,
-} from 'bootstrap-vue-next';
+export { BApp, BOrchestrator } from 'bootstrap-vue-next';

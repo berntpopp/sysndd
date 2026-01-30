@@ -27,127 +27,127 @@ gen_string_clust_obj <- function(
 
   # load/ download STRING database files
   string_db <- STRINGdb::STRINGdb$new(
-      version = "11.5",
-      species = 9606,
-      score_threshold = 200,
-      input_directory = "data"
+    version = "11.5",
+    species = 9606,
+    score_threshold = 200,
+    input_directory = "data"
+  )
+
+  # Load gene table from database and filter to input HGNC list
+  # If string_id_table is provided (for daemon context), use it; otherwise fetch from pool
+  if (!is.null(string_id_table)) {
+    sysndd_db_string_id_table <- string_id_table %>%
+      filter(hgnc_id %in% hgnc_list)
+  } else {
+    sysndd_db_string_id_table <- pool %>%
+      tbl("non_alt_loci_set") %>%
+      filter(!is.na(STRING_id)) %>%
+      select(symbol, hgnc_id, STRING_id) %>%
+      collect() %>%
+      filter(hgnc_id %in% hgnc_list)
+  }
+
+  # convert to dataframe
+  sysndd_db_string_id_df <- sysndd_db_string_id_table %>%
+    as.data.frame()
+
+  # Perform clustering using Leiden algorithm via igraph
+  # (replaced Walktrap for 2-3x performance improvement)
+
+  # Get full STRING graph for Leiden clustering
+  string_graph <- string_db$get_graph()
+
+  # Filter to input gene set (intersect with genes having STRING IDs)
+  genes_in_graph <- intersect(
+    igraph::V(string_graph)$name,
+    sysndd_db_string_id_df$STRING_id
+  )
+
+  # Create subgraph with only input genes
+  subgraph <- igraph::induced_subgraph(
+    string_graph,
+    vids = which(igraph::V(string_graph)$name %in% genes_in_graph)
+  )
+
+  # Run clustering algorithm based on parameter
+  # Leiden: 2-3x faster, good for large networks
+  # Walktrap: Classic algorithm, uses random walks to detect communities
+  if (algorithm == "walktrap") {
+    # Walktrap clustering using random walks
+    # steps=4 is default and works well for PPI networks
+    cluster_result <- igraph::cluster_walktrap(
+      subgraph,
+      steps = 4
     )
-
-    # Load gene table from database and filter to input HGNC list
-    # If string_id_table is provided (for daemon context), use it; otherwise fetch from pool
-    if (!is.null(string_id_table)) {
-      sysndd_db_string_id_table <- string_id_table %>%
-        filter(hgnc_id %in% hgnc_list)
-    } else {
-      sysndd_db_string_id_table <- pool %>%
-        tbl("non_alt_loci_set") %>%
-        filter(!is.na(STRING_id)) %>%
-        select(symbol, hgnc_id, STRING_id) %>%
-        collect() %>%
-        filter(hgnc_id %in% hgnc_list)
-    }
-
-    # convert to dataframe
-    sysndd_db_string_id_df <- sysndd_db_string_id_table %>%
-      as.data.frame()
-
-    # Perform clustering using Leiden algorithm via igraph
-    # (replaced Walktrap for 2-3x performance improvement)
-
-    # Get full STRING graph for Leiden clustering
-    string_graph <- string_db$get_graph()
-
-    # Filter to input gene set (intersect with genes having STRING IDs)
-    genes_in_graph <- intersect(
-      igraph::V(string_graph)$name,
-      sysndd_db_string_id_df$STRING_id
+  } else {
+    # Default: Leiden clustering (faster)
+    # Parameters optimized for PPI networks:
+    # - modularity: Standard objective for biological networks
+    # - resolution=1.0: Default, produces similar cluster sizes to Walktrap
+    # - beta=0.01: Low randomness ensures reproducible results
+    # - n_iterations=2: Default, balances quality and speed
+    cluster_result <- igraph::cluster_leiden(
+      subgraph,
+      objective_function = "modularity",
+      resolution_parameter = 1.0,
+      beta = 0.01,
+      n_iterations = 2
     )
+  }
 
-    # Create subgraph with only input genes
-    subgraph <- igraph::induced_subgraph(
-      string_graph,
-      vids = which(igraph::V(string_graph)$name %in% genes_in_graph)
-    )
+  # Convert to list format (compatible with existing downstream code)
+  clusters_list <- split(
+    igraph::V(subgraph)$name,
+    cluster_result$membership
+  )
 
-    # Run clustering algorithm based on parameter
-    # Leiden: 2-3x faster, good for large networks
-    # Walktrap: Classic algorithm, uses random walks to detect communities
-    if (algorithm == "walktrap") {
-      # Walktrap clustering using random walks
-      # steps=4 is default and works well for PPI networks
-      cluster_result <- igraph::cluster_walktrap(
-        subgraph,
-        steps = 4
-      )
-    } else {
-      # Default: Leiden clustering (faster)
-      # Parameters optimized for PPI networks:
-      # - modularity: Standard objective for biological networks
-      # - resolution=1.0: Default, produces similar cluster sizes to Walktrap
-      # - beta=0.01: Low randomness ensures reproducible results
-      # - n_iterations=2: Default, balances quality and speed
-      cluster_result <- igraph::cluster_leiden(
-        subgraph,
-        objective_function = "modularity",
-        resolution_parameter = 1.0,
-        beta = 0.01,
-        n_iterations = 2
-      )
-    }
-
-    # Convert to list format (compatible with existing downstream code)
-    clusters_list <- split(
-      igraph::V(subgraph)$name,
-      cluster_result$membership
-    )
-
-    clusters_tibble <- tibble(clusters_list) %>%
-      select(STRING_id = clusters_list) %>%
-      mutate(cluster = row_number()) %>%
-      unnest_longer(col = "STRING_id") %>%
-      left_join(sysndd_db_string_id_table, by = c("STRING_id")) %>%
-      tidyr::nest(.by = c(cluster), .key = "identifiers") %>%
-      mutate(hash_filter = list(
-        post_db_hash(identifiers %>% purrr::pluck("symbol"))
-      )) %>%
-      mutate(hash_filter = purrr::pluck(hash_filter, 1, 1, "hash")) %>%
-      ungroup() %>%
-      rowwise() %>%
-      mutate(cluster_size = nrow(identifiers)) %>%
-      filter(cluster_size >= min_size) %>%
-      select(cluster, cluster_size, identifiers, hash_filter) %>%
-      {
-        if (!is.na(parent)) {
-          mutate(., parent_cluster = parent)
-        } else {
-          .
-        }
-      } %>%
-      {
-        if (enrichment) {
-          mutate(.,
-            term_enrichment =
-              list(gen_string_enrich_tib(identifiers$hgnc_id) %>%
-                     mutate(term = str_replace(term, "GOCC", "GO")))
-          )
-        } else {
-          .
-        }
-      } %>%
-      {
-        if (subcluster) {
-          mutate(., subclusters = list(gen_string_clust_obj(
-            identifiers$hgnc_id,
-            subcluster = FALSE,
-            parent = cluster,
-            algorithm = algorithm,
-            string_id_table = string_id_table
-          )))
-        } else {
-          .
-        }
-      } %>%
-      ungroup()
+  clusters_tibble <- tibble(clusters_list) %>%
+    select(STRING_id = clusters_list) %>%
+    mutate(cluster = row_number()) %>%
+    unnest_longer(col = "STRING_id") %>%
+    left_join(sysndd_db_string_id_table, by = c("STRING_id")) %>%
+    tidyr::nest(.by = c(cluster), .key = "identifiers") %>%
+    mutate(hash_filter = list(
+      post_db_hash(identifiers %>% purrr::pluck("symbol"))
+    )) %>%
+    mutate(hash_filter = purrr::pluck(hash_filter, 1, 1, "hash")) %>%
+    ungroup() %>%
+    rowwise() %>%
+    mutate(cluster_size = nrow(identifiers)) %>%
+    filter(cluster_size >= min_size) %>%
+    select(cluster, cluster_size, identifiers, hash_filter) %>%
+    {
+      if (!is.na(parent)) {
+        mutate(., parent_cluster = parent)
+      } else {
+        .
+      }
+    } %>%
+    {
+      if (enrichment) {
+        mutate(.,
+          term_enrichment =
+            list(gen_string_enrich_tib(identifiers$hgnc_id) %>%
+              mutate(term = str_replace(term, "GOCC", "GO")))
+        )
+      } else {
+        .
+      }
+    } %>%
+    {
+      if (subcluster) {
+        mutate(., subclusters = list(gen_string_clust_obj(
+          identifiers$hgnc_id,
+          subcluster = FALSE,
+          parent = cluster,
+          algorithm = algorithm,
+          string_id_table = string_id_table
+        )))
+      } else {
+        .
+      }
+    } %>%
+    ungroup()
 
   # return result
   return(clusters_tibble)
@@ -202,80 +202,80 @@ gen_mca_clust_obj <- function(
   # backed by cachem::cache_disk with Inf TTL. No file-based cache needed.
 
   # Compute Multiple Correspondence Analysis (MCA)
-    # ncp=8 captures >70% of variance for typical phenotype data
-    # Reduced from ncp=15 for 20-30% MCA speedup
-    # Empirically validated: cluster assignments stable between ncp=8 and ncp=15
-    # For adaptive ncp selection, generate scree plot and identify elbow point:
-    #   factoextra::fviz_screeplot(mca_result)
-    # See: http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/117-hcpc-hierarchical-clustering-on-principal-components-essentials/ # nolint: line_length_linter
-    mca_phenotypes <- MCA(wide_phenotypes_df,
-      ncp = 8,   # Reduced from 15 for 20-30% speedup (validated stable clustering)
-      quali.sup = quali_sup_var,
-      quanti.sup = quanti_sup_var,
-      graph = FALSE
-    )
+  # ncp=8 captures >70% of variance for typical phenotype data
+  # Reduced from ncp=15 for 20-30% MCA speedup
+  # Empirically validated: cluster assignments stable between ncp=8 and ncp=15
+  # For adaptive ncp selection, generate scree plot and identify elbow point:
+  #   factoextra::fviz_screeplot(mca_result)
+  # See: http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/117-hcpc-hierarchical-clustering-on-principal-components-essentials/ # nolint: line_length_linter
+  mca_phenotypes <- MCA(wide_phenotypes_df,
+    ncp = 8, # Reduced from 15 for 20-30% speedup (validated stable clustering)
+    quali.sup = quali_sup_var,
+    quanti.sup = quanti_sup_var,
+    graph = FALSE
+  )
 
-    # Hierarchical Clustering on Principal Components with pre-partitioning
-    # kk=50 performs K-means preprocessing before hierarchical clustering
-    # This reduces computational complexity from O(n^2) to O(50^2)
-    # providing 50-70% speedup for datasets with >100 observations
-    # See: http://factominer.free.fr/factomethods/hierarchical-clustering-on-principal-components.html
-    mca_hcpc <- HCPC(mca_phenotypes,
-      nb.clust = cutpoint,
-      kk = 50,   # Pre-partition into 50 clusters (was Inf - no pre-partitioning)
-      mi = 3,
-      max = 25,
-      consol = TRUE,  # Consolidation still performed after kk partitioning
-      graph = FALSE
-    )
+  # Hierarchical Clustering on Principal Components with pre-partitioning
+  # kk=50 performs K-means preprocessing before hierarchical clustering
+  # This reduces computational complexity from O(n^2) to O(50^2)
+  # providing 50-70% speedup for datasets with >100 observations
+  # See: http://factominer.free.fr/factomethods/hierarchical-clustering-on-principal-components.html
+  mca_hcpc <- HCPC(mca_phenotypes,
+    nb.clust = cutpoint,
+    kk = 50, # Pre-partition into 50 clusters (was Inf - no pre-partitioning)
+    mi = 3,
+    max = 25,
+    consol = TRUE, # Consolidation still performed after kk partitioning
+    graph = FALSE
+  )
 
-    # add entity_id back as column
-    mca_hcpc$data.clust$entity_id <- row.names(mca_hcpc$data.clust)
+  # add entity_id back as column
+  mca_hcpc$data.clust$entity_id <- row.names(mca_hcpc$data.clust)
 
-    # generate cluster tibble
-    # Sort all variable tables by p.value ascending so most significant appear first
-    clusters_tibble <- tibble(mca_hcpc$data.clust) %>%
-      select(entity_id, cluster = clust) %>%
-      tidyr::nest(.by = c(cluster), .key = "identifiers") %>%
-      mutate(hash_filter = list(
-        post_db_hash(identifiers %>%
-                       purrr::pluck("entity_id"), "entity_id", "/api/entity")
-      )) %>%
-      mutate(hash_filter = hash_filter$links$hash) %>%
-      ungroup() %>%
-      rowwise() %>%
-      mutate(cluster_size = nrow(identifiers)) %>%
-      mutate(quali_inp_var = list(tibble::as_tibble(
-        mca_hcpc$desc.var$category[[cluster]],
-        rownames = "variable",
-        .name_repair = ~ vctrs::vec_as_names(...,
-          repair = "universal", quiet = TRUE
-        )
-      ) %>%
-        filter(!str_detect(variable, "NA")) %>%
-        filter(!str_detect(variable, "hpo")) %>%
-        mutate(variable = str_remove_all(variable, "^.+=|_yes")) %>%
-        arrange(p.value))) %>%
-      mutate(quali_sup_var = list(tibble::as_tibble(
-        mca_hcpc$desc.var$category[[cluster]],
-        rownames = "variable",
-        .name_repair = ~ vctrs::vec_as_names(...,
-          repair = "universal", quiet = TRUE
-        )
-      ) %>%
-        filter(!str_detect(variable, "NA")) %>%
-        filter(str_detect(variable, "hpo")) %>%
-        mutate(variable = str_remove_all(variable, "^.+=|_yes")) %>%
-        arrange(p.value))) %>%
-      mutate(quanti_sup_var = list(tibble::as_tibble(
-        mca_hcpc$desc.var$quanti[[cluster]],
-        rownames = "variable",
-        .name_repair = ~ vctrs::vec_as_names(...,
-          repair = "universal", quiet = TRUE
-        )
-      ) %>%
-        arrange(p.value))) %>%
-      ungroup()
+  # generate cluster tibble
+  # Sort all variable tables by p.value ascending so most significant appear first
+  clusters_tibble <- tibble(mca_hcpc$data.clust) %>%
+    select(entity_id, cluster = clust) %>%
+    tidyr::nest(.by = c(cluster), .key = "identifiers") %>%
+    mutate(hash_filter = list(
+      post_db_hash(identifiers %>%
+        purrr::pluck("entity_id"), "entity_id", "/api/entity")
+    )) %>%
+    mutate(hash_filter = hash_filter$links$hash) %>%
+    ungroup() %>%
+    rowwise() %>%
+    mutate(cluster_size = nrow(identifiers)) %>%
+    mutate(quali_inp_var = list(tibble::as_tibble(
+      mca_hcpc$desc.var$category[[cluster]],
+      rownames = "variable",
+      .name_repair = ~ vctrs::vec_as_names(...,
+        repair = "universal", quiet = TRUE
+      )
+    ) %>%
+      filter(!str_detect(variable, "NA")) %>%
+      filter(!str_detect(variable, "hpo")) %>%
+      mutate(variable = str_remove_all(variable, "^.+=|_yes")) %>%
+      arrange(p.value))) %>%
+    mutate(quali_sup_var = list(tibble::as_tibble(
+      mca_hcpc$desc.var$category[[cluster]],
+      rownames = "variable",
+      .name_repair = ~ vctrs::vec_as_names(...,
+        repair = "universal", quiet = TRUE
+      )
+    ) %>%
+      filter(!str_detect(variable, "NA")) %>%
+      filter(str_detect(variable, "hpo")) %>%
+      mutate(variable = str_remove_all(variable, "^.+=|_yes")) %>%
+      arrange(p.value))) %>%
+    mutate(quanti_sup_var = list(tibble::as_tibble(
+      mca_hcpc$desc.var$quanti[[cluster]],
+      rownames = "variable",
+      .name_repair = ~ vctrs::vec_as_names(...,
+        repair = "universal", quiet = TRUE
+      )
+    ) %>%
+      arrange(p.value))) %>%
+    ungroup()
 
   # return result
   return(clusters_tibble)
@@ -303,7 +303,7 @@ gen_network_edges <- function(
   string_id_table = NULL
 ) {
   # Version constants for cache invalidation
-  string_version <- "11.5"  # Must match STRINGdb$new version below
+  string_version <- "11.5" # Must match STRINGdb$new version below
   cache_version <- Sys.getenv("CACHE_VERSION", "1")
 
   # Get all NDD genes for clustering
@@ -457,7 +457,7 @@ gen_network_edges <- function(
       mutate(confidence = combined_score / 1000) %>%
       select(source, target, confidence) %>%
       filter(!is.na(source) & !is.na(target)) %>%
-      distinct()  # Remove any duplicate edges
+      distinct() # Remove any duplicate edges
   } else {
     edges <- tibble(
       source = character(),
@@ -479,8 +479,8 @@ gen_network_edges <- function(
   # Use layout_with_fr (Fruchterman-Reingold) for good cluster separation
   layout_matrix <- igraph::layout_with_fr(
     subgraph,
-    niter = 500,  # Sufficient iterations for convergence
-    weights = igraph::E(subgraph)$combined_score / 1000  # Use edge weights
+    niter = 500, # Sufficient iterations for convergence
+    weights = igraph::E(subgraph)$combined_score / 1000 # Use edge weights
   )
 
   layout_time <- as.numeric(difftime(Sys.time(), layout_start, units = "secs"))

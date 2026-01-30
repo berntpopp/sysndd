@@ -7,9 +7,7 @@
         :class="{ 'filter-active': modelValue !== null }"
       >
         <template #first>
-          <BFormSelectOption :value="null">
-            All FDR values
-          </BFormSelectOption>
+          <BFormSelectOption :value="null"> All FDR values </BFormSelectOption>
         </template>
       </BFormSelect>
 
@@ -64,7 +62,7 @@ function parseCustomValue() {
 
 // Convert presets to dropdown options
 const presetOptions = computed(() => [
-  ...props.presets.map(p => ({ value: p.value, text: p.label })),
+  ...props.presets.map((p) => ({ value: p.value, text: p.label })),
   { value: 'custom' as const, text: 'Custom...' },
 ]);
 
@@ -89,19 +87,23 @@ watch(customValue, (value) => {
 });
 
 // Initialize from modelValue
-watch(() => props.modelValue, (value) => {
-  if (value === null) {
-    selectedPreset.value = null;
-    customValueText.value = '';
-  } else if (props.presets.some(p => p.value === value)) {
-    selectedPreset.value = value;
-  } else {
-    selectedPreset.value = 'custom';
-    customValue.value = value;
-    // Display small values in scientific notation
-    customValueText.value = value < 0.001 ? value.toExponential() : String(value);
-  }
-}, { immediate: true });
+watch(
+  () => props.modelValue,
+  (value) => {
+    if (value === null) {
+      selectedPreset.value = null;
+      customValueText.value = '';
+    } else if (props.presets.some((p) => p.value === value)) {
+      selectedPreset.value = value;
+    } else {
+      selectedPreset.value = 'custom';
+      customValue.value = value;
+      // Display small values in scientific notation
+      customValueText.value = value < 0.001 ? value.toExponential() : String(value);
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>

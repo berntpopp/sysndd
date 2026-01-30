@@ -1,12 +1,7 @@
 <!-- components/accessibility/AriaLiveRegion.vue -->
 <!-- Screen reader status announcement region - WCAG 4.1.3 Status Messages -->
 <template>
-  <div
-    role="status"
-    :aria-live="politeness"
-    aria-atomic="true"
-    class="visually-hidden"
-  >
+  <div role="status" :aria-live="politeness" aria-atomic="true" class="visually-hidden">
     {{ message }}
   </div>
 </template>

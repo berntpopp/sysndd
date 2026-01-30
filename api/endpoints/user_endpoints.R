@@ -121,7 +121,7 @@ function(req, res, filter = "", sort = "+user_id", page_after = 0, page_size = "
       created_at = "Created",
       orcid = "ORCID",
       terms_agreed = "Terms Agreed",
-      field  # default: use field name as label
+      field # default: use field name as label
     )
     list(
       key = field,
@@ -408,7 +408,7 @@ function(
   } else if (
     (req$user_role %in% c("Administrator") || user == user_id_pass_change) &&
       (!(old_pass_match || req$user_role %in% c("Administrator")) ||
-         !new_pass_match_and_valid)
+        !new_pass_match_and_valid)
   ) {
     res$status <- 409
     return(list(error = "Password input problem."))

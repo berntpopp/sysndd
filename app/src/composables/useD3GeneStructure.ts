@@ -25,11 +25,7 @@
 
 import { ref, onBeforeUnmount, readonly, type Ref } from 'vue';
 import * as d3 from 'd3';
-import type {
-  GeneStructureRenderData,
-  ClassifiedExon,
-  Intron,
-} from '@/types/ensembl';
+import type { GeneStructureRenderData, ClassifiedExon, Intron } from '@/types/ensembl';
 import { formatGenomicCoordinate } from '@/types/ensembl';
 
 /**
@@ -209,7 +205,8 @@ export function useD3GeneStructure(options: GeneStructureOptions): D3GeneStructu
 
     // Set container div width for scroll container to work
     if (options.scrollContainer.value) {
-      (options.scrollContainer.value as HTMLElement).style.width = `${svgWidth + MARGIN.left + MARGIN.right}px`;
+      (options.scrollContainer.value as HTMLElement).style.width =
+        `${svgWidth + MARGIN.left + MARGIN.right}px`;
     }
 
     // Clear previous render
@@ -257,16 +254,10 @@ export function useD3GeneStructure(options: GeneStructureOptions): D3GeneStructu
 
     if (data.strand === '+') {
       // Right-pointing arrowhead for forward strand
-      marker
-        .append('path')
-        .attr('d', 'M 0 0 L 6 3 L 0 6 Z')
-        .attr('fill', INTRON_COLOR);
+      marker.append('path').attr('d', 'M 0 0 L 6 3 L 0 6 Z').attr('fill', INTRON_COLOR);
     } else {
       // Left-pointing arrowhead for reverse strand
-      marker
-        .append('path')
-        .attr('d', 'M 6 0 L 0 3 L 6 6 Z')
-        .attr('fill', INTRON_COLOR);
+      marker.append('path').attr('d', 'M 6 0 L 0 3 L 6 6 Z').attr('fill', INTRON_COLOR);
     }
 
     // Render intron lines (back layer)

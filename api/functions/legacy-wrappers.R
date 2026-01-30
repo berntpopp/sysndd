@@ -37,7 +37,7 @@ post_db_entity <- function(entity_data) {
 
   # Convert tibble to list if necessary
 
-if (is.data.frame(entity_data)) {
+  if (is.data.frame(entity_data)) {
     entity_data <- as.list(entity_data[1, ])
   }
 
@@ -63,27 +63,30 @@ if (is.data.frame(entity_data)) {
     ))
   }
 
-  tryCatch({
-    # Call repository function
-    entity_id <- entity_create(entity_data)
+  tryCatch(
+    {
+      # Call repository function
+      entity_id <- entity_create(entity_data)
 
-    log_info("post_db_entity: Created entity {entity_id}")
+      log_info("post_db_entity: Created entity {entity_id}")
 
-    return(list(
-      status = 200,
-      message = "OK. Entry created.",
-      entry = tibble::tibble(entity_id = entity_id),
-      error = NULL
-    ))
-  }, error = function(e) {
-    log_error("post_db_entity: Error creating entity: {e$message}")
-    return(list(
-      status = 500,
-      message = "Error creating entity.",
-      entry = NA,
-      error = e$message
-    ))
-  })
+      return(list(
+        status = 200,
+        message = "OK. Entry created.",
+        entry = tibble::tibble(entity_id = entity_id),
+        error = NULL
+      ))
+    },
+    error = function(e) {
+      log_error("post_db_entity: Error creating entity: {e$message}")
+      return(list(
+        status = 500,
+        message = "Error creating entity.",
+        entry = NA,
+        error = e$message
+      ))
+    }
+  )
 }
 
 #' Deactivate entity (legacy wrapper)
@@ -97,23 +100,26 @@ if (is.data.frame(entity_data)) {
 put_db_entity_deactivation <- function(entity_id, replacement_id = NULL) {
   log_debug("put_db_entity_deactivation: Deactivating entity {entity_id}")
 
-  tryCatch({
-    entity_deactivate(entity_id, replacement_id)
+  tryCatch(
+    {
+      entity_deactivate(entity_id, replacement_id)
 
-    log_info("put_db_entity_deactivation: Deactivated entity {entity_id}")
+      log_info("put_db_entity_deactivation: Deactivated entity {entity_id}")
 
-    return(list(
-      status = 200,
-      message = "OK. Entity deactivated."
-    ))
-  }, error = function(e) {
-    log_error("put_db_entity_deactivation: Error: {e$message}")
-    return(list(
-      status = 500,
-      message = "Error deactivating entity.",
-      error = e$message
-    ))
-  })
+      return(list(
+        status = 200,
+        message = "OK. Entity deactivated."
+      ))
+    },
+    error = function(e) {
+      log_error("put_db_entity_deactivation: Error: {e$message}")
+      return(list(
+        status = 500,
+        message = "Error deactivating entity.",
+        error = e$message
+      ))
+    }
+  )
 }
 
 #' Create or update review (legacy wrapper)
@@ -133,67 +139,76 @@ put_post_db_review <- function(method, review_data, re_review = FALSE) {
     review_data <- as.list(review_data[1, ])
   }
 
-  tryCatch({
-    if (toupper(method) == "POST") {
-      # Create new review
-      review_id <- review_create(review_data)
+  tryCatch(
+    {
+      if (toupper(method) == "POST") {
+        # Create new review
+        review_id <- review_create(review_data)
 
-      log_info("put_post_db_review: Created review {review_id}")
+        log_info("put_post_db_review: Created review {review_id}")
 
-      # Update re-review status if applicable
-      if (re_review && !is.null(review_data$entity_id)) {
-        tryCatch({
-          review_update_re_review_status(review_data$entity_id, review_id)
-          log_debug("put_post_db_review: Updated re_review_entity_connect for entity {review_data$entity_id}")
-        }, error = function(e) {
-          log_warn("put_post_db_review: Failed to update re_review status: {e$message}")
-        })
-      }
+        # Update re-review status if applicable
+        if (re_review && !is.null(review_data$entity_id)) {
+          tryCatch(
+            {
+              review_update_re_review_status(review_data$entity_id, review_id)
+              log_debug("put_post_db_review: Updated re_review_entity_connect for entity {review_data$entity_id}")
+            },
+            error = function(e) {
+              log_warn("put_post_db_review: Failed to update re_review status: {e$message}")
+            }
+          )
+        }
 
-      return(list(
-        status = 200,
-        message = "OK. Review created.",
-        entry = tibble::tibble(review_id = review_id)
-      ))
-    } else {
-      # Update existing review
-      if (is.null(review_data$review_id)) {
         return(list(
-          status = 405,
-          message = "review_id is required for PUT operation",
-          entry = NA
+          status = 200,
+          message = "OK. Review created.",
+          entry = tibble::tibble(review_id = review_id)
+        ))
+      } else {
+        # Update existing review
+        if (is.null(review_data$review_id)) {
+          return(list(
+            status = 405,
+            message = "review_id is required for PUT operation",
+            entry = NA
+          ))
+        }
+
+        review_update(review_data$review_id, review_data)
+
+        log_info("put_post_db_review: Updated review {review_data$review_id}")
+
+        # Update re-review status if applicable
+        if (re_review && !is.null(review_data$entity_id)) {
+          tryCatch(
+            {
+              review_update_re_review_status(review_data$entity_id, review_data$review_id)
+              log_debug("put_post_db_review: Updated re_review_entity_connect for entity {review_data$entity_id}")
+            },
+            error = function(e) {
+              log_warn("put_post_db_review: Failed to update re_review status: {e$message}")
+            }
+          )
+        }
+
+        return(list(
+          status = 200,
+          message = "OK. Review updated.",
+          entry = tibble::tibble(review_id = review_data$review_id)
         ))
       }
-
-      review_update(review_data$review_id, review_data)
-
-      log_info("put_post_db_review: Updated review {review_data$review_id}")
-
-      # Update re-review status if applicable
-      if (re_review && !is.null(review_data$entity_id)) {
-        tryCatch({
-          review_update_re_review_status(review_data$entity_id, review_data$review_id)
-          log_debug("put_post_db_review: Updated re_review_entity_connect for entity {review_data$entity_id}")
-        }, error = function(e) {
-          log_warn("put_post_db_review: Failed to update re_review status: {e$message}")
-        })
-      }
-
+    },
+    error = function(e) {
+      log_error("put_post_db_review: Error: {e$message}")
       return(list(
-        status = 200,
-        message = "OK. Review updated.",
-        entry = tibble::tibble(review_id = review_data$review_id)
+        status = 500,
+        message = "Error processing review.",
+        entry = NA,
+        error = e$message
       ))
     }
-  }, error = function(e) {
-    log_error("put_post_db_review: Error: {e$message}")
-    return(list(
-      status = 500,
-      message = "Error processing review.",
-      entry = NA,
-      error = e$message
-    ))
-  })
+  )
 }
 
 #' Connect publications to review (legacy wrapper)
@@ -209,27 +224,30 @@ put_post_db_review <- function(method, review_data, re_review = FALSE) {
 put_post_db_pub_con <- function(method, publications, entity_id, review_id) {
   log_debug("put_post_db_pub_con: {method} publications for review {review_id}")
 
-  tryCatch({
-    if (toupper(method) == "PUT") {
-      publication_replace_for_review(review_id, entity_id, publications)
-    } else {
-      publication_connect_to_review(review_id, entity_id, publications)
+  tryCatch(
+    {
+      if (toupper(method) == "PUT") {
+        publication_replace_for_review(review_id, entity_id, publications)
+      } else {
+        publication_connect_to_review(review_id, entity_id, publications)
+      }
+
+      log_info("put_post_db_pub_con: Connected publications to review {review_id}")
+
+      return(list(
+        status = 200,
+        message = "OK. Publications connected."
+      ))
+    },
+    error = function(e) {
+      log_error("put_post_db_pub_con: Error: {e$message}")
+      return(list(
+        status = 500,
+        message = "Error connecting publications.",
+        error = e$message
+      ))
     }
-
-    log_info("put_post_db_pub_con: Connected publications to review {review_id}")
-
-    return(list(
-      status = 200,
-      message = "OK. Publications connected."
-    ))
-  }, error = function(e) {
-    log_error("put_post_db_pub_con: Error: {e$message}")
-    return(list(
-      status = 500,
-      message = "Error connecting publications.",
-      error = e$message
-    ))
-  })
+  )
 }
 
 #' Connect phenotypes to review (legacy wrapper)
@@ -271,27 +289,30 @@ put_post_db_phen_con <- function(method, phenotypes, entity_id, review_id) {
     ))
   }
 
-  tryCatch({
-    if (toupper(method) == "PUT") {
-      phenotype_replace_for_review(review_id, entity_id, phenotypes_transformed)
-    } else {
-      phenotype_connect_to_review(review_id, entity_id, phenotypes_transformed)
+  tryCatch(
+    {
+      if (toupper(method) == "PUT") {
+        phenotype_replace_for_review(review_id, entity_id, phenotypes_transformed)
+      } else {
+        phenotype_connect_to_review(review_id, entity_id, phenotypes_transformed)
+      }
+
+      log_info("put_post_db_phen_con: Connected phenotypes to review {review_id}")
+
+      return(list(
+        status = 200,
+        message = "OK. Phenotypes connected."
+      ))
+    },
+    error = function(e) {
+      log_error("put_post_db_phen_con: Error: {e$message}")
+      return(list(
+        status = 500,
+        message = "Error connecting phenotypes.",
+        error = e$message
+      ))
     }
-
-    log_info("put_post_db_phen_con: Connected phenotypes to review {review_id}")
-
-    return(list(
-      status = 200,
-      message = "OK. Phenotypes connected."
-    ))
-  }, error = function(e) {
-    log_error("put_post_db_phen_con: Error: {e$message}")
-    return(list(
-      status = 500,
-      message = "Error connecting phenotypes.",
-      error = e$message
-    ))
-  })
+  )
 }
 
 #' Connect variation ontology to review (legacy wrapper)
@@ -332,27 +353,30 @@ put_post_db_var_ont_con <- function(method, variation_ontology, entity_id, revie
     ))
   }
 
-  tryCatch({
-    if (toupper(method) == "PUT") {
-      variation_ontology_replace_for_review(review_id, entity_id, vario_transformed)
-    } else {
-      variation_ontology_connect_to_review(review_id, entity_id, vario_transformed)
+  tryCatch(
+    {
+      if (toupper(method) == "PUT") {
+        variation_ontology_replace_for_review(review_id, entity_id, vario_transformed)
+      } else {
+        variation_ontology_connect_to_review(review_id, entity_id, vario_transformed)
+      }
+
+      log_info("put_post_db_var_ont_con: Connected variation ontology to review {review_id}")
+
+      return(list(
+        status = 200,
+        message = "OK. Variation ontology connected."
+      ))
+    },
+    error = function(e) {
+      log_error("put_post_db_var_ont_con: Error: {e$message}")
+      return(list(
+        status = 500,
+        message = "Error connecting variation ontology.",
+        error = e$message
+      ))
     }
-
-    log_info("put_post_db_var_ont_con: Connected variation ontology to review {review_id}")
-
-    return(list(
-      status = 200,
-      message = "OK. Variation ontology connected."
-    ))
-  }, error = function(e) {
-    log_error("put_post_db_var_ont_con: Error: {e$message}")
-    return(list(
-      status = 500,
-      message = "Error connecting variation ontology.",
-      error = e$message
-    ))
-  })
+  )
 }
 
 #' Create or update status (legacy wrapper)
@@ -372,67 +396,76 @@ put_post_db_status <- function(method, status_data, re_review = FALSE) {
     status_data <- as.list(status_data[1, ])
   }
 
-  tryCatch({
-    if (toupper(method) == "POST") {
-      # Create new status
-      status_id <- status_create(status_data)
+  tryCatch(
+    {
+      if (toupper(method) == "POST") {
+        # Create new status
+        status_id <- status_create(status_data)
 
-      log_info("put_post_db_status: Created status {status_id}")
+        log_info("put_post_db_status: Created status {status_id}")
 
-      # Update re-review status if applicable
-      if (re_review && !is.null(status_data$entity_id)) {
-        tryCatch({
-          status_update_re_review_status(status_data$entity_id, status_id)
-          log_debug("put_post_db_status: Updated re_review_entity_connect for entity {status_data$entity_id}")
-        }, error = function(e) {
-          log_warn("put_post_db_status: Failed to update re_review status: {e$message}")
-        })
-      }
+        # Update re-review status if applicable
+        if (re_review && !is.null(status_data$entity_id)) {
+          tryCatch(
+            {
+              status_update_re_review_status(status_data$entity_id, status_id)
+              log_debug("put_post_db_status: Updated re_review_entity_connect for entity {status_data$entity_id}")
+            },
+            error = function(e) {
+              log_warn("put_post_db_status: Failed to update re_review status: {e$message}")
+            }
+          )
+        }
 
-      return(list(
-        status = 200,
-        message = "OK. Status created.",
-        entry = status_id
-      ))
-    } else {
-      # Update existing status
-      if (is.null(status_data$status_id)) {
         return(list(
-          status = 405,
-          message = "status_id is required for PUT operation",
-          entry = NA
+          status = 200,
+          message = "OK. Status created.",
+          entry = status_id
+        ))
+      } else {
+        # Update existing status
+        if (is.null(status_data$status_id)) {
+          return(list(
+            status = 405,
+            message = "status_id is required for PUT operation",
+            entry = NA
+          ))
+        }
+
+        status_update(status_data$status_id, status_data)
+
+        log_info("put_post_db_status: Updated status {status_data$status_id}")
+
+        # Update re-review status if applicable
+        if (re_review && !is.null(status_data$entity_id)) {
+          tryCatch(
+            {
+              status_update_re_review_status(status_data$entity_id, status_data$status_id)
+              log_debug("put_post_db_status: Updated re_review_entity_connect for entity {status_data$entity_id}")
+            },
+            error = function(e) {
+              log_warn("put_post_db_status: Failed to update re_review status: {e$message}")
+            }
+          )
+        }
+
+        return(list(
+          status = 200,
+          message = "OK. Status updated.",
+          entry = status_data$status_id
         ))
       }
-
-      status_update(status_data$status_id, status_data)
-
-      log_info("put_post_db_status: Updated status {status_data$status_id}")
-
-      # Update re-review status if applicable
-      if (re_review && !is.null(status_data$entity_id)) {
-        tryCatch({
-          status_update_re_review_status(status_data$entity_id, status_data$status_id)
-          log_debug("put_post_db_status: Updated re_review_entity_connect for entity {status_data$entity_id}")
-        }, error = function(e) {
-          log_warn("put_post_db_status: Failed to update re_review status: {e$message}")
-        })
-      }
-
+    },
+    error = function(e) {
+      log_error("put_post_db_status: Error: {e$message}")
       return(list(
-        status = 200,
-        message = "OK. Status updated.",
-        entry = status_data$status_id
+        status = 500,
+        message = "Error processing status.",
+        entry = NA,
+        error = e$message
       ))
     }
-  }, error = function(e) {
-    log_error("put_post_db_status: Error: {e$message}")
-    return(list(
-      status = 500,
-      message = "Error processing status.",
-      entry = NA,
-      error = e$message
-    ))
-  })
+  )
 }
 
 #' Approve review (legacy wrapper)
@@ -447,23 +480,26 @@ put_post_db_status <- function(method, status_data, re_review = FALSE) {
 put_db_review_approve <- function(review_id, approving_user_id, approved = TRUE) {
   log_debug("put_db_review_approve: {ifelse(approved, 'Approving', 'Rejecting')} review {review_id}")
 
-  tryCatch({
-    review_approve(review_id, approving_user_id, approved)
+  tryCatch(
+    {
+      review_approve(review_id, approving_user_id, approved)
 
-    log_info("put_db_review_approve: Review {review_id} {ifelse(approved, 'approved', 'rejected')}")
+      log_info("put_db_review_approve: Review {review_id} {ifelse(approved, 'approved', 'rejected')}")
 
-    return(list(
-      status = 200,
-      message = paste0("OK. Review ", ifelse(approved, "approved", "rejected"), ".")
-    ))
-  }, error = function(e) {
-    log_error("put_db_review_approve: Error: {e$message}")
-    return(list(
-      status = 500,
-      message = "Error approving review.",
-      error = e$message
-    ))
-  })
+      return(list(
+        status = 200,
+        message = paste0("OK. Review ", ifelse(approved, "approved", "rejected"), ".")
+      ))
+    },
+    error = function(e) {
+      log_error("put_db_review_approve: Error: {e$message}")
+      return(list(
+        status = 500,
+        message = "Error approving review.",
+        error = e$message
+      ))
+    }
+  )
 }
 
 #' Approve status (legacy wrapper)
@@ -483,23 +519,26 @@ put_db_status_approve <- function(status_id, approving_user_id, approved = TRUE)
 
   log_debug("put_db_status_approve: {ifelse(approved, 'Approving', 'Rejecting')} status {status_id}")
 
-  tryCatch({
-    status_approve(status_id, approving_user_id, approved)
+  tryCatch(
+    {
+      status_approve(status_id, approving_user_id, approved)
 
-    log_info("put_db_status_approve: Status {status_id} {ifelse(approved, 'approved', 'rejected')}")
+      log_info("put_db_status_approve: Status {status_id} {ifelse(approved, 'approved', 'rejected')}")
 
-    return(list(
-      status = 200,
-      message = paste0("OK. Status ", ifelse(approved, "approved", "rejected"), ".")
-    ))
-  }, error = function(e) {
-    log_error("put_db_status_approve: Error: {e$message}")
-    return(list(
-      status = 500,
-      message = "Error approving status.",
-      error = e$message
-    ))
-  })
+      return(list(
+        status = 200,
+        message = paste0("OK. Status ", ifelse(approved, "approved", "rejected"), ".")
+      ))
+    },
+    error = function(e) {
+      log_error("put_db_status_approve: Error: {e$message}")
+      return(list(
+        status = 500,
+        message = "Error approving status.",
+        error = e$message
+      ))
+    }
+  )
 }
 
 #' Create new publications (legacy wrapper)
@@ -515,57 +554,63 @@ put_db_status_approve <- function(status_id, approving_user_id, approved = TRUE)
 new_publication <- function(publications) {
   log_debug("new_publication: Processing {nrow(publications)} publications")
 
-  tryCatch({
-    # Get existing publications from database
-    existing_publications <- pool %>%
-      tbl("publication") %>%
-      select(publication_id) %>%
-      collect()
+  tryCatch(
+    {
+      # Get existing publications from database
+      existing_publications <- pool %>%
+        tbl("publication") %>%
+        select(publication_id) %>%
+        collect()
 
-    # Find new publications that don't exist
-    new_pubs <- publications %>%
-      filter(!publication_id %in% existing_publications$publication_id)
+      # Find new publications that don't exist
+      new_pubs <- publications %>%
+        filter(!publication_id %in% existing_publications$publication_id)
 
-    if (nrow(new_pubs) == 0) {
-      log_debug("new_publication: All publications already exist")
+      if (nrow(new_pubs) == 0) {
+        log_debug("new_publication: All publications already exist")
+        return(list(
+          status = 200,
+          message = "OK. All publications already exist."
+        ))
+      }
+
+      # Insert new publications one by one
+      for (i in seq_len(nrow(new_pubs))) {
+        pmid <- new_pubs$publication_id[i]
+
+        # Try to fetch metadata from PubMed (optional - basic insert if fails)
+        tryCatch(
+          {
+            # Basic insert with just PMID
+            db_execute_statement(
+              "INSERT INTO publication (publication_id) VALUES (?)",
+              list(pmid)
+            )
+            log_debug("new_publication: Inserted publication {pmid}")
+          },
+          error = function(e) {
+            # Ignore duplicate key errors
+            if (!grepl("Duplicate entry", e$message, ignore.case = TRUE)) {
+              log_warn("new_publication: Failed to insert {pmid}: {e$message}")
+            }
+          }
+        )
+      }
+
+      log_info("new_publication: Processed {nrow(new_pubs)} new publications")
+
       return(list(
         status = 200,
-        message = "OK. All publications already exist."
+        message = paste0("OK. Processed ", nrow(new_pubs), " publications.")
+      ))
+    },
+    error = function(e) {
+      log_error("new_publication: Error: {e$message}")
+      return(list(
+        status = 500,
+        message = "Error creating publications.",
+        error = e$message
       ))
     }
-
-    # Insert new publications one by one
-    for (i in seq_len(nrow(new_pubs))) {
-      pmid <- new_pubs$publication_id[i]
-
-      # Try to fetch metadata from PubMed (optional - basic insert if fails)
-      tryCatch({
-        # Basic insert with just PMID
-        db_execute_statement(
-          "INSERT INTO publication (publication_id) VALUES (?)",
-          list(pmid)
-        )
-        log_debug("new_publication: Inserted publication {pmid}")
-      }, error = function(e) {
-        # Ignore duplicate key errors
-        if (!grepl("Duplicate entry", e$message, ignore.case = TRUE)) {
-          log_warn("new_publication: Failed to insert {pmid}: {e$message}")
-        }
-      })
-    }
-
-    log_info("new_publication: Processed {nrow(new_pubs)} new publications")
-
-    return(list(
-      status = 200,
-      message = paste0("OK. Processed ", nrow(new_pubs), " publications.")
-    ))
-  }, error = function(e) {
-    log_error("new_publication: Error: {e$message}")
-    return(list(
-      status = 500,
-      message = "Error creating publications.",
-      error = e$message
-    ))
-  })
+  )
 }

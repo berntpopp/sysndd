@@ -21,11 +21,7 @@
         </BBadge>
       </BButton>
 
-      <BCollapse
-        :id="`collapse-${node.id}`"
-        :lazy="true"
-        class="ms-3"
-      >
+      <BCollapse :id="`collapse-${node.id}`" :lazy="true" class="ms-3">
         <TreeNode
           v-for="child in node.children"
           :key="child.id"
@@ -102,10 +98,7 @@ export default defineComponent({
       if (!node.children || node.children.length === 0) {
         return this.selected.includes(node.id) ? 1 : 0;
       }
-      return node.children.reduce(
-        (sum, child) => sum + this.countSelectedDescendants(child),
-        0
-      );
+      return node.children.reduce((sum, child) => sum + this.countSelectedDescendants(child), 0);
     },
   },
 });

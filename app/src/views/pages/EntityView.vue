@@ -1,19 +1,9 @@
 <template>
   <div class="container-fluid bg-gradient">
-    <BSpinner
-      v-if="loading"
-      label="Loading..."
-      class="float-center m-5"
-    />
-    <BContainer
-      v-else
-      fluid
-    >
+    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
+    <BContainer v-else fluid>
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="12"
-        >
+        <BCol col md="12">
           <!-- Entity overview card -->
           <BCard
             header-tag="header"
@@ -54,7 +44,9 @@
                   <DiseaseBadge
                     :name="data.item.disease_ontology_name"
                     :ontology-id="data.item.disease_ontology_id_version"
-                    :link-to="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"
+                    :link-to="
+                      '/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')
+                    "
                     :max-length="0"
                   />
 
@@ -64,16 +56,12 @@
                     variant="outline-primary"
                     :href="
                       'https://www.omim.org/entry/' +
-                        data.item.disease_ontology_id_version
-                          .replace('OMIM:', '')
-                          .replace(/_.+/g, '')
+                      data.item.disease_ontology_id_version.replace('OMIM:', '').replace(/_.+/g, '')
                     "
                     target="_blank"
                   >
                     <i class="bi bi-box-arrow-up-right" />
-                    {{
-                      data.item.disease_ontology_id_version.replace(/_.+/g, "")
-                    }}
+                    {{ data.item.disease_ontology_id_version.replace(/_.+/g, '') }}
                   </BButton>
 
                   <BButton
@@ -82,7 +70,7 @@
                     variant="outline-primary"
                     :href="
                       'http://purl.obolibrary.org/obo/' +
-                        data.item.disease_ontology_id_version.replace(':', '_')
+                      data.item.disease_ontology_id_version.replace(':', '_')
                     "
                     target="_blank"
                   >
@@ -96,10 +84,7 @@
                 <template v-if="data.item.MONDO">
                   <template v-if="data.item.MONDO.includes(';')">
                     <!-- Multiple MONDO mappings -->
-                    <span
-                      v-for="(mondoId, index) in data.item.MONDO.split(';')"
-                      :key="mondoId"
-                    >
+                    <span v-for="(mondoId, index) in data.item.MONDO.split(';')" :key="mondoId">
                       <a
                         :href="`https://monarchinitiative.org/disease/${mondoId.trim()}`"
                         target="_blank"
@@ -143,12 +128,7 @@
               </template>
             </BTable>
 
-            <BTable
-              :items="status"
-              :fields="status_fields"
-              stacked
-              small
-            >
+            <BTable :items="status" :fields="status_fields" stacked small>
               <template #cell(category)="data">
                 <span v-b-tooltip.hover.left :title="data.item.category">
                   <CategoryIcon :category="data.item.category" :show-title="false" />
@@ -156,17 +136,9 @@
               </template>
             </BTable>
 
-            <BTable
-              :items="review"
-              :fields="review_fields"
-              stacked
-              small
-            >
+            <BTable :items="review" :fields="review_fields" stacked small>
               <template #cell(synopsis)="data">
-                <BCard
-                  border-variant="dark"
-                  align="left"
-                >
+                <BCard border-variant="dark" align="left">
                   <BCardText>
                     {{ data.item.synopsis }}
                   </BCardText>
@@ -174,17 +146,10 @@
               </template>
             </BTable>
 
-            <BTable
-              :items="publications_table"
-              stacked
-              small
-            >
+            <BTable :items="publications_table" stacked small>
               <template #cell(publications)>
                 <BRow>
-                  <BRow
-                    v-for="publication in publications"
-                    :key="publication.publication_id"
-                  >
+                  <BRow v-for="publication in publications" :key="publication.publication_id">
                     <BCol>
                       <BButton
                         v-b-tooltip.hover.bottom
@@ -192,7 +157,7 @@
                         :variant="publication_style[publication.publication_type]"
                         :href="
                           'https://pubmed.ncbi.nlm.nih.gov/' +
-                            publication.publication_id.replace('PMID:', '')
+                          publication.publication_id.replace('PMID:', '')
                         "
                         target="_blank"
                         :title="publication_hover_text[publication.publication_type]"
@@ -206,17 +171,10 @@
               </template>
             </BTable>
 
-            <BTable
-              :items="genereviews_table"
-              stacked
-              small
-            >
+            <BTable :items="genereviews_table" stacked small>
               <template #cell(genereviews)>
                 <BRow>
-                  <BRow
-                    v-for="publication in genereviews"
-                    :key="publication.publication_id"
-                  >
+                  <BRow v-for="publication in genereviews" :key="publication.publication_id">
                     <BCol>
                       <BButton
                         v-b-tooltip.hover.bottom
@@ -224,7 +182,7 @@
                         :variant="publication_style[publication.publication_type]"
                         :href="
                           'https://pubmed.ncbi.nlm.nih.gov/' +
-                            publication.publication_id.replace('PMID:', '')
+                          publication.publication_id.replace('PMID:', '')
                         "
                         target="_blank"
                         :title="publication_hover_text[publication.publication_type]"
@@ -238,28 +196,20 @@
               </template>
             </BTable>
 
-            <BTable
-              :items="phenotypes_table"
-              stacked
-              small
-            >
+            <BTable :items="phenotypes_table" stacked small>
               <template #cell(phenotypes)>
                 <BRow>
-                  <BRow
-                    v-for="phenotype in phenotypes"
-                    :key="phenotype.phenotype_id"
-                  >
+                  <BRow v-for="phenotype in phenotypes" :key="phenotype.phenotype_id">
                     <BCol>
                       <BButton
                         v-b-tooltip.hover.bottom
                         class="btn-xs mx-2"
                         :variant="modifier_style[phenotype.modifier_id]"
-                        :href="
-                          'https://hpo.jax.org/app/browse/term/' +
-                            phenotype.phenotype_id
-                        "
+                        :href="'https://hpo.jax.org/app/browse/term/' + phenotype.phenotype_id"
                         target="_blank"
-                        :title="modifier_text[phenotype.modifier_id] + '; ' + phenotype.phenotype_id"
+                        :title="
+                          modifier_text[phenotype.modifier_id] + '; ' + phenotype.phenotype_id
+                        "
                       >
                         <i class="bi bi-box-arrow-up-right" />
                         {{ phenotype.HPO_term }}
@@ -270,17 +220,10 @@
               </template>
             </BTable>
 
-            <BTable
-              :items="variation_table"
-              stacked
-              small
-            >
+            <BTable :items="variation_table" stacked small>
               <template #cell(variation)>
                 <BRow>
-                  <BRow
-                    v-for="variant in variation"
-                    :key="variant.vario_id"
-                  >
+                  <BRow v-for="variant in variation" :key="variant.vario_id">
                     <BCol>
                       <BButton
                         v-b-tooltip.hover.bottom
@@ -288,7 +231,8 @@
                         :variant="modifier_style[variant.modifier_id]"
                         :href="
                           'http://aber-owl.net/ontology/VARIO/#/Browse/%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2F' +
-                            variant.vario_id.replace(':', '_') + '%3E'
+                          variant.vario_id.replace(':', '_') +
+                          '%3E'
                         "
                         target="_blank"
                         :title="modifier_text[variant.modifier_id] + '; ' + variant.vario_id"
@@ -390,13 +334,9 @@ export default {
         },
       ],
       status: [],
-      status_fields: [
-        { key: 'category', label: 'Association Category', class: 'text-start' },
-      ],
+      status_fields: [{ key: 'category', label: 'Association Category', class: 'text-start' }],
       review: [],
-      review_fields: [
-        { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-start' },
-      ],
+      review_fields: [{ key: 'synopsis', label: 'Clinical Synopsis', class: 'text-start' }],
       publications: [],
       publications_table: [{ publications: '' }],
       genereviews: [],
@@ -415,8 +355,7 @@ export default {
     async loadEntity() {
       this.loading = true;
 
-      const apiEntityURL = `${import.meta.env.VITE_API_URL
-      }/api/entity?filter=equals(entity_id,${
+      const apiEntityURL = `${import.meta.env.VITE_API_URL}/api/entity?filter=equals(entity_id,${
         this.$route.params.entity_id
       })`;
 
@@ -434,28 +373,23 @@ export default {
       }
     },
     async loadEntityInfo() {
-      const apiStatusURL = `${import.meta.env.VITE_API_URL
-      }/api/entity/${
+      const apiStatusURL = `${import.meta.env.VITE_API_URL}/api/entity/${
         this.$route.params.entity_id
       }/status`;
 
-      const apiReviewURL = `${import.meta.env.VITE_API_URL
-      }/api/entity/${
+      const apiReviewURL = `${import.meta.env.VITE_API_URL}/api/entity/${
         this.$route.params.entity_id
       }/review`;
 
-      const apiPublicationsURL = `${import.meta.env.VITE_API_URL
-      }/api/entity/${
+      const apiPublicationsURL = `${import.meta.env.VITE_API_URL}/api/entity/${
         this.$route.params.entity_id
       }/publications`;
 
-      const apiPhenotypesURL = `${import.meta.env.VITE_API_URL
-      }/api/entity/${
+      const apiPhenotypesURL = `${import.meta.env.VITE_API_URL}/api/entity/${
         this.$route.params.entity_id
       }/phenotypes`;
 
-      const apiVariationURL = `${import.meta.env.VITE_API_URL
-      }/api/entity/${
+      const apiVariationURL = `${import.meta.env.VITE_API_URL}/api/entity/${
         this.$route.params.entity_id
       }/variation`;
 
@@ -468,8 +402,12 @@ export default {
 
         this.status = response_status.data;
         this.review = response_review.data;
-        this.publications = response_publications.data.filter((publication) => publication.publication_type === 'additional_references');
-        this.genereviews = response_publications.data.filter((publication) => publication.publication_type === 'gene_review');
+        this.publications = response_publications.data.filter(
+          (publication) => publication.publication_type === 'additional_references'
+        );
+        this.genereviews = response_publications.data.filter(
+          (publication) => publication.publication_type === 'gene_review'
+        );
         this.phenotypes = response_phenotypes.data;
         this.variation = response_variation.data;
       } catch (e) {

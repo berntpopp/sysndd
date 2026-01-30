@@ -3,11 +3,7 @@
   <div>
     <h4 class="mb-1 text-start font-weight-bold">
       {{ label }}
-      <BBadge
-        v-b-tooltip.hover.bottom
-        variant="primary"
-        :title="toolTipTitle"
-      >
+      <BBadge v-b-tooltip.hover.bottom variant="primary" :title="toolTipTitle">
         {{ subtitle }}
       </BBadge>
     </h4>

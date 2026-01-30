@@ -2,12 +2,7 @@
 <template>
   <BContainer fluid>
     <!-- Main card -->
-    <BCard
-      header-tag="header"
-      body-class="p-0"
-      header-class="p-1"
-      border-variant="dark"
-    >
+    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
           <h6 class="mb-1 text-start font-weight-bold">
@@ -16,26 +11,16 @@
               v-b-tooltip.hover.leftbottom
               title="This section displays gene clusters that are enriched based on functional annotations. It allows users to explore and analyze the clusters."
             >
-              gene clusters
-            </mark>.
-            <BBadge
-              id="popover-badge-help-geneclusters"
-              pill
-              href="#"
-              variant="info"
-            >
+              gene clusters </mark
+            >.
+            <BBadge id="popover-badge-help-geneclusters" pill href="#" variant="info">
               <i class="bi bi-question-circle-fill" />
             </BBadge>
-            <BPopover
-              target="popover-badge-help-geneclusters"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Gene Clusters Information
-              </template>
-              This section provides insights into gene clusters that are enriched based on their functional annotations.
-              Users can explore various clusters/subclusters, and analyze the associated genes and their properties.
+            <BPopover target="popover-badge-help-geneclusters" variant="info" triggers="focus">
+              <template #title> Gene Clusters Information </template>
+              This section provides insights into gene clusters that are enriched based on their
+              functional annotations. Users can explore various clusters/subclusters, and analyze
+              the associated genes and their properties.
             </BPopover>
           </h6>
           <!-- Network export buttons now in NetworkVisualization component -->
@@ -43,16 +28,9 @@
       </template>
 
       <!-- Resizable split panes: LEFT = Graph, RIGHT = Table -->
-      <Splitpanes
-        class="default-theme"
-        @resized="handlePaneResized"
-      >
+      <Splitpanes class="default-theme" @resized="handlePaneResized">
         <!-- LEFT PANE (Network Visualization) -->
-        <Pane
-          :size="leftPaneSize"
-          :min-size="25"
-          :max-size="75"
-        >
+        <Pane :size="leftPaneSize" :min-size="25" :max-size="75">
           <!-- NetworkVisualization component replaces D3.js bubble chart -->
           <div class="pane-content">
             <!-- Gene search input for network highlighting with autocomplete -->
@@ -76,10 +54,7 @@
         </Pane>
 
         <!-- RIGHT PANE (Table) -->
-        <Pane
-          :size="100 - leftPaneSize"
-          :min-size="25"
-        >
+        <Pane :size="100 - leftPaneSize" :min-size="25">
           <div class="pane-content">
             <BCard
               header-tag="header"
@@ -88,269 +63,241 @@
               header-class="p-1"
               border-variant="dark"
             >
-            <!-- TABLE HEADER (Table type, Search input, etc.) -->
-            <template #header>
-              <div class="mb-0 font-weight-bold">
-                <BRow>
-                  <BCol
-                    sm="4"
-                    class="mb-1"
-                  >
-                    <!-- Table type selector (term_enrichment vs. identifiers) -->
-                    <BInputGroup
-                      prepend="Table type"
-                      size="sm"
-                    >
-                      <BFormSelect
-                        v-model="tableType"
-                        :options="tableOptions"
-                        size="sm"
-                      />
-                    </BInputGroup>
-                  </BCol>
+              <!-- TABLE HEADER (Table type, Search input, etc.) -->
+              <template #header>
+                <div class="mb-0 font-weight-bold">
+                  <BRow>
+                    <BCol sm="4" class="mb-1">
+                      <!-- Table type selector (term_enrichment vs. identifiers) -->
+                      <BInputGroup prepend="Table type" size="sm">
+                        <BFormSelect v-model="tableType" :options="tableOptions" size="sm" />
+                      </BInputGroup>
+                    </BCol>
 
-                  <BCol
-                    sm="4"
-                    class="mb-1 text-center"
-                  >
-                    <!-- Cluster indicator showing which data is displayed -->
-                    <BBadge
-                      v-b-tooltip.hover
-                      :variant="showAllClustersInTable ? 'secondary' : 'primary'"
-                      class="py-1 px-2"
-                      title="Select clusters in the network to filter table data"
-                    >
-                      <i class="bi bi-diagram-3 me-1" />
-                      {{ clusterDisplayLabel }}
-                    </BBadge>
-                  </BCol>
-
-                  <BCol
-                    sm="4"
-                    class="mb-1 text-end"
-                  >
-                    <div class="d-flex align-items-center justify-content-end gap-2">
-                      <!-- Gene search synced with network (uses same geneSearchPattern) -->
-                      <TermSearch
-                        v-model="geneSearchPattern"
-                        :match-count="tableType === 'identifiers' ? searchMatchCount : null"
-                        :suggestions="allGeneSymbols"
-                        placeholder="Search genes..."
-                      />
-                      <!-- Excel download button -->
-                      <BButton
-                        v-b-tooltip.hover.bottom
-                        size="sm"
-                        variant="outline-secondary"
-                        title="Download table data as Excel file"
-                        :disabled="isExporting"
-                        @click="downloadExcel"
+                    <BCol sm="4" class="mb-1 text-center">
+                      <!-- Cluster indicator showing which data is displayed -->
+                      <BBadge
+                        v-b-tooltip.hover
+                        :variant="showAllClustersInTable ? 'secondary' : 'primary'"
+                        class="py-1 px-2"
+                        title="Select clusters in the network to filter table data"
                       >
-                        <i class="bi bi-table me-1" />
-                        <i
-                          v-if="!isExporting"
-                          class="bi bi-download"
+                        <i class="bi bi-diagram-3 me-1" />
+                        {{ clusterDisplayLabel }}
+                      </BBadge>
+                    </BCol>
+
+                    <BCol sm="4" class="mb-1 text-end">
+                      <div class="d-flex align-items-center justify-content-end gap-2">
+                        <!-- Gene search synced with network (uses same geneSearchPattern) -->
+                        <TermSearch
+                          v-model="geneSearchPattern"
+                          :match-count="tableType === 'identifiers' ? searchMatchCount : null"
+                          :suggestions="allGeneSymbols"
+                          placeholder="Search genes..."
                         />
-                        <BSpinner
-                          v-else
-                          small
-                        />
-                        .xlsx
+                        <!-- Excel download button -->
+                        <BButton
+                          v-b-tooltip.hover.bottom
+                          size="sm"
+                          variant="outline-secondary"
+                          title="Download table data as Excel file"
+                          :disabled="isExporting"
+                          @click="downloadExcel"
+                        >
+                          <i class="bi bi-table me-1" />
+                          <i v-if="!isExporting" class="bi bi-download" />
+                          <BSpinner v-else small />
+                          .xlsx
+                        </BButton>
+                      </div>
+                    </BCol>
+                  </BRow>
+                </div>
+              </template>
+
+              <BCardText class="text-start">
+                <!-- GenericTable for main table content -->
+                <GenericTable
+                  :items="displayedItems"
+                  :fields="fieldsComputed"
+                  :sort-by="sortBy"
+                  :sort-desc="sortDesc"
+                  @update-sort="handleSortUpdate"
+                >
+                  <!-- Optional column-level filters -->
+                  <template #filter-controls>
+                    <td v-for="field in fieldsComputed" :key="field.key">
+                      <!-- Cluster number: keep text filter -->
+                      <BFormInput
+                        v-if="field.key === 'cluster_num'"
+                        v-model="filter[field.key].content"
+                        :placeholder="'Filter ' + field.label"
+                        debounce="500"
+                        @input="onFilterChange"
+                      />
+
+                      <!-- Category: use CategoryFilter dropdown -->
+                      <CategoryFilter
+                        v-else-if="field.key === 'category'"
+                        v-model="categoryFilter"
+                        :options="categoryOptions"
+                        placeholder="All categories"
+                        @update:model-value="onFilterChange"
+                      />
+
+                      <!-- FDR: use ScoreSlider with presets -->
+                      <ScoreSlider
+                        v-else-if="field.key === 'fdr'"
+                        v-model="fdrThreshold"
+                        @update:model-value="onFilterChange"
+                      />
+
+                      <!-- Other columns: text filter (symbol, STRING_id, description, etc.) -->
+                      <BFormInput
+                        v-else-if="field.key !== 'details' && field.key !== 'number_of_genes'"
+                        v-model="filter[field.key].content"
+                        :placeholder="'Filter ' + field.label"
+                        debounce="500"
+                        @input="onFilterChange"
+                      />
+                    </td>
+                  </template>
+
+                  <!-- cluster_num cell - colored badge matching network legend -->
+                  <template #cell-cluster_num="{ row }">
+                    <span
+                      v-if="row.cluster_num"
+                      class="cluster-badge"
+                      :style="{ backgroundColor: getClusterColor(row.cluster_num) }"
+                    >
+                      {{ row.cluster_num }}
+                    </span>
+                  </template>
+
+                  <!-- category cell -->
+                  <template #cell-category="{ row }">
+                    <!-- Render only if tableType === 'term_enrichment' -->
+                    <div v-if="tableType === 'term_enrichment'">
+                      <BBadge
+                        v-b-tooltip.hover.rightbottom
+                        variant="light"
+                        :style="
+                          'border-color: ' +
+                          (clusterCategoryStyle[row.category] || clusterCategoryStyle.default) +
+                          '; border-width: medium;'
+                        "
+                        :title="row.category"
+                      >
+                        {{ findCategoryText(row.category) }}
+                      </BBadge>
+                    </div>
+                  </template>
+
+                  <template #cell-number_of_genes="{ row }">
+                    <BBadge variant="info">
+                      {{ row['number_of_genes'] }}
+                    </BBadge>
+                  </template>
+
+                  <!-- fdr cell -->
+                  <template #cell-fdr="{ row }">
+                    <!-- Render only if tableType === 'term_enrichment' -->
+                    <div
+                      v-if="tableType === 'term_enrichment'"
+                      v-b-tooltip.hover.leftbottom
+                      class="overflow-hidden text-truncate"
+                      :title="row.fdr != null ? Number(row.fdr).toFixed(10) : ''"
+                    >
+                      <BBadge variant="warning">
+                        {{ row.fdr }}
+                      </BBadge>
+                    </div>
+                  </template>
+
+                  <!-- description cell -->
+                  <template #cell-description="{ row }">
+                    <!-- Render only if tableType === 'term_enrichment' -->
+                    <div v-if="tableType === 'term_enrichment'" class="d-flex align-items-center">
+                      <BButton
+                        class="btn-xs me-1 flex-shrink-0"
+                        variant="outline-primary"
+                        :href="findCategoryLink(row.category, row.term)"
+                        target="_blank"
+                        title="Open in external database"
+                      >
+                        <i class="bi bi-box-arrow-up-right" />
+                      </BButton>
+                      <span
+                        v-b-tooltip.hover.top
+                        class="description-text text-truncate"
+                        :title="row.description"
+                      >
+                        {{ row.description }}
+                      </span>
+                    </div>
+                  </template>
+
+                  <!-- symbol cell with bidirectional hover highlighting -->
+                  <template #cell-symbol="{ row }">
+                    <!-- Render only if tableType === 'identifiers' -->
+                    <div
+                      v-if="tableType === 'identifiers'"
+                      class="font-italic symbol-cell"
+                      :class="{ 'row-highlighted': isRowHighlighted(row.hgnc_id) }"
+                      @mouseenter="handleTableRowHover(row.hgnc_id)"
+                      @mouseleave="handleTableRowHover(null)"
+                    >
+                      <BLink :href="'/Genes/' + row.hgnc_id">
+                        <BBadge
+                          v-b-tooltip.hover.leftbottom
+                          pill
+                          variant="success"
+                          :title="row.hgnc_id"
+                        >
+                          {{ row.symbol }}
+                        </BBadge>
+                      </BLink>
+                    </div>
+                  </template>
+
+                  <!-- STRING_id cell -->
+                  <template #cell-STRING_id="{ row }">
+                    <!-- Render only if tableType === 'identifiers' -->
+                    <div
+                      v-if="tableType === 'identifiers'"
+                      v-b-tooltip.hover
+                      class="overflow-hidden text-truncate"
+                      :title="row.STRING_id"
+                    >
+                      <BButton
+                        class="btn-xs mx-2"
+                        variant="outline-primary"
+                        :href="'https://string-db.org/network/' + row.STRING_id"
+                        target="_blank"
+                        :title="'View ' + row.STRING_id + ' in STRING database'"
+                      >
+                        <i class="bi bi-box-arrow-up-right" />
+                        {{ row.STRING_id }}
                       </BButton>
                     </div>
+                  </template>
+                </GenericTable>
+
+                <!-- OPTIONAL bottom pagination controls -->
+                <BRow class="justify-content-end">
+                  <BCol cols="12" md="auto" class="my-1">
+                    <TablePaginationControls
+                      :total-rows="totalRows"
+                      :initial-per-page="perPage"
+                      :page-options="[5, 10, 20]"
+                      @page-change="handlePageChange"
+                      @per-page-change="handlePerPageChange"
+                    />
                   </BCol>
                 </BRow>
-              </div>
-            </template>
-
-            <BCardText class="text-start">
-              <!-- GenericTable for main table content -->
-              <GenericTable
-                :items="displayedItems"
-                :fields="fieldsComputed"
-                :sort-by="sortBy"
-                :sort-desc="sortDesc"
-                @update-sort="handleSortUpdate"
-              >
-                <!-- Optional column-level filters -->
-                <template #filter-controls>
-                  <td
-                    v-for="field in fieldsComputed"
-                    :key="field.key"
-                  >
-                    <!-- Cluster number: keep text filter -->
-                    <BFormInput
-                      v-if="field.key === 'cluster_num'"
-                      v-model="filter[field.key].content"
-                      :placeholder="'Filter ' + field.label"
-                      debounce="500"
-                      @input="onFilterChange"
-                    />
-
-                    <!-- Category: use CategoryFilter dropdown -->
-                    <CategoryFilter
-                      v-else-if="field.key === 'category'"
-                      v-model="categoryFilter"
-                      :options="categoryOptions"
-                      placeholder="All categories"
-                      @update:model-value="onFilterChange"
-                    />
-
-                    <!-- FDR: use ScoreSlider with presets -->
-                    <ScoreSlider
-                      v-else-if="field.key === 'fdr'"
-                      v-model="fdrThreshold"
-                      @update:model-value="onFilterChange"
-                    />
-
-                    <!-- Other columns: text filter (symbol, STRING_id, description, etc.) -->
-                    <BFormInput
-                      v-else-if="field.key !== 'details' && field.key !== 'number_of_genes'"
-                      v-model="filter[field.key].content"
-                      :placeholder="'Filter ' + field.label"
-                      debounce="500"
-                      @input="onFilterChange"
-                    />
-                  </td>
-                </template>
-
-                <!-- cluster_num cell - colored badge matching network legend -->
-                <template #cell-cluster_num="{ row }">
-                  <span
-                    v-if="row.cluster_num"
-                    class="cluster-badge"
-                    :style="{ backgroundColor: getClusterColor(row.cluster_num) }"
-                  >
-                    {{ row.cluster_num }}
-                  </span>
-                </template>
-
-                <!-- category cell -->
-                <template #cell-category="{ row }">
-                  <!-- Render only if tableType === 'term_enrichment' -->
-                  <div v-if="tableType === 'term_enrichment'">
-                    <BBadge
-                      v-b-tooltip.hover.rightbottom
-                      variant="light"
-                      :style="'border-color: ' + (clusterCategoryStyle[row.category] || clusterCategoryStyle.default) + '; border-width: medium;'"
-                      :title="row.category"
-                    >
-                      {{ findCategoryText(row.category) }}
-                    </BBadge>
-                  </div>
-                </template>
-
-                <template #cell-number_of_genes="{ row }">
-                  <BBadge variant="info">
-                    {{ row['number_of_genes'] }}
-                  </BBadge>
-                </template>
-
-                <!-- fdr cell -->
-                <template #cell-fdr="{ row }">
-                  <!-- Render only if tableType === 'term_enrichment' -->
-                  <div
-                    v-if="tableType === 'term_enrichment'"
-                    v-b-tooltip.hover.leftbottom
-                    class="overflow-hidden text-truncate"
-                    :title="row.fdr != null ? Number(row.fdr).toFixed(10) : ''"
-                  >
-                    <BBadge variant="warning">
-                      {{ row.fdr }}
-                    </BBadge>
-                  </div>
-                </template>
-
-                <!-- description cell -->
-                <template #cell-description="{ row }">
-                  <!-- Render only if tableType === 'term_enrichment' -->
-                  <div
-                    v-if="tableType === 'term_enrichment'"
-                    class="d-flex align-items-center"
-                  >
-                    <BButton
-                      class="btn-xs me-1 flex-shrink-0"
-                      variant="outline-primary"
-                      :href="findCategoryLink(row.category, row.term)"
-                      target="_blank"
-                      title="Open in external database"
-                    >
-                      <i class="bi bi-box-arrow-up-right" />
-                    </BButton>
-                    <span
-                      v-b-tooltip.hover.top
-                      class="description-text text-truncate"
-                      :title="row.description"
-                    >
-                      {{ row.description }}
-                    </span>
-                  </div>
-                </template>
-
-                <!-- symbol cell with bidirectional hover highlighting -->
-                <template #cell-symbol="{ row }">
-                  <!-- Render only if tableType === 'identifiers' -->
-                  <div
-                    v-if="tableType === 'identifiers'"
-                    class="font-italic symbol-cell"
-                    :class="{ 'row-highlighted': isRowHighlighted(row.hgnc_id) }"
-                    @mouseenter="handleTableRowHover(row.hgnc_id)"
-                    @mouseleave="handleTableRowHover(null)"
-                  >
-                    <BLink :href="'/Genes/' + row.hgnc_id">
-                      <BBadge
-                        v-b-tooltip.hover.leftbottom
-                        pill
-                        variant="success"
-                        :title="row.hgnc_id"
-                      >
-                        {{ row.symbol }}
-                      </BBadge>
-                    </BLink>
-                  </div>
-                </template>
-
-                <!-- STRING_id cell -->
-                <template #cell-STRING_id="{ row }">
-                  <!-- Render only if tableType === 'identifiers' -->
-                  <div
-                    v-if="tableType === 'identifiers'"
-                    v-b-tooltip.hover
-                    class="overflow-hidden text-truncate"
-                    :title="row.STRING_id"
-                  >
-                    <BButton
-                      class="btn-xs mx-2"
-                      variant="outline-primary"
-                      :href="'https://string-db.org/network/' + row.STRING_id"
-                      target="_blank"
-                      :title="'View ' + row.STRING_id + ' in STRING database'"
-                    >
-                      <i class="bi bi-box-arrow-up-right" />
-                      {{ row.STRING_id }}
-                    </BButton>
-                  </div>
-                </template>
-              </GenericTable>
-
-              <!-- OPTIONAL bottom pagination controls -->
-              <BRow class="justify-content-end">
-                <BCol
-                  cols="12"
-                  md="auto"
-                  class="my-1"
-                >
-                  <TablePaginationControls
-                    :total-rows="totalRows"
-                    :initial-per-page="perPage"
-                    :page-options="[5, 10, 20]"
-                    @page-change="handlePageChange"
-                    @per-page-change="handlePerPageChange"
-                  />
-                </BCol>
-              </BRow>
-            </BCardText>
-          </BCard>
+              </BCardText>
+            </BCard>
           </div>
         </Pane>
       </Splitpanes>
@@ -359,7 +306,13 @@
 </template>
 
 <script>
-import { useToast, useColorAndSymbols, useFilterSync, useWildcardSearch, useExcelExport } from '@/composables';
+import {
+  useToast,
+  useColorAndSymbols,
+  useFilterSync,
+  useWildcardSearch,
+  useExcelExport,
+} from '@/composables';
 
 // Import small table components
 import GenericTable from '@/components/small/GenericTable.vue';
@@ -468,7 +421,7 @@ export default {
       },
       // Specialized filter values (separate from text filter object)
       categoryFilter: null, // Selected category (GO, KEGG, MONDO, or null for all)
-      fdrThreshold: null,   // FDR threshold (0.01, 0.05, 0.1, or custom value)
+      fdrThreshold: null, // FDR threshold (0.01, 0.05, 0.1, or custom value)
       sortBy: 'fdr',
       sortDesc: false,
 
@@ -554,7 +507,7 @@ export default {
           { value: 'MONDO', text: 'MONDO (Disease)' },
         ];
       }
-      return this.valueCategories.map(cat => ({
+      return this.valueCategories.map((cat) => ({
         value: cat.value,
         text: cat.text,
       }));
@@ -771,10 +724,9 @@ export default {
 
       try {
         // Step 1: Submit async job
-        const submitResponse = await this.axios.post(
-          `${baseUrl}/api/jobs/clustering/submit`,
-          { algorithm: this.algorithm },
-        );
+        const submitResponse = await this.axios.post(`${baseUrl}/api/jobs/clustering/submit`, {
+          algorithm: this.algorithm,
+        });
 
         // Extract job info (R returns arrays for scalars)
         const jobId = Array.isArray(submitResponse.data.job_id)
@@ -824,9 +776,7 @@ export default {
         attempts += 1;
 
         try {
-          const statusResponse = await this.axios.get(
-            `${baseUrl}/api/jobs/${this.jobId}/status`,
-          );
+          const statusResponse = await this.axios.get(`${baseUrl}/api/jobs/${this.jobId}/status`);
 
           const responseData = statusResponse.data;
 
@@ -1147,8 +1097,8 @@ export default {
         this.setActiveCluster();
       } else {
         // Multiple clusters selected - combine their data
-        const selectedClusterData = this.itemsCluster.filter(
-          (item) => clusters.includes(item.cluster)
+        const selectedClusterData = this.itemsCluster.filter((item) =>
+          clusters.includes(item.cluster)
         );
         this.selectedCluster = this.combineClusterData(selectedClusterData);
       }
@@ -1217,21 +1167,22 @@ export default {
       }
 
       // Define column headers based on table type
-      const headers = this.tableType === 'term_enrichment'
-        ? {
-            cluster_num: 'Cluster',
-            category: 'Category',
-            number_of_genes: '# Genes',
-            fdr: 'FDR',
-            description: 'Description',
-            term: 'Term ID',
-          }
-        : {
-            cluster_num: 'Cluster',
-            symbol: 'Gene Symbol',
-            hgnc_id: 'HGNC ID',
-            STRING_id: 'STRING ID',
-          };
+      const headers =
+        this.tableType === 'term_enrichment'
+          ? {
+              cluster_num: 'Cluster',
+              category: 'Category',
+              number_of_genes: '# Genes',
+              fdr: 'FDR',
+              description: 'Description',
+              term: 'Term ID',
+            }
+          : {
+              cluster_num: 'Cluster',
+              symbol: 'Gene Symbol',
+              hgnc_id: 'HGNC ID',
+              STRING_id: 'STRING ID',
+            };
 
       // Generate filename with context
       const clusterLabel = this.showAllClustersInTable

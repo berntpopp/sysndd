@@ -19,15 +19,8 @@
     >
       <i class="bi bi-x-circle-fill"></i>
     </button>
-    <div
-      v-if="loading"
-      class="search-loading"
-    >
-      <span
-        class="spinner-border spinner-border-sm"
-        role="status"
-        aria-label="Loading"
-      ></span>
+    <div v-if="loading" class="search-loading">
+      <span class="spinner-border spinner-border-sm" role="status" aria-label="Loading"></span>
     </div>
   </div>
 </template>

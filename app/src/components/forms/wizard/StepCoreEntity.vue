@@ -66,9 +66,7 @@
         @search="searchDisease"
         @blur="touchField('diseaseId')"
       />
-      <small id="disease-help" class="text-muted">
-        Select OMIM or Mondo disease identifier
-      </small>
+      <small id="disease-help" class="text-muted"> Select OMIM or Mondo disease identifier </small>
     </BFormGroup>
 
     <!-- Inheritance Selection -->
@@ -93,9 +91,7 @@
         @blur="touchField('inheritanceId')"
       >
         <template #first>
-          <BFormSelectOption :value="null">
-            Select inheritance pattern...
-          </BFormSelectOption>
+          <BFormSelectOption :value="null"> Select inheritance pattern... </BFormSelectOption>
         </template>
       </BFormSelect>
       <small id="inheritance-help" class="text-muted">
@@ -128,9 +124,7 @@
           </BFormRadio>
           <BFormRadio :value="false">
             <span class="fw-medium">No</span>
-            <small class="text-muted d-block">
-              This is not a neurodevelopmental phenotype
-            </small>
+            <small class="text-muted d-block"> This is not a neurodevelopmental phenotype </small>
           </BFormRadio>
         </BFormRadioGroup>
       </div>

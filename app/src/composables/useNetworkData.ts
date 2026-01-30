@@ -93,7 +93,9 @@ export function useNetworkData(): NetworkDataState {
     isLoading.value = true;
     error.value = null;
 
-    console.log(`[useNetworkData] Fetching network data (cluster_type=${clusterType}, max_edges=${maxEdges})`);
+    console.log(
+      `[useNetworkData] Fetching network data (cluster_type=${clusterType}, max_edges=${maxEdges})`
+    );
     const startTime = performance.now();
 
     try {
@@ -107,10 +109,14 @@ export function useNetworkData(): NetworkDataState {
 
       const elapsed = performance.now() - startTime;
       console.log(`[useNetworkData] Fetch complete in ${elapsed.toFixed(0)}ms`);
-      console.log(`[useNetworkData] Received ${response.data.nodes?.length || 0} nodes, ${response.data.edges?.length || 0} edges`);
+      console.log(
+        `[useNetworkData] Received ${response.data.nodes?.length || 0} nodes, ${response.data.edges?.length || 0} edges`
+      );
 
       if (response.data.metadata?.edges_filtered) {
-        console.log(`[useNetworkData] Edges filtered: showing ${response.data.metadata.edge_count} of ${response.data.metadata.total_edges} total`);
+        console.log(
+          `[useNetworkData] Edges filtered: showing ${response.data.metadata.edge_count} of ${response.data.metadata.total_edges} total`
+        );
       }
     } catch (err) {
       error.value = err instanceof Error ? err : new Error('Failed to fetch network data');
@@ -134,7 +140,9 @@ export function useNetworkData(): NetworkDataState {
   const cytoscapeElements = computed<ElementDefinition[]>(() => {
     if (!networkData.value) return [];
 
-    console.log(`[useNetworkData] Transforming ${networkData.value.nodes.length} nodes, ${networkData.value.edges.length} edges`);
+    console.log(
+      `[useNetworkData] Transforming ${networkData.value.nodes.length} nodes, ${networkData.value.edges.length} edges`
+    );
     const startTime = performance.now();
 
     // Collect unique cluster IDs
@@ -142,9 +150,10 @@ export function useNetworkData(): NetworkDataState {
     networkData.value.nodes.forEach((node) => {
       if (node.cluster !== undefined && node.cluster !== null) {
         // Get main cluster number for grouping
-        const mainCluster = typeof node.cluster === 'string'
-          ? parseInt(node.cluster.split('.')[0], 10)
-          : node.cluster;
+        const mainCluster =
+          typeof node.cluster === 'string'
+            ? parseInt(node.cluster.split('.')[0], 10)
+            : node.cluster;
         clusterIds.add(mainCluster);
       }
     });
@@ -162,9 +171,8 @@ export function useNetworkData(): NetworkDataState {
     // Transform nodes to Cytoscape format with parent assignment
     const nodes: ElementDefinition[] = networkData.value.nodes.map((node: NetworkNode) => {
       // Get main cluster number for parent assignment
-      const mainCluster = typeof node.cluster === 'string'
-        ? parseInt(node.cluster.split('.')[0], 10)
-        : node.cluster;
+      const mainCluster =
+        typeof node.cluster === 'string' ? parseInt(node.cluster.split('.')[0], 10) : node.cluster;
 
       return {
         data: {
@@ -199,7 +207,9 @@ export function useNetworkData(): NetworkDataState {
     );
 
     const elapsed = performance.now() - startTime;
-    console.log(`[useNetworkData] Transform complete in ${elapsed.toFixed(0)}ms (${clusterParentNodes.length} clusters)`);
+    console.log(
+      `[useNetworkData] Transform complete in ${elapsed.toFixed(0)}ms (${clusterParentNodes.length} clusters)`
+    );
 
     // Return cluster parents first, then nodes, then edges
     return [...clusterParentNodes, ...nodes, ...edges];

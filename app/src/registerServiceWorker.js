@@ -1,9 +1,7 @@
- 
-
 import { register } from 'register-service-worker';
 
 // Support both Vite (import.meta.env) and Vue CLI (process.env) during migration
- 
+
 const isVite = typeof import.meta !== 'undefined' && import.meta.env;
 const isProd = isVite ? import.meta.env.PROD : process.env.NODE_ENV === 'production';
 const baseUrl = isVite ? import.meta.env.BASE_URL : process.env.BASE_URL;
@@ -17,8 +15,8 @@ if (isProd && !isDocker) {
   register(`${baseUrl}service-worker.js`, {
     ready() {
       console.log(
-        'App is being served from cache by a service worker.\n'
-          + 'For more details, visit https://goo.gl/AFskqB',
+        'App is being served from cache by a service worker.\n' +
+          'For more details, visit https://goo.gl/AFskqB'
       );
     },
     registered() {
@@ -36,9 +34,7 @@ if (isProd && !isDocker) {
       window.location.reload(true);
     },
     offline() {
-      console.log(
-        'No internet connection found. App is running in offline mode.',
-      );
+      console.log('No internet connection found. App is running in offline mode.');
     },
     error(error) {
       console.error('Error during service worker registration:', error);

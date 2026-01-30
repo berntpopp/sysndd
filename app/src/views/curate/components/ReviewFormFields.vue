@@ -1,43 +1,23 @@
 <!-- views/curate/components/ReviewFormFields.vue -->
 <template>
-  <BOverlay
-    :show="loading"
-    rounded="sm"
-  >
+  <BOverlay :show="loading" rounded="sm">
     <BForm @submit.stop.prevent>
       <!-- Synopsis textarea -->
-      <label
-        class="mr-sm-2 font-weight-bold"
-        for="review-textarea-synopsis"
-      >Synopsis</label>
+      <label class="mr-sm-2 font-weight-bold" for="review-textarea-synopsis">Synopsis</label>
 
-      <BBadge
-        id="popover-badge-help-synopsis"
-        pill
-        href="#"
-        variant="info"
-      >
+      <BBadge id="popover-badge-help-synopsis" pill href="#" variant="info">
         <i class="bi bi-question-circle-fill" />
       </BBadge>
 
-      <BPopover
-        target="popover-badge-help-synopsis"
-        variant="info"
-        triggers="focus"
-      >
-        <template #title>
-          Synopsis instructions
-        </template>
-        Short summary for this disease entity. Please include information
-        on: <br>
-        <strong>a)</strong> approximate number of patients described in
-        literature, <br>
-        <strong>b)</strong> nature of reported variants, <br>
-        <strong>c)</strong> severity of intellectual disability, <br>
-        <strong>d)</strong> further phenotypic aspects (if possible with
-        frequencies), <br>
-        <strong>e)</strong> any valuable further information (e.g.
-        genotype-phenotype correlations).<br>
+      <BPopover target="popover-badge-help-synopsis" variant="info" triggers="focus">
+        <template #title> Synopsis instructions </template>
+        Short summary for this disease entity. Please include information on: <br />
+        <strong>a)</strong> approximate number of patients described in literature, <br />
+        <strong>b)</strong> nature of reported variants, <br />
+        <strong>c)</strong> severity of intellectual disability, <br />
+        <strong>d)</strong> further phenotypic aspects (if possible with frequencies), <br />
+        <strong>e)</strong> any valuable further information (e.g. genotype-phenotype
+        correlations).<br />
       </BPopover>
 
       <BFormTextarea
@@ -50,31 +30,16 @@
       <!-- Synopsis textarea -->
 
       <!-- Phenotype select -->
-      <label
-        class="mr-sm-2 font-weight-bold"
-        for="review-phenotype-select"
-      >Phenotypes</label>
+      <label class="mr-sm-2 font-weight-bold" for="review-phenotype-select">Phenotypes</label>
 
-      <BBadge
-        id="popover-badge-help-phenotypes"
-        pill
-        href="#"
-        variant="info"
-      >
+      <BBadge id="popover-badge-help-phenotypes" pill href="#" variant="info">
         <i class="bi bi-question-circle-fill" />
       </BBadge>
 
-      <BPopover
-        target="popover-badge-help-phenotypes"
-        variant="info"
-        triggers="focus"
-      >
-        <template #title>
-          Phenotypes instructions
-        </template>
-        Add or remove associated phenotypes. Only phenotypes that occur in
-        20% or more of affected individuals should be included. Please
-        also include information on severity of ID.
+      <BPopover target="popover-badge-help-phenotypes" variant="info" triggers="focus">
+        <template #title> Phenotypes instructions </template>
+        Add or remove associated phenotypes. Only phenotypes that occur in 20% or more of affected
+        individuals should be included. Please also include information on severity of ID.
       </BPopover>
 
       <TreeMultiSelect
@@ -89,36 +54,24 @@
       <!-- Phenotype select -->
 
       <!-- Variation ontology select -->
-      <label
-        class="mr-sm-2 font-weight-bold"
-        for="review-variation-select"
-      >Variation ontology</label>
-
-      <BBadge
-        id="popover-badge-help-variation"
-        pill
-        href="#"
-        variant="info"
+      <label class="mr-sm-2 font-weight-bold" for="review-variation-select"
+        >Variation ontology</label
       >
+
+      <BBadge id="popover-badge-help-variation" pill href="#" variant="info">
         <i class="bi bi-question-circle-fill" />
       </BBadge>
 
-      <BPopover
-        target="popover-badge-help-variation"
-        variant="info"
-        triggers="focus"
-      >
-        <template #title>
-          Variation instructions
-        </template>
+      <BPopover target="popover-badge-help-variation" variant="info" triggers="focus">
+        <template #title> Variation instructions </template>
         Please select or deselect the types of variation associated with the disease entity.
-        <br>
+        <br />
         Minimum information should include <strong>"protein truncating variation"</strong> and/or
         <strong>"non-synonymous variation"</strong>.
-        <br>
-        If known, please also select the functional impact of these variations,
-        i.e. if there is a protein <strong>"loss-of-function"</strong> or <strong>"gain-of-function"</strong>.
-        <br>
+        <br />
+        If known, please also select the functional impact of these variations, i.e. if there is a
+        protein <strong>"loss-of-function"</strong> or <strong>"gain-of-function"</strong>.
+        <br />
       </BPopover>
 
       <TreeMultiSelect
@@ -133,33 +86,18 @@
       <!-- Variation ontology select -->
 
       <!-- publications tag form with links out -->
-      <label
-        class="mr-sm-2 font-weight-bold"
-        for="review-publications-select"
-      >Publications</label>
+      <label class="mr-sm-2 font-weight-bold" for="review-publications-select">Publications</label>
 
-      <BBadge
-        id="popover-badge-help-publications"
-        pill
-        href="#"
-        variant="info"
-      >
+      <BBadge id="popover-badge-help-publications" pill href="#" variant="info">
         <i class="bi bi-question-circle-fill" />
       </BBadge>
 
-      <BPopover
-        target="popover-badge-help-publications"
-        variant="info"
-        triggers="focus"
-      >
-        <template #title>
-          Publications instructions
-        </template>
+      <BPopover target="popover-badge-help-publications" variant="info" triggers="focus">
+        <template #title> Publications instructions </template>
         No complete catalog of entity-related literature required.
-        <br>
-        If information in the clinical synopsis is not only based on OMIM
-        entries, please include PMID of the article(s) used as a source
-        for the clinical synopsis. <br>
+        <br />
+        If information in the clinical synopsis is not only based on OMIM entries, please include
+        PMID of the article(s) used as a source for the clinical synopsis. <br />
         - Input is only valid when starting with
         <strong>"PMID:"</strong> followed by a number
       </BPopover>
@@ -174,9 +112,7 @@
         remove-on-delete
         :disabled="readonly"
       >
-        <template
-          #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }"
-        >
+        <template #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }">
           <BInputGroup class="my-0">
             <BFormInput
               v-bind="inputAttrs"
@@ -186,12 +122,7 @@
               :disabled="readonly"
               v-on="inputHandlers"
             />
-            <BButton
-              variant="secondary"
-              size="sm"
-              :disabled="readonly"
-              @click="addTag()"
-            >
+            <BButton variant="secondary" size="sm" :disabled="readonly" @click="addTag()">
               Add
             </BButton>
           </BInputGroup>
@@ -206,10 +137,7 @@
                 @remove="removeTag(tag)"
               >
                 <BLink
-                  :href="
-                    'https://pubmed.ncbi.nlm.nih.gov/' +
-                      tag.replace('PMID:', '')
-                  "
+                  :href="'https://pubmed.ncbi.nlm.nih.gov/' + tag.replace('PMID:', '')"
                   target="_blank"
                   class="text-light"
                 >
@@ -224,30 +152,15 @@
       <!-- publications tag form with links out -->
 
       <!-- genereviews tag form with links out -->
-      <label
-        class="mr-sm-2 font-weight-bold"
-        for="review-genereviews-select"
-      >Genereviews</label>
+      <label class="mr-sm-2 font-weight-bold" for="review-genereviews-select">Genereviews</label>
 
-      <BBadge
-        id="popover-badge-help-genereviews"
-        pill
-        href="#"
-        variant="info"
-      >
+      <BBadge id="popover-badge-help-genereviews" pill href="#" variant="info">
         <i class="bi bi-question-circle-fill" />
       </BBadge>
 
-      <BPopover
-        target="popover-badge-help-genereviews"
-        variant="info"
-        triggers="focus"
-      >
-        <template #title>
-          GeneReviews instructions
-        </template>
-        Please add PMID for GeneReview article if available for this
-        entity. <br>
+      <BPopover target="popover-badge-help-genereviews" variant="info" triggers="focus">
+        <template #title> GeneReviews instructions </template>
+        Please add PMID for GeneReview article if available for this entity. <br />
         - Input is only valid when starting with
         <strong>"PMID:"</strong> followed by a number
       </BPopover>
@@ -262,9 +175,7 @@
         remove-on-delete
         :disabled="readonly"
       >
-        <template
-          #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }"
-        >
+        <template #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }">
           <BInputGroup class="my-0">
             <BFormInput
               v-bind="inputAttrs"
@@ -274,12 +185,7 @@
               :disabled="readonly"
               v-on="inputHandlers"
             />
-            <BButton
-              variant="secondary"
-              size="sm"
-              :disabled="readonly"
-              @click="addTag()"
-            >
+            <BButton variant="secondary" size="sm" :disabled="readonly" @click="addTag()">
               Add
             </BButton>
           </BInputGroup>
@@ -294,10 +200,7 @@
                 @remove="removeTag(tag)"
               >
                 <BLink
-                  :href="
-                    'https://pubmed.ncbi.nlm.nih.gov/' +
-                      tag.replace('PMID:', '')
-                  "
+                  :href="'https://pubmed.ncbi.nlm.nih.gov/' + tag.replace('PMID:', '')"
                   target="_blank"
                   class="text-light"
                 >
@@ -312,10 +215,7 @@
       <!-- genereviews tag form with links out -->
 
       <!-- Review comment textarea -->
-      <label
-        class="mr-sm-2 font-weight-bold"
-        for="review-textarea-comment"
-      >Comment</label>
+      <label class="mr-sm-2 font-weight-bold" for="review-textarea-comment">Comment</label>
       <BFormTextarea
         id="review-textarea-comment"
         v-model="localFormData.comment"

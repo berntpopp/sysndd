@@ -14,10 +14,7 @@
       @keydown="handleSearchInputKeydown"
     />
 
-    <BFormDatalist
-      id="search-list"
-      :options="search_keys"
-    />
+    <BFormDatalist id="search-list" :options="search_keys" />
 
     <BButton
       :variant="inNavbar ? 'outline-primary' : 'outline-dark'"
@@ -75,9 +72,11 @@ export default {
     async handleSearchInputKeydown(event) {
       // Only proceed if the key is Enter or if it's a click (event.which === 1)
       // and ensure search_input is nonempty and we are not already navigating.
-      if ((event.key === 'Enter' || event.which === 1)
-          && this.search_input.length > 0
-          && !this._isNavigating) {
+      if (
+        (event.key === 'Enter' || event.which === 1) &&
+        this.search_input.length > 0 &&
+        !this._isNavigating
+      ) {
         // Set flag so duplicate calls are ignored
         this._isNavigating = true;
         let targetLink = '';
@@ -87,7 +86,8 @@ export default {
           targetLink = `/Search/${this.search_input}`;
         }
 
-        this.$router.push(targetLink)
+        this.$router
+          .push(targetLink)
           .catch((err) => {
             // Only ignore NavigationDuplicated errors; throw others.
             if (err.name !== 'NavigationDuplicated') {

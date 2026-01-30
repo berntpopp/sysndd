@@ -54,17 +54,14 @@
       </div>
 
       <!-- Error state (both failed) -->
-      <div v-else-if="mgiError && rgdError && !mgiData && !rgdData" class="text-center py-2" role="alert">
+      <div
+        v-else-if="mgiError && rgdError && !mgiData && !rgdData"
+        class="text-center py-2"
+        role="alert"
+      >
         <i class="bi bi-exclamation-triangle text-warning me-1"></i>
         <span class="text-muted small">Failed to load phenotype data</span>
-        <BButton
-          variant="link"
-          size="sm"
-          class="p-0 ms-2"
-          @click="$emit('retry')"
-        >
-          Retry
-        </BButton>
+        <BButton variant="link" size="sm" class="p-0 ms-2" @click="$emit('retry')"> Retry </BButton>
       </div>
 
       <!-- Data display - two column layout with centered divider -->
@@ -72,11 +69,7 @@
         <!-- Mouse (MGI) section - LEFT -->
         <div class="organism-section organism-left">
           <div class="d-flex align-items-center gap-1 mb-1">
-            <img
-              :src="mouseIcon"
-              alt="Mouse silhouette"
-              class="phylopic-icon text-muted"
-            />
+            <img :src="mouseIcon" alt="Mouse silhouette" class="phylopic-icon text-muted" />
             <span class="text-muted small fw-semibold">Mouse</span>
             <BSpinner v-if="mgiLoading" small class="ms-1" />
           </div>
@@ -87,9 +80,7 @@
           </span>
 
           <!-- MGI No data -->
-          <span v-else-if="!mgiData && !mgiLoading" class="text-muted small">
-            No data
-          </span>
+          <span v-else-if="!mgiData && !mgiLoading" class="text-muted small"> No data </span>
 
           <!-- MGI Data -->
           <div v-else-if="mgiData" class="d-flex flex-wrap gap-1 align-items-center">
@@ -172,15 +163,10 @@
           </div>
         </div>
 
-
         <!-- Rat (RGD) section - RIGHT -->
         <div class="organism-section organism-right">
           <div class="d-flex align-items-center gap-1 mb-1">
-            <img
-              :src="ratIcon"
-              alt="Rat silhouette"
-              class="phylopic-icon text-muted"
-            />
+            <img :src="ratIcon" alt="Rat silhouette" class="phylopic-icon text-muted" />
             <span class="text-muted small fw-semibold">Rat</span>
             <BSpinner v-if="rgdLoading" small class="ms-1" />
           </div>
@@ -191,9 +177,7 @@
           </span>
 
           <!-- RGD No data -->
-          <span v-else-if="!rgdData && !rgdLoading" class="text-muted small">
-            No data
-          </span>
+          <span v-else-if="!rgdData && !rgdLoading" class="text-muted small"> No data </span>
 
           <!-- RGD Data -->
           <div v-else-if="rgdData" class="d-flex flex-wrap gap-1 align-items-center">
@@ -211,9 +195,7 @@
               {{ rgdData.phenotype_count }} phenotype{{ rgdData.phenotype_count === 1 ? '' : 's' }}
               <i class="bi bi-chevron-down ms-1 small"></i>
             </span>
-            <span v-else class="text-muted small">
-              0 phenotypes
-            </span>
+            <span v-else class="text-muted small"> 0 phenotypes </span>
 
             <!-- RGD Phenotype Popover -->
             <BPopover
@@ -254,46 +236,46 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { BCard, BButton, BSpinner, BPopover } from 'bootstrap-vue-next'
-import type { MGIPhenotypeData, RGDPhenotypeData } from '@/types/external'
+import { computed, ref } from 'vue';
+import { BCard, BButton, BSpinner, BPopover } from 'bootstrap-vue-next';
+import type { MGIPhenotypeData, RGDPhenotypeData } from '@/types/external';
 
 // PhyloPic silhouette icons (CC0 licensed)
-import mouseIcon from '@/assets/icons/phylopic/mus-musculus.svg'
-import ratIcon from '@/assets/icons/phylopic/rattus.svg'
+import mouseIcon from '@/assets/icons/phylopic/mus-musculus.svg';
+import ratIcon from '@/assets/icons/phylopic/rattus.svg';
 
 interface Props {
-  geneSymbol: string
-  mgiLoading: boolean
-  mgiError: string | null
-  mgiData: MGIPhenotypeData | null
-  rgdLoading: boolean
-  rgdError: string | null
-  rgdData: RGDPhenotypeData | null
+  geneSymbol: string;
+  mgiLoading: boolean;
+  mgiError: string | null;
+  mgiData: MGIPhenotypeData | null;
+  rgdLoading: boolean;
+  rgdError: string | null;
+  rgdData: RGDPhenotypeData | null;
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 
 defineEmits<{
-  retry: []
-}>()
+  retry: [];
+}>();
 
 // Popover state
-const showMgiPopover = ref(false)
-const showRgdPopover = ref(false)
+const showMgiPopover = ref(false);
+const showRgdPopover = ref(false);
 
 // Unique IDs for popover targets
-const mgiPopoverId = computed(() => `mgi-phenotypes-${props.geneSymbol}`)
-const rgdPopoverId = computed(() => `rgd-phenotypes-${props.geneSymbol}`)
+const mgiPopoverId = computed(() => `mgi-phenotypes-${props.geneSymbol}`);
+const rgdPopoverId = computed(() => `rgd-phenotypes-${props.geneSymbol}`);
 
 /**
  * Toggle MGI popover visibility
  */
 function toggleMgiPopover() {
-  showMgiPopover.value = !showMgiPopover.value
+  showMgiPopover.value = !showMgiPopover.value;
   // Close other popover
   if (showMgiPopover.value) {
-    showRgdPopover.value = false
+    showRgdPopover.value = false;
   }
 }
 
@@ -301,10 +283,10 @@ function toggleMgiPopover() {
  * Toggle RGD popover visibility
  */
 function toggleRgdPopover() {
-  showRgdPopover.value = !showRgdPopover.value
+  showRgdPopover.value = !showRgdPopover.value;
   // Close other popover
   if (showRgdPopover.value) {
-    showMgiPopover.value = false
+    showMgiPopover.value = false;
   }
 }
 
@@ -312,22 +294,22 @@ function toggleRgdPopover() {
  * Get CSS class for zygosity badge
  */
 function getZygosityClass(zygosity: string | undefined): string {
-  const z = zygosity?.toLowerCase()
-  if (z === 'homozygous') return 'bg-danger'
-  if (z === 'heterozygous') return 'badge-warning-custom'
-  if (z === 'conditional') return 'bg-info'
-  return 'bg-secondary'
+  const z = zygosity?.toLowerCase();
+  if (z === 'homozygous') return 'bg-danger';
+  if (z === 'heterozygous') return 'badge-warning-custom';
+  if (z === 'conditional') return 'bg-info';
+  return 'bg-secondary';
 }
 
 /**
  * Get abbreviated label for zygosity
  */
 function getZygosityLabel(zygosity: string | undefined): string {
-  const z = zygosity?.toLowerCase()
-  if (z === 'homozygous') return 'hm'
-  if (z === 'heterozygous') return 'ht'
-  if (z === 'conditional') return 'cn'
-  return z || ''
+  const z = zygosity?.toLowerCase();
+  if (z === 'homozygous') return 'hm';
+  if (z === 'heterozygous') return 'ht';
+  if (z === 'conditional') return 'cn';
+  return z || '';
 }
 
 /**
@@ -341,24 +323,24 @@ const showCard = computed(() => {
     props.rgdData !== null ||
     props.rgdError !== null ||
     props.rgdLoading
-  )
-})
+  );
+});
 
 /**
  * Count phenotypes by zygosity from MGI data
  */
 const zygosityCounts = computed(() => {
-  const counts = { homozygous: 0, heterozygous: 0, conditional: 0 }
-  if (!props.mgiData?.phenotypes) return counts
+  const counts = { homozygous: 0, heterozygous: 0, conditional: 0 };
+  if (!props.mgiData?.phenotypes) return counts;
 
-  props.mgiData.phenotypes.forEach(phenotype => {
-    const zygosity = phenotype.zygosity?.toLowerCase()
-    if (zygosity === 'homozygous') counts.homozygous++
-    else if (zygosity === 'heterozygous') counts.heterozygous++
-    else if (zygosity === 'conditional') counts.conditional++
-  })
-  return counts
-})
+  props.mgiData.phenotypes.forEach((phenotype) => {
+    const zygosity = phenotype.zygosity?.toLowerCase();
+    if (zygosity === 'homozygous') counts.homozygous++;
+    else if (zygosity === 'heterozygous') counts.heterozygous++;
+    else if (zygosity === 'conditional') counts.conditional++;
+  });
+  return counts;
+});
 </script>
 
 <style scoped>
@@ -457,7 +439,6 @@ const zygosityCounts = computed(() => {
 .phenotype-badge-clickable:active {
   transform: translateY(0);
 }
-
 
 /* Phenotype list in popover */
 .phenotype-list {

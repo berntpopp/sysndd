@@ -17,6 +17,11 @@ export interface JobProgress {
 export type JobStatus = 'idle' | 'accepted' | 'running' | 'completed' | 'failed';
 
 /**
+ * Bootstrap variant type for progress bars
+ */
+export type ProgressVariant = 'primary' | 'success' | 'danger';
+
+/**
  * Options for the useAsyncJob composable
  */
 export interface UseAsyncJobOptions {
@@ -46,7 +51,7 @@ export interface UseAsyncJobReturn {
   hasRealProgress: ComputedRef<boolean>;
   progressPercent: ComputedRef<number | null>;
   elapsedTimeDisplay: ComputedRef<string>;
-  progressVariant: ComputedRef<string>;
+  progressVariant: ComputedRef<ProgressVariant>;
   statusBadgeClass: ComputedRef<string>;
   isLoading: ComputedRef<boolean>;
   isPolling: ComputedRef<boolean>;
@@ -84,7 +89,7 @@ export interface UseAsyncJobReturn {
  */
 export function useAsyncJob(
   statusEndpoint: (jobId: string) => string,
-  options: UseAsyncJobOptions = {},
+  options: UseAsyncJobOptions = {}
 ): UseAsyncJobReturn {
   const { pollingInterval = 3000, timerInterval = 1000 } = options;
 
@@ -108,7 +113,7 @@ export function useAsyncJob(
       await checkJobStatus();
     },
     pollingInterval,
-    { immediate: false },
+    { immediate: false }
   );
 
   // Elapsed time counter (VueUse auto-cleanup on unmount via tryOnCleanup)
@@ -119,7 +124,7 @@ export function useAsyncJob(
       }
     },
     timerInterval,
-    { immediate: false },
+    { immediate: false }
   );
 
   // Computed properties
@@ -154,7 +159,7 @@ export function useAsyncJob(
   /**
    * Bootstrap variant for progress bar based on status
    */
-  const progressVariant = computed<string>(() => {
+  const progressVariant = computed<ProgressVariant>(() => {
     if (status.value === 'failed') return 'danger';
     if (status.value === 'completed') return 'success';
     return 'primary';
@@ -178,7 +183,7 @@ export function useAsyncJob(
    * Whether the job is currently loading (accepted or running)
    */
   const isLoading = computed<boolean>(
-    () => status.value === 'accepted' || status.value === 'running',
+    () => status.value === 'accepted' || status.value === 'running'
   );
 
   /**

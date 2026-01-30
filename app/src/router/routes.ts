@@ -79,22 +79,16 @@ export const routes: RouteRecordRaw[] = [
     children: [
       {
         path: '',
-        component: () => import(
-          '@/components/analyses/AnalysesCurationUpset.vue'
-        ),
+        component: () => import('@/components/analyses/AnalysesCurationUpset.vue'),
         name: 'CurationComparisons',
       },
       {
         path: 'Similarity',
-        component: () => import(
-          '@/components/analyses/AnalysesCurationMatrixPlot.vue'
-        ),
+        component: () => import('@/components/analyses/AnalysesCurationMatrixPlot.vue'),
       },
       {
         path: 'Table',
-        component: () => import(
-          '@/components/analyses/AnalysesCurationComparisonsTable.vue'
-        ),
+        component: () => import('@/components/analyses/AnalysesCurationComparisonsTable.vue'),
       },
     ],
     meta: {
@@ -110,22 +104,16 @@ export const routes: RouteRecordRaw[] = [
     children: [
       {
         path: '',
-        component: () => import(
-          '@/components/analyses/AnalysesPhenotypeCorrelogram.vue'
-        ),
+        component: () => import('@/components/analyses/AnalysesPhenotypeCorrelogram.vue'),
         name: 'PhenotypeCorrelations',
       },
       {
         path: 'PhenotypeCounts',
-        component: () => import(
-          '@/components/analyses/AnalysesPhenotypeCounts.vue'
-        ),
+        component: () => import('@/components/analyses/AnalysesPhenotypeCounts.vue'),
       },
       {
         path: 'PhenotypeClusters',
-        component: () => import(
-          '@/components/analyses/AnalysesPhenotypeClusters.vue'
-        ),
+        component: () => import('@/components/analyses/AnalysesPhenotypeClusters.vue'),
       },
     ],
     meta: {
@@ -170,16 +158,12 @@ export const routes: RouteRecordRaw[] = [
     children: [
       {
         path: '',
-        component: () => import(
-          '@/components/analyses/AnalysesVariantCorrelogram.vue'
-        ),
+        component: () => import('@/components/analyses/AnalysesVariantCorrelogram.vue'),
         name: 'VariantCorrelations',
       },
       {
         path: 'VariantCounts',
-        component: () => import(
-          '@/components/analyses/AnalysesVariantCounts.vue'
-        ),
+        component: () => import('@/components/analyses/AnalysesVariantCounts.vue'),
       },
     ],
     meta: {
@@ -208,25 +192,19 @@ export const routes: RouteRecordRaw[] = [
       {
         path: '',
         name: 'PublicationsNDDTable',
-        component: () => import(
-          '@/components/analyses/PublicationsNDDTable.vue'
-        ),
+        component: () => import('@/components/analyses/PublicationsNDDTable.vue'),
       },
       // 2) The time plot
       {
         path: 'TimePlot',
         name: 'PublicationsNDDTimePlot',
-        component: () => import(
-          '@/components/analyses/PublicationsNDDTimePlot.vue'
-        ),
+        component: () => import('@/components/analyses/PublicationsNDDTimePlot.vue'),
       },
       // 3) The stats bar plot
       {
         path: 'Stats',
         name: 'PublicationsNDDStats',
-        component: () => import(
-          '@/components/analyses/PublicationsNDDStats.vue'
-        ),
+        component: () => import('@/components/analyses/PublicationsNDDStats.vue'),
       },
     ],
     meta: {
@@ -277,7 +255,11 @@ export const routes: RouteRecordRaw[] = [
     name: 'Panels',
     component: () => import('@/views/tables/PanelsTable.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
       const categoryInput = Array.isArray(to.params.category_input)
         ? to.params.category_input[0]
         : to.params.category_input;
@@ -286,16 +268,10 @@ export const routes: RouteRecordRaw[] = [
         : to.params.inheritance_input;
 
       if (
-        ['All', 'Limited', 'Definitive', 'Moderate', 'Refuted'].includes(
-          categoryInput as string,
+        ['All', 'Limited', 'Definitive', 'Moderate', 'Refuted'].includes(categoryInput as string) &&
+        ['All', 'Autosomal dominant', 'Other', 'Autosomal recessive', 'X-linked'].includes(
+          inheritanceInput as string
         )
-        && [
-          'All',
-          'Autosomal dominant',
-          'Other',
-          'Autosomal recessive',
-          'X-linked',
-        ].includes(inheritanceInput as string)
       ) {
         next(); // everything good, proceed
       } else {
@@ -352,7 +328,11 @@ export const routes: RouteRecordRaw[] = [
     name: 'User',
     component: () => import('@/views/UserView.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
       const allowed_roles = ['Administrator', 'Curator', 'Reviewer'];
       let expires = 0;
       let timestamp = 0;
@@ -380,7 +360,11 @@ export const routes: RouteRecordRaw[] = [
     name: 'Review',
     component: () => import('@/views/review/Review.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
       const allowed_roles = ['Administrator', 'Curator', 'Reviewer'];
       let expires = 0;
       let timestamp = 0;
@@ -402,7 +386,11 @@ export const routes: RouteRecordRaw[] = [
     name: 'ReviewInstructions',
     component: () => import('@/views/review/ReviewInstructions.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
       const allowed_roles = ['Administrator', 'Curator', 'Reviewer'];
       let expires = 0;
       let timestamp = 0;
@@ -424,7 +412,11 @@ export const routes: RouteRecordRaw[] = [
     name: 'CreateEntity',
     component: () => import('@/views/curate/CreateEntity.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
       const allowed_roles = ['Administrator', 'Curator'];
       let expires = 0;
       let timestamp = 0;
@@ -446,7 +438,11 @@ export const routes: RouteRecordRaw[] = [
     name: 'ModifyEntity',
     component: () => import('@/views/curate/ModifyEntity.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
       const allowed_roles = ['Administrator', 'Curator'];
       let expires = 0;
       let timestamp = 0;
@@ -468,7 +464,11 @@ export const routes: RouteRecordRaw[] = [
     name: 'ApproveReview',
     component: () => import('@/views/curate/ApproveReview.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
       const allowed_roles = ['Administrator', 'Curator'];
       let expires = 0;
       let timestamp = 0;
@@ -490,7 +490,11 @@ export const routes: RouteRecordRaw[] = [
     name: 'ApproveStatus',
     component: () => import('@/views/curate/ApproveStatus.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
       const allowed_roles = ['Administrator', 'Curator'];
       let expires = 0;
       let timestamp = 0;
@@ -512,7 +516,11 @@ export const routes: RouteRecordRaw[] = [
     name: 'ApproveUser',
     component: () => import('@/views/curate/ApproveUser.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
       const allowed_roles = ['Administrator', 'Curator'];
       let expires = 0;
       let timestamp = 0;
@@ -534,7 +542,11 @@ export const routes: RouteRecordRaw[] = [
     name: 'ManageReReview',
     component: () => import('@/views/curate/ManageReReview.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
       const allowed_roles = ['Administrator', 'Curator'];
       let expires = 0;
       let timestamp = 0;
@@ -556,7 +568,11 @@ export const routes: RouteRecordRaw[] = [
     name: 'ManageUser',
     component: () => import('@/views/admin/ManageUser.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
       const allowed_roles = ['Administrator'];
       let expires = 0;
       let timestamp = 0;
@@ -578,7 +594,11 @@ export const routes: RouteRecordRaw[] = [
     name: 'ManageAnnotations',
     component: () => import('@/views/admin/ManageAnnotations.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
       const allowed_roles = ['Administrator'];
       let expires = 0;
       let timestamp = 0;
@@ -600,7 +620,11 @@ export const routes: RouteRecordRaw[] = [
     name: 'ManageOntology',
     component: () => import('@/views/admin/ManageOntology.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
       const allowed_roles = ['Administrator'];
       let expires = 0;
       let timestamp = 0;
@@ -622,7 +646,11 @@ export const routes: RouteRecordRaw[] = [
     name: 'ManageAbout',
     component: () => import('@/views/admin/ManageAbout.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
       const allowed_roles = ['Administrator'];
       let expires = 0;
       let timestamp = 0;
@@ -652,7 +680,11 @@ export const routes: RouteRecordRaw[] = [
       fspec: route.query.fspec || undefined,
     }),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
       const allowed_roles = ['Administrator'];
       let expires = 0;
       let timestamp = 0;
@@ -676,7 +708,11 @@ export const routes: RouteRecordRaw[] = [
     name: 'AdminStatistics',
     component: () => import('@/views/admin/AdminStatistics.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
       const allowed_roles = ['Administrator'];
       let expires = 0;
       let timestamp = 0;
@@ -700,7 +736,11 @@ export const routes: RouteRecordRaw[] = [
     name: 'ManageBackups',
     component: () => import('@/views/admin/ManageBackups.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
       const allowed_roles = ['Administrator'];
       let expires = 0;
       let timestamp = 0;

@@ -3,14 +3,13 @@
 :root {
   // Font families
   // System font stack for optimal performance and native feel
-  --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-                      "Helvetica Neue", Arial, "Noto Sans", sans-serif,
-                      "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
-                      "Noto Color Emoji";
+  --font-family-sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans',
+    sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
   // Monospace for code, gene names, and identifiers
-  --font-family-mono: SFMono-Regular, Menlo, Monaco, Consolas,
-                      "Liberation Mono", "Courier New", monospace;
+  --font-family-mono:
+    SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 
   // Font weights
   --font-weight-light: 300;
@@ -20,14 +19,14 @@
   --font-weight-bold: 700;
 
   // Font sizes (rem-based for accessibility)
-  --font-size-xs: 0.75rem;   // 12px
-  --font-size-sm: 0.875rem;  // 14px
-  --font-size-base: 1rem;    // 16px
-  --font-size-lg: 1.125rem;  // 18px
-  --font-size-xl: 1.25rem;   // 20px
-  --font-size-2xl: 1.5rem;   // 24px
+  --font-size-xs: 0.75rem; // 12px
+  --font-size-sm: 0.875rem; // 14px
+  --font-size-base: 1rem; // 16px
+  --font-size-lg: 1.125rem; // 18px
+  --font-size-xl: 1.25rem; // 20px
+  --font-size-2xl: 1.5rem; // 24px
   --font-size-3xl: 1.875rem; // 30px
-  --font-size-4xl: 2.25rem;  // 36px
+  --font-size-4xl: 2.25rem; // 36px
 
   // Line heights
   --line-height-tight: 1.25;

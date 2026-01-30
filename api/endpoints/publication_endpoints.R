@@ -462,9 +462,9 @@ function(req,
   df_counts <- df_nested %>%
     mutate(
       publication_count = purrr::map_int(publications, ~
-                                           dplyr::filter(.x, !is.na(pmid)) %>% nrow()),
+        dplyr::filter(.x, !is.na(pmid)) %>% nrow()),
       entities_count = purrr::map_int(entities, ~
-                                        dplyr::filter(.x, !is.na(entity_id)) %>% nrow())
+        dplyr::filter(.x, !is.na(entity_id)) %>% nrow())
     )
 
   # 7) Field selection

@@ -4,12 +4,7 @@
       <div class="d-flex flex-column gap-2">
         <!-- Gene Symbol Badge -->
         <div>
-          <GeneBadge
-            :symbol="symbol"
-            size="lg"
-            :link-to="undefined"
-            :show-title="false"
-          />
+          <GeneBadge :symbol="symbol" size="lg" :link-to="undefined" :show-title="false" />
         </div>
 
         <!-- Gene Full Name -->

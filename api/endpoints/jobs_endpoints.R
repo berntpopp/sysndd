@@ -540,37 +540,47 @@ function(req, res) {
       job_id <- params$.__job_id__
 
       # --- Phase 1: Download and process HGNC data ---
-      message(sprintf("[%s] [job:%s] HGNC update: starting data download and processing...",
-                      Sys.time(), job_id))
+      message(sprintf(
+        "[%s] [job:%s] HGNC update: starting data download and processing...",
+        Sys.time(), job_id
+      ))
 
-      hgnc_data <- tryCatch({
-        update_process_hgnc_data(progress_fn = progress)
-      }, error = function(e) {
-        msg <- sprintf("HGNC pipeline failed during data processing: %s", conditionMessage(e))
-        message(sprintf("[%s] [job:%s] %s", Sys.time(), job_id, msg))
-        stop(msg)
-      })
+      hgnc_data <- tryCatch(
+        {
+          update_process_hgnc_data(progress_fn = progress)
+        },
+        error = function(e) {
+          msg <- sprintf("HGNC pipeline failed during data processing: %s", conditionMessage(e))
+          message(sprintf("[%s] [job:%s] %s", Sys.time(), job_id, msg))
+          stop(msg)
+        }
+      )
 
-      message(sprintf("[%s] [job:%s] HGNC update: processed %d rows (%d columns), writing to database...",
-                      Sys.time(), job_id, nrow(hgnc_data), ncol(hgnc_data)))
+      message(sprintf(
+        "[%s] [job:%s] HGNC update: processed %d rows (%d columns), writing to database...",
+        Sys.time(), job_id, nrow(hgnc_data), ncol(hgnc_data)
+      ))
 
       # --- Phase 2: Write to database ---
       progress("db_write", "Writing to database...", current = 9, total = 9)
 
-      conn <- tryCatch({
-        DBI::dbConnect(
-          RMariaDB::MariaDB(),
-          dbname   = params$db_config$dbname,
-          host     = params$db_config$host,
-          user     = params$db_config$user,
-          password = params$db_config$password,
-          port     = params$db_config$port
-        )
-      }, error = function(e) {
-        msg <- sprintf("Failed to connect to database: %s", conditionMessage(e))
-        message(sprintf("[%s] [job:%s] %s", Sys.time(), job_id, msg))
-        stop(msg)
-      })
+      conn <- tryCatch(
+        {
+          DBI::dbConnect(
+            RMariaDB::MariaDB(),
+            dbname   = params$db_config$dbname,
+            host     = params$db_config$host,
+            user     = params$db_config$user,
+            password = params$db_config$password,
+            port     = params$db_config$port
+          )
+        },
+        error = function(e) {
+          msg <- sprintf("Failed to connect to database: %s", conditionMessage(e))
+          message(sprintf("[%s] [job:%s] %s", Sys.time(), job_id, msg))
+          stop(msg)
+        }
+      )
       on.exit(DBI::dbDisconnect(conn), add = TRUE)
 
       # Reconcile tibble columns against DB schema to prevent mismatches
@@ -581,51 +591,61 @@ function(req, res) {
       # Drop tibble columns that don't exist in the DB table
       extra_cols <- setdiff(tibble_cols, db_cols)
       if (length(extra_cols) > 0) {
-        message(sprintf("[%s] [job:%s] Dropping %d tibble columns not in DB: %s",
-                        Sys.time(), job_id, length(extra_cols),
-                        paste(extra_cols, collapse = ", ")))
+        message(sprintf(
+          "[%s] [job:%s] Dropping %d tibble columns not in DB: %s",
+          Sys.time(), job_id, length(extra_cols),
+          paste(extra_cols, collapse = ", ")
+        ))
         hgnc_data <- hgnc_data[, setdiff(tibble_cols, extra_cols), drop = FALSE]
       }
 
       # Warn about DB columns missing from the tibble (will be NULL in DB)
       missing_cols <- setdiff(db_cols, colnames(hgnc_data))
       if (length(missing_cols) > 0) {
-        message(sprintf("[%s] [job:%s] DB columns not in tibble (will be NULL): %s",
-                        Sys.time(), job_id, paste(missing_cols, collapse = ", ")))
+        message(sprintf(
+          "[%s] [job:%s] DB columns not in tibble (will be NULL): %s",
+          Sys.time(), job_id, paste(missing_cols, collapse = ", ")
+        ))
       }
 
       # Atomic table replacement: DELETE + INSERT in a real transaction
       # NOTE: TRUNCATE is DDL and auto-commits in MySQL — it cannot be rolled back.
       # DELETE FROM is DML and participates in the transaction, so on failure the
       # entire operation rolls back and the table retains its previous data.
-      tryCatch({
-        # Disable FK checks for this session; ensure they are re-enabled even on error
-        DBI::dbExecute(conn, "SET FOREIGN_KEY_CHECKS = 0")
-        on.exit(tryCatch(DBI::dbExecute(conn, "SET FOREIGN_KEY_CHECKS = 1"),
-                         error = function(e) NULL), add = TRUE)
+      tryCatch(
+        {
+          # Disable FK checks for this session; ensure they are re-enabled even on error
+          DBI::dbExecute(conn, "SET FOREIGN_KEY_CHECKS = 0")
+          on.exit(tryCatch(DBI::dbExecute(conn, "SET FOREIGN_KEY_CHECKS = 1"),
+            error = function(e) NULL
+          ), add = TRUE)
 
-        DBI::dbWithTransaction(conn, {
-          DBI::dbExecute(conn, "DELETE FROM non_alt_loci_set")
+          DBI::dbWithTransaction(conn, {
+            DBI::dbExecute(conn, "DELETE FROM non_alt_loci_set")
 
-          if (nrow(hgnc_data) > 0) {
-            DBI::dbAppendTable(conn, "non_alt_loci_set", hgnc_data)
-          }
-        })
+            if (nrow(hgnc_data) > 0) {
+              DBI::dbAppendTable(conn, "non_alt_loci_set", hgnc_data)
+            }
+          })
 
-        DBI::dbExecute(conn, "SET FOREIGN_KEY_CHECKS = 1")
-      }, error = function(e) {
-        msg <- sprintf(
-          "Database write failed: %s. Tibble cols: [%s]. DB cols: [%s].",
-          conditionMessage(e),
-          paste(colnames(hgnc_data), collapse = ", "),
-          paste(db_cols, collapse = ", ")
-        )
-        message(sprintf("[%s] [job:%s] %s", Sys.time(), job_id, msg))
-        stop(msg)
-      })
+          DBI::dbExecute(conn, "SET FOREIGN_KEY_CHECKS = 1")
+        },
+        error = function(e) {
+          msg <- sprintf(
+            "Database write failed: %s. Tibble cols: [%s]. DB cols: [%s].",
+            conditionMessage(e),
+            paste(colnames(hgnc_data), collapse = ", "),
+            paste(db_cols, collapse = ", ")
+          )
+          message(sprintf("[%s] [job:%s] %s", Sys.time(), job_id, msg))
+          stop(msg)
+        }
+      )
 
-      message(sprintf("[%s] [job:%s] HGNC update: database write complete (%d rows)",
-                      Sys.time(), job_id, nrow(hgnc_data)))
+      message(sprintf(
+        "[%s] [job:%s] HGNC update: database write complete (%d rows)",
+        Sys.time(), job_id, nrow(hgnc_data)
+      ))
 
       # Return summary (not the full tibble — avoid memory overhead in job state)
       list(

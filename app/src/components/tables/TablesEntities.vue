@@ -1,27 +1,12 @@
 <!-- components/tables/TablesEntities.vue -->
 <template>
   <div class="container-fluid">
-    <BSpinner
-      v-if="loading"
-      label="Loading..."
-      class="float-center m-5"
-    />
-    <BContainer
-      v-else
-      fluid
-    >
+    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
+    <BContainer v-else fluid>
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="12"
-        >
+        <BCol col md="12">
           <!-- User Interface controls -->
-          <BCard
-            header-tag="header"
-            body-class="p-0"
-            header-class="p-1"
-            border-variant="dark"
-          >
+          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
             <template #header>
               <BRow>
                 <BCol>
@@ -32,10 +17,7 @@
                   />
                 </BCol>
                 <BCol>
-                  <h5
-                    v-if="showFilterControls"
-                    class="mb-1 text-end font-weight-bold"
-                  >
+                  <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
                     <TableDownloadLinkCopyButtons
                       :downloading="downloading"
                       :remove-filters-title="removeFiltersButtonTitle"
@@ -50,10 +32,7 @@
             </template>
 
             <BRow>
-              <BCol
-                class="my-1"
-                sm="8"
-              >
+              <BCol class="my-1" sm="8">
                 <TableSearchInput
                   v-model="filter['any'].content"
                   :placeholder="'Search any field by typing here'"
@@ -62,13 +41,8 @@
                 />
               </BCol>
 
-              <BCol
-                class="my-1"
-                sm="4"
-              >
-                <BContainer
-                  v-if="totalRows > perPage || showPaginationControls"
-                >
+              <BCol class="my-1" sm="4">
+                <BContainer v-if="totalRows > perPage || showPaginationControls">
                   <TablePaginationControls
                     :total-rows="totalRows"
                     :initial-per-page="perPage"
@@ -91,14 +65,8 @@
               @update-sort="handleSortUpdate"
             >
               <!-- Custom filter fields slot -->
-              <template
-                v-if="showFilterControls"
-                #filter-controls
-              >
-                <td
-                  v-for="field in fields"
-                  :key="field.key"
-                >
+              <template v-if="showFilterControls" #filter-controls>
+                <td v-for="field in fields" :key="field.key">
                   <BFormInput
                     v-if="field.filterable"
                     v-model="filter[field.key].content"
@@ -115,7 +83,10 @@
                     v-model="filter[field.key].content"
                     :options="field.selectOptions"
                     size="sm"
-                    @update:model-value="removeSearch();filtered();"
+                    @update:model-value="
+                      removeSearch();
+                      filtered();
+                    "
                   >
                     <template #first>
                       <BFormSelectOption :value="null">
@@ -124,18 +95,27 @@
                     </template>
                   </BFormSelect>
                   <BSpinner
-                    v-else-if="field.selectable && (!field.selectOptions || field.selectOptions.length === 0)"
+                    v-else-if="
+                      field.selectable && (!field.selectOptions || field.selectOptions.length === 0)
+                    "
                     small
                     label="Loading..."
                   />
 
                   <!-- Multi-select: temporarily use BFormSelect instead of treeselect for compatibility -->
                   <BFormSelect
-                    v-if="field.multi_selectable && field.selectOptions && field.selectOptions.length > 0"
+                    v-if="
+                      field.multi_selectable &&
+                      field.selectOptions &&
+                      field.selectOptions.length > 0
+                    "
                     v-model="filter[field.key].content"
                     :options="normalizeSelectOptions(field.selectOptions)"
                     size="sm"
-                    @update:model-value="removeSearch();filtered();"
+                    @update:model-value="
+                      removeSearch();
+                      filtered();
+                    "
                   >
                     <template #first>
                       <BFormSelectOption :value="null">
@@ -144,7 +124,10 @@
                     </template>
                   </BFormSelect>
                   <BSpinner
-                    v-else-if="field.multi_selectable && (!field.selectOptions || field.selectOptions.length === 0)"
+                    v-else-if="
+                      field.multi_selectable &&
+                      (!field.selectOptions || field.selectOptions.length === 0)
+                    "
                     small
                     label="Loading..."
                   />
@@ -211,7 +194,8 @@
   </div>
 </template>
 
-<script>/**
+<script>
+/**
  * TablesEntities Component
  *
  * This component is responsible for displaying and managing a table of entities.
@@ -274,8 +258,17 @@ export default {
   name: 'TablesEntities',
   components: {
     // Components used within TablesEntities
-    TablePaginationControls, TableDownloadLinkCopyButtons, TableHeaderLabel, TableSearchInput, GenericTable,
-    CategoryIcon, NddIcon, EntityBadge, GeneBadge, DiseaseBadge, InheritanceBadge,
+    TablePaginationControls,
+    TableDownloadLinkCopyButtons,
+    TableHeaderLabel,
+    TableSearchInput,
+    GenericTable,
+    CategoryIcon,
+    NddIcon,
+    EntityBadge,
+    GeneBadge,
+    DiseaseBadge,
+    InheritanceBadge,
   },
   props: {
     apiEndpoint: {
@@ -337,8 +330,16 @@ export default {
     });
 
     // Destructure to exclude functions we override in methods
-     
-    const { filtered: _filtered, handlePageChange: _handlePageChange, handlePerPageChange: _handlePerPageChange, handleSortByOrDescChange: _handleSortByOrDescChange, removeFilters: _removeFilters, removeSearch: _removeSearch, ...restTableMethods } = tableMethods;
+
+    const {
+      filtered: _filtered,
+      handlePageChange: _handlePageChange,
+      handlePerPageChange: _handlePerPageChange,
+      handleSortByOrDescChange: _handleSortByOrDescChange,
+      removeFilters: _removeFilters,
+      removeSearch: _removeSearch,
+      ...restTableMethods
+    } = tableMethods;
 
     // Return all needed properties
     return {
@@ -457,7 +458,7 @@ export default {
     },
   },
   created() {
-  // Lifecycle hooks
+    // Lifecycle hooks
   },
   mounted() {
     // Transform input sort string to Bootstrap-Vue-Next array format
@@ -568,7 +569,11 @@ export default {
     // Override removeFilters to use component's filter and filtered method
     removeFilters() {
       Object.keys(this.filter).forEach((key) => {
-        if (this.filter[key] && typeof this.filter[key] === 'object' && 'content' in this.filter[key]) {
+        if (
+          this.filter[key] &&
+          typeof this.filter[key] === 'object' &&
+          'content' in this.filter[key]
+        ) {
           this.filter[key].content = null;
         }
       });
@@ -592,20 +597,15 @@ export default {
       }, 50);
     },
     async doLoadData() {
-      const urlParam = `sort=${
-        this.sort
-      }&filter=${
-        this.filter_string
-      }&page_after=${
+      const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${
         this.currentItemID
-      }&page_size=${
-        this.perPage}`;
+      }&page_size=${this.perPage}`;
 
       const now = Date.now();
 
       // Prevent duplicate API calls using module-level tracking
       // This works across component remounts caused by router.replace()
-      if (moduleLastApiParams === urlParam && (now - moduleLastApiCallTime) < 500) {
+      if (moduleLastApiParams === urlParam && now - moduleLastApiCallTime < 500) {
         // Use cached response data for remounted component
         if (moduleLastApiResponse) {
           this.applyApiResponse(moduleLastApiResponse);
@@ -696,7 +696,10 @@ export default {
           return { value: opt, text: opt };
         }
         if (typeof opt === 'object' && opt !== null) {
-          return { value: opt.value || opt.id || opt, text: opt.text || opt.label || opt.name || opt };
+          return {
+            value: opt.value || opt.id || opt,
+            text: opt.text || opt.label || opt.name || opt,
+          };
         }
         return { value: opt, text: String(opt) };
       });
@@ -726,9 +729,9 @@ export default {
   white-space: nowrap;
 }
 :deep(.vue-treeselect__placeholder) {
-  color: #6C757D !important;
+  color: #6c757d !important;
 }
 :deep(.vue-treeselect__control) {
-  color: #6C757D !important;
+  color: #6c757d !important;
 }
 </style>

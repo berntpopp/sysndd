@@ -11,7 +11,7 @@ import type {
   StatisticsMeta,
   NewsItem,
   EntityCategory,
-  InheritanceFilter
+  InheritanceFilter,
 } from './models';
 
 // ============================================================================

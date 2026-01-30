@@ -32,8 +32,9 @@
  * Only the properties for which the predicate function returns `true` are included
  * in the returned object.
  */
-Object.filter = (obj, predicate) => Object.assign(
-  ...Object.keys(obj)
-    .filter((key) => predicate(obj[key]))
-    .map((key) => ({ [key]: obj[key] })),
-);
+Object.filter = (obj, predicate) =>
+  Object.assign(
+    ...Object.keys(obj)
+      .filter((key) => predicate(obj[key]))
+      .map((key) => ({ [key]: obj[key] }))
+  );

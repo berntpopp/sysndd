@@ -96,8 +96,8 @@ function wildcardToRegex(pattern: string): RegExp | null {
     // These are the only special chars we want users to use
     const escaped = pattern
       .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-      .replace(/\*/g, '.*')   // * -> match any characters (zero or more)
-      .replace(/\?/g, '.');   // ? -> match exactly one character
+      .replace(/\*/g, '.*') // * -> match any characters (zero or more)
+      .replace(/\?/g, '.'); // ? -> match exactly one character
 
     // Anchor the pattern for full match, case-insensitive
     return new RegExp(`^${escaped}$`, 'i');

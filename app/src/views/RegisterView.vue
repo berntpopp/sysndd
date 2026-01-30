@@ -1,10 +1,6 @@
 <template>
   <div class="container-fluid">
-    <BSpinner
-      v-if="loading"
-      label="Loading..."
-      class="float-center m-5"
-    />
+    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
 
     <BContainer v-else>
       <BRow class="justify-content-md-center py-4">
@@ -14,15 +10,10 @@
             header-bg-variant="dark"
             header-text-variant="white"
           >
-            <BOverlay
-              :show="show_overlay"
-              rounded="sm"
-            >
+            <BOverlay :show="show_overlay" rounded="sm">
               <BCardText>
                 <BForm @submit.prevent="onSubmit">
-                  <BFormGroup
-                    description="Enter your preferred user name (min 5 chars)"
-                  >
+                  <BFormGroup description="Enter your preferred user name (min 5 chars)">
                     <BFormInput
                       v-model="user_name"
                       placeholder="Username"
@@ -33,9 +24,7 @@
                     </BFormInvalidFeedback>
                   </BFormGroup>
 
-                  <BFormGroup
-                    description="Enter your institutional mail account"
-                  >
+                  <BFormGroup description="Enter your institutional mail account">
                     <BFormInput
                       v-model="email"
                       placeholder="mail@your-institution.com"
@@ -79,9 +68,7 @@
                     </BFormInvalidFeedback>
                   </BFormGroup>
 
-                  <BFormGroup
-                    description="Please describe why you want to help with SysNDD"
-                  >
+                  <BFormGroup description="Please describe why you want to help with SysNDD">
                     <BFormInput
                       v-model="comment"
                       placeholder="Your interest in SysNDD"
@@ -101,20 +88,13 @@
                     >
                       I accept the terms and use
                     </BFormCheckbox>
-                    <BFormInvalidFeedback
-                      v-if="termsError"
-                      class="d-block"
-                    >
+                    <BFormInvalidFeedback v-if="termsError" class="d-block">
                       {{ termsError }}
                     </BFormInvalidFeedback>
                   </BFormGroup>
 
                   <BFormGroup>
-                    <BButton
-                      class="ms-2"
-                      variant="outline-dark"
-                      @click="handleReset()"
-                    >
+                    <BButton class="ms-2" variant="outline-dark" @click="handleReset()">
                       Reset
                     </BButton>
                     <BButton
@@ -148,13 +128,7 @@
 import { ref } from 'vue';
 import { useHead } from '@unhead/vue';
 import { useForm, useField, defineRule } from 'vee-validate';
-import {
-  required,
-  min,
-  max,
-  email,
-  regex,
-} from '@vee-validate/rules';
+import { required, min, max, email, regex } from '@vee-validate/rules';
 import useToast from '@/composables/useToast';
 
 // Define validation rules
@@ -298,14 +272,11 @@ export default {
         const submission_json = JSON.stringify(registration_form);
         const response = await this.axios.get(apiUrl + submission_json, {});
         this.makeToast(
-          `${'Your registration request has been send '
-            + '(status '}${
-            response.status
-          } (${
+          `${'Your registration request has been send ' + '(status '}${response.status} (${
             response.statusText
           }).`,
           'Success',
-          'success',
+          'success'
         );
         this.successfulRegistration();
       } catch (e) {

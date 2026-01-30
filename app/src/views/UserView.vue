@@ -12,23 +12,17 @@
   <div class="container-fluid">
     <BContainer class="py-4">
       <BRow class="justify-content-center">
-        <BCol
-          lg="8"
-          xl="6"
-        >
+        <BCol lg="8" xl="6">
           <!-- Profile Header Card -->
-          <BCard
-            class="border-0 shadow-sm mb-4 overflow-hidden"
-          >
+          <BCard class="border-0 shadow-sm mb-4 overflow-hidden">
             <!-- Header Background -->
-            <div
-              class="profile-header-bg"
-              :class="`bg-${roleVariant}-subtle`"
-            />
+            <div class="profile-header-bg" :class="`bg-${roleVariant}-subtle`" />
 
             <BCardBody class="position-relative pt-0">
               <!-- Avatar & Identity Zone -->
-              <div class="d-flex flex-column flex-sm-row align-items-center align-items-sm-end gap-3 profile-identity">
+              <div
+                class="d-flex flex-column flex-sm-row align-items-center align-items-sm-end gap-3 profile-identity"
+              >
                 <div class="avatar-wrapper">
                   <div
                     class="avatar-circle d-flex align-items-center justify-content-center"
@@ -48,11 +42,10 @@
                   <h4 class="mb-1 fw-bold">
                     {{ user.user_name[0] }}
                   </h4>
-                  <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-sm-start gap-2">
-                    <BBadge
-                      :variant="roleVariant"
-                      class="d-inline-flex align-items-center gap-1"
-                    >
+                  <div
+                    class="d-flex flex-wrap align-items-center justify-content-center justify-content-sm-start gap-2"
+                  >
+                    <BBadge :variant="roleVariant" class="d-inline-flex align-items-center gap-1">
                       <i :class="`bi bi-${roleIcon}`" />
                       {{ user.user_role[0] }}
                     </BBadge>
@@ -69,7 +62,7 @@
                     class="d-flex align-items-center gap-1 px-2 py-1 rounded-pill"
                     :class="sessionStatusClass"
                   >
-                    <i class="bi bi-circle-fill" style="font-size: 0.5rem;" />
+                    <i class="bi bi-circle-fill" style="font-size: 0.5rem" />
                     <span class="small">{{ sessionStatusText }}</span>
                   </span>
                 </div>
@@ -80,39 +73,33 @@
           <!-- Stats Cards Row -->
           <BRow class="mb-4 g-3">
             <BCol cols="6">
-              <BCard
-                class="border-0 shadow-sm h-100 stat-card"
-                body-class="text-center py-4"
-              >
+              <BCard class="border-0 shadow-sm h-100 stat-card" body-class="text-center py-4">
                 <div class="stat-icon mb-2">
-                  <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary-subtle text-primary">
+                  <span
+                    class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary-subtle text-primary"
+                  >
                     <i class="bi bi-journal-check" />
                   </span>
                 </div>
                 <h3 class="mb-1 fw-bold text-primary">
                   {{ user.active_reviews }}
                 </h3>
-                <p class="mb-0 text-muted small">
-                  Active Reviews
-                </p>
+                <p class="mb-0 text-muted small">Active Reviews</p>
               </BCard>
             </BCol>
             <BCol cols="6">
-              <BCard
-                class="border-0 shadow-sm h-100 stat-card"
-                body-class="text-center py-4"
-              >
+              <BCard class="border-0 shadow-sm h-100 stat-card" body-class="text-center py-4">
                 <div class="stat-icon mb-2">
-                  <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success-subtle text-success">
+                  <span
+                    class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success-subtle text-success"
+                  >
                     <i class="bi bi-check2-square" />
                   </span>
                 </div>
                 <h3 class="mb-1 fw-bold text-success">
                   {{ user.active_status }}
                 </h3>
-                <p class="mb-0 text-muted small">
-                  Status Contributions
-                </p>
+                <p class="mb-0 text-muted small">Status Contributions</p>
               </BCard>
             </BCol>
           </BRow>
@@ -158,13 +145,10 @@
                       target="_blank"
                       class="detail-value text-decoration-none"
                     >
-                      <i class="bi bi-box-arrow-up-right me-1" style="font-size: 0.75rem;" />
+                      <i class="bi bi-box-arrow-up-right me-1" style="font-size: 0.75rem" />
                       {{ user.orcid[0] }}
                     </a>
-                    <span
-                      v-else
-                      class="detail-value text-muted"
-                    >Not provided</span>
+                    <span v-else class="detail-value text-muted">Not provided</span>
                   </div>
                 </div>
 
@@ -200,10 +184,7 @@
                       <span class="small fw-semibold">Auto-logout in</span>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                      <span
-                        class="session-timer fw-bold"
-                        :class="sessionTimerClass"
-                      >
+                      <span class="session-timer fw-bold" :class="sessionTimerClass">
                         {{ formatTimeRemaining }}
                       </span>
                     </div>
@@ -238,10 +219,7 @@
                   />
                 </BButton>
 
-                <BCollapse
-                  id="collapse-pass-change"
-                  v-model="pass_change_visible"
-                >
+                <BCollapse id="collapse-pass-change" v-model="pass_change_visible">
                   <div class="password-form p-3 rounded-3 bg-light">
                     <form @submit.prevent="onPasswordSubmit">
                       <BFormGroup class="mb-3">
@@ -253,7 +231,13 @@
                           type="password"
                           size="sm"
                           placeholder="Enter current password"
-                          :state="currentPasswordMeta.touched ? (currentPasswordError ? false : true) : null"
+                          :state="
+                            currentPasswordMeta.touched
+                              ? currentPasswordError
+                                ? false
+                                : true
+                              : null
+                          "
                         />
                         <BFormInvalidFeedback v-if="currentPasswordError">
                           {{ currentPasswordError }}
@@ -267,14 +251,11 @@
                             <i
                               id="password-help"
                               class="bi bi-question-circle text-muted"
-                              style="cursor: help;"
+                              style="cursor: help"
                             />
-                            <BTooltip
-                              target="password-help"
-                              triggers="hover"
-                              placement="right"
-                            >
-                              Must be 8+ characters with uppercase, lowercase, number, and special character (!@#$%^&*)
+                            <BTooltip target="password-help" triggers="hover" placement="right">
+                              Must be 8+ characters with uppercase, lowercase, number, and special
+                              character (!@#$%^&*)
                             </BTooltip>
                           </span>
                         </template>
@@ -283,7 +264,9 @@
                           type="password"
                           size="sm"
                           placeholder="Enter new password"
-                          :state="newPasswordMeta.touched ? (newPasswordError ? false : true) : null"
+                          :state="
+                            newPasswordMeta.touched ? (newPasswordError ? false : true) : null
+                          "
                         />
                         <BFormInvalidFeedback v-if="newPasswordError">
                           {{ newPasswordError }}
@@ -299,7 +282,13 @@
                           type="password"
                           size="sm"
                           placeholder="Repeat new password"
-                          :state="confirmPasswordMeta.touched ? (confirmPasswordError ? false : true) : null"
+                          :state="
+                            confirmPasswordMeta.touched
+                              ? confirmPasswordError
+                                ? false
+                                : true
+                              : null
+                          "
                         />
                         <BFormInvalidFeedback v-if="confirmPasswordError">
                           {{ confirmPasswordError }}
@@ -307,11 +296,7 @@
                       </BFormGroup>
 
                       <div class="d-flex gap-2">
-                        <BButton
-                          type="submit"
-                          variant="primary"
-                          size="sm"
-                        >
+                        <BButton type="submit" variant="primary" size="sm">
                           <i class="bi bi-check-lg me-1" />
                           Update Password
                         </BButton>
@@ -558,12 +543,12 @@ export default {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          },
+          }
         );
         this.makeToast(
           `${response_password_change.data.message} (status ${response_password_change.status})`,
           'Success',
-          'success',
+          'success'
         );
         this.pass_change_visible = false;
       } catch (e) {
@@ -624,7 +609,9 @@ export default {
 
 /* Stats Cards */
 .stat-card {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .stat-card:hover {

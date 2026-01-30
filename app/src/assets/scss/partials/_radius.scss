@@ -4,13 +4,13 @@
 :root {
   // Radius scale
   --radius-none: 0;
-  --radius-xs: 0.125rem;   // 2px - minimal rounding
-  --radius-sm: 0.25rem;    // 4px - subtle rounding
-  --radius-md: 0.375rem;   // 6px - default card corners
-  --radius-lg: 0.5rem;     // 8px - prominent rounding
-  --radius-xl: 0.75rem;    // 12px - large rounding
-  --radius-2xl: 1rem;      // 16px - maximum rounding
-  --radius-full: 9999px;   // Pill shape (for badges, buttons)
+  --radius-xs: 0.125rem; // 2px - minimal rounding
+  --radius-sm: 0.25rem; // 4px - subtle rounding
+  --radius-md: 0.375rem; // 6px - default card corners
+  --radius-lg: 0.5rem; // 8px - prominent rounding
+  --radius-xl: 0.75rem; // 12px - large rounding
+  --radius-2xl: 1rem; // 16px - maximum rounding
+  --radius-full: 9999px; // Pill shape (for badges, buttons)
 }
 
 // Utility classes for radius application

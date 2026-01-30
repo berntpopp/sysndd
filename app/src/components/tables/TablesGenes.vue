@@ -1,27 +1,12 @@
 <!-- components/tables/TablesGenes.vue -->
 <template>
   <div class="container-fluid">
-    <BSpinner
-      v-if="loading"
-      label="Loading..."
-      class="float-center m-5"
-    />
-    <BContainer
-      v-else
-      fluid
-    >
+    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
+    <BContainer v-else fluid>
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="12"
-        >
+        <BCol col md="12">
           <!-- User Interface controls -->
-          <BCard
-            header-tag="header"
-            body-class="p-0"
-            header-class="p-1"
-            border-variant="dark"
-          >
+          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
             <template #header>
               <BRow>
                 <BCol>
@@ -32,10 +17,7 @@
                   />
                 </BCol>
                 <BCol>
-                  <h5
-                    v-if="showFilterControls"
-                    class="mb-1 text-end font-weight-bold"
-                  >
+                  <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
                     <TableDownloadLinkCopyButtons
                       :downloading="downloading"
                       :remove-filters-title="removeFiltersButtonTitle"
@@ -50,10 +32,7 @@
             </template>
 
             <BRow>
-              <BCol
-                class="my-1"
-                sm="8"
-              >
+              <BCol class="my-1" sm="8">
                 <TableSearchInput
                   v-model="filter['any'].content"
                   :placeholder="'Search any field by typing here'"
@@ -62,13 +41,8 @@
                 />
               </BCol>
 
-              <BCol
-                class="my-1"
-                sm="4"
-              >
-                <BContainer
-                  v-if="totalRows > perPage || showPaginationControls"
-                >
+              <BCol class="my-1" sm="4">
+                <BContainer v-if="totalRows > perPage || showPaginationControls">
                   <TablePaginationControls
                     :total-rows="totalRows"
                     :initial-per-page="perPage"
@@ -107,94 +81,97 @@
                   data-html="true"
                   :title="
                     data.label +
-                      ' (unique filtered/total values: ' +
-                      fields
-                        .filter((item) => item.label === data.label)
-                        .map((item) => {
-                          return item.count_filtered;
-                        })[0] +
-                      '/' +
-                      fields
-                        .filter((item) => item.label === data.label)
-                        .map((item) => {
-                          return item.count;
-                        })[0] +
-                      ')'
+                    ' (unique filtered/total values: ' +
+                    fields
+                      .filter((item) => item.label === data.label)
+                      .map((item) => {
+                        return item.count_filtered;
+                      })[0] +
+                    '/' +
+                    fields
+                      .filter((item) => item.label === data.label)
+                      .map((item) => {
+                        return item.count;
+                      })[0] +
+                    ')'
                   "
                 >
-                  {{ truncate(data.label.replace(/( word)|( name)/g, ""), 20) }}
+                  {{ truncate(data.label.replace(/( word)|( name)/g, ''), 20) }}
                 </div>
               </template>
 
               <!-- Filter row in table header - Bootstrap-Vue-Next uses #thead-top instead of slot="top-row" -->
               <template #thead-top>
                 <tr>
-                  <td
-                    v-for="field in fields"
-                    :key="field.key"
-                  >
-                  <BFormInput
-                    v-if="field.filterable"
-                    v-model="filter[field.key].content"
-                    :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
-                    debounce="500"
-                    type="search"
-                    autocomplete="off"
-                    @click="removeSearch()"
-                    @update:model-value="filtered()"
-                  />
-
-                  <label
-                    v-if="field.selectable"
-                    :for="'select_' + field.key"
-                    :aria-label="field.label"
-                  >
-                    <BFormSelect
-                      :id="'select_' + field.key"
+                  <td v-for="field in fields" :key="field.key">
+                    <BFormInput
+                      v-if="field.filterable"
                       v-model="filter[field.key].content"
-                      :options="field.selectOptions"
-                      size="sm"
-                      @update:model-value="removeSearch();filtered();"
-                    >
-                      <template #first>
-                        <BFormSelectOption :value="null">
-                          .. {{ truncate(field.label, 20) }} ..
-                        </BFormSelectOption>
-                      </template>
-                    </BFormSelect>
-                  </label>
+                      :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
+                      debounce="500"
+                      type="search"
+                      autocomplete="off"
+                      @click="removeSearch()"
+                      @update:model-value="filtered()"
+                    />
 
-                  <!-- TODO: treeselect disabled pending Bootstrap-Vue-Next migration -->
-                  <label
-                    v-if="field.multi_selectable && field.selectOptions && field.selectOptions.length > 0"
-                    :for="'select_' + field.key"
-                    :aria-label="field.label"
-                  >
-                    <BFormSelect
-                      :id="'select_' + field.key"
-                      v-model="filter[field.key].content"
-                      :options="normalizeSelectOptions(field.selectOptions)"
-                      size="sm"
-                      @update:model-value="removeSearch();filtered();"
+                    <label
+                      v-if="field.selectable"
+                      :for="'select_' + field.key"
+                      :aria-label="field.label"
                     >
-                      <template #first>
-                        <BFormSelectOption :value="null">
-                          .. {{ truncate(field.label, 20) }} ..
-                        </BFormSelectOption>
-                      </template>
-                    </BFormSelect>
-                  </label>
+                      <BFormSelect
+                        :id="'select_' + field.key"
+                        v-model="filter[field.key].content"
+                        :options="field.selectOptions"
+                        size="sm"
+                        @update:model-value="
+                          removeSearch();
+                          filtered();
+                        "
+                      >
+                        <template #first>
+                          <BFormSelectOption :value="null">
+                            .. {{ truncate(field.label, 20) }} ..
+                          </BFormSelectOption>
+                        </template>
+                      </BFormSelect>
+                    </label>
+
+                    <!-- TODO: treeselect disabled pending Bootstrap-Vue-Next migration -->
+                    <label
+                      v-if="
+                        field.multi_selectable &&
+                        field.selectOptions &&
+                        field.selectOptions.length > 0
+                      "
+                      :for="'select_' + field.key"
+                      :aria-label="field.label"
+                    >
+                      <BFormSelect
+                        :id="'select_' + field.key"
+                        v-model="filter[field.key].content"
+                        :options="normalizeSelectOptions(field.selectOptions)"
+                        size="sm"
+                        @update:model-value="
+                          removeSearch();
+                          filtered();
+                        "
+                      >
+                        <template #first>
+                          <BFormSelectOption :value="null">
+                            .. {{ truncate(field.label, 20) }} ..
+                          </BFormSelectOption>
+                        </template>
+                      </BFormSelect>
+                    </label>
                   </td>
                 </tr>
               </template>
 
               <template #cell(details)="row">
-                <BButton
-                  class="btn-xs"
-                  variant="outline-primary"
-                  @click="row.toggleDetails"
-                >
-                  {{ row.detailsShowing ? "Hide" : "Show" }}
+                <BButton class="btn-xs" variant="outline-primary" @click="row.toggleDetails">
+                  {{ row.detailsShowing ? 'Hide' : 'Show' }}
                 </BButton>
               </template>
 
@@ -222,21 +199,34 @@
                       <DiseaseBadge
                         :name="data.item.disease_ontology_name"
                         :ontology-id="data.item.disease_ontology_id_version"
-                        :link-to="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"
+                        :link-to="
+                          '/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')
+                        "
                         :max-length="35"
                         size="sm"
                       />
                     </template>
 
                     <template #cell(ndd_phenotype_word)="data">
-                      <div v-b-tooltip.hover.left :title="ndd_icon_text[data.item.ndd_phenotype_word]">
-                        <NddIcon :status="data.item.ndd_phenotype_word" size="sm" :show-title="false" />
+                      <div
+                        v-b-tooltip.hover.left
+                        :title="ndd_icon_text[data.item.ndd_phenotype_word]"
+                      >
+                        <NddIcon
+                          :status="data.item.ndd_phenotype_word"
+                          size="sm"
+                          :show-title="false"
+                        />
                       </div>
                     </template>
 
                     <template #cell(category)="data">
                       <div v-b-tooltip.hover.left :title="data.item.category">
-                        <CategoryIcon :category="data.item.category" size="sm" :show-title="false" />
+                        <CategoryIcon
+                          :category="data.item.category"
+                          size="sm"
+                          :show-title="false"
+                        />
                       </div>
                     </template>
 
@@ -299,11 +289,7 @@
               </template>
 
               <template #cell(entities_count)="data">
-                <BBadge
-                  variant="secondary"
-                  pill
-                  class="px-2"
-                >
+                <BBadge variant="secondary" pill class="px-2">
                   {{ data.item.entities_count }}
                 </BBadge>
               </template>
@@ -367,8 +353,18 @@ export default {
   // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
   components: {
     // Components used within TablesGenes
-    BTable, BCard, TablePaginationControls, TableDownloadLinkCopyButtons, TableHeaderLabel, TableSearchInput,
-    CategoryIcon, NddIcon, GeneBadge, InheritanceBadge, EntityBadge, DiseaseBadge,
+    BTable,
+    BCard,
+    TablePaginationControls,
+    TableDownloadLinkCopyButtons,
+    TableHeaderLabel,
+    TableSearchInput,
+    CategoryIcon,
+    NddIcon,
+    GeneBadge,
+    InheritanceBadge,
+    EntityBadge,
+    DiseaseBadge,
   },
   props: {
     apiEndpoint: {
@@ -430,8 +426,14 @@ export default {
     });
 
     // Destructure to exclude functions we override in methods
-     
-    const { filtered: _filtered, handlePageChange: _handlePageChange, handlePerPageChange: _handlePerPageChange, handleSortByOrDescChange: _handleSortByOrDescChange, ...restTableMethods } = tableMethods;
+
+    const {
+      filtered: _filtered,
+      handlePageChange: _handlePageChange,
+      handlePerPageChange: _handlePerPageChange,
+      handleSortByOrDescChange: _handleSortByOrDescChange,
+      ...restTableMethods
+    } = tableMethods;
 
     // Return all needed properties
     return {
@@ -670,7 +672,7 @@ export default {
 
       // Prevent duplicate API calls using module-level tracking
       // This works across component remounts caused by router.replace()
-      if (moduleLastApiParams === urlParam && (now - moduleLastApiCallTime) < 500) {
+      if (moduleLastApiParams === urlParam && now - moduleLastApiCallTime < 500) {
         // Use cached response data for remounted component
         if (moduleLastApiResponse) {
           this.applyApiResponse(moduleLastApiResponse);
@@ -767,9 +769,9 @@ export default {
   white-space: nowrap;
 }
 :deep(.vue-treeselect__placeholder) {
-  color: #6C757D !important;
+  color: #6c757d !important;
 }
 :deep(.vue-treeselect__control) {
-  color: #6C757D !important;
+  color: #6c757d !important;
 }
 </style>

@@ -26,339 +26,207 @@
 
     <!-- ID column (generic) -->
     <template #cell(id)="data">
-      <slot
-        name="cell-id"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-id" :row="data.item" :index="data.index">
         {{ data.item.id }}
       </slot>
     </template>
 
     <!-- Entity ID column -->
     <template #cell(entity_id)="data">
-      <slot
-        name="cell-entity_id"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-entity_id" :row="data.item" :index="data.index">
         {{ data.item.entity_id }}
       </slot>
     </template>
 
     <!-- Symbol column -->
     <template #cell(symbol)="data">
-      <slot
-        name="cell-symbol"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-symbol" :row="data.item" :index="data.index">
         {{ data.item.symbol }}
       </slot>
     </template>
 
     <!-- Disease ontology name column -->
     <template #cell(disease_ontology_name)="data">
-      <slot
-        name="cell-disease_ontology_name"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-disease_ontology_name" :row="data.item" :index="data.index">
         {{ data.item.disease_ontology_name }}
       </slot>
     </template>
 
     <!-- HPO mode of inheritance column -->
     <template #cell(hpo_mode_of_inheritance_term_name)="data">
-      <slot
-        name="cell-hpo_mode_of_inheritance_term_name"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-hpo_mode_of_inheritance_term_name" :row="data.item" :index="data.index">
         {{ data.item.hpo_mode_of_inheritance_term_name }}
       </slot>
     </template>
 
     <!-- Category column -->
     <template #cell(category)="data">
-      <slot
-        name="cell-category"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-category" :row="data.item" :index="data.index">
         {{ data.item.category }}
       </slot>
     </template>
 
     <!-- NDD phenotype column -->
     <template #cell(ndd_phenotype_word)="data">
-      <slot
-        name="cell-ndd_phenotype_word"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-ndd_phenotype_word" :row="data.item" :index="data.index">
         {{ data.item.ndd_phenotype_word }}
       </slot>
     </template>
 
     <!-- Actions column -->
     <template #cell(actions)="data">
-      <slot
-        name="cell-actions"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-actions" :row="data.item" :index="data.index">
         {{ data.item.actions }}
       </slot>
     </template>
 
     <!-- Log-related columns -->
     <template #cell(agent)="data">
-      <slot
-        name="cell-agent"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-agent" :row="data.item" :index="data.index">
         {{ data.item.agent }}
       </slot>
     </template>
 
     <template #cell(status)="data">
-      <slot
-        name="cell-status"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-status" :row="data.item" :index="data.index">
         {{ data.item.status }}
       </slot>
     </template>
 
     <template #cell(request_method)="data">
-      <slot
-        name="cell-request_method"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-request_method" :row="data.item" :index="data.index">
         {{ data.item.request_method }}
       </slot>
     </template>
 
     <template #cell(query)="data">
-      <slot
-        name="cell-query"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-query" :row="data.item" :index="data.index">
         {{ data.item.query }}
       </slot>
     </template>
 
     <template #cell(timestamp)="data">
-      <slot
-        name="cell-timestamp"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-timestamp" :row="data.item" :index="data.index">
         {{ data.item.timestamp }}
       </slot>
     </template>
 
     <template #cell(modified)="data">
-      <slot
-        name="cell-modified"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-modified" :row="data.item" :index="data.index">
         {{ data.item.modified }}
       </slot>
     </template>
 
     <template #cell(path)="data">
-      <slot
-        name="cell-path"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-path" :row="data.item" :index="data.index">
         {{ data.item.path }}
       </slot>
     </template>
 
     <template #cell(host)="data">
-      <slot
-        name="cell-host"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-host" :row="data.item" :index="data.index">
         {{ data.item.host }}
       </slot>
     </template>
 
     <template #cell(address)="data">
-      <slot
-        name="cell-address"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-address" :row="data.item" :index="data.index">
         {{ data.item.address }}
       </slot>
     </template>
 
     <template #cell(duration)="data">
-      <slot
-        name="cell-duration"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-duration" :row="data.item" :index="data.index">
         {{ data.item.duration }}
       </slot>
     </template>
 
     <template #cell(file)="data">
-      <slot
-        name="cell-file"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-file" :row="data.item" :index="data.index">
         {{ data.item.file }}
       </slot>
     </template>
 
     <template #cell(post)="data">
-      <slot
-        name="cell-post"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-post" :row="data.item" :index="data.index">
         {{ data.item.post }}
       </slot>
     </template>
 
     <!-- Approved column -->
     <template #cell(approved)="data">
-      <slot
-        name="cell-approved"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-approved" :row="data.item" :index="data.index">
         {{ data.item.approved }}
       </slot>
     </template>
 
     <!-- User role column -->
     <template #cell(user_role)="data">
-      <slot
-        name="cell-user_role"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-user_role" :row="data.item" :index="data.index">
         {{ data.item.user_role }}
       </slot>
     </template>
 
     <!-- Cluster number column (for combined cluster data) -->
     <template #cell(cluster_num)="data">
-      <slot
-        name="cell-cluster_num"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-cluster_num" :row="data.item" :index="data.index">
         {{ data.item.cluster_num }}
       </slot>
     </template>
 
     <!-- Curation comparison columns -->
     <template #cell(SysNDD)="data">
-      <slot
-        name="cell-SysNDD"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-SysNDD" :row="data.item" :index="data.index">
         {{ data.item.SysNDD }}
       </slot>
     </template>
 
     <template #cell(radboudumc_ID)="data">
-      <slot
-        name="cell-radboudumc_ID"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-radboudumc_ID" :row="data.item" :index="data.index">
         {{ data.item.radboudumc_ID }}
       </slot>
     </template>
 
     <template #cell(gene2phenotype)="data">
-      <slot
-        name="cell-gene2phenotype"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-gene2phenotype" :row="data.item" :index="data.index">
         {{ data.item.gene2phenotype }}
       </slot>
     </template>
 
     <template #cell(panelapp)="data">
-      <slot
-        name="cell-panelapp"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-panelapp" :row="data.item" :index="data.index">
         {{ data.item.panelapp }}
       </slot>
     </template>
 
     <template #cell(sfari)="data">
-      <slot
-        name="cell-sfari"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-sfari" :row="data.item" :index="data.index">
         {{ data.item.sfari }}
       </slot>
     </template>
 
     <template #cell(geisinger_DBD)="data">
-      <slot
-        name="cell-geisinger_DBD"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-geisinger_DBD" :row="data.item" :index="data.index">
         {{ data.item.geisinger_DBD }}
       </slot>
     </template>
 
     <template #cell(omim_ndd)="data">
-      <slot
-        name="cell-omim_ndd"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-omim_ndd" :row="data.item" :index="data.index">
         {{ data.item.omim_ndd }}
       </slot>
     </template>
 
     <template #cell(orphanet_id)="data">
-      <slot
-        name="cell-orphanet_id"
-        :row="data.item"
-        :index="data.index"
-      >
+      <slot name="cell-orphanet_id" :row="data.item" :index="data.index">
         {{ data.item.orphanet_id }}
       </slot>
     </template>
 
     <!-- Description column with truncation and tooltip -->
     <template #cell(description)="data">
-      <slot
-        name="cell-description"
-        :row="data.item"
-        :index="data.index"
-      >
-        <span
-          v-b-tooltip.hover.top
-          class="description-text"
-          :title="data.item.description"
-        >
+      <slot name="cell-description" :row="data.item" :index="data.index">
+        <span v-b-tooltip.hover.top class="description-text" :title="data.item.description">
           {{ data.item.description }}
         </span>
       </slot>
@@ -366,24 +234,15 @@
 
     <!-- Details column -->
     <template #cell(details)="row">
-      <BButton
-        class="btn-xs"
-        variant="outline-primary"
-        @click="row.toggleDetails"
-      >
-        {{ row.detailsShowing ? "Hide" : "Show" }}
+      <BButton class="btn-xs" variant="outline-primary" @click="row.toggleDetails">
+        {{ row.detailsShowing ? 'Hide' : 'Show' }}
       </BButton>
     </template>
 
     <!-- Row details -->
     <template #row-details="row">
       <BCard>
-        <BTable
-          :items="[row.item]"
-          :fields="fieldDetails"
-          stacked
-          small
-        />
+        <BTable :items="[row.item]" :fields="fieldDetails" stacked small />
       </BCard>
     </template>
   </BTable>
@@ -444,10 +303,12 @@ export default {
       }
       // Convert string to array format for Bootstrap-Vue-Next
       if (typeof this.sortBy === 'string' && this.sortBy) {
-        return [{
-          key: this.sortBy,
-          order: this.sortDesc ? 'desc' : 'asc',
-        }];
+        return [
+          {
+            key: this.sortBy,
+            order: this.sortDesc ? 'desc' : 'asc',
+          },
+        ];
       }
       // Default to empty array
       return [];

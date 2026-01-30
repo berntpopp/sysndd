@@ -2,25 +2,13 @@
 <template>
   <div class="container-fluid">
     <!-- Show an overlay spinner while loading -->
-    <BSpinner
-      v-if="loading"
-      label="Loading..."
-      class="float-center m-5"
-    />
+    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
     <!-- Once loaded, show the table container -->
-    <BContainer
-      v-else
-      fluid
-    >
+    <BContainer v-else fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol md="12">
           <!-- b-card wrapper for the table and controls -->
-          <BCard
-            header-tag="header"
-            body-class="p-0"
-            header-class="p-1"
-            border-variant="dark"
-          >
+          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
             <!-- Card Header -->
             <template #header>
               <BRow>
@@ -32,10 +20,7 @@
                   />
                 </BCol>
                 <BCol>
-                  <h5
-                    v-if="showFilterControls"
-                    class="mb-1 text-end font-weight-bold"
-                  >
+                  <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
                     <TableDownloadLinkCopyButtons
                       :downloading="downloading"
                       :remove-filters-title="removeFiltersButtonTitle"
@@ -52,10 +37,7 @@
             <!-- Controls (search + pagination) -->
             <BRow>
               <!-- Search box for "any" field -->
-              <BCol
-                class="my-1"
-                sm="8"
-              >
+              <BCol class="my-1" sm="8">
                 <TableSearchInput
                   v-model="filter.any.content"
                   :placeholder="'Search any field by typing here'"
@@ -65,13 +47,8 @@
               </BCol>
 
               <!-- Pagination controls -->
-              <BCol
-                class="my-1"
-                sm="4"
-              >
-                <BContainer
-                  v-if="totalRows > perPage || showPaginationControls"
-                >
+              <BCol class="my-1" sm="4">
+                <BContainer v-if="totalRows > perPage || showPaginationControls">
                   <!--
                     TablePaginationControls will emit:
                     @page-change="handlePageChange"
@@ -99,14 +76,8 @@
               @update-sort="handleSortUpdate"
             >
               <!-- Custom filter fields slot -->
-              <template
-                v-if="showFilterControls"
-                #filter-controls
-              >
-                <td
-                  v-for="field in fields"
-                  :key="field.key"
-                >
+              <template v-if="showFilterControls" #filter-controls>
+                <td v-for="field in fields" :key="field.key">
                   <BFormInput
                     v-if="field.filterable"
                     v-model="filter[field.key].content"
@@ -135,7 +106,11 @@
 
                   <!-- TODO: treeselect disabled pending Bootstrap-Vue-Next migration -->
                   <label
-                    v-if="field.multi_selectable && field.selectOptions && field.selectOptions.length > 0"
+                    v-if="
+                      field.multi_selectable &&
+                      field.selectOptions &&
+                      field.selectOptions.length > 0
+                    "
                     :for="'select_' + field.key"
                     :aria-label="field.label"
                   >
@@ -144,7 +119,10 @@
                       v-model="filter[field.key].content"
                       :options="normalizeSelectOptions(field.selectOptions)"
                       size="sm"
-                      @change="removeSearch();filtered();"
+                      @change="
+                        removeSearch();
+                        filtered();
+                      "
                     >
                       <template #first>
                         <BFormSelectOption :value="null">
@@ -160,10 +138,7 @@
               <!-- Example custom slot for 'publication_id' -->
               <template #cell-publication_id="{ row }">
                 <div>
-                  <BBadge
-                    variant="primary"
-                    style="cursor: pointer"
-                  >
+                  <BBadge variant="primary" style="cursor: pointer">
                     {{ row.publication_id }}
                   </BBadge>
                 </div>
@@ -171,11 +146,7 @@
 
               <!-- Example custom slot for 'Title' -->
               <template #cell-Title="{ row }">
-                <div
-                  v-b-tooltip.hover
-                  class="overflow-hidden text-truncate"
-                  :title="row.Title"
-                >
+                <div v-b-tooltip.hover class="overflow-hidden text-truncate" :title="row.Title">
                   {{ truncate(row.Title, 50) }}
                 </div>
               </template>
@@ -207,13 +178,7 @@
 import { ref, inject } from 'vue';
 
 // Import composables
-import {
-  useToast,
-  useUrlParsing,
-  useColorAndSymbols,
-  useText,
-  useTableData,
-} from '@/composables';
+import { useToast, useUrlParsing, useColorAndSymbols, useText, useTableData } from '@/composables';
 
 // Small reusable components
 import TableHeaderLabel from '@/components/small/TableHeaderLabel.vue';
@@ -379,11 +344,12 @@ export default {
       this.isBusy = true;
 
       // Build query
-      const urlParam = `sort=${this.sort}`
-        + `&filter=${this.filter_string}`
-        + `&page_after=${this.currentItemID}`
-        + `&page_size=${this.perPage}`
-        + `&fields=${this.fspecInput}`;
+      const urlParam =
+        `sort=${this.sort}` +
+        `&filter=${this.filter_string}` +
+        `&page_after=${this.currentItemID}` +
+        `&page_size=${this.perPage}` +
+        `&fields=${this.fspecInput}`;
 
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/${this.apiEndpoint}?${urlParam}`;
 
@@ -501,7 +467,8 @@ export default {
     handleSortByOrDescChange() {
       this.currentItemID = 0;
       // Ensure sortBy is a string for the API URL
-      const sortColumn = typeof this.sortBy === 'string' ? this.sortBy : (this.sortBy[0]?.key || 'publication_id');
+      const sortColumn =
+        typeof this.sortBy === 'string' ? this.sortBy : this.sortBy[0]?.key || 'publication_id';
       this.sort = (!this.sortDesc ? '+' : '-') + sortColumn;
       this.filtered();
     },
@@ -513,12 +480,13 @@ export default {
     async requestExcel() {
       this.downloading = true;
       // For instance: &page_after=0&page_size=all&format=xlsx
-      const urlParam = `sort=${this.sort}`
-        + `&filter=${this.filter_string}`
-        + '&page_after=0'
-        + '&page_size=all'
-        + '&format=xlsx'
-        + `&fields=${this.fspecInput}`;
+      const urlParam =
+        `sort=${this.sort}` +
+        `&filter=${this.filter_string}` +
+        '&page_after=0' +
+        '&page_size=all' +
+        '&format=xlsx' +
+        `&fields=${this.fspecInput}`;
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/${this.apiEndpoint}?${urlParam}`;
 
       try {
@@ -545,10 +513,11 @@ export default {
      * Copies the current table state (sort, filter, pagination) to the clipboard as a URL
      */
     copyLinkToClipboard() {
-      const urlParam = `sort=${this.sort}`
-        + `&filter=${this.filter_string}`
-        + `&page_after=${this.currentItemID}`
-        + `&page_size=${this.perPage}`;
+      const urlParam =
+        `sort=${this.sort}` +
+        `&filter=${this.filter_string}` +
+        `&page_after=${this.currentItemID}` +
+        `&page_size=${this.perPage}`;
       const fullUrl = `${import.meta.env.VITE_URL + this.$route.path}?${urlParam}`;
       navigator.clipboard.writeText(fullUrl);
       this.makeToast('Link copied to clipboard', 'Info', 'info');

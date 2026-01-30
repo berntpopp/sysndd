@@ -29,10 +29,7 @@ export function useTreeSearch(
       // Check if node matches any of the specified fields
       const nodeMatches = matchFields.some((field) => {
         const value = node[field];
-        return (
-          typeof value === 'string' &&
-          value.toLowerCase().includes(lowerQuery)
-        );
+        return typeof value === 'string' && value.toLowerCase().includes(lowerQuery);
       });
 
       // Recursively filter children
@@ -51,9 +48,7 @@ export function useTreeSearch(
       return null;
     }
 
-    return options.value
-      .map(filterNode)
-      .filter((n): n is TreeNode => n !== null);
+    return options.value.map(filterNode).filter((n): n is TreeNode => n !== null);
   });
 
   return { filteredOptions };

@@ -26,9 +26,7 @@
         @blur="touchField('statusId')"
       >
         <template #first>
-          <BFormSelectOption :value="null">
-            Select classification status...
-          </BFormSelectOption>
+          <BFormSelectOption :value="null"> Select classification status... </BFormSelectOption>
         </template>
       </BFormSelect>
       <small id="status-help" class="text-muted d-block mt-1">
@@ -36,11 +34,7 @@
       </small>
 
       <!-- Status explanation -->
-      <BAlert
-        variant="light"
-        :model-value="true"
-        class="mt-3 status-guide"
-      >
+      <BAlert variant="light" :model-value="true" class="mt-3 status-guide">
         <div class="fw-bold mb-2">Classification Guide:</div>
         <ul class="mb-0 ps-3">
           <li><strong>Definitive:</strong> 3+ unrelated cases with consistent phenotype</li>
@@ -53,11 +47,7 @@
     </BFormGroup>
 
     <!-- Comment -->
-    <BFormGroup
-      label="Comment"
-      label-for="comment-textarea"
-      class="mb-3"
-    >
+    <BFormGroup label="Comment" label-for="comment-textarea" class="mb-3">
       <template #label>
         <span class="fw-bold">Comment</span>
         <span class="text-muted fw-normal ms-1">(optional)</span>

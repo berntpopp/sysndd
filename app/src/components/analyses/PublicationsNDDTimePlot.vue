@@ -1,12 +1,7 @@
 <!-- src/components/analyses/PublicationsNDDTimePlot.vue -->
 <template>
   <BContainer fluid>
-    <BCard
-      header-tag="header"
-      body-class="p-0"
-      header-class="p-1"
-      border-variant="dark"
-    >
+    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
           <h6 class="mb-1 text-start font-weight-bold">
@@ -17,26 +12,14 @@
             >
               (Interactive)
             </mark>
-            <BBadge
-              id="popover-badge-help-timeplot"
-              pill
-              href="#"
-              variant="info"
-            >
+            <BBadge id="popover-badge-help-timeplot" pill href="#" variant="info">
               <i class="bi bi-question-circle-fill" />
             </BBadge>
-            <BPopover
-              target="popover-badge-help-timeplot"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Publications Over Time / Type
-              </template>
-              This plot can display either the publication_date_aggregated,
-              update_date_aggregated line graphs or a bar chart of
-              publication_type_counts. Hover over the points/bars to see
-              the details.
+            <BPopover target="popover-badge-help-timeplot" variant="info" triggers="focus">
+              <template #title> Publications Over Time / Type </template>
+              This plot can display either the publication_date_aggregated, update_date_aggregated
+              line graphs or a bar chart of publication_type_counts. Hover over the points/bars to
+              see the details.
             </BPopover>
           </h6>
         </div>
@@ -44,36 +27,17 @@
 
       <!-- Controls row -->
       <BRow>
-        <BCol
-          class="my-1"
-          sm="4"
-        >
-          <BInputGroup
-            prepend="Display"
-            size="sm"
-            class="mb-1"
-          >
-            <BFormSelect
-              v-model="plotMode"
-              :options="plotModeOptions"
-              @change="generateGraph"
-            />
+        <BCol class="my-1" sm="4">
+          <BInputGroup prepend="Display" size="sm" class="mb-1">
+            <BFormSelect v-model="plotMode" :options="plotModeOptions" @change="generateGraph" />
           </BInputGroup>
         </BCol>
       </BRow>
 
       <!-- Overlay spinner & SVG container -->
       <div class="position-relative">
-        <BSpinner
-          v-if="loading"
-          label="Loading..."
-          class="spinner"
-        />
-        <div
-          v-show="!loading"
-          id="pubs_dataviz"
-          class="svg-container"
-        />
+        <BSpinner v-if="loading" label="Loading..." class="spinner" />
+        <div v-show="!loading" id="pubs_dataviz" class="svg-container" />
       </div>
     </BCard>
   </BContainer>
@@ -154,7 +118,10 @@ export default {
     generateLinePlot(dataArr, dateKey) {
       // basic margin & dimension
       const margin = {
-        top: 30, right: 30, bottom: 50, left: 60,
+        top: 30,
+        right: 30,
+        bottom: 50,
+        left: 60,
       };
       const width = 600 - margin.left - margin.right;
       const height = 400 - margin.top - margin.bottom;
@@ -182,10 +149,7 @@ export default {
         .domain(d3.extent(data, (d) => d.dateVal))
         .range([0, width]);
 
-      svg
-        .append('g')
-        .attr('transform', `translate(0,${height})`)
-        .call(d3.axisBottom(x));
+      svg.append('g').attr('transform', `translate(0,${height})`).call(d3.axisBottom(x));
 
       // y scale
       const maxCount = d3.max(data, (d) => d.count);
@@ -277,7 +241,10 @@ export default {
     generateBarPlot(countArr) {
       // margin & dimension
       const margin = {
-        top: 30, right: 30, bottom: 150, left: 100,
+        top: 30,
+        right: 30,
+        bottom: 150,
+        left: 100,
       };
       const width = 600 - margin.left - margin.right;
       const height = 400 - margin.top - margin.bottom;
@@ -344,7 +311,9 @@ export default {
        */
       function handleBarMouseMove(event, d) {
         tooltip
-          .html(`Type: <strong>${d.publication_type}</strong><br>Count: <strong>${d.count}</strong>`)
+          .html(
+            `Type: <strong>${d.publication_type}</strong><br>Count: <strong>${d.count}</strong>`
+          )
           .style('left', `${event.layerX + 20}px`)
           .style('top', `${event.layerY + 20}px`);
       }

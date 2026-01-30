@@ -3,10 +3,7 @@
   <div class="container-fluid">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="12"
-        >
+        <BCol col md="12">
           <!-- Batch Creation Section (Collapsible) -->
           <BCard
             header-tag="header"
@@ -31,10 +28,7 @@
                 </BButton>
               </div>
             </template>
-            <BCollapse
-              id="batch-form-collapse"
-              visible
-            >
+            <BCollapse id="batch-form-collapse" visible>
               <div class="p-3">
                 <BatchCriteriaForm @batch-created="onBatchCreated" />
               </div>
@@ -94,17 +88,13 @@
                     </template>
                   </BTable>
                   <small class="text-muted d-block mt-1">
-                    {{ selectedEntityIds.length }} entity/entities selected.
-                    Click rows to select/deselect. Hold Shift for range selection.
+                    {{ selectedEntityIds.length }} entity/entities selected. Click rows to
+                    select/deselect. Hold Shift for range selection.
                   </small>
                 </BFormGroup>
 
                 <!-- User Selection -->
-                <BFormGroup
-                  label="Assign to User:"
-                  label-for="entity-assign-user"
-                  class="mb-3"
-                >
+                <BFormGroup label="Assign to User:" label-for="entity-assign-user" class="mb-3">
                   <BFormSelect
                     id="entity-assign-user"
                     v-model="entityAssignUserId"
@@ -112,12 +102,7 @@
                     aria-label="Select user to assign selected entities to"
                   >
                     <template #first>
-                      <option
-                        :value="null"
-                        disabled
-                      >
-                        -- Select a user --
-                      </option>
+                      <option :value="null" disabled>-- Select a user --</option>
                     </template>
                   </BFormSelect>
                 </BFormGroup>
@@ -140,19 +125,13 @@
                 <div class="d-flex gap-2">
                   <BButton
                     variant="info"
-                    :disabled="selectedEntityIds.length === 0 || !entityAssignUserId || isAssigningEntities"
+                    :disabled="
+                      selectedEntityIds.length === 0 || !entityAssignUserId || isAssigningEntities
+                    "
                     @click="handleEntityAssignment"
                   >
-                    <BSpinner
-                      v-if="isAssigningEntities"
-                      small
-                      class="me-1"
-                    />
-                    <i
-                      v-else
-                      class="bi bi-person-plus me-1"
-                      aria-hidden="true"
-                    />
+                    <BSpinner v-if="isAssigningEntities" small class="me-1" />
+                    <i v-else class="bi bi-person-plus me-1" aria-hidden="true" />
                     Assign {{ selectedEntityIds.length }} Entities to User
                   </BButton>
                   <BButton
@@ -176,23 +155,13 @@
           />
 
           <!-- Submissions Management Card -->
-          <BCard
-            header-tag="header"
-            body-class="p-0"
-            header-class="p-1"
-            border-variant="dark"
-          >
+          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
             <template #header>
               <BRow>
                 <BCol>
                   <h5 class="mb-1 text-start">
                     <strong>Manage Re-review Submissions</strong>
-                    <BBadge
-                      variant="secondary"
-                      class="ms-2"
-                    >
-                      {{ totalRows }} batches
-                    </BBadge>
+                    <BBadge variant="secondary" class="ms-2"> {{ totalRows }} batches </BBadge>
                     <BBadge
                       id="popover-badge-help-manage"
                       pill
@@ -202,15 +171,10 @@
                     >
                       <i class="bi bi-question-circle-fill" />
                     </BBadge>
-                    <BPopover
-                      target="popover-badge-help-manage"
-                      variant="info"
-                      triggers="focus"
-                    >
-                      <template #title>
-                        Re-review Submissions Management
-                      </template>
-                      Use this section to manage re-review submissions. You can assign new batches to users and view the details of each batch.
+                    <BPopover target="popover-badge-help-manage" variant="info" triggers="focus">
+                      <template #title> Re-review Submissions Management </template>
+                      Use this section to manage re-review submissions. You can assign new batches
+                      to users and view the details of each batch.
                     </BPopover>
                   </h5>
                 </BCol>
@@ -224,20 +188,10 @@
                     aria-label="Refresh table data"
                     @click="loadReReviewTableData"
                   >
-                    <BSpinner
-                      v-if="loadingReReviewManagment"
-                      small
-                    />
-                    <i
-                      v-else
-                      class="bi bi-arrow-clockwise"
-                      aria-hidden="true"
-                    />
+                    <BSpinner v-if="loadingReReviewManagment" small />
+                    <i v-else class="bi bi-arrow-clockwise" aria-hidden="true" />
                   </BButton>
-                  <BTooltip
-                    target="btn-refresh-table"
-                    triggers="hover"
-                  >
+                  <BTooltip target="btn-refresh-table" triggers="hover">
                     Refresh table data
                   </BTooltip>
                 </BCol>
@@ -268,9 +222,7 @@
                   @update:model-value="applyFilters"
                 >
                   <template #first>
-                    <BFormSelectOption :value="null">
-                      All Users
-                    </BFormSelectOption>
+                    <BFormSelectOption :value="null"> All Users </BFormSelectOption>
                   </template>
                 </BFormSelect>
               </BCol>
@@ -282,16 +234,11 @@
                   @update:model-value="applyFilters"
                 >
                   <template #first>
-                    <BFormSelectOption :value="null">
-                      All Status
-                    </BFormSelectOption>
+                    <BFormSelectOption :value="null"> All Status </BFormSelectOption>
                   </template>
                 </BFormSelect>
               </BCol>
-              <BCol
-                sm="2"
-                class="text-end"
-              >
+              <BCol sm="2" class="text-end">
                 <BFormSelect
                   id="per-page-select"
                   v-model="perPage"
@@ -309,15 +256,10 @@
                     v-model="user_id_assignment"
                     :options="user_options"
                     size="sm"
-                    style="max-width: 180px;"
+                    style="max-width: 180px"
                   >
                     <template #first>
-                      <BFormSelectOption
-                        :value="0"
-                        disabled
-                      >
-                        Select user...
-                      </BFormSelectOption>
+                      <BFormSelectOption :value="0" disabled> Select user... </BFormSelectOption>
                     </template>
                   </BFormSelect>
                   <BButton
@@ -330,25 +272,19 @@
                     <i class="bi bi-plus-square me-1" aria-hidden="true" />
                     Assign Legacy Batch
                   </BButton>
-                  <i
-                    id="help-legacy-batch"
-                    class="bi bi-question-circle text-muted"
-                  />
-                  <BTooltip
-                    target="help-legacy-batch"
-                    placement="right"
-                    triggers="hover"
-                  >
-                    Assign next available pre-computed batch. Use 'Create New Batch' above for dynamic batches.
+                  <i id="help-legacy-batch" class="bi bi-question-circle text-muted" />
+                  <BTooltip target="help-legacy-batch" placement="right" triggers="hover">
+                    Assign next available pre-computed batch. Use 'Create New Batch' above for
+                    dynamic batches.
                   </BTooltip>
                 </div>
               </BCol>
-              <BCol
-                sm="6"
-                class="text-end"
-              >
+              <BCol sm="6" class="text-end">
                 <span class="text-muted small">
-                  Showing {{ Math.min((currentPage - 1) * perPage + 1, totalRows) }}-{{ Math.min(currentPage * perPage, totalRows) }} of {{ totalRows }}
+                  Showing {{ Math.min((currentPage - 1) * perPage + 1, totalRows) }}-{{
+                    Math.min(currentPage * perPage, totalRows)
+                  }}
+                  of {{ totalRows }}
                 </span>
               </BCol>
             </BRow>
@@ -365,9 +301,7 @@
                 class="text-center py-4"
               >
                 <i class="bi bi-inbox fs-1 text-muted" />
-                <p class="text-muted mt-2">
-                  No batches found
-                </p>
+                <p class="text-muted mt-2">No batches found</p>
               </div>
               <BTable
                 v-else
@@ -390,12 +324,14 @@
                 <template #cell(user_name)="row">
                   <div class="d-flex align-items-center gap-1">
                     <i
-                      :class="row.item.user_id ? 'bi bi-person-fill text-primary' : 'bi bi-person text-muted'"
+                      :class="
+                        row.item.user_id
+                          ? 'bi bi-person-fill text-primary'
+                          : 'bi bi-person text-muted'
+                      "
                       aria-hidden="true"
                     />
-                    <BBadge
-                      :variant="row.item.user_id ? 'primary' : 'secondary'"
-                    >
+                    <BBadge :variant="row.item.user_id ? 'primary' : 'secondary'">
                       {{ row.item.user_name || 'Unassigned' }}
                     </BBadge>
                   </div>
@@ -403,9 +339,7 @@
 
                 <!-- Batch ID column -->
                 <template #cell(re_review_batch)="row">
-                  <span class="font-monospace">
-                    #{{ row.item.re_review_batch }}
-                  </span>
+                  <span class="font-monospace"> #{{ row.item.re_review_batch }} </span>
                 </template>
 
                 <!-- Progress columns with mini badges -->
@@ -520,10 +454,7 @@
             </div>
 
             <!-- Pagination Row -->
-            <BRow
-              v-if="totalRows > perPage"
-              class="px-2 py-2"
-            >
+            <BRow v-if="totalRows > perPage" class="px-2 py-2">
               <BCol class="d-flex justify-content-center">
                 <BPagination
                   v-model="currentPage"
@@ -551,10 +482,7 @@
       header-close-label="Close"
       @ok="handleBatchReassignment"
     >
-      <BFormGroup
-        label="Select new user:"
-        label-for="reassign-user-select"
-      >
+      <BFormGroup label="Select new user:" label-for="reassign-user-select">
         <BFormSelect
           id="reassign-user-select"
           v-model="reassignNewUserId"
@@ -578,21 +506,14 @@
       :ok-disabled="isRecalculating"
       @ok="handleBatchRecalculation"
     >
-      <BAlert
-        variant="info"
-        show
-        class="mb-3"
-      >
+      <BAlert variant="info" show class="mb-3">
         <i class="bi bi-info-circle me-1" />
-        This will replace the current entities in batch {{ recalculateBatchId }} with entities matching the new criteria.
-        Only unassigned batches can be recalculated.
+        This will replace the current entities in batch {{ recalculateBatchId }} with entities
+        matching the new criteria. Only unassigned batches can be recalculated.
       </BAlert>
 
       <!-- Date Range -->
-      <BFormGroup
-        label="Review Date Range"
-        class="mb-3"
-      >
+      <BFormGroup label="Review Date Range" class="mb-3">
         <div class="d-flex gap-2">
           <BFormInput
             v-model="recalculateCriteria.date_range.start"
@@ -611,10 +532,7 @@
       </BFormGroup>
 
       <!-- Status Filter -->
-      <BFormGroup
-        label="Status Category"
-        class="mb-3"
-      >
+      <BFormGroup label="Status Category" class="mb-3">
         <BFormSelect
           v-model="recalculateCriteria.status_filter"
           :options="status_options"
@@ -622,18 +540,13 @@
           aria-label="Filter by entity status category"
         >
           <template #first>
-            <option :value="null">
-              -- Any status --
-            </option>
+            <option :value="null">-- Any status --</option>
           </template>
         </BFormSelect>
       </BFormGroup>
 
       <!-- Batch Size -->
-      <BFormGroup
-        label="Batch Size"
-        class="mb-3"
-      >
+      <BFormGroup label="Batch Size" class="mb-3">
         <BFormInput
           v-model.number="recalculateCriteria.batch_size"
           type="number"
@@ -644,11 +557,7 @@
         />
       </BFormGroup>
 
-      <BSpinner
-        v-if="isRecalculating"
-        class="me-2"
-        small
-      />
+      <BSpinner v-if="isRecalculating" class="me-2" small />
     </BModal>
 
     <!-- AriaLiveRegion for screen reader announcements -->
@@ -796,9 +705,11 @@ export default {
   computed: {
     // Filter options derived from loaded data
     userFilterOptions() {
-      const uniqueUsers = [...new Set(this.items_ReReviewTable
-        .filter((item) => item.user_name)
-        .map((item) => item.user_name))];
+      const uniqueUsers = [
+        ...new Set(
+          this.items_ReReviewTable.filter((item) => item.user_name).map((item) => item.user_name)
+        ),
+      ];
       return uniqueUsers.map((name) => ({ value: name, text: name }));
     },
     assignmentFilterOptions() {
@@ -859,10 +770,10 @@ export default {
         const data = response.data;
         this.user_options = Array.isArray(data)
           ? data.map((item) => ({
-            value: item.user_id,
-            text: item.user_name,
-            role: item.user_role,
-          }))
+              value: item.user_id,
+              text: item.user_name,
+              role: item.user_role,
+            }))
           : [];
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -901,9 +812,9 @@ export default {
       }
     },
     async handleNewBatchAssignment() {
-      const apiUrl = `${import.meta.env.VITE_API_URL
-      }/api/re_review/batch/assign?user_id=${
-        this.user_id_assignment}`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/batch/assign?user_id=${
+        this.user_id_assignment
+      }`;
 
       try {
         await this.axios.put(
@@ -913,7 +824,7 @@ export default {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          },
+          }
         );
         this.makeToast('New batch assigned successfully.', 'Success', 'success');
         this.announce('New batch assigned successfully');
@@ -928,9 +839,9 @@ export default {
       this.currentPage = 1;
     },
     async handleBatchUnAssignment(batch_id) {
-      const apiUrl = `${import.meta.env.VITE_API_URL
-      }/api/re_review/batch/unassign?re_review_batch=${
-        batch_id}`;
+      const apiUrl = `${
+        import.meta.env.VITE_API_URL
+      }/api/re_review/batch/unassign?re_review_batch=${batch_id}`;
 
       try {
         await this.axios.delete(apiUrl, {
@@ -970,11 +881,15 @@ export default {
 
       try {
         // Get entities not in any active batch (preview with no criteria = all available)
-        const response = await this.axios.post(apiUrl, { batch_size: 100 }, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
+        const response = await this.axios.post(
+          apiUrl,
+          { batch_size: 100 },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          }
+        );
         this.availableEntities = response.data.data || [];
         this.selectedEntityIds = [];
       } catch (_e) {
@@ -1004,21 +919,25 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/entities/assign`;
 
       try {
-        const response = await this.axios.put(apiUrl, {
-          entity_ids: this.selectedEntityIds,
-          user_id: this.entityAssignUserId,
-          batch_name: this.entityAssignBatchName || null,
-        }, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+        const response = await this.axios.put(
+          apiUrl,
+          {
+            entity_ids: this.selectedEntityIds,
+            user_id: this.entityAssignUserId,
+            batch_name: this.entityAssignBatchName || null,
           },
-        });
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          }
+        );
 
         const result = response.data.entry;
         this.makeToast(
           `Created batch ${result.batch_id} with ${result.entity_count} entities`,
           'Success',
-          'success',
+          'success'
         );
         this.announce(`Created batch ${result.batch_id} with ${result.entity_count} entities`);
 
@@ -1052,11 +971,15 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/batch/reassign?re_review_batch=${this.reassignBatchId}&user_id=${this.reassignNewUserId}`;
 
       try {
-        await this.axios.put(apiUrl, {}, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
+        await this.axios.put(
+          apiUrl,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          }
+        );
         this.makeToast('Batch reassigned successfully', 'Success', 'success');
         this.announce('Batch reassigned successfully');
         this.reassignModalShow = false;
@@ -1109,7 +1032,7 @@ export default {
         this.makeToast(
           `Batch ${result.batch_id} recalculated with ${result.entity_count} entities`,
           'Success',
-          'success',
+          'success'
         );
         this.announce(`Batch ${result.batch_id} recalculated with ${result.entity_count} entities`);
         this.recalculateModalShow = false;
@@ -1138,9 +1061,9 @@ export default {
         const data = responseData?.data || responseData;
         this.status_options = Array.isArray(data)
           ? data.map((item) => ({
-            value: item.category_id,
-            text: item.category,
-          }))
+              value: item.category_id,
+              text: item.category,
+            }))
           : [];
       } catch (_e) {
         this.status_options = [];

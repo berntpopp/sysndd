@@ -2,25 +2,13 @@
 <template>
   <div class="container-fluid">
     <!-- Loading spinner -->
-    <BSpinner
-      v-if="loading"
-      label="Loading..."
-      class="float-center m-5"
-    />
+    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
     <!-- Main container -->
-    <BContainer
-      v-else
-      fluid
-    >
+    <BContainer v-else fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol md="12">
           <!-- b-card with header controls -->
-          <BCard
-            header-tag="header"
-            body-class="p-0"
-            header-class="p-1"
-            border-variant="dark"
-          >
+          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
             <!-- Card Header -->
             <template #header>
               <BRow>
@@ -32,10 +20,7 @@
                   />
                 </BCol>
                 <BCol>
-                  <h5
-                    v-if="showFilterControls"
-                    class="mb-1 text-end font-weight-bold"
-                  >
+                  <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
                     <TableDownloadLinkCopyButtons
                       :downloading="downloading"
                       :remove-filters-title="removeFiltersButtonTitle"
@@ -52,10 +37,7 @@
             <!-- Search + Pagination Controls -->
             <BRow>
               <!-- Global "any" search -->
-              <BCol
-                class="my-1"
-                sm="8"
-              >
+              <BCol class="my-1" sm="8">
                 <TableSearchInput
                   v-model="filter.any.content"
                   :placeholder="'Search any field by typing here'"
@@ -65,10 +47,7 @@
               </BCol>
 
               <!-- Pagination controls -->
-              <BCol
-                class="my-1"
-                sm="4"
-              >
+              <BCol class="my-1" sm="4">
                 <BContainer v-if="totalRows > perPage || showPaginationControls">
                   <TablePaginationControls
                     :total-rows="totalRows"
@@ -107,11 +86,11 @@
                   v-b-tooltip.hover.top
                   :title="
                     columnData.label +
-                      ' (unique/total: ' +
+                    ' (unique/total: ' +
                     fields.find((f) => f.label === columnData.label)?.count_filtered +
-                      '/' +
+                    '/' +
                     fields.find((f) => f.label === columnData.label)?.count +
-                      ')'
+                    ')'
                   "
                 >
                   {{ truncate(columnData.label, 20) }}
@@ -120,10 +99,7 @@
 
               <!-- A "top-row" slot for per-column filters -->
               <template #top-row>
-                <td
-                  v-for="field in fields"
-                  :key="field.key"
-                >
+                <td v-for="field in fields" :key="field.key">
                   <!-- If this field is filterable, show an input -->
                   <BFormInput
                     v-if="field.filterable"
@@ -168,13 +144,7 @@
 import { ref, inject } from 'vue';
 
 // Import composables
-import {
-  useToast,
-  useUrlParsing,
-  useColorAndSymbols,
-  useText,
-  useTableData,
-} from '@/composables';
+import { useToast, useUrlParsing, useColorAndSymbols, useText, useTableData } from '@/composables';
 
 // Small reusable components
 import TableHeaderLabel from '@/components/small/TableHeaderLabel.vue';
@@ -340,11 +310,12 @@ export default {
   methods: {
     async loadData() {
       this.isBusy = true;
-      const urlParam = `sort=${this.sort}`
-        + `&filter=${this.filter_string}`
-        + `&page_after=${this.currentItemID}`
-        + `&page_size=${this.perPage}`
-        + `&fields=${this.fspecInput}`;
+      const urlParam =
+        `sort=${this.sort}` +
+        `&filter=${this.filter_string}` +
+        `&page_after=${this.currentItemID}` +
+        `&page_size=${this.perPage}` +
+        `&fields=${this.fspecInput}`;
 
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/publication/pubtator/genes?${urlParam}`;
 
@@ -450,12 +421,13 @@ export default {
     // Excel download
     async requestExcel() {
       this.downloading = true;
-      const urlParam = `sort=${this.sort}`
-        + `&filter=${this.filter_string}`
-        + '&page_after=0'
-        + '&page_size=all'
-        + '&format=xlsx'
-        + `&fields=${this.fspecInput}`;
+      const urlParam =
+        `sort=${this.sort}` +
+        `&filter=${this.filter_string}` +
+        '&page_after=0' +
+        '&page_size=all' +
+        '&format=xlsx' +
+        `&fields=${this.fspecInput}`;
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/publication/pubtator/genes?${urlParam}`;
 
       try {
@@ -478,10 +450,11 @@ export default {
 
     // Copy current filter/sort state to clipboard
     copyLinkToClipboard() {
-      const urlParam = `sort=${this.sort}`
-        + `&filter=${this.filter_string}`
-        + `&page_after=${this.currentItemID}`
-        + `&page_size=${this.perPage}`;
+      const urlParam =
+        `sort=${this.sort}` +
+        `&filter=${this.filter_string}` +
+        `&page_after=${this.currentItemID}` +
+        `&page_size=${this.perPage}`;
       const fullUrl = `${import.meta.env.VITE_URL + this.$route.path}?${urlParam}`;
       navigator.clipboard.writeText(fullUrl);
       this.makeToast('Link copied to clipboard', 'Info', 'info');

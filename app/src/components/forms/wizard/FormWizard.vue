@@ -6,10 +6,7 @@
         <!-- Progress line background -->
         <div class="wizard-progress-line" />
         <!-- Active progress line -->
-        <div
-          class="wizard-progress-line-active"
-          :style="{ width: progressWidth }"
-        />
+        <div class="wizard-progress-line-active" :style="{ width: progressWidth }" />
 
         <!-- Step indicators -->
         <div
@@ -18,10 +15,10 @@
           :class="[
             'wizard-step',
             {
-              'active': index === currentStepIndex,
-              'completed': index < currentStepIndex,
-              'clickable': index < currentStepIndex
-            }
+              active: index === currentStepIndex,
+              completed: index < currentStepIndex,
+              clickable: index < currentStepIndex,
+            },
           ]"
           role="button"
           :tabindex="index < currentStepIndex ? 0 : -1"
@@ -30,10 +27,7 @@
           @keydown.enter="onStepClick(index)"
         >
           <div class="step-indicator">
-            <i
-              v-if="index < currentStepIndex"
-              class="bi bi-check"
-            />
+            <i v-if="index < currentStepIndex" class="bi bi-check" />
             <span v-else>{{ index + 1 }}</span>
           </div>
           <div class="step-label">{{ stepLabels[step] }}</div>
@@ -42,20 +36,14 @@
     </div>
 
     <!-- Step Content Area -->
-    <BCard
-      class="wizard-content mb-4"
-      body-class="p-4"
-    >
+    <BCard class="wizard-content mb-4" body-class="p-4">
       <div class="step-header mb-4">
         <h5 class="mb-1">{{ stepLabels[currentStep] }}</h5>
         <small class="text-muted">Step {{ currentStepIndex + 1 }} of {{ totalSteps }}</small>
       </div>
 
       <!-- Dynamic step content -->
-      <transition
-        name="fade"
-        mode="out-in"
-      >
+      <transition name="fade" mode="out-in">
         <div :key="currentStep">
           <slot :name="currentStep" />
         </div>
@@ -65,11 +53,7 @@
     <!-- Navigation Footer -->
     <div class="wizard-navigation d-flex justify-content-between align-items-center">
       <!-- Back button -->
-      <BButton
-        v-if="currentStepIndex > 0"
-        variant="outline-secondary"
-        @click="onBack"
-      >
+      <BButton v-if="currentStepIndex > 0" variant="outline-secondary" @click="onBack">
         <i class="bi bi-arrow-left me-2" />
         Back
       </BButton>
@@ -108,20 +92,12 @@
             v-b-tooltip.hover.top="'Skip double review - for experienced curators only'"
             class="direct-approval-toggle"
           >
-            <BFormCheckbox
-              v-model="localDirectApproval"
-              switch
-              size="sm"
-            >
+            <BFormCheckbox v-model="localDirectApproval" switch size="sm">
               Direct approval
             </BFormCheckbox>
           </div>
 
-          <BButton
-            variant="success"
-            :disabled="!isFormValid || isSubmitting"
-            @click="onSubmit"
-          >
+          <BButton variant="success" :disabled="!isFormValid || isSubmitting" @click="onSubmit">
             <BSpinner v-if="isSubmitting" small class="me-2" />
             <i v-else class="bi bi-check-lg me-2" />
             {{ isSubmitting ? 'Submitting...' : 'Submit Entity' }}
@@ -134,13 +110,7 @@
 
 <script lang="ts">
 import { defineComponent, computed, ref, watch, type PropType } from 'vue';
-import {
-  BCard,
-  BButton,
-  BSpinner,
-  BFormCheckbox,
-  vBTooltip,
-} from 'bootstrap-vue-next';
+import { BCard, BButton, BSpinner, BFormCheckbox, vBTooltip } from 'bootstrap-vue-next';
 import type { WizardStep } from '@/composables/useEntityForm';
 
 export default defineComponent({
@@ -204,7 +174,14 @@ export default defineComponent({
     },
   },
 
-  emits: ['update:currentStepIndex', 'update:directApproval', 'next', 'back', 'submit', 'go-to-step'],
+  emits: [
+    'update:currentStepIndex',
+    'update:directApproval',
+    'next',
+    'back',
+    'submit',
+    'go-to-step',
+  ],
 
   setup(props, { emit }) {
     const localDirectApproval = ref(props.directApproval);

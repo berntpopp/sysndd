@@ -94,8 +94,13 @@ const MAIN_NAV = {
         { text: 'Manage annotations', path: '/ManageAnnotations', icons: ['gear', 'table'] },
         { text: 'Manage ontology', path: '/ManageOntology', icons: ['gear', 'list-nested'] },
         { text: 'Manage about', path: '/ManageAbout', icons: ['gear', 'question-circle-fill'] },
-        { text: 'Admin statistics', path: '/AdminStatistics', icons: ['bar-chart-line', 'clipboard-check'] },
+        {
+          text: 'Admin statistics',
+          path: '/AdminStatistics',
+          icons: ['bar-chart-line', 'clipboard-check'],
+        },
         { text: 'View logs', path: '/ViewLogs', icons: ['eye', 'clipboard-plus'] },
+        { text: 'Manage backups', path: '/ManageBackups', icons: ['gear', 'database'] },
       ],
     },
     {

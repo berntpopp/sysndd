@@ -42,7 +42,7 @@ class Entity {
     ndd_phenotype,
     entity_id,
     is_active,
-    replaced_by,
+    replaced_by
   ) {
     this.hgnc_id = hgnc_id;
     this.disease_ontology_id_version = disease_ontology_id_version;
@@ -147,12 +147,4 @@ class Literature {
   }
 }
 
-export {
-  Submission,
-  Entity,
-  Review,
-  Status,
-  Phenotype,
-  Variation,
-  Literature,
-};
+export { Submission, Entity, Review, Status, Phenotype, Variation, Literature };

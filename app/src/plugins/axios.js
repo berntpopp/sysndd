@@ -16,15 +16,13 @@ const _axios = axios.create(config);
 
 _axios.interceptors.request.use(
   (config) => config,
-  (error) => Promise.reject(error),
-
+  (error) => Promise.reject(error)
 );
 
 // Add a response interceptor
 _axios.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(error),
-
+  (error) => Promise.reject(error)
 );
 
 const plugin = function install(Vue, _options) {

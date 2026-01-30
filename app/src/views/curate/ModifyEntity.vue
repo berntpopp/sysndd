@@ -3,10 +3,7 @@
   <div class="container-fluid">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="12"
-        >
+        <BCol col md="12">
           <!-- User Interface controls -->
           <BCard
             header-tag="header"
@@ -16,22 +13,13 @@
             border-variant="dark"
           >
             <template #header>
-              <h6 class="mb-1 text-start font-weight-bold">
-                Modify an existing entity
-              </h6>
+              <h6 class="mb-1 text-start font-weight-bold">Modify an existing entity</h6>
             </template>
             <!-- User Interface controls -->
 
-            <BCard
-              class="my-2"
-              body-class="p-2"
-              header-class="p-1"
-              border-variant="dark"
-            >
+            <BCard class="my-2" body-class="p-2" header-class="p-1" border-variant="dark">
               <template #header>
-                <h6 class="mb-1 text-start font-weight-bold">
-                  1. Select an entity to modify
-                </h6>
+                <h6 class="mb-1 text-start font-weight-bold">1. Select an entity to modify</h6>
               </template>
 
               <BRow>
@@ -87,7 +75,11 @@
                     <GeneBadge
                       :symbol="entity_info.symbol || 'N/A'"
                       :hgnc-id="entity_info.hgnc_id"
-                      :link-to="entity_info.hgnc_id ? `https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/${entity_info.hgnc_id}` : null"
+                      :link-to="
+                        entity_info.hgnc_id
+                          ? `https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/${entity_info.hgnc_id}`
+                          : null
+                      "
                       size="md"
                     />
                   </div>
@@ -98,7 +90,11 @@
                     <DiseaseBadge
                       :name="entity_info.disease_ontology_name || 'N/A'"
                       :ontology-id="entity_info.disease_ontology_id_version"
-                      :link-to="entity_info.disease_ontology_id_version ? `/Ontology/${entity_info.disease_ontology_id_version.replace(/_.+/g, '')}` : null"
+                      :link-to="
+                        entity_info.disease_ontology_id_version
+                          ? `/Ontology/${entity_info.disease_ontology_id_version.replace(/_.+/g, '')}`
+                          : null
+                      "
                       size="md"
                       :max-length="40"
                     />
@@ -111,7 +107,11 @@
                     <strong class="text-muted small d-block mb-1">Inheritance:</strong>
                     <BBadge variant="info" class="d-inline-flex align-items-center">
                       <i class="bi bi-diagram-3 me-1" aria-hidden="true" />
-                      {{ entity_info.hpo_mode_of_inheritance_term_name || entity_info.hpo_mode_of_inheritance_term || 'N/A' }}
+                      {{
+                        entity_info.hpo_mode_of_inheritance_term_name ||
+                        entity_info.hpo_mode_of_inheritance_term ||
+                        'N/A'
+                      }}
                     </BBadge>
                   </div>
 
@@ -134,7 +134,10 @@
                       :variant="ndd_icon_style[entity_info.ndd_phenotype_word] || 'secondary'"
                       class="d-inline-flex align-items-center"
                     >
-                      <i :class="`bi bi-${ndd_icon[entity_info.ndd_phenotype_word] || 'question'} me-1`" aria-hidden="true" />
+                      <i
+                        :class="`bi bi-${ndd_icon[entity_info.ndd_phenotype_word] || 'question'} me-1`"
+                        aria-hidden="true"
+                      />
                       {{ entity_info.ndd_phenotype_word || 'N/A' }}
                     </BBadge>
                   </div>
@@ -269,14 +272,22 @@
                 <strong>{{ entity_info.symbol || 'N/A' }}</strong>
               </span>
               <span class="text-muted">|</span>
-              <span class="d-flex align-items-center text-truncate" style="max-width: 200px;" :title="entity_info.disease_ontology_name">
+              <span
+                class="d-flex align-items-center text-truncate"
+                style="max-width: 200px"
+                :title="entity_info.disease_ontology_name"
+              >
                 <i class="bi bi-clipboard2-pulse me-1" />
                 {{ entity_info.disease_ontology_name || 'N/A' }}
               </span>
               <span class="text-muted">|</span>
               <span class="d-flex align-items-center">
                 <i class="bi bi-diagram-3 me-1" />
-                {{ entity_info.hpo_mode_of_inheritance_term_name || entity_info.hpo_mode_of_inheritance_term || 'N/A' }}
+                {{
+                  entity_info.hpo_mode_of_inheritance_term_name ||
+                  entity_info.hpo_mode_of_inheritance_term ||
+                  'N/A'
+                }}
               </span>
               <span class="text-muted">|</span>
               <BBadge
@@ -290,9 +301,7 @@
           </div>
         </template>
 
-        <p class="my-3">
-          Select a new disease name:
-        </p>
+        <p class="my-3">Select a new disease name:</p>
 
         <AutocompleteInput
           v-model="ontology_input"
@@ -308,9 +317,7 @@
           @search="searchOntology"
           @update:model-value="onOntologySelected"
         />
-        <small class="text-muted">
-          Search for diseases by name or ontology identifier
-        </small>
+        <small class="text-muted"> Search for diseases by name or ontology identifier </small>
       </BModal>
       <!-- Rename disease modal -->
 
@@ -346,14 +353,22 @@
                 <strong>{{ entity_info.symbol || 'N/A' }}</strong>
               </span>
               <span class="text-muted">|</span>
-              <span class="d-flex align-items-center text-truncate" style="max-width: 200px;" :title="entity_info.disease_ontology_name">
+              <span
+                class="d-flex align-items-center text-truncate"
+                style="max-width: 200px"
+                :title="entity_info.disease_ontology_name"
+              >
                 <i class="bi bi-clipboard2-pulse me-1" />
                 {{ entity_info.disease_ontology_name || 'N/A' }}
               </span>
               <span class="text-muted">|</span>
               <span class="d-flex align-items-center">
                 <i class="bi bi-diagram-3 me-1" />
-                {{ entity_info.hpo_mode_of_inheritance_term_name || entity_info.hpo_mode_of_inheritance_term || 'N/A' }}
+                {{
+                  entity_info.hpo_mode_of_inheritance_term_name ||
+                  entity_info.hpo_mode_of_inheritance_term ||
+                  'N/A'
+                }}
               </span>
               <span class="text-muted">|</span>
               <BBadge
@@ -368,39 +383,23 @@
         </template>
 
         <div>
-          <p class="my-2">
-            1. Are you sure that you want to deactivate this entity?
-          </p>
+          <p class="my-2">1. Are you sure that you want to deactivate this entity?</p>
 
-          <BFormCheckbox
-            id="deactivateSwitch"
-            v-model="deactivate_check"
-            switch
-            size="md"
-          >
-            <strong>{{ deactivate_check ? "Yes" : "No" }}</strong>
+          <BFormCheckbox id="deactivateSwitch" v-model="deactivate_check" switch size="md">
+            <strong>{{ deactivate_check ? 'Yes' : 'No' }}</strong>
           </BFormCheckbox>
         </div>
 
         <div v-if="deactivate_check">
-          <p class="my-2">
-            2. Was this entity replaced by another one?
-          </p>
+          <p class="my-2">2. Was this entity replaced by another one?</p>
 
-          <BFormCheckbox
-            id="replaceSwitch"
-            v-model="replace_check"
-            switch
-            size="md"
-          >
-            <strong>{{ replace_check ? "Yes" : "No" }}</strong>
+          <BFormCheckbox id="replaceSwitch" v-model="replace_check" switch size="md">
+            <strong>{{ replace_check ? 'Yes' : 'No' }}</strong>
           </BFormCheckbox>
         </div>
 
         <div v-if="replace_check">
-          <p class="my-2">
-            3. Select the entity replacing the above one:
-          </p>
+          <p class="my-2">3. Select the entity replacing the above one:</p>
 
           <AutocompleteInput
             v-model="replace_entity_input"
@@ -417,9 +416,7 @@
             @search="searchReplacementEntity"
             @update:model-value="onReplacementEntitySelected"
           />
-          <small class="text-muted">
-            Search for the entity that replaces this one
-          </small>
+          <small class="text-muted"> Search for the entity that replaces this one </small>
         </div>
       </BModal>
       <!-- Deactivate entity modal -->
@@ -457,14 +454,22 @@
                 <strong>{{ entity_info.symbol || 'N/A' }}</strong>
               </span>
               <span class="text-muted">|</span>
-              <span class="d-flex align-items-center text-truncate" style="max-width: 200px;" :title="entity_info.disease_ontology_name">
+              <span
+                class="d-flex align-items-center text-truncate"
+                style="max-width: 200px"
+                :title="entity_info.disease_ontology_name"
+              >
                 <i class="bi bi-clipboard2-pulse me-1" />
                 {{ entity_info.disease_ontology_name || 'N/A' }}
               </span>
               <span class="text-muted">|</span>
               <span class="d-flex align-items-center">
                 <i class="bi bi-diagram-3 me-1" />
-                {{ entity_info.hpo_mode_of_inheritance_term_name || entity_info.hpo_mode_of_inheritance_term || 'N/A' }}
+                {{
+                  entity_info.hpo_mode_of_inheritance_term_name ||
+                  entity_info.hpo_mode_of_inheritance_term ||
+                  'N/A'
+                }}
               </span>
               <span class="text-muted">|</span>
               <BBadge
@@ -478,19 +483,10 @@
           </div>
         </template>
 
-        <BOverlay
-          :show="loading_review_modal"
-          rounded="sm"
-        >
-          <BForm
-            ref="form"
-            @submit.stop.prevent="submitReviewChange"
-          >
+        <BOverlay :show="loading_review_modal" rounded="sm">
+          <BForm ref="form" @submit.stop.prevent="submitReviewChange">
             <!-- Synopsis textarea -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-textarea-synopsis"
-            >Synopsis</label>
+            <label class="mr-sm-2 font-weight-bold" for="review-textarea-synopsis">Synopsis</label>
             <BFormTextarea
               id="review-textarea-synopsis"
               v-model="review_info.synopsis"
@@ -500,10 +496,7 @@
             <!-- Synopsis textarea -->
 
             <!-- Phenotype select -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-phenotype-select"
-            >Phenotypes</label>
+            <label class="mr-sm-2 font-weight-bold" for="review-phenotype-select">Phenotypes</label>
 
             <TreeMultiSelect
               v-if="phenotypes_options && phenotypes_options.length > 0"
@@ -516,10 +509,9 @@
             <!-- Phenotype select -->
 
             <!-- Variation ontolog select -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-variation-select"
-            >Variation ontology</label>
+            <label class="mr-sm-2 font-weight-bold" for="review-variation-select"
+              >Variation ontology</label
+            >
 
             <TreeMultiSelect
               v-if="variation_ontology_options && variation_ontology_options.length > 0"
@@ -532,10 +524,9 @@
             <!-- Variation ontolog select -->
 
             <!-- publications tag form with links out -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-publications-select"
-            >Publications</label>
+            <label class="mr-sm-2 font-weight-bold" for="review-publications-select"
+              >Publications</label
+            >
             <BFormTags
               v-model="select_additional_references"
               input-id="review-literature-select"
@@ -545,9 +536,7 @@
               :tag-validator="tagValidatorPMID"
               remove-on-delete
             >
-              <template
-                #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }"
-              >
+              <template #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }">
                 <BInputGroup class="my-0">
                   <BFormInput
                     v-bind="inputAttrs"
@@ -556,13 +545,7 @@
                     size="sm"
                     v-on="inputHandlers"
                   />
-                  <BButton
-                    variant="secondary"
-                    size="sm"
-                    @click="addTag()"
-                  >
-                    Add
-                  </BButton>
+                  <BButton variant="secondary" size="sm" @click="addTag()"> Add </BButton>
                 </BInputGroup>
 
                 <div class="d-inline-block">
@@ -575,10 +558,7 @@
                       @remove="removeTag(tag)"
                     >
                       <BLink
-                        :href="
-                          'https://pubmed.ncbi.nlm.nih.gov/' +
-                            tag.replace('PMID:', '')
-                        "
+                        :href="'https://pubmed.ncbi.nlm.nih.gov/' + tag.replace('PMID:', '')"
                         target="_blank"
                         class="text-light"
                       >
@@ -593,10 +573,9 @@
             <!-- publications tag form with links out -->
 
             <!-- genereviews tag form with links out -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-genereviews-select"
-            >Genereviews</label>
+            <label class="mr-sm-2 font-weight-bold" for="review-genereviews-select"
+              >Genereviews</label
+            >
             <BFormTags
               v-model="select_gene_reviews"
               input-id="review-genereviews-select"
@@ -606,9 +585,7 @@
               :tag-validator="tagValidatorPMID"
               remove-on-delete
             >
-              <template
-                #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }"
-              >
+              <template #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }">
                 <BInputGroup class="my-0">
                   <BFormInput
                     v-bind="inputAttrs"
@@ -617,13 +594,7 @@
                     size="sm"
                     v-on="inputHandlers"
                   />
-                  <BButton
-                    variant="secondary"
-                    size="sm"
-                    @click="addTag()"
-                  >
-                    Add
-                  </BButton>
+                  <BButton variant="secondary" size="sm" @click="addTag()"> Add </BButton>
                 </BInputGroup>
 
                 <div class="d-inline-block">
@@ -636,10 +607,7 @@
                       @remove="removeTag(tag)"
                     >
                       <BLink
-                        :href="
-                          'https://pubmed.ncbi.nlm.nih.gov/' +
-                            tag.replace('PMID:', '')
-                        "
+                        :href="'https://pubmed.ncbi.nlm.nih.gov/' + tag.replace('PMID:', '')"
                         target="_blank"
                         class="text-light"
                       >
@@ -654,10 +622,7 @@
             <!-- genereviews tag form with links out -->
 
             <!-- Review comment textarea -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-textarea-comment"
-            >Comment</label>
+            <label class="mr-sm-2 font-weight-bold" for="review-textarea-comment">Comment</label>
             <BFormTextarea
               id="review-textarea-comment"
               v-model="review_info.comment"
@@ -704,14 +669,22 @@
                 <strong>{{ entity_info.symbol || 'N/A' }}</strong>
               </span>
               <span class="text-muted">|</span>
-              <span class="d-flex align-items-center text-truncate" style="max-width: 200px;" :title="entity_info.disease_ontology_name">
+              <span
+                class="d-flex align-items-center text-truncate"
+                style="max-width: 200px"
+                :title="entity_info.disease_ontology_name"
+              >
                 <i class="bi bi-clipboard2-pulse me-1" />
                 {{ entity_info.disease_ontology_name || 'N/A' }}
               </span>
               <span class="text-muted">|</span>
               <span class="d-flex align-items-center">
                 <i class="bi bi-diagram-3 me-1" />
-                {{ entity_info.hpo_mode_of_inheritance_term_name || entity_info.hpo_mode_of_inheritance_term || 'N/A' }}
+                {{
+                  entity_info.hpo_mode_of_inheritance_term_name ||
+                  entity_info.hpo_mode_of_inheritance_term ||
+                  'N/A'
+                }}
               </span>
               <span class="text-muted">|</span>
               <BBadge
@@ -725,20 +698,10 @@
           </div>
         </template>
 
-        <BOverlay
-          :show="statusFormLoading"
-          rounded="sm"
-        >
-          <BForm
-            ref="form"
-            @submit.stop.prevent="submitStatusChange"
-          >
+        <BOverlay :show="statusFormLoading" rounded="sm">
+          <BForm ref="form" @submit.stop.prevent="submitStatusChange">
             <!-- Status dropdown with loading state -->
-            <BSpinner
-              v-if="status_options_loading"
-              small
-              label="Loading..."
-            />
+            <BSpinner v-if="status_options_loading" small label="Loading..." />
             <BFormSelect
               v-else-if="status_options && status_options.length > 0"
               id="status-select"
@@ -747,32 +710,18 @@
               size="sm"
             >
               <template #first>
-                <BFormSelectOption :value="null">
-                  Select status...
-                </BFormSelectOption>
+                <BFormSelectOption :value="null"> Select status... </BFormSelectOption>
               </template>
             </BFormSelect>
-            <BAlert
-              v-else-if="status_options !== null"
-              variant="warning"
-              class="mb-0"
-            >
+            <BAlert v-else-if="status_options !== null" variant="warning" class="mb-0">
               No status options available
             </BAlert>
 
-            <BFormCheckbox
-              id="removeSwitch"
-              v-model="statusFormData.problematic"
-              switch
-              size="md"
-            >
+            <BFormCheckbox id="removeSwitch" v-model="statusFormData.problematic" switch size="md">
               Suggest removal
             </BFormCheckbox>
 
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="status-textarea-comment"
-            >Comment</label>
+            <label class="mr-sm-2 font-weight-bold" for="status-textarea-comment">Comment</label>
             <BFormTextarea
               id="status-textarea-comment"
               v-model="statusFormData.comment"
@@ -939,9 +888,7 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/phenotype?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
-        const rawData = Array.isArray(response.data)
-          ? response.data
-          : response.data?.data || [];
+        const rawData = Array.isArray(response.data) ? response.data : response.data?.data || [];
         // Transform to make all modifiers selectable
         this.phenotypes_options = this.transformModifierTree(rawData);
       } catch (e) {
@@ -953,9 +900,7 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/variation_ontology?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
-        const rawData = Array.isArray(response.data)
-          ? response.data
-          : response.data?.data || [];
+        const rawData = Array.isArray(response.data) ? response.data : response.data?.data || [];
         // Transform to make all modifiers selectable
         this.variation_ontology_options = this.transformModifierTree(rawData);
       } catch (e) {
@@ -1068,8 +1013,7 @@ export default {
       }
     },
     async searchEntityInfo({ searchQuery, callback }) {
-      const apiSearchURL = `${import.meta.env.VITE_API_URL
-      }/api/entity?filter=contains(any,${
+      const apiSearchURL = `${import.meta.env.VITE_API_URL}/api/entity?filter=contains(any,${
         searchQuery
       })`;
 
@@ -1082,8 +1026,7 @@ export default {
       }
     },
     async getEntity() {
-      const apiGetURL = `${import.meta.env.VITE_API_URL
-      }/api/entity?filter=equals(entity_id,${
+      const apiGetURL = `${import.meta.env.VITE_API_URL}/api/entity?filter=equals(entity_id,${
         this.modify_entity_input
       })`;
 
@@ -1111,20 +1054,16 @@ export default {
     async getReview() {
       this.loading_review_modal = true;
 
-      const apiGetReviewURL = `${import.meta.env.VITE_API_URL
-      }/api/entity/${
+      const apiGetReviewURL = `${import.meta.env.VITE_API_URL}/api/entity/${
         this.modify_entity_input
       }/review`;
-      const apiGetPhenotypesURL = `${import.meta.env.VITE_API_URL
-      }/api/entity/${
+      const apiGetPhenotypesURL = `${import.meta.env.VITE_API_URL}/api/entity/${
         this.modify_entity_input
       }/phenotypes`;
-      const apiGetVariationURL = `${import.meta.env.VITE_API_URL
-      }/api/entity/${
+      const apiGetVariationURL = `${import.meta.env.VITE_API_URL}/api/entity/${
         this.modify_entity_input
       }/variation`;
-      const apiGetPublicationsURL = `${import.meta.env.VITE_API_URL
-      }/api/entity/${
+      const apiGetPublicationsURL = `${import.meta.env.VITE_API_URL}/api/entity/${
         this.modify_entity_input
       }/publications`;
 
@@ -1135,22 +1074,22 @@ export default {
         const response_publications = await this.axios.get(apiGetPublicationsURL);
 
         // define phenotype specific attributes as constants from response
-        const new_phenotype = response_phenotypes.data.map((
+        const new_phenotype = response_phenotypes.data.map(
           (item) => new Phenotype(item.phenotype_id, item.modifier_id)
-        ));
+        );
 
-        this.select_phenotype = response_phenotypes.data.map((
+        this.select_phenotype = response_phenotypes.data.map(
           (item) => `${item.modifier_id}-${item.phenotype_id}`
-        ));
+        );
 
         // define variation specific attributes as constants from response
-        const new_variation = response_variation.data.map((
+        const new_variation = response_variation.data.map(
           (item) => new Variation(item.vario_id, item.modifier_id)
-        ));
+        );
 
-        this.select_variation = response_variation.data.map((
+        this.select_variation = response_variation.data.map(
           (item) => `${item.modifier_id}-${item.vario_id}`
-        ));
+        );
 
         // define publication specific attributes as constants from response
         const literature_gene_reviews = response_publications.data
@@ -1166,7 +1105,7 @@ export default {
 
         const new_literature = new Literature(
           literature_additional_references,
-          literature_gene_reviews,
+          literature_gene_reviews
         );
 
         // compose review
@@ -1175,7 +1114,7 @@ export default {
           new_literature,
           new_phenotype,
           new_variation,
-          response_review.data[0].comment,
+          response_review.data[0].comment
         );
 
         this.review_info.review_id = response_review.data[0].review_id;
@@ -1189,8 +1128,7 @@ export default {
     async getStatus() {
       this.loading_status_modal = true;
 
-      const apiGetURL = `${import.meta.env.VITE_API_URL
-      }/api/entity/${
+      const apiGetURL = `${import.meta.env.VITE_API_URL}/api/entity/${
         this.modify_entity_input
       }/status`;
 
@@ -1201,7 +1139,7 @@ export default {
         this.status_info = new Status(
           response.data[0].category_id,
           response.data[0].comment,
-          response.data[0].problematic,
+          response.data[0].problematic
         );
 
         this.status_info.status_id = response.data[0].status_id;
@@ -1215,18 +1153,9 @@ export default {
     normalizerEntitySearch(node) {
       return {
         id: node.entity_id,
-        label:
-          `sysndd:${
-            node.entity_id
-          } (${
-            node.symbol
-          } - ${
-            node.disease_ontology_name
-          } - (${
-            node.disease_ontology_id_version
-          }) - ${
-            node.hpo_mode_of_inheritance_term_name
-          })`,
+        label: `sysndd:${node.entity_id} (${node.symbol} - ${node.disease_ontology_name} - (${
+          node.disease_ontology_id_version
+        }) - ${node.hpo_mode_of_inheritance_term_name})`,
       };
     },
     normalizerOntologySearch(node) {
@@ -1250,8 +1179,7 @@ export default {
       }));
     },
     async loadOntologyInfoTree({ searchQuery, callback }) {
-      const apiSearchURL = `${import.meta.env.VITE_API_URL
-      }/api/search/ontology/${
+      const apiSearchURL = `${import.meta.env.VITE_API_URL}/api/search/ontology/${
         searchQuery
       }?tree=true`;
 
@@ -1303,7 +1231,11 @@ export default {
 
       // Guard against empty options
       if (!this.status_options || this.status_options.length === 0) {
-        this.makeToast('Failed to load status options. Please refresh and try again.', 'Error', 'danger');
+        this.makeToast(
+          'Failed to load status options. Please refresh and try again.',
+          'Error',
+          'danger'
+        );
         return;
       }
 
@@ -1327,18 +1259,15 @@ export default {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          },
+          }
         );
 
         this.makeToast(
-          `${'The new disease name for this entity has been submitted '
-            + '(status '}${
+          `${'The new disease name for this entity has been submitted ' + '(status '}${
             response.status
-          } (${
-            response.statusText
-          }).`,
+          } (${response.statusText}).`,
           'Success',
-          'success',
+          'success'
         );
         this.announce('Disease name updated successfully');
         this.resetForm();
@@ -1357,7 +1286,8 @@ export default {
       this.entity_info.is_active = this.deactivate_check ? '0' : '1';
 
       // assign replace_entity_input
-      this.entity_info.replaced_by = this.replace_entity_input === null ? 'NULL' : this.replace_entity_input;
+      this.entity_info.replaced_by =
+        this.replace_entity_input === null ? 'NULL' : this.replace_entity_input;
 
       // compose submission
       const submission = new Submission(this.entity_info);
@@ -1370,18 +1300,15 @@ export default {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          },
+          }
         );
 
         this.makeToast(
-          `${'The deactivation for this entity has been submitted '
-            + '(status '}${
+          `${'The deactivation for this entity has been submitted ' + '(status '}${
             response.status
-          } (${
-            response.statusText
-          }).`,
+          } (${response.statusText}).`,
           'Success',
-          'success',
+          'success'
         );
         this.announce('Entity deactivation submitted successfully');
         this.resetForm();
@@ -1398,22 +1325,28 @@ export default {
 
       // define literature specific attributes as constants from inputs
       // first clean the arrays
-      const select_additional_references_clean = this.select_additional_references.map((element) => element.replace(/\s+/g, ''));
+      const select_additional_references_clean = this.select_additional_references.map((element) =>
+        element.replace(/\s+/g, '')
+      );
 
-      const select_gene_reviews_clean = this.select_gene_reviews.map(
-        (element) => element.replace(/\s+/g, ''),
+      const select_gene_reviews_clean = this.select_gene_reviews.map((element) =>
+        element.replace(/\s+/g, '')
       );
 
       const replace_literature = new Literature(
         select_additional_references_clean,
-        select_gene_reviews_clean,
+        select_gene_reviews_clean
       );
 
       // compose phenotype specific attributes as constants from inputs
-      const replace_phenotype = this.select_phenotype.map((item) => new Phenotype(item.split('-')[1], item.split('-')[0]));
+      const replace_phenotype = this.select_phenotype.map(
+        (item) => new Phenotype(item.split('-')[1], item.split('-')[0])
+      );
 
       // compose variation ontology specific attributes as constants from inputs
-      const replace_variation_ontology = this.select_variation.map((item) => new Variation(item.split('-')[1], item.split('-')[0]));
+      const replace_variation_ontology = this.select_variation.map(
+        (item) => new Variation(item.split('-')[1], item.split('-')[0])
+      );
 
       // assign to object
       this.review_info.literature = replace_literature;
@@ -1429,18 +1362,15 @@ export default {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          },
+          }
         );
 
         this.makeToast(
-          `${'The new review for this entity has been submitted '
-            + '(status '}${
+          `${'The new review for this entity has been submitted ' + '(status '}${
             response.status
-          } (${
-            response.statusText
-          }).`,
+          } (${response.statusText}).`,
           'Success',
-          'success',
+          'success'
         );
         this.announce('Review submitted successfully');
         this.resetForm();
@@ -1490,10 +1420,10 @@ export default {
       // Individual PMID tag validator function
       const tag_copy = tag.replace(/\s+/g, '');
       return (
-        !Number.isNaN(Number(tag_copy.replaceAll('PMID:', '')))
-        && tag_copy.includes('PMID:')
-        && tag_copy.replace('PMID:', '').length > 4
-        && tag_copy.replace('PMID:', '').length < 9
+        !Number.isNaN(Number(tag_copy.replaceAll('PMID:', ''))) &&
+        tag_copy.includes('PMID:') &&
+        tag_copy.replace('PMID:', '').length > 4 &&
+        tag_copy.replace('PMID:', '').length < 9
       );
     },
     onRenameModalShow() {
@@ -1533,5 +1463,4 @@ export default {
   line-height: 0.5;
   border-radius: 0.2rem;
 }
-
 </style>

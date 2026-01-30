@@ -3,10 +3,7 @@
   <div class="container-fluid">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="12"
-        >
+        <BCol col md="12">
           <!-- User Interface controls -->
           <BCard
             header-tag="header"
@@ -21,12 +18,7 @@
                 <BCol>
                   <h5 class="mb-0 text-start fw-bold">
                     Approve Reviews
-                    <BBadge
-                      variant="primary"
-                      class="ms-2"
-                    >
-                      {{ totalRows }} reviews
-                    </BBadge>
+                    <BBadge variant="primary" class="ms-2"> {{ totalRows }} reviews </BBadge>
                   </h5>
                 </BCol>
                 <BCol class="text-end">
@@ -63,12 +55,7 @@
             <!-- Search, filters, and pagination row -->
             <BRow class="px-3 py-2 align-items-center">
               <!-- Search input -->
-              <BCol
-                cols="12"
-                md="4"
-                lg="3"
-                class="mb-2 mb-md-0"
-              >
+              <BCol cols="12" md="4" lg="3" class="mb-2 mb-md-0">
                 <BInputGroup size="sm">
                   <template #prepend>
                     <BInputGroupText>
@@ -86,12 +73,7 @@
               </BCol>
 
               <!-- Spacer for alignment -->
-              <BCol
-                cols="12"
-                md="4"
-                lg="4"
-                class="mb-2 mb-md-0"
-              />
+              <BCol cols="12" md="4" lg="4" class="mb-2 mb-md-0" />
 
               <!-- Pagination controls -->
               <BCol
@@ -100,10 +82,7 @@
                 lg="5"
                 class="d-flex align-items-center justify-content-end gap-2 flex-wrap"
               >
-                <BInputGroup
-                  prepend="Per page"
-                  size="sm"
-                >
+                <BInputGroup prepend="Per page" size="sm">
                   <BFormSelect
                     id="per-page-select"
                     v-model="perPage"
@@ -125,11 +104,7 @@
 
             <!-- Column filters -->
             <BRow class="px-3 pb-2 align-items-center">
-              <BCol
-                cols="6"
-                md="2"
-                class="mb-2 mb-md-0"
-              >
+              <BCol cols="6" md="2" class="mb-2 mb-md-0">
                 <BFormSelect
                   v-model="categoryFilter"
                   size="sm"
@@ -137,11 +112,7 @@
                   aria-label="Filter by category"
                 />
               </BCol>
-              <BCol
-                cols="6"
-                md="2"
-                class="mb-2 mb-md-0"
-              >
+              <BCol cols="6" md="2" class="mb-2 mb-md-0">
                 <BFormSelect
                   v-model="userFilter"
                   size="sm"
@@ -149,16 +120,10 @@
                   aria-label="Filter by user"
                 />
               </BCol>
-              <BCol
-                cols="6"
-                md="2"
-                class="mb-2 mb-md-0"
-              >
+              <BCol cols="6" md="2" class="mb-2 mb-md-0">
                 <BInputGroup size="sm">
                   <template #prepend>
-                    <BInputGroupText class="small">
-                      From
-                    </BInputGroupText>
+                    <BInputGroupText class="small"> From </BInputGroupText>
                   </template>
                   <BFormInput
                     v-model="dateRangeStart"
@@ -168,16 +133,10 @@
                   />
                 </BInputGroup>
               </BCol>
-              <BCol
-                cols="6"
-                md="2"
-                class="mb-2 mb-md-0"
-              >
+              <BCol cols="6" md="2" class="mb-2 mb-md-0">
                 <BInputGroup size="sm">
                   <template #prepend>
-                    <BInputGroupText class="small">
-                      To
-                    </BInputGroupText>
+                    <BInputGroupText class="small"> To </BInputGroupText>
                   </template>
                   <BFormInput
                     v-model="dateRangeEnd"
@@ -188,11 +147,7 @@
                 </BInputGroup>
               </BCol>
               <!-- Active filter tags -->
-              <BCol
-                cols="12"
-                md="4"
-                class="d-flex align-items-center flex-wrap gap-1"
-              >
+              <BCol cols="12" md="4" class="d-flex align-items-center flex-wrap gap-1">
                 <BBadge
                   v-if="categoryFilter"
                   variant="secondary"
@@ -244,11 +199,7 @@
             </div>
 
             <!-- Main table -->
-            <BSpinner
-              v-if="loading_review_approve"
-              label="Loading..."
-              class="float-center m-5"
-            />
+            <BSpinner v-if="loading_review_approve" label="Loading..." class="float-center m-5" />
             <BTable
               v-else
               :items="columnFilteredItems"
@@ -291,7 +242,9 @@
                 <DiseaseBadge
                   :name="data.item.disease_ontology_name"
                   :ontology-id="data.item.disease_ontology_id_version"
-                  :link-to="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"
+                  :link-to="
+                    '/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')
+                  "
                   :max-length="35"
                   size="sm"
                 />
@@ -310,7 +263,7 @@
                   v-if="data.item.synopsis"
                   :id="'synopsis-' + data.item.entity_id"
                   class="text-truncate-multiline small text-popover-trigger"
-                  style="max-width: 200px;"
+                  style="max-width: 200px"
                 >
                   {{ data.item.synopsis }}
                 </div>
@@ -329,10 +282,7 @@
                     {{ data.item.synopsis }}
                   </div>
                 </BPopover>
-                <span
-                  v-else
-                  class="text-muted small"
-                >—</span>
+                <span v-else class="text-muted small">—</span>
               </template>
 
               <template #cell(comment)="data">
@@ -340,7 +290,7 @@
                   v-if="data.item.comment"
                   :id="'comment-' + data.item.entity_id"
                   class="text-truncate-multiline small text-popover-trigger"
-                  style="max-width: 150px;"
+                  style="max-width: 150px"
                 >
                   {{ data.item.comment }}
                 </div>
@@ -359,10 +309,7 @@
                     {{ data.item.comment }}
                   </div>
                 </BPopover>
-                <span
-                  v-else
-                  class="text-muted small"
-                >—</span>
+                <span v-else class="text-muted small">—</span>
               </template>
 
               <template #cell(review_date)="data">
@@ -371,12 +318,12 @@
                     v-b-tooltip.hover.top
                     :title="data.item.review_date"
                     class="d-inline-flex align-items-center justify-content-center rounded-circle bg-secondary-subtle text-secondary"
-                    style="width: 24px; height: 24px; font-size: 0.75rem;"
+                    style="width: 24px; height: 24px; font-size: 0.75rem"
                   >
                     <i class="bi bi-calendar3" />
                   </span>
                   <span class="small text-muted">
-                    {{ data.item.review_date.substring(0,10) }}
+                    {{ data.item.review_date.substring(0, 10) }}
                   </span>
                 </div>
               </template>
@@ -388,7 +335,7 @@
                     :title="data.item.review_user_role"
                     class="d-inline-flex align-items-center justify-content-center rounded-circle"
                     :class="`bg-${user_style[data.item.review_user_role]}-subtle text-${user_style[data.item.review_user_role]}`"
-                    style="width: 24px; height: 24px; font-size: 0.75rem;"
+                    style="width: 24px; height: 24px; font-size: 0.75rem"
                   >
                     <i :class="'bi bi-' + user_icon[data.item.review_user_role]" />
                   </span>
@@ -408,7 +355,10 @@
                   :aria-label="`Toggle details for entity ${row.item.entity_id}`"
                   @click="row.toggleDetails"
                 >
-                  <i :class="'bi bi-' + (row.detailsShowing ? 'eye-slash' : 'eye')" aria-hidden="true" />
+                  <i
+                    :class="'bi bi-' + (row.detailsShowing ? 'eye-slash' : 'eye')"
+                    aria-hidden="true"
+                  />
                 </BButton>
 
                 <BButton
@@ -432,15 +382,12 @@
                   :aria-label="`${row.item.status_change ? 'Edit new status' : 'Edit status'} for entity ${row.item.entity_id}`"
                   @click="infoStatus(row.item, row.index, $event.target)"
                 >
-                  <span
-                    class="position-relative d-inline-block"
-                    style="font-size: 0.9em;"
-                  >
+                  <span class="position-relative d-inline-block" style="font-size: 0.9em">
                     <i class="bi bi-stoplights" aria-hidden="true" />
                     <i
                       v-if="row.item.status_change"
                       class="bi bi-exclamation-triangle-fill position-absolute"
-                      style="top: -0.3em; right: -0.5em; font-size: 0.7em;"
+                      style="top: -0.3em; right: -0.5em; font-size: 0.7em"
                       aria-hidden="true"
                     />
                   </span>
@@ -458,7 +405,7 @@
                   <i class="bi bi-check2-circle" aria-hidden="true" />
                 </BButton>
                 <BButton
-                  v-if="row.item.duplicate==='yes'"
+                  v-if="row.item.duplicate === 'yes'"
                   v-b-tooltip.hover.right
                   variant="danger"
                   title="Multiple unapproved reviews for this entity"
@@ -471,10 +418,7 @@
               </template>
 
               <template #row-details="row">
-                <BCard
-                  class="mb-2 border-0 shadow-sm"
-                  body-class="p-3"
-                >
+                <BCard class="mb-2 border-0 shadow-sm" body-class="p-3">
                   <div class="row g-3">
                     <!-- Entity Info Section -->
                     <div class="col-md-4">
@@ -484,15 +428,15 @@
                       </h6>
                       <div class="d-flex flex-column gap-2">
                         <div class="d-flex align-items-center gap-2">
-                          <span class="text-muted small" style="min-width: 80px;">Review ID:</span>
+                          <span class="text-muted small" style="min-width: 80px">Review ID:</span>
                           <BBadge variant="secondary">{{ row.item.review_id }}</BBadge>
                         </div>
                         <div class="d-flex align-items-center gap-2">
-                          <span class="text-muted small" style="min-width: 80px;">Ontology:</span>
+                          <span class="text-muted small" style="min-width: 80px">Ontology:</span>
                           <code class="small">{{ row.item.disease_ontology_id_version }}</code>
                         </div>
                         <div class="d-flex align-items-center gap-2">
-                          <span class="text-muted small" style="min-width: 80px;">Primary:</span>
+                          <span class="text-muted small" style="min-width: 80px">Primary:</span>
                           <BBadge :variant="row.item.is_primary ? 'success' : 'secondary'">
                             {{ row.item.is_primary ? 'Yes' : 'No' }}
                           </BBadge>
@@ -509,7 +453,7 @@
                       <div
                         v-if="row.item.synopsis"
                         class="bg-light rounded p-2 small"
-                        style="max-height: 120px; overflow-y: auto;"
+                        style="max-height: 120px; overflow-y: auto"
                       >
                         {{ row.item.synopsis }}
                       </div>
@@ -581,13 +525,11 @@
             Status Change Detected
           </h6>
 
-          <BFormCheckbox
-            id="approveStatusSwitch"
-            v-model="status_approved"
-            switch
-          >
+          <BFormCheckbox id="approveStatusSwitch" v-model="status_approved" switch>
             <span class="fw-semibold">Also approve new status</span>
-            <span class="text-muted small d-block">A status change was submitted with this review</span>
+            <span class="text-muted small d-block"
+              >A status change was submitted with this review</span
+            >
           </BFormCheckbox>
         </div>
       </BModal>
@@ -626,24 +568,12 @@
               </span>
               <span v-if="entity_info.category" class="d-flex align-items-center gap-1">
                 <span class="text-muted">·</span>
-                <CategoryIcon
-                  :category="entity_info.category"
-                  size="sm"
-                  :show-title="true"
-                />
+                <CategoryIcon :category="entity_info.category" size="sm" :show-title="true" />
               </span>
             </div>
             <div class="d-flex gap-2">
-              <BButton
-                variant="outline-secondary"
-                @click="cancel()"
-              >
-                Cancel
-              </BButton>
-              <BButton
-                variant="primary"
-                @click="ok()"
-              >
+              <BButton variant="outline-secondary" @click="cancel()"> Cancel </BButton>
+              <BButton variant="primary" @click="ok()">
                 <i class="bi bi-check-lg me-1" />
                 Save Review
               </BButton>
@@ -691,20 +621,10 @@
           Review Information
         </h6>
 
-        <BOverlay
-          :show="loading_review_modal"
-          rounded="sm"
-        >
-          <BForm
-            ref="form"
-            @submit.stop.prevent="submitReviewChange"
-          >
+        <BOverlay :show="loading_review_modal" rounded="sm">
+          <BForm ref="form" @submit.stop.prevent="submitReviewChange">
             <!-- Synopsis Section -->
-            <BFormGroup
-              label="Synopsis"
-              label-for="review-textarea-synopsis"
-              class="mb-3"
-            >
+            <BFormGroup label="Synopsis" label-for="review-textarea-synopsis" class="mb-3">
               <template #label>
                 <span class="fw-semibold">Synopsis</span>
               </template>
@@ -722,11 +642,7 @@
               Phenotypes & Variation
             </h6>
 
-            <BFormGroup
-              label="Phenotypes"
-              label-for="review-phenotype-select"
-              class="mb-3"
-            >
+            <BFormGroup label="Phenotypes" label-for="review-phenotype-select" class="mb-3">
               <template #label>
                 <span class="fw-semibold">Phenotypes</span>
               </template>
@@ -740,11 +656,7 @@
               />
             </BFormGroup>
 
-            <BFormGroup
-              label="Variation Ontology"
-              label-for="review-variation-select"
-              class="mb-3"
-            >
+            <BFormGroup label="Variation Ontology" label-for="review-variation-select" class="mb-3">
               <template #label>
                 <span class="fw-semibold">Variation Ontology</span>
               </template>
@@ -764,11 +676,7 @@
               Literature References
             </h6>
 
-            <BFormGroup
-              label="Publications"
-              label-for="review-publications-select"
-              class="mb-3"
-            >
+            <BFormGroup label="Publications" label-for="review-publications-select" class="mb-3">
               <template #label>
                 <span class="fw-semibold">Publications</span>
               </template>
@@ -781,9 +689,7 @@
                 :tag-validator="tagValidatorPMID"
                 remove-on-delete
               >
-                <template
-                  #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }"
-                >
+                <template #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }">
                   <BInputGroup class="my-0">
                     <BFormInput
                       v-bind="inputAttrs"
@@ -791,12 +697,7 @@
                       class="form-control"
                       v-on="inputHandlers"
                     />
-                    <BButton
-                      variant="outline-secondary"
-                      @click="addTag()"
-                    >
-                      Add
-                    </BButton>
+                    <BButton variant="outline-secondary" @click="addTag()"> Add </BButton>
                   </BInputGroup>
 
                   <div class="d-flex flex-wrap gap-1 mt-2">
@@ -808,10 +709,7 @@
                       @remove="removeTag(tag)"
                     >
                       <BLink
-                        :href="
-                          'https://pubmed.ncbi.nlm.nih.gov/' +
-                            tag.replace('PMID:', '')
-                        "
+                        :href="'https://pubmed.ncbi.nlm.nih.gov/' + tag.replace('PMID:', '')"
                         target="_blank"
                         class="text-light"
                       >
@@ -824,11 +722,7 @@
               </BFormTags>
             </BFormGroup>
 
-            <BFormGroup
-              label="GeneReviews"
-              label-for="review-genereviews-select"
-              class="mb-3"
-            >
+            <BFormGroup label="GeneReviews" label-for="review-genereviews-select" class="mb-3">
               <template #label>
                 <span class="fw-semibold">GeneReviews</span>
               </template>
@@ -841,9 +735,7 @@
                 :tag-validator="tagValidatorPMID"
                 remove-on-delete
               >
-                <template
-                  #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }"
-                >
+                <template #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }">
                   <BInputGroup class="my-0">
                     <BFormInput
                       v-bind="inputAttrs"
@@ -851,12 +743,7 @@
                       class="form-control"
                       v-on="inputHandlers"
                     />
-                    <BButton
-                      variant="outline-secondary"
-                      @click="addTag()"
-                    >
-                      Add
-                    </BButton>
+                    <BButton variant="outline-secondary" @click="addTag()"> Add </BButton>
                   </BInputGroup>
 
                   <div class="d-flex flex-wrap gap-1 mt-2">
@@ -868,10 +755,7 @@
                       @remove="removeTag(tag)"
                     >
                       <BLink
-                        :href="
-                          'https://pubmed.ncbi.nlm.nih.gov/' +
-                            tag.replace('PMID:', '')
-                        "
+                        :href="'https://pubmed.ncbi.nlm.nih.gov/' + tag.replace('PMID:', '')"
                         target="_blank"
                         class="text-light"
                       >
@@ -890,11 +774,7 @@
               Notes
             </h6>
 
-            <BFormGroup
-              label="Comment"
-              label-for="review-textarea-comment"
-              class="mb-0"
-            >
+            <BFormGroup label="Comment" label-for="review-textarea-comment" class="mb-0">
               <template #label>
                 <span class="fw-semibold">Comment</span>
               </template>
@@ -939,20 +819,12 @@
                 <i :class="'bi bi-' + user_icon[status_info.status_user_role]" />
                 <span>{{ status_info.status_user_name }}</span>
                 <span class="text-muted">·</span>
-                <span>{{ status_info.status_date?.substring(0,10) }}</span>
+                <span>{{ status_info.status_date?.substring(0, 10) }}</span>
               </span>
             </div>
             <div class="d-flex gap-2">
-              <BButton
-                variant="outline-secondary"
-                @click="cancel()"
-              >
-                Cancel
-              </BButton>
-              <BButton
-                variant="primary"
-                @click="ok()"
-              >
+              <BButton variant="outline-secondary" @click="cancel()"> Cancel </BButton>
+              <BButton variant="primary" @click="ok()">
                 <i class="bi bi-check-lg me-1" />
                 Save Status
               </BButton>
@@ -994,25 +866,15 @@
           </div>
         </div>
 
-        <BOverlay
-          :show="loading_status_modal"
-          rounded="sm"
-        >
-          <BForm
-            ref="form"
-            @submit.stop.prevent="submitStatusChange"
-          >
+        <BOverlay :show="loading_status_modal" rounded="sm">
+          <BForm ref="form" @submit.stop.prevent="submitStatusChange">
             <!-- Status Classification Section -->
             <h6 class="text-muted border-bottom pb-2 mb-3">
               <i class="bi bi-diagram-3 me-2" />
               Classification
             </h6>
 
-            <BFormGroup
-              label="Status Category"
-              label-for="status-select"
-              class="mb-3"
-            >
+            <BFormGroup label="Status Category" label-for="status-select" class="mb-3">
               <template #label>
                 <span class="fw-semibold">Status Category</span>
                 <BBadge
@@ -1021,7 +883,7 @@
                   href="#"
                   variant="info"
                   class="ms-2"
-                  style="cursor: help;"
+                  style="cursor: help"
                 >
                   <i class="bi bi-question-circle-fill" />
                 </BBadge>
@@ -1033,21 +895,13 @@
                 :options="normalizeStatusOptions(status_options)"
               >
                 <template #first>
-                  <BFormSelectOption :value="null">
-                    Select status...
-                  </BFormSelectOption>
+                  <BFormSelectOption :value="null"> Select status... </BFormSelectOption>
                 </template>
               </BFormSelect>
             </BFormGroup>
 
-            <BPopover
-              target="popover-badge-help-status"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Status instructions
-              </template>
+            <BPopover target="popover-badge-help-status" variant="info" triggers="focus">
+              <template #title> Status instructions </template>
               Please refer to the curation manual for details on the categories.
             </BPopover>
 
@@ -1066,32 +920,22 @@
                   href="#"
                   variant="info"
                   class="ms-2"
-                  style="cursor: help;"
+                  style="cursor: help"
                 >
                   <i class="bi bi-question-circle-fill" />
                 </BBadge>
               </template>
-              <BFormCheckbox
-                id="removeSwitch"
-                v-model="status_info.problematic"
-                switch
-              >
+              <BFormCheckbox id="removeSwitch" v-model="status_info.problematic" switch>
                 Suggest removal of this entity
               </BFormCheckbox>
             </BFormGroup>
 
-            <BPopover
-              target="popover-badge-help-removal"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Removal instructions
-              </template>
-              SysNDD does not forget, meaning that entities will not be deleted
-              but they can be deactivated. Deactivated entities will not be
-              displayed on the website. Typically duplicate entities should be
-              deactivated especially if there is a more specific disease name.
+            <BPopover target="popover-badge-help-removal" variant="info" triggers="focus">
+              <template #title> Removal instructions </template>
+              SysNDD does not forget, meaning that entities will not be deleted but they can be
+              deactivated. Deactivated entities will not be displayed on the website. Typically
+              duplicate entities should be deactivated especially if there is a more specific
+              disease name.
             </BPopover>
 
             <!-- Comment Section -->
@@ -1100,11 +944,7 @@
               Notes
             </h6>
 
-            <BFormGroup
-              label="Comment"
-              label-for="status-textarea-comment"
-              class="mb-0"
-            >
+            <BFormGroup label="Comment" label-for="status-textarea-comment" class="mb-0">
               <template #label>
                 <span class="fw-semibold">Comment</span>
               </template>
@@ -1147,26 +987,22 @@
           <div class="mb-3">
             <span
               class="d-inline-flex align-items-center justify-content-center rounded-circle bg-danger-subtle text-danger"
-              style="width: 64px; height: 64px; font-size: 1.5rem;"
+              style="width: 64px; height: 64px; font-size: 1.5rem"
             >
               <i class="bi bi-exclamation-triangle" />
             </span>
           </div>
-          <p class="mb-2">
-            Are you sure you want to approve <strong>ALL</strong> reviews?
-          </p>
+          <p class="mb-2">Are you sure you want to approve <strong>ALL</strong> reviews?</p>
           <p class="text-muted small mb-3">
             This will approve {{ totalRows }} pending reviews at once.
           </p>
         </div>
 
         <div class="border border-danger rounded-3 p-3 bg-danger-subtle">
-          <BFormCheckbox
-            id="confirmApproveAllSwitch"
-            v-model="approve_all_selected"
-            switch
-          >
-            <span class="fw-semibold">{{ switch_approve_text[approve_all_selected] }}, I confirm this action</span>
+          <BFormCheckbox id="confirmApproveAllSwitch" v-model="approve_all_selected" switch>
+            <span class="fw-semibold"
+              >{{ switch_approve_text[approve_all_selected] }}, I confirm this action</span
+            >
           </BFormCheckbox>
         </div>
       </BModal>
@@ -1237,7 +1073,11 @@ export default {
         { icon: 'bi bi-stoplights-fill', color: '#2196f3', label: 'Moderate' },
         { icon: 'bi bi-stoplights-fill', color: '#ff9800', label: 'Limited' },
         { icon: 'bi bi-stoplights-fill', color: '#f44336', label: 'Refuted' },
-        { icon: 'bi bi-exclamation-triangle-fill', color: '#dc3545', label: 'Status change pending' },
+        {
+          icon: 'bi bi-exclamation-triangle-fill',
+          color: '#dc3545',
+          label: 'Status change pending',
+        },
         { icon: 'bi bi-eye', color: '#0d6efd', label: 'Toggle details' },
         { icon: 'bi bi-pen', color: '#6c757d', label: 'Edit review' },
         { icon: 'bi bi-check2-circle', color: '#dc3545', label: 'Approve review' },
@@ -1427,7 +1267,9 @@ export default {
   computed: {
     // Category filter options from unique values in items
     categoryFilterOptions() {
-      const categories = [...new Set(this.items_ReviewTable.map((item) => item.active_category))].filter(Boolean);
+      const categories = [
+        ...new Set(this.items_ReviewTable.map((item) => item.active_category)),
+      ].filter(Boolean);
       return [
         { value: null, text: 'All Categories' },
         ...categories.map((cat) => ({ value: cat, text: cat })),
@@ -1435,7 +1277,9 @@ export default {
     },
     // User filter options from unique values in items
     userFilterOptions() {
-      const users = [...new Set(this.items_ReviewTable.map((item) => item.review_user_name))].filter(Boolean);
+      const users = [
+        ...new Set(this.items_ReviewTable.map((item) => item.review_user_name)),
+      ].filter(Boolean);
       return [
         { value: null, text: 'All Users' },
         ...users.map((user) => ({ value: user, text: user })),
@@ -1568,9 +1412,7 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/phenotype?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
-        const rawData = Array.isArray(response.data)
-          ? response.data
-          : response.data?.data || [];
+        const rawData = Array.isArray(response.data) ? response.data : response.data?.data || [];
         // Transform to make all modifiers selectable
         this.phenotypes_options = this.transformModifierTree(rawData);
       } catch (e) {
@@ -1582,9 +1424,7 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/variation_ontology?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
-        const rawData = Array.isArray(response.data)
-          ? response.data
-          : response.data?.data || [];
+        const rawData = Array.isArray(response.data) ? response.data : response.data?.data || [];
         // Transform to make all modifiers selectable
         this.variation_ontology_options = this.transformModifierTree(rawData);
       } catch (e) {
@@ -1620,13 +1460,11 @@ export default {
       this.loading_review_modal = true;
 
       const apiGetReviewURL = `${import.meta.env.VITE_API_URL}/api/review/${review_id}`;
-      const apiGetPhenotypesURL = `${import.meta.env.VITE_API_URL
-      }/api/review/${
+      const apiGetPhenotypesURL = `${import.meta.env.VITE_API_URL}/api/review/${
         review_id
       }/phenotypes`;
       const apiGetVariationURL = `${import.meta.env.VITE_API_URL}/api/review/${review_id}/variation`;
-      const apiGetPublicationsURL = `${import.meta.env.VITE_API_URL
-      }/api/review/${
+      const apiGetPublicationsURL = `${import.meta.env.VITE_API_URL}/api/review/${
         review_id
       }/publications`;
 
@@ -1637,12 +1475,20 @@ export default {
         const response_publications = await this.axios.get(apiGetPublicationsURL);
 
         // define phenotype specific attributes as constants from response
-        const new_phenotype = response_phenotypes.data.map((item) => new Phenotype(item.phenotype_id, item.modifier_id));
-        this.select_phenotype = response_phenotypes.data.map((item) => `${item.modifier_id}-${item.phenotype_id}`);
+        const new_phenotype = response_phenotypes.data.map(
+          (item) => new Phenotype(item.phenotype_id, item.modifier_id)
+        );
+        this.select_phenotype = response_phenotypes.data.map(
+          (item) => `${item.modifier_id}-${item.phenotype_id}`
+        );
 
         // define variation specific attributes as constants from response
-        const new_variation = response_variation.data.map((item) => new Variation(item.vario_id, item.modifier_id));
-        this.select_variation = response_variation.data.map((item) => `${item.modifier_id}-${item.vario_id}`);
+        const new_variation = response_variation.data.map(
+          (item) => new Variation(item.vario_id, item.modifier_id)
+        );
+        this.select_variation = response_variation.data.map(
+          (item) => `${item.modifier_id}-${item.vario_id}`
+        );
 
         // define publication specific attributes as constants from response
         const literature_gene_reviews = response_publications.data
@@ -1658,7 +1504,7 @@ export default {
 
         const new_literature = new Literature(
           literature_additional_references,
-          literature_gene_reviews,
+          literature_gene_reviews
         );
 
         // compose review
@@ -1667,7 +1513,7 @@ export default {
           new_literature,
           new_phenotype,
           new_variation,
-          response_review.data[0].comment,
+          response_review.data[0].comment
         );
 
         this.review_info.review_id = response_review.data[0].review_id;
@@ -1692,7 +1538,7 @@ export default {
         this.status_info = new Status(
           response.data[0].category_id,
           response.data[0].comment,
-          response.data[0].problematic,
+          response.data[0].problematic
         );
 
         this.status_info.status_id = response.data[0].status_id;
@@ -1708,8 +1554,7 @@ export default {
       }
     },
     async getEntity(entity_input) {
-      const apiGetURL = `${import.meta.env.VITE_API_URL
-      }/api/entity?filter=equals(entity_id,${
+      const apiGetURL = `${import.meta.env.VITE_API_URL}/api/entity?filter=equals(entity_id,${
         entity_input
       })`;
       try {
@@ -1726,24 +1571,28 @@ export default {
 
       // define literature specific attributes as constants from inputs
       // first clean the arrays
-      const select_additional_references_clean = this.select_additional_references.map(
-        (element) => this.sanitizeInput(element),
+      const select_additional_references_clean = this.select_additional_references.map((element) =>
+        this.sanitizeInput(element)
       );
 
-      const select_gene_reviews_clean = this.select_gene_reviews.map(
-        (element) => this.sanitizeInput(element),
+      const select_gene_reviews_clean = this.select_gene_reviews.map((element) =>
+        this.sanitizeInput(element)
       );
 
       const replace_literature = new Literature(
         select_additional_references_clean,
-        select_gene_reviews_clean,
+        select_gene_reviews_clean
       );
 
       // compose phenotype specific attributes as constants from inputs
-      const replace_phenotype = this.select_phenotype.map((item) => new Phenotype(item.split('-')[1], item.split('-')[0]));
+      const replace_phenotype = this.select_phenotype.map(
+        (item) => new Phenotype(item.split('-')[1], item.split('-')[0])
+      );
 
       // compose variation ontology specific attributes as constants from inputs
-      const replace_variation_ontology = this.select_variation.map((item) => new Variation(item.split('-')[1], item.split('-')[0]));
+      const replace_variation_ontology = this.select_variation.map(
+        (item) => new Variation(item.split('-')[1], item.split('-')[0])
+      );
 
       // assign to object
       this.review_info.literature = replace_literature;
@@ -1759,15 +1608,11 @@ export default {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          },
+          }
         );
 
         const message = 'The new review for this entity has been submitted successfully.';
-        this.makeToast(
-          message,
-          'Success',
-          'success',
-        );
+        this.makeToast(message, 'Success', 'success');
         this.announce(message);
         this.resetForm();
         this.loadReviewTableData();
@@ -1796,18 +1641,15 @@ export default {
               headers: {
                 Authorization: `Bearer ${localStorage.getItem('token')}`,
               },
-            },
+            }
           );
 
           this.makeToast(
-            `${'The new status for this entity has been submitted '
-              + '(status '}${
+            `${'The new status for this entity has been submitted ' + '(status '}${
               response.status
-            } (${
-              response.statusText
-            }).`,
+            } (${response.statusText}).`,
             'Success',
-            'success',
+            'success'
           );
           this.resetForm();
           this.loadReviewTableData();
@@ -1834,15 +1676,11 @@ export default {
               headers: {
                 Authorization: `Bearer ${localStorage.getItem('token')}`,
               },
-            },
+            }
           );
 
           const message = 'The new status for this entity has been submitted successfully.';
-          this.makeToast(
-            message,
-            'Success',
-            'success',
-          );
+          this.makeToast(message, 'Success', 'success');
           this.announce(message);
           this.resetForm();
           this.loadReviewTableData();
@@ -1865,8 +1703,7 @@ export default {
       this.$refs[this.approveModal.id].show();
     },
     async handleApproveOk(_bvModalEvt) {
-      const apiUrlReview = `${import.meta.env.VITE_API_URL
-      }/api/review/approve/${
+      const apiUrlReview = `${import.meta.env.VITE_API_URL}/api/review/approve/${
         this.entity.review_id
       }?review_ok=true`;
 
@@ -1878,7 +1715,7 @@ export default {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          },
+          }
         );
         this.announce('Review approved successfully');
       } catch (e) {
@@ -1888,8 +1725,7 @@ export default {
 
       // only call status EP if status should be approved too
       if (this.status_approved === true && this.entity.status_change === 1) {
-        const apiUrlStatus = `${import.meta.env.VITE_API_URL
-        }/api/status/approve/${
+        const apiUrlStatus = `${import.meta.env.VITE_API_URL}/api/status/approve/${
           this.entity.newest_status
         }?status_ok=true`;
 
@@ -1901,7 +1737,7 @@ export default {
               headers: {
                 Authorization: `Bearer ${localStorage.getItem('token')}`,
               },
-            },
+            }
           );
           this.announce('Status also approved');
         } catch (e) {
@@ -1915,8 +1751,7 @@ export default {
     },
     async handleAllReviewsOk() {
       if (this.approve_all_selected) {
-        const apiUrl = `${import.meta.env.VITE_API_URL
-        }/api/review/approve/all?review_ok=true`;
+        const apiUrl = `${import.meta.env.VITE_API_URL}/api/review/approve/all?review_ok=true`;
         try {
           this.axios.put(
             apiUrl,
@@ -1925,7 +1760,7 @@ export default {
               headers: {
                 Authorization: `Bearer ${localStorage.getItem('token')}`,
               },
-            },
+            }
           );
 
           this.loadReviewTableData();
@@ -1980,10 +1815,10 @@ export default {
       // Individual PMID tag validator function
       const tag_copy = this.sanitizeInput(tag);
       return (
-        !Number.isNaN(Number(tag_copy.replaceAll('PMID:', '')))
-        && tag_copy.includes('PMID:')
-        && tag_copy.replace('PMID:', '').length > 4
-        && tag_copy.replace('PMID:', '').length < 9
+        !Number.isNaN(Number(tag_copy.replaceAll('PMID:', ''))) &&
+        tag_copy.includes('PMID:') &&
+        tag_copy.replace('PMID:', '').length > 4 &&
+        tag_copy.replace('PMID:', '').length < 9
       );
     },
     onFiltered(filteredItems) {

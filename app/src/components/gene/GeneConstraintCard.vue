@@ -32,15 +32,7 @@
     </div>
 
     <!-- Constraint Table -->
-    <BTable
-      v-else
-      :items="tableItems"
-      :fields="tableFields"
-      small
-      striped
-      hover
-      class="mb-0"
-    >
+    <BTable v-else :items="tableItems" :fields="tableFields" small striped hover class="mb-0">
       <!-- Category Column - Bold Text -->
       <template #cell(category)="{ value }">
         <strong>{{ value }}</strong>
@@ -56,12 +48,7 @@
             <span class="text-muted small">o/e:</span> {{ formatNumber(item.oe, 2) }}
           </div>
           <div class="ci-bar-container">
-            <svg
-              width="100"
-              height="12"
-              role="img"
-              :aria-label="getCIAriaLabel(item)"
-            >
+            <svg width="100" height="12" role="img" :aria-label="getCIAriaLabel(item)">
               <!-- Background rect (0-2 range) -->
               <rect x="0" y="0" width="100" height="12" fill="#e9ecef" rx="2" />
 
@@ -101,29 +88,29 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { BCard, BButton, BTable } from 'bootstrap-vue-next'
-import type { GnomADConstraints } from '@/types/external'
+import { computed } from 'vue';
+import { BCard, BButton, BTable } from 'bootstrap-vue-next';
+import type { GnomADConstraints } from '@/types/external';
 
 interface Props {
-  geneSymbol: string
+  geneSymbol: string;
   /** JSON string from gene endpoint (gnomad_constraints column) or null */
-  constraintsJson: string | null
+  constraintsJson: string | null;
 }
 
 /** Type for constraint table row items */
 interface ConstraintTableItem {
-  category: string
-  expected: string
-  observed: string
-  z_score: number | null
-  oe: number | null
-  oe_lower: number | null
-  oe_upper: number | null
-  pLI: number | null
+  category: string;
+  expected: string;
+  observed: string;
+  z_score: number | null;
+  oe: number | null;
+  oe_lower: number | null;
+  oe_upper: number | null;
+  pLI: number | null;
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 
 /**
  * Parse the JSON string from the database into typed constraint data.
@@ -131,27 +118,27 @@ const props = defineProps<Props>()
  */
 const constraintData = computed<GnomADConstraints | null>(() => {
   if (!props.constraintsJson || props.constraintsJson === 'null') {
-    return null
+    return null;
   }
 
   try {
-    return JSON.parse(props.constraintsJson) as GnomADConstraints
+    return JSON.parse(props.constraintsJson) as GnomADConstraints;
   } catch {
-    return null
+    return null;
   }
-})
+});
 
 // Table configuration
 const tableFields = [
   { key: 'category', label: 'Category', thStyle: { width: '15%' } },
   { key: 'expected', label: 'Expected SNVs', thStyle: { width: '15%' } },
   { key: 'observed', label: 'Observed SNVs', thStyle: { width: '15%' } },
-  { key: 'metrics', label: 'Constraint Metrics', thStyle: { width: '55%' } }
-]
+  { key: 'metrics', label: 'Constraint Metrics', thStyle: { width: '55%' } },
+];
 
 // Build table rows from constraint data
 const tableItems = computed(() => {
-  if (!constraintData.value) return []
+  if (!constraintData.value) return [];
 
   return [
     {
@@ -162,7 +149,7 @@ const tableItems = computed(() => {
       oe: constraintData.value.oe_syn,
       oe_lower: constraintData.value.oe_syn_lower,
       oe_upper: constraintData.value.oe_syn_upper,
-      pLI: null
+      pLI: null,
     },
     {
       category: 'Missense',
@@ -172,7 +159,7 @@ const tableItems = computed(() => {
       oe: constraintData.value.oe_mis,
       oe_lower: constraintData.value.oe_mis_lower,
       oe_upper: constraintData.value.oe_mis_upper,
-      pLI: null
+      pLI: null,
     },
     {
       category: 'pLoF',
@@ -182,39 +169,39 @@ const tableItems = computed(() => {
       oe: constraintData.value.oe_lof,
       oe_lower: constraintData.value.oe_lof_lower,
       oe_upper: constraintData.value.oe_lof_upper,
-      pLI: constraintData.value.pLI
-    }
-  ]
-})
+      pLI: constraintData.value.pLI,
+    },
+  ];
+});
 
 // Helper: Map 0-2 o/e range to 0-100px SVG coordinate
 function scaleOE(value: number | null): number {
-  if (value === null) return 0
+  if (value === null) return 0;
   // Map 0-2 range to 0-100px, clamped
-  const scaled = value * 50
-  return Math.max(0, Math.min(100, scaled))
+  const scaled = value * 50;
+  return Math.max(0, Math.min(100, scaled));
 }
 
 // Helper: Get CI bar color (amber for pLoF with LOEUF < 0.6, gray otherwise)
 function getOEColor(oe_upper: number | null, category: string): string {
   if (category === 'pLoF' && oe_upper !== null && oe_upper < 0.6) {
-    return '#ffc107' // Amber for highly constrained pLoF
+    return '#ffc107'; // Amber for highly constrained pLoF
   }
-  return '#6c757d' // Gray default
+  return '#6c757d'; // Gray default
 }
 
 // Helper: Format number with specified decimals
 function formatNumber(value: number | null, decimals: number): string {
-  if (value === null || value === undefined) return 'N/A'
-  return value.toFixed(decimals)
+  if (value === null || value === undefined) return 'N/A';
+  return value.toFixed(decimals);
 }
 
 // Helper: Generate ARIA label for CI bar (screen reader accessibility)
 function getCIAriaLabel(item: ConstraintTableItem): string {
   if (item.oe === null || item.oe_lower === null || item.oe_upper === null) {
-    return `${item.category} constraint: data unavailable`
+    return `${item.category} constraint: data unavailable`;
   }
-  return `${item.category} observed/expected ratio: ${formatNumber(item.oe, 2)}, confidence interval ${formatNumber(item.oe_lower, 2)} to ${formatNumber(item.oe_upper, 2)}`
+  return `${item.category} observed/expected ratio: ${formatNumber(item.oe, 2)}, confidence interval ${formatNumber(item.oe_lower, 2)} to ${formatNumber(item.oe_upper, 2)}`;
 }
 </script>
 

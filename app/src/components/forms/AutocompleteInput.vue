@@ -55,11 +55,7 @@
     </div>
 
     <!-- Loading indicator -->
-    <div
-      v-if="loading"
-      class="autocomplete-loading"
-      aria-live="polite"
-    >
+    <div v-if="loading" class="autocomplete-loading" aria-live="polite">
       <BSpinner small />
       <span class="ms-2 text-muted small">Searching...</span>
     </div>
@@ -322,10 +318,7 @@ export default defineComponent({
       switch (event.key) {
         case 'ArrowDown':
           event.preventDefault();
-          highlightedIndex.value = Math.min(
-            highlightedIndex.value + 1,
-            props.results.length - 1
-          );
+          highlightedIndex.value = Math.min(highlightedIndex.value + 1, props.results.length - 1);
           break;
 
         case 'ArrowUp':

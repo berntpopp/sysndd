@@ -4,22 +4,12 @@
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol md="12">
-          <BCard
-            title="NDD Publications"
-            no-body
-          >
+          <BCard title="NDD Publications" no-body>
             <!-- Card Header with tabs -->
             <BCardHeader header-tag="nav">
-              <BNav
-                card-header
-                tabs
-              >
+              <BNav card-header tabs>
                 <!-- 1) All Publications Child -->
-                <BNavItem
-                  :to="{ name: 'PublicationsNDDTable' }"
-                  exact
-                  exact-active-class="active"
-                >
+                <BNavItem :to="{ name: 'PublicationsNDDTable' }" exact exact-active-class="active">
                   SysNDD Curated
                 </BNavItem>
 
@@ -33,11 +23,7 @@
                 </BNavItem>
 
                 <!-- 3) Stats Child -->
-                <BNavItem
-                  :to="{ name: 'PublicationsNDDStats' }"
-                  exact
-                  exact-active-class="active"
-                >
+                <BNavItem :to="{ name: 'PublicationsNDDStats' }" exact exact-active-class="active">
                   Stats
                 </BNavItem>
               </BNav>

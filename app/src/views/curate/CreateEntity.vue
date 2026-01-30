@@ -1,15 +1,9 @@
 <template>
   <div class="container-fluid">
     <BContainer fluid>
-      <BOverlay
-        :show="isSubmitting"
-        rounded="sm"
-      >
+      <BOverlay :show="isSubmitting" rounded="sm">
         <BRow class="justify-content-md-center py-2">
-          <BCol
-            col
-            md="12"
-          >
+          <BCol col md="12">
             <!-- Page Header -->
             <div class="page-header mb-4">
               <h4 class="mb-1">Create New Entity</h4>
@@ -31,24 +25,13 @@
                 <div>
                   <i class="bi bi-clock-history me-2" />
                   <strong>Unsaved draft found</strong>
-                  <span class="text-muted ms-2">
-                    Last saved {{ draftLastSaved }}
-                  </span>
+                  <span class="text-muted ms-2"> Last saved {{ draftLastSaved }} </span>
                 </div>
                 <div>
-                  <BButton
-                    variant="outline-primary"
-                    size="sm"
-                    class="me-2"
-                    @click="restoreDraft"
-                  >
+                  <BButton variant="outline-primary" size="sm" class="me-2" @click="restoreDraft">
                     Restore Draft
                   </BButton>
-                  <BButton
-                    variant="outline-secondary"
-                    size="sm"
-                    @click="dismissDraft"
-                  >
+                  <BButton variant="outline-secondary" size="sm" @click="dismissDraft">
                     Discard
                   </BButton>
                 </div>
@@ -118,13 +101,7 @@
 </template>
 
 <script lang="ts">
-import {
-  defineComponent,
-  ref,
-  provide,
-  onMounted,
-  watch,
-} from 'vue';
+import { defineComponent, ref, provide, onMounted, watch } from 'vue';
 import { BContainer, BRow, BCol, BOverlay, BAlert, BButton } from 'bootstrap-vue-next';
 import axios from 'axios';
 
@@ -242,10 +219,7 @@ export default defineComponent({
     );
 
     // API helper for loading flat options (inheritance, status)
-    const loadFlatOptions = async (
-      endpoint: string,
-      targetRef: typeof inheritanceOptions
-    ) => {
+    const loadFlatOptions = async (endpoint: string, targetRef: typeof inheritanceOptions) => {
       try {
         const response = await axios.get(
           `${import.meta.env.VITE_API_URL}/api/list/${endpoint}?tree=true`
@@ -257,10 +231,7 @@ export default defineComponent({
     };
 
     // API helper for loading grouped options (phenotypes, variations)
-    const loadGroupedOptions = async (
-      endpoint: string,
-      targetRef: typeof phenotypeOptions
-    ) => {
+    const loadGroupedOptions = async (endpoint: string, targetRef: typeof phenotypeOptions) => {
       try {
         const response = await axios.get(
           `${import.meta.env.VITE_API_URL}/api/list/${endpoint}?tree=true`
@@ -299,9 +270,7 @@ export default defineComponent({
         const parentModifier = extractModifier(parentOpt.label);
 
         // Build options array with parent first, then children
-        const options: SelectOption[] = [
-          { value: parentOpt.id, text: parentModifier },
-        ];
+        const options: SelectOption[] = [{ value: parentOpt.id, text: parentModifier }];
 
         if (parentOpt.children && Array.isArray(parentOpt.children)) {
           parentOpt.children.forEach((child) => {
@@ -412,8 +381,7 @@ export default defineComponent({
     // Build submission object from form data
     const buildSubmissionObject = () => {
       // Clean PMID arrays
-      const cleanPMIDs = (arr: string[]) =>
-        arr.map((item) => item.replace(/\s+/g, ''));
+      const cleanPMIDs = (arr: string[]) => arr.map((item) => item.replace(/\s+/g, ''));
 
       const literature = new Literature(
         cleanPMIDs(formData.publications),

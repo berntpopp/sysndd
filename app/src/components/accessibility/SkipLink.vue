@@ -13,9 +13,12 @@ const route = useRoute();
 const backToTop = ref();
 
 // Reset focus to top of page on route change
-watch(() => route.path, () => {
-  backToTop.value?.focus();
-});
+watch(
+  () => route.path,
+  () => {
+    backToTop.value?.focus();
+  }
+);
 </script>
 
 <style scoped>

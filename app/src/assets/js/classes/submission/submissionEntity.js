@@ -8,7 +8,7 @@ export default class Entity {
     ndd_phenotype,
     entity_id,
     is_active,
-    replaced_by,
+    replaced_by
   ) {
     this.hgnc_id = hgnc_id;
     this.disease_ontology_id_version = disease_ontology_id_version;

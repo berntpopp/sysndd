@@ -143,9 +143,8 @@ export function useNetworkFilters(): NetworkFiltersState {
 
         const cluster = node.data('cluster');
         // Parse cluster number (handles both number and string like "1.2")
-        const clusterNum = typeof cluster === 'string'
-          ? parseInt(cluster.split('.')[0], 10)
-          : cluster;
+        const clusterNum =
+          typeof cluster === 'string' ? parseInt(cluster.split('.')[0], 10) : cluster;
 
         if (!selectedClusters.value.has(clusterNum)) {
           nodeExt.hide();
@@ -166,8 +165,8 @@ export function useNetworkFilters(): NetworkFiltersState {
     clusterParentNodes.forEach((parentNode) => {
       const parentId = parentNode.id();
       const children = cy.nodes().filter((node) => node.data('parent') === parentId);
-      const hasVisibleChildren = children.some(
-        (child) => (child as unknown as CytoscapeElementExtended).visible()
+      const hasVisibleChildren = children.some((child) =>
+        (child as unknown as CytoscapeElementExtended).visible()
       );
       if (!hasVisibleChildren) {
         (parentNode as unknown as CytoscapeElementExtended).hide();
@@ -193,10 +192,12 @@ export function useNetworkFilters(): NetworkFiltersState {
   function getVisibleNodeCount(cy: Core): number {
     if (!cy) return 0;
     // Only count gene nodes (not cluster parent nodes)
-    return cy.nodes().filter(
-      (node) => !node.data('isClusterParent') &&
-                (node as unknown as CytoscapeElementExtended).visible()
-    ).length;
+    return cy
+      .nodes()
+      .filter(
+        (node) =>
+          !node.data('isClusterParent') && (node as unknown as CytoscapeElementExtended).visible()
+      ).length;
   }
 
   /**
@@ -207,9 +208,8 @@ export function useNetworkFilters(): NetworkFiltersState {
    */
   function getVisibleEdgeCount(cy: Core): number {
     if (!cy) return 0;
-    return cy.edges().filter(
-      (edge) => (edge as unknown as CytoscapeElementExtended).visible()
-    ).length;
+    return cy.edges().filter((edge) => (edge as unknown as CytoscapeElementExtended).visible())
+      .length;
   }
 
   return {

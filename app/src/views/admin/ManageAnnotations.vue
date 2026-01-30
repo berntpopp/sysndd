@@ -4,10 +4,7 @@
     <BContainer fluid>
       <!-- Updating Ontology Annotations Section -->
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="10"
-        >
+        <BCol col md="12">
           <h3>Manage Annotations</h3>
           <BCard
             header-tag="header"
@@ -19,10 +16,7 @@
             <template #header>
               <h5 class="mb-0 text-start font-weight-bold">
                 Updating Ontology Annotations
-                <span
-                  v-if="annotationDates.omim_update"
-                  class="badge bg-secondary ms-2 fw-normal"
-                >
+                <span v-if="annotationDates.omim_update" class="badge bg-secondary ms-2 fw-normal">
                   Last: {{ formatDate(annotationDates.omim_update) }}
                 </span>
               </h5>
@@ -33,12 +27,7 @@
               :disabled="ontologyJob.isLoading.value"
               @click="updateOntologyAnnotations"
             >
-              <BSpinner
-                v-if="ontologyJob.isLoading.value"
-                small
-                type="grow"
-                class="me-2"
-              />
+              <BSpinner v-if="ontologyJob.isLoading.value" small type="grow" class="me-2" />
               {{ ontologyJob.isLoading.value ? 'Updating...' : 'Update Ontology Annotations' }}
             </BButton>
 
@@ -48,10 +37,7 @@
               class="mt-3"
             >
               <div class="d-flex align-items-center mb-2">
-                <span
-                  class="badge me-2"
-                  :class="ontologyJob.statusBadgeClass.value"
-                >
+                <span class="badge me-2" :class="ontologyJob.statusBadgeClass.value">
                   {{ ontologyJob.status.value }}
                 </span>
                 <span class="text-muted">{{ ontologyJob.step.value }}</span>
@@ -63,12 +49,16 @@
                 :max="100"
                 :animated="true"
                 :striped="!ontologyJob.hasRealProgress.value"
-                :variant="(ontologyJob.progressVariant.value as 'primary' | 'success' | 'danger')"
+                :variant="ontologyJob.progressVariant.value"
                 height="1.5rem"
               >
                 <template #default>
-                  <span v-if="ontologyJob.hasRealProgress.value">{{ ontologyJob.progressPercent.value }}% - {{ ontologyStepLabel }}</span>
-                  <span v-else>{{ ontologyStepLabel }} ({{ ontologyJob.elapsedTimeDisplay.value }})</span>
+                  <span v-if="ontologyJob.hasRealProgress.value"
+                    >{{ ontologyJob.progressPercent.value }}% - {{ ontologyStepLabel }}</span
+                  >
+                  <span v-else
+                    >{{ ontologyStepLabel }} ({{ ontologyJob.elapsedTimeDisplay.value }})</span
+                  >
                 </template>
               </BProgress>
 
@@ -76,13 +66,14 @@
                 v-if="ontologyJob.progress.value.current && ontologyJob.progress.value.total"
                 class="small text-muted mt-1"
               >
-                {{ ontologyJob.progress.value.current.toLocaleString() }} / {{ ontologyJob.progress.value.total.toLocaleString() }} ({{ ontologyJob.elapsedTimeDisplay.value }})
+                {{ ontologyJob.progress.value.current.toLocaleString() }} /
+                {{ ontologyJob.progress.value.total.toLocaleString() }} ({{
+                  ontologyJob.elapsedTimeDisplay.value
+                }})
               </div>
-              <div
-                v-else-if="ontologyJob.isLoading.value"
-                class="small text-muted mt-1"
-              >
-                Elapsed: {{ ontologyJob.elapsedTimeDisplay.value }} - This may take several minutes...
+              <div v-else-if="ontologyJob.isLoading.value" class="small text-muted mt-1">
+                Elapsed: {{ ontologyJob.elapsedTimeDisplay.value }} - This may take several
+                minutes...
               </div>
             </div>
           </BCard>
@@ -91,10 +82,7 @@
 
       <!-- Updating HGNC Data Section -->
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="10"
-        >
+        <BCol col md="12">
           <BCard
             header-tag="header"
             body-class="p-1"
@@ -105,39 +93,21 @@
             <template #header>
               <h5 class="mb-0 text-start font-weight-bold">
                 Updating HGNC Data
-                <span
-                  v-if="annotationDates.hgnc_update"
-                  class="badge bg-secondary ms-2 fw-normal"
-                >
+                <span v-if="annotationDates.hgnc_update" class="badge bg-secondary ms-2 fw-normal">
                   Last: {{ formatDate(annotationDates.hgnc_update) }}
                 </span>
               </h5>
             </template>
 
-            <BButton
-              variant="primary"
-              :disabled="hgncJob.isLoading.value"
-              @click="updateHgncData"
-            >
-              <BSpinner
-                v-if="hgncJob.isLoading.value"
-                small
-                type="grow"
-                class="me-2"
-              />
+            <BButton variant="primary" :disabled="hgncJob.isLoading.value" @click="updateHgncData">
+              <BSpinner v-if="hgncJob.isLoading.value" small type="grow" class="me-2" />
               {{ hgncJob.isLoading.value ? 'Updating...' : 'Update HGNC Data' }}
             </BButton>
 
             <!-- HGNC Progress display -->
-            <div
-              v-if="hgncJob.isLoading.value || hgncJob.status.value !== 'idle'"
-              class="mt-3"
-            >
+            <div v-if="hgncJob.isLoading.value || hgncJob.status.value !== 'idle'" class="mt-3">
               <div class="d-flex align-items-center mb-2">
-                <span
-                  class="badge me-2"
-                  :class="hgncJob.statusBadgeClass.value"
-                >
+                <span class="badge me-2" :class="hgncJob.statusBadgeClass.value">
                   {{ hgncJob.status.value }}
                 </span>
                 <span class="text-muted">{{ hgncJob.step.value }}</span>
@@ -149,11 +119,13 @@
                 :max="100"
                 :animated="true"
                 :striped="!hgncJob.hasRealProgress.value"
-                :variant="(hgncJob.progressVariant.value as 'primary' | 'success' | 'danger')"
+                :variant="hgncJob.progressVariant.value"
                 height="1.5rem"
               >
                 <template #default>
-                  <span v-if="hgncJob.hasRealProgress.value">{{ hgncJob.progressPercent.value }}% - {{ hgncStepLabel }}</span>
+                  <span v-if="hgncJob.hasRealProgress.value"
+                    >{{ hgncJob.progressPercent.value }}% - {{ hgncStepLabel }}</span
+                  >
                   <span v-else>{{ hgncStepLabel }} ({{ hgncJob.elapsedTimeDisplay.value }})</span>
                 </template>
               </BProgress>
@@ -162,13 +134,14 @@
                 v-if="hgncJob.progress.value.current && hgncJob.progress.value.total"
                 class="small text-muted mt-1"
               >
-                {{ hgncJob.progress.value.current.toLocaleString() }} / {{ hgncJob.progress.value.total.toLocaleString() }} ({{ hgncJob.elapsedTimeDisplay.value }})
+                {{ hgncJob.progress.value.current.toLocaleString() }} /
+                {{ hgncJob.progress.value.total.toLocaleString() }} ({{
+                  hgncJob.elapsedTimeDisplay.value
+                }})
               </div>
-              <div
-                v-else-if="hgncJob.isLoading.value"
-                class="small text-muted mt-1"
-              >
-                Elapsed: {{ hgncJob.elapsedTimeDisplay.value }} - Downloading HGNC data and enriching with gnomAD constraints (this may take hours on first run)...
+              <div v-else-if="hgncJob.isLoading.value" class="small text-muted mt-1">
+                Elapsed: {{ hgncJob.elapsedTimeDisplay.value }} - Downloading HGNC data and
+                enriching with gnomAD constraints (this may take hours on first run)...
               </div>
             </div>
           </BCard>
@@ -177,10 +150,7 @@
 
       <!-- Deprecated OMIM Entities Section -->
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="10"
-        >
+        <BCol col md="12">
           <BCard
             header-tag="header"
             body-class="p-2"
@@ -191,10 +161,7 @@
             <template #header>
               <h5 class="mb-0 text-start font-weight-bold d-flex align-items-center">
                 Deprecated OMIM Entities
-                <span
-                  v-if="deprecatedData.mim2gene_date"
-                  class="badge bg-secondary ms-2 fw-normal"
-                >
+                <span v-if="deprecatedData.mim2gene_date" class="badge bg-secondary ms-2 fw-normal">
                   mim2gene: {{ deprecatedData.mim2gene_date }}
                 </span>
                 <span
@@ -219,12 +186,7 @@
                 :disabled="loadingDeprecated"
                 @click="fetchDeprecatedEntities"
               >
-                <BSpinner
-                  v-if="loadingDeprecated"
-                  small
-                  type="grow"
-                  class="me-1"
-                />
+                <BSpinner v-if="loadingDeprecated" small type="grow" class="me-1" />
                 {{ loadingDeprecated ? 'Checking...' : 'Check for Deprecated Entities' }}
               </BButton>
               <small class="text-muted ms-2">
@@ -233,10 +195,7 @@
             </div>
 
             <div v-if="deprecatedData.message && !deprecatedData.affected_entities?.length">
-              <BAlert
-                variant="info"
-                show
-              >
+              <BAlert variant="info" show>
                 {{ deprecatedData.message }}
               </BAlert>
             </div>
@@ -281,10 +240,7 @@
                       {{ data.value }}
                       <small class="text-muted">(deprecated)</small>
                     </a>
-                    <small
-                      v-if="data.item.mondo_id"
-                      class="text-muted"
-                    >
+                    <small v-if="data.item.mondo_id" class="text-muted">
                       <a
                         :href="`https://monarchinitiative.org/disease/${data.item.mondo_id}`"
                         target="_blank"
@@ -300,10 +256,7 @@
                     v-if="data.item.replacement_omim_id || data.item.replacement_mondo_id"
                     class="d-flex flex-column"
                   >
-                    <span
-                      v-if="data.item.replacement_omim_id"
-                      class="d-flex align-items-center"
-                    >
+                    <span v-if="data.item.replacement_omim_id" class="d-flex align-items-center">
                       <span class="badge bg-success me-1">Suggested</span>
                       <a
                         :href="`https://omim.org/entry/${String(data.item.replacement_omim_id).replace('OMIM:', '')}`"
@@ -313,10 +266,7 @@
                         {{ data.item.replacement_omim_id }}
                       </a>
                     </span>
-                    <small
-                      v-if="data.item.replacement_mondo_id"
-                      class="text-muted"
-                    >
+                    <small v-if="data.item.replacement_mondo_id" class="text-muted">
                       via
                       <a
                         :href="`https://monarchinitiative.org/disease/${data.item.replacement_mondo_id}`"
@@ -330,18 +280,10 @@
                       </span>
                     </small>
                   </div>
-                  <span
-                    v-else-if="data.item.mondo_id"
-                    class="text-muted small"
-                  >
+                  <span v-else-if="data.item.mondo_id" class="text-muted small">
                     No replacement found
                   </span>
-                  <span
-                    v-else
-                    class="text-muted small"
-                  >
-                    No MONDO mapping
-                  </span>
+                  <span v-else class="text-muted small"> No MONDO mapping </span>
                 </template>
                 <template #cell(deprecation_reason)="data">
                   <small
@@ -351,18 +293,10 @@
                   >
                     {{ truncateText(String(data.value), 80) }}
                   </small>
-                  <span
-                    v-else
-                    class="text-muted small"
-                  >
-                    -
-                  </span>
+                  <span v-else class="text-muted small"> - </span>
                 </template>
                 <template #cell(category)="data">
-                  <span
-                    class="badge"
-                    :class="categoryBadgeClass(String(data.value))"
-                  >
+                  <span class="badge" :class="categoryBadgeClass(String(data.value))">
                     {{ data.value }}
                   </span>
                 </template>
@@ -374,42 +308,81 @@
 
       <!-- Job History Section -->
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="10"
-        >
+        <BCol col md="12">
           <BCard
             header-tag="header"
-            body-class="p-2"
-            header-class="p-1"
+            body-class="p-0"
+            header-class="p-2"
             border-variant="dark"
             class="mb-3 text-start"
           >
             <template #header>
-              <h5 class="mb-0 text-start font-weight-bold d-flex align-items-center">
-                Job History
-                <BButton
-                  size="sm"
-                  variant="outline-secondary"
-                  class="ms-auto"
-                  :disabled="jobHistoryLoading"
-                  @click="fetchJobHistory"
-                >
-                  <BSpinner
-                    v-if="jobHistoryLoading"
-                    small
-                    class="me-1"
-                  />
-                  Refresh
-                </BButton>
-              </h5>
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="mb-0 font-weight-bold">
+                  Job History
+                  <span class="badge bg-secondary ms-2 fw-normal">
+                    {{ filteredJobHistory.length }} jobs
+                  </span>
+                </h5>
+                <div class="d-flex align-items-center gap-2">
+                  <BButton
+                    size="sm"
+                    variant="outline-secondary"
+                    :disabled="jobHistoryLoading"
+                    @click="fetchJobHistory"
+                  >
+                    <BSpinner v-if="jobHistoryLoading" small class="me-1" />
+                    <i v-else class="bi bi-arrow-clockwise me-1" />
+                    Refresh
+                  </BButton>
+                </div>
+              </div>
             </template>
 
+            <!-- Table controls row -->
+            <div class="p-2 border-bottom bg-light">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                  <TableSearchInput
+                    v-model="searchFilter"
+                    placeholder="Search jobs..."
+                    @update="handleSearchChange"
+                  />
+                  <span v-if="searchFilter" class="badge bg-primary d-flex align-items-center">
+                    Search: {{ searchFilter }}
+                    <button
+                      type="button"
+                      class="btn-close btn-close-white ms-2"
+                      style="font-size: 0.6rem"
+                      aria-label="Clear search"
+                      @click="clearSearch"
+                    />
+                  </span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <TableDownloadLinkCopyButtons
+                    @request-excel="downloadJobHistory"
+                    @copy-link="copyPageLink"
+                    @remove-filters="clearAllFilters"
+                  />
+                  <TablePaginationControls
+                    :current-page="currentPage"
+                    :total-rows="filteredJobHistory.length"
+                    :initial-per-page="pageSize"
+                    :page-options="pageSizeOptions"
+                    @page-change="handlePageChange"
+                    @per-page-change="handlePageSizeChange"
+                  />
+                </div>
+              </div>
+            </div>
+
             <GenericTable
-              :items="jobHistory"
+              :items="paginatedJobHistory"
               :fields="jobHistoryFields"
               :is-busy="jobHistoryLoading"
-              :sort-by="[{ key: 'submitted_at', order: 'desc' }]"
+              :sort-by="sortBy"
+              @update-sort="handleSortUpdate"
             >
               <template #cell-operation="{ row }">
                 <span class="badge bg-info text-dark">
@@ -418,10 +391,7 @@
               </template>
 
               <template #cell-status="{ row }">
-                <span
-                  class="badge"
-                  :class="getStatusBadgeClass(row.status)"
-                >
+                <span class="badge" :class="getStatusBadgeClass(row.status)">
                   {{ row.status }}
                 </span>
               </template>
@@ -443,20 +413,33 @@
                 >
                   {{ truncateText(row.error_message, 50) }}
                 </span>
-                <span
-                  v-else
-                  class="text-muted"
-                >
-                  —
-                </span>
+                <span v-else class="text-muted"> — </span>
               </template>
             </GenericTable>
 
             <div
-              v-if="!jobHistoryLoading && jobHistory.length === 0"
-              class="text-center text-muted py-3"
+              v-if="!jobHistoryLoading && filteredJobHistory.length === 0"
+              class="text-center text-muted py-4"
             >
-              No job history available. Jobs appear here after they are submitted.
+              <i class="bi bi-inbox fs-1 d-block mb-2" />
+              <span v-if="searchFilter">No jobs match your search criteria.</span>
+              <span v-else
+                >No job history available. Jobs appear here after they are submitted.</span
+              >
+            </div>
+
+            <!-- Bottom pagination for longer lists -->
+            <div v-if="filteredJobHistory.length > pageSize" class="p-2 border-top bg-light">
+              <div class="d-flex justify-content-end">
+                <TablePaginationControls
+                  :current-page="currentPage"
+                  :total-rows="filteredJobHistory.length"
+                  :initial-per-page="pageSize"
+                  :page-options="pageSizeOptions"
+                  @page-change="handlePageChange"
+                  @per-page-change="handlePageSizeChange"
+                />
+              </div>
             </div>
           </BCard>
         </BCol>
@@ -467,10 +450,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import axios from 'axios';
 import useToast from '@/composables/useToast';
 import { useAsyncJob } from '@/composables/useAsyncJob';
 import GenericTable from '@/components/small/GenericTable.vue';
+import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
+import TableSearchInput from '@/components/small/TableSearchInput.vue';
+import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
 
 // Types
 interface JobHistoryItem {
@@ -484,14 +471,25 @@ interface JobHistoryItem {
 }
 
 // Composables
+const route = useRoute();
 const { makeToast } = useToast();
+
+// URL state parameters
+const currentPage = ref(1);
+const pageSize = ref(10);
+const sortField = ref('submitted_at');
+const sortOrder = ref<'asc' | 'desc'>('desc');
+const searchFilter = ref('');
+
+// Page size options for dropdown
+const pageSizeOptions = [10, 25, 50, 100];
 
 // Create job instances for ontology and HGNC updates
 const ontologyJob = useAsyncJob(
-  (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`,
+  (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
 );
 const hgncJob = useAsyncJob(
-  (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`,
+  (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
 );
 
 // Reactive state
@@ -532,6 +530,36 @@ const jobHistoryFields = [
   { key: 'error_message', label: 'Error', sortable: false },
 ];
 
+// Computed: sort string for GenericTable
+const sortBy = computed(() => [
+  {
+    key: sortField.value,
+    order: sortOrder.value,
+  },
+]);
+
+// Computed: filtered job history based on search
+const filteredJobHistory = computed(() => {
+  if (!searchFilter.value.trim()) {
+    return jobHistory.value;
+  }
+  const search = searchFilter.value.toLowerCase();
+  return jobHistory.value.filter(
+    (job) =>
+      job.operation.toLowerCase().includes(search) ||
+      job.status.toLowerCase().includes(search) ||
+      (job.error_message && job.error_message.toLowerCase().includes(search))
+  );
+});
+
+// Computed: paginated job history
+const paginatedJobHistory = computed(() => {
+  const filtered = filteredJobHistory.value;
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filtered.slice(start, end);
+});
+
 // Computed properties for step labels
 const ontologyStepLabel = computed(() => {
   if (!ontologyJob.step.value) return 'Initializing...';
@@ -562,7 +590,7 @@ watch(
       makeToast(errorMsg, 'Error', 'danger');
       fetchJobHistory();
     }
-  },
+  }
 );
 
 watch(
@@ -577,20 +605,164 @@ watch(
       makeToast(errorMsg, 'Error', 'danger');
       fetchJobHistory();
     }
-  },
+  }
 );
+
+// URL state synchronization
+function initFromUrl() {
+  const query = route.query;
+  if (query.page) {
+    currentPage.value = parseInt(String(query.page), 10) || 1;
+  }
+  if (query.page_size) {
+    const ps = parseInt(String(query.page_size), 10);
+    if (pageSizeOptions.includes(ps)) {
+      pageSize.value = ps;
+    }
+  }
+  if (query.sort) {
+    const sortStr = String(query.sort);
+    if (sortStr.startsWith('-')) {
+      sortField.value = sortStr.slice(1);
+      sortOrder.value = 'desc';
+    } else if (sortStr.startsWith('+')) {
+      sortField.value = sortStr.slice(1);
+      sortOrder.value = 'asc';
+    } else {
+      sortField.value = sortStr;
+      sortOrder.value = 'asc';
+    }
+  }
+  if (query.search) {
+    searchFilter.value = String(query.search);
+  }
+}
+
+function updateUrl() {
+  const query: Record<string, string> = {};
+  if (currentPage.value !== 1) {
+    query.page = String(currentPage.value);
+  }
+  if (pageSize.value !== 10) {
+    query.page_size = String(pageSize.value);
+  }
+  const sortPrefix = sortOrder.value === 'desc' ? '-' : '+';
+  if (sortField.value !== 'submitted_at' || sortOrder.value !== 'desc') {
+    query.sort = `${sortPrefix}${sortField.value}`;
+  }
+  if (searchFilter.value.trim()) {
+    query.search = searchFilter.value.trim();
+  }
+  // Use replaceState to avoid adding history entries
+  const url = new URL(window.location.href);
+  url.search = new URLSearchParams(query).toString();
+  window.history.replaceState({}, '', url.toString());
+}
+
+function handlePageChange(page: number) {
+  currentPage.value = page;
+  updateUrl();
+}
+
+function handlePageSizeChange(size: number) {
+  pageSize.value = size;
+  currentPage.value = 1; // Reset to first page
+  updateUrl();
+}
+
+function handleSortUpdate(event: { sortBy: string; sortDesc: boolean }) {
+  sortField.value = event.sortBy;
+  sortOrder.value = event.sortDesc ? 'desc' : 'asc';
+  updateUrl();
+}
+
+function handleSearchChange(value: string) {
+  searchFilter.value = value;
+  currentPage.value = 1; // Reset to first page on search
+  updateUrl();
+}
+
+function clearSearch() {
+  searchFilter.value = '';
+  currentPage.value = 1;
+  updateUrl();
+}
+
+function clearAllFilters() {
+  searchFilter.value = '';
+  sortField.value = 'submitted_at';
+  sortOrder.value = 'desc';
+  currentPage.value = 1;
+  pageSize.value = 10;
+  updateUrl();
+  makeToast('All filters cleared', 'Filters Reset', 'info');
+}
+
+async function downloadJobHistory() {
+  try {
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/jobs/history`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+      params: {
+        limit: 1000,
+      },
+    });
+    const data = response.data?.data || [];
+    if (data.length === 0) {
+      makeToast('No job history to download', 'Info', 'info');
+      return;
+    }
+    // Convert to CSV
+    const headers = ['Job ID', 'Operation', 'Status', 'Started', 'Duration (s)', 'Error'];
+    const rows = data.map((job: Record<string, unknown>) => [
+      unwrapValue(job.job_id),
+      unwrapValue(job.operation),
+      unwrapValue(job.status),
+      unwrapValue(job.submitted_at),
+      unwrapValue(job.duration_seconds) ?? '',
+      unwrapValue(job.error_message) ?? '',
+    ]);
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row: (string | number)[]) =>
+        row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')
+      ),
+    ].join('\n');
+    // Download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `job_history_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    makeToast('Job history downloaded', 'Download Complete', 'success');
+  } catch (error) {
+    makeToast('Failed to download job history', 'Error', 'danger');
+    console.error('Download error:', error);
+  }
+}
+
+function copyPageLink() {
+  navigator.clipboard
+    .writeText(window.location.href)
+    .then(() => {
+      makeToast('Page link copied to clipboard', 'Copied', 'success');
+    })
+    .catch(() => {
+      makeToast('Failed to copy link', 'Error', 'danger');
+    });
+}
 
 // Methods
 async function fetchAnnotationDates() {
   try {
-    const response = await axios.get(
-      `${import.meta.env.VITE_API_URL}/api/admin/annotation_dates`,
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/annotation_dates`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
       },
-    );
+    });
     const data = response.data;
     annotationDates.value = {
       omim_update: Array.isArray(data.omim_update) ? data.omim_update[0] : data.omim_update,
@@ -654,17 +826,14 @@ function getStatusBadgeClass(status: string): string {
 async function fetchJobHistory() {
   jobHistoryLoading.value = true;
   try {
-    const response = await axios.get(
-      `${import.meta.env.VITE_API_URL}/api/jobs/history`,
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        params: {
-          limit: 20,
-        },
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/jobs/history`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
       },
-    );
+      params: {
+        limit: 20,
+      },
+    });
     // Handle R/Plumber response structure
     const data = response.data;
     if (data && Array.isArray(data.data)) {
@@ -719,7 +888,7 @@ async function fetchDeprecatedEntities() {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
-      },
+      }
     );
     const data = response.data;
     // Unwrap entity fields (R/Plumber returns scalars as single-element arrays)
@@ -730,7 +899,7 @@ async function fetchDeprecatedEntities() {
           unwrapped[key] = unwrapValue(entity[key]);
         });
         return unwrapped;
-      },
+      }
     );
     deprecatedData.value = {
       deprecated_count: unwrapValue(data.deprecated_count),
@@ -743,7 +912,7 @@ async function fetchDeprecatedEntities() {
       makeToast(
         `Found ${deprecatedData.value.affected_entity_count} entities using deprecated OMIM IDs`,
         'Review Needed',
-        'warning',
+        'warning'
       );
     } else {
       makeToast('No entities affected by deprecated OMIM IDs', 'Check Complete', 'success');
@@ -769,7 +938,7 @@ async function updateOntologyAnnotations() {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
-      },
+      }
     );
 
     if (response.data.error) {
@@ -797,7 +966,7 @@ async function updateHgncData() {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
-      },
+      }
     );
 
     if (response.data.error) {
@@ -814,34 +983,36 @@ async function updateHgncData() {
 
 // Lifecycle
 onMounted(() => {
+  initFromUrl();
   fetchAnnotationDates();
   fetchJobHistory();
 });
 </script>
 
 <style scoped>
-  .btn-group-xs > .btn, .btn-xs {
-    padding: .25rem .4rem;
-    font-size: .875rem;
-    line-height: .5;
-    border-radius: .2rem;
-  }
+.btn-group-xs > .btn,
+.btn-xs {
+  padding: 0.25rem 0.4rem;
+  font-size: 0.875rem;
+  line-height: 0.5;
+  border-radius: 0.2rem;
+}
 
-  .deprecation-reason {
-    display: block;
-    max-width: 250px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    cursor: help;
-  }
+.deprecation-reason {
+  display: block;
+  max-width: 250px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: help;
+}
 
-  .error-text {
-    display: block;
-    max-width: 200px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    cursor: help;
-  }
+.error-text {
+  display: block;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: help;
+}
 </style>

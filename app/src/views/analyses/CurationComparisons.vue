@@ -3,40 +3,19 @@
   <div class="container-fluid bg-gradient">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
-        <BCol
-          col
-          md="12"
-        >
+        <BCol col md="12">
           <div>
-            <BCard
-              title="Curation comparisons"
-              no-body
-            >
+            <BCard title="Curation comparisons" no-body>
               <BCardHeader header-tag="nav">
-                <BNav
-                  card-header
-                  tabs
-                >
+                <BNav card-header tabs>
                   <!-- <BNavItem>'s with child routes. Note the trailing slash on the first <BNavItem> -->
-                  <BNavItem
-                    to="/CurationComparisons"
-                    exact
-                    exact-active-class="active"
-                  >
+                  <BNavItem to="/CurationComparisons" exact exact-active-class="active">
                     Overlap
                   </BNavItem>
-                  <BNavItem
-                    to="/CurationComparisons/Similarity"
-                    exact
-                    exact-active-class="active"
-                  >
+                  <BNavItem to="/CurationComparisons/Similarity" exact exact-active-class="active">
                     Similarity
                   </BNavItem>
-                  <BNavItem
-                    to="/CurationComparisons/Table"
-                    exact
-                    exact-active-class="active"
-                  >
+                  <BNavItem to="/CurationComparisons/Table" exact exact-active-class="active">
                     Table
                   </BNavItem>
                 </BNav>
@@ -98,5 +77,4 @@ export default {
 };
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

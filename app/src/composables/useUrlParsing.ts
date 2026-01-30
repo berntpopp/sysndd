@@ -87,12 +87,19 @@ export default function useUrlParsing(): UrlParsingMethods {
         }
         return true; // Keep non-string/non-array values (e.g., numbers, booleans)
       })
-      .reduce((obj, key) => Object.assign(obj, {
-        [key]: filter_object[key],
-      }), {} as FilterObject);
+      .reduce(
+        (obj, key) =>
+          Object.assign(obj, {
+            [key]: filter_object[key],
+          }),
+        {} as FilterObject
+      );
 
     // join all subobjects to filter string array
-    const filter_string_join = Object.keys(filter_string_not_empty).map((key) => `${filter_string_not_empty[key].operator}(${key},${[].concat(filter_string_not_empty[key].content as never).join(filter_string_not_empty[key].join_char || '')})`);
+    const filter_string_join = Object.keys(filter_string_not_empty).map(
+      (key) =>
+        `${filter_string_not_empty[key].operator}(${key},${[].concat(filter_string_not_empty[key].content as never).join(filter_string_not_empty[key].join_char || '')})`
+    );
 
     // join filter string array into one string
     const filter_string = filter_string_join.join(',');
@@ -113,25 +120,38 @@ export default function useUrlParsing(): UrlParsingMethods {
    * @param join_char_allow - Array of allowed characters for join operations.
    * @returns An object representation of the filter string.
    */
-  const filterStrToObj = (filter_string: string | null, standard_object: FilterObject, _split_content: string[] = [',(?! )'], join_char_allow: string[] = [',']): FilterObject => {
+  const filterStrToObj = (
+    filter_string: string | null,
+    standard_object: FilterObject,
+    _split_content: string[] = [',(?! )'],
+    join_char_allow: string[] = [',']
+  ): FilterObject => {
     // check if input is empty/ null
     if (filter_string !== null && filter_string !== 'null' && filter_string !== '') {
       // split input by closing bracket and comma
       const filter_array = filter_string.split('),');
 
       // define function to check array length
-      const arrayLengthOverOne = (input_array: string[], input_operator: string): string | string[] | null => {
+      const arrayLengthOverOne = (
+        input_array: string[],
+        input_operator: string
+      ): string | string[] | null => {
         const inputArr = input_array.filter(Boolean);
         if (inputArr.length > 0 && (input_operator === 'any' || input_operator === 'all')) {
           return inputArr;
-        } if (inputArr.length === 0) {
+        }
+        if (inputArr.length === 0) {
           return null;
         }
         return inputArr.join('');
       };
 
       // define function to assign join_char
-      const assignJoinChar = (input_string: string[], input_operator: string, _allowed_join_char: string[]): string | null => {
+      const assignJoinChar = (
+        input_string: string[],
+        input_operator: string,
+        _allowed_join_char: string[]
+      ): string | null => {
         if (input_operator === 'any' || input_operator === 'all') {
           return ',';
         }
@@ -141,7 +161,8 @@ export default function useUrlParsing(): UrlParsingMethods {
       const filter_object = filter_array.reduce((obj, str, _index) => {
         const [firstPart, secondPart, ...restPart] = str.replace(')', '').split(/\(|,(?! )/g); // <-- replace any trailing brackets and split using regex into object components
         const objCopy = obj;
-        if (firstPart && secondPart && restPart) { // <-- Make sure the key & value are not undefined
+        if (firstPart && secondPart && restPart) {
+          // <-- Make sure the key & value are not undefined
           objCopy[secondPart.replace(/\s+/g, '')] = {
             content: arrayLengthOverOne(restPart, firstPart.trim()),
             operator: firstPart.trim(),

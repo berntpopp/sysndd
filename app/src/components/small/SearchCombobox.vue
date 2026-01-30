@@ -1,10 +1,7 @@
 <!-- components/small/SearchCombobox.vue -->
 <!-- WAI-ARIA 1.2 combobox with listbox popup for search suggestions -->
 <template>
-  <div
-    class="search-combobox"
-    :class="{ 'search-combobox--navbar': inNavbar }"
-  >
+  <div class="search-combobox" :class="{ 'search-combobox--navbar': inNavbar }">
     <div class="search-combobox__input-group">
       <input
         :id="inputId"
@@ -24,7 +21,7 @@
         @keydown="onKeydown"
         @focus="onFocus"
         @blur="onBlur"
-      >
+      />
       <button
         class="btn"
         :class="inNavbar ? 'btn-outline-primary btn-sm' : 'btn-outline-dark'"
@@ -62,12 +59,7 @@
     </ul>
 
     <!-- Loading indicator for screen readers -->
-    <div
-      v-if="isLoading"
-      class="visually-hidden"
-      role="status"
-      aria-live="polite"
-    >
+    <div v-if="isLoading" class="visually-hidden" role="status" aria-live="polite">
       Loading suggestions...
     </div>
   </div>
@@ -94,7 +86,8 @@ export default {
   },
   setup(_props) {
     const router = useRouter();
-    const { query, suggestions, isLoading, clearSuggestions, getDirectLink } = useSearchSuggestions(300);
+    const { query, suggestions, isLoading, clearSuggestions, getDirectLink } =
+      useSearchSuggestions(300);
 
     const instanceId = ++instanceCounter;
     const inputId = `search-combobox-input-${instanceId}`;
@@ -165,7 +158,8 @@ export default {
       if (isNavigating) return;
       isNavigating = true;
 
-      router.push(link)
+      router
+        .push(link)
         .catch((err) => {
           if (err.name !== 'NavigationDuplicated') throw err;
         })
@@ -215,9 +209,7 @@ export default {
           if (!isOpen.value && len > 0) {
             openListbox();
           }
-          activeIndex.value = len > 0
-            ? (activeIndex.value - 1 + len) % len
-            : -1;
+          activeIndex.value = len > 0 ? (activeIndex.value - 1 + len) % len : -1;
           scrollActiveIntoView();
           break;
 

@@ -62,9 +62,7 @@ export interface UseGeneExternalDataReturn {
  * // <p v-else-if="clinvar.data.value">{{ clinvar.data.value.length }} variants</p>
  * ```
  */
-export function useGeneExternalData(
-  geneSymbol: Ref<string> | string,
-): UseGeneExternalDataReturn {
+export function useGeneExternalData(geneSymbol: Ref<string> | string): UseGeneExternalDataReturn {
   // Normalize to ref (handles both ref and plain string)
   const symbol = toRef(geneSymbol);
 
@@ -110,7 +108,7 @@ export function useGeneExternalData(
       (async () => {
         try {
           const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/external/gnomad/variants/${symbol.value}`,
+            `${import.meta.env.VITE_API_URL}/api/external/gnomad/variants/${symbol.value}`
           );
 
           const result = response.data;
@@ -130,8 +128,7 @@ export function useGeneExternalData(
             clinvar.data.value = null;
             clinvar.error.value = null;
           } else {
-            const message =
-              err instanceof Error ? err.message : 'Failed to fetch ClinVar data';
+            const message = err instanceof Error ? err.message : 'Failed to fetch ClinVar data';
             clinvar.error.value = message;
             clinvar.data.value = null;
           }
@@ -144,7 +141,7 @@ export function useGeneExternalData(
       (async () => {
         try {
           const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/external/alphafold/structure/${symbol.value}`,
+            `${import.meta.env.VITE_API_URL}/api/external/alphafold/structure/${symbol.value}`
           );
 
           const result = response.data;

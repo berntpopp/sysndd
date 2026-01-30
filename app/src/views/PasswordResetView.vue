@@ -1,21 +1,13 @@
 <!-- src/views/PasswordResetView.vue -->
 <template>
   <div class="container-fluid">
-    <BSpinner
-      v-if="loading"
-      label="Loading..."
-      class="float-center m-5"
-    />
+    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
 
     <BContainer v-else>
       <BRow class="justify-content-md-center py-4">
         <BCol md="6">
           <BContainer v-if="showChangeContainer">
-            <BCard
-              header="Reset Password"
-              header-bg-variant="dark"
-              header-text-variant="white"
-            >
+            <BCard header="Reset Password" header-bg-variant="dark" header-text-variant="white">
               <BCardText>
                 <BForm @submit.prevent="onPasswordChange">
                   <BFormGroup description="Enter your new password">
@@ -35,7 +27,9 @@
                       v-model="newPasswordRepeat"
                       placeholder="Repeat new password"
                       type="password"
-                      :state="repeatPasswordMeta.touched ? (repeatPasswordError ? false : true) : null"
+                      :state="
+                        repeatPasswordMeta.touched ? (repeatPasswordError ? false : true) : null
+                      "
                     />
                     <BFormInvalidFeedback v-if="repeatPasswordError">
                       {{ repeatPasswordError }}
@@ -43,13 +37,7 @@
                   </BFormGroup>
 
                   <BFormGroup>
-                    <BButton
-                      class="ms-2"
-                      type="submit"
-                      variant="dark"
-                    >
-                      Submit change
-                    </BButton>
+                    <BButton class="ms-2" type="submit" variant="dark"> Submit change </BButton>
                   </BFormGroup>
                 </BForm>
               </BCardText>
@@ -57,11 +45,7 @@
           </BContainer>
 
           <BContainer v-if="showRequestContainer">
-            <BCard
-              header="Reset Password"
-              header-bg-variant="dark"
-              header-text-variant="white"
-            >
+            <BCard header="Reset Password" header-bg-variant="dark" header-text-variant="white">
               <BCardText>
                 <BForm @submit.prevent="onPasswordRequest">
                   <BFormGroup description="Enter your mail account">
@@ -76,13 +60,7 @@
                   </BFormGroup>
 
                   <BFormGroup>
-                    <BButton
-                      class="ms-2"
-                      type="submit"
-                      variant="dark"
-                    >
-                      Submit
-                    </BButton>
+                    <BButton class="ms-2" type="submit" variant="dark"> Submit </BButton>
                   </BFormGroup>
                 </BForm>
               </BCardText>
@@ -98,12 +76,7 @@
 import { ref } from 'vue';
 import { useHead } from '@unhead/vue';
 import { useForm, useField, defineRule } from 'vee-validate';
-import {
-  required,
-  min,
-  max,
-  email,
-} from '@vee-validate/rules';
+import { required, min, max, email } from '@vee-validate/rules';
 import useToast from '@/composables/useToast';
 
 // Define validation rules
@@ -217,16 +190,16 @@ export default {
       }
     },
     async requestPasswordReset() {
-      const apiPasswordResetRequest = `${import.meta.env.VITE_API_URL
-      }/api/user/password/reset/request?email_request=${
-        this.emailEntry}`;
+      const apiPasswordResetRequest = `${
+        import.meta.env.VITE_API_URL
+      }/api/user/password/reset/request?email_request=${this.emailEntry}`;
 
       try {
         const responseResetRequest = await this.axios.get(apiPasswordResetRequest);
         this.makeToast(
           `If the mail exists your request has been sent (status ${responseResetRequest.status} - ${responseResetRequest.statusText}).`,
           'Success',
-          'success',
+          'success'
         );
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -241,11 +214,9 @@ export default {
       }, 1000);
     },
     async doPasswordChange() {
-      const apiUrl = `${import.meta.env.VITE_API_URL
-      }/api/user/password/reset/change?new_pass_1=${
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/password/reset/change?new_pass_1=${
         this.newPasswordEntry
-      }&new_pass_2=${
-        this.newPasswordRepeat}`;
+      }&new_pass_2=${this.newPasswordRepeat}`;
       try {
         await this.axios.get(apiUrl, {
           headers: {

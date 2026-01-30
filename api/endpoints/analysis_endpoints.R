@@ -102,7 +102,7 @@ function(page_after = "", page_size = "10", algorithm = "leiden") {
   # Validate algorithm parameter
   algorithm_clean <- tolower(algorithm)
   if (!algorithm_clean %in% c("leiden", "walktrap")) {
-    algorithm_clean <- "leiden"  # Default to faster algorithm
+    algorithm_clean <- "leiden" # Default to faster algorithm
   }
 
   # Track timing for performance monitoring
@@ -160,11 +160,13 @@ function(page_after = "", page_size = "10", algorithm = "leiden") {
   end_idx <- min(start_idx + page_size_int - 1, nrow(clusters_sorted))
   clusters_page <- clusters_sorted %>%
     slice(start_idx:end_idx) %>%
-    select(-row_num)  # Remove internal field
+    select(-row_num) # Remove internal field
 
   # Generate next cursor (hash_filter of last item in page)
   next_cursor <- if (end_idx < nrow(clusters_sorted)) {
-    clusters_page %>% slice(n()) %>% pull(hash_filter)
+    clusters_page %>%
+      slice(n()) %>%
+      pull(hash_filter)
   } else {
     NULL
   }
@@ -172,7 +174,7 @@ function(page_after = "", page_size = "10", algorithm = "leiden") {
   # Generate the object to return with pagination metadata
   list(
     categories = categories,
-    clusters = clusters_page,  # Paginated clusters (was functional_clusters)
+    clusters = clusters_page, # Paginated clusters (was functional_clusters)
     pagination = list(
       page_size = page_size_int,
       page_after = page_after_clean,
@@ -581,13 +583,13 @@ function(cluster_type = "clusters", min_confidence = "400", max_edges = "10000")
   # Validate cluster_type parameter
   cluster_type_clean <- tolower(cluster_type)
   if (!cluster_type_clean %in% c("clusters", "subclusters")) {
-    cluster_type_clean <- "clusters"  # Default to main clusters
+    cluster_type_clean <- "clusters" # Default to main clusters
   }
 
   # Parse and validate min_confidence parameter
   min_confidence_int <- as.integer(min_confidence)
   if (is.na(min_confidence_int)) {
-    min_confidence_int <- 400  # Default if parsing fails
+    min_confidence_int <- 400 # Default if parsing fails
   }
   # Clamp to valid STRING confidence range (0-1000)
   min_confidence_int <- min(max(min_confidence_int, 0), 1000)
@@ -595,7 +597,7 @@ function(cluster_type = "clusters", min_confidence = "400", max_edges = "10000")
   # Parse max_edges parameter (0 = unlimited)
   max_edges_int <- as.integer(max_edges)
   if (is.na(max_edges_int) || max_edges_int < 0) {
-    max_edges_int <- 10000  # Default to 10000 for browser performance
+    max_edges_int <- 10000 # Default to 10000 for browser performance
   }
 
   # Track timing for performance monitoring

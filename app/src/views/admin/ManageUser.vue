@@ -4,23 +4,14 @@
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol md="12">
-          <BCard
-            header-tag="header"
-            body-class="p-0"
-            header-class="p-1"
-            border-variant="dark"
-          >
+          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
             <template #header>
               <BRow>
                 <BCol>
                   <h5 class="mb-1 text-start">
                     <strong>Manage Users</strong>
                     <BBadge variant="secondary" class="ms-2">{{ totalRows }} users</BBadge>
-                    <BBadge
-                      v-if="selectionCount > 0"
-                      variant="primary"
-                      class="ms-2"
-                    >
+                    <BBadge v-if="selectionCount > 0" variant="primary" class="ms-2">
                       {{ selectionCount }} selected
                     </BBadge>
                   </h5>
@@ -95,7 +86,10 @@
             </template>
 
             <!-- Filter presets row -->
-            <BRow v-if="filterPresets.presets.value.length > 0 || hasActiveFilters" class="px-2 pt-2">
+            <BRow
+              v-if="filterPresets.presets.value.length > 0 || hasActiveFilters"
+              class="px-2 pt-2"
+            >
               <BCol>
                 <div class="d-flex gap-2 align-items-center flex-wrap">
                   <span class="text-muted small">Quick filters:</span>
@@ -108,10 +102,7 @@
                     @click="loadFilterPreset(preset.name)"
                   >
                     {{ preset.name }}
-                    <i
-                      class="bi bi-x-lg ms-1"
-                      @click.stop="deleteFilterPreset(preset.name)"
-                    />
+                    <i class="bi bi-x-lg ms-1" @click.stop="deleteFilterPreset(preset.name)" />
                   </BButton>
                   <BButton
                     v-if="hasActiveFilters"
@@ -184,7 +175,10 @@
               </BCol>
               <BCol sm="4" class="text-end">
                 <span class="text-muted small">
-                  Showing {{ (currentPage - 1) * perPage + 1 }}-{{ Math.min(currentPage * perPage, totalRows) }} of {{ totalRows }}
+                  Showing {{ (currentPage - 1) * perPage + 1 }}-{{
+                    Math.min(currentPage * perPage, totalRows)
+                  }}
+                  of {{ totalRows }}
                 </span>
               </BCol>
             </BRow>
@@ -207,12 +201,7 @@
                     <i class="bi bi-x" />
                   </BButton>
                 </BBadge>
-                <BButton
-                  size="sm"
-                  variant="link"
-                  class="p-0"
-                  @click="removeFilters"
-                >
+                <BButton size="sm" variant="link" class="p-0" @click="removeFilters">
                   Clear all
                 </BButton>
               </BCol>
@@ -284,7 +273,10 @@
                   </BBadge>
                 </template>
                 <template #cell-approved="{ row }">
-                  <BBadge :variant="row.approved ? 'success' : 'warning'" class="d-inline-flex align-items-center gap-1">
+                  <BBadge
+                    :variant="row.approved ? 'success' : 'warning'"
+                    class="d-inline-flex align-items-center gap-1"
+                  >
                     <i :class="row.approved ? 'bi bi-check-circle-fill' : 'bi bi-clock-fill'" />
                     {{ row.approved ? 'Approved' : 'Pending' }}
                   </BBadge>
@@ -311,14 +303,13 @@
           Confirm Deletion
         </template>
         <div class="text-center py-3">
-          <i class="bi bi-person-x-fill text-danger" style="font-size: 3rem;" />
+          <i class="bi bi-person-x-fill text-danger" style="font-size: 3rem" />
           <p class="mt-3 mb-0">
             Are you sure you want to delete the user
-            <strong class="text-danger">{{ userToDelete.user_name }}</strong>?
+            <strong class="text-danger">{{ userToDelete.user_name }}</strong
+            >?
           </p>
-          <p class="text-muted small mt-2">
-            This action cannot be undone.
-          </p>
+          <p class="text-muted small mt-2">This action cannot be undone.</p>
         </div>
       </BModal>
 
@@ -346,11 +337,7 @@
             </h6>
             <BRow>
               <BCol md="6">
-                <BFormGroup
-                  label="Username"
-                  label-for="input-user_name"
-                  class="mb-3"
-                >
+                <BFormGroup label="Username" label-for="input-user_name" class="mb-3">
                   <BInputGroup>
                     <template #prepend>
                       <BInputGroupText><i class="bi bi-at" /></BInputGroupText>
@@ -369,11 +356,7 @@
                 </BFormGroup>
               </BCol>
               <BCol md="6">
-                <BFormGroup
-                  label="Email"
-                  label-for="input-email"
-                  class="mb-3"
-                >
+                <BFormGroup label="Email" label-for="input-email" class="mb-3">
                   <BInputGroup>
                     <template #prepend>
                       <BInputGroupText><i class="bi bi-envelope" /></BInputGroupText>
@@ -394,11 +377,7 @@
             </BRow>
             <BRow>
               <BCol md="6">
-                <BFormGroup
-                  label="Abbreviation"
-                  label-for="input-abbreviation"
-                  class="mb-3"
-                >
+                <BFormGroup label="Abbreviation" label-for="input-abbreviation" class="mb-3">
                   <BInputGroup>
                     <template #prepend>
                       <BInputGroupText><i class="bi bi-hash" /></BInputGroupText>
@@ -418,11 +397,7 @@
                 </BFormGroup>
               </BCol>
               <BCol md="6">
-                <BFormGroup
-                  label="ORCID"
-                  label-for="input-orcid"
-                  class="mb-3"
-                >
+                <BFormGroup label="ORCID" label-for="input-orcid" class="mb-3">
                   <BInputGroup>
                     <template #prepend>
                       <BInputGroupText><i class="bi bi-link-45deg" /></BInputGroupText>
@@ -450,11 +425,7 @@
             </h6>
             <BRow>
               <BCol md="6">
-                <BFormGroup
-                  label="First Name"
-                  label-for="input-first_name"
-                  class="mb-3"
-                >
+                <BFormGroup label="First Name" label-for="input-first_name" class="mb-3">
                   <BFormInput
                     id="input-first_name"
                     v-model="userToUpdate.first_name"
@@ -468,11 +439,7 @@
                 </BFormGroup>
               </BCol>
               <BCol md="6">
-                <BFormGroup
-                  label="Family Name"
-                  label-for="input-family_name"
-                  class="mb-3"
-                >
+                <BFormGroup label="Family Name" label-for="input-family_name" class="mb-3">
                   <BFormInput
                     id="input-family_name"
                     v-model="userToUpdate.family_name"
@@ -495,11 +462,7 @@
             </h6>
             <BRow>
               <BCol md="6">
-                <BFormGroup
-                  label="Role"
-                  label-for="input-user_role"
-                  class="mb-3"
-                >
+                <BFormGroup label="Role" label-for="input-user_role" class="mb-3">
                   <BFormSelect
                     id="input-user_role"
                     v-model="userToUpdate.user_role"
@@ -512,11 +475,7 @@
                 </BFormGroup>
               </BCol>
               <BCol md="6">
-                <BFormGroup
-                  label="Account Status"
-                  label-for="input-approved"
-                  class="mb-3"
-                >
+                <BFormGroup label="Account Status" label-for="input-approved" class="mb-3">
                   <div class="d-flex flex-column gap-2">
                     <!-- Current status display -->
                     <div class="d-flex align-items-center">
@@ -525,7 +484,12 @@
                         class="badge"
                         :class="userToUpdate.approved ? 'bg-success' : 'bg-warning text-dark'"
                       >
-                        <i :class="userToUpdate.approved ? 'bi bi-check-circle-fill' : 'bi bi-clock-fill'" class="me-1" />
+                        <i
+                          :class="
+                            userToUpdate.approved ? 'bi bi-check-circle-fill' : 'bi bi-clock-fill'
+                          "
+                          class="me-1"
+                        />
                         {{ userToUpdate.approved ? 'Approved' : 'Pending' }}
                       </span>
                     </div>
@@ -547,7 +511,11 @@
                       </BButton>
                     </BButtonGroup>
                     <small class="text-muted">
-                      {{ userToUpdate.approved ? 'User can access the system.' : 'User cannot log in until approved.' }}
+                      {{
+                        userToUpdate.approved
+                          ? 'User can access the system.'
+                          : 'User cannot log in until approved.'
+                      }}
                     </small>
                   </div>
                 </BFormGroup>
@@ -555,11 +523,7 @@
             </BRow>
             <BRow>
               <BCol>
-                <BFormGroup
-                  label="Comment"
-                  label-for="input-comment"
-                  class="mb-0"
-                >
+                <BFormGroup label="Comment" label-for="input-comment" class="mb-0">
                   <BFormTextarea
                     id="input-comment"
                     v-model="userToUpdate.comment"
@@ -578,16 +542,12 @@
             </h6>
             <BAlert variant="info" :model-value="true" class="mb-3">
               <i class="bi bi-info-circle me-2" />
-              As an administrator, you can set a new password for this user.
-              Password requirements: 8+ characters, uppercase, lowercase, number, and special character (!@#$%^&*).
+              As an administrator, you can set a new password for this user. Password requirements:
+              8+ characters, uppercase, lowercase, number, and special character (!@#$%^&*).
             </BAlert>
             <BRow>
               <BCol md="6">
-                <BFormGroup
-                  label="New Password"
-                  label-for="input-new-password"
-                  class="mb-3"
-                >
+                <BFormGroup label="New Password" label-for="input-new-password" class="mb-3">
                   <BInputGroup>
                     <template #prepend>
                       <BInputGroupText><i class="bi bi-lock" /></BInputGroupText>
@@ -616,7 +576,10 @@
                       class="d-block"
                       :class="rule.valid ? 'text-success' : 'text-danger'"
                     >
-                      <i :class="rule.valid ? 'bi bi-check-circle' : 'bi bi-x-circle'" class="me-1" />
+                      <i
+                        :class="rule.valid ? 'bi bi-check-circle' : 'bi bi-x-circle'"
+                        class="me-1"
+                      />
                       {{ rule.label }}
                     </small>
                   </div>
@@ -637,12 +600,19 @@
                       v-model="passwordChange.confirmPassword"
                       :type="passwordChange.showPassword ? 'text' : 'password'"
                       placeholder="Confirm new password"
-                      :state="passwordChange.confirmPassword ? (passwordChange.newPassword === passwordChange.confirmPassword) : null"
+                      :state="
+                        passwordChange.confirmPassword
+                          ? passwordChange.newPassword === passwordChange.confirmPassword
+                          : null
+                      "
                       autocomplete="new-password"
                     />
                   </BInputGroup>
                   <BFormInvalidFeedback
-                    v-if="passwordChange.confirmPassword && passwordChange.newPassword !== passwordChange.confirmPassword"
+                    v-if="
+                      passwordChange.confirmPassword &&
+                      passwordChange.newPassword !== passwordChange.confirmPassword
+                    "
                     :state="false"
                   >
                     Passwords do not match
@@ -652,16 +622,17 @@
             </BRow>
             <BRow>
               <BCol class="d-flex justify-content-between">
-                <BButton
-                  variant="outline-secondary"
-                  @click="generatePassword"
-                >
+                <BButton variant="outline-secondary" @click="generatePassword">
                   <i class="bi bi-shuffle me-1" />
                   Generate Password
                 </BButton>
                 <BButton
                   variant="warning"
-                  :disabled="!passwordValidation.isValid || passwordChange.newPassword !== passwordChange.confirmPassword || passwordChange.isChanging"
+                  :disabled="
+                    !passwordValidation.isValid ||
+                    passwordChange.newPassword !== passwordChange.confirmPassword ||
+                    passwordChange.isChanging
+                  "
                   @click="changeUserPassword"
                 >
                   <BSpinner v-if="passwordChange.isChanging" small class="me-1" />
@@ -684,7 +655,7 @@
         @ok="confirmBulkApprove"
       >
         <p>You are about to approve {{ getSelectedArray().length }} users:</p>
-        <div class="border rounded p-2 mb-3 bg-light" style="max-height: 200px; overflow-y: auto;">
+        <div class="border rounded p-2 mb-3 bg-light" style="max-height: 200px; overflow-y: auto">
           <div v-for="username in bulkApproveUsernames" :key="username" class="small">
             {{ username }}
           </div>
@@ -703,7 +674,7 @@
         @ok="confirmBulkRoleAssignment"
       >
         <p>Assign role to {{ getSelectedArray().length }} users:</p>
-        <div class="border rounded p-2 mb-3 bg-light" style="max-height: 150px; overflow-y: auto;">
+        <div class="border rounded p-2 mb-3 bg-light" style="max-height: 150px; overflow-y: auto">
           <div v-for="username in bulkRoleUsernames" :key="username" class="small">
             {{ username }}
           </div>
@@ -716,7 +687,7 @@
               { value: '', text: 'Select a role...', disabled: true },
               { value: 'Curator', text: 'Curator' },
               { value: 'Reviewer', text: 'Reviewer' },
-              { value: 'Administrator', text: 'Administrator' }
+              { value: 'Administrator', text: 'Administrator' },
             ]"
           />
         </BFormGroup>
@@ -734,7 +705,7 @@
       >
         <p class="text-danger fw-bold">This action cannot be undone.</p>
         <p>You are about to delete {{ bulkDeleteUsernames.length }} users:</p>
-        <div class="border rounded p-2 mb-3 bg-light" style="max-height: 200px; overflow-y: auto;">
+        <div class="border rounded p-2 mb-3 bg-light" style="max-height: 200px; overflow-y: auto">
           <div v-for="username in bulkDeleteUsernames" :key="username" class="small">
             {{ username }}
           </div>
@@ -760,7 +731,11 @@ import GenericTable from '@/components/small/GenericTable.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import useToast from '@/composables/useToast';
 import {
-  useUrlParsing, useTableData, useExcelExport, useBulkSelection, useFilterPresets,
+  useUrlParsing,
+  useTableData,
+  useExcelExport,
+  useBulkSelection,
+  useFilterPresets,
 } from '@/composables';
 
 // Import the Pinia store
@@ -831,11 +806,7 @@ export default {
       meta: emailMeta,
     } = useField('email', 'required|email');
 
-    const {
-      value: orcid,
-      errorMessage: orcidError,
-      meta: orcidMeta,
-    } = useField('orcid');
+    const { value: orcid, errorMessage: orcidError, meta: orcidMeta } = useField('orcid');
 
     const {
       value: abbreviation,
@@ -919,22 +890,50 @@ export default {
           sortable: false,
         },
         {
-          key: 'user_name', label: 'User name', sortable: true, filterable: true, sortDirection: 'asc', class: 'text-start',
+          key: 'user_name',
+          label: 'User name',
+          sortable: true,
+          filterable: true,
+          sortDirection: 'asc',
+          class: 'text-start',
         },
         {
-          key: 'email', label: 'E-mail', sortable: true, filterable: true, sortDirection: 'asc', class: 'text-start',
+          key: 'email',
+          label: 'E-mail',
+          sortable: true,
+          filterable: true,
+          sortDirection: 'asc',
+          class: 'text-start',
         },
         {
-          key: 'user_role', label: 'Role', sortable: true, selectable: true, sortDirection: 'asc', class: 'text-start',
+          key: 'user_role',
+          label: 'Role',
+          sortable: true,
+          selectable: true,
+          sortDirection: 'asc',
+          class: 'text-start',
         },
         {
-          key: 'approved', label: 'Status', sortable: true, selectable: true, sortDirection: 'asc', class: 'text-center',
+          key: 'approved',
+          label: 'Status',
+          sortable: true,
+          selectable: true,
+          sortDirection: 'asc',
+          class: 'text-center',
         },
         {
-          key: 'abbreviation', label: 'Abbrev.', sortable: true, sortDirection: 'asc', class: 'text-start',
+          key: 'abbreviation',
+          label: 'Abbrev.',
+          sortable: true,
+          sortDirection: 'asc',
+          class: 'text-start',
         },
         {
-          key: 'created_at', label: 'Created', sortable: true, sortDirection: 'asc', class: 'text-start',
+          key: 'created_at',
+          label: 'Created',
+          sortable: true,
+          sortDirection: 'asc',
+          class: 'text-start',
         },
         { key: 'actions', label: 'Actions', class: 'text-center' },
       ],
@@ -973,14 +972,20 @@ export default {
       ];
     },
     hasActiveFilters() {
-      return Object.values(this.filter).some(f => f.content !== null && f.content !== '');
+      return Object.values(this.filter).some((f) => f.content !== null && f.content !== '');
     },
     activeFilters() {
       const filters = [];
-      if (this.filter.any.content) filters.push({ key: 'any', label: 'Search', value: this.filter.any.content });
-      if (this.filter.user_role.content) filters.push({ key: 'user_role', label: 'Role', value: this.filter.user_role.content });
+      if (this.filter.any.content)
+        filters.push({ key: 'any', label: 'Search', value: this.filter.any.content });
+      if (this.filter.user_role.content)
+        filters.push({ key: 'user_role', label: 'Role', value: this.filter.user_role.content });
       if (this.filter.approved.content !== null) {
-        filters.push({ key: 'approved', label: 'Status', value: this.filter.approved.content === '1' ? 'Approved' : 'Pending' });
+        filters.push({
+          key: 'approved',
+          label: 'Status',
+          value: this.filter.approved.content === '1' ? 'Approved' : 'Pending',
+        });
       }
       return filters;
     },
@@ -995,7 +1000,7 @@ export default {
     // Check if all users on current page are selected
     allOnPageSelected() {
       if (this.users.length === 0) return false;
-      return this.users.every(user => this.isSelected(user.user_id));
+      return this.users.every((user) => this.isSelected(user.user_id));
     },
     removeFiltersButtonVariant() {
       return this.hasActiveFilters ? 'outline-danger' : 'outline-secondary';
@@ -1027,7 +1032,7 @@ export default {
           valid: /[!@#$%^&*]/.test(password),
         },
       };
-      const isValid = password.length > 0 && Object.values(rules).every(r => r.valid);
+      const isValid = password.length > 0 && Object.values(rules).every((r) => r.valid);
       return { rules, isValid: password.length > 0 ? isValid : null };
     },
   },
@@ -1095,14 +1100,14 @@ export default {
     toggleSelectAllOnPage() {
       if (this.allOnPageSelected) {
         // Deselect all on current page
-        this.users.forEach(user => {
+        this.users.forEach((user) => {
           if (this.isSelected(user.user_id)) {
             this.toggleSelection(user.user_id);
           }
         });
       } else {
         // Select all on current page (respects 20 limit)
-        const pageUserIds = this.users.map(u => u.user_id);
+        const pageUserIds = this.users.map((u) => u.user_id);
         const added = this.selectMultiple(pageUserIds);
         if (added < pageUserIds.length && this.selectionCount >= 20) {
           this.makeToast(
@@ -1142,11 +1147,15 @@ export default {
 
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/bulk_approve`;
       try {
-        const response = await this.axios.post(apiUrl, {
-          user_ids: userIds,
-        }, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        });
+        const response = await this.axios.post(
+          apiUrl,
+          {
+            user_ids: userIds,
+          },
+          {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+          }
+        );
 
         if (response.status === 200) {
           this.makeToast(
@@ -1154,13 +1163,14 @@ export default {
             'Bulk Approve Complete',
             'success',
             true,
-            5000,
+            5000
           );
           this.clearSelection();
           this.loadData();
         }
       } catch (error) {
-        const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Unknown error';
+        const errorMsg =
+          error.response?.data?.message || error.response?.data?.error || 'Unknown error';
         this.makeToast(errorMsg, 'Bulk Approve Failed', 'danger');
       }
     },
@@ -1190,12 +1200,16 @@ export default {
 
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/bulk_assign_role`;
       try {
-        const response = await this.axios.post(apiUrl, {
-          user_ids: userIds,
-          role: selectedRole,
-        }, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        });
+        const response = await this.axios.post(
+          apiUrl,
+          {
+            user_ids: userIds,
+            role: selectedRole,
+          },
+          {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+          }
+        );
 
         if (response.status === 200) {
           this.makeToast(
@@ -1203,13 +1217,14 @@ export default {
             'Bulk Role Assignment Complete',
             'success',
             true,
-            5000,
+            5000
           );
           this.clearSelection();
           this.loadData();
         }
       } catch (error) {
-        const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Unknown error';
+        const errorMsg =
+          error.response?.data?.message || error.response?.data?.error || 'Unknown error';
         this.makeToast(errorMsg, 'Bulk Role Assignment Failed', 'danger');
       }
     },
@@ -1229,7 +1244,7 @@ export default {
         this.makeToast(
           `Cannot delete: selection contains ${adminUsers.length} admin user(s)`,
           'Delete Blocked',
-          'danger',
+          'danger'
         );
         return;
       }
@@ -1246,11 +1261,15 @@ export default {
 
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/bulk_delete`;
       try {
-        const response = await this.axios.post(apiUrl, {
-          user_ids: userIds,
-        }, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        });
+        const response = await this.axios.post(
+          apiUrl,
+          {
+            user_ids: userIds,
+          },
+          {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+          }
+        );
 
         if (response.status === 200) {
           this.makeToast(
@@ -1258,13 +1277,14 @@ export default {
             'Bulk Delete Complete',
             'success',
             true,
-            5000,
+            5000
           );
           this.clearSelection();
           this.loadData();
         }
       } catch (error) {
-        const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Unknown error';
+        const errorMsg =
+          error.response?.data?.message || error.response?.data?.error || 'Unknown error';
         this.makeToast(errorMsg, 'Bulk Delete Failed', 'danger');
       }
     },
@@ -1319,7 +1339,11 @@ export default {
     // Override removeFilters
     removeFilters() {
       Object.keys(this.filter).forEach((key) => {
-        if (this.filter[key] && typeof this.filter[key] === 'object' && 'content' in this.filter[key]) {
+        if (
+          this.filter[key] &&
+          typeof this.filter[key] === 'object' &&
+          'content' in this.filter[key]
+        ) {
           this.filter[key].content = null;
         }
       });
@@ -1348,7 +1372,7 @@ export default {
       const now = Date.now();
 
       // Prevent duplicate API calls
-      if (moduleLastApiParams === urlParam && (now - moduleLastApiCallTime) < 500) {
+      if (moduleLastApiParams === urlParam && now - moduleLastApiCallTime < 500) {
         if (moduleLastApiResponse) {
           this.applyApiResponse(moduleLastApiResponse);
         }
@@ -1396,8 +1420,8 @@ export default {
       // Update fields from API fspec if available
       // API fspec has arrays for key/label (e.g., ["user_id"]), extract single values
       if (data.meta[0].fspec) {
-        const actionsField = this.fields.find(f => f.key === 'actions');
-        const transformedFields = data.meta[0].fspec.map(field => ({
+        const actionsField = this.fields.find((f) => f.key === 'actions');
+        const transformedFields = data.meta[0].fspec.map((field) => ({
           ...field,
           key: Array.isArray(field.key) ? field.key[0] : field.key,
           label: Array.isArray(field.label) ? field.label[0] : field.label,
@@ -1477,7 +1501,11 @@ export default {
         const response = await this.axios.get(apiUrl, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         });
-        this.user_options = response.data.map((item) => ({ value: item.user_id, text: item.user_name, role: item.user_role }));
+        this.user_options = response.data.map((item) => ({
+          value: item.user_id,
+          text: item.user_name,
+          role: item.user_role,
+        }));
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
@@ -1548,9 +1576,13 @@ export default {
         updatePayload.comment = this.userToUpdate.comment;
       }
       try {
-        const response = await this.axios.put(apiUrl, { user_details: updatePayload }, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        });
+        const response = await this.axios.put(
+          apiUrl,
+          { user_details: updatePayload },
+          {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+          }
+        );
         if (response.status === 200) {
           this.makeToast('User updated successfully', 'Success', 'success');
           this.loadData(); // Reload the table data
@@ -1650,14 +1682,18 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/password/update`;
 
       try {
-        const response = await this.axios.put(apiUrl, {
-          user_id_pass_change: this.userToUpdate.user_id,
-          old_pass: '', // Admin can change password without knowing old password
-          new_pass_1: this.passwordChange.newPassword,
-          new_pass_2: this.passwordChange.confirmPassword,
-        }, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        });
+        const response = await this.axios.put(
+          apiUrl,
+          {
+            user_id_pass_change: this.userToUpdate.user_id,
+            old_pass: '', // Admin can change password without knowing old password
+            new_pass_1: this.passwordChange.newPassword,
+            new_pass_2: this.passwordChange.confirmPassword,
+          },
+          {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+          }
+        );
 
         if (response.status === 200) {
           this.makeToast(
@@ -1672,7 +1708,10 @@ export default {
           this.passwordChange.confirmPassword = '';
         }
       } catch (error) {
-        const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Failed to change password';
+        const errorMsg =
+          error.response?.data?.message ||
+          error.response?.data?.error ||
+          'Failed to change password';
         this.makeToast(errorMsg, 'Password Change Failed', 'danger');
       } finally {
         this.passwordChange.isChanging = false;
@@ -1683,10 +1722,11 @@ export default {
 </script>
 
 <style scoped>
-.btn-group-xs > .btn, .btn-xs {
-  padding: .25rem .4rem;
-  font-size: .875rem;
-  line-height: .5;
-  border-radius: .2rem;
+.btn-group-xs > .btn,
+.btn-xs {
+  padding: 0.25rem 0.4rem;
+  font-size: 0.875rem;
+  line-height: 0.5;
+  border-radius: 0.2rem;
 }
 </style>

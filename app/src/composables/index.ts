@@ -87,12 +87,7 @@ export { useCmsContent } from './useCmsContent';
 
 // Async job management
 export { default as useAsyncJob } from './useAsyncJob';
-export type {
-  JobProgress,
-  JobStatus,
-  UseAsyncJobOptions,
-  UseAsyncJobReturn,
-} from './useAsyncJob';
+export type { JobProgress, JobStatus, UseAsyncJobOptions, UseAsyncJobReturn } from './useAsyncJob';
 
 // Tree search and hierarchy utilities
 export { useTreeSearch } from './useTreeSearch';

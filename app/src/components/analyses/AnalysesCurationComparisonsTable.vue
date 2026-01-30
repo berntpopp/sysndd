@@ -2,12 +2,7 @@
 <template>
   <BContainer fluid>
     <!-- User Interface controls -->
-    <BCard
-      header-tag="header"
-      body-class="p-0"
-      header-class="p-1"
-      border-variant="dark"
-    >
+    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
       <template #header>
         <BRow>
           <BCol>
@@ -16,51 +11,39 @@
               <mark
                 v-b-tooltip.hover.leftbottom
                 title="These have been reviewed to include lists which are regularly updated. Below table allows users to filter the presence of a gene (normalized category/ not listed) in the respective list overlaps."
-              >curation efforts</mark>
+                >curation efforts</mark
+              >
               for NDDs.
 
-              <BBadge
-                id="popover-badge-help-comparisons"
-                pill
-                href="#"
-                variant="info"
-              >
+              <BBadge id="popover-badge-help-comparisons" pill href="#" variant="info">
                 <i class="bi bi-question-circle-fill" />
               </BBadge>
 
-              <BPopover
-                target="popover-badge-help-comparisons"
-                variant="info"
-                triggers="focus"
-              >
-                <template #title>
-                  Comparisons selection [last update 2023-04-13]
-                </template>
+              <BPopover target="popover-badge-help-comparisons" variant="info" triggers="focus">
+                <template #title> Comparisons selection [last update 2023-04-13] </template>
                 The NDD databases and lists for the comparison with SysNDD are:
-                <br>
-                <strong>1) radboudumc ID,</strong> downloaded and normalized
-                from https://order.radboudumc.nl/en/LabProduct/Pdf/30240, <br>
-                <strong>2) gene2phenotype ID</strong> downloaded and normalized
-                from https://www.ebi.ac.uk/gene2phenotype/downloads/DDG2P.csv.gz,
-                <br>
+                <br />
+                <strong>1) radboudumc ID,</strong> downloaded and normalized from
+                https://order.radboudumc.nl/en/LabProduct/Pdf/30240, <br />
+                <strong>2) gene2phenotype ID</strong> downloaded and normalized from
+                https://www.ebi.ac.uk/gene2phenotype/downloads/DDG2P.csv.gz,
+                <br />
                 <strong>3) panelapp ID</strong> downloaded and normalized from
                 https://panelapp.genomicsengland.co.uk/panels/285/download/01234/,
-                <br>
+                <br />
                 <strong>4) sfari</strong> downloaded and normalized from
                 https://gene.sfari.org//wp-content/themes/sfari-gene/utilities/download-csv.php?api-endpoint=genes,
-                <br>
+                <br />
                 <strong>5) geisinger DBD</strong> downloaded and normalized from
                 https://dbd.geisingeradmi.org/downloads/DBD-Genes-Full-Data.csv,
-                <br>
+                <br />
                 <strong>6) orphanet ID</strong> downloaded and normalized from
-                https://id-genes.orphanet.app/es/index/sysid_index_1, <br>
-                <strong>7) OMIM NDD</strong> filtered OMIM for the HPO term
-                "Neurodevelopmental abnormality" (HP:0012759) and all its child
-                terms using the files phenotype_to_genes
-                (http://purl.obolibrary.org/obo/hp/hpoa/phenotype.hpoa)
-                and genemap2
+                https://id-genes.orphanet.app/es/index/sysid_index_1, <br />
+                <strong>7) OMIM NDD</strong> filtered OMIM for the HPO term "Neurodevelopmental
+                abnormality" (HP:0012759) and all its child terms using the files phenotype_to_genes
+                (http://purl.obolibrary.org/obo/hp/hpoa/phenotype.hpoa) and genemap2
                 (https://data.omim.org/downloads/9GJLEFvqSmWaImCijeRdVA/genemap2.txt),
-                <br>
+                <br />
               </BPopover>
             </h6>
 
@@ -75,10 +58,7 @@
             </h6>
           </BCol>
           <BCol>
-            <h5
-              v-if="showFilterControls"
-              class="mb-1 text-end font-weight-bold"
-            >
+            <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
               <BButton
                 v-b-tooltip.hover.bottom
                 class="me-1"
@@ -87,20 +67,19 @@
                 @click="requestExcel()"
               >
                 <i class="bi bi-table mx-1" />
-                <i
-                  v-if="!downloading"
-                  class="bi bi-download"
-                />
-                <BSpinner
-                  v-if="downloading"
-                  small
-                />
+                <i v-if="!downloading" class="bi bi-download" />
+                <BSpinner v-if="downloading" small />
                 .xlsx
               </BButton>
               <BButton
                 v-b-tooltip.hover.bottom
                 size="sm"
-                :title="'The table is ' + (filter_string === '' ? 'not' : '') + ' filtered.' + (filter_string === '' ? '' : ' Click to remove all filters.')"
+                :title="
+                  'The table is ' +
+                  (filter_string === '' ? 'not' : '') +
+                  ' filtered.' +
+                  (filter_string === '' ? '' : ' Click to remove all filters.')
+                "
                 :variant="filter_string === '' ? 'info' : 'warning'"
                 @click="removeFilters()"
               >
@@ -113,10 +92,7 @@
 
       <div v-if="!loadingTable">
         <BRow>
-          <BCol
-            class="my-1"
-            sm="6"
-          >
+          <BCol class="my-1" sm="6">
             <BFormGroup class="mb-1 border-dark">
               <BFormInput
                 v-if="showFilterControls"
@@ -133,18 +109,9 @@
             </BFormGroup>
           </BCol>
 
-          <BCol
-            class="my-1"
-            sm="4"
-          >
-            <BContainer
-              v-if="totalRows > perPage || showPaginationControls"
-            >
-              <BInputGroup
-                prepend="Per page"
-                class="mb-1"
-                size="sm"
-              >
+          <BCol class="my-1" sm="4">
+            <BContainer v-if="totalRows > perPage || showPaginationControls">
+              <BInputGroup prepend="Per page" class="mb-1" size="sm">
                 <BFormSelect
                   id="per-page-select"
                   :model-value="perPage"
@@ -171,11 +138,7 @@
       </div>
 
       <div class="position-relative">
-        <BSpinner
-          v-if="loadingTable"
-          label="Loading..."
-          class="spinner"
-        />
+        <BSpinner v-if="loadingTable" label="Loading..." class="spinner" />
         <GenericTable
           v-else
           :items="items"
@@ -187,10 +150,7 @@
           @update-sort="handleSortUpdate"
         >
           <template #filter-controls>
-            <td
-              v-for="field in fields"
-              :key="field.key"
-            >
+            <td v-for="field in fields" :key="field.key">
               <BFormInput
                 v-if="field.filterable"
                 v-model="filter[field.key].content"
@@ -209,7 +169,10 @@
                 class="filter-input"
                 :options="normalizeSelectOptions(field.selectOptions)"
                 size="sm"
-                @update:model-value="removeSearch();filtered();"
+                @update:model-value="
+                  removeSearch();
+                  filtered();
+                "
               >
                 <template #first>
                   <BFormSelectOption :value="null">
@@ -220,12 +183,17 @@
 
               <!-- Multi-select: temporarily use BFormSelect instead of treeselect for compatibility -->
               <BFormSelect
-                v-if="field.multi_selectable && field.selectOptions && field.selectOptions.length > 0"
+                v-if="
+                  field.multi_selectable && field.selectOptions && field.selectOptions.length > 0
+                "
                 v-model="filter[field.key].content"
                 class="filter-input"
                 :options="normalizeSelectOptions(field.selectOptions)"
                 size="sm"
-                @update:model-value="removeSearch();filtered();"
+                @update:model-value="
+                  removeSearch();
+                  filtered();
+                "
               >
                 <template #first>
                   <BFormSelectOption :value="null">
@@ -246,59 +214,35 @@
           </template>
 
           <template #cell-SysNDD="{ row }">
-            <CategoryIcon
-              :category="row.SysNDD"
-              size="sm"
-            />
+            <CategoryIcon :category="row.SysNDD" size="sm" />
           </template>
 
           <template #cell-radboudumc_ID="{ row }">
-            <CategoryIcon
-              :category="row.radboudumc_ID"
-              size="sm"
-            />
+            <CategoryIcon :category="row.radboudumc_ID" size="sm" />
           </template>
 
           <template #cell-gene2phenotype="{ row }">
-            <CategoryIcon
-              :category="row.gene2phenotype"
-              size="sm"
-            />
+            <CategoryIcon :category="row.gene2phenotype" size="sm" />
           </template>
 
           <template #cell-panelapp="{ row }">
-            <CategoryIcon
-              :category="row.panelapp"
-              size="sm"
-            />
+            <CategoryIcon :category="row.panelapp" size="sm" />
           </template>
 
           <template #cell-sfari="{ row }">
-            <CategoryIcon
-              :category="row.sfari"
-              size="sm"
-            />
+            <CategoryIcon :category="row.sfari" size="sm" />
           </template>
 
           <template #cell-geisinger_DBD="{ row }">
-            <CategoryIcon
-              :category="row.geisinger_DBD"
-              size="sm"
-            />
+            <CategoryIcon :category="row.geisinger_DBD" size="sm" />
           </template>
 
           <template #cell-omim_ndd="{ row }">
-            <CategoryIcon
-              :category="row.omim_ndd"
-              size="sm"
-            />
+            <CategoryIcon :category="row.omim_ndd" size="sm" />
           </template>
 
           <template #cell-orphanet_id="{ row }">
-            <CategoryIcon
-              :category="row.orphanet_id"
-              size="sm"
-            />
+            <CategoryIcon :category="row.orphanet_id" size="sm" />
           </template>
         </GenericTable>
       </div>
@@ -343,7 +287,7 @@ export default {
     fspecInput: {
       type: String,
       default:
-          'symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id',
+        'symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id',
     },
   },
   setup() {
@@ -490,33 +434,19 @@ export default {
   },
   methods: {
     copyLinkToClipboard() {
-      const urlParam = `sort=${
-        this.sort
-      }&filter=${
-        this.filter_string
-      }&page_after=${
+      const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${
         this.currentItemID
-      }&page_size=${
-        this.perPage}`;
-      navigator.clipboard.writeText(
-        `${import.meta.env.VITE_URL + this.$route.path}?${urlParam}`,
-      );
+      }&page_size=${this.perPage}`;
+      navigator.clipboard.writeText(`${import.meta.env.VITE_URL + this.$route.path}?${urlParam}`);
     },
     async loadTableData() {
       this.isBusy = true;
 
-      const urlParam = `sort=${
-        this.sort
-      }&filter=${
-        this.filter_string
-      }&page_after=${
+      const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${
         this.currentItemID
-      }&page_size=${
-        this.perPage}`;
+      }&page_size=${this.perPage}`;
 
-      const apiUrl = `${import.meta.env.VITE_API_URL
-      }/api/comparisons/browse?${
-        urlParam}`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/comparisons/browse?${urlParam}`;
 
       try {
         const response = await this.axios.get(apiUrl);
@@ -542,19 +472,14 @@ export default {
     async requestExcel() {
       this.downloading = true;
 
-      const urlParam = `sort=${
-        this.sort
-      }&filter=${
-        this.filter_string
-      }&page_after=`
-          + '0'
-          + '&page_size='
-          + 'all'
-          + '&format=xlsx';
+      const urlParam =
+        `sort=${this.sort}&filter=${this.filter_string}&page_after=` +
+        '0' +
+        '&page_size=' +
+        'all' +
+        '&format=xlsx';
 
-      const apiUrl = `${import.meta.env.VITE_API_URL
-      }/api/comparisons/browse?${
-        urlParam}`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/comparisons/browse?${urlParam}`;
 
       try {
         const response = await this.axios({
@@ -580,7 +505,8 @@ export default {
     handleSortByOrDescChange() {
       this.currentItemID = 0;
       // Ensure sortBy is a string for the API URL
-      const sortColumn = typeof this.sortBy === 'string' ? this.sortBy : (this.sortBy[0]?.key || 'symbol');
+      const sortColumn =
+        typeof this.sortBy === 'string' ? this.sortBy : this.sortBy[0]?.key || 'symbol';
       this.sort = (!this.sortDesc ? '-' : '+') + sortColumn;
       this.filtered();
     },
@@ -661,7 +587,10 @@ export default {
           return { value: opt, text: opt };
         }
         if (typeof opt === 'object' && opt !== null) {
-          return { value: opt.value || opt.id || opt, text: opt.text || opt.label || opt.name || opt };
+          return {
+            value: opt.value || opt.id || opt,
+            text: opt.text || opt.label || opt.name || opt,
+          };
         }
         return { value: opt, text: String(opt) };
       });

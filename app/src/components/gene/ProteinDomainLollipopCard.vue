@@ -12,23 +12,14 @@
   Uses ProteinDomainLollipopPlot for actual D3.js visualization.
 -->
 <template>
-  <BCard
-    class="shadow-sm border-0 mb-3"
-    body-class="p-2"
-    header-class="py-2 px-3"
-  >
+  <BCard class="shadow-sm border-0 mb-3" body-class="p-2" header-class="py-2 px-3">
     <template #header>
       <div class="d-flex justify-content-between align-items-center">
         <h6 class="mb-0 fw-bold">
           <i class="bi bi-diagram-3" /> Protein Domains &amp; ClinVar Variants
         </h6>
         <!-- Reset zoom button (only shown when zoomed in) -->
-        <BButton
-          v-if="isZoomed"
-          variant="outline-secondary"
-          size="sm"
-          @click="handleResetZoom"
-        >
+        <BButton v-if="isZoomed" variant="outline-secondary" size="sm" @click="handleResetZoom">
           <i class="bi bi-arrows-angle-expand" /> Reset Zoom
         </BButton>
       </div>
@@ -77,11 +68,7 @@
 import { computed, ref } from 'vue';
 import { BCard, BButton, BSpinner } from 'bootstrap-vue-next';
 import ProteinDomainLollipopPlot from '@/components/gene/ProteinDomainLollipopPlot.vue';
-import type {
-  ProteinPlotData,
-  ProteinDomain,
-  ProcessedVariant,
-} from '@/types/protein';
+import type { ProteinPlotData, ProteinDomain, ProcessedVariant } from '@/types/protein';
 import { normalizeClassification, parseProteinPosition } from '@/types/protein';
 import type { ClinVarVariant } from '@/types/external';
 
@@ -155,11 +142,9 @@ const isLoading = computed(() => props.uniprotLoading || props.clinvarLoading);
  * Computed: isFullError
  * True when both sources have errors and no data is available
  */
-const isFullError = computed(() =>
-  !props.uniprotLoading &&
-  !props.clinvarLoading &&
-  !!props.uniprotError &&
-  !!props.clinvarError
+const isFullError = computed(
+  () =>
+    !props.uniprotLoading && !props.clinvarLoading && !!props.uniprotError && !!props.clinvarError
 );
 
 /**
@@ -211,9 +196,8 @@ const plotData = computed<ProteinPlotData | null>(() => {
   // This handles cases where ClinVar variants are annotated to a different isoform
   // than the UniProt canonical sequence (e.g., MECP2 isoform e1 vs e2)
   const uniprotLength = hasUniprot ? Number(props.uniprotData?.protein_length) : 0;
-  const maxVariantPosition = variants.length > 0
-    ? Math.max(...variants.map((v) => v.proteinPosition))
-    : 0;
+  const maxVariantPosition =
+    variants.length > 0 ? Math.max(...variants.map((v) => v.proteinPosition)) : 0;
   const proteinLength = Math.max(uniprotLength, maxVariantPosition);
   const proteinName = hasUniprot ? props.uniprotData?.protein_name || '' : '';
   const accession = hasUniprot ? props.uniprotData?.accession || '' : '';

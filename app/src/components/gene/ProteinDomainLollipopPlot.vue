@@ -25,13 +25,11 @@
     />
 
     <!-- Controls row: Coloring toggle (left) + Domain legend (center) + Export buttons (right) -->
-    <div class="controls-row d-flex align-items-center justify-content-between flex-wrap gap-2 mt-1 px-2">
+    <div
+      class="controls-row d-flex align-items-center justify-content-between flex-wrap gap-2 mt-1 px-2"
+    >
       <!-- Coloring mode toggle -->
-      <div
-        class="btn-group btn-group-sm"
-        role="group"
-        aria-label="Variant coloring mode"
-      >
+      <div class="btn-group btn-group-sm" role="group" aria-label="Variant coloring mode">
         <button
           type="button"
           class="btn btn-xs"
@@ -55,15 +53,8 @@
         v-if="domainLegendItems.length > 0"
         class="domain-legend d-flex flex-wrap justify-content-center gap-2"
       >
-        <span
-          v-for="item in domainLegendItems"
-          :key="item.type"
-          class="domain-legend-item"
-        >
-          <span
-            class="domain-dot"
-            :style="{ backgroundColor: item.color }"
-          />
+        <span v-for="item in domainLegendItems" :key="item.type" class="domain-legend-item">
+          <span class="domain-dot" :style="{ backgroundColor: item.color }" />
           <span class="domain-label">{{ item.label }}</span>
         </span>
       </div>
@@ -95,11 +86,7 @@
     <div class="filter-rows mt-1 px-2">
       <!-- Row 1: Pathogenicity filters -->
       <div class="filter-row d-flex flex-wrap justify-content-center align-items-center gap-1">
-        <span
-          v-for="item in legendItems"
-          :key="item.label"
-          class="filter-group"
-        >
+        <span v-for="item in legendItems" :key="item.label" class="filter-group">
           <button
             type="button"
             class="filter-chip"
@@ -113,33 +100,30 @@
               :style="{ backgroundColor: item.visible ? item.color : '#ccc' }"
             />
             <span class="filter-label">{{ item.label }}</span>
-            <span
-              v-if="item.count > 0"
-              class="filter-count"
-            >{{ item.count }}</span>
+            <span v-if="item.count > 0" class="filter-count">{{ item.count }}</span>
           </button>
           <button
             type="button"
             class="only-btn"
             title="Show only this category"
             @click="selectOnlyPathogenicity(item.key)"
-          >only</button>
+          >
+            only
+          </button>
         </span>
         <button
           type="button"
           class="all-btn"
           title="Show all pathogenicity categories"
           @click="selectAllPathogenicity"
-        >all</button>
+        >
+          all
+        </button>
       </div>
 
       <!-- Row 2: Effect type filters -->
       <div class="filter-row d-flex flex-wrap justify-content-center align-items-center gap-1 mt-1">
-        <span
-          v-for="item in effectLegendItems"
-          :key="item.key"
-          class="filter-group"
-        >
+        <span v-for="item in effectLegendItems" :key="item.key" class="filter-group">
           <button
             type="button"
             class="filter-chip"
@@ -153,24 +137,25 @@
               :style="{ backgroundColor: item.visible ? item.color : '#ccc' }"
             />
             <span class="filter-label">{{ item.label }}</span>
-            <span
-              v-if="item.count > 0"
-              class="filter-count"
-            >{{ item.count }}</span>
+            <span v-if="item.count > 0" class="filter-count">{{ item.count }}</span>
           </button>
           <button
             type="button"
             class="only-btn"
             title="Show only this effect type"
             @click="selectOnlyEffectType(item.key)"
-          >only</button>
+          >
+            only
+          </button>
         </span>
         <button
           type="button"
           class="all-btn"
           title="Show all effect types"
           @click="selectAllEffectTypes"
-        >all</button>
+        >
+          all
+        </button>
       </div>
     </div>
   </div>
@@ -187,11 +172,7 @@ import type {
   EffectType,
   ColoringMode,
 } from '@/types';
-import {
-  PATHOGENICITY_COLORS,
-  EFFECT_TYPE_COLORS,
-  normalizeEffectType,
-} from '@/types/protein';
+import { PATHOGENICITY_COLORS, EFFECT_TYPE_COLORS, normalizeEffectType } from '@/types/protein';
 
 /**
  * Component props
@@ -252,9 +233,7 @@ const { isInitialized, renderPlot, exportSVG, exportPNG } = useD3Lollipop({
 /**
  * Count variants by pathogenicity classification
  */
-function countByClassification(
-  variants: ProcessedVariant[]
-): Record<string, number> {
+function countByClassification(variants: ProcessedVariant[]): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const variant of variants) {
     const key = variant.classification;
@@ -266,9 +245,7 @@ function countByClassification(
 /**
  * Count variants by effect type
  */
-function countByEffectType(
-  variants: ProcessedVariant[]
-): Record<EffectType, number> {
+function countByEffectType(variants: ProcessedVariant[]): Record<EffectType, number> {
   const counts: Record<EffectType, number> = {
     missense: 0,
     frameshift: 0,
@@ -436,7 +413,9 @@ const domainLegendItems = computed(() => {
 /**
  * Toggle filter visibility for a pathogenicity class
  */
-function toggleFilter(key: 'pathogenic' | 'likelyPathogenic' | 'vus' | 'likelyBenign' | 'benign'): void {
+function toggleFilter(
+  key: 'pathogenic' | 'likelyPathogenic' | 'vus' | 'likelyBenign' | 'benign'
+): void {
   filterState[key] = !filterState[key];
 }
 
@@ -450,7 +429,9 @@ function toggleEffectFilter(effectType: EffectType): void {
 /**
  * Select only one pathogenicity class (deselect all others)
  */
-function selectOnlyPathogenicity(key: 'pathogenic' | 'likelyPathogenic' | 'vus' | 'likelyBenign' | 'benign'): void {
+function selectOnlyPathogenicity(
+  key: 'pathogenic' | 'likelyPathogenic' | 'vus' | 'likelyBenign' | 'benign'
+): void {
   filterState.pathogenic = key === 'pathogenic';
   filterState.likelyPathogenic = key === 'likelyPathogenic';
   filterState.vus = key === 'vus';
@@ -473,7 +454,15 @@ function selectAllPathogenicity(): void {
  * Select only one effect type (deselect all others)
  */
 function selectOnlyEffectType(effectType: EffectType): void {
-  const effectTypes: EffectType[] = ['missense', 'frameshift', 'stop_gained', 'splice', 'inframe_indel', 'synonymous', 'other'];
+  const effectTypes: EffectType[] = [
+    'missense',
+    'frameshift',
+    'stop_gained',
+    'splice',
+    'inframe_indel',
+    'synonymous',
+    'other',
+  ];
   for (const et of effectTypes) {
     filterState.effectFilters[et] = et === effectType;
   }
@@ -483,7 +472,15 @@ function selectOnlyEffectType(effectType: EffectType): void {
  * Select all effect types
  */
 function selectAllEffectTypes(): void {
-  const effectTypes: EffectType[] = ['missense', 'frameshift', 'stop_gained', 'splice', 'inframe_indel', 'synonymous', 'other'];
+  const effectTypes: EffectType[] = [
+    'missense',
+    'frameshift',
+    'stop_gained',
+    'splice',
+    'inframe_indel',
+    'synonymous',
+    'other',
+  ];
   for (const et of effectTypes) {
     filterState.effectFilters[et] = true;
   }

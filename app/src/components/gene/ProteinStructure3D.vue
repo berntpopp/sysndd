@@ -1,6 +1,5 @@
 <template>
   <div class="protein-structure-3d" role="region" aria-label="3D protein structure viewer">
-
     <!-- Loading State (before structure loads) -->
     <div v-if="isLoading" class="state-overlay">
       <BSpinner label="Loading 3D structure..." />
@@ -17,14 +16,11 @@
     <!-- Empty State (no AlphaFold structure, STRUCT3D-07) -->
     <div v-else-if="!structureUrl" class="state-overlay">
       <i class="bi bi-box text-muted fs-3"></i>
-      <p class="text-muted mt-2 small">
-        No AlphaFold structure available for {{ geneSymbol }}
-      </p>
+      <p class="text-muted mt-2 small">No AlphaFold structure available for {{ geneSymbol }}</p>
     </div>
 
     <!-- Active Viewer Layout (70% viewer + 30% variant panel) -->
     <div v-show="isInitialized && !isLoading && structureUrl" class="viewer-layout">
-
       <!-- Left: NGL Viewer (70%) -->
       <div class="viewer-section">
         <!-- Controls Toolbar (STRUCT3D-02, STRUCT3D-06, A11Y-04) -->
@@ -65,17 +61,22 @@
         </div>
 
         <!-- NGL Viewport Container -->
-        <div ref="viewerContainer" class="ngl-viewport" tabindex="0" aria-label="3D protein structure - use mouse to rotate, scroll to zoom" />
+        <div
+          ref="viewerContainer"
+          class="ngl-viewport"
+          tabindex="0"
+          aria-label="3D protein structure - use mouse to rotate, scroll to zoom"
+        />
 
         <!-- pLDDT Legend (STRUCT3D-01) -->
         <div class="plddt-legend" aria-label="pLDDT confidence color legend">
           <span class="legend-title">pLDDT:</span>
-          <span
-            v-for="item in PLDDT_LEGEND"
-            :key="item.label"
-            class="legend-item"
-          >
-            <span class="legend-color" :style="{ backgroundColor: item.color }" :aria-hidden="true"></span>
+          <span v-for="item in PLDDT_LEGEND" :key="item.label" class="legend-item">
+            <span
+              class="legend-color"
+              :style="{ backgroundColor: item.color }"
+              :aria-hidden="true"
+            ></span>
             <span class="small">{{ item.label }}</span>
           </span>
         </div>
@@ -106,15 +107,20 @@ import { ref, watch } from 'vue';
 import { BSpinner, BButton, BButtonGroup } from 'bootstrap-vue-next';
 import { use3DStructure } from '@/composables/use3DStructure';
 import VariantPanel from './VariantPanel.vue';
-import { PLDDT_LEGEND, ACMG_COLORS, classifyClinicalSignificance, parseResidueNumber } from '@/types/alphafold';
+import {
+  PLDDT_LEGEND,
+  ACMG_COLORS,
+  classifyClinicalSignificance,
+  parseResidueNumber,
+} from '@/types/alphafold';
 import type { RepresentationType, AcmgClassification, AlphaFoldMetadata } from '@/types/alphafold';
 import type { ClinVarVariant } from '@/types/external';
 
 interface Props {
   geneSymbol: string;
-  structureUrl: string | null;  // AlphaFold PDB/CIF URL (null = no structure)
-  variants: ClinVarVariant[];   // ClinVar variants for variant panel
-  metadata?: AlphaFoldMetadata | null;  // AlphaFold metadata for model indicator
+  structureUrl: string | null; // AlphaFold PDB/CIF URL (null = no structure)
+  variants: ClinVarVariant[]; // ClinVar variants for variant panel
+  metadata?: AlphaFoldMetadata | null; // AlphaFold metadata for model indicator
 }
 
 const props = defineProps<Props>();
@@ -157,7 +163,9 @@ const representationOptions: { value: RepresentationType; label: string }[] = [
 ];
 
 // Sync composable error to local error
-watch(composableError, (val) => { viewerError.value = val; });
+watch(composableError, (val) => {
+  viewerError.value = val;
+});
 
 // Load structure when initialized and URL available
 watch([isInitialized, () => props.structureUrl], async ([initialized, url]) => {
@@ -213,10 +221,10 @@ function handleFilterChange(payload: { hiddenClassifications: AcmgClassification
   const oldHidden = hiddenClassifications.value;
 
   // Find classifications that were hidden and are now visible (need to add markers back)
-  const nowVisible = oldHidden.filter(c => !newHidden.includes(c));
+  const nowVisible = oldHidden.filter((c) => !newHidden.includes(c));
 
   // Find classifications that are now hidden (need to remove markers)
-  const nowHidden = newHidden.filter(c => !oldHidden.includes(c));
+  const nowHidden = newHidden.filter((c) => !oldHidden.includes(c));
 
   // Update hidden state
   hiddenClassifications.value = newHidden;
@@ -232,7 +240,7 @@ function handleFilterChange(payload: { hiddenClassifications: AcmgClassification
   for (const [residue, classification] of selectedVariantClassifications.value.entries()) {
     if (classification && nowVisible.includes(classification)) {
       // Find the variant to get color and label
-      const variant = props.variants.find(v => parseResidueNumber(v.hgvsp) === residue);
+      const variant = props.variants.find((v) => parseResidueNumber(v.hgvsp) === residue);
       if (variant) {
         const color = ACMG_COLORS[classification];
         const label = variant.hgvsp || variant.variant_id;
@@ -277,7 +285,7 @@ async function retryLoad(): Promise<void> {
 <style scoped>
 .protein-structure-3d {
   position: relative;
-  height: 500px;  /* Fixed height per CONTEXT.md */
+  height: 500px; /* Fixed height per CONTEXT.md */
   display: flex;
   flex-direction: column;
 }
@@ -297,7 +305,7 @@ async function retryLoad(): Promise<void> {
 }
 
 .viewer-section {
-  flex: 7;  /* 70% width */
+  flex: 7; /* 70% width */
   position: relative;
   display: flex;
   flex-direction: column;
@@ -305,7 +313,7 @@ async function retryLoad(): Promise<void> {
 }
 
 .variant-section {
-  flex: 3;  /* 30% width */
+  flex: 3; /* 30% width */
   border-left: 1px solid #dee2e6;
   overflow-y: auto;
   min-width: 0;
@@ -325,7 +333,7 @@ async function retryLoad(): Promise<void> {
 .ngl-viewport {
   flex: 1;
   min-height: 0;
-  outline: none;  /* Remove focus outline on viewer */
+  outline: none; /* Remove focus outline on viewer */
 }
 
 /* NGL.Stage creates an internal wrapper div that needs explicit dimensions.
