@@ -51,6 +51,9 @@ list_backup_files <- function(backup_dir = "/backup") {
     regexp = "\\.sql(\\.gz)?$"
   )
 
+  # Filter out symlinks (e.g., latest.*.sql.gz convenience links)
+  files_info <- files_info[files_info$type != "symlink", ]
+
   # Handle empty directory
   if (nrow(files_info) == 0) {
     return(tibble::tibble(
@@ -117,6 +120,9 @@ get_backup_metadata <- function(backup_dir = "/backup") {
     backup_dir,
     regexp = "\\.sql(\\.gz)?$"
   )
+
+  # Filter out symlinks (e.g., latest.*.sql.gz convenience links)
+  files_info <- files_info[files_info$type != "symlink", ]
 
   # Handle empty directory
   if (nrow(files_info) == 0) {
@@ -212,25 +218,58 @@ execute_mysqldump <- function(db_config, output_file, progress_fn = NULL,
 
   # Step 2: Execute mysqldump
   current_step <- current_step + 1
+
   report("dumping", sprintf("Running mysqldump for database '%s'...", db_config$dbname),
          current_step, total_steps)
+
+
+  # Note: On Unix, system2 with stderr=TRUE forces stdout=TRUE internally,
+  # ignoring stdout file paths. We must capture output as character vector
+  # and write to file manually.
+  # See: https://stat.ethz.ch/R-manual/R-devel/library/base/html/system2.html
+  stderr_file <- tempfile(pattern = "mysqldump_stderr_", fileext = ".txt")
+  on.exit(unlink(stderr_file), add = TRUE)
 
   result <- system2(
     "mysqldump",
     args = args,
-    stdout = output_file,
-    stderr = TRUE
+    stdout = TRUE,  # Capture stdout as character vector
+    stderr = stderr_file  # Redirect stderr to temp file
   )
 
-  # system2 returns status code as attribute when stderr=TRUE
+  # system2 returns character vector when stdout=TRUE, status as attribute
   status <- attr(result, "status") %||% 0
 
+  # Check for errors via exit status
   if (status != 0) {
+    stderr_content <- if (file.exists(stderr_file)) {
+      paste(readLines(stderr_file, warn = FALSE), collapse = "\n")
+    } else {
+      "Unknown error"
+    }
     return(list(
       success = FALSE,
-      error = paste(result, collapse = "\n")
+      error = sprintf("mysqldump failed (exit %d): %s", status, stderr_content)
     ))
   }
+
+  # Write captured output to file
+  # result is a character vector with one element per line
+  if (length(result) == 0) {
+    return(list(
+      success = FALSE,
+      error = "mysqldump completed but produced no output"
+    ))
+  }
+
+  tryCatch({
+    writeLines(result, output_file)
+  }, error = function(e) {
+    return(list(
+      success = FALSE,
+      error = sprintf("Failed to write backup file: %s", e$message)
+    ))
+  })
 
   # Check if dump file was created and has content
   if (!file.exists(output_file)) {

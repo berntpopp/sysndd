@@ -498,3 +498,120 @@ function(req, res, filename) {
     }
   )
 }
+
+
+## -------------------------------------------------------------------##
+## Backup Delete Endpoint
+## -------------------------------------------------------------------##
+
+#* Delete a backup file
+#*
+#* Permanently removes a backup file from the backup directory.
+#* Requires typed confirmation ("DELETE") in request body to prevent accidents.
+#*
+#* # `Authorization`
+#* Requires Administrator role.
+#*
+#* # `Path Parameters`
+#* - filename: String - Name of the backup file to delete
+#*
+#* # `Request Body`
+#* JSON with:
+#* - confirm: String - Must be exactly "DELETE" to proceed
+#*
+#* # `Response`
+#* - 200 OK: File deleted successfully
+#* - 400 Bad Request: Invalid filename, missing confirmation, or wrong confirmation
+#* - 404 Not Found: Backup file does not exist
+#*
+#* @tag backup
+#* @serializer json list(na="string")
+#*
+#* @delete /delete/<filename>
+function(req, res, filename) {
+  # Require Administrator role
+  require_role(req, res, "Administrator")
+
+  # Path traversal protection: reject any path separators
+  if (grepl("[/\\\\]", filename)) {
+    res$status <- 400
+    return(list(
+      error = "INVALID_FILENAME",
+      message = "Filename contains invalid characters"
+    ))
+  }
+
+  # Validate file extension: only .sql or .sql.gz allowed
+  if (!grepl("\\.(sql|sql\\.gz)$", filename)) {
+    res$status <- 400
+    return(list(
+      error = "INVALID_FILENAME",
+      message = "Filename must end with .sql or .sql.gz"
+    ))
+  }
+
+  # Prevent deletion of symlinks (like latest.*.sql.gz)
+  if (grepl("^latest\\.", filename)) {
+    res$status <- 400
+    return(list(
+      error = "CANNOT_DELETE_SYMLINK",
+      message = "Cannot delete 'latest' symlink files"
+    ))
+  }
+
+  # Extract and validate confirmation from request body
+  confirm <- req$argsBody$confirm
+  if (is.null(confirm) || confirm != "DELETE") {
+    res$status <- 400
+    return(list(
+      error = "CONFIRMATION_REQUIRED",
+      message = "Must provide confirm: 'DELETE' in request body to delete backup"
+    ))
+  }
+
+  # Build full path and check existence
+  backup_path <- file.path("/backup", filename)
+  if (!file.exists(backup_path)) {
+    res$status <- 404
+    return(list(
+      error = "BACKUP_NOT_FOUND",
+      message = sprintf("Backup file '%s' not found", filename)
+    ))
+  }
+
+  # Get file info before deletion for response
+  file_info <- file.info(backup_path)
+  file_size <- file_info$size
+
+  # Attempt to delete the file
+  tryCatch(
+    {
+      success <- file.remove(backup_path)
+      if (!success) {
+        res$status <- 500
+        return(list(
+          error = "DELETE_FAILED",
+          message = "Failed to delete backup file"
+        ))
+      }
+
+      logger::log_info("Backup file deleted: {filename} ({file_size} bytes)")
+
+      list(
+        success = TRUE,
+        message = sprintf("Backup file '%s' deleted successfully", filename),
+        deleted_file = filename,
+        deleted_size_bytes = file_size
+      )
+    },
+    error = function(e) {
+      logger::log_error("Failed to delete backup file: {e$message}")
+      res$status <- 500
+      list(
+        error = "DELETE_FAILED",
+        message = "Failed to delete backup file",
+        details = e$message
+      )
+    }
+  )
+}
