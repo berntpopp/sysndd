@@ -22,6 +22,13 @@ services:
     image: mysql:8.0.40
     container_name: sysndd_mysql_dev
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     command:
       - --authentication-policy=caching_sha2_password
       - --character-set-server=utf8mb4
@@ -36,7 +43,7 @@ services:
     volumes:
       - mysql_dev_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER:-bernt}", "-p${MYSQL_PASSWORD:-changeme}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -46,6 +53,13 @@ services:
     image: mysql:8.0.40
     container_name: sysndd_mysql_test
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     command:
       - --authentication-policy=caching_sha2_password
       - --character-set-server=utf8mb4
@@ -60,7 +74,7 @@ services:
     volumes:
       - mysql_test_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER:-bernt}", "-p${MYSQL_PASSWORD:-changeme}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -70,6 +84,13 @@ services:
     image: axllent/mailpit:v1.28.4
     container_name: sysndd_mailpit
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
       - "127.0.0.1:8025:8025"  # Web UI
       - "127.0.0.1:1025:1025"  # SMTP (for local R development)
