@@ -34,7 +34,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-full coverage lint-api lint-app format-api format-app pre-commit docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status
+.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-full coverage lint-api lint-app format-api format-app pre-commit preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status
 
 # =============================================================================
 # Help Target (Self-documenting)
@@ -165,6 +165,54 @@ pre-commit: ## [quality] Run all quality checks before committing
 	@printf "\n$(CYAN)[3/3] Running R API tests...$(RESET)\n"
 	@$(MAKE) test-api
 	@printf "\n$(GREEN)✓ All pre-commit checks passed!$(RESET)\n"
+
+# Configuration for preflight validation
+PREFLIGHT_TIMEOUT := 120
+PREFLIGHT_HEALTH_ENDPOINT := http://localhost/health/ready
+
+preflight: check-docker ## [quality] Run production preflight validation
+	@printf "$(CYAN)==> Running production preflight validation...$(RESET)\n"
+	@printf "\n$(CYAN)[1/4] Building production API image...$(RESET)\n"
+	@docker build -t sysndd-api:preflight -f $(ROOT_DIR)/api/Dockerfile $(ROOT_DIR)/api/ || \
+		(printf "$(RED)Build failed$(RESET)\n" && exit 1)
+	@printf "$(GREEN)Build complete$(RESET)\n"
+	@printf "\n$(CYAN)[2/4] Starting production containers...$(RESET)\n"
+	@cd $(ROOT_DIR) && docker compose -f docker-compose.yml up -d || \
+		(printf "$(RED)Container startup failed$(RESET)\n" && exit 1)
+	@printf "$(GREEN)Containers started$(RESET)\n"
+	@printf "\n$(CYAN)[3/4] Waiting for health check (timeout: $(PREFLIGHT_TIMEOUT)s)...$(RESET)\n"
+	@SECONDS=0; \
+	while [ $$SECONDS -lt $(PREFLIGHT_TIMEOUT) ]; do \
+		RESPONSE=$$(curl -sf $(PREFLIGHT_HEALTH_ENDPOINT) 2>/dev/null); \
+		if [ $$? -eq 0 ]; then \
+			printf "$(GREEN)Health check passed!$(RESET)\n"; \
+			printf "Response: $$RESPONSE\n"; \
+			HEALTH_OK=1; \
+			break; \
+		fi; \
+		printf "."; \
+		sleep 2; \
+		SECONDS=$$((SECONDS+2)); \
+	done; \
+	if [ -z "$$HEALTH_OK" ]; then \
+		printf "\n$(RED)Health check timed out after $(PREFLIGHT_TIMEOUT)s$(RESET)\n"; \
+		printf "\n$(YELLOW)Last 50 lines of API logs:$(RESET)\n"; \
+		docker compose -f docker-compose.yml logs api --tail=50; \
+		printf "\n$(CYAN)[4/4] Cleanup (after failure)...$(RESET)\n"; \
+		docker compose -f docker-compose.yml down; \
+		printf "\n$(RED)PREFLIGHT FAILED$(RESET)\n"; \
+		exit 1; \
+	fi
+	@printf "\n$(CYAN)[4/4] Cleanup...$(RESET)\n"
+	@cd $(ROOT_DIR) && docker compose -f docker-compose.yml down
+	@printf "\n$(GREEN)========================================$(RESET)\n"
+	@printf "$(GREEN)       PREFLIGHT PASSED                 $(RESET)\n"
+	@printf "$(GREEN)========================================$(RESET)\n"
+	@printf "\n$(CYAN)Production Docker build validated:$(RESET)\n"
+	@printf "  - API image builds successfully\n"
+	@printf "  - Containers start without errors\n"
+	@printf "  - /health/ready returns 200\n"
+	@printf "  - Database connectivity verified\n"
 
 # =============================================================================
 # Docker Targets
