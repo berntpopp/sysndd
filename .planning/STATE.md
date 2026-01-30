@@ -19,13 +19,13 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 
 ## Current Position
 
-**Phase:** 52 - User Lifecycle E2E (In Progress)
-**Plan:** 1 of 2 complete
-**Status:** In progress
+**Phase:** 52 - User Lifecycle E2E (Complete)
+**Plan:** 2 of 2 complete
+**Status:** Phase complete
 **Progress:** ██████░░░░ 86% (6/7 phases)
 
-**Last completed:** 52-01-PLAN.md (User Registration & Approval E2E Tests)
-**Next step:** `/gsd:execute-phase 52` to run 52-02-PLAN.md (Password Reset E2E Tests)
+**Last completed:** 52-02-PLAN.md (Password Reset E2E Tests)
+**Next step:** `/gsd:execute-phase 53` to run Phase 53 (Production Docker Validation)
 
 ---
 
@@ -38,7 +38,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 | 49 | Backup API Layer | BKUP-01, BKUP-03, BKUP-05, BKUP-06 | Complete (2/2 plans) |
 | 50 | Backup Admin UI | BKUP-02, BKUP-04 | Complete (2/2 plans) |
 | 51 | SMTP Testing Infrastructure | SMTP-01, SMTP-02 | Complete (2/2 plans) |
-| 52 | User Lifecycle E2E | SMTP-03, SMTP-04, SMTP-05 | In Progress (1/2 plans) |
+| 52 | User Lifecycle E2E | SMTP-03, SMTP-04, SMTP-05 | Complete (2/2 plans) |
 | 53 | Production Docker Validation | PROD-01, PROD-02, PROD-03, PROD-04 | Not Started |
 
 **Phases:** 7 (47-53)
@@ -71,7 +71,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| **Backend Tests** | 687 + 5 E2E | 20.3% coverage, 24 integration + 53 migration + 5 E2E tests |
+| **Backend Tests** | 687 + 11 E2E | 20.3% coverage, 24 integration + 53 migration + 11 E2E tests |
 | **Frontend Tests** | 144 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
 | **Vue Composables** | 28 | 7 original + 6 admin + 10 curation + 5 gene page |
 | **Migrations** | 3 files + runner | api/functions/migration-runner.R ready |
@@ -126,59 +126,48 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 ## Session Continuity
 
 **Last session:** 2026-01-30
-**Stopped at:** Completed 52-01-PLAN.md (User Registration & Approval E2E Tests)
-**Next action:** `/gsd:execute-phase 52` to run 52-02-PLAN.md (Password Reset E2E Tests)
+**Stopped at:** Completed 52-02-PLAN.md (Password Reset E2E Tests)
+**Next action:** `/gsd:execute-phase 53` to run Phase 53 (Production Docker Validation)
 
 **Handoff notes:**
 
-1. **Phase 51 complete (SMTP Testing Infrastructure - 2/2 plans):**
-   - 51-01: Mailpit container + SMTP test endpoint (3min)
-   - 51-02: Email integration tests + Mailpit helpers (2min)
-   - Mailpit v1.28.4 running on localhost:8025 (Web UI) and localhost:1025 (SMTP)
-   - GET /api/admin/smtp/test endpoint for connection health monitoring
-   - Dev/test config profiles updated to use Mailpit (local changes only, config.yml gitignored)
+1. **Phase 52 complete (User Lifecycle E2E - 2/2 plans):**
+   - 52-01: User registration & approval E2E tests (5 tests)
+   - 52-02: Password reset E2E tests (6 tests)
+   - Total: 11 E2E tests in test-e2e-user-lifecycle.R (606 lines)
+   - All SMTP user lifecycle requirements verified
 
 2. **SMTP requirements fulfilled:**
-   - SMTP-01: Mailpit integration tests verify email delivery ✓
-   - SMTP-02: SMTP test endpoint + socket connection tests ✓
+   - SMTP-01: Mailpit integration tests verify email delivery (Phase 51)
+   - SMTP-02: SMTP test endpoint + socket connection tests (Phase 51)
+   - SMTP-03: User registration sends confirmation email (Phase 52)
+   - SMTP-04: Curator approval sends password email (Phase 52)
+   - SMTP-05: Password reset flow works end-to-end (Phase 52)
 
-3. **Complete SMTP Testing System:**
-   - Infrastructure: Mailpit container captures all outbound emails locally
-   - Testing: helper-mailpit.R with 8 functions + integration tests
-   - Monitoring: SMTP test endpoint with raw socketConnection (5s timeout)
-   - Configuration: Dev/test profiles point to 127.0.0.1:1025
-   - Security: Ports bound to 127.0.0.1 only, accepts any credentials in dev mode
+3. **Complete E2E Test Coverage:**
+   - Registration: signup email, duplicate rejection, invalid data rejection
+   - Approval: approval email with password, rejection deletes user
+   - Password reset: request email, valid token change, invalid token rejection, weak password rejection, non-existent email security, token reuse prevention
 
 4. **Test patterns established:**
-   - Mailpit helper pattern: mailpit_available() → skip_if_no_mailpit() → operation helpers
-   - Test isolation: mailpit_delete_all() before each test
-   - Async handling: mailpit_wait_for_message() with polling (default 10s timeout)
-   - Graceful skipping: Tests skip with informative message when Mailpit unavailable
+   - E2E test pattern: skip_if_no_mailpit() + skip_if_no_api() + skip_if_no_test_db()
+   - Test isolation: mailpit_delete_all() at start of each test
+   - User generation: unique timestamp + random suffix (RFC 2606 example.com)
+   - Guaranteed cleanup: withr::defer(cleanup_test_user()) before user creation
+   - Password reset: request -> email -> token extraction -> change -> auth verify
 
-5. **Key files created (Phase 51):**
-   - api/tests/testthat/helper-mailpit.R (133 lines, 8 functions)
-   - api/tests/testthat/test-integration-email.R (162 lines, 7 tests)
+5. **Key files (Phase 52):**
+   - api/tests/testthat/helper-mailpit.R (180 lines, 9 functions including extract_token_from_email)
+   - api/tests/testthat/test-e2e-user-lifecycle.R (606 lines, 11 tests)
 
-6. **Phase 52-01 complete (User Registration & Approval E2E - 1/2 plans):**
-   - Added extract_token_from_email() helper (46 lines)
-   - Created test-e2e-user-lifecycle.R (326 lines, 5 tests)
-   - SMTP-03 verified: User registration sends confirmation email
-   - SMTP-04 verified: Curator approval sends password email
-   - Tests skip gracefully when prerequisites unavailable
-
-6. **Ready for Phase 52 (User Lifecycle E2E):**
-   - Email infrastructure configured for testing
-   - Mailpit Web UI available for manual verification
-   - SMTP connection health monitoring endpoint ready
-   - Integration test helpers ready for user registration/password reset flows
-   - Foundation for user lifecycle E2E testing complete
-
-7. **Important note on config.yml:**
-   - api/config.yml is gitignored (contains production credentials)
-   - Plan expected it to be committed but it's correctly excluded
-   - Developers need to update local config.yml manually for Mailpit settings
+6. **Ready for Phase 53 (Production Docker Validation):**
+   - All SMTP testing infrastructure complete
+   - User lifecycle E2E coverage complete
+   - Migration system ready (Phase 47-48)
+   - Backup system ready (Phase 49-50)
+   - Final production validation phase remaining
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-30 — Plan 52-01 complete (User Registration & Approval E2E Tests)*
+*Last updated: 2026-01-30 — Phase 52 complete (User Lifecycle E2E Tests)*
