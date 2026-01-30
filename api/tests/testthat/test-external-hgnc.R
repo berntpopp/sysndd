@@ -295,3 +295,80 @@ test_that("symbol_from_hgnc_id_grouped handles multiple HGNC IDs", {
   expect_true(is.vector(result))
   expect_equal(length(result), 3)
 })
+
+# ============================================================================
+# HGNC Data Type Cleanup Tests (for update_process_hgnc_data)
+# ============================================================================
+# These tests verify that the data type cleanup step in update_process_hgnc_data
+# properly converts logical and Date columns to character for MySQL compatibility.
+
+test_that("logical columns are converted to character for DB compatibility", {
+  # Simulate HGNC data with logical columns (like kznf_gene_catalog, mamit-trnadb)
+  test_data <- tibble(
+    symbol = c("GENE1", "GENE2", "GENE3"),
+    kznf_gene_catalog = c(TRUE, FALSE, NA),
+    `mamit-trnadb` = c(NA, TRUE, FALSE),
+    intermediate_filament_db = c(FALSE, NA, TRUE)
+  )
+
+  # Apply the same transformation used in update_process_hgnc_data
+  result <- test_data %>%
+    mutate(across(where(is.logical), ~ as.character(.x)))
+
+  # All logical columns should now be character
+
+  expect_type(result$kznf_gene_catalog, "character")
+  expect_type(result$`mamit-trnadb`, "character")
+  expect_type(result$intermediate_filament_db, "character")
+
+  # Values should be "TRUE", "FALSE", or NA (character)
+  expect_equal(result$kznf_gene_catalog[1], "TRUE")
+  expect_equal(result$kznf_gene_catalog[2], "FALSE")
+  expect_true(is.na(result$kznf_gene_catalog[3]))
+})
+
+test_that("Date columns are converted to character for DB compatibility", {
+  # Simulate HGNC data with Date columns
+  test_data <- tibble(
+    symbol = c("GENE1", "GENE2"),
+    date_approved_reserved = as.Date(c("2020-01-15", "2021-06-30")),
+    date_modified = as.Date(c("2023-01-01", NA))
+  )
+
+  # Apply the same transformation used in update_process_hgnc_data
+  result <- test_data %>%
+    mutate(across(where(is.Date), ~ as.character(.x)))
+
+  # All Date columns should now be character
+  expect_type(result$date_approved_reserved, "character")
+  expect_type(result$date_modified, "character")
+
+  # Date format should be preserved as YYYY-MM-DD string
+  expect_equal(result$date_approved_reserved[1], "2020-01-15")
+  expect_true(is.na(result$date_modified[2]))
+})
+
+test_that("mixed data types are handled correctly", {
+  # Simulate a more realistic HGNC data structure
+  test_data <- tibble(
+    hgnc_id = c("HGNC:1", "HGNC:2"),
+    symbol = c("BRCA1", "TP53"),
+    entrez_id = c(672, 7157),
+    logical_col = c(TRUE, FALSE),
+    date_col = as.Date(c("2020-01-01", "2021-01-01")),
+    character_col = c("value1", "value2")
+  )
+
+  # Apply both transformations
+  result <- test_data %>%
+    mutate(across(where(is.logical), ~ as.character(.x))) %>%
+    mutate(across(where(is.Date), ~ as.character(.x)))
+
+  # Check types after transformation
+  expect_type(result$hgnc_id, "character")
+  expect_type(result$symbol, "character")
+  expect_type(result$entrez_id, "double")  # numeric stays numeric
+  expect_type(result$logical_col, "character")  # logical converted
+  expect_type(result$date_col, "character")  # date converted
+  expect_type(result$character_col, "character")  # char stays char
+})

@@ -374,13 +374,17 @@ function(req, res) {
         # Insert hgnc_data rows using dynamic column names
         if (nrow(hgnc_data) > 0) {
           cols <- names(hgnc_data)
+          # Quote column names with backticks for MySQL (handles special chars like hyphens)
+          quoted_cols <- paste0("`", cols, "`")
           placeholders <- paste(rep("?", length(cols)), collapse = ", ")
           sql <- sprintf(
             "INSERT INTO non_alt_loci_set (%s) VALUES (%s)",
-            paste(cols, collapse = ", "), placeholders
+            paste(quoted_cols, collapse = ", "), placeholders
           )
           for (i in seq_len(nrow(hgnc_data))) {
-            db_execute_statement(sql, as.list(hgnc_data[i, ]))
+            # Convert row to unnamed list for anonymous placeholders
+            row_values <- unname(as.list(hgnc_data[i, ]))
+            db_execute_statement(sql, row_values)
           }
         }
 

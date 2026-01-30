@@ -36,7 +36,6 @@ BEGIN
     END IF;
 END //
 
-DELIMITER ;
+CALL migrate_002_genomic_annotations() //
 
-CALL migrate_002_genomic_annotations();
-DROP PROCEDURE IF EXISTS migrate_002_genomic_annotations;
+DROP PROCEDURE IF EXISTS migrate_002_genomic_annotations //

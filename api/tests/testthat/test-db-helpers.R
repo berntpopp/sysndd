@@ -473,3 +473,124 @@ describe("db_with_transaction", {
     expect_equal(result, 3)
   })
 })
+
+# ============================================================================
+# db_execute_statement() NA handling tests
+# ============================================================================
+
+describe("db_execute_statement NA parameter handling", {
+
+  it("handles NA values in parameters without error", {
+    # The sanitized_params logic should not throw "missing value where
+    # TRUE/FALSE needed" when parameters contain NA values
+
+    mock_conn <- structure(list(), class = "MockConnection")
+    mock_result <- structure(list(), class = c("MariaDBResult", "DBIResult"))
+
+    local_mocked_bindings(
+      dbSendStatement = function(conn, sql) mock_result,
+      dbBind = function(result, params) invisible(NULL),
+      dbGetRowsAffected = function(result) 1L,
+      dbClearResult = function(result) invisible(NULL),
+      .package = "DBI"
+    )
+
+    # Test with NA character value - this was causing the original bug
+    expect_no_error(
+      db_execute_statement(
+        "INSERT INTO test (col1, col2) VALUES (?, ?)",
+        list("value1", NA_character_),
+        conn = mock_conn
+      )
+    )
+  })
+
+  it("handles mixed NA types in parameters", {
+    mock_conn <- structure(list(), class = "MockConnection")
+    mock_result <- structure(list(), class = c("MariaDBResult", "DBIResult"))
+
+    local_mocked_bindings(
+      dbSendStatement = function(conn, sql) mock_result,
+      dbBind = function(result, params) invisible(NULL),
+      dbGetRowsAffected = function(result) 1L,
+      dbClearResult = function(result) invisible(NULL),
+      .package = "DBI"
+    )
+
+    # Test with various NA types
+    expect_no_error(
+      db_execute_statement(
+        "INSERT INTO test (a, b, c, d) VALUES (?, ?, ?, ?)",
+        list(NA_character_, NA_integer_, NA_real_, NA),
+        conn = mock_conn
+      )
+    )
+  })
+
+  it("handles NULL values in parameters", {
+    mock_conn <- structure(list(), class = "MockConnection")
+    mock_result <- structure(list(), class = c("MariaDBResult", "DBIResult"))
+
+    local_mocked_bindings(
+      dbSendStatement = function(conn, sql) mock_result,
+      dbBind = function(result, params) invisible(NULL),
+      dbGetRowsAffected = function(result) 1L,
+      dbClearResult = function(result) invisible(NULL),
+      .package = "DBI"
+    )
+
+    expect_no_error(
+      db_execute_statement(
+        "INSERT INTO test (col1, col2) VALUES (?, ?)",
+        list("value1", NULL),
+        conn = mock_conn
+      )
+    )
+  })
+
+  it("handles long strings that need redaction", {
+    mock_conn <- structure(list(), class = "MockConnection")
+    mock_result <- structure(list(), class = c("MariaDBResult", "DBIResult"))
+
+    local_mocked_bindings(
+      dbSendStatement = function(conn, sql) mock_result,
+      dbBind = function(result, params) invisible(NULL),
+      dbGetRowsAffected = function(result) 1L,
+      dbClearResult = function(result) invisible(NULL),
+      .package = "DBI"
+    )
+
+    # Long string > 50 chars should be redacted in logs but not cause errors
+    long_string <- paste(rep("a", 100), collapse = "")
+    expect_no_error(
+      db_execute_statement(
+        "INSERT INTO test (col1) VALUES (?)",
+        list(long_string),
+        conn = mock_conn
+      )
+    )
+  })
+
+  it("handles combination of NA, NULL, long strings, and normal values", {
+    mock_conn <- structure(list(), class = "MockConnection")
+    mock_result <- structure(list(), class = c("MariaDBResult", "DBIResult"))
+
+    local_mocked_bindings(
+      dbSendStatement = function(conn, sql) mock_result,
+      dbBind = function(result, params) invisible(NULL),
+      dbGetRowsAffected = function(result) 1L,
+      dbClearResult = function(result) invisible(NULL),
+      .package = "DBI"
+    )
+
+    # Complex combination of parameter types
+    long_json <- paste0('{"data": "', paste(rep("x", 100), collapse = ""), '"}')
+    expect_no_error(
+      db_execute_statement(
+        "INSERT INTO test (a, b, c, d, e) VALUES (?, ?, ?, ?, ?)",
+        list("normal", NA_character_, NULL, 42, long_json),
+        conn = mock_conn
+      )
+    )
+  })
+})

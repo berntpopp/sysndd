@@ -51,7 +51,6 @@ BEGIN
     END IF;
 END //
 
-DELIMITER ;
+CALL migrate_hgnc_columns() //
 
-CALL migrate_hgnc_columns();
-DROP PROCEDURE IF EXISTS migrate_hgnc_columns;
+DROP PROCEDURE IF EXISTS migrate_hgnc_columns //

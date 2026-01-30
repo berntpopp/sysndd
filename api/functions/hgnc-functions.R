@@ -366,6 +366,17 @@ update_process_hgnc_data <- function(hgnc_link = "https://storage.googleapis.com
   message("[HGNC update] Starting AlphaFold ID enrichment...")
   non_alt_loci_set_enriched <- enrich_alphafold_ids(non_alt_loci_set_enriched)
 
-  # Return the tibble (step 9 = DB write is reported by the executor)
-  return(non_alt_loci_set_enriched)
+  ## Step 9/9: Data type cleanup for database compatibility
+  # Convert logical columns to character (HGNC has some logical columns that
+
+  # need to be stored as VARCHAR in MySQL)
+  non_alt_loci_set_final <- non_alt_loci_set_enriched %>%
+    mutate(across(where(is.logical), ~ as.character(.x)))
+
+  # Convert Date columns to character for MySQL timestamp compatibility
+  non_alt_loci_set_final <- non_alt_loci_set_final %>%
+    mutate(across(where(is.Date), ~ as.character(.x)))
+
+  # Return the tibble (DB write is reported by the executor)
+  return(non_alt_loci_set_final)
 }

@@ -168,10 +168,10 @@ db_execute_query <- function(sql, params = list(), conn = NULL) {
 db_execute_statement <- function(sql, params = list(), conn = NULL) {
   # Sanitize parameters for logging (redact long strings)
   sanitized_params <- lapply(params, function(p) {
-    if (is.character(p) && nchar(p) > 50) {
-      "[REDACTED]"
-    } else if (is.null(p)) {
+    if (is.null(p) || (length(p) == 1 && is.na(p))) {
       "NULL"
+    } else if (is.character(p) && !is.na(p) && nchar(p) > 50) {
+      "[REDACTED]"
     } else {
       as.character(p)
     }

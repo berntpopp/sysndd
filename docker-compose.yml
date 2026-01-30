@@ -140,6 +140,7 @@ services:
       - ./api/config:/app/config
       - ./api/data:/app/data
       - ./api/results:/app/results
+      - ./db/migrations:/app/db/migrations:ro
       - api_cache:/app/cache
       - mysql_backup:/backup:rw
       - ./api/config.yml:/app/config.yml
