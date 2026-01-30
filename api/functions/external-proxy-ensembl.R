@@ -16,7 +16,8 @@ require(jsonlite) # JSON parsing
 #'
 #' @return List with gene structure data or error information:
 #' \describe{
-#'   \item{Success}{list(source = "ensembl", gene_symbol, gene_id, chromosome, start, end, strand, canonical_transcript = list(...))}
+#'   \item{Success}{list(source = "ensembl", gene_symbol, gene_id, chromosome,
+#'     start, end, strand, canonical_transcript = list(...))}
 #'   \item{Gene not found}{list(found = FALSE, source = "ensembl")}
 #'   \item{Invalid symbol}{list(error = TRUE, source = "ensembl", message = "Invalid gene symbol")}
 #'   \item{Error}{list(error = TRUE, source = "ensembl", message = <details>)}

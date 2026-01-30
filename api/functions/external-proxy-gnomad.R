@@ -58,7 +58,7 @@ fetch_gnomad_constraints <- function(gene_symbol) {
   tryCatch(
     {
       # GraphQL query for gene-level constraint metrics
-      query_string <- '
+      query_string <- "
         query GeneConstraint($symbol: String!) {
           gene(gene_symbol: $symbol, reference_genome: GRCh38) {
             gene_id
@@ -86,7 +86,7 @@ fetch_gnomad_constraints <- function(gene_symbol) {
             }
           }
         }
-      '
+      "
 
       # Build GraphQL POST request with httr2
       req <- request("https://gnomad.broadinstitute.org/api") %>%
@@ -207,7 +207,7 @@ fetch_gnomad_clinvar_variants <- function(gene_symbol) {
   tryCatch(
     {
       # GraphQL query for ClinVar variants associated with gene
-      query_string <- '
+      query_string <- "
         query GeneClinvar($symbol: String!) {
           gene(gene_symbol: $symbol, reference_genome: GRCh38) {
             gene_id
@@ -226,7 +226,7 @@ fetch_gnomad_clinvar_variants <- function(gene_symbol) {
             }
           }
         }
-      '
+      "
 
       # Build GraphQL POST request with httr2
       req <- request("https://gnomad.broadinstitute.org/api") %>%

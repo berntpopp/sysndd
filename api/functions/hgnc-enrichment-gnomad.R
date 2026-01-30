@@ -7,7 +7,9 @@ require(readr)
 require(dplyr)
 
 # Bulk constraint metrics TSV from gnomAD (single-line change for version upgrades)
+# nolint start: line_length_linter
 GNOMAD_CONSTRAINT_TSV_URL <- "https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/constraint/gnomad.v4.1.constraint_metrics.tsv"
+# nolint end
 
 # Minimum expected file size in bytes (~10 MB typical; reject anything < 1 MB)
 GNOMAD_TSV_MIN_SIZE <- 1e6
@@ -95,7 +97,10 @@ enrich_gnomad_constraints <- function(hgnc_tibble, progress_fn = NULL) {
   file_size <- file.info(tmp_file)$size
   if (is.na(file_size) || file_size < GNOMAD_TSV_MIN_SIZE) {
     stop(sprintf(
-      "[gnomAD enrichment] Downloaded file too small (%s bytes, expected >%s). URL may have changed or returned an error page.",
+      paste0(
+        "[gnomAD enrichment] Downloaded file too small (%s bytes, expected >%s). ",
+        "URL may have changed or returned an error page."
+      ),
       format(file_size, big.mark = ","), format(GNOMAD_TSV_MIN_SIZE, big.mark = ",")
     ))
   }

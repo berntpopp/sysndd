@@ -98,7 +98,9 @@ function(ontology_input, input_type = "ontology_id") {
 #* @param page_size Page size in cursor pagination (default: "all")
 #* @param fspec Field specification for table columns
 #* @get variant/table
-function(req, res, filter = "", sort = "+vario_id", page_after = 0, page_size = "all", fspec = "vario_id,vario_name,definition,obsolete,is_active,sort,update_date") {
+function(req, res, filter = "", sort = "+vario_id", page_after = 0,
+         page_size = "all",
+         fspec = "vario_id,vario_name,definition,obsolete,is_active,sort,update_date") {
   require_role(req, res, "Administrator")
 
   # Start time tracking

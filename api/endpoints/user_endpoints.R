@@ -26,7 +26,9 @@
 #* @param page_size Page size in cursor pagination (default: "all")
 #* @param fspec Field specification for table columns
 #* @get table
-function(req, res, filter = "", sort = "+user_id", page_after = 0, page_size = "all", fspec = "user_id,user_name,email,user_role,approved,abbreviation,first_name,family_name,comment,created_at") {
+function(req, res, filter = "", sort = "+user_id", page_after = 0,
+         page_size = "all",
+         fspec = "user_id,user_name,email,user_role,approved,abbreviation,first_name,family_name,comment,created_at") {
   # Require Curator role or higher
   require_role(req, res, "Curator")
 

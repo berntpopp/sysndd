@@ -191,7 +191,11 @@ function(req, res) {
 
         # Insert new published version
         db_execute_statement(
-          "INSERT INTO about_content (user_id, sections_json, status, version, published_at) VALUES (?, ?, 'published', ?, NOW())",
+          paste0(
+            "INSERT INTO about_content ",
+            "(user_id, sections_json, status, version, published_at) ",
+            "VALUES (?, ?, 'published', ?, NOW())"
+          ),
           list(req$user_id, sections_json, next_version)
         )
 
