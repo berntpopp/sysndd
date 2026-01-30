@@ -177,6 +177,12 @@ log_appender(appender_file(logging_temp_file))
 ## -------------------------------------------------------------------##
 # 7) Create a global DB pool in the global environment
 ## -------------------------------------------------------------------##
+# Read pool size from environment variable with default
+# Why 5: Single-threaded R rarely needs >1-2 concurrent connections,
+# but 5 allows burst for mirai workers. Explicit sizing prevents
+# unbounded connection growth that could exhaust MySQL max_connections.
+pool_size <- as.integer(Sys.getenv("DB_POOL_SIZE", "5"))
+
 pool <<- dbPool(
   drv      = RMariaDB::MariaDB(),
   dbname   = dw$dbname,
@@ -184,8 +190,14 @@ pool <<- dbPool(
   user     = dw$user,
   password = dw$password,
   server   = dw$server,
-  port     = dw$port
+  port     = dw$port,
+  minSize  = 1,
+  maxSize  = pool_size,
+  idleTimeout = 60,
+  validationInterval = 60
 )
+
+message(sprintf("[%s] Database pool created (minSize=1, maxSize=%d)", Sys.time(), pool_size))
 
 ## -------------------------------------------------------------------##
 # 7.5) Run database migrations with lock coordination
