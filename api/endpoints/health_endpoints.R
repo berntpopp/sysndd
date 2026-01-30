@@ -23,74 +23,100 @@ function(req, res) {
 #* Readiness check for Kubernetes probes
 #*
 #* Returns HTTP 200 when ready to serve traffic, HTTP 503 when not ready.
-#* Reports pending migration count for monitoring and diagnostics.
+#* Checks database connectivity and migration status for comprehensive readiness.
 #*
 #* # `Response Codes`
-#* - 200: API ready to serve traffic (migrations current)
-#* - 503: API not ready (migrations pending or not yet run)
+#* - 200: API ready to serve traffic (database connected, migrations current)
+#* - 503: API not ready (database unavailable or migrations pending)
 #*
 #* # `Details`
-#* This endpoint checks if database migrations have been applied. The
-#* migration_status global variable is set during API startup by the
-#* migration runner. If migrations haven't run yet (startup in progress)
-#* or if migrations are pending, returns HTTP 503 to signal not ready.
+#* This endpoint performs three checks:
+#* 1. Database connectivity: Executes SELECT 1 to verify connection
+#* 2. Migration status: Verifies no pending migrations
+#* 3. Pool statistics: Reports active/idle connections
 #*
-#* Use this endpoint for Kubernetes readiness probes to ensure traffic
-#* is only routed to containers with current database schema.
+#* Use this endpoint for Kubernetes readiness probes and load balancer health checks.
 #*
 #* @tag health
 #* @serializer json
 #*
-#* @response 200 OK. API ready to serve traffic.
-#* @response 503 Service Unavailable. Migrations pending or not yet run.
+#* @response 200 OK. API ready to serve traffic with database connected.
+#* @response 503 Service Unavailable. Database unavailable or migrations pending.
 #*
 #* @get /ready
 function(req, res) {
-  # Check if migrations have run (variable set during API startup)
-  if (!exists("migration_status", where = .GlobalEnv)) {
-    res$status <- 503L
-    return(list(
-      status = "not_ready",
-      reason = "migrations_not_run",
-      pending_migrations = NA,
-      timestamp = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-    ))
+  timestamp <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+
+  # Check database connectivity with simple ping query
+  db_ok <- tryCatch({
+    result <- db_execute_query("SELECT 1 AS ok")
+    !is.null(result) && nrow(result) == 1 && result$ok[1] == 1
+  }, error = function(e) {
+    log_warn("Health check database ping failed: {e$message}")
+    FALSE
+  })
+
+  # Check migration status (variable set during API startup)
+  migrations_ok <- FALSE
+  migration_info <- list(pending = NA, applied = NA)
+
+  if (exists("migration_status", where = .GlobalEnv) &&
+      !is.null(.GlobalEnv$migration_status)) {
+    status <- .GlobalEnv$migration_status
+    pending <- status$pending_migrations
+    migrations_ok <- !is.null(pending) && pending == 0
+    migration_info <- list(
+      pending = if (is.null(pending)) NA else pending,
+      applied = if (is.null(status$total_migrations)) NA else status$total_migrations
+    )
   }
 
-  # Get migration status from global
-  status <- .GlobalEnv$migration_status
+  # Get pool statistics
+  pool_stats <- tryCatch({
+    # pool package stores counters internally
+    # Use pool's internal state to get connection counts
+    checkout_count <- pool$counters$free + pool$counters$taken
+    list(
+      max_size = as.integer(Sys.getenv("DB_POOL_SIZE", "5")),
+      active = pool$counters$taken,
+      idle = pool$counters$free,
+      total = checkout_count
+    )
+  }, error = function(e) {
+    list(
+      max_size = as.integer(Sys.getenv("DB_POOL_SIZE", "5")),
+      error = "Unable to read pool statistics"
+    )
+  })
 
-  # Check if status is NULL
-  if (is.null(status)) {
+  # Determine overall health
+  if (db_ok && migrations_ok) {
+    list(
+      status = "healthy",
+      database = "connected",
+      migrations = migration_info,
+      pool = pool_stats,
+      timestamp = timestamp
+    )
+  } else {
     res$status <- 503L
-    return(list(
-      status = "not_ready",
-      reason = "migrations_not_run",
-      pending_migrations = NA,
-      timestamp = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-    ))
+
+    # Determine reason for unhealthy status
+    reason <- if (!db_ok) {
+      "database_unavailable"
+    } else {
+      "migrations_pending"
+    }
+
+    list(
+      status = "unhealthy",
+      reason = reason,
+      database = if (db_ok) "connected" else "disconnected",
+      migrations = migration_info,
+      pool = pool_stats,
+      timestamp = timestamp
+    )
   }
-
-  pending <- status$pending_migrations
-
-  # If there are pending migrations, not ready
-  if (!is.null(pending) && pending > 0) {
-    res$status <- 503L
-    return(list(
-      status = "not_ready",
-      reason = "migrations_pending",
-      pending_migrations = pending,
-      timestamp = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-    ))
-  }
-
-  # Ready to serve
-  list(
-    status = "ready",
-    pending_migrations = 0,
-    total_migrations = status$total_migrations,
-    timestamp = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-  )
 }
 
 #* Performance Metrics
