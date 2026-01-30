@@ -197,8 +197,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 54-01-PLAN.md — Pin nginx image, configure static asset caching, enable access logging and brotli
-- [ ] 54-02-PLAN.md — Add security_opt, CPU limits, and log rotation to all Docker services
+- [x] 54-01-PLAN.md — Pin nginx image, configure static asset caching, enable access logging and brotli
+- [x] 54-02-PLAN.md — Add security_opt, CPU limits, and log rotation to all Docker services
 
 **Requirements:**
 - DOCKER-01: Nginx image pinned to specific version (not `latest`)
@@ -233,7 +233,7 @@ Plans:
 | 51 | SMTP Testing Infrastructure | SMTP-01, SMTP-02 | Complete |
 | 52 | User Lifecycle E2E | SMTP-03, SMTP-04, SMTP-05 | Complete |
 | 53 | Production Docker Validation | PROD-01, PROD-02, PROD-03, PROD-04 | Complete |
-| 54 | Docker Infrastructure Hardening | DOCKER-01 to DOCKER-08 | Planned |
+| 54 | Docker Infrastructure Hardening | DOCKER-01 to DOCKER-08 | Complete |
 
 **Coverage:** 29/29 requirements mapped (100%)
 
@@ -267,4 +267,4 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 ---
 
 *Roadmap created: 2026-01-29*
-*Last updated: 2026-01-30 — Phase 53 complete (2/2 plans)*
+*Last updated: 2026-01-30 — Phase 54 complete (2/2 plans) — MILESTONE COMPLETE*
