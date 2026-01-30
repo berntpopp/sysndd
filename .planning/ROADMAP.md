@@ -2,8 +2,8 @@
 
 **Created:** 2026-01-29
 **Milestone:** v9.0 Production Readiness
-**Phases:** 47-53 (7 phases)
-**Requirements:** 21 mapped
+**Phases:** 47-54 (8 phases)
+**Requirements:** 29 mapped
 
 ---
 
@@ -168,6 +168,12 @@ Plans:
 
 **Dependencies:** Phases 47-52 (all features complete for integration testing)
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 53-01-PLAN.md — Configure explicit pool sizing and enhance /health/ready with database connectivity check
+- [ ] 53-02-PLAN.md — Add Makefile preflight target and health endpoint integration tests
+
 **Requirements:**
 - PROD-01: Production Docker build with 4 API workers validated
 - PROD-02: Connection pool sized correctly for multi-worker setup
@@ -182,6 +188,39 @@ Plans:
 
 ---
 
+## Phase 54: Docker Infrastructure Hardening
+
+**Goal:** Harden Docker infrastructure with security and performance improvements from review
+
+**Dependencies:** Phase 53 (production validation complete)
+
+**Plans:** TBD
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 54 to break down)
+
+**Requirements:**
+- DOCKER-01: Nginx image pinned to specific version (not `latest`)
+- DOCKER-02: Static asset caching configured with proper Cache-Control headers
+- DOCKER-03: Access logging enabled with buffered writes
+- DOCKER-04: security_opt no-new-privileges on all services
+- DOCKER-05: CPU resource limits configured on all services
+- DOCKER-06: Log rotation configured on all services
+- DOCKER-07: Brotli compression enabled in nginx
+- DOCKER-08: Graceful shutdown handler in API
+
+**Success Criteria:**
+1. App Dockerfile uses pinned nginx image version (v1.27.4)
+2. Static assets (js, css, fonts) served with 1-year cache headers
+3. nginx access logs written to /var/log/nginx/access.log with buffering
+4. All services have `security_opt: no-new-privileges:true`
+5. All services have `deploy.resources.limits.cpus` configured
+6. All services have log rotation with max-size and max-file
+7. Brotli compression returns .br encoded responses for supported content
+8. API handles SIGTERM gracefully, closes pool, exits cleanly
+
+---
+
 ## Progress
 
 | Phase | Name | Requirements | Status |
@@ -193,8 +232,9 @@ Plans:
 | 51 | SMTP Testing Infrastructure | SMTP-01, SMTP-02 | Complete |
 | 52 | User Lifecycle E2E | SMTP-03, SMTP-04, SMTP-05 | Complete |
 | 53 | Production Docker Validation | PROD-01, PROD-02, PROD-03, PROD-04 | Not Started |
+| 54 | Docker Infrastructure Hardening | DOCKER-01 to DOCKER-08 | Not Started |
 
-**Coverage:** 21/21 requirements mapped (100%)
+**Coverage:** 29/29 requirements mapped (100%)
 
 ---
 
@@ -218,9 +258,12 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
                 |
                 v
         Phase 53 (Production Docker Validation)
+                |
+                v
+        Phase 54 (Docker Infrastructure Hardening)
 ```
 
 ---
 
 *Roadmap created: 2026-01-29*
-*Last updated: 2026-01-30 — Phase 52 complete (User Lifecycle E2E, 2/2 plans)*
+*Last updated: 2026-01-30 — Phase 53 planned (2 plans)*
