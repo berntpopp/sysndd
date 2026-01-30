@@ -30,7 +30,8 @@ RUN npm run build:vite -- --mode ${VUE_MODE}
 # Stage 2: Production nginx server (using pre-built brotli image)
 # fholzer/nginx-brotli has brotli pre-compiled - no 5 min compilation!
 # Source: https://hub.docker.com/r/fholzer/nginx-brotli
-FROM fholzer/nginx-brotli:latest AS production
+# Pin to specific version for reproducible builds and supply chain security
+FROM fholzer/nginx-brotli:v1.27.4 AS production
 
 # Configure for non-root operation (similar to nginx-unprivileged)
 # Create nginx user if not exists and set permissions
