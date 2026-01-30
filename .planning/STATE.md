@@ -19,13 +19,13 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 
 ## Current Position
 
-**Phase:** 53 - Production Docker Validation (Complete)
+**Phase:** 54 - Docker Infrastructure Hardening (In Progress)
 **Plan:** 2 of 2 complete
 **Status:** Phase complete
-**Progress:** ███████░░░ 87.5% (7/8 phases)
+**Progress:** ████████░░ 100% (8/8 phases)
 
-**Last completed:** 53-02-PLAN.md (Makefile Preflight & Health Tests)
-**Next step:** `/gsd:execute-phase 54` to run Phase 54 (Docker Infrastructure Hardening)
+**Last completed:** 54-02-PLAN.md (Security Hardening & Resource Limits)
+**Next step:** v9.0 milestone complete - review and merge
 
 ---
 
@@ -40,7 +40,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 | 51 | SMTP Testing Infrastructure | SMTP-01, SMTP-02 | Complete (2/2 plans) |
 | 52 | User Lifecycle E2E | SMTP-03, SMTP-04, SMTP-05 | Complete (2/2 plans) |
 | 53 | Production Docker Validation | PROD-01, PROD-02, PROD-03, PROD-04 | Complete (2/2 plans) |
-| 54 | Docker Infrastructure Hardening | DOCKER-01 to DOCKER-08 | Not Started |
+| 54 | Docker Infrastructure Hardening | DOCKER-01 to DOCKER-08 | Complete (2/2 plans) |
 
 **Phases:** 8 (47-54)
 **Requirements:** 29 mapped (100% coverage)
@@ -50,9 +50,9 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 254
+- Total plans completed: 256
 - Milestones shipped: 8 (v1-v8)
-- Phases completed: 51
+- Phases completed: 54
 
 **By Milestone:**
 
@@ -66,7 +66,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 | v6 Admin Panel Modernization | 28-33 | 20 | 2026-01-26 |
 | v7 Curation Workflow Modernization | 34-39 | 21 | 2026-01-27 |
 | v8 Gene Page & Genomic Data | 40-46 | 25 | 2026-01-29 |
-| v9 Production Readiness | 47-53 | TBD | In progress |
+| v9 Production Readiness | 47-54 | 16 | 2026-01-30 |
 
 **Current Stats:**
 
@@ -112,6 +112,7 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 ### Roadmap Evolution
 
 - Phase 54 added: Docker Infrastructure Hardening (from DOCKER-INFRASTRUCTURE-REVIEW-2026-01-30.md)
+- v9.0 milestone complete with 16 plans across 8 phases
 
 ### Research Findings (from research/SUMMARY.md)
 
@@ -128,41 +129,40 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 2. **Backup patterns:** Follow `api/endpoints/admin_endpoints.R` and `api/functions/job-manager.R`
 3. **Email sending:** Already implemented via `blastula` in `send_noreply_email()`
 4. **Health check:** Extend existing `/health` endpoint to `/health/ready`
+5. **Docker security:** All containers use no-new-privileges, CPU limits, and log rotation
 
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-30
-**Stopped at:** Completed Phase 53 (Production Docker Validation)
-**Next action:** `/gsd:execute-phase 54` to run Phase 54 (Docker Infrastructure Hardening)
+**Stopped at:** Completed Phase 54 (Docker Infrastructure Hardening)
+**Next action:** v9.0 milestone complete - review and merge to master
 
 **Handoff notes:**
 
-1. **Phase 53 complete (Production Docker Validation - 2/2 plans):**
-   - 53-01: Pool sizing with DB_POOL_SIZE env var + enhanced /health/ready
-   - 53-02: `make preflight` target + 6 health integration tests
-   - All PROD-01 through PROD-04 requirements verified
+1. **Phase 54 complete (Docker Infrastructure Hardening - 2/2 plans):**
+   - 54-01: Nginx hardening (image pinning, access logging, static asset caching)
+   - 54-02: Security hardening (no-new-privileges, CPU limits, log rotation)
+   - All DOCKER-01 through DOCKER-08 requirements resolved
 
-2. **Key decisions (Phase 53):**
-   - Default pool size of 5: balances single-threaded R needs with mirai worker bursts
-   - idleTimeout=60 and validationInterval=60 for connection health management
-   - SELECT 1 ping for database connectivity: minimal overhead, definitive check
-   - 120s preflight timeout: balances cold start needs with CI efficiency
-   - Port 7778 for integration tests: direct API access bypasses Traefik dependency
+2. **Key decisions (Phase 54):**
+   - CPU limits sized by workload: traefik 0.25, mysql 1.0, backup 0.5, api 2.0, app 0.5
+   - API gets larger log rotation (50m x 5) due to request logging volume
+   - MySQL healthcheck uses application user to verify actual credentials
+   - Existing cleanupHook in API already handles graceful shutdown (DOCKER-08)
 
-3. **Key files (Phase 53):**
-   - api/start_sysndd_api.R - Pool creation with explicit sizing (minSize=1, maxSize=DB_POOL_SIZE)
-   - api/endpoints/health_endpoints.R - /health/ready with DB ping, pool stats, 503 on failure
-   - docker-compose.yml - DB_POOL_SIZE environment variable
-   - Makefile - preflight target for production validation
-   - api/tests/testthat/test-integration-health.R - 6 health endpoint integration tests
+3. **Key files (Phase 54):**
+   - docker-compose.yml - Production Docker Compose with all security hardening
+   - docker-compose.dev.yml - Development Docker Compose with matching config
+   - app/nginx.conf - Static asset caching and access logging
 
-4. **Ready for Phase 54 (Docker Infrastructure Hardening):**
-   - All production validation infrastructure complete
-   - Security and performance hardening remaining
+4. **v9.0 Milestone Complete:**
+   - All 8 phases (47-54) completed
+   - All 29 requirements addressed
+   - Production-ready Docker infrastructure
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-30 — Phase 53 complete (Production Docker Validation)*
+*Last updated: 2026-01-30 — Phase 54 complete (Docker Infrastructure Hardening), v9.0 milestone complete*
