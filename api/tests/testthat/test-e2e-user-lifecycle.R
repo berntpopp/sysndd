@@ -324,3 +324,283 @@ test_that("curator rejection deletes user without email", {
   count <- mailpit_message_count()
   expect_equal(count, 0)
 })
+
+
+# =============================================================================
+# Password Reset Tests (SMTP-05)
+# =============================================================================
+
+test_that("password reset request sends email with reset link", {
+  skip_if_no_mailpit()
+  skip_if_no_api()
+  skip_if_no_test_db()
+
+  mailpit_delete_all()
+  test_user <- generate_test_user("reset")
+  withr::defer(cleanup_test_user(test_user$email))
+
+  # Create and approve test user first
+  signup_json <- jsonlite::toJSON(test_user, auto_unbox = TRUE)
+
+  httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
+    httr2::req_url_query(signup_data = signup_json) |>
+    httr2::req_perform()
+
+  mailpit_wait_for_message(test_user$email, timeout_seconds = 5)
+
+  user <- get_user_by_email(test_user$email)
+  admin_token <- get_admin_token()
+
+  httr2::request(paste0(get_api_base_url(), "/api/user/approval")) |>
+    httr2::req_method("PUT") |>
+    httr2::req_url_query(user_id = user$user_id, status_approval = "TRUE") |>
+    httr2::req_headers(Authorization = paste("Bearer", admin_token)) |>
+    httr2::req_perform()
+
+  mailpit_wait_for_message(test_user$email, timeout_seconds = 5)
+
+  # Clear inbox before password reset request
+  mailpit_delete_all()
+
+  # Request password reset
+  resp <- httr2::request(paste0(get_api_base_url(), "/api/user/password/reset/request")) |>
+    httr2::req_method("PUT") |>
+    httr2::req_url_query(email_request = test_user$email) |>
+    httr2::req_error(is_error = function(resp) FALSE) |>
+    httr2::req_perform()
+
+  # Should return 200 (always returns 200 for security - doesn't reveal if email exists)
+  expect_equal(httr2::resp_status(resp), 200)
+
+  # Wait for password reset email
+  message <- mailpit_wait_for_message(test_user$email, timeout_seconds = 10)
+
+  expect_true(!is.null(message))
+  expect_match(message$Subject, "password reset", ignore.case = TRUE)
+
+  # Verify email contains reset URL with token
+  full_message <- mailpit_get_message(message$ID)
+  expect_match(full_message$Text %||% full_message$HTML, "PasswordReset", ignore.case = FALSE)
+})
+
+
+test_that("password reset with valid token changes password", {
+  skip_if_no_mailpit()
+  skip_if_no_api()
+  skip_if_no_test_db()
+
+  mailpit_delete_all()
+  test_user <- generate_test_user("pwchange")
+  withr::defer(cleanup_test_user(test_user$email))
+
+  # Create and approve test user
+  signup_json <- jsonlite::toJSON(test_user, auto_unbox = TRUE)
+
+  httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
+    httr2::req_url_query(signup_data = signup_json) |>
+    httr2::req_perform()
+
+  mailpit_wait_for_message(test_user$email, timeout_seconds = 5)
+
+  user <- get_user_by_email(test_user$email)
+  admin_token <- get_admin_token()
+
+  httr2::request(paste0(get_api_base_url(), "/api/user/approval")) |>
+    httr2::req_method("PUT") |>
+    httr2::req_url_query(user_id = user$user_id, status_approval = "TRUE") |>
+    httr2::req_headers(Authorization = paste("Bearer", admin_token)) |>
+    httr2::req_perform()
+
+  mailpit_wait_for_message(test_user$email, timeout_seconds = 5)
+  mailpit_delete_all()
+
+  # Request password reset
+  httr2::request(paste0(get_api_base_url(), "/api/user/password/reset/request")) |>
+    httr2::req_method("PUT") |>
+    httr2::req_url_query(email_request = test_user$email) |>
+    httr2::req_perform()
+
+  # Wait for and extract token from reset email
+  message <- mailpit_wait_for_message(test_user$email, timeout_seconds = 10)
+  reset_token <- extract_token_from_email(message$ID)
+
+  expect_true(nchar(reset_token) > 0)
+
+  # Use token to change password (endpoint uses GET method)
+  # Password requirements: >7 chars, lowercase, uppercase, digit, special char
+  new_password <- "NewTest1!"
+
+  resp <- httr2::request(paste0(get_api_base_url(), "/api/user/password/reset/change")) |>
+    httr2::req_headers(Authorization = paste("Bearer", reset_token)) |>
+    httr2::req_url_query(new_pass_1 = new_password, new_pass_2 = new_password) |>
+    httr2::req_error(is_error = function(resp) FALSE) |>
+    httr2::req_perform()
+
+  # Should return 201 on success
+  expect_equal(httr2::resp_status(resp), 201)
+
+  # Verify can authenticate with new password
+  auth_resp <- httr2::request(paste0(get_api_base_url(), "/api/authentication/authenticate")) |>
+    httr2::req_url_query(user_name = test_user$user_name, password = new_password) |>
+    httr2::req_error(is_error = function(resp) FALSE) |>
+    httr2::req_perform()
+
+  expect_equal(httr2::resp_status(auth_resp), 200)
+})
+
+
+test_that("password reset with invalid token is rejected", {
+  skip_if_no_api()
+
+  # Use a made-up invalid JWT
+  invalid_token <- "invalid.token.here"
+  new_password <- "NewTest1!"
+
+  resp <- httr2::request(paste0(get_api_base_url(), "/api/user/password/reset/change")) |>
+    httr2::req_headers(Authorization = paste("Bearer", invalid_token)) |>
+    httr2::req_url_query(new_pass_1 = new_password, new_pass_2 = new_password) |>
+    httr2::req_error(is_error = function(resp) FALSE) |>
+    httr2::req_perform()
+
+  # Should return 401 (Unauthorized) or 409 (Conflict) per endpoint code
+  expect_true(httr2::resp_status(resp) %in% c(401, 409, 500))
+})
+
+
+test_that("password reset with weak password is rejected", {
+  skip_if_no_mailpit()
+  skip_if_no_api()
+  skip_if_no_test_db()
+
+  mailpit_delete_all()
+  test_user <- generate_test_user("weakpw")
+  withr::defer(cleanup_test_user(test_user$email))
+
+  # Create and approve user, request reset
+  signup_json <- jsonlite::toJSON(test_user, auto_unbox = TRUE)
+
+  httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
+    httr2::req_url_query(signup_data = signup_json) |>
+    httr2::req_perform()
+
+  mailpit_wait_for_message(test_user$email, timeout_seconds = 5)
+
+  user <- get_user_by_email(test_user$email)
+  admin_token <- get_admin_token()
+
+  httr2::request(paste0(get_api_base_url(), "/api/user/approval")) |>
+    httr2::req_method("PUT") |>
+    httr2::req_url_query(user_id = user$user_id, status_approval = "TRUE") |>
+    httr2::req_headers(Authorization = paste("Bearer", admin_token)) |>
+    httr2::req_perform()
+
+  mailpit_wait_for_message(test_user$email, timeout_seconds = 5)
+  mailpit_delete_all()
+
+  httr2::request(paste0(get_api_base_url(), "/api/user/password/reset/request")) |>
+    httr2::req_method("PUT") |>
+    httr2::req_url_query(email_request = test_user$email) |>
+    httr2::req_perform()
+
+  message <- mailpit_wait_for_message(test_user$email, timeout_seconds = 10)
+  reset_token <- extract_token_from_email(message$ID)
+
+  # Try with weak password (missing special char)
+  weak_password <- "Weak1234"
+
+  resp <- httr2::request(paste0(get_api_base_url(), "/api/user/password/reset/change")) |>
+    httr2::req_headers(Authorization = paste("Bearer", reset_token)) |>
+    httr2::req_url_query(new_pass_1 = weak_password, new_pass_2 = weak_password) |>
+    httr2::req_error(is_error = function(resp) FALSE) |>
+    httr2::req_perform()
+
+  # Should return 409 (password validation failed)
+  expect_equal(httr2::resp_status(resp), 409)
+})
+
+
+test_that("password reset for non-existent email silently succeeds", {
+  skip_if_no_mailpit()
+  skip_if_no_api()
+
+  mailpit_delete_all()
+
+  # Request reset for non-existent email
+  resp <- httr2::request(paste0(get_api_base_url(), "/api/user/password/reset/request")) |>
+    httr2::req_method("PUT") |>
+    httr2::req_url_query(email_request = "nonexistent-e2e-test@example.com") |>
+    httr2::req_error(is_error = function(resp) FALSE) |>
+    httr2::req_perform()
+
+  # Should return 200 (security: don't reveal if email exists)
+  expect_equal(httr2::resp_status(resp), 200)
+
+  # No email should be sent
+  Sys.sleep(2)
+  count <- mailpit_message_count()
+  expect_equal(count, 0)
+})
+
+
+test_that("password reset token cannot be reused", {
+  skip_if_no_mailpit()
+  skip_if_no_api()
+  skip_if_no_test_db()
+
+  mailpit_delete_all()
+  test_user <- generate_test_user("reuse")
+  withr::defer(cleanup_test_user(test_user$email))
+
+  # Create and approve user
+  signup_json <- jsonlite::toJSON(test_user, auto_unbox = TRUE)
+
+  httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
+    httr2::req_url_query(signup_data = signup_json) |>
+    httr2::req_perform()
+
+  mailpit_wait_for_message(test_user$email, timeout_seconds = 5)
+
+  user <- get_user_by_email(test_user$email)
+  admin_token <- get_admin_token()
+
+  httr2::request(paste0(get_api_base_url(), "/api/user/approval")) |>
+    httr2::req_method("PUT") |>
+    httr2::req_url_query(user_id = user$user_id, status_approval = "TRUE") |>
+    httr2::req_headers(Authorization = paste("Bearer", admin_token)) |>
+    httr2::req_perform()
+
+  mailpit_wait_for_message(test_user$email, timeout_seconds = 5)
+  mailpit_delete_all()
+
+  # Request password reset
+  httr2::request(paste0(get_api_base_url(), "/api/user/password/reset/request")) |>
+    httr2::req_method("PUT") |>
+    httr2::req_url_query(email_request = test_user$email) |>
+    httr2::req_perform()
+
+  message <- mailpit_wait_for_message(test_user$email, timeout_seconds = 10)
+  reset_token <- extract_token_from_email(message$ID)
+
+  # First use should succeed
+  first_password <- "FirstPw1!"
+
+  resp1 <- httr2::request(paste0(get_api_base_url(), "/api/user/password/reset/change")) |>
+    httr2::req_headers(Authorization = paste("Bearer", reset_token)) |>
+    httr2::req_url_query(new_pass_1 = first_password, new_pass_2 = first_password) |>
+    httr2::req_error(is_error = function(resp) FALSE) |>
+    httr2::req_perform()
+
+  expect_equal(httr2::resp_status(resp1), 201)
+
+  # Second use with same token should fail
+  second_password <- "SecondPw2!"
+
+  resp2 <- httr2::request(paste0(get_api_base_url(), "/api/user/password/reset/change")) |>
+    httr2::req_headers(Authorization = paste("Bearer", reset_token)) |>
+    httr2::req_url_query(new_pass_1 = second_password, new_pass_2 = second_password) |>
+    httr2::req_error(is_error = function(resp) FALSE) |>
+    httr2::req_perform()
+
+  # Should fail - token invalidated after first use
+  expect_true(httr2::resp_status(resp2) %in% c(401, 409))
+})
