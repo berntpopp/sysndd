@@ -143,6 +143,12 @@ Plans:
 
 **Dependencies:** Phase 51 (Mailpit must capture emails)
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 52-01-PLAN.md — Add token extraction helper and registration/approval E2E tests
+- [ ] 52-02-PLAN.md — Add password reset E2E tests with failure scenarios
+
 **Requirements:**
 - SMTP-03: User registration flow works end-to-end with email capture
 - SMTP-04: Email confirmation flow works end-to-end
@@ -185,7 +191,7 @@ Plans:
 | 49 | Backup API Layer | BKUP-01, BKUP-03, BKUP-05, BKUP-06 | Complete |
 | 50 | Backup Admin UI | BKUP-02, BKUP-04 | Complete |
 | 51 | SMTP Testing Infrastructure | SMTP-01, SMTP-02 | Complete |
-| 52 | User Lifecycle E2E | SMTP-03, SMTP-04, SMTP-05 | Not Started |
+| 52 | User Lifecycle E2E | SMTP-03, SMTP-04, SMTP-05 | Planned |
 | 53 | Production Docker Validation | PROD-01, PROD-02, PROD-03, PROD-04 | Not Started |
 
 **Coverage:** 21/21 requirements mapped (100%)
@@ -217,4 +223,4 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 ---
 
 *Roadmap created: 2026-01-29*
-*Last updated: 2026-01-30 — Phase 51 complete (SMTP Testing Infrastructure)*
+*Last updated: 2026-01-30 — Phase 52 planned (User Lifecycle E2E, 2 plans)*
