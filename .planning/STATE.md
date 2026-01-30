@@ -20,12 +20,12 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 ## Current Position
 
 **Phase:** 53 - Production Docker Validation (In Progress)
-**Plan:** 1 of 4 complete
+**Plan:** 2 of 4 complete
 **Status:** In progress
-**Progress:** ██████░░░░ 78% (6.25/8 phases)
+**Progress:** ██████░░░░ 81% (6.5/8 phases)
 
-**Last completed:** 53-01-PLAN.md (Connection Pool Sizing and Health Endpoint Enhancement)
-**Next step:** Continue with 53-02-PLAN.md
+**Last completed:** 53-02-PLAN.md (Preflight Validation & Health Integration Tests)
+**Next step:** Continue with 53-03-PLAN.md
 
 ---
 
@@ -39,7 +39,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 | 50 | Backup Admin UI | BKUP-02, BKUP-04 | Complete (2/2 plans) |
 | 51 | SMTP Testing Infrastructure | SMTP-01, SMTP-02 | Complete (2/2 plans) |
 | 52 | User Lifecycle E2E | SMTP-03, SMTP-04, SMTP-05 | Complete (2/2 plans) |
-| 53 | Production Docker Validation | PROD-01, PROD-02, PROD-03, PROD-04 | In Progress (1/4 plans) |
+| 53 | Production Docker Validation | PROD-01, PROD-02, PROD-03, PROD-04 | In Progress (2/4 plans) |
 | 54 | Docker Infrastructure Hardening | DOCKER-01 to DOCKER-08 | Not Started |
 
 **Phases:** 8 (47-54)
@@ -134,33 +134,36 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 ## Session Continuity
 
 **Last session:** 2026-01-30
-**Stopped at:** Completed 53-01-PLAN.md (Connection Pool Sizing and Health Endpoint Enhancement)
-**Next action:** Continue with 53-02-PLAN.md
+**Stopped at:** Completed 53-02-PLAN.md (Preflight Validation & Health Integration Tests)
+**Next action:** Continue with 53-03-PLAN.md
 
 **Handoff notes:**
 
-1. **Phase 53 progress (Production Docker Validation - 1/4 plans):**
+1. **Phase 53 progress (Production Docker Validation - 2/4 plans):**
    - 53-01: Connection pool sizing and health endpoint enhancement (complete)
-   - DB pool now uses explicit maxSize from DB_POOL_SIZE env var (default 5)
-   - /health/ready verifies database connectivity via SELECT 1 ping
-   - Health endpoint returns pool statistics and 503 with reason when unhealthy
+   - 53-02: Preflight validation target and health integration tests (complete)
+   - `make preflight` builds prod image, validates health, cleans up
+   - Integration tests verify /health and /health/ready response format
 
-2. **Key decisions (53-01):**
+2. **Key decisions (53-01 and 53-02):**
    - Default pool size of 5: balances single-threaded R needs with mirai worker bursts
    - idleTimeout=60 and validationInterval=60 for connection health management
    - SELECT 1 ping for database connectivity: minimal overhead, definitive check
+   - 120s preflight timeout: balances cold start needs with CI efficiency
+   - Port 7778 for integration tests: direct API access bypasses Traefik dependency
 
-3. **Key files (53-01):**
+3. **Key files (53-01 and 53-02):**
    - api/start_sysndd_api.R - Pool creation with explicit sizing
    - api/endpoints/health_endpoints.R - Enhanced /health/ready endpoint
    - docker-compose.yml - DB_POOL_SIZE environment variable
+   - Makefile - preflight target for production validation
+   - api/tests/testthat/test-integration-health.R - Health endpoint integration tests
 
 4. **Remaining plans in Phase 53:**
-   - 53-02: API restart behavior and graceful shutdown
    - 53-03: TBD
    - 53-04: TBD
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-30 — Completed 53-01 (Connection Pool Sizing and Health Endpoint Enhancement)*
+*Last updated: 2026-01-30 — Completed 53-02 (Preflight Validation & Health Integration Tests)*
