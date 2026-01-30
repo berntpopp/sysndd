@@ -1,6 +1,6 @@
 # Project State: SysNDD
 
-**Last updated:** 2026-01-29
+**Last updated:** 2026-01-30
 **Current milestone:** v9.0 Production Readiness
 
 ---
@@ -19,13 +19,13 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 
 ## Current Position
 
-**Phase:** 51 - SMTP Testing Infrastructure (Complete)
-**Plan:** 2 of 2 complete
-**Status:** Phase complete
+**Phase:** 52 - User Lifecycle E2E (In Progress)
+**Plan:** 1 of 2 complete
+**Status:** In progress
 **Progress:** ██████░░░░ 86% (6/7 phases)
 
-**Last completed:** 51-02-PLAN.md (Email Integration Tests)
-**Next step:** `/gsd:discuss-phase 52` to plan User Lifecycle E2E
+**Last completed:** 52-01-PLAN.md (User Registration & Approval E2E Tests)
+**Next step:** `/gsd:execute-phase 52` to run 52-02-PLAN.md (Password Reset E2E Tests)
 
 ---
 
@@ -38,7 +38,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 | 49 | Backup API Layer | BKUP-01, BKUP-03, BKUP-05, BKUP-06 | Complete (2/2 plans) |
 | 50 | Backup Admin UI | BKUP-02, BKUP-04 | Complete (2/2 plans) |
 | 51 | SMTP Testing Infrastructure | SMTP-01, SMTP-02 | Complete (2/2 plans) |
-| 52 | User Lifecycle E2E | SMTP-03, SMTP-04, SMTP-05 | Not Started |
+| 52 | User Lifecycle E2E | SMTP-03, SMTP-04, SMTP-05 | In Progress (1/2 plans) |
 | 53 | Production Docker Validation | PROD-01, PROD-02, PROD-03, PROD-04 | Not Started |
 
 **Phases:** 7 (47-53)
@@ -49,7 +49,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 253
+- Total plans completed: 254
 - Milestones shipped: 8 (v1-v8)
 - Phases completed: 51
 
@@ -71,7 +71,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| **Backend Tests** | 687 passing | 20.3% coverage, 24 integration + 53 migration runner tests |
+| **Backend Tests** | 687 + 5 E2E | 20.3% coverage, 24 integration + 53 migration + 5 E2E tests |
 | **Frontend Tests** | 144 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
 | **Vue Composables** | 28 | 7 original + 6 admin + 10 curation + 5 gene page |
 | **Migrations** | 3 files + runner | api/functions/migration-runner.R ready |
@@ -125,9 +125,9 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 
 ## Session Continuity
 
-**Last session:** 2026-01-29
-**Stopped at:** Completed Phase 51 (SMTP Testing Infrastructure)
-**Next action:** `/gsd:discuss-phase 52` to plan User Lifecycle E2E
+**Last session:** 2026-01-30
+**Stopped at:** Completed 52-01-PLAN.md (User Registration & Approval E2E Tests)
+**Next action:** `/gsd:execute-phase 52` to run 52-02-PLAN.md (Password Reset E2E Tests)
 
 **Handoff notes:**
 
@@ -155,9 +155,16 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
    - Async handling: mailpit_wait_for_message() with polling (default 10s timeout)
    - Graceful skipping: Tests skip with informative message when Mailpit unavailable
 
-5. **Key files created:**
+5. **Key files created (Phase 51):**
    - api/tests/testthat/helper-mailpit.R (133 lines, 8 functions)
    - api/tests/testthat/test-integration-email.R (162 lines, 7 tests)
+
+6. **Phase 52-01 complete (User Registration & Approval E2E - 1/2 plans):**
+   - Added extract_token_from_email() helper (46 lines)
+   - Created test-e2e-user-lifecycle.R (326 lines, 5 tests)
+   - SMTP-03 verified: User registration sends confirmation email
+   - SMTP-04 verified: Curator approval sends password email
+   - Tests skip gracefully when prerequisites unavailable
 
 6. **Ready for Phase 52 (User Lifecycle E2E):**
    - Email infrastructure configured for testing
@@ -174,4 +181,4 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-29 — Phase 51 complete (SMTP Testing Infrastructure, 2/2 plans)*
+*Last updated: 2026-01-30 — Plan 52-01 complete (User Registration & Approval E2E Tests)*
