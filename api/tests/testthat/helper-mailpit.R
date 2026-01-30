@@ -131,3 +131,49 @@ mailpit_get_message <- function(message_id, mailpit_url = "http://localhost:8025
     httr2::req_perform()
   httr2::resp_body_json(resp)
 }
+
+
+#' Extract token from email body
+#'
+#' Extracts a JWT token from the email body using regex pattern matching.
+#' Used for password reset flow where token is embedded in URL.
+#'
+#' @param message_id Mailpit message ID (from mailpit_wait_for_message)
+#' @param pattern Regex pattern to extract token (default: /PasswordReset/ URLs)
+#' @param mailpit_url Base URL for Mailpit
+#' @return Extracted token string, or error if not found
+extract_token_from_email <- function(
+    message_id,
+    pattern = "/PasswordReset/([A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+)",
+    mailpit_url = "http://localhost:8025") {
+
+  # Fetch full message content
+  full_message <- mailpit_get_message(message_id, mailpit_url)
+
+  # Get text body (prefer plain text over HTML per CONTEXT.md)
+  email_body <- full_message$Text
+  if (is.null(email_body) || email_body == "") {
+    email_body <- full_message$HTML
+  }
+
+  if (is.null(email_body) || email_body == "") {
+    stop("Email body is empty - cannot extract token")
+  }
+
+  # Extract token using regex
+  match <- regmatches(email_body, regexpr(pattern, email_body, perl = TRUE))
+
+  if (length(match) == 0 || match == "") {
+    stop(paste("Could not extract token from email body with pattern:", pattern))
+  }
+
+  # Extract just the token part (the captured group)
+  token <- sub(".*/PasswordReset/", "", match)
+
+  # Validate token format - JWT has 3 parts separated by dots
+  if (!grepl("^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$", token)) {
+    stop(paste("Extracted token does not appear to be valid JWT format:", token))
+  }
+
+  token
+}
