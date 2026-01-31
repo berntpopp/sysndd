@@ -9,9 +9,10 @@
 # - Postmark transactional templates: https://github.com/wildbit/postmark-templates
 
 # Brand colors matching SysNDD frontend
-SYSNDD_PRIMARY <- "#1565c0"
+SYSNDD_NAVBAR <- "#343a40"       # Dark charcoal (matches navbar gradient)
+SYSNDD_PRIMARY <- "#1565c0"      # Blue (buttons, links, accents)
 SYSNDD_PRIMARY_DARK <- "#0d47a1"
-SYSNDD_TEXT <- "#2c3e50"
+SYSNDD_TEXT <- "#212121"         # Near-black text (matches homepage)
 SYSNDD_TEXT_LIGHT <- "#666666"
 SYSNDD_BACKGROUND <- "#f5f5f5"
 SYSNDD_WHITE <- "#ffffff"
@@ -50,53 +51,26 @@ email_wrapper <- function(content, preheader = "") {
     </xml>
   </noscript>
   <![endif]-->
+  <!--[if !mso]><!-->
   <style type="text/css">
-    body {{ margin: 0; padding: 0; background-color: {SYSNDD_BACKGROUND}; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }}
-    .email-container {{ max-width: 600px; margin: 0 auto; }}
-    .email-header {{ background-color: {SYSNDD_PRIMARY}; padding: 24px; text-align: center; }}
-    .email-header img {{ max-height: 50px; }}
-    .email-header h1 {{ color: {SYSNDD_WHITE}; font-size: 24px; margin: 12px 0 0 0; font-weight: 600; }}
-    .email-body {{ background-color: {SYSNDD_WHITE}; padding: 32px 24px; }}
-    .email-body h2 {{ color: {SYSNDD_TEXT}; font-size: 20px; margin: 0 0 16px 0; font-weight: 600; }}
-    .email-body p {{ color: {SYSNDD_TEXT}; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0; }}
-    .email-body .highlight {{ color: {SYSNDD_PRIMARY}; font-weight: 600; }}
-    .btn {{ display: inline-block; background-color: {SYSNDD_PRIMARY}; color: {SYSNDD_WHITE} !important; text-decoration: none; padding: 14px 28px; border-radius: 6px; font-weight: 600; font-size: 16px; margin: 16px 0; }}
-    .btn:hover {{ background-color: {SYSNDD_PRIMARY_DARK}; }}
-    .info-box {{ background-color: #e3f2fd; border-left: 4px solid {SYSNDD_PRIMARY}; padding: 16px; margin: 20px 0; border-radius: 0 6px 6px 0; }}
-    .info-box p {{ margin: 0; color: {SYSNDD_TEXT}; }}
-    .warning-box {{ background-color: #fff3cd; border-left: 4px solid {SYSNDD_WARNING}; padding: 16px; margin: 20px 0; border-radius: 0 6px 6px 0; }}
-    .warning-box p {{ margin: 0; color: {SYSNDD_TEXT}; }}
-    .code-box {{ background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 12px 16px; border-radius: 6px; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 14px; word-break: break-all; margin: 16px 0; }}
-    .divider {{ border-top: 1px solid #e0e0e0; margin: 24px 0; }}
-    .email-footer {{ background-color: {SYSNDD_BACKGROUND}; padding: 24px; text-align: center; }}
-    .email-footer p {{ color: {SYSNDD_TEXT_LIGHT}; font-size: 13px; line-height: 1.5; margin: 0 0 8px 0; }}
-    .email-footer a {{ color: {SYSNDD_PRIMARY}; text-decoration: none; }}
-    .social-links {{ margin: 16px 0; }}
-    .social-links a {{ display: inline-block; margin: 0 8px; }}
     @media only screen and (max-width: 600px) {{
-      .email-body {{ padding: 24px 16px; }}
-      .btn {{ display: block; text-align: center; }}
+      .email-body {{ padding: 24px 16px !important; }}
     }}
   </style>
+  <!--<![endif]-->
 </head>
 <body>
   <!-- Preheader text (hidden but shows in email preview) -->
-  <div style="display: none; max-height: 0px; overflow: hidden;">
-    {preheader}
-  </div>
-  <!-- Preheader spacer -->
-  <div style="display: none; max-height: 0px; overflow: hidden;">
-    &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;
-  </div>
+  <span style="display: none !important; visibility: hidden; mso-hide: all; font-size: 1px; color: #ffffff; line-height: 1px;">{preheader}</span>
 
   <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: {SYSNDD_BACKGROUND};">
     <tr>
       <td align="center" style="padding: 24px 12px;">
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" class="email-container" style="max-width: 600px; width: 100%;">
-          <!-- Header -->
+          <!-- Header (matches navbar dark gradient) -->
           <tr>
-            <td class="email-header" style="background-color: {SYSNDD_PRIMARY}; padding: 24px; text-align: center; border-radius: 8px 8px 0 0;">
-              <img src="https://sysndd.org/brain-neurodevelopmental-disorders-sysndd.png" alt="SysNDD Logo" style="max-height: 50px; margin-bottom: 8px;">
+            <td class="email-header" style="background-color: {SYSNDD_NAVBAR}; padding: 24px; text-align: center; border-radius: 8px 8px 0 0;">
+              <img src="https://sysndd.org/SysNDD_brain-dna-magnifying-glass_dall-e_logo.webp" alt="SysNDD Logo" style="max-height: 50px; margin-bottom: 8px;">
               <h1 style="color: {SYSNDD_WHITE}; font-size: 22px; margin: 8px 0 0 0; font-weight: 600;">SysNDD</h1>
             </td>
           </tr>
@@ -180,7 +154,7 @@ email_password_reset <- function(reset_url, user_name = NULL, expiry_minutes = 6
 <p style="color: {SYSNDD_TEXT_LIGHT}; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">
   If the button above does not work, copy and paste this link into your browser:
 </p>
-<div class="code-box" style="background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 12px 16px; border-radius: 6px; font-family: monospace; font-size: 12px; word-break: break-all; margin: 8px 0 0 0; color: {SYSNDD_TEXT_LIGHT};">
+<div class="code-box" style="background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 12px 16px; border-radius: 6px; font-family: monospace; font-size: 12px; margin: 8px 0 0 0; color: {SYSNDD_TEXT_LIGHT};">
   {reset_url}
 </div>
 ', .open = "{", .close = "}")
