@@ -1,7 +1,7 @@
 # Project State: SysNDD
 
-**Last updated:** 2026-01-30
-**Current milestone:** v9.0 Production Readiness
+**Last updated:** 2026-01-31
+**Current milestone:** v9.0 Production Readiness (Complete)
 
 ---
 
@@ -19,13 +19,13 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 
 ## Current Position
 
-**Phase:** 54 - Docker Infrastructure Hardening (In Progress)
+**Phase:** 54 - Docker Infrastructure Hardening (Complete)
 **Plan:** 2 of 2 complete
-**Status:** Phase complete
-**Progress:** ████████░░ 100% (8/8 phases)
+**Status:** Milestone complete + post-milestone enhancements
+**Progress:** ████████████ 100% (8/8 phases)
 
-**Last completed:** 54-02-PLAN.md (Security Hardening & Resource Limits)
-**Next step:** v9.0 milestone complete - review and merge
+**Last completed:** Post-milestone enhancements (batch email, profile editing)
+**Next step:** v9.0 milestone merge to master, then v10.0 planning
 
 ---
 
@@ -67,6 +67,10 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 | v7 Curation Workflow Modernization | 34-39 | 21 | 2026-01-27 |
 | v8 Gene Page & Genomic Data | 40-46 | 25 | 2026-01-29 |
 | v9 Production Readiness | 47-54 | 16 | 2026-01-30 |
+
+**Post-v9.0 Enhancements (2026-01-31):**
+- Batch assignment email notification (re_review_endpoints.R, email-templates.R)
+- Self-service profile editing for email and ORCID (user_endpoints.R, UserView.vue)
 
 **Current Stats:**
 
@@ -135,9 +139,9 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 
 ## Session Continuity
 
-**Last session:** 2026-01-30
-**Stopped at:** Completed Phase 54 (Docker Infrastructure Hardening)
-**Next action:** v9.0 milestone complete - review and merge to master
+**Last session:** 2026-01-31
+**Stopped at:** Post-milestone enhancements complete
+**Next action:** v9.0 milestone merge to master, then v10.0 planning
 
 **Handoff notes:**
 
@@ -146,23 +150,36 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
    - 54-02: Security hardening (no-new-privileges, CPU limits, log rotation)
    - All DOCKER-01 through DOCKER-08 requirements resolved
 
-2. **Key decisions (Phase 54):**
-   - CPU limits sized by workload: traefik 0.25, mysql 1.0, backup 0.5, api 2.0, app 0.5
-   - API gets larger log rotation (50m x 5) due to request logging volume
-   - MySQL healthcheck uses application user to verify actual credentials
-   - Existing cleanupHook in API already handles graceful shutdown (DOCKER-08)
+2. **Post-v9.0 Enhancements (2026-01-31):**
 
-3. **Key files (Phase 54):**
-   - docker-compose.yml - Production Docker Compose with all security hardening
-   - docker-compose.dev.yml - Development Docker Compose with matching config
-   - app/nginx.conf - Static asset caching and access logging
+   a. **Batch Assignment Email Notification:**
+      - Added `email_batch_assigned()` template function in `api/functions/email-templates.R`
+      - Updated `PUT /api/batch/assign` endpoint in `api/endpoints/re_review_endpoints.R`
+      - Email includes batch number, entity count, and "Start Reviewing" CTA button
+      - BCC to curator@sysndd.org for monitoring
+      - Commit: `e49cc74c` - feat(email): add batch assignment notification email
+
+   b. **Self-Service Profile Editing:**
+      - Added `PUT /api/profile` endpoint in `api/endpoints/user_endpoints.R`
+      - Users can update their own email and ORCID
+      - Email validation: format check + uniqueness check
+      - ORCID validation: pattern `^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$`
+      - Updated `UserView.vue` with inline editing, real-time validation, Save/Cancel UI
+      - Commit: `ab917f6c` - feat(user): add self-service profile editing for email and ORCID
+
+3. **Key files modified:**
+   - `api/functions/email-templates.R` - Added batch assignment template
+   - `api/endpoints/re_review_endpoints.R` - Added email notification on batch assign
+   - `api/endpoints/user_endpoints.R` - Added PUT /profile endpoint
+   - `app/src/views/UserView.vue` - Added profile editing UI with validation
 
 4. **v9.0 Milestone Complete:**
    - All 8 phases (47-54) completed
    - All 29 requirements addressed
    - Production-ready Docker infrastructure
+   - Plus 2 post-milestone user experience enhancements
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-30 — Phase 54 complete (Docker Infrastructure Hardening), v9.0 milestone complete*
+*Last updated: 2026-01-31 — Post-v9.0 enhancements (batch email, profile editing) complete*

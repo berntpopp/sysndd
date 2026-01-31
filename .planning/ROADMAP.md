@@ -266,5 +266,40 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 
 ---
 
+## Post-Milestone Enhancements
+
+The following enhancements were added after the v9.0 milestone completion:
+
+### Batch Assignment Email Notification (2026-01-31)
+
+**Commit:** `e49cc74c` - feat(email): add batch assignment notification email
+
+**Changes:**
+- Added `email_batch_assigned()` template function in `api/functions/email-templates.R`
+- Updated `PUT /api/batch/assign` endpoint to send email notification to assigned user
+- Email includes batch number, entity count, and "Start Reviewing" CTA button
+- BCC to curator@sysndd.org for monitoring
+
+**Files:**
+- `api/functions/email-templates.R`
+- `api/endpoints/re_review_endpoints.R`
+
+### Self-Service Profile Editing (2026-01-31)
+
+**Commit:** `ab917f6c` - feat(user): add self-service profile editing for email and ORCID
+
+**Changes:**
+- Added `PUT /api/profile` endpoint for authenticated users to update their own profile
+- Email validation: format check (`*@*.*`) + uniqueness check (no duplicates)
+- ORCID validation: pattern `^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$`
+- Updated `UserView.vue` with inline editing mode, real-time validation, and Save/Cancel buttons
+- JavaScript validation mirrors API validation for immediate feedback
+
+**Files:**
+- `api/endpoints/user_endpoints.R`
+- `app/src/views/UserView.vue`
+
+---
+
 *Roadmap created: 2026-01-29*
-*Last updated: 2026-01-30 — Phase 54 complete (2/2 plans) — MILESTONE COMPLETE*
+*Last updated: 2026-01-31 — Post-milestone enhancements (batch email, profile editing) added*
