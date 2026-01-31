@@ -528,6 +528,19 @@ function(req, res) {
       rename_data$entity$disease_ontology_id_version !=
         ndd_entity_original$disease_ontology_id_version
   ) {
+    # TODO: Implement approval workflow for disease renaming (BUG-07)
+    # Currently disease renaming bypasses approval:
+    # - New entity is immediately active
+    # - Old entity is immediately deactivated
+    # - Review/status are copied without re-approval
+    # Should follow pattern: create inactive entity, mark review/status unapproved,
+    # keep old active until approval, then swap on approval
+    log_warn(
+      "Disease rename for entity {rename_data$entity$entity_id} bypassing approval workflow. ",
+      "Old disease: {ndd_entity_original$disease_ontology_id_version}, ",
+      "New disease: {rename_data$entity$disease_ontology_id_version}"
+    )
+
     response_new_entity <- post_db_entity(ndd_entity_replaced)
     response_deactivate <- put_db_entity_deactivation(
       ndd_entity_original$entity_id,
