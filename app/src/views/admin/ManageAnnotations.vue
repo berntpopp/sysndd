@@ -228,6 +228,136 @@
         </BCol>
       </BRow>
 
+      <!-- Publication Metadata Refresh Section -->
+      <BRow class="justify-content-md-center py-2">
+        <BCol col md="12">
+          <BCard
+            header-tag="header"
+            body-class="p-2"
+            header-class="p-1"
+            border-variant="dark"
+            class="mb-3 text-start"
+          >
+            <template #header>
+              <h5 class="mb-0 text-start font-weight-bold d-flex align-items-center">
+                Publication Metadata Refresh
+                <span
+                  v-if="publicationStats.total !== null"
+                  class="badge bg-info ms-2 fw-normal"
+                >
+                  {{ publicationStats.total?.toLocaleString() }} publications
+                </span>
+                <span
+                  v-if="publicationStats.oldest_update"
+                  class="badge bg-warning text-dark ms-2 fw-normal"
+                >
+                  Oldest: {{ formatDate(publicationStats.oldest_update) }}
+                </span>
+                <span
+                  v-if="publicationStats.outdated_count && publicationStats.outdated_count > 0"
+                  class="badge bg-danger ms-2 fw-normal"
+                >
+                  {{ publicationStats.outdated_count.toLocaleString() }} outdated
+                </span>
+              </h5>
+            </template>
+
+            <div class="mb-3">
+              <p class="text-muted small mb-2">
+                Refresh publication metadata from PubMed. Publications are updated in place
+                (no deletions). Rate limited to ~3 requests/second to comply with NCBI limits.
+              </p>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="d-flex gap-2 mb-3">
+              <BButton
+                variant="outline-secondary"
+                size="sm"
+                :disabled="loadingPublicationStats"
+                @click="fetchPublicationStats"
+              >
+                <BSpinner v-if="loadingPublicationStats" small type="grow" class="me-1" />
+                {{ loadingPublicationStats ? 'Loading...' : 'Refresh Stats' }}
+              </BButton>
+              <BButton
+                variant="primary"
+                :disabled="publicationRefreshJob.isLoading.value || publicationStats.total === null"
+                @click="refreshAllPublications"
+              >
+                <BSpinner v-if="publicationRefreshJob.isLoading.value" small type="grow" class="me-2" />
+                {{ publicationRefreshJob.isLoading.value ? 'Refreshing...' : 'Refresh All Publications' }}
+              </BButton>
+            </div>
+
+            <!-- Progress display -->
+            <div
+              v-if="publicationRefreshJob.isLoading.value || publicationRefreshJob.status.value !== 'idle'"
+              class="mt-3"
+            >
+              <div class="d-flex align-items-center mb-2">
+                <span
+                  class="badge me-2"
+                  :class="publicationRefreshJob.statusBadgeClass.value"
+                >
+                  {{ publicationRefreshJob.status.value }}
+                </span>
+                <span class="text-muted">{{ publicationRefreshJob.step.value }}</span>
+              </div>
+
+              <BProgress
+                v-if="publicationRefreshJob.isLoading.value"
+                :value="publicationRefreshJob.hasRealProgress.value ? publicationRefreshJob.progressPercent.value : 100"
+                :max="100"
+                :animated="true"
+                :striped="!publicationRefreshJob.hasRealProgress.value"
+                :variant="publicationRefreshJob.progressVariant.value"
+                height="1.5rem"
+              >
+                <template #default>
+                  <span v-if="publicationRefreshJob.hasRealProgress.value">
+                    {{ publicationRefreshJob.progressPercent.value }}% -
+                    {{ publicationRefreshJob.step.value }}
+                  </span>
+                  <span v-else>
+                    {{ publicationRefreshJob.step.value }}
+                    ({{ publicationRefreshJob.elapsedTimeDisplay.value }})
+                  </span>
+                </template>
+              </BProgress>
+
+              <div
+                v-if="publicationRefreshJob.progress.value.current && publicationRefreshJob.progress.value.total"
+                class="small text-muted mt-1"
+              >
+                {{ publicationRefreshJob.progress.value.current.toLocaleString() }} /
+                {{ publicationRefreshJob.progress.value.total.toLocaleString() }}
+                ({{ publicationRefreshJob.elapsedTimeDisplay.value }})
+              </div>
+
+              <!-- Show result summary on completion -->
+              <BAlert
+                v-if="publicationRefreshJob.status.value === 'completed'"
+                variant="success"
+                show
+                class="mt-2 mb-0"
+              >
+                Refresh complete. Check job history for details.
+              </BAlert>
+
+              <BAlert
+                v-if="publicationRefreshJob.status.value === 'failed'"
+                variant="danger"
+                show
+                class="mt-2 mb-0"
+              >
+                {{ publicationRefreshJob.error.value || 'Refresh failed. Check job history for details.' }}
+              </BAlert>
+            </div>
+          </BCard>
+        </BCol>
+      </BRow>
+
       <!-- Deprecated OMIM Entities Section -->
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
@@ -564,11 +694,14 @@ const searchFilter = ref('');
 // Page size options for dropdown
 const pageSizeOptions = [10, 25, 50, 100];
 
-// Create job instances for ontology and HGNC updates
+// Create job instances for ontology, HGNC, and publication refresh
 const ontologyJob = useAsyncJob(
   (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
 );
 const hgncJob = useAsyncJob(
+  (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
+);
+const publicationRefreshJob = useAsyncJob(
   (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
 );
 
@@ -596,6 +729,14 @@ const pubtatorStats = ref({
   novel_count: null as number | null,
 });
 const loadingPubtatorStats = ref(false);
+
+// Publication refresh stats state
+const publicationStats = ref({
+  total: null as number | null,
+  oldest_update: null as string | null,
+  outdated_count: null as number | null,
+});
+const loadingPublicationStats = ref(false);
 
 const deprecatedTableFields = [
   { key: 'entity_id', label: 'Entity', sortable: true },
@@ -690,6 +831,21 @@ watch(
       fetchJobHistory();
     } else if (newStatus === 'failed') {
       const errorMsg = hgncJob.error.value || 'HGNC update failed';
+      makeToast(errorMsg, 'Error', 'danger');
+      fetchJobHistory();
+    }
+  }
+);
+
+watch(
+  () => publicationRefreshJob.status.value,
+  (newStatus) => {
+    if (newStatus === 'completed') {
+      makeToast('Publications refreshed successfully', 'Success', 'success');
+      fetchPublicationStats();
+      fetchJobHistory();
+    } else if (newStatus === 'failed') {
+      const errorMsg = publicationRefreshJob.error.value || 'Publication refresh failed';
       makeToast(errorMsg, 'Error', 'danger');
       fetchJobHistory();
     }
@@ -898,6 +1054,7 @@ function formatOperationType(operation: string): string {
     ontology_update: 'Ontology Update',
     hgnc_update: 'HGNC Update',
     pubtator_update: 'Pubtator Update',
+    publication_refresh: 'Publication Refresh',
   };
   return labels[operation] || operation;
 }
@@ -1133,12 +1290,101 @@ async function fetchPubtatorStats() {
   }
 }
 
+async function fetchPublicationStats() {
+  loadingPublicationStats.value = true;
+  try {
+    const response = await axios.get(
+      `${import.meta.env.VITE_API_URL}/api/publication/stats`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    );
+    publicationStats.value = {
+      total: unwrapValue(response.data.total),
+      oldest_update: unwrapValue(response.data.oldest_update),
+      outdated_count: unwrapValue(response.data.outdated_count),
+    };
+  } catch (error) {
+    console.warn('Failed to fetch publication stats:', error);
+  } finally {
+    loadingPublicationStats.value = false;
+  }
+}
+
+async function refreshAllPublications() {
+  publicationRefreshJob.reset();
+
+  try {
+    // Get all publication PMIDs via the publications endpoint
+    const pubResponse = await axios.get(
+      `${import.meta.env.VITE_API_URL}/api/publication`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        params: {
+          fields: 'publication_id',
+          page_size: 10000, // Get all publications
+        },
+      }
+    );
+
+    // Extract PMIDs from the cursor-paginated response
+    const publications = pubResponse.data?.data || [];
+
+    const pmids = publications.map((p: { publication_id: string | string[] }) =>
+      unwrapValue(p.publication_id)
+    );
+
+    if (pmids.length === 0) {
+      makeToast('No publications to refresh', 'Info', 'info');
+      return;
+    }
+
+    // Start refresh job
+    const jobResponse = await axios.post(
+      `${import.meta.env.VITE_API_URL}/api/admin/publications/refresh`,
+      { pmids },
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    );
+
+    if (jobResponse.data.error) {
+      makeToast(
+        jobResponse.data.message || 'Failed to start refresh',
+        'Error',
+        'danger'
+      );
+      return;
+    }
+
+    // Handle already running job
+    if (jobResponse.data.status === 'already_running') {
+      makeToast('A refresh job is already running', 'Info', 'info');
+      publicationRefreshJob.startJob(jobResponse.data.job_id);
+      return;
+    }
+
+    // Start tracking the new job
+    publicationRefreshJob.startJob(jobResponse.data.job_id);
+  } catch (error) {
+    makeToast('Failed to start publication refresh', 'Error', 'danger');
+    console.error('Publication refresh error:', error);
+  }
+}
+
 // Lifecycle
 onMounted(() => {
   initFromUrl();
   fetchAnnotationDates();
   fetchJobHistory();
   fetchPubtatorStats();
+  fetchPublicationStats();
 });
 </script>
 
